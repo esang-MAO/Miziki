@@ -18,6 +18,7 @@
   --amber:#FF9E2C;
   --cool:#9FD8E8;
   --accent:var(--amber);
+  --miziki-orange:#FF9E2C;
   --disc-a:#26282F; --disc-b:#15161B; --disc-c:#0D0E13;
   --display:'Antonio','Oswald','Arial Narrow',sans-serif;
   --body:'Archivo','Helvetica Neue',system-ui,sans-serif;
@@ -49,20 +50,30 @@ body{
 .platter-box{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
 .disc,.sheen,.strobe-ring,.spindle{position:absolute;inset:0;border-radius:50%}
 .disc{
+  /* variant color/pattern layer — set inline per track by applyDiscVariant();
+     this default is only what shows before any track has loaded */
+  background:radial-gradient(circle at 50% 50%,var(--disc-a) 0 27%,var(--disc-b) 27% 90%,var(--disc-c) 90% 100%);
+  box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06);
+  will-change:transform; touch-action:none; cursor:grab;
+}
+.disc:active{cursor:grabbing}
+.disc::before{
+  content:'';
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  /* a groove seam plus light catching the pressing — these turn with the disc,
+     so the eye can actually tell which way it is going. Layered over whatever
+     the variant background is, so it reads on every tier and pattern alike. */
   background:
-    /* a groove seam plus light catching the pressing — these turn with the disc,
-       so the eye can actually tell which way it is going */
     conic-gradient(from 0deg,
       rgba(255,255,255,.10) 0deg 1.2deg, rgba(0,0,0,.18) 1.2deg 2.6deg,
       rgba(255,255,255,0) 2.6deg 48deg,
       rgba(255,255,255,.045) 48deg 54deg, rgba(255,255,255,0) 54deg 137deg,
       rgba(255,255,255,.055) 137deg 142deg, rgba(255,255,255,0) 142deg 225deg,
       rgba(255,255,255,.035) 225deg 231deg, rgba(255,255,255,0) 231deg 360deg),
-    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px),
-    radial-gradient(circle at 50% 50%,var(--disc-a) 0 27%,var(--disc-b) 27% 90%,var(--disc-c) 90% 100%);
-  box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06);
-  will-change:transform;
+    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px);
+  transition:opacity .6s;
 }
+.disc.rare::before{opacity:.3}
 .label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
   display:grid;place-content:center;text-align:center;color:#170D04;
@@ -70,8 +81,11 @@ body{
 .label .art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s}
 .label.has-art .art{opacity:1}
 .label.has-art .rpm,.label.has-art .mode-tag{display:none}
-/* the mode still has to read at a glance, so it moves to the label rim */
-.label.has-art{box-shadow:inset 0 0 0 3px var(--accent),inset 0 0 0 5px rgba(0,0,0,.45)}
+/* the mode still has to read at a glance, so it moves to the label rim.
+   This ring is a fixed Miziki orange — unlike --accent it does not follow
+   Pure/Vinyl mode, since it is a brand mark on the format ladder, not a mode indicator. */
+.label.has-art{box-shadow:inset 0 0 0 3px var(--miziki-orange),inset 0 0 0 5px rgba(0,0,0,.45)}
+.label.rare{box-shadow:none}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
 .t-dur{font-family:var(--data);font-size:10px;color:var(--muted)}
 .tracklist li.picked{background:color-mix(in srgb,var(--accent) 12%,transparent)}
@@ -426,7 +440,10 @@ const S = {
   sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
   char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35},
-  angle:0, strobe:0
+  angle:0, strobe:0,
+  // record art + session tracking (see spec)
+  sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
+  curPlayed:[], curTrackDone:false
 };
 
 /* ================= audio graph ================= */
@@ -494,6 +511,115 @@ function applyCharacter(){
 function routeSource(src){
   src.disconnect();
   src.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
+}
+
+/* ================= record art: quality tiers + variant selection =================
+   Tier read from the decoder's own bit depth / sample rate, never file extension.
+   Boundary rule: either dimension over the standard qualifies as hi-res, not both —
+   ambiguous or missing metadata simply never crosses that threshold, which is the
+   spec's "fall back a tier" behavior for free. */
+function trackTier(t){
+  const m = t.meta || {};
+  if(!m.lossless) return 1;
+  if((m.bits || 0) > 16 || (m.rate || 0) > 44100) return 3;
+  return 2;
+}
+
+function normKey(s){
+  return (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+}
+function hash32(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+// hash input is normalized artist + album + track title — never the file id/path,
+// which changes when a library is moved or reorganized
+function variantHashKey(t){
+  return normKey(t.tags.artist) + '|' + normKey(t.tags.album) + '|' + normKey(t.tags.title);
+}
+// "album" here is the same grouping key the Library view already uses (t.tags.album),
+// so session tracking and the rare-variant unlock line up with what the user sees as "the album"
+function albumKey(t){ return normKey(t.tags.album); }
+
+const SOLID_POOL = ['solid-white','solid-red','solid-blue','solid-yellow','solid-green','solid-purple'];
+const EFFECT_POOL = ['effect-swirl-a','effect-swirl-b','effect-split-ab','effect-splatter-a','effect-splatter-b'];
+// palette below is a placeholder — exact tier-2 solids / tier-3 effect designs are an open item
+const VARIANT_DEFS = {
+  'classic-black':     {pattern:'solid',    colors:['#26282F','#15161B','#0D0E13']},
+  'solid-white':       {pattern:'solid',    colors:['#F4F1E9','#D8D3C6','#B9B29E']},
+  'solid-red':         {pattern:'solid',    colors:['#D9503F','#A5321F','#6E1E12']},
+  'solid-blue':        {pattern:'solid',    colors:['#3E6FA8','#294C7C','#152A4A']},
+  'solid-yellow':      {pattern:'solid',    colors:['#E8C34A','#B8912A','#7A5C15']},
+  'solid-green':       {pattern:'solid',    colors:['#4E9563','#317047','#1B4229']},
+  'solid-purple':      {pattern:'solid',    colors:['#8B5FB0','#5F3C7E','#3A2350']},
+  'effect-swirl-a':    {pattern:'swirl',    colors:['#D9503F','#3E6FA8','#0D0E13']},
+  'effect-swirl-b':    {pattern:'swirl',    colors:['#E8C34A','#4E9563','#0D0E13']},
+  'effect-split-ab':   {pattern:'split',    colors:['#F4F1E9','#15161B','#0D0E13']},
+  'effect-splatter-a': {pattern:'splatter', colors:['#F4F1E9','#D9503F','#0D0E13']},
+  'effect-splatter-b': {pattern:'splatter', colors:['#3E6FA8','#E8C34A','#0D0E13']}
+};
+
+// expand tier weights into a flat lookup array once, at script load — selection
+// itself is then a single index, never a runtime probability roll
+function buildWeightedArray(pool, count){
+  const arr = [];
+  for(let i=0;i<count;i++) arr.push(pool[i % pool.length]);
+  return arr;
+}
+const TIER_ARRAYS = {
+  1: ['classic-black'],
+  2: buildWeightedArray(SOLID_POOL, 80).concat(buildWeightedArray(['classic-black'], 20)),
+  3: buildWeightedArray(EFFECT_POOL, 70).concat(buildWeightedArray(SOLID_POOL, 20)).concat(buildWeightedArray(['classic-black'], 10))
+};
+
+function selectVariant(t){
+  const tier = trackTier(t);
+  const arr = TIER_ARRAYS[tier];
+  const h = hash32(variantHashKey(t));
+  return {tier, variant: arr[h % arr.length]};
+}
+
+function variantBackground(def){
+  const [a,b,c] = def.colors;
+  if(def.pattern === 'split'){
+    return 'conic-gradient(from 0deg,' + a + ' 0deg 179deg,' + b + ' 179deg 180deg,'
+      + c + ' 180deg 359deg,' + b + ' 359deg 360deg)';
+  }
+  if(def.pattern === 'swirl'){
+    return 'conic-gradient(from 0deg,' + a + ',' + b + ',' + c + ',' + a + ',' + b + ',' + c + ',' + a + ')';
+  }
+  if(def.pattern === 'splatter'){
+    const spots = [[30,25],[70,20],[50,50],[20,65],[80,60],[40,80],[65,40],[15,40]];
+    const layers = spots.map(([x,y],i) =>
+      'radial-gradient(circle at ' + x + '% ' + y + '%,' + (i % 2 ? b : a) + ' 0 6%,transparent 7%)');
+    layers.push('radial-gradient(circle at 50% 50%,' + c + ' 0 90%,' + c + ' 90% 100%)');
+    return layers.join(',');
+  }
+  return 'radial-gradient(circle at 50% 50%,' + a + ' 0 27%,' + b + ' 27% 90%,' + c + ' 90% 100%)';
+}
+
+// Outside the full player the artwork travels as a plain circular label; the disc's
+// tier-derived surface is scoped to this renderer only (see spec §1).
+function applyDiscVariant(t){
+  const disc = $('#disc'), label = $('#label');
+  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); return; }
+  const albumId = albumKey(t);
+  const rare = !!S.rareUnlocked[albumId];
+  disc.classList.toggle('rare', rare);
+  label.classList.toggle('rare', rare);
+  if(rare && t.art){
+    // "Art Suspended in Vinyl": continuous material, no paper seam — the same
+    // artwork the label shows extends across the whole disc, read through the grooves
+    disc.style.background = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
+      + 'url("' + t.art + '") center/cover';
+    delete disc.dataset.variant; delete disc.dataset.tier;
+  } else {
+    const {tier, variant} = selectVariant(t);
+    disc.dataset.tier = tier; disc.dataset.variant = variant;
+    disc.style.background = variantBackground(VARIANT_DEFS[variant]);
+  }
 }
 
 /* ================= file loading ================= */
@@ -892,11 +1018,12 @@ const DB = {
     try{
       this.db = await Promise.race([
         new Promise((res,rej)=>{
-          const r = indexedDB.open('miziki', 1);
+          const r = indexedDB.open('miziki', 2);
           r.onupgradeneeded = () => {
             const d = r.result;
-            if(!d.objectStoreNames.contains('tracks')) d.createObjectStore('tracks', {keyPath:'id'});
-            if(!d.objectStoreNames.contains('meta'))   d.createObjectStore('meta',   {keyPath:'k'});
+            if(!d.objectStoreNames.contains('tracks'))   d.createObjectStore('tracks',   {keyPath:'id'});
+            if(!d.objectStoreNames.contains('meta'))     d.createObjectStore('meta',     {keyPath:'k'});
+            if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions', {keyPath:'albumId'});
           };
           r.onsuccess = () => res(r.result);
           r.onerror = () => rej(r.error || new Error('open failed'));
@@ -977,6 +1104,165 @@ function applyPrefs(p){
   applyVolume();
 }
 
+/* ================= record art: session tracking =================
+   A "qualifying session" is one full play-through of an album, in order, with
+   shuffle off, zero skips, and every track actually heard (not just scrubbed
+   past) to 95%. See spec §7-8. Persisted one record per in-progress album so a
+   backgrounded/killed app can resume within a 4-hour gap. */
+const FOUR_HOURS = 4 * 3600 * 1000;
+
+function albumExpectedOrder(albumId){
+  const sample = S.tracks.find(t => albumKey(t) === albumId);
+  if(!sample) return [];
+  return albumTracks(sample.tags.album).map(i => S.tracks[i].id);
+}
+
+async function persistSession(rec){ S.sessions[rec.albumId] = rec; await DB.put('sessions', rec); }
+async function persistSessionCounts(){ await DB.put('meta', {k:'sessionCounts', v:S.sessionCounts}); }
+async function persistRareUnlocked(){ await DB.put('meta', {k:'rareUnlocked', v:S.rareUnlocked}); }
+
+function startSession(albumId){
+  const order = albumExpectedOrder(albumId);
+  if(!order.length) return null;
+  const rec = {albumId, startedAt:Date.now(), lastActivityAt:Date.now(),
+    tracksCompleted:[], expectedOrder:order, invalidated:false};
+  persistSession(rec);
+  return rec;
+}
+
+// skip, shuffle-on, and out-of-order jumps are all "invalidating events" —
+// write the flag (per spec §8), then drop it from the active set
+function invalidateSession(albumId){
+  const rec = S.sessions[albumId];
+  if(!rec) return;
+  rec.invalidated = true; rec.lastActivityAt = Date.now();
+  DB.put('sessions', rec);
+  delete S.sessions[albumId];
+}
+function discardSession(albumId){ delete S.sessions[albumId]; DB.put('sessions', {albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
+
+function invalidateActiveSessionIfAny(){
+  if(S.sessionActive) invalidateSession(S.sessionActive);
+  S.sessionActive = null;
+}
+
+function touchActiveSession(){
+  const rec = S.sessionActive && S.sessions[S.sessionActive];
+  if(!rec) return;
+  rec.lastActivityAt = Date.now();
+  DB.put('sessions', rec);
+}
+
+// called whenever a new track finishes loading; decides whether this track
+// continues, starts, or falls outside of album session tracking
+function sessionOnLoad(t){
+  if(!t){ S.sessionActive = null; return; }
+  if(S.shuffle){ S.sessionActive = null; return; }
+  const albumId = albumKey(t);
+  const order = albumExpectedOrder(albumId);
+  const idx = order.indexOf(t.id);
+  let rec = S.sessions[albumId];
+
+  if(rec && Date.now() - rec.lastActivityAt > FOUR_HOURS){
+    discardSession(albumId);
+    rec = null;
+  }
+
+  if(rec){
+    const expectedNext = rec.tracksCompleted.length;
+    if(idx === expectedNext){
+      rec.lastActivityAt = Date.now();
+      persistSession(rec);
+      S.sessionActive = albumId;
+      return;
+    }
+    invalidateSession(albumId);
+    rec = null;
+  }
+
+  if(idx === 0){
+    startSession(albumId);
+    S.sessionActive = albumId;
+  } else {
+    S.sessionActive = null;
+  }
+}
+
+function sessionTrackComplete(t){
+  const albumId = albumKey(t);
+  if(S.sessionActive !== albumId) return;
+  const rec = S.sessions[albumId];
+  if(!rec) return;
+  const nextIdx = rec.tracksCompleted.length;
+  if(rec.expectedOrder[nextIdx] !== t.id) return;
+  rec.tracksCompleted.push(t.id);
+  rec.lastActivityAt = Date.now();
+  if(rec.tracksCompleted.length >= rec.expectedOrder.length){
+    delete S.sessions[albumId];
+    DB.put('sessions', rec);
+    S.sessionActive = null;
+    S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
+    persistSessionCounts();
+    checkRareUnlock(albumId);
+  } else {
+    persistSession(rec);
+  }
+}
+
+// no indicator, no progress display — the unlock is silent by design
+function checkRareUnlock(albumId){
+  if(S.rareUnlocked[albumId]) return;
+  if((S.sessionCounts[albumId] || 0) >= 34){
+    S.rareUnlocked[albumId] = true;
+    persistRareUnlocked();
+    const t = current();
+    if(t && albumKey(t) === albumId) applyDiscVariant(t);
+  }
+}
+
+async function restoreSessions(){
+  const recs = await DB.all('sessions');
+  const now = Date.now();
+  recs.forEach(r => {
+    if(r.invalidated) return;
+    if(now - r.lastActivityAt > FOUR_HOURS) return;
+    S.sessions[r.albumId] = r;
+  });
+  const counts = await DB.get('meta', 'sessionCounts');
+  if(counts && counts.v) S.sessionCounts = counts.v;
+  const unlocked = await DB.get('meta', 'rareUnlocked');
+  if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
+}
+
+/* ---- played-duration tracking: which portions of the current track's timeline
+   have actually sounded, not just been scrubbed past. Forward playback extends
+   the last interval in O(1); a merge only runs when coverage is asked for. ---- */
+function addPlayedRange(a, b){
+  if(b <= a) return;
+  const n = S.curPlayed.length;
+  if(n && a <= S.curPlayed[n-1][1] + 0.05) S.curPlayed[n-1][1] = Math.max(S.curPlayed[n-1][1], b);
+  else S.curPlayed.push([a, b]);
+}
+function playedCoverage(){
+  if(!S.curPlayed.length) return 0;
+  const ivs = S.curPlayed.slice().sort((x,y) => x[0]-y[0]);
+  let total = 0, curStart = ivs[0][0], curEnd = ivs[0][1];
+  for(let i=1;i<ivs.length;i++){
+    const [s,e] = ivs[i];
+    if(s <= curEnd + 0.05) curEnd = Math.max(curEnd, e);
+    else { total += curEnd - curStart; curStart = s; curEnd = e; }
+  }
+  total += curEnd - curStart;
+  return total;
+}
+function checkTrackCompletion(t){
+  if(S.curTrackDone || !t.duration) return;
+  if(playedCoverage() >= 0.95 * t.duration){
+    S.curTrackDone = true;
+    sessionTrackComplete(t);
+  }
+}
+
 async function storeTrack(t, blob){
   if(!DB.ok) return false;
   const artBlob = t.artBlob || null;
@@ -986,14 +1272,17 @@ async function storeTrack(t, blob){
 }
 
 async function forgetLibrary(){
-  await DB.clear('tracks'); await DB.clear('meta');
+  await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
   S.queue = []; S.baseQueue = []; S.lru = [];
+  S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
+  S.curPlayed = []; S.curTrackDone = false;
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
+  applyDiscVariant(null);
   renderTracks(); drawTime();
 }
 
@@ -1043,6 +1332,7 @@ function buildOrder(first){
 }
 
 function setQueue(indices, startPos, autoplay){
+  invalidateActiveSessionIfAny();
   S.baseQueue = indices.slice();
   const first = indices[startPos];
   if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
@@ -1061,6 +1351,7 @@ function reorderQueue(){
 function advance(dir, auto){
   if(!S.queue.length) return;
   if(auto && S.repeat === 'one'){ seek(0); if(!S.playing) play(); return; }
+  if(!auto) invalidateActiveSessionIfAny();     // an explicit next/prev press is a skip
   let n = S.qpos + dir;
   if(n >= S.queue.length){
     if(S.repeat === 'all'){ if(S.shuffle) buildOrder(); n = 0; }
@@ -1079,6 +1370,7 @@ function prevTrack(){
 
 function toggleShuffle(){
   S.shuffle = !S.shuffle;
+  if(S.shuffle) invalidateActiveSessionIfAny();
   reorderQueue();
   const b = $('#shuffle');
   b.setAttribute('aria-pressed', String(S.shuffle));
@@ -1098,7 +1390,10 @@ function load(i, autoplay){
   if(!S.tracks[i]) return;
   stop();
   S.index = i; S.pos = 0;
+  S.curPlayed = []; S.curTrackDone = false;
   const t = S.tracks[i];
+  sessionOnLoad(t);
+  applyDiscVariant(t);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
   $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
   const lab = $('#label'), img = $('#labelArt');
@@ -1146,7 +1441,7 @@ function stop(){
 }
 
 function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
-  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); }
+  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); }
 
 function seek(sec){
   const t = current(); if(!t) return;
@@ -1285,8 +1580,11 @@ function frame(now){
 
   const t = current();
   if(S.playing && t){
+    const prevPos = S.pos;
     S.pos += dt * S.rate;
     if(S.pos >= t.duration){ S.pos = t.duration; }
+    addPlayedRange(prevPos, S.pos);
+    checkTrackCompletion(t);
   }
 
   if(!REDUCED){
@@ -1342,6 +1640,75 @@ function drawSun(){
   const key = p < 0.5 ? [mix(A[0],B[0],p*2), mix(A[1],B[1],p*2)] : [mix(B[0],C[0],(p-0.5)*2), mix(B[1],C[1],(p-0.5)*2)];
   document.documentElement.style.setProperty('--sky1','rgb('+key[0].join(',')+')');
   document.documentElement.style.setProperty('--sky2','rgb('+key[1].join(',')+')');
+}
+
+/* ================= spin-to-scrub =================
+   Full player only. Rotating the disc clockwise fast-forwards, counter-clockwise
+   rewinds, at an invented ratio (not the real ~1.8s/rotation, which would need
+   ~130 rotations to cross a four-minute track). Radius sensitivity is not
+   simulated — measuring angle from the spindle via atan2 already gives fine
+   control near the rim and coarse control near the center for free, because a
+   given finger travel covers fewer degrees the farther out it is. */
+const SCRUB_SEC_PER_ROTATION = 30;
+const SCRUB_CLAIM_THRESHOLD_DEG = 8;
+let scrubGesture = null;
+
+function pointerAngle(clientX, clientY, rect){
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  return Math.atan2(clientY - cy, clientX - cx) * 180/Math.PI;
+}
+function angleDelta(a, b){
+  let d = a - b;
+  while(d > 180) d -= 360;
+  while(d < -180) d += 360;
+  return d;
+}
+
+function wireSpinToScrub(){
+  const disc = $('#disc');
+  disc.addEventListener('pointerdown', e => {
+    if(!current()) return;
+    const rect = disc.getBoundingClientRect();
+    const ang = pointerAngle(e.clientX, e.clientY, rect);
+    scrubGesture = {pointerId:e.pointerId, startAngle:ang, lastAngle:ang, claimed:false,
+      wasPlaying:S.playing, hapticAccum:0};
+  });
+  window.addEventListener('pointermove', e => {
+    if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
+    const t = current(); if(!t){ scrubGesture = null; return; }
+    const rect = disc.getBoundingClientRect();
+    const ang = pointerAngle(e.clientX, e.clientY, rect);
+
+    if(!scrubGesture.claimed){
+      // small angular threshold before rotation claims the gesture, so an
+      // ordinary drag/scroll can still win if this wasn't really a spin
+      if(Math.abs(angleDelta(ang, scrubGesture.startAngle)) < SCRUB_CLAIM_THRESHOLD_DEG) return;
+      scrubGesture.claimed = true;
+      try{ disc.setPointerCapture(e.pointerId); }catch(err){}
+      if(S.playing) pause();               // silence during scrub
+    }
+
+    e.preventDefault();
+    const d = angleDelta(ang, scrubGesture.lastAngle);
+    scrubGesture.lastAngle = ang;
+    S.angle = (S.angle + d + 360) % 360;    // the disc visually turns 1:1 with the finger
+    S.pos = clamp(S.pos + d * (SCRUB_SEC_PER_ROTATION/360), 0, t.duration || 0);
+    drawTime();                              // tonearm follows the playhead as it moves
+
+    scrubGesture.hapticAccum += Math.abs(d) * (SCRUB_SEC_PER_ROTATION/360);
+    if(scrubGesture.hapticAccum >= 2){
+      scrubGesture.hapticAccum = 0;
+      if(navigator.vibrate) navigator.vibrate(8);
+    }
+  }, {passive:false});
+  const release = e => {
+    if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
+    const {claimed, wasPlaying} = scrubGesture;
+    scrubGesture = null;
+    if(claimed){ seek(S.pos); if(wasPlaying) play(); }
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
 }
 
 function setPathNote(msg, warn){
@@ -1755,6 +2122,14 @@ function showTab(name){
     await forgetLibrary();
   });
 
+  // backgrounding is the last reliable moment before the OS can kill the tab —
+  // write the in-progress session synchronously, not on a timer
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden') touchActiveSession();
+  });
+
+  wireSpinToScrub();
+
   setMode('vinyl');
   fallbackSun();
   askLocation();
@@ -1783,6 +2158,7 @@ async function restoreLibrary(){
     });
   });
   await restoreMeta();
+  await restoreSessions();
   renderTracks();
   if(S.tracks.length){
     setQueue(allIdx(), 0, false);
