@@ -48,7 +48,7 @@ body{
 /* ---------- stage / platter ---------- */
 .stage{padding:26px 0 6px}
 .platter-box{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
-.disc,.sheen,.strobe-ring,.spindle{position:absolute;inset:0;border-radius:50%}
+.disc,.spindle{position:absolute;inset:0;border-radius:50%}
 .disc{
   /* variant color/pattern layer — set inline per track by applyDiscVariant();
      this default is only what shows before any track has loaded */
@@ -123,18 +123,7 @@ body{
   text-transform:uppercase;color:var(--muted)}
 .label .rpm{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
 .label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
-.sheen{background:conic-gradient(from 210deg,rgba(255,255,255,.05),rgba(255,255,255,0) 22%,rgba(255,255,255,0) 62%,rgba(255,255,255,.035) 76%,rgba(255,255,255,0) 92%);
-  pointer-events:none;mix-blend-mode:screen}
-.strobe-ring{will-change:transform}
-.strobe-dot{position:absolute;left:50%;top:50%;width:2px;height:6px;margin:-1px 0 0 -1px;
-  border-radius:1px;background:rgba(239,233,223,.19)}
 .spindle{inset:calc(50% - 5px);background:#D8D2C6;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
-.arm{position:absolute;right:-6%;top:-4%;width:56%;height:56%;transform-origin:88% 12%;
-  pointer-events:none;transition:none}
-.arm-bar{position:absolute;right:12%;top:12%;width:78%;height:3px;background:linear-gradient(90deg,#8E9599,#D6D2C8);
-  border-radius:2px;transform-origin:right center;transform:rotate(90deg);box-shadow:0 2px 6px rgba(0,0,0,.5)}
-.arm-pivot{position:absolute;right:6%;top:4%;width:17%;aspect-ratio:1;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#4A5055,#20252A);box-shadow:0 4px 10px rgba(0,0,0,.5)}
 
 .now{text-align:center;margin-top:22px}
 .now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
@@ -236,13 +225,7 @@ input[type=file]{display:none}
           <div class="mode-tag" id="modeTag">vinyl</div>
         </div>
       </div>
-      <div class="strobe-ring" id="strobe" aria-hidden="true"></div>
-      <div class="sheen" aria-hidden="true"></div>
       <div class="spindle" aria-hidden="true"></div>
-      <div class="arm" id="arm" aria-hidden="true">
-        <div class="arm-bar"></div>
-        <div class="arm-pivot"></div>
-      </div>
     </div>
 
     <div class="now">
@@ -440,7 +423,7 @@ const S = {
   sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
   char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35},
-  angle:0, strobe:0,
+  angle:0,
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false
@@ -1590,9 +1573,7 @@ function frame(now){
   if(!REDUCED){
     const spin = S.playing ? S.rate : 0;
     S.angle = (S.angle + dt * spin * 200) % 360;              // 33⅓ rpm = 200°/s
-    S.strobe = (S.strobe + dt * (spin ? (S.rate - 1) : 0) * 200) % 360;
     $('#disc').style.transform = 'rotate(' + S.angle + 'deg)';
-    $('#strobe').style.transform = 'rotate(' + S.strobe + 'deg)';
   }
 
   if(now - lastUI > 90){ lastUI = now; drawTime(); }
@@ -1611,7 +1592,6 @@ function drawTime(){
   $('#tTotal').textContent = fmt(dur);
   const p = dur ? S.pos/dur : 0;
   if(!scrubbing) $('#scrub').value = Math.round(p*1000);
-  $('#arm').style.transform = 'rotate(' + (10 + p*15).toFixed(2) + 'deg)';
 }
 
 function drawSun(){
@@ -1693,7 +1673,7 @@ function wireSpinToScrub(){
     scrubGesture.lastAngle = ang;
     S.angle = (S.angle + d + 360) % 360;    // the disc visually turns 1:1 with the finger
     S.pos = clamp(S.pos + d * (SCRUB_SEC_PER_ROTATION/360), 0, t.duration || 0);
-    drawTime();                              // tonearm follows the playhead as it moves
+    drawTime();
 
     scrubGesture.hapticAccum += Math.abs(d) * (SCRUB_SEC_PER_ROTATION/360);
     if(scrubGesture.hapticAccum >= 2){
@@ -2002,21 +1982,6 @@ function showTab(name){
 
 /* ================= wiring ================= */
 (function init(){
-  // strobe dots — frozen at exact speed, drifting backward as the platter eases down
-  const ring = $('#strobe');
-  function layoutStrobe(){
-    const r = Math.max(60, ring.offsetWidth/2 - 15);
-    ring.innerHTML = '';
-    for(let i=0;i<48;i++){
-      const d = document.createElement('span');
-      d.className = 'strobe-dot';
-      d.style.transform = 'rotate(' + (i*7.5) + 'deg) translateY(-' + r + 'px)';
-      ring.appendChild(d);
-    }
-  }
-  layoutStrobe();
-  window.addEventListener('resize', layoutStrobe);
-
   $('#play').addEventListener('click', async ()=>{
     if(!S.ctx) await ensureContext(null);
     S.playing ? pause() : play();
