@@ -140,8 +140,6 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
       font-size:14px;background:rgba(255,255,255,.03)}
 .tbtn:active{background:rgba(255,255,255,.09)}
 .play{width:60px;height:60px;border-color:var(--accent);color:var(--accent);font-size:19px;transition:color .5s,border-color .5s}
-.vol{display:flex;align-items:center;gap:10px;margin:18px 4px 0}
-.vol span{font-family:var(--data);font-size:9.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
 
 /* ---------- mode switch ---------- */
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0 6px}
@@ -250,10 +248,6 @@ input[type=file]{display:none}
       </button>
     </div>
 
-    <div class="vol">
-      <span>Vol</span>
-      <input id="volume" type="range" min="0" max="100" value="82" aria-label="Volume">
-    </div>
 
     <div class="modes">
       <button class="mode" id="modePure" aria-pressed="false"><b>Pure</b><i>reference path</i></button>
@@ -419,7 +413,7 @@ const S = {
   playlists:[], view:{mode:'songs', group:null, playlist:null, picking:false},
   albumSort:{}, albumOrder:{}, lru:[],
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
-  vol:0.82, previewMin:0, live:true,
+  previewMin:0, live:true,
   sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
   char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35},
@@ -457,7 +451,7 @@ function buildGraph(ctx){
   n.comp = ctx.createDynamicsCompressor();
   n.comp.knee.value = 12; n.comp.attack.value = 0.012; n.comp.release.value = 0.26;
   n.makeup = ctx.createGain();
-  n.master = ctx.createGain(); n.master.gain.value = S.vol;
+  n.master = ctx.createGain(); n.master.gain.value = 1;
 
   n.wobble.connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
   n.master.connect(ctx.destination);
@@ -1049,7 +1043,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumOrder', v:orders});
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
-    shuffle:S.shuffle, repeat:S.repeat, vol:S.vol, auto:S.auto}});
+    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto}});
 }
 
 async function restoreMeta(){
@@ -1070,7 +1064,6 @@ function applyPrefs(p){
   if(p.char){ Object.keys(S.char).forEach(k => { if(typeof p.char[k] === 'number') S.char[k] = p.char[k]; }); }
   if(typeof p.target === 'number') S.target = p.target;
   if(p.pace) S.pace = p.pace;
-  if(typeof p.vol === 'number') S.vol = p.vol;
   if(typeof p.auto === 'boolean') S.auto = p.auto;
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
@@ -1079,7 +1072,6 @@ function applyPrefs(p){
     const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }
     const out = $('#'+k+'Out'); if(out) out.textContent = Math.round(S.char[k]*100) + '%';
   });
-  $('#volume').value = Math.round(S.vol*100);
   document.querySelectorAll('[data-target]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.target) === S.target)));
   document.querySelectorAll('[data-pace]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pace === S.pace)));
   if(p.mode) setMode(p.mode);
@@ -1544,9 +1536,11 @@ function toggleMotion(){
   );
 }
 
+// output is unity gain, so loudness tracks the device's own volume; the only
+// software shaping left on top of that is the Motion speed-to-volume factor
 function applyVolume(glide){
   if(!S.nodes) return;
-  const v = S.vol * (S.motion.on ? S.motion.factor : 1);
+  const v = S.motion.on ? S.motion.factor : 1;
   S.nodes.master.gain.setTargetAtTime(v, S.ctx.currentTime, glide ? glide/3 : 0.05);
 }
 
@@ -1999,8 +1993,6 @@ function showTab(name){
     scrubbing = false;
     const t = current(); if(t) seek((t.duration || 0) * e.target.value/1000);
   });
-  $('#volume').addEventListener('input', e=>{ S.vol = e.target.value/100; applyVolume(); queueSave(); });
-
   $('#modeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
   $('#modePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
 
