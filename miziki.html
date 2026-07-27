@@ -200,6 +200,8 @@ input[type=file]{display:none}
 .tracklist li[aria-current="true"] .t-idx{color:var(--accent)}
 .note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 0 0}
 .warn{color:#FFB4A2}
+.carmode{margin-top:34px;padding-top:16px;border-top:1px solid var(--line)}
+.carmode .row .k{font-size:12.5px;color:var(--muted)}
 .foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
   font-family:var(--data);font-size:10px;color:var(--muted);line-height:1.7;letter-spacing:.04em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -259,7 +261,6 @@ input[type=file]{display:none}
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="sundown" aria-selected="true">Sundown</button>
     <button class="tab" role="tab" data-tab="character" aria-selected="false">Character</button>
-    <button class="tab" role="tab" data-tab="motion" aria-selected="false">Motion</button>
     <button class="tab" role="tab" data-tab="library" aria-selected="false">Library</button>
   </nav>
 
@@ -343,27 +344,6 @@ input[type=file]{display:none}
     <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path.</p>
   </section>
 
-  <!-- MOTION -->
-  <section class="panel" id="panel-motion" role="tabpanel">
-    <div class="row">
-      <div class="k">Speed to volume<em>Louder as you move, eased between GPS readings.</em></div>
-      <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
-    </div>
-    <div class="row">
-      <div class="k">Current speed</div>
-      <div class="readout" id="speedOut">—</div>
-    </div>
-    <div class="slider-row">
-      <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
-      <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
-    </div>
-    <div class="slider-row">
-      <div class="slider-head"><span>Full volume at</span><b id="maxSpeedOut">56 mph</b></div>
-      <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full volume">
-    </div>
-    <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
-  </section>
-
   <!-- LIBRARY -->
   <section class="panel" id="panel-library" role="tabpanel">
     <div class="empty" id="empty">
@@ -393,6 +373,28 @@ input[type=file]{display:none}
     <p class="note" id="storeNote"></p>
     <p class="note" id="pathNote"></p>
   </section>
+
+  <div class="carmode" id="carmode">
+    <div class="row">
+      <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
+      <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
+    </div>
+    <div id="carModeDetails" style="display:none">
+      <div class="row">
+        <div class="k">Current speed</div>
+        <div class="readout" id="speedOut">—</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
+        <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
+        <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
+      </div>
+      <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
+    </div>
+  </div>
 
   <p class="foot" id="foot">
     Miziki · lossless in, one conversion out<br>
@@ -1515,10 +1517,12 @@ function toggleMotion(){
     S.motion.on = false; S.motion.watch = null; S.motion.factor = 1; S.motion.speed = null;
     b.textContent = 'Off'; b.setAttribute('aria-pressed','false');
     $('#speedOut').textContent = '—'; applyVolume();
+    $('#carModeDetails').style.display = 'none';
     return;
   }
-  if(!navigator.geolocation){ $('#motionNote').textContent = 'This browser has no GPS access, so speed to volume cannot run here.'; return; }
+  if(!navigator.geolocation){ $('#motionNote').textContent = 'This browser has no GPS access, so Car Mode cannot compensate for road noise here.'; return; }
   S.motion.on = true; b.textContent = 'On'; b.setAttribute('aria-pressed','true');
+  $('#carModeDetails').style.display = 'block';
   S.motion.watch = navigator.geolocation.watchPosition(
     pos => {
       const s = pos.coords.speed;
@@ -1532,13 +1536,13 @@ function toggleMotion(){
       S.motion.factor = S.motion.floor + (1 - S.motion.floor) * clamp(s / S.motion.max, 0, 1);
       applyVolume(1.1);   // glide across the ~1 s gap between readings
     },
-    () => { $('#motionNote').textContent = 'Location permission was declined, so speed to volume is off.'; toggleMotion(); },
+    () => { $('#motionNote').textContent = 'Location permission was declined, so Car Mode is off.'; toggleMotion(); },
     {enableHighAccuracy:true, maximumAge:1000, timeout:20000}
   );
 }
 
 // output is unity gain, so loudness tracks the device's own volume; the only
-// software shaping left on top of that is the Motion speed-to-volume factor
+// software shaping left on top of that is Car Mode's noise-compensation factor
 function applyVolume(glide){
   if(!S.nodes) return;
   const v = S.motion.on ? S.motion.factor : 1;
