@@ -511,14 +511,15 @@ function hash32(str){
   for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
-// hash input is normalized artist + album + track title — never the file id/path,
-// which changes when a library is moved or reorganized
-function variantHashKey(t){
-  return normKey(t.tags.artist) + '|' + normKey(t.tags.album) + '|' + normKey(t.tags.title);
-}
 // "album" here is the same grouping key the Library view already uses (t.tags.album),
-// so session tracking and the rare-variant unlock line up with what the user sees as "the album"
+// so session tracking, the rare-variant unlock, and variant selection below all
+// line up with what the user sees as "the album"
 function albumKey(t){ return normKey(t.tags.album); }
+// hash input is the album identity, not the individual track — a real pressing
+// is one physical disc per release, not a different one per song, so every
+// track on the same body of work lands on the same index into its tier's
+// array. Never the file id/path, which changes when a library is reorganized.
+function variantHashKey(t){ return albumKey(t); }
 
 const SOLID_POOL = ['solid-white','solid-red','solid-blue','solid-yellow','solid-green','solid-purple'];
 const EFFECT_POOL = ['effect-swirl-a','effect-swirl-b','effect-split-ab','effect-splatter-a','effect-splatter-b'];
