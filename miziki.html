@@ -143,23 +143,47 @@ body{
 .sleeve.has-art .sleeve-art{opacity:1}
 .sleeve-mark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
 .sleeve.has-art .sleeve-mark{display:none}
-@keyframes sleevePull{
+/* Driven as three separate steps from JS (see runStartSequence), not one
+   keyframe spanning the whole pull, because the middle step's length
+   depends on whether audio has finished buffering. Each step gets its own
+   easing per the presentation spec's per-motion-type table: sleeve arrives
+   (ease-out, decelerating into place) -> hold (JS-timed, no animation) ->
+   disc emerges (ease-in-out, slowest at the midpoint) while the sleeve
+   exits (ease-in, accelerating away) -> disc settles (tacked onto the tail
+   of the emerge keyframe as a slight scale overshoot eased out). */
+@keyframes sleeveArrive{
   0%{transform:translateX(115%);opacity:0}
-  27.5%{transform:translateX(0%);opacity:1}
-  67.5%{transform:translateX(0%);opacity:1}
+  100%{transform:translateX(0%);opacity:1}
+}
+@keyframes sleeveExitDown{
+  0%{transform:translateX(0%);opacity:1}
   100%{transform:translateY(140%);opacity:0}
 }
-@keyframes discEmerge{
-  0%,27.5%{transform:translateX(0%) scale(.9);opacity:0}
-  45%{transform:translateX(-16%) scale(.97);opacity:1}
-  67.5%,100%{transform:translateX(0%) scale(1);opacity:1}
+@keyframes discEmergeSettle{
+  0%{transform:translateX(6%) scale(.9);opacity:0;animation-timing-function:ease-in-out}
+  75%{transform:translateX(0%) scale(1.035);opacity:1;animation-timing-function:ease-out}
+  100%{transform:translateX(0%) scale(1);opacity:1}
 }
-.platter-stage.pulling .sleeve{animation:sleevePull var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
-.platter-stage.pulling .platter-box{animation:discEmerge var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
-/* return-to-sleeve is literally the pull in reverse: sleeve rises from below
-   to cover the disc, then both exit back off to the side */
-.platter-stage.returning .sleeve{animation:sleevePull var(--return-duration,1500ms) var(--pull-easing,ease) reverse forwards}
-.platter-stage.returning .platter-box{animation:discEmerge var(--return-duration,1500ms) var(--pull-easing,ease) reverse forwards}
+.platter-stage.sleeve-arriving .sleeve{animation:sleeveArrive var(--arrive-duration,1000ms) ease-out forwards}
+.platter-stage.sleeve-exiting .sleeve{animation:sleeveExitDown var(--emerge-duration,2000ms) ease-in forwards}
+.platter-stage.disc-emerging .platter-box{animation:discEmergeSettle var(--emerge-duration,2000ms) ease-in-out forwards}
+
+/* Return-to-sleeve is its own uniform ease-in motion, not the pull played
+   backwards -- reversing the pull would also reverse its deliberately
+   uneven per-phase easing, which this spec revision rules out. Kept
+   shorter than the pull: putting a record away is the quicker gesture. */
+@keyframes sleeveReturn{
+  0%{transform:translateY(140%);opacity:0}
+  45%{transform:translateX(0%);opacity:1}
+  100%{transform:translateX(115%);opacity:0}
+}
+@keyframes discReturn{
+  0%{transform:translateX(0%) scale(1);opacity:1}
+  45%{transform:translateX(-14%) scale(.96);opacity:1}
+  100%{transform:translateX(6%) scale(.9);opacity:0}
+}
+.platter-stage.returning .sleeve{animation:sleeveReturn var(--return-duration,1200ms) ease-in forwards}
+.platter-stage.returning .platter-box{animation:discReturn var(--return-duration,1200ms) ease-in forwards}
 
 .now{text-align:center;margin-top:22px}
 .now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
@@ -516,6 +540,11 @@ input[type=file]{display:none}
     </div>
     <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path.</p>
 
+    <div class="row">
+      <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
+      <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
+    </div>
+
     <div class="carmode" id="carmode">
       <div class="row">
         <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
@@ -751,6 +780,7 @@ const S = {
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
+  sleeveSeq:0, sleevePullEnabled:true,
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
@@ -1583,7 +1613,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumOrder', v:orders});
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
-    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto}});
+    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled}});
 }
 
 async function restoreMeta(){
@@ -1605,6 +1635,12 @@ function applyPrefs(p){
   if(typeof p.target === 'number') S.target = p.target;
   if(p.pace) S.pace = p.pace;
   if(typeof p.auto === 'boolean') S.auto = p.auto;
+  if(typeof p.sleevePullEnabled === 'boolean'){
+    S.sleevePullEnabled = p.sleevePullEnabled;
+    const b = $('#sleevePullBtn');
+    b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
+    b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
+  }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -2096,14 +2132,15 @@ function setQueue(indices, startPos, autoplay){
   const first = indices[startPos];
   if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
   S.qpos = Math.max(0, S.queue.indexOf(first));
-  load(S.queue[S.qpos], autoplay);
+  load(S.queue[S.qpos]);
+  if(!autoplay) return;
   // an explicit track pick (as opposed to the silent initial queue-priming
   // calls, which pass autoplay:false) is always "starting something" —
-  // opens the full player via the sheet, not the mini-player's morph
-  if(autoplay){
-    if(S.playerOpen) runDiscTransition(current(), S.pendingShellInfo);
-    else openPlayerViaSheet(current(), S.pendingShellInfo);
-  }
+  // opens the full player via the sheet, not the mini-player's morph.
+  // Audio itself is strictly gated behind whichever ceremony runs, never
+  // started up front — see runStartSequence().
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else openPlayerViaSheet(current(), S.pendingShellInfo);
 }
 
 function reorderQueue(){
@@ -2125,11 +2162,13 @@ function advance(dir, auto){
   }
   if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
   S.qpos = n;
-  load(S.queue[n], true);
+  load(S.queue[n]);
   // next/prev/auto-advance never open the player themselves — but if it's
   // already open (sitting in it, or mid next/prev), there's no sheet or
-  // morph to wait for, so the disc transition (if any) runs immediately
-  if(S.playerOpen) runDiscTransition(current(), S.pendingShellInfo);
+  // morph to wait for, so the disc ceremony (if any) runs immediately.
+  // With the player closed there's nothing to see, so audio just starts.
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else play();
 }
 
 function nextTrack(){ advance(1, false); }
@@ -2169,13 +2208,18 @@ function cycleRepeat(){
    the return-to-sleeve/pull/morph ratio can be tuned without touching any
    trigger logic below. */
 const SLEEVE_ANIM = {
-  sheetMs: 350, returnMs: 1500, pullMs: 2000, morphMs: 420,
-  easing: 'cubic-bezier(.3,.66,.35,1)'
+  sheetMs: 350,      // sheet settles fully before any disc transition begins
+  arriveMs: 1000,    // sleeve slides in from the right
+  holdCapMs: 2000,   // longest the sleeve sits static waiting on the buffer
+  emergeMs: 2000,    // disc emerges + sleeve exits, concurrently (~3s total pull)
+  returnMs: 1200,    // putting a record away — quicker than pulling one out
+  morphMs: 420,
+  easing: 'cubic-bezier(.3,.66,.35,1)'   // morph only; sleeve/disc easing lives in CSS per-phase
 };
 document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
+document.documentElement.style.setProperty('--arrive-duration', SLEEVE_ANIM.arriveMs + 'ms');
+document.documentElement.style.setProperty('--emerge-duration', SLEEVE_ANIM.emergeMs + 'ms');
 document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.returnMs + 'ms');
-document.documentElement.style.setProperty('--pull-duration', SLEEVE_ANIM.pullMs + 'ms');
-document.documentElement.style.setProperty('--pull-easing', SLEEVE_ANIM.easing);
 
 function renderMiniPlayer(){
   const t = current();
@@ -2232,51 +2276,102 @@ function updateShellAlbum(t){
   return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt, sameAlbum};
 }
 
-function runDiscTransition(t, info){
-  if(!info || info.type === 'none') return;
-  if(info.type === 'pull'){ playSleevePull(t); return; }
-  playReturnToSleeve(info.outgoingArt, info.outgoingHasArt, () => playSleevePull(t));
+// ================= start sequence: sheet/pull/return orchestration =================
+// A single async, cancellable sequence drives everything from "the sheet has
+// settled" (or "the player was already open") through "the record is on the
+// platter and audio has started." Every await is followed by a token check
+// so interruptStartSequence() can cut in cleanly at any point instead of
+// racing a stale animation to the end. Playback itself is strictly gated:
+// startAudio (always play()) is only ever invoked once, at the moment the
+// disc actually reaches the platter — never before, never overlapping.
+function waitAnimEnd(el, ms){
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => { if(done) return; done = true; el.removeEventListener('animationend', onEnd); resolve(); };
+    const onEnd = (e) => { if(e.target === el) finish(); };
+    el.addEventListener('animationend', onEnd);
+    setTimeout(finish, ms + 150);   // safety net if animationend never fires
+  });
 }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-function playSleevePull(t){
-  if(!t || REDUCED) return;
-  const sleeve = $('#sleeve'), art = $('#sleeveArt'), stage = $('#platterStage');
-  if(t.art){ art.src = t.art; sleeve.classList.add('has-art'); }
-  else { art.removeAttribute('src'); sleeve.classList.remove('has-art'); }
-  stage.classList.remove('pulling','returning');
-  sleeve.style.display = 'flex';
-  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
-  stage.classList.add('pulling');
-}
-
-// The reverse of the pull — literally the same keyframes played backwards,
-// so the outgoing sleeve rises from below to swallow the disc, then carries
-// it off to the side. Kept shorter than the pull: putting a record away is
-// the quicker gesture, which keeps the total swap from feeling padded.
-function playReturnToSleeve(art, hasArt, onDone){
-  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt'), stage = $('#platterStage');
+function sleeveArtFor(art, hasArt){
+  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt');
   if(hasArt){ sleeveArt.src = art; sleeve.classList.add('has-art'); }
   else { sleeveArt.removeAttribute('src'); sleeve.classList.remove('has-art'); }
-  stage.classList.remove('pulling','returning');
-  sleeve.style.display = 'flex';
-  void stage.offsetWidth;
-  stage.classList.add('returning');
-  sleeve.addEventListener('animationend', function done(){
-    sleeve.removeEventListener('animationend', done);
-    stage.classList.remove('returning');
-    sleeve.style.display = 'none';
-    if(onDone) onDone();
-  }, {once:true});
 }
 
-// Covers both phases. A class removed mid-flight never fires animationend,
-// so interrupting a return-to-sleeve also safely cancels it without ever
-// chaining into the pull that would otherwise follow it.
-function interruptSleeveAnimation(){
+// info comes from updateShellAlbum(). startAudio runs immediately when
+// there's no ceremony to run at all (untagged/shuffled/same-album, the
+// toggle is off, or reduced motion) — otherwise it runs only after the
+// full return+pull (swap) or pull-only (fresh platter) sequence completes.
+async function runStartSequence(t, info, startAudio){
   const stage = $('#platterStage');
-  if(!stage.classList.contains('pulling') && !stage.classList.contains('returning')) return;
-  stage.classList.remove('pulling','returning');
+  const token = ++S.sleeveSeq;
+  const cancelled = () => token !== S.sleeveSeq;
+
+  // clear any in-flight ceremony's visuals immediately — a fresh sequence
+  // (or a "nothing to show" one) always takes the stage back over from
+  // whatever a just-cancelled prior invocation left behind
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
   $('#sleeve').style.display = 'none';
+
+  if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
+    startAudio();
+    return;
+  }
+
+  // decode ahead of time so playback can start the instant the disc lands,
+  // never after — runs in parallel with the sleeve/disc motion below
+  const bufferReady = ensureBuffer(S.index);
+
+  if(info.type === 'swap'){
+    sleeveArtFor(info.outgoingArt, info.outgoingHasArt);
+    $('#sleeve').style.display = 'flex';
+    void stage.offsetWidth;
+    stage.classList.add('returning');
+    await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.returnMs);
+    if(cancelled()) return;
+    stage.classList.remove('returning');
+  }
+  if(cancelled()) return;
+
+  sleeveArtFor(t.art, !!t.art);
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
+  $('#sleeve').style.display = 'flex';
+  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
+  stage.classList.add('sleeve-arriving');
+  await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.arriveMs);
+  if(cancelled()) return;
+  stage.classList.remove('sleeve-arriving');
+
+  // hold: the sleeve sits static on an empty platter until the buffer is
+  // ready, capped so a slow decode never stalls the ceremony indefinitely
+  await Promise.race([bufferReady, sleep(SLEEVE_ANIM.holdCapMs)]);
+  if(cancelled()) return;
+
+  stage.classList.add('sleeve-exiting','disc-emerging');
+  const discBox = stage.querySelector('.platter-box');
+  await Promise.all([waitAnimEnd($('#sleeve'), SLEEVE_ANIM.emergeMs), waitAnimEnd(discBox, SLEEVE_ANIM.emergeMs)]);
+  if(cancelled()) return;
+  stage.classList.remove('sleeve-exiting','disc-emerging');
+  $('#sleeve').style.display = 'none';
+
+  startAudio();
+}
+
+// Cuts the ceremony at whatever point it's in and snaps to the end state
+// instantly — no transition, per the hard rule that skipping is instant,
+// never eased. Playback is clearly no longer waiting on ceremony once
+// interrupted, so it starts right away if it hadn't already.
+function interruptStartSequence(){
+  S.sleeveSeq++;
+  const stage = $('#platterStage');
+  const wasActive = stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
+    stage.classList.contains('disc-emerging') || stage.classList.contains('returning');
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+  $('#sleeve').style.display = 'none';
+  if(wasActive && !S.playing) play();
 }
 
 // Library selection always arrives via the sheet — something is being
@@ -2289,7 +2384,7 @@ function openPlayerViaSheet(t, info){
   ov.classList.add('open');
   ov.addEventListener('transitionend', function settled(){
     ov.removeEventListener('transitionend', settled);
-    runDiscTransition(t, info);
+    runStartSequence(t, info, play);
   }, {once:true});
 }
 
@@ -2305,7 +2400,7 @@ function openPlayer(){
 function closePlayer(){
   if(morphInFlight()){ interruptMorph(); return; }
   S.playerOpen = false;
-  interruptSleeveAnimation();
+  interruptStartSequence();
   const ov = $('#playerOverlay');
   ov.classList.remove('open');
   ov.setAttribute('aria-hidden','true');
@@ -2381,7 +2476,7 @@ function interruptMorph(){
   }, {once:true});
 }
 
-function load(i, autoplay){
+function load(i){
   if(!S.tracks[i]) return;
   stop();
   S.index = i; S.pos = 0;
@@ -2401,7 +2496,6 @@ function load(i, autoplay){
   setPathNote('');
   renderTracks();
   renderMiniPlayer();
-  if(autoplay) play();
   drawTime();
 }
 
@@ -2529,6 +2623,14 @@ function askLocation(){
 function fallbackSun(){
   const d = new Date(); const set = new Date(d); set.setHours(20,10,0,0);
   S.sun.set = set; S.sun.dusk = new Date(set.getTime() + 26*60000); S.sun.ok = true;
+}
+
+function toggleSleevePull(){
+  S.sleevePullEnabled = !S.sleevePullEnabled;
+  const b = $('#sleevePullBtn');
+  b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
+  queueSave();
 }
 
 function toggleMotion(){
@@ -3509,6 +3611,7 @@ function showRoute(name){
   }));
 
   $('#motionBtn').addEventListener('click', toggleMotion);
+  $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#floor').addEventListener('input', e=>{ S.motion.floor = e.target.value/100; $('#floorOut').textContent = e.target.value + '%'; });
   $('#maxSpeed').addEventListener('input', e=>{
     S.motion.max = +e.target.value;
@@ -3619,13 +3722,9 @@ function showRoute(name){
   });
   $('#playerDismiss').addEventListener('click', closePlayer);
   $('#playerOverlay').addEventListener('pointerdown', ()=>{
-    interruptSleeveAnimation();          // pull/return-to-sleeve: snap to end state
+    interruptStartSequence();            // pull/return-to-sleeve: snap to end state
     if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead
   }, {capture:true});
-  $('#sleeve').addEventListener('animationend', ()=>{
-    $('#platterStage').classList.remove('pulling');
-    $('#sleeve').style.display = 'none';
-  });
 
   setMode('vinyl');
   fallbackSun();
