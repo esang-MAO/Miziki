@@ -1554,8 +1554,10 @@ function renderMiniPlayer(){
   btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
 }
 
-// a loose single (no real album tag) is genuinely its own release, so back-to-back
-// untagged tracks never share a false "no change" identity with each other
+// each untagged file gets its own identity here (never a shared "Unknown Album"
+// bucket) purely so state stays coherent once a real, tagged album shows up
+// next — untagged tracks are excluded from the pull/return ceremony entirely,
+// see updateShellAlbum()
 function shellAlbumIdentity(t){
   if(!t) return null;
   if(t.tags.album === 'Unknown Album') return 'single:' + t.id;
@@ -1571,6 +1573,10 @@ function updateShellAlbum(t){
   const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
   S.shellAlbumId = newId;
   S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
+  // untagged tracks don't get the ceremony — an untagged file hasn't
+  // established a release identity yet, so it silently occupies the
+  // platter without a pull until a genuinely tagged one arrives
+  if(t.tags.album === 'Unknown Album') return {type:'none'};
   if(S.shuffle || REDUCED || prevId === newId) return {type:'none'};
   if(prevId === null) return {type:'pull'};
   return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt};
