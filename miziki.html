@@ -33,7 +33,15 @@ body{
   -webkit-font-smoothing:antialiased;
   transition:background 1.2s linear;
 }
-.wrap{max-width:520px;margin:0 auto;padding:0 20px calc(150px + env(safe-area-inset-bottom))}
+/* --chrome-inset is measured in JS from the tab bar's + mini-player's actual
+   rendered height (see updateChromeInset()) — the tab bar's own box already
+   includes its safe-area padding, so this value stands alone with no extra
+   env() added on top. Last row is never hidden under the fixed bottom
+   chrome, and the gap shrinks/grows as the mini-player strip appears and
+   disappears with playback rather than sitting at a fixed guess (see
+   LIBRARY spec §3). The literal fallback only covers the sliver before that
+   first measurement lands on load. */
+.wrap{max-width:520px;margin:0 auto;padding:0 20px var(--chrome-inset, calc(150px + env(safe-area-inset-bottom)))}
 
 /* ---------- header ---------- */
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
@@ -48,6 +56,13 @@ body{
 .stage{padding:26px 0 6px}
 .platter-stage{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
 .platter-box{position:absolute;inset:0}
+/* the disc must never render unconditionally — a record sitting there
+   already would contradict the pull that's supposed to deliver it. Kept as
+   a plain class (not the animation's own fill-mode) so it can be cleared
+   right as the emerge animation takes over and left alone otherwise; see
+   runStartSequence()/interruptStartSequence(). Ships on by default in the
+   markup so first paint shows a bare spindle, not a generic disc. */
+.platter-box.disc-hidden{opacity:0;pointer-events:none}
 .disc,.spindle{position:absolute;inset:0;border-radius:50%}
 .disc{
   /* variant color/pattern layer — set inline per track by applyDiscVariant();
@@ -446,6 +461,7 @@ input[type=file]{display:none}
       <div class="stack">
         <button class="cta ghost" id="selectNumber">Number in order</button>
         <button class="cta" id="selectEdit">Edit</button>
+        <button class="cta ghost" id="selectDelete">Remove</button>
         <button class="cta ghost" id="selectCancel">Cancel</button>
       </div>
     </div>
@@ -601,7 +617,7 @@ input[type=file]{display:none}
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
 </div>
 
-<nav class="tabbar" role="tablist">
+<nav class="tabbar" id="tabbar" role="tablist">
   <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
@@ -626,7 +642,7 @@ input[type=file]{display:none}
 
   <section class="stage">
     <div class="platter-stage" id="platterStage">
-      <div class="platter-box">
+      <div class="platter-box disc-hidden" id="platterBox">
         <div class="disc" id="disc">
           <div class="disc-fade" id="discFade" aria-hidden="true"></div>
           <div class="label" id="label">
@@ -635,8 +651,14 @@ input[type=file]{display:none}
             <div class="mode-tag" id="modeTag">vinyl</div>
           </div>
         </div>
-        <div class="spindle" aria-hidden="true"></div>
       </div>
+      <!-- a sibling of platter-box, not a child: the spindle is a fixed post
+           that never moves, so it must sit outside whatever transform the
+           pull/return-to-sleeve animation applies to the disc (see PRESENTATION
+           spec, Platter/Spindle/Disc Visibility). Rendering after platter-box
+           keeps it on top, which is what makes it read as showing through the
+           label's center hole once a record is seated. -->
+      <div class="spindle" aria-hidden="true"></div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
         <img class="sleeve-art" id="sleeveArt" alt="">
         <div class="sleeve-mark">MIZIKI</div>
@@ -647,7 +669,10 @@ input[type=file]{display:none}
       <h2 id="trackName">Nothing on the platter</h2>
       <div class="by" id="trackBy"></div>
       <div class="spec" id="trackSpec">Load a file to see its signal path</div>
-      <button class="cta ghost edit-current" id="editCurrentBtn" style="margin-top:10px">Edit info</button>
+      <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
+        <button class="cta ghost edit-current" id="editCurrentBtn">Edit info</button>
+        <button class="cta ghost" id="playerShareBtn" style="display:none">Share</button>
+      </div>
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
@@ -729,6 +754,37 @@ input[type=file]{display:none}
   <button class="cta ghost" id="undoBtn">Undo</button>
 </div>
 
+<!-- ROW MENU: overflow menu for a single library row -->
+<div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="rowMenuSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span id="rowMenuTitle">Track</span>
+      <button class="edit-close" id="rowMenuClose" aria-label="Close">✕</button>
+    </div>
+    <div class="stack">
+      <button class="cta ghost" id="rowMenuEdit">Edit Info</button>
+      <button class="cta ghost" id="rowMenuRemove">Remove from Library</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE: shared by song/album/artist/batch removal. Deletion has
+     no undo window (see LIBRARY spec §4) — this dialog is the safeguard, so
+     the copy must be unambiguous that files stay on disk. -->
+<div class="edit-overlay" id="confirmOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="confirmSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span id="confirmTitle">Remove from library</span>
+      <button class="edit-close" id="confirmClose" aria-label="Close">✕</button>
+    </div>
+    <p class="note" id="confirmBody" style="margin-top:0"></p>
+    <div class="stack">
+      <button class="cta" id="confirmGo">Remove</button>
+      <button class="cta ghost" id="confirmCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- SHARE: composed off-screen, not a screenshot of the tab -->
 <div class="share-overlay" id="shareOverlay" aria-hidden="true">
   <div class="share-sheet" id="shareSheetBox">
@@ -749,6 +805,26 @@ input[type=file]{display:none}
     </div>
     <div class="stack">
       <button class="cta" id="shareSave">Save image</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER SHARE: this record, right now — distinct from the profile stat
+     sheet above. No selectable sections; it's always the current disc +
+     jacket. See LIBRARY spec §2. -->
+<div class="share-overlay" id="playerShareOverlay" aria-hidden="true">
+  <div class="share-sheet" id="playerShareSheetBox">
+    <div class="edit-head">
+      <span>Share</span>
+      <button class="edit-close" id="playerShareClose" aria-label="Close">✕</button>
+    </div>
+    <div class="share-canvas-wrap"><canvas id="playerShareCanvas"></canvas></div>
+    <div class="seg" id="playerShareSizeSeg" style="margin-bottom:16px">
+      <button data-size="square" aria-pressed="true">Square</button>
+      <button data-size="story" aria-pressed="false">Story</button>
+    </div>
+    <div class="stack">
+      <button class="cta" id="playerShareSave">Save image</button>
     </div>
   </div>
 </div>
@@ -785,7 +861,7 @@ const S = {
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
   profile:{name:'', art:null, artBlob:null},
-  albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{},
+  albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true}
 };
@@ -882,6 +958,10 @@ function hash32(str){
 // so session tracking, the rare-variant unlock, and variant selection below all
 // line up with what the user sees as "the album"
 function albumKey(t){ return normKey(t.tags.album); }
+// normalized artist+album+title, independent of the file itself — lets a
+// track's play-count stats (and the metal ladder they drive) survive a
+// delete + re-import of a different file for the same song (see LIBRARY spec §1)
+function trackIdentityKey(t){ return normKey(t.tags.artist) + '|' + albumKey(t) + '|' + normKey(t.tags.title); }
 // hash input is the album identity, not the individual track — a real pressing
 // is one physical disc per release, not a different one per song, so every
 // track on the same body of work lands on the same index into its tier's
@@ -971,21 +1051,25 @@ function albumMetalFor(albumId){
   for(const lvl of ALBUM_METAL_THRESHOLDS) if(n >= lvl.sessions) return lvl.name;
   return null;
 }
-function trackMetalFor(trackId){
-  const n = S.trackPlayCounts[trackId] || 0;
+// takes a trackIdentityKey(), not a file id — see that function
+function trackMetalFor(trackKey){
+  const n = S.trackPlayCounts[trackKey] || 0;
   for(const lvl of TRACK_METAL_THRESHOLDS) if(n >= lvl.plays) return lvl.name;
   return null;
 }
 
 // same audio-actually-played measure as sessions, not playhead position —
 // counts regardless of shuffle/order/skips, since track metals are earned
-// outside album context (repeat listens, singles, queue, search)
+// outside album context (repeat listens, singles, queue, search). Keyed by
+// trackIdentityKey(), not the file id, so the count survives a re-import.
 function incrementTrackPlay(t){
-  S.trackPlayCounts[t.id] = (S.trackPlayCounts[t.id] || 0) + 1;
-  S.trackLastPlayed[t.id] = Date.now();
+  const key = trackIdentityKey(t);
+  S.trackPlayCounts[key] = (S.trackPlayCounts[key] || 0) + 1;
+  S.trackLastPlayed[key] = Date.now();
   persistTrackPlayCounts();
   persistTrackLastPlayed();
   snapshotAlbumDisplay(t);
+  snapshotTrackDisplay(t, key);
   if(current() === t) applyDiscVariant(t, true);
 }
 
@@ -1049,7 +1133,7 @@ function applyDiscVariant(t, crossfade){
   } else {
     const {tier, variant} = selectVariant(t);
     // track wins over album — see METAL spec §4
-    const metal = tier === 1 ? (trackMetalFor(t.id) || albumMetalFor(albumId)) : null;
+    const metal = tier === 1 ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId)) : null;
     disc.dataset.tier = tier;
     disc.dataset.variant = metal ? 'metal-' + metal : variant;
     bg = metal ? metalBackground(metal) : variantBackground(VARIANT_DEFS[variant]);
@@ -1070,11 +1154,20 @@ function applyDiscVariant(t, crossfade){
 async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
 async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
 async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:S.albumDisplay}); }
+async function persistTrackDisplay(){ await DB.put('meta', {k:'trackDisplay', v:S.trackDisplay}); }
 
 function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
   S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist, art:t.art || null};
   persistAlbumDisplay();
+}
+
+// same idea as snapshotAlbumDisplay, one level down — keeps Top Songs
+// showing a real title/artist/art for a track whose file has since been
+// removed from the library (see LIBRARY spec §1, orphaned stats)
+function snapshotTrackDisplay(t, key){
+  S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:t.art || null};
+  persistTrackDisplay();
 }
 
 async function upsertAchievement(albumId, tier){
@@ -1103,7 +1196,10 @@ async function upsertCollectionEntry(albumId, tier, variant, pattern){
 function albumPlayedThrough(albumId){
   const order = albumExpectedOrder(albumId);
   if(!order.length) return false;
-  return order.every(trackId => (S.trackPlayCounts[trackId] || 0) > 0);
+  return order.every(trackId => {
+    const t = S.tracks[idxOf(trackId)];
+    return t && (S.trackPlayCounts[trackIdentityKey(t)] || 0) > 0;
+  });
 }
 
 // checked after every track-completion event, since that's the only thing
@@ -1133,11 +1229,10 @@ function topAlbums(n){
 }
 function topTracks(n){
   return Object.keys(S.trackPlayCounts)
-    .map(trackId => {
-      const i = idxOf(trackId);
-      const t = i >= 0 ? S.tracks[i] : null;
-      return {trackId, count:S.trackPlayCounts[trackId], last:S.trackLastPlayed[trackId] || 0,
-        title: t ? t.tags.title : trackId, artist: t ? t.tags.artist : '', art: t ? t.art : null};
+    .map(trackKey => {
+      const disp = S.trackDisplay[trackKey] || {title:trackKey, artist:'', art:null};
+      return {trackKey, count:S.trackPlayCounts[trackKey], last:S.trackLastPlayed[trackKey] || 0,
+        title: disp.title, artist: disp.artist, art: disp.art};
     })
     .sort((a,b) => b.count - a.count || b.last - a.last)
     .slice(0, n);
@@ -1800,6 +1895,8 @@ async function restoreSessions(){
   if(trackLast && trackLast.v) S.trackLastPlayed = trackLast.v;
   const display = await DB.get('meta', 'albumDisplay');
   if(display && display.v) S.albumDisplay = display.v;
+  const trackDisp = await DB.get('meta', 'trackDisplay');
+  if(trackDisp && trackDisp.v) S.trackDisplay = trackDisp.v;
   (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
   (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
   const prof = await DB.get('profile', 'me');
@@ -2063,6 +2160,97 @@ async function storeTrack(t, blob){
   return ok;
 }
 
+/* ================= deletion =================
+   Removes files from Miziki's library only — never from disk. Listening
+   history is not file-scoped: sessionCounts/rareUnlocked/albumLastPlayed/
+   albumDisplay/achievements/collection are already keyed by the normalized
+   album identity (albumKey), and trackPlayCounts/trackLastPlayed/
+   trackDisplay by the normalized track identity (trackIdentityKey) — none
+   of that touches the file id, so it's untouched by deletion and rematches
+   automatically the moment a track with the same identity is added back.
+   See LIBRARY spec §1. */
+function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
+function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
+
+async function deleteTracks(idsToDelete){
+  const idSet = new Set(idsToDelete);
+  if(!idSet.size) return;
+
+  const currentId = idOf(S.index);
+  const removingCurrent = currentId !== null && idSet.has(currentId);
+
+  // every index-based structure gets snapshotted as ids first, then rebuilt
+  // onto whatever indices the survivors land at after the splice — the same
+  // id<->index round trip saveMeta()/restoreMeta() already use for persistence
+  const plSnapshot = S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean)}));
+  const ordSnapshot = {};
+  Object.keys(S.albumOrder).forEach(a => { ordSnapshot[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
+  const queueIds = S.queue.map(idOf).filter(Boolean);
+  const baseQueueIds = S.baseQueue.map(idOf).filter(Boolean);
+
+  if(removingCurrent){
+    invalidateActiveSessionIfAny();
+    stop();
+    // cancel any in-flight ceremony without interruptStartSequence()'s
+    // auto-resume side effect — the track it would resume is being deleted
+    S.sleeveSeq++;
+    const stage = $('#platterStage');
+    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+    $('#sleeve').style.display = 'none';
+  }
+
+  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
+  S.tracks = S.tracks.filter(t => !idSet.has(t.id));
+
+  for(const id of idsToDelete){
+    await DB.del('tracks', id);
+    await DB.del('overlays', id);
+    await DB.del('artwork', id);
+  }
+
+  S.playlists = plSnapshot.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0)}));
+  const newOrder = {};
+  Object.keys(ordSnapshot).forEach(a => { const arr = ordSnapshot[a].map(idxOf).filter(i => i >= 0); if(arr.length) newOrder[a] = arr; });
+  S.albumOrder = newOrder;
+  S.lru = [];
+
+  if(removingCurrent){
+    S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null;
+    if(S.tracks.length){
+      $('#platterBox').classList.add('disc-hidden');
+      setQueue(allIdx(), 0, false);   // silent priming un-hides it again once the next track lands
+    } else {
+      S.queue = []; S.baseQueue = []; S.qpos = 0;
+      $('#trackName').textContent = 'Nothing on the platter';
+      $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
+      $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
+      applyDiscVariant(null);
+      // closePlayer()'s interrupt unconditionally un-hides the disc (skipping
+      // "lands" the record) — order matters here since there's no record to
+      // land, the library is empty, so disc-hidden must be (re-)applied after
+      if(S.playerOpen) closePlayer();
+      $('#platterBox').classList.add('disc-hidden');
+      $('#playerShareBtn').style.display = 'none';
+    }
+  } else {
+    S.queue = queueIds.map(idxOf).filter(i => i >= 0);
+    S.baseQueue = baseQueueIds.map(idxOf).filter(i => i >= 0);
+    S.index = idxOf(currentId);
+    S.qpos = Math.max(0, S.queue.indexOf(S.index));
+  }
+
+  renderTracks();
+  renderMiniPlayer();
+  queueSave();
+}
+
+function deleteAlbum(album){
+  deleteTracks(S.tracks.filter(t => t.tags.album === album).map(t => t.id));
+}
+function deleteArtist(artist){
+  deleteTracks(S.tracks.filter(t => t.tags.artist === artist).map(t => t.id));
+}
+
 async function forgetLibrary(){
   await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
   await DB.clear('overlays'); await DB.clear('artwork');
@@ -2078,6 +2266,8 @@ async function forgetLibrary(){
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   applyDiscVariant(null);
   closePlayer();
+  $('#platterBox').classList.add('disc-hidden');
+  $('#playerShareBtn').style.display = 'none';
   renderTracks(); drawTime(); renderMiniPlayer();
 }
 
@@ -2133,7 +2323,13 @@ function setQueue(indices, startPos, autoplay){
   if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
   S.qpos = Math.max(0, S.queue.indexOf(first));
   load(S.queue[S.qpos]);
-  if(!autoplay) return;
+  if(!autoplay){
+    // silent queue-priming (restoring a persisted library on boot) is not a
+    // ceremony — nothing is "arriving," so the disc just appears as-is
+    // instead of sitting hidden forever with no pull ever coming to reveal it
+    $('#platterBox').classList.remove('disc-hidden');
+    return;
+  }
   // an explicit track pick (as opposed to the silent initial queue-priming
   // calls, which pass autoplay:false) is always "starting something" —
   // opens the full player via the sheet, not the mini-player's morph.
@@ -2224,7 +2420,7 @@ document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.retu
 function renderMiniPlayer(){
   const t = current();
   const mini = $('#miniPlayer');
-  if(!t){ mini.style.display = 'none'; return; }
+  if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
   mini.style.display = 'flex';
   $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;
   $('#miniArtist').textContent = t.tags ? t.tags.artist : '';
@@ -2240,6 +2436,25 @@ function renderMiniPlayer(){
   const btn = $('#miniPlay');
   btn.textContent = S.playing ? '❚❚' : '▶';
   btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
+  updateChromeInset();
+}
+
+// Scrollable content needs bottom padding equal to the chrome's actual
+// rendered height, not a fixed guess — the mini-player strip comes and
+// goes with playback, so this is re-measured every time renderMiniPlayer()
+// runs rather than baked into CSS once (see LIBRARY spec §3). The tab bar's
+// own box already includes its safe-area padding, so nothing is added here.
+let chromeInsetRAF = null;
+function updateChromeInset(){
+  if(chromeInsetRAF) return;
+  chromeInsetRAF = requestAnimationFrame(() => {
+    chromeInsetRAF = null;
+    const tabbar = $('#tabbar'), mini = $('#miniPlayer');
+    const tabH = tabbar ? tabbar.offsetHeight : 0;
+    const miniVisible = mini && getComputedStyle(mini).display !== 'none';
+    const miniH = miniVisible ? mini.offsetHeight : 0;
+    document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
+  });
 }
 
 // each untagged file gets its own identity here (never a shared "Unknown Album"
@@ -2317,6 +2532,7 @@ async function runStartSequence(t, info, startAudio){
   $('#sleeve').style.display = 'none';
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
+    $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
     startAudio();
     return;
   }
@@ -2324,6 +2540,7 @@ async function runStartSequence(t, info, startAudio){
   // decode ahead of time so playback can start the instant the disc lands,
   // never after — runs in parallel with the sleeve/disc motion below
   const bufferReady = ensureBuffer(S.index);
+  const discBox = $('#platterBox');
 
   if(info.type === 'swap'){
     sleeveArtFor(info.outgoingArt, info.outgoingHasArt);
@@ -2333,6 +2550,10 @@ async function runStartSequence(t, info, startAudio){
     await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.returnMs);
     if(cancelled()) return;
     stage.classList.remove('returning');
+    // the outgoing disc just animated to opacity 0 via discReturn's forwards
+    // fill — removing that class would otherwise snap it straight back to
+    // fully visible, so this class takes over holding it hidden
+    discBox.classList.add('disc-hidden');
   }
   if(cancelled()) return;
 
@@ -2350,8 +2571,10 @@ async function runStartSequence(t, info, startAudio){
   await Promise.race([bufferReady, sleep(SLEEVE_ANIM.holdCapMs)]);
   if(cancelled()) return;
 
+  // disc-hidden comes off exactly as the emerge animation takes over, so its
+  // own 0%-opacity start frame is what the disc is actually cutting in from
+  discBox.classList.remove('disc-hidden');
   stage.classList.add('sleeve-exiting','disc-emerging');
-  const discBox = stage.querySelector('.platter-box');
   await Promise.all([waitAnimEnd($('#sleeve'), SLEEVE_ANIM.emergeMs), waitAnimEnd(discBox, SLEEVE_ANIM.emergeMs)]);
   if(cancelled()) return;
   stage.classList.remove('sleeve-exiting','disc-emerging');
@@ -2371,6 +2594,7 @@ function interruptStartSequence(){
     stage.classList.contains('disc-emerging') || stage.classList.contains('returning');
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
   $('#sleeve').style.display = 'none';
+  $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
   if(wasActive && !S.playing) play();
 }
 
@@ -2497,6 +2721,7 @@ function load(i){
   renderTracks();
   renderMiniPlayer();
   drawTime();
+  $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
 }
 
 function startSource(offset){
@@ -2877,8 +3102,8 @@ function songRow(i, queue, pos, extra){
   li.appendChild(el('span','t-dur', fmt(t.duration)));
   if(!S.view.editSelecting){
     const editBtn = el('button','t-edit','⋯');
-    editBtn.setAttribute('aria-label','Edit track info');
-    editBtn.addEventListener('click', e => { e.stopPropagation(); openEditSheet([t.id]); });
+    editBtn.setAttribute('aria-label','Track options');
+    editBtn.addEventListener('click', e => { e.stopPropagation(); openRowMenu(t); });
     li.appendChild(editBtn);
   }
   li.addEventListener('click', ()=>{
@@ -2911,6 +3136,41 @@ function updateSelectBar(){
   $('#selectCount').textContent = S.editSelection.size + ' selected';
   $('#selectEdit').disabled = S.editSelection.size === 0;
   $('#selectNumber').disabled = S.editSelection.size === 0;
+  $('#selectDelete').disabled = S.editSelection.size === 0;
+}
+
+/* ---- deletion UI: row overflow menu + shared confirm dialog ----
+   No undo window (see LIBRARY spec §4) — the confirm dialog is the
+   safeguard, and its copy must be unambiguous that files stay on disk. */
+let rowMenuTrackId = null;
+function openRowMenu(t){
+  rowMenuTrackId = t.id;
+  $('#rowMenuTitle').textContent = t.tags.title;
+  $('#rowMenuOverlay').classList.add('open');
+  $('#rowMenuOverlay').setAttribute('aria-hidden','false');
+}
+function closeRowMenu(){
+  rowMenuTrackId = null;
+  $('#rowMenuOverlay').classList.remove('open');
+  $('#rowMenuOverlay').setAttribute('aria-hidden','true');
+}
+
+let confirmDeleteAction = null;
+function openConfirmDelete(kind, count, name, action){
+  $('#confirmTitle').textContent = kind === 'song' ? 'Remove song' :
+    kind === 'album' ? 'Remove album' : kind === 'artist' ? 'Remove artist' : 'Remove songs';
+  const noun = count === 1 ? 'track' : 'tracks';
+  const nameBit = name ? '“' + name + '” — ' : '';
+  $('#confirmBody').textContent = nameBit + count + ' ' + noun + ' will be removed from Miziki’s library. '
+    + 'This removes ' + (count === 1 ? 'it' : 'them') + ' from the library only, not from disk — your files stay where they are.';
+  confirmDeleteAction = action;
+  $('#confirmOverlay').classList.add('open');
+  $('#confirmOverlay').setAttribute('aria-hidden','false');
+}
+function closeConfirmDelete(){
+  confirmDeleteAction = null;
+  $('#confirmOverlay').classList.remove('open');
+  $('#confirmOverlay').setAttribute('aria-hidden','true');
 }
 
 // numbers the current selection 1..N in whatever order it's currently
@@ -3040,6 +3300,22 @@ function renderTracks(){
     crumb.appendChild(back);
     crumb.appendChild(el('span','crumb-label',
       v.playlist !== null ? S.playlists[v.playlist].name : v.group));
+    // Album/artist deletion lives right where you're looking at that album
+    // or artist — offered even for a single-album artist, no conditional
+    // collapsing to album deletion (see LIBRARY spec §4)
+    if(v.playlist === null && v.group !== null && (v.mode === 'albums' || v.mode === 'artists')){
+      const removeBtn = el('button','crumb-back', v.mode === 'albums' ? 'Remove Album' : 'Remove Artist');
+      removeBtn.style.marginLeft = 'auto';
+      removeBtn.addEventListener('click', ()=>{
+        const group = v.group;
+        if(v.mode === 'albums'){
+          openConfirmDelete('album', countForAlbum(group), group, async () => { deleteAlbum(group); v.group = null; renderTracks(); });
+        } else {
+          openConfirmDelete('artist', countForArtist(group), group, async () => { deleteArtist(group); v.group = null; renderTracks(); });
+        }
+      });
+      crumb.appendChild(removeBtn);
+    }
   }
 
   const ul = el('ul','tracklist');
@@ -3510,6 +3786,136 @@ async function renderShareCanvas(){
   target.getContext('2d').drawImage(canvas, 0, 0);
 }
 
+/* ---- player share: "this record, right now" — a single object, not a
+   stat card. Half the disc (current variant/metal/rare treatment), half
+   the jacket, positioned so the disc reads as sitting halfway out of the
+   sleeve — closer to a photograph of a record being pulled from its
+   jacket than to a Wrapped-style card (see LIBRARY spec §2). Pure
+   function like composeShareImage(): takes options, returns a canvas. ---- */
+function hexMix(hex, target, amt){
+  const c = parseInt(hex.slice(1), 16), t = parseInt(target.slice(1), 16);
+  const mix = (shift) => Math.round(((c>>shift & 255) * (1-amt)) + ((t>>shift & 255) * amt));
+  return 'rgb(' + mix(16) + ',' + mix(8) + ',' + mix(0) + ')';
+}
+
+async function composePlayerShareImage(opts){
+  const t = current();
+  const w = 1080, h = opts.size === 'story' ? 1920 : 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  try{ await document.fonts.ready; }catch(e){}
+  if(!t) return canvas;
+
+  // sleeve half: album art fills the frame, wordmark fallback matching the
+  // sleeve pull's own no-artwork treatment
+  let hasArtBg = false;
+  if(t.art){
+    try{
+      const img = await loadImageEl(t.art);
+      drawCover(ctx, img, 0, 0, w, h);
+      const vig = ctx.createLinearGradient(0, 0, w, 0);
+      vig.addColorStop(0, 'rgba(0,0,0,.5)'); vig.addColorStop(0.55, 'rgba(0,0,0,.12)'); vig.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
+      hasArtBg = true;
+    }catch(e){ drawWordmarkPanel(ctx, w, h); }
+  } else {
+    drawWordmarkPanel(ctx, w, h);
+  }
+
+  // disc half: current variant, metal if earned, or the rare "suspended in
+  // vinyl" treatment — same precedence applyDiscVariant() uses on the real
+  // platter. Centered left-of-frame so a good portion clips off the edge,
+  // the rest overlapping the jacket: a record mid-pull, not a hard seam.
+  const r = w * 0.4;
+  const cx = w * (opts.size === 'story' ? 0.34 : 0.32), cy = h * (opts.size === 'story' ? 0.36 : 0.42);
+  const albumId = albumKey(t);
+  const rare = !!S.rareUnlocked[albumId];
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  if(rare && t.art){
+    try{
+      const img = await loadImageEl(t.art);
+      drawCover(ctx, img, cx - r, cy - r, r*2, r*2);
+      const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
+      ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    }catch(e){ /* fall through to the variant swatch below */ }
+  } else {
+    const tier = trackTier(t);
+    const metal = tier === 1 ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId)) : null;
+    let colors;
+    if(metal){
+      const base = METAL_COLORS[metal];
+      colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
+    } else {
+      const {variant} = selectVariant(t);
+      colors = VARIANT_DEFS[variant].colors;
+    }
+    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
+    ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  }
+  // groove rings so the swatch still reads as a record, not a flat disc
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  for(let rr = r*0.4; rr < r*0.97; rr += r*0.085){
+    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+  // label
+  const lr = r * 0.32;
+  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
+  ctx.fillStyle = '#3A2007'; ctx.fill();
+  if(t.art){
+    try{
+      const limg = await loadImageEl(t.art);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
+      drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
+      ctx.restore();
+    }catch(e){}
+  }
+
+  // title / artist underneath, tolerant of long names
+  const pad = 64;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const titleY = h - (opts.size === 'story' ? 220 : 150);
+  ctx.font = '600 46px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
+  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.title : t.name, w - pad*2), w/2, titleY);
+  ctx.font = '400 26px "IBM Plex Mono", monospace'; ctx.fillStyle = '#B7ADA0';
+  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.artist : '', w - pad*2), w/2, titleY + 42);
+
+  // small, unobtrusive wordmark — present even over artwork
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 24px Antonio, sans-serif';
+  if(hasArtBg){
+    ctx.fillStyle = 'rgba(10,14,18,.55)';
+    ctx.fillRect(w - 172, 40, 132, 40);
+  }
+  ctx.fillStyle = '#FF9E2C';
+  ctx.fillText('MIZIKI', w - 156, 66);
+
+  return canvas;
+}
+
+async function renderPlayerShareCanvas(){
+  const sizeBtn = document.querySelector('#playerShareSizeSeg [aria-pressed="true"]');
+  const size = sizeBtn ? sizeBtn.dataset.size : 'square';
+  const canvas = await composePlayerShareImage({size});
+  const target = $('#playerShareCanvas');
+  target.width = canvas.width; target.height = canvas.height;
+  target.getContext('2d').drawImage(canvas, 0, 0);
+}
+async function openPlayerShareSheet(){
+  if(!current()) return;
+  $('#playerShareOverlay').classList.add('open');
+  $('#playerShareOverlay').setAttribute('aria-hidden', 'false');
+  await renderPlayerShareCanvas();
+}
+function closePlayerShareSheet(){
+  $('#playerShareOverlay').classList.remove('open');
+  $('#playerShareOverlay').setAttribute('aria-hidden', 'true');
+}
+
 function setMode(m){
   S.mode = m;
   const vinyl = m === 'vinyl';
@@ -3643,6 +4049,30 @@ function showRoute(name){
   $('#selectNumber').addEventListener('click', ()=>{
     if(S.editSelection.size) applyTrackNumbersInOrder();
   });
+  $('#selectDelete').addEventListener('click', ()=>{
+    const ids = Array.from(S.editSelection);
+    if(!ids.length) return;
+    openConfirmDelete('batch', ids.length, null, async () => { await deleteTracks(ids); exitSelectMode(); });
+  });
+
+  $('#rowMenuClose').addEventListener('click', closeRowMenu);
+  $('#rowMenuEdit').addEventListener('click', ()=>{
+    const id = rowMenuTrackId; closeRowMenu();
+    if(id) openEditSheet([id]);
+  });
+  $('#rowMenuRemove').addEventListener('click', ()=>{
+    const id = rowMenuTrackId; closeRowMenu();
+    const t = S.tracks[idxOf(id)]; if(!t) return;
+    openConfirmDelete('song', 1, t.tags.title, async () => { await deleteTracks([id]); });
+  });
+
+  $('#confirmClose').addEventListener('click', closeConfirmDelete);
+  $('#confirmCancel').addEventListener('click', closeConfirmDelete);
+  $('#confirmGo').addEventListener('click', async ()=>{
+    const action = confirmDeleteAction;
+    closeConfirmDelete();
+    if(action) await action();
+  });
 
   $('#editCurrentBtn').addEventListener('click', ()=>{ const t = current(); if(t) openEditSheet([t.id]); });
   $('#editClose').addEventListener('click', closeEditSheet);
@@ -3707,6 +4137,28 @@ function showRoute(name){
     }, 'image/png');
   });
 
+  $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
+  $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
+  document.querySelectorAll('#playerShareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
+    document.querySelectorAll('#playerShareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    renderPlayerShareCanvas();
+  }));
+  $('#playerShareSave').addEventListener('click', ()=>{
+    $('#playerShareCanvas').toBlob(blob => {
+      if(!blob) return;
+      const file = new File([blob], 'miziki-record.png', {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file], title:'Miziki'}).catch(()=>{});
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'miziki-record.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  });
+
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer
   document.addEventListener('visibilitychange', () => {
@@ -3730,6 +4182,8 @@ function showRoute(name){
   fallbackSun();
   askLocation();
   drawSun();
+  updateChromeInset();
+  window.addEventListener('resize', updateChromeInset);
   requestAnimationFrame(frame);
   restoreLibrary();
 })();
