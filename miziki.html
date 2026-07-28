@@ -152,6 +152,10 @@ body{
 }
 .platter-stage.pulling .sleeve{animation:sleevePull var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
 .platter-stage.pulling .platter-box{animation:discEmerge var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
+/* return-to-sleeve is literally the pull in reverse: sleeve rises from below
+   to cover the disc, then both exit back off to the side */
+.platter-stage.returning .sleeve{animation:sleevePull var(--return-duration,1500ms) var(--pull-easing,ease) reverse forwards}
+.platter-stage.returning .platter-box{animation:discEmerge var(--return-duration,1500ms) var(--pull-easing,ease) reverse forwards}
 
 .now{text-align:center;margin-top:22px}
 .now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
@@ -195,7 +199,13 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .mini-square.has-art .mini-art{opacity:1}
 .mini-mark{font-family:var(--display);font-size:6.5px;letter-spacing:.08em;color:var(--muted)}
 .mini-square.has-art .mini-mark{display:none}
-.mini-disc{border-radius:50%;background:#15161B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);opacity:0}
+.mini-disc{border-radius:50%;background:#15161B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  opacity:0;overflow:hidden}
+/* the disc surface itself stays plain black regardless of tier — only this
+   tiny inset label carries artwork */
+.mini-disc-art{position:absolute;inset:30%;border-radius:50%;width:40%;height:40%;
+  object-fit:cover;opacity:0;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.mini-disc.has-art .mini-disc-art{opacity:1}
 .mini-indicator.playing .mini-square{opacity:0}
 .mini-indicator.playing .mini-disc{opacity:1}
 .mini-text{min-width:0;display:flex;flex-direction:column;gap:1px}
@@ -218,14 +228,25 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
-  transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1);
+  transform:translateY(100%);transition:transform var(--sheet-duration,350ms) cubic-bezier(.32,.72,0,1);
   overflow-y:auto;overflow-x:hidden;
   padding:calc(14px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}
 .player-overlay.open{transform:translateY(0)}
+/* used only to reveal the overlay instantly for the morph, which drives its
+   own motion via the ghost disc rather than the sheet's slide transition */
+.player-overlay.instant{transition:none}
 .player-overlay .stage{max-width:480px;margin:0 auto;padding:44px 0 6px}
 .player-dismiss{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
   width:44px;height:28px;color:var(--muted);font-size:20px;line-height:1;display:grid;place-content:center;z-index:1}
 @media (prefers-reduced-motion:reduce){.player-overlay{transition:none}}
+
+/* ---------- morph: mini-player disc growing into the full disc ----------
+   A ghost element travels from the mini-disc's screen rect to the full
+   disc's rect via a plain FLIP-style transform transition (translate+scale),
+   in a shared fixed-position coordinate space. */
+.morph-disc{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:150;
+  display:none;box-shadow:0 22px 44px rgba(0,0,0,.55);background-position:center;background-size:cover}
+.platter-stage.morph-hidden{visibility:hidden}
 
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
@@ -431,7 +452,9 @@ input[type=file]{display:none}
         <img class="mini-art" id="miniArt" alt="">
         <span class="mini-mark">MIZIKI</span>
       </span>
-      <span class="mini-disc" aria-hidden="true"></span>
+      <span class="mini-disc" id="miniDisc" aria-hidden="true">
+        <img class="mini-disc-art" id="miniDiscArt" alt="">
+      </span>
     </span>
     <span class="mini-text">
       <b id="miniTitle"></b>
@@ -508,6 +531,9 @@ input[type=file]{display:none}
   </section>
 </div>
 
+<!-- ghost element for the mini-player-to-full-player morph -->
+<div class="morph-disc" id="morphDisc" aria-hidden="true"></div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -530,7 +556,8 @@ const S = {
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,
   // navigation / player shell (see spec)
-  route:'library', playerOpen:false, shellAlbumId:null, pullPending:false
+  route:'library', playerOpen:false, shellAlbumId:null,
+  outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null
 };
 
 /* ================= audio graph ================= */
@@ -1365,7 +1392,7 @@ async function forgetLibrary(){
   S.queue = []; S.baseQueue = []; S.lru = [];
   S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
   S.curPlayed = []; S.curTrackDone = false;
-  S.shellAlbumId = null; S.pullPending = false;
+  S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
@@ -1426,6 +1453,13 @@ function setQueue(indices, startPos, autoplay){
   if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
   S.qpos = Math.max(0, S.queue.indexOf(first));
   load(S.queue[S.qpos], autoplay);
+  // an explicit track pick (as opposed to the silent initial queue-priming
+  // calls, which pass autoplay:false) is always "starting something" —
+  // opens the full player via the sheet, not the mini-player's morph
+  if(autoplay){
+    if(S.playerOpen) runDiscTransition(current(), S.pendingShellInfo);
+    else openPlayerViaSheet(current(), S.pendingShellInfo);
+  }
 }
 
 function reorderQueue(){
@@ -1448,6 +1482,10 @@ function advance(dir, auto){
   if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
   S.qpos = n;
   load(S.queue[n], true);
+  // next/prev/auto-advance never open the player themselves — but if it's
+  // already open (sitting in it, or mid next/prev), there's no sheet or
+  // morph to wait for, so the disc transition (if any) runs immediately
+  if(S.playerOpen) runDiscTransition(current(), S.pendingShellInfo);
 }
 
 function nextTrack(){ advance(1, false); }
@@ -1478,8 +1516,21 @@ function cycleRepeat(){
    Library is the landing route; Sundown and Character are peer routes reached
    via the tab bar. The full player is not a fourth tab — it only exists as an
    overlay, reached through the mini-player strip, once something is loaded. */
-const SLEEVE_ANIM = { durationMs: 2000, easing: 'cubic-bezier(.3,.66,.35,1)' };
-document.documentElement.style.setProperty('--pull-duration', SLEEVE_ANIM.durationMs + 'ms');
+/* Two ways into the full player, chosen by whether a record is already on
+   the platter: picking a track from Library always arrives via the SHEET
+   (something is being started); tapping the mini-player always arrives via
+   the MORPH (returning to what's already there). The sheet settles fully
+   before any disc transition begins; the morph itself IS the disc arriving,
+   so nothing else runs alongside it. Durations/easing live in one object so
+   the return-to-sleeve/pull/morph ratio can be tuned without touching any
+   trigger logic below. */
+const SLEEVE_ANIM = {
+  sheetMs: 350, returnMs: 1500, pullMs: 2000, morphMs: 420,
+  easing: 'cubic-bezier(.3,.66,.35,1)'
+};
+document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
+document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.returnMs + 'ms');
+document.documentElement.style.setProperty('--pull-duration', SLEEVE_ANIM.pullMs + 'ms');
 document.documentElement.style.setProperty('--pull-easing', SLEEVE_ANIM.easing);
 
 function renderMiniPlayer(){
@@ -1493,23 +1544,14 @@ function renderMiniPlayer(){
   const art = $('#miniArt');
   if(t.art) art.src = t.art; else art.removeAttribute('src');
   $('#miniIndicator').classList.toggle('playing', S.playing);
+  // the mini disc surface stays plain black regardless of tier — only this
+  // tiny inset label carries artwork
+  const discArt = $('#miniDiscArt');
+  if(t.art){ discArt.src = t.art; $('#miniDisc').classList.add('has-art'); }
+  else { discArt.removeAttribute('src'); $('#miniDisc').classList.remove('has-art'); }
   const btn = $('#miniPlay');
   btn.textContent = S.playing ? '❚❚' : '▶';
   btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
-}
-
-function openPlayer(){
-  if(!current()) return;
-  S.playerOpen = true;
-  $('#playerOverlay').classList.add('open');
-  $('#playerOverlay').setAttribute('aria-hidden','false');
-  if(S.pullPending){ S.pullPending = false; playSleeveAnimation(current()); }
-}
-function closePlayer(){
-  S.playerOpen = false;
-  interruptSleeveAnimation();
-  $('#playerOverlay').classList.remove('open');
-  $('#playerOverlay').setAttribute('aria-hidden','true');
 }
 
 // a loose single (no real album tag) is genuinely its own release, so back-to-back
@@ -1520,35 +1562,167 @@ function shellAlbumIdentity(t){
   return albumKey(t);
 }
 
-function playSleeveAnimation(t){
+// Always updates "what's on the platter" bookkeeping, even while the player
+// is closed or shuffled, so state stays correct for whenever it's next
+// shown. Returns what the disc SHOULD do, without running anything —
+// callers decide whether it's currently visible/safe to actually play it.
+function updateShellAlbum(t){
+  const newId = shellAlbumIdentity(t);
+  const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
+  S.shellAlbumId = newId;
+  S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
+  if(S.shuffle || REDUCED || prevId === newId) return {type:'none'};
+  if(prevId === null) return {type:'pull'};
+  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt};
+}
+
+function runDiscTransition(t, info){
+  if(!info || info.type === 'none') return;
+  if(info.type === 'pull'){ playSleevePull(t); return; }
+  playReturnToSleeve(info.outgoingArt, info.outgoingHasArt, () => playSleevePull(t));
+}
+
+function playSleevePull(t){
   if(!t || REDUCED) return;
   const sleeve = $('#sleeve'), art = $('#sleeveArt'), stage = $('#platterStage');
   if(t.art){ art.src = t.art; sleeve.classList.add('has-art'); }
   else { art.removeAttribute('src'); sleeve.classList.remove('has-art'); }
-  stage.classList.remove('pulling');   // in case one is already mid-flight
+  stage.classList.remove('pulling','returning');
   sleeve.style.display = 'flex';
-  void stage.offsetWidth;              // force a reflow so re-adding the class below restarts the animation
+  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('pulling');
 }
+
+// The reverse of the pull — literally the same keyframes played backwards,
+// so the outgoing sleeve rises from below to swallow the disc, then carries
+// it off to the side. Kept shorter than the pull: putting a record away is
+// the quicker gesture, which keeps the total swap from feeling padded.
+function playReturnToSleeve(art, hasArt, onDone){
+  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt'), stage = $('#platterStage');
+  if(hasArt){ sleeveArt.src = art; sleeve.classList.add('has-art'); }
+  else { sleeveArt.removeAttribute('src'); sleeve.classList.remove('has-art'); }
+  stage.classList.remove('pulling','returning');
+  sleeve.style.display = 'flex';
+  void stage.offsetWidth;
+  stage.classList.add('returning');
+  sleeve.addEventListener('animationend', function done(){
+    sleeve.removeEventListener('animationend', done);
+    stage.classList.remove('returning');
+    sleeve.style.display = 'none';
+    if(onDone) onDone();
+  }, {once:true});
+}
+
+// Covers both phases. A class removed mid-flight never fires animationend,
+// so interrupting a return-to-sleeve also safely cancels it without ever
+// chaining into the pull that would otherwise follow it.
 function interruptSleeveAnimation(){
   const stage = $('#platterStage');
-  if(!stage.classList.contains('pulling')) return;
-  stage.classList.remove('pulling');
+  if(!stage.classList.contains('pulling') && !stage.classList.contains('returning')) return;
+  stage.classList.remove('pulling','returning');
   $('#sleeve').style.display = 'none';
 }
 
-// decides whether THIS load deserves a pull: different album, or nothing was
-// previously playing. Same album (track change, or replayed after stopping)
-// is not a change. Shuffle suppresses the trigger entirely, since otherwise
-// every track would pull. If the full player isn't open yet, the pull is
-// owed the next time it is — never fired silently behind the mini-player.
-function handleSleevePullTrigger(t){
-  const newId = shellAlbumIdentity(t);
-  const changed = S.shellAlbumId !== newId;
-  S.shellAlbumId = newId;
-  if(!changed || S.shuffle){ S.pullPending = false; return; }
-  if(S.playerOpen) playSleeveAnimation(t);
-  else S.pullPending = true;
+// Library selection always arrives via the sheet — something is being
+// started. The sheet must settle fully before the disc transition begins.
+function openPlayerViaSheet(t, info){
+  if(!t) return;
+  S.playerOpen = true;
+  const ov = $('#playerOverlay');
+  ov.setAttribute('aria-hidden','false');
+  ov.classList.add('open');
+  ov.addEventListener('transitionend', function settled(){
+    ov.removeEventListener('transitionend', settled);
+    runDiscTransition(t, info);
+  }, {once:true});
+}
+
+// Tapping the mini-player is always a return to what's already playing —
+// never a new selection — so it arrives via the morph and never runs a
+// disc transition of its own.
+function openPlayer(){
+  if(!current() || S.playerOpen) return;
+  S.playerOpen = true;
+  runMorphOpen();
+}
+
+function closePlayer(){
+  if(morphInFlight()){ interruptMorph(); return; }
+  S.playerOpen = false;
+  interruptSleeveAnimation();
+  const ov = $('#playerOverlay');
+  ov.classList.remove('open');
+  ov.setAttribute('aria-hidden','true');
+}
+
+/* ---- morph: the mini-player's disc grows and travels into the full disc's
+   position. A plain FLIP: measure both rects (a shared fixed-position
+   coordinate space), place a ghost at the small one, transition its
+   transform to the delta+scale needed to become the large one, then hand
+   off to the real disc. Must reverse cleanly if interrupted mid-flight,
+   unlike the sleeve transitions, which snap straight to the end state. ---- */
+function morphInFlight(){ return $('#morphDisc').style.display === 'block'; }
+
+function runMorphOpen(){
+  const t = current(); if(!t){ S.playerOpen = false; return; }
+  const mini = $('#miniIndicator'), ghost = $('#morphDisc'), ov = $('#playerOverlay'),
+        realDisc = $('#disc'), stage = $('#platterStage');
+  const miniRect = mini.getBoundingClientRect();
+
+  ov.classList.add('instant');
+  ov.classList.add('open');
+  ov.setAttribute('aria-hidden','false');
+  void ov.offsetWidth;
+  ov.classList.remove('instant');
+
+  const targetRect = stage.getBoundingClientRect();
+  stage.classList.add('morph-hidden');
+
+  ghost.style.width = miniRect.width + 'px';
+  ghost.style.height = miniRect.height + 'px';
+  ghost.style.left = miniRect.left + 'px';
+  ghost.style.top = miniRect.top + 'px';
+  ghost.style.background = realDisc.style.background || '#15161B';
+  ghost.style.transition = 'none';
+  ghost.style.transform = 'translate(0,0) scale(1)';
+  ghost.style.display = 'block';
+
+  const scale = targetRect.width / miniRect.width;
+  const dx = (targetRect.left + targetRect.width/2) - (miniRect.left + miniRect.width/2);
+  const dy = (targetRect.top + targetRect.height/2) - (miniRect.top + miniRect.height/2);
+
+  void ghost.offsetWidth;
+  ghost.style.transition = 'transform ' + SLEEVE_ANIM.morphMs + 'ms ' + SLEEVE_ANIM.easing;
+  ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
+
+  ghost.addEventListener('transitionend', function done(){
+    ghost.removeEventListener('transitionend', done);
+    ghost.style.display = 'none';
+    ghost.style.transition = '';
+    stage.classList.remove('morph-hidden');
+  }, {once:true});
+}
+
+// reverses the ghost back down to the mini-player's position, then closes
+// the overlay only once that shrink actually finishes
+function interruptMorph(){
+  const ghost = $('#morphDisc'), stage = $('#platterStage');
+  const cs = getComputedStyle(ghost);
+  ghost.style.transition = 'none';
+  ghost.style.transform = cs.transform === 'none' ? 'translate(0,0) scale(1)' : cs.transform;
+  void ghost.offsetWidth;
+  ghost.style.transition = 'transform ' + Math.round(SLEEVE_ANIM.morphMs*0.6) + 'ms ' + SLEEVE_ANIM.easing;
+  ghost.style.transform = 'translate(0,0) scale(1)';
+  ghost.addEventListener('transitionend', function done(){
+    ghost.removeEventListener('transitionend', done);
+    ghost.style.display = 'none';
+    ghost.style.transition = '';
+    stage.classList.remove('morph-hidden');
+    S.playerOpen = false;
+    const ov = $('#playerOverlay');
+    ov.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+  }, {once:true});
 }
 
 function load(i, autoplay){
@@ -1559,7 +1733,7 @@ function load(i, autoplay){
   const t = S.tracks[i];
   sessionOnLoad(t);
   applyDiscVariant(t);
-  handleSleevePullTrigger(t);
+  S.pendingShellInfo = updateShellAlbum(t);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
   $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
   const lab = $('#label'), img = $('#labelArt');
@@ -2289,7 +2463,10 @@ function showRoute(name){
     S.playing ? pause() : play();
   });
   $('#playerDismiss').addEventListener('click', closePlayer);
-  $('#playerOverlay').addEventListener('pointerdown', interruptSleeveAnimation, {capture:true});
+  $('#playerOverlay').addEventListener('pointerdown', ()=>{
+    interruptSleeveAnimation();          // pull/return-to-sleeve: snap to end state
+    if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead
+  }, {capture:true});
   $('#sleeve').addEventListener('animationend', ()=>{
     $('#platterStage').classList.remove('pulling');
     $('#sleeve').style.display = 'none';
