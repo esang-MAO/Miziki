@@ -248,6 +248,33 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   display:none;box-shadow:0 22px 44px rgba(0,0,0,.55);background-position:center;background-size:cover}
 .platter-stage.morph-hidden{visibility:hidden}
 
+/* ---------- metadata edit sheet ---------- */
+.edit-overlay{position:fixed;inset:0;z-index:120;background:rgba(5,7,9,.72);
+  display:none;align-items:flex-end;justify-content:center}
+.edit-overlay.open{display:flex}
+.edit-sheet{width:100%;max-width:520px;max-height:86vh;overflow-y:auto;box-sizing:border-box;
+  background:var(--sky2);border-top:1px solid var(--line);border-radius:12px 12px 0 0;
+  padding:18px 20px calc(20px + env(safe-area-inset-bottom))}
+.edit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.edit-head span{font-family:var(--display);font-size:17px;letter-spacing:.06em}
+.edit-close{width:32px;height:32px;color:var(--muted);font-size:15px}
+.edit-art-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.edit-art-preview{width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--panel);
+  display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:9px}
+.edit-art-preview img{width:100%;height:100%;object-fit:cover}
+.pl-input[type=text],.pl-input[type=number]{width:100%}
+
+.undo-banner{position:fixed;left:16px;right:16px;bottom:calc(128px + env(safe-area-inset-bottom));
+  max-width:488px;margin:0 auto;z-index:60;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:rgba(10,14,18,.95);border:1px solid var(--line);border-radius:6px;padding:10px 14px;
+  font-size:12.5px}
+
+/* library row edit affordance + multi-select mode */
+.t-edit{width:26px;height:26px;color:var(--muted);font-size:15px;flex:0 0 auto}
+.select-bar{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.select-bar .stack{margin-top:0}
+
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .row .k{font-size:13.5px}
@@ -323,6 +350,17 @@ input[type=file]{display:none}
       <button data-view="albums" aria-pressed="false">Albums</button>
       <button data-view="artists" aria-pressed="false">Artists</button>
       <button data-view="playlists" aria-pressed="false">Playlists</button>
+    </div>
+    <div class="stack" id="libSelectToggleRow" style="display:none;margin-top:10px">
+      <button class="cta ghost" id="selectToggle">Select</button>
+    </div>
+    <div class="select-bar" id="selectBar" style="display:none">
+      <span id="selectCount">0 selected</span>
+      <div class="stack">
+        <button class="cta ghost" id="selectNumber">Number in order</button>
+        <button class="cta" id="selectEdit">Edit</button>
+        <button class="cta ghost" id="selectCancel">Cancel</button>
+      </div>
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
@@ -505,6 +543,7 @@ input[type=file]{display:none}
       <h2 id="trackName">Nothing on the platter</h2>
       <div class="by" id="trackBy"></div>
       <div class="spec" id="trackSpec">Load a file to see its signal path</div>
+      <button class="cta ghost edit-current" id="editCurrentBtn" style="margin-top:10px">Edit info</button>
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
@@ -534,6 +573,58 @@ input[type=file]{display:none}
 <!-- ghost element for the mini-player-to-full-player morph -->
 <div class="morph-disc" id="morphDisc" aria-hidden="true"></div>
 
+<!-- METADATA EDIT SHEET: single-track (from the full player or a library
+     row) and batch (from multi-select) both use this same form -->
+<div class="edit-overlay" id="editOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="editSheetBox">
+    <div class="edit-head">
+      <span id="editTitleLabel">Edit track</span>
+      <button class="edit-close" id="editClose" aria-label="Close">✕</button>
+    </div>
+
+    <div class="edit-art-row">
+      <div class="edit-art-preview" id="editArtPreview"></div>
+      <div class="stack" style="margin-top:0">
+        <button class="cta ghost" id="editArtPick">Choose artwork</button>
+      </div>
+      <input id="editArtFile" type="file" accept="image/*">
+    </div>
+
+    <div class="slider-row" id="editTitleRow">
+      <div class="slider-head"><span>Title</span></div>
+      <input class="pl-input" id="editTitle" type="text">
+    </div>
+    <div class="slider-row">
+      <div class="slider-head"><span>Artist</span></div>
+      <input class="pl-input" id="editArtist" type="text">
+    </div>
+    <div class="slider-row">
+      <div class="slider-head"><span>Album</span></div>
+      <input class="pl-input" id="editAlbum" type="text">
+    </div>
+    <div class="slider-row">
+      <div class="slider-head"><span>Album artist</span></div>
+      <input class="pl-input" id="editAlbumArtist" type="text">
+    </div>
+    <div class="slider-row" id="editTrackRow">
+      <div class="slider-head"><span>Track number</span></div>
+      <input class="pl-input" id="editTrackNum" type="number" min="0">
+    </div>
+
+    <p class="note" id="editBatchNote" style="display:none"></p>
+
+    <div class="stack">
+      <button class="cta" id="editSave">Save</button>
+      <button class="cta ghost" id="editRevert">Revert to file</button>
+    </div>
+  </div>
+</div>
+
+<div class="undo-banner" id="undoBanner" style="display:none">
+  <span id="undoText"></span>
+  <button class="cta ghost" id="undoBtn">Undo</button>
+</div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -544,7 +635,8 @@ const S = {
   ctx:null, nodes:null, source:null, gen:0,
   tracks:[], index:-1, playing:false, pos:0, rate:1,
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
-  playlists:[], view:{mode:'songs', group:null, playlist:null, picking:false},
+  playlists:[], view:{mode:'songs', group:null, playlist:null, picking:false, editSelecting:false},
+  editSelection: new Set(),
   albumSort:{}, albumOrder:{}, lru:[],
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
   previewMin:0, live:true,
@@ -557,7 +649,9 @@ const S = {
   curPlayed:[], curTrackDone:false,
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
-  outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null
+  outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
+  // metadata editing (see spec)
+  editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null
 };
 
 /* ================= audio graph ================= */
@@ -1069,6 +1163,7 @@ async function addFiles(list){
           ch: meta.ch || buffer.numberOfChannels
         }
       };
+      await loadOverlayFor(t);
       S.tracks.push(t);
       touchLRU(S.tracks.length - 1);
       if(await storeTrack(t, fileBlob)){
@@ -1133,12 +1228,17 @@ const DB = {
     try{
       this.db = await Promise.race([
         new Promise((res,rej)=>{
-          const r = indexedDB.open('miziki', 2);
+          const r = indexedDB.open('miziki', 3);
           r.onupgradeneeded = () => {
             const d = r.result;
             if(!d.objectStoreNames.contains('tracks'))   d.createObjectStore('tracks',   {keyPath:'id'});
             if(!d.objectStoreNames.contains('meta'))     d.createObjectStore('meta',     {keyPath:'k'});
             if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions', {keyPath:'albumId'});
+            // user metadata edits (sparse — only fields the user actually changed)
+            // and their artwork, kept separate from the original file so the
+            // source stays untouched and a track can always revert
+            if(!d.objectStoreNames.contains('overlays'))  d.createObjectStore('overlays',  {keyPath:'id'});
+            if(!d.objectStoreNames.contains('artwork'))   d.createObjectStore('artwork',   {keyPath:'id'});
           };
           r.onsuccess = () => res(r.result);
           r.onerror = () => rej(r.error || new Error('open failed'));
@@ -1158,7 +1258,9 @@ const DB = {
   async all(name){ if(!this.ok) return [];
     try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(e){ return []; } },
   async clear(name){ if(!this.ok) return;
-    try{ await this.req(this.store(name,'readwrite').clear()); }catch(e){} }
+    try{ await this.req(this.store(name,'readwrite').clear()); }catch(e){} },
+  async del(name, k){ if(!this.ok) return false;
+    try{ await this.req(this.store(name,'readwrite').delete(k)); return true; }catch(e){ return false; } }
 };
 
 /* orders and playlists are saved as track ids, never as positions —
@@ -1376,16 +1478,232 @@ function checkTrackCompletion(t){
   }
 }
 
+/* ================= metadata editing: sidecar overlay =================
+   Source of truth stays the app's own database. Edits are stored as a
+   sparse overlay (only the fields actually changed) keyed by the same
+   stable file id used everywhere else — never by mutating the original
+   file. Resolve order for any field: user edit > embedded file tag >
+   fallback. The overlay is applied once, when a track enters S.tracks, so
+   the rest of the app just reads t.tags/t.art as always; no caller needs
+   to know an overlay exists. t.embeddedTags/t.embeddedArt are kept aside
+   so a track can always revert. */
+function applyOverlay(t, rec, artBlob){
+  t.embeddedTags = Object.assign({}, t.tags);
+  t.embeddedArt = t.art;
+  if(rec && rec.fields) Object.keys(rec.fields).forEach(k => { t.tags[k] = rec.fields[k]; });
+  if(artBlob){ t.overlayArtBlob = artBlob; t.art = URL.createObjectURL(artBlob); }
+}
+
+async function loadOverlayFor(t){
+  if(!DB.ok) return;
+  const rec = await DB.get('overlays', t.id);
+  const artRec = await DB.get('artwork', t.id);
+  applyOverlay(t, rec, artRec && artRec.blob);
+}
+
+// downscale + center-crop any image Blob/File to a square JPEG, capped at maxDim —
+// the full player crops square art to a circle for the label and the sleeve
+// renders it square, so a centered square source is what every render target wants
+function cropSquareImage(file, maxDim){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const out = Math.min(maxDim || 800, side);
+      const canvas = document.createElement('canvas');
+      canvas.width = out; canvas.height = out;
+      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
+      URL.revokeObjectURL(img.src);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', 0.9);
+    };
+    img.onerror = () => reject(new Error('could not read image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// refreshes everything that depends on a track's tags/art after an edit —
+// the disc (if it's the one currently on the platter), the library list,
+// and the mini-player
+function recomputeTrack(i){
+  const t = S.tracks[i];
+  if(!t) return;
+  if(S.index === i){
+    applyDiscVariant(t);
+    $('#trackName').textContent = t.tags.title;
+    $('#trackBy').textContent = t.tags.artist + ' — ' + t.tags.album;
+    const lab = $('#label'), img = $('#labelArt');
+    if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
+    else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
+  }
+  renderTracks();
+  renderMiniPlayer();
+}
+
+// applies fields (and optionally new artwork) to one or more tracks, merging
+// onto any existing overlay rather than replacing it, and persists each
+async function applyEdit(trackIds, fields, artBlob){
+  for(const id of trackIds){
+    const i = idxOf(id); if(i < 0) continue;
+    const t = S.tracks[i];
+    const existing = await DB.get('overlays', id);
+    const merged = Object.assign({}, existing && existing.fields, fields);
+    await DB.put('overlays', {id, fields: merged});
+    Object.assign(t.tags, fields);
+    if(artBlob){
+      await DB.put('artwork', {id, blob: artBlob});
+      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+      t.overlayArtBlob = artBlob;
+      t.art = URL.createObjectURL(artBlob);
+    }
+    recomputeTrack(i);
+  }
+}
+
+// clears a track's whole overlay (fields + artwork), restoring it to
+// whatever its embedded file tags said
+async function revertTrack(id){
+  const i = idxOf(id); if(i < 0) return;
+  const t = S.tracks[i];
+  await DB.del('overlays', id);
+  await DB.del('artwork', id);
+  t.tags = Object.assign({}, t.embeddedTags);
+  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+  t.overlayArtBlob = null;
+  t.art = t.embeddedArt;
+  recomputeTrack(i);
+}
+
+// single-level undo for a batch (or single) edit: snapshots exactly what was
+// in the overlay/artwork stores before the edit, so undo restores that exact
+// prior state rather than always falling back to the embedded tags
+async function applyEditWithUndo(trackIds, fields, artBlob){
+  const prevOverlays = {}, prevArt = {};
+  for(const id of trackIds){
+    prevOverlays[id] = await DB.get('overlays', id);
+    prevArt[id] = await DB.get('artwork', id);
+  }
+  await applyEdit(trackIds, fields, artBlob);
+  S.lastUndo = {trackIds: trackIds.slice(), prevOverlays, prevArt};
+  showUndoBanner(trackIds.length);
+}
+
+async function undoLastEdit(){
+  const u = S.lastUndo; if(!u) return;
+  S.lastUndo = null;
+  for(const id of u.trackIds){
+    const i = idxOf(id); if(i < 0) continue;
+    const t = S.tracks[i];
+    const prevRec = u.prevOverlays[id], prevArtRec = u.prevArt[id];
+    if(prevRec) await DB.put('overlays', prevRec); else await DB.del('overlays', id);
+    if(prevArtRec) await DB.put('artwork', prevArtRec); else await DB.del('artwork', id);
+    t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
+    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); }
+    else { t.overlayArtBlob = null; t.art = t.embeddedArt; }
+    recomputeTrack(i);
+  }
+  hideUndoBanner();
+}
+
+function showUndoBanner(count){
+  const bar = $('#undoBanner');
+  $('#undoText').textContent = count === 1 ? 'Track updated.' : count + ' tracks updated.';
+  bar.style.display = 'flex';
+  clearTimeout(S.undoTimer);
+  S.undoTimer = setTimeout(hideUndoBanner, 8000);
+}
+function hideUndoBanner(){
+  $('#undoBanner').style.display = 'none';
+  S.lastUndo = null;
+}
+
+/* ---- edit sheet: same form for a single track or a batch selection ---- */
+function renderEditArtPreview(url){
+  const box = $('#editArtPreview'); box.innerHTML = '';
+  if(url){ const im = document.createElement('img'); im.src = url; im.alt = ''; box.appendChild(im); }
+  else box.appendChild(el('span', null, 'No art'));
+}
+
+function openEditSheet(trackIds){
+  if(!trackIds.length) return;
+  const batch = trackIds.length > 1;
+  S.editTarget = {trackIds, batch};
+  S.editArtBlob = null;
+  const first = S.tracks[idxOf(trackIds[0])];
+  if(!first) return;
+  $('#editTitleLabel').textContent = batch ? ('Edit ' + trackIds.length + ' tracks') : 'Edit track';
+  $('#editTitleRow').style.display = batch ? 'none' : '';
+  $('#editTitle').value = batch ? '' : (first.tags.title || '');
+  $('#editArtist').value = batch ? '' : (first.tags.artist || '');
+  $('#editAlbum').value = batch ? '' : (first.tags.album || '');
+  $('#editAlbumArtist').value = batch ? '' : (first.tags.albumArtist || '');
+  $('#editTrackRow').style.display = batch ? 'none' : '';
+  $('#editTrackNum').value = batch ? '' : (first.tags.track || '');
+  $('#editRevert').style.display = batch ? 'none' : '';
+  $('#editBatchNote').style.display = batch ? 'block' : 'none';
+  if(batch) $('#editBatchNote').textContent = 'Artist, album, and cover apply to all ' + trackIds.length
+    + ' selected tracks. Titles are left as they are.';
+  renderEditArtPreview(batch ? null : first.art);
+  // single-track fields start pre-filled with the current values (so the
+  // user can see them), which means only what actually changed from these
+  // should become a new overlay entry — otherwise every save would silently
+  // freeze untouched fields (like a fallback title) into the overlay forever
+  S.editOriginal = batch ? null : {
+    title: first.tags.title || '', artist: first.tags.artist || '', album: first.tags.album || '',
+    albumArtist: first.tags.albumArtist || '', track: String(first.tags.track || '')
+  };
+  $('#editOverlay').classList.add('open');
+  $('#editOverlay').setAttribute('aria-hidden','false');
+}
+
+function closeEditSheet(){
+  $('#editOverlay').classList.remove('open');
+  $('#editOverlay').setAttribute('aria-hidden','true');
+  S.editTarget = null; S.editArtBlob = null;
+}
+
+async function saveEditSheet(){
+  const target = S.editTarget; if(!target) return;
+  const fields = {};
+  if(target.batch){
+    // blank = leave alone; batch fields never start pre-filled, so any
+    // non-blank value here is something the user actually typed
+    const artist = $('#editArtist').value.trim(); if(artist) fields.artist = artist;
+    const album = $('#editAlbum').value.trim(); if(album) fields.album = album;
+    const albumArtist = $('#editAlbumArtist').value.trim(); if(albumArtist) fields.albumArtist = albumArtist;
+  } else {
+    // single-track fields start pre-filled with current values, so only
+    // what differs from that starting point counts as an actual edit
+    const orig = S.editOriginal || {};
+    const title = $('#editTitle').value.trim(); if(title && title !== orig.title) fields.title = title;
+    const artist = $('#editArtist').value.trim(); if(artist && artist !== orig.artist) fields.artist = artist;
+    const album = $('#editAlbum').value.trim(); if(album && album !== orig.album) fields.album = album;
+    const albumArtist = $('#editAlbumArtist').value.trim();
+    if(albumArtist && albumArtist !== orig.albumArtist) fields.albumArtist = albumArtist;
+    const trackNum = $('#editTrackNum').value;
+    if(trackNum !== '' && trackNum !== orig.track) fields.track = parseInt(trackNum, 10) || 0;
+  }
+
+  if(!Object.keys(fields).length && !S.editArtBlob){ closeEditSheet(); return; }
+  await applyEditWithUndo(target.trackIds, fields, S.editArtBlob);
+  closeEditSheet();
+  if(target.batch) exitSelectMode();
+}
+
 async function storeTrack(t, blob){
   if(!DB.ok) return false;
   const artBlob = t.artBlob || null;
-  const ok = await DB.put('tracks', {id:t.id, blob, art:artBlob, tags:t.tags, meta:t.meta,
+  // always the embedded tags, never the overlay-resolved ones — the overlay
+  // already lives in its own store and is re-applied on every load
+  const ok = await DB.put('tracks', {id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), meta:t.meta,
     duration:t.duration, addedAt:t.addedAt});
   return ok;
 }
 
 async function forgetLibrary(){
   await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
+  await DB.clear('overlays'); await DB.clear('artwork');
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
@@ -1554,8 +1872,10 @@ function renderMiniPlayer(){
   btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
 }
 
-// a loose single (no real album tag) is genuinely its own release, so back-to-back
-// untagged tracks never share a false "no change" identity with each other
+// each untagged file gets its own identity here (never a shared "Unknown Album"
+// bucket) purely so state stays coherent once a real, tagged album shows up
+// next — untagged tracks are excluded from the pull/return ceremony entirely,
+// see updateShellAlbum()
 function shellAlbumIdentity(t){
   if(!t) return null;
   if(t.tags.album === 'Unknown Album') return 'single:' + t.id;
@@ -1571,6 +1891,10 @@ function updateShellAlbum(t){
   const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
   S.shellAlbumId = newId;
   S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
+  // untagged tracks don't get the ceremony — an untagged file hasn't
+  // established a release identity yet, so it silently occupies the
+  // platter without a pull until a genuinely tagged one arrives
+  if(t.tags.album === 'Unknown Album') return {type:'none'};
   if(S.shuffle || REDUCED || prevId === newId) return {type:'none'};
   if(prevId === null) return {type:'pull'};
   return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt};
@@ -2066,6 +2390,7 @@ function setPathNote(msg, warn){
       + 'It plays, and the platter and character still work — but the clean-path discipline has nothing left to protect.';
     return;
   }
+  if(!S.ctx){ el.textContent = 'Signal path: ' + t.meta.codec + ' ' + (t.meta.rate/1000).toFixed(1) + ' kHz. Press play to see the output path.'; return; }
   el.textContent = 'Signal path: ' + t.meta.codec + ' ' + (t.meta.rate/1000).toFixed(1) + ' kHz → float32 engine → output '
     + (S.ctx.sampleRate/1000).toFixed(1) + ' kHz. ' + (S.ctx.sampleRate === t.meta.rate
       ? 'No resampling anywhere in the path.' : 'This device would not open an output at the file rate, so one conversion happens at the end.');
@@ -2103,7 +2428,9 @@ function el(tag, cls, text){
 function songRow(i, queue, pos, extra){
   const t = S.tracks[i];
   const li = el('li');
+  li.dataset.id = t.id;
   if(i === S.index) li.setAttribute('aria-current','true');
+  if(S.view.editSelecting && S.editSelection.has(t.id)) li.classList.add('picked');
   const idx = el('span','t-idx', String(pos + 1).padStart(2,'0'));
   li.appendChild(idx);
   if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
@@ -2114,12 +2441,59 @@ function songRow(i, queue, pos, extra){
     + (t.meta.lossless ? '' : ' · lossy')));
   li.appendChild(name);
   li.appendChild(el('span','t-dur', fmt(t.duration)));
+  if(!S.view.editSelecting){
+    const editBtn = el('button','t-edit','⋯');
+    editBtn.setAttribute('aria-label','Edit track info');
+    editBtn.addEventListener('click', e => { e.stopPropagation(); openEditSheet([t.id]); });
+    li.appendChild(editBtn);
+  }
   li.addEventListener('click', ()=>{
+    if(S.view.editSelecting){ toggleEditSelect(t.id, li); return; }
     if(S.view.picking){ togglePick(i, li); return; }
     setQueue(queue, pos, true);
   });
   if(extra) extra(li, i);
   return li;
+}
+
+function toggleEditSelect(id, node){
+  if(S.editSelection.has(id)) S.editSelection.delete(id); else S.editSelection.add(id);
+  node.classList.toggle('picked', S.editSelection.has(id));
+  updateSelectBar();
+}
+
+function enterSelectMode(){
+  S.view.editSelecting = true;
+  S.editSelection.clear();
+  renderTracks();
+  updateSelectBar();
+}
+function exitSelectMode(){
+  S.view.editSelecting = false;
+  S.editSelection.clear();
+  renderTracks();
+}
+function updateSelectBar(){
+  $('#selectCount').textContent = S.editSelection.size + ' selected';
+  $('#selectEdit').disabled = S.editSelection.size === 0;
+  $('#selectNumber').disabled = S.editSelection.size === 0;
+}
+
+// numbers the current selection 1..N in whatever order it's currently
+// displayed in — session tracking needs a real order, which an untagged
+// hand-assembled folder otherwise has no reliable way to express
+async function applyTrackNumbersInOrder(){
+  const ids = [];
+  document.querySelectorAll('#libBody .tracklist li').forEach(li => {
+    if(S.editSelection.has(li.dataset.id)) ids.push(li.dataset.id);
+  });
+  if(!ids.length) return;
+  const prevOverlays = {}, prevArt = {};
+  for(const id of ids){ prevOverlays[id] = await DB.get('overlays', id); prevArt[id] = await DB.get('artwork', id); }
+  for(let k = 0; k < ids.length; k++){ await applyEdit([ids[k]], {track: k + 1}, null); }
+  S.lastUndo = {trackIds: ids.slice(), prevOverlays, prevArt};
+  showUndoBanner(ids.length);
+  exitSelectMode();
 }
 
 function groupRow(label, sub, indices, onTap){
@@ -2216,6 +2590,8 @@ function renderTracks(){
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   $('#libActions').style.display = S.tracks.length ? 'flex' : 'none';
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
+  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting) ? 'flex' : 'none';
+  $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
   if(!S.tracks.length){ setPathNote(); return; }
 
@@ -2449,6 +2825,37 @@ function showRoute(name){
     await forgetLibrary();
   });
 
+  $('#selectToggle').addEventListener('click', enterSelectMode);
+  $('#selectCancel').addEventListener('click', exitSelectMode);
+  $('#selectEdit').addEventListener('click', ()=>{
+    if(S.editSelection.size) openEditSheet(Array.from(S.editSelection));
+  });
+  $('#selectNumber').addEventListener('click', ()=>{
+    if(S.editSelection.size) applyTrackNumbersInOrder();
+  });
+
+  $('#editCurrentBtn').addEventListener('click', ()=>{ const t = current(); if(t) openEditSheet([t.id]); });
+  $('#editClose').addEventListener('click', closeEditSheet);
+  $('#editSave').addEventListener('click', saveEditSheet);
+  $('#editRevert').addEventListener('click', async ()=>{
+    const target = S.editTarget;
+    if(!target || target.batch) return;
+    await revertTrack(target.trackIds[0]);
+    closeEditSheet();
+  });
+  $('#editArtPick').addEventListener('click', ()=> $('#editArtFile').click());
+  $('#editArtFile').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const blob = await cropSquareImage(file, 800);
+      S.editArtBlob = blob;
+      renderEditArtPreview(URL.createObjectURL(blob));
+    }catch(err){ /* bad image — leave whatever preview was already showing */ }
+  });
+  $('#undoBtn').addEventListener('click', undoLastEdit);
+
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer
   document.addEventListener('visibilitychange', () => {
@@ -2492,13 +2899,15 @@ async function restoreLibrary(){
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   const recs = await DB.all('tracks');
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
-  recs.forEach(r => {
-    S.tracks.push({
-      id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:r.tags, meta:r.meta,
+  for(const r of recs){
+    const t = {
+      id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:Object.assign({}, r.tags), meta:r.meta,
       duration:r.duration, buffer:null, blob:null, stored:true, artBlob:null,
       art: r.art ? URL.createObjectURL(r.art) : null
-    });
-  });
+    };
+    await loadOverlayFor(t);
+    S.tracks.push(t);
+  }
   await restoreMeta();
   await restoreSessions();
   renderTracks();
