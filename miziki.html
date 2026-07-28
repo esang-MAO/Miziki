@@ -74,6 +74,10 @@ body{
   transition:opacity .6s;
 }
 .disc.rare::before{opacity:.3}
+/* holds a snapshot of the disc's previous background and fades it out to
+   reveal the new one underneath — used for same-album metal/tier changes
+   that have no sleeve animation to cover an instant swap (see METAL spec §4) */
+.disc-fade{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0}
 .label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
   display:grid;place-content:center;text-align:center;color:#170D04;
@@ -525,6 +529,7 @@ input[type=file]{display:none}
     <div class="platter-stage" id="platterStage">
       <div class="platter-box">
         <div class="disc" id="disc">
+          <div class="disc-fade" id="discFade" aria-hidden="true"></div>
           <div class="label" id="label">
             <img class="art" id="labelArt" alt="">
             <div class="rpm" id="rpmText">33⅓</div>
@@ -647,6 +652,8 @@ const S = {
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,
+  // metal tiers (see spec) — a separate counter from sessionCounts, keyed by track id
+  trackPlayCounts:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -809,26 +816,113 @@ function variantBackground(def){
   return 'radial-gradient(circle at 50% 50%,' + a + ' 0 27%,' + b + ' 27% 90%,' + c + ' 90% 100%)';
 }
 
+/* ================= metal tiers =================
+   Play-count-driven record colors for Tier 1 (lossy) only — the one tier
+   with no visual variance of its own. Two disjoint ladders: album metals
+   keyed to qualifying sessions (the same counter/definition session
+   tracking already uses), track metals keyed to the track's own lifetime
+   play count. Metal level is always a pure function of these counters —
+   nothing about "current metal" is ever stored. Thresholds live in one
+   config object so they can be retuned without touching render logic. */
+const ALBUM_METAL_THRESHOLDS = [
+  {name:'platinum', sessions:40},
+  {name:'gold',     sessions:25},
+  {name:'silver',   sessions:15},
+  {name:'bronze',   sessions:8}
+];
+const TRACK_METAL_THRESHOLDS = [
+  {name:'platinum', plays:250},
+  {name:'gold',     plays:125}
+];
+const METAL_COLORS = {bronze:'#CE8946', silver:'#797B80', gold:'#FFC30B', platinum:'#BBC2CC'};
+const METAL_FADE_MS = 400;
+
+function albumMetalFor(albumId){
+  const n = S.sessionCounts[albumId] || 0;
+  for(const lvl of ALBUM_METAL_THRESHOLDS) if(n >= lvl.sessions) return lvl.name;
+  return null;
+}
+function trackMetalFor(trackId){
+  const n = S.trackPlayCounts[trackId] || 0;
+  for(const lvl of TRACK_METAL_THRESHOLDS) if(n >= lvl.plays) return lvl.name;
+  return null;
+}
+
+// same audio-actually-played measure as sessions, not playhead position —
+// counts regardless of shuffle/order/skips, since track metals are earned
+// outside album context (repeat listens, singles, queue, search)
+function incrementTrackPlay(t){
+  S.trackPlayCounts[t.id] = (S.trackPlayCounts[t.id] || 0) + 1;
+  persistTrackPlayCounts();
+  if(current() === t) applyDiscVariant(t, true);
+}
+
+// plated metal, not a flat fill: a conic sheen band (bright arcs near the
+// light-catching angles, a darker arc opposite) over a radial base, so the
+// existing groove/light overlay in .disc::before still reads as reflection
+// catching the surface rather than being painted on top of a solid color
+function metalBackground(name){
+  const base = METAL_COLORS[name];
+  // Silver's rung is both darker AND cooler than Bronze on a straight
+  // luminance reading, which can misread as a downgrade rather than a step
+  // up — lean harder on the highlight ("finish") here to keep it polished
+  const hi = name === 'silver' ? 92 : 82, lo = name === 'silver' ? 45 : 35;
+  const bright = 'color-mix(in srgb,' + base + ' ' + (100-hi) + '%, white ' + hi + '%)';
+  const dark = 'color-mix(in srgb,' + base + ' ' + lo + '%, black ' + (100-lo) + '%)';
+  return 'conic-gradient(from 205deg,' + bright + ' 0deg 10deg,' + base + ' 10deg 150deg,'
+      + dark + ' 150deg 195deg,' + base + ' 195deg 340deg,' + bright + ' 340deg 360deg),'
+    + 'radial-gradient(circle at 50% 50%,' + bright + ' 0 27%,' + base + ' 27% 88%,' + dark + ' 88% 100%)';
+}
+
+// crossfades when asked to (a same-album background change with no sleeve
+// pull to cover it) and the background actually changed; otherwise applies
+// immediately — either nothing was visible yet, or a sleeve/pull is already
+// covering the change, so an instant swap underneath it is imperceptible
+function setDiscBackground(disc, bg, crossfade){
+  const fade = $('#discFade');
+  const prev = disc.style.background;
+  if(crossfade && prev && prev !== bg){
+    fade.style.transition = 'none';
+    fade.style.background = prev;
+    fade.style.opacity = '1';
+    disc.style.background = bg;
+    void fade.offsetWidth;
+    fade.style.transition = 'opacity ' + METAL_FADE_MS + 'ms ease';
+    fade.style.opacity = '0';
+  } else {
+    disc.style.background = bg || '';
+    fade.style.transition = 'none';
+    fade.style.opacity = '0';
+  }
+}
+
 // Outside the full player the artwork travels as a plain circular label; the disc's
 // tier-derived surface is scoped to this renderer only (see spec §1).
-function applyDiscVariant(t){
+// `crossfade` should be true only for a same-album change with no sleeve
+// animation to cover it — see updateShellAlbum()'s sameAlbum flag.
+function applyDiscVariant(t, crossfade){
   const disc = $('#disc'), label = $('#label');
-  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); return; }
+  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); setDiscBackground(disc, '', false); return; }
   const albumId = albumKey(t);
   const rare = !!S.rareUnlocked[albumId];
   disc.classList.toggle('rare', rare);
   label.classList.toggle('rare', rare);
+  let bg;
   if(rare && t.art){
     // "Art Suspended in Vinyl": continuous material, no paper seam — the same
     // artwork the label shows extends across the whole disc, read through the grooves
-    disc.style.background = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
+    bg = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
       + 'url("' + t.art + '") center/cover';
     delete disc.dataset.variant; delete disc.dataset.tier;
   } else {
     const {tier, variant} = selectVariant(t);
-    disc.dataset.tier = tier; disc.dataset.variant = variant;
-    disc.style.background = variantBackground(VARIANT_DEFS[variant]);
+    // track wins over album — see METAL spec §4
+    const metal = tier === 1 ? (trackMetalFor(t.id) || albumMetalFor(albumId)) : null;
+    disc.dataset.tier = tier;
+    disc.dataset.variant = metal ? 'metal-' + metal : variant;
+    bg = metal ? metalBackground(metal) : variantBackground(VARIANT_DEFS[variant]);
   }
+  setDiscBackground(disc, bg, crossfade);
 }
 
 /* ================= file loading ================= */
@@ -1335,6 +1429,7 @@ function albumExpectedOrder(albumId){
 async function persistSession(rec){ S.sessions[rec.albumId] = rec; await DB.put('sessions', rec); }
 async function persistSessionCounts(){ await DB.put('meta', {k:'sessionCounts', v:S.sessionCounts}); }
 async function persistRareUnlocked(){ await DB.put('meta', {k:'rareUnlocked', v:S.rareUnlocked}); }
+async function persistTrackPlayCounts(){ await DB.put('meta', {k:'trackPlayCounts', v:S.trackPlayCounts}); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
@@ -1419,19 +1514,25 @@ function sessionTrackComplete(t){
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
     persistSessionCounts();
     checkRareUnlock(albumId);
+    // the album metal (if any) is a pure function of the count that just
+    // changed — re-render the platter if this album is still what's showing
+    const cur = current();
+    if(cur && albumKey(cur) === albumId) applyDiscVariant(cur, true);
   } else {
     persistSession(rec);
   }
 }
 
 // no indicator, no progress display — the unlock is silent by design
+// sits above Platinum (40 sessions) as the true ceiling of the album ladder —
+// see METAL spec §5: Bronze 8 -> Silver 15 -> Gold 25 -> Platinum 40 -> Rare 50
 function checkRareUnlock(albumId){
   if(S.rareUnlocked[albumId]) return;
-  if((S.sessionCounts[albumId] || 0) >= 34){
+  if((S.sessionCounts[albumId] || 0) >= 50){
     S.rareUnlocked[albumId] = true;
     persistRareUnlocked();
     const t = current();
-    if(t && albumKey(t) === albumId) applyDiscVariant(t);
+    if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
   }
 }
 
@@ -1447,6 +1548,8 @@ async function restoreSessions(){
   if(counts && counts.v) S.sessionCounts = counts.v;
   const unlocked = await DB.get('meta', 'rareUnlocked');
   if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
+  const plays = await DB.get('meta', 'trackPlayCounts');
+  if(plays && plays.v) S.trackPlayCounts = plays.v;
 }
 
 /* ---- played-duration tracking: which portions of the current track's timeline
@@ -1474,6 +1577,7 @@ function checkTrackCompletion(t){
   if(S.curTrackDone || !t.duration) return;
   if(playedCoverage() >= 0.95 * t.duration){
     S.curTrackDone = true;
+    incrementTrackPlay(t);
     sessionTrackComplete(t);
   }
 }
@@ -1529,7 +1633,7 @@ function recomputeTrack(i){
   const t = S.tracks[i];
   if(!t) return;
   if(S.index === i){
-    applyDiscVariant(t);
+    applyDiscVariant(t, true);
     $('#trackName').textContent = t.tags.title;
     $('#trackBy').textContent = t.tags.artist + ' — ' + t.tags.album;
     const lab = $('#label'), img = $('#labelArt');
@@ -1889,15 +1993,21 @@ function shellAlbumIdentity(t){
 function updateShellAlbum(t){
   const newId = shellAlbumIdentity(t);
   const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
+  // distinct from type:'none' below — that also covers shuffle/untagged
+  // suppression, where the album may genuinely have changed. This is
+  // specifically "still the same album", which is what the metal-tier
+  // crossfade needs (see METAL spec §4): a real sleeve pull already covers
+  // any background change when the album is actually different.
+  const sameAlbum = prevId !== null && prevId === newId;
   S.shellAlbumId = newId;
   S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
   // untagged tracks don't get the ceremony — an untagged file hasn't
   // established a release identity yet, so it silently occupies the
   // platter without a pull until a genuinely tagged one arrives
-  if(t.tags.album === 'Unknown Album') return {type:'none'};
-  if(S.shuffle || REDUCED || prevId === newId) return {type:'none'};
-  if(prevId === null) return {type:'pull'};
-  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt};
+  if(t.tags.album === 'Unknown Album') return {type:'none', sameAlbum};
+  if(S.shuffle || REDUCED || prevId === newId) return {type:'none', sameAlbum};
+  if(prevId === null) return {type:'pull', sameAlbum};
+  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt, sameAlbum};
 }
 
 function runDiscTransition(t, info){
@@ -2056,8 +2166,8 @@ function load(i, autoplay){
   S.curPlayed = []; S.curTrackDone = false;
   const t = S.tracks[i];
   sessionOnLoad(t);
-  applyDiscVariant(t);
   S.pendingShellInfo = updateShellAlbum(t);
+  applyDiscVariant(t, S.pendingShellInfo.sameAlbum);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
   $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
   const lab = $('#label'), img = $('#labelArt');
