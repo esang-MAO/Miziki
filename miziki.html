@@ -32,9 +32,8 @@ body{
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
   transition:background 1.2s linear;
-  padding:0 0 env(safe-area-inset-bottom);
 }
-.wrap{max-width:520px;margin:0 auto;padding:0 20px 48px}
+.wrap{max-width:520px;margin:0 auto;padding:0 20px calc(150px + env(safe-area-inset-bottom))}
 
 /* ---------- header ---------- */
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
@@ -47,7 +46,8 @@ body{
 
 /* ---------- stage / platter ---------- */
 .stage{padding:26px 0 6px}
-.platter-box{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
+.platter-stage{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
+.platter-box{position:absolute;inset:0}
 .disc,.spindle{position:absolute;inset:0;border-radius:50%}
 .disc{
   /* variant color/pattern layer — set inline per track by applyDiscVariant();
@@ -125,6 +125,34 @@ body{
 .label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
 .spindle{inset:calc(50% - 5px);background:#D8D2C6;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
 
+/* ---------- sleeve pull ----------
+   Three sprites on a timeline: the sleeve slides in, the disc (the real
+   platter-box, not a duplicate) emerges from under it, the sleeve exits
+   downward. Duration/easing come from --pull-duration/--pull-easing so the
+   feel can be tuned from one JS config object without touching this trigger
+   logic or the keyframe shapes. */
+.sleeve{position:absolute;inset:0;border-radius:6px;overflow:hidden;display:none;
+  background:linear-gradient(155deg,#2A2018,#171310);
+  box-shadow:0 22px 44px rgba(0,0,0,.55);
+  align-items:center;justify-content:center;text-align:center}
+.sleeve-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.sleeve.has-art .sleeve-art{opacity:1}
+.sleeve-mark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
+.sleeve.has-art .sleeve-mark{display:none}
+@keyframes sleevePull{
+  0%{transform:translateX(115%);opacity:0}
+  27.5%{transform:translateX(0%);opacity:1}
+  67.5%{transform:translateX(0%);opacity:1}
+  100%{transform:translateY(140%);opacity:0}
+}
+@keyframes discEmerge{
+  0%,27.5%{transform:translateX(0%) scale(.9);opacity:0}
+  45%{transform:translateX(-16%) scale(.97);opacity:1}
+  67.5%,100%{transform:translateX(0%) scale(1);opacity:1}
+}
+.platter-stage.pulling .sleeve{animation:sleevePull var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
+.platter-stage.pulling .platter-box{animation:discEmerge var(--pull-duration,2000ms) var(--pull-easing,ease) forwards}
+
 .now{text-align:center;margin-top:22px}
 .now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -149,14 +177,55 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .mode i{display:block;font-style:normal;font-family:var(--data);font-size:9.5px;color:var(--muted);margin-top:3px}
 .mode-note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:2px 0 0}
 
-/* ---------- tabs & panels ---------- */
-.tabs{display:flex;gap:4px;margin:26px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{font-family:var(--data);font-size:10px;letter-spacing:.19em;text-transform:uppercase;
-     padding:12px 10px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
-.tab[aria-selected="true"]{color:var(--paper);border-bottom-color:var(--accent)}
-.panel{display:none;padding:20px 0 0}
-.panel.on{display:block}
+/* ---------- routes (Library / Sundown / Character) ---------- */
+.route{display:none;padding:20px 0 0}
+.route.on{display:block}
+
+/* ---------- persistent shell: mini-player + tab bar ---------- */
+.mini-player{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));
+  max-width:520px;margin:0 auto;z-index:40;
+  display:flex;align-items:center;gap:10px;padding:8px 10px;
+  background:rgba(10,14,18,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.mini-tap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
+.mini-indicator{position:relative;width:38px;height:38px;flex:0 0 auto}
+.mini-square,.mini-disc{position:absolute;inset:0;transition:opacity .15s linear}
+.mini-square{border-radius:3px;overflow:hidden;background:var(--panel);display:grid;place-content:center}
+.mini-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.mini-square.has-art .mini-art{opacity:1}
+.mini-mark{font-family:var(--display);font-size:6.5px;letter-spacing:.08em;color:var(--muted)}
+.mini-square.has-art .mini-mark{display:none}
+.mini-disc{border-radius:50%;background:#15161B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);opacity:0}
+.mini-indicator.playing .mini-square{opacity:0}
+.mini-indicator.playing .mini-disc{opacity:1}
+.mini-text{min-width:0;display:flex;flex-direction:column;gap:1px}
+.mini-text b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-text em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-play.tbtn{flex:0 0 auto;width:36px;height:36px;font-size:12px}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:40;
+  display:flex;background:rgba(10,14,18,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+.tabbar-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:9px 4px 8px;color:var(--muted);font-family:var(--data);font-size:9.5px;
+  letter-spacing:.08em;text-transform:uppercase}
+.tabbar-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.tabbar-btn[aria-selected="true"]{color:var(--accent)}
+
+/* ---------- full player overlay ---------- */
+.player-overlay{position:fixed;inset:0;z-index:100;
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1);
+  overflow-y:auto;overflow-x:hidden;
+  padding:calc(14px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}
+.player-overlay.open{transform:translateY(0)}
+.player-overlay .stage{max-width:480px;margin:0 auto;padding:44px 0 6px}
+.player-dismiss{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  width:44px;height:28px;color:var(--muted);font-size:20px;line-height:1;display:grid;place-content:center;z-index:1}
+@media (prefers-reduced-motion:reduce){.player-overlay{transition:none}}
 
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
@@ -216,56 +285,38 @@ input[type=file]{display:none}
     <div class="sun-line" id="sunLine">Finding the sun…</div>
   </header>
 
-  <section class="stage">
-    <div class="platter-box">
-      <div class="disc" id="disc">
-        <div class="label" id="label">
-          <img class="art" id="labelArt" alt="">
-          <div class="rpm" id="rpmText">33⅓</div>
-          <div class="mode-tag" id="modeTag">vinyl</div>
-        </div>
+  <!-- LIBRARY: landing route -->
+  <section class="route on" id="route-library" role="main">
+    <div class="empty" id="empty">
+      <p>No music loaded yet</p>
+      <small>Choose FLAC, WAV, ALAC or MP3 files from this device. They stay on it — nothing is uploaded, and nothing is copied.</small>
+      <div class="stack" style="justify-content:center">
+        <button class="cta" id="pick">Choose files</button>
+        <button class="cta ghost" id="tone">Play test tone</button>
       </div>
-      <div class="spindle" aria-hidden="true"></div>
     </div>
+    <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
 
-    <div class="now">
-      <h2 id="trackName">Nothing on the platter</h2>
-      <div class="by" id="trackBy"></div>
-      <div class="spec" id="trackSpec">Load a file to see its signal path</div>
+    <div class="seg lib-nav" id="libNav" style="display:none">
+      <button data-view="songs" aria-pressed="true">Songs</button>
+      <button data-view="albums" aria-pressed="false">Albums</button>
+      <button data-view="artists" aria-pressed="false">Artists</button>
+      <button data-view="playlists" aria-pressed="false">Playlists</button>
     </div>
+    <div class="crumb" id="crumb" style="display:none"></div>
+    <div id="libBody"></div>
 
-    <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
-    <div class="times"><span id="tElapsed">0:00</span><span id="tTotal">0:00</span></div>
-
-    <div class="transport">
-      <button class="tbtn mini" id="shuffle" aria-pressed="false" title="Shuffle off" aria-label="Shuffle">
-        <svg viewBox="0 0 24 24"><path d="M3 6h4l3.5 5M3 18h4l10-14h4"/><path d="M14 20h3M17 4l3 2-3 2M17 16l3 2-3 2"/><path d="M13.5 13.5 17 18"/></svg>
-      </button>
-      <button class="tbtn" id="prev" aria-label="Previous track">◀◀</button>
-      <button class="tbtn play" id="play" aria-label="Play">▶</button>
-      <button class="tbtn" id="next" aria-label="Next track">▶▶</button>
-      <button class="tbtn mini" id="repeat" aria-pressed="false" data-mode="off" title="Repeat off" aria-label="Repeat">
-        <svg viewBox="0 0 24 24"><path d="M4 9V7a3 3 0 0 1 3-3h10l-2.5-2.5M20 15v2a3 3 0 0 1-3 3H7l2.5 2.5"/><path d="M17 4l-2.5 2.5M7 20l2.5-2.5"/></svg>
-        <span class="rep-one" id="repeatOne" style="display:none">1</span>
-      </button>
+    <div class="stack" id="libActions" style="display:none">
+      <button class="cta" id="pick2">Add more files</button>
+      <button class="cta ghost" id="tone2">Test tone</button>
+      <button class="cta ghost" id="forget">Forget library</button>
     </div>
-
-
-    <div class="modes">
-      <button class="mode" id="modePure" aria-pressed="false"><b>Pure</b><i>reference path</i></button>
-      <button class="mode" id="modeVinyl" aria-pressed="true"><b>Vinyl</b><i>character on</i></button>
-    </div>
-    <p class="mode-note" id="modeNote"></p>
+    <p class="note" id="storeNote"></p>
+    <p class="note" id="pathNote"></p>
   </section>
 
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="sundown" aria-selected="true">Sundown</button>
-    <button class="tab" role="tab" data-tab="character" aria-selected="false">Character</button>
-    <button class="tab" role="tab" data-tab="library" aria-selected="false">Library</button>
-  </nav>
-
   <!-- SUNDOWN -->
-  <section class="panel on" id="panel-sundown" role="tabpanel">
+  <section class="route" id="route-sundown" role="main">
     <div class="row">
       <div class="k">Platter speed<em id="autoDesc">The platter eases down across twilight.</em></div>
       <div class="seg">
@@ -315,7 +366,7 @@ input[type=file]{display:none}
   </section>
 
   <!-- CHARACTER -->
-  <section class="panel" id="panel-character" role="tabpanel">
+  <section class="route" id="route-character" role="main">
     <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
       platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
 
@@ -342,64 +393,119 @@ input[type=file]{display:none}
       <button class="cta ghost" data-preset="worn">Well-played</button>
     </div>
     <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path.</p>
-  </section>
 
-  <!-- LIBRARY -->
-  <section class="panel" id="panel-library" role="tabpanel">
-    <div class="empty" id="empty">
-      <p>No music loaded yet</p>
-      <small>Choose FLAC, WAV, ALAC or MP3 files from this device. They stay on it — nothing is uploaded, and nothing is copied.</small>
-      <div class="stack" style="justify-content:center">
-        <button class="cta" id="pick">Choose files</button>
-        <button class="cta ghost" id="tone">Play test tone</button>
-      </div>
-    </div>
-    <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
-
-    <div class="seg lib-nav" id="libNav" style="display:none">
-      <button data-view="songs" aria-pressed="true">Songs</button>
-      <button data-view="albums" aria-pressed="false">Albums</button>
-      <button data-view="artists" aria-pressed="false">Artists</button>
-      <button data-view="playlists" aria-pressed="false">Playlists</button>
-    </div>
-    <div class="crumb" id="crumb" style="display:none"></div>
-    <div id="libBody"></div>
-
-    <div class="stack" id="libActions" style="display:none">
-      <button class="cta" id="pick2">Add more files</button>
-      <button class="cta ghost" id="tone2">Test tone</button>
-      <button class="cta ghost" id="forget">Forget library</button>
-    </div>
-    <p class="note" id="storeNote"></p>
-    <p class="note" id="pathNote"></p>
-  </section>
-
-  <div class="carmode" id="carmode">
-    <div class="row">
-      <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
-      <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
-    </div>
-    <div id="carModeDetails" style="display:none">
+    <div class="carmode" id="carmode">
       <div class="row">
-        <div class="k">Current speed</div>
-        <div class="readout" id="speedOut">—</div>
+        <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
+        <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
       </div>
-      <div class="slider-row">
-        <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
-        <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
+      <div id="carModeDetails" style="display:none">
+        <div class="row">
+          <div class="k">Current speed</div>
+          <div class="readout" id="speedOut">—</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
+          <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
+        </div>
+        <div class="slider-row">
+          <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
+          <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
+        </div>
+        <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
       </div>
-      <div class="slider-row">
-        <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
-        <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
-      </div>
-      <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
     </div>
-  </div>
+  </section>
 
   <p class="foot" id="foot">
     Miziki · lossless in, one conversion out<br>
     Fidelity is the file. Warmth is a choice you make on top of it.
   </p>
+</div>
+
+<!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
+<div class="mini-player" id="miniPlayer" style="display:none">
+  <button class="mini-tap" id="miniTap" aria-label="Open player">
+    <span class="mini-indicator" id="miniIndicator">
+      <span class="mini-square" id="miniSquare">
+        <img class="mini-art" id="miniArt" alt="">
+        <span class="mini-mark">MIZIKI</span>
+      </span>
+      <span class="mini-disc" aria-hidden="true"></span>
+    </span>
+    <span class="mini-text">
+      <b id="miniTitle"></b>
+      <em id="miniArtist"></em>
+    </span>
+  </button>
+  <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
+</div>
+
+<nav class="tabbar" role="tablist">
+  <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
+    <span>Library</span>
+  </button>
+  <button class="tabbar-btn" role="tab" data-route="sundown" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
+    <span>Sundown</span>
+  </button>
+  <button class="tabbar-btn" role="tab" data-route="character" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M6 20v-7M6 10V4M12 20v-3M12 14V4M18 20v-9M18 8V4"/><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="10" r="1.6" fill="currentColor" stroke="none"/></svg>
+    <span>Character</span>
+  </button>
+</nav>
+
+<!-- FULL PLAYER: overlay, not a fourth tab -->
+<div class="player-overlay" id="playerOverlay" aria-hidden="true">
+  <button class="player-dismiss" id="playerDismiss" aria-label="Close player">︿</button>
+
+  <section class="stage">
+    <div class="platter-stage" id="platterStage">
+      <div class="platter-box">
+        <div class="disc" id="disc">
+          <div class="label" id="label">
+            <img class="art" id="labelArt" alt="">
+            <div class="rpm" id="rpmText">33⅓</div>
+            <div class="mode-tag" id="modeTag">vinyl</div>
+          </div>
+        </div>
+        <div class="spindle" aria-hidden="true"></div>
+      </div>
+      <div class="sleeve" id="sleeve" aria-hidden="true">
+        <img class="sleeve-art" id="sleeveArt" alt="">
+        <div class="sleeve-mark">MIZIKI</div>
+      </div>
+    </div>
+
+    <div class="now">
+      <h2 id="trackName">Nothing on the platter</h2>
+      <div class="by" id="trackBy"></div>
+      <div class="spec" id="trackSpec">Load a file to see its signal path</div>
+    </div>
+
+    <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+    <div class="times"><span id="tElapsed">0:00</span><span id="tTotal">0:00</span></div>
+
+    <div class="transport">
+      <button class="tbtn mini" id="shuffle" aria-pressed="false" title="Shuffle off" aria-label="Shuffle">
+        <svg viewBox="0 0 24 24"><path d="M3 6h4l3.5 5M3 18h4l10-14h4"/><path d="M14 20h3M17 4l3 2-3 2M17 16l3 2-3 2"/><path d="M13.5 13.5 17 18"/></svg>
+      </button>
+      <button class="tbtn" id="prev" aria-label="Previous track">◀◀</button>
+      <button class="tbtn play" id="play" aria-label="Play">▶</button>
+      <button class="tbtn" id="next" aria-label="Next track">▶▶</button>
+      <button class="tbtn mini" id="repeat" aria-pressed="false" data-mode="off" title="Repeat off" aria-label="Repeat">
+        <svg viewBox="0 0 24 24"><path d="M4 9V7a3 3 0 0 1 3-3h10l-2.5-2.5M20 15v2a3 3 0 0 1-3 3H7l2.5 2.5"/><path d="M17 4l-2.5 2.5M7 20l2.5-2.5"/></svg>
+        <span class="rep-one" id="repeatOne" style="display:none">1</span>
+      </button>
+    </div>
+
+    <div class="modes">
+      <button class="mode" id="modePure" aria-pressed="false"><b>Pure</b><i>reference path</i></button>
+      <button class="mode" id="modeVinyl" aria-pressed="true"><b>Vinyl</b><i>character on</i></button>
+    </div>
+    <p class="mode-note" id="modeNote"></p>
+  </section>
 </div>
 
 <script>
@@ -422,7 +528,9 @@ const S = {
   angle:0,
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
-  curPlayed:[], curTrackDone:false
+  curPlayed:[], curTrackDone:false,
+  // navigation / player shell (see spec)
+  route:'library', playerOpen:false, shellAlbumId:null, pullPending:false
 };
 
 /* ================= audio graph ================= */
@@ -1257,11 +1365,13 @@ async function forgetLibrary(){
   S.queue = []; S.baseQueue = []; S.lru = [];
   S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
   S.curPlayed = []; S.curTrackDone = false;
+  S.shellAlbumId = null; S.pullPending = false;
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   applyDiscVariant(null);
-  renderTracks(); drawTime();
+  closePlayer();
+  renderTracks(); drawTime(); renderMiniPlayer();
 }
 
 /* ---- decoded audio is enormous (a four-minute stereo track is ~85 MB of
@@ -1364,6 +1474,83 @@ function cycleRepeat(){
   $('#repeatOne').style.display = S.repeat === 'one' ? '' : 'none';
 }
 
+/* ================= navigation shell: mini-player, full-player overlay, sleeve pull =================
+   Library is the landing route; Sundown and Character are peer routes reached
+   via the tab bar. The full player is not a fourth tab — it only exists as an
+   overlay, reached through the mini-player strip, once something is loaded. */
+const SLEEVE_ANIM = { durationMs: 2000, easing: 'cubic-bezier(.3,.66,.35,1)' };
+document.documentElement.style.setProperty('--pull-duration', SLEEVE_ANIM.durationMs + 'ms');
+document.documentElement.style.setProperty('--pull-easing', SLEEVE_ANIM.easing);
+
+function renderMiniPlayer(){
+  const t = current();
+  const mini = $('#miniPlayer');
+  if(!t){ mini.style.display = 'none'; return; }
+  mini.style.display = 'flex';
+  $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;
+  $('#miniArtist').textContent = t.tags ? t.tags.artist : '';
+  $('#miniSquare').classList.toggle('has-art', !!t.art);
+  const art = $('#miniArt');
+  if(t.art) art.src = t.art; else art.removeAttribute('src');
+  $('#miniIndicator').classList.toggle('playing', S.playing);
+  const btn = $('#miniPlay');
+  btn.textContent = S.playing ? '❚❚' : '▶';
+  btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
+}
+
+function openPlayer(){
+  if(!current()) return;
+  S.playerOpen = true;
+  $('#playerOverlay').classList.add('open');
+  $('#playerOverlay').setAttribute('aria-hidden','false');
+  if(S.pullPending){ S.pullPending = false; playSleeveAnimation(current()); }
+}
+function closePlayer(){
+  S.playerOpen = false;
+  interruptSleeveAnimation();
+  $('#playerOverlay').classList.remove('open');
+  $('#playerOverlay').setAttribute('aria-hidden','true');
+}
+
+// a loose single (no real album tag) is genuinely its own release, so back-to-back
+// untagged tracks never share a false "no change" identity with each other
+function shellAlbumIdentity(t){
+  if(!t) return null;
+  if(t.tags.album === 'Unknown Album') return 'single:' + t.id;
+  return albumKey(t);
+}
+
+function playSleeveAnimation(t){
+  if(!t || REDUCED) return;
+  const sleeve = $('#sleeve'), art = $('#sleeveArt'), stage = $('#platterStage');
+  if(t.art){ art.src = t.art; sleeve.classList.add('has-art'); }
+  else { art.removeAttribute('src'); sleeve.classList.remove('has-art'); }
+  stage.classList.remove('pulling');   // in case one is already mid-flight
+  sleeve.style.display = 'flex';
+  void stage.offsetWidth;              // force a reflow so re-adding the class below restarts the animation
+  stage.classList.add('pulling');
+}
+function interruptSleeveAnimation(){
+  const stage = $('#platterStage');
+  if(!stage.classList.contains('pulling')) return;
+  stage.classList.remove('pulling');
+  $('#sleeve').style.display = 'none';
+}
+
+// decides whether THIS load deserves a pull: different album, or nothing was
+// previously playing. Same album (track change, or replayed after stopping)
+// is not a change. Shuffle suppresses the trigger entirely, since otherwise
+// every track would pull. If the full player isn't open yet, the pull is
+// owed the next time it is — never fired silently behind the mini-player.
+function handleSleevePullTrigger(t){
+  const newId = shellAlbumIdentity(t);
+  const changed = S.shellAlbumId !== newId;
+  S.shellAlbumId = newId;
+  if(!changed || S.shuffle){ S.pullPending = false; return; }
+  if(S.playerOpen) playSleeveAnimation(t);
+  else S.pullPending = true;
+}
+
 function load(i, autoplay){
   if(!S.tracks[i]) return;
   stop();
@@ -1372,6 +1559,7 @@ function load(i, autoplay){
   const t = S.tracks[i];
   sessionOnLoad(t);
   applyDiscVariant(t);
+  handleSleevePullTrigger(t);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
   $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
   const lab = $('#label'), img = $('#labelArt');
@@ -1382,6 +1570,7 @@ function load(i, autoplay){
     m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
   setPathNote('');
   renderTracks();
+  renderMiniPlayer();
   if(autoplay) play();
   drawTime();
 }
@@ -1401,7 +1590,7 @@ function startSource(offset){
 
 async function play(){
   const t = current();
-  if(!t){ showTab('library'); return; }
+  if(!t){ showRoute('library'); return; }
   if(!await ensureBuffer(S.index)) return;
   if(!S.ctx) return;
   await S.ctx.resume();
@@ -1409,6 +1598,7 @@ async function play(){
   S.playing = true;
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
+  renderMiniPlayer();
 }
 
 function stop(){
@@ -1416,10 +1606,11 @@ function stop(){
   if(S.source){ try{ S.source.onended = null; S.source.stop(); }catch(e){} S.source = null; }
   S.playing = false;
   const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
+  renderMiniPlayer();
 }
 
 function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
-  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); }
+  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer(); }
 
 function seek(sec){
   const t = current(); if(!t) return;
@@ -1974,9 +2165,9 @@ function setMode(m){
   if(S.source) routeSource(S.source);
 }
 
-function showTab(name){
-  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'panel-' + name));
+function showRoute(name){
+  document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
+  document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
 }
 
 /* ================= wiring ================= */
@@ -2001,7 +2192,7 @@ function showTab(name){
   $('#modeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
   $('#modePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
 
-  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', ()=> showTab(b.dataset.tab)));
+  document.querySelectorAll('.tabbar-btn').forEach(b => b.addEventListener('click', ()=> showRoute(b.dataset.route)));
 
   $('#autoOn').addEventListener('click', ()=>{
     S.auto = true; $('#autoOn').setAttribute('aria-pressed','true'); $('#autoOff').setAttribute('aria-pressed','false');
@@ -2091,6 +2282,18 @@ function showTab(name){
   });
 
   wireSpinToScrub();
+
+  $('#miniTap').addEventListener('click', openPlayer);
+  $('#miniPlay').addEventListener('click', async ()=>{
+    if(!S.ctx) await ensureContext(null);
+    S.playing ? pause() : play();
+  });
+  $('#playerDismiss').addEventListener('click', closePlayer);
+  $('#playerOverlay').addEventListener('pointerdown', interruptSleeveAnimation, {capture:true});
+  $('#sleeve').addEventListener('animationend', ()=>{
+    $('#platterStage').classList.remove('pulling');
+    $('#sleeve').style.display = 'none';
+  });
 
   setMode('vinyl');
   fallbackSun();
