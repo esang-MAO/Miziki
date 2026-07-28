@@ -323,6 +323,65 @@ input[type=file]{display:none}
 .warn{color:#FFB4A2}
 .carmode{margin-top:34px;padding-top:16px;border-top:1px solid var(--line)}
 .carmode .row .k{font-size:12.5px;color:var(--muted)}
+
+/* ---------- profile tab ---------- */
+.profile-header{display:flex;align-items:center;gap:14px;margin-top:2px}
+.profile-pic{position:relative;width:72px;height:72px;border-radius:50%;overflow:hidden;flex:0 0 auto;
+  background:var(--panel);display:grid;place-content:center;box-shadow:inset 0 0 0 1px var(--line)}
+.profile-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.profile-pic.has-art img{opacity:1}
+.profile-pic-mark{font-family:var(--display);font-size:22px;color:var(--muted)}
+.profile-pic.has-art .profile-pic-mark{display:none}
+.profile-name-input{flex:1;min-width:0;background:none;border:0;border-bottom:1px solid var(--line);
+  color:var(--paper);font-family:var(--display);font-size:19px;letter-spacing:.03em;padding:6px 2px}
+.profile-name-input::placeholder{color:var(--muted);font-family:var(--body);font-size:14px}
+.profile-count{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em;margin:12px 0 0}
+
+.profile-top-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 0}
+.profile-top-tile{border:1px solid var(--line);border-radius:4px;padding:12px;text-align:left;background:rgba(255,255,255,.02)}
+.profile-top-cover{display:block;width:100%;aspect-ratio:1;border-radius:3px;overflow:hidden;margin-bottom:9px;
+  background:var(--panel);position:relative}
+.profile-top-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.profile-top-tile b{display:block;font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-top-tile em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted);
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+.profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
+  font-size:22px;opacity:.6}
+.profile-empty{border:1px dashed var(--line);border-radius:4px;padding:16px;text-align:center;margin-top:14px}
+.profile-empty p{margin:0;font-size:12.5px;color:var(--muted)}
+
+.profile-section{width:100%;background:none;border:0;text-align:left;margin-top:26px;padding:0}
+.profile-section-head{display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:10px;border-bottom:1px solid var(--line)}
+.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;margin-top:12px}
+.profile-grid.mini{grid-template-columns:repeat(6,1fr)}
+.profile-badge-cell{display:flex;flex-direction:column;align-items:center;gap:5px}
+.profile-badge{width:100%;aspect-ratio:1;border-radius:50%;position:relative;overflow:hidden;
+  box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.profile-badge img{position:absolute;inset:22%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.profile-badge-label{font-family:var(--data);font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.collection-group{margin-top:16px}
+.collection-group-name{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+
+.profile-share{width:100%;margin-top:28px;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
+.profile-share.active{color:var(--accent);border-color:var(--accent)}
+
+.share-overlay{position:fixed;inset:0;z-index:130;background:rgba(5,7,9,.78);
+  display:none;align-items:flex-end;justify-content:center}
+.share-overlay.open{display:flex}
+.share-sheet{width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-sizing:border-box;
+  background:var(--sky2);border-top:1px solid var(--line);border-radius:12px 12px 0 0;
+  padding:18px 20px calc(20px + env(safe-area-inset-bottom))}
+.share-canvas-wrap{width:100%;border-radius:6px;overflow:hidden;background:#000;margin:14px 0}
+.share-canvas-wrap canvas{width:100%;height:auto;display:block}
+.share-toggles{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.share-toggles button[aria-pressed="true"]{border-color:var(--accent);color:var(--paper);
+  background:color-mix(in srgb,var(--accent) 12%,transparent)}
+
 .foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
   font-family:var(--data);font-size:10px;color:var(--muted);line-height:1.7;letter-spacing:.04em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -480,6 +539,13 @@ input[type=file]{display:none}
     </div>
   </section>
 
+  <!-- PROFILE -->
+  <section class="route" id="route-profile" role="main">
+    <div class="crumb" id="profileCrumb" style="display:none"></div>
+    <div id="profileBody"></div>
+    <input id="profilePicFile" type="file" accept="image/*">
+  </section>
+
   <p class="foot" id="foot">
     Miziki · lossless in, one conversion out<br>
     Fidelity is the file. Warmth is a choice you make on top of it.
@@ -518,6 +584,10 @@ input[type=file]{display:none}
   <button class="tabbar-btn" role="tab" data-route="character" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M6 20v-7M6 10V4M12 20v-3M12 14V4M18 20v-9M18 8V4"/><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="10" r="1.6" fill="currentColor" stroke="none"/></svg>
     <span>Character</span>
+  </button>
+  <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
+    <span>Profile</span>
   </button>
 </nav>
 
@@ -630,6 +700,30 @@ input[type=file]{display:none}
   <button class="cta ghost" id="undoBtn">Undo</button>
 </div>
 
+<!-- SHARE: composed off-screen, not a screenshot of the tab -->
+<div class="share-overlay" id="shareOverlay" aria-hidden="true">
+  <div class="share-sheet" id="shareSheetBox">
+    <div class="edit-head">
+      <span>Share</span>
+      <button class="edit-close" id="shareClose" aria-label="Close">✕</button>
+    </div>
+    <div class="share-canvas-wrap"><canvas id="shareCanvas"></canvas></div>
+    <div class="share-toggles" id="shareToggles">
+      <button class="cta ghost" data-section="albums" aria-pressed="true">Top Albums</button>
+      <button class="cta ghost" data-section="songs" aria-pressed="true">Top Songs</button>
+      <button class="cta ghost" data-section="metals" aria-pressed="true">Metals</button>
+      <button class="cta ghost" data-section="collection" aria-pressed="true">Collection</button>
+    </div>
+    <div class="seg" id="shareSizeSeg" style="margin-bottom:16px">
+      <button data-size="square" aria-pressed="true">Square</button>
+      <button data-size="story" aria-pressed="false">Story</button>
+    </div>
+    <div class="stack">
+      <button class="cta" id="shareSave">Save image</button>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -658,7 +752,12 @@ const S = {
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
   // metadata editing (see spec)
-  editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null
+  editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
+  // profile tab (see spec)
+  profile:{name:'', art:null, artBlob:null},
+  albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{},
+  achievements:{}, collection:{},
+  profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true}
 };
 
 /* ================= audio graph ================= */
@@ -853,7 +952,10 @@ function trackMetalFor(trackId){
 // outside album context (repeat listens, singles, queue, search)
 function incrementTrackPlay(t){
   S.trackPlayCounts[t.id] = (S.trackPlayCounts[t.id] || 0) + 1;
+  S.trackLastPlayed[t.id] = Date.now();
   persistTrackPlayCounts();
+  persistTrackLastPlayed();
+  snapshotAlbumDisplay(t);
   if(current() === t) applyDiscVariant(t, true);
 }
 
@@ -923,6 +1025,105 @@ function applyDiscVariant(t, crossfade){
     bg = metal ? metalBackground(metal) : variantBackground(VARIANT_DEFS[variant]);
   }
   setDiscBackground(disc, bg, crossfade);
+}
+
+/* ================= profile tab =================
+   Everything here reads from existing counters — session records, track
+   play counts, variant assignments. No new tracking, per the spec's build
+   notes. Achievements and Collection do persist lightweight pointer+tier
+   records, since "has this album reached Gold" can't assume the source
+   track is still in the library to read a display name/cover off of —
+   albumDisplay is the one place that snapshot lives, shared by both.
+   Timestamps double as the recency tie-break and, per §11, keep every
+   record ready for a future account system: stable ids, no device-keyed
+   identifiers, no absolute paths. */
+async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
+async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
+async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:S.albumDisplay}); }
+
+function snapshotAlbumDisplay(t){
+  const albumId = albumKey(t);
+  S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist, art:t.art || null};
+  persistAlbumDisplay();
+}
+
+async function upsertAchievement(albumId, tier){
+  const existing = S.achievements[albumId];
+  if(existing && existing.tier === tier) return;
+  const disp = S.albumDisplay[albumId] || {};
+  const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '', art:disp.art || null, updatedAt:Date.now()};
+  S.achievements[albumId] = rec;
+  await DB.put('achievements', rec);
+}
+
+async function upsertCollectionEntry(albumId, tier, variant, pattern){
+  if(S.collection[albumId]) return;   // discovered once, stays discovered
+  const disp = S.albumDisplay[albumId] || {};
+  const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
+    art:disp.art || null, discoveredAt:Date.now()};
+  S.collection[albumId] = rec;
+  await DB.put('collection', rec);
+}
+
+// deliberately looser than a qualifying session — every track in the album
+// has been heard (95% played) at least once, in any order, across any
+// number of sittings. Used for Collection discovery and the crate/sleeve
+// first-run signals (see PROFILE spec §5, §10) — the bar is discovery, not
+// achievement, so shuffle/skips/order don't disqualify it here
+function albumPlayedThrough(albumId){
+  const order = albumExpectedOrder(albumId);
+  if(!order.length) return false;
+  return order.every(trackId => (S.trackPlayCounts[trackId] || 0) > 0);
+}
+
+// checked after every track-completion event, since that's the only thing
+// that can flip either condition from false to true
+function checkAlbumAchievementAndCollection(t){
+  const albumId = albumKey(t);
+  const tier = S.rareUnlocked[albumId] ? 'rare' : albumMetalFor(albumId);
+  if(tier) upsertAchievement(albumId, tier);
+  const tn = trackTier(t);
+  if((tn === 2 || tn === 3) && albumPlayedThrough(albumId)){
+    const {variant} = selectVariant(t);
+    upsertCollectionEntry(albumId, tn, variant, VARIANT_DEFS[variant].pattern);
+  }
+}
+
+// crate/sleeve/share-button first-run gating — each clears independently,
+// on the metric that actually drives it (see PROFILE spec §9)
+function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
+function sleeveFilled(){ return Object.keys(S.trackPlayCounts).length > 0; }
+
+function topAlbums(n){
+  return Object.keys(S.sessionCounts)
+    .map(albumId => ({albumId, count:S.sessionCounts[albumId], last:S.albumLastPlayed[albumId] || 0,
+      display: S.albumDisplay[albumId] || {name:albumId, artist:'', art:null}}))
+    .sort((a,b) => b.count - a.count || b.last - a.last)
+    .slice(0, n);
+}
+function topTracks(n){
+  return Object.keys(S.trackPlayCounts)
+    .map(trackId => {
+      const i = idxOf(trackId);
+      const t = i >= 0 ? S.tracks[i] : null;
+      return {trackId, count:S.trackPlayCounts[trackId], last:S.trackLastPlayed[trackId] || 0,
+        title: t ? t.tags.title : trackId, artist: t ? t.tags.artist : '', art: t ? t.art : null};
+    })
+    .sort((a,b) => b.count - a.count || b.last - a.last)
+    .slice(0, n);
+}
+
+// highest tier first; 'rare' outranks platinum since it sits above the ladder
+const METAL_RANK = {rare:5, platinum:4, gold:3, silver:2, bronze:1};
+function achievementsList(){
+  return Object.values(S.achievements).sort((a,b) => METAL_RANK[b.tier] - METAL_RANK[a.tier] || b.updatedAt - a.updatedAt);
+}
+
+// colors / splits / splatter as distinct groups, per PROFILE spec §9
+function collectionGroups(){
+  const groups = {solid:[], split:[], splatter:[], swirl:[]};
+  Object.values(S.collection).forEach(rec => { (groups[rec.pattern] || (groups[rec.pattern] = [])).push(rec); });
+  return groups;
 }
 
 /* ================= file loading ================= */
@@ -1322,7 +1523,7 @@ const DB = {
     try{
       this.db = await Promise.race([
         new Promise((res,rej)=>{
-          const r = indexedDB.open('miziki', 3);
+          const r = indexedDB.open('miziki', 4);
           r.onupgradeneeded = () => {
             const d = r.result;
             if(!d.objectStoreNames.contains('tracks'))   d.createObjectStore('tracks',   {keyPath:'id'});
@@ -1333,6 +1534,11 @@ const DB = {
             // source stays untouched and a track can always revert
             if(!d.objectStoreNames.contains('overlays'))  d.createObjectStore('overlays',  {keyPath:'id'});
             if(!d.objectStoreNames.contains('artwork'))   d.createObjectStore('artwork',   {keyPath:'id'});
+            // profile tab: kept in its own store, separable from playback
+            // state, ready for a future account system (see PROFILE spec §11)
+            if(!d.objectStoreNames.contains('profile'))      d.createObjectStore('profile',      {keyPath:'k'});
+            if(!d.objectStoreNames.contains('achievements'))  d.createObjectStore('achievements',  {keyPath:'albumId'});
+            if(!d.objectStoreNames.contains('collection'))    d.createObjectStore('collection',    {keyPath:'albumId'});
           };
           r.onsuccess = () => res(r.result);
           r.onerror = () => rej(r.error || new Error('open failed'));
@@ -1512,7 +1718,9 @@ function sessionTrackComplete(t){
     DB.put('sessions', rec);
     S.sessionActive = null;
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
+    S.albumLastPlayed[albumId] = Date.now();
     persistSessionCounts();
+    persistAlbumLastPlayed();
     checkRareUnlock(albumId);
     // the album metal (if any) is a pure function of the count that just
     // changed — re-render the platter if this album is still what's showing
@@ -1550,6 +1758,19 @@ async function restoreSessions(){
   if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
   const plays = await DB.get('meta', 'trackPlayCounts');
   if(plays && plays.v) S.trackPlayCounts = plays.v;
+  const albumLast = await DB.get('meta', 'albumLastPlayed');
+  if(albumLast && albumLast.v) S.albumLastPlayed = albumLast.v;
+  const trackLast = await DB.get('meta', 'trackLastPlayed');
+  if(trackLast && trackLast.v) S.trackLastPlayed = trackLast.v;
+  const display = await DB.get('meta', 'albumDisplay');
+  if(display && display.v) S.albumDisplay = display.v;
+  (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
+  (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
+  const prof = await DB.get('profile', 'me');
+  if(prof){
+    S.profile.name = prof.name || '';
+    if(prof.pictureBlob) S.profile.art = URL.createObjectURL(prof.pictureBlob);
+  }
 }
 
 /* ---- played-duration tracking: which portions of the current track's timeline
@@ -1579,6 +1800,7 @@ function checkTrackCompletion(t){
     S.curTrackDone = true;
     incrementTrackPlay(t);
     sessionTrackComplete(t);
+    checkAlbumAchievementAndCollection(t);
   }
 }
 
@@ -2812,6 +3034,380 @@ function renderTracks(){
   setPathNote();
 }
 
+/* ================= profile tab rendering =================
+   A stat sheet, not the app's center of gravity. Earned/discovered items
+   only — no locked slots, no progress bars, no "X more until Y", no
+   general listening stats. See PROFILE spec §1. */
+async function persistProfile(){
+  await DB.put('profile', {k:'me', name:S.profile.name, pictureBlob:S.profile.artBlob || undefined});
+}
+
+const fmtCount = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+function topTile(label, art, title, subtitle, emptyText, onTap){
+  const b = el('button','profile-top-tile');
+  const cover = el('span','profile-top-cover');
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  else cover.appendChild(el('span','profile-empty-cover', title ? '◍' : '—'));
+  b.appendChild(cover);
+  if(title){
+    b.appendChild(el('b', null, title));
+    if(subtitle) b.appendChild(el('em', null, subtitle));
+  } else {
+    b.appendChild(el('b', null, label));
+    b.appendChild(el('em', null, emptyText));
+  }
+  b.addEventListener('click', onTap);
+  return b;
+}
+
+function metalBadge(rec){
+  const cell = el('div','profile-badge-cell');
+  const badge = el('div','profile-badge');
+  if(rec.tier === 'rare'){
+    badge.style.background = rec.art ? 'url("' + rec.art + '") center/cover' : 'linear-gradient(155deg,#2A2018,#171310)';
+  } else {
+    badge.style.background = metalBackground(rec.tier);
+    if(rec.art){ const im = document.createElement('img'); im.src = rec.art; im.alt = ''; badge.appendChild(im); }
+  }
+  cell.appendChild(badge);
+  const label = rec.tier === 'rare' ? 'Rare' : rec.tier[0].toUpperCase() + rec.tier.slice(1);
+  cell.appendChild(el('span','profile-badge-label', label));
+  return cell;
+}
+
+function collectionBadge(rec){
+  const cell = el('div','profile-badge-cell');
+  const badge = el('div','profile-badge');
+  badge.style.background = variantBackground(VARIANT_DEFS[rec.variant]);
+  cell.appendChild(badge);
+  cell.appendChild(el('span','profile-badge-label', rec.name));
+  return cell;
+}
+
+function renderProfile(){
+  const crumb = $('#profileCrumb');
+  const screen = S.profileView.screen;
+  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection'};
+  crumb.style.display = screen === 'home' ? 'none' : 'flex';
+  if(screen !== 'home'){
+    crumb.innerHTML = '';
+    const back = el('button','crumb-back','‹ Back');
+    back.addEventListener('click', ()=>{ S.profileView.screen = 'home'; renderProfile(); });
+    crumb.appendChild(back);
+    crumb.appendChild(el('span','crumb-label', labels[screen] || ''));
+  }
+  const body = $('#profileBody'); body.innerHTML = '';
+  if(screen === 'topAlbums') renderTopAlbumsScreen(body);
+  else if(screen === 'topSongs') renderTopSongsScreen(body);
+  else if(screen === 'collection') renderCollectionScreen(body);
+  else renderProfileHome(body);
+}
+
+function renderProfileHome(body){
+  const header = el('div','profile-header');
+  const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change profile picture');
+  if(S.profile.art) picBtn.classList.add('has-art');
+  if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
+  picBtn.appendChild(el('span','profile-pic-mark','+'));
+  picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
+  header.appendChild(picBtn);
+
+  const nameIn = el('input','profile-name-input');
+  nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
+  nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
+  header.appendChild(nameIn);
+  body.appendChild(header);
+
+  const albumCount = groupBy('album').length;
+  body.appendChild(el('div','profile-count', fmtCount(albumCount, 'album', 'albums') + ' in your library'));
+
+  const row = el('div','profile-top-row');
+  const albums = topAlbums(1), tracks = topTracks(1);
+  row.appendChild(topTile('Top Album', albums[0] ? albums[0].display.art : null,
+    albums[0] ? albums[0].display.name : null, albums[0] ? albums[0].display.artist : null,
+    'nothing in the crate yet', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
+  row.appendChild(topTile('Top Song', tracks[0] ? tracks[0].art : null,
+    tracks[0] ? tracks[0].title : null, tracks[0] ? tracks[0].artist : null,
+    'nothing in the sleeve yet', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
+  body.appendChild(row);
+
+  const achSection = el('div','profile-section');
+  const achHead = el('div','profile-section-head'); achHead.appendChild(el('span', null, 'Achievements'));
+  achSection.appendChild(achHead);
+  const achList = achievementsList();
+  if(achList.length){
+    const grid = el('div','profile-grid');
+    achList.forEach(rec => grid.appendChild(metalBadge(rec)));
+    achSection.appendChild(grid);
+  } else {
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing earned yet.'));
+    achSection.appendChild(empty);
+  }
+  body.appendChild(achSection);
+
+  const collList = Object.values(S.collection);
+  const collSection = el('button','profile-section');
+  const collHead = el('div','profile-section-head');
+  collHead.appendChild(el('span', null, 'Collection'));
+  collHead.appendChild(el('span','g-chev','›'));
+  collSection.appendChild(collHead);
+  if(collList.length){
+    const grid = el('div','profile-grid mini');
+    collList.slice(0, 6).forEach(rec => grid.appendChild(collectionBadge(rec)));
+    collSection.appendChild(grid);
+  } else {
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing in the collection yet.'));
+    collSection.appendChild(empty);
+  }
+  collSection.addEventListener('click', ()=>{ S.profileView.screen = 'collection'; renderProfile(); });
+  body.appendChild(collSection);
+
+  const shareBtn = el('button','cta ghost profile-share','Share');
+  shareBtn.classList.toggle('active', crateFilled());
+  shareBtn.addEventListener('click', openShareSheet);
+  body.appendChild(shareBtn);
+}
+
+function renderTopAlbumsScreen(body){
+  const list = topAlbums(5);
+  if(!list.length){
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing in the crate yet.'));
+    body.appendChild(empty); return;
+  }
+  const ul = el('ul','tracklist');
+  list.forEach((a, pos) => {
+    const li = el('li');
+    li.appendChild(el('span','t-idx', String(pos + 1).padStart(2,'0')));
+    if(a.display.art){ const im = el('img','t-art'); im.src = a.display.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, a.display.name));
+    name.appendChild(el('em', null, a.display.artist + ' · ' + fmtCount(a.count, 'session', 'sessions')));
+    li.appendChild(name);
+    ul.appendChild(li);
+  });
+  body.appendChild(ul);
+}
+
+function renderTopSongsScreen(body){
+  const list = topTracks(5);
+  if(!list.length){
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing in the sleeve yet.'));
+    body.appendChild(empty); return;
+  }
+  const ul = el('ul','tracklist');
+  list.forEach((t, pos) => {
+    const li = el('li');
+    li.appendChild(el('span','t-idx', String(pos + 1).padStart(2,'0')));
+    if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, t.title));
+    name.appendChild(el('em', null, t.artist + ' · ' + fmtCount(t.count, 'play', 'plays')));
+    li.appendChild(name);
+    ul.appendChild(li);
+  });
+  body.appendChild(ul);
+}
+
+function renderCollectionScreen(body){
+  const groups = collectionGroups();
+  const names = {solid:'Colors', split:'Splits', splatter:'Splatter', swirl:'Swirls'};
+  const any = Object.values(groups).some(g => g.length);
+  if(!any){
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Your pressings will show up here once you’ve played an album through.'));
+    body.appendChild(empty); return;
+  }
+  Object.keys(names).forEach(key => {
+    const items = groups[key];
+    if(!items || !items.length) return;
+    const section = el('div','collection-group');
+    section.appendChild(el('div','collection-group-name', names[key]));
+    const grid = el('div','profile-grid');
+    items.forEach(rec => grid.appendChild(collectionBadge(rec)));
+    section.appendChild(grid);
+    body.appendChild(section);
+  });
+}
+
+/* ================= share image =================
+   Composed off-screen, not a screenshot of the tab — this has to work as a
+   standalone object for people who don't have the app. Pure function,
+   independent of the view layer (see PROFILE spec §6, §8): takes options,
+   returns a canvas, touches nothing else. Front is a record sleeve: the #1
+   album's art as the jacket, wordmark fallback when there is none. Stats
+   read like a back-cover track listing. */
+const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
+
+function shareFitText(ctx, text, maxWidth){
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  let s = text;
+  while(s.length > 1 && ctx.measureText(s + '…').width > maxWidth) s = s.slice(0, -1);
+  return s + '…';
+}
+
+function shareSwatchGradient(ctx, cx, cy, r, colors){
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, colors[0]); g.addColorStop(0.6, colors[1]); g.addColorStop(1, colors[2]);
+  return g;
+}
+
+function loadImageEl(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function drawCover(ctx, img, x, y, w, h){
+  const scale = Math.max(w / img.width, h / img.height);
+  const sw = w / scale, sh = h / scale;
+  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+async function composeShareImage(opts){
+  const sections = opts.sections || {};
+  const w = 1080, h = opts.size === 'story' ? 1920 : 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  try{ await document.fonts.ready; }catch(e){}
+
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, SHARE_BG[0]); bgGrad.addColorStop(0.55, SHARE_BG[1]); bgGrad.addColorStop(1, SHARE_BG[2]);
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+
+  const topAlbum = topAlbums(1)[0];
+  const frontH = Math.round(h * (opts.size === 'story' ? 0.5 : 0.62));
+
+  if(topAlbum && topAlbum.display.art){
+    try{
+      const img = await loadImageEl(topAlbum.display.art);
+      drawCover(ctx, img, 0, 0, w, frontH);
+      const vig = ctx.createLinearGradient(0, frontH - 140, 0, frontH);
+      vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.55)');
+      ctx.fillStyle = vig; ctx.fillRect(0, frontH - 140, w, 140);
+    }catch(e){ drawWordmarkPanel(ctx, w, frontH); }
+  } else {
+    drawWordmarkPanel(ctx, w, frontH);
+  }
+  // small wordmark, corner of the jacket — present even when there is art
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 26px Antonio, sans-serif';
+  ctx.fillStyle = 'rgba(10,14,18,.55)';
+  ctx.fillRect(36, frontH - 68, 190, 42);
+  ctx.fillStyle = '#FF9E2C';
+  ctx.fillText('MIZIKI', 50, frontH - 38);
+
+  let y = frontH + 56;
+  const pad = 56, colW = w - pad*2;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  const heading = text => {
+    ctx.font = '700 22px "IBM Plex Mono", monospace';
+    ctx.fillStyle = '#94A0A6';
+    ctx.fillText(text.toUpperCase(), pad, y);
+    y += 34;
+  };
+  const emptyLine = text => {
+    ctx.font = '400 22px Archivo, sans-serif'; ctx.fillStyle = '#94A0A6';
+    ctx.fillText(text, pad, y); y += 44;
+  };
+  const row = (rank, title, sub) => {
+    ctx.font = '500 30px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
+    const rankStr = String(rank).padStart(2,'0') + '  ';
+    ctx.fillText(rankStr, pad, y);
+    const rankW = ctx.measureText(rankStr).width;
+    ctx.fillText(shareFitText(ctx, title, colW - rankW - 20), pad + rankW, y);
+    y += 34;
+    if(sub){
+      ctx.font = '400 20px "IBM Plex Mono", monospace'; ctx.fillStyle = '#94A0A6';
+      ctx.fillText(shareFitText(ctx, sub, colW - rankW), pad + rankW, y);
+      y += 38;
+    } else y += 14;
+  };
+
+  if(sections.albums){
+    heading('Top Albums');
+    const list = topAlbums(5);
+    if(list.length) list.forEach((a,i) => row(i+1, a.display.name, a.display.artist));
+    else emptyLine('Nothing in the crate yet.');
+    y += 20;
+  }
+  if(sections.songs){
+    heading('Top Songs');
+    const list = topTracks(5);
+    if(list.length) list.forEach((t,i) => row(i+1, t.title, t.artist));
+    else emptyLine('Nothing in the sleeve yet.');
+    y += 20;
+  }
+  if(sections.metals){
+    heading('Metals Earned');
+    const list = achievementsList();
+    if(list.length){
+      const counts = {};
+      list.forEach(a => { counts[a.tier] = (counts[a.tier] || 0) + 1; });
+      const order = ['rare','platinum','gold','silver','bronze'];
+      const parts = order.filter(k => counts[k]).map(k => counts[k] + ' ' + (k[0].toUpperCase() + k.slice(1)));
+      ctx.font = '500 26px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
+      ctx.fillText(shareFitText(ctx, parts.join('   ·   '), colW), pad, y);
+      y += 44;
+    } else emptyLine('Nothing earned yet.');
+    y += 20;
+  }
+  if(sections.collection){
+    heading('Collection');
+    const items = Object.values(S.collection).slice(0, 6);
+    if(items.length){
+      const r = 46, spacing = 58, startX = pad + r;
+      items.forEach((rec, i) => {
+        const cx = startX + i*spacing, cy = y + r, angle = (i % 2 === 0 ? -1 : 1) * 4;
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(angle * Math.PI/180);
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
+        ctx.fillStyle = shareSwatchGradient(ctx, 0, 0, r, VARIANT_DEFS[rec.variant].colors);
+        ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
+        ctx.restore();
+      });
+      y += r*2 + 20;
+    } else emptyLine('Nothing collected yet.');
+  }
+
+  return canvas;
+}
+
+function drawWordmarkPanel(ctx, w, frontH){
+  ctx.fillStyle = '#171310'; ctx.fillRect(0, 0, w, frontH);
+  ctx.fillStyle = 'rgba(239,233,223,.5)';
+  ctx.font = '700 64px Antonio, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('M I Z I K I', w/2, frontH/2);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+async function openShareSheet(){
+  $('#shareOverlay').classList.add('open');
+  $('#shareOverlay').setAttribute('aria-hidden','false');
+  await renderShareCanvas();
+}
+function closeShareSheet(){
+  $('#shareOverlay').classList.remove('open');
+  $('#shareOverlay').setAttribute('aria-hidden','true');
+}
+async function renderShareCanvas(){
+  const sizeBtn = document.querySelector('#shareSizeSeg [aria-pressed="true"]');
+  const size = sizeBtn ? sizeBtn.dataset.size : 'square';
+  const canvas = await composeShareImage({size, sections: S.shareSelection});
+  const target = $('#shareCanvas');
+  target.width = canvas.width; target.height = canvas.height;
+  target.getContext('2d').drawImage(canvas, 0, 0);
+}
+
 function setMode(m){
   S.mode = m;
   const vinyl = m === 'vinyl';
@@ -2828,6 +3424,7 @@ function setMode(m){
 function showRoute(name){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
+  if(name === 'profile') renderProfile();
 }
 
 /* ================= wiring ================= */
@@ -2965,6 +3562,47 @@ function showRoute(name){
     }catch(err){ /* bad image — leave whatever preview was already showing */ }
   });
   $('#undoBtn').addEventListener('click', undoLastEdit);
+
+  $('#profilePicFile').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const blob = await cropSquareImage(file, 500);
+      if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(err){}
+      S.profile.artBlob = blob;
+      S.profile.art = URL.createObjectURL(blob);
+      await persistProfile();
+      renderProfile();
+    }catch(err){ /* bad image — leave the existing picture as-is */ }
+  });
+
+  $('#shareClose').addEventListener('click', closeShareSheet);
+  document.querySelectorAll('#shareToggles button').forEach(b => b.addEventListener('click', ()=>{
+    const key = b.dataset.section;
+    S.shareSelection[key] = !S.shareSelection[key];
+    b.setAttribute('aria-pressed', String(S.shareSelection[key]));
+    renderShareCanvas();
+  }));
+  document.querySelectorAll('#shareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
+    document.querySelectorAll('#shareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    renderShareCanvas();
+  }));
+  $('#shareSave').addEventListener('click', ()=>{
+    $('#shareCanvas').toBlob(blob => {
+      if(!blob) return;
+      const file = new File([blob], 'miziki-share.png', {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file], title:'Miziki'}).catch(()=>{});
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'miziki-share.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  });
 
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer
