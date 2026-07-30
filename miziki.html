@@ -61,10 +61,12 @@ body{
    a plain class (not the animation's own fill-mode) so it can be cleared
    right as the emerge animation takes over and left alone otherwise; see
    runStartSequence()/interruptStartSequence(). Ships on by default in the
-   markup so first paint shows a bare spindle, not a generic disc. */
+   markup so first paint shows empty space, not a generic disc — there is
+   no platter or spindle to occupy that space instead (see PRESENTATION
+   spec, Disc Visibility). */
 .platter-box.disc-hidden{opacity:0;pointer-events:none}
-.disc,.spindle{position:absolute;inset:0;border-radius:50%}
 .disc{
+  position:absolute;inset:0;border-radius:50%;
   /* variant color/pattern layer — set inline per track by applyDiscVariant();
      this default is only what shows before any track has loaded */
   background:radial-gradient(circle at 50% 50%,var(--disc-a) 0 27%,var(--disc-b) 27% 90%,var(--disc-c) 90% 100%);
@@ -142,7 +144,6 @@ body{
   text-transform:uppercase;color:var(--muted)}
 .label .rpm{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
 .label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
-.spindle{inset:calc(50% - 5px);background:#D8D2C6;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
 
 /* ---------- sleeve pull ----------
    Three sprites on a timeline: the sleeve slides in, the disc (the real
@@ -471,6 +472,7 @@ input[type=file]{display:none}
     <div class="stack" id="libActions" style="display:none">
       <button class="cta" id="pick2">Add more files</button>
       <button class="cta ghost" id="tone2">Test tone</button>
+      <button class="cta ghost" id="clearHistoryBtn">Clear listening history</button>
       <button class="cta ghost" id="forget">Forget library</button>
     </div>
     <p class="note" id="storeNote"></p>
@@ -652,13 +654,6 @@ input[type=file]{display:none}
           </div>
         </div>
       </div>
-      <!-- a sibling of platter-box, not a child: the spindle is a fixed post
-           that never moves, so it must sit outside whatever transform the
-           pull/return-to-sleeve animation applies to the disc (see PRESENTATION
-           spec, Platter/Spindle/Disc Visibility). Rendering after platter-box
-           keeps it on top, which is what makes it read as showing through the
-           label's center hole once a record is seated. -->
-      <div class="spindle" aria-hidden="true"></div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
         <img class="sleeve-art" id="sleeveArt" alt="">
         <div class="sleeve-mark">MIZIKI</div>
@@ -672,6 +667,7 @@ input[type=file]{display:none}
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost edit-current" id="editCurrentBtn">Edit info</button>
         <button class="cta ghost" id="playerShareBtn" style="display:none">Share</button>
+        <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
       </div>
     </div>
 
@@ -768,6 +764,20 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- LOOK PICKER: switch between whatever looks the current album has earned
+     (rare / metal / format variant). Only opened when more than one is
+     available; switching is silent and immediate, no confirmation (see
+     METAL spec §5). Options are built dynamically since the count varies. -->
+<div class="edit-overlay" id="lookOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="lookSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span>Look</span>
+      <button class="edit-close" id="lookClose" aria-label="Close">✕</button>
+    </div>
+    <div class="stack" id="lookOptions" style="flex-direction:column"></div>
+  </div>
+</div>
+
 <!-- CONFIRM DELETE: shared by song/album/artist/batch removal. Deletion has
      no undo window (see LIBRARY spec §4) — this dialog is the safeguard, so
      the copy must be unambiguous that files stay on disk. -->
@@ -781,6 +791,25 @@ input[type=file]{display:none}
     <div class="stack">
       <button class="cta" id="confirmGo">Remove</button>
       <button class="cta ghost" id="confirmCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR LISTENING HISTORY: separate from deletion (see LIBRARY spec §1).
+     This dialog IS the confirmation — it must state that achievements and
+     earned variants will be lost, matching the deletion dialog's precedent
+     of no separate undo window. -->
+<div class="edit-overlay" id="clearHistoryOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="clearHistorySheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span>Clear listening history</span>
+      <button class="edit-close" id="clearHistoryClose" aria-label="Close">✕</button>
+    </div>
+    <p class="note" style="margin-top:0">Separate from removing files — this wipes session counts, play counts, rare-variant unlocks, and earned metals. Achievements and earned variants will be lost.</p>
+    <div class="stack">
+      <button class="cta ghost" id="clearOrphanedBtn">Clear orphaned records only</button>
+      <button class="cta" id="clearAllHistoryBtn">Clear everything</button>
+      <button class="cta ghost" id="clearHistoryCancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -851,8 +880,17 @@ const S = {
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,
-  // metal tiers (see spec) — a separate counter from sessionCounts, keyed by track id
-  trackPlayCounts:{},
+  // metal tiers (see spec) — a separate counter from sessionCounts, keyed by
+  // trackIdentityKey(). trackPlayCounts/sessionCounts are the true lifetime
+  // totals (used for Top Songs, rare-variant progress, collection discovery);
+  // the *MetalEligible* counters are a tier-1-only shadow of the same totals
+  // that stops advancing once a track/album is no longer tier 1, so a
+  // tier-upgrade re-import can't silently keep climbing the metal ladder —
+  // see METAL spec §2, grandfathered metals.
+  trackPlayCounts:{}, trackMetalEligiblePlays:{}, metalEligibleSessions:{},
+  // per-album choice among whatever looks are currently available (rare /
+  // metal / format variant) — see METAL spec §5, variant switching
+  albumLookPref:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -1046,14 +1084,17 @@ const TRACK_METAL_THRESHOLDS = [
 const METAL_COLORS = {bronze:'#CE8946', silver:'#797B80', gold:'#FFC30B', platinum:'#BBC2CC'};
 const METAL_FADE_MS = 400;
 
+// reads the tier-1-only shadow counter, not the true lifetime total, so a
+// tier-upgraded album's metal is grandfathered (frozen) rather than
+// continuing to climb thresholds it can no longer earn — see METAL spec §2
 function albumMetalFor(albumId){
-  const n = S.sessionCounts[albumId] || 0;
+  const n = S.metalEligibleSessions[albumId] || 0;
   for(const lvl of ALBUM_METAL_THRESHOLDS) if(n >= lvl.sessions) return lvl.name;
   return null;
 }
 // takes a trackIdentityKey(), not a file id — see that function
 function trackMetalFor(trackKey){
-  const n = S.trackPlayCounts[trackKey] || 0;
+  const n = S.trackMetalEligiblePlays[trackKey] || 0;
   for(const lvl of TRACK_METAL_THRESHOLDS) if(n >= lvl.plays) return lvl.name;
   return null;
 }
@@ -1065,8 +1106,10 @@ function trackMetalFor(trackKey){
 function incrementTrackPlay(t){
   const key = trackIdentityKey(t);
   S.trackPlayCounts[key] = (S.trackPlayCounts[key] || 0) + 1;
+  if(trackTier(t) === 1) S.trackMetalEligiblePlays[key] = (S.trackMetalEligiblePlays[key] || 0) + 1;
   S.trackLastPlayed[key] = Date.now();
   persistTrackPlayCounts();
+  persistTrackMetalEligiblePlays();
   persistTrackLastPlayed();
   snapshotAlbumDisplay(t);
   snapshotTrackDisplay(t, key);
@@ -1112,19 +1155,90 @@ function setDiscBackground(disc, bg, crossfade){
   }
 }
 
+/* ================= look switching =================
+   Once an album has more than one available "look" — the rare variant, an
+   earned metal, or a genuine format variant (tier 2/3 only; tier 1's plain
+   black is not itself a selectable look) — the user can switch between
+   them, silently and immediately, and the choice persists per album. Rare
+   is the default the moment it unlocks; anything else is the opt-back. See
+   METAL spec §5. */
+function availableLooks(t){
+  const albumId = albumKey(t);
+  const tier = trackTier(t);
+  const looks = [];
+  if(S.rareUnlocked[albumId] && t.art) looks.push('rare');
+  const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId);
+  if(metal) looks.push('metal');
+  // tier 1 with nothing earned has no real alternative to fall back to, so
+  // the plain format variant only counts as a genuine "look" once there's
+  // either something else to switch away from, or the tier itself carries
+  // real variance (2/3)
+  if(tier !== 1 || looks.length === 0) looks.push('variant');
+  return looks;
+}
+
+function resolveLook(t){
+  const looks = availableLooks(t);
+  const pref = S.albumLookPref[albumKey(t)];
+  if(pref && looks.includes(pref)) return pref;
+  if(looks.includes('rare')) return 'rare';
+  if(looks.includes('metal')) return 'metal';
+  return 'variant';
+}
+
+function setLookPref(albumId, look){
+  S.albumLookPref[albumId] = look;
+  persistAlbumLookPref();
+  const t = current();
+  if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
+}
+
+function lookLabel(kind, t){
+  if(kind === 'rare') return 'Rare — Art Suspended in Vinyl';
+  if(kind === 'metal'){
+    const m = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
+    return m ? (m[0].toUpperCase() + m.slice(1) + ' Metal') : 'Metal';
+  }
+  return 'Format Variant';
+}
+
+function openLookPicker(){
+  const t = current(); if(!t) return;
+  const albumId = albumKey(t);
+  const looks = availableLooks(t);
+  const current_ = resolveLook(t);
+  const host = $('#lookOptions');
+  host.innerHTML = '';
+  looks.forEach(kind => {
+    const b = document.createElement('button');
+    b.className = 'cta' + (kind === current_ ? '' : ' ghost');
+    b.textContent = lookLabel(kind, t);
+    // silent and immediate — no confirmation, no animation (see METAL spec §5)
+    b.addEventListener('click', () => { setLookPref(albumId, kind); closeLookPicker(); });
+    host.appendChild(b);
+  });
+  $('#lookOverlay').classList.add('open');
+  $('#lookOverlay').setAttribute('aria-hidden', 'false');
+}
+function closeLookPicker(){
+  $('#lookOverlay').classList.remove('open');
+  $('#lookOverlay').setAttribute('aria-hidden', 'true');
+}
+
 // Outside the full player the artwork travels as a plain circular label; the disc's
 // tier-derived surface is scoped to this renderer only (see spec §1).
 // `crossfade` should be true only for a same-album change with no sleeve
 // animation to cover it — see updateShellAlbum()'s sameAlbum flag.
 function applyDiscVariant(t, crossfade){
   const disc = $('#disc'), label = $('#label');
-  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); setDiscBackground(disc, '', false); return; }
-  const albumId = albumKey(t);
-  const rare = !!S.rareUnlocked[albumId];
+  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); setDiscBackground(disc, '', false); $('#lookBtn').style.display = 'none'; return; }
+  $('#lookBtn').style.display = availableLooks(t).length > 1 ? '' : 'none';
+  const look = resolveLook(t);
+  const rare = look === 'rare';
   disc.classList.toggle('rare', rare);
   label.classList.toggle('rare', rare);
   let bg;
-  if(rare && t.art){
+  if(rare){
     // "Art Suspended in Vinyl": continuous material, no paper seam — the same
     // artwork the label shows extends across the whole disc, read through the grooves
     bg = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
@@ -1132,8 +1246,12 @@ function applyDiscVariant(t, crossfade){
     delete disc.dataset.variant; delete disc.dataset.tier;
   } else {
     const {tier, variant} = selectVariant(t);
-    // track wins over album — see METAL spec §4
-    const metal = tier === 1 ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId)) : null;
+    // track wins over album — see METAL spec §4. Grandfathered metals are
+    // no longer gated to tier===1 here: a metal earned pre-upgrade stays
+    // selectable regardless of the track's current tier, since it's the
+    // resolveLook() call above (via availableLooks()) that decides whether
+    // 'metal' is even a candidate in the first place.
+    const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
     disc.dataset.tier = tier;
     disc.dataset.variant = metal ? 'metal-' + metal : variant;
     bg = metal ? metalBackground(metal) : variantBackground(VARIANT_DEFS[variant]);
@@ -1767,6 +1885,9 @@ async function persistSession(rec){ S.sessions[rec.albumId] = rec; await DB.put(
 async function persistSessionCounts(){ await DB.put('meta', {k:'sessionCounts', v:S.sessionCounts}); }
 async function persistRareUnlocked(){ await DB.put('meta', {k:'rareUnlocked', v:S.rareUnlocked}); }
 async function persistTrackPlayCounts(){ await DB.put('meta', {k:'trackPlayCounts', v:S.trackPlayCounts}); }
+async function persistMetalEligibleSessions(){ await DB.put('meta', {k:'metalEligibleSessions', v:S.metalEligibleSessions}); }
+async function persistTrackMetalEligiblePlays(){ await DB.put('meta', {k:'trackMetalEligiblePlays', v:S.trackMetalEligiblePlays}); }
+async function persistAlbumLookPref(){ await DB.put('meta', {k:'albumLookPref', v:S.albumLookPref}); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
@@ -1849,8 +1970,10 @@ function sessionTrackComplete(t){
     DB.put('sessions', rec);
     S.sessionActive = null;
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
+    if(trackTier(t) === 1) S.metalEligibleSessions[albumId] = (S.metalEligibleSessions[albumId] || 0) + 1;
     S.albumLastPlayed[albumId] = Date.now();
     persistSessionCounts();
+    persistMetalEligibleSessions();
     persistAlbumLastPlayed();
     checkRareUnlock(albumId);
     // the album metal (if any) is a pure function of the count that just
@@ -1889,6 +2012,16 @@ async function restoreSessions(){
   if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
   const plays = await DB.get('meta', 'trackPlayCounts');
   if(plays && plays.v) S.trackPlayCounts = plays.v;
+  // fall back to a copy of the true lifetime counters if this is the first
+  // load since the metal-eligible shadow counters were introduced — correct
+  // for anyone who hasn't upgraded a tier-1 album yet, which is the common
+  // case, and only diverges going forward for those who have
+  const metalSessions = await DB.get('meta', 'metalEligibleSessions');
+  S.metalEligibleSessions = (metalSessions && metalSessions.v) ? metalSessions.v : Object.assign({}, S.sessionCounts);
+  const metalPlays = await DB.get('meta', 'trackMetalEligiblePlays');
+  S.trackMetalEligiblePlays = (metalPlays && metalPlays.v) ? metalPlays.v : Object.assign({}, S.trackPlayCounts);
+  const lookPref = await DB.get('meta', 'albumLookPref');
+  if(lookPref && lookPref.v) S.albumLookPref = lookPref.v;
   const albumLast = await DB.get('meta', 'albumLastPlayed');
   if(albumLast && albumLast.v) S.albumLastPlayed = albumLast.v;
   const trackLast = await DB.get('meta', 'trackLastPlayed');
@@ -2269,6 +2402,60 @@ async function forgetLibrary(){
   $('#platterBox').classList.add('disc-hidden');
   $('#playerShareBtn').style.display = 'none';
   renderTracks(); drawTime(); renderMiniPlayer();
+}
+
+/* ================= clear listening history =================
+   Deliberately separate from deletion — deletion never touches listening
+   history, this is the only path that does (see LIBRARY spec §1). Full
+   scope wipes everything; the lighter "orphaned only" scope drops just the
+   records for identities no longer in the library, leaving current albums
+   untouched. */
+function currentAlbumIds(){ return new Set(S.tracks.map(albumKey)); }
+function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }
+function filterKeep(dict, keepSet){
+  const out = {};
+  Object.keys(dict).forEach(k => { if(keepSet.has(k)) out[k] = dict[k]; });
+  return out;
+}
+
+async function clearListeningHistory(orphanedOnly){
+  if(orphanedOnly){
+    const albumIds = currentAlbumIds(), trackKeys = currentTrackKeys();
+    const droppedAlbums = Object.keys(S.achievements).filter(id => !albumIds.has(id));
+    const droppedCollection = Object.keys(S.collection).filter(id => !albumIds.has(id));
+    const droppedSessions = Object.keys(S.sessions).filter(id => !albumIds.has(id));
+    S.sessionCounts = filterKeep(S.sessionCounts, albumIds);
+    S.metalEligibleSessions = filterKeep(S.metalEligibleSessions, albumIds);
+    S.rareUnlocked = filterKeep(S.rareUnlocked, albumIds);
+    S.albumLastPlayed = filterKeep(S.albumLastPlayed, albumIds);
+    S.albumDisplay = filterKeep(S.albumDisplay, albumIds);
+    S.albumLookPref = filterKeep(S.albumLookPref, albumIds);
+    S.achievements = filterKeep(S.achievements, albumIds);
+    S.collection = filterKeep(S.collection, albumIds);
+    S.sessions = filterKeep(S.sessions, albumIds);
+    S.trackPlayCounts = filterKeep(S.trackPlayCounts, trackKeys);
+    S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
+    S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
+    S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
+    for(const id of droppedAlbums) await DB.del('achievements', id);
+    for(const id of droppedCollection) await DB.del('collection', id);
+    for(const id of droppedSessions) await DB.del('sessions', id);
+  } else {
+    S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
+    S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
+    S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
+    S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
+    await DB.clear('achievements'); await DB.clear('collection'); await DB.clear('sessions');
+  }
+  await Promise.all([
+    persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
+    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
+    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay()
+  ]);
+  const t = current();
+  if(t) applyDiscVariant(t, true);
+  const profileRoute = $('#route-profile');
+  if(profileRoute && profileRoute.classList.contains('on')) renderProfile();
 }
 
 /* ---- decoded audio is enormous (a four-minute stereo track is ~85 MB of
@@ -3787,15 +3974,110 @@ async function renderShareCanvas(){
 }
 
 /* ---- player share: "this record, right now" — a single object, not a
-   stat card. Half the disc (current variant/metal/rare treatment), half
-   the jacket, positioned so the disc reads as sitting halfway out of the
-   sleeve — closer to a photograph of a record being pulled from its
-   jacket than to a Wrapped-style card (see LIBRARY spec §2). Pure
-   function like composeShareImage(): takes options, returns a canvas. ---- */
+   stat card (see LIBRARY spec §2). Two distinct compositions:
+   - Normal: album art is a square whose side equals the disc's diameter,
+     vertically flush, disc centered on the square's left edge so roughly
+     half protrudes left; the art renders on top and occludes the disc's
+     right half — the disc passes behind it.
+   - Rare variant: no art square at all (the art is already suspended
+     inside the disc, so a jacket would duplicate it) — full disc, centered,
+     standing alone.
+   Pure function like composeShareImage(): takes options, returns a canvas. ---- */
 function hexMix(hex, target, amt){
   const c = parseInt(hex.slice(1), 16), t = parseInt(target.slice(1), 16);
   const mix = (shift) => Math.round(((c>>shift & 255) * (1-amt)) + ((t>>shift & 255) * amt));
   return 'rgb(' + mix(16) + ',' + mix(8) + ',' + mix(0) + ')';
+}
+
+// Fills the full disc circle with whatever look is resolved for this track
+// — same precedence applyDiscVariant() uses on the real platter — so the
+// share image never falls back to a generic disc. `half` is true for the
+// normal composition, where only the left semicircle ends up visible once
+// the art square is drawn on top: asymmetric patterns need to orient
+// themselves so both their colors land in that visible half instead of
+// reading as one flat color (see LIBRARY spec §2, disc rendering).
+async function fillShareDisc(ctx, t, look, cx, cy, r, half){
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  if(look === 'rare'){
+    try{
+      const img = await loadImageEl(t.art);
+      drawCover(ctx, img, cx - r, cy - r, r*2, r*2);
+      const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
+      ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    }catch(e){}
+  } else if(look === 'metal'){
+    const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
+    const base = METAL_COLORS[metal] || METAL_COLORS.bronze;
+    const colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
+    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
+    ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  } else {
+    const {variant} = selectVariant(t);
+    const def = VARIANT_DEFS[variant];
+    const [a, b, c] = def.colors;
+    if(def.pattern === 'split' && half){
+      // a left/right split would read as one flat color once the right
+      // half is occluded by the art panel — a top/bottom split instead
+      // guarantees both colors land within the visible left arc
+      ctx.fillStyle = a; ctx.fillRect(cx - r, cy - r, r*2, r);
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy, r*2, r);
+    } else if(def.pattern === 'split'){
+      ctx.fillStyle = a; ctx.fillRect(cx, cy - r, r, r*2);
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r, r*2);
+    } else if(def.pattern === 'swirl'){
+      const g = ctx.createConicGradient(0, cx, cy);
+      [a, b, c, a, b, c, a].forEach((col, i) => g.addColorStop(i/6, col));
+      ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    } else if(def.pattern === 'splatter'){
+      // random enough that either half works, so no orientation care needed
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+      const spots = [[30,25],[70,20],[50,50],[20,65],[80,60],[40,80],[65,40],[15,40]];
+      spots.forEach(([px, py], i) => {
+        const sx = cx - r + (px/100)*r*2, sy = cy - r + (py/100)*r*2;
+        ctx.beginPath(); ctx.arc(sx, sy, r*0.06, 0, Math.PI*2);
+        ctx.fillStyle = i % 2 ? b : a; ctx.fill();
+      });
+    } else {
+      ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, def.colors);
+      ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    }
+  }
+  // groove rings so it still reads as a record, not a flat swatch
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  for(let rr = r*0.4; rr < r*0.97; rr += r*0.085){
+    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+  // label
+  const lr = r * 0.32;
+  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
+  ctx.fillStyle = '#3A2007'; ctx.fill();
+  if(look === 'rare'){
+    try{
+      const limg = await loadImageEl(t.art);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
+      drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
+      ctx.restore();
+    }catch(e){}
+  }
+}
+
+// Black square with "Miziki" written diagonally across it — distinct from
+// the sleeve pull's plain horizontal wordmark fallback (see LIBRARY spec §2)
+function drawDiagonalWordmark(ctx, x, y, side){
+  ctx.save();
+  ctx.fillStyle = '#0B0C0F'; ctx.fillRect(x, y, side, side);
+  ctx.beginPath(); ctx.rect(x, y, side, side); ctx.clip();
+  ctx.translate(x + side/2, y + side/2);
+  ctx.rotate(-Math.PI/8);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '700 ' + Math.round(side*0.16) + 'px Antonio, sans-serif';
+  ctx.fillStyle = 'rgba(239,233,223,.5)';
+  ctx.fillText('M I Z I K I', 0, 0);
+  ctx.restore();
 }
 
 async function composePlayerShareImage(opts){
@@ -3807,92 +4089,61 @@ async function composePlayerShareImage(opts){
   try{ await document.fonts.ready; }catch(e){}
   if(!t) return canvas;
 
-  // sleeve half: album art fills the frame, wordmark fallback matching the
-  // sleeve pull's own no-artwork treatment
-  let hasArtBg = false;
-  if(t.art){
-    try{
-      const img = await loadImageEl(t.art);
-      drawCover(ctx, img, 0, 0, w, h);
-      const vig = ctx.createLinearGradient(0, 0, w, 0);
-      vig.addColorStop(0, 'rgba(0,0,0,.5)'); vig.addColorStop(0.55, 'rgba(0,0,0,.12)'); vig.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
-      hasArtBg = true;
-    }catch(e){ drawWordmarkPanel(ctx, w, h); }
-  } else {
-    drawWordmarkPanel(ctx, w, h);
-  }
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#171310'); bgGrad.addColorStop(1, '#0B0C0F');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
 
-  // disc half: current variant, metal if earned, or the rare "suspended in
-  // vinyl" treatment — same precedence applyDiscVariant() uses on the real
-  // platter. Centered left-of-frame so a good portion clips off the edge,
-  // the rest overlapping the jacket: a record mid-pull, not a hard seam.
-  const r = w * 0.4;
-  const cx = w * (opts.size === 'story' ? 0.34 : 0.32), cy = h * (opts.size === 'story' ? 0.36 : 0.42);
-  const albumId = albumKey(t);
-  const rare = !!S.rareUnlocked[albumId];
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
-  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-  if(rare && t.art){
-    try{
-      const img = await loadImageEl(t.art);
-      drawCover(ctx, img, cx - r, cy - r, r*2, r*2);
-      const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
-      ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    }catch(e){ /* fall through to the variant swatch below */ }
+  const look = resolveLook(t);
+  const isStory = opts.size === 'story';
+  let captionY;
+
+  if(look === 'rare'){
+    // full disc, centered, standing alone — a separate jacket would
+    // duplicate the art already suspended inside it
+    const r = isStory ? w * 0.38 : w * 0.36;
+    const cx = w / 2, cy = isStory ? h * 0.42 : h * 0.4;
+    await fillShareDisc(ctx, t, look, cx, cy, r, false);
+    captionY = cy + r + 90;
   } else {
-    const tier = trackTier(t);
-    const metal = tier === 1 ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId)) : null;
-    let colors;
-    if(metal){
-      const base = METAL_COLORS[metal];
-      colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
+    const side = isStory ? w * 0.62 : w * 0.52;
+    const marginX = (w - side * 1.5) / 2;
+    const squareLeft = marginX + side / 2;
+    const squareTop = isStory ? h * 0.30 : h * 0.14;
+    const discCx = squareLeft, discCy = squareTop + side / 2, r = side / 2;
+
+    await fillShareDisc(ctx, t, look, discCx, discCy, r, true);
+
+    // album art (or the diagonal-wordmark fallback) renders on top,
+    // occluding the disc's right half — the disc passes behind it
+    if(t.art){
+      try{
+        const img = await loadImageEl(t.art);
+        ctx.save();
+        ctx.beginPath(); ctx.rect(squareLeft, squareTop, side, side); ctx.clip();
+        drawCover(ctx, img, squareLeft, squareTop, side, side);
+        ctx.restore();
+      }catch(e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
     } else {
-      const {variant} = selectVariant(t);
-      colors = VARIANT_DEFS[variant].colors;
+      drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
     }
-    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
-    ctx.fillRect(cx - r, cy - r, r*2, r*2);
-  }
-  // groove rings so the swatch still reads as a record, not a flat disc
-  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
-  for(let rr = r*0.4; rr < r*0.97; rr += r*0.085){
-    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
-  }
-  ctx.restore();
-  // label
-  const lr = r * 0.32;
-  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
-  ctx.fillStyle = '#3A2007'; ctx.fill();
-  if(t.art){
-    try{
-      const limg = await loadImageEl(t.art);
-      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
-      drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
-      ctx.restore();
-    }catch(e){}
+    captionY = squareTop + side + 90;
   }
 
-  // title / artist underneath, tolerant of long names
+  // caption: two lines, tolerant of long names — truncate, never reflow
   const pad = 64;
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  const titleY = h - (opts.size === 'story' ? 220 : 150);
-  ctx.font = '600 46px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
-  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.title : t.name, w - pad*2), w/2, titleY);
-  ctx.font = '400 26px "IBM Plex Mono", monospace'; ctx.fillStyle = '#B7ADA0';
-  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.artist : '', w - pad*2), w/2, titleY + 42);
+  ctx.font = '600 40px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
+  const line1 = (t.tags ? t.tags.artist : '') + ' - ' + (t.tags ? t.tags.title : t.name);
+  ctx.fillText(shareFitText(ctx, line1, w - pad*2), w/2, captionY);
+  ctx.font = '400 24px "IBM Plex Mono", monospace'; ctx.fillStyle = '#94A0A6';
+  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.album : '', w - pad*2), w/2, captionY + 38);
 
-  // small, unobtrusive wordmark — present even over artwork
+  // small, unobtrusive wordmark — the diagonal treatment is fallback-only,
+  // branding otherwise stays to this small corner mark
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.font = '700 24px Antonio, sans-serif';
-  if(hasArtBg){
-    ctx.fillStyle = 'rgba(10,14,18,.55)';
-    ctx.fillRect(w - 172, 40, 132, 40);
-  }
   ctx.fillStyle = '#FF9E2C';
-  ctx.fillText('MIZIKI', w - 156, 66);
+  ctx.fillText('MIZIKI', pad, h - 48);
 
   return canvas;
 }
@@ -4041,6 +4292,19 @@ function showRoute(name){
     await forgetLibrary();
   });
 
+  $('#clearHistoryBtn').addEventListener('click', ()=>{
+    $('#clearHistoryOverlay').classList.add('open');
+    $('#clearHistoryOverlay').setAttribute('aria-hidden', 'false');
+  });
+  const closeClearHistory = () => {
+    $('#clearHistoryOverlay').classList.remove('open');
+    $('#clearHistoryOverlay').setAttribute('aria-hidden', 'true');
+  };
+  $('#clearHistoryClose').addEventListener('click', closeClearHistory);
+  $('#clearHistoryCancel').addEventListener('click', closeClearHistory);
+  $('#clearOrphanedBtn').addEventListener('click', async ()=>{ closeClearHistory(); await clearListeningHistory(true); });
+  $('#clearAllHistoryBtn').addEventListener('click', async ()=>{ closeClearHistory(); await clearListeningHistory(false); });
+
   $('#selectToggle').addEventListener('click', enterSelectMode);
   $('#selectCancel').addEventListener('click', exitSelectMode);
   $('#selectEdit').addEventListener('click', ()=>{
@@ -4139,6 +4403,8 @@ function showRoute(name){
 
   $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
   $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
+  $('#lookBtn').addEventListener('click', openLookPicker);
+  $('#lookClose').addEventListener('click', closeLookPicker);
   document.querySelectorAll('#playerShareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
     document.querySelectorAll('#playerShareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     renderPlayerShareCanvas();
