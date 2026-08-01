@@ -228,6 +228,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 /* ---------- routes (Library / Sundown / Character) ---------- */
 .route{display:none;padding:20px 0 0}
 .route.on{display:block}
+.route.drag-over{outline:2px dashed var(--accent);outline-offset:-8px;background:rgba(255,255,255,.03)}
 
 /* ---------- persistent shell: mini-player + tab bar ---------- */
 .mini-player{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));
@@ -440,13 +441,17 @@ input[type=file]{display:none}
   <section class="route on" id="route-library" role="main">
     <div class="empty" id="empty">
       <p>No music loaded yet</p>
-      <small>Choose FLAC, WAV, ALAC or MP3 files from this device. They stay on it — nothing is uploaded, and nothing is copied.</small>
+      <small>Choose FLAC, WAV, ALAC or MP3 files from this device, or drag them in. They stay on it — nothing is uploaded, and nothing is copied.</small>
       <div class="stack" style="justify-content:center">
         <button class="cta" id="pick">Choose files</button>
+        <button class="cta ghost" id="pickFolder">Choose folder</button>
         <button class="cta ghost" id="tone">Play test tone</button>
       </div>
     </div>
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
+    <input id="folderFile" type="file" webkitdirectory multiple>
+
+    <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" style="width:100%;display:none;margin-top:10px" aria-label="Search library">
 
     <div class="seg lib-nav" id="libNav" style="display:none">
       <button data-view="songs" aria-pressed="true">Songs</button>
@@ -471,11 +476,14 @@ input[type=file]{display:none}
 
     <div class="stack" id="libActions" style="display:none">
       <button class="cta" id="pick2">Add more files</button>
+      <button class="cta ghost" id="pickFolder2">Add folder</button>
       <button class="cta ghost" id="tone2">Test tone</button>
+      <button class="cta ghost" id="scanDuplicatesBtn">Scan for duplicates</button>
       <button class="cta ghost" id="clearHistoryBtn">Clear listening history</button>
       <button class="cta ghost" id="forget">Forget library</button>
     </div>
     <p class="note" id="storeNote"></p>
+    <p class="note" id="librarySize"></p>
     <p class="note" id="pathNote"></p>
   </section>
 
@@ -584,6 +592,8 @@ input[type=file]{display:none}
         <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
       </div>
     </div>
+
+    <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
   </section>
 
   <!-- PROFILE -->
@@ -616,6 +626,7 @@ input[type=file]{display:none}
       <em id="miniArtist"></em>
     </span>
   </button>
+  <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
 </div>
 
@@ -668,6 +679,7 @@ input[type=file]{display:none}
         <button class="cta ghost edit-current" id="editCurrentBtn">Edit info</button>
         <button class="cta ghost" id="playerShareBtn" style="display:none">Share</button>
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
+        <button class="cta ghost" id="queueBtn" style="display:none">Queue</button>
       </div>
     </div>
 
@@ -759,6 +771,8 @@ input[type=file]{display:none}
     </div>
     <div class="stack">
       <button class="cta ghost" id="rowMenuEdit">Edit Info</button>
+      <button class="cta ghost" id="rowMenuPlayNext">Play Next</button>
+      <button class="cta ghost" id="rowMenuAddQueue">Add to Queue</button>
       <button class="cta ghost" id="rowMenuRemove">Remove from Library</button>
     </div>
   </div>
@@ -775,6 +789,19 @@ input[type=file]{display:none}
       <button class="edit-close" id="lookClose" aria-label="Close">✕</button>
     </div>
     <div class="stack" id="lookOptions" style="flex-direction:column"></div>
+  </div>
+</div>
+
+<!-- QUEUE: current track + everything after, reorderable, individually
+     removable without touching the library. Accessible from both the full
+     player and the mini-player (see PLAYBACK spec §5). -->
+<div class="edit-overlay" id="queueOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="queueSheetBox">
+    <div class="edit-head">
+      <span>Queue</span>
+      <button class="edit-close" id="queueClose" aria-label="Close">✕</button>
+    </div>
+    <div id="queueBody"></div>
   </div>
 </div>
 
@@ -811,6 +838,35 @@ input[type=file]{display:none}
       <button class="cta" id="clearAllHistoryBtn">Clear everything</button>
       <button class="cta ghost" id="clearHistoryCancel">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- DUPLICATE IMPORT: surfaced, never auto-merged (see PLAYBACK/IMPORT spec §6).
+     One track at a time, pausing the import loop until resolved. -->
+<div class="edit-overlay" id="dupOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="dupSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span id="dupTitle">Possible duplicate</span>
+      <button class="edit-close" id="dupClose" aria-label="Close">✕</button>
+    </div>
+    <p class="note" id="dupBody" style="margin-top:0"></p>
+    <div class="stack">
+      <button class="cta ghost" id="dupKeepBoth">Keep Both</button>
+      <button class="cta ghost" id="dupReplace">Replace</button>
+      <button class="cta" id="dupSkip">Skip Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICATE SCAN: library-wide, catches duplicates that arise from
+     metadata edits rather than just import (see PLAYBACK/IMPORT spec §6). -->
+<div class="edit-overlay" id="dupScanOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="dupScanSheetBox">
+    <div class="edit-head">
+      <span>Duplicate scan</span>
+      <button class="edit-close" id="dupScanClose" aria-label="Close">✕</button>
+    </div>
+    <div id="dupScanBody"></div>
   </div>
 </div>
 
@@ -870,7 +926,7 @@ const S = {
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
   playlists:[], view:{mode:'songs', group:null, playlist:null, picking:false, editSelecting:false},
   editSelection: new Set(),
-  albumSort:{}, albumOrder:{}, lru:[],
+  albumSort:{}, albumOrder:{}, lru:[], librarySort:'artist',
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
   previewMin:0, live:true,
   sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
@@ -1370,6 +1426,59 @@ function collectionGroups(){
 }
 
 /* ================= file loading ================= */
+// Walks the MP4 box tree looking for moov > udta > meta > ilst > ---- with
+// mean "com.apple.iTunes" and name "iTunSMPB" — the de facto standard
+// (unofficial but universal) home for AAC encoder delay/padding (see
+// PLAYBACK spec §1). Bails out anywhere the structure doesn't match
+// exactly rather than guessing.
+function mp4BoxChildren(b, start, end, skipHeader){
+  const out = [];
+  let i = start + (skipHeader || 0);
+  while(i + 8 <= end){
+    let size = u32be(b, i);
+    const type = txt(b, i+4, 4);
+    let hdr = 8;
+    if(size === 0) size = end - i;
+    else if(size === 1){
+      if(i + 16 > end) break;
+      if(u32be(b, i+8) !== 0) break;   // sizes beyond 32-bit are not realistic here
+      size = u32be(b, i+12);
+      hdr = 16;
+    }
+    if(size < hdr || i + size > end) break;
+    out.push({type, start: i + hdr, end: i + size});
+    i += size;
+  }
+  return out;
+}
+function mp4GaplessInfo(b){
+  try{
+    const top = mp4BoxChildren(b, 0, b.length, 0);
+    const moov = top.find(x => x.type === 'moov'); if(!moov) return null;
+    const udta = mp4BoxChildren(b, moov.start, moov.end).find(x => x.type === 'udta'); if(!udta) return null;
+    const meta = mp4BoxChildren(b, udta.start, udta.end).find(x => x.type === 'meta'); if(!meta) return null;
+    // 'meta' carries a 4-byte version/flags field before its own children,
+    // unlike most container boxes
+    const ilst = mp4BoxChildren(b, meta.start, meta.end, 4).find(x => x.type === 'ilst'); if(!ilst) return null;
+    for(const item of mp4BoxChildren(b, ilst.start, ilst.end)){
+      if(item.type !== '----') continue;
+      const kids = mp4BoxChildren(b, item.start, item.end);
+      const meanBox = kids.find(x => x.type === 'mean'), nameBox = kids.find(x => x.type === 'name'), dataBox = kids.find(x => x.type === 'data');
+      if(!meanBox || !nameBox || !dataBox) continue;
+      const meanStr = txt(b, meanBox.start + 4, meanBox.end - meanBox.start - 4);
+      const nameStr = txt(b, nameBox.start + 4, nameBox.end - nameBox.start - 4);
+      if(meanStr !== 'com.apple.iTunes' || nameStr !== 'iTunSMPB') continue;
+      const valStr = txt(b, dataBox.start + 8, dataBox.end - dataBox.start - 8).trim();
+      const fields = valStr.split(/\s+/);
+      if(fields.length < 3) return null;
+      const delay = parseInt(fields[1], 16), padding = parseInt(fields[2], 16);
+      if(!isFinite(delay) || !isFinite(padding)) return null;
+      return {delay, padding};
+    }
+  }catch(e){ return null; }
+  return null;
+}
+
 function mp4Info(b){
   const lim = Math.min(b.length - 40, 4000000);
   for(let i = 8; i < lim; i++){
@@ -1380,10 +1489,47 @@ function mp4Info(b){
       }
     }
     if(b[i]===0x6D && b[i+1]===0x70 && b[i+2]===0x34 && b[i+3]===0x61){        // 'mp4a'
-      return {codec:'AAC', lossless:false};
+      return {codec:'AAC', lossless:false, gapless: mp4GaplessInfo(b)};
     }
   }
   return {codec:'MP4 audio', lossless:false};
+}
+
+// The Xing/Info header (written by LAME and most other encoders) lives
+// inside the payload of the first MPEG audio frame, right after the side
+// info whose size depends on MPEG version and channel mode. LAME appends
+// its own extension after Xing's own optional fields, which is where the
+// encoder delay/padding actually lives (see PLAYBACK spec §1). Bails out
+// (returns null) on anything that doesn't match the expected layout
+// exactly, rather than guessing — malformed/absent gapless data means
+// standard playback, per spec.
+function mp3GaplessInfo(b, frameStart, mpegVer, mono){
+  const sideInfoSize = mpegVer === 3 ? (mono ? 17 : 32) : (mono ? 9 : 17);
+  const xingOff = frameStart + 4 + sideInfoSize;
+  if(xingOff + 8 > b.length) return null;
+  const magic = txt(b, xingOff, 4);
+  if(magic !== 'Xing' && magic !== 'Info') return null;
+  const flags = u32be(b, xingOff + 4);
+  let p = xingOff + 8;
+  if(flags & 0x1) p += 4;    // frame count field
+  if(flags & 0x2) p += 4;    // byte count field
+  if(flags & 0x4) p += 100;  // seek TOC
+  if(flags & 0x8) p += 4;    // quality indicator
+  if(p + 36 > b.length || txt(b, p, 4) !== 'LAME') return null;
+  const delayOff = p + 21;   // 9-byte version string + 2 header bytes + 4+2+2 replay gain + 2 flags/bitrate
+  if(delayOff + 3 > b.length) return null;
+  const b1 = b[delayOff], b2 = b[delayOff+1], b3 = b[delayOff+2];
+  // stored as two 12-bit fields packed into 3 bytes
+  const storedDelay = (b1 << 4) | (b2 >> 4);
+  const storedPadding = ((b2 & 0x0F) << 8) | b3;
+  // LAME's own encoder/decoder filterbank adds a fixed 528+1 sample
+  // latency on top of whatever it explicitly stores — the widely-used
+  // convention (ffmpeg, foobar2000 and others) is to fold that constant
+  // into the trim rather than leaving it for the decoder to also apply
+  const delay = storedDelay + 528 + 1;
+  const padding = Math.max(0, storedPadding - 528 - 1);
+  if(!isFinite(delay) || !isFinite(padding)) return null;
+  return {delay, padding};
 }
 
 function mp3Info(b){
@@ -1396,8 +1542,9 @@ function mp3Info(b){
       if(ver === 1 || layer === 0 || rIdx === 3) continue;
       const base = [44100, 48000, 32000][rIdx];
       const rate = ver === 3 ? base : ver === 2 ? base/2 : base/4;
+      const mono = ((b[i+3]>>6) & 3) === 3;
       return {codec: layer===1?'MP3':layer===2?'MP2':'MP1', rate,
-              ch: ((b[i+3]>>6) & 3) === 3 ? 1 : 2, lossless:false};
+              ch: mono ? 1 : 2, lossless:false, gapless: mp3GaplessInfo(b, i, ver, mono)};
     }
   }
   return null;
@@ -1669,11 +1816,124 @@ async function ensureContext(rate){
   await S.ctx.resume();
 }
 
+// Likely-duplicate match: same normalized artist+album+title identity,
+// within a small duration tolerance — never auto-merged, only surfaced
+// (see PLAYBACK/IMPORT spec §6).
+const DUP_DURATION_TOLERANCE_SEC = 2;
+function findDuplicateTrack(newTags, newDuration){
+  const key = trackIdentityKey({tags:newTags});
+  return S.tracks.find(t => trackIdentityKey(t) === key &&
+    Math.abs((t.duration||0) - (newDuration||0)) <= DUP_DURATION_TOLERANCE_SEC);
+}
+
+let dupResolvePromise = null;
+function askDuplicateResolution(existingTrack, newFileName){
+  return new Promise(resolve => {
+    $('#dupBody').textContent = '"' + newFileName + '" looks like a duplicate of "' + existingTrack.tags.title + '" already in your library.';
+    dupResolvePromise = resolve;
+    $('#dupOverlay').classList.add('open');
+    $('#dupOverlay').setAttribute('aria-hidden','false');
+  });
+}
+function closeDupOverlay(choice){
+  $('#dupOverlay').classList.remove('open');
+  $('#dupOverlay').setAttribute('aria-hidden','true');
+  if(dupResolvePromise){ const r = dupResolvePromise; dupResolvePromise = null; r(choice); }
+}
+
+// Library-wide scan for duplicates that arise from metadata edits, not just
+// import (see PLAYBACK/IMPORT spec §6) — offered separately in settings.
+function findAllDuplicateGroups(){
+  const groups = {};
+  S.tracks.forEach((t,i) => {
+    const key = trackIdentityKey(t);
+    (groups[key] = groups[key] || []).push(i);
+  });
+  return Object.values(groups).filter(idxs => idxs.length > 1);
+}
+
+function openDuplicateScan(){
+  renderDupScan();
+  $('#dupScanOverlay').classList.add('open');
+  $('#dupScanOverlay').setAttribute('aria-hidden','false');
+}
+function closeDuplicateScan(){
+  $('#dupScanOverlay').classList.remove('open');
+  $('#dupScanOverlay').setAttribute('aria-hidden','true');
+}
+function renderDupScan(){
+  const groups = findAllDuplicateGroups();
+  const body = $('#dupScanBody');
+  if(!groups.length){
+    body.innerHTML = '<p class="note" style="margin-top:0">No duplicates found.</p>';
+    return;
+  }
+  body.innerHTML = '';
+  groups.forEach((idxs, gi) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.style.flexDirection = 'column';
+    wrap.style.alignItems = 'stretch';
+    const names = idxs.map(i => S.tracks[i]).map(t => t.tags.title + ' — ' + t.tags.artist).join('<br>');
+    wrap.innerHTML = '<div class="k" style="margin-bottom:8px">' + names + '</div>';
+    const stack = document.createElement('div');
+    stack.className = 'stack';
+    const keepBtn = document.createElement('button');
+    keepBtn.className = 'cta ghost';
+    keepBtn.textContent = 'Keep newest only';
+    keepBtn.addEventListener('click', async () => {
+      const ranked = idxs.map(i => S.tracks[i]).sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+      const toRemove = ranked.slice(1).map(t => t.id);
+      await deleteTracks(toRemove);
+      renderDupScan();
+    });
+    const skipBtn = document.createElement('button');
+    skipBtn.className = 'cta ghost';
+    skipBtn.textContent = 'Skip';
+    skipBtn.addEventListener('click', () => {
+      wrap.remove();
+    });
+    stack.appendChild(keepBtn); stack.appendChild(skipBtn);
+    wrap.appendChild(stack);
+    body.appendChild(wrap);
+  });
+}
+
+// Walks a dropped selection (files and/or folders) via the DataTransferItem
+// entry API — the drag-and-drop analog of the folder <input webkitdirectory>
+// picker (see PLAYBACK/IMPORT spec §2).
+function readDirEntries(dirReader){
+  return new Promise((resolve, reject) => dirReader.readEntries(resolve, reject));
+}
+async function walkEntry(entry, out){
+  if(!entry) return;
+  if(entry.isFile){
+    const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+    out.push(file);
+  } else if(entry.isDirectory){
+    const reader = entry.createReader();
+    let batch;
+    do{
+      batch = await readDirEntries(reader);
+      for(const child of batch) await walkEntry(child, out);
+    }while(batch.length);
+  }
+}
+async function filesFromDataTransferItems(items){
+  const entries = Array.from(items).map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  const out = [];
+  for(const entry of entries) await walkEntry(entry, out);
+  return out;
+}
+
 async function addFiles(list){
-  const files = Array.from(list);
+  const files = Array.from(list).filter(f => f.size > 0);
   if(!files.length) return;
-  setPathNote('Reading…');
+  const failed = [];
+  let i = 0;
   for(const f of files){
+    i++;
+    setPathNote('Importing ' + i + ' of ' + files.length + ' — ' + f.name);
     const id = f.name + '|' + f.size + '|' + (f.lastModified || 0);
     if(S.tracks.some(t => t.id === id)) continue;              // already in the library
     try{
@@ -1687,10 +1947,26 @@ async function addFiles(list){
       // Decode at the file's own rate so the OS is not resampling underneath us.
       await ensureContext(meta.rate || null);
       const buffer = await S.ctx.decodeAudioData(raw);
+      // Encoder delay/padding sample counts are expressed at the file's own
+      // native rate — converting to seconds here keeps everything else
+      // (t.duration, startSource's offsets) rate-independent. Lossless
+      // formats and files with no/malformed gapless tag get zero trim,
+      // which is exactly standard playback (see PLAYBACK spec §1).
+      const gaplessRate = meta.rate || buffer.sampleRate;
+      const gaplessDelaySec = meta.gapless ? meta.gapless.delay / gaplessRate : 0;
+      const gaplessPaddingSec = meta.gapless ? meta.gapless.padding / gaplessRate : 0;
+      const trimmedDuration = Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec);
+      const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
+      if(dup){
+        const choice = await askDuplicateResolution(dup, f.name);
+        if(choice === 'skip') continue;
+        if(choice === 'replace') await deleteTracks([dup.id]);
+      }
       const t = {
         id, addedAt: Date.now(),
         name: tags.title, tags, buffer,
-        duration: buffer.duration,
+        duration: trimmedDuration || buffer.duration,
+        gaplessDelaySec, gaplessPaddingSec, sizeBytes: raw.byteLength,
         art: artBlob ? URL.createObjectURL(artBlob) : null,
         artBlob, blob: fileBlob, stored: false,
         meta: {
@@ -1710,12 +1986,20 @@ async function addFiles(list){
         t.artBlob = null;
       }
     }catch(err){
-      setPathNote('Could not decode ' + f.name + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
+      // one bad file should never stop the rest of the batch — note it and
+      // move on, then summarize every failure once the batch is done
+      failed.push(f.name);
     }
   }
   renderTracks();
   queueSave();
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
+  if(failed.length){
+    setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
+      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
+  } else {
+    setPathNote();
+  }
 }
 
 function makeTestTone(){
@@ -1826,7 +2110,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumOrder', v:orders});
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
-    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled}});
+    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort}});
 }
 
 async function restoreMeta(){
@@ -1848,6 +2132,7 @@ function applyPrefs(p){
   if(typeof p.target === 'number') S.target = p.target;
   if(p.pace) S.pace = p.pace;
   if(typeof p.auto === 'boolean') S.auto = p.auto;
+  if(p.librarySort) S.librarySort = p.librarySort;
   if(typeof p.sleevePullEnabled === 'boolean'){
     S.sleevePullEnabled = p.sleevePullEnabled;
     const b = $('#sleevePullBtn');
@@ -2289,7 +2574,8 @@ async function storeTrack(t, blob){
   // always the embedded tags, never the overlay-resolved ones — the overlay
   // already lives in its own store and is re-applied on every load
   const ok = await DB.put('tracks', {id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), meta:t.meta,
-    duration:t.duration, addedAt:t.addedAt});
+    duration:t.duration, gaplessDelaySec:t.gaplessDelaySec || 0, gaplessPaddingSec:t.gaplessPaddingSec || 0,
+    addedAt:t.addedAt, sizeBytes:t.sizeBytes || 0});
   return ok;
 }
 
@@ -2304,6 +2590,20 @@ async function storeTrack(t, blob){
    See LIBRARY spec §1. */
 function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
 function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
+
+function formatBytes(n){
+  if(!n) return '0 MB';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
+  return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
+function updateLibrarySize(){
+  const el = $('#librarySize');
+  if(!el) return;
+  el.textContent = S.tracks.length ? ('Total library size: ' + formatBytes(totalLibraryBytes())) : '';
+}
 
 async function deleteTracks(idsToDelete){
   const idSet = new Set(idsToDelete);
@@ -2364,6 +2664,7 @@ async function deleteTracks(idsToDelete){
       if(S.playerOpen) closePlayer();
       $('#platterBox').classList.add('disc-hidden');
       $('#playerShareBtn').style.display = 'none';
+      $('#queueBtn').style.display = 'none';
     }
   } else {
     S.queue = queueIds.map(idxOf).filter(i => i >= 0);
@@ -2401,6 +2702,7 @@ async function forgetLibrary(){
   closePlayer();
   $('#platterBox').classList.add('disc-hidden');
   $('#playerShareBtn').style.display = 'none';
+  $('#queueBtn').style.display = 'none';
   renderTracks(); drawTime(); renderMiniPlayer();
 }
 
@@ -2481,7 +2783,9 @@ async function ensureBuffer(i){
     const raw = await blob.arrayBuffer();
     await ensureContext(t.meta.rate || null);
     t.buffer = await S.ctx.decodeAudioData(raw);
-    t.duration = t.buffer.duration;
+    // don't clobber the already-trimmed duration (encoder delay/padding
+    // excluded) with the raw buffer's — see PLAYBACK spec §1
+    t.duration = Math.max(0, t.buffer.duration - (t.gaplessDelaySec || 0) - (t.gaplessPaddingSec || 0)) || t.buffer.duration;
     touchLRU(i);
     setPathNote();
     return true;
@@ -2532,6 +2836,124 @@ function reorderQueue(){
   if(S.shuffle) buildOrder(cur >= 0 ? cur : undefined);
   else S.queue = S.baseQueue.slice();
   S.qpos = Math.max(0, S.queue.indexOf(cur));
+}
+
+/* ================= visible queue: reorder, remove, play next / add =================
+   Shows the current track plus everything after it. Reordering or removing
+   is manual queue manipulation, same as shuffle/skip, so it silently
+   invalidates whatever qualifying session is in progress — no warning, no
+   prompt (see PLAYBACK spec §5). */
+function queueInsert(idx, mode){
+  if(idx === S.index) return;   // already playing; nothing to insert
+  invalidateActiveSessionIfAny();
+  if(!S.baseQueue.includes(idx)) S.baseQueue.push(idx);
+  const existing = S.queue.indexOf(idx, S.qpos + 1);
+  if(existing !== -1) S.queue.splice(existing, 1);
+  const insertAt = mode === 'next' ? S.qpos + 1 : S.queue.length;
+  S.queue.splice(Math.min(insertAt, S.queue.length), 0, idx);
+  renderQueueSheet();
+}
+function playNext(idx){ queueInsert(idx, 'next'); }
+function addToQueue(idx){ queueInsert(idx, 'end'); }
+
+// pos is an offset into the "upcoming" portion (0 = the track right after
+// current) — the current track itself is shown but never removable here,
+// that's what skip is for
+function queueRemoveAt(pos){
+  const queueIdx = S.qpos + 1 + pos;
+  if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
+  invalidateActiveSessionIfAny();
+  S.queue.splice(queueIdx, 1);
+  renderQueueSheet();
+}
+function queueMove(pos, dir){
+  const queueIdx = S.qpos + 1 + pos;
+  const n = queueIdx + dir;
+  if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
+  invalidateActiveSessionIfAny();
+  const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
+  renderQueueSheet();
+}
+
+function renderQueueSheet(){
+  const host = $('#queueBody'); host.innerHTML = '';
+  if(!S.queue.length || S.qpos >= S.queue.length){
+    host.appendChild(el('p','note','Nothing queued.'));
+    return;
+  }
+  const ul = el('ul','tracklist');
+  const curT = S.tracks[S.queue[S.qpos]];
+  if(curT){
+    const li = el('li'); li.setAttribute('aria-current','true');
+    if(curT.art){ const im = el('img','t-art'); im.src = curT.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, curT.tags.title));
+    name.appendChild(el('em', null, 'Now playing · ' + curT.tags.artist));
+    li.appendChild(name);
+    ul.appendChild(li);
+  }
+  const upcoming = S.queue.slice(S.qpos + 1);
+  upcoming.forEach((idx, pos) => {
+    const t = S.tracks[idx]; if(!t) return;
+    const li = el('li');
+    if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, t.tags.title));
+    name.appendChild(el('em', null, t.tags.artist));
+    li.appendChild(name);
+    const movers = el('span','movers');
+    [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
+      const b = el('button','mv',glyph);
+      b.setAttribute('aria-label', dir < 0 ? 'Move up' : 'Move down');
+      b.addEventListener('click', e => { e.stopPropagation(); queueMove(pos, dir); });
+      movers.appendChild(b);
+    });
+    li.appendChild(movers);
+    const rm = el('button','mv','✕');
+    rm.setAttribute('aria-label','Remove from queue');
+    rm.addEventListener('click', e => { e.stopPropagation(); queueRemoveAt(pos); });
+    li.appendChild(rm);
+    ul.appendChild(li);
+  });
+  host.appendChild(ul);
+}
+function openQueueSheet(){
+  renderQueueSheet();
+  $('#queueOverlay').classList.add('open');
+  $('#queueOverlay').setAttribute('aria-hidden', 'false');
+}
+function closeQueueSheet(){
+  $('#queueOverlay').classList.remove('open');
+  $('#queueOverlay').setAttribute('aria-hidden', 'true');
+}
+
+// Mirrors advance(1, true)'s own index math (natural end-of-track,
+// repeat-all wraparound) without mutating any state — used to know what to
+// preload before it's actually time to play it (see PLAYBACK spec §1).
+function peekNextIndex(){
+  if(!S.queue.length) return null;
+  if(S.repeat === 'one') return S.queue[S.qpos];
+  let n = S.qpos + 1;
+  if(n >= S.queue.length){
+    if(S.repeat === 'all') n = 0;
+    else return null;
+  }
+  return S.queue[n];
+}
+
+// Kicked off whenever a track starts, so whatever plays next has already
+// finished decoding by the time this one's onended fires — decode latency,
+// not JS scheduling overhead, was the actual cause of the gap between
+// tracks. See PLAYBACK spec §1: "no buffer underrun."
+function preloadNextTrack(){
+  const nextIdx = peekNextIndex();
+  if(nextIdx === null || nextIdx === undefined) return;
+  if(nextIdx === S.index) return;
+  const nt = S.tracks[nextIdx];
+  if(!nt || nt.buffer) return;
+  ensureBuffer(nextIdx).catch(()=>{});
 }
 
 function advance(dir, auto){
@@ -2909,6 +3331,7 @@ function load(i){
   renderMiniPlayer();
   drawTime();
   $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
+  $('#queueBtn').style.display = '';
 }
 
 function startSource(offset){
@@ -2920,8 +3343,15 @@ function startSource(offset){
   routeSource(src);
   const gen = ++S.gen;
   src.onended = () => { if(gen === S.gen && S.playing) advance(1, true); };
-  src.start(0, clamp(offset, 0, t.buffer.duration - 0.02));
+  // t.duration is already the trimmed (encoder delay/padding excluded)
+  // length; the delay offset shifts where playback actually starts reading
+  // from the buffer, and the explicit duration arg stops it before running
+  // into the padding region rather than relying on the buffer's own end —
+  // see PLAYBACK spec §1, encoder delay/padding.
+  const playOffset = clamp(offset, 0, t.duration - 0.02);
+  src.start(0, playOffset + (t.gaplessDelaySec || 0), t.duration - playOffset);
   S.source = src;
+  preloadNextTrack();
 }
 
 async function play(){
@@ -3465,16 +3895,126 @@ function sortBar(album){
   return bar;
 }
 
+/* ================= library-wide search + sort =================
+   Search matches artist/album/track title and groups results by type
+   rather than interleaving them. Sort applies to whichever top-level list
+   (Songs or Albums) is showing; session count is meaningful at the album
+   scope, so on the Songs list it sorts by the containing album's count
+   rather than being omitted. Preference persists like other prefs (see
+   PLAYBACK spec §4). */
+const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
+
+function librarySortBar(){
+  const bar = el('div','sortbar');
+  bar.appendChild(el('span', null, 'Sort'));
+  const seg = el('div','seg');
+  LIBRARY_SORTS.forEach(([k,label]) => {
+    const b = el('button', null, label);
+    b.setAttribute('aria-pressed', String(S.librarySort === k));
+    b.addEventListener('click', ()=>{ S.librarySort = k; queueSave(); renderTracks(); });
+    seg.appendChild(b);
+  });
+  bar.appendChild(seg);
+  return bar;
+}
+
+function librarySortComparator(mode){
+  const key = S.librarySort;
+  return (a, b) => {
+    const ta = S.tracks[a], tb = S.tracks[b];
+    switch(key){
+      case 'album': return byName(ta.tags.album, tb.tags.album) || trackSort(a, b);
+      case 'added': return (tb.addedAt||0) - (ta.addedAt||0);
+      case 'played': return (S.trackLastPlayed[trackIdentityKey(tb)]||0) - (S.trackLastPlayed[trackIdentityKey(ta)]||0);
+      case 'sessions': return (S.sessionCounts[albumKey(tb)]||0) - (S.sessionCounts[albumKey(ta)]||0) || byName(ta.tags.title, tb.tags.title);
+      default: return byName(ta.tags.artist, tb.tags.artist) || byName(ta.tags.album, tb.tags.album) || trackSort(a, b);
+    }
+  };
+}
+
+function sortAlbumGroups(groups){
+  const key = S.librarySort;
+  return groups.slice().sort((a, b) => {
+    const [albumA, idxA] = a, [albumB, idxB] = b;
+    const sampleA = S.tracks[idxA[0]], sampleB = S.tracks[idxB[0]];
+    switch(key){
+      case 'album': return byName(albumA, albumB);
+      case 'added': return Math.max(...idxB.map(i => S.tracks[i].addedAt||0)) - Math.max(...idxA.map(i => S.tracks[i].addedAt||0));
+      case 'played': return (S.albumLastPlayed[albumKey(sampleB)]||0) - (S.albumLastPlayed[albumKey(sampleA)]||0);
+      case 'sessions': return (S.sessionCounts[albumKey(sampleB)]||0) - (S.sessionCounts[albumKey(sampleA)]||0);
+      default: return byName(sampleA.tags.albumArtist, sampleB.tags.albumArtist) || byName(albumA, albumB);
+    }
+  });
+}
+
+function searchLibrary(query){
+  const q = normKey(query);
+  const artists = new Set(), albums = new Set(), songs = [];
+  S.tracks.forEach((t, i) => {
+    const hitArtist = normKey(t.tags.artist).includes(q) || normKey(t.tags.albumArtist).includes(q);
+    const hitAlbum = normKey(t.tags.album).includes(q);
+    if(hitArtist) artists.add(t.tags.artist);
+    if(hitAlbum) albums.add(t.tags.album);
+    if(normKey(t.tags.title).includes(q)) songs.push(i);
+  });
+  return { artists: [...artists].sort(byName), albums: [...albums].sort(byName), songs };
+}
+
+function renderSearchResults(host, query){
+  const results = searchLibrary(query);
+  if(!results.artists.length && !results.albums.length && !results.songs.length){
+    host.appendChild(el('p','note','No matches for “' + query + '”.'));
+    return;
+  }
+  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; $('#librarySearch').value = ''; renderTracks(); };
+  if(results.artists.length){
+    host.appendChild(el('p','note','Artists'));
+    results.artists.forEach(artist => {
+      const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
+      const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
+      host.appendChild(groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
+        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist)));
+    });
+  }
+  if(results.albums.length){
+    host.appendChild(el('p','note','Albums'));
+    results.albums.forEach(album => {
+      const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
+      const artist = S.tracks[idx[0]].tags.albumArtist;
+      host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+        idx, () => goto('albums', album)));
+    });
+  }
+  if(results.songs.length){
+    host.appendChild(el('p','note','Songs'));
+    const ul = el('ul','tracklist');
+    results.songs.forEach((i, pos) => ul.appendChild(songRow(i, results.songs, pos)));
+    host.appendChild(ul);
+  }
+}
+
 function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   $('#libActions').style.display = S.tracks.length ? 'flex' : 'none';
+  $('#librarySearch').style.display = S.tracks.length ? '' : 'none';
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
   $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting) ? 'flex' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
+  updateLibrarySize();
   if(!S.tracks.length){ setPathNote(); return; }
+
+  // a live search takes over the whole body, grouped by type, regardless
+  // of whatever songs/albums/artists/playlists view is otherwise selected
+  // (see PLAYBACK spec §4) — clearing it returns to that view untouched
+  const query = $('#librarySearch').value.trim();
+  if(query){
+    $('#crumb').style.display = 'none';
+    renderSearchResults(host, query);
+    return;
+  }
 
   // breadcrumb when drilled into an album, artist or playlist
   const crumb = $('#crumb');
@@ -3508,14 +4048,16 @@ function renderTracks(){
   const ul = el('ul','tracklist');
 
   if(v.mode === 'songs'){
-    const q = allIdx().sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
+    host.appendChild(librarySortBar());
+    const q = allIdx().sort(librarySortComparator('songs'));
     q.forEach((i,pos) => ul.appendChild(songRow(i, q, pos)));
     host.appendChild(ul);
   }
 
   else if(v.mode === 'albums'){
     if(v.group === null){
-      groupBy('album').forEach(([album, idx]) => {
+      host.appendChild(librarySortBar());
+      sortAlbumGroups(groupBy('album')).forEach(([album, idx]) => {
         const artist = S.tracks[idx[0]].tags.albumArtist;
         host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
           idx, ()=>{ v.group = album; renderTracks(); }));
@@ -4065,6 +4607,24 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
   }
 }
 
+// Small corner mark, top-right of whatever it's anchored to — the album
+// art square in the normal composition, or the canvas itself when there's
+// no square (rare composition). `onArt` adds a translucent backing pill
+// since it needs to stay legible sitting directly on a photo (see LIBRARY
+// spec §2, Branding).
+function drawCornerWordmark(ctx, rightX, topY, onArt){
+  ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 24px Antonio, sans-serif';
+  if(onArt){
+    const textW = ctx.measureText('MIZIKI').width;
+    ctx.fillStyle = 'rgba(10,14,18,.55)';
+    ctx.fillRect(rightX - textW - 26, topY + 14, textW + 24, 36);
+  }
+  ctx.fillStyle = '#FF9E2C';
+  ctx.fillText('MIZIKI', rightX - 14, topY + 40);
+  ctx.textAlign = 'left';
+}
+
 // Black square with "Miziki" written diagonally across it — distinct from
 // the sleeve pull's plain horizontal wordmark fallback (see LIBRARY spec §2)
 function drawDiagonalWordmark(ctx, x, y, side){
@@ -4104,6 +4664,9 @@ async function composePlayerShareImage(opts){
     const cx = w / 2, cy = isStory ? h * 0.42 : h * 0.4;
     await fillShareDisc(ctx, t, look, cx, cy, r, false);
     captionY = cy + r + 90;
+    // no album art square for the wordmark to sit on, so it goes in the
+    // top right of the canvas instead, at the same scale
+    drawCornerWordmark(ctx, w - 40, 40, false);
   } else {
     const side = isStory ? w * 0.62 : w * 0.52;
     const marginX = (w - side * 1.5) / 2;
@@ -4122,6 +4685,9 @@ async function composePlayerShareImage(opts){
         ctx.beginPath(); ctx.rect(squareLeft, squareTop, side, side); ctx.clip();
         drawCover(ctx, img, squareLeft, squareTop, side, side);
         ctx.restore();
+        // sits on the art itself, top right corner of the square — the
+        // diagonal fallback below replaces this rather than layering under it
+        drawCornerWordmark(ctx, squareLeft + side, squareTop, true);
       }catch(e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
     } else {
       drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
@@ -4137,13 +4703,6 @@ async function composePlayerShareImage(opts){
   ctx.fillText(shareFitText(ctx, line1, w - pad*2), w/2, captionY);
   ctx.font = '400 24px "IBM Plex Mono", monospace'; ctx.fillStyle = '#94A0A6';
   ctx.fillText(shareFitText(ctx, t.tags ? t.tags.album : '', w - pad*2), w/2, captionY + 38);
-
-  // small, unobtrusive wordmark — the diagonal treatment is fallback-only,
-  // branding otherwise stays to this small corner mark
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 24px Antonio, sans-serif';
-  ctx.fillStyle = '#FF9E2C';
-  ctx.fillText('MIZIKI', pad, h - 48);
 
   return canvas;
 }
@@ -4277,9 +4836,29 @@ function showRoute(name){
 
   $('#pick').addEventListener('click', ()=> $('#file').click());
   $('#pick2').addEventListener('click', ()=> $('#file').click());
+  $('#pickFolder').addEventListener('click', ()=> $('#folderFile').click());
+  $('#pickFolder2').addEventListener('click', ()=> $('#folderFile').click());
   $('#tone').addEventListener('click', addTestTone);
   $('#tone2').addEventListener('click', addTestTone);
   $('#file').addEventListener('change', e=> addFiles(e.target.files));
+  $('#folderFile').addEventListener('change', e=> addFiles(e.target.files));
+
+  // Drag-and-drop over the library route — the nearest web equivalent to
+  // "Open in Miziki"/UIFileSharingEnabled, which have no web API (see
+  // PLAYBACK/IMPORT spec §2). Folders dropped via the OS file manager are
+  // walked recursively through the DataTransferItem entry API.
+  const libRoute = $('#route-library');
+  ['dragenter','dragover'].forEach(evt => libRoute.addEventListener(evt, e => {
+    e.preventDefault(); libRoute.classList.add('drag-over');
+  }));
+  ['dragleave','drop'].forEach(evt => libRoute.addEventListener(evt, e => {
+    e.preventDefault(); libRoute.classList.remove('drag-over');
+  }));
+  libRoute.addEventListener('drop', async e => {
+    const items = e.dataTransfer && e.dataTransfer.items;
+    const files = items ? await filesFromDataTransferItems(items) : Array.from(e.dataTransfer.files || []);
+    if(files.length) addFiles(files);
+  });
 
   let armed = false, armTimer = null;
   $('#forget').addEventListener('click', async e => {
@@ -4305,6 +4884,16 @@ function showRoute(name){
   $('#clearOrphanedBtn').addEventListener('click', async ()=>{ closeClearHistory(); await clearListeningHistory(true); });
   $('#clearAllHistoryBtn').addEventListener('click', async ()=>{ closeClearHistory(); await clearListeningHistory(false); });
 
+  $('#dupClose').addEventListener('click', ()=>closeDupOverlay('skip'));
+  $('#dupKeepBoth').addEventListener('click', ()=>closeDupOverlay('keep'));
+  $('#dupReplace').addEventListener('click', ()=>closeDupOverlay('replace'));
+  $('#dupSkip').addEventListener('click', ()=>closeDupOverlay('skip'));
+
+  $('#scanDuplicatesBtn').addEventListener('click', openDuplicateScan);
+  $('#dupScanClose').addEventListener('click', closeDuplicateScan);
+
+  $('#librarySearch').addEventListener('input', renderTracks);
+
   $('#selectToggle').addEventListener('click', enterSelectMode);
   $('#selectCancel').addEventListener('click', exitSelectMode);
   $('#selectEdit').addEventListener('click', ()=>{
@@ -4328,6 +4917,14 @@ function showRoute(name){
     const id = rowMenuTrackId; closeRowMenu();
     const t = S.tracks[idxOf(id)]; if(!t) return;
     openConfirmDelete('song', 1, t.tags.title, async () => { await deleteTracks([id]); });
+  });
+  $('#rowMenuPlayNext').addEventListener('click', ()=>{
+    const id = rowMenuTrackId; closeRowMenu();
+    const i = idxOf(id); if(i >= 0) playNext(i);
+  });
+  $('#rowMenuAddQueue').addEventListener('click', ()=>{
+    const id = rowMenuTrackId; closeRowMenu();
+    const i = idxOf(id); if(i >= 0) addToQueue(i);
   });
 
   $('#confirmClose').addEventListener('click', closeConfirmDelete);
@@ -4404,6 +5001,9 @@ function showRoute(name){
   $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
   $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
   $('#lookBtn').addEventListener('click', openLookPicker);
+  $('#queueBtn').addEventListener('click', openQueueSheet);
+  $('#miniQueueBtn').addEventListener('click', openQueueSheet);
+  $('#queueClose').addEventListener('click', closeQueueSheet);
   $('#lookClose').addEventListener('click', closeLookPicker);
   document.querySelectorAll('#playerShareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
     document.querySelectorAll('#playerShareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
@@ -4470,6 +5070,8 @@ async function restoreLibrary(){
     const t = {
       id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:Object.assign({}, r.tags), meta:r.meta,
       duration:r.duration, buffer:null, blob:null, stored:true, artBlob:null,
+      gaplessDelaySec:r.gaplessDelaySec || 0, gaplessPaddingSec:r.gaplessPaddingSec || 0,
+      sizeBytes:r.sizeBytes || 0,
       art: r.art ? URL.createObjectURL(r.art) : null
     };
     await loadOverlayFor(t);
