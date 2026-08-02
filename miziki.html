@@ -142,6 +142,9 @@ body{
   padding:10px 0;border-bottom:1px solid var(--line)}
 .sortbar span{font-family:var(--data);font-size:9.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted)}
+.sort-toggle{width:30px;height:26px;flex:0 0 auto;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:4px}
+.sort-toggle span{display:block;width:18px;height:2px;background:var(--muted);border-radius:1px}
 .label .rpm{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
 .label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
 
@@ -775,6 +778,18 @@ input[type=file]{display:none}
       <button class="cta ghost" id="rowMenuAddQueue">Add to Queue</button>
       <button class="cta ghost" id="rowMenuRemove">Remove from Library</button>
     </div>
+  </div>
+</div>
+
+<!-- SORT MENU: collapsed behind a hamburger toggle in the sort bar so the
+     library list isn't crowded by a always-visible row of sort buttons. -->
+<div class="edit-overlay" id="sortMenuOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="sortMenuSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span>Sort</span>
+      <button class="edit-close" id="sortMenuClose" aria-label="Close">✕</button>
+    </div>
+    <div class="stack" id="sortMenuOptions" style="flex-direction:column"></div>
   </div>
 </div>
 
@@ -3906,16 +3921,35 @@ const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],[
 
 function librarySortBar(){
   const bar = el('div','sortbar');
-  bar.appendChild(el('span', null, 'Sort'));
-  const seg = el('div','seg');
-  LIBRARY_SORTS.forEach(([k,label]) => {
-    const b = el('button', null, label);
-    b.setAttribute('aria-pressed', String(S.librarySort === k));
-    b.addEventListener('click', ()=>{ S.librarySort = k; queueSave(); renderTracks(); });
-    seg.appendChild(b);
-  });
-  bar.appendChild(seg);
+  const label = LIBRARY_SORTS.find(([k]) => k === S.librarySort);
+  bar.appendChild(el('span', null, 'Sort: ' + (label ? label[1] : '')));
+  const toggle = el('button','sort-toggle');
+  toggle.setAttribute('aria-label','Sort options');
+  toggle.setAttribute('aria-haspopup','true');
+  toggle.appendChild(el('span')); toggle.appendChild(el('span')); toggle.appendChild(el('span'));
+  toggle.addEventListener('click', openSortMenu);
+  bar.appendChild(toggle);
   return bar;
+}
+
+function openSortMenu(){
+  const host = $('#sortMenuOptions');
+  host.innerHTML = '';
+  LIBRARY_SORTS.forEach(([k,label]) => {
+    const b = document.createElement('button');
+    b.className = 'cta' + (k === S.librarySort ? '' : ' ghost');
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      S.librarySort = k; queueSave(); renderTracks(); closeSortMenu();
+    });
+    host.appendChild(b);
+  });
+  $('#sortMenuOverlay').classList.add('open');
+  $('#sortMenuOverlay').setAttribute('aria-hidden','false');
+}
+function closeSortMenu(){
+  $('#sortMenuOverlay').classList.remove('open');
+  $('#sortMenuOverlay').setAttribute('aria-hidden','true');
 }
 
 function librarySortComparator(mode){
@@ -5005,6 +5039,7 @@ function showRoute(name){
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
   $('#queueClose').addEventListener('click', closeQueueSheet);
   $('#lookClose').addEventListener('click', closeLookPicker);
+  $('#sortMenuClose').addEventListener('click', closeSortMenu);
   document.querySelectorAll('#playerShareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
     document.querySelectorAll('#playerShareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     renderPlayerShareCanvas();
