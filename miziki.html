@@ -574,6 +574,11 @@ input[type=file]{display:none}
       <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
     </div>
 
+    <div class="row">
+      <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
+      <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
+    </div>
+
     <div class="carmode" id="carmode">
       <div class="row">
         <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
@@ -974,6 +979,9 @@ const S = {
   achievements:{}, collection:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true}
 };
+// Background playback (optional, off by default) — see the section below
+S.bgAudio = false;
+S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:''};
 
 /* ================= audio graph ================= */
 function makeContext(sampleRate){
@@ -1342,39 +1350,143 @@ function applyDiscVariant(t, crossfade){
    identifiers, no absolute paths. */
 async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
 async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
-async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:S.albumDisplay}); }
-async function persistTrackDisplay(){ await DB.put('meta', {k:'trackDisplay', v:S.trackDisplay}); }
+/* ---- persisted artwork: thumbnails, never object URLs ----
+   t.art is a URL.createObjectURL() string, which stops working the moment the
+   page reloads — so anything persisted with it (Top Albums, achievements, the
+   Collection, Top Songs) came back with broken images after a restart. These
+   records now carry no art of their own: a small JPEG thumbnail per album and
+   per track is stored once under its own key in the meta store ('thumb:album:…'
+   / 'thumb:track:…'), and the `art` URL on each record is rebuilt from that
+   thumbnail each session. Nothing the renderers read has changed — they still
+   see a plain `art` URL — and the thumbnails survive the original file being
+   removed from the library, which is what orphaned stats need. */
+const ALBUM_THUMB_PX = 800, TRACK_THUMB_PX = 300;
+const thumbURL = {};        // 'album:<id>' / 'track:<key>' -> live object URL for this session
+const thumbSrcSeen = {};    // which artwork URL each thumbnail was last cut from, this session
+
+async function makeThumb(url, px){
+  try{
+    const blob = await (await fetch(url)).blob();
+    return await cropSquareImage(blob, px);
+  }catch(e){ return null; }
+}
+
+// records are saved without their runtime `art` URL
+function persistableMap(map){
+  const out = {};
+  Object.keys(map).forEach(k => { const r = Object.assign({}, map[k]); delete r.art; out[k] = r; });
+  return out;
+}
+function persistable(rec){ const r = Object.assign({}, rec); delete r.art; return r; }
+
+function applyThumbURLs(){
+  Object.keys(S.albumDisplay).forEach(id => { S.albumDisplay[id].art = thumbURL['album:' + id] || null; });
+  Object.keys(S.achievements).forEach(id => { S.achievements[id].art = thumbURL['album:' + id] || null; });
+  Object.keys(S.collection).forEach(id => { S.collection[id].art = thumbURL['album:' + id] || null; });
+  Object.keys(S.trackDisplay).forEach(k => { S.trackDisplay[k].art = thumbURL['track:' + k] || null; });
+}
+
+let profileRefreshTimer = null;
+function refreshProfileIfOpen(){
+  clearTimeout(profileRefreshTimer);
+  profileRefreshTimer = setTimeout(() => {
+    const pr = $('#route-profile');
+    if(pr && pr.classList.contains('on')) renderProfile();
+  }, 300);
+}
+
+async function ensureThumb(kind, id, url){
+  if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
+  const key = kind + ':' + id;
+  if(thumbSrcSeen[key] === url) return;     // already cut from this exact artwork this session
+  thumbSrcSeen[key] = url;
+  const blob = await makeThumb(url, kind === 'album' ? ALBUM_THUMB_PX : TRACK_THUMB_PX);
+  if(!blob){ delete thumbSrcSeen[key]; return; }
+  thumbURL[key] = URL.createObjectURL(blob);
+  DB.put('meta', {k:'thumb:' + key, v:blob});
+  applyThumbURLs();
+  refreshProfileIfOpen();
+}
+
+async function restoreThumbs(){
+  const rows = await DB.all('meta');
+  rows.forEach(r => {
+    if(r && typeof r.k === 'string' && r.k.indexOf('thumb:') === 0 && r.v instanceof Blob){
+      thumbURL[r.k.slice(6)] = URL.createObjectURL(r.v);
+    }
+  });
+  applyThumbURLs();
+}
+
+// records saved before thumbnails existed have a dead URL and no thumbnail;
+// rebuild theirs from the artwork still in the library, where there is any
+async function healThumbs(){
+  const albumIds = new Set(Object.keys(S.albumDisplay).concat(Object.keys(S.achievements), Object.keys(S.collection)));
+  const byAlbum = {}, byTrack = {};
+  S.tracks.forEach(t => {
+    if(!t.art) return;
+    const a = albumKey(t); if(!byAlbum[a]) byAlbum[a] = t;
+    byTrack[trackIdentityKey(t)] = t;
+  });
+  for(const id of albumIds){
+    if(thumbURL['album:' + id]) continue;
+    if(byAlbum[id]) await ensureThumb('album', id, byAlbum[id].art);
+  }
+  for(const k of Object.keys(S.trackDisplay)){
+    if(thumbURL['track:' + k]) continue;
+    if(byTrack[k]) await ensureThumb('track', k, byTrack[k].art);
+  }
+}
+
+// drops thumbnails whose records are gone (after clearing listening history)
+async function pruneThumbs(){
+  for(const key of Object.keys(thumbURL)){
+    const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
+    const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
+    if(keep) continue;
+    try{ URL.revokeObjectURL(thumbURL[key]); }catch(e){}
+    delete thumbURL[key]; delete thumbSrcSeen[key];
+    await DB.del('meta', 'thumb:' + key);
+  }
+}
+
+async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:persistableMap(S.albumDisplay)}); }
+async function persistTrackDisplay(){ await DB.put('meta', {k:'trackDisplay', v:persistableMap(S.trackDisplay)}); }
 
 function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
-  S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist, art:t.art || null};
+  S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist,
+    art:thumbURL['album:' + albumId] || null};
   persistAlbumDisplay();
+  ensureThumb('album', albumId, t.art);
 }
 
 // same idea as snapshotAlbumDisplay, one level down — keeps Top Songs
 // showing a real title/artist/art for a track whose file has since been
 // removed from the library (see LIBRARY spec §1, orphaned stats)
 function snapshotTrackDisplay(t, key){
-  S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:t.art || null};
+  S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:thumbURL['track:' + key] || null};
   persistTrackDisplay();
+  ensureThumb('track', key, t.art);
 }
 
 async function upsertAchievement(albumId, tier){
   const existing = S.achievements[albumId];
   if(existing && existing.tier === tier) return;
   const disp = S.albumDisplay[albumId] || {};
-  const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '', art:disp.art || null, updatedAt:Date.now()};
+  const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '',
+    art:thumbURL['album:' + albumId] || null, updatedAt:Date.now()};
   S.achievements[albumId] = rec;
-  await DB.put('achievements', rec);
+  await DB.put('achievements', persistable(rec));
 }
 
 async function upsertCollectionEntry(albumId, tier, variant, pattern){
   if(S.collection[albumId]) return;   // discovered once, stays discovered
   const disp = S.albumDisplay[albumId] || {};
   const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
-    art:disp.art || null, discoveredAt:Date.now()};
+    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now()};
   S.collection[albumId] = rec;
-  await DB.put('collection', rec);
+  await DB.put('collection', persistable(rec));
 }
 
 // deliberately looser than a qualifying session — every track in the album
@@ -1828,6 +1940,7 @@ async function ensureContext(rate){
   S.nodes = buildGraph(S.ctx);
   applyCharacter();
   applyVolume();
+  applyOutputRoute();
   await S.ctx.resume();
 }
 
@@ -2125,7 +2238,8 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumOrder', v:orders});
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
-    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort}});
+    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
+    bgAudio:S.bgAudio}});
 }
 
 async function restoreMeta(){
@@ -2154,6 +2268,7 @@ function applyPrefs(p){
     b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
     b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
   }
+  if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -2332,6 +2447,7 @@ async function restoreSessions(){
   if(trackDisp && trackDisp.v) S.trackDisplay = trackDisp.v;
   (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
   (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
+  await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
   const prof = await DB.get('profile', 'me');
   if(prof){
     S.profile.name = prof.name || '';
@@ -2701,8 +2817,15 @@ function deleteArtist(artist){
 }
 
 async function forgetLibrary(){
+  // achievements and the Collection outlive "forget library", so their thumbnails do too
+  const keepThumbs = [];
+  for(const id of new Set(Object.keys(S.achievements).concat(Object.keys(S.collection)))){
+    const row = await DB.get('meta', 'thumb:album:' + id);
+    if(row) keepThumbs.push(row);
+  }
   await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
   await DB.clear('overlays'); await DB.clear('artwork');
+  for(const row of keepThumbs) await DB.put('meta', row);
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
@@ -2764,6 +2887,7 @@ async function clearListeningHistory(orphanedOnly){
     S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
     await DB.clear('achievements'); await DB.clear('collection'); await DB.clear('sessions');
   }
+  await pruneThumbs();
   await Promise.all([
     persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
     persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
@@ -3061,6 +3185,7 @@ function renderMiniPlayer(){
   btn.textContent = S.playing ? '❚❚' : '▶';
   btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
   updateChromeInset();
+  bgSync();
 }
 
 // Scrollable content needs bottom padding equal to the chrome's actual
@@ -3357,7 +3482,12 @@ function startSource(offset){
   src.playbackRate.value = S.rate;
   routeSource(src);
   const gen = ++S.gen;
-  src.onended = () => { if(gen === S.gen && S.playing) advance(1, true); };
+  src.onended = () => {
+    if(gen === S.gen && S.playing){
+      if(document.hidden) settleTrackEnd();   // no frames ran, so credit the tail of the track here
+      advance(1, true);
+    }
+  };
   // t.duration is already the trimmed (encoder delay/padding excluded)
   // length; the delay offset shifts where playback actually starts reading
   // from the buffer, and the explicit duration arg stops it before running
@@ -3370,6 +3500,7 @@ function startSource(offset){
 }
 
 async function play(){
+  bgPrime();   // before any await, while this is still inside the tap that asked for playback
   const t = current();
   if(!t){ showRoute('library'); return; }
   if(!await ensureBuffer(S.index)) return;
@@ -3391,13 +3522,15 @@ function stop(){
 }
 
 function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
-  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer(); }
+  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
+  if(bgRouteActive()) bgIdleNow(); }
 
 function seek(sec){
   const t = current(); if(!t) return;
   S.pos = clamp(sec, 0, t.duration || 0);
   if(S.playing){ if(S.source){ try{S.source.onended=null;S.source.stop();}catch(e){} } startSource(S.pos); }
   drawTime();
+  bgPosition();
 }
 
 /* (next/prev now live in the queue section above) */
@@ -3529,10 +3662,238 @@ function applyVolume(glide){
   S.nodes.master.gain.setTargetAtTime(v, S.ctx.currentTime, glide ? glide/3 : 0.05);
 }
 
+/* ================= background playback (optional) =================
+   Off by default, and when it is off none of this runs: audio goes master ->
+   destination exactly as before. When on, the output goes master -> a
+   MediaStreamDestination -> a hidden <audio> element instead. Browsers treat
+   an <audio> element as real media playback, so the OS keeps it running when
+   the app is left or the screen locks, and shows lock-screen controls through
+   the Media Session API. The Pure/Vinyl chain, Sundown rate and Car Mode gain
+   all sit in front of that destination, so none of them change.
+   Trade-offs: the browser's media pipeline may resample to the device's output
+   rate, and iOS/Android can still end playback for their own reasons (a call,
+   battery saver). If the element cannot start, output falls back to the normal
+   path rather than going silent. */
+const BG_NOTE = "Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.";
+const BG_SUPPORTED = (function(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    return !!(AC && AC.prototype && typeof AC.prototype.createMediaStreamDestination === 'function'
+      && typeof HTMLMediaElement !== 'undefined' && 'srcObject' in HTMLMediaElement.prototype);
+  }catch(e){ return false; }
+})();
+
+function bgRouteActive(){ return BG_SUPPORTED && S.bgAudio && !S.bg.failed; }
+
+function bgEl(){
+  if(S.bg.el) return S.bg.el;
+  const el = document.createElement('audio');
+  el.setAttribute('playsinline', ''); el.setAttribute('aria-hidden', 'true');
+  el.preload = 'auto'; el.style.display = 'none';
+  // something outside Miziki paused the stream (a call, a headset button, the OS) — follow it
+  el.addEventListener('pause', () => {
+    if(S.bg.swapping || !S.playing || !bgRouteActive()) return;
+    pause();
+  });
+  document.body.appendChild(el);
+  S.bg.el = el;
+  return el;
+}
+
+// a quarter second of silence, used only to let the element start inside the tap
+// before the real stream exists — browsers allow later source swaps on an element
+// that has already played from a user gesture
+function bgSilentURL(){
+  if(S.bg.silentURL) return S.bg.silentURL;
+  const rate = 8000, n = 2000, buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
+  const wr = (o, s) => { for(let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  wr(0, 'RIFF'); dv.setUint32(4, 36 + n, true); wr(8, 'WAVE'); wr(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true);
+  wr(36, 'data'); dv.setUint32(40, n, true);
+  for(let i = 0; i < n; i++) dv.setUint8(44 + i, 128);
+  S.bg.silentURL = URL.createObjectURL(new Blob([buf], {type:'audio/wav'}));
+  return S.bg.silentURL;
+}
+
+function bgStartEl(){
+  const p = bgEl().play();
+  if(p && typeof p.catch === 'function') p.catch(err => {
+    if(err && err.name === 'AbortError') return;   // a source swap interrupted it; the swap restarts it
+    bgFallback();
+  });
+}
+
+function bgFallback(){
+  if(S.bg.failed) return;
+  S.bg.failed = true;
+  applyOutputRoute();
+  bgUpdateUI();
+  setPathNote('Background playback could not start on this device, so Miziki is playing normally. Turn it off and on again in Character to retry.', true);
+}
+
+// call from inside a tap that is about to start playback
+function bgPrime(){
+  if(!bgRouteActive()) return;
+  const el = bgEl();
+  if(el.srcObject){ if(el.paused) bgStartEl(); return; }
+  if(!el.paused) return;
+  el.src = bgSilentURL(); el.loop = true;
+  bgStartEl();
+}
+
+function bgSwapGuard(){
+  S.bg.swapping = true;
+  setTimeout(() => { S.bg.swapping = false; }, 400);
+}
+
+function applyOutputRoute(){
+  if(!S.ctx || !S.nodes) return;
+  const n = S.nodes, want = bgRouteActive();
+  if(want && !n.bgDest){
+    try{
+      n.bgDest = S.ctx.createMediaStreamDestination();
+      n.master.disconnect();
+      n.master.connect(n.bgDest);
+    }catch(e){
+      try{ n.master.connect(S.ctx.destination); }catch(_){}
+      n.bgDest = null;
+      bgFallback();
+      return;
+    }
+    const el = bgEl();
+    bgSwapGuard();
+    el.loop = false; el.removeAttribute('src');
+    el.srcObject = n.bgDest.stream;
+    if(S.playing) bgStartEl();
+  } else if(!want && n.bgDest){
+    try{ n.master.disconnect(); }catch(e){}
+    n.master.connect(S.ctx.destination);
+    try{ n.bgDest.disconnect(); }catch(e){}
+    n.bgDest = null;
+    bgTeardown();
+  }
+}
+
+function bgTeardown(){
+  clearTimeout(S.bg.idleTimer);
+  const el = S.bg.el;
+  if(el){ bgSwapGuard(); el.pause(); el.srcObject = null; el.removeAttribute('src'); }
+  bgRemoveHandlers();
+}
+
+// load() calls stop() and then play() a moment later, so a track change looks like a
+// brief pause. Only treat it as really paused if nothing starts again quickly — that
+// keeps the lock screen from flickering and the media element running across tracks
+// (iOS is touchy about restarting an element outside a tap).
+function bgSync(){
+  if(!bgRouteActive()) return;
+  clearTimeout(S.bg.idleTimer);
+  if(S.playing){
+    const el = bgEl();
+    if(el.srcObject && el.paused) bgStartEl();
+  } else {
+    S.bg.idleTimer = setTimeout(() => { if(!S.playing) bgIdleNow(); }, 1500);
+  }
+  mediaSessionSync();
+}
+
+function bgIdleNow(){
+  const el = S.bg.el;
+  if(el && el.srcObject && !el.paused) el.pause();
+  if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(e){} }
+}
+
+function mediaSessionSync(){
+  if(!('mediaSession' in navigator)) return;
+  const ms = navigator.mediaSession, t = current();
+  if(!t) return;
+  if(!S.bg.handlers) bgInstallHandlers();
+  const key = [t.id, t.tags.title, t.tags.artist, t.tags.album, t.art || ''].join('|');
+  if(key !== S.bg.msKey){
+    S.bg.msKey = key;
+    const base = {title:t.tags.title, artist:t.tags.artist, album:t.tags.album};
+    try{
+      ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: t.art ? [{src:t.art, sizes:'512x512'}] : []}));
+    }catch(e){
+      try{ ms.metadata = new MediaMetadata(base); }catch(_){}
+    }
+  }
+  if(S.playing){ try{ ms.playbackState = 'playing'; }catch(e){} }
+  bgPosition();
+}
+
+function bgInstallHandlers(){
+  const ms = navigator.mediaSession;
+  const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(e){} };
+  set('play', async () => { if(!S.ctx) await ensureContext(null); if(!S.playing) play(); });
+  set('pause', () => { if(S.playing) pause(); });
+  set('stop', () => { if(S.playing) pause(); });
+  set('previoustrack', prevTrack);
+  set('nexttrack', nextTrack);
+  set('seekto', d => { if(d && typeof d.seekTime === 'number') seek(d.seekTime); });
+  S.bg.handlers = true;
+}
+
+function bgRemoveHandlers(){
+  S.bg.msKey = '';
+  if(!('mediaSession' in navigator) || !S.bg.handlers) return;
+  const ms = navigator.mediaSession;
+  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(e){} });
+  try{ ms.metadata = null; ms.playbackState = 'none'; }catch(e){}
+  S.bg.handlers = false;
+}
+
+function bgPosition(){
+  if(!bgRouteActive() || !('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+  const t = current(); if(!t || !t.duration) return;
+  try{
+    navigator.mediaSession.setPositionState({duration:t.duration, playbackRate:S.rate > 0 ? S.rate : 1,
+      position:clamp(S.pos, 0, t.duration)});
+  }catch(e){}
+}
+
+function bgUpdateUI(){
+  const b = $('#bgAudioBtn'), note = $('#bgAudioNote');
+  if(!b || !note) return;
+  if(!BG_SUPPORTED){
+    b.style.display = 'none';
+    note.textContent = "This browser can't route audio this way, so music pauses when you leave the app.";
+    return;
+  }
+  b.style.display = '';
+  b.textContent = S.bgAudio ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.bgAudio));
+  note.textContent = (S.bgAudio && S.bg.failed)
+    ? "It couldn't start on this device this session, so Miziki is playing normally. Toggle it off and on to retry."
+    : BG_NOTE;
+}
+
+function applyBgAudioSetting(){
+  // on iOS this also lets Web Audio play with the silent switch on
+  try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(e){}
+  applyOutputRoute();
+  if(bgRouteActive()) mediaSessionSync();
+  else bgTeardown();
+}
+
+function toggleBgAudio(){
+  S.bgAudio = !S.bgAudio;
+  S.bg.failed = false;
+  if(S.bgAudio) bgPrime();   // still inside the tap, which is what lets the element start later
+  applyBgAudioSetting();
+  bgUpdateUI();
+  queueSave();
+}
+
 /* ================= render loop ================= */
 let last = performance.now();
-function frame(now){
-  const dt = Math.min(0.1, (now - last)/1000); last = now;
+// The playback clock: position, played-range tracking (which feeds the 95% rule,
+// sessions and metals) and Sundown's rate. Split out of frame() so it can also run
+// while the page is hidden — the browser stops calling frame() then, but audio can
+// keep playing (Background playback, or a background desktop tab).
+function tick(now, maxDt){
+  const dt = Math.min(maxDt, (now - last)/1000); last = now;
 
   const r = computeRate();
   if(Math.abs(r - S.rate) > 0.0001){
@@ -3548,6 +3909,20 @@ function frame(now){
     addPlayedRange(prevPos, S.pos);
     checkTrackCompletion(t);
   }
+  return dt;
+}
+
+// a track that ended on its own while hidden: bring the clock up to date, then credit
+// whatever remained, since the source really did play to its end
+function settleTrackEnd(){
+  const t = current(); if(!t) return;
+  tick(performance.now(), 120);
+  if(S.pos < t.duration){ addPlayedRange(S.pos, t.duration); S.pos = t.duration; }
+  checkTrackCompletion(t);
+}
+
+function frame(now){
+  const dt = tick(now, 0.1);
 
   if(!REDUCED){
     const spin = S.playing ? S.rate : 0;
@@ -3560,6 +3935,14 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 let lastUI = 0, lastSky = 0;
+
+// hidden pages get no frames; keep the clock honest from a timer. A long gap here is
+// real elapsed time (audio kept playing), not a stall, so the cap is much larger.
+setInterval(() => {
+  if(!document.hidden || !S.playing) return;
+  tick(performance.now(), 120);
+  bgPosition();
+}, 1000);
 
 function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
 
@@ -4817,6 +5200,7 @@ function showRoute(name){
 /* ================= wiring ================= */
 (function init(){
   $('#play').addEventListener('click', async ()=>{
+    if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext(null);
     S.playing ? pause() : play();
   });
@@ -4897,6 +5281,8 @@ function showRoute(name){
 
   $('#motionBtn').addEventListener('click', toggleMotion);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
+  $('#bgAudioBtn').addEventListener('click', toggleBgAudio);
+  bgUpdateUI();
   $('#floor').addEventListener('input', e=>{ S.motion.floor = e.target.value/100; $('#floorOut').textContent = e.target.value + '%'; });
   $('#maxSpeed').addEventListener('input', e=>{
     S.motion.max = +e.target.value;
@@ -5105,6 +5491,7 @@ function showRoute(name){
 
   $('#miniTap').addEventListener('click', openPlayer);
   $('#miniPlay').addEventListener('click', async ()=>{
+    if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext(null);
     S.playing ? pause() : play();
   });
@@ -5150,6 +5537,7 @@ async function restoreLibrary(){
   await restoreMeta();
   await restoreSessions();
   renderTracks();
+  healThumbs().catch(() => {});
   if(S.tracks.length){
     setQueue(allIdx(), 0, false);
     note.textContent = S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks')
