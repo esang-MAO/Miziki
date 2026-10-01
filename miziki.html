@@ -297,6 +297,59 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   stroke-linecap:round;stroke-linejoin:round}
 .tabbar-btn[aria-selected="true"]{color:var(--accent)}
 
+/* ---------- launch intro: crate riffle to a title screen ----------
+   Cold start only (see runLaunchSequence). A fixed 390x740 design stage,
+   scaled uniformly to fit the viewport rather than redrawn per size. */
+.launch-overlay{position:fixed;inset:0;z-index:500;
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity var(--launch-skip-duration,150ms) linear}
+.launch-overlay.launch-hidden{opacity:0;pointer-events:none}
+.launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;perspective:900px;
+  transform:scale(var(--launch-scale,1))}
+.launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
+  font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.16em;color:var(--muted);
+  opacity:.55;transition:opacity var(--launch-wordmark-duration,600ms) ease-out}
+.launch-wordmark span{color:var(--accent)}
+.launch-wordmark.launch-grown{opacity:1;font-size:44px;letter-spacing:.1em;top:auto;bottom:140px}
+.launch-crate{position:absolute;left:28px;top:128px;width:334px;height:566px;
+  border-radius:6px;background:linear-gradient(160deg,#8A5A32,#5C3A1E);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.25);
+  opacity:0;transform:scale(.94);
+  transition:opacity var(--launch-crate-duration,300ms) ease-out,
+             transform var(--launch-crate-duration,300ms) ease-out,
+             filter var(--launch-recede-duration,800ms) ease-in;
+  padding:10px}
+.launch-crate.launch-settled{opacity:1;transform:scale(1)}
+.launch-crate.launch-receding{filter:blur(4px);opacity:.16}
+.launch-crate-rim{position:relative;width:100%;height:100%;border-radius:3px;
+  background:#1A120C;overflow:hidden}
+.launch-crate-inner{position:absolute;inset:0}
+.launch-rec{position:absolute;left:20px;width:282px;height:6px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.28));
+  transform-origin:center top}
+.launch-rec.launch-target{box-shadow:0 0 0 1px var(--accent)}
+/* the pulled record travels from the crate's flat perspective to the
+   player-sleeve's face-on size/position — see runLaunchSequence's JS-set
+   inline transform/left/top per frame, this just establishes the base look */
+.launch-record{position:absolute;left:54px;top:340px;width:282px;height:40px;
+  border-radius:6px;overflow:hidden;display:none;
+  box-shadow:0 10px 28px rgba(0,0,0,.4)}
+.launch-record.launch-active{display:block}
+.launch-record-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
+.launch-record-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.launch-record-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
+  color:var(--paper);white-space:nowrap;transform:rotate(-35deg)}
+.launch-record-mark span{color:var(--accent)}
+.launch-title{position:absolute;left:0;right:0;top:498px;text-align:center;
+  opacity:0;transition:opacity var(--launch-title-duration,600ms) ease-out}
+.launch-title.launch-shown{opacity:1}
+.launch-title-name{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.04em}
+.launch-title-sub{font-family:var(--data);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-top:6px}
+@media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
+
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
@@ -457,6 +510,25 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
+<!-- LAUNCH INTRO: cold-start only, first thing in the DOM so it paints
+     before anything else — see runLaunchSequence(). Removed entirely once
+     it finishes or is skipped. -->
+<div class="launch-overlay" id="launchOverlay" aria-hidden="true">
+  <div class="launch-stage" id="launchStage">
+    <div class="launch-wordmark" id="launchWordmark">Mi<span>zi</span>ki</div>
+    <div class="launch-crate" id="launchCrate">
+      <div class="launch-crate-rim">
+        <div class="launch-crate-inner" id="launchCrateInner"></div>
+      </div>
+    </div>
+    <div class="launch-record" id="launchRecord" aria-hidden="true"></div>
+    <div class="launch-title" id="launchTitle">
+      <div class="launch-title-name" id="launchTitleName"></div>
+      <div class="launch-title-sub" id="launchTitleSub"></div>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <header class="top">
@@ -596,6 +668,11 @@ input[type=file]{display:none}
     <div class="row">
       <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
       <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
+    </div>
+
+    <div class="row">
+      <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
+      <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
     </div>
 
     <div class="row">
@@ -1003,12 +1080,15 @@ const S = {
   // profile tab (see spec)
   profile:{name:'', art:null, artBlob:null},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
-  achievements:{}, collection:{},
+  achievements:{}, collection:{}, albumEdge:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true}
 };
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
 S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:''};
+// Launch intro (cold start only, on by default) — see the launch sequence section
+S.launchSeq = 0;
+S.launchIntro = true;
 
 /* ================= audio graph ================= */
 function makeContext(sampleRate){
@@ -1422,6 +1502,32 @@ function refreshProfileIfOpen(){
   }, 300);
 }
 
+// A small average colour cut from an album's thumbnail, for the launch
+// sequence's crate records — one hairline-thin read per album, so the crate
+// never has to decode full artwork just to pick an edge colour.
+function averageColorHex(blob){
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 8; c.height = 8;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0, 8, 8);
+      URL.revokeObjectURL(img.src);
+      try{
+        const data = cx.getImageData(0, 0, 8, 8).data;
+        let r=0, g=0, b=0, n=0;
+        for(let i=0; i<data.length; i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
+        const hex = v => Math.round(v/n).toString(16).padStart(2,'0');
+        resolve('#' + hex(r) + hex(g) + hex(b));
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = () => resolve(null);
+    img.src = URL.createObjectURL(blob);
+  });
+}
+async function persistAlbumEdge(){ await DB.put('meta', {k:'albumEdge', v:S.albumEdge}); }
+
 async function ensureThumb(kind, id, url){
   if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
   const key = kind + ':' + id;
@@ -1431,6 +1537,10 @@ async function ensureThumb(kind, id, url){
   if(!blob){ delete thumbSrcSeen[key]; return; }
   thumbURL[key] = URL.createObjectURL(blob);
   DB.put('meta', {k:'thumb:' + key, v:blob});
+  if(kind === 'album'){
+    const hex = await averageColorHex(blob);
+    if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(); }
+  }
   applyThumbURLs();
   refreshProfileIfOpen();
 }
@@ -2266,7 +2376,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
-    bgAudio:S.bgAudio}});
+    bgAudio:S.bgAudio, launchIntro:S.launchIntro}});
 }
 
 async function restoreMeta(){
@@ -2296,6 +2406,7 @@ function applyPrefs(p){
     b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
   }
   if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
+  if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -2472,6 +2583,8 @@ async function restoreSessions(){
   if(display && display.v) S.albumDisplay = display.v;
   const trackDisp = await DB.get('meta', 'trackDisplay');
   if(trackDisp && trackDisp.v) S.trackDisplay = trackDisp.v;
+  const edge = await DB.get('meta', 'albumEdge');
+  if(edge && edge.v) S.albumEdge = edge.v;
   (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
   (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
   await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
@@ -3484,6 +3597,270 @@ async function runPutAwaySequence(t){
   $('#sleeve').style.display = 'none';
   S.platterEmpty = true;
   renderMiniPlayer();
+}
+
+/* ================= launch intro: crate riffle to a title screen =================
+   Cold start only — see shouldShowLaunch()/runLaunchSequence(). Fully
+   independent of the sleeve pull/put-away: its own token (S.launchSeq), its
+   own overlay, removed from the DOM once it finishes or is skipped. Never
+   delays the app — restoreLibrary() runs underneath it from the first paint. */
+// resolved by restoreLibrary() once S.tracks/sessions/thumbnails are in
+// place — the launch intro races this against a timeout rather than ever
+// blocking on it (see runLaunchSequence, "Never delay the app")
+let libraryReadyResolve;
+const libraryReadyPromise = new Promise(res => { libraryReadyResolve = res; });
+
+const LAUNCH_ANIM = {
+  settleMs: 300, waveMs: 1200, catchMs: 300, pullMs: 800, titleMs: 600, crossfadeMs: 600,
+  skipMs: 150, readyWaitMs: 700,
+  firstRunCount: 44, libraryCap: 44,
+  edgePalette: ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A']
+};
+document.documentElement.style.setProperty('--launch-crate-duration', LAUNCH_ANIM.settleMs + 'ms');
+document.documentElement.style.setProperty('--launch-recede-duration', LAUNCH_ANIM.pullMs + 'ms');
+document.documentElement.style.setProperty('--launch-title-duration', LAUNCH_ANIM.titleMs + 'ms');
+document.documentElement.style.setProperty('--launch-wordmark-duration', LAUNCH_ANIM.titleMs + 'ms');
+document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
+
+function shouldShowLaunch(){ return S.launchIntro && !REDUCED && !document.hidden; }
+
+// the 390x740 design stage scales uniformly to fit the viewport rather than
+// being redrawn per size — CSS alone can't turn a viewport length into a
+// unitless scale() factor, so this is computed and written as a variable
+function updateLaunchScale(){
+  const s = Math.min(window.innerWidth / 390, window.innerHeight / 740);
+  document.documentElement.style.setProperty('--launch-scale', s);
+}
+
+// the key in S.albumLastPlayed with the largest timestamp; a library that
+// has never been played falls back to the most recently added album
+function resolveLastPlayedAlbum(){
+  const played = Object.keys(S.albumLastPlayed).filter(id => S.tracks.some(t => albumKey(t) === id));
+  if(played.length) return played.reduce((best,id) => S.albumLastPlayed[id] > S.albumLastPlayed[best] ? id : best, played[0]);
+  const addedByAlbum = {};
+  S.tracks.forEach(t => { const id = albumKey(t); const a = t.addedAt || 0; if(!(id in addedByAlbum) || a > addedByAlbum[id]) addedByAlbum[id] = a; });
+  const addedIds = Object.keys(addedByAlbum);
+  if(!addedIds.length) return null;
+  return addedIds.reduce((best,id) => addedByAlbum[id] > addedByAlbum[best] ? id : best, addedIds[0]);
+}
+
+// within that album, the track key with the largest S.trackLastPlayed value;
+// falls back to the album's first track (by the same order the Albums tab uses)
+function resolveLastPlayedTrackIndex(albumId){
+  const sample = S.tracks.find(t => albumKey(t) === albumId);
+  if(!sample) return -1;
+  const idx = albumTracks(sample.tags.album);
+  if(!idx.length) return -1;
+  let best = idx[0], bestTime = -1;
+  idx.forEach(i => {
+    const last = S.trackLastPlayed[trackIdentityKey(S.tracks[i])] || 0;
+    if(last > bestTime){ bestTime = last; best = i; }
+  });
+  return best;
+}
+
+// one album per crate record, capped and evenly sampled, always keeping
+// the target (last-played) album in the sample (see LAUNCH spec C5)
+function sampleCrateAlbums(cap, mustIncludeId){
+  const albumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
+  if(albumIds.length <= cap) return albumIds;
+  const picked = [];
+  const step = albumIds.length / cap;
+  for(let i=0;i<cap;i++) picked.push(albumIds[Math.floor(i*step)]);
+  const uniq = [...new Set(picked)];
+  if(mustIncludeId && !uniq.includes(mustIncludeId)) uniq[Math.floor(uniq.length/2)] = mustIncludeId;
+  return uniq;
+}
+
+// Resolves which variant to show and everything it needs, without touching
+// any DOM — kept separate from rendering so it's independently testable.
+function buildLaunchCrate(){
+  if(!S.tracks.length) return {variant:'first-run'};
+  const targetAlbumId = resolveLastPlayedAlbum();
+  if(!targetAlbumId) return {variant:'first-run'};
+  const sampled = sampleCrateAlbums(LAUNCH_ANIM.libraryCap, targetAlbumId);
+  const count = Math.max(sampled.length, 1);
+  const targetIndex = Math.min(count - 1, Math.round(count * 0.4));
+  const albumIds = sampled.filter(id => id !== targetAlbumId);
+  albumIds.splice(targetIndex, 0, targetAlbumId);
+  const sampleTrack = S.tracks.find(t => albumKey(t) === targetAlbumId);
+  return {
+    variant:'library', albumIds, targetIndex, targetAlbumId,
+    targetArt: thumbURL['album:' + targetAlbumId] || null,
+    targetTitle: sampleTrack ? sampleTrack.tags.album : '',
+    targetArtist: sampleTrack ? (sampleTrack.tags.albumArtist || sampleTrack.tags.artist) : ''
+  };
+}
+
+function renderLaunchCrate(crate){
+  const host = $('#launchCrateInner');
+  host.innerHTML = '';
+  const count = crate.variant === 'library' ? crate.albumIds.length : LAUNCH_ANIM.firstRunCount;
+  const targetIndex = crate.variant === 'library' ? crate.targetIndex : Math.round(LAUNCH_ANIM.firstRunCount * 0.4);
+  const top0 = 32, bottom0 = 566 - 32;
+  const step = count > 1 ? (bottom0 - top0) / (count - 1) : 0;
+  const recs = [];
+  for(let i=0; i<count; i++){
+    const el = document.createElement('div');
+    el.className = 'launch-rec';
+    el.style.top = (top0 + i*step) + 'px';
+    const color = crate.variant === 'library'
+      ? (S.albumEdge[crate.albumIds[i]] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length])
+      : LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
+    el.style.background = color;
+    if(i === targetIndex) el.classList.add('launch-target');
+    host.appendChild(el);
+    recs.push(el);
+  }
+  return {recs, targetIndex, rowTop: top0 + targetIndex*step};
+}
+
+function setLaunchWave(recs, center){
+  const halfWidth = 2.25;
+  recs.forEach((el, i) => {
+    const d = Math.abs(i - center);
+    const lean = d < halfWidth ? Math.cos((d/halfWidth) * (Math.PI/2)) : 0;
+    el.style.height = (6 + 34*lean) + 'px';
+  });
+}
+
+async function runLaunchSequence(){
+  const token = ++S.launchSeq;
+  const cancelled = () => token !== S.launchSeq;
+  const overlay = $('#launchOverlay');
+
+  updateLaunchScale();
+  window.addEventListener('resize', updateLaunchScale);
+
+  // the variant choice depends on whether restoreLibrary() actually finished
+  // in time, not on whatever S.tracks happens to hold at this instant — data
+  // that arrives mid-way (tracks populated but sessions/thumbnails still
+  // loading) is exactly the "not ready" case the 700ms cap exists for
+  const ready = await Promise.race([
+    libraryReadyPromise.then(() => true),
+    sleep(LAUNCH_ANIM.readyWaitMs).then(() => false)
+  ]);
+  if(cancelled()) return;
+  const crate = ready ? buildLaunchCrate() : {variant:'first-run'};
+  if(cancelled()) return;
+  // S.launchIntro's persisted value loads inside restoreLibrary(), which by
+  // now has had at least this long to resolve it — now it's known for sure
+  if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
+
+  const { recs, targetIndex, rowTop } = renderLaunchCrate(crate);
+  const record = $('#launchRecord');
+  record.innerHTML = '';
+  const faceEl = document.createElement('div');
+  faceEl.className = 'launch-record-face';
+  if(crate.variant === 'library' && crate.targetArt){
+    const img = document.createElement('img'); img.src = crate.targetArt; img.alt = '';
+    faceEl.appendChild(img);
+  } else {
+    const mark = document.createElement('div');
+    mark.className = 'launch-record-mark';
+    mark.innerHTML = 'Mi<span>zi</span>ki';
+    faceEl.appendChild(mark);
+  }
+  record.appendChild(faceEl);
+
+  // swallow the first tap anywhere on the overlay: snap to the end instantly
+  // rather than letting it also press whatever is underneath
+  const skip = e => {
+    e.stopPropagation(); e.preventDefault();
+    S.launchSeq++;   // cancel the running sequence
+    finishLaunch();
+  };
+  overlay.addEventListener('pointerdown', skip, {capture:true});
+
+  function finishLaunch(){
+    overlay.removeEventListener('pointerdown', skip, {capture:true});
+    window.removeEventListener('resize', updateLaunchScale);
+    overlay.classList.add('launch-hidden');
+    setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, LAUNCH_ANIM.skipMs);
+  }
+
+  // CRATE settles in
+  const crateEl = $('#launchCrate');
+  void crateEl.offsetWidth;
+  crateEl.classList.add('launch-settled');
+  await sleep(LAUNCH_ANIM.settleMs);
+  if(cancelled()) return;
+
+  // RIFFLE: the wave runs down the row, ease-in-out, stopping on the target
+  const waveStart = performance.now();
+  await new Promise(resolve => {
+    function step(now){
+      if(cancelled()){ resolve(); return; }
+      const p = clamp((now - waveStart) / LAUNCH_ANIM.waveMs, 0, 1);
+      const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
+      setLaunchWave(recs, eased * targetIndex);
+      if(p >= 1){ resolve(); return; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  if(cancelled()) return;
+
+  // CATCH: the target lifts, gets its outline, neighbours part
+  const targetEl = recs[targetIndex];
+  targetEl.style.transition = 'transform ' + LAUNCH_ANIM.catchMs + 'ms ease-out';
+  targetEl.style.transform = 'translateY(-16px)';
+  if(recs[targetIndex-1]){ recs[targetIndex-1].style.transition = targetEl.style.transition; recs[targetIndex-1].style.transform = 'translateY(-12px)'; }
+  if(recs[targetIndex+1]){ recs[targetIndex+1].style.transition = targetEl.style.transition; recs[targetIndex+1].style.transform = 'translateY(12px)'; }
+  await sleep(LAUNCH_ANIM.catchMs);
+  if(cancelled()) return;
+
+  // PULL TO CAMERA: the record leaves the crate row and grows face-on into
+  // the title position, while the crate itself recedes behind it
+  crateEl.classList.add('launch-receding');
+  record.classList.add('launch-active');
+  record.style.transition = 'none';
+  record.style.left = '54px';
+  record.style.top = rowTop + 'px';
+  record.style.width = '282px';
+  record.style.height = '40px';
+  record.style.transform = 'scale(.62) rotateX(52deg)';
+  void record.offsetWidth;
+  record.style.transition = 'left ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, top ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, '
+    + 'width ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, height ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, '
+    + 'transform ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out';
+  record.style.left = '56px';
+  record.style.top = '128px';
+  record.style.width = '278px';
+  record.style.height = '278px';
+  record.style.transform = 'none';
+  await sleep(LAUNCH_ANIM.pullMs);
+  if(cancelled()) return;
+
+  // TITLE: holds as the title screen, wordmark grows in
+  const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle'), wordmarkEl = $('#launchWordmark');
+  if(crate.variant === 'library'){
+    nameEl.textContent = crate.targetTitle;
+    subEl.innerHTML = (crate.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
+    wordmarkEl.style.fontSize = '20px';
+  } else {
+    nameEl.innerHTML = 'Mi<span>zi</span>ki';
+    subEl.textContent = 'LOCAL · LOSSLESS';
+  }
+  titleEl.classList.add('launch-shown');
+  wordmarkEl.classList.add('launch-grown');
+  await sleep(LAUNCH_ANIM.titleMs);
+  if(cancelled()) return;
+
+  // CROSSFADE: out to the library, mini player included
+  finishLaunch();
+}
+
+function attachLaunchSettingRow(){
+  const b = $('#launchIntroBtn');
+  if(!b) return;
+  b.textContent = S.launchIntro ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.launchIntro));
+}
+function toggleLaunchIntro(){
+  S.launchIntro = !S.launchIntro;
+  attachLaunchSettingRow();
+  queueSave();
 }
 
 // Library selection always arrives via the sheet — something is being
@@ -5431,6 +5808,8 @@ function showRoute(name){
 
   $('#motionBtn').addEventListener('click', toggleMotion);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
+  $('#launchIntroBtn').addEventListener('click', toggleLaunchIntro);
+  attachLaunchSettingRow();
   $('#bgAudioBtn').addEventListener('click', toggleBgAudio);
   bgUpdateUI();
   $('#floor').addEventListener('input', e=>{ S.motion.floor = e.target.value/100; $('#floorOut').textContent = e.target.value + '%'; });
@@ -5669,7 +6048,12 @@ function showRoute(name){
   updateChromeInset();
   window.addEventListener('resize', updateChromeInset);
   requestAnimationFrame(frame);
-  restoreLibrary();
+  restoreLibrary();   // runs underneath the launch intro below; never waits on it
+  // REDUCED and document.hidden are known synchronously; S.launchIntro's
+  // persisted value isn't (it loads inside restoreLibrary()), so
+  // runLaunchSequence() re-checks it itself once that's resolved
+  if(REDUCED || document.hidden) $('#launchOverlay').remove();
+  else runLaunchSequence();
 })();
 
 async function restoreLibrary(){
@@ -5679,6 +6063,7 @@ async function restoreLibrary(){
     note.textContent = 'Storage is not available here, so this library lasts only for the session. '
       + 'Served from your own address and added to the Home Screen, it persists.';
     renderTracks();
+    libraryReadyResolve();
     return;
   }
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
@@ -5699,8 +6084,14 @@ async function restoreLibrary(){
   await restoreSessions();
   renderTracks();
   healThumbs().catch(() => {});
+  libraryReadyResolve();   // from here on the launch intro's library variant has what it needs
   if(S.tracks.length){
-    setQueue(allIdx(), 0, false);
+    // the mini player should agree with the launch intro's title screen —
+    // both show what was last played, not just the first file in the
+    // library (see LAUNCH spec C5)
+    const lastAlbum = resolveLastPlayedAlbum();
+    const lastIdx = lastAlbum !== null ? resolveLastPlayedTrackIndex(lastAlbum) : -1;
+    setQueue(allIdx(), lastIdx >= 0 ? lastIdx : 0, false);
     note.textContent = S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks')
       + ' restored from this device. Tracks are decoded as you play them, so opening Miziki stays quick.';
   } else {
