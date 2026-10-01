@@ -204,6 +204,30 @@ body{
 .platter-stage.returning .sleeve{animation:sleeveReturn var(--return-duration,1200ms) ease-in forwards}
 .platter-stage.returning .platter-box{animation:discReturn var(--return-duration,1200ms) ease-in forwards}
 
+/* Put-away: the queue ends with nothing next and repeat off, so the record
+   goes back in its sleeve on its own (see runPutAwaySequence). Distinct from
+   the swap's return-to-sleeve above — different target position (55%, not
+   0%) and timing, driven by its own JS-orchestrated phase sequence rather
+   than reversing the pull. The platter spin-down itself is eased in JS
+   (S.spinDown), not here, since it animates a rotation the frame loop owns. */
+@keyframes putawaySleeveIn{
+  0%{transform:translateX(115%);opacity:0}
+  100%{transform:translateX(55%);opacity:1}
+}
+@keyframes putawayDiscSlide{
+  0%{transform:translateX(0%) scale(1)}
+  50%{transform:translateX(28%) scale(.985)}
+  100%{transform:translateX(55%) scale(.985)}
+}
+@keyframes putawaySleeveOut{
+  0%{transform:translateX(55%);opacity:1}
+  50%{transform:translateX(85%);opacity:.68}
+  100%{transform:translateX(140%);opacity:0}
+}
+.platter-stage.putaway-in .sleeve{animation:putawaySleeveIn var(--putaway-in-duration,700ms) ease-out forwards}
+.platter-stage.putaway-slide .platter-box{animation:putawayDiscSlide var(--putaway-slide-duration,800ms) ease-in-out forwards}
+.platter-stage.putaway-out .sleeve{animation:putawaySleeveOut var(--putaway-out-duration,600ms) ease-in forwards}
+
 .now{text-align:center;margin-top:22px}
 .now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -971,6 +995,9 @@ const S = {
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
   sleeveSeq:0, sleevePullEnabled:true,
+  // true once a put-away sequence completes (or is snapped to its end) —
+  // not persisted; on reload the app restores the last track as it does today
+  platterEmpty:false, spinDown:null,
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
@@ -2759,7 +2786,8 @@ async function deleteTracks(idsToDelete){
     // auto-resume side effect — the track it would resume is being deleted
     S.sleeveSeq++;
     const stage = $('#platterStage');
-    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+    clearSpinDown();
     $('#sleeve').style.display = 'none';
   }
 
@@ -2779,7 +2807,7 @@ async function deleteTracks(idsToDelete){
   S.lru = [];
 
   if(removingCurrent){
-    S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null;
+    S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null; S.platterEmpty = false;
     if(S.tracks.length){
       $('#platterBox').classList.add('disc-hidden');
       setQueue(allIdx(), 0, false);   // silent priming un-hides it again once the next track lands
@@ -2838,6 +2866,11 @@ async function forgetLibrary(){
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   applyDiscVariant(null);
   closePlayer();
+  // closePlayer()'s interrupt may have just finished putting a record away
+  // (S.platterEmpty true) or landed one instantly — either way there's no
+  // library left, so the empty-platter look is reasserted unconditionally
+  S.platterEmpty = false; clearSpinDown();
+  $('#sleeve').style.display = 'none';
   $('#platterBox').classList.add('disc-hidden');
   $('#playerShareBtn').style.display = 'none';
   $('#queueBtn').style.display = 'none';
@@ -3102,7 +3135,17 @@ function advance(dir, auto){
   let n = S.qpos + dir;
   if(n >= S.queue.length){
     if(S.repeat === 'all'){ if(S.shuffle) buildOrder(); n = 0; }
-    else { pause(); S.pos = 0; drawTime(); return; }        // end of the record
+    else {
+      pause(); S.pos = 0; drawTime();
+      // the record goes back in its sleeve — but only for a real finish
+      // (auto), never a manual skip past the last track, and only where
+      // there's something to see or it would just be wasted motion
+      if(shouldPutAway(auto)){
+        if(document.hidden || !S.playerOpen) putAwayInstant();
+        else runPutAwaySequence(current());
+      }
+      return;        // end of the record
+    }
   }
   if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
   S.qpos = n;
@@ -3158,12 +3201,18 @@ const SLEEVE_ANIM = {
   emergeMs: 2000,    // disc emerges + sleeve exits, concurrently (~3s total pull)
   returnMs: 1200,    // putting a record away — quicker than pulling one out
   morphMs: 420,
+  // put-away: the queue ends, the sleeve comes to collect the disc (see
+  // PRESENTATION spec, put-away sequence). Shorter than the pull (2.0s total).
+  putSpinMs: 500, putInMs: 700, putSlideDelayMs: 600, putSlideMs: 800, putOutMs: 600,
   easing: 'cubic-bezier(.3,.66,.35,1)'   // morph only; sleeve/disc easing lives in CSS per-phase
 };
 document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
 document.documentElement.style.setProperty('--arrive-duration', SLEEVE_ANIM.arriveMs + 'ms');
 document.documentElement.style.setProperty('--emerge-duration', SLEEVE_ANIM.emergeMs + 'ms');
 document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.returnMs + 'ms');
+document.documentElement.style.setProperty('--putaway-in-duration', SLEEVE_ANIM.putInMs + 'ms');
+document.documentElement.style.setProperty('--putaway-slide-duration', SLEEVE_ANIM.putSlideMs + 'ms');
+document.documentElement.style.setProperty('--putaway-out-duration', SLEEVE_ANIM.putOutMs + 'ms');
 
 function renderMiniPlayer(){
   const t = current();
@@ -3179,7 +3228,9 @@ function renderMiniPlayer(){
   // the mini disc surface stays plain black regardless of tier — only this
   // tiny inset label carries artwork
   const discArt = $('#miniDiscArt');
-  if(t.art){ discArt.src = t.art; $('#miniDisc').classList.add('has-art'); }
+  // the put-away leaves the disc put away — the tiny indicator shows idle,
+  // even though the title/artist text above it still names the track
+  if(t.art && !S.platterEmpty){ discArt.src = t.art; $('#miniDisc').classList.add('has-art'); }
   else { discArt.removeAttribute('src'); $('#miniDisc').classList.remove('has-art'); }
   const btn = $('#miniPlay');
   btn.textContent = S.playing ? '❚❚' : '▶';
@@ -3231,6 +3282,10 @@ function updateShellAlbum(t){
   const sameAlbum = prevId !== null && prevId === newId;
   S.shellAlbumId = newId;
   S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
+  // the sleeve is physically sitting over an empty platter — always pull,
+  // regardless of album identity/shuffle/reduced-motion, or the disc stays
+  // stuck hidden behind it with nothing left to bring it back out
+  if(S.platterEmpty) return {type:'pull', sameAlbum};
   // untagged tracks don't get the ceremony — an untagged file hasn't
   // established a release identity yet, so it silently occupies the
   // platter without a pull until a genuinely tagged one arrives
@@ -3273,11 +3328,13 @@ async function runStartSequence(t, info, startAudio){
   const stage = $('#platterStage');
   const token = ++S.sleeveSeq;
   const cancelled = () => token !== S.sleeveSeq;
+  S.platterEmpty = false;   // a pull is starting, so the sleeve no longer covers an empty platter
+  clearSpinDown();
 
   // clear any in-flight ceremony's visuals immediately — a fresh sequence
   // (or a "nothing to show" one) always takes the stage back over from
   // whatever a just-cancelled prior invocation left behind
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
   $('#sleeve').style.display = 'none';
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
@@ -3339,12 +3396,94 @@ async function runStartSequence(t, info, startAudio){
 function interruptStartSequence(){
   S.sleeveSeq++;
   const stage = $('#platterStage');
-  const wasActive = stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
+  const wasPutAway = stage.classList.contains('putaway-in') || stage.classList.contains('putaway-slide') ||
+    stage.classList.contains('putaway-out');
+  const wasActive = wasPutAway || stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
     stage.classList.contains('disc-emerging') || stage.classList.contains('returning');
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+  clearSpinDown();
   $('#sleeve').style.display = 'none';
+  if(wasPutAway){
+    // the record was mid-way into its sleeve — finish putting it away rather
+    // than resurrecting the disc; pressing play afterwards is what brings it
+    // back out (via the S.platterEmpty rule in updateShellAlbum())
+    $('#platterBox').classList.add('disc-hidden');
+    S.platterEmpty = true;
+    renderMiniPlayer();
+    return;
+  }
   $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
   if(wasActive && !S.playing) play();
+}
+
+/* ================= put-away: the record goes back in its sleeve =================
+   Mirror image of the pull, run from advance()'s end-of-queue branch: the
+   last track finished naturally, nothing is queued next, and repeat is off.
+   Shares S.sleeveSeq with the pull on purpose — only one of them ever runs,
+   and a pull picking up the token mid-sequence cancels this cleanly. */
+
+// A track ending naturally at the end of the queue only goes away if the
+// settings allow a ceremony at all — repeat 'off' is already guaranteed by
+// the caller (advance()'s end-of-queue branch is unreachable for 'one', and
+// 'all' wraps instead of ending), and `auto` tells manual skips apart from
+// a real finish.
+function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
+
+// The disc's rotation normally snaps to 0 the instant S.playing goes false
+// (see frame()). A put-away eases it down instead, over putSpinMs, read by
+// the draw loop and cleared the moment it finishes or is cancelled — an
+// ordinary pause is never touched by this.
+function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
+function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
+function clearSpinDown(){ S.spinDown = null; }
+
+// No player open, or the page is hidden (background playback) — nothing
+// would be visible either way, so skip straight to the end state rather
+// than running a ceremony no one can see (mirrors advance()'s own
+// "if(S.playerOpen) runStartSequence(...) else play()" for the pull).
+function putAwayInstant(){
+  S.sleeveSeq++;
+  clearSpinDown();
+  $('#sleeve').style.display = 'none';
+  $('#platterBox').classList.add('disc-hidden');
+  S.platterEmpty = true;
+  renderMiniPlayer();
+}
+
+async function runPutAwaySequence(t){
+  const stage = $('#platterStage'), discBox = $('#platterBox');
+  const token = ++S.sleeveSeq;
+  const cancelled = () => token !== S.sleeveSeq;
+
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+  startSpinDown(SLEEVE_ANIM.putSpinMs);
+
+  sleeveArtFor(t.art, !!t.art);
+  $('#sleeve').style.display = 'flex';
+  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
+  stage.classList.add('putaway-in');
+
+  // the disc slide starts 600ms in, overlapping the sleeve's own arrival —
+  // a plain timer rather than waitAnimEnd since nothing here is waiting on
+  // the sleeve's animation to finish, just on the clock
+  await sleep(SLEEVE_ANIM.putSlideDelayMs);
+  if(cancelled()) return;
+  stage.classList.add('putaway-slide');
+
+  await waitAnimEnd(discBox, SLEEVE_ANIM.putSlideMs);
+  if(cancelled()) return;
+  // the disc has caught up to the sleeve's edge — it's "inside" now, so it
+  // disappears exactly as the sleeve starts its own exit
+  stage.classList.remove('putaway-in');
+  discBox.classList.add('disc-hidden');
+  stage.classList.add('putaway-out');
+
+  await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.putOutMs);
+  if(cancelled()) return;
+  stage.classList.remove('putaway-slide','putaway-out');
+  $('#sleeve').style.display = 'none';
+  S.platterEmpty = true;
+  renderMiniPlayer();
 }
 
 // Library selection always arrives via the sheet — something is being
@@ -3508,6 +3647,7 @@ async function play(){
   await S.ctx.resume();
   if(S.playing) return;
   S.playing = true;
+  clearSpinDown();   // real playback resumed — any eased-down spin-rate from a put-away no longer applies
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
   renderMiniPlayer();
@@ -3925,7 +4065,13 @@ function frame(now){
   const dt = tick(now, 0.1);
 
   if(!REDUCED){
-    const spin = S.playing ? S.rate : 0;
+    let spin;
+    if(S.playing) spin = S.rate;
+    else if(S.spinDown){
+      const p = clamp((now - S.spinDown.start) / S.spinDown.ms, 0, 1);
+      spin = S.spinDown.from * (1 - easeOutCubic(p));
+      if(p >= 1) S.spinDown = null;
+    } else spin = 0;
     S.angle = (S.angle + dt * spin * 200) % 360;              // 33⅓ rpm = 200°/s
     $('#disc').style.transform = 'rotate(' + S.angle + 'deg)';
   }
@@ -5202,7 +5348,11 @@ function showRoute(name){
   $('#play').addEventListener('click', async ()=>{
     if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext(null);
-    S.playing ? pause() : play();
+    if(S.playing) pause();
+    // the sleeve is covering an empty platter — bring the disc back out
+    // before playing, same ceremony as picking a track from the library
+    else if(S.platterEmpty) runStartSequence(current(), updateShellAlbum(current()), play);
+    else play();
   });
   $('#next').addEventListener('click', nextTrack);
   $('#prev').addEventListener('click', prevTrack);
@@ -5493,7 +5643,18 @@ function showRoute(name){
   $('#miniPlay').addEventListener('click', async ()=>{
     if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext(null);
-    S.playing ? pause() : play();
+    if(S.playing) pause();
+    else if(S.platterEmpty && S.playerOpen) runStartSequence(current(), updateShellAlbum(current()), play);
+    else if(S.platterEmpty){
+      // the full player isn't open to show the pull, so there's nothing to
+      // animate — skip straight to the pulled-out end state, same as
+      // advance() already does for an ordinary track change with the
+      // player closed, rather than running an unseen ~3-5s ceremony first
+      S.platterEmpty = false;
+      $('#platterBox').classList.remove('disc-hidden');
+      play();
+    }
+    else play();
   });
   $('#playerDismiss').addEventListener('click', closePlayer);
   $('#playerOverlay').addEventListener('pointerdown', ()=>{
