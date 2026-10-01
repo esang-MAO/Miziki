@@ -939,7 +939,7 @@ const S = {
   ctx:null, nodes:null, source:null, gen:0,
   tracks:[], index:-1, playing:false, pos:0, rate:1,
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
-  playlists:[], view:{mode:'songs', group:null, playlist:null, picking:false, editSelecting:false},
+  playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, picking:false, editSelecting:false},
   editSelection: new Set(),
   albumSort:{}, albumOrder:{}, lru:[], librarySort:'artist',
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
@@ -3910,6 +3910,23 @@ function sortBar(album){
   return bar;
 }
 
+// Shared by the Albums tab's own drill-down and an artist's per-album
+// drill-down (see LIBRARY spec — artist view should pick an album first,
+// not flatten every song from every album into one list).
+function renderAlbumDetail(host, ul, album){
+  const mode = S.albumSort[album] || 'auto';
+  host.appendChild(sortBar(album));
+  const q = albumTracks(album);
+  q.forEach((i,pos) => {
+    const row = songRow(i, q, pos);
+    if(mode === 'manual') row.appendChild(moverCtl(S.albumOrder[album], pos, syncQueueOrder));
+    ul.appendChild(row);
+  });
+  host.appendChild(ul);
+  if(mode === 'manual') host.appendChild(el('p','note',
+    'Your order for this album holds for the session. Tap a track to play the album in this order.'));
+}
+
 /* ================= library-wide search + sort =================
    Search matches artist/album/track title and groups results by type
    rather than interleaving them. Sort applies to whichever top-level list
@@ -4000,7 +4017,7 @@ function renderSearchResults(host, query){
     host.appendChild(el('p','note','No matches for “' + query + '”.'));
     return;
   }
-  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; $('#librarySearch').value = ''; renderTracks(); };
+  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
   if(results.artists.length){
     host.appendChild(el('p','note','Artists'));
     results.artists.forEach(artist => {
@@ -4050,27 +4067,43 @@ function renderTracks(){
     return;
   }
 
-  // breadcrumb when drilled into an album, artist or playlist
+  // breadcrumb when drilled into an album, artist (and its albums), or playlist
   const crumb = $('#crumb');
   const inside = v.group !== null || v.playlist !== null;
   crumb.style.display = inside ? 'flex' : 'none';
   if(inside){
     crumb.innerHTML = '';
+    const atArtistAlbum = v.mode === 'artists' && v.artistAlbum !== null;
     const back = el('button','crumb-back','‹ Back');
-    back.addEventListener('click', ()=>{ v.group = null; v.playlist = null; v.picking = false; renderTracks(); });
+    back.addEventListener('click', ()=>{
+      if(atArtistAlbum) v.artistAlbum = null;
+      else { v.group = null; v.playlist = null; v.picking = false; }
+      renderTracks();
+    });
     crumb.appendChild(back);
     crumb.appendChild(el('span','crumb-label',
-      v.playlist !== null ? S.playlists[v.playlist].name : v.group));
+      v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group)));
     // Album/artist deletion lives right where you're looking at that album
     // or artist — offered even for a single-album artist, no conditional
     // collapsing to album deletion (see LIBRARY spec §4)
     if(v.playlist === null && v.group !== null && (v.mode === 'albums' || v.mode === 'artists')){
-      const removeBtn = el('button','crumb-back', v.mode === 'albums' ? 'Remove Album' : 'Remove Artist');
+      const removeBtn = el('button','crumb-back', (v.mode === 'albums' || atArtistAlbum) ? 'Remove Album' : 'Remove Artist');
       removeBtn.style.marginLeft = 'auto';
       removeBtn.addEventListener('click', ()=>{
         const group = v.group;
         if(v.mode === 'albums'){
           openConfirmDelete('album', countForAlbum(group), group, async () => { deleteAlbum(group); v.group = null; renderTracks(); });
+        } else if(atArtistAlbum){
+          const album = v.artistAlbum;
+          const artist = v.group;
+          openConfirmDelete('album', countForAlbum(album), album, async () => {
+            deleteAlbum(album);
+            v.artistAlbum = null;
+            // if that was the artist's last album, there's nothing left to
+            // pick from — back out to the artist list instead of an empty screen
+            if(!countForArtist(artist)) v.group = null;
+            renderTracks();
+          });
         } else {
           openConfirmDelete('artist', countForArtist(group), group, async () => { deleteArtist(group); v.group = null; renderTracks(); });
         }
@@ -4097,17 +4130,7 @@ function renderTracks(){
           idx, ()=>{ v.group = album; renderTracks(); }));
       });
     } else {
-      const mode = S.albumSort[v.group] || 'auto';
-      host.appendChild(sortBar(v.group));
-      const q = albumTracks(v.group);
-      q.forEach((i,pos) => {
-        const row = songRow(i, q, pos);
-        if(mode === 'manual') row.appendChild(moverCtl(S.albumOrder[v.group], pos, syncQueueOrder));
-        ul.appendChild(row);
-      });
-      host.appendChild(ul);
-      if(mode === 'manual') host.appendChild(el('p','note',
-        'Your order for this album holds for the session. Tap a track to play the album in this order.'));
+      renderAlbumDetail(host, ul, v.group);
     }
   }
 
@@ -4118,11 +4141,23 @@ function renderTracks(){
         host.appendChild(groupRow(artist, albums + (albums===1?' album · ':' albums · ') + idx.length
           + (idx.length===1?' track':' tracks'), idx, ()=>{ v.group = artist; renderTracks(); }));
       });
+    } else if(v.artistAlbum === null){
+      // an artist with multiple albums lands here first — pick an album
+      // before seeing its tracks, same as the top-level Albums view, rather
+      // than dumping every song from every album in one flat list
+      const idx = allIdx().filter(i => S.tracks[i].tags.artist === v.group);
+      const albums = new Map();
+      idx.forEach(i => {
+        const album = S.tracks[i].tags.album;
+        if(!albums.has(album)) albums.set(album, []);
+        albums.get(album).push(i);
+      });
+      [...albums.entries()].sort((a,b) => byName(a[0], b[0])).forEach(([album, aidx]) => {
+        host.appendChild(groupRow(album, aidx.length + (aidx.length===1?' track':' tracks'),
+          aidx, ()=>{ v.artistAlbum = album; renderTracks(); }));
+      });
     } else {
-      const q = S.tracks.map((t,i)=>i).filter(i => S.tracks[i].tags.artist === v.group)
-        .sort((a,b) => byName(S.tracks[a].tags.album, S.tracks[b].tags.album) || trackSort(a,b));
-      q.forEach((i,pos) => ul.appendChild(songRow(i, q, pos)));
-      host.appendChild(ul);
+      renderAlbumDetail(host, ul, v.artistAlbum);
     }
   }
 
@@ -4790,7 +4825,7 @@ function showRoute(name){
   $('#shuffle').addEventListener('click', ()=>{ toggleShuffle(); queueSave(); });
   $('#repeat').addEventListener('click', ()=>{ cycleRepeat(); queueSave(); });
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', ()=>{
-    S.view.mode = b.dataset.view; S.view.group = null; S.view.playlist = null; S.view.picking = false;
+    S.view.mode = b.dataset.view; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null; S.view.picking = false;
     renderTracks();
   }));
   $('#scrub').addEventListener('input', ()=>{ scrubbing = true; });
