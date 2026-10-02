@@ -297,51 +297,53 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   stroke-linecap:round;stroke-linejoin:round}
 .tabbar-btn[aria-selected="true"]{color:var(--accent)}
 
-/* ---------- launch intro: crate riffle to a title screen ----------
+/* ---------- launch intro: vertical digital-crate flip-through ----------
    Cold start only (see runLaunchSequence). A fixed 390x740 design stage,
-   scaled uniformly to fit the viewport rather than redrawn per size. */
+   scaled uniformly to fit the viewport rather than redrawn per size.
+   Cover Flow turned on its side: one scalar `position` drives every visible
+   card's 3D transform (see launchCardPose()); cards are created/removed as
+   they enter/leave the +-8 visible window rather than existing all at once. */
 .launch-overlay{position:fixed;inset:0;z-index:500;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
   display:flex;align-items:center;justify-content:center;
   transition:opacity var(--launch-skip-duration,150ms) linear}
 .launch-overlay.launch-hidden{opacity:0;pointer-events:none}
-.launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;perspective:900px;
+.launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;
+  perspective:1000px;perspective-origin:50% 36%;
   transform:scale(var(--launch-scale,1))}
 .launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
   font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.16em;color:var(--muted);
-  opacity:.55;transition:opacity var(--launch-wordmark-duration,600ms) ease-out}
+  opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out}
 .launch-wordmark span{color:var(--accent)}
 .launch-wordmark.launch-grown{opacity:1;font-size:44px;letter-spacing:.1em;top:auto;bottom:140px}
-/* No crate box: the phone's own rectangular screen reads as the crate, so
-   the row of records runs the full width of the stage with only a thin
-   inset, not a wooden frame — see runLaunchSequence/renderLaunchReel. */
-.launch-reel{position:absolute;left:0;top:118px;width:100%;height:590px;
-  overflow:hidden;
-  opacity:0;transform:scale(.96);
-  transition:opacity var(--launch-crate-duration,300ms) ease-out,
-             transform var(--launch-crate-duration,300ms) ease-out,
-             filter var(--launch-recede-duration,800ms) ease-in;}
-.launch-reel.launch-settled{opacity:1;transform:scale(1)}
-.launch-reel.launch-receding{filter:blur(4px);opacity:.16}
-.launch-rec{position:absolute;left:22px;width:346px;height:6px;border-radius:2px;
-  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.28));
-  transform-origin:center top}
-.launch-rec.launch-target{box-shadow:0 0 0 1px var(--accent)}
-/* the pulled record travels from the crate's flat perspective to the
-   player-sleeve's face-on size/position — see runLaunchSequence's JS-set
-   inline transform/left/top per frame, this just establishes the base look */
-.launch-record{position:absolute;left:22px;top:340px;width:346px;height:40px;
-  border-radius:6px;overflow:hidden;display:none;
-  box-shadow:0 10px 28px rgba(0,0,0,.4)}
-.launch-record.launch-active{display:block}
-.launch-record-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+.launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
+  opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
+.launch-stack.launch-settled{opacity:1}
+.launch-card{position:absolute;left:56px;top:128px;width:278px;height:278px;
+  border-radius:6px;overflow:hidden;will-change:transform,opacity,filter;
+  box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.launch-card.launch-target{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
+.launch-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
-.launch-record-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.launch-record-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
-  color:var(--paper);white-space:nowrap;transform:rotate(-35deg)}
-.launch-record-mark span{color:var(--accent)}
-.launch-title{position:absolute;left:0;right:0;top:498px;text-align:center;
-  opacity:0;transition:opacity var(--launch-title-duration,600ms) ease-out}
+.launch-card-face::before{content:'';position:absolute;left:0;top:0;bottom:0;width:10px;
+  background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
+.launch-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
+  color:var(--paper);white-space:nowrap;transform:rotate(-35deg);font-size:34%}
+.launch-card-mark span{color:var(--accent)}
+.launch-rail{position:absolute;left:356px;top:110px;width:14px;height:520px;
+  opacity:1;transition:opacity var(--launch-pull-duration,600ms) ease-in}
+.launch-rail.launch-fading{opacity:0}
+.launch-rail-tick{position:absolute;right:0;width:5px;height:1px;background:var(--line)}
+.launch-rail-tick.launch-rail-tick-major{width:9px}
+.launch-rail-thumb{position:absolute;right:0;width:4px;height:22px;border-radius:2px;background:var(--accent)}
+.launch-counter{position:absolute;left:0;right:0;bottom:36px;text-align:center;
+  font-family:var(--data);opacity:1;transition:opacity var(--launch-pull-duration,600ms) ease-in}
+.launch-counter.launch-fading{opacity:0}
+.launch-counter-label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+.launch-counter-value{font-size:15px;letter-spacing:.12em;color:var(--paper);margin-top:2px}
+.launch-title{position:absolute;left:0;right:0;top:432px;text-align:center;
+  opacity:0;transition:opacity var(--launch-title-duration,300ms) ease-out}
 .launch-title.launch-shown{opacity:1}
 .launch-title-name{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.04em}
 .launch-title-sub{font-family:var(--data);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
@@ -514,8 +516,12 @@ input[type=file]{display:none}
 <div class="launch-overlay" id="launchOverlay" aria-hidden="true">
   <div class="launch-stage" id="launchStage">
     <div class="launch-wordmark" id="launchWordmark">Mi<span>zi</span>ki</div>
-    <div class="launch-reel" id="launchReel"></div>
-    <div class="launch-record" id="launchRecord" aria-hidden="true"></div>
+    <div class="launch-stack" id="launchStack"></div>
+    <div class="launch-rail" id="launchRail"></div>
+    <div class="launch-counter" id="launchCounter">
+      <div class="launch-counter-label">CRATE</div>
+      <div class="launch-counter-value" id="launchCounterValue"></div>
+    </div>
     <div class="launch-title" id="launchTitle">
       <div class="launch-title-name" id="launchTitleName"></div>
       <div class="launch-title-sub" id="launchTitleSub"></div>
@@ -3605,15 +3611,21 @@ let libraryReadyResolve;
 const libraryReadyPromise = new Promise(res => { libraryReadyResolve = res; });
 
 const LAUNCH_ANIM = {
-  settleMs: 300, waveMs: 1200, catchMs: 300, pullMs: 800, titleMs: 600, crossfadeMs: 600,
+  fadeMs: 250, accelMs: 650, cruiseMs: 800, decelMs: 800,
+  catchMs: 300, pullMs: 600, titleHoldMs: 300, crossfadeMs: 600,
   skipMs: 150, readyWaitMs: 700,
-  firstRunCount: 44, libraryCap: 44,
+  firstRunCount: 44, stackMin: 30, stackMax: 50,
+  // distance share of the scroll each phase covers, by construction summing
+  // to 1 so position lands exactly on the target at the end of decel — see
+  // computeFlickPosition(). Proportions come from the reference timeline
+  // (about 15:21:4 records for a 40-record flick).
+  accelShare: 0.375, cruiseShare: 0.525, decelShare: 0.10,
   edgePalette: ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A']
 };
-document.documentElement.style.setProperty('--launch-crate-duration', LAUNCH_ANIM.settleMs + 'ms');
-document.documentElement.style.setProperty('--launch-recede-duration', LAUNCH_ANIM.pullMs + 'ms');
-document.documentElement.style.setProperty('--launch-title-duration', LAUNCH_ANIM.titleMs + 'ms');
-document.documentElement.style.setProperty('--launch-wordmark-duration', LAUNCH_ANIM.titleMs + 'ms');
+document.documentElement.style.setProperty('--launch-fade-duration', LAUNCH_ANIM.fadeMs + 'ms');
+document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM.pullMs + 'ms');
+document.documentElement.style.setProperty('--launch-title-duration', LAUNCH_ANIM.titleHoldMs + 'ms');
+document.documentElement.style.setProperty('--launch-wordmark-duration', (LAUNCH_ANIM.catchMs + LAUNCH_ANIM.pullMs) + 'ms');
 document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
 
 function shouldShowLaunch(){ return S.launchIntro && !REDUCED && !document.hidden; }
@@ -3653,82 +3665,153 @@ function resolveLastPlayedTrackIndex(albumId){
   return best;
 }
 
-// one album per reel record, capped and evenly sampled, always keeping
-// the target (last-played) album in the sample (see LAUNCH spec C5)
-function sampleReelAlbums(cap, mustIncludeId){
-  const albumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
-  if(albumIds.length <= cap) return albumIds;
+// Evenly samples down to `cap` entries, always keeping mustIncludeId among
+// them (see LAUNCH spec §1, flick-length rule, A > 50 case).
+function sampleStackAlbums(allIds, cap, mustIncludeId){
   const picked = [];
-  const step = albumIds.length / cap;
-  for(let i=0;i<cap;i++) picked.push(albumIds[Math.floor(i*step)]);
-  const uniq = [...new Set(picked)];
-  if(mustIncludeId && !uniq.includes(mustIncludeId)) uniq[Math.floor(uniq.length/2)] = mustIncludeId;
-  return uniq;
+  const step = allIds.length / cap;
+  for(let i=0;i<cap;i++) picked.push(allIds[Math.floor(i*step)]);
+  if(mustIncludeId && !picked.includes(mustIncludeId)) picked[Math.floor(picked.length/2)] = mustIncludeId;
+  return picked;
 }
 
 // Resolves which variant to show and everything it needs, without touching
 // any DOM — kept separate from rendering so it's independently testable.
-function buildLaunchReel(){
-  if(!S.tracks.length) return {variant:'first-run'};
+// Flick-length rule: N = clamp(A, 30, 50). A < 30 cycles through the albums
+// so a small library still flicks past at least 30 records; A > 50 samples
+// 50 evenly. The last-played album always ends up at index N-4, the record
+// that gets caught (see LAUNCH spec §1).
+function buildLaunchStack(){
+  const firstRun = {variant:'first-run', count: LAUNCH_ANIM.firstRunCount, targetIndex: LAUNCH_ANIM.firstRunCount - 4};
+  if(!S.tracks.length) return firstRun;
   const targetAlbumId = resolveLastPlayedAlbum();
-  if(!targetAlbumId) return {variant:'first-run'};
-  const sampled = sampleReelAlbums(LAUNCH_ANIM.libraryCap, targetAlbumId);
-  const count = Math.max(sampled.length, 1);
-  const targetIndex = Math.min(count - 1, Math.round(count * 0.4));
-  const albumIds = sampled.filter(id => id !== targetAlbumId);
-  albumIds.splice(targetIndex, 0, targetAlbumId);
+  if(!targetAlbumId) return firstRun;
+  const allAlbumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
+  const A = allAlbumIds.length;
+  const N = clamp(A, LAUNCH_ANIM.stackMin, LAUNCH_ANIM.stackMax);
+  const targetIndex = N - 4;
+  let albumIds;
+  if(A > LAUNCH_ANIM.stackMax) albumIds = sampleStackAlbums(allAlbumIds, N, targetAlbumId);
+  else if(A < LAUNCH_ANIM.stackMin){ albumIds = []; for(let j=0;j<N;j++) albumIds.push(allAlbumIds[j % A]); }
+  else albumIds = allAlbumIds.slice();
+  albumIds[targetIndex] = targetAlbumId;   // the caught record is always the real last-played album
   const sampleTrack = S.tracks.find(t => albumKey(t) === targetAlbumId);
   return {
-    variant:'library', albumIds, targetIndex, targetAlbumId,
+    variant:'library', albumIds, targetIndex, targetAlbumId, count: N,
     targetArt: thumbURL['album:' + targetAlbumId] || null,
     targetTitle: sampleTrack ? sampleTrack.tags.album : '',
     targetArtist: sampleTrack ? (sampleTrack.tags.albumArtist || sampleTrack.tags.artist) : ''
   };
 }
 
-// The reel fills the phone's own width edge to edge (less a thin inset) —
-// there's no wooden crate box framing it, the screen itself reads as the
-// crate. rowTop comes back stage-relative (reel's own top offset included)
-// so the pulled record can start from exactly where its row sits.
-const LAUNCH_REEL_TOP = 118, LAUNCH_REEL_HEIGHT = 590;
-function renderLaunchReel(reel){
-  const host = $('#launchReel');
-  host.innerHTML = '';
-  const count = reel.variant === 'library' ? reel.albumIds.length : LAUNCH_ANIM.firstRunCount;
-  const targetIndex = reel.variant === 'library' ? reel.targetIndex : Math.round(LAUNCH_ANIM.firstRunCount * 0.4);
-  const top0 = 20, bottom0 = LAUNCH_REEL_HEIGHT - 20;
-  const step = count > 1 ? (bottom0 - top0) / (count - 1) : 0;
-  const recs = [];
-  for(let i=0; i<count; i++){
-    const el = document.createElement('div');
-    el.className = 'launch-rec';
-    el.style.top = (top0 + i*step) + 'px';
-    if(reel.variant === 'library'){
-      const albumId = reel.albumIds[i];
-      el.style.background = S.albumEdge[albumId] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
-      // at rest each strip is a 6px colour sliver; the album's own cover is
-      // already decoded (it's the same thumbnail the pull/catch uses), so
-      // riffling through them for real costs nothing extra to show — it
-      // only becomes visible once the wave leans the strip tall enough
-      const art = thumbURL['album:' + albumId];
-      if(art){ el.style.backgroundImage = 'url(' + art + ')'; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; }
-    } else {
-      el.style.background = LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
-    }
-    if(i === targetIndex) el.classList.add('launch-target');
-    host.appendChild(el);
-    recs.push(el);
+// one scalar drives the whole flick: ease-in over accelMs, linear cruise,
+// ease-out over decelMs, landing exactly on `target` (see LAUNCH spec §3)
+function computeFlickPosition(elapsedMs, target){
+  const { accelMs, cruiseMs, decelMs, accelShare, cruiseShare } = LAUNCH_ANIM;
+  const accelDist = target * accelShare, cruiseDist = target * cruiseShare;
+  const decelDist = target - accelDist - cruiseDist;
+  if(elapsedMs <= accelMs){
+    const u = elapsedMs / accelMs;
+    return accelDist * u*u*u;
   }
-  return {recs, targetIndex, rowTop: LAUNCH_REEL_TOP + top0 + targetIndex*step};
+  if(elapsedMs <= accelMs + cruiseMs){
+    const u = (elapsedMs - accelMs) / cruiseMs;
+    return accelDist + cruiseDist * u;
+  }
+  const u = clamp((elapsedMs - accelMs - cruiseMs) / decelMs, 0, 1);
+  return accelDist + cruiseDist + decelDist * (1 - Math.pow(1 - u, 3));
+}
+// trapezoidal 0->1->0 matching the accel/cruise/decel phases, used only to
+// scale the motion-blur/stretch cosmetics — not position itself
+function flickSpeed(elapsedMs){
+  const { accelMs, cruiseMs, decelMs } = LAUNCH_ANIM;
+  if(elapsedMs < accelMs) return elapsedMs / accelMs;
+  if(elapsedMs < accelMs + cruiseMs) return 1;
+  if(elapsedMs < accelMs + cruiseMs + decelMs) return 1 - (elapsedMs - accelMs - cruiseMs) / decelMs;
+  return 0;
 }
 
-function setLaunchWave(recs, center){
-  const halfWidth = 2.25;
-  recs.forEach((el, i) => {
-    const d = Math.abs(i - center);
-    const lean = d < halfWidth ? Math.cos((d/halfWidth) * (Math.PI/2)) : 0;
-    el.style.height = (6 + 34*lean) + 'px';
-  });
+// The 3D pose for a card at fractional distance `d` from the current
+// position (negative = above/earlier, positive = below/later), per the
+// LAUNCH spec §3 geometry formulas.
+function launchCardPose(d, speed, spread){
+  const a = Math.abs(d), dir = d < 0 ? -1 : (d > 0 ? 1 : 0);
+  const nearFactor = 1 + 0.3*speed, farFactor = 1 + 0.9*speed;
+  const baseOffset = a < 1 ? 170*a*nearFactor : 170*nearFactor + (a-1)*34*farFactor;
+  const offset = baseOffset * dir * (spread || 1);
+  const tiltMag = 62 * Math.min(a,1);
+  const tilt = dir < 0 ? -tiltMag : tiltMag;
+  const scale = 0.86 - 0.06*Math.min(a,1) - 0.02*Math.max(0, Math.min(a,8)-1);
+  const depth = -70*Math.min(a,1) - 6*Math.max(0, a-1);
+  const opacity = a <= 3 ? 1 : Math.max(0, 1 - 0.25*(a-3));
+  const blurPx = (a < 2 ? 2.6*speed : 1.3*speed);
+  return { offset, tilt, scale, depth, opacity, blurPx, z: Math.round((9-Math.min(a,9))*10) };
+}
+function applyLaunchCardPose(el, pose, extraScale){
+  const scale = pose.scale * (extraScale == null ? 1 : extraScale);
+  el.style.transform = 'translateY(' + pose.offset.toFixed(1) + 'px) translateZ(' + pose.depth.toFixed(1) + 'px) '
+    + 'rotateX(' + pose.tilt.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')';
+  el.style.opacity = pose.opacity;
+  el.style.filter = pose.blurPx > 0.05 ? 'blur(' + pose.blurPx.toFixed(2) + 'px)' : 'none';
+  el.style.zIndex = pose.z;
+}
+
+// Builds one card's DOM (cover art for the library variant, the default
+// cover otherwise) — only ever called for indices inside the visible
+// window, never all N up front (see LAUNCH spec §3 implementation note).
+function makeLaunchCard(stack, index){
+  const el = document.createElement('div');
+  el.className = 'launch-card';
+  if(index === stack.targetIndex) el.classList.add('launch-target');
+  const face = document.createElement('div');
+  face.className = 'launch-card-face';
+  let art = null;
+  if(stack.variant === 'library'){
+    const albumId = stack.albumIds[index];
+    art = thumbURL['album:' + albumId];
+  }
+  if(art){
+    const img = document.createElement('img');
+    img.src = art; img.alt = '';
+    img.decode().catch(() => {});
+    face.appendChild(img);
+  } else if(index === stack.targetIndex){
+    // the caught record becomes the title screen, so it always gets a
+    // presentable cover even with no thumbnail yet (see LAUNCH spec §5)
+    const mark = document.createElement('div');
+    mark.className = 'launch-card-mark';
+    mark.innerHTML = 'Mi<span>zi</span>ki';
+    face.appendChild(mark);
+  } else if(stack.variant === 'library'){
+    face.style.background = S.albumEdge[stack.albumIds[index]] || LAUNCH_ANIM.edgePalette[index % LAUNCH_ANIM.edgePalette.length];
+  } else {
+    face.style.background = LAUNCH_ANIM.edgePalette[index % LAUNCH_ANIM.edgePalette.length];
+  }
+  el.appendChild(face);
+  return el;
+}
+
+// Rail: one tick per record (longer every 5th) plus an amber thumb that
+// tracks `position`. Built once; only the thumb moves per frame.
+function renderLaunchRail(count){
+  const host = $('#launchRail');
+  host.innerHTML = '';
+  const h = 520;
+  for(let i=0;i<count;i++){
+    const tick = document.createElement('div');
+    tick.className = 'launch-rail-tick' + (i % 5 === 0 ? ' launch-rail-tick-major' : '');
+    tick.style.top = (count > 1 ? i/(count-1)*h : 0) + 'px';
+    host.appendChild(tick);
+  }
+  const thumb = document.createElement('div');
+  thumb.className = 'launch-rail-thumb';
+  host.appendChild(thumb);
+  return thumb;
+}
+function updateLaunchHUD(thumb, position, count){
+  const h = 520;
+  thumb.style.top = clamp(count > 1 ? position/(count-1)*h : 0, 0, h-22) + 'px';
+  $('#launchCounterValue').textContent = String(Math.round(position)+1).padStart(3,'0') + ' / ' + String(count).padStart(3,'0');
 }
 
 async function runLaunchSequence(){
@@ -3748,27 +3831,23 @@ async function runLaunchSequence(){
     sleep(LAUNCH_ANIM.readyWaitMs).then(() => false)
   ]);
   if(cancelled()) return;
-  const reel = ready ? buildLaunchReel() : {variant:'first-run'};
+  const stack = ready ? buildLaunchStack() : {variant:'first-run', count: LAUNCH_ANIM.firstRunCount, targetIndex: LAUNCH_ANIM.firstRunCount - 4};
   if(cancelled()) return;
   // S.launchIntro's persisted value loads inside restoreLibrary(), which by
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
 
-  const { recs, targetIndex, rowTop } = renderLaunchReel(reel);
-  const record = $('#launchRecord');
-  record.innerHTML = '';
-  const faceEl = document.createElement('div');
-  faceEl.className = 'launch-record-face';
-  if(reel.variant === 'library' && reel.targetArt){
-    const img = document.createElement('img'); img.src = reel.targetArt; img.alt = '';
-    faceEl.appendChild(img);
-  } else {
-    const mark = document.createElement('div');
-    mark.className = 'launch-record-mark';
-    mark.innerHTML = 'Mi<span>zi</span>ki';
-    faceEl.appendChild(mark);
+  const stackEl = $('#launchStack'), railEl = $('#launchRail'), counterEl = $('#launchCounter');
+  const thumb = renderLaunchRail(stack.count);
+  const cards = new Map();   // index -> element, only for the currently-visible window
+  function syncCards(position, speed, spread){
+    const lo = Math.max(0, Math.floor(position) - 8), hi = Math.min(stack.count - 1, Math.ceil(position) + 8);
+    for(const i of Array.from(cards.keys())) if(i < lo || i > hi){ cards.get(i).remove(); cards.delete(i); }
+    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(stack, i); stackEl.appendChild(el); cards.set(i, el); }
+    cards.forEach((el, i) => applyLaunchCardPose(el, launchCardPose(i - position, speed, spread)));
   }
-  record.appendChild(faceEl);
+  syncCards(0, 0, 1);
+  updateLaunchHUD(thumb, 0, stack.count);
 
   // swallow the first tap anywhere on the overlay: snap to the end instantly
   // rather than letting it also press whatever is underneath
@@ -3786,21 +3865,65 @@ async function runLaunchSequence(){
     setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, LAUNCH_ANIM.skipMs);
   }
 
-  // REEL settles in (no crate box — the phone's own screen is the crate)
-  const reelEl = $('#launchReel');
-  void reelEl.offsetWidth;
-  reelEl.classList.add('launch-settled');
-  await sleep(LAUNCH_ANIM.settleMs);
+  // STACK fades up, resting on record 0
+  void stackEl.offsetWidth;
+  stackEl.classList.add('launch-settled');
+  await sleep(LAUNCH_ANIM.fadeMs);
   if(cancelled()) return;
 
-  // RIFFLE: the wave runs down the row, ease-in-out, stopping on the target
-  const waveStart = performance.now();
+  // FLICK: accelerate, cruise, decelerate — one position, driven by rAF
+  const scrollMs = LAUNCH_ANIM.accelMs + LAUNCH_ANIM.cruiseMs + LAUNCH_ANIM.decelMs;
+  const flickStart = performance.now();
   await new Promise(resolve => {
     function step(now){
       if(cancelled()){ resolve(); return; }
-      const p = clamp((now - waveStart) / LAUNCH_ANIM.waveMs, 0, 1);
+      const elapsed = now - flickStart;
+      const position = computeFlickPosition(Math.min(elapsed, scrollMs), stack.targetIndex);
+      const speed = flickSpeed(elapsed);
+      syncCards(position, speed, 1);
+      updateLaunchHUD(thumb, position, stack.count);
+      if(elapsed >= scrollMs){ resolve(); return; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  if(cancelled()) return;
+  syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual blur/speed-stretch
+
+  // CATCH: amber outline (already on the target card's class), small settle
+  const targetCard = cards.get(stack.targetIndex);
+  if(targetCard){
+    targetCard.style.transition = 'transform ' + LAUNCH_ANIM.catchMs + 'ms ease-out';
+    void targetCard.offsetWidth;
+    targetCard.style.transform += ' scale(1.015)';
+    await sleep(LAUNCH_ANIM.catchMs / 2);
+    if(cancelled()) return;
+    applyLaunchCardPose(targetCard, launchCardPose(0, 0, 1));
+  }
+  await sleep(LAUNCH_ANIM.catchMs / 2);
+  if(cancelled()) return;
+
+  // PULL TO CAMERA: the target scales up to face-on (it's already sitting at
+  // the title's position/size — only its scale/tilt/depth are non-identity);
+  // neighbours spread apart, blur and fade; rail/counter fade out
+  railEl.classList.add('launch-fading');
+  counterEl.classList.add('launch-fading');
+  const wordmarkEl = $('#launchWordmark');
+  wordmarkEl.classList.add('launch-grown');
+  const pullStart = performance.now();
+  await new Promise(resolve => {
+    function step(now){
+      if(cancelled()){ resolve(); return; }
+      const p = clamp((now - pullStart) / LAUNCH_ANIM.pullMs, 0, 1);
       const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
-      setLaunchWave(recs, eased * targetIndex);
+      const spread = 1 + 1.2*eased;   // neighbours spread ~1.7x-2.2x by the end
+      cards.forEach((el, i) => {
+        if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased); return; }
+        const pose = launchCardPose(i - stack.targetIndex, 0, spread);
+        pose.blurPx = 2.5 + 2.5*eased;
+        pose.opacity = Math.max(0, pose.opacity) * (1 - 0.9*eased);
+        applyLaunchCardPose(el, pose);
+      });
       if(p >= 1){ resolve(); return; }
       requestAnimationFrame(step);
     }
@@ -3808,50 +3931,17 @@ async function runLaunchSequence(){
   });
   if(cancelled()) return;
 
-  // CATCH: the target lifts, gets its outline, neighbours part
-  const targetEl = recs[targetIndex];
-  targetEl.style.transition = 'transform ' + LAUNCH_ANIM.catchMs + 'ms ease-out';
-  targetEl.style.transform = 'translateY(-16px)';
-  if(recs[targetIndex-1]){ recs[targetIndex-1].style.transition = targetEl.style.transition; recs[targetIndex-1].style.transform = 'translateY(-12px)'; }
-  if(recs[targetIndex+1]){ recs[targetIndex+1].style.transition = targetEl.style.transition; recs[targetIndex+1].style.transform = 'translateY(12px)'; }
-  await sleep(LAUNCH_ANIM.catchMs);
-  if(cancelled()) return;
-
-  // PULL TO CAMERA: the record leaves the reel row and grows face-on into
-  // the title position, while the reel itself recedes behind it
-  reelEl.classList.add('launch-receding');
-  record.classList.add('launch-active');
-  record.style.transition = 'none';
-  record.style.left = '22px';
-  record.style.top = rowTop + 'px';
-  record.style.width = '346px';
-  record.style.height = '40px';
-  record.style.transform = 'scale(.62) rotateX(52deg)';
-  void record.offsetWidth;
-  record.style.transition = 'left ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, top ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, '
-    + 'width ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, height ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out, '
-    + 'transform ' + LAUNCH_ANIM.pullMs + 'ms ease-in-out';
-  record.style.left = '56px';
-  record.style.top = '128px';
-  record.style.width = '278px';
-  record.style.height = '278px';
-  record.style.transform = 'none';
-  await sleep(LAUNCH_ANIM.pullMs);
-  if(cancelled()) return;
-
-  // TITLE: holds as the title screen, wordmark grows in
-  const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle'), wordmarkEl = $('#launchWordmark');
-  if(reel.variant === 'library'){
-    nameEl.textContent = reel.targetTitle;
-    subEl.innerHTML = (reel.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
-    wordmarkEl.style.fontSize = '20px';
+  // TITLE: holds as the title screen
+  const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle');
+  if(stack.variant === 'library'){
+    nameEl.textContent = stack.targetTitle;
+    subEl.innerHTML = (stack.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
   } else {
     nameEl.innerHTML = 'Mi<span>zi</span>ki';
     subEl.textContent = 'LOCAL · LOSSLESS';
   }
   titleEl.classList.add('launch-shown');
-  wordmarkEl.classList.add('launch-grown');
-  await sleep(LAUNCH_ANIM.titleMs);
+  await sleep(LAUNCH_ANIM.titleHoldMs);
   if(cancelled()) return;
 
   // CROSSFADE: out to the library, mini player included
