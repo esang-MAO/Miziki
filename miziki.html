@@ -312,27 +312,25 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   opacity:.55;transition:opacity var(--launch-wordmark-duration,600ms) ease-out}
 .launch-wordmark span{color:var(--accent)}
 .launch-wordmark.launch-grown{opacity:1;font-size:44px;letter-spacing:.1em;top:auto;bottom:140px}
-.launch-crate{position:absolute;left:28px;top:128px;width:334px;height:566px;
-  border-radius:6px;background:linear-gradient(160deg,#8A5A32,#5C3A1E);
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.25);
-  opacity:0;transform:scale(.94);
+/* No crate box: the phone's own rectangular screen reads as the crate, so
+   the row of records runs the full width of the stage with only a thin
+   inset, not a wooden frame — see runLaunchSequence/renderLaunchReel. */
+.launch-reel{position:absolute;left:0;top:118px;width:100%;height:590px;
+  overflow:hidden;
+  opacity:0;transform:scale(.96);
   transition:opacity var(--launch-crate-duration,300ms) ease-out,
              transform var(--launch-crate-duration,300ms) ease-out,
-             filter var(--launch-recede-duration,800ms) ease-in;
-  padding:10px}
-.launch-crate.launch-settled{opacity:1;transform:scale(1)}
-.launch-crate.launch-receding{filter:blur(4px);opacity:.16}
-.launch-crate-rim{position:relative;width:100%;height:100%;border-radius:3px;
-  background:#1A120C;overflow:hidden}
-.launch-crate-inner{position:absolute;inset:0}
-.launch-rec{position:absolute;left:20px;width:282px;height:6px;border-radius:2px;
+             filter var(--launch-recede-duration,800ms) ease-in;}
+.launch-reel.launch-settled{opacity:1;transform:scale(1)}
+.launch-reel.launch-receding{filter:blur(4px);opacity:.16}
+.launch-rec{position:absolute;left:22px;width:346px;height:6px;border-radius:2px;
   background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.28));
   transform-origin:center top}
 .launch-rec.launch-target{box-shadow:0 0 0 1px var(--accent)}
 /* the pulled record travels from the crate's flat perspective to the
    player-sleeve's face-on size/position — see runLaunchSequence's JS-set
    inline transform/left/top per frame, this just establishes the base look */
-.launch-record{position:absolute;left:54px;top:340px;width:282px;height:40px;
+.launch-record{position:absolute;left:22px;top:340px;width:346px;height:40px;
   border-radius:6px;overflow:hidden;display:none;
   box-shadow:0 10px 28px rgba(0,0,0,.4)}
 .launch-record.launch-active{display:block}
@@ -516,11 +514,7 @@ input[type=file]{display:none}
 <div class="launch-overlay" id="launchOverlay" aria-hidden="true">
   <div class="launch-stage" id="launchStage">
     <div class="launch-wordmark" id="launchWordmark">Mi<span>zi</span>ki</div>
-    <div class="launch-crate" id="launchCrate">
-      <div class="launch-crate-rim">
-        <div class="launch-crate-inner" id="launchCrateInner"></div>
-      </div>
-    </div>
+    <div class="launch-reel" id="launchReel"></div>
     <div class="launch-record" id="launchRecord" aria-hidden="true"></div>
     <div class="launch-title" id="launchTitle">
       <div class="launch-title-name" id="launchTitleName"></div>
@@ -3659,9 +3653,9 @@ function resolveLastPlayedTrackIndex(albumId){
   return best;
 }
 
-// one album per crate record, capped and evenly sampled, always keeping
+// one album per reel record, capped and evenly sampled, always keeping
 // the target (last-played) album in the sample (see LAUNCH spec C5)
-function sampleCrateAlbums(cap, mustIncludeId){
+function sampleReelAlbums(cap, mustIncludeId){
   const albumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
   if(albumIds.length <= cap) return albumIds;
   const picked = [];
@@ -3674,11 +3668,11 @@ function sampleCrateAlbums(cap, mustIncludeId){
 
 // Resolves which variant to show and everything it needs, without touching
 // any DOM — kept separate from rendering so it's independently testable.
-function buildLaunchCrate(){
+function buildLaunchReel(){
   if(!S.tracks.length) return {variant:'first-run'};
   const targetAlbumId = resolveLastPlayedAlbum();
   if(!targetAlbumId) return {variant:'first-run'};
-  const sampled = sampleCrateAlbums(LAUNCH_ANIM.libraryCap, targetAlbumId);
+  const sampled = sampleReelAlbums(LAUNCH_ANIM.libraryCap, targetAlbumId);
   const count = Math.max(sampled.length, 1);
   const targetIndex = Math.min(count - 1, Math.round(count * 0.4));
   const albumIds = sampled.filter(id => id !== targetAlbumId);
@@ -3692,27 +3686,40 @@ function buildLaunchCrate(){
   };
 }
 
-function renderLaunchCrate(crate){
-  const host = $('#launchCrateInner');
+// The reel fills the phone's own width edge to edge (less a thin inset) —
+// there's no wooden crate box framing it, the screen itself reads as the
+// crate. rowTop comes back stage-relative (reel's own top offset included)
+// so the pulled record can start from exactly where its row sits.
+const LAUNCH_REEL_TOP = 118, LAUNCH_REEL_HEIGHT = 590;
+function renderLaunchReel(reel){
+  const host = $('#launchReel');
   host.innerHTML = '';
-  const count = crate.variant === 'library' ? crate.albumIds.length : LAUNCH_ANIM.firstRunCount;
-  const targetIndex = crate.variant === 'library' ? crate.targetIndex : Math.round(LAUNCH_ANIM.firstRunCount * 0.4);
-  const top0 = 32, bottom0 = 566 - 32;
+  const count = reel.variant === 'library' ? reel.albumIds.length : LAUNCH_ANIM.firstRunCount;
+  const targetIndex = reel.variant === 'library' ? reel.targetIndex : Math.round(LAUNCH_ANIM.firstRunCount * 0.4);
+  const top0 = 20, bottom0 = LAUNCH_REEL_HEIGHT - 20;
   const step = count > 1 ? (bottom0 - top0) / (count - 1) : 0;
   const recs = [];
   for(let i=0; i<count; i++){
     const el = document.createElement('div');
     el.className = 'launch-rec';
     el.style.top = (top0 + i*step) + 'px';
-    const color = crate.variant === 'library'
-      ? (S.albumEdge[crate.albumIds[i]] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length])
-      : LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
-    el.style.background = color;
+    if(reel.variant === 'library'){
+      const albumId = reel.albumIds[i];
+      el.style.background = S.albumEdge[albumId] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
+      // at rest each strip is a 6px colour sliver; the album's own cover is
+      // already decoded (it's the same thumbnail the pull/catch uses), so
+      // riffling through them for real costs nothing extra to show — it
+      // only becomes visible once the wave leans the strip tall enough
+      const art = thumbURL['album:' + albumId];
+      if(art){ el.style.backgroundImage = 'url(' + art + ')'; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; }
+    } else {
+      el.style.background = LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
+    }
     if(i === targetIndex) el.classList.add('launch-target');
     host.appendChild(el);
     recs.push(el);
   }
-  return {recs, targetIndex, rowTop: top0 + targetIndex*step};
+  return {recs, targetIndex, rowTop: LAUNCH_REEL_TOP + top0 + targetIndex*step};
 }
 
 function setLaunchWave(recs, center){
@@ -3741,19 +3748,19 @@ async function runLaunchSequence(){
     sleep(LAUNCH_ANIM.readyWaitMs).then(() => false)
   ]);
   if(cancelled()) return;
-  const crate = ready ? buildLaunchCrate() : {variant:'first-run'};
+  const reel = ready ? buildLaunchReel() : {variant:'first-run'};
   if(cancelled()) return;
   // S.launchIntro's persisted value loads inside restoreLibrary(), which by
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
 
-  const { recs, targetIndex, rowTop } = renderLaunchCrate(crate);
+  const { recs, targetIndex, rowTop } = renderLaunchReel(reel);
   const record = $('#launchRecord');
   record.innerHTML = '';
   const faceEl = document.createElement('div');
   faceEl.className = 'launch-record-face';
-  if(crate.variant === 'library' && crate.targetArt){
-    const img = document.createElement('img'); img.src = crate.targetArt; img.alt = '';
+  if(reel.variant === 'library' && reel.targetArt){
+    const img = document.createElement('img'); img.src = reel.targetArt; img.alt = '';
     faceEl.appendChild(img);
   } else {
     const mark = document.createElement('div');
@@ -3779,10 +3786,10 @@ async function runLaunchSequence(){
     setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, LAUNCH_ANIM.skipMs);
   }
 
-  // CRATE settles in
-  const crateEl = $('#launchCrate');
-  void crateEl.offsetWidth;
-  crateEl.classList.add('launch-settled');
+  // REEL settles in (no crate box — the phone's own screen is the crate)
+  const reelEl = $('#launchReel');
+  void reelEl.offsetWidth;
+  reelEl.classList.add('launch-settled');
   await sleep(LAUNCH_ANIM.settleMs);
   if(cancelled()) return;
 
@@ -3810,14 +3817,14 @@ async function runLaunchSequence(){
   await sleep(LAUNCH_ANIM.catchMs);
   if(cancelled()) return;
 
-  // PULL TO CAMERA: the record leaves the crate row and grows face-on into
-  // the title position, while the crate itself recedes behind it
-  crateEl.classList.add('launch-receding');
+  // PULL TO CAMERA: the record leaves the reel row and grows face-on into
+  // the title position, while the reel itself recedes behind it
+  reelEl.classList.add('launch-receding');
   record.classList.add('launch-active');
   record.style.transition = 'none';
-  record.style.left = '54px';
+  record.style.left = '22px';
   record.style.top = rowTop + 'px';
-  record.style.width = '282px';
+  record.style.width = '346px';
   record.style.height = '40px';
   record.style.transform = 'scale(.62) rotateX(52deg)';
   void record.offsetWidth;
@@ -3834,9 +3841,9 @@ async function runLaunchSequence(){
 
   // TITLE: holds as the title screen, wordmark grows in
   const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle'), wordmarkEl = $('#launchWordmark');
-  if(crate.variant === 'library'){
-    nameEl.textContent = crate.targetTitle;
-    subEl.innerHTML = (crate.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
+  if(reel.variant === 'library'){
+    nameEl.textContent = reel.targetTitle;
+    subEl.innerHTML = (reel.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
     wordmarkEl.style.fontSize = '20px';
   } else {
     nameEl.innerHTML = 'Mi<span>zi</span>ki';
