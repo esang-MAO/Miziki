@@ -3703,10 +3703,18 @@ function renderLaunchReel(reel){
     const el = document.createElement('div');
     el.className = 'launch-rec';
     el.style.top = (top0 + i*step) + 'px';
-    const color = reel.variant === 'library'
-      ? (S.albumEdge[reel.albumIds[i]] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length])
-      : LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
-    el.style.background = color;
+    if(reel.variant === 'library'){
+      const albumId = reel.albumIds[i];
+      el.style.background = S.albumEdge[albumId] || LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
+      // at rest each strip is a 6px colour sliver; the album's own cover is
+      // already decoded (it's the same thumbnail the pull/catch uses), so
+      // riffling through them for real costs nothing extra to show — it
+      // only becomes visible once the wave leans the strip tall enough
+      const art = thumbURL['album:' + albumId];
+      if(art){ el.style.backgroundImage = 'url(' + art + ')'; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; }
+    } else {
+      el.style.background = LAUNCH_ANIM.edgePalette[i % LAUNCH_ANIM.edgePalette.length];
+    }
     if(i === targetIndex) el.classList.add('launch-target');
     host.appendChild(el);
     recs.push(el);
