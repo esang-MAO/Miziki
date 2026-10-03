@@ -434,7 +434,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
    top bar and the info panel below. A pool of ~17-20 cards is recycled as
    S.crate.pos changes — see renderCrate()/syncCrateCards(). */
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.crate-wrap{margin-top:10px}
+.crate-wrap{margin-top:10px;position:relative}
 .crate-group-toggle{margin-bottom:10px}
 .crate-stage{position:relative;height:460px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
@@ -455,7 +455,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   line-height:1.05;word-break:break-word}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:9px;letter-spacing:.08em}
-.crate-rail{position:absolute;right:2px;top:10px;bottom:10px;width:26px}
+.crate-rail{position:absolute;right:2px;top:10px;height:440px;width:26px}
 .crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:8.5px;letter-spacing:.04em;
   color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
 .crate-rail-item.crate-rail-current{color:var(--accent);opacity:1}
@@ -471,6 +471,11 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
   letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:4px 10px;
   margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.crate-topbar{display:none;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
+  letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:5px 12px;
+  margin-bottom:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-topbar.show{display:inline-flex}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;scroll-snap-align:center}
 .crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}
@@ -6536,7 +6541,15 @@ function renderCrate(host){
   }
   S.crate.pos = startPos;
 
+  // resolved once per render — the playing album can't change while the
+  // user is actively scrubbing the stage, so this doesn't need to be
+  // recomputed every frame (CRATE spec §4, "Now playing")
+  const nowPlayingIdx = model.items.findIndex(isNowPlayingAlbum);
+
   const wrap = el('div','crate-wrap');
+  const nowPlayingBtn = el('button','crate-topbar');
+  nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
+  nowPlayingBtn.addEventListener('click', () => { if(nowPlayingIdx >= 0) snapTo(nowPlayingIdx); });
   const stage = el('div','crate-stage');
   stage.tabIndex = 0;
   stage.setAttribute('role','listbox');
@@ -6545,7 +6558,7 @@ function renderCrate(host){
   stage.appendChild(live);
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
-  wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  wrap.appendChild(nowPlayingBtn); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
   host.appendChild(wrap);
 
   applyCrateMiniInset();
@@ -6590,6 +6603,18 @@ function renderCrate(host){
     img.src = art;
   }
   function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); }
+
+  // a chip above the stage for when the playing album has been scrolled
+  // away from — tapping it scrolls back (CRATE spec §4, "Now playing")
+  function updateNowPlayingTopBar(position){
+    if(nowPlayingIdx < 0 || Math.round(position) === nowPlayingIdx){
+      nowPlayingBtn.classList.remove('show');
+      return;
+    }
+    const item = itemAt(nowPlayingIdx);
+    nowPlayingBtn.textContent = '● Now playing — ' + item.album;
+    nowPlayingBtn.classList.add('show');
+  }
 
   function updateInfoPanel(idx){
     const item = itemAt(idx);
@@ -6663,6 +6688,7 @@ function renderCrate(host){
     });
     updateInfoPanel(Math.round(position));
     updateRailUI(position);
+    updateNowPlayingTopBar(position);
   }
   function draw(speed){ syncCards(S.crate.pos, speed); }
 
