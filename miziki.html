@@ -4971,10 +4971,14 @@ function openPlayerViaSheet(t, info){
   const ov = $('#playerOverlay');
   ov.setAttribute('aria-hidden','false');
   ov.classList.add('open');
-  ov.addEventListener('transitionend', function settled(){
-    ov.removeEventListener('transitionend', settled);
-    runStartSequence(t, info, play);
-  }, {once:true});
+  // under REDUCED the sheet's slide-up transition is `none` (see .player-
+  // overlay's reduced-motion rule), so transitionend never fires — go
+  // straight to the ceremony instead of waiting on an event that won't come
+  if(REDUCED){ runStartSequence(t, info, play); return; }
+  let done = false;
+  const settle = () => { if(done) return; done = true; ov.removeEventListener('transitionend', settle); runStartSequence(t, info, play); };
+  ov.addEventListener('transitionend', settle, {once:true});
+  setTimeout(settle, SLEEVE_ANIM.sheetMs + 150);   // safety net if transitionend never fires
 }
 
 // Tapping the mini-player is always a return to what's already playing —
