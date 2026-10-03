@@ -485,6 +485,109 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
 
+/* ================= S3: gatefold album view (opens from the crate) =========
+   Three flat planes in one 3D stage, no per-album image cutting: the cover
+   (350x350, two backface-hidden faces) sits at the same spot as the
+   tracklist panel and swings open on its left hinge to reveal it, landing
+   its back face — the inside-left panel — where the hinge rotation puts it
+   (GATEFOLD spec §A2). Above the library, below the mini player/tab bar. */
+.gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;background:#0A0E12}
+.gatefold.open{display:block}
+.gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
+  font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--paper);opacity:0;
+  transition:opacity .15s;padding:6px 4px}
+.gatefold.gf-chrome-in .gf-back{opacity:1}
+.gf-stage{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 40%}
+.gf-camera{position:absolute;left:0;top:0;width:390px;height:740px;
+  transform-style:preserve-3d;transform-origin:0 0;
+  transform:scale(var(--gf-page-scale,1))
+    translate(195px,255px) scale(var(--gf-s,1)) translate(calc(-1 * var(--gf-cx, 175px)),-255px)}
+.gf-right{position:absolute;left:0;top:80px;width:350px;height:350px;border-radius:4px;
+  overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
+.gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
+.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:12px 14px;outline:none}
+.gf-tl-head{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:2px}
+.gf-tl-title{font-family:var(--display);font-size:22px;font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+.gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
+  font-family:var(--data);margin:10px 0 2px}
+.gf-side-head b{color:var(--accent);font-size:10.5px;letter-spacing:.2em}
+.gf-side-head span{color:var(--muted);font-size:9.5px}
+.gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  min-height:44px;padding-block:9px;border-radius:4px}
+.gf-track-row:active{background:rgba(255,158,44,.14);transition:background .12s}
+.gf-track-row .gf-tn{font-family:var(--data);font-size:10.5px;color:var(--muted);width:20px;flex:0 0 auto}
+.gf-track-row .gf-tt{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gf-track-row .gf-td{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:0 0 auto}
+.gf-track-row.gf-now-playing .gf-tt{color:var(--accent)}
+.gf-track-row.gf-now-playing .gf-tn{color:var(--accent)}
+.gf-now-glyph{display:inline-block;width:10px}
+.gf-now-glyph span{display:inline-block;width:2px;background:var(--accent);margin-right:1px;
+  animation:gfbar 1s ease-in-out infinite}
+.gf-now-glyph span:nth-child(1){height:6px}.gf-now-glyph span:nth-child(2){height:10px;animation-delay:.2s}
+.gf-now-glyph span:nth-child(3){height:4px;animation-delay:.4s}
+@keyframes gfbar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.gf-tl-fade{position:absolute;left:0;right:0;bottom:0;height:22px;pointer-events:none;
+  background:linear-gradient(transparent,#1C1226)}
+.gf-cover{position:absolute;left:0;top:80px;width:350px;height:350px;border-radius:4px;
+  transform-style:preserve-3d;transform-origin:0 50%;transform:rotateY(0deg);
+  box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.gf-face{position:absolute;inset:0;border-radius:4px;overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.gf-face-front{background:#1C1226}
+.gf-face-front img{width:100%;height:100%;object-fit:cover;display:block}
+.gf-face-front::after{content:'';position:absolute;inset:0 0 0 0;pointer-events:none;
+  box-shadow:inset 12px 0 10px -10px rgba(0,0,0,.45)}
+.gf-face-back{transform:rotateY(180deg);background:#1C1226;color:var(--paper)}
+.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px;outline:none}
+.gf-left h3{font-family:var(--display);font-size:19px;margin:0 0 8px}
+.gf-left .gf-liner{font-size:13px;color:var(--paper);opacity:.9;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+.gf-left .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;
+  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.gf-left .gf-credit-row em{font-style:normal;color:var(--muted)}
+.gf-left .gf-credit-row a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
+.gf-left .gf-meta-line{font-family:var(--data);font-size:10px;color:var(--muted);margin:10px 0}
+.gf-left .gf-booklet-btn{margin-top:10px;border:1px solid var(--accent);color:var(--accent);
+  border-radius:16px;padding:8px 16px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em}
+.gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
+.gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
+.gf-info{position:absolute;left:20px;right:20px;opacity:0;transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-info{opacity:1}
+.gf-info-title{font-family:var(--display);font-size:19px;margin:0}
+.gf-info-sub{font-size:13px;color:var(--muted);margin:2px 0}
+.gf-info-meta{font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.06em}
+.gf-sleeve{position:absolute;left:20px;right:20px;height:300px;overflow:hidden;pointer-events:none;
+  opacity:0;transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-sleeve{opacity:1}
+.gf-sleeve-paper{position:absolute;left:0;right:0;top:40px;bottom:-200px;
+  background:linear-gradient(180deg,#E6DCC4,#CBBE9F);border-radius:3px;
+  box-shadow:0 -10px 24px rgba(0,0,0,.35);
+  mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px);
+  -webkit-mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px)}
+.gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:156px;height:156px;margin-left:-78px;
+  opacity:1;transition:transform .25s ease-out,opacity .3s}
+.gf-sleeve-disc-wrap.gf-disc-out{transform:translateY(-96px)}
+.gf-sleeve-disc-wrap.gf-disc-empty{opacity:0}
+.gf-panel-toggle button{font-family:var(--data);font-size:10px}
+.gf-flat-tracks{position:absolute;inset:0;background:#1C1226;color:var(--paper);
+  display:none;flex-direction:column;opacity:0;transition:opacity .15s}
+.gf-flat-tracks.show{display:flex}
+.gatefold.gf-chrome-in .gf-flat-tracks{opacity:1}
+.gf-flat-head{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 16px 10px}
+.gf-flat-head .gf-flat-seg{margin-left:auto;display:flex;gap:4px}
+.gf-flat-seg button{font-family:var(--data);font-size:10px;letter-spacing:.08em;padding:4px 10px;
+  border-radius:10px;color:var(--muted)}
+.gf-flat-seg button[aria-pressed="true"]{color:#1C1226;background:var(--accent)}
+.gf-flat-body{flex:1;overflow-y:auto;padding:0 16px 16px}
+@media (prefers-reduced-motion:reduce){
+  .gf-cover,.gf-camera,.gf-back,.gf-info,.gf-sleeve,.gf-flat-tracks,.gf-sleeve-disc-wrap{transition:none}
+}
+/* A8: iPad / wide viewports — flat side-by-side spread, no camera move
+   (the JS simply never animates --gf-s/--gf-cx in this mode) */
+.gatefold.gf-wide .gf-right{left:420px}
+.gatefold.gf-wide .gf-sleeve,.gatefold.gf-wide .gf-left-cue{display:none}
+.gatefold.gf-wide .gf-info{left:20px;top:450px;right:auto;width:380px}
+
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
@@ -885,7 +988,7 @@ input[type=file]{display:none}
               <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
             </div>
           </div>
-          <div class="lib-tools-row2" id="sidesRow" style="display:none">
+          <div class="lib-tools-row2" id="sidesRow">
             <span class="k">Sides A / B</span>
             <div class="seg" id="sidesToggle">
               <button data-sides="off" aria-pressed="true">Off</button>
@@ -1283,6 +1386,48 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- GATEFOLD: opens from the crate's centre record (GATEFOLD spec) -->
+<div class="gatefold" id="gatefold" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <button class="gf-back" id="gfBack" aria-label="Back to crate">‹ CRATE</button>
+  <div class="gf-stage" id="gfStage">
+    <div class="gf-camera" id="gfCamera">
+      <div class="gf-right" id="gfRight">
+        <div class="gf-tracklist" id="gfTracklist" tabindex="-1"></div>
+        <div class="gf-tl-fade"></div>
+        <div class="gf-shadow" id="gfShadow"></div>
+      </div>
+      <div class="gf-left-cue" id="gfLeftCue"></div>
+      <div class="gf-cover" id="gfCover">
+        <div class="gf-face gf-face-front" id="gfFaceFront"><img id="gfCoverArt" alt=""></div>
+        <div class="gf-face gf-face-back" id="gfFaceBack">
+          <div class="gf-left" id="gfLeft" tabindex="-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gf-flat-tracks" id="gfFlatTracks">
+    <div class="gf-flat-head">
+      <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ CRATE</button>
+      <div class="gf-flat-seg" id="gfFlatSeg" role="tablist">
+        <button data-panel="right" aria-pressed="true">Tracks</button>
+        <button data-panel="left" aria-pressed="false">Inside</button>
+      </div>
+    </div>
+    <div class="gf-flat-body" id="gfFlatBody"></div>
+  </div>
+  <div class="gf-info" id="gfInfo"></div>
+  <div class="gf-sleeve" id="gfSleeve" aria-hidden="true">
+    <div class="gf-sleeve-paper"></div>
+    <div class="gf-sleeve-disc-wrap" id="gfSleeveDiscWrap">
+      <div class="disc" id="gfDisc"><div class="label has-art" id="gfDiscLabel"><img class="art" id="gfDiscArt" alt=""></div></div>
+    </div>
+  </div>
+  <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
+    <button data-panel="right" aria-pressed="true">Tracks</button>
+    <button data-panel="left" aria-pressed="false">Inside</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -1349,6 +1494,8 @@ S.libraryLayout = 'crate';
 S.view.mode = 'crate';
 S.crateGroup = 'az';
 S.crateAnchor = null;
+// gatefold spec §A5: off by default, saved like the other library-tools prefs
+S.albumSides = false;
 // pos stays null until first resolved — see renderCrate()'s cold-start
 // anchor logic (last-played album wins once, crateAnchor from then on)
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
@@ -2905,7 +3052,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
     bgAudio:S.bgAudio, launchIntro:S.launchIntro,
-    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor}});
+    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides}});
 }
 
 async function restoreMeta(){
@@ -2948,6 +3095,11 @@ function applyPrefs(p){
   }
   if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
   if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
+  if(typeof p.albumSides === 'boolean'){
+    S.albumSides = p.albumSides;
+    document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
+  }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -3907,6 +4059,19 @@ document.documentElement.style.setProperty('--putaway-in-duration', SLEEVE_ANIM.
 document.documentElement.style.setProperty('--putaway-slide-duration', SLEEVE_ANIM.putSlideMs + 'ms');
 document.documentElement.style.setProperty('--putaway-out-duration', SLEEVE_ANIM.putOutMs + 'ms');
 
+// GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
+// SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
+const GATEFOLD_ANIM = {
+  liftMs: 200, swingMs: 420, holdMs: 80, pushMs: 250,   // open: 200+420+80+250 = 950
+  closeMs: 600, skipMs: 120, leftPanelMs: 250,
+  swingEasing: 'cubic-bezier(.4,0,.2,1)', liftEasing: 'ease-out'
+};
+document.documentElement.style.setProperty('--gatefold-lift-duration', GATEFOLD_ANIM.liftMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-swing-duration', GATEFOLD_ANIM.swingMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-push-duration', GATEFOLD_ANIM.pushMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-close-duration', GATEFOLD_ANIM.closeMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_ANIM.swingEasing);
+
 function renderMiniPlayer(){
   const t = current();
   const mini = $('#miniPlayer');
@@ -4706,6 +4871,7 @@ function load(i){
   setPathNote('');
   renderTracks();
   renderMiniPlayer();
+  updateGatefoldNowPlaying();
   drawTime();
   $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
   $('#queueBtn').style.display = '';
@@ -6636,15 +6802,455 @@ function crateRailJumpTarget(model, key){
   return (next < model.items.length && model.items[next].type === 'rec') ? next : di;
 }
 
+/* ================= S3: gatefold album view (opens from the crate) =========
+   Three flat planes in one 3D stage (the cover, its own backface-hidden
+   back face as the inside-left panel, and the tracklist sitting behind it
+   at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
+   every other album entry point keeps renderAlbumDetail() untouched. */
+let GF = null;   // ephemeral render state for the open gatefold; null when closed
+
+function isGatefoldOpen(){ return !!GF; }
+
+function gatefoldViewportMode(){
+  const w = window.innerWidth, h = window.innerHeight;
+  if(w >= 700 && h >= 500) return 'wide';
+  if(h < 640) return 'short';
+  return 'normal';
+}
+
+function updateGatefoldScale(){
+  if(!GF) return;
+  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / 390, window.innerHeight / 740);
+  document.documentElement.style.setProperty('--gf-page-scale', s);
+}
+
+// same ordering as renderAlbumDetail()/albumTracks() (spec §A4)
+function gatefoldTrackIndices(item){ return albumTracks(item.album); }
+
+// null (no split) or an ordered list of {label, idx:[...]} — multi-disc
+// splits by disc, a single disc of 4+ tracks splits at the midpoint, 3 or
+// fewer never splits (spec §A5); track numbers still count straight through
+function gatefoldSideSplits(trackIdx){
+  if(!S.albumSides || trackIdx.length < 4) return null;
+  const discs = [...new Set(trackIdx.map(i => S.tracks[i].tags.disc || 0))];
+  if(discs.length > 1){
+    return discs.map((d, k) => ({label:'SIDE ' + String.fromCharCode(65 + k),
+      idx: trackIdx.filter(i => (S.tracks[i].tags.disc || 0) === d)}));
+  }
+  const mid = Math.ceil(trackIdx.length / 2);
+  return [{label:'SIDE A', idx: trackIdx.slice(0, mid)}, {label:'SIDE B', idx: trackIdx.slice(mid)}];
+}
+
+function gatefoldNowGlyph(){
+  const span = el('span','gf-now-glyph');
+  span.innerHTML = '<span></span><span></span><span></span>';
+  return span;
+}
+
+function gatefoldTrackRow(i, pos, trackIdx){
+  const t = S.tracks[i];
+  const row = document.createElement('button');
+  row.className = 'gf-track-row';
+  row.setAttribute('role','listitem');
+  row.dataset.pos = pos;
+  const isNow = i === S.index;
+  row.classList.toggle('gf-now-playing', isNow);
+  const num = el('span','gf-tn');
+  if(isNow) num.appendChild(gatefoldNowGlyph()); else num.textContent = String(pos).padStart(2,'0');
+  row.appendChild(num);
+  row.appendChild(el('span','gf-tt', t.tags.title));
+  row.appendChild(el('span','gf-td', fmt(t.duration)));
+  row.addEventListener('click', () => gatefoldPlayTrack(trackIdx, i));
+  return row;
+}
+
+function buildGatefoldTracklist(item, trackIdx){
+  const host = document.createDocumentFragment();
+  host.appendChild(el('p','gf-tl-head', item.artist.toUpperCase()));
+  host.appendChild(el('h2','gf-tl-title', item.album));
+  const sides = gatefoldSideSplits(trackIdx);
+  if(sides){
+    sides.forEach(side => {
+      const total = side.idx.reduce((s,i) => s + (S.tracks[i].duration || 0), 0);
+      const head = el('div','gf-side-head');
+      head.appendChild(el('b', null, side.label));
+      head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' TRACK · ':' TRACKS · ') + fmt(total).toUpperCase()));
+      host.appendChild(head);
+      side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx)));
+    });
+  } else {
+    trackIdx.forEach((i,k) => host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx)));
+  }
+  return host;
+}
+
+// credit names close the gatefold before opening the person view, so the
+// crate underneath isn't left showing a stale position when it reopens
+function gatefoldCreditLink(name){
+  const b = el('button','', name);
+  b.style.color = 'var(--accent)'; b.style.textDecoration = 'underline';
+  b.addEventListener('click', () => { closeGatefoldInstant(); openPersonOrArtist(name); });
+  return b;
+}
+
+function buildGatefoldLeftPanel(item){
+  const host = document.createDocumentFragment();
+  const liner = albumLinerNotes(item.album);
+  const roll = albumCreditRoll(item.album);
+  const hasBooklet = !!(S.booklets && S.booklets[item.albumId]);
+  if(!liner && !roll.size && !hasBooklet){
+    host.appendChild(el('h3', null, item.album));
+    const metaBits = [item.year || null, item.genre || null,
+      item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
+    host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+    host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
+    return host;
+  }
+  if(liner) host.appendChild(el('p','gf-liner', liner));
+  if(roll.size){
+    roll.forEach((names, label) => {
+      const row = el('div','gf-credit-row');
+      row.appendChild(el('em', null, label));
+      const cell = el('span');
+      names.forEach((n,i) => { if(i) cell.appendChild(document.createTextNode(', ')); cell.appendChild(gatefoldCreditLink(n)); });
+      row.appendChild(cell);
+      host.appendChild(row);
+    });
+  }
+  const metaBits = [item.year || null, item.genre || null,
+    item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
+  host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+  if(hasBooklet){
+    const btn = el('button','gf-booklet-btn', 'BOOKLET · ' + S.booklets[item.albumId].length + ' PAGES');
+    btn.addEventListener('click', () => openBookletViewer(item.albumId));
+    host.appendChild(btn);
+  }
+  return host;
+}
+
+function gatefoldOnPlatter(item){
+  return S.shellAlbumId === item.albumId && !S.platterEmpty;
+}
+
+function updateGatefoldSleeveState(){
+  if(!GF) return;
+  $('#gfSleeveDiscWrap').classList.toggle('gf-disc-empty', gatefoldOnPlatter(GF.item));
+}
+
+// decorative only: the disc peeks out as if pulled from the pocket, then the
+// pocket settles into its normal (now-empty, since this album is playing)
+// state — never touches S.shellAlbumId, the pull, or the full player (§A6)
+function gatefoldSleeveFlourish(){
+  const wrap = $('#gfSleeveDiscWrap');
+  wrap.classList.add('gf-disc-out');
+  setTimeout(() => { wrap.classList.remove('gf-disc-out'); updateGatefoldSleeveState(); }, 400);
+}
+
+// queues and starts playback the same way as everywhere else, but through
+// play() directly rather than setQueue's autoplay path — that path always
+// opens the full player sheet, which the gatefold's tap-a-track explicitly
+// must not do (spec §A6: "don't auto-open the full player... or the pull")
+function gatefoldPlayTrack(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  play();
+  gatefoldSleeveFlourish();
+}
+
+function gatefoldRestoreRowNumber(row){
+  const num = row.querySelector('.gf-tn');
+  if(num) num.textContent = String(row.dataset.pos).padStart(2,'0');
+}
+
+// live-updates the now-playing marker without rebuilding the whole panel —
+// called from load() on every track change while the gatefold is open (§A4).
+// Rows are built in the same order as GF.trackIdx (sides only insert divider
+// headers between them, never reorder the tracks), so position maps directly.
+function updateGatefoldNowPlaying(){
+  if(!GF) return;
+  updateGatefoldSleeveState();
+  document.querySelectorAll('.gf-track-row.gf-now-playing').forEach(row => {
+    row.classList.remove('gf-now-playing');
+    gatefoldRestoreRowNumber(row);
+  });
+  const t = current();
+  if(!t || albumKey(t) !== GF.item.albumId) return;
+  let pos = -1;
+  GF.trackIdx.forEach((i, k) => { if(i === S.index) pos = k; });
+  const rows = document.querySelectorAll('.gf-track-row');
+  if(pos < 0 || pos >= rows.length) return;
+  const row = rows[pos];
+  row.classList.add('gf-now-playing');
+  const num = row.querySelector('.gf-tn');
+  if(num){ num.innerHTML = ''; num.appendChild(gatefoldNowGlyph()); }
+}
+
+function gatefoldInfoAndSleeveHTML(item){
+  const info = $('#gfInfo'); info.innerHTML = '';
+  info.appendChild(el('h3','gf-info-title', item.album));
+  info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
+    fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
+  info.appendChild(el('p','gf-info-meta', metaBits.join(' · ').toUpperCase()));
+}
+
+async function gatefoldSetCoverArt(item){
+  const img = $('#gfCoverArt'), discArt = $('#gfDiscArt');
+  const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+  if(fallback){ img.src = fallback; discArt.src = fallback; }
+  const url = await getCrateArtURL(item.albumId, 'L');
+  if(url && GF && GF.item === item){ img.src = url; discArt.src = url; }
+}
+
+function gatefoldSwitchPanel(panel){
+  if(!GF) return;
+  GF.panel = panel;
+  const camera = $('#gfCamera');
+  if(GF.mode !== 'wide'){
+    camera.style.transition = 'transform ' + GATEFOLD_ANIM.leftPanelMs + 'ms ease';
+    camera.style.setProperty('--gf-cx', panel === 'left' ? '-175px' : '175px');
+  }
+  document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
+  if(GF.mode === 'short'){
+    $('#gfFlatBody').innerHTML = '';
+    if(panel === 'left') $('#gfFlatBody').appendChild(buildGatefoldLeftPanel(GF.item));
+    else $('#gfFlatBody').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx));
+  } else {
+    (panel === 'left' ? $('#gfLeft') : $('#gfTracklist')).focus();
+  }
+}
+
+let gfSkipHandler = null, gfDragCleanup = null;
+
+function gatefoldTeardownGestures(){
+  if(gfSkipHandler){ $('#gatefold').removeEventListener('pointerdown', gfSkipHandler, {capture:true}); gfSkipHandler = null; }
+  if(gfDragCleanup){ gfDragCleanup(); gfDragCleanup = null; }
+}
+
+// swipe right/left between the tracklist and the inside-left panel (a
+// direction lock after ~8px keeps a vertical scroll from also panning the
+// camera), plus a drag-down on the info strip to close (§A3, §A7)
+function gatefoldWireGestures(){
+  let start = null;
+  const onDown = e => { start = {x:e.clientX, y:e.clientY, locked:null, t:performance.now()}; };
+  const onMove = e => {
+    if(!start || !GF || GF.mode === 'short') return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if(!start.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) start.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    if(start.locked === 'h' && GF.mode !== 'wide'){
+      const base = GF.panel === 'left' ? -175 : 175;
+      const next = clamp(base + dx * 0.5, -175, 175);
+      $('#gfCamera').style.transition = 'none';
+      $('#gfCamera').style.setProperty('--gf-cx', next + 'px');
+    }
+  };
+  const onUp = e => {
+    if(!start) return;
+    const dx = e.clientX - start.x;
+    if(start.locked === 'h' && GF && GF.mode !== 'wide'){
+      if(Math.abs(dx) > 60) gatefoldSwitchPanel(dx < 0 ? 'left' : (GF.panel === 'left' && dx > 0 ? 'right' : GF.panel));
+      else gatefoldSwitchPanel(GF.panel);
+    }
+    start = null;
+  };
+  const stage = $('#gfStage');
+  stage.addEventListener('pointerdown', onDown);
+  stage.addEventListener('pointermove', onMove);
+  stage.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', onUp);
+
+  let infoDrag = null;
+  const onInfoDown = e => { infoDrag = e.clientY; };
+  const onInfoMove = e => {
+    if(infoDrag == null) return;
+    const dy = e.clientY - infoDrag;
+    if(dy > 50) closeGatefold();
+  };
+  const onInfoUp = () => { infoDrag = null; };
+  const info = $('#gfInfo');
+  info.addEventListener('pointerdown', onInfoDown);
+  info.addEventListener('pointermove', onInfoMove);
+  info.addEventListener('pointerup', onInfoUp);
+
+  gfDragCleanup = () => {
+    stage.removeEventListener('pointerdown', onDown);
+    stage.removeEventListener('pointermove', onMove);
+    stage.removeEventListener('pointerup', onUp);
+    stage.removeEventListener('pointercancel', onUp);
+    info.removeEventListener('pointerdown', onInfoDown);
+    info.removeEventListener('pointermove', onInfoMove);
+    info.removeEventListener('pointerup', onInfoUp);
+  };
+}
+
+function gatefoldSettledState(mode){
+  const camera = $('#gfCamera'), cover = $('#gfCover');
+  camera.style.transition = 'none';
+  camera.style.setProperty('--gf-s', mode === 'wide' ? '1' : '.55');
+  camera.style.setProperty('--gf-cx', mode === 'wide' ? '175px' : '0px');
+  cover.style.transition = 'none';
+  cover.style.transform = 'rotateY(-180deg)';
+  $('#gfShadow').style.opacity = '0';
+}
+
+// tapping anywhere during the opening jumps straight to the settled spread,
+// with a short fade, so repeat opens never feel slow (§A3)
+function gatefoldSkipToSettled(mode){
+  const overlay = $('#gatefold');
+  overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.skipMs + 'ms linear';
+  gatefoldSettledState(mode);
+  overlay.classList.add('gf-chrome-in');
+  requestAnimationFrame(() => { $('#gfTracklist').focus(); });
+}
+
+async function runGatefoldOpen(mode){
+  const overlay = $('#gatefold'), camera = $('#gfCamera'), cover = $('#gfCover');
+  const seq = GF.seq;
+  const skip = e => { e.stopPropagation(); e.preventDefault(); gatefoldSkipToSettled(mode); };
+  gfSkipHandler = skip;
+  overlay.addEventListener('pointerdown', skip, {capture:true, once:true});
+
+  if(REDUCED || mode === 'short'){
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 150ms linear';
+    void overlay.offsetWidth;
+    overlay.style.opacity = '1';
+    await sleep(150);
+  } else {
+    camera.style.transition = 'none';
+    camera.style.setProperty('--gf-s', '1');
+    camera.style.setProperty('--gf-cx', '175px');
+    cover.style.transition = 'none';
+    cover.style.transform = 'rotateY(0deg)';
+    overlay.style.opacity = '0';
+    void overlay.offsetWidth;
+    overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.liftMs + 'ms ' + GATEFOLD_ANIM.liftEasing;
+    overlay.style.opacity = '1';
+    await sleep(GATEFOLD_ANIM.liftMs);
+    if(GF.seq !== seq) return;
+
+    if(mode !== 'wide'){
+      camera.style.transition = 'transform ' + GATEFOLD_ANIM.swingMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+      camera.style.setProperty('--gf-s', '.55'); camera.style.setProperty('--gf-cx', '0px');
+    }
+    cover.style.transition = 'transform ' + GATEFOLD_ANIM.swingMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+    cover.style.transform = 'rotateY(-180deg)';
+    $('#gfShadow').style.transition = 'opacity ' + GATEFOLD_ANIM.swingMs + 'ms linear';
+    $('#gfShadow').style.opacity = '0';
+    await sleep(GATEFOLD_ANIM.swingMs);
+    if(GF.seq !== seq) return;
+
+    await sleep(GATEFOLD_ANIM.holdMs);
+    if(GF.seq !== seq) return;
+
+    if(mode !== 'wide'){
+      camera.style.transition = 'transform ' + GATEFOLD_ANIM.pushMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', '175px');
+    }
+    overlay.classList.add('gf-chrome-in');
+    await sleep(GATEFOLD_ANIM.pushMs);
+    if(GF.seq !== seq) return;
+  }
+  overlay.removeEventListener('pointerdown', skip, {capture:true});
+  gfSkipHandler = null;
+  overlay.classList.add('gf-chrome-in');
+  $('#gfTracklist').focus();
+}
+
+let gfSeqCounter = 0;
+
+function openGatefold(item){
+  if(GF) return;
+  const mode = gatefoldViewportMode();
+  const trackIdx = gatefoldTrackIndices(item);
+  if(!trackIdx.length) return;
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement};
+
+  const overlay = $('#gatefold');
+  overlay.setAttribute('aria-label', item.album);
+  overlay.classList.toggle('gf-wide', mode === 'wide');
+  overlay.classList.remove('gf-chrome-in');
+  overlay.style.opacity = '';
+
+  $('#gfTracklist').innerHTML = ''; $('#gfTracklist').appendChild(buildGatefoldTracklist(item, trackIdx));
+  $('#gfLeft').innerHTML = ''; $('#gfLeft').appendChild(buildGatefoldLeftPanel(item));
+  gatefoldInfoAndSleeveHTML(item);
+  gatefoldSetCoverArt(item).catch(() => {});
+  updateGatefoldSleeveState();
+
+  const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size || (S.booklets && S.booklets[item.albumId]));
+  $('#gfLeftCue').style.display = hasLeftContent ? '' : 'none';
+
+  if(mode === 'short'){
+    $('#gfFlatTracks').classList.add('show');
+    $('#gfFlatBody').innerHTML = ''; $('#gfFlatBody').appendChild(buildGatefoldTracklist(item, trackIdx));
+    document.querySelectorAll('#gfFlatSeg [data-panel]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.panel === 'right')));
+  } else {
+    $('#gfFlatTracks').classList.remove('show');
+  }
+
+  updateGatefoldScale();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  gatefoldWireGestures();
+  runGatefoldOpen(mode);
+}
+
+async function closeGatefold(){
+  if(!GF) return;
+  const g = GF; GF = null;
+  gatefoldTeardownGestures();
+  const overlay = $('#gatefold'), camera = $('#gfCamera'), cover = $('#gfCover');
+  overlay.classList.remove('gf-chrome-in');
+  if(REDUCED || g.mode === 'short'){
+    overlay.style.transition = 'opacity 150ms linear';
+    overlay.style.opacity = '0';
+    await sleep(150);
+  } else {
+    if(g.mode !== 'wide'){
+      camera.style.transition = 'transform ' + Math.round(GATEFOLD_ANIM.closeMs * 0.4) + 'ms ease-in';
+      camera.style.setProperty('--gf-s', '.55'); camera.style.setProperty('--gf-cx', '0px');
+    }
+    cover.style.transition = 'transform ' + Math.round(GATEFOLD_ANIM.closeMs * 0.6) + 'ms ' + GATEFOLD_ANIM.swingEasing;
+    cover.style.transform = 'rotateY(0deg)';
+    await sleep(Math.round(GATEFOLD_ANIM.closeMs * 0.6));
+    overlay.style.transition = 'opacity ' + Math.round(GATEFOLD_ANIM.closeMs * 0.4) + 'ms linear';
+    overlay.style.opacity = '0';
+    await sleep(Math.round(GATEFOLD_ANIM.closeMs * 0.4));
+  }
+  overlay.classList.remove('open','gf-wide');
+  $('#gfFlatTracks').classList.remove('show');
+  overlay.style.opacity = ''; overlay.style.transition = '';
+  overlay.setAttribute('aria-hidden','true');
+  if(g.returnFocus && document.contains(g.returnFocus) && typeof g.returnFocus.focus === 'function') g.returnFocus.focus();
+  else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
+}
+
+// an immediate, non-animated close for when the gatefold is being replaced
+// by real navigation (a credit link) rather than dismissed on its own
+function closeGatefoldInstant(){
+  if(!GF) return;
+  GF = null;
+  gatefoldTeardownGestures();
+  const overlay = $('#gatefold');
+  overlay.classList.remove('open','gf-wide','gf-chrome-in');
+  $('#gfFlatTracks').classList.remove('show');
+  overlay.style.opacity = ''; overlay.style.transition = '';
+  overlay.setAttribute('aria-hidden','true');
+}
+
 function openCrateAlbum(item){
   const v = S.view;
   if(item.kind === 'loose'){
     v.mode = 'crateLoose'; v.crateLooseArtist = item.artist; v.crateLooseIdx = item.idx.slice();
     v.group = null; v.playlist = null; v.person = null; v.artistAlbum = null;
-  } else {
-    v.mode = 'albums'; v.group = item.album; v.artistAlbum = null; v.playlist = null; v.person = null;
+    renderTracks();
+    return;
   }
-  renderTracks();
+  // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
+  // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
+  // navigation back, it's simply still there
+  openGatefold(item);
 }
 
 function updateCrateGroupToggleUI(){
@@ -8052,6 +8658,11 @@ function showRoute(name){
     queueSave();
     renderTracks();
   }));
+  document.querySelectorAll('#sidesToggle [data-sides]').forEach(b => b.addEventListener('click', ()=>{
+    S.albumSides = b.dataset.sides === 'on';
+    document.querySelectorAll('#sidesToggle [data-sides]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave();
+  }));
   $('#scrub').addEventListener('input', ()=>{ scrubbing = true; });
   $('#scrub').addEventListener('change', e=>{
     scrubbing = false;
@@ -8221,9 +8832,17 @@ function showRoute(name){
   $('#addFolderRow').addEventListener('click', ()=>{ closeAddMenu(); $('#folderFile').click(); });
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
-    if(isAddMenuOpen()){ closeAddMenu(); $('#hdrAddBtn').focus(); }
+    if(isGatefoldOpen()) closeGatefold();
+    else if(isAddMenuOpen()){ closeAddMenu(); $('#hdrAddBtn').focus(); }
     else if(isSearchFieldOpen()){ $('#librarySearch').value = ''; closeSearchField(); renderTracks(); }
   });
+
+  $('#gfBack').addEventListener('click', closeGatefold);
+  $('#gfFlatBack').addEventListener('click', closeGatefold);
+  $('#gfLeftCue').addEventListener('click', () => gatefoldSwitchPanel('left'));
+  document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
+    b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
+  window.addEventListener('resize', updateGatefoldScale);
 
   // Library tools disclosure panel (S1 §5)
   $('#libToolsToggle').addEventListener('click', ()=>{
