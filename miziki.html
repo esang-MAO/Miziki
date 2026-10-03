@@ -373,6 +373,58 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   color:var(--muted);margin-top:6px}
 @media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
 
+/* ---------- crate view: browse albums like a record-store bin ----------
+   Same vertical flip-through geometry as the launch (see flowPose()), but
+   inline in the Library route rather than a fullscreen overlay, and with
+   the centre lower (170px vs the launch's 128px) to leave room for the
+   top bar and the info panel below. A pool of ~17-20 cards is recycled as
+   S.crate.pos changes — see renderCrate()/syncCrateCards(). */
+.top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.crate-wrap{margin-top:10px}
+.crate-group-toggle{margin-bottom:10px}
+.crate-stage{position:relative;height:460px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
+  touch-action:none;outline:none}
+.crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
+  border-radius:6px;overflow:hidden;will-change:transform,opacity,filter;
+  box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.crate-card.crate-current{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
+.crate-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
+.crate-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.crate-now-dot{position:absolute;right:8px;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:50}
+.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,#E3D8C2,#C9BC9F);color:#2A1B38;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
+.crate-divider-tab{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;opacity:.65}
+.crate-divider-label{font-family:var(--display);font-weight:700;font-size:46px;letter-spacing:.02em;text-align:center;
+  line-height:1.05;word-break:break-word}
+.crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
+  font-family:var(--data);font-size:9px;letter-spacing:.08em}
+.crate-rail{position:absolute;right:2px;top:10px;bottom:10px;width:26px}
+.crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:8.5px;letter-spacing:.04em;
+  color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
+.crate-rail-item.crate-rail-current{color:var(--accent);opacity:1}
+.crate-rail-item.crate-rail-dim{opacity:.28}
+.crate-rail-bubble{position:fixed;width:68px;height:68px;border-radius:50%;background:var(--amber);color:#2A1B38;
+  display:grid;place-content:center;font-family:var(--display);font-weight:700;font-size:30px;
+  pointer-events:none;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.crate-info{margin-top:12px;min-height:84px}
+.crate-info h3{font-family:var(--display);font-weight:700;font-size:21px;margin:0 0 2px;letter-spacing:.02em}
+.crate-info .crate-info-sub{font-size:13px;color:var(--muted);margin:0 0 2px}
+.crate-info .crate-info-meta{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em}
+.crate-info-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
+  letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:4px 10px;
+  margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
+.crate-flat-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;scroll-snap-align:center}
+.crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}
+.crate-flat-item img, .crate-flat-item .crate-flat-flat{width:56px;height:56px;border-radius:4px;object-fit:cover;flex:0 0 auto}
+.crate-flat-divider{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted);padding:4px 0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
+
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
@@ -556,7 +608,13 @@ input[type=file]{display:none}
 
   <header class="top">
     <h1 class="mark">Mi<span>zi</span>ki</h1>
-    <div class="sun-line" id="sunLine">Finding the sun…</div>
+    <div class="top-right">
+      <div class="seg" id="libLayoutToggle" style="display:none">
+        <button data-layout="list" aria-pressed="true">List</button>
+        <button data-layout="crate" aria-pressed="false">Crate</button>
+      </div>
+      <div class="sun-line" id="sunLine">Finding the sun…</div>
+    </div>
   </header>
 
   <!-- LIBRARY: landing route -->
@@ -575,6 +633,11 @@ input[type=file]{display:none}
 
     <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" style="width:100%;display:none;margin-top:10px" aria-label="Search library">
     <div class="search-chips" id="searchChips" style="display:none"></div>
+
+    <div class="seg crate-group-toggle" id="crateGroupToggle" style="display:none">
+      <button data-group="az" aria-pressed="true">A–Z</button>
+      <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
+    </div>
 
     <div class="seg lib-nav" id="libNav" style="display:none">
       <button data-view="songs" aria-pressed="true">Songs</button>
@@ -1102,7 +1165,8 @@ const S = {
   ctx:null, nodes:null, source:null, gen:0,
   tracks:[], index:-1, playing:false, pos:0, rate:1,
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
-  playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, person:null, personReturn:null, picking:false, editSelecting:false},
+  playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, person:null, personReturn:null,
+    crateLooseIdx:null, crateLooseArtist:null, picking:false, editSelecting:false},
   editSelection: new Set(),
   albumSort:{}, albumOrder:{}, lru:[], librarySort:'artist',
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
@@ -1148,6 +1212,13 @@ S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, h
 // Launch intro (cold start only, on by default) — see the launch sequence section
 S.launchSeq = 0;
 S.launchIntro = true;
+// Crate view: a second way to browse the library, beside the list (see
+// CRATE spec). libraryLayout/crateGroup/crateAnchor are persisted prefs;
+// `crate` itself is session-only render/gesture state, rebuilt on demand.
+S.libraryLayout = 'list';
+S.crateGroup = 'az';
+S.crateAnchor = null;
+S.crate = {pos:0, model:null, modelGroup:null, modelDirty:true};
 
 /* ================= audio graph ================= */
 function makeContext(sampleRate){
@@ -1659,6 +1730,7 @@ async function healDetails(){
     if((i + 1) % 5 === 0) await sleep(30);
   }
   if(typeof rebuildPeopleIndex === 'function') rebuildPeopleIndex();
+  if(typeof invalidateCrateModel === 'function') invalidateCrateModel();
   if(typeof updateCreditsButtonForCurrent === 'function') updateCreditsButtonForCurrent();
 }
 
@@ -2576,6 +2648,7 @@ async function addFiles(list){
     }
   }
   rebuildPeopleIndex();
+  invalidateCrateModel();
   renderTracks();
   queueSave();
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
@@ -2697,7 +2770,8 @@ async function saveMeta(){
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
-    bgAudio:S.bgAudio, launchIntro:S.launchIntro}});
+    bgAudio:S.bgAudio, launchIntro:S.launchIntro,
+    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor}});
 }
 
 async function restoreMeta(){
@@ -2728,6 +2802,13 @@ function applyPrefs(p){
   }
   if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
   if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
+  if(p.libraryLayout === 'crate' || p.libraryLayout === 'list'){
+    S.libraryLayout = p.libraryLayout;
+    document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
+  }
+  if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
+  if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -3271,6 +3352,7 @@ async function deleteTracks(idsToDelete){
   }
 
   rebuildPeopleIndex();
+  invalidateCrateModel();
   renderTracks();
   renderMiniPlayer();
   queueSave();
@@ -4069,20 +4151,37 @@ function flickSpeed(elapsedMs){
 }
 
 // The 3D pose for a card at fractional distance `d` from the current
-// position (negative = above/earlier, positive = below/later), per the
-// LAUNCH spec §3 geometry formulas.
-function launchCardPose(d, speed, spread){
-  const a = Math.abs(d), dir = d < 0 ? -1 : (d > 0 ? 1 : 0);
+// position (negative = above/earlier, positive = below/later). Shared by
+// the launch overlay and the crate (see CRATE spec §3) — one geometry
+// implementation so the two views can never drift apart. `opts.originY`
+// is where the stack's centre sits (launch: baked into its own CSS `top`,
+// so it passes 0 here; crate: 170px, passed explicitly since the crate
+// card sits at `top:0` and reads its vertical position from `pose.y`).
+function flowPose(a, d, speed, opts){
+  opts = opts || {};
+  const originY = opts.originY || 0, spread = opts.spread == null ? 1 : opts.spread;
+  const dir = d < 0 ? -1 : (d > 0 ? 1 : 0);
   const nearFactor = 1 + 0.3*speed, farFactor = 1 + 0.9*speed;
   const baseOffset = a < 1 ? 170*a*nearFactor : 170*nearFactor + (a-1)*34*farFactor;
-  const offset = baseOffset * dir * (spread || 1);
+  const offset = baseOffset * dir * spread;
   const tiltMag = 62 * Math.min(a,1);
-  const tilt = dir < 0 ? -tiltMag : tiltMag;
+  const rotX = dir < 0 ? -tiltMag : tiltMag;
   const scale = 0.86 - 0.06*Math.min(a,1) - 0.02*Math.max(0, Math.min(a,8)-1);
-  const depth = -70*Math.min(a,1) - 6*Math.max(0, a-1);
+  const z = -70*Math.min(a,1) - 6*Math.max(0, a-1);
   const opacity = a <= 3 ? 1 : Math.max(0, 1 - 0.25*(a-3));
-  const blurPx = (a < 2 ? 2.6*speed : 1.3*speed);
-  return { offset, tilt, scale, depth, opacity, blurPx, z: Math.round((9-Math.min(a,9))*10) };
+  const blur = (a < 2 ? 2.6*speed : 1.3*speed);
+  return { y: originY + offset, rotX, scale, z, opacity, blur };
+}
+// stacking order for a card at |offset| `a` from the centre — nearest on top
+function flowZIndex(a){ return Math.round((9 - Math.min(a,9)) * 10); }
+
+// thin adapter kept so every existing launch call site/shape is untouched —
+// the actual geometry now lives in flowPose() alone (LAUNCH spec §3).
+function launchCardPose(d, speed, spread){
+  const a = Math.abs(d);
+  const p = flowPose(a, d, speed, {spread});
+  return { offset: p.y, tilt: p.rotX, scale: p.scale, depth: p.z, opacity: p.opacity, blurPx: p.blur,
+    z: flowZIndex(a) };
 }
 function applyLaunchCardPose(el, pose, extraScale){
   const scale = pose.scale * (extraScale == null ? 1 : extraScale);
@@ -5943,6 +6042,558 @@ function updateSearchChipsVisibility(){
   chips.style.display = (document.activeElement === input && !input.value.trim() && S.tracks.length > 0) ? 'flex' : 'none';
 }
 
+/* ================= crate view: browse like a record-store bin (CRATE spec) =================
+   A second library layout, beside the list. Albums (not songs) laid out in
+   the same vertical flip-through geometry as the launch (flowPose(), shared
+   — see CRATE spec §3), one record centred, neighbours tilting away above
+   and below. Everything here derives from S.tracks; nothing new is stored
+   except the three prefs in applyPrefs()/saveMeta(). */
+const CRATE_ORIGIN_Y = 170;
+const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
+const CRATE_VISIBLE_A = 8;
+const CRATE_ALPHABET = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+
+function titleCaseGenre(s){
+  return s.split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+function firstGenreValue(raw){ return raw ? raw.split(/[;,]/)[0].trim() : ''; }
+// normKey() already lowercases/strips diacritics/collapses to [a-z0-9 ]+;
+// stripping a leading article on top of that gives the brief's sort key
+function crateSortKey(name){ return normKey(name).replace(/^(the|a|an)\s+/, ''); }
+function crateCompareNames(a, b){
+  return crateSortKey(a).localeCompare(crateSortKey(b), undefined, {numeric:true, sensitivity:'base'});
+}
+function crateArtistPriority(artist){ return artist === 'Unknown Artist' ? 1 : 0; }
+function compareCrateArtists(a, b){
+  const pa = crateArtistPriority(a), pb = crateArtistPriority(b);
+  return pa !== pb ? pa - pb : crateCompareNames(a, b);
+}
+function crateLetterFor(artist){
+  if(artist === 'Unknown Artist') return '?';
+  const c = crateSortKey(artist).charAt(0);
+  return /[a-z]/.test(c) ? c.toUpperCase() : '#';
+}
+function crateLooseArtistId(artist){ return 'loose:' + normKey(artist); }
+function libraryHasGenres(){ return S.tracks.some(t => t.details && firstGenreValue(t.details.genre)); }
+
+function albumGenreFor(idx){
+  const counts = new Map();
+  idx.forEach((i, pos) => {
+    const g = firstGenreValue(S.tracks[i].details && S.tracks[i].details.genre);
+    if(!g) return;
+    const key = g.toLowerCase();
+    if(!counts.has(key)) counts.set(key, {count:0, display:titleCaseGenre(g), firstPos:pos});
+    counts.get(key).count++;
+  });
+  if(!counts.size) return '';
+  let best = null;
+  counts.forEach(v => { if(!best || v.count > best.count || (v.count === best.count && v.firstPos < best.firstPos)) best = v; });
+  return best.display;
+}
+
+// one crate record per album id; loose ("Unknown Album") tracks collapse
+// into one pseudo-record per artist instead of one per track (CRATE spec §2)
+function buildCrateRecords(){
+  const byAlbum = new Map(), looseByArtist = new Map();
+  S.tracks.forEach((t, i) => {
+    if(t.tags.album === 'Unknown Album'){
+      const artistName = t.tags.artist || 'Unknown Artist';
+      const key = normKey(artistName) || 'unknown';
+      if(!looseByArtist.has(key)) looseByArtist.set(key, {artist:artistName, idx:[]});
+      looseByArtist.get(key).idx.push(i);
+      return;
+    }
+    const id = albumKey(t);
+    if(!byAlbum.has(id)) byAlbum.set(id, []);
+    byAlbum.get(id).push(i);
+  });
+
+  const records = [];
+  byAlbum.forEach((idx, albumId) => {
+    const tracks = idx.map(i => S.tracks[i]);
+    const artistSet = new Set(tracks.map(t => t.tags.artist));
+    const albumArtistSet = new Set(tracks.map(t => t.tags.albumArtist));
+    let artist;
+    if(albumArtistSet.size === 1) artist = [...albumArtistSet][0];
+    else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
+    else artist = tracks[0].tags.artist || 'Unknown Artist';
+    let year = 0;
+    for(const t of tracks){ if(t.details && t.details.year){ year = t.details.year; break; } }
+    records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
+      year, trackCount: idx.length, genre: albumGenreFor(idx)});
+  });
+  looseByArtist.forEach(({artist, idx}) => {
+    records.push({type:'rec', kind:'loose', albumId: crateLooseArtistId(artist), idx, artist,
+      album:'Singles & loose tracks', year:0, trackCount: idx.length, genre:''});
+  });
+  return records;
+}
+
+function groupSortedRecords(records, keyFn){
+  const groups = [];
+  let cur = null;
+  records.forEach(r => {
+    const k = keyFn(r);
+    if(!cur || cur.key !== k){ cur = {key:k, records:[]}; groups.push(cur); }
+    cur.records.push(r);
+  });
+  return groups;
+}
+
+// builds the ordered {type:'div'|'rec', ...} array once, plus lookup maps
+// for jumping by album id or by letter/genre (CRATE spec §2)
+function buildCrateModel(group){
+  const records = buildCrateRecords();
+  const items = [], byAlbumId = new Map(), jumpIndex = new Map();
+  let railEntries = [];
+
+  if(group === 'genre'){
+    records.forEach(r => { r.genreGroup = r.genre || 'Unsorted'; });
+    const counts = new Map();
+    records.forEach(r => { if(r.genreGroup !== 'Unsorted') counts.set(r.genreGroup, (counts.get(r.genreGroup)||0) + 1); });
+    if(counts.size > 25) records.forEach(r => { if(r.genreGroup !== 'Unsorted' && counts.get(r.genreGroup) < 3) r.genreGroup = 'Other'; });
+    records.sort((a,b) => {
+      const pa = a.genreGroup === 'Unsorted' ? 1 : 0, pb = b.genreGroup === 'Unsorted' ? 1 : 0;
+      if(pa !== pb) return pa - pb;
+      return crateCompareNames(a.genreGroup, b.genreGroup) || compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album);
+    });
+    const groups = groupSortedRecords(records, r => r.genreGroup);
+    const showDividers = groups.length >= 2;
+    groups.forEach(g => {
+      if(showDividers){
+        const artistCount = new Set(g.records.map(r => r.artist)).size;
+        jumpIndex.set('key:' + g.key, items.length);
+        railEntries.push({key:g.key, label: g.key.slice(0,3).toUpperCase(), itemIndex: items.length, present:true});
+        items.push({type:'div', label:g.key, meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS',
+          panelSub:'Genre', key:g.key});
+      }
+      g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+    });
+  } else {
+    records.sort((a,b) => compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album));
+    const groups = groupSortedRecords(records, r => crateLetterFor(r.artist));
+    const showDividers = records.length >= 20;
+    const present = new Set(groups.map(g => g.key));
+    groups.forEach(g => {
+      if(showDividers){
+        const artistCount = new Set(g.records.map(r => r.artist)).size;
+        jumpIndex.set('key:' + g.key, items.length);
+        items.push({type:'div', label:g.key,
+          meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS',
+          panelSub: g.key === '?' ? 'Unknown artist' : 'Artists beginning with ' + g.key, key:g.key});
+      }
+      g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+    });
+    if(showDividers){
+      railEntries = CRATE_ALPHABET.concat(present.has('?') ? ['?'] : [])
+        .map(letter => ({key:letter, label:letter, itemIndex: jumpIndex.get('key:'+letter), present: present.has(letter)}));
+    }
+  }
+  return {items, byAlbumId, jumpIndex, railEntries, group};
+}
+
+function ensureCrateModel(){
+  if(!S.crate.model || S.crate.modelGroup !== S.crateGroup || S.crate.modelDirty){
+    S.crate.model = buildCrateModel(S.crateGroup);
+    S.crate.modelGroup = S.crateGroup;
+    S.crate.modelDirty = false;
+    // item indices just shifted under whatever S.crate.pos used to mean —
+    // re-resolve from the anchor (a stable album id) rather than trust a
+    // now-possibly-unrelated numeric position into the rebuilt list
+    S.crate.pos = null;
+  }
+  return S.crate.model;
+}
+function invalidateCrateModel(){ S.crate.modelDirty = true; }
+
+function isNowPlayingAlbum(item){ return item.type === 'rec' && S.index >= 0 && item.idx.includes(S.index); }
+
+let crateAnchorSaveTimer = null;
+function persistCrateAnchor(item){
+  S.crateAnchor = item ? item.albumId : null;
+  clearTimeout(crateAnchorSaveTimer);
+  crateAnchorSaveTimer = setTimeout(queueSave, 500);
+}
+
+// the rail always lands on the first record after a letter/genre divider,
+// not the divider itself, falling back to the divider if nothing follows
+// it (CRATE spec §4, "Release to land on the first record")
+function crateRailJumpTarget(model, key){
+  const di = model.jumpIndex.get('key:' + key);
+  if(di == null) return null;
+  const next = di + 1;
+  return (next < model.items.length && model.items[next].type === 'rec') ? next : di;
+}
+
+function openCrateAlbum(item){
+  const v = S.view;
+  if(item.kind === 'loose'){
+    v.mode = 'crateLoose'; v.crateLooseArtist = item.artist; v.crateLooseIdx = item.idx.slice();
+    v.group = null; v.playlist = null; v.person = null; v.artistAlbum = null;
+  } else {
+    v.mode = 'albums'; v.group = item.album; v.artistAlbum = null; v.playlist = null; v.person = null;
+  }
+  renderTracks();
+}
+
+function updateCrateGroupToggleUI(){
+  const hasGenres = libraryHasGenres();
+  $('#crateGenreBtn').style.display = hasGenres ? '' : 'none';
+  if(!hasGenres && S.crateGroup === 'genre'){ S.crateGroup = 'az'; invalidateCrateModel(); queueSave(); }
+  document.querySelectorAll('#crateGroupToggle [data-group]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));
+}
+
+// flat, non-3D fallback for prefers-reduced-motion: a plain scrollable list,
+// snap-scroll instead of momentum, cross-fade instead of the pull-to-camera
+// (CRATE spec §6)
+function renderCrateFlat(host, model){
+  updateCrateGroupToggleUI();
+  const list = el('div','crate-flat-list');
+  list.setAttribute('role','listbox');
+  list.setAttribute('aria-label','Crate');
+  model.items.forEach(item => {
+    if(item.type === 'div'){
+      list.appendChild(el('div','crate-flat-divider', item.label + ' — ' + item.meta));
+      return;
+    }
+    const row = el('div','crate-flat-item');
+    row.setAttribute('role','option');
+    if(isNowPlayingAlbum(item)) row.classList.add('crate-flat-current');
+    const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; row.appendChild(im); }
+    else { const flat = el('span','crate-flat-flat'); flat.style.background = CRATE_PALETTE[row.childElementCount % CRATE_PALETTE.length]; row.appendChild(flat); }
+    const text = el('span','t-name');
+    text.appendChild(el('b', null, item.album));
+    text.appendChild(el('em', null, item.artist + ' · ' + item.trackCount + (item.trackCount===1?' track':' tracks')));
+    row.appendChild(text);
+    const playBtn = el('button','t-edit','▶');
+    playBtn.setAttribute('aria-label','Play ' + item.album);
+    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    row.appendChild(playBtn);
+    row.addEventListener('click', () => {
+      persistCrateAnchor(item);
+      const host2 = $('#libBody');
+      host2.style.transition = 'opacity 150ms ease'; host2.style.opacity = '0';
+      setTimeout(() => { openCrateAlbum(item); $('#libBody').style.opacity = '1'; }, 150);
+    });
+    list.appendChild(row);
+  });
+  host.appendChild(list);
+}
+
+function renderCrate(host){
+  const model = ensureCrateModel();
+  if(!model.items.length){ host.appendChild(el('p','note','No albums to show yet.')); return; }
+  updateCrateGroupToggleUI();
+  if(REDUCED){ renderCrateFlat(host, model); return; }
+
+  let startPos = S.crate.pos;
+  if(startPos == null || isNaN(startPos) || startPos < 0 || startPos >= model.items.length){
+    startPos = (S.crateAnchor && model.byAlbumId.has(S.crateAnchor)) ? model.byAlbumId.get(S.crateAnchor)
+      : model.items.findIndex(it => it.type === 'rec');
+    if(startPos < 0) startPos = 0;
+  }
+  S.crate.pos = startPos;
+
+  const wrap = el('div','crate-wrap');
+  const stage = el('div','crate-stage');
+  stage.tabIndex = 0;
+  stage.setAttribute('role','listbox');
+  stage.setAttribute('aria-label','Crate');
+  const live = el('div','sr-only'); live.id = 'crateLive'; live.setAttribute('aria-live','polite');
+  stage.appendChild(live);
+  const rail = el('div','crate-rail');
+  const info = el('div','crate-info');
+  wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  host.appendChild(wrap);
+
+  const pool = new Map();      // item index -> element, only the visible window
+  let animToken = 0, rafHandle = null;
+  const cancelAnim = () => { animToken++; if(rafHandle){ cancelAnimationFrame(rafHandle); rafHandle = null; } };
+
+  function itemAt(i){ return model.items[i]; }
+
+  function makeCardEl(i){
+    const item = itemAt(i);
+    const card = document.createElement('div');
+    card.className = 'crate-card';
+    if(item.type === 'div'){
+      const d = document.createElement('div'); d.className = 'crate-divider';
+      const tab = document.createElement('div'); tab.className = 'crate-divider-tab'; tab.textContent = item.label;
+      const label = document.createElement('div'); label.className = 'crate-divider-label'; label.textContent = item.label;
+      const meta = document.createElement('div'); meta.className = 'crate-divider-meta'; meta.textContent = item.meta;
+      d.appendChild(tab); d.appendChild(label); d.appendChild(meta);
+      card.appendChild(d);
+    } else {
+      const face = document.createElement('div'); face.className = 'crate-card-face';
+      face.style.background = CRATE_PALETTE[i % CRATE_PALETTE.length];
+      card.appendChild(face);
+      if(isNowPlayingAlbum(item)){
+        const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
+      }
+    }
+    return card;
+  }
+  function setCardImage(i, card){
+    const item = itemAt(i);
+    if(item.type !== 'rec') return;
+    const face = card.querySelector('.crate-card-face');
+    if(!face || face.querySelector('img')) return;
+    const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
+    if(!art) return;
+    const img = document.createElement('img');
+    img.decoding = 'async'; img.alt = '';
+    face.appendChild(img);
+    img.src = art;
+  }
+  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); }
+
+  function updateInfoPanel(idx){
+    const item = itemAt(idx);
+    info.innerHTML = '';
+    if(!item) return;
+    if(item.type === 'div'){
+      info.appendChild(el('h3', null, item.label));
+      info.appendChild(el('p','crate-info-sub', item.panelSub || ''));
+      info.appendChild(el('p','crate-info-meta', item.meta));
+      return;
+    }
+    const row = el('div','crate-info-row');
+    const text = el('div');
+    const h3 = el('h3', null, item.album);
+    if(isNowPlayingAlbum(item)) h3.appendChild(el('span','crate-now-chip','● Now playing'));
+    text.appendChild(h3);
+    text.appendChild(el('p','crate-info-sub', item.artist));
+    const metaBits = [item.genre || null, item.year || null,
+      item.trackCount + (item.trackCount === 1 ? ' track' : ' tracks')].filter(Boolean);
+    text.appendChild(el('p','crate-info-meta', metaBits.join(' · ').toUpperCase()));
+    row.appendChild(text);
+    const playBtn = el('button','tbtn play','▶');
+    playBtn.setAttribute('aria-label','Play ' + item.album);
+    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    row.appendChild(playBtn);
+    info.appendChild(row);
+  }
+
+  function updateRailUI(position){
+    const entries = model.railEntries;
+    rail.innerHTML = '';
+    if(!entries.length) return;
+    const h = 420;
+    entries.forEach((e_, k) => {
+      const t = entries.length > 1 ? k / (entries.length - 1) : 0;
+      const tick = el('button','crate-rail-item' + (e_.present ? '' : ' crate-rail-dim'), e_.label);
+      tick.style.top = (t * h) + 'px';
+      tick.disabled = !e_.present;
+      if(e_.present){
+        const target = crateRailJumpTarget(model, e_.key);
+        if(target != null && Math.abs(position - target) < 2) tick.classList.add('crate-rail-current');
+        tick.addEventListener('pointerdown', ev => { ev.stopPropagation(); });
+        tick.addEventListener('click', ev => { ev.stopPropagation(); snapTo(target); });
+      }
+      rail.appendChild(tick);
+    });
+  }
+
+  function announceCurrent(){
+    const item = itemAt(Math.round(S.crate.pos));
+    if(!item) return;
+    live.textContent = item.type === 'div' ? ('Divider ' + item.label + ', ' + item.meta.toLowerCase())
+      : (item.album + ', ' + item.artist + ', ' + item.trackCount + (item.trackCount===1?' track':' tracks'));
+  }
+
+  function syncCards(position, speed){
+    const lo = Math.max(0, Math.floor(position) - CRATE_VISIBLE_A), hi = Math.min(model.items.length - 1, Math.ceil(position) + CRATE_VISIBLE_A);
+    for(const i of Array.from(pool.keys())) if(i < lo || i > hi){ pool.get(i).remove(); pool.delete(i); }
+    for(let i = lo; i <= hi; i++) if(!pool.has(i)){ const c = makeCardEl(i); stage.appendChild(c); pool.set(i, c); }
+    pool.forEach((card, i) => {
+      const d = i - position, a = Math.abs(d);
+      const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y});
+      card.style.transform = 'translateY(' + pose.y.toFixed(1) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
+        + 'rotateX(' + pose.rotX.toFixed(2) + 'deg) scale(' + pose.scale.toFixed(3) + ')';
+      card.style.opacity = pose.opacity;
+      card.style.filter = pose.blur > 0.05 ? 'blur(' + pose.blur.toFixed(2) + 'px)' : 'none';
+      card.style.zIndex = flowZIndex(a);
+      card.classList.toggle('crate-current', a < 0.02);
+      if(a <= 2 && speed < 0.5) setCardImage(i, card);
+      else if(a > 2) clearCardImage(card);
+    });
+    updateInfoPanel(Math.round(position));
+    updateRailUI(position);
+  }
+  function draw(speed){ syncCards(S.crate.pos, speed); }
+
+  function onSettled(){
+    const item = itemAt(Math.round(S.crate.pos));
+    if(item && item.type === 'rec') persistCrateAnchor(item);
+    announceCurrent();
+  }
+
+  // the animation loop is draw-on-demand: paused outright (not just slowed)
+  // whenever the library route isn't visible or the page is hidden — the
+  // next interaction (or a resize/visibility change) picks up normally,
+  // so a stalled frame never leaves the pose stuck mid-animation
+  function pausedNow(){ return document.hidden || !isLibraryRouteVisible(); }
+
+  function snapTo(target, ms){
+    cancelAnim();
+    const token = ++animToken;
+    target = clamp(Math.round(target), 0, model.items.length - 1);
+    const start = S.crate.pos, startTime = performance.now(), dur = ms || 250;
+    function step(now){
+      if(token !== animToken) return;
+      if(pausedNow()){ S.crate.pos = target; draw(0); onSettled(); return; }
+      const p = clamp((now - startTime) / dur, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      S.crate.pos = start + (target - start) * eased;
+      draw((1 - p) * 0.35);
+      if(p < 1){ rafHandle = requestAnimationFrame(step); }
+      else { S.crate.pos = target; draw(0); onSettled(); }
+    }
+    rafHandle = requestAnimationFrame(step);
+  }
+
+  function momentumThenSnap(velocity){
+    cancelAnim();
+    const token = ++animToken;
+    let v = velocity, last = performance.now();
+    function step(now){
+      if(token !== animToken) return;
+      if(pausedNow()){ snapTo(Math.round(S.crate.pos)); return; }
+      const dt = Math.min(48, now - last); last = now;
+      v *= Math.exp(-0.0022 * dt);
+      let pos = clamp(S.crate.pos + v * dt, 0, model.items.length - 1);
+      S.crate.pos = pos;
+      draw(clamp(Math.abs(v) * 40, 0, 1));
+      if(Math.abs(v) > 0.00025 && pos > 0 && pos < model.items.length - 1){ rafHandle = requestAnimationFrame(step); }
+      else snapTo(Math.round(pos));
+    }
+    rafHandle = requestAnimationFrame(step);
+  }
+
+  // ---- pointer / touch drag ----
+  let dragState = null;
+  stage.addEventListener('pointerdown', e => {
+    if(e.button != null && e.button !== 0) return;
+    cancelAnim();
+    try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+    dragState = {startY:e.clientY, lastY:e.clientY, lastT:performance.now(), v:0, moved:false};
+  });
+  stage.addEventListener('pointermove', e => {
+    if(!dragState) return;
+    const now = performance.now();
+    const dy = e.clientY - dragState.lastY;
+    if(Math.abs(e.clientY - dragState.startY) > 3) dragState.moved = true;
+    const dt = Math.max(1, now - dragState.lastT);
+    const deltaPos = -dy / 70;
+    S.crate.pos = clamp(S.crate.pos + deltaPos, 0, model.items.length - 1);
+    const instV = deltaPos / dt;
+    dragState.v = dragState.v * 0.7 + instV * 0.3;
+    dragState.lastY = e.clientY; dragState.lastT = now;
+    draw(clamp(Math.abs(dragState.v) * 60, 0, 1));
+    e.preventDefault();
+  });
+  function endDrag(){
+    if(!dragState) return;
+    const v = dragState.v, moved = dragState.moved;
+    dragState = null;
+    if(!moved) return;   // a plain tap — the click handler below deals with it
+    if(Math.abs(v) > 0.00035) momentumThenSnap(v);
+    else snapTo(Math.round(S.crate.pos));
+  }
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  // ---- wheel / trackpad ----
+  let wheelSnapTimer = null;
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    cancelAnim();
+    const deltaPos = e.deltaY / 70;
+    S.crate.pos = clamp(S.crate.pos + deltaPos, 0, model.items.length - 1);
+    draw(clamp(Math.abs(deltaPos) * 3, 0, 1));
+    clearTimeout(wheelSnapTimer);
+    wheelSnapTimer = setTimeout(() => snapTo(Math.round(S.crate.pos)), 120);
+  }, {passive:false});
+
+  // ---- keyboard ----
+  stage.addEventListener('keydown', e => {
+    const cur = Math.round(S.crate.pos);
+    if(e.key === 'ArrowDown'){ snapTo(cur + 1); e.preventDefault(); }
+    else if(e.key === 'ArrowUp'){ snapTo(cur - 1); e.preventDefault(); }
+    else if(e.key === 'PageDown'){ snapTo(cur + 5); e.preventDefault(); }
+    else if(e.key === 'PageUp'){ snapTo(cur - 5); e.preventDefault(); }
+    else if(e.key === 'Home'){ snapTo(0); e.preventDefault(); }
+    else if(e.key === 'End'){ snapTo(model.items.length - 1); e.preventDefault(); }
+    else if(e.key === 'Enter'){ const item = itemAt(cur); if(item && item.type === 'rec') openCrateAlbum(item); e.preventDefault(); }
+    else if(e.key === ' '){ const item = itemAt(cur); if(item && item.type === 'rec') setQueue(item.idx, 0, true); e.preventDefault(); }
+    else if(model.group === 'az' && /^[a-zA-Z]$/.test(e.key)){
+      const target = crateRailJumpTarget(model, e.key.toUpperCase());
+      if(target != null){ snapTo(target); e.preventDefault(); }
+    }
+  });
+
+  // ---- tap a card: centre one scrolls to it, the centred one opens ----
+  stage.addEventListener('click', e => {
+    const cardEl = e.target.closest('.crate-card');
+    if(!cardEl) return;
+    let idx = null;
+    pool.forEach((elC, i) => { if(elC === cardEl) idx = i; });
+    if(idx == null) return;
+    if(idx === Math.round(S.crate.pos)){
+      const item = itemAt(idx);
+      if(item.type === 'rec') openCrateAlbum(item);
+    } else snapTo(idx);
+  });
+
+  // ---- rail drag-to-scrub, with the amber bubble ----
+  let bubbleEl = null, scrubbing = false;
+  function railEntryAtClientY(clientY){
+    const entries = model.railEntries;
+    if(!entries.length) return null;
+    const rect = rail.getBoundingClientRect();
+    const t = clamp((clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+    const k = Math.round(t * (entries.length - 1));
+    return entries[k];
+  }
+  rail.addEventListener('pointerdown', e => {
+    const entry = railEntryAtClientY(e.clientY);
+    if(!entry) return;
+    scrubbing = true;
+    cancelAnim();
+    try{ rail.setPointerCapture(e.pointerId); }catch(err){}
+    bubbleEl = document.createElement('div');
+    bubbleEl.className = 'crate-rail-bubble';
+    document.body.appendChild(bubbleEl);
+    scrubMove(e);
+    e.preventDefault();
+  });
+  function scrubMove(e){
+    if(!scrubbing) return;
+    const entry = railEntryAtClientY(e.clientY);
+    if(!entry) return;
+    bubbleEl.textContent = entry.label;
+    bubbleEl.style.left = (e.clientX - 34 - 60) + 'px';
+    bubbleEl.style.top = (e.clientY - 34) + 'px';
+    if(entry.present && entry.itemIndex != null){ S.crate.pos = clamp(entry.itemIndex, 0, model.items.length - 1); draw(0.9); }
+    scrubMove.lastEntry = entry;
+  }
+  rail.addEventListener('pointermove', e => { if(scrubbing){ scrubMove(e); e.preventDefault(); } });
+  function endScrub(){
+    if(!scrubbing) return;
+    scrubbing = false;
+    if(bubbleEl){ bubbleEl.remove(); bubbleEl = null; }
+    const entry = scrubMove.lastEntry;
+    if(entry && entry.present){ const target = crateRailJumpTarget(model, entry.key); if(target != null) snapTo(target); }
+  }
+  rail.addEventListener('pointerup', endScrub);
+  rail.addEventListener('pointercancel', endScrub);
+
+  draw(0);
+  announceCurrent();
+}
+
 function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
@@ -5952,6 +6603,7 @@ function renderTracks(){
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
   $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting) ? 'flex' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
+  $('#libLayoutToggle').style.display = (isLibraryRouteVisible() && S.tracks.length) ? 'flex' : 'none';
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
   updateLibrarySize();
   if(!S.tracks.length){ setPathNote(); return; }
@@ -5962,18 +6614,40 @@ function renderTracks(){
   const query = $('#librarySearch').value.trim();
   if(query){
     $('#crumb').style.display = 'none';
+    $('#crateGroupToggle').style.display = 'none';
     renderSearchResults(host, query);
     return;
   }
 
-  // breadcrumb when drilled into an album, artist (and its albums), or playlist
+  // the crate is a second top-level layout for Songs/Albums/Artists/
+  // Playlists — once drilled into an album, an artist's singles, or a
+  // person, it steps aside for the normal pages below (see CRATE spec §5)
+  const showCrate = S.libraryLayout === 'crate' && v.group === null && v.playlist === null
+    && v.mode !== 'person' && v.mode !== 'crateLoose';
+  $('#crateGroupToggle').style.display = showCrate ? 'flex' : 'none';
+  $('#libNav').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
+  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting && !showCrate) ? 'flex' : 'none';
+  $('#libActions').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
+  if(showCrate){
+    $('#crumb').style.display = 'none';
+    renderCrate(host);
+    setPathNote();
+    return;
+  }
+
+  // breadcrumb when drilled into an album, artist (and its albums), playlist,
+  // person, or an artist's loose-tracks page opened from the crate
   const crumb = $('#crumb');
-  const inside = v.group !== null || v.playlist !== null || v.mode === 'person';
+  const inside = v.group !== null || v.playlist !== null || v.mode === 'person' || v.mode === 'crateLoose';
   crumb.style.display = inside ? 'flex' : 'none';
   if(inside){
     crumb.innerHTML = '';
     const atArtistAlbum = v.mode === 'artists' && v.artistAlbum !== null;
-    const back = el('button','crumb-back','‹ Back');
+    // an album or loose-tracks page reached from the crate says so, and
+    // returning lands back in the crate at the same position (CRATE spec §4)
+    const fromCrate = S.libraryLayout === 'crate'
+      && ((v.mode === 'albums' && v.group !== null && !atArtistAlbum) || v.mode === 'crateLoose');
+    const back = el('button','crumb-back', fromCrate ? '‹ Crate' : '‹ Back');
     back.addEventListener('click', ()=>{
       if(v.mode === 'person'){
         const r = v.personReturn;
@@ -5981,13 +6655,15 @@ function renderTracks(){
         if(r){ v.mode = r.mode; v.group = r.group; v.artistAlbum = r.artistAlbum; v.playlist = r.playlist; }
         else v.mode = 'songs';
       }
+      else if(v.mode === 'crateLoose'){ v.mode = 'songs'; v.crateLooseIdx = null; v.crateLooseArtist = null; }
       else if(atArtistAlbum) v.artistAlbum = null;
       else { v.group = null; v.playlist = null; v.picking = false; }
       renderTracks();
     });
     crumb.appendChild(back);
     crumb.appendChild(el('span','crumb-label',
-      v.mode === 'person' ? v.person : (v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group))));
+      v.mode === 'person' ? v.person : (v.mode === 'crateLoose' ? v.crateLooseArtist :
+      (v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group)))));
     // Album/artist deletion lives right where you're looking at that album
     // or artist — offered even for a single-album artist, no conditional
     // collapsing to album deletion (see LIBRARY spec §4)
@@ -6028,6 +6704,12 @@ function renderTracks(){
 
   else if(v.mode === 'person'){
     renderPersonView(host, v.person);
+  }
+
+  else if(v.mode === 'crateLoose'){
+    const idx = v.crateLooseIdx || [];
+    idx.forEach((i,pos) => ul.appendChild(songRow(i, idx, pos)));
+    host.appendChild(ul);
   }
 
   else if(v.mode === 'albums'){
@@ -6721,9 +7403,15 @@ function setMode(m){
   if(S.source) routeSource(S.source);
 }
 
+function isLibraryRouteVisible(){
+  const r = document.getElementById('route-library');
+  return !!(r && r.classList.contains('on'));
+}
+
 function showRoute(name){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
+  $('#libLayoutToggle').style.display = (name === 'library' && S.tracks.length) ? 'flex' : 'none';
   if(name === 'profile') renderProfile();
 }
 
@@ -6744,7 +7432,21 @@ function showRoute(name){
   $('#shuffle').addEventListener('click', ()=>{ toggleShuffle(); queueSave(); });
   $('#repeat').addEventListener('click', ()=>{ cycleRepeat(); queueSave(); });
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', ()=>{
-    S.view.mode = b.dataset.view; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null; S.view.picking = false;
+    S.view.mode = b.dataset.view; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+    S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+    renderTracks();
+  }));
+  document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b => b.addEventListener('click', ()=>{
+    S.libraryLayout = b.dataset.layout;
+    document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave();
+    renderTracks();
+  }));
+  document.querySelectorAll('#crateGroupToggle [data-group]').forEach(b => b.addEventListener('click', ()=>{
+    if(b.style.display === 'none') return;
+    S.crateGroup = b.dataset.group;
+    invalidateCrateModel();
+    queueSave();
     renderTracks();
   }));
   $('#scrub').addEventListener('input', ()=>{ scrubbing = true; });
@@ -7112,6 +7814,7 @@ async function restoreLibrary(){
   await restoreMeta();
   await restoreSessions();
   rebuildPeopleIndex();
+  invalidateCrateModel();
   renderTracks();
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
