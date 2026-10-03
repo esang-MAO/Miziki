@@ -588,6 +588,70 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .gatefold.gf-wide .gf-sleeve,.gatefold.gf-wide .gf-left-cue{display:none}
 .gatefold.gf-wide .gf-info{left:20px;top:450px;right:auto;width:380px}
 
+/* ================= S5: sealed records ================= =================
+   One overlay + one sticker, plain CSS gradients, no images, scaled with
+   percentages so the same markup works at the crate's 278px, the sealed
+   sheet's 96px cover and the player's 278px sleeve (SEALED spec §4). Never
+   filters/dims the art underneath — it only adds light. */
+.seal-wrap{position:absolute;inset:0;pointer-events:none;border-radius:inherit;overflow:hidden}
+.seal-wrap::before{
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 22%,rgba(255,255,255,.05) 48%,rgba(255,255,255,0) 62%,rgba(255,255,255,.12) 100%),
+    rgba(255,255,255,.03),
+    linear-gradient(18deg,transparent 48%,rgba(255,255,255,.28) 49%,transparent 50%),
+    linear-gradient(24deg,transparent 30%,rgba(255,255,255,.22) 31%,transparent 32%),
+    linear-gradient(62deg,transparent 60%,rgba(255,255,255,.26) 61%,transparent 62%),
+    linear-gradient(70deg,transparent 75%,rgba(255,255,255,.24) 76%,transparent 77%),
+    linear-gradient(-16deg,transparent 15%,rgba(255,255,255,.3) 16%,transparent 17%),
+    linear-gradient(-32deg,transparent 85%,rgba(255,255,255,.34) 86%,transparent 87%)}
+.seal-wrap::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:3%;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 1px,rgba(255,255,255,.04) 1px 3px);
+  box-shadow:0 -1px 0 rgba(255,255,255,.18)}
+.seal-sticker{position:absolute;top:4%;right:4%;width:20%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#FFC46B,#FF9E2C 55%,#D9741A 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.4);transform:rotate(9deg);
+  display:grid;place-content:center;pointer-events:none}
+.seal-sticker span{font-family:var(--display);font-weight:700;letter-spacing:.08em;color:#2A1604}
+.seal-tag{display:inline-block;border:1px solid var(--accent);color:var(--accent);
+  font-family:var(--data);font-size:9.5px;letter-spacing:.16em;border-radius:3px;
+  padding:2px 6px;margin-top:4px}
+.new-tag{display:inline-block;color:var(--accent);font-family:var(--data);font-size:9px;
+  letter-spacing:.1em;border:1px solid var(--accent);border-radius:3px;padding:1px 4px;margin-left:6px;vertical-align:1px}
+
+/* the sealed sheet (SEALED spec §5): the gatefold's tracklist panel, same
+   rows/order/handlers, no swing, no camera, no left panel, no inner sleeve */
+.seal-sheet{position:fixed;inset:0;z-index:30;display:none;background:rgba(5,7,9,.72)}
+.seal-sheet.open{display:block}
+.seal-sheet-box{position:absolute;left:20px;right:20px;bottom:0;top:12%;
+  background:#1C1226;border-radius:10px 10px 0 0;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .25s ease-out}
+.seal-sheet.show .seal-sheet-box{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){ .seal-sheet-box{transition:opacity .15s;transform:none;opacity:0}
+  .seal-sheet.show .seal-sheet-box{opacity:1} }
+.seal-sheet-head{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.seal-sheet-cover{position:relative;width:64px;height:64px;border-radius:4px;overflow:hidden;flex:0 0 auto}
+.seal-sheet-cover img{width:100%;height:100%;object-fit:cover}
+.seal-sheet-text{flex:1;min-width:0;color:var(--paper)}
+.seal-sheet-artist{font-family:var(--data);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seal-sheet-title{font-family:var(--display);font-size:17px;font-weight:700;margin:1px 0}
+.seal-sheet-close{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--paper);flex:0 0 auto}
+.seal-sheet-body{flex:1;overflow-y:auto;padding:10px 16px}
+.seal-sheet-foot{padding:10px 16px;font-family:var(--data);font-size:9.5px;letter-spacing:.1em;
+  color:var(--muted);text-align:center;border-top:1px solid rgba(255,255,255,.08)}
+
+/* the peel: tear (~300ms) then slide-off (~400ms), inside the first sleeve
+   pull of a sealed album (SEALED spec §6) */
+#sleeveWrap{position:absolute;inset:0;pointer-events:none;z-index:5}
+#sleeveWrap .seal-tear{position:absolute;left:0;right:0;top:0;height:7.5%;
+  background:rgba(255,255,255,.2);box-shadow:0 1px 0 rgba(255,255,255,.3);
+  transform-origin:0% 100%;transition:none}
+#sleeveWrap.peel-tear .seal-tear{transform:rotate(-6deg) translate(-10px,-16px);
+  transition:transform var(--sleeve-peel-tear-duration,300ms) ease-in}
+#sleeveWrap.peel-off{transition:transform var(--sleeve-peel-off-duration,400ms) ease-in,opacity var(--sleeve-peel-off-duration,400ms) ease-in;
+  transform:translate(42%,12%) rotate(16deg) skewX(-6deg);opacity:0}
+
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
@@ -995,7 +1059,7 @@ input[type=file]{display:none}
               <button data-sides="on" aria-pressed="false">On</button>
             </div>
           </div>
-          <div class="lib-tools-row2" id="sealedRow" style="display:none">
+          <div class="lib-tools-row2" id="sealedRow">
             <span class="k">Sealed records</span>
             <div class="seg" id="sealedToggle">
               <button data-sealed="on" aria-pressed="true">On</button>
@@ -1428,6 +1492,26 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- SEALED SHEET: a sealed album can't be opened into the gatefold — a
+     plain tracklist sheet instead, until the first play (SEALED spec §5) -->
+<div class="seal-sheet" id="sealSheet" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <div class="seal-sheet-box" id="sealSheetBox">
+    <div class="seal-sheet-head">
+      <div class="seal-sheet-cover" id="sealSheetCoverWrap">
+        <img id="sealSheetCoverArt" alt="">
+      </div>
+      <div class="seal-sheet-text">
+        <div class="seal-sheet-artist" id="sealSheetArtist"></div>
+        <div class="seal-sheet-title" id="sealSheetTitle"></div>
+        <span class="seal-tag">SEALED</span>
+      </div>
+      <button class="seal-sheet-close" id="sealSheetClose" aria-label="Close">‹ CRATE</button>
+    </div>
+    <div class="seal-sheet-body" id="sealSheetBody" tabindex="-1"></div>
+    <div class="seal-sheet-foot">PLAY ANYTHING TO BREAK THE SEAL</div>
+  </div>
+</div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -1496,6 +1580,11 @@ S.crateGroup = 'az';
 S.crateAnchor = null;
 // gatefold spec §A5: off by default, saved like the other library-tools prefs
 S.albumSides = false;
+// SEALED spec §2/§3 — albums imported after this feature ships stay
+// shrink-wrapped until first played; the set itself is independent of
+// listening history so "Clear listening history" never reseals anything
+S.sealed = new Set();
+S.sealedRecords = true;
 // pos stays null until first resolved — see renderCrate()'s cold-start
 // anchor logic (last-played album wins once, crateAnchor from then on)
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
@@ -1866,6 +1955,46 @@ function applyDiscVariant(t, crossfade){
    record ready for a future account system: stable ids, no device-keyed
    identifiers, no absolute paths. */
 async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
+
+/* ================= S5: sealed records =================
+   S.sealed is its own saved list, independent of S.albumLastPlayed/session
+   history on purpose — "Clear listening history" must never reseal an
+   album (SEALED spec §2). Grandfathering: no sealedAlbums row at all means
+   this feature hasn't run here yet, so nothing existing is sealed. */
+async function restoreSealedAlbums(){
+  const row = await DB.get('meta', 'sealedAlbums');
+  S.sealed = new Set(row && row.v && row.v.ids ? row.v.ids : []);
+}
+async function persistSealedAlbums(){ await DB.put('meta', {k:'sealedAlbums', v:{init:true, ids:[...S.sealed]}}); }
+
+function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
+
+// "played" means playback began — no minimum duration, any track counts,
+// and once removed an id can never be re-added except by a fresh import
+// (SEALED spec §2, §6)
+function breakSeal(albumId){
+  if(!S.sealed.has(albumId)) return;
+  S.sealed.delete(albumId);
+  persistSealedAlbums();
+  updateSealedSheetAfterBreak(albumId);
+  renderTracks();
+}
+
+// one overlay + one sticker, plain CSS gradients, no images — shared by the
+// crate card, the sealed sheet's small cover and the player's sleeve
+// (SEALED spec §4). sizePx sizes only the sticker's text; everything else
+// is percentage-based so the same markup scales with its host.
+function buildSealOverlay(sizePx){
+  const frag = document.createDocumentFragment();
+  const wrap = el('div','seal-wrap'); wrap.setAttribute('aria-hidden','true');
+  frag.appendChild(wrap);
+  const sticker = el('div','seal-sticker'); sticker.setAttribute('aria-hidden','true');
+  const label = el('span', null, 'NEW');
+  label.style.fontSize = Math.round(sizePx * 0.075) + 'px';
+  sticker.appendChild(label);
+  frag.appendChild(sticker);
+  return frag;
+}
 async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -2865,6 +2994,10 @@ async function addFiles(list){
   const files = Array.from(list).filter(f => f.size > 0);
   if(!files.length) return;
   const failed = [];
+  // an album not already in the library when this batch starts is "new" —
+  // sealed once, regardless of how many of its files land in this same
+  // batch (SEALED spec §2); loose tracks have no release identity to seal
+  const existingAlbumIds = new Set(S.tracks.map(albumKey));
   let i = 0;
   for(const f of files){
     i++;
@@ -2916,6 +3049,10 @@ async function addFiles(list){
       await loadOverlayFor(t);
       S.tracks.push(t);
       touchLRU(S.tracks.length - 1);
+      {
+        const aid = albumKey(t);
+        if(tags.album !== 'Unknown Album' && !existingAlbumIds.has(aid)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+      }
       if(await storeTrack(t, fileBlob)){
         t.stored = true;
         t.blob = null;            // it lives on disk now; no need to hold it in memory
@@ -2931,6 +3068,7 @@ async function addFiles(list){
   invalidateCrateModel();
   renderTracks();
   queueSave();
+  persistSealedAlbums();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
   if(failed.length){
@@ -3052,7 +3190,8 @@ async function saveMeta(){
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
     bgAudio:S.bgAudio, launchIntro:S.launchIntro,
-    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides}});
+    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides,
+    sealedRecords:S.sealedRecords}});
 }
 
 async function restoreMeta(){
@@ -3099,6 +3238,11 @@ function applyPrefs(p){
     S.albumSides = p.albumSides;
     document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
+  }
+  if(typeof p.sealedRecords === 'boolean'){
+    S.sealedRecords = p.sealedRecords;
+    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
   }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
@@ -3385,13 +3529,22 @@ function recomputeTrack(i){
 // onto any existing overlay rather than replacing it, and persists each
 async function applyEdit(trackIds, fields, artBlob){
   const touchedAlbumIds = new Set();
+  let sealedChanged = false;
   for(const id of trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
+    const oldAlbumId = albumKey(t);
     const existing = await DB.get('overlays', id);
     const merged = Object.assign({}, existing && existing.fields, fields);
     await DB.put('overlays', {id, fields: merged});
     Object.assign(t.tags, fields);
+    // the album id is recomputed from the (possibly just-edited) album
+    // title — carry the seal state over so a retag never seals or unseals
+    // an album as a side effect (SEALED spec §2)
+    const newAlbumId = albumKey(t);
+    if(newAlbumId !== oldAlbumId && S.sealed.has(oldAlbumId)){
+      S.sealed.delete(oldAlbumId); S.sealed.add(newAlbumId); sealedChanged = true;
+    }
     if(artBlob){
       await DB.put('artwork', {id, blob: artBlob});
       if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
@@ -3409,6 +3562,7 @@ async function applyEdit(trackIds, fields, artBlob){
     await deleteCrateArtTiers(albumId);
     buildCrateTier(albumId, 'S').catch(() => {});
   }
+  if(sealedChanged) persistSealedAlbums();
 }
 
 // clears a track's whole overlay (fields + artwork), restoring it to
@@ -3620,7 +3774,13 @@ async function deleteTracks(idsToDelete){
   // an album that just lost its last track has no tracks left to cut crate
   // art from — drop its tiers rather than leaving them stranded (spec §B3)
   const survivingAlbumIds = new Set(S.tracks.map(albumKey));
-  for(const albumId of removedAlbumIds) if(!survivingAlbumIds.has(albumId)) await deleteCrateArtTiers(albumId);
+  let sealedChanged = false;
+  for(const albumId of removedAlbumIds){
+    if(survivingAlbumIds.has(albumId)) continue;
+    await deleteCrateArtTiers(albumId);
+    if(S.sealed.delete(albumId)) sealedChanged = true;   // SEALED spec §2
+  }
+  if(sealedChanged) persistSealedAlbums();
 
   for(const id of idsToDelete){
     await DB.del('tracks', id);
@@ -3692,6 +3852,7 @@ async function forgetLibrary(){
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
   S.queue = []; S.baseQueue = []; S.lru = [];
+  S.sealed = new Set();   // the meta row holding it was just cleared above (SEALED spec §2)
   S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
   S.curPlayed = []; S.curTrackDone = false;
   S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
@@ -4049,6 +4210,8 @@ const SLEEVE_ANIM = {
   // put-away: the queue ends, the sleeve comes to collect the disc (see
   // PRESENTATION spec, put-away sequence). Shorter than the pull (2.0s total).
   putSpinMs: 500, putInMs: 700, putSlideDelayMs: 600, putSlideMs: 800, putOutMs: 600,
+  // the seal peel, inserted into a sealed album's first pull only (SEALED spec §6)
+  peelTearMs: 300, peelOffMs: 400,
   easing: 'cubic-bezier(.3,.66,.35,1)'   // morph only; sleeve/disc easing lives in CSS per-phase
 };
 document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
@@ -4058,6 +4221,8 @@ document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.retu
 document.documentElement.style.setProperty('--putaway-in-duration', SLEEVE_ANIM.putInMs + 'ms');
 document.documentElement.style.setProperty('--putaway-slide-duration', SLEEVE_ANIM.putSlideMs + 'ms');
 document.documentElement.style.setProperty('--putaway-out-duration', SLEEVE_ANIM.putOutMs + 'ms');
+document.documentElement.style.setProperty('--sleeve-peel-tear-duration', SLEEVE_ANIM.peelTearMs + 'ms');
+document.documentElement.style.setProperty('--sleeve-peel-off-duration', SLEEVE_ANIM.peelOffMs + 'ms');
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -4183,6 +4348,34 @@ function sleeveArtFor(art, hasArt){
 // there's no ceremony to run at all (untagged/shuffled/same-album, the
 // toggle is off, or reduced motion) — otherwise it runs only after the
 // full return+pull (swap) or pull-only (fresh platter) sequence completes.
+// the seal wrap on the incoming sleeve, shown from the moment it starts
+// arriving so it arrives wrapped (SEALED spec §6)
+function attachSleeveWrap(){
+  removeSleeveWrap();
+  const wrap = document.createElement('div');
+  wrap.id = 'sleeveWrap';
+  wrap.setAttribute('aria-hidden','true');
+  wrap.appendChild(buildSealOverlay(278));
+  wrap.appendChild(el('div','seal-tear'));
+  $('#sleeve').appendChild(wrap);
+}
+function removeSleeveWrap(){ const w = $('#sleeveWrap'); if(w) w.remove(); }
+
+// tear (~300ms) then slide-off (~400ms); each step is checked against the
+// same cancellation token as the rest of the ceremony (SEALED spec §6)
+async function runSealPeel(cancelled){
+  const wrap = $('#sleeveWrap');
+  if(!wrap) return;
+  void wrap.offsetWidth;
+  wrap.classList.add('peel-tear');
+  await sleep(SLEEVE_ANIM.peelTearMs);
+  if(cancelled()) return;
+  wrap.classList.add('peel-off');
+  await sleep(SLEEVE_ANIM.peelOffMs);
+  if(cancelled()) return;
+  removeSleeveWrap();
+}
+
 async function runStartSequence(t, info, startAudio){
   const stage = $('#platterStage');
   const token = ++S.sleeveSeq;
@@ -4195,12 +4388,19 @@ async function runStartSequence(t, info, startAudio){
   // whatever a just-cancelled prior invocation left behind
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
   $('#sleeve').style.display = 'none';
+  removeSleeveWrap();
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
+    // no ceremony to carry it — play() itself breaks a sealed album's seal
+    // silently the instant it actually starts (SEALED spec §6)
     $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
     startAudio();
     return;
   }
+
+  // captured once, at the start — not re-checked mid-ceremony, so the peel
+  // either runs once in full or not at all (SEALED spec §6, "once per album")
+  const sealedForPeel = isAlbumSealed(albumKey(t));
 
   // decode ahead of time so playback can start the instant the disc lands,
   // never after — runs in parallel with the sleeve/disc motion below
@@ -4225,11 +4425,18 @@ async function runStartSequence(t, info, startAudio){
   sleeveArtFor(t.art, !!t.art);
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';
+  if(sealedForPeel) attachSleeveWrap();
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('sleeve-arriving');
   await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.arriveMs);
   if(cancelled()) return;
   stage.classList.remove('sleeve-arriving');
+
+  if(sealedForPeel){
+    await runSealPeel(cancelled);
+    if(cancelled()) return;
+    breakSeal(albumKey(t));
+  }
 
   // hold: the sleeve sits static on an empty platter until the buffer is
   // ready, capped so a slow decode never stalls the ceremony indefinitely
@@ -4257,11 +4464,18 @@ function interruptStartSequence(){
   const stage = $('#platterStage');
   const wasPutAway = stage.classList.contains('putaway-in') || stage.classList.contains('putaway-slide') ||
     stage.classList.contains('putaway-out');
+  // the peel sits in a gap between stage classes (after 'sleeve-arriving' is
+  // removed, before the hold/emerge classes are added) — #sleeveWrap's
+  // presence is what marks that window as "active" (SEALED spec §6)
   const wasActive = wasPutAway || stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
-    stage.classList.contains('disc-emerging') || stage.classList.contains('returning');
+    stage.classList.contains('disc-emerging') || stage.classList.contains('returning') || !!$('#sleeveWrap');
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
   clearSpinDown();
   $('#sleeve').style.display = 'none';
+  // a tap during the peel snaps straight to the end state: wrap gone, no
+  // eased snap (SEALED spec §6, "Interrupt") — the seal itself only breaks
+  // once playback is actually about to start, same as everywhere else
+  removeSleeveWrap();
   if(wasPutAway){
     // the record was mid-way into its sleeve — finish putting it away rather
     // than resurrecting the disc; pressing play afterwards is what brings it
@@ -4272,7 +4486,7 @@ function interruptStartSequence(){
     return;
   }
   $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
-  if(wasActive && !S.playing) play();
+  if(wasActive && !S.playing) play();   // play() itself breaks the seal the instant it actually starts
 }
 
 /* ================= put-away: the record goes back in its sleeve =================
@@ -4915,6 +5129,9 @@ async function play(){
   await S.ctx.resume();
   if(S.playing) return;
   S.playing = true;
+  // the single point every playback path funnels through, ceremony or not —
+  // "played" means this, with no minimum duration (SEALED spec §2)
+  breakSeal(albumKey(t));
   clearSpinDown();   // real playback resumed — any eased-down spin-rate from a put-away no longer applies
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
@@ -6847,7 +7064,7 @@ function gatefoldNowGlyph(){
   return span;
 }
 
-function gatefoldTrackRow(i, pos, trackIdx){
+function gatefoldTrackRow(i, pos, trackIdx, playHandler){
   const t = S.tracks[i];
   const row = document.createElement('button');
   row.className = 'gf-track-row';
@@ -6860,11 +7077,14 @@ function gatefoldTrackRow(i, pos, trackIdx){
   row.appendChild(num);
   row.appendChild(el('span','gf-tt', t.tags.title));
   row.appendChild(el('span','gf-td', fmt(t.duration)));
-  row.addEventListener('click', () => gatefoldPlayTrack(trackIdx, i));
+  row.addEventListener('click', () => (playHandler || gatefoldPlayTrack)(trackIdx, i));
   return row;
 }
 
-function buildGatefoldTracklist(item, trackIdx){
+// playHandler lets the sealed sheet reuse this exact rendering (order, rows,
+// sides) while running a different play path (SEALED spec §5) — the
+// gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6)
+function buildGatefoldTracklist(item, trackIdx, playHandler){
   const host = document.createDocumentFragment();
   host.appendChild(el('p','gf-tl-head', item.artist.toUpperCase()));
   host.appendChild(el('h2','gf-tl-title', item.album));
@@ -6876,10 +7096,10 @@ function buildGatefoldTracklist(item, trackIdx){
       head.appendChild(el('b', null, side.label));
       head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' TRACK · ':' TRACKS · ') + fmt(total).toUpperCase()));
       host.appendChild(head);
-      side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx)));
+      side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler)));
     });
   } else {
-    trackIdx.forEach((i,k) => host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx)));
+    trackIdx.forEach((i,k) => host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler)));
   }
   return host;
 }
@@ -6954,6 +7174,16 @@ function gatefoldPlayTrack(trackIdx, i){
   setQueue(trackIdx, trackIdx.indexOf(i), false);
   play();
   gatefoldSleeveFlourish();
+}
+
+// a sealed album's first play runs the normal ceremony (so the peel is
+// actually seen) but on the platter/mini-player only — never the full
+// player sheet (SEALED spec §5: "the sleeve pull runs behind the sheet as
+// usual... the player is not forced open"). Used by the sealed sheet's rows
+// and the crate's own Play affordances for a sealed record.
+function sealedQuietPlay(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  runStartSequence(current(), S.pendingShellInfo, play);
 }
 
 function gatefoldRestoreRowNumber(row){
@@ -7239,6 +7469,58 @@ function closeGatefoldInstant(){
   overlay.setAttribute('aria-hidden','true');
 }
 
+let SEALSHEET = null;   // {item}, null when closed
+
+function isSealedSheetOpen(){ return !!SEALSHEET; }
+
+// after a seal breaks, fade the wrap off the small cover if its sheet is
+// the one open right now — the sheet itself stays as it is (SEALED spec §5)
+function updateSealedSheetAfterBreak(albumId){
+  if(!SEALSHEET || SEALSHEET.item.albumId !== albumId) return;
+  const host = $('#sealSheetCoverWrap');
+  const bits = host.querySelectorAll('.seal-wrap, .seal-sticker');
+  bits.forEach(elm => {
+    elm.style.transition = 'opacity .3s';
+    elm.style.opacity = '0';
+    setTimeout(() => elm.remove(), 300);
+  });
+}
+
+function openSealedSheet(item){
+  if(SEALSHEET || GF) return;
+  const trackIdx = gatefoldTrackIndices(item);
+  if(!trackIdx.length) return;
+  SEALSHEET = {item, returnFocus: document.activeElement};
+  const sheet = $('#sealSheet');
+  sheet.setAttribute('aria-label', item.album);
+  $('#sealSheetArtist').textContent = item.artist.toUpperCase();
+  $('#sealSheetTitle').textContent = item.album;
+  const coverWrap = $('#sealSheetCoverWrap');
+  coverWrap.querySelectorAll('.seal-wrap, .seal-sticker').forEach(n => n.remove());
+  coverWrap.appendChild(buildSealOverlay(96));
+  const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+  if(art) $('#sealSheetCoverArt').src = art;
+  getCrateArtURL(item.albumId, 'S').then(url => { if(url && SEALSHEET && SEALSHEET.item === item) $('#sealSheetCoverArt').src = url; });
+  $('#sealSheetBody').innerHTML = '';
+  $('#sealSheetBody').appendChild(buildGatefoldTracklist(item, trackIdx, sealedQuietPlay));
+
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden','false');
+  requestAnimationFrame(() => { sheet.classList.add('show'); $('#sealSheetBody').focus(); });
+}
+
+async function closeSealedSheet(){
+  if(!SEALSHEET) return;
+  const s = SEALSHEET; SEALSHEET = null;
+  const sheet = $('#sealSheet');
+  sheet.classList.remove('show');
+  await sleep(REDUCED ? 150 : 250);
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden','true');
+  if(s.returnFocus && document.contains(s.returnFocus) && typeof s.returnFocus.focus === 'function') s.returnFocus.focus();
+  else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
+}
+
 function openCrateAlbum(item){
   const v = S.view;
   if(item.kind === 'loose'){
@@ -7247,6 +7529,9 @@ function openCrateAlbum(item){
     renderTracks();
     return;
   }
+  // a sealed record can't be opened — the gatefold and its left panel only
+  // unlock after the first play (SEALED spec §1, §5)
+  if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
   // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
   // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
   // navigation back, it's simply still there
@@ -7277,16 +7562,22 @@ function renderCrateFlat(host, model){
     const row = el('div','crate-flat-item');
     row.setAttribute('role','option');
     if(isNowPlayingAlbum(item)) row.classList.add('crate-flat-current');
+    const sealed = isAlbumSealed(item.albumId);
     const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
     if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; row.appendChild(im); }
     else { const flat = el('span','crate-flat-flat'); flat.style.background = CRATE_PALETTE[row.childElementCount % CRATE_PALETTE.length]; row.appendChild(flat); }
     const text = el('span','t-name');
-    text.appendChild(el('b', null, item.album));
+    const titleEl = el('b', null, item.album);
+    if(sealed) titleEl.appendChild(el('span','new-tag','NEW'));
+    text.appendChild(titleEl);
     text.appendChild(el('em', null, item.artist + ' · ' + item.trackCount + (item.trackCount===1?' track':' tracks')));
     row.appendChild(text);
     const playBtn = el('button','t-edit','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
-    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    playBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
+    });
     row.appendChild(playBtn);
     row.addEventListener('click', () => {
       persistCrateAnchor(item);
@@ -7390,6 +7681,7 @@ function renderCrate(host){
       if(isNowPlayingAlbum(item)){
         const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
       }
+      if(isAlbumSealed(item.albumId)) card.appendChild(buildSealOverlay(278));
     }
     return card;
   }
@@ -7461,6 +7753,7 @@ function renderCrate(host){
       info.appendChild(el('p','crate-info-meta', item.meta));
       return;
     }
+    const sealed = isAlbumSealed(item.albumId);
     const row = el('div','crate-info-row');
     const text = el('div');
     const h3 = el('h3', null, item.album);
@@ -7470,10 +7763,19 @@ function renderCrate(host){
     const metaBits = [item.genre || null, item.year || null,
       item.trackCount + (item.trackCount === 1 ? ' track' : ' tracks')].filter(Boolean);
     text.appendChild(el('p','crate-info-meta', metaBits.join(' · ').toUpperCase()));
+    if(sealed){
+      text.appendChild(el('span','seal-tag','SEALED'));
+      text.appendChild(el('span','sr-only','Sealed, not played yet'));
+    }
     row.appendChild(text);
     const playBtn = el('button','tbtn play','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
-    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    // a sealed album plays quietly from track 1, same first-play rules as
+    // the sealed sheet — no sheet/overlay opens from here either (§5)
+    playBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
+    });
     row.appendChild(playBtn);
     info.appendChild(row);
   }
@@ -7818,7 +8120,11 @@ function renderTracks(){
   if(v.mode === 'songs'){
     host.appendChild(librarySortBar());
     const q = allIdx().sort(librarySortComparator('songs'));
-    q.forEach((i,pos) => ul.appendChild(songRow(i, q, pos)));
+    q.forEach((i,pos) => {
+      const row = songRow(i, q, pos);
+      if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
+      ul.appendChild(row);
+    });
     host.appendChild(ul);
   }
 
@@ -7837,8 +8143,10 @@ function renderTracks(){
       host.appendChild(librarySortBar());
       sortAlbumGroups(groupBy('album')).forEach(([album, idx]) => {
         const artist = S.tracks[idx[0]].tags.albumArtist;
-        host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-          idx, ()=>{ v.group = album; renderTracks(); }));
+        const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+          idx, ()=>{ v.group = album; renderTracks(); });
+        if(isAlbumSealed(albumKey(S.tracks[idx[0]]))) row.querySelector('.g-text b').appendChild(el('span','new-tag','NEW'));
+        host.appendChild(row);
       });
     } else {
       renderAlbumDetail(host, ul, v.group);
@@ -8663,6 +8971,12 @@ function showRoute(name){
     document.querySelectorAll('#sidesToggle [data-sides]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     queueSave();
   }));
+  document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b => b.addEventListener('click', ()=>{
+    S.sealedRecords = b.dataset.sealed === 'on';
+    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave();
+    renderTracks();
+  }));
   $('#scrub').addEventListener('input', ()=>{ scrubbing = true; });
   $('#scrub').addEventListener('change', e=>{
     scrubbing = false;
@@ -8833,6 +9147,7 @@ function showRoute(name){
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
     if(isGatefoldOpen()) closeGatefold();
+    else if(isSealedSheetOpen()) closeSealedSheet();
     else if(isAddMenuOpen()){ closeAddMenu(); $('#hdrAddBtn').focus(); }
     else if(isSearchFieldOpen()){ $('#librarySearch').value = ''; closeSearchField(); renderTracks(); }
   });
@@ -8843,6 +9158,7 @@ function showRoute(name){
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);
+  $('#sealSheetClose').addEventListener('click', closeSealedSheet);
 
   // Library tools disclosure panel (S1 §5)
   $('#libToolsToggle').addEventListener('click', ()=>{
@@ -9068,6 +9384,7 @@ async function restoreLibrary(){
   }
   await restoreMeta();
   await restoreSessions();
+  await restoreSealedAlbums();
   rebuildPeopleIndex();
   invalidateCrateModel();
   renderTracks();
