@@ -439,8 +439,9 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .crate-stage{position:relative;height:460px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 .crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
-  border-radius:6px;overflow:hidden;will-change:transform,opacity,filter;
+  border-radius:6px;overflow:hidden;
   box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.crate-card.crate-moving{will-change:transform}
 .crate-card.crate-current{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
 .crate-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
@@ -2783,6 +2784,7 @@ async function addFiles(list){
   invalidateCrateModel();
   renderTracks();
   queueSave();
+  healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
   if(failed.length){
     setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
@@ -3230,6 +3232,7 @@ function recomputeTrack(i){
 // applies fields (and optionally new artwork) to one or more tracks, merging
 // onto any existing overlay rather than replacing it, and persists each
 async function applyEdit(trackIds, fields, artBlob){
+  const touchedAlbumIds = new Set();
   for(const id of trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
@@ -3242,8 +3245,17 @@ async function applyEdit(trackIds, fields, artBlob){
       if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
+      touchedAlbumIds.add(albumKey(t));
     }
     recomputeTrack(i);
+  }
+  // the crate tiers are cut from this same artwork — a new cover makes the
+  // old tiers stale, so clear them and rebuild the S tier right away (the
+  // spec's "rebuild that album's tiers... from wherever ensureThumb is
+  // re-run for edits", §B3)
+  for(const albumId of touchedAlbumIds){
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
   }
 }
 
@@ -3252,12 +3264,18 @@ async function applyEdit(trackIds, fields, artBlob){
 async function revertTrack(id){
   const i = idxOf(id); if(i < 0) return;
   const t = S.tracks[i];
+  const hadArtOverlay = !!t.overlayArtBlob;
   await DB.del('overlays', id);
   await DB.del('artwork', id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
   t.overlayArtBlob = null;
   t.art = t.embeddedArt;
+  if(hadArtOverlay){
+    const albumId = albumKey(t);
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
+  }
   recomputeTrack(i);
 }
 
@@ -3278,6 +3296,7 @@ async function applyEditWithUndo(trackIds, fields, artBlob){
 async function undoLastEdit(){
   const u = S.lastUndo; if(!u) return;
   S.lastUndo = null;
+  const touchedAlbumIds = new Set();
   for(const id of u.trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
@@ -3286,9 +3305,13 @@ async function undoLastEdit(){
     if(prevArtRec) await DB.put('artwork', prevArtRec); else await DB.del('artwork', id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
-    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); }
-    else { t.overlayArtBlob = null; t.art = t.embeddedArt; }
+    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
+    else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
     recomputeTrack(i);
+  }
+  for(const albumId of touchedAlbumIds){
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
   }
   hideUndoBanner();
 }
@@ -3439,7 +3462,13 @@ async function deleteTracks(idsToDelete){
   }
 
   S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
+  const removedAlbumIds = new Set();
+  S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
   S.tracks = S.tracks.filter(t => !idSet.has(t.id));
+  // an album that just lost its last track has no tracks left to cut crate
+  // art from — drop its tiers rather than leaving them stranded (spec §B3)
+  const survivingAlbumIds = new Set(S.tracks.map(albumKey));
+  for(const albumId of removedAlbumIds) if(!survivingAlbumIds.has(albumId)) await deleteCrateArtTiers(albumId);
 
   for(const id of idsToDelete){
     await DB.del('tracks', id);
@@ -4363,7 +4392,11 @@ function makeLaunchCard(stack, index){
   let art = null;
   if(stack.variant === 'library'){
     const albumId = stack.albumIds[index];
-    art = thumbURL['album:' + albumId];
+    // an already-warmed crate tier (S for the flying stack, L for the
+    // caught record) is sharper than the 800px thumbnail — but this never
+    // waits on a build, only a synchronous cache hit (spec §B5)
+    const tier = index === stack.targetIndex ? 'L' : 'S';
+    art = crateArtCache[tier].get(albumId) || thumbURL['album:' + albumId];
   }
   if(art){
     const img = document.createElement('img');
@@ -6239,7 +6272,171 @@ function updateSearchChipsVisibility(){
 const CRATE_ORIGIN_Y = 170;
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
+const CRATE_DPR = window.devicePixelRatio || 1;
 const CRATE_ALPHABET = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+
+/* ================= S4: crate image tiers (640px "S", 1200px "L") =========
+   Stored in the existing `artwork` store (keyed by id, never `meta` — that
+   would read hundreds of MB into memory on every launch) under prefixed
+   ids `crate640:<albumId>` / `crate1200:<albumId>`, built lazily and
+   fetched through a small LRU of object URLs. See the image-quality
+   spec §B1-B3. No DB version bump — the store already exists. */
+const CRATE_TIER_S_PX = 640, CRATE_TIER_L_PX = 1200;
+const CRATE_TIER_S_Q = 0.88, CRATE_TIER_L_Q = 0.92;
+const CRATE_TIER_S_CAP = 40, CRATE_TIER_L_CAP = 4;
+const crateArtCache = { S: new Map(), L: new Map() };   // albumId -> object URL; Map insertion order is LRU recency
+const crateArtBuilding = new Set();                      // 'tier:albumId' in flight, so concurrent askers don't double-build
+
+function crateTierKey(tier, albumId){ return (tier === 'L' ? 'crate1200:' : 'crate640:') + albumId; }
+
+// like cropSquareImage (left untouched for the existing 800/300px thumbs),
+// but halves repeatedly so a big reduction doesn't alias the way a single
+// drawImage step does (spec §B3)
+function cropSquareImageStepped(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const out = Math.min(maxDim, side);   // never upscale
+      let canvas = document.createElement('canvas');
+      canvas.width = side; canvas.height = side;
+      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, side, side);
+      URL.revokeObjectURL(img.src);
+      let curSize = side;
+      while(curSize > out * 2){
+        const next = Math.max(out, Math.round(curSize / 2));
+        const nextCanvas = document.createElement('canvas');
+        nextCanvas.width = next; nextCanvas.height = next;
+        const nextCx = nextCanvas.getContext('2d');
+        nextCx.imageSmoothingEnabled = true; nextCx.imageSmoothingQuality = 'high';
+        nextCx.drawImage(canvas, 0, 0, curSize, curSize, 0, 0, next, next);
+        canvas = nextCanvas; curSize = next;
+      }
+      if(curSize !== out){
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = out; finalCanvas.height = out;
+        const finalCx = finalCanvas.getContext('2d');
+        finalCx.imageSmoothingEnabled = true; finalCx.imageSmoothingQuality = 'high';
+        finalCx.drawImage(canvas, 0, 0, curSize, curSize, 0, 0, out, out);
+        canvas = finalCanvas;
+      }
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('could not read image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// the album's best available source art — first track with art wins (a
+// user edit already wins inside t.art itself, see applyEdit()); always cut
+// from this original, never from an existing 800px thumbnail (spec §B3)
+function crateArtSourceFor(albumId){
+  for(const t of S.tracks) if(albumKey(t) === albumId && t.art) return t.art;
+  return null;
+}
+
+async function buildCrateTier(albumId, tier){
+  const buildKey = tier + ':' + albumId;
+  if(crateArtBuilding.has(buildKey)) return false;
+  crateArtBuilding.add(buildKey);
+  try{
+    const key = crateTierKey(tier, albumId);
+    const existing = await DB.get('artwork', key);
+    if(existing) return true;   // resumable: a heal pass just skips what's already built
+    const srcUrl = crateArtSourceFor(albumId);
+    if(!srcUrl) return false;
+    const blob = await (await fetch(srcUrl)).blob();
+    const px = tier === 'L' ? CRATE_TIER_L_PX : CRATE_TIER_S_PX;
+    const q = tier === 'L' ? CRATE_TIER_L_Q : CRATE_TIER_S_Q;
+    const out = await cropSquareImageStepped(blob, px, q);
+    await DB.put('artwork', {id: key, blob: out});
+    return true;
+  }catch(e){ return false; }
+  finally{ crateArtBuilding.delete(buildKey); }
+}
+
+function crateArtCacheSet(tier, albumId, url){
+  const cache = crateArtCache[tier], cap = tier === 'L' ? CRATE_TIER_L_CAP : CRATE_TIER_S_CAP;
+  cache.delete(albumId);
+  cache.set(albumId, url);
+  while(cache.size > cap){
+    const oldestId = cache.keys().next().value;
+    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(e){}
+    cache.delete(oldestId);
+  }
+}
+
+// looks up (building on demand) an album's crate-tier object URL, through
+// a small LRU so a long flick never accumulates hundreds of live object
+// URLs (spec §B2)
+async function getCrateArtURL(albumId, tier){
+  const cache = crateArtCache[tier];
+  if(cache.has(albumId)){
+    const url = cache.get(albumId);
+    crateArtCacheSet(tier, albumId, url);   // bump recency
+    return url;
+  }
+  const key = crateTierKey(tier, albumId);
+  let rec = await DB.get('artwork', key);
+  if(!rec){
+    if(!(await buildCrateTier(albumId, tier))) return null;
+    rec = await DB.get('artwork', key);
+    if(!rec) return null;
+  }
+  const url = URL.createObjectURL(rec.blob);
+  crateArtCacheSet(tier, albumId, url);
+  return url;
+}
+
+function revokeCrateArtTier(albumId, tier){
+  const cache = crateArtCache[tier];
+  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(e){} cache.delete(albumId); }
+}
+
+async function deleteCrateArtTiers(albumId){
+  revokeCrateArtTier(albumId, 'S'); revokeCrateArtTier(albumId, 'L');
+  await DB.del('artwork', crateTierKey('S', albumId));
+  await DB.del('artwork', crateTierKey('L', albumId));
+}
+
+// background S-tier pass for the whole library, starting at the crate
+// anchor and working outward, yielding between albums so it never blocks a
+// frame, and resumable (buildCrateTier skips anything already built) —
+// spec §B3. Triggered from restoreLibrary() and after imports/art edits.
+let healCrateArtToken = 0;
+async function healCrateArt(){
+  const token = ++healCrateArtToken;
+  const seen = new Set(), ids = [];
+  S.tracks.forEach(t => { const id = albumKey(t); if(!seen.has(id)){ seen.add(id); ids.push(id); } });
+  if(!ids.length) return;
+  const anchorPos = Math.max(0, S.crateAnchor ? ids.indexOf(S.crateAnchor) : 0);
+  const ordered = [];
+  for(let d = 0; d < ids.length; d++){
+    if(anchorPos + d < ids.length) ordered.push(ids[anchorPos + d]);
+    if(d > 0 && anchorPos - d >= 0) ordered.push(ids[anchorPos - d]);
+  }
+  for(const albumId of ordered){
+    if(token !== healCrateArtToken) return;   // superseded by a newer pass
+    await buildCrateTier(albumId, 'S');
+    await sleep(0);
+  }
+}
+
+// a quiet pre-warm of the L tier around the crate anchor, so the centre
+// record (and a quick flick either way) is usually already sharp the first
+// time it's looked at (spec §B2, "plus a quiet pre-warm")
+async function prewarmCrateAnchorL(){
+  if(!S.crate || !S.crate.model || !S.crate.model.items.length) return;
+  const items = S.crate.model.items;
+  const pos = Math.round(S.crate.pos != null ? S.crate.pos : 0);
+  const ids = [];
+  for(let d = -3; d <= 3; d++){
+    const item = items[pos + d];
+    if(item && item.type === 'rec' && !ids.includes(item.albumId)) ids.push(item.albumId);
+  }
+  for(const albumId of ids) await buildCrateTier(albumId, 'L');
+}
 
 function titleCaseGenre(s){
   return s.split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
@@ -6590,19 +6787,51 @@ function renderCrate(host){
     }
     return card;
   }
+  // S tier for the pool (spec §B2); falls back to the existing album
+  // thumbnail, then the first track's own art, while the tier builds
   function setCardImage(i, card){
     const item = itemAt(i);
     if(item.type !== 'rec') return;
     const face = card.querySelector('.crate-card-face');
-    if(!face || face.querySelector('img')) return;
-    const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
-    if(!art) return;
-    const img = document.createElement('img');
-    img.decoding = 'async'; img.alt = '';
-    face.appendChild(img);
-    img.src = art;
+    if(!face || face.querySelector('img') || card.dataset.artPending) return;
+    card.dataset.artPending = '1';
+    getCrateArtURL(item.albumId, 'S').then(tierUrl => {
+      delete card.dataset.artPending;
+      if(pool.get(i) !== card) return;        // recycled while the lookup was in flight
+      if(face.querySelector('img')) return;
+      const art = tierUrl || thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
+      if(!art) return;
+      const img = document.createElement('img');
+      img.decoding = 'async'; img.alt = '';
+      face.appendChild(img);
+      img.src = art;
+    });
   }
-  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); }
+  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); delete card.dataset.artPending; }
+
+  // 200ms after the stack settles, quietly decode and swap the centre
+  // record's S image for the L tier — sharper at rest, nothing visibly
+  // changes but the crispness (spec §B4, "swap S to L at rest")
+  let largeSwapTimer = null;
+  function scheduleLargeSwap(){
+    clearTimeout(largeSwapTimer);
+    largeSwapTimer = setTimeout(async () => {
+      const idx = Math.round(S.crate.pos);
+      const item = itemAt(idx);
+      const card = pool.get(idx);
+      if(!item || item.type !== 'rec' || !card) return;
+      const url = await getCrateArtURL(item.albumId, 'L');
+      if(!url || Math.round(S.crate.pos) !== idx || pool.get(idx) !== card) return;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      try{ await img.decode(); }catch(e){ return; }
+      if(Math.round(S.crate.pos) !== idx || pool.get(idx) !== card) return;
+      const face = card.querySelector('.crate-card-face');
+      const liveImg = face && face.querySelector('img');
+      if(liveImg) liveImg.src = url; else if(face){ img.alt = ''; face.appendChild(img); }
+    }, 200);
+  }
 
   // a chip above the stage for when the playing album has been scrolled
   // away from — tapping it scrolls back (CRATE spec §4, "Now playing")
@@ -6670,6 +6899,18 @@ function renderCrate(host){
       : (item.album + ', ' + item.artist + ', ' + item.trackCount + (item.trackCount===1?' track':' tracks'));
   }
 
+  // will-change only while the stack is actually moving, dropped 150ms
+  // after the last moving frame (spec §B4, "promote only while moving")
+  let moveClassTimer = null;
+  function applyMovingClass(speed){
+    if(speed > 0.02){
+      clearTimeout(moveClassTimer); moveClassTimer = null;
+      pool.forEach(card => card.classList.add('crate-moving'));
+    } else if(moveClassTimer == null){
+      moveClassTimer = setTimeout(() => { pool.forEach(card => card.classList.remove('crate-moving')); moveClassTimer = null; }, 150);
+    }
+  }
+
   function syncCards(position, speed){
     const lo = Math.max(0, Math.floor(position) - CRATE_VISIBLE_A), hi = Math.min(model.items.length - 1, Math.ceil(position) + CRATE_VISIBLE_A);
     for(const i of Array.from(pool.keys())) if(i < lo || i > hi){ pool.get(i).remove(); pool.delete(i); }
@@ -6677,15 +6918,21 @@ function renderCrate(host){
     pool.forEach((card, i) => {
       const d = i - position, a = Math.abs(d);
       const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y});
-      card.style.transform = 'translateY(' + pose.y.toFixed(1) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
+      // integer device pixels so edges don't smear at rest (spec §B4)
+      const y = Math.round(pose.y * CRATE_DPR) / CRATE_DPR;
+      card.style.transform = 'translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
         + 'rotateX(' + pose.rotX.toFixed(2) + 'deg) scale(' + pose.scale.toFixed(3) + ')';
       card.style.opacity = pose.opacity;
-      card.style.filter = pose.blur > 0.05 ? 'blur(' + pose.blur.toFixed(2) + 'px)' : 'none';
+      // a zero blur still leaves the layer soft in Safari — drop the
+      // property entirely at rest rather than setting blur(0) or 'none'
+      if(pose.blur > 0.05) card.style.filter = 'blur(' + pose.blur.toFixed(2) + 'px)';
+      else card.style.removeProperty('filter');
       card.style.zIndex = flowZIndex(a);
       card.classList.toggle('crate-current', a < 0.02);
       if(a <= 2 && speed < 0.5) setCardImage(i, card);
       else if(a > 2) clearCardImage(card);
     });
+    applyMovingClass(speed);
     updateInfoPanel(Math.round(position));
     updateRailUI(position);
     updateNowPlayingTopBar(position);
@@ -6696,6 +6943,7 @@ function renderCrate(host){
     const item = itemAt(Math.round(S.crate.pos));
     if(item && item.type === 'rec') persistCrateAnchor(item);
     announceCurrent();
+    scheduleLargeSwap();
   }
 
   // the animation loop is draw-on-demand: paused outright (not just slowed)
@@ -6860,6 +7108,8 @@ function renderCrate(host){
 
   draw(0);
   announceCurrent();
+  scheduleLargeSwap();
+  prewarmCrateAnchorL().catch(() => {});
 }
 
 function renderTracks(){
@@ -8204,6 +8454,7 @@ async function restoreLibrary(){
   renderTracks();
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
+  healCrateArt().catch(() => {});
   libraryReadyResolve();   // from here on the launch intro's library variant has what it needs
   if(S.tracks.length){
     // the mini player should agree with the launch intro's title screen —
