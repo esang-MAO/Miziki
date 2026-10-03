@@ -354,17 +354,12 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
   color:var(--paper);white-space:nowrap;transform:rotate(-35deg);font-size:34%}
 .launch-card-mark span{color:var(--accent)}
-.launch-rail{position:absolute;left:356px;top:110px;width:14px;height:520px;
+/* no rail or position counter in the intro any more — the crate view has
+   its own rail (CRATE spec) — just a plain "N RECORDS" label */
+.launch-records{position:absolute;left:0;right:0;bottom:36px;text-align:center;
+  font-family:var(--data);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
   opacity:1;transition:opacity var(--launch-pull-duration,600ms) ease-in}
-.launch-rail.launch-fading{opacity:0}
-.launch-rail-tick{position:absolute;right:0;width:5px;height:1px;background:var(--line)}
-.launch-rail-tick.launch-rail-tick-major{width:9px}
-.launch-rail-thumb{position:absolute;right:0;width:4px;height:22px;border-radius:2px;background:var(--accent)}
-.launch-counter{position:absolute;left:0;right:0;bottom:36px;text-align:center;
-  font-family:var(--data);opacity:1;transition:opacity var(--launch-pull-duration,600ms) ease-in}
-.launch-counter.launch-fading{opacity:0}
-.launch-counter-label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
-.launch-counter-value{font-size:15px;letter-spacing:.12em;color:var(--paper);margin-top:2px}
+.launch-records.launch-fading{opacity:0}
 .launch-title{position:absolute;left:0;right:0;top:432px;text-align:center;
   opacity:0;transition:opacity var(--launch-title-duration,300ms) ease-out}
 .launch-title.launch-shown{opacity:1}
@@ -592,11 +587,7 @@ input[type=file]{display:none}
   <div class="launch-stage" id="launchStage">
     <div class="launch-wordmark" id="launchWordmark">Mi<span>zi</span>ki</div>
     <div class="launch-stack" id="launchStack"></div>
-    <div class="launch-rail" id="launchRail"></div>
-    <div class="launch-counter" id="launchCounter">
-      <div class="launch-counter-label">CRATE</div>
-      <div class="launch-counter-value" id="launchCounterValue"></div>
-    </div>
+    <div class="launch-records" id="launchRecords"></div>
     <div class="launch-title" id="launchTitle">
       <div class="launch-title-name" id="launchTitleName"></div>
       <div class="launch-title-sub" id="launchTitleSub"></div>
@@ -1215,10 +1206,14 @@ S.launchIntro = true;
 // Crate view: a second way to browse the library, beside the list (see
 // CRATE spec). libraryLayout/crateGroup/crateAnchor are persisted prefs;
 // `crate` itself is session-only render/gesture state, rebuilt on demand.
-S.libraryLayout = 'list';
+// Crate is the default for new and existing users alike — only an
+// explicitly saved 'list' keeps the list (see CRATE spec §7/addendum).
+S.libraryLayout = 'crate';
 S.crateGroup = 'az';
 S.crateAnchor = null;
-S.crate = {pos:0, model:null, modelGroup:null, modelDirty:true};
+// pos stays null until first resolved — see renderCrate()'s cold-start
+// anchor logic (last-played album wins once, crateAnchor from then on)
+S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
 
 /* ================= audio graph ================= */
 function makeContext(sampleRate){
@@ -3786,6 +3781,7 @@ function updateChromeInset(){
     const miniVisible = mini && getComputedStyle(mini).display !== 'none';
     const miniH = miniVisible ? mini.offsetHeight : 0;
     document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
+    if(typeof applyCrateMiniInset === 'function') applyCrateMiniInset();
   });
 }
 
@@ -4033,7 +4029,16 @@ const LAUNCH_ANIM = {
   fadeMs: 250, accelMs: 650, cruiseMs: 800, decelMs: 800,
   catchMs: 300, pullMs: 600, titleHoldMs: 300, crossfadeMs: 600,
   skipMs: 150, readyWaitMs: 700,
-  firstRunCount: 44, stackMin: 30, stackMax: 50,
+  // a 2-7 album library gets a shorter "riffle" instead of the full flick
+  // (about 1.35s of scroll vs 2.25s), so the whole sequence comes in around
+  // 3.4s rather than 4.3s — see LAUNCH spec §1/§3
+  riffleAccelMs: 300, riffleCruiseMs: 650, riffleDecelMs: 400,
+  // settling the pulled title sleeve into the crate view's centre slot —
+  // the crate (or the list, if that's the saved layout) is already correct
+  // underneath by the time this runs, so this is just how long the handoff
+  // fade takes, not anything it has to build (LAUNCH spec §3, 3700-4300ms)
+  intoCrateMs: 600,
+  firstRunCount: 44, stackMax: 50,
   // distance share of the scroll each phase covers, by construction summing
   // to 1 so position lands exactly on the target at the end of decel — see
   // computeFlickPosition(). Proportions come from the reference timeline
@@ -4094,12 +4099,23 @@ function sampleStackAlbums(allIds, cap, mustIncludeId){
   return picked;
 }
 
+function shuffledCopy(arr){
+  const out = arr.slice();
+  for(let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+  }
+  return out;
+}
+
 // Resolves which variant to show and everything it needs, without touching
 // any DOM — kept separate from rendering so it's independently testable.
-// Flick-length rule: N = clamp(A, 30, 50). A < 30 cycles through the albums
-// so a small library still flicks past at least 30 records; A > 50 samples
-// 50 evenly. The last-played album always ends up at index N-4, the record
-// that gets caught (see LAUNCH spec §1).
+// Flick-length rule: N = min(A, 50), no repeats and no padding — a small
+// library just flicks through exactly its own albums. A > 50 samples 50
+// evenly, always keeping the last-played one. The whole stack is shuffled
+// (it should feel like digging, not a sorted list) and the last-played
+// album always ends up at about index N-4, the record that gets caught
+// (see LAUNCH spec §1).
 function buildLaunchStack(){
   const firstRun = {variant:'first-run', count: LAUNCH_ANIM.firstRunCount, targetIndex: LAUNCH_ANIM.firstRunCount - 4};
   if(!S.tracks.length) return firstRun;
@@ -4107,13 +4123,16 @@ function buildLaunchStack(){
   if(!targetAlbumId) return firstRun;
   const allAlbumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
   const A = allAlbumIds.length;
-  const N = clamp(A, LAUNCH_ANIM.stackMin, LAUNCH_ANIM.stackMax);
-  const targetIndex = N - 4;
-  let albumIds;
-  if(A > LAUNCH_ANIM.stackMax) albumIds = sampleStackAlbums(allAlbumIds, N, targetAlbumId);
-  else if(A < LAUNCH_ANIM.stackMin){ albumIds = []; for(let j=0;j<N;j++) albumIds.push(allAlbumIds[j % A]); }
-  else albumIds = allAlbumIds.slice();
-  albumIds[targetIndex] = targetAlbumId;   // the caught record is always the real last-played album
+  const N = Math.min(A, LAUNCH_ANIM.stackMax);
+  const picked = A > LAUNCH_ANIM.stackMax ? sampleStackAlbums(allAlbumIds, N, targetAlbumId) : allAlbumIds.slice();
+  const albumIds = shuffledCopy(picked);
+  const targetIndex = Math.max(0, N - 4);
+  const curPos = albumIds.indexOf(targetAlbumId);
+  if(curPos >= 0 && curPos !== targetIndex){
+    const tmp = albumIds[targetIndex]; albumIds[targetIndex] = albumIds[curPos]; albumIds[curPos] = tmp;
+  } else if(curPos < 0){
+    albumIds[targetIndex] = targetAlbumId;   // the caught record is always the real last-played album
+  }
   const sampleTrack = S.tracks.find(t => albumKey(t) === targetAlbumId);
   return {
     variant:'library', albumIds, targetIndex, targetAlbumId, count: N,
@@ -4124,9 +4143,12 @@ function buildLaunchStack(){
 }
 
 // one scalar drives the whole flick: ease-in over accelMs, linear cruise,
-// ease-out over decelMs, landing exactly on `target` (see LAUNCH spec §3)
-function computeFlickPosition(elapsedMs, target){
-  const { accelMs, cruiseMs, decelMs, accelShare, cruiseShare } = LAUNCH_ANIM;
+// ease-out over decelMs, landing exactly on `target` (see LAUNCH spec §3).
+// `timing` is {accelMs,cruiseMs,decelMs} — the standard flick for 8+ albums
+// (and the first-run variant) or the shorter riffle for a 2-7 album library.
+function computeFlickPosition(elapsedMs, target, timing){
+  const { accelMs, cruiseMs, decelMs } = timing;
+  const { accelShare, cruiseShare } = LAUNCH_ANIM;
   const accelDist = target * accelShare, cruiseDist = target * cruiseShare;
   const decelDist = target - accelDist - cruiseDist;
   if(elapsedMs <= accelMs){
@@ -4142,8 +4164,8 @@ function computeFlickPosition(elapsedMs, target){
 }
 // trapezoidal 0->1->0 matching the accel/cruise/decel phases, used only to
 // scale the motion-blur/stretch cosmetics — not position itself
-function flickSpeed(elapsedMs){
-  const { accelMs, cruiseMs, decelMs } = LAUNCH_ANIM;
+function flickSpeed(elapsedMs, timing){
+  const { accelMs, cruiseMs, decelMs } = timing;
   if(elapsedMs < accelMs) return elapsedMs / accelMs;
   if(elapsedMs < accelMs + cruiseMs) return 1;
   if(elapsedMs < accelMs + cruiseMs + decelMs) return 1 - (elapsedMs - accelMs - cruiseMs) / decelMs;
@@ -4227,27 +4249,10 @@ function makeLaunchCard(stack, index){
   return el;
 }
 
-// Rail: one tick per record (longer every 5th) plus an amber thumb that
-// tracks `position`. Built once; only the thumb moves per frame.
-function renderLaunchRail(count){
-  const host = $('#launchRail');
-  host.innerHTML = '';
-  const h = 520;
-  for(let i=0;i<count;i++){
-    const tick = document.createElement('div');
-    tick.className = 'launch-rail-tick' + (i % 5 === 0 ? ' launch-rail-tick-major' : '');
-    tick.style.top = (count > 1 ? i/(count-1)*h : 0) + 'px';
-    host.appendChild(tick);
-  }
-  const thumb = document.createElement('div');
-  thumb.className = 'launch-rail-thumb';
-  host.appendChild(thumb);
-  return thumb;
-}
-function updateLaunchHUD(thumb, position, count){
-  const h = 520;
-  thumb.style.top = clamp(count > 1 ? position/(count-1)*h : 0, 0, h-22) + 'px';
-  $('#launchCounterValue').textContent = String(Math.round(position)+1).padStart(3,'0') + ' / ' + String(count).padStart(3,'0');
+// a plain mono "N RECORDS" label, bottom centre — no rail or position
+// counter in the intro any more (the crate view has its own rail)
+function updateLaunchRecordsLabel(stack){
+  $('#launchRecords').textContent = stack.variant === 'library' ? (stack.count + ' RECORDS') : '';
 }
 
 async function runLaunchSequence(){
@@ -4273,8 +4278,8 @@ async function runLaunchSequence(){
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
 
-  const stackEl = $('#launchStack'), railEl = $('#launchRail'), counterEl = $('#launchCounter');
-  const thumb = renderLaunchRail(stack.count);
+  const stackEl = $('#launchStack'), recordsEl = $('#launchRecords');
+  updateLaunchRecordsLabel(stack);
   const cards = new Map();   // index -> element, only for the currently-visible window
   function syncCards(position, speed, spread){
     const lo = Math.max(0, Math.floor(position) - 8), hi = Math.min(stack.count - 1, Math.ceil(position) + 8);
@@ -4283,7 +4288,6 @@ async function runLaunchSequence(){
     cards.forEach((el, i) => applyLaunchCardPose(el, launchCardPose(i - position, speed, spread)));
   }
   syncCards(0, 0, 1);
-  updateLaunchHUD(thumb, 0, stack.count);
 
   // swallow the first tap anywhere on the overlay: snap to the end instantly
   // rather than letting it also press whatever is underneath
@@ -4294,11 +4298,12 @@ async function runLaunchSequence(){
   };
   overlay.addEventListener('pointerdown', skip, {capture:true});
 
-  function finishLaunch(){
+  function finishLaunch(fadeMs){
     overlay.removeEventListener('pointerdown', skip, {capture:true});
     window.removeEventListener('resize', updateLaunchScale);
+    overlay.style.transition = 'opacity ' + (fadeMs || LAUNCH_ANIM.skipMs) + 'ms linear';
     overlay.classList.add('launch-hidden');
-    setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, LAUNCH_ANIM.skipMs);
+    setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, fadeMs || LAUNCH_ANIM.skipMs);
   }
 
   // STACK fades up, resting on record 0
@@ -4307,24 +4312,32 @@ async function runLaunchSequence(){
   await sleep(LAUNCH_ANIM.fadeMs);
   if(cancelled()) return;
 
-  // FLICK: accelerate, cruise, decelerate — one position, driven by rAF
-  const scrollMs = LAUNCH_ANIM.accelMs + LAUNCH_ANIM.cruiseMs + LAUNCH_ANIM.decelMs;
-  const flickStart = performance.now();
-  await new Promise(resolve => {
-    function step(now){
-      if(cancelled()){ resolve(); return; }
-      const elapsed = now - flickStart;
-      const position = computeFlickPosition(Math.min(elapsed, scrollMs), stack.targetIndex);
-      const speed = flickSpeed(elapsed);
-      syncCards(position, speed, 1);
-      updateLaunchHUD(thumb, position, stack.count);
-      if(elapsed >= scrollMs){ resolve(); return; }
+  // FLICK: accelerate, cruise, decelerate — one position, driven by rAF.
+  // A single record never scrolls at all ("no flick: the sleeve pulls
+  // straight to the title screen"); 2-7 albums get the shorter riffle
+  // timing; everything else (8+, and the first-run variant) gets the
+  // standard flick (LAUNCH spec §1/§3).
+  if(stack.count > 1){
+    const timing = (stack.variant === 'library' && stack.count <= 7)
+      ? {accelMs: LAUNCH_ANIM.riffleAccelMs, cruiseMs: LAUNCH_ANIM.riffleCruiseMs, decelMs: LAUNCH_ANIM.riffleDecelMs}
+      : {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
+    const scrollMs = timing.accelMs + timing.cruiseMs + timing.decelMs;
+    const flickStart = performance.now();
+    await new Promise(resolve => {
+      function step(now){
+        if(cancelled()){ resolve(); return; }
+        const elapsed = now - flickStart;
+        const position = computeFlickPosition(Math.min(elapsed, scrollMs), stack.targetIndex, timing);
+        const speed = flickSpeed(elapsed, timing);
+        syncCards(position, speed, 1);
+        if(elapsed >= scrollMs){ resolve(); return; }
+        requestAnimationFrame(step);
+      }
       requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  });
-  if(cancelled()) return;
-  syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual blur/speed-stretch
+    });
+    if(cancelled()) return;
+    syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual blur/speed-stretch
+  }
 
   // CATCH: amber outline (already on the target card's class), small settle
   const targetCard = cards.get(stack.targetIndex);
@@ -4341,9 +4354,8 @@ async function runLaunchSequence(){
 
   // PULL TO CAMERA: the target scales up to face-on (it's already sitting at
   // the title's position/size — only its scale/tilt/depth are non-identity);
-  // neighbours spread apart, blur and fade; rail/counter fade out
-  railEl.classList.add('launch-fading');
-  counterEl.classList.add('launch-fading');
+  // neighbours spread apart, blur and fade; the records label fades out
+  recordsEl.classList.add('launch-fading');
   const wordmarkEl = $('#launchWordmark');
   wordmarkEl.classList.add('launch-grown');
   const pullStart = performance.now();
@@ -4380,8 +4392,14 @@ async function runLaunchSequence(){
   await sleep(LAUNCH_ANIM.titleHoldMs);
   if(cancelled()) return;
 
-  // CROSSFADE: out to the library, mini player included
-  finishLaunch();
+  // INTO THE CRATE: the library route (crate or list, whichever is saved —
+  // restoreLibrary() already rendered it underneath, anchored on this same
+  // last-played album, so there is nothing left to build) is already
+  // correct behind this opaque overlay. Landing in the crate gets the
+  // slower "settle" fade (LAUNCH spec §3, 3700-4300ms); a saved list layout,
+  // or the first-run/empty-library variant, just crossfades the plain way.
+  if(stack.variant === 'library' && S.libraryLayout !== 'list') finishLaunch(LAUNCH_ANIM.intoCrateMs);
+  else finishLaunch();
 }
 
 function attachLaunchSettingRow(){
@@ -6074,6 +6092,16 @@ function crateLetterFor(artist){
   return /[a-z]/.test(c) ? c.toUpperCase() : '#';
 }
 function crateLooseArtistId(artist){ return 'loose:' + normKey(artist); }
+// oldest first, the way a record store files an artist's albums; 0 (no
+// year) sorts after every dated album, alphabetically among themselves —
+// so an untagged library just behaves like the plain alphabetical order
+function compareCrateYear(a, b){
+  const ay = a.year || 0, by = b.year || 0;
+  if(!ay && !by) return 0;
+  if(!ay) return 1;
+  if(!by) return -1;
+  return ay - by;
+}
 function libraryHasGenres(){ return S.tracks.some(t => t.details && firstGenreValue(t.details.genre)); }
 
 function albumGenreFor(idx){
@@ -6089,6 +6117,23 @@ function albumGenreFor(idx){
   let best = null;
   counts.forEach(v => { if(!best || v.count > best.count || (v.count === best.count && v.firstPos < best.firstPos)) best = v; });
   return best.display;
+}
+
+// an album's year is the most common non-zero t.details.year among its
+// tracks, ties going to the earliest (CRATE spec §2) — 0 means unknown
+function albumYearFor(idx){
+  const counts = new Map();
+  idx.forEach(i => {
+    const y = S.tracks[i].details && S.tracks[i].details.year;
+    if(!y) return;
+    counts.set(y, (counts.get(y) || 0) + 1);
+  });
+  if(!counts.size) return 0;
+  let best = 0, bestCount = -1;
+  counts.forEach((count, year) => {
+    if(count > bestCount || (count === bestCount && year < best)) { best = year; bestCount = count; }
+  });
+  return best;
 }
 
 // one crate record per album id; loose ("Unknown Album") tracks collapse
@@ -6117,10 +6162,8 @@ function buildCrateRecords(){
     if(albumArtistSet.size === 1) artist = [...albumArtistSet][0];
     else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
     else artist = tracks[0].tags.artist || 'Unknown Artist';
-    let year = 0;
-    for(const t of tracks){ if(t.details && t.details.year){ year = t.details.year; break; } }
     records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
-      year, trackCount: idx.length, genre: albumGenreFor(idx)});
+      year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx)});
   });
   looseByArtist.forEach(({artist, idx}) => {
     records.push({type:'rec', kind:'loose', albumId: crateLooseArtistId(artist), idx, artist,
@@ -6155,7 +6198,8 @@ function buildCrateModel(group){
     records.sort((a,b) => {
       const pa = a.genreGroup === 'Unsorted' ? 1 : 0, pb = b.genreGroup === 'Unsorted' ? 1 : 0;
       if(pa !== pb) return pa - pb;
-      return crateCompareNames(a.genreGroup, b.genreGroup) || compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album);
+      return crateCompareNames(a.genreGroup, b.genreGroup) || compareCrateArtists(a.artist, b.artist)
+        || compareCrateYear(a, b) || crateCompareNames(a.album, b.album);
     });
     const groups = groupSortedRecords(records, r => r.genreGroup);
     const showDividers = groups.length >= 2;
@@ -6170,7 +6214,7 @@ function buildCrateModel(group){
       g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
     });
   } else {
-    records.sort((a,b) => compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album));
+    records.sort((a,b) => compareCrateArtists(a.artist, b.artist) || compareCrateYear(a, b) || crateCompareNames(a.album, b.album));
     const groups = groupSortedRecords(records, r => crateLetterFor(r.artist));
     const showDividers = records.length >= 20;
     const present = new Set(groups.map(g => g.key));
@@ -6282,6 +6326,30 @@ function renderCrateFlat(host, model){
   host.appendChild(list);
 }
 
+// the stage is a fixed height regardless of viewport, so on a short screen
+// it (plus the info panel below it) can run into the (fixed-position) mini
+// player — shrink the stage by however much the mini player + tabbar
+// actually take up, rather than overlapping them (CRATE spec addendum,
+// "Mini player"). Fewer distant neighbours show on a short screen; the
+// centre record and info panel are unaffected. Called at mount time and
+// again from updateChromeInset() whenever the mini player's own visibility
+// changes later, since that happens after the crate has already rendered.
+function applyCrateMiniInset(){
+  const stage = document.querySelector('.crate-stage'), info = document.querySelector('.crate-info');
+  if(!stage) return;
+  const miniEl = $('#miniPlayer'), tabbarEl = $('#tabbar');
+  const miniH = (miniEl && getComputedStyle(miniEl).display !== 'none') ? miniEl.getBoundingClientRect().height : 0;
+  const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
+  const infoReserve = info ? info.getBoundingClientRect().height : 84;
+  const stageTop = stage.getBoundingClientRect().top;
+  const available = window.innerHeight - stageTop - miniH - tabbarH - infoReserve - 24;
+  // the centre card can give up a little of its own bottom edge (background/
+  // cover art, nothing critical — the title/artist live in the info panel
+  // below, not on the card) before this stops helping; never more than that
+  const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
+  stage.style.height = (available < 460 ? Math.max(available, minStageHeight) : 460) + 'px';
+}
+
 function renderCrate(host){
   const model = ensureCrateModel();
   if(!model.items.length){ host.appendChild(el('p','note','No albums to show yet.')); return; }
@@ -6290,9 +6358,16 @@ function renderCrate(host){
 
   let startPos = S.crate.pos;
   if(startPos == null || isNaN(startPos) || startPos < 0 || startPos >= model.items.length){
-    startPos = (S.crateAnchor && model.byAlbumId.has(S.crateAnchor)) ? model.byAlbumId.get(S.crateAnchor)
-      : model.items.findIndex(it => it.type === 'rec');
+    // cold start: the last-played album wins, falling back to the saved
+    // anchor, then the first record. After this first resolution, the
+    // (continuously updated) anchor takes over on any later rebuild
+    // (CRATE spec addendum, "Cold-start anchor")
+    const lastPlayedId = !S.crate.coldStartDone ? resolveLastPlayedAlbum() : null;
+    if(lastPlayedId && model.byAlbumId.has(lastPlayedId)) startPos = model.byAlbumId.get(lastPlayedId);
+    else if(S.crateAnchor && model.byAlbumId.has(S.crateAnchor)) startPos = model.byAlbumId.get(S.crateAnchor);
+    else startPos = model.items.findIndex(it => it.type === 'rec');
     if(startPos < 0) startPos = 0;
+    S.crate.coldStartDone = true;
   }
   S.crate.pos = startPos;
 
@@ -6307,6 +6382,8 @@ function renderCrate(host){
   const info = el('div','crate-info');
   wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
   host.appendChild(wrap);
+
+  applyCrateMiniInset();
 
   const pool = new Map();      // item index -> element, only the visible window
   let animToken = 0, rafHandle = null;
