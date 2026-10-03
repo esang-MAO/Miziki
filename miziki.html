@@ -44,13 +44,72 @@ body{
 .wrap{max-width:520px;margin:0 auto;padding:0 20px var(--chrome-inset, calc(150px + env(safe-area-inset-bottom)))}
 
 /* ---------- header ---------- */
-.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-     padding:22px 0 14px;border-bottom:1px solid var(--line)}
+.top{padding:22px 0 14px;border-bottom:1px solid var(--line)}
+.top.no-border{border-bottom:none;padding-bottom:10px}
+.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .mark{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.16em;
       text-transform:uppercase;line-height:1;margin:0}
 .mark span{color:var(--accent);transition:color .5s}
-.sun-line{font-family:var(--data);font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+.sun-line{font-family:var(--data);font-size:10.5px;color:var(--muted);text-align:left;line-height:1.5;margin-top:4px}
 .sun-line b{color:var(--paper);font-weight:500}
+/* search + add icons, top right of the library header only (S1) */
+.hdr-actions{display:flex;gap:2px;flex:0 0 auto}
+.hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
+.hdr-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent)}
+.hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
+.hdr-icon-btn svg{transition:transform .2s}
+/* search field replaces the whole header row while active */
+.hdr-search-row{display:flex;align-items:center;gap:10px}
+.hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+  border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
+.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:14px;font-family:var(--body)}
+.hdr-search-field input::placeholder{color:var(--muted)}
+.hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
+.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+mark.hl{background:none;color:var(--accent);font-weight:600}
+
+/* + menu popover (S1 §3) */
+.add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
+  background:rgba(6,10,13,.55);z-index:60;display:none}
+.add-scrim.open{display:block}
+.add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:#16242C;
+  border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;z-index:61;
+  display:none;flex-direction:column}
+.add-menu.open{display:flex}
+.add-menu-row{display:flex;align-items:flex-start;gap:12px;padding:12px 10px;border-radius:6px;text-align:left;width:100%}
+.add-menu-row:active{background:rgba(255,255,255,.04)}
+.add-menu-row svg{width:20px;height:20px;color:var(--accent);flex:0 0 auto;margin-top:1px;
+  fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.add-menu-row b{display:block;font-size:14px;font-weight:500}
+.add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
+.lib-tabs{display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lib-tabs button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.lib-tabs button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
+.lib-tabs .lib-select-tab{margin-left:auto;color:var(--muted)}
+
+/* Profile > Library tools (S1 §5) */
+.lib-tools{margin-top:28px}
+.lib-tools-row{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:0;text-align:left}
+.lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent);
+  display:grid;place-content:center;font-size:15px;flex:0 0 auto;transition:transform .2s}
+.lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
+.lib-tools-label{font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.lib-tools-preview{margin-left:auto;font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.04em}
+.lib-tools-panel{overflow:hidden;max-height:0;transition:max-height .2s ease}
+.lib-tools-panel.open{max-height:1400px}
+.lib-tools-caption{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:22px 0 4px}
+.lib-tools-row2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+.lib-tools-row2 .k{font-size:13.5px}
+.lib-tools-row2 .k em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.lib-tools-danger .k{color:#E0705A}
+.lib-tools-danger .k em{color:var(--muted)}
+.forget-btn{border-color:#E0705A;color:#E0705A}
 
 /* ---------- stage / platter ---------- */
 .stage{padding:26px 0 6px}
@@ -597,16 +656,42 @@ input[type=file]{display:none}
 
 <div class="wrap">
 
-  <header class="top">
-    <h1 class="mark">Mi<span>zi</span>ki</h1>
-    <div class="top-right">
-      <div class="seg" id="libLayoutToggle" style="display:none">
-        <button data-layout="list" aria-pressed="true">List</button>
-        <button data-layout="crate" aria-pressed="false">Crate</button>
+  <header class="top" id="appHeader">
+    <div class="top-row" id="hdrNormalRow">
+      <h1 class="mark">Mi<span>zi</span>ki</h1>
+      <div class="hdr-actions" id="hdrActions" style="display:none">
+        <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
+          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        </button>
+        <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
-      <div class="sun-line" id="sunLine">Finding the sun…</div>
     </div>
+    <div class="sun-line" id="sunLine">Finding the sun…</div>
+    <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
+      <div class="hdr-search-field">
+        <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" aria-label="Search library">
+        <button class="hdr-search-clear" id="hdrSearchClear" aria-label="Clear search" style="display:none">✕</button>
+      </div>
+      <button class="hdr-cancel" id="hdrSearchCancel">Cancel</button>
+    </div>
+    <div class="search-chips" id="searchChips" style="display:none"></div>
   </header>
+
+  <!-- + menu: Add songs / Add folder (S1 §3) -->
+  <div class="add-scrim" id="addScrim"></div>
+  <div class="add-menu" id="addMenu" role="menu">
+    <button class="add-menu-row" id="addSongsRow" role="menuitem">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="17.5" cy="16" r="2.6"/></svg>
+      <span><b>Add songs</b><em>Pick files from this device</em></span>
+    </button>
+    <button class="add-menu-row" id="addFolderRow" role="menuitem">
+      <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+      <span><b>Add folder</b><em>Everything inside it</em></span>
+    </button>
+  </div>
 
   <!-- LIBRARY: landing route -->
   <section class="route on" id="route-library" role="main">
@@ -622,22 +707,12 @@ input[type=file]{display:none}
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>
 
-    <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" style="width:100%;display:none;margin-top:10px" aria-label="Search library">
-    <div class="search-chips" id="searchChips" style="display:none"></div>
-
-    <div class="seg crate-group-toggle" id="crateGroupToggle" style="display:none">
-      <button data-group="az" aria-pressed="true">A–Z</button>
-      <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
-    </div>
-
-    <div class="seg lib-nav" id="libNav" style="display:none">
+    <div class="lib-tabs" id="libNav" style="display:none">
       <button data-view="songs" aria-pressed="true">Songs</button>
       <button data-view="albums" aria-pressed="false">Albums</button>
       <button data-view="artists" aria-pressed="false">Artists</button>
       <button data-view="playlists" aria-pressed="false">Playlists</button>
-    </div>
-    <div class="stack" id="libSelectToggleRow" style="display:none;margin-top:10px">
-      <button class="cta ghost" id="selectToggle">Select</button>
+      <button class="lib-select-tab" id="selectToggle">Select</button>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
@@ -650,18 +725,6 @@ input[type=file]{display:none}
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
-
-    <div class="stack" id="libActions" style="display:none">
-      <button class="cta" id="pick2">Add more files</button>
-      <button class="cta ghost" id="pickFolder2">Add folder</button>
-      <button class="cta ghost" id="tone2">Test tone</button>
-      <button class="cta ghost" id="scanDuplicatesBtn">Scan for duplicates</button>
-      <button class="cta ghost" id="clearHistoryBtn">Clear listening history</button>
-      <button class="cta ghost" id="forget">Forget library</button>
-    </div>
-    <p class="note" id="storeNote"></p>
-    <p class="note" id="librarySize"></p>
-    <p class="note" id="pathNote"></p>
   </section>
 
   <!-- SUNDOWN -->
@@ -788,6 +851,74 @@ input[type=file]{display:none}
     <div class="crumb" id="profileCrumb" style="display:none"></div>
     <div id="profileBody"></div>
     <input id="profilePicFile" type="file" accept="image/*">
+
+    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s
+         innerHTML reset) so its listeners survive every re-render — see
+         S1 spec §5 implementation note. Shown only on the profile home
+         screen; refreshed by refreshLibraryTools(). -->
+    <div class="lib-tools" id="libTools" style="display:none">
+      <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
+        <span class="lib-tools-plus">+</span>
+        <span class="lib-tools-label">Library tools</span>
+        <span class="lib-tools-preview" id="libToolsPreview">View · Duplicates · History</span>
+      </button>
+      <div class="lib-tools-panel" id="libToolsPanel">
+        <div id="libToolsBody">
+          <p class="lib-tools-caption">View</p>
+          <div class="lib-tools-row2">
+            <span class="k">Library layout</span>
+            <div class="seg" id="libLayoutToggle">
+              <button data-layout="list" aria-pressed="false">List</button>
+              <button data-layout="crate" aria-pressed="true">Crate</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="crateGroupRow">
+            <span class="k">Crate grouping</span>
+            <div class="seg" id="crateGroupToggle">
+              <button data-group="az" aria-pressed="true">A–Z</button>
+              <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sidesRow" style="display:none">
+            <span class="k">Sides A / B</span>
+            <div class="seg" id="sidesToggle">
+              <button data-sides="off" aria-pressed="true">Off</button>
+              <button data-sides="on" aria-pressed="false">On</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sealedRow" style="display:none">
+            <span class="k">Sealed records</span>
+            <div class="seg" id="sealedToggle">
+              <button data-sealed="on" aria-pressed="true">On</button>
+              <button data-sealed="off" aria-pressed="false">Off</button>
+            </div>
+          </div>
+
+          <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
+          <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Scan for duplicates<em>Find tracks that look like the same song</em></span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="clearHistoryBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Clear listening history<em>Sessions, top lists. Keeps your library</em></span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="tone2" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Play test tone</span>
+            <span class="g-chev">›</span>
+          </button>
+
+          <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
+          <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
+            <span class="k">Forget library<em>Removes every track from Miziki. Files stay where they are</em></span>
+            <button class="cta forget-btn" id="forget">FORGET</button>
+          </div>
+        </div>
+        <p class="note" id="libToolsFooter"></p>
+        <p class="note" id="storeNote"></p>
+        <p class="note" id="pathNote"></p>
+      </div>
+    </div>
   </section>
 
   <p class="foot" id="foot">
@@ -1209,6 +1340,7 @@ S.launchIntro = true;
 // Crate is the default for new and existing users alike — only an
 // explicitly saved 'list' keeps the list (see CRATE spec §7/addendum).
 S.libraryLayout = 'crate';
+S.view.mode = 'crate';
 S.crateGroup = 'az';
 S.crateAnchor = null;
 // pos stays null until first resolved — see renderCrate()'s cold-start
@@ -2799,6 +2931,11 @@ function applyPrefs(p){
   if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
   if(p.libraryLayout === 'crate' || p.libraryLayout === 'list'){
     S.libraryLayout = p.libraryLayout;
+    // this runs before the library's first render, while the view is still
+    // at its pristine top-level default, so keep the two in sync (S1/S2 spec)
+    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
+      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
+    }
     document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
   }
@@ -3267,11 +3404,6 @@ function formatBytes(n){
   return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
 }
 function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
-function updateLibrarySize(){
-  const el = $('#librarySize');
-  if(!el) return;
-  el.textContent = S.tracks.length ? ('Total library size: ' + formatBytes(totalLibraryBytes())) : '';
-}
 
 async function deleteTracks(idsToDelete){
   const idSet = new Set(idsToDelete);
@@ -5985,6 +6117,31 @@ function searchLibrary(query){
     people: [...people].sort(byName), genres: [...genres].sort(byName) };
 }
 
+// wraps each case-insensitive occurrence of query in the result's visible
+// label text with <mark class="hl"> (amber, weight 600 — S1 §4)
+function highlightMatches(text, query){
+  const frag = document.createDocumentFragment();
+  if(!query){ frag.appendChild(document.createTextNode(text)); return frag; }
+  const lowerText = text.toLowerCase(), lowerQ = query.toLowerCase();
+  let i = 0;
+  while(i < text.length){
+    const at = lowerText.indexOf(lowerQ, i);
+    if(at < 0){ frag.appendChild(document.createTextNode(text.slice(i))); break; }
+    if(at > i) frag.appendChild(document.createTextNode(text.slice(i, at)));
+    const mark = el('mark','hl', text.slice(at, at + query.length));
+    frag.appendChild(mark);
+    i = at + query.length;
+  }
+  return frag;
+}
+function highlightRowLabel(row, selector, text, query){
+  const target = row.querySelector(selector);
+  if(!target || !query) return row;
+  target.textContent = '';
+  target.appendChild(highlightMatches(text, query));
+  return row;
+}
+
 function renderSearchResults(host, query){
   const results = searchLibrary(query);
   if(!results.artists.length && !results.albums.length && !results.songs.length
@@ -5992,14 +6149,16 @@ function renderSearchResults(host, query){
     host.appendChild(el('p','note','No matches for “' + query + '”.'));
     return;
   }
+  const textQ = parseSearchQuery(query).text.trim();
   const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
   if(results.artists.length){
     host.appendChild(el('p','note','Artists'));
     results.artists.forEach(artist => {
       const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
       const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-      host.appendChild(groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
-        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist)));
+      const row = groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
+        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist));
+      host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
     });
   }
   if(results.albums.length){
@@ -6007,8 +6166,9 @@ function renderSearchResults(host, query){
     results.albums.forEach(album => {
       const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
       const artist = S.tracks[idx[0]].tags.albumArtist;
-      host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-        idx, () => goto('albums', album)));
+      const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+        idx, () => goto('albums', album));
+      host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
     });
   }
   if(results.people.length){
@@ -6016,22 +6176,27 @@ function renderSearchResults(host, query){
     results.people.forEach(name => {
       const entry = peopleIndex.get(normKey(name));
       const count = entry ? new Set(entry.entries.map(e => e.trackIdx)).size : 0;
-      host.appendChild(groupRow(name, count + (count===1?' credit':' credits'), [],
-        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); }));
+      const row = groupRow(name, count + (count===1?' credit':' credits'), [],
+        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); });
+      host.appendChild(highlightRowLabel(row, '.g-text b', name, textQ));
     });
   }
   if(results.genres.length){
     host.appendChild(el('p','note','Genres'));
     results.genres.forEach(genre => {
       const idx = allIdx().filter(i => S.tracks[i].details && S.tracks[i].details.genre === genre);
-      host.appendChild(groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
-        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); }));
+      const row = groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
+        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); });
+      host.appendChild(highlightRowLabel(row, '.g-text b', genre, textQ));
     });
   }
   if(results.songs.length){
     host.appendChild(el('p','note','Songs'));
     const ul = el('ul','tracklist');
-    results.songs.forEach((i, pos) => ul.appendChild(songRow(i, results.songs, pos)));
+    results.songs.forEach((i, pos) => {
+      const row = songRow(i, results.songs, pos);
+      ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
+    });
     host.appendChild(ul);
   }
 }
@@ -6675,37 +6840,30 @@ function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
-  $('#libActions').style.display = S.tracks.length ? 'flex' : 'none';
-  $('#librarySearch').style.display = S.tracks.length ? '' : 'none';
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
-  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting) ? 'flex' : 'none';
+  $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
-  $('#libLayoutToggle').style.display = (isLibraryRouteVisible() && S.tracks.length) ? 'flex' : 'none';
+  updateLibTabsForLayout();
+  updateHeaderActionsAvailability();
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
-  updateLibrarySize();
+  refreshLibraryTools();
   if(!S.tracks.length){ setPathNote(); return; }
 
   // a live search takes over the whole body, grouped by type, regardless
-  // of whatever songs/albums/artists/playlists view is otherwise selected
-  // (see PLAYBACK spec §4) — clearing it returns to that view untouched
+  // of whatever songs/albums/artists/playlists/crate view is otherwise
+  // selected (see PLAYBACK spec §4) — clearing it returns to that view
+  // untouched
   const query = $('#librarySearch').value.trim();
   if(query){
     $('#crumb').style.display = 'none';
-    $('#crateGroupToggle').style.display = 'none';
     renderSearchResults(host, query);
     return;
   }
 
-  // the crate is a second top-level layout for Songs/Albums/Artists/
-  // Playlists — once drilled into an album, an artist's singles, or a
-  // person, it steps aside for the normal pages below (see CRATE spec §5)
-  const showCrate = S.libraryLayout === 'crate' && v.group === null && v.playlist === null
-    && v.mode !== 'person' && v.mode !== 'crateLoose';
-  $('#crateGroupToggle').style.display = showCrate ? 'flex' : 'none';
-  $('#libNav').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
-  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting && !showCrate) ? 'flex' : 'none';
-  $('#libActions').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
-  if(showCrate){
+  // the crate is its own tab now (replacing Albums when the layout is
+  // Crate) rather than a second top-level layout over all four tabs, so
+  // Songs/Artists/Playlists are never hidden by it (S1/S2 spec)
+  if(v.mode === 'crate'){
     $('#crumb').style.display = 'none';
     renderCrate(host);
     setPathNote();
@@ -6734,6 +6892,9 @@ function renderTracks(){
       }
       else if(v.mode === 'crateLoose'){ v.mode = 'songs'; v.crateLooseIdx = null; v.crateLooseArtist = null; }
       else if(atArtistAlbum) v.artistAlbum = null;
+      // an album opened from the crate returns to the crate itself, not the
+      // flat albums grid underneath it (S1/S2 spec: crate is its own tab)
+      else if(v.mode === 'albums' && S.libraryLayout === 'crate'){ v.group = null; v.mode = 'crate'; }
       else { v.group = null; v.playlist = null; v.picking = false; }
       renderTracks();
     });
@@ -6950,6 +7111,7 @@ function renderProfile(){
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
   else renderProfileHome(body);
+  refreshLibraryTools();
 }
 
 function renderProfileHome(body){
@@ -7484,12 +7646,94 @@ function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
   return !!(r && r.classList.contains('on'));
 }
+function isProfileRouteVisible(){
+  const r = document.getElementById('route-profile');
+  return !!(r && r.classList.contains('on'));
+}
+
+// the header's search/+ icons only ever show on the library route, and the
+// search icon itself is hidden when there's nothing to search (S1 §2.1)
+function updateHeaderActionsAvailability(){
+  const isLibrary = isLibraryRouteVisible();
+  $('#hdrActions').style.display = isLibrary ? 'flex' : 'none';
+  $('#hdrSearchBtn').style.display = (isLibrary && S.tracks.length) ? '' : 'none';
+}
+
+// the crate replaces Albums as the first tab when that's the saved layout,
+// so Songs/Artists/Playlists are never hidden by it (S1 §2.2, S2 §5)
+function updateLibTabsForLayout(){
+  const firstTab = $('#libNav [data-view="crate"]') || $('#libNav [data-view="albums"]');
+  if(!firstTab) return;
+  if(S.libraryLayout === 'crate'){ firstTab.dataset.view = 'crate'; firstTab.textContent = 'Crate'; }
+  else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
+}
+
+// Library tools lives in static markup under #route-profile so re-renders
+// of #profileBody never destroy its listeners (S1 §5 implementation note);
+// this just refreshes its visibility, counts and row states
+function refreshLibraryTools(){
+  const tools = $('#libTools');
+  if(!tools) return;
+  const onHome = isProfileRouteVisible() && S.profileView.screen === 'home';
+  tools.style.display = onHome ? 'block' : 'none';
+  if(!onHome) return;
+  const hasTracks = S.tracks.length > 0;
+  $('#libToolsBody').style.display = hasTracks ? '' : 'none';
+  $('#libToolsFooter').textContent = hasTracks
+    ? (S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks') + ' · ' + formatBytes(totalLibraryBytes()) + ' · stored on this device')
+    : '';
+  $('#crateGroupRow').style.display = (S.libraryLayout === 'crate') ? 'flex' : 'none';
+  $('#crateGenreBtn').style.display = (typeof libraryHasGenres === 'function' && libraryHasGenres()) ? '' : 'none';
+}
+
+// header search field: swaps the normal title row for a full-width search
+// input (S1 §2.1). Cancel clears and closes; the × only clears.
+function openSearchField(){
+  $('#hdrNormalRow').style.display = 'none';
+  $('#hdrSearchRow').style.display = 'flex';
+  $('#hdrSearchBtn').classList.add('active');
+  $('#librarySearch').focus();
+  updateSearchChipsVisibility();
+}
+function closeSearchField(){
+  $('#hdrNormalRow').style.display = '';
+  $('#hdrSearchRow').style.display = 'none';
+  $('#hdrSearchBtn').classList.remove('active');
+  $('#searchChips').style.display = 'none';
+}
+function isSearchFieldOpen(){
+  return $('#hdrSearchRow').style.display !== 'none';
+}
+
+// header + menu: Add songs / Add folder popover (S1 §3)
+function openAddMenu(){
+  $('#addScrim').classList.add('open');
+  $('#addMenu').classList.add('open');
+  $('#hdrAddBtn').classList.add('add-open');
+  $('#hdrAddBtn').setAttribute('aria-expanded', 'true');
+}
+function closeAddMenu(){
+  $('#addScrim').classList.remove('open');
+  $('#addMenu').classList.remove('open');
+  $('#hdrAddBtn').classList.remove('add-open');
+  $('#hdrAddBtn').setAttribute('aria-expanded', 'false');
+}
+function isAddMenuOpen(){
+  return $('#addMenu').classList.contains('open');
+}
 
 function showRoute(name){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
-  $('#libLayoutToggle').style.display = (name === 'library' && S.tracks.length) ? 'flex' : 'none';
-  if(name === 'profile') renderProfile();
+  $('#appHeader').classList.toggle('no-border', name === 'library');
+  updateHeaderActionsAvailability();
+  if(name !== 'library'){ closeSearchField(); closeAddMenu(); }
+  if(name === 'profile'){
+    // library tools starts closed on every fresh visit to Profile (S1 §5)
+    $('#libToolsPanel').classList.remove('open');
+    $('#libToolsToggle').setAttribute('aria-expanded', 'false');
+    renderProfile();
+  }
 }
 
 /* ================= wiring ================= */
@@ -7516,6 +7760,12 @@ function showRoute(name){
   document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b => b.addEventListener('click', ()=>{
     S.libraryLayout = b.dataset.layout;
     document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    // the first tab's identity (crate vs flat albums) follows the layout —
+    // if that's where the user currently is, follow it there too; otherwise
+    // (Songs/Artists/Playlists, or drilled into something) leave them put
+    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
+      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
+    }
     queueSave();
     renderTracks();
   }));
@@ -7606,9 +7856,7 @@ function showRoute(name){
   });
 
   $('#pick').addEventListener('click', ()=> $('#file').click());
-  $('#pick2').addEventListener('click', ()=> $('#file').click());
   $('#pickFolder').addEventListener('click', ()=> $('#folderFile').click());
-  $('#pickFolder2').addEventListener('click', ()=> $('#folderFile').click());
   $('#tone').addEventListener('click', addTestTone);
   $('#tone2').addEventListener('click', addTestTone);
   $('#file').addEventListener('change', e=> addFiles(e.target.files));
@@ -7634,11 +7882,11 @@ function showRoute(name){
   let armed = false, armTimer = null;
   $('#forget').addEventListener('click', async e => {
     if(!armed){
-      armed = true; e.target.textContent = 'Tap again to erase';
-      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'Forget library'; }, 4000);
+      armed = true; e.target.textContent = 'TAP AGAIN';
+      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'FORGET'; }, 4000);
       return;
     }
-    clearTimeout(armTimer); armed = false; e.target.textContent = 'Forget library';
+    clearTimeout(armTimer); armed = false; e.target.textContent = 'FORGET';
     await forgetLibrary();
   });
 
@@ -7666,11 +7914,46 @@ function showRoute(name){
   let searchDebounce = null;
   $('#librarySearch').addEventListener('input', ()=>{
     updateSearchChipsVisibility();
+    $('#hdrSearchClear').style.display = $('#librarySearch').value ? '' : 'none';
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(renderTracks, 120);
   });
   $('#librarySearch').addEventListener('focus', updateSearchChipsVisibility);
   $('#librarySearch').addEventListener('blur', ()=>{ setTimeout(updateSearchChipsVisibility, 120); });
+
+  // header search icon / Cancel / × (S1 §2.1)
+  $('#hdrSearchBtn').addEventListener('click', openSearchField);
+  $('#hdrSearchCancel').addEventListener('click', ()=>{
+    $('#librarySearch').value = '';
+    $('#hdrSearchClear').style.display = 'none';
+    closeSearchField();
+    renderTracks();
+  });
+  $('#hdrSearchClear').addEventListener('click', ()=>{
+    $('#librarySearch').value = '';
+    $('#hdrSearchClear').style.display = 'none';
+    $('#librarySearch').focus();
+    updateSearchChipsVisibility();
+    renderTracks();
+  });
+
+  // header + menu: Add songs / Add folder (S1 §3). The file-picker .click()
+  // must fire synchronously inside this user-gesture handler (iOS Safari).
+  $('#hdrAddBtn').addEventListener('click', ()=> isAddMenuOpen() ? closeAddMenu() : openAddMenu());
+  $('#addScrim').addEventListener('click', closeAddMenu);
+  $('#addSongsRow').addEventListener('click', ()=>{ closeAddMenu(); $('#file').click(); });
+  $('#addFolderRow').addEventListener('click', ()=>{ closeAddMenu(); $('#folderFile').click(); });
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'Escape') return;
+    if(isAddMenuOpen()){ closeAddMenu(); $('#hdrAddBtn').focus(); }
+    else if(isSearchFieldOpen()){ $('#librarySearch').value = ''; closeSearchField(); renderTracks(); }
+  });
+
+  // Library tools disclosure panel (S1 §5)
+  $('#libToolsToggle').addEventListener('click', ()=>{
+    const open = $('#libToolsPanel').classList.toggle('open');
+    $('#libToolsToggle').setAttribute('aria-expanded', String(open));
+  });
 
   $('#selectToggle').addEventListener('click', enterSelectMode);
   $('#selectCancel').addEventListener('click', exitSelectMode);
