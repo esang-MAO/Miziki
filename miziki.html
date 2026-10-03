@@ -44,13 +44,72 @@ body{
 .wrap{max-width:520px;margin:0 auto;padding:0 20px var(--chrome-inset, calc(150px + env(safe-area-inset-bottom)))}
 
 /* ---------- header ---------- */
-.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-     padding:22px 0 14px;border-bottom:1px solid var(--line)}
+.top{padding:22px 0 14px;border-bottom:1px solid var(--line)}
+.top.no-border{border-bottom:none;padding-bottom:10px}
+.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .mark{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.16em;
       text-transform:uppercase;line-height:1;margin:0}
 .mark span{color:var(--accent);transition:color .5s}
-.sun-line{font-family:var(--data);font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+.sun-line{font-family:var(--data);font-size:10.5px;color:var(--muted);text-align:left;line-height:1.5;margin-top:4px}
 .sun-line b{color:var(--paper);font-weight:500}
+/* search + add icons, top right of the library header only (S1) */
+.hdr-actions{display:flex;gap:2px;flex:0 0 auto}
+.hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
+.hdr-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent)}
+.hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
+.hdr-icon-btn svg{transition:transform .2s}
+/* search field replaces the whole header row while active */
+.hdr-search-row{display:flex;align-items:center;gap:10px}
+.hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+  border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
+.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:14px;font-family:var(--body)}
+.hdr-search-field input::placeholder{color:var(--muted)}
+.hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
+.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+mark.hl{background:none;color:var(--accent);font-weight:600}
+
+/* + menu popover (S1 §3) */
+.add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
+  background:rgba(6,10,13,.55);z-index:60;display:none}
+.add-scrim.open{display:block}
+.add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:#16242C;
+  border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;z-index:61;
+  display:none;flex-direction:column}
+.add-menu.open{display:flex}
+.add-menu-row{display:flex;align-items:flex-start;gap:12px;padding:12px 10px;border-radius:6px;text-align:left;width:100%}
+.add-menu-row:active{background:rgba(255,255,255,.04)}
+.add-menu-row svg{width:20px;height:20px;color:var(--accent);flex:0 0 auto;margin-top:1px;
+  fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.add-menu-row b{display:block;font-size:14px;font-weight:500}
+.add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
+.lib-tabs{display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lib-tabs button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.lib-tabs button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
+.lib-tabs .lib-select-tab{margin-left:auto;color:var(--muted)}
+
+/* Profile > Library tools (S1 §5) */
+.lib-tools{margin-top:28px}
+.lib-tools-row{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:0;text-align:left}
+.lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent);
+  display:grid;place-content:center;font-size:15px;flex:0 0 auto;transition:transform .2s}
+.lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
+.lib-tools-label{font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.lib-tools-preview{margin-left:auto;font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.04em}
+.lib-tools-panel{overflow:hidden;max-height:0;transition:max-height .2s ease}
+.lib-tools-panel.open{max-height:1400px}
+.lib-tools-caption{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:22px 0 4px}
+.lib-tools-row2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+.lib-tools-row2 .k{font-size:13.5px}
+.lib-tools-row2 .k em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.lib-tools-danger .k{color:#E0705A}
+.lib-tools-danger .k em{color:var(--muted)}
+.forget-btn{border-color:#E0705A;color:#E0705A}
 
 /* ---------- stage / platter ---------- */
 .stage{padding:26px 0 6px}
@@ -375,13 +434,14 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
    top bar and the info panel below. A pool of ~17-20 cards is recycled as
    S.crate.pos changes — see renderCrate()/syncCrateCards(). */
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.crate-wrap{margin-top:10px}
+.crate-wrap{margin-top:10px;position:relative}
 .crate-group-toggle{margin-bottom:10px}
 .crate-stage{position:relative;height:460px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 .crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
-  border-radius:6px;overflow:hidden;will-change:transform,opacity,filter;
+  border-radius:6px;overflow:hidden;
   box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.crate-card.crate-moving{will-change:transform}
 .crate-card.crate-current{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
 .crate-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
@@ -396,7 +456,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   line-height:1.05;word-break:break-word}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:9px;letter-spacing:.08em}
-.crate-rail{position:absolute;right:2px;top:10px;bottom:10px;width:26px}
+.crate-rail{position:absolute;right:2px;top:10px;height:440px;width:26px}
 .crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:8.5px;letter-spacing:.04em;
   color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
 .crate-rail-item.crate-rail-current{color:var(--accent);opacity:1}
@@ -412,6 +472,11 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
   letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:4px 10px;
   margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.crate-topbar{display:none;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
+  letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:5px 12px;
+  margin-bottom:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-topbar.show{display:inline-flex}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;scroll-snap-align:center}
 .crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}
@@ -419,6 +484,173 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .crate-flat-divider{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted);padding:4px 0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
+
+/* ================= S3: gatefold album view (opens from the crate) =========
+   Three flat planes in one 3D stage, no per-album image cutting: the cover
+   (350x350, two backface-hidden faces) sits at the same spot as the
+   tracklist panel and swings open on its left hinge to reveal it, landing
+   its back face — the inside-left panel — where the hinge rotation puts it
+   (GATEFOLD spec §A2). Above the library, below the mini player/tab bar. */
+.gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;background:#0A0E12}
+.gatefold.open{display:block}
+.gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
+  font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--paper);opacity:0;
+  transition:opacity .15s;padding:6px 4px}
+.gatefold.gf-chrome-in .gf-back{opacity:1}
+.gf-stage{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 40%}
+.gf-camera{position:absolute;left:0;top:0;width:390px;height:740px;
+  transform-style:preserve-3d;transform-origin:0 0;
+  transform:scale(var(--gf-page-scale,1))
+    translate(195px,255px) scale(var(--gf-s,1)) translate(calc(-1 * var(--gf-cx, 175px)),-255px)}
+.gf-right{position:absolute;left:0;top:80px;width:350px;height:350px;border-radius:4px;
+  overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
+.gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
+.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:12px 14px;outline:none}
+.gf-tl-head{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:2px}
+.gf-tl-title{font-family:var(--display);font-size:22px;font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+.gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
+  font-family:var(--data);margin:10px 0 2px}
+.gf-side-head b{color:var(--accent);font-size:10.5px;letter-spacing:.2em}
+.gf-side-head span{color:var(--muted);font-size:9.5px}
+.gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  min-height:44px;padding-block:9px;border-radius:4px}
+.gf-track-row:active{background:rgba(255,158,44,.14);transition:background .12s}
+.gf-track-row .gf-tn{font-family:var(--data);font-size:10.5px;color:var(--muted);width:20px;flex:0 0 auto}
+.gf-track-row .gf-tt{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gf-track-row .gf-td{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:0 0 auto}
+.gf-track-row.gf-now-playing .gf-tt{color:var(--accent)}
+.gf-track-row.gf-now-playing .gf-tn{color:var(--accent)}
+.gf-now-glyph{display:inline-block;width:10px}
+.gf-now-glyph span{display:inline-block;width:2px;background:var(--accent);margin-right:1px;
+  animation:gfbar 1s ease-in-out infinite}
+.gf-now-glyph span:nth-child(1){height:6px}.gf-now-glyph span:nth-child(2){height:10px;animation-delay:.2s}
+.gf-now-glyph span:nth-child(3){height:4px;animation-delay:.4s}
+@keyframes gfbar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.gf-tl-fade{position:absolute;left:0;right:0;bottom:0;height:22px;pointer-events:none;
+  background:linear-gradient(transparent,#1C1226)}
+.gf-cover{position:absolute;left:0;top:80px;width:350px;height:350px;border-radius:4px;
+  transform-style:preserve-3d;transform-origin:0 50%;transform:rotateY(0deg);
+  box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.gf-face{position:absolute;inset:0;border-radius:4px;overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.gf-face-front{background:#1C1226}
+.gf-face-front img{width:100%;height:100%;object-fit:cover;display:block}
+.gf-face-front::after{content:'';position:absolute;inset:0 0 0 0;pointer-events:none;
+  box-shadow:inset 12px 0 10px -10px rgba(0,0,0,.45)}
+.gf-face-back{transform:rotateY(180deg);background:#1C1226;color:var(--paper)}
+.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px;outline:none}
+.gf-left h3{font-family:var(--display);font-size:19px;margin:0 0 8px}
+.gf-left .gf-liner{font-size:13px;color:var(--paper);opacity:.9;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+.gf-left .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;
+  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.gf-left .gf-credit-row em{font-style:normal;color:var(--muted)}
+.gf-left .gf-credit-row a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
+.gf-left .gf-meta-line{font-family:var(--data);font-size:10px;color:var(--muted);margin:10px 0}
+.gf-left .gf-booklet-btn{margin-top:10px;border:1px solid var(--accent);color:var(--accent);
+  border-radius:16px;padding:8px 16px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em}
+.gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
+.gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
+.gf-info{position:absolute;left:20px;right:20px;opacity:0;transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-info{opacity:1}
+.gf-info-title{font-family:var(--display);font-size:19px;margin:0}
+.gf-info-sub{font-size:13px;color:var(--muted);margin:2px 0}
+.gf-info-meta{font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.06em}
+.gf-sleeve{position:absolute;left:20px;right:20px;height:300px;overflow:hidden;pointer-events:none;
+  opacity:0;transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-sleeve{opacity:1}
+.gf-sleeve-paper{position:absolute;left:0;right:0;top:40px;bottom:-200px;
+  background:linear-gradient(180deg,#E6DCC4,#CBBE9F);border-radius:3px;
+  box-shadow:0 -10px 24px rgba(0,0,0,.35);
+  mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px);
+  -webkit-mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px)}
+.gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:156px;height:156px;margin-left:-78px;
+  opacity:1;transition:transform .25s ease-out,opacity .3s}
+.gf-sleeve-disc-wrap.gf-disc-out{transform:translateY(-96px)}
+.gf-sleeve-disc-wrap.gf-disc-empty{opacity:0}
+.gf-panel-toggle button{font-family:var(--data);font-size:10px}
+.gf-flat-tracks{position:absolute;inset:0;background:#1C1226;color:var(--paper);
+  display:none;flex-direction:column;opacity:0;transition:opacity .15s}
+.gf-flat-tracks.show{display:flex}
+.gatefold.gf-chrome-in .gf-flat-tracks{opacity:1}
+.gf-flat-head{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 16px 10px}
+.gf-flat-head .gf-flat-seg{margin-left:auto;display:flex;gap:4px}
+.gf-flat-seg button{font-family:var(--data);font-size:10px;letter-spacing:.08em;padding:4px 10px;
+  border-radius:10px;color:var(--muted)}
+.gf-flat-seg button[aria-pressed="true"]{color:#1C1226;background:var(--accent)}
+.gf-flat-body{flex:1;overflow-y:auto;padding:0 16px 16px}
+@media (prefers-reduced-motion:reduce){
+  .gf-cover,.gf-camera,.gf-back,.gf-info,.gf-sleeve,.gf-flat-tracks,.gf-sleeve-disc-wrap{transition:none}
+}
+/* A8: iPad / wide viewports — flat side-by-side spread, no camera move
+   (the JS simply never animates --gf-s/--gf-cx in this mode) */
+.gatefold.gf-wide .gf-right{left:420px}
+.gatefold.gf-wide .gf-sleeve,.gatefold.gf-wide .gf-left-cue{display:none}
+.gatefold.gf-wide .gf-info{left:20px;top:450px;right:auto;width:380px}
+
+/* ================= S5: sealed records ================= =================
+   One overlay + one sticker, plain CSS gradients, no images, scaled with
+   percentages so the same markup works at the crate's 278px, the sealed
+   sheet's 96px cover and the player's 278px sleeve (SEALED spec §4). Never
+   filters/dims the art underneath — it only adds light. */
+.seal-wrap{position:absolute;inset:0;pointer-events:none;border-radius:inherit;overflow:hidden}
+.seal-wrap::before{
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 22%,rgba(255,255,255,.05) 48%,rgba(255,255,255,0) 62%,rgba(255,255,255,.12) 100%),
+    rgba(255,255,255,.03),
+    linear-gradient(18deg,transparent 48%,rgba(255,255,255,.28) 49%,transparent 50%),
+    linear-gradient(24deg,transparent 30%,rgba(255,255,255,.22) 31%,transparent 32%),
+    linear-gradient(62deg,transparent 60%,rgba(255,255,255,.26) 61%,transparent 62%),
+    linear-gradient(70deg,transparent 75%,rgba(255,255,255,.24) 76%,transparent 77%),
+    linear-gradient(-16deg,transparent 15%,rgba(255,255,255,.3) 16%,transparent 17%),
+    linear-gradient(-32deg,transparent 85%,rgba(255,255,255,.34) 86%,transparent 87%)}
+.seal-wrap::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:3%;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 1px,rgba(255,255,255,.04) 1px 3px);
+  box-shadow:0 -1px 0 rgba(255,255,255,.18)}
+.seal-sticker{position:absolute;top:4%;right:4%;width:20%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#FFC46B,#FF9E2C 55%,#D9741A 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.4);transform:rotate(9deg);
+  display:grid;place-content:center;pointer-events:none}
+.seal-sticker span{font-family:var(--display);font-weight:700;letter-spacing:.08em;color:#2A1604}
+.seal-tag{display:inline-block;border:1px solid var(--accent);color:var(--accent);
+  font-family:var(--data);font-size:9.5px;letter-spacing:.16em;border-radius:3px;
+  padding:2px 6px;margin-top:4px}
+.new-tag{display:inline-block;color:var(--accent);font-family:var(--data);font-size:9px;
+  letter-spacing:.1em;border:1px solid var(--accent);border-radius:3px;padding:1px 4px;margin-left:6px;vertical-align:1px}
+
+/* the sealed sheet (SEALED spec §5): the gatefold's tracklist panel, same
+   rows/order/handlers, no swing, no camera, no left panel, no inner sleeve */
+.seal-sheet{position:fixed;inset:0;z-index:30;display:none;background:rgba(5,7,9,.72)}
+.seal-sheet.open{display:block}
+.seal-sheet-box{position:absolute;left:20px;right:20px;bottom:0;top:12%;
+  background:#1C1226;border-radius:10px 10px 0 0;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .25s ease-out}
+.seal-sheet.show .seal-sheet-box{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){ .seal-sheet-box{transition:opacity .15s;transform:none;opacity:0}
+  .seal-sheet.show .seal-sheet-box{opacity:1} }
+.seal-sheet-head{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.seal-sheet-cover{position:relative;width:64px;height:64px;border-radius:4px;overflow:hidden;flex:0 0 auto}
+.seal-sheet-cover img{width:100%;height:100%;object-fit:cover}
+.seal-sheet-text{flex:1;min-width:0;color:var(--paper)}
+.seal-sheet-artist{font-family:var(--data);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seal-sheet-title{font-family:var(--display);font-size:17px;font-weight:700;margin:1px 0}
+.seal-sheet-close{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--paper);flex:0 0 auto}
+.seal-sheet-body{flex:1;overflow-y:auto;padding:10px 16px}
+.seal-sheet-foot{padding:10px 16px;font-family:var(--data);font-size:9.5px;letter-spacing:.1em;
+  color:var(--muted);text-align:center;border-top:1px solid rgba(255,255,255,.08)}
+
+/* the peel: tear (~300ms) then slide-off (~400ms), inside the first sleeve
+   pull of a sealed album (SEALED spec §6) */
+#sleeveWrap{position:absolute;inset:0;pointer-events:none;z-index:5}
+#sleeveWrap .seal-tear{position:absolute;left:0;right:0;top:0;height:7.5%;
+  background:rgba(255,255,255,.2);box-shadow:0 1px 0 rgba(255,255,255,.3);
+  transform-origin:0% 100%;transition:none}
+#sleeveWrap.peel-tear .seal-tear{transform:rotate(-6deg) translate(-10px,-16px);
+  transition:transform var(--sleeve-peel-tear-duration,300ms) ease-in}
+#sleeveWrap.peel-off{transition:transform var(--sleeve-peel-off-duration,400ms) ease-in,opacity var(--sleeve-peel-off-duration,400ms) ease-in;
+  transform:translate(42%,12%) rotate(16deg) skewX(-6deg);opacity:0}
 
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
@@ -597,16 +829,42 @@ input[type=file]{display:none}
 
 <div class="wrap">
 
-  <header class="top">
-    <h1 class="mark">Mi<span>zi</span>ki</h1>
-    <div class="top-right">
-      <div class="seg" id="libLayoutToggle" style="display:none">
-        <button data-layout="list" aria-pressed="true">List</button>
-        <button data-layout="crate" aria-pressed="false">Crate</button>
+  <header class="top" id="appHeader">
+    <div class="top-row" id="hdrNormalRow">
+      <h1 class="mark">Mi<span>zi</span>ki</h1>
+      <div class="hdr-actions" id="hdrActions" style="display:none">
+        <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
+          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        </button>
+        <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
-      <div class="sun-line" id="sunLine">Finding the sun…</div>
     </div>
+    <div class="sun-line" id="sunLine">Finding the sun…</div>
+    <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
+      <div class="hdr-search-field">
+        <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" aria-label="Search library">
+        <button class="hdr-search-clear" id="hdrSearchClear" aria-label="Clear search" style="display:none">✕</button>
+      </div>
+      <button class="hdr-cancel" id="hdrSearchCancel">Cancel</button>
+    </div>
+    <div class="search-chips" id="searchChips" style="display:none"></div>
   </header>
+
+  <!-- + menu: Add songs / Add folder (S1 §3) -->
+  <div class="add-scrim" id="addScrim"></div>
+  <div class="add-menu" id="addMenu" role="menu">
+    <button class="add-menu-row" id="addSongsRow" role="menuitem">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="17.5" cy="16" r="2.6"/></svg>
+      <span><b>Add songs</b><em>Pick files from this device</em></span>
+    </button>
+    <button class="add-menu-row" id="addFolderRow" role="menuitem">
+      <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+      <span><b>Add folder</b><em>Everything inside it</em></span>
+    </button>
+  </div>
 
   <!-- LIBRARY: landing route -->
   <section class="route on" id="route-library" role="main">
@@ -622,22 +880,12 @@ input[type=file]{display:none}
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>
 
-    <input class="pl-input" id="librarySearch" type="search" placeholder="Search artist, album, or song" style="width:100%;display:none;margin-top:10px" aria-label="Search library">
-    <div class="search-chips" id="searchChips" style="display:none"></div>
-
-    <div class="seg crate-group-toggle" id="crateGroupToggle" style="display:none">
-      <button data-group="az" aria-pressed="true">A–Z</button>
-      <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
-    </div>
-
-    <div class="seg lib-nav" id="libNav" style="display:none">
+    <div class="lib-tabs" id="libNav" style="display:none">
       <button data-view="songs" aria-pressed="true">Songs</button>
       <button data-view="albums" aria-pressed="false">Albums</button>
       <button data-view="artists" aria-pressed="false">Artists</button>
       <button data-view="playlists" aria-pressed="false">Playlists</button>
-    </div>
-    <div class="stack" id="libSelectToggleRow" style="display:none;margin-top:10px">
-      <button class="cta ghost" id="selectToggle">Select</button>
+      <button class="lib-select-tab" id="selectToggle">Select</button>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
@@ -650,18 +898,6 @@ input[type=file]{display:none}
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
-
-    <div class="stack" id="libActions" style="display:none">
-      <button class="cta" id="pick2">Add more files</button>
-      <button class="cta ghost" id="pickFolder2">Add folder</button>
-      <button class="cta ghost" id="tone2">Test tone</button>
-      <button class="cta ghost" id="scanDuplicatesBtn">Scan for duplicates</button>
-      <button class="cta ghost" id="clearHistoryBtn">Clear listening history</button>
-      <button class="cta ghost" id="forget">Forget library</button>
-    </div>
-    <p class="note" id="storeNote"></p>
-    <p class="note" id="librarySize"></p>
-    <p class="note" id="pathNote"></p>
   </section>
 
   <!-- SUNDOWN -->
@@ -788,6 +1024,74 @@ input[type=file]{display:none}
     <div class="crumb" id="profileCrumb" style="display:none"></div>
     <div id="profileBody"></div>
     <input id="profilePicFile" type="file" accept="image/*">
+
+    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s
+         innerHTML reset) so its listeners survive every re-render — see
+         S1 spec §5 implementation note. Shown only on the profile home
+         screen; refreshed by refreshLibraryTools(). -->
+    <div class="lib-tools" id="libTools" style="display:none">
+      <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
+        <span class="lib-tools-plus">+</span>
+        <span class="lib-tools-label">Library tools</span>
+        <span class="lib-tools-preview" id="libToolsPreview">View · Duplicates · History</span>
+      </button>
+      <div class="lib-tools-panel" id="libToolsPanel">
+        <div id="libToolsBody">
+          <p class="lib-tools-caption">View</p>
+          <div class="lib-tools-row2">
+            <span class="k">Library layout</span>
+            <div class="seg" id="libLayoutToggle">
+              <button data-layout="list" aria-pressed="false">List</button>
+              <button data-layout="crate" aria-pressed="true">Crate</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="crateGroupRow">
+            <span class="k">Crate grouping</span>
+            <div class="seg" id="crateGroupToggle">
+              <button data-group="az" aria-pressed="true">A–Z</button>
+              <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sidesRow">
+            <span class="k">Sides A / B</span>
+            <div class="seg" id="sidesToggle">
+              <button data-sides="off" aria-pressed="true">Off</button>
+              <button data-sides="on" aria-pressed="false">On</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sealedRow">
+            <span class="k">Sealed records</span>
+            <div class="seg" id="sealedToggle">
+              <button data-sealed="on" aria-pressed="true">On</button>
+              <button data-sealed="off" aria-pressed="false">Off</button>
+            </div>
+          </div>
+
+          <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
+          <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Scan for duplicates<em>Find tracks that look like the same song</em></span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="clearHistoryBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Clear listening history<em>Sessions, top lists. Keeps your library</em></span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="tone2" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Play test tone</span>
+            <span class="g-chev">›</span>
+          </button>
+
+          <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
+          <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
+            <span class="k">Forget library<em>Removes every track from Miziki. Files stay where they are</em></span>
+            <button class="cta forget-btn" id="forget">FORGET</button>
+          </div>
+        </div>
+        <p class="note" id="libToolsFooter"></p>
+        <p class="note" id="storeNote"></p>
+        <p class="note" id="pathNote"></p>
+      </div>
+    </div>
   </section>
 
   <p class="foot" id="foot">
@@ -1146,6 +1450,68 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- GATEFOLD: opens from the crate's centre record (GATEFOLD spec) -->
+<div class="gatefold" id="gatefold" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <button class="gf-back" id="gfBack" aria-label="Back to crate">‹ CRATE</button>
+  <div class="gf-stage" id="gfStage">
+    <div class="gf-camera" id="gfCamera">
+      <div class="gf-right" id="gfRight">
+        <div class="gf-tracklist" id="gfTracklist" tabindex="-1"></div>
+        <div class="gf-tl-fade"></div>
+        <div class="gf-shadow" id="gfShadow"></div>
+      </div>
+      <div class="gf-left-cue" id="gfLeftCue"></div>
+      <div class="gf-cover" id="gfCover">
+        <div class="gf-face gf-face-front" id="gfFaceFront"><img id="gfCoverArt" alt=""></div>
+        <div class="gf-face gf-face-back" id="gfFaceBack">
+          <div class="gf-left" id="gfLeft" tabindex="-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gf-flat-tracks" id="gfFlatTracks">
+    <div class="gf-flat-head">
+      <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ CRATE</button>
+      <div class="gf-flat-seg" id="gfFlatSeg" role="tablist">
+        <button data-panel="right" aria-pressed="true">Tracks</button>
+        <button data-panel="left" aria-pressed="false">Inside</button>
+      </div>
+    </div>
+    <div class="gf-flat-body" id="gfFlatBody"></div>
+  </div>
+  <div class="gf-info" id="gfInfo"></div>
+  <div class="gf-sleeve" id="gfSleeve" aria-hidden="true">
+    <div class="gf-sleeve-paper"></div>
+    <div class="gf-sleeve-disc-wrap" id="gfSleeveDiscWrap">
+      <div class="disc" id="gfDisc"><div class="label has-art" id="gfDiscLabel"><img class="art" id="gfDiscArt" alt=""></div></div>
+    </div>
+  </div>
+  <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
+    <button data-panel="right" aria-pressed="true">Tracks</button>
+    <button data-panel="left" aria-pressed="false">Inside</button>
+  </div>
+</div>
+
+<!-- SEALED SHEET: a sealed album can't be opened into the gatefold — a
+     plain tracklist sheet instead, until the first play (SEALED spec §5) -->
+<div class="seal-sheet" id="sealSheet" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <div class="seal-sheet-box" id="sealSheetBox">
+    <div class="seal-sheet-head">
+      <div class="seal-sheet-cover" id="sealSheetCoverWrap">
+        <img id="sealSheetCoverArt" alt="">
+      </div>
+      <div class="seal-sheet-text">
+        <div class="seal-sheet-artist" id="sealSheetArtist"></div>
+        <div class="seal-sheet-title" id="sealSheetTitle"></div>
+        <span class="seal-tag">SEALED</span>
+      </div>
+      <button class="seal-sheet-close" id="sealSheetClose" aria-label="Close">‹ CRATE</button>
+    </div>
+    <div class="seal-sheet-body" id="sealSheetBody" tabindex="-1"></div>
+    <div class="seal-sheet-foot">PLAY ANYTHING TO BREAK THE SEAL</div>
+  </div>
+</div>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -1209,8 +1575,16 @@ S.launchIntro = true;
 // Crate is the default for new and existing users alike — only an
 // explicitly saved 'list' keeps the list (see CRATE spec §7/addendum).
 S.libraryLayout = 'crate';
+S.view.mode = 'crate';
 S.crateGroup = 'az';
 S.crateAnchor = null;
+// gatefold spec §A5: off by default, saved like the other library-tools prefs
+S.albumSides = false;
+// SEALED spec §2/§3 — albums imported after this feature ships stay
+// shrink-wrapped until first played; the set itself is independent of
+// listening history so "Clear listening history" never reseals anything
+S.sealed = new Set();
+S.sealedRecords = true;
 // pos stays null until first resolved — see renderCrate()'s cold-start
 // anchor logic (last-played album wins once, crateAnchor from then on)
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
@@ -1581,6 +1955,46 @@ function applyDiscVariant(t, crossfade){
    record ready for a future account system: stable ids, no device-keyed
    identifiers, no absolute paths. */
 async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
+
+/* ================= S5: sealed records =================
+   S.sealed is its own saved list, independent of S.albumLastPlayed/session
+   history on purpose — "Clear listening history" must never reseal an
+   album (SEALED spec §2). Grandfathering: no sealedAlbums row at all means
+   this feature hasn't run here yet, so nothing existing is sealed. */
+async function restoreSealedAlbums(){
+  const row = await DB.get('meta', 'sealedAlbums');
+  S.sealed = new Set(row && row.v && row.v.ids ? row.v.ids : []);
+}
+async function persistSealedAlbums(){ await DB.put('meta', {k:'sealedAlbums', v:{init:true, ids:[...S.sealed]}}); }
+
+function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
+
+// "played" means playback began — no minimum duration, any track counts,
+// and once removed an id can never be re-added except by a fresh import
+// (SEALED spec §2, §6)
+function breakSeal(albumId){
+  if(!S.sealed.has(albumId)) return;
+  S.sealed.delete(albumId);
+  persistSealedAlbums();
+  updateSealedSheetAfterBreak(albumId);
+  renderTracks();
+}
+
+// one overlay + one sticker, plain CSS gradients, no images — shared by the
+// crate card, the sealed sheet's small cover and the player's sleeve
+// (SEALED spec §4). sizePx sizes only the sticker's text; everything else
+// is percentage-based so the same markup scales with its host.
+function buildSealOverlay(sizePx){
+  const frag = document.createDocumentFragment();
+  const wrap = el('div','seal-wrap'); wrap.setAttribute('aria-hidden','true');
+  frag.appendChild(wrap);
+  const sticker = el('div','seal-sticker'); sticker.setAttribute('aria-hidden','true');
+  const label = el('span', null, 'NEW');
+  label.style.fontSize = Math.round(sizePx * 0.075) + 'px';
+  sticker.appendChild(label);
+  frag.appendChild(sticker);
+  return frag;
+}
 async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -2580,6 +2994,10 @@ async function addFiles(list){
   const files = Array.from(list).filter(f => f.size > 0);
   if(!files.length) return;
   const failed = [];
+  // an album not already in the library when this batch starts is "new" —
+  // sealed once, regardless of how many of its files land in this same
+  // batch (SEALED spec §2); loose tracks have no release identity to seal
+  const existingAlbumIds = new Set(S.tracks.map(albumKey));
   let i = 0;
   for(const f of files){
     i++;
@@ -2631,6 +3049,10 @@ async function addFiles(list){
       await loadOverlayFor(t);
       S.tracks.push(t);
       touchLRU(S.tracks.length - 1);
+      {
+        const aid = albumKey(t);
+        if(tags.album !== 'Unknown Album' && !existingAlbumIds.has(aid)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+      }
       if(await storeTrack(t, fileBlob)){
         t.stored = true;
         t.blob = null;            // it lives on disk now; no need to hold it in memory
@@ -2646,6 +3068,8 @@ async function addFiles(list){
   invalidateCrateModel();
   renderTracks();
   queueSave();
+  persistSealedAlbums();
+  healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
   if(failed.length){
     setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
@@ -2766,7 +3190,8 @@ async function saveMeta(){
   await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
     bgAudio:S.bgAudio, launchIntro:S.launchIntro,
-    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor}});
+    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides,
+    sealedRecords:S.sealedRecords}});
 }
 
 async function restoreMeta(){
@@ -2799,11 +3224,26 @@ function applyPrefs(p){
   if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
   if(p.libraryLayout === 'crate' || p.libraryLayout === 'list'){
     S.libraryLayout = p.libraryLayout;
+    // this runs before the library's first render, while the view is still
+    // at its pristine top-level default, so keep the two in sync (S1/S2 spec)
+    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
+      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
+    }
     document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
   }
   if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
   if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
+  if(typeof p.albumSides === 'boolean'){
+    S.albumSides = p.albumSides;
+    document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
+  }
+  if(typeof p.sealedRecords === 'boolean'){
+    S.sealedRecords = p.sealedRecords;
+    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
+  }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -3088,21 +3528,41 @@ function recomputeTrack(i){
 // applies fields (and optionally new artwork) to one or more tracks, merging
 // onto any existing overlay rather than replacing it, and persists each
 async function applyEdit(trackIds, fields, artBlob){
+  const touchedAlbumIds = new Set();
+  let sealedChanged = false;
   for(const id of trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
+    const oldAlbumId = albumKey(t);
     const existing = await DB.get('overlays', id);
     const merged = Object.assign({}, existing && existing.fields, fields);
     await DB.put('overlays', {id, fields: merged});
     Object.assign(t.tags, fields);
+    // the album id is recomputed from the (possibly just-edited) album
+    // title — carry the seal state over so a retag never seals or unseals
+    // an album as a side effect (SEALED spec §2)
+    const newAlbumId = albumKey(t);
+    if(newAlbumId !== oldAlbumId && S.sealed.has(oldAlbumId)){
+      S.sealed.delete(oldAlbumId); S.sealed.add(newAlbumId); sealedChanged = true;
+    }
     if(artBlob){
       await DB.put('artwork', {id, blob: artBlob});
       if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
+      touchedAlbumIds.add(albumKey(t));
     }
     recomputeTrack(i);
   }
+  // the crate tiers are cut from this same artwork — a new cover makes the
+  // old tiers stale, so clear them and rebuild the S tier right away (the
+  // spec's "rebuild that album's tiers... from wherever ensureThumb is
+  // re-run for edits", §B3)
+  for(const albumId of touchedAlbumIds){
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
+  }
+  if(sealedChanged) persistSealedAlbums();
 }
 
 // clears a track's whole overlay (fields + artwork), restoring it to
@@ -3110,12 +3570,18 @@ async function applyEdit(trackIds, fields, artBlob){
 async function revertTrack(id){
   const i = idxOf(id); if(i < 0) return;
   const t = S.tracks[i];
+  const hadArtOverlay = !!t.overlayArtBlob;
   await DB.del('overlays', id);
   await DB.del('artwork', id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
   t.overlayArtBlob = null;
   t.art = t.embeddedArt;
+  if(hadArtOverlay){
+    const albumId = albumKey(t);
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
+  }
   recomputeTrack(i);
 }
 
@@ -3136,6 +3602,7 @@ async function applyEditWithUndo(trackIds, fields, artBlob){
 async function undoLastEdit(){
   const u = S.lastUndo; if(!u) return;
   S.lastUndo = null;
+  const touchedAlbumIds = new Set();
   for(const id of u.trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
@@ -3144,9 +3611,13 @@ async function undoLastEdit(){
     if(prevArtRec) await DB.put('artwork', prevArtRec); else await DB.del('artwork', id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
-    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); }
-    else { t.overlayArtBlob = null; t.art = t.embeddedArt; }
+    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
+    else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
     recomputeTrack(i);
+  }
+  for(const albumId of touchedAlbumIds){
+    await deleteCrateArtTiers(albumId);
+    buildCrateTier(albumId, 'S').catch(() => {});
   }
   hideUndoBanner();
 }
@@ -3267,11 +3738,6 @@ function formatBytes(n){
   return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
 }
 function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
-function updateLibrarySize(){
-  const el = $('#librarySize');
-  if(!el) return;
-  el.textContent = S.tracks.length ? ('Total library size: ' + formatBytes(totalLibraryBytes())) : '';
-}
 
 async function deleteTracks(idsToDelete){
   const idSet = new Set(idsToDelete);
@@ -3302,7 +3768,19 @@ async function deleteTracks(idsToDelete){
   }
 
   S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
+  const removedAlbumIds = new Set();
+  S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
   S.tracks = S.tracks.filter(t => !idSet.has(t.id));
+  // an album that just lost its last track has no tracks left to cut crate
+  // art from — drop its tiers rather than leaving them stranded (spec §B3)
+  const survivingAlbumIds = new Set(S.tracks.map(albumKey));
+  let sealedChanged = false;
+  for(const albumId of removedAlbumIds){
+    if(survivingAlbumIds.has(albumId)) continue;
+    await deleteCrateArtTiers(albumId);
+    if(S.sealed.delete(albumId)) sealedChanged = true;   // SEALED spec §2
+  }
+  if(sealedChanged) persistSealedAlbums();
 
   for(const id of idsToDelete){
     await DB.del('tracks', id);
@@ -3374,6 +3852,7 @@ async function forgetLibrary(){
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
   S.queue = []; S.baseQueue = []; S.lru = [];
+  S.sealed = new Set();   // the meta row holding it was just cleared above (SEALED spec §2)
   S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
   S.curPlayed = []; S.curTrackDone = false;
   S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
@@ -3731,6 +4210,8 @@ const SLEEVE_ANIM = {
   // put-away: the queue ends, the sleeve comes to collect the disc (see
   // PRESENTATION spec, put-away sequence). Shorter than the pull (2.0s total).
   putSpinMs: 500, putInMs: 700, putSlideDelayMs: 600, putSlideMs: 800, putOutMs: 600,
+  // the seal peel, inserted into a sealed album's first pull only (SEALED spec §6)
+  peelTearMs: 300, peelOffMs: 400,
   easing: 'cubic-bezier(.3,.66,.35,1)'   // morph only; sleeve/disc easing lives in CSS per-phase
 };
 document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
@@ -3740,6 +4221,21 @@ document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.retu
 document.documentElement.style.setProperty('--putaway-in-duration', SLEEVE_ANIM.putInMs + 'ms');
 document.documentElement.style.setProperty('--putaway-slide-duration', SLEEVE_ANIM.putSlideMs + 'ms');
 document.documentElement.style.setProperty('--putaway-out-duration', SLEEVE_ANIM.putOutMs + 'ms');
+document.documentElement.style.setProperty('--sleeve-peel-tear-duration', SLEEVE_ANIM.peelTearMs + 'ms');
+document.documentElement.style.setProperty('--sleeve-peel-off-duration', SLEEVE_ANIM.peelOffMs + 'ms');
+
+// GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
+// SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
+const GATEFOLD_ANIM = {
+  liftMs: 200, swingMs: 420, holdMs: 80, pushMs: 250,   // open: 200+420+80+250 = 950
+  closeMs: 600, skipMs: 120, leftPanelMs: 250,
+  swingEasing: 'cubic-bezier(.4,0,.2,1)', liftEasing: 'ease-out'
+};
+document.documentElement.style.setProperty('--gatefold-lift-duration', GATEFOLD_ANIM.liftMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-swing-duration', GATEFOLD_ANIM.swingMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-push-duration', GATEFOLD_ANIM.pushMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-close-duration', GATEFOLD_ANIM.closeMs + 'ms');
+document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_ANIM.swingEasing);
 
 function renderMiniPlayer(){
   const t = current();
@@ -3852,6 +4348,34 @@ function sleeveArtFor(art, hasArt){
 // there's no ceremony to run at all (untagged/shuffled/same-album, the
 // toggle is off, or reduced motion) — otherwise it runs only after the
 // full return+pull (swap) or pull-only (fresh platter) sequence completes.
+// the seal wrap on the incoming sleeve, shown from the moment it starts
+// arriving so it arrives wrapped (SEALED spec §6)
+function attachSleeveWrap(){
+  removeSleeveWrap();
+  const wrap = document.createElement('div');
+  wrap.id = 'sleeveWrap';
+  wrap.setAttribute('aria-hidden','true');
+  wrap.appendChild(buildSealOverlay(278));
+  wrap.appendChild(el('div','seal-tear'));
+  $('#sleeve').appendChild(wrap);
+}
+function removeSleeveWrap(){ const w = $('#sleeveWrap'); if(w) w.remove(); }
+
+// tear (~300ms) then slide-off (~400ms); each step is checked against the
+// same cancellation token as the rest of the ceremony (SEALED spec §6)
+async function runSealPeel(cancelled){
+  const wrap = $('#sleeveWrap');
+  if(!wrap) return;
+  void wrap.offsetWidth;
+  wrap.classList.add('peel-tear');
+  await sleep(SLEEVE_ANIM.peelTearMs);
+  if(cancelled()) return;
+  wrap.classList.add('peel-off');
+  await sleep(SLEEVE_ANIM.peelOffMs);
+  if(cancelled()) return;
+  removeSleeveWrap();
+}
+
 async function runStartSequence(t, info, startAudio){
   const stage = $('#platterStage');
   const token = ++S.sleeveSeq;
@@ -3864,12 +4388,19 @@ async function runStartSequence(t, info, startAudio){
   // whatever a just-cancelled prior invocation left behind
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
   $('#sleeve').style.display = 'none';
+  removeSleeveWrap();
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
+    // no ceremony to carry it — play() itself breaks a sealed album's seal
+    // silently the instant it actually starts (SEALED spec §6)
     $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
     startAudio();
     return;
   }
+
+  // captured once, at the start — not re-checked mid-ceremony, so the peel
+  // either runs once in full or not at all (SEALED spec §6, "once per album")
+  const sealedForPeel = isAlbumSealed(albumKey(t));
 
   // decode ahead of time so playback can start the instant the disc lands,
   // never after — runs in parallel with the sleeve/disc motion below
@@ -3894,11 +4425,18 @@ async function runStartSequence(t, info, startAudio){
   sleeveArtFor(t.art, !!t.art);
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';
+  if(sealedForPeel) attachSleeveWrap();
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('sleeve-arriving');
   await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.arriveMs);
   if(cancelled()) return;
   stage.classList.remove('sleeve-arriving');
+
+  if(sealedForPeel){
+    await runSealPeel(cancelled);
+    if(cancelled()) return;
+    breakSeal(albumKey(t));
+  }
 
   // hold: the sleeve sits static on an empty platter until the buffer is
   // ready, capped so a slow decode never stalls the ceremony indefinitely
@@ -3926,11 +4464,18 @@ function interruptStartSequence(){
   const stage = $('#platterStage');
   const wasPutAway = stage.classList.contains('putaway-in') || stage.classList.contains('putaway-slide') ||
     stage.classList.contains('putaway-out');
+  // the peel sits in a gap between stage classes (after 'sleeve-arriving' is
+  // removed, before the hold/emerge classes are added) — #sleeveWrap's
+  // presence is what marks that window as "active" (SEALED spec §6)
   const wasActive = wasPutAway || stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
-    stage.classList.contains('disc-emerging') || stage.classList.contains('returning');
+    stage.classList.contains('disc-emerging') || stage.classList.contains('returning') || !!$('#sleeveWrap');
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
   clearSpinDown();
   $('#sleeve').style.display = 'none';
+  // a tap during the peel snaps straight to the end state: wrap gone, no
+  // eased snap (SEALED spec §6, "Interrupt") — the seal itself only breaks
+  // once playback is actually about to start, same as everywhere else
+  removeSleeveWrap();
   if(wasPutAway){
     // the record was mid-way into its sleeve — finish putting it away rather
     // than resurrecting the disc; pressing play afterwards is what brings it
@@ -3941,7 +4486,7 @@ function interruptStartSequence(){
     return;
   }
   $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
-  if(wasActive && !S.playing) play();
+  if(wasActive && !S.playing) play();   // play() itself breaks the seal the instant it actually starts
 }
 
 /* ================= put-away: the record goes back in its sleeve =================
@@ -4226,7 +4771,11 @@ function makeLaunchCard(stack, index){
   let art = null;
   if(stack.variant === 'library'){
     const albumId = stack.albumIds[index];
-    art = thumbURL['album:' + albumId];
+    // an already-warmed crate tier (S for the flying stack, L for the
+    // caught record) is sharper than the 800px thumbnail — but this never
+    // waits on a build, only a synchronous cache hit (spec §B5)
+    const tier = index === stack.targetIndex ? 'L' : 'S';
+    art = crateArtCache[tier].get(albumId) || thumbURL['album:' + albumId];
   }
   if(art){
     const img = document.createElement('img');
@@ -4422,10 +4971,14 @@ function openPlayerViaSheet(t, info){
   const ov = $('#playerOverlay');
   ov.setAttribute('aria-hidden','false');
   ov.classList.add('open');
-  ov.addEventListener('transitionend', function settled(){
-    ov.removeEventListener('transitionend', settled);
-    runStartSequence(t, info, play);
-  }, {once:true});
+  // under REDUCED the sheet's slide-up transition is `none` (see .player-
+  // overlay's reduced-motion rule), so transitionend never fires — go
+  // straight to the ceremony instead of waiting on an event that won't come
+  if(REDUCED){ runStartSequence(t, info, play); return; }
+  let done = false;
+  const settle = () => { if(done) return; done = true; ov.removeEventListener('transitionend', settle); runStartSequence(t, info, play); };
+  ov.addEventListener('transitionend', settle, {once:true});
+  setTimeout(settle, SLEEVE_ANIM.sheetMs + 150);   // safety net if transitionend never fires
 }
 
 // Tapping the mini-player is always a return to what's already playing —
@@ -4536,6 +5089,7 @@ function load(i){
   setPathNote('');
   renderTracks();
   renderMiniPlayer();
+  updateGatefoldNowPlaying();
   drawTime();
   $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
   $('#queueBtn').style.display = '';
@@ -4579,6 +5133,9 @@ async function play(){
   await S.ctx.resume();
   if(S.playing) return;
   S.playing = true;
+  // the single point every playback path funnels through, ceremony or not —
+  // "played" means this, with no minimum duration (SEALED spec §2)
+  breakSeal(albumKey(t));
   clearSpinDown();   // real playback resumed — any eased-down spin-rate from a put-away no longer applies
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
@@ -5985,6 +6542,31 @@ function searchLibrary(query){
     people: [...people].sort(byName), genres: [...genres].sort(byName) };
 }
 
+// wraps each case-insensitive occurrence of query in the result's visible
+// label text with <mark class="hl"> (amber, weight 600 — S1 §4)
+function highlightMatches(text, query){
+  const frag = document.createDocumentFragment();
+  if(!query){ frag.appendChild(document.createTextNode(text)); return frag; }
+  const lowerText = text.toLowerCase(), lowerQ = query.toLowerCase();
+  let i = 0;
+  while(i < text.length){
+    const at = lowerText.indexOf(lowerQ, i);
+    if(at < 0){ frag.appendChild(document.createTextNode(text.slice(i))); break; }
+    if(at > i) frag.appendChild(document.createTextNode(text.slice(i, at)));
+    const mark = el('mark','hl', text.slice(at, at + query.length));
+    frag.appendChild(mark);
+    i = at + query.length;
+  }
+  return frag;
+}
+function highlightRowLabel(row, selector, text, query){
+  const target = row.querySelector(selector);
+  if(!target || !query) return row;
+  target.textContent = '';
+  target.appendChild(highlightMatches(text, query));
+  return row;
+}
+
 function renderSearchResults(host, query){
   const results = searchLibrary(query);
   if(!results.artists.length && !results.albums.length && !results.songs.length
@@ -5992,14 +6574,16 @@ function renderSearchResults(host, query){
     host.appendChild(el('p','note','No matches for “' + query + '”.'));
     return;
   }
+  const textQ = parseSearchQuery(query).text.trim();
   const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
   if(results.artists.length){
     host.appendChild(el('p','note','Artists'));
     results.artists.forEach(artist => {
       const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
       const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-      host.appendChild(groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
-        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist)));
+      const row = groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
+        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist));
+      host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
     });
   }
   if(results.albums.length){
@@ -6007,8 +6591,9 @@ function renderSearchResults(host, query){
     results.albums.forEach(album => {
       const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
       const artist = S.tracks[idx[0]].tags.albumArtist;
-      host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-        idx, () => goto('albums', album)));
+      const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+        idx, () => goto('albums', album));
+      host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
     });
   }
   if(results.people.length){
@@ -6016,22 +6601,27 @@ function renderSearchResults(host, query){
     results.people.forEach(name => {
       const entry = peopleIndex.get(normKey(name));
       const count = entry ? new Set(entry.entries.map(e => e.trackIdx)).size : 0;
-      host.appendChild(groupRow(name, count + (count===1?' credit':' credits'), [],
-        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); }));
+      const row = groupRow(name, count + (count===1?' credit':' credits'), [],
+        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); });
+      host.appendChild(highlightRowLabel(row, '.g-text b', name, textQ));
     });
   }
   if(results.genres.length){
     host.appendChild(el('p','note','Genres'));
     results.genres.forEach(genre => {
       const idx = allIdx().filter(i => S.tracks[i].details && S.tracks[i].details.genre === genre);
-      host.appendChild(groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
-        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); }));
+      const row = groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
+        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); });
+      host.appendChild(highlightRowLabel(row, '.g-text b', genre, textQ));
     });
   }
   if(results.songs.length){
     host.appendChild(el('p','note','Songs'));
     const ul = el('ul','tracklist');
-    results.songs.forEach((i, pos) => ul.appendChild(songRow(i, results.songs, pos)));
+    results.songs.forEach((i, pos) => {
+      const row = songRow(i, results.songs, pos);
+      ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
+    });
     host.appendChild(ul);
   }
 }
@@ -6069,7 +6659,171 @@ function updateSearchChipsVisibility(){
 const CRATE_ORIGIN_Y = 170;
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
+const CRATE_DPR = window.devicePixelRatio || 1;
 const CRATE_ALPHABET = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+
+/* ================= S4: crate image tiers (640px "S", 1200px "L") =========
+   Stored in the existing `artwork` store (keyed by id, never `meta` — that
+   would read hundreds of MB into memory on every launch) under prefixed
+   ids `crate640:<albumId>` / `crate1200:<albumId>`, built lazily and
+   fetched through a small LRU of object URLs. See the image-quality
+   spec §B1-B3. No DB version bump — the store already exists. */
+const CRATE_TIER_S_PX = 640, CRATE_TIER_L_PX = 1200;
+const CRATE_TIER_S_Q = 0.88, CRATE_TIER_L_Q = 0.92;
+const CRATE_TIER_S_CAP = 40, CRATE_TIER_L_CAP = 4;
+const crateArtCache = { S: new Map(), L: new Map() };   // albumId -> object URL; Map insertion order is LRU recency
+const crateArtBuilding = new Set();                      // 'tier:albumId' in flight, so concurrent askers don't double-build
+
+function crateTierKey(tier, albumId){ return (tier === 'L' ? 'crate1200:' : 'crate640:') + albumId; }
+
+// like cropSquareImage (left untouched for the existing 800/300px thumbs),
+// but halves repeatedly so a big reduction doesn't alias the way a single
+// drawImage step does (spec §B3)
+function cropSquareImageStepped(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const out = Math.min(maxDim, side);   // never upscale
+      let canvas = document.createElement('canvas');
+      canvas.width = side; canvas.height = side;
+      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, side, side);
+      URL.revokeObjectURL(img.src);
+      let curSize = side;
+      while(curSize > out * 2){
+        const next = Math.max(out, Math.round(curSize / 2));
+        const nextCanvas = document.createElement('canvas');
+        nextCanvas.width = next; nextCanvas.height = next;
+        const nextCx = nextCanvas.getContext('2d');
+        nextCx.imageSmoothingEnabled = true; nextCx.imageSmoothingQuality = 'high';
+        nextCx.drawImage(canvas, 0, 0, curSize, curSize, 0, 0, next, next);
+        canvas = nextCanvas; curSize = next;
+      }
+      if(curSize !== out){
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = out; finalCanvas.height = out;
+        const finalCx = finalCanvas.getContext('2d');
+        finalCx.imageSmoothingEnabled = true; finalCx.imageSmoothingQuality = 'high';
+        finalCx.drawImage(canvas, 0, 0, curSize, curSize, 0, 0, out, out);
+        canvas = finalCanvas;
+      }
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('could not read image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// the album's best available source art — first track with art wins (a
+// user edit already wins inside t.art itself, see applyEdit()); always cut
+// from this original, never from an existing 800px thumbnail (spec §B3)
+function crateArtSourceFor(albumId){
+  for(const t of S.tracks) if(albumKey(t) === albumId && t.art) return t.art;
+  return null;
+}
+
+async function buildCrateTier(albumId, tier){
+  const buildKey = tier + ':' + albumId;
+  if(crateArtBuilding.has(buildKey)) return false;
+  crateArtBuilding.add(buildKey);
+  try{
+    const key = crateTierKey(tier, albumId);
+    const existing = await DB.get('artwork', key);
+    if(existing) return true;   // resumable: a heal pass just skips what's already built
+    const srcUrl = crateArtSourceFor(albumId);
+    if(!srcUrl) return false;
+    const blob = await (await fetch(srcUrl)).blob();
+    const px = tier === 'L' ? CRATE_TIER_L_PX : CRATE_TIER_S_PX;
+    const q = tier === 'L' ? CRATE_TIER_L_Q : CRATE_TIER_S_Q;
+    const out = await cropSquareImageStepped(blob, px, q);
+    await DB.put('artwork', {id: key, blob: out});
+    return true;
+  }catch(e){ return false; }
+  finally{ crateArtBuilding.delete(buildKey); }
+}
+
+function crateArtCacheSet(tier, albumId, url){
+  const cache = crateArtCache[tier], cap = tier === 'L' ? CRATE_TIER_L_CAP : CRATE_TIER_S_CAP;
+  cache.delete(albumId);
+  cache.set(albumId, url);
+  while(cache.size > cap){
+    const oldestId = cache.keys().next().value;
+    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(e){}
+    cache.delete(oldestId);
+  }
+}
+
+// looks up (building on demand) an album's crate-tier object URL, through
+// a small LRU so a long flick never accumulates hundreds of live object
+// URLs (spec §B2)
+async function getCrateArtURL(albumId, tier){
+  const cache = crateArtCache[tier];
+  if(cache.has(albumId)){
+    const url = cache.get(albumId);
+    crateArtCacheSet(tier, albumId, url);   // bump recency
+    return url;
+  }
+  const key = crateTierKey(tier, albumId);
+  let rec = await DB.get('artwork', key);
+  if(!rec){
+    if(!(await buildCrateTier(albumId, tier))) return null;
+    rec = await DB.get('artwork', key);
+    if(!rec) return null;
+  }
+  const url = URL.createObjectURL(rec.blob);
+  crateArtCacheSet(tier, albumId, url);
+  return url;
+}
+
+function revokeCrateArtTier(albumId, tier){
+  const cache = crateArtCache[tier];
+  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(e){} cache.delete(albumId); }
+}
+
+async function deleteCrateArtTiers(albumId){
+  revokeCrateArtTier(albumId, 'S'); revokeCrateArtTier(albumId, 'L');
+  await DB.del('artwork', crateTierKey('S', albumId));
+  await DB.del('artwork', crateTierKey('L', albumId));
+}
+
+// background S-tier pass for the whole library, starting at the crate
+// anchor and working outward, yielding between albums so it never blocks a
+// frame, and resumable (buildCrateTier skips anything already built) —
+// spec §B3. Triggered from restoreLibrary() and after imports/art edits.
+let healCrateArtToken = 0;
+async function healCrateArt(){
+  const token = ++healCrateArtToken;
+  const seen = new Set(), ids = [];
+  S.tracks.forEach(t => { const id = albumKey(t); if(!seen.has(id)){ seen.add(id); ids.push(id); } });
+  if(!ids.length) return;
+  const anchorPos = Math.max(0, S.crateAnchor ? ids.indexOf(S.crateAnchor) : 0);
+  const ordered = [];
+  for(let d = 0; d < ids.length; d++){
+    if(anchorPos + d < ids.length) ordered.push(ids[anchorPos + d]);
+    if(d > 0 && anchorPos - d >= 0) ordered.push(ids[anchorPos - d]);
+  }
+  for(const albumId of ordered){
+    if(token !== healCrateArtToken) return;   // superseded by a newer pass
+    await buildCrateTier(albumId, 'S');
+    await sleep(0);
+  }
+}
+
+// a quiet pre-warm of the L tier around the crate anchor, so the centre
+// record (and a quick flick either way) is usually already sharp the first
+// time it's looked at (spec §B2, "plus a quiet pre-warm")
+async function prewarmCrateAnchorL(){
+  if(!S.crate || !S.crate.model || !S.crate.model.items.length) return;
+  const items = S.crate.model.items;
+  const pos = Math.round(S.crate.pos != null ? S.crate.pos : 0);
+  const ids = [];
+  for(let d = -3; d <= 3; d++){
+    const item = items[pos + d];
+    if(item && item.type === 'rec' && !ids.includes(item.albumId)) ids.push(item.albumId);
+  }
+  for(const albumId of ids) await buildCrateTier(albumId, 'L');
+}
 
 function titleCaseGenre(s){
   return s.split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
@@ -6269,15 +7023,523 @@ function crateRailJumpTarget(model, key){
   return (next < model.items.length && model.items[next].type === 'rec') ? next : di;
 }
 
+/* ================= S3: gatefold album view (opens from the crate) =========
+   Three flat planes in one 3D stage (the cover, its own backface-hidden
+   back face as the inside-left panel, and the tracklist sitting behind it
+   at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
+   every other album entry point keeps renderAlbumDetail() untouched. */
+let GF = null;   // ephemeral render state for the open gatefold; null when closed
+
+function isGatefoldOpen(){ return !!GF; }
+
+function gatefoldViewportMode(){
+  const w = window.innerWidth, h = window.innerHeight;
+  if(w >= 700 && h >= 500) return 'wide';
+  if(h < 640) return 'short';
+  return 'normal';
+}
+
+function updateGatefoldScale(){
+  if(!GF) return;
+  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / 390, window.innerHeight / 740);
+  document.documentElement.style.setProperty('--gf-page-scale', s);
+}
+
+// same ordering as renderAlbumDetail()/albumTracks() (spec §A4)
+function gatefoldTrackIndices(item){ return albumTracks(item.album); }
+
+// null (no split) or an ordered list of {label, idx:[...]} — multi-disc
+// splits by disc, a single disc of 4+ tracks splits at the midpoint, 3 or
+// fewer never splits (spec §A5); track numbers still count straight through
+function gatefoldSideSplits(trackIdx){
+  if(!S.albumSides || trackIdx.length < 4) return null;
+  const discs = [...new Set(trackIdx.map(i => S.tracks[i].tags.disc || 0))];
+  if(discs.length > 1){
+    return discs.map((d, k) => ({label:'SIDE ' + String.fromCharCode(65 + k),
+      idx: trackIdx.filter(i => (S.tracks[i].tags.disc || 0) === d)}));
+  }
+  const mid = Math.ceil(trackIdx.length / 2);
+  return [{label:'SIDE A', idx: trackIdx.slice(0, mid)}, {label:'SIDE B', idx: trackIdx.slice(mid)}];
+}
+
+function gatefoldNowGlyph(){
+  const span = el('span','gf-now-glyph');
+  span.innerHTML = '<span></span><span></span><span></span>';
+  return span;
+}
+
+function gatefoldTrackRow(i, pos, trackIdx, playHandler){
+  const t = S.tracks[i];
+  const row = document.createElement('button');
+  row.className = 'gf-track-row';
+  row.setAttribute('role','listitem');
+  row.dataset.pos = pos;
+  const isNow = i === S.index;
+  row.classList.toggle('gf-now-playing', isNow);
+  const num = el('span','gf-tn');
+  if(isNow) num.appendChild(gatefoldNowGlyph()); else num.textContent = String(pos).padStart(2,'0');
+  row.appendChild(num);
+  row.appendChild(el('span','gf-tt', t.tags.title));
+  row.appendChild(el('span','gf-td', fmt(t.duration)));
+  row.addEventListener('click', () => (playHandler || gatefoldPlayTrack)(trackIdx, i));
+  return row;
+}
+
+// playHandler lets the sealed sheet reuse this exact rendering (order, rows,
+// sides) while running a different play path (SEALED spec §5) — the
+// gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6)
+function buildGatefoldTracklist(item, trackIdx, playHandler){
+  const host = document.createDocumentFragment();
+  host.appendChild(el('p','gf-tl-head', item.artist.toUpperCase()));
+  host.appendChild(el('h2','gf-tl-title', item.album));
+  const sides = gatefoldSideSplits(trackIdx);
+  if(sides){
+    sides.forEach(side => {
+      const total = side.idx.reduce((s,i) => s + (S.tracks[i].duration || 0), 0);
+      const head = el('div','gf-side-head');
+      head.appendChild(el('b', null, side.label));
+      head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' TRACK · ':' TRACKS · ') + fmt(total).toUpperCase()));
+      host.appendChild(head);
+      side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler)));
+    });
+  } else {
+    trackIdx.forEach((i,k) => host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler)));
+  }
+  return host;
+}
+
+// credit names close the gatefold before opening the person view, so the
+// crate underneath isn't left showing a stale position when it reopens
+function gatefoldCreditLink(name){
+  const b = el('button','', name);
+  b.style.color = 'var(--accent)'; b.style.textDecoration = 'underline';
+  b.addEventListener('click', () => { closeGatefoldInstant(); openPersonOrArtist(name); });
+  return b;
+}
+
+function buildGatefoldLeftPanel(item){
+  const host = document.createDocumentFragment();
+  const liner = albumLinerNotes(item.album);
+  const roll = albumCreditRoll(item.album);
+  const hasBooklet = !!(S.booklets && S.booklets[item.albumId]);
+  if(!liner && !roll.size && !hasBooklet){
+    host.appendChild(el('h3', null, item.album));
+    const metaBits = [item.year || null, item.genre || null,
+      item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
+    host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+    host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
+    return host;
+  }
+  if(liner) host.appendChild(el('p','gf-liner', liner));
+  if(roll.size){
+    roll.forEach((names, label) => {
+      const row = el('div','gf-credit-row');
+      row.appendChild(el('em', null, label));
+      const cell = el('span');
+      names.forEach((n,i) => { if(i) cell.appendChild(document.createTextNode(', ')); cell.appendChild(gatefoldCreditLink(n)); });
+      row.appendChild(cell);
+      host.appendChild(row);
+    });
+  }
+  const metaBits = [item.year || null, item.genre || null,
+    item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
+  host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+  if(hasBooklet){
+    const btn = el('button','gf-booklet-btn', 'BOOKLET · ' + S.booklets[item.albumId].length + ' PAGES');
+    btn.addEventListener('click', () => openBookletViewer(item.albumId));
+    host.appendChild(btn);
+  }
+  return host;
+}
+
+function gatefoldOnPlatter(item){
+  return S.shellAlbumId === item.albumId && !S.platterEmpty;
+}
+
+function updateGatefoldSleeveState(){
+  if(!GF) return;
+  $('#gfSleeveDiscWrap').classList.toggle('gf-disc-empty', gatefoldOnPlatter(GF.item));
+}
+
+// decorative only: the disc peeks out as if pulled from the pocket, then the
+// pocket settles into its normal (now-empty, since this album is playing)
+// state — never touches S.shellAlbumId, the pull, or the full player (§A6)
+function gatefoldSleeveFlourish(){
+  const wrap = $('#gfSleeveDiscWrap');
+  wrap.classList.add('gf-disc-out');
+  setTimeout(() => { wrap.classList.remove('gf-disc-out'); updateGatefoldSleeveState(); }, 400);
+}
+
+// queues and starts playback the same way as everywhere else, but through
+// play() directly rather than setQueue's autoplay path — that path always
+// opens the full player sheet, which the gatefold's tap-a-track explicitly
+// must not do (spec §A6: "don't auto-open the full player... or the pull")
+function gatefoldPlayTrack(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  play();
+  gatefoldSleeveFlourish();
+}
+
+// a sealed album's first play runs the normal ceremony (so the peel is
+// actually seen) but on the platter/mini-player only — never the full
+// player sheet (SEALED spec §5: "the sleeve pull runs behind the sheet as
+// usual... the player is not forced open"). Used by the sealed sheet's rows
+// and the crate's own Play affordances for a sealed record.
+function sealedQuietPlay(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  runStartSequence(current(), S.pendingShellInfo, play);
+}
+
+function gatefoldRestoreRowNumber(row){
+  const num = row.querySelector('.gf-tn');
+  if(num) num.textContent = String(row.dataset.pos).padStart(2,'0');
+}
+
+// live-updates the now-playing marker without rebuilding the whole panel —
+// called from load() on every track change while the gatefold is open (§A4).
+// Rows are built in the same order as GF.trackIdx (sides only insert divider
+// headers between them, never reorder the tracks), so position maps directly.
+function updateGatefoldNowPlaying(){
+  if(!GF) return;
+  updateGatefoldSleeveState();
+  document.querySelectorAll('.gf-track-row.gf-now-playing').forEach(row => {
+    row.classList.remove('gf-now-playing');
+    gatefoldRestoreRowNumber(row);
+  });
+  const t = current();
+  if(!t || albumKey(t) !== GF.item.albumId) return;
+  let pos = -1;
+  GF.trackIdx.forEach((i, k) => { if(i === S.index) pos = k; });
+  const rows = document.querySelectorAll('.gf-track-row');
+  if(pos < 0 || pos >= rows.length) return;
+  const row = rows[pos];
+  row.classList.add('gf-now-playing');
+  const num = row.querySelector('.gf-tn');
+  if(num){ num.innerHTML = ''; num.appendChild(gatefoldNowGlyph()); }
+}
+
+function gatefoldInfoAndSleeveHTML(item){
+  const info = $('#gfInfo'); info.innerHTML = '';
+  info.appendChild(el('h3','gf-info-title', item.album));
+  info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
+    fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
+  info.appendChild(el('p','gf-info-meta', metaBits.join(' · ').toUpperCase()));
+}
+
+async function gatefoldSetCoverArt(item){
+  const img = $('#gfCoverArt'), discArt = $('#gfDiscArt');
+  const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+  if(fallback){ img.src = fallback; discArt.src = fallback; }
+  const url = await getCrateArtURL(item.albumId, 'L');
+  if(url && GF && GF.item === item){ img.src = url; discArt.src = url; }
+}
+
+function gatefoldSwitchPanel(panel){
+  if(!GF) return;
+  GF.panel = panel;
+  const camera = $('#gfCamera');
+  if(GF.mode !== 'wide'){
+    camera.style.transition = 'transform ' + GATEFOLD_ANIM.leftPanelMs + 'ms ease';
+    camera.style.setProperty('--gf-cx', panel === 'left' ? '-175px' : '175px');
+  }
+  document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
+  if(GF.mode === 'short'){
+    $('#gfFlatBody').innerHTML = '';
+    if(panel === 'left') $('#gfFlatBody').appendChild(buildGatefoldLeftPanel(GF.item));
+    else $('#gfFlatBody').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx));
+  } else {
+    (panel === 'left' ? $('#gfLeft') : $('#gfTracklist')).focus();
+  }
+}
+
+let gfSkipHandler = null, gfDragCleanup = null;
+
+function gatefoldTeardownGestures(){
+  if(gfSkipHandler){ $('#gatefold').removeEventListener('pointerdown', gfSkipHandler, {capture:true}); gfSkipHandler = null; }
+  if(gfDragCleanup){ gfDragCleanup(); gfDragCleanup = null; }
+}
+
+// swipe right/left between the tracklist and the inside-left panel (a
+// direction lock after ~8px keeps a vertical scroll from also panning the
+// camera), plus a drag-down on the info strip to close (§A3, §A7)
+function gatefoldWireGestures(){
+  let start = null;
+  const onDown = e => { start = {x:e.clientX, y:e.clientY, locked:null, t:performance.now()}; };
+  const onMove = e => {
+    if(!start || !GF || GF.mode === 'short') return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if(!start.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) start.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    if(start.locked === 'h' && GF.mode !== 'wide'){
+      const base = GF.panel === 'left' ? -175 : 175;
+      const next = clamp(base + dx * 0.5, -175, 175);
+      $('#gfCamera').style.transition = 'none';
+      $('#gfCamera').style.setProperty('--gf-cx', next + 'px');
+    }
+  };
+  const onUp = e => {
+    if(!start) return;
+    const dx = e.clientX - start.x;
+    if(start.locked === 'h' && GF && GF.mode !== 'wide'){
+      if(Math.abs(dx) > 60) gatefoldSwitchPanel(dx < 0 ? 'left' : (GF.panel === 'left' && dx > 0 ? 'right' : GF.panel));
+      else gatefoldSwitchPanel(GF.panel);
+    }
+    start = null;
+  };
+  const stage = $('#gfStage');
+  stage.addEventListener('pointerdown', onDown);
+  stage.addEventListener('pointermove', onMove);
+  stage.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', onUp);
+
+  let infoDrag = null;
+  const onInfoDown = e => { infoDrag = e.clientY; };
+  const onInfoMove = e => {
+    if(infoDrag == null) return;
+    const dy = e.clientY - infoDrag;
+    if(dy > 50) closeGatefold();
+  };
+  const onInfoUp = () => { infoDrag = null; };
+  const info = $('#gfInfo');
+  info.addEventListener('pointerdown', onInfoDown);
+  info.addEventListener('pointermove', onInfoMove);
+  info.addEventListener('pointerup', onInfoUp);
+
+  gfDragCleanup = () => {
+    stage.removeEventListener('pointerdown', onDown);
+    stage.removeEventListener('pointermove', onMove);
+    stage.removeEventListener('pointerup', onUp);
+    stage.removeEventListener('pointercancel', onUp);
+    info.removeEventListener('pointerdown', onInfoDown);
+    info.removeEventListener('pointermove', onInfoMove);
+    info.removeEventListener('pointerup', onInfoUp);
+  };
+}
+
+function gatefoldSettledState(mode){
+  const camera = $('#gfCamera'), cover = $('#gfCover');
+  camera.style.transition = 'none';
+  camera.style.setProperty('--gf-s', mode === 'wide' ? '1' : '.55');
+  camera.style.setProperty('--gf-cx', mode === 'wide' ? '175px' : '0px');
+  cover.style.transition = 'none';
+  cover.style.transform = 'rotateY(-180deg)';
+  $('#gfShadow').style.opacity = '0';
+}
+
+// tapping anywhere during the opening jumps straight to the settled spread,
+// with a short fade, so repeat opens never feel slow (§A3)
+function gatefoldSkipToSettled(mode){
+  const overlay = $('#gatefold');
+  overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.skipMs + 'ms linear';
+  gatefoldSettledState(mode);
+  overlay.classList.add('gf-chrome-in');
+  requestAnimationFrame(() => { $('#gfTracklist').focus(); });
+}
+
+async function runGatefoldOpen(mode){
+  const overlay = $('#gatefold'), camera = $('#gfCamera'), cover = $('#gfCover');
+  const seq = GF.seq;
+  const skip = e => { e.stopPropagation(); e.preventDefault(); gatefoldSkipToSettled(mode); };
+  gfSkipHandler = skip;
+  overlay.addEventListener('pointerdown', skip, {capture:true, once:true});
+
+  if(REDUCED || mode === 'short'){
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 150ms linear';
+    void overlay.offsetWidth;
+    overlay.style.opacity = '1';
+    await sleep(150);
+  } else {
+    camera.style.transition = 'none';
+    camera.style.setProperty('--gf-s', '1');
+    camera.style.setProperty('--gf-cx', '175px');
+    cover.style.transition = 'none';
+    cover.style.transform = 'rotateY(0deg)';
+    overlay.style.opacity = '0';
+    void overlay.offsetWidth;
+    overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.liftMs + 'ms ' + GATEFOLD_ANIM.liftEasing;
+    overlay.style.opacity = '1';
+    await sleep(GATEFOLD_ANIM.liftMs);
+    if(GF.seq !== seq) return;
+
+    if(mode !== 'wide'){
+      camera.style.transition = 'transform ' + GATEFOLD_ANIM.swingMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+      camera.style.setProperty('--gf-s', '.55'); camera.style.setProperty('--gf-cx', '0px');
+    }
+    cover.style.transition = 'transform ' + GATEFOLD_ANIM.swingMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+    cover.style.transform = 'rotateY(-180deg)';
+    $('#gfShadow').style.transition = 'opacity ' + GATEFOLD_ANIM.swingMs + 'ms linear';
+    $('#gfShadow').style.opacity = '0';
+    await sleep(GATEFOLD_ANIM.swingMs);
+    if(GF.seq !== seq) return;
+
+    await sleep(GATEFOLD_ANIM.holdMs);
+    if(GF.seq !== seq) return;
+
+    if(mode !== 'wide'){
+      camera.style.transition = 'transform ' + GATEFOLD_ANIM.pushMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
+      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', '175px');
+    }
+    overlay.classList.add('gf-chrome-in');
+    await sleep(GATEFOLD_ANIM.pushMs);
+    if(GF.seq !== seq) return;
+  }
+  overlay.removeEventListener('pointerdown', skip, {capture:true});
+  gfSkipHandler = null;
+  overlay.classList.add('gf-chrome-in');
+  $('#gfTracklist').focus();
+}
+
+let gfSeqCounter = 0;
+
+function openGatefold(item){
+  if(GF) return;
+  const mode = gatefoldViewportMode();
+  const trackIdx = gatefoldTrackIndices(item);
+  if(!trackIdx.length) return;
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement};
+
+  const overlay = $('#gatefold');
+  overlay.setAttribute('aria-label', item.album);
+  overlay.classList.toggle('gf-wide', mode === 'wide');
+  overlay.classList.remove('gf-chrome-in');
+  overlay.style.opacity = '';
+
+  $('#gfTracklist').innerHTML = ''; $('#gfTracklist').appendChild(buildGatefoldTracklist(item, trackIdx));
+  $('#gfLeft').innerHTML = ''; $('#gfLeft').appendChild(buildGatefoldLeftPanel(item));
+  gatefoldInfoAndSleeveHTML(item);
+  gatefoldSetCoverArt(item).catch(() => {});
+  updateGatefoldSleeveState();
+
+  const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size || (S.booklets && S.booklets[item.albumId]));
+  $('#gfLeftCue').style.display = hasLeftContent ? '' : 'none';
+
+  if(mode === 'short'){
+    $('#gfFlatTracks').classList.add('show');
+    $('#gfFlatBody').innerHTML = ''; $('#gfFlatBody').appendChild(buildGatefoldTracklist(item, trackIdx));
+    document.querySelectorAll('#gfFlatSeg [data-panel]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.panel === 'right')));
+  } else {
+    $('#gfFlatTracks').classList.remove('show');
+  }
+
+  updateGatefoldScale();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  gatefoldWireGestures();
+  runGatefoldOpen(mode);
+}
+
+async function closeGatefold(){
+  if(!GF) return;
+  const g = GF; GF = null;
+  gatefoldTeardownGestures();
+  const overlay = $('#gatefold'), camera = $('#gfCamera'), cover = $('#gfCover');
+  overlay.classList.remove('gf-chrome-in');
+  if(REDUCED || g.mode === 'short'){
+    overlay.style.transition = 'opacity 150ms linear';
+    overlay.style.opacity = '0';
+    await sleep(150);
+  } else {
+    if(g.mode !== 'wide'){
+      camera.style.transition = 'transform ' + Math.round(GATEFOLD_ANIM.closeMs * 0.4) + 'ms ease-in';
+      camera.style.setProperty('--gf-s', '.55'); camera.style.setProperty('--gf-cx', '0px');
+    }
+    cover.style.transition = 'transform ' + Math.round(GATEFOLD_ANIM.closeMs * 0.6) + 'ms ' + GATEFOLD_ANIM.swingEasing;
+    cover.style.transform = 'rotateY(0deg)';
+    await sleep(Math.round(GATEFOLD_ANIM.closeMs * 0.6));
+    overlay.style.transition = 'opacity ' + Math.round(GATEFOLD_ANIM.closeMs * 0.4) + 'ms linear';
+    overlay.style.opacity = '0';
+    await sleep(Math.round(GATEFOLD_ANIM.closeMs * 0.4));
+  }
+  overlay.classList.remove('open','gf-wide');
+  $('#gfFlatTracks').classList.remove('show');
+  overlay.style.opacity = ''; overlay.style.transition = '';
+  overlay.setAttribute('aria-hidden','true');
+  if(g.returnFocus && document.contains(g.returnFocus) && typeof g.returnFocus.focus === 'function') g.returnFocus.focus();
+  else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
+}
+
+// an immediate, non-animated close for when the gatefold is being replaced
+// by real navigation (a credit link) rather than dismissed on its own
+function closeGatefoldInstant(){
+  if(!GF) return;
+  GF = null;
+  gatefoldTeardownGestures();
+  const overlay = $('#gatefold');
+  overlay.classList.remove('open','gf-wide','gf-chrome-in');
+  $('#gfFlatTracks').classList.remove('show');
+  overlay.style.opacity = ''; overlay.style.transition = '';
+  overlay.setAttribute('aria-hidden','true');
+}
+
+let SEALSHEET = null;   // {item}, null when closed
+
+function isSealedSheetOpen(){ return !!SEALSHEET; }
+
+// after a seal breaks, fade the wrap off the small cover if its sheet is
+// the one open right now — the sheet itself stays as it is (SEALED spec §5)
+function updateSealedSheetAfterBreak(albumId){
+  if(!SEALSHEET || SEALSHEET.item.albumId !== albumId) return;
+  const host = $('#sealSheetCoverWrap');
+  const bits = host.querySelectorAll('.seal-wrap, .seal-sticker');
+  bits.forEach(elm => {
+    elm.style.transition = 'opacity .3s';
+    elm.style.opacity = '0';
+    setTimeout(() => elm.remove(), 300);
+  });
+}
+
+function openSealedSheet(item){
+  if(SEALSHEET || GF) return;
+  const trackIdx = gatefoldTrackIndices(item);
+  if(!trackIdx.length) return;
+  SEALSHEET = {item, returnFocus: document.activeElement};
+  const sheet = $('#sealSheet');
+  sheet.setAttribute('aria-label', item.album);
+  $('#sealSheetArtist').textContent = item.artist.toUpperCase();
+  $('#sealSheetTitle').textContent = item.album;
+  const coverWrap = $('#sealSheetCoverWrap');
+  coverWrap.querySelectorAll('.seal-wrap, .seal-sticker').forEach(n => n.remove());
+  coverWrap.appendChild(buildSealOverlay(96));
+  const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+  if(art) $('#sealSheetCoverArt').src = art;
+  getCrateArtURL(item.albumId, 'S').then(url => { if(url && SEALSHEET && SEALSHEET.item === item) $('#sealSheetCoverArt').src = url; });
+  $('#sealSheetBody').innerHTML = '';
+  $('#sealSheetBody').appendChild(buildGatefoldTracklist(item, trackIdx, sealedQuietPlay));
+
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden','false');
+  requestAnimationFrame(() => { sheet.classList.add('show'); $('#sealSheetBody').focus(); });
+}
+
+async function closeSealedSheet(){
+  if(!SEALSHEET) return;
+  const s = SEALSHEET; SEALSHEET = null;
+  const sheet = $('#sealSheet');
+  sheet.classList.remove('show');
+  await sleep(REDUCED ? 150 : 250);
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden','true');
+  if(s.returnFocus && document.contains(s.returnFocus) && typeof s.returnFocus.focus === 'function') s.returnFocus.focus();
+  else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
+}
+
 function openCrateAlbum(item){
   const v = S.view;
   if(item.kind === 'loose'){
     v.mode = 'crateLoose'; v.crateLooseArtist = item.artist; v.crateLooseIdx = item.idx.slice();
     v.group = null; v.playlist = null; v.person = null; v.artistAlbum = null;
-  } else {
-    v.mode = 'albums'; v.group = item.album; v.artistAlbum = null; v.playlist = null; v.person = null;
+    renderTracks();
+    return;
   }
-  renderTracks();
+  // a sealed record can't be opened — the gatefold and its left panel only
+  // unlock after the first play (SEALED spec §1, §5)
+  if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
+  // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
+  // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
+  // navigation back, it's simply still there
+  openGatefold(item);
 }
 
 function updateCrateGroupToggleUI(){
@@ -6304,16 +7566,22 @@ function renderCrateFlat(host, model){
     const row = el('div','crate-flat-item');
     row.setAttribute('role','option');
     if(isNowPlayingAlbum(item)) row.classList.add('crate-flat-current');
+    const sealed = isAlbumSealed(item.albumId);
     const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
     if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; row.appendChild(im); }
     else { const flat = el('span','crate-flat-flat'); flat.style.background = CRATE_PALETTE[row.childElementCount % CRATE_PALETTE.length]; row.appendChild(flat); }
     const text = el('span','t-name');
-    text.appendChild(el('b', null, item.album));
+    const titleEl = el('b', null, item.album);
+    if(sealed) titleEl.appendChild(el('span','new-tag','NEW'));
+    text.appendChild(titleEl);
     text.appendChild(el('em', null, item.artist + ' · ' + item.trackCount + (item.trackCount===1?' track':' tracks')));
     row.appendChild(text);
     const playBtn = el('button','t-edit','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
-    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    playBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
+    });
     row.appendChild(playBtn);
     row.addEventListener('click', () => {
       persistCrateAnchor(item);
@@ -6371,7 +7639,15 @@ function renderCrate(host){
   }
   S.crate.pos = startPos;
 
+  // resolved once per render — the playing album can't change while the
+  // user is actively scrubbing the stage, so this doesn't need to be
+  // recomputed every frame (CRATE spec §4, "Now playing")
+  const nowPlayingIdx = model.items.findIndex(isNowPlayingAlbum);
+
   const wrap = el('div','crate-wrap');
+  const nowPlayingBtn = el('button','crate-topbar');
+  nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
+  nowPlayingBtn.addEventListener('click', () => { if(nowPlayingIdx >= 0) snapTo(nowPlayingIdx); });
   const stage = el('div','crate-stage');
   stage.tabIndex = 0;
   stage.setAttribute('role','listbox');
@@ -6380,7 +7656,7 @@ function renderCrate(host){
   stage.appendChild(live);
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
-  wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  wrap.appendChild(nowPlayingBtn); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
   host.appendChild(wrap);
 
   applyCrateMiniInset();
@@ -6409,22 +7685,67 @@ function renderCrate(host){
       if(isNowPlayingAlbum(item)){
         const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
       }
+      if(isAlbumSealed(item.albumId)) card.appendChild(buildSealOverlay(278));
     }
     return card;
   }
+  // S tier for the pool (spec §B2); falls back to the existing album
+  // thumbnail, then the first track's own art, while the tier builds
   function setCardImage(i, card){
     const item = itemAt(i);
     if(item.type !== 'rec') return;
     const face = card.querySelector('.crate-card-face');
-    if(!face || face.querySelector('img')) return;
-    const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
-    if(!art) return;
-    const img = document.createElement('img');
-    img.decoding = 'async'; img.alt = '';
-    face.appendChild(img);
-    img.src = art;
+    if(!face || face.querySelector('img') || card.dataset.artPending) return;
+    card.dataset.artPending = '1';
+    getCrateArtURL(item.albumId, 'S').then(tierUrl => {
+      delete card.dataset.artPending;
+      if(pool.get(i) !== card) return;        // recycled while the lookup was in flight
+      if(face.querySelector('img')) return;
+      const art = tierUrl || thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
+      if(!art) return;
+      const img = document.createElement('img');
+      img.decoding = 'async'; img.alt = '';
+      face.appendChild(img);
+      img.src = art;
+    });
   }
-  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); }
+  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); delete card.dataset.artPending; }
+
+  // 200ms after the stack settles, quietly decode and swap the centre
+  // record's S image for the L tier — sharper at rest, nothing visibly
+  // changes but the crispness (spec §B4, "swap S to L at rest")
+  let largeSwapTimer = null;
+  function scheduleLargeSwap(){
+    clearTimeout(largeSwapTimer);
+    largeSwapTimer = setTimeout(async () => {
+      const idx = Math.round(S.crate.pos);
+      const item = itemAt(idx);
+      const card = pool.get(idx);
+      if(!item || item.type !== 'rec' || !card) return;
+      const url = await getCrateArtURL(item.albumId, 'L');
+      if(!url || Math.round(S.crate.pos) !== idx || pool.get(idx) !== card) return;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      try{ await img.decode(); }catch(e){ return; }
+      if(Math.round(S.crate.pos) !== idx || pool.get(idx) !== card) return;
+      const face = card.querySelector('.crate-card-face');
+      const liveImg = face && face.querySelector('img');
+      if(liveImg) liveImg.src = url; else if(face){ img.alt = ''; face.appendChild(img); }
+    }, 200);
+  }
+
+  // a chip above the stage for when the playing album has been scrolled
+  // away from — tapping it scrolls back (CRATE spec §4, "Now playing")
+  function updateNowPlayingTopBar(position){
+    if(nowPlayingIdx < 0 || Math.round(position) === nowPlayingIdx){
+      nowPlayingBtn.classList.remove('show');
+      return;
+    }
+    const item = itemAt(nowPlayingIdx);
+    nowPlayingBtn.textContent = '● Now playing — ' + item.album;
+    nowPlayingBtn.classList.add('show');
+  }
 
   function updateInfoPanel(idx){
     const item = itemAt(idx);
@@ -6436,6 +7757,7 @@ function renderCrate(host){
       info.appendChild(el('p','crate-info-meta', item.meta));
       return;
     }
+    const sealed = isAlbumSealed(item.albumId);
     const row = el('div','crate-info-row');
     const text = el('div');
     const h3 = el('h3', null, item.album);
@@ -6445,10 +7767,19 @@ function renderCrate(host){
     const metaBits = [item.genre || null, item.year || null,
       item.trackCount + (item.trackCount === 1 ? ' track' : ' tracks')].filter(Boolean);
     text.appendChild(el('p','crate-info-meta', metaBits.join(' · ').toUpperCase()));
+    if(sealed){
+      text.appendChild(el('span','seal-tag','SEALED'));
+      text.appendChild(el('span','sr-only','Sealed, not played yet'));
+    }
     row.appendChild(text);
     const playBtn = el('button','tbtn play','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
-    playBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+    // a sealed album plays quietly from track 1, same first-play rules as
+    // the sealed sheet — no sheet/overlay opens from here either (§5)
+    playBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
+    });
     row.appendChild(playBtn);
     info.appendChild(row);
   }
@@ -6480,6 +7811,18 @@ function renderCrate(host){
       : (item.album + ', ' + item.artist + ', ' + item.trackCount + (item.trackCount===1?' track':' tracks'));
   }
 
+  // will-change only while the stack is actually moving, dropped 150ms
+  // after the last moving frame (spec §B4, "promote only while moving")
+  let moveClassTimer = null;
+  function applyMovingClass(speed){
+    if(speed > 0.02){
+      clearTimeout(moveClassTimer); moveClassTimer = null;
+      pool.forEach(card => card.classList.add('crate-moving'));
+    } else if(moveClassTimer == null){
+      moveClassTimer = setTimeout(() => { pool.forEach(card => card.classList.remove('crate-moving')); moveClassTimer = null; }, 150);
+    }
+  }
+
   function syncCards(position, speed){
     const lo = Math.max(0, Math.floor(position) - CRATE_VISIBLE_A), hi = Math.min(model.items.length - 1, Math.ceil(position) + CRATE_VISIBLE_A);
     for(const i of Array.from(pool.keys())) if(i < lo || i > hi){ pool.get(i).remove(); pool.delete(i); }
@@ -6487,17 +7830,24 @@ function renderCrate(host){
     pool.forEach((card, i) => {
       const d = i - position, a = Math.abs(d);
       const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y});
-      card.style.transform = 'translateY(' + pose.y.toFixed(1) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
+      // integer device pixels so edges don't smear at rest (spec §B4)
+      const y = Math.round(pose.y * CRATE_DPR) / CRATE_DPR;
+      card.style.transform = 'translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
         + 'rotateX(' + pose.rotX.toFixed(2) + 'deg) scale(' + pose.scale.toFixed(3) + ')';
       card.style.opacity = pose.opacity;
-      card.style.filter = pose.blur > 0.05 ? 'blur(' + pose.blur.toFixed(2) + 'px)' : 'none';
+      // a zero blur still leaves the layer soft in Safari — drop the
+      // property entirely at rest rather than setting blur(0) or 'none'
+      if(pose.blur > 0.05) card.style.filter = 'blur(' + pose.blur.toFixed(2) + 'px)';
+      else card.style.removeProperty('filter');
       card.style.zIndex = flowZIndex(a);
       card.classList.toggle('crate-current', a < 0.02);
       if(a <= 2 && speed < 0.5) setCardImage(i, card);
       else if(a > 2) clearCardImage(card);
     });
+    applyMovingClass(speed);
     updateInfoPanel(Math.round(position));
     updateRailUI(position);
+    updateNowPlayingTopBar(position);
   }
   function draw(speed){ syncCards(S.crate.pos, speed); }
 
@@ -6505,6 +7855,7 @@ function renderCrate(host){
     const item = itemAt(Math.round(S.crate.pos));
     if(item && item.type === 'rec') persistCrateAnchor(item);
     announceCurrent();
+    scheduleLargeSwap();
   }
 
   // the animation loop is draw-on-demand: paused outright (not just slowed)
@@ -6669,43 +8020,38 @@ function renderCrate(host){
 
   draw(0);
   announceCurrent();
+  scheduleLargeSwap();
+  prewarmCrateAnchorL().catch(() => {});
 }
 
 function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
-  $('#libActions').style.display = S.tracks.length ? 'flex' : 'none';
-  $('#librarySearch').style.display = S.tracks.length ? '' : 'none';
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
-  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting) ? 'flex' : 'none';
+  $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
-  $('#libLayoutToggle').style.display = (isLibraryRouteVisible() && S.tracks.length) ? 'flex' : 'none';
+  updateLibTabsForLayout();
+  updateHeaderActionsAvailability();
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
-  updateLibrarySize();
+  refreshLibraryTools();
   if(!S.tracks.length){ setPathNote(); return; }
 
   // a live search takes over the whole body, grouped by type, regardless
-  // of whatever songs/albums/artists/playlists view is otherwise selected
-  // (see PLAYBACK spec §4) — clearing it returns to that view untouched
+  // of whatever songs/albums/artists/playlists/crate view is otherwise
+  // selected (see PLAYBACK spec §4) — clearing it returns to that view
+  // untouched
   const query = $('#librarySearch').value.trim();
   if(query){
     $('#crumb').style.display = 'none';
-    $('#crateGroupToggle').style.display = 'none';
     renderSearchResults(host, query);
     return;
   }
 
-  // the crate is a second top-level layout for Songs/Albums/Artists/
-  // Playlists — once drilled into an album, an artist's singles, or a
-  // person, it steps aside for the normal pages below (see CRATE spec §5)
-  const showCrate = S.libraryLayout === 'crate' && v.group === null && v.playlist === null
-    && v.mode !== 'person' && v.mode !== 'crateLoose';
-  $('#crateGroupToggle').style.display = showCrate ? 'flex' : 'none';
-  $('#libNav').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
-  $('#libSelectToggleRow').style.display = (S.tracks.length && !v.editSelecting && !showCrate) ? 'flex' : 'none';
-  $('#libActions').style.display = (S.tracks.length && !showCrate) ? 'flex' : 'none';
-  if(showCrate){
+  // the crate is its own tab now (replacing Albums when the layout is
+  // Crate) rather than a second top-level layout over all four tabs, so
+  // Songs/Artists/Playlists are never hidden by it (S1/S2 spec)
+  if(v.mode === 'crate'){
     $('#crumb').style.display = 'none';
     renderCrate(host);
     setPathNote();
@@ -6734,6 +8080,9 @@ function renderTracks(){
       }
       else if(v.mode === 'crateLoose'){ v.mode = 'songs'; v.crateLooseIdx = null; v.crateLooseArtist = null; }
       else if(atArtistAlbum) v.artistAlbum = null;
+      // an album opened from the crate returns to the crate itself, not the
+      // flat albums grid underneath it (S1/S2 spec: crate is its own tab)
+      else if(v.mode === 'albums' && S.libraryLayout === 'crate'){ v.group = null; v.mode = 'crate'; }
       else { v.group = null; v.playlist = null; v.picking = false; }
       renderTracks();
     });
@@ -6775,7 +8124,11 @@ function renderTracks(){
   if(v.mode === 'songs'){
     host.appendChild(librarySortBar());
     const q = allIdx().sort(librarySortComparator('songs'));
-    q.forEach((i,pos) => ul.appendChild(songRow(i, q, pos)));
+    q.forEach((i,pos) => {
+      const row = songRow(i, q, pos);
+      if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
+      ul.appendChild(row);
+    });
     host.appendChild(ul);
   }
 
@@ -6794,8 +8147,10 @@ function renderTracks(){
       host.appendChild(librarySortBar());
       sortAlbumGroups(groupBy('album')).forEach(([album, idx]) => {
         const artist = S.tracks[idx[0]].tags.albumArtist;
-        host.appendChild(groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-          idx, ()=>{ v.group = album; renderTracks(); }));
+        const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+          idx, ()=>{ v.group = album; renderTracks(); });
+        if(isAlbumSealed(albumKey(S.tracks[idx[0]]))) row.querySelector('.g-text b').appendChild(el('span','new-tag','NEW'));
+        host.appendChild(row);
       });
     } else {
       renderAlbumDetail(host, ul, v.group);
@@ -6950,6 +8305,7 @@ function renderProfile(){
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
   else renderProfileHome(body);
+  refreshLibraryTools();
 }
 
 function renderProfileHome(body){
@@ -7484,12 +8840,94 @@ function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
   return !!(r && r.classList.contains('on'));
 }
+function isProfileRouteVisible(){
+  const r = document.getElementById('route-profile');
+  return !!(r && r.classList.contains('on'));
+}
+
+// the header's search/+ icons only ever show on the library route, and the
+// search icon itself is hidden when there's nothing to search (S1 §2.1)
+function updateHeaderActionsAvailability(){
+  const isLibrary = isLibraryRouteVisible();
+  $('#hdrActions').style.display = isLibrary ? 'flex' : 'none';
+  $('#hdrSearchBtn').style.display = (isLibrary && S.tracks.length) ? '' : 'none';
+}
+
+// the crate replaces Albums as the first tab when that's the saved layout,
+// so Songs/Artists/Playlists are never hidden by it (S1 §2.2, S2 §5)
+function updateLibTabsForLayout(){
+  const firstTab = $('#libNav [data-view="crate"]') || $('#libNav [data-view="albums"]');
+  if(!firstTab) return;
+  if(S.libraryLayout === 'crate'){ firstTab.dataset.view = 'crate'; firstTab.textContent = 'Crate'; }
+  else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
+}
+
+// Library tools lives in static markup under #route-profile so re-renders
+// of #profileBody never destroy its listeners (S1 §5 implementation note);
+// this just refreshes its visibility, counts and row states
+function refreshLibraryTools(){
+  const tools = $('#libTools');
+  if(!tools) return;
+  const onHome = isProfileRouteVisible() && S.profileView.screen === 'home';
+  tools.style.display = onHome ? 'block' : 'none';
+  if(!onHome) return;
+  const hasTracks = S.tracks.length > 0;
+  $('#libToolsBody').style.display = hasTracks ? '' : 'none';
+  $('#libToolsFooter').textContent = hasTracks
+    ? (S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks') + ' · ' + formatBytes(totalLibraryBytes()) + ' · stored on this device')
+    : '';
+  $('#crateGroupRow').style.display = (S.libraryLayout === 'crate') ? 'flex' : 'none';
+  $('#crateGenreBtn').style.display = (typeof libraryHasGenres === 'function' && libraryHasGenres()) ? '' : 'none';
+}
+
+// header search field: swaps the normal title row for a full-width search
+// input (S1 §2.1). Cancel clears and closes; the × only clears.
+function openSearchField(){
+  $('#hdrNormalRow').style.display = 'none';
+  $('#hdrSearchRow').style.display = 'flex';
+  $('#hdrSearchBtn').classList.add('active');
+  $('#librarySearch').focus();
+  updateSearchChipsVisibility();
+}
+function closeSearchField(){
+  $('#hdrNormalRow').style.display = '';
+  $('#hdrSearchRow').style.display = 'none';
+  $('#hdrSearchBtn').classList.remove('active');
+  $('#searchChips').style.display = 'none';
+}
+function isSearchFieldOpen(){
+  return $('#hdrSearchRow').style.display !== 'none';
+}
+
+// header + menu: Add songs / Add folder popover (S1 §3)
+function openAddMenu(){
+  $('#addScrim').classList.add('open');
+  $('#addMenu').classList.add('open');
+  $('#hdrAddBtn').classList.add('add-open');
+  $('#hdrAddBtn').setAttribute('aria-expanded', 'true');
+}
+function closeAddMenu(){
+  $('#addScrim').classList.remove('open');
+  $('#addMenu').classList.remove('open');
+  $('#hdrAddBtn').classList.remove('add-open');
+  $('#hdrAddBtn').setAttribute('aria-expanded', 'false');
+}
+function isAddMenuOpen(){
+  return $('#addMenu').classList.contains('open');
+}
 
 function showRoute(name){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
-  $('#libLayoutToggle').style.display = (name === 'library' && S.tracks.length) ? 'flex' : 'none';
-  if(name === 'profile') renderProfile();
+  $('#appHeader').classList.toggle('no-border', name === 'library');
+  updateHeaderActionsAvailability();
+  if(name !== 'library'){ closeSearchField(); closeAddMenu(); }
+  if(name === 'profile'){
+    // library tools starts closed on every fresh visit to Profile (S1 §5)
+    $('#libToolsPanel').classList.remove('open');
+    $('#libToolsToggle').setAttribute('aria-expanded', 'false');
+    renderProfile();
+  }
 }
 
 /* ================= wiring ================= */
@@ -7516,6 +8954,12 @@ function showRoute(name){
   document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b => b.addEventListener('click', ()=>{
     S.libraryLayout = b.dataset.layout;
     document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    // the first tab's identity (crate vs flat albums) follows the layout —
+    // if that's where the user currently is, follow it there too; otherwise
+    // (Songs/Artists/Playlists, or drilled into something) leave them put
+    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
+      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
+    }
     queueSave();
     renderTracks();
   }));
@@ -7523,6 +8967,17 @@ function showRoute(name){
     if(b.style.display === 'none') return;
     S.crateGroup = b.dataset.group;
     invalidateCrateModel();
+    queueSave();
+    renderTracks();
+  }));
+  document.querySelectorAll('#sidesToggle [data-sides]').forEach(b => b.addEventListener('click', ()=>{
+    S.albumSides = b.dataset.sides === 'on';
+    document.querySelectorAll('#sidesToggle [data-sides]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave();
+  }));
+  document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b => b.addEventListener('click', ()=>{
+    S.sealedRecords = b.dataset.sealed === 'on';
+    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     queueSave();
     renderTracks();
   }));
@@ -7606,9 +9061,7 @@ function showRoute(name){
   });
 
   $('#pick').addEventListener('click', ()=> $('#file').click());
-  $('#pick2').addEventListener('click', ()=> $('#file').click());
   $('#pickFolder').addEventListener('click', ()=> $('#folderFile').click());
-  $('#pickFolder2').addEventListener('click', ()=> $('#folderFile').click());
   $('#tone').addEventListener('click', addTestTone);
   $('#tone2').addEventListener('click', addTestTone);
   $('#file').addEventListener('change', e=> addFiles(e.target.files));
@@ -7634,11 +9087,11 @@ function showRoute(name){
   let armed = false, armTimer = null;
   $('#forget').addEventListener('click', async e => {
     if(!armed){
-      armed = true; e.target.textContent = 'Tap again to erase';
-      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'Forget library'; }, 4000);
+      armed = true; e.target.textContent = 'TAP AGAIN';
+      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'FORGET'; }, 4000);
       return;
     }
-    clearTimeout(armTimer); armed = false; e.target.textContent = 'Forget library';
+    clearTimeout(armTimer); armed = false; e.target.textContent = 'FORGET';
     await forgetLibrary();
   });
 
@@ -7666,11 +9119,56 @@ function showRoute(name){
   let searchDebounce = null;
   $('#librarySearch').addEventListener('input', ()=>{
     updateSearchChipsVisibility();
+    $('#hdrSearchClear').style.display = $('#librarySearch').value ? '' : 'none';
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(renderTracks, 120);
   });
   $('#librarySearch').addEventListener('focus', updateSearchChipsVisibility);
   $('#librarySearch').addEventListener('blur', ()=>{ setTimeout(updateSearchChipsVisibility, 120); });
+
+  // header search icon / Cancel / × (S1 §2.1)
+  $('#hdrSearchBtn').addEventListener('click', openSearchField);
+  $('#hdrSearchCancel').addEventListener('click', ()=>{
+    $('#librarySearch').value = '';
+    $('#hdrSearchClear').style.display = 'none';
+    closeSearchField();
+    renderTracks();
+  });
+  $('#hdrSearchClear').addEventListener('click', ()=>{
+    $('#librarySearch').value = '';
+    $('#hdrSearchClear').style.display = 'none';
+    $('#librarySearch').focus();
+    updateSearchChipsVisibility();
+    renderTracks();
+  });
+
+  // header + menu: Add songs / Add folder (S1 §3). The file-picker .click()
+  // must fire synchronously inside this user-gesture handler (iOS Safari).
+  $('#hdrAddBtn').addEventListener('click', ()=> isAddMenuOpen() ? closeAddMenu() : openAddMenu());
+  $('#addScrim').addEventListener('click', closeAddMenu);
+  $('#addSongsRow').addEventListener('click', ()=>{ closeAddMenu(); $('#file').click(); });
+  $('#addFolderRow').addEventListener('click', ()=>{ closeAddMenu(); $('#folderFile').click(); });
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'Escape') return;
+    if(isGatefoldOpen()) closeGatefold();
+    else if(isSealedSheetOpen()) closeSealedSheet();
+    else if(isAddMenuOpen()){ closeAddMenu(); $('#hdrAddBtn').focus(); }
+    else if(isSearchFieldOpen()){ $('#librarySearch').value = ''; closeSearchField(); renderTracks(); }
+  });
+
+  $('#gfBack').addEventListener('click', closeGatefold);
+  $('#gfFlatBack').addEventListener('click', closeGatefold);
+  $('#gfLeftCue').addEventListener('click', () => gatefoldSwitchPanel('left'));
+  document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
+    b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
+  window.addEventListener('resize', updateGatefoldScale);
+  $('#sealSheetClose').addEventListener('click', closeSealedSheet);
+
+  // Library tools disclosure panel (S1 §5)
+  $('#libToolsToggle').addEventListener('click', ()=>{
+    const open = $('#libToolsPanel').classList.toggle('open');
+    $('#libToolsToggle').setAttribute('aria-expanded', String(open));
+  });
 
   $('#selectToggle').addEventListener('click', enterSelectMode);
   $('#selectCancel').addEventListener('click', exitSelectMode);
@@ -7890,11 +9388,13 @@ async function restoreLibrary(){
   }
   await restoreMeta();
   await restoreSessions();
+  await restoreSealedAlbums();
   rebuildPeopleIndex();
   invalidateCrateModel();
   renderTracks();
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
+  healCrateArt().catch(() => {});
   libraryReadyResolve();   // from here on the launch intro's library variant has what it needs
   if(S.tracks.length){
     // the mini player should agree with the launch intro's title screen —
