@@ -50,8 +50,6 @@ body{
 .mark{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.16em;
       text-transform:uppercase;line-height:1;margin:0}
 .mark span{color:var(--accent);transition:color .5s}
-.sun-line{font-family:var(--data);font-size:10.5px;color:var(--muted);text-align:left;line-height:1.5;margin-top:4px}
-.sun-line b{color:var(--paper);font-weight:500}
 /* search + add icons, top right of the library header only (S1) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 .hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
@@ -551,12 +549,12 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   border-radius:16px;padding:8px 16px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em}
 .gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
-.gf-info{position:absolute;left:20px;right:20px;opacity:0;transition:opacity .15s}
+.gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
 .gf-info-title{font-family:var(--display);font-size:19px;margin:0}
 .gf-info-sub{font-size:13px;color:var(--muted);margin:2px 0}
 .gf-info-meta{font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.06em}
-.gf-sleeve{position:absolute;left:20px;right:20px;height:300px;overflow:hidden;pointer-events:none;
+.gf-sleeve{position:absolute;left:20px;right:20px;top:522px;height:300px;overflow:hidden;pointer-events:none;
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-sleeve{opacity:1}
 .gf-sleeve-paper{position:absolute;left:0;right:0;top:40px;bottom:-200px;
@@ -585,6 +583,12 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 /* A8: iPad / wide viewports — flat side-by-side spread, no camera move
    (the JS simply never animates --gf-s/--gf-cx in this mode) */
 .gatefold.gf-wide .gf-right{left:420px}
+/* the cover's hinge is its own left edge (transform-origin:0 50%) — moving
+   its closed position to sit over the tracklist, same as normal mode,
+   means the opened back face (the inside-left panel) lands immediately to
+   the tracklist's left instead of off-screen at the camera's x:0 (spec §A8:
+   "both panels side by side") */
+.gatefold.gf-wide .gf-cover{left:420px}
 .gatefold.gf-wide .gf-sleeve,.gatefold.gf-wide .gf-left-cue{display:none}
 .gatefold.gf-wide .gf-info{left:20px;top:450px;right:auto;width:380px}
 
@@ -841,7 +845,6 @@ input[type=file]{display:none}
         </button>
       </div>
     </div>
-    <div class="sun-line" id="sunLine">Finding the sun…</div>
     <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
       <div class="hdr-search-field">
         <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
@@ -4278,6 +4281,7 @@ function updateChromeInset(){
     const miniH = miniVisible ? mini.offsetHeight : 0;
     document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
     if(typeof applyCrateMiniInset === 'function') applyCrateMiniInset();
+    if(typeof centerEmptyState === 'function' && !S.tracks.length && isLibraryRouteVisible()) centerEmptyState();
   });
 }
 
@@ -5734,8 +5738,6 @@ function drawSun(){
     const f = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
     $('#legStart').textContent = 'Sunset ' + f(S.sun.set);
     $('#legEnd').textContent = 'Dusk ' + f(S.sun.dusk);
-    const clock = nowClock();
-    $('#sunLine').innerHTML = (S.previewMin ? 'Preview ' : '') + '<b>' + f(clock) + '</b><br>sunset ' + f(S.sun.set);
   }
 
   // sky follows the same progress the platter does
@@ -7604,18 +7606,25 @@ function renderCrateFlat(host, model){
 // changes later, since that happens after the crate has already rendered.
 function applyCrateMiniInset(){
   const stage = document.querySelector('.crate-stage'), info = document.querySelector('.crate-info');
-  if(!stage) return;
+  const wrap = document.querySelector('.crate-wrap');
+  if(!stage || !wrap) return;
+  wrap.style.marginTop = '0px';   // reset before measuring — otherwise a previous centering pass compounds
   const miniEl = $('#miniPlayer'), tabbarEl = $('#tabbar');
   const miniH = (miniEl && getComputedStyle(miniEl).display !== 'none') ? miniEl.getBoundingClientRect().height : 0;
   const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
   const infoReserve = info ? info.getBoundingClientRect().height : 84;
-  const stageTop = stage.getBoundingClientRect().top;
-  const available = window.innerHeight - stageTop - miniH - tabbarH - infoReserve - 24;
+  const wrapTop = wrap.getBoundingClientRect().top;
+  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - 24;
   // the centre card can give up a little of its own bottom edge (background/
   // cover art, nothing critical — the title/artist live in the info panel
   // below, not on the card) before this stops helping; never more than that
   const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
-  stage.style.height = (available < 460 ? Math.max(available, minStageHeight) : 460) + 'px';
+  const stageHeight = available < 460 ? Math.max(available, minStageHeight) : 460;
+  stage.style.height = stageHeight + 'px';
+  // with room to spare, the crate sits centred in it rather than always
+  // hugging the top of the route
+  const slack = available - stageHeight;
+  wrap.style.marginTop = (slack > 0 ? Math.round(slack / 2) : 0) + 'px';
 }
 
 function renderCrate(host){
@@ -8024,10 +8033,25 @@ function renderCrate(host){
   prewarmCrateAnchorL().catch(() => {});
 }
 
+// vertically centres the empty-library placeholder in whatever room is left
+// under the header and above the tab bar, rather than always hugging the
+// top — a one-off static block, unlike the scrollable track lists
+function centerEmptyState(){
+  const empty = $('#empty');
+  empty.style.marginTop = '0px';
+  const tabbarEl = $('#tabbar');
+  const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
+  const top = empty.getBoundingClientRect().top;
+  const available = window.innerHeight - top - tabbarH - 16;
+  const slack = available - empty.getBoundingClientRect().height;
+  if(slack > 0) empty.style.marginTop = Math.round(slack / 2) + 'px';
+}
+
 function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
+  if(!S.tracks.length) centerEmptyState();
   $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
   $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
