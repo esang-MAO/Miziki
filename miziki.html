@@ -548,6 +548,23 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .gf-left .gf-booklet-btn{margin-top:10px;border:1px solid var(--accent);color:var(--accent);
   border-radius:16px;padding:8px 16px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em}
 .gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
+.gf-left .gf-social{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:10px}
+.gf-left .gf-social-caption{font-family:var(--data);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0}
+.gf-left .gf-stars{display:flex;gap:2px;margin-left:-5px}
+.gf-left .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  background:none;border:0;color:var(--muted);font-size:19px;padding:0}
+.gf-left .gf-star-btn.on{color:var(--accent)}
+.gf-left .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
+  font-size:13px;color:var(--paper);resize:none;min-height:44px}
+.gf-left .gf-note-input::placeholder{color:var(--muted)}
+.gf-left .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:10.5px;
+  letter-spacing:.06em;background:none}
+.gf-left .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
@@ -696,6 +713,8 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .edit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .edit-head span{font-family:var(--display);font-size:17px;letter-spacing:.06em}
 .edit-close{width:32px;height:32px;color:var(--muted);font-size:15px}
+.social-close{width:44px;height:44px;margin:-6px -8px -6px 0;color:var(--muted);font-size:15px;
+  display:flex;align-items:center;justify-content:center}
 .edit-art-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
 .edit-art-preview{width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--panel);
   display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:9px}
@@ -804,6 +823,191 @@ input[type=file]{display:none}
 .profile-share{width:100%;margin-top:28px;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
 .profile-share.active{color:var(--accent);border-color:var(--accent)}
 
+/* ---------- storefront (Part: social layer §B) ----------
+   Keeps the sticker/awning/record motifs from the design frames, restyled
+   to Miziki's own tokens: cream sticker -> --paper, amber accents ->
+   --accent, ground -> --sky2/--line. */
+.store-open-card{border:1px dashed var(--line);border-radius:8px;padding:20px;text-align:center;margin-bottom:24px}
+.store-open-card h3{font-family:var(--display);font-size:19px;margin:0 0 8px}
+.store-open-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 16px}
+.store-open-card .cta{width:100%}
+
+.store-loading,.store-error{font-size:13px;color:var(--muted);padding:16px 0}
+.store-error button{margin-top:10px}
+
+.store-awning{display:flex;margin:0 0 16px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.store-awning > div{flex:1;height:22px;border-radius:0 0 22px 22px}
+.store-awning > div:nth-child(odd){background:var(--accent)}
+.store-awning > div:nth-child(even){background:var(--paper)}
+
+.store-header{display:flex;align-items:center;gap:16px}
+.store-gear{width:44px;height:44px;flex:none;color:var(--muted);font-size:17px;
+  display:flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:-6px}
+.store-avatar{width:80px;height:80px;border-radius:50%;flex:none;position:relative;
+  background:repeating-radial-gradient(circle at 50% 50%,#0B0908 0px,#0B0908 2px,#17140F 2px,#17140F 3px);
+  box-shadow:0 8px 18px rgba(0,0,0,.45)}
+.store-avatar::before{content:'';position:absolute;inset:0;border-radius:50%;
+  background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.14) 38%,rgba(255,255,255,0) 46%)}
+.store-avatar-label{position:absolute;left:32%;top:32%;width:36%;height:36%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
+.store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-displayname{font-size:13px;color:var(--muted)}
+.store-bio{font-size:14px;line-height:1.45;color:var(--paper);margin:14px 0 0;white-space:pre-wrap}
+
+.store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
+.store-vis-chip{min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--line);
+  background:none;color:var(--paper);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.store-vis-link{font-family:var(--data);font-size:11.5px;color:var(--muted);background:none;border:0;min-height:44px}
+
+.store-stats{display:flex;margin:18px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.store-stat{flex:1;padding:12px 0;display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line);min-width:0}
+.store-stat:first-child{border-left:0}
+.store-stat b{font-size:20px;font-weight:700;font-family:var(--body)}
+.store-stat span{font-family:var(--data);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.store-stat.accent b{color:var(--accent)}
+
+.store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+.store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--paper);color:#1A1410;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.store-card-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-card-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-card-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-chev{color:var(--muted);font-size:17px;flex:none}
+.store-card-btn{background:none;border:0;padding:0;display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:inherit}
+
+.store-switch{width:44px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.store-switch-track{width:46px;height:28px;border-radius:14px;background:var(--line);position:relative}
+.store-switch[aria-checked="true"] .store-switch-track{background:var(--accent)}
+.store-switch-track i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#14110F;transition:left .15s;display:block}
+.store-switch[aria-checked="true"] .store-switch-track i{left:21px}
+
+.store-section-head{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 0}
+.store-section-head h2{margin:0;font-family:var(--display);font-size:19px}
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:11px;color:var(--accent);
+  letter-spacing:.06em;padding:12px 0 12px 12px;min-height:44px}
+
+.store-picks-row{display:flex;gap:12px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:none}
+.store-picks-row::-webkit-scrollbar{display:none}
+.store-pick{flex:none;width:164px;display:flex;flex-direction:column;gap:8px}
+.store-pick-cover{width:164px;height:164px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
+.store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
+  font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent)}
+.store-pick-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:4px;padding:8px 10px;
+  font-size:12px;line-height:1.35;display:flex;flex-direction:column;gap:4px}
+.store-pick-stars{font-size:13px;letter-spacing:1.5px;color:#B8641A}
+.store-pick-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-pick-empty{flex:none;width:164px;height:164px;border-radius:7px;border:1.5px dashed var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);background:var(--panel);font-size:12.5px}
+
+.store-dig-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.store-dig-cover{width:56px;height:56px;border-radius:5px;flex:none;background:var(--panel);object-fit:cover}
+.store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-dig-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-dig-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-dig-text small{font-family:var(--data);font-size:10.5px;color:var(--accent)}
+.store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);background:var(--accent);
+  color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
+
+.store-crate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-top:12px}
+.store-crate-cover{width:100%;aspect-ratio:1;border-radius:5px;background:var(--panel);overflow:hidden}
+.store-crate-cover img{width:100%;height:100%;object-fit:cover}
+.store-crate-name{font-size:12px;font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-crate-artist{font-family:var(--data);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-requests-wrap{margin-top:14px}
+.store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px 4px}
+.store-requests-list .store-dig-row:last-child{border-bottom:0}
+
+.store-legacy-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:30px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
+
+/* ---------- sign-in / settings (social layer §C) ---------- */
+.social-setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:26px}
+.social-setting-row h2{margin:0;font-family:var(--display);font-size:16px;font-weight:400}
+.social-stack{flex-direction:column}
+.social-stack .cta{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
+.social-vis-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.social-vis-option{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;
+  min-height:56px;padding:12px 16px;border-radius:12px;border:1.5px solid var(--line);background:none;color:inherit}
+.social-vis-option b{display:block;font-size:14.5px;font-weight:600}
+.social-vis-option .note{margin:2px 0 0}
+.social-vis-option[aria-pressed="true"]{border-color:var(--accent)}
+.social-vis-option[aria-pressed="true"] b{color:var(--accent)}
+
+/* ---------- friend store / locked state / record sheet (social layer §D) ---------- */
+.social-nav-overlay{position:fixed;inset:0;z-index:125;background:var(--sky2);display:none;flex-direction:column}
+/* record sheet can be opened from inside the friend-store screen above, so it
+   needs to stack higher than social-nav-overlay rather than the shared
+   edit-overlay default */
+#recordSheetOverlay{z-index:128}
+.social-nav-overlay.open{display:flex}
+.social-nav-head{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--line);flex:none}
+.social-nav-back{width:44px;height:44px;color:var(--paper);font-size:24px;flex:none;
+  display:flex;align-items:center;justify-content:center;background:none;border:0}
+.social-nav-title{font-family:var(--data);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.social-nav-body{flex:1;overflow-y:auto;padding:4px 20px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
+
+.store-follow-row{display:flex;align-items:center;gap:10px;margin-top:16px}
+.store-follow-btn{min-height:44px;padding:0 22px;border-radius:22px;border:1.5px solid var(--accent);
+  color:var(--accent);background:none;font-size:13px;font-weight:600}
+.store-follow-btn.following{border-color:var(--line);color:var(--paper)}
+.store-follow-btn.pending{border-color:var(--line);color:var(--muted)}
+.store-share-icon{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--line);
+  color:var(--paper);background:none;display:flex;align-items:center;justify-content:center;flex:none}
+
+.store-locked-card{margin-top:26px;background:var(--panel);border:1.5px dashed var(--line);
+  border-radius:14px;padding:24px 20px;text-align:center}
+.store-locked-card h3{font-family:var(--display);font-size:17px;letter-spacing:.04em;margin:0 0 8px;color:var(--accent)}
+.store-locked-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.store-locked-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
+.store-locked-slot{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--line);background:var(--panel)}
+.store-locked-note{text-align:center;font-size:12.5px;color:var(--muted);margin-top:14px}
+
+.store-picks-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.store-picks-dots span{width:6px;height:6px;border-radius:3px;background:var(--line);display:block;transition:width .15s,background .15s}
+.store-picks-dots span.on{background:var(--accent);width:16px}
+
+.store-fresh-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.store-fresh-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-fresh-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-fresh-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);
+  color:var(--accent);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px}
+.store-fresh-add.added{border-color:var(--line);color:var(--muted)}
+
+.store-spin-ago{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:none}
+
+.store-letter-bar{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
+.store-letter-btn{min-width:44px;height:44px;border-radius:8px;border:1px solid var(--line);
+  background:none;color:var(--muted);font-family:var(--data);font-size:12px}
+.store-crate-letter-head{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--muted);
+  grid-column:1/-1;margin:16px 0 -2px}
+
+.store-activity-row{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--paper)}
+.store-activity-row em{font-style:normal;color:var(--muted)}
+
+.store-crate-cell{background:none;border:0;padding:0;text-align:left;color:inherit;display:block;width:100%}
+
+.record-cover{width:100%;aspect-ratio:1;border-radius:10px;background:var(--panel);margin-bottom:14px;
+  overflow:hidden;position:relative}
+.record-cover img{width:100%;height:100%;object-fit:cover}
+.record-title{font-family:var(--display);font-size:22px;margin:0 0 2px}
+.record-artist{font-size:14px;color:var(--muted);margin:0 0 12px}
+.record-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.record-chip{padding:5px 11px;border-radius:10px;background:var(--panel);font-family:var(--data);
+  font-size:10.5px;letter-spacing:.04em;color:var(--accent)}
+.record-rating-label{font-family:var(--data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 6px}
+.record-stars{font-size:16px;letter-spacing:2px;color:#B8641A;margin-bottom:8px}
+.record-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:6px;
+  padding:12px 14px;font-size:13px;line-height:1.4;margin-bottom:18px}
+.record-owned{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+
 .share-overlay{position:fixed;inset:0;z-index:130;background:rgba(5,7,9,.78);
   display:none;align-items:flex-end;justify-content:center}
 .share-overlay.open{display:flex}
@@ -832,8 +1036,6 @@ input[type=file]{display:none}
 .share-actions-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .share-actions-row .cta{text-align:center;width:100%;box-sizing:border-box}
 
-.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
-  font-family:var(--data);font-size:10px;color:var(--muted);line-height:1.7;letter-spacing:.04em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -924,6 +1126,11 @@ input[type=file]{display:none}
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
+  </section>
+
+  <!-- HOME: social feed, hidden via the tab button until social is configured -->
+  <section class="route" id="route-home" role="main">
+    <div id="homeBody"></div>
   </section>
 
   <!-- SUNDOWN -->
@@ -1127,10 +1334,6 @@ input[type=file]{display:none}
     </div>
   </section>
 
-  <p class="foot" id="foot">
-    Miziki · lossless in, one conversion out<br>
-    Fidelity is the file. Warmth is a choice you make on top of it.
-  </p>
 </div>
 
 <!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
@@ -1159,6 +1362,10 @@ input[type=file]{display:none}
   <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
+  </button>
+  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false" style="display:none">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
+    <span>Home</span>
   </button>
   <button class="tabbar-btn" role="tab" data-route="sundown" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
@@ -1326,6 +1533,42 @@ input[type=file]{display:none}
       <button class="edit-close" id="creditsClose" aria-label="Close">✕</button>
     </div>
     <div id="creditsBody"></div>
+  </div>
+</div>
+
+<!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
+     edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
+<div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="socialAuthSheet">
+    <div class="edit-head">
+      <span id="socialAuthTitle">Sign in</span>
+      <button class="social-close" id="socialAuthClose" aria-label="Close">✕</button>
+    </div>
+    <div id="socialAuthBody"></div>
+  </div>
+</div>
+
+<!-- SOCIAL NAV: full-screen friend-store / locked-state view, pushed from
+     Home or a people search. Its own back header, independent of the tabbar.
+     socialNav is a stack so a record sheet opened from here can close back
+     onto the store beneath it. -->
+<div class="social-nav-overlay" id="socialNavOverlay" aria-hidden="true">
+  <div class="social-nav-head">
+    <button class="social-nav-back" id="socialNavBack" aria-label="Back">‹</button>
+    <span class="social-nav-title" id="socialNavTitle"></span>
+  </div>
+  <div class="social-nav-body" id="socialNavBody"></div>
+</div>
+
+<!-- RECORD SHEET: a single record from a friend's store (staff pick, crate,
+     or fresh-for-you), pushed on top of whatever's open underneath. -->
+<div class="edit-overlay" id="recordSheetOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="recordSheetBox">
+    <div class="edit-head">
+      <span id="recordSheetKicker"></span>
+      <button class="social-close" id="recordSheetClose" aria-label="Close">✕</button>
+    </div>
+    <div id="recordSheetBody"></div>
   </div>
 </div>
 
@@ -1572,11 +1815,941 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- Vendored verbatim from miziki-social-handoff/src/miziki-social.js — the
+     social layer's sync client. Self-contained (window.MizikiSocial), does
+     nothing until the app's own code below calls MizikiSocial.init() with a
+     Supabase URL/anon key; with neither it stays enabled:false and inert.
+     Do not hand-edit — patch the source file and re-vendor. -->
+<script>
+/*! miziki-social.js — optional social layer for Miziki (client)
+ *
+ * Local-first: the player, library and audio never depend on this file.
+ * Nothing here runs unless init() is given a Supabase URL + anon key, and
+ * nothing is published until the user signs in AND creates a profile.
+ * Only metadata is ever sent — never audio, filenames or paths.
+ *
+ * Every public async function resolves to {ok:true, ...} or
+ * {ok:false, error:{code, message, retryable}} and never throws, so a
+ * network hiccup can't break playback.
+ */
+(function (root) {
+  'use strict';
+  if (root.MizikiSocial) return;
+
+  /* ====================================================================
+     1. utilities
+     ==================================================================== */
+  const enc = new TextEncoder();
+  const K256 = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ];
+
+  // Pure-JS SHA-256 so release keys are identical on every device and
+  // never depend on crypto.subtle (which needs a secure context).
+  function sha256hex(str) {
+    const bytes = enc.encode(String(str));
+    const l = bytes.length;
+    const total = ((l + 9 + 63) >> 6) << 6;
+    const buf = new Uint8Array(total);
+    buf.set(bytes);
+    buf[l] = 0x80;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(total - 8, Math.floor(l / 0x20000000));
+    dv.setUint32(total - 4, (l << 3) >>> 0);
+    let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a,
+        h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+    const w = new Uint32Array(64);
+    for (let off = 0; off < total; off += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4);
+      for (let i = 16; i < 64; i++) {
+        const a = w[i - 15], b = w[i - 2];
+        const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+        const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+      for (let i = 0; i < 64; i++) {
+        const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (h + S1 + ch + K256[i] + w[i]) | 0;
+        const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + maj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+      h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
+    }
+    return [h0, h1, h2, h3, h4, h5, h6, h7]
+      .map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function chunk(arr, n) { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; }
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function cps(s) { return Array.from(String(s)); }              // code points, to match Postgres char_length
+
+  /* ---- release identity -------------------------------------------------
+     release_key = 'v1:' + sha256('v1|artist|album')[0..24].
+     Keyed on artist + album (NOT year) so remasters/reissues of the same
+     album land on one key. Edition suffixes like "(Remastered 2011)" are
+     stripped. The 'v1:' prefix lets a later MusicBrainz pass remap keys. */
+  const EDITION_RX = /[(\[][^)\]]*(remaster|deluxe|expanded|anniversary|edition|reissue|bonus|mono|stereo|version|explicit)[^)\]]*[)\]]/giu;
+  function normText(s) {
+    return String(s == null ? '' : s)
+      .normalize('NFKD').replace(/\p{M}/gu, '')
+      .toLowerCase().replace(/&/g, ' and ')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  }
+  const normAlbum = s => normText(String(s == null ? '' : s).replace(EDITION_RX, ' '));
+  const normArtist = s => normText(s).replace(/^the /, '');
+  const UNKNOWN_ARTISTS = new Set(['', 'unknown', 'unknown artist']);
+  function releaseKey(artist, album) {
+    const a = normArtist(artist), b = normAlbum(album);
+    if (UNKNOWN_ARTISTS.has(a) || !b || b === 'unknown album') return null;
+    return 'v1:' + sha256hex('v1|' + a + '|' + b).slice(0, 24);
+  }
+
+  // Deterministic label color for an avatar record: no schema needed.
+  function labelColor(seed) {
+    const n = parseInt(sha256hex(String(seed)).slice(0, 6), 16);
+    return 'hsl(' + (n % 360) + ' 62% 56%)';
+  }
+
+  function cleanNote(s) {
+    if (s == null) return null;
+    const t = cps(String(s).replace(/[\u0000-\u001f\u007f]+/g, ' ').trim()).slice(0, 140).join('').trim();
+    return t || null;
+  }
+
+  /* ====================================================================
+     2. state, events, results
+     ==================================================================== */
+  const DEFAULT_TIMING = {
+    syncDebounce: 5000, backoff: [15000, 30000, 60000, 120000, 300000],
+    spinDebounce: 3000, spinHeartbeat: 240000, spinPausedClear: 120000, spinTtlSeconds: 600
+  };
+  const MAX_PINS = 8, CHUNK = 200, GUARD_MIN = 10, GUARD_RATIO = 0.25;
+  const HANDLE_RX = /^[a-z0-9_]{3,24}$/;
+
+  const X = {
+    enabled: false, sb: null, adapter: null, timing: { ...DEFAULT_TIMING },
+    userId: null, profile: null, libraryReady: false,
+    state: null,                 // persisted (see freshState)
+    st: {                        // observable status
+      enabled: false, auth: 'signedOut', sync: 'idle', pendingRemovals: 0,
+      skipped: { noArtist: 0, collisions: 0 }, lastSyncedAt: null, lastError: null
+    },
+    syncing: false, again: false, syncTimer: null, backoffIdx: 0, saveTimer: null,
+    spin: { timer: null, heartbeat: null, pauseTimer: null, last: null, active: false },
+    listeners: {}, channel: null, releaseCache: new Map(), inited: false
+  };
+
+  function freshState() {
+    return {
+      v: 1, userId: null,
+      settings: { shareNowSpinning: false, shareMilestones: false, syncEnabled: true },
+      pins: [],                   // local album ids, order = rank (1..8)
+      items: {},                  // localAlbumId -> {rating, note, vis}
+      synced: {},                 // releaseKey -> {fp, pin}
+      statsSynced: {},            // releaseKey -> fp
+      restoredFor: null
+    };
+  }
+
+  function emit(evt, payload) {
+    (X.listeners[evt] || []).slice().forEach(fn => { try { fn(payload); } catch (e) { /* listener bugs must not break sync */ } });
+  }
+  function on(evt, fn) {
+    (X.listeners[evt] = X.listeners[evt] || []).push(fn);
+    return () => { X.listeners[evt] = (X.listeners[evt] || []).filter(f => f !== fn); };
+  }
+  function setStatus(patch) {
+    Object.assign(X.st, patch);
+    emit('status', status());
+  }
+  function status() { return JSON.parse(JSON.stringify(X.st)); }
+
+  function wrapErr(e) {
+    if (e && e.ok === false) return e;
+    const message = (e && (e.message || e.error_description || e.msg)) || String(e);
+    const code = (e && (e.code || e.status || e.name)) || 'error';
+    const net = /failed to fetch|networkerror|network request failed|load failed|fetch failed|timeout/i.test(message)
+      || (typeof navigator !== 'undefined' && navigator.onLine === false);
+    const auth = /jwt|not signed in|invalid.*token|refresh_token|401/i.test(message) || code === 401 || code === 'PGRST301';
+    return { ok: false, error: { code: net ? 'offline' : (auth ? 'auth' : String(code)), message, retryable: net } };
+  }
+  const fail = (code, message) => ({ ok: false, error: { code, message, retryable: false } });
+  async function guarded(fn) {
+    if (!X.enabled) return fail('disabled', 'Social features are not configured.');
+    try { return await fn(); } catch (e) { return wrapErr(e); }
+  }
+  async function rpc(name, args) {
+    const { data, error } = await X.sb.rpc(name, args || {});
+    if (error) throw error;
+    return data;
+  }
+  async function q(promise) {                // unwrap a PostgREST builder
+    const { data, error } = await promise;
+    if (error) throw error;
+    return data;
+  }
+
+  /* ====================================================================
+     3. persistence of this module's own state (via the adapter)
+     ==================================================================== */
+  function persistSoon() {
+    clearTimeout(X.saveTimer);
+    X.saveTimer = setTimeout(persistNow, 300);
+  }
+  async function persistNow() {
+    clearTimeout(X.saveTimer);
+    try { if (X.adapter && X.adapter.save) await X.adapter.save(X.state); } catch (e) { /* storage unavailable: session-only */ }
+  }
+  async function loadState() {
+    let s = null;
+    try { s = X.adapter && X.adapter.load ? await X.adapter.load() : null; } catch (e) { s = null; }
+    const base = freshState();
+    if (s && s.v === 1) {
+      X.state = { ...base, ...s, settings: { ...base.settings, ...(s.settings || {}) } };
+    } else {
+      X.state = base;
+    }
+  }
+
+  /* ====================================================================
+     4. loading supabase-js and starting up
+     ==================================================================== */
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = src; el.async = true;
+      el.onload = resolve; el.onerror = () => reject(new Error('Failed to fetch supabase-js'));
+      document.head.appendChild(el);
+    });
+  }
+
+  /**
+   * init({ url, anonKey, adapter | env, sb?, supabaseLib?, libUrl?, timing? })
+   *   env = { S, DB, albumKey, trackTier, albumMetalFor }  → builds the Miziki adapter
+   *   sb  = a ready client (tests); otherwise one is created from url/anonKey.
+   */
+  async function init(opts) {
+    opts = opts || {};
+    if (X.inited) return { ok: true, status: status() };
+    X.timing = { ...DEFAULT_TIMING, ...(opts.timing || {}) };
+    X.adapter = opts.adapter || (opts.env ? mizikiAdapter(opts.env) : null);
+    if (!X.adapter) return fail('no_adapter', 'init needs an adapter or env.');
+    await loadState();
+    if (!opts.sb && !(opts.url && opts.anonKey)) {
+      setStatus({ enabled: false });
+      return { ok: true, status: status() };           // inert: app behaves exactly as before
+    }
+    try {
+      if (opts.sb) {
+        X.sb = opts.sb;
+      } else {
+        let lib = opts.supabaseLib || root.supabase;
+        if (!lib || !lib.createClient) {
+          await loadScript(opts.libUrl || 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+          lib = root.supabase;
+        }
+        X.sb = lib.createClient(opts.url, opts.anonKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+        });
+      }
+    } catch (e) {
+      // offline at launch is normal: stay inert this session
+      setStatus({ enabled: false, lastError: wrapErr(e).error });
+      return wrapErr(e);
+    }
+    X.enabled = true; X.inited = true;
+    setStatus({ enabled: true });
+
+    X.sb.auth.onAuthStateChange((event, session) => { applySession(session).catch(() => {}); });
+    const { data } = await X.sb.auth.getSession();
+    await applySession(data && data.session);
+
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('online', () => scheduleSync(1000));
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(1500); });
+    }
+    return { ok: true, status: status() };
+  }
+
+  /* ====================================================================
+     5. auth + profile
+     ==================================================================== */
+  async function applySession(session) {
+    const uid = session && session.user ? session.user.id : null;
+    if (uid === X.userId && (uid === null || X.profile !== undefined)) { if (uid) return; }
+    X.userId = uid;
+    if (!uid) {
+      X.profile = null;
+      stopSpinningNow();
+      setStatus({ auth: 'signedOut', sync: 'idle' });
+      return;
+    }
+    if (X.state.userId && X.state.userId !== uid) {          // different account on this device
+      const keep = X.state.settings;
+      X.state = { ...freshState(), settings: keep, pins: X.state.pins, items: X.state.items };
+      persistSoon();
+    }
+    X.state.userId = uid;
+    const prof = await getMyProfile();
+    if (prof.ok && prof.profile) {
+      setStatus({ auth: 'ready' });
+      scheduleSync(500);
+    } else {
+      setStatus({ auth: prof.ok ? 'needsProfile' : 'signedOut' });
+    }
+  }
+
+  // Email one-time code. Works in an iOS home-screen app, where a magic LINK would open Safari
+  // and strand the session outside the app. (Supabase email template must include {{ .Token }}.)
+  const sendCode = email => guarded(async () => {
+    const e = String(email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return fail('bad_email', 'Enter a valid email address.');
+    const { error } = await X.sb.auth.signInWithOtp({ email: e, options: { shouldCreateUser: true } });
+    if (error) throw error;
+    return { ok: true };
+  });
+  const verifyCode = (email, code) => guarded(async () => {
+    const token = String(code || '').replace(/\s+/g, '');
+    if (!/^\d{6,8}$/.test(token)) return fail('bad_code', 'Enter the code from the email.');
+    const { data, error } = await X.sb.auth.verifyOtp({ email: String(email).trim().toLowerCase(), token, type: 'email' });
+    if (error) throw error;
+    await applySession(data.session);
+    return { ok: true, status: status() };
+  });
+  const signOut = () => guarded(async () => {
+    stopSpinningNow();
+    await X.sb.auth.signOut();
+    X.state.synced = {}; X.state.statsSynced = {}; X.state.restoredFor = null; X.state.userId = null;
+    persistSoon();
+    await applySession(null);
+    return { ok: true };
+  });
+
+  const getMyProfile = () => guarded(async () => {
+    if (!X.userId) return { ok: true, profile: null };
+    const row = await q(X.sb.from('profiles').select('*').eq('id', X.userId).maybeSingle());
+    X.profile = row || null;
+    return { ok: true, profile: X.profile };
+  });
+  const checkHandle = handle => guarded(async () => {
+    const h = String(handle || '').trim().toLowerCase();
+    if (!HANDLE_RX.test(h)) return { ok: true, available: false, reason: 'format' };
+    const row = await q(X.sb.from('profiles').select('id').eq('handle', h).maybeSingle());
+    return { ok: true, available: !row };
+  });
+  const createProfile = ({ handle, displayName }) => guarded(async () => {
+    if (!X.userId) return fail('auth', 'Sign in first.');
+    const h = String(handle || '').trim().toLowerCase();
+    if (!HANDLE_RX.test(h)) return fail('bad_handle', '3–24 characters: letters, numbers, underscore.');
+    const dn = displayName ? cps(String(displayName).trim()).slice(0, 50).join('') : null;
+    const { data, error } = await X.sb.from('profiles')
+      .insert({ id: X.userId, handle: h, display_name: dn || null }).select().single();
+    if (error) {
+      if (error.code === '23505') return fail('handle_taken', 'That handle is taken.');
+      throw error;
+    }
+    X.profile = data;
+    setStatus({ auth: 'ready' });
+    scheduleSync(300);
+    return { ok: true, profile: data };
+  });
+  const updateProfile = patch => guarded(async () => {
+    const allowed = {};
+    if ('displayName' in patch) allowed.display_name = patch.displayName ? cps(String(patch.displayName).trim()).slice(0, 50).join('') : null;
+    if ('bio' in patch) allowed.bio = patch.bio ? cps(String(patch.bio).trim()).slice(0, 280).join('') : null;
+    if ('visibility' in patch) {
+      if (!['private', 'friends', 'public'].includes(patch.visibility)) return fail('bad_visibility', 'Unknown visibility.');
+      allowed.visibility = patch.visibility;
+    }
+    if ('showDiggingList' in patch) allowed.show_digging_list = !!patch.showDiggingList;
+    if ('handle' in patch) {
+      const h = String(patch.handle).trim().toLowerCase();
+      if (!HANDLE_RX.test(h)) return fail('bad_handle', '3–24 characters: letters, numbers, underscore.');
+      allowed.handle = h;
+    }
+    const { data, error } = await X.sb.from('profiles').update(allowed).eq('id', X.userId).select().single();
+    if (error) { if (error.code === '23505') return fail('handle_taken', 'That handle is taken.'); throw error; }
+    X.profile = data;
+    return { ok: true, profile: data };
+  });
+
+  /* ====================================================================
+     6. local social metadata: ratings, sleeve notes, staff picks, visibility
+        (lives on this device; published by the sync engine)
+     ==================================================================== */
+  function entry(albumId) {
+    return (X.state.items[albumId] = X.state.items[albumId] || { rating: null, note: null, vis: null });
+  }
+  function tidy(albumId) {
+    const e = X.state.items[albumId];
+    if (e && e.rating == null && e.note == null && e.vis == null) delete X.state.items[albumId];
+  }
+  function touched() { persistSoon(); scheduleSync(); }
+
+  function setRating(albumId, value) {
+    if (value != null) {
+      value = Math.round(Number(value));
+      if (!(value >= 1 && value <= 5)) return false;
+    }
+    entry(albumId).rating = value == null ? null : value;
+    tidy(albumId); touched(); return true;
+  }
+  function setNote(albumId, text) {
+    entry(albumId).note = cleanNote(text);
+    tidy(albumId); touched(); return true;
+  }
+  function setVisibility(albumId, vis) {
+    if (vis != null && !['private', 'friends', 'public'].includes(vis)) return false;
+    entry(albumId).vis = vis == null ? null : vis;
+    tidy(albumId); touched(); return true;
+  }
+  function pin(albumId) {
+    const p = X.state.pins;
+    if (p.includes(albumId)) return true;
+    if (p.length >= MAX_PINS) return false;
+    p.push(albumId); touched(); return true;
+  }
+  function unpin(albumId) {
+    const i = X.state.pins.indexOf(albumId);
+    if (i < 0) return false;
+    X.state.pins.splice(i, 1); touched(); return true;
+  }
+  function movePin(albumId, toIndex) {
+    const p = X.state.pins, i = p.indexOf(albumId);
+    if (i < 0) return false;
+    p.splice(i, 1);
+    p.splice(Math.max(0, Math.min(p.length, toIndex | 0)), 0, albumId);
+    touched(); return true;
+  }
+  const getPins = () => X.state.pins.slice();
+  function getAlbumSocial(albumId) {
+    const e = X.state.items[albumId] || {};
+    const i = X.state.pins.indexOf(albumId);
+    return { rating: e.rating == null ? null : e.rating, note: e.note || null, visibility: e.vis || null, pinRank: i < 0 ? null : i + 1 };
+  }
+  const getSettings = () => ({ ...X.state.settings });
+  function setSetting(key, value) {
+    if (!(key in X.state.settings)) return false;
+    X.state.settings[key] = !!value;
+    if (key === 'shareNowSpinning' && !value) stopSpinningNow();
+    touched(); return true;
+  }
+
+  /* ====================================================================
+     7. sync engine: diff local desired state against what the server last
+        confirmed. Idempotent, crash-safe, and offline-tolerant — there is no
+        operation queue to corrupt, only fingerprints that advance after the
+        server acknowledges each batch.
+     ==================================================================== */
+  function buildItems(albums) {
+    const items = new Map();
+    const skipped = { noArtist: 0, collisions: 0 };
+    const idByKey = new Map();
+    const pinnedLocal = X.state.pins.filter(id => albums.some(a => a.id === id));
+    let rankCounter = 0;
+    const rankOf = new Map();
+    for (const id of pinnedLocal) {
+      const a = albums.find(x => x.id === id);
+      if (releaseKey(a.artist, a.title) && rankCounter < MAX_PINS) rankOf.set(id, ++rankCounter);
+    }
+    for (const a of albums) {
+      const key = releaseKey(a.artist, a.title);
+      if (!key) { skipped.noArtist++; continue; }
+      const m = X.state.items[a.id] || {};
+      const item = {
+        release_key: key,
+        title: String(a.title).slice(0, 200),
+        artist: String(a.artist).slice(0, 200),
+        year: a.year || null,
+        quality_tier: a.tier || null,
+        rating: m.rating == null ? null : m.rating,
+        sleeve_note: m.note || null,
+        pin_rank: rankOf.get(a.id) || null,
+        visibility: m.vis || null,
+        added_at: a.addedAt ? new Date(a.addedAt).toISOString() : null
+      };
+      const prior = items.get(key);
+      if (prior) {                               // two local albums collapse to one release
+        skipped.collisions++;
+        const keep = (prior.rating != null || prior.sleeve_note || prior.pin_rank) ? prior : item;
+        const other = keep === prior ? item : prior;
+        if (keep.pin_rank == null && other.pin_rank != null) keep.pin_rank = other.pin_rank;
+        items.set(key, keep);
+        continue;
+      }
+      items.set(key, item);
+      idByKey.set(key, a.id);
+    }
+    // keep pin ranks unique and contiguous after collisions
+    const pinned = [...items.values()].filter(i => i.pin_rank != null).sort((a, b) => a.pin_rank - b.pin_rank);
+    pinned.forEach((i, n) => { i.pin_rank = n + 1; });
+    for (const it of items.values()) {
+      it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.rating, it.sleeve_note, it.pin_rank, it.visibility])).slice(0, 12);
+    }
+    return { items, skipped, idByKey };
+  }
+  function toWire(it) {
+    const { fp, ...rest } = it;
+    return rest;
+  }
+
+  // Fresh device: adopt what the server already has so we never push blanks over it.
+  async function restoreFromServer(albums) {
+    const byKey = new Map();
+    for (const a of albums) { const k = releaseKey(a.artist, a.title); if (k && !byKey.has(k)) byKey.set(k, a); }
+    const serverPins = [];
+    for (let off = 0; ; off += 500) {
+      const rows = await rpc('my_crate_meta', { p_offset: off, p_limit: 500 });
+      for (const r of rows || []) {
+        const a = byKey.get(r.release_key);
+        if (!a) continue;
+        if (!X.state.items[a.id]) {
+          if (r.rating != null || r.sleeve_note || r.visibility) {
+            X.state.items[a.id] = { rating: r.rating == null ? null : r.rating, note: r.sleeve_note || null, vis: r.visibility || null };
+          }
+        }
+        if (r.pin_rank != null) serverPins.push({ rank: r.pin_rank, id: a.id });
+      }
+      if (!rows || rows.length < 500) break;
+    }
+    if (!X.state.pins.length && serverPins.length) {
+      X.state.pins = serverPins.sort((a, b) => a.rank - b.rank).map(p => p.id).slice(0, MAX_PINS);
+    }
+    X.state.restoredFor = X.userId;
+  }
+
+  async function pushCrate(items, quiet, toUpsert) {
+    // Pin changes first, in one tiny batch, so a pin moving between two albums
+    // never collides across chunks (each RPC is its own transaction).
+    const clearFirst = [];
+    for (const it of items.values()) {
+      const prev = X.state.synced[it.release_key];
+      if (prev && prev.pin != null && prev.pin !== it.pin_rank) clearFirst.push({ ...toWire(it), pin_rank: null });
+    }
+    if (clearFirst.length) {
+      await rpc('sync_crate', { p_items: clearFirst, p_quiet: true });
+      for (const w of clearFirst) { const s = X.state.synced[w.release_key]; if (s) { s.pin = null; s.fp = ''; } }
+    }
+    for (const part of chunk(toUpsert, CHUNK)) {
+      await rpc('sync_crate', { p_items: part.map(toWire), p_quiet: quiet });
+      for (const it of part) X.state.synced[it.release_key] = { fp: it.fp, pin: it.pin_rank };
+      persistSoon();
+    }
+  }
+
+  async function pushStats(albums, items, quiet) {
+    const out = [];
+    for (const a of albums) {
+      const key = releaseKey(a.artist, a.title);
+      if (!key || !items.has(key)) continue;
+      if (!(a.sessions > 0) && !a.metal) continue;
+      const fp = sha256hex([a.sessions || 0, a.metal || ''].join('|')).slice(0, 12);
+      if (X.state.statsSynced[key] === fp) continue;
+      out.push({ key, fp, wire: {
+        release_key: key, full_album_sessions: a.sessions || 0,
+        unlocked_variant: a.metal || null,
+        last_session_at: a.lastPlayed ? new Date(a.lastPlayed).toISOString() : null } });
+    }
+    for (const part of chunk(out, CHUNK)) {
+      await rpc('sync_stats', { p_items: part.map(p => p.wire), p_quiet: quiet });
+      part.forEach(p => { X.state.statsSynced[p.key] = p.fp; });
+      persistSoon();
+    }
+    return out.length;
+  }
+
+  function scheduleSync(delay) {
+    if (!X.enabled || !X.userId) return;
+    clearTimeout(X.syncTimer);
+    X.syncTimer = setTimeout(() => { syncNow(); }, delay == null ? X.timing.syncDebounce : delay);
+  }
+
+  /** Run a sync now. {confirmRemovals:true} approves a held-back mass removal. */
+  async function syncNow(opts) {
+    opts = opts || {};
+    if (!X.enabled) return fail('disabled', 'Social features are not configured.');
+    if (!X.userId || !X.profile) return fail('not_ready', 'Sign in and create a profile first.');
+    if (!X.state.settings.syncEnabled) return fail('paused', 'Sync is paused.');
+    if (!X.libraryReady) return fail('library_not_ready', 'Library has not finished loading.');
+    if (X.syncing) { X.again = true; return { ok: true, queued: true }; }
+    X.syncing = true;
+    setStatus({ sync: 'syncing' });
+    try {
+      const albums = (await X.adapter.listAlbums()) || [];
+      let first = X.state.restoredFor !== X.userId;
+      if (first) await restoreFromServer(albums);
+      const { items, skipped } = buildItems(albums);
+
+      const toUpsert = [...items.values()].filter(it => {
+        const s = X.state.synced[it.release_key];
+        return !s || s.fp !== it.fp;
+      });
+      const syncedKeys = Object.keys(X.state.synced);
+      const toRemove = syncedKeys.filter(k => !items.has(k));
+
+      // Guard: a library that failed to load must never wipe the published crate.
+      const massRemoval = toRemove.length >= GUARD_MIN && toRemove.length > GUARD_RATIO * Math.max(1, syncedKeys.length);
+      const emptied = items.size === 0 && syncedKeys.length > 0;
+      let held = 0;
+      if ((massRemoval || emptied) && !opts.confirmRemovals) held = toRemove.length;
+
+      const quiet = first && X.state.settings.syncEnabled;
+      await pushCrate(items, quiet, toUpsert);
+
+      let removed = 0;
+      if (!held) {
+        for (const part of chunk(toRemove, 500)) {
+          await rpc('remove_from_crate', { p_keys: part });
+          part.forEach(k => { delete X.state.synced[k]; });
+          removed += part.length;
+        }
+      }
+      let statCount = 0;
+      if (X.state.settings.shareMilestones) statCount = await pushStats(albums, items, quiet);
+
+      X.backoffIdx = 0;
+      await persistNow();
+      setStatus({
+        sync: held ? 'needsReview' : 'idle', pendingRemovals: held, skipped,
+        lastSyncedAt: Date.now(), lastError: null
+      });
+      const result = { ok: true, pushed: toUpsert.length, removed, held, stats: statCount, firstSync: first };
+      emit('synced', result);
+      return result;
+    } catch (e) {
+      const err = wrapErr(e);
+      if (err.error.code === 'auth') {
+        setStatus({ sync: 'error', lastError: err.error });
+      } else if (err.error.retryable) {
+        const wait = X.timing.backoff[Math.min(X.backoffIdx++, X.timing.backoff.length - 1)];
+        setStatus({ sync: 'offline', lastError: err.error });
+        clearTimeout(X.syncTimer);
+        X.syncTimer = setTimeout(() => { syncNow(); }, wait);
+      } else {
+        setStatus({ sync: 'error', lastError: err.error });
+      }
+      return err;
+    } finally {
+      X.syncing = false;
+      if (X.again) { X.again = false; scheduleSync(250); }
+    }
+  }
+  const confirmRemovals = () => syncNow({ confirmRemovals: true });
+
+  /* ====================================================================
+     8. now spinning
+     ==================================================================== */
+  function spinKey(albumId, trackTitle) { return albumId + '|' + (trackTitle || ''); }
+
+  /** Call whenever a track starts. Debounced; a no-op unless the user opted in. */
+  function nowSpinning(albumId, trackTitle) {
+    if (!X.enabled || !X.userId || !X.profile || !X.state.settings.shareNowSpinning) return;
+    clearTimeout(X.spin.pauseTimer);
+    clearTimeout(X.spin.timer);
+    X.spin.timer = setTimeout(() => publishSpin(albumId, trackTitle), X.timing.spinDebounce);
+  }
+  async function publishSpin(albumId, trackTitle) {
+    try {
+      const info = await X.adapter.albumInfo(albumId);
+      if (!info) return;
+      const key = releaseKey(info.artist, info.title);
+      if (!key) return;
+      const ok = await rpc('set_now_spinning', {
+        p_key: key, p_title: info.title, p_artist: info.artist,
+        p_track: trackTitle || null, p_ttl_seconds: Math.round(X.timing.spinTtlSeconds)
+      });
+      X.spin.last = { albumId, trackTitle, key };
+      X.spin.active = ok === true;
+      clearInterval(X.spin.heartbeat);
+      if (X.spin.active) {
+        X.spin.heartbeat = setInterval(() => {
+          if (X.spin.last) publishSpin(X.spin.last.albumId, X.spin.last.trackTitle);
+        }, X.timing.spinHeartbeat);
+      }
+    } catch (e) { /* best effort */ }
+  }
+  /** Call on pause: the disc stays up briefly, then disappears. */
+  function nowSpinningPaused() {
+    if (!X.spin.active) return;
+    clearTimeout(X.spin.pauseTimer);
+    X.spin.pauseTimer = setTimeout(stopSpinningNow, X.timing.spinPausedClear);
+  }
+  function stopSpinningNow() {
+    clearTimeout(X.spin.timer); clearTimeout(X.spin.pauseTimer); clearInterval(X.spin.heartbeat);
+    const had = X.spin.active || X.spin.last;
+    X.spin.active = false; X.spin.last = null;
+    if (had && X.enabled && X.userId) { rpc('clear_now_spinning').catch(() => {}); }
+  }
+  const stopSpinning = () => { stopSpinningNow(); };
+
+  /* ====================================================================
+     9. people: search, follow, block, report
+     ==================================================================== */
+  const searchProfiles = query => guarded(async () => {
+    const t = String(query || '').trim().toLowerCase().replace(/^@/, '').replace(/[%_\\]/g, m => '\\' + m);
+    if (t.length < 2) return { ok: true, profiles: [] };
+    const rows = await q(X.sb.from('profiles').select('id, handle, display_name, visibility')
+      .ilike('handle', t + '%').neq('id', X.userId).limit(20));
+    return { ok: true, profiles: rows || [] };
+  });
+
+  const follow = userId => guarded(async () => {
+    const { data, error } = await X.sb.from('follows')
+      .insert({ follower_id: X.userId, followee_id: userId }).select('status').single();
+    if (error) { if (error.code === '23505') return { ok: true, status: 'exists' }; throw error; }
+    return { ok: true, status: data.status };       // 'accepted' for public profiles, else 'pending'
+  });
+  const unfollow = userId => guarded(async () => {
+    await q(X.sb.from('follows').delete().eq('follower_id', X.userId).eq('followee_id', userId));
+    return { ok: true };
+  });
+  const respondToRequest = (followerId, accept) => guarded(async () => {
+    if (accept) await q(X.sb.from('follows').update({ status: 'accepted' }).eq('followee_id', X.userId).eq('follower_id', followerId));
+    else await q(X.sb.from('follows').delete().eq('followee_id', X.userId).eq('follower_id', followerId));
+    return { ok: true };
+  });
+  const removeFollower = followerId => respondToRequest(followerId, false);
+  const listRequests = () => guarded(async () => {
+    const rows = await q(X.sb.from('follows')
+      .select('follower_id, created_at, profiles!follows_follower_id_fkey(handle, display_name)')
+      .eq('followee_id', X.userId).eq('status', 'pending').order('created_at', { ascending: false }));
+    return { ok: true, requests: rows || [] };
+  });
+  const listFollowing = () => guarded(async () => {
+    const rows = await q(X.sb.from('follows')
+      .select('followee_id, status, profiles!follows_followee_id_fkey(handle, display_name)')
+      .eq('follower_id', X.userId).order('created_at', { ascending: false }));
+    return { ok: true, following: rows || [] };
+  });
+  const block = userId => guarded(async () => {
+    await q(X.sb.from('blocks').insert({ blocker_id: X.userId, blocked_id: userId }));
+    return { ok: true };
+  });
+  const unblock = userId => guarded(async () => {
+    await q(X.sb.from('blocks').delete().eq('blocker_id', X.userId).eq('blocked_id', userId));
+    return { ok: true };
+  });
+  const report = ({ userId, releaseId, reason }) => guarded(async () => {
+    const r = cps(String(reason || '').trim()).slice(0, 500).join('');
+    if (!r) return fail('bad_reason', 'Say what is wrong.');
+    await q(X.sb.from('reports').insert({ reporter_id: X.userId, target_user_id: userId, release_id: releaseId || null, reason: r }));
+    return { ok: true };
+  });
+
+  /* ====================================================================
+     10. reading other people's stores
+     ==================================================================== */
+  async function relationship(otherId) {
+    const [mine, theirs] = await Promise.all([
+      q(X.sb.from('follows').select('status').eq('follower_id', X.userId).eq('followee_id', otherId).maybeSingle()),
+      q(X.sb.from('follows').select('status').eq('follower_id', otherId).eq('followee_id', X.userId).maybeSingle())
+    ]);
+    return { following: mine ? mine.status : 'none', followsYou: !!(theirs && theirs.status === 'accepted') };
+  }
+
+  /** Everything the friend-profile screen needs, in one round trip fan-out. */
+  const loadProfile = handle => guarded(async () => {
+    const h = String(handle || '').trim().toLowerCase().replace(/^@/, '');
+    const profile = await q(X.sb.from('profiles').select('*').eq('handle', h).maybeSingle());
+    if (!profile) return fail('not_found', 'No such store.');
+    const isMe = profile.id === X.userId;
+    const rel = isMe ? { following: 'self', followsYou: false } : await relationship(profile.id);
+    const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
+    const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
+    if (!canView) return out;
+    const [summary, picks, spinning, fresh, follows] = await Promise.all([
+      rpc('profile_summary', { p_user: profile.id }),
+      rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
+      q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, releases(title, artist)')
+        .eq('user_id', profile.id).gt('expires_at', new Date().toISOString()).maybeSingle()),
+      isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 }),
+      // follower/following counts only make sense (and are only visible under
+      // RLS) for your own storefront — frame 02's friend store shows
+      // Records/Staff picks/In common instead, no followers count at all
+      isMe ? rpc('my_follow_counts') : Promise.resolve(null)
+    ]);
+    out.summary = (summary && summary[0]) || { records: 0, pins: 0, in_common: 0 };
+    if (isMe) {
+      const f = (follows && follows[0]) || { followers: 0, following: 0 };
+      out.summary.followers = f.followers || 0;
+      out.summary.following = f.following || 0;
+    }
+    out.staffPicks = picks || [];
+    out.nowSpinning = spinning || null;
+    out.fresh = fresh || [];
+    // Digging list: shown only when the owner left it on (default on). RLS enforces this too.
+    out.diggingShared = isMe || profile.show_digging_list !== false;
+    if (out.diggingShared) {
+      const [dp, dc] = await Promise.all([
+        rpc('digging_page', { p_user: profile.id, p_offset: 0, p_limit: 8 }),
+        rpc('digging_count', { p_user: profile.id })]);
+      out.digging = dp || []; out.diggingCount = dc || 0;
+    } else { out.digging = []; out.diggingCount = 0; }
+    return out;
+  });
+  const crate = (userId, { offset = 0, limit = 60 } = {}) => guarded(async () => ({
+    ok: true, items: (await rpc('crate_page', { p_user: userId, p_offset: offset, p_limit: limit, p_pinned_only: false })) || []
+  }));
+  const inCommon = userId => guarded(async () => ({
+    ok: true, items: (await rpc('records_in_common', { p_other: userId })) || []
+  }));
+  const homeFeed = ({ limit = 50, before } = {}) => guarded(async () => ({
+    ok: true, events: (await rpc('home_feed_rich', { p_limit: limit, p_before: before || new Date().toISOString() })) || []
+  }));
+
+  /* ---- digging list (their record, your wishlist) ---- */
+  const addToDigging = (releaseId, sourceUserId) => guarded(async () => {
+    const { error } = await X.sb.from('digging_list')
+      .upsert({ user_id: X.userId, release_id: releaseId, source_user_id: sourceUserId || null },
+              { onConflict: 'user_id,release_id', ignoreDuplicates: true });
+    if (error) throw error;
+    return { ok: true };
+  });
+  const removeFromDigging = releaseId => guarded(async () => {
+    await q(X.sb.from('digging_list').delete().eq('user_id', X.userId).eq('release_id', releaseId));
+    return { ok: true };
+  });
+  const diggingOf = (userId, { offset = 0, limit = 30 } = {}) => guarded(async () => ({
+    ok: true, items: (await rpc('digging_page', { p_user: userId, p_offset: offset, p_limit: limit })) || []
+  }));
+  const listDigging = () => guarded(async () => {
+    const rows = await q(X.sb.from('digging_list')
+      .select('release_id, added_at, source_user_id, releases(title, artist, year)')
+      .eq('user_id', X.userId).order('added_at', { ascending: false }).limit(500));
+    return { ok: true, items: rows || [] };
+  });
+
+  /* ---- realtime: friends' discs appear as they start spinning ---- */
+  async function releaseInfo(id) {
+    if (X.releaseCache.has(id)) return X.releaseCache.get(id);
+    const r = await q(X.sb.from('releases').select('id, title, artist, year').eq('id', id).maybeSingle());
+    if (r) X.releaseCache.set(id, r);
+    return r;
+  }
+  function subscribeNowSpinning(cb) {
+    if (!X.enabled) return () => {};
+    const ch = X.sb.channel('miziki-now-spinning')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'now_spinning' }, async payload => {
+        try {
+          if (payload.eventType === 'DELETE') { cb({ type: 'stopped', userId: payload.old && payload.old.user_id }); return; }
+          const row = payload.new;
+          if (!row || row.user_id === X.userId) return;
+          const rel = await releaseInfo(row.release_id);
+          cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel });
+        } catch (e) { /* ignore */ }
+      }).subscribe();
+    return () => { try { X.sb.removeChannel(ch); } catch (e) { /* noop */ } };
+  }
+
+  /* ====================================================================
+     11. Miziki adapter: maps the app's globals onto the module's interface
+         env = { S, DB, albumKey, trackTier, albumMetalFor }
+     ==================================================================== */
+  function mizikiAdapter(env) {
+    const { S, DB } = env;
+    const isReal = t => t && t.id !== 'miziki:testtone' && t.tags && t.tags.album && t.tags.album !== 'Unknown Album';
+    function pickArtist(tracks) {
+      const aa = new Map(), ar = new Map();
+      for (const t of tracks) {
+        if (t.tags.albumArtist) aa.set(t.tags.albumArtist, (aa.get(t.tags.albumArtist) || 0) + 1);
+        if (t.tags.artist) ar.set(t.tags.artist, (ar.get(t.tags.artist) || 0) + 1);
+      }
+      const top = m => [...m.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (aa.size) return top(aa)[0];
+      if (ar.size > 1) return 'Various Artists';
+      return ar.size ? top(ar)[0] : '';
+    }
+    function majorityTier(tracks) {
+      const c = { 1: 0, 2: 0, 3: 0 };
+      tracks.forEach(t => { const x = env.trackTier(t); c[x] = (c[x] || 0) + 1; });
+      let best = 1;
+      for (const k of [1, 2, 3]) if (c[k] > c[best] || (c[k] === c[best] && k < best && c[k] > 0)) best = k;
+      return best;
+    }
+    function describe(id, tracks) {
+      const first = tracks[0];
+      return {
+        id, title: first.tags.album, artist: pickArtist(tracks), tier: majorityTier(tracks),
+        addedAt: Math.min(...tracks.map(t => t.addedAt || Date.now())),
+        sessions: S.sessionCounts[id] || 0,
+        metal: S.rareUnlocked[id] ? 'rare' : (env.albumMetalFor(id) || null),
+        lastPlayed: (S.albumLastPlayed && S.albumLastPlayed[id]) || null
+      };
+    }
+    return {
+      async load() { const r = await DB.get('meta', 'social'); return r ? r.v : null; },
+      async save(v) { await DB.put('meta', { k: 'social', v }); },
+      listAlbums() {
+        const by = new Map();
+        for (const t of S.tracks) {
+          if (!isReal(t)) continue;
+          const id = env.albumKey(t);
+          if (!by.has(id)) by.set(id, []);
+          by.get(id).push(t);
+        }
+        return [...by.entries()].map(([id, tracks]) => describe(id, tracks));
+      },
+      albumInfo(id) {
+        const tracks = S.tracks.filter(t => isReal(t) && env.albumKey(t) === id);
+        return tracks.length ? describe(id, tracks) : null;
+      }
+    };
+  }
+
+  /* ====================================================================
+     12. public API
+     ==================================================================== */
+  root.MizikiSocial = {
+    init, status, on,
+    // host-app hooks
+    libraryLoaded() { X.libraryReady = true; scheduleSync(1500); },
+    libraryChanged() { scheduleSync(); },
+    listeningChanged() { scheduleSync(); },
+    nowSpinning, nowSpinningPaused, stopSpinning,
+    // auth + profile
+    sendCode, verifyCode, signOut, getMyProfile, checkHandle, createProfile, updateProfile,
+    // local social metadata
+    setRating, setNote, setVisibility, pin, unpin, movePin, getPins, getAlbumSocial, getSettings, setSetting,
+    // sync
+    syncNow, confirmRemovals,
+    // people
+    searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing, block, unblock, report,
+    // reading
+    loadProfile, crate, inCommon, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
+    // helpers (also used by tests / UI)
+    releaseKey, labelColor, sha256hex, mizikiAdapter,
+    _internals: { X, buildItems, normAlbum, normArtist, cleanNote }
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
 const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= social layer config =================
+   Empty strings mean inert: MizikiSocial.init() leaves enabled:false and
+   every screen that needs a server shows a calm "not set up yet" state (or
+   hides). Paste a Supabase project URL + anon key here once one exists —
+   the anon key is safe in client code, RLS is the actual protection. See
+   miziki-social-handoff/README.md §9 for the one-time project setup. */
+const SOCIAL_SUPABASE_URL = '';
+const SOCIAL_SUPABASE_ANON_KEY = '';
 
 const S = {
   ctx:null, nodes:null, source:null, gen:0,
@@ -3136,6 +4309,7 @@ async function addFiles(list){
   renderTracks();
   queueSave();
   persistSealedAlbums();
+  MizikiSocial.libraryChanged();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
   if(failed.length){
@@ -3441,6 +4615,7 @@ function sessionTrackComplete(t){
     persistMetalEligibleSessions();
     persistAlbumLastPlayed();
     checkRareUnlock(albumId);
+    MizikiSocial.listeningChanged();
     // the album metal (if any) is a pure function of the count that just
     // changed — re-render the platter if this album is still what's showing
     const cur = current();
@@ -3780,6 +4955,7 @@ async function saveEditSheet(){
   await applyEditWithUndo(target.trackIds, fields, S.editArtBlob);
   closeEditSheet();
   if(target.batch) exitSelectMode();
+  if('artist' in fields || 'album' in fields || 'albumArtist' in fields) MizikiSocial.libraryChanged();
 }
 
 async function storeTrack(t, blob){
@@ -3876,6 +5052,7 @@ async function deleteTracks(idsToDelete){
       setQueue(allIdx(), 0, false);   // silent priming un-hides it again once the next track lands
     } else {
       S.queue = []; S.baseQueue = []; S.qpos = 0;
+      MizikiSocial.stopSpinning();
       $('#trackName').textContent = 'Nothing on the platter';
       $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
       $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
@@ -3904,6 +5081,7 @@ async function deleteTracks(idsToDelete){
   renderTracks();
   renderMiniPlayer();
   queueSave();
+  MizikiSocial.libraryChanged();
 }
 
 function deleteAlbum(album){
@@ -5377,6 +6555,7 @@ async function play(){
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
   renderMiniPlayer();
+  MizikiSocial.nowSpinning(albumKey(t), t.tags.title);
 }
 
 function stop(){
@@ -5389,6 +6568,7 @@ function stop(){
 
 function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
+  MizikiSocial.nowSpinningPaused();
   if(bgRouteActive()) bgIdleNow(); }
 
 function seek(sec){
@@ -7352,6 +8532,74 @@ function gatefoldCreditLink(name){
   return b;
 }
 
+// Rating stars, sleeve note and pin toggle for YOUR OWN copy of this record
+// — local-first (MizikiSocial.setRating/setNote/pin work with no server
+// configured at all), published by the sync engine once signed in. Lives at
+// the end of the gatefold's "Inside" panel — today's closest thing to an
+// album detail view — so it's reachable from both the normal left panel and
+// the short-viewport flat "Inside" tab, which both call this same builder.
+function gatefoldSocialControlsHTML(item){
+  const wrap = el('div','gf-social');
+  wrap.appendChild(el('p','gf-social-caption','YOUR COPY'));
+
+  const stars = el('div','gf-stars');
+  stars.setAttribute('role','radiogroup');
+  stars.setAttribute('aria-label','Your rating');
+  for(let i = 1; i <= 5; i++){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'gf-star-btn'; b.dataset.star = String(i);
+    b.setAttribute('aria-label', i + (i === 1 ? ' star' : ' stars'));
+    stars.appendChild(b);
+  }
+  wrap.appendChild(stars);
+
+  const note = document.createElement('textarea');
+  note.className = 'gf-note-input'; note.maxLength = 140; note.rows = 2;
+  note.placeholder = 'Tap to add a sleeve note.';
+  note.setAttribute('aria-label', 'Sleeve note');
+  note.addEventListener('change', () => MizikiSocial.setNote(item.albumId, note.value));
+  wrap.appendChild(note);
+
+  const pinBtn = document.createElement('button');
+  pinBtn.type = 'button'; pinBtn.className = 'gf-pin-btn';
+  wrap.appendChild(pinBtn);
+
+  function paint(){
+    const s = MizikiSocial.getAlbumSocial(item.albumId);
+    stars.querySelectorAll('.gf-star-btn').forEach(b => {
+      const i = Number(b.dataset.star), on = s.rating != null && i <= s.rating;
+      b.textContent = on ? '★' : '☆';
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    if(document.activeElement !== note) note.value = s.note || '';
+    const pinned = s.pinRank != null;
+    pinBtn.setAttribute('aria-pressed', String(pinned));
+    pinBtn.textContent = pinned ? 'Pinned to storefront · #' + s.pinRank : 'Pin to storefront';
+  }
+  stars.querySelectorAll('.gf-star-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = Number(b.dataset.star);
+      const cur = MizikiSocial.getAlbumSocial(item.albumId).rating;
+      MizikiSocial.setRating(item.albumId, cur === i ? null : i);   // tap the lit star again to clear
+      paint();
+    });
+  });
+  pinBtn.addEventListener('click', () => {
+    const pinned = MizikiSocial.getAlbumSocial(item.albumId).pinRank != null;
+    if(pinned) MizikiSocial.unpin(item.albumId);
+    else if(!MizikiSocial.pin(item.albumId)){
+      pinBtn.textContent = 'Staff picks full — unpin one first';
+      setTimeout(paint, 1800);
+      return;
+    }
+    paint();
+  });
+
+  paint();
+  return wrap;
+}
+
 function buildGatefoldLeftPanel(item){
   const host = document.createDocumentFragment();
   const liner = albumLinerNotes(item.album);
@@ -7363,6 +8611,7 @@ function buildGatefoldLeftPanel(item){
       item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
     host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
     host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
+    host.appendChild(gatefoldSocialControlsHTML(item));
     return host;
   }
   if(liner) host.appendChild(el('p','gf-liner', liner));
@@ -7384,6 +8633,7 @@ function buildGatefoldLeftPanel(item){
     btn.addEventListener('click', () => openBookletViewer(item.albumId));
     host.appendChild(btn);
   }
+  host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
 }
 
@@ -7902,10 +9152,14 @@ function applyCrateMiniInset(){
   const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
   const stageHeight = available < 460 ? Math.max(available, minStageHeight) : 460;
   stage.style.height = stageHeight + 'px';
-  // with room to spare, the crate sits centred in it rather than always
-  // hugging the top of the route
+  // with room to spare, the crate sits toward the upper-middle of the
+  // available space rather than hugging the top — but capped well short of
+  // true centring, so any extra slack falls below the info panel instead of
+  // being split top/bottom. True centring on a tall screen pushed the focal
+  // record down far enough that the info panel/rail could run into the
+  // tabbar and need a scroll; capping keeps the whole crate on screen at once.
   const slack = available - stageHeight;
-  wrap.style.marginTop = (slack > 0 ? Math.round(slack / 2) : 0) + 'px';
+  wrap.style.marginTop = (slack > 0 ? Math.min(Math.round(slack / 2), 32) : 0) + 'px';
 }
 
 function renderCrate(host){
@@ -8589,10 +9843,1283 @@ function collectionBadge(rec){
   return cell;
 }
 
+const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
+const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
+
+let socialAuth = null;
+
+function beginSocialSignIn(){
+  const auth = MizikiSocial.status().auth;
+  socialAuth = {
+    step: auth === 'needsProfile' ? 'handle' : 'email',
+    email: '', code: '', handle: '', displayName: '', visibility: 'friends',
+    error: null, busy: false
+  };
+  $('#socialAuthOverlay').classList.add('open');
+  $('#socialAuthOverlay').setAttribute('aria-hidden','false');
+  renderSocialAuth();
+}
+function closeSocialAuth(){
+  $('#socialAuthOverlay').classList.remove('open');
+  $('#socialAuthOverlay').setAttribute('aria-hidden','true');
+  socialAuth = null;
+}
+
+// The sign-in wizard's "Open your store" entry point exists on both the
+// Profile and Home tabs; refresh whichever one is actually on screen so
+// finishing sign-in doesn't leave the other tab showing its stale pre-signin state.
+function refreshSocialEntryHost(){
+  const homeRoute = document.getElementById('route-home');
+  if(homeRoute && homeRoute.classList.contains('on')) renderHome();
+  else renderProfile();
+}
+
+function socialField(labelText, value, attrs){
+  const row = el('div','slider-row');
+  const head = el('div','slider-head'); head.appendChild(el('span', null, labelText));
+  row.appendChild(head);
+  const input = el('input','pl-input');
+  Object.assign(input, attrs || {});
+  input.value = value || '';
+  row.appendChild(input);
+  return { row, input };
+}
+
+function socialPrimaryStack(label, onClick, disabled){
+  const stack = el('div','stack social-stack');
+  const btn = el('button','cta', label);
+  if(disabled) btn.disabled = true;
+  btn.addEventListener('click', onClick);
+  stack.appendChild(btn);
+  return stack;
+}
+
+function renderSocialAuth(){
+  const title = $('#socialAuthTitle');
+  const body = $('#socialAuthBody'); body.innerHTML = '';
+  if(socialAuth.step === 'email') renderSocialAuthEmail(title, body);
+  else if(socialAuth.step === 'code') renderSocialAuthCode(title, body);
+  else if(socialAuth.step === 'handle') renderSocialAuthHandle(title, body);
+  else renderSocialAuthVisibility(title, body);
+}
+
+function renderSocialAuthEmail(title, body){
+  title.textContent = 'Sign in';
+  body.appendChild(el('p','note','We’ll email you a 6-digit code — no password to remember.'));
+  const { row, input } = socialField('Email', socialAuth.email,
+    {type:'email', placeholder:'you@example.com', autocomplete:'email'});
+  body.appendChild(row);
+  if(socialAuth.error) body.appendChild(el('p','note', socialAuth.error));
+  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Sending…' : 'Send code', async ()=>{
+    const email = input.value.trim();
+    socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
+    const r = await MizikiSocial.sendCode(email);
+    socialAuth.busy = false;
+    if(!r.ok){ socialAuth.error = r.error.message; renderSocialAuth(); return; }
+    socialAuth.email = email; socialAuth.step = 'code';
+    renderSocialAuth();
+  }, socialAuth.busy));
+}
+
+function renderSocialAuthCode(title, body){
+  title.textContent = 'Check your email';
+  body.appendChild(el('p','note','Enter the 6-digit code we sent to ' + socialAuth.email + '.'));
+  const { row, input } = socialField('Code', socialAuth.code,
+    {type:'text', inputMode:'numeric', maxLength:8, placeholder:'123456', autocomplete:'one-time-code'});
+  body.appendChild(row);
+  if(socialAuth.error) body.appendChild(el('p','note', socialAuth.error));
+  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Verifying…' : 'Verify', async ()=>{
+    const code = input.value.trim();
+    socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
+    const r = await MizikiSocial.verifyCode(socialAuth.email, code);
+    socialAuth.busy = false;
+    if(!r.ok){ socialAuth.error = r.error.message; renderSocialAuth(); return; }
+    if(r.status.auth === 'ready'){ closeSocialAuth(); refreshSocialEntryHost(); return; }
+    socialAuth.step = 'handle';
+    renderSocialAuth();
+  }, socialAuth.busy));
+  const linkRow = el('div','stack');
+  const resend = el('button','cta ghost','Resend code');
+  resend.addEventListener('click', async ()=>{
+    socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
+    await MizikiSocial.sendCode(socialAuth.email);
+    socialAuth.busy = false; renderSocialAuth();
+  });
+  const back = el('button','cta ghost','Use a different email');
+  back.addEventListener('click', ()=>{ socialAuth.step = 'email'; socialAuth.error = null; renderSocialAuth(); });
+  linkRow.appendChild(resend); linkRow.appendChild(back);
+  body.appendChild(linkRow);
+}
+
+function renderSocialAuthHandle(title, body){
+  title.textContent = 'Create your store';
+  body.appendChild(el('p','note','Your handle is how friends find you — it’s also your storefront name.'));
+  const { row, input } = socialField('Handle', socialAuth.handle,
+    {type:'text', placeholder:'yourname', maxLength:24, autocapitalize:'none', autocorrect:'off'});
+  body.appendChild(row);
+  const status = el('p','note','3–24 characters: letters, numbers, underscore.');
+  body.appendChild(status);
+  const { row: nameRow, input: nameInput } = socialField('Display name (optional)', socialAuth.displayName,
+    {type:'text', placeholder:'Shown under your handle', maxLength:50});
+  body.appendChild(nameRow);
+  if(socialAuth.error) body.appendChild(el('p','note', socialAuth.error));
+  let seq = 0, debounceTimer = null;
+  input.addEventListener('input', ()=>{
+    clearTimeout(debounceTimer);
+    const h = input.value.trim().toLowerCase();
+    debounceTimer = setTimeout(async ()=>{
+      if(!h){ status.textContent = '3–24 characters: letters, numbers, underscore.'; return; }
+      const mySeq = ++seq;
+      status.textContent = 'Checking…';
+      const r = await MizikiSocial.checkHandle(h);
+      if(mySeq !== seq) return;
+      if(!r.ok){ status.textContent = r.error.message; return; }
+      status.textContent = r.available ? '@' + h + ' is available.'
+        : (r.reason === 'format' ? '3–24 characters: letters, numbers, underscore.' : 'That handle is taken.');
+    }, 350);
+  });
+  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Checking…' : 'Continue', async ()=>{
+    const h = input.value.trim().toLowerCase();
+    socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
+    const avail = await MizikiSocial.checkHandle(h);
+    if(!avail.ok || !avail.available){
+      socialAuth.busy = false;
+      socialAuth.error = (avail.ok && avail.reason !== 'format') ? 'That handle is taken.'
+        : '3–24 characters: letters, numbers, underscore.';
+      socialAuth.handle = h;
+      renderSocialAuth(); return;
+    }
+    socialAuth.handle = h; socialAuth.displayName = nameInput.value.trim(); socialAuth.busy = false;
+    socialAuth.step = 'visibility';
+    renderSocialAuth();
+  }, socialAuth.busy));
+}
+
+function renderSocialAuthVisibility(title, body){
+  title.textContent = 'Who can see your store?';
+  const opts = [
+    {key:'private', label:'Only you', desc:'Nothing is visible to anyone else yet.'},
+    {key:'friends', label:'Friends only', desc:'People you approve can browse your store.'},
+    {key:'public', label:'Everyone', desc:'Anyone can find and follow your store.'}
+  ];
+  const list = el('div','social-vis-list');
+  opts.forEach(o => {
+    const row = document.createElement('button');
+    row.type = 'button'; row.className = 'social-vis-option';
+    row.setAttribute('aria-pressed', String(socialAuth.visibility === o.key));
+    const text = el('div');
+    text.appendChild(el('b', null, o.label));
+    text.appendChild(el('div','note', o.desc));
+    row.appendChild(text);
+    row.addEventListener('click', ()=>{ socialAuth.visibility = o.key; renderSocialAuth(); });
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+  if(socialAuth.error) body.appendChild(el('p','note', socialAuth.error));
+  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Opening your store…' : 'Finish', async ()=>{
+    socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
+    const created = await MizikiSocial.createProfile({handle: socialAuth.handle, displayName: socialAuth.displayName});
+    if(!created.ok){
+      socialAuth.busy = false; socialAuth.error = created.error.message; socialAuth.step = 'handle';
+      renderSocialAuth(); return;
+    }
+    if(socialAuth.visibility !== 'friends'){
+      const updated = await MizikiSocial.updateProfile({visibility: socialAuth.visibility});
+      if(!updated.ok){ socialAuth.busy = false; socialAuth.error = updated.error.message; renderSocialAuth(); return; }
+    }
+    socialAuth.busy = false;
+    closeSocialAuth();
+    refreshSocialEntryHost();
+  }, socialAuth.busy));
+}
+
+function timeAgoShort(ms){
+  const s = Math.max(0, Math.round(ms / 1000));
+  if(s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if(m < 60) return m + ' min' + (m === 1 ? '' : 's') + ' ago';
+  const h = Math.round(m / 60);
+  if(h < 24) return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+  const d = Math.round(h / 24);
+  return d + ' day' + (d === 1 ? '' : 's') + ' ago';
+}
+
+function socialSyncStatusLine(status){
+  if(status.sync === 'syncing') return 'Syncing…';
+  if(status.sync === 'offline') return 'Offline — will retry automatically.';
+  if(status.sync === 'error') return 'Couldn’t sync' + (status.lastError ? ': ' + status.lastError.message : '.');
+  if(status.sync === 'needsReview') return 'Paused — review removed records below.';
+  if(status.lastSyncedAt) return 'Synced ' + timeAgoShort(Date.now() - status.lastSyncedAt);
+  return 'Not synced yet.';
+}
+
+function renderSocialSettingsScreen(body){
+  body.innerHTML = '';
+  const status = MizikiSocial.status();
+  if(status.sync === 'needsReview' && status.pendingRemovals > 0){
+    const banner = el('div','store-open-card');
+    banner.appendChild(el('h3', null, status.pendingRemovals === 1 ? '1 record disappeared from your library'
+      : status.pendingRemovals + ' records disappeared from your library'));
+    banner.appendChild(el('p', null, 'Remove them from your store too, or keep them there until you’re sure.'));
+    const btn = el('button','cta','Confirm removal');
+    btn.addEventListener('click', async ()=>{ await MizikiSocial.confirmRemovals(); renderSocialSettingsScreen(body); });
+    banner.appendChild(btn);
+    body.appendChild(banner);
+  }
+  body.appendChild(el('p','note', socialSyncStatusLine(status)));
+  if(status.skipped && (status.skipped.collisions > 0 || status.skipped.noArtist > 0)){
+    if(status.skipped.collisions > 0) body.appendChild(el('p','note',
+      status.skipped.collisions + ' album' + (status.skipped.collisions === 1 ? '' : 's') + ' share a title with another in your library, so only one of each made it to your store.'));
+    if(status.skipped.noArtist > 0) body.appendChild(el('p','note',
+      status.skipped.noArtist + ' album' + (status.skipped.noArtist === 1 ? ' has' : 's have') + ' no artist tagged, so ' +
+      (status.skipped.noArtist === 1 ? 'it' : 'they') + ' can’t be shared yet.'));
+  }
+
+  const settings = MizikiSocial.getSettings();
+  const spinRow = el('div','social-setting-row');
+  spinRow.appendChild(el('h2', null, 'Share what you’re spinning'));
+  spinRow.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
+    on => MizikiSocial.setSetting('shareNowSpinning', on)));
+  body.appendChild(spinRow);
+  body.appendChild(el('p','note','Friends who follow you see the album and track while you listen.'));
+
+  const milestoneRow = el('div','social-setting-row');
+  milestoneRow.appendChild(el('h2', null, 'Share rare-pressing milestones'));
+  milestoneRow.appendChild(storeSwitch('Share rare-pressing milestones', settings.shareMilestones,
+    on => MizikiSocial.setSetting('shareMilestones', on)));
+  body.appendChild(milestoneRow);
+  body.appendChild(el('p','note','Off by default. When on, hitting a rare pressing posts to your activity for friends to see.'));
+
+  const signOutStack = el('div','stack social-stack');
+  const signOutBtn = el('button','cta ghost','Sign out');
+  signOutBtn.addEventListener('click', async ()=>{
+    await MizikiSocial.signOut();
+    S.profileView.screen = 'home';
+    renderProfile();
+  });
+  signOutStack.appendChild(signOutBtn);
+  body.appendChild(signOutStack);
+}
+
+function renderStorefrontSection(body){
+  const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
+  if(!soc.enabled) return;
+  const host = el('div','store-host');
+  body.appendChild(host);
+  body.appendChild(el('div','store-legacy-head','YOUR LIBRARY'));
+  if(soc.auth === 'ready') loadAndRenderStorefront(host);
+  else renderOpenStoreCard(host, soc.auth);
+}
+
+function renderOpenStoreCard(host, authState){
+  host.innerHTML = '';
+  const needsProfile = authState === 'needsProfile';
+  const card = el('div','store-open-card');
+  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your store' : 'Open your store'));
+  card.appendChild(el('p', null, needsProfile
+    ? 'Pick a handle to start your storefront — friends will find you there.'
+    : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
+  const btn = el('button','cta', needsProfile ? 'Finish setup' : 'Sign in');
+  btn.addEventListener('click', beginSocialSignIn);
+  card.appendChild(btn);
+  host.appendChild(card);
+}
+
+function renderStoreError(host, error, retry){
+  host.innerHTML = '';
+  const wrap = el('div','store-error');
+  // not_found covers both a genuinely nonexistent handle and a blocked
+  // viewer -- these must look identical (no retry affordance either way),
+  // or blocking would leak information just by comparing the two states.
+  if(error && error.code === 'not_found'){
+    wrap.appendChild(el('p', null, 'No such store.'));
+    host.appendChild(wrap);
+    return;
+  }
+  const offline = error && error.code === 'offline';
+  wrap.appendChild(el('p', null, offline
+    ? "You're offline — your store will load when you're back."
+    : "Couldn't load your store."));
+  const btn = el('button','cta ghost','Try again');
+  btn.addEventListener('click', retry);
+  wrap.appendChild(btn);
+  host.appendChild(wrap);
+}
+
+async function loadAndRenderStorefront(host){
+  host.innerHTML = '';
+  host.appendChild(el('div','store-loading','Loading your store…'));
+  const me = await MizikiSocial.getMyProfile();
+  if(!me.ok){ renderStoreError(host, me.error, ()=>loadAndRenderStorefront(host)); return; }
+  if(!me.profile){ renderOpenStoreCard(host, 'needsProfile'); return; }
+  const [full, reqs] = await Promise.all([
+    MizikiSocial.loadProfile(me.profile.handle),
+    MizikiSocial.listRequests()
+  ]);
+  if(!full.ok){ renderStoreError(host, full.error, ()=>loadAndRenderStorefront(host)); return; }
+  renderStorefront(host, full, (reqs.ok && reqs.requests) || []);
+}
+
+function storeAwning(){
+  const awning = el('div','store-awning');
+  for(let i = 0; i < 10; i++) awning.appendChild(el('div'));
+  return awning;
+}
+
+function storeSwitch(label, checked, onToggle){
+  const sw = document.createElement('button');
+  sw.type = 'button'; sw.className = 'store-switch'; sw.setAttribute('role','switch');
+  sw.setAttribute('aria-label', label);
+  sw.setAttribute('aria-checked', String(!!checked));
+  const track = el('div','store-switch-track');
+  track.appendChild(document.createElement('i'));
+  sw.appendChild(track);
+  sw.addEventListener('click', ()=>{
+    const on = sw.getAttribute('aria-checked') !== 'true';
+    sw.setAttribute('aria-checked', String(on));
+    onToggle(on);
+  });
+  return sw;
+}
+
+function storeStat(label, value, accent){
+  const s = el('div','store-stat' + (accent ? ' accent' : ''));
+  s.appendChild(el('b', null, String(value)));
+  s.appendChild(el('span', null, label));
+  return s;
+}
+
+async function cycleStoreVisibility(profile, host){
+  const order = ['private','friends','public'];
+  const next = order[(order.indexOf(profile.visibility) + 1) % order.length];
+  const r = await MizikiSocial.updateProfile({visibility: next});
+  if(r.ok) loadAndRenderStorefront(host);
+}
+
+function storeRequestsCard(requests, onChange){
+  const wrap = el('div','store-requests-wrap');
+  const card = el('button','store-card store-card-btn');
+  card.appendChild(el('div','store-card-count', String(requests.length)));
+  const text = el('div','store-card-text');
+  text.appendChild(el('b', null, requests.length === 1 ? '1 person wants to browse' : requests.length + ' people want to browse'));
+  text.appendChild(el('em', null, 'Review follow requests'));
+  card.appendChild(text);
+  card.appendChild(el('span','store-chev','›'));
+  const list = el('div','store-requests-list');
+  list.style.display = 'none';
+  card.setAttribute('aria-expanded','false');
+  card.addEventListener('click', ()=>{
+    const open = list.style.display === 'none';
+    list.style.display = open ? 'block' : 'none';
+    card.setAttribute('aria-expanded', String(open));
+  });
+  requests.forEach(r => {
+    const prof = r.profiles || {};
+    const row = el('div','store-dig-row store-request-row');
+    const rtext = el('div','store-dig-text');
+    rtext.appendChild(el('b', null, prof.display_name || prof.handle || 'Someone'));
+    if(prof.handle) rtext.appendChild(el('em', null, prof.handle));
+    row.appendChild(rtext);
+    const accept = document.createElement('button');
+    accept.type = 'button'; accept.className = 'store-dig-remove'; accept.textContent = '✓';
+    accept.setAttribute('aria-label','Accept follow request from ' + (prof.handle || 'this person'));
+    accept.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, true); onChange(); });
+    row.appendChild(accept);
+    const decline = document.createElement('button');
+    decline.type = 'button'; decline.className = 'store-dig-remove'; decline.textContent = '✕';
+    decline.setAttribute('aria-label','Decline follow request from ' + (prof.handle || 'this person'));
+    decline.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, false); onChange(); });
+    row.appendChild(decline);
+    list.appendChild(row);
+  });
+  wrap.appendChild(card);
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function storeNowSpinningCard(full, host){
+  const settings = MizikiSocial.getSettings();
+  const card = el('div','store-card');
+  const count = el('div','store-card-count','♪');
+  card.appendChild(count);
+  const text = el('div','store-card-text');
+  if(full.nowSpinning && full.nowSpinning.track_title){
+    const rel = full.nowSpinning.releases || {};
+    text.appendChild(el('b', null, full.nowSpinning.track_title));
+    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ') || 'Now spinning'));
+  } else {
+    text.appendChild(el('b', null, 'Nothing spinning right now'));
+    text.appendChild(el('em', null, 'Shows here while you listen'));
+  }
+  card.appendChild(text);
+  card.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
+    on => MizikiSocial.setSetting('shareNowSpinning', on)));
+  return card;
+}
+
+// Staff picks are always the viewer's own records when isMe, so the art
+// already sits in the local library even though it never synced to the
+// server (art/audio/filenames never leave the device, per the social spec).
+function localAlbumArt(title, artist){
+  const ta = normKey(title), aa = normKey(artist);
+  const t = S.tracks.find(x => normKey(x.tags.album) === ta && normKey(x.tags.albumArtist || x.tags.artist) === aa);
+  return t ? t.art : null;
+}
+
+function storePickTile(pick){
+  const tile = el('div','store-pick');
+  const cover = el('div','store-pick-cover');
+  const art = localAlbumArt(pick.title, pick.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  cover.appendChild(el('span','store-pick-tier', STORE_TIER_LABEL[pick.quality_tier] || ''));
+  tile.appendChild(cover);
+  const note = el('div','store-pick-note');
+  note.appendChild(el('div','store-pick-stars', pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : ''));
+  note.appendChild(el('div','store-pick-name', pick.title));
+  if(pick.sleeve_note) note.appendChild(el('div', null, pick.sleeve_note));
+  tile.appendChild(note);
+  return tile;
+}
+
+function storePicksSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Staff picks'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
+  for(let i = full.staffPicks.length; i < 8; i++){
+    const empty = el('div','store-pick-empty');
+    empty.appendChild(el('span', null, 'Pin a record'));
+    empty.appendChild(el('span', null, 'Slot ' + (i + 1) + ' of 8'));
+    row.appendChild(empty);
+  }
+  section.appendChild(row);
+  return section;
+}
+
+function storeDiggingSection(full, host){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Digging list'));
+  head.appendChild(storeSwitch('Show digging list on my store', full.profile.show_digging_list !== false,
+    on => MizikiSocial.updateProfile({showDiggingList: on})));
+  section.appendChild(head);
+  if(!full.digging.length){
+    section.appendChild(el('p','store-loading','Nothing in your digging list yet.'));
+    return section;
+  }
+  full.digging.forEach(item => {
+    const row = el('div','store-dig-row');
+    row.appendChild(el('div','store-dig-cover'));
+    const text = el('div','store-dig-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    text.appendChild(el('small', null, item.source_handle ? 'Spotted in @' + item.source_handle + '’s store' : 'Added by you'));
+    row.appendChild(text);
+    const rm = document.createElement('button');
+    rm.type = 'button'; rm.className = 'store-dig-remove'; rm.textContent = '−';
+    rm.setAttribute('aria-label','Remove ' + item.title + ' from digging list');
+    rm.addEventListener('click', async ()=>{ await MizikiSocial.removeFromDigging(item.release_id); loadAndRenderStorefront(host); });
+    row.appendChild(rm);
+    section.appendChild(row);
+  });
+  return section;
+}
+
+function storeCrateGrid(){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Crate'));
+  section.appendChild(head);
+  const albums = groupBy('album');
+  if(!albums.length){
+    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return section;
+  }
+  const grid = el('div','store-crate-grid');
+  albums.slice(0, 60).forEach(([name, idxs]) => {
+    const t = S.tracks[idxs[0]];
+    const cell = el('div');
+    const cover = el('div','store-crate-cover');
+    if(t && t.art){ const im = document.createElement('img'); im.src = t.art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', name));
+    cell.appendChild(el('div','store-crate-artist', t ? (t.tags.albumArtist || t.tags.artist || '') : ''));
+    grid.appendChild(cell);
+  });
+  section.appendChild(grid);
+  return section;
+}
+
+function renderStorefront(host, full, requests){
+  host.innerHTML = '';
+  host.appendChild(storeAwning());
+  const header = el('div','store-header');
+  const avatar = el('div','store-avatar');
+  const label = el('div','store-avatar-label');
+  label.style.background = full.labelColor;
+  avatar.appendChild(label);
+  header.appendChild(avatar);
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('h2','store-handle', full.profile.handle));
+  if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
+  header.appendChild(idBox);
+  const gear = el('button','store-gear','⚙');
+  gear.setAttribute('aria-label','Store settings');
+  gear.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
+  header.appendChild(gear);
+  host.appendChild(header);
+  if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
+  const visRow = el('div','store-vis-row');
+  const visChip = el('button','store-vis-chip', STORE_VIS_LABEL[full.profile.visibility] || 'Friends only');
+  visChip.setAttribute('aria-label','Change who can see your store — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));
+  visChip.addEventListener('click', ()=> cycleStoreVisibility(full.profile, host));
+  visRow.appendChild(visChip);
+  host.appendChild(visRow);
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', full.summary.records));
+  stats.appendChild(storeStat('Staff picks', full.summary.pins));
+  stats.appendChild(storeStat('Followers', full.summary.followers || 0, true));
+  stats.appendChild(storeStat('Digging', full.diggingCount || 0));
+  host.appendChild(stats);
+  if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
+  host.appendChild(storeNowSpinningCard(full, host));
+  host.appendChild(storePicksSection(full));
+  if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
+  host.appendChild(storeCrateGrid());
+}
+
+/* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
+
+let socialNav = [];
+
+function pushSocialScreen(screen){
+  socialNav.push(screen);
+  $('#socialNavOverlay').classList.add('open');
+  $('#socialNavOverlay').setAttribute('aria-hidden','false');
+  renderSocialNavTop();
+}
+function popSocialScreen(){
+  socialNav.pop();
+  if(!socialNav.length){ closeSocialNav(); return; }
+  renderSocialNavTop();
+}
+function closeSocialNav(){
+  socialNav = [];
+  $('#socialNavOverlay').classList.remove('open');
+  $('#socialNavOverlay').setAttribute('aria-hidden','true');
+}
+function renderSocialNavTop(){
+  const top = socialNav[socialNav.length - 1];
+  const body = $('#socialNavBody'); body.innerHTML = '';
+  if(top.type === 'friendStore'){
+    $('#socialNavTitle').textContent = top.handle;
+    loadAndRenderFriendStore(body, top.handle);
+  }
+}
+function openFriendStore(handle){
+  pushSocialScreen({type:'friendStore', handle: String(handle || '').replace(/^@/, '')});
+}
+
+async function loadAndRenderFriendStore(body, handle){
+  body.innerHTML = '';
+  body.appendChild(el('p','store-loading','Loading store…'));
+  const full = await MizikiSocial.loadProfile(handle);
+  if(!full.ok){ renderStoreError(body, full.error, ()=>loadAndRenderFriendStore(body, handle)); return; }
+  $('#socialNavTitle').textContent = full.profile.handle;
+  body.innerHTML = '';
+  if(!full.canView){ renderLockedFriendStore(body, full); return; }
+  renderFriendStoreContent(body, full);
+}
+
+function friendStoreHeader(full, extraBtn){
+  const header = el('div','store-header');
+  const avatar = el('div','store-avatar');
+  const label = el('div','store-avatar-label'); label.style.background = full.labelColor;
+  avatar.appendChild(label);
+  header.appendChild(avatar);
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('h2','store-handle', full.profile.handle));
+  if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
+  header.appendChild(idBox);
+  if(extraBtn) header.appendChild(extraBtn);
+  return header;
+}
+
+function renderLockedFriendStore(body, full){
+  body.appendChild(storeAwning());
+  body.appendChild(friendStoreHeader(full));
+  if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
+
+  const row = el('div','store-follow-row');
+  const pending = full.relationship.following === 'pending';
+  const btn = el('button','store-follow-btn' + (pending ? ' pending' : ''), pending ? 'Requested' : 'Request to follow');
+  if(pending) btn.disabled = true;
+  else btn.addEventListener('click', async ()=>{
+    btn.disabled = true; btn.textContent = 'Requesting…';
+    const r = await MizikiSocial.follow(full.profile.id);
+    if(r.ok && r.status === 'accepted'){ loadAndRenderFriendStore(body, full.profile.handle); return; }
+    btn.textContent = 'Requested'; btn.classList.add('pending');
+  });
+  row.appendChild(btn);
+  body.appendChild(row);
+
+  const card = el('div','store-locked-card');
+  card.appendChild(el('h3', null, 'Crate is friends-only'));
+  card.appendChild(el('p', null, 'Closed until ' + full.profile.handle + ' approves your request.'));
+  body.appendChild(card);
+  const grid = el('div','store-locked-grid');
+  for(let i = 0; i < 9; i++) grid.appendChild(el('div','store-locked-slot'));
+  body.appendChild(grid);
+  body.appendChild(el('p','store-locked-note','Nothing on the shelves until you’re in.'));
+}
+
+async function shareFriendStore(handle){
+  const text = 'Check out @' + handle + '’s record store on Miziki.';
+  if(navigator.share){ try{ await navigator.share({text}); } catch(e){ /* user cancelled */ } }
+  else if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); } catch(e){ /* best effort */ } }
+}
+
+function friendNowSpinningRow(full){
+  const card = el('div','store-card');
+  card.appendChild(el('div','store-card-count','♪'));
+  const text = el('div','store-card-text');
+  if(full.nowSpinning && full.nowSpinning.track_title){
+    const rel = full.nowSpinning.releases || {};
+    text.appendChild(el('b', null, full.nowSpinning.track_title));
+    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ')));
+    card.appendChild(text);
+    if(full.nowSpinning.started_at) card.appendChild(el('span','store-spin-ago',
+      timeAgoShort(Date.now() - new Date(full.nowSpinning.started_at).getTime())));
+  } else {
+    text.appendChild(el('b', null, 'Nothing spinning right now'));
+    card.appendChild(text);
+  }
+  return card;
+}
+
+function friendPicksSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Staff picks'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  full.staffPicks.forEach((p, i) => {
+    const tile = storePickTile(p);
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', ()=> openRecordSheet(full, p,
+      full.profile.handle.toUpperCase() + ' · STAFF PICK ' + (p.pin_rank || i + 1) + ' OF ' + full.staffPicks.length));
+    row.appendChild(tile);
+  });
+  section.appendChild(row);
+  if(full.staffPicks.length > 1){
+    const dots = el('div','store-picks-dots');
+    full.staffPicks.forEach((_, i) => dots.appendChild(el('span', i === 0 ? 'on' : null)));
+    section.appendChild(dots);
+    let raf = null;
+    row.addEventListener('scroll', ()=>{
+      if(raf) return;
+      raf = requestAnimationFrame(()=>{
+        raf = null;
+        const w = row.firstChild ? row.firstChild.getBoundingClientRect().width + 12 : 1;
+        const idx = Math.max(0, Math.min(full.staffPicks.length - 1, Math.round(row.scrollLeft / w)));
+        Array.from(dots.children).forEach((d, i) => d.classList.toggle('on', i === idx));
+      });
+    });
+  }
+  return section;
+}
+
+function friendFreshSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Fresh for you'));
+  section.appendChild(head);
+  full.fresh.forEach(item => {
+    const row = el('div','store-fresh-row');
+    const text = el('div','store-fresh-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    row.appendChild(text);
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'store-fresh-add' + (item.in_digging ? ' added' : '');
+    add.textContent = item.in_digging ? '✓' : '+';
+    if(item.in_digging) add.disabled = true;
+    add.setAttribute('aria-label','Add ' + item.title + ' to your digging list');
+    add.addEventListener('click', async e => {
+      e.stopPropagation();
+      add.disabled = true; add.classList.add('added'); add.textContent = '✓';
+      await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+    });
+    row.appendChild(add);
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · FRESH FOR YOU'));
+    section.appendChild(row);
+  });
+  return section;
+}
+
+function friendDiggingPreview(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Digging list'));
+  section.appendChild(head);
+  full.digging.forEach(item => {
+    const row = el('div','store-dig-row');
+    row.appendChild(el('div','store-dig-cover'));
+    const text = el('div','store-dig-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    row.appendChild(text);
+    if(!item.in_my_digging && !item.in_my_crate){
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'store-fresh-add'; add.textContent = '+';
+      add.setAttribute('aria-label','Add ' + item.title + ' to your digging list');
+      add.addEventListener('click', async ()=>{
+        add.disabled = true; add.classList.add('added'); add.textContent = '✓';
+        await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+      });
+      row.appendChild(add);
+    }
+    section.appendChild(row);
+  });
+  return section;
+}
+
+async function loadFriendCrate(full, holder, limit){
+  const r = await MizikiSocial.crate(full.profile.id, {offset: 0, limit});
+  holder.innerHTML = '';
+  if(!r.ok || !r.items.length){
+    holder.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return;
+  }
+  const letters = [];
+  const grid = el('div','store-crate-grid');
+  let lastLetter = null;
+  r.items.forEach(item => {
+    const letter = (item.artist || '#').trim().charAt(0).toUpperCase();
+    if(letter !== lastLetter){
+      lastLetter = letter;
+      letters.push(letter);
+      grid.appendChild(el('div','store-crate-letter-head', letter));
+    }
+    const cell = document.createElement('button');
+    cell.type = 'button'; cell.className = 'store-crate-cell';
+    const art = localAlbumArt(item.title, item.artist);
+    const cover = el('div','store-crate-cover');
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', item.title));
+    cell.appendChild(el('div','store-crate-artist', item.artist));
+    cell.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · CRATE'));
+    grid.appendChild(cell);
+  });
+  if(letters.length > 1){
+    const bar = el('div','store-letter-bar');
+    const heads = Array.from(grid.querySelectorAll('.store-crate-letter-head'));
+    letters.forEach(l => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'store-letter-btn'; b.textContent = l;
+      b.addEventListener('click', ()=>{
+        const target = heads.find(h => h.textContent === l);
+        if(target) target.scrollIntoView({block:'start'});
+      });
+      bar.appendChild(b);
+    });
+    holder.appendChild(bar);
+  }
+  holder.appendChild(grid);
+  if(r.items.length < full.summary.records && limit < full.summary.records){
+    const more = el('button','cta ghost','Browse all ' + full.summary.records + ' records');
+    more.style.cssText = 'width:100%;margin-top:14px;box-sizing:border-box';
+    more.addEventListener('click', ()=> loadFriendCrate(full, holder, Math.min(full.summary.records, 200)));
+    holder.appendChild(more);
+  }
+}
+
+function friendCrateSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Crate'));
+  section.appendChild(head);
+  const holder = el('div');
+  holder.appendChild(el('p','store-loading','Loading crate…'));
+  section.appendChild(holder);
+  loadFriendCrate(full, holder, 60);
+  return section;
+}
+
+function friendActivitySection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Recently at the counter'));
+  section.appendChild(head);
+  const holder = el('div');
+  holder.appendChild(el('p','store-loading','Loading…'));
+  section.appendChild(holder);
+  MizikiSocial.homeFeed({limit:50}).then(r => {
+    holder.innerHTML = '';
+    const mine = (r.ok ? r.events : []).filter(e => e.actor_id === full.profile.id).slice(0, 5);
+    if(!mine.length){ holder.appendChild(el('p','store-loading','Nothing recent.')); return; }
+    mine.forEach(e => holder.appendChild(el('div','store-activity-row', feedEventText(e))));
+  });
+  return section;
+}
+
+function renderFriendStoreContent(body, full){
+  body.appendChild(storeAwning());
+  const share = el('button','store-share-icon','↗');
+  share.setAttribute('aria-label','Share this store');
+  share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));
+  body.appendChild(friendStoreHeader(full, share));
+  if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
+
+  const row = el('div','store-follow-row');
+  const isFollowing = full.relationship.following === 'accepted';
+  const btn = el('button','store-follow-btn' + (isFollowing ? ' following' : ''), isFollowing ? 'Following' : 'Follow');
+  btn.addEventListener('click', async ()=>{
+    btn.disabled = true;
+    if(isFollowing) await MizikiSocial.unfollow(full.profile.id);
+    else await MizikiSocial.follow(full.profile.id);
+    loadAndRenderFriendStore(body, full.profile.handle);
+  });
+  row.appendChild(btn);
+  body.appendChild(row);
+
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', full.summary.records));
+  stats.appendChild(storeStat('Staff picks', full.summary.pins));
+  stats.appendChild(storeStat('In common', full.summary.in_common || 0, true));
+  body.appendChild(stats);
+
+  body.appendChild(friendNowSpinningRow(full));
+  if(full.staffPicks.length) body.appendChild(friendPicksSection(full));
+  if(full.fresh && full.fresh.length) body.appendChild(friendFreshSection(full));
+  if(full.diggingShared && full.digging.length) body.appendChild(friendDiggingPreview(full));
+  body.appendChild(friendCrateSection(full));
+  body.appendChild(friendActivitySection(full));
+}
+
+/* ---- record sheet (frame 04) ---- */
+function openRecordSheet(full, item, kicker){
+  $('#recordSheetKicker').textContent = kicker || full.profile.handle.toUpperCase();
+  renderRecordSheetBody(full, item);
+  $('#recordSheetOverlay').classList.add('open');
+  $('#recordSheetOverlay').setAttribute('aria-hidden','false');
+}
+function closeRecordSheet(){
+  $('#recordSheetOverlay').classList.remove('open');
+  $('#recordSheetOverlay').setAttribute('aria-hidden','true');
+}
+
+function renderRecordSheetBody(full, item){
+  const body = $('#recordSheetBody'); body.innerHTML = '';
+  const cover = el('div','record-cover');
+  const art = localAlbumArt(item.title, item.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  body.appendChild(cover);
+  body.appendChild(el('h3','record-title', item.title));
+  body.appendChild(el('p','record-artist', [item.artist, item.year].filter(Boolean).join(' · ')));
+  if(item.quality_tier){
+    const chips = el('div','record-chips');
+    chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[item.quality_tier] || ''));
+    body.appendChild(chips);
+  }
+  if(item.rating){
+    body.appendChild(el('div','record-rating-label', full.profile.handle + '’s rating'));
+    body.appendChild(el('div','record-stars', '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating)));
+  }
+  if(item.sleeve_note) body.appendChild(el('div','record-note', item.sleeve_note));
+  const owned = 'in_my_crate' in item ? item.in_my_crate : false;
+  const inDigging = 'in_my_digging' in item ? item.in_my_digging : false;
+  body.appendChild(el('p','record-owned', owned ? 'Already in your crate.' : 'Not in your crate yet.'));
+  const stack = el('div','stack social-stack');
+  if(!owned){
+    const addBtn = el('button','cta', inDigging ? 'In your digging list' : 'Add to digging list');
+    if(inDigging) addBtn.disabled = true;
+    addBtn.addEventListener('click', async ()=>{
+      addBtn.disabled = true; addBtn.textContent = 'Added to digging list';
+      await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+    });
+    stack.appendChild(addBtn);
+  }
+  const listen = el('button','cta ghost','Listen elsewhere ↗');
+  listen.addEventListener('click', ()=>{
+    const q = encodeURIComponent([item.artist, item.title].filter(Boolean).join(' '));
+    window.open('https://www.google.com/search?q=' + q, '_blank', 'noopener');
+  });
+  stack.appendChild(listen);
+  body.appendChild(stack);
+}
+
+/* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
+function feedEventText(e){
+  const title = e.title || 'a record';
+  if(e.type === 'added'){
+    const n = (e.payload && e.payload.count) || 1;
+    return n > 1 ? ('added ' + n + ' records') : ('added ' + title);
+  }
+  if(e.type === 'pinned') return 'pinned ' + title + ' to staff picks';
+  if(e.type === 'review'){
+    const p = e.payload || {};
+    if(p.rating) return 'rated ' + title + ' ' + '★'.repeat(p.rating);
+    return 'wrote a sleeve note on ' + title;
+  }
+  if(e.type === 'unlock') return 'unlocked a ' + ((e.payload && e.payload.variant) || 'rare') + ' pressing of ' + title;
+  return 'updated ' + title;
+}
+
+function groupFeedEvents(events){
+  const groups = [];
+  events.forEach(e => {
+    const last = groups[groups.length - 1];
+    if(last && last.actor_id === e.actor_id) last.events.push(e);
+    else groups.push({actor_id: e.actor_id, actor_handle: e.actor_handle, actor_name: e.actor_name, events: [e]});
+  });
+  return groups;
+}
+
+function homeFeedGroupCard(group){
+  const card = el('div','store-card');
+  card.style.cssText = 'flex-direction:column;align-items:stretch;cursor:pointer';
+  const head = el('div','store-card-text');
+  head.appendChild(el('b', null, group.actor_name || group.actor_handle));
+  head.style.marginBottom = '6px';
+  card.appendChild(head);
+  const shown = group.events.slice(0, 3);
+  shown.forEach(e => card.appendChild(el('div','store-activity-row', feedEventText(e))));
+  if(group.events.length > shown.length){
+    const more = el('div','store-activity-row', '+' + (group.events.length - shown.length) + ' more');
+    more.style.color = 'var(--accent)';
+    card.appendChild(more);
+  }
+  card.addEventListener('click', ()=> openFriendStore(group.actor_handle));
+  return card;
+}
+
+function homePeopleSearch(container){
+  const row = el('div','slider-row');
+  const input = el('input','pl-input');
+  input.type = 'search'; input.placeholder = 'Find people by handle';
+  input.setAttribute('aria-label','Find people by handle');
+  row.appendChild(input);
+  container.appendChild(row);
+  const results = el('div');
+  container.appendChild(results);
+  let seq = 0, timer = null;
+  input.addEventListener('input', ()=>{
+    clearTimeout(timer);
+    const q = input.value.trim();
+    timer = setTimeout(async ()=>{
+      results.innerHTML = '';
+      if(q.length < 2) return;
+      const mySeq = ++seq;
+      const r = await MizikiSocial.searchProfiles(q);
+      if(mySeq !== seq || !r.ok) return;
+      r.profiles.forEach(p => {
+        const btn = el('button','store-card-btn store-card');
+        const count = el('div','store-card-count');
+        count.style.background = MizikiSocial.labelColor(p.handle);
+        btn.appendChild(count);
+        const text = el('div','store-card-text');
+        text.appendChild(el('b', null, p.display_name || p.handle));
+        text.appendChild(el('em', null, p.handle));
+        btn.appendChild(text);
+        btn.addEventListener('click', ()=> openFriendStore(p.handle));
+        results.appendChild(btn);
+      });
+    }, 300);
+  });
+}
+
+const homeSpinState = new Map();
+let homeSpinUnsub = null;
+let homeFollowingHandles = new Map();
+
+function homeNowSpinningRow(container){
+  const section = el('div');
+  section.id = 'homeSpinSection';
+  section.style.display = 'none';
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Now spinning'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  row.id = 'homeSpinRow';
+  section.appendChild(row);
+  container.appendChild(section);
+  paintHomeSpinRow();
+  if(homeSpinUnsub) homeSpinUnsub();
+  homeSpinUnsub = MizikiSocial.subscribeNowSpinning(evt => {
+    if(evt.type === 'stopped') homeSpinState.delete(evt.userId);
+    else homeSpinState.set(evt.userId, evt);
+    paintHomeSpinRow();
+  });
+}
+function paintHomeSpinRow(){
+  const section = $('#homeSpinSection'); if(!section) return;
+  const row = $('#homeSpinRow'); row.innerHTML = '';
+  const entries = [...homeSpinState.values()];
+  section.style.display = entries.length ? '' : 'none';
+  entries.forEach(evt => {
+    const tile = el('div','store-pick');
+    const cover = el('div','store-pick-cover');
+    cover.style.cssText += 'display:flex;align-items:center;justify-content:center;font-family:var(--data);font-size:11px;color:var(--accent)';
+    cover.textContent = '♪ SPINNING';
+    tile.appendChild(cover);
+    const note = el('div','store-pick-note');
+    note.appendChild(el('div','store-pick-name', (evt.release && evt.release.title) || evt.track || 'Now spinning'));
+    note.appendChild(el('div', null, (evt.release && evt.release.artist) || ''));
+    tile.appendChild(note);
+    const handle = homeFollowingHandles.get(evt.userId);
+    if(handle){
+      tile.style.cursor = 'pointer';
+      tile.addEventListener('click', ()=> openFriendStore(handle));
+    }
+    row.appendChild(tile);
+  });
+}
+
+async function renderHome(){
+  const container = $('#homeBody');
+  container.innerHTML = '';
+  const status = MizikiSocial.status();
+  if(status.auth !== 'ready'){
+    renderOpenStoreCard(container, status.auth);
+    return;
+  }
+  homePeopleSearch(container);
+
+  const [reqs, following] = await Promise.all([MizikiSocial.listRequests(), MizikiSocial.listFollowing()]);
+  if(reqs.ok && reqs.requests.length){
+    container.appendChild(storeRequestsCard(reqs.requests, renderHome));
+  }
+  homeFollowingHandles = new Map();
+  if(following.ok) following.following.forEach(f => {
+    if(f.status === 'accepted' && f.profiles) homeFollowingHandles.set(f.followee_id, f.profiles.handle);
+  });
+
+  homeNowSpinningRow(container);
+
+  const feedSection = el('div','store-section');
+  feedSection.appendChild(el('div','store-section-head')).appendChild(el('h2', null, 'Activity'));
+  const feedHolder = el('div');
+  feedHolder.appendChild(el('p','store-loading','Loading…'));
+  feedSection.appendChild(feedHolder);
+  container.appendChild(feedSection);
+  const feed = await MizikiSocial.homeFeed({limit:50});
+  feedHolder.innerHTML = '';
+  if(!feed.ok || !feed.events.length){
+    feedHolder.appendChild(el('p','store-loading','Nothing yet — follow some friends to see what they’re up to.'));
+    return;
+  }
+  groupFeedEvents(feed.events).forEach(g => feedHolder.appendChild(homeFeedGroupCard(g)));
+}
+
+/* ================= Social Step E: demo mode (?social=demo, dev only) =================
+   Local ratings/notes/pins/settings (setRating, pin, getAlbumSocial, getSettings, ...)
+   already work with no server at all -- they only ever touch X.state, never guarded()
+   or the network. So this doesn't reimplement the whole client: it leaves MizikiSocial.init()
+   running in its normal inert mode (no url/anonKey, local engine still loads/saves via
+   IndexedDB) and monkey-patches only the server-shaped calls (auth, profiles, follows,
+   reading someone else's crate/feed/digging, now-spinning) with in-memory fixtures. This
+   is reachable only behind the query flag below and is never wired into a real build. */
+function installSocialDemo(){
+  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
+  const me = { handle:'', display_name:'', bio:'', visibility:'friends', show_digging_list:true };
+  let auth = 'signedOut';
+  const settings = { shareNowSpinning:false, shareMilestones:false, syncEnabled:true };
+  const followState = new Map([['june','accepted'], ['mateo','none'], ['amy','pending'], ['nora','accepted'], ['theo','accepted']]);
+  let incomingRequests = [{follower_id:'zed', created_at:new Date().toISOString(), profiles:{handle:'zed', display_name:'Zed'}}];
+  const takenHandles = ['june','mateo','amy','nora','theo','zed'];
+  const longWords = n => Array(n).fill('word').join(' ');
+
+  const juneArtists = ['John Coltrane','Miles Davis','Herbie Hancock','Wayne Shorter','Art Blakey','Nina Simone','Pharoah Sanders','Alice Coltrane','McCoy Tyner','Sun Ra'];
+  const juneCrate = [];
+  for(let i = 0; i < 420; i++){
+    const artist = juneArtists[i % juneArtists.length];
+    juneCrate.push({release_id:'june-r' + i, title: artist + ' Session ' + i, artist, year: 1960 + (i % 40),
+      quality_tier: 1 + (i % 3), rating: i % 7 === 0 ? 1 + (i % 5) : null, sleeve_note: null, pin_rank: null});
+  }
+  juneCrate.sort((a, b) => a.artist.localeCompare(b.artist));
+
+  const FRIENDS = {
+    june: {
+      profile: {id:'june', handle:'june', display_name:'June Okafor', bio:'Jazz & soul digger. Mostly vinyl, some cassette.', visibility:'public', show_digging_list:true},
+      staffPicks: [
+        {release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', quality_tier:3, rating:5, sleeve_note:'Side A on repeat this whole month, genuinely cannot stop.', pin_rank:1},
+        {release_id:'june-r1', title:'A Supremely Long Album Title That Should Wrap Onto Several Lines Without Ever Breaking The Layout', artist:'An Artist With An Unusually Long Name, For Testing Purposes Only', quality_tier:2, rating:4, sleeve_note: longWords(30), pin_rank:2},
+        {release_id:'june-r2', title:'Head Hunters', artist:'Herbie Hancock', quality_tier:2, rating:4, sleeve_note:null, pin_rank:3}
+      ],
+      crate: juneCrate,
+      fresh: [
+        {release_id:'june-f1', title:'Maiden Voyage', artist:'Herbie Hancock', rating:5, quality_tier:2, in_digging:false},
+        {release_id:'june-f2', title:'The Köln Concert', artist:'Keith Jarrett', rating:4, quality_tier:3, in_digging:false}
+      ],
+      digging: [{release_id:'june-d1', title:'Water from an Ancient Well', artist:'Randy Weston', in_my_digging:false, in_my_crate:false}],
+      nowSpinning: null
+    },
+    mateo: {
+      profile: {id:'mateo', handle:'mateo', display_name:'Mateo', bio:'Vinyl hoarder, no apologies.', visibility:'friends', show_digging_list:true},
+      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+    },
+    amy: {
+      profile: {id:'amy', handle:'amy', display_name:'Amy', bio:'New to collecting, loving it so far.', visibility:'friends', show_digging_list:true},
+      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+    },
+    nora: {
+      // empty state: public (so it's viewable), but nothing in it yet
+      profile: {id:'nora', handle:'nora', display_name:'Nora', bio:'', visibility:'public', show_digging_list:true},
+      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+    },
+    theo: {
+      // digging list off: section should be absent entirely, not just empty
+      profile: {id:'theo', handle:'theo', display_name:'Theo', bio:'Keeps the digging list to myself.', visibility:'public', show_digging_list:false},
+      staffPicks: [{release_id:'theo-r0', title:'Moon Rock', artist:'Com Truise', quality_tier:2, rating:4, sleeve_note:null, pin_rank:1}],
+      crate: [{release_id:'theo-r0', title:'Moon Rock', artist:'Com Truise', year:2015, quality_tier:2, rating:4, sleeve_note:null, pin_rank:1}],
+      fresh: [], digging: [], nowSpinning: null
+    }
+  };
+  function friendByHandle(h){ return FRIENDS[h]; }
+  function friendById(id){ return Object.values(FRIENDS).find(f => f.profile.id === id); }
+  function relationshipFor(handle){ return {following: followState.get(handle) || 'none', followsYou: handle === 'june'}; }
+
+  MizikiSocial.status = () => ({enabled:true, auth, sync:'idle', pendingRemovals:0,
+    skipped:{noArtist:0, collisions:0}, lastSyncedAt: auth === 'ready' ? Date.now() - 60000 : null, lastError:null});
+  MizikiSocial.getSettings = () => ({...settings});
+  MizikiSocial.setSetting = (k, v) => { settings[k] = !!v; return true; };
+
+  MizikiSocial.sendCode = async () => ({ok:true});
+  MizikiSocial.verifyCode = async (email, code) => {
+    if(String(code || '').trim() !== '123456')
+      return {ok:false, error:{code:'bad_code', message:'Enter the code from the email (demo code is 123456).', retryable:false}};
+    auth = me.handle ? 'ready' : 'needsProfile';
+    return {ok:true, status: MizikiSocial.status()};
+  };
+  MizikiSocial.checkHandle = async h => {
+    if(!/^[a-z0-9_]{3,24}$/.test(h)) return {ok:true, available:false, reason:'format'};
+    return {ok:true, available: !takenHandles.includes(h)};
+  };
+  MizikiSocial.createProfile = async ({handle, displayName}) => {
+    me.handle = handle; me.display_name = displayName || null; auth = 'ready';
+    return {ok:true, profile:{...me, id:'me'}};
+  };
+  MizikiSocial.updateProfile = async patch => {
+    if('displayName' in patch) me.display_name = patch.displayName;
+    if('bio' in patch) me.bio = patch.bio;
+    if('visibility' in patch) me.visibility = patch.visibility;
+    if('showDiggingList' in patch) me.show_digging_list = patch.showDiggingList;
+    return {ok:true, profile:{...me, id:'me'}};
+  };
+  MizikiSocial.getMyProfile = async () => ({ok:true, profile: me.handle ? {...me, id:'me'} : null});
+  MizikiSocial.signOut = async () => { auth = 'signedOut'; return {ok:true}; };
+
+  MizikiSocial.loadProfile = async handleRaw => {
+    const handle = String(handleRaw || '').replace(/^@/, '').toLowerCase();
+    if(handle === me.handle){
+      const pins = MizikiSocial.getPins();
+      return {
+        ok:true, profile:{...me, id:'me'}, relationship:{following:'self', followsYou:false}, isMe:true, canView:true,
+        labelColor: MizikiSocial.labelColor('me:' + me.handle),
+        summary: {records: groupBy('album').length, pins: pins.length, in_common:0,
+          followers:2, following:[...followState.values()].filter(s => s === 'accepted').length},
+        staffPicks: pins.map(albumId => {
+          const info = adapter.albumInfo(albumId); if(!info) return null;
+          const social = MizikiSocial.getAlbumSocial(albumId);
+          return {release_id: albumId, title: info.title, artist: info.artist, quality_tier: info.tier,
+            rating: social.rating, sleeve_note: social.note, pin_rank: social.pinRank};
+        }).filter(Boolean),
+        nowSpinning: null, fresh: [], diggingShared: me.show_digging_list !== false, digging: [], diggingCount: 0
+      };
+    }
+    if(handle === 'offline') return {ok:false, error:{code:'offline', message:'You appear to be offline.', retryable:true}};
+    if(handle === 'broken') return {ok:false, error:{code:'error', message:'Something went wrong loading this store.', retryable:false}};
+    if(handle === 'ghost') return {ok:false, error:{code:'not_found', message:'No such store.', retryable:false}};
+    const f = friendByHandle(handle);
+    if(!f) return {ok:false, error:{code:'not_found', message:'No such store.', retryable:false}};
+    const rel = relationshipFor(handle);
+    const canView = f.profile.visibility === 'public' || rel.following === 'accepted';
+    const out = {ok:true, profile:f.profile, relationship:rel, isMe:false, canView, labelColor: MizikiSocial.labelColor(f.profile.handle)};
+    if(!canView) return out;
+    out.summary = {records: f.crate.length, pins: f.staffPicks.length, in_common: Math.min(f.crate.length, 7)};
+    out.staffPicks = f.staffPicks;
+    out.nowSpinning = f.nowSpinning;
+    out.fresh = f.fresh;
+    out.diggingShared = f.profile.show_digging_list !== false;
+    out.digging = out.diggingShared ? f.digging : [];
+    out.diggingCount = out.digging.length;
+    return out;
+  };
+
+  MizikiSocial.crate = async (userId, opts) => {
+    const f = friendById(userId); if(!f) return {ok:true, items:[]};
+    const offset = (opts && opts.offset) || 0, limit = (opts && opts.limit) || 60;
+    return {ok:true, items: f.crate.slice(offset, offset + limit)};
+  };
+  MizikiSocial.inCommon = async () => ({ok:true, items:[]});
+  MizikiSocial.addToDigging = async (releaseId, sourceUserId) => {
+    const f = friendById(sourceUserId);
+    if(f){
+      const item = [...f.crate, ...f.digging, ...f.fresh, ...f.staffPicks].find(x => x.release_id === releaseId);
+      if(item) item.in_digging = true;
+    }
+    return {ok:true};
+  };
+  MizikiSocial.removeFromDigging = async () => ({ok:true});
+  MizikiSocial.listDigging = async () => ({ok:true, items:[]});
+  MizikiSocial.diggingOf = async () => ({ok:true, items:[]});
+
+  MizikiSocial.searchProfiles = async q => {
+    const t = String(q || '').trim().toLowerCase().replace(/^@/, '');
+    if(t.length < 2) return {ok:true, profiles:[]};
+    return {ok:true, profiles: Object.values(FRIENDS).map(f => f.profile).filter(p => p.handle.startsWith(t))
+      .map(p => ({id:p.id, handle:p.handle, display_name:p.display_name, visibility:p.visibility}))};
+  };
+  MizikiSocial.follow = async userId => {
+    const f = friendById(userId); if(!f) return {ok:true, status:'exists'};
+    const status = f.profile.visibility === 'public' ? 'accepted' : 'pending';
+    followState.set(f.profile.handle, status);
+    return {ok:true, status};
+  };
+  MizikiSocial.unfollow = async userId => {
+    const f = friendById(userId); if(f) followState.set(f.profile.handle, 'none');
+    return {ok:true};
+  };
+  MizikiSocial.respondToRequest = async followerId => {
+    incomingRequests = incomingRequests.filter(r => r.follower_id !== followerId);
+    return {ok:true};
+  };
+  MizikiSocial.removeFollower = id => MizikiSocial.respondToRequest(id);
+  MizikiSocial.listRequests = async () => ({ok:true, requests: incomingRequests});
+  MizikiSocial.listFollowing = async () => ({ok:true, following: [...followState.entries()].map(([handle, status]) => ({
+    followee_id: FRIENDS[handle].profile.id, status, profiles: {handle, display_name: FRIENDS[handle].profile.display_name}}))});
+  MizikiSocial.block = async () => ({ok:true});
+  MizikiSocial.unblock = async () => ({ok:true});
+  MizikiSocial.report = async () => ({ok:true});
+
+  MizikiSocial.subscribeNowSpinning = cb => {
+    const timer = setTimeout(()=> cb({type:'spinning', userId:'june', track:'So What',
+      expiresAt: new Date(Date.now() + 600000).toISOString(),
+      release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}}), 2500);
+    return () => clearTimeout(timer);
+  };
+  MizikiSocial.homeFeed = async () => ({ok:true, events: [
+    {id:1, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'pinned', release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', payload:{}, created_at:new Date(Date.now() - 3600e3).toISOString()},
+    {id:2, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'review', release_id:'june-r2', title:'Head Hunters', artist:'Herbie Hancock', payload:{rating:4}, created_at:new Date(Date.now() - 3700e3).toISOString()},
+    {id:3, actor_id:'theo', actor_handle:'theo', actor_name:'Theo', type:'added', release_id:null, title:null, artist:null, payload:{count:5}, created_at:new Date(Date.now() - 7200e3).toISOString()},
+    {id:4, actor_id:'nora', actor_handle:'nora', actor_name:'Nora', type:'unlock', release_id:'nora-r0', title:'Some Record', artist:'Some Artist', payload:{variant:'splatter'}, created_at:new Date(Date.now() - 10000e3).toISOString()}
+  ]});
+
+  MizikiSocial.syncNow = async () => ({ok:true, pushed:0, removed:0, held:0, stats:0, firstSync:false});
+  MizikiSocial.confirmRemovals = async () => ({ok:true});
+  MizikiSocial.nowSpinning = () => {};
+  MizikiSocial.nowSpinningPaused = () => {};
+  MizikiSocial.stopSpinning = () => {};
+
+  $('#homeTabBtn').style.display = '';
+  console.info('[Miziki] social demo mode active — fixture data only, for UI development.');
+}
+
 function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection'};
+  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Settings'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
     crumb.innerHTML = '';
@@ -8605,11 +11132,13 @@ function renderProfile(){
   if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
+  else if(screen === 'socialSettings') renderSocialSettingsScreen(body);
   else renderProfileHome(body);
   refreshLibraryTools();
 }
 
 function renderProfileHome(body){
+  renderStorefrontSection(body);
   const header = el('div','profile-header');
   const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change profile picture');
   if(S.profile.art) picBtn.classList.add('has-art');
@@ -9625,6 +12154,10 @@ function isAddMenuOpen(){
 }
 
 function showRoute(name){
+  // the gatefold is a library-only view (opened from the crate); it must
+  // never persist over another tab's content since it's a fixed full-screen
+  // overlay that would otherwise hide whatever route is switched to
+  if(name !== 'library' && GF) closeGatefoldInstant();
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
   $('#appHeader').classList.toggle('no-border', name === 'library');
@@ -9636,6 +12169,7 @@ function showRoute(name){
     $('#libToolsToggle').setAttribute('aria-expanded', 'false');
     renderProfile();
   }
+  if(name === 'home') renderHome();
 }
 
 /* ================= wiring ================= */
@@ -9935,6 +12469,9 @@ function showRoute(name){
   $('#editCurrentBtn').addEventListener('click', ()=>{ const t = current(); if(t) openEditSheet([t.id]); });
   $('#trackInfoBtn').addEventListener('click', ()=>{ const t = current(); if(t) openCreditsSheet(t); });
   $('#creditsClose').addEventListener('click', closeCreditsSheet);
+  $('#socialAuthClose').addEventListener('click', closeSocialAuth);
+  $('#socialNavBack').addEventListener('click', popSocialScreen);
+  $('#recordSheetClose').addEventListener('click', closeRecordSheet);
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
   $('#miniFavBtn').addEventListener('click', e => { e.stopPropagation(); const t = current(); if(t) toggleFavorite(t.id); });
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
@@ -10112,6 +12649,12 @@ async function restoreLibrary(){
   } else {
     note.textContent = 'Your library will be kept on this device. Add it to your Home Screen so iOS does not clear it.';
   }
+  await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
+    env: { S, DB, albumKey, trackTier, albumMetalFor } });
+  MizikiSocial.libraryLoaded();
+  $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';
+  MizikiSocial.on('status', s => { $('#homeTabBtn').style.display = s.enabled ? '' : 'none'; });
+  if(new URLSearchParams(location.search).get('social') === 'demo') installSocialDemo();
 }
 </script>
 </body>
