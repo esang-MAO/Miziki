@@ -747,14 +747,23 @@
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
     const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
     if (!canView) return out;
-    const [summary, picks, spinning, fresh] = await Promise.all([
+    const [summary, picks, spinning, fresh, follows] = await Promise.all([
       rpc('profile_summary', { p_user: profile.id }),
       rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
       q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, releases(title, artist)')
         .eq('user_id', profile.id).gt('expires_at', new Date().toISOString()).maybeSingle()),
-      isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 })
+      isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 }),
+      // follower/following counts only make sense (and are only visible under
+      // RLS) for your own storefront — frame 02's friend store shows
+      // Records/Staff picks/In common instead, no followers count at all
+      isMe ? rpc('my_follow_counts') : Promise.resolve(null)
     ]);
     out.summary = (summary && summary[0]) || { records: 0, pins: 0, in_common: 0 };
+    if (isMe) {
+      const f = (follows && follows[0]) || { followers: 0, following: 0 };
+      out.summary.followers = f.followers || 0;
+      out.summary.following = f.following || 0;
+    }
     out.staffPicks = picks || [];
     out.nowSpinning = spinning || null;
     out.fresh = fresh || [];

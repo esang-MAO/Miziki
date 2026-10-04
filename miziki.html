@@ -821,6 +821,106 @@ input[type=file]{display:none}
 .profile-share{width:100%;margin-top:28px;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
 .profile-share.active{color:var(--accent);border-color:var(--accent)}
 
+/* ---------- storefront (Part: social layer §B) ----------
+   Keeps the sticker/awning/record motifs from the design frames, restyled
+   to Miziki's own tokens: cream sticker -> --paper, amber accents ->
+   --accent, ground -> --sky2/--line. */
+.store-open-card{border:1px dashed var(--line);border-radius:8px;padding:20px;text-align:center;margin-bottom:24px}
+.store-open-card h3{font-family:var(--display);font-size:19px;margin:0 0 8px}
+.store-open-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 16px}
+.store-open-card .cta{width:100%}
+
+.store-loading,.store-error{font-size:13px;color:var(--muted);padding:16px 0}
+.store-error button{margin-top:10px}
+
+.store-awning{display:flex;margin:0 0 16px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.store-awning > div{flex:1;height:22px;border-radius:0 0 22px 22px}
+.store-awning > div:nth-child(odd){background:var(--accent)}
+.store-awning > div:nth-child(even){background:var(--paper)}
+
+.store-header{display:flex;align-items:center;gap:16px}
+.store-avatar{width:80px;height:80px;border-radius:50%;flex:none;position:relative;
+  background:repeating-radial-gradient(circle at 50% 50%,#0B0908 0px,#0B0908 2px,#17140F 2px,#17140F 3px);
+  box-shadow:0 8px 18px rgba(0,0,0,.45)}
+.store-avatar::before{content:'';position:absolute;inset:0;border-radius:50%;
+  background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.14) 38%,rgba(255,255,255,0) 46%)}
+.store-avatar-label{position:absolute;left:32%;top:32%;width:36%;height:36%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
+.store-id{display:flex;flex-direction:column;gap:5px;min-width:0}
+.store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-displayname{font-size:13px;color:var(--muted)}
+.store-bio{font-size:14px;line-height:1.45;color:var(--paper);margin:14px 0 0;white-space:pre-wrap}
+
+.store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
+.store-vis-chip{min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--line);
+  background:none;color:var(--paper);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.store-vis-link{font-family:var(--data);font-size:11.5px;color:var(--muted);background:none;border:0;min-height:44px}
+
+.store-stats{display:flex;margin:18px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.store-stat{flex:1;padding:12px 0;display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line);min-width:0}
+.store-stat:first-child{border-left:0}
+.store-stat b{font-size:20px;font-weight:700;font-family:var(--body)}
+.store-stat span{font-family:var(--data);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.store-stat.accent b{color:var(--accent)}
+
+.store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+.store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--paper);color:#1A1410;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.store-card-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-card-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-card-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-chev{color:var(--muted);font-size:17px;flex:none}
+.store-card-btn{background:none;border:0;padding:0;display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:inherit}
+
+.store-switch{width:44px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.store-switch-track{width:46px;height:28px;border-radius:14px;background:var(--line);position:relative}
+.store-switch[aria-checked="true"] .store-switch-track{background:var(--accent)}
+.store-switch-track i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#14110F;transition:left .15s;display:block}
+.store-switch[aria-checked="true"] .store-switch-track i{left:21px}
+
+.store-section-head{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 0}
+.store-section-head h2{margin:0;font-family:var(--display);font-size:19px}
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:11px;color:var(--accent);
+  letter-spacing:.06em;padding:12px 0 12px 12px;min-height:44px}
+
+.store-picks-row{display:flex;gap:12px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:none}
+.store-picks-row::-webkit-scrollbar{display:none}
+.store-pick{flex:none;width:164px;display:flex;flex-direction:column;gap:8px}
+.store-pick-cover{width:164px;height:164px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
+.store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
+  font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent)}
+.store-pick-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:4px;padding:8px 10px;
+  font-size:12px;line-height:1.35;display:flex;flex-direction:column;gap:4px}
+.store-pick-stars{font-size:13px;letter-spacing:1.5px;color:#B8641A}
+.store-pick-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-pick-empty{flex:none;width:164px;height:164px;border-radius:7px;border:1.5px dashed var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);background:var(--panel);font-size:12.5px}
+
+.store-dig-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.store-dig-cover{width:56px;height:56px;border-radius:5px;flex:none;background:var(--panel);object-fit:cover}
+.store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-dig-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-dig-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-dig-text small{font-family:var(--data);font-size:10.5px;color:var(--accent)}
+.store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);background:var(--accent);
+  color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
+
+.store-crate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-top:12px}
+.store-crate-cover{width:100%;aspect-ratio:1;border-radius:5px;background:var(--panel);overflow:hidden}
+.store-crate-cover img{width:100%;height:100%;object-fit:cover}
+.store-crate-name{font-size:12px;font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-crate-artist{font-family:var(--data);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-requests-wrap{margin-top:14px}
+.store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px 4px}
+.store-requests-list .store-dig-row:last-child{border-bottom:0}
+
+.store-legacy-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:30px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
+
 .share-overlay{position:fixed;inset:0;z-index:130;background:rgba(5,7,9,.78);
   display:none;align-items:flex-end;justify-content:center}
 .share-overlay.open{display:flex}
@@ -2344,14 +2444,23 @@ input[type=file]{display:none}
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
     const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
     if (!canView) return out;
-    const [summary, picks, spinning, fresh] = await Promise.all([
+    const [summary, picks, spinning, fresh, follows] = await Promise.all([
       rpc('profile_summary', { p_user: profile.id }),
       rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
       q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, releases(title, artist)')
         .eq('user_id', profile.id).gt('expires_at', new Date().toISOString()).maybeSingle()),
-      isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 })
+      isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 }),
+      // follower/following counts only make sense (and are only visible under
+      // RLS) for your own storefront — frame 02's friend store shows
+      // Records/Staff picks/In common instead, no followers count at all
+      isMe ? rpc('my_follow_counts') : Promise.resolve(null)
     ]);
     out.summary = (summary && summary[0]) || { records: 0, pins: 0, in_common: 0 };
+    if (isMe) {
+      const f = (follows && follows[0]) || { followers: 0, following: 0 };
+      out.summary.followers = f.followers || 0;
+      out.summary.following = f.following || 0;
+    }
     out.staffPicks = picks || [];
     out.nowSpinning = spinning || null;
     out.fresh = fresh || [];
@@ -9604,6 +9713,291 @@ function collectionBadge(rec){
   return cell;
 }
 
+const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
+const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
+
+// Step C wires the actual email -> code -> handle flow; until then the
+// storefront's entry card is present (per frame 01) but inert.
+function beginSocialSignIn(){ /* no-op until Social Step C */ }
+
+function renderStorefrontSection(body){
+  const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
+  if(!soc.enabled) return;
+  const host = el('div','store-host');
+  body.appendChild(host);
+  body.appendChild(el('div','store-legacy-head','YOUR LIBRARY'));
+  if(soc.auth === 'ready') loadAndRenderStorefront(host);
+  else renderOpenStoreCard(host, soc.auth);
+}
+
+function renderOpenStoreCard(host, authState){
+  host.innerHTML = '';
+  const needsProfile = authState === 'needsProfile';
+  const card = el('div','store-open-card');
+  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your store' : 'Open your store'));
+  card.appendChild(el('p', null, needsProfile
+    ? 'Pick a handle to start your storefront — friends will find you there.'
+    : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
+  const btn = el('button','cta', needsProfile ? 'Finish setup' : 'Sign in');
+  btn.addEventListener('click', beginSocialSignIn);
+  card.appendChild(btn);
+  host.appendChild(card);
+}
+
+function renderStoreError(host, error, retry){
+  host.innerHTML = '';
+  const wrap = el('div','store-error');
+  const offline = error && error.code === 'offline';
+  wrap.appendChild(el('p', null, offline
+    ? "You're offline — your store will load when you're back."
+    : "Couldn't load your store."));
+  const btn = el('button','cta ghost','Try again');
+  btn.addEventListener('click', retry);
+  wrap.appendChild(btn);
+  host.appendChild(wrap);
+}
+
+async function loadAndRenderStorefront(host){
+  host.innerHTML = '';
+  host.appendChild(el('div','store-loading','Loading your store…'));
+  const me = await MizikiSocial.getMyProfile();
+  if(!me.ok){ renderStoreError(host, me.error, ()=>loadAndRenderStorefront(host)); return; }
+  if(!me.profile){ renderOpenStoreCard(host, 'needsProfile'); return; }
+  const [full, reqs] = await Promise.all([
+    MizikiSocial.loadProfile(me.profile.handle),
+    MizikiSocial.listRequests()
+  ]);
+  if(!full.ok){ renderStoreError(host, full.error, ()=>loadAndRenderStorefront(host)); return; }
+  renderStorefront(host, full, (reqs.ok && reqs.requests) || []);
+}
+
+function storeAwning(){
+  const awning = el('div','store-awning');
+  for(let i = 0; i < 10; i++) awning.appendChild(el('div'));
+  return awning;
+}
+
+function storeSwitch(label, checked, onToggle){
+  const sw = document.createElement('button');
+  sw.type = 'button'; sw.className = 'store-switch'; sw.setAttribute('role','switch');
+  sw.setAttribute('aria-label', label);
+  sw.setAttribute('aria-checked', String(!!checked));
+  const track = el('div','store-switch-track');
+  track.appendChild(document.createElement('i'));
+  sw.appendChild(track);
+  sw.addEventListener('click', ()=>{
+    const on = sw.getAttribute('aria-checked') !== 'true';
+    sw.setAttribute('aria-checked', String(on));
+    onToggle(on);
+  });
+  return sw;
+}
+
+function storeStat(label, value, accent){
+  const s = el('div','store-stat' + (accent ? ' accent' : ''));
+  s.appendChild(el('b', null, String(value)));
+  s.appendChild(el('span', null, label));
+  return s;
+}
+
+async function cycleStoreVisibility(profile, host){
+  const order = ['private','friends','public'];
+  const next = order[(order.indexOf(profile.visibility) + 1) % order.length];
+  const r = await MizikiSocial.updateProfile({visibility: next});
+  if(r.ok) loadAndRenderStorefront(host);
+}
+
+function storeRequestsCard(requests, host){
+  const wrap = el('div','store-requests-wrap');
+  const card = el('button','store-card store-card-btn');
+  card.appendChild(el('div','store-card-count', String(requests.length)));
+  const text = el('div','store-card-text');
+  text.appendChild(el('b', null, requests.length === 1 ? '1 person wants to browse' : requests.length + ' people want to browse'));
+  text.appendChild(el('em', null, 'Review follow requests'));
+  card.appendChild(text);
+  card.appendChild(el('span','store-chev','›'));
+  const list = el('div','store-requests-list');
+  list.style.display = 'none';
+  card.setAttribute('aria-expanded','false');
+  card.addEventListener('click', ()=>{
+    const open = list.style.display === 'none';
+    list.style.display = open ? 'block' : 'none';
+    card.setAttribute('aria-expanded', String(open));
+  });
+  requests.forEach(r => {
+    const prof = r.profiles || {};
+    const row = el('div','store-dig-row store-request-row');
+    const rtext = el('div','store-dig-text');
+    rtext.appendChild(el('b', null, prof.display_name || prof.handle || 'Someone'));
+    if(prof.handle) rtext.appendChild(el('em', null, prof.handle));
+    row.appendChild(rtext);
+    const accept = document.createElement('button');
+    accept.type = 'button'; accept.className = 'store-dig-remove'; accept.textContent = '✓';
+    accept.setAttribute('aria-label','Accept follow request from ' + (prof.handle || 'this person'));
+    accept.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, true); loadAndRenderStorefront(host); });
+    row.appendChild(accept);
+    const decline = document.createElement('button');
+    decline.type = 'button'; decline.className = 'store-dig-remove'; decline.textContent = '✕';
+    decline.setAttribute('aria-label','Decline follow request from ' + (prof.handle || 'this person'));
+    decline.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, false); loadAndRenderStorefront(host); });
+    row.appendChild(decline);
+    list.appendChild(row);
+  });
+  wrap.appendChild(card);
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function storeNowSpinningCard(full, host){
+  const settings = MizikiSocial.getSettings();
+  const card = el('div','store-card');
+  const count = el('div','store-card-count','♪');
+  card.appendChild(count);
+  const text = el('div','store-card-text');
+  if(full.nowSpinning && full.nowSpinning.track_title){
+    const rel = full.nowSpinning.releases || {};
+    text.appendChild(el('b', null, full.nowSpinning.track_title));
+    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ') || 'Now spinning'));
+  } else {
+    text.appendChild(el('b', null, 'Nothing spinning right now'));
+    text.appendChild(el('em', null, 'Shows here while you listen'));
+  }
+  card.appendChild(text);
+  card.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
+    on => MizikiSocial.setSetting('shareNowSpinning', on)));
+  return card;
+}
+
+// Staff picks are always the viewer's own records when isMe, so the art
+// already sits in the local library even though it never synced to the
+// server (art/audio/filenames never leave the device, per the social spec).
+function localAlbumArt(title, artist){
+  const ta = normKey(title), aa = normKey(artist);
+  const t = S.tracks.find(x => normKey(x.tags.album) === ta && normKey(x.tags.albumArtist || x.tags.artist) === aa);
+  return t ? t.art : null;
+}
+
+function storePickTile(pick){
+  const tile = el('div','store-pick');
+  const cover = el('div','store-pick-cover');
+  const art = localAlbumArt(pick.title, pick.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  cover.appendChild(el('span','store-pick-tier', STORE_TIER_LABEL[pick.quality_tier] || ''));
+  tile.appendChild(cover);
+  const note = el('div','store-pick-note');
+  note.appendChild(el('div','store-pick-stars', pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : ''));
+  note.appendChild(el('div','store-pick-name', pick.title));
+  if(pick.sleeve_note) note.appendChild(el('div', null, pick.sleeve_note));
+  tile.appendChild(note);
+  return tile;
+}
+
+function storePicksSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Staff picks'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
+  for(let i = full.staffPicks.length; i < 8; i++){
+    const empty = el('div','store-pick-empty');
+    empty.appendChild(el('span', null, 'Pin a record'));
+    empty.appendChild(el('span', null, 'Slot ' + (i + 1) + ' of 8'));
+    row.appendChild(empty);
+  }
+  section.appendChild(row);
+  return section;
+}
+
+function storeDiggingSection(full, host){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Digging list'));
+  head.appendChild(storeSwitch('Show digging list on my store', full.profile.show_digging_list !== false,
+    on => MizikiSocial.updateProfile({showDiggingList: on})));
+  section.appendChild(head);
+  if(!full.digging.length){
+    section.appendChild(el('p','store-loading','Nothing in your digging list yet.'));
+    return section;
+  }
+  full.digging.forEach(item => {
+    const row = el('div','store-dig-row');
+    row.appendChild(el('div','store-dig-cover'));
+    const text = el('div','store-dig-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    text.appendChild(el('small', null, item.source_handle ? 'Spotted in @' + item.source_handle + '’s store' : 'Added by you'));
+    row.appendChild(text);
+    const rm = document.createElement('button');
+    rm.type = 'button'; rm.className = 'store-dig-remove'; rm.textContent = '−';
+    rm.setAttribute('aria-label','Remove ' + item.title + ' from digging list');
+    rm.addEventListener('click', async ()=>{ await MizikiSocial.removeFromDigging(item.release_id); loadAndRenderStorefront(host); });
+    row.appendChild(rm);
+    section.appendChild(row);
+  });
+  return section;
+}
+
+function storeCrateGrid(){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Crate'));
+  section.appendChild(head);
+  const albums = groupBy('album');
+  if(!albums.length){
+    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return section;
+  }
+  const grid = el('div','store-crate-grid');
+  albums.slice(0, 60).forEach(([name, idxs]) => {
+    const t = S.tracks[idxs[0]];
+    const cell = el('div');
+    const cover = el('div','store-crate-cover');
+    if(t && t.art){ const im = document.createElement('img'); im.src = t.art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', name));
+    cell.appendChild(el('div','store-crate-artist', t ? (t.tags.albumArtist || t.tags.artist || '') : ''));
+    grid.appendChild(cell);
+  });
+  section.appendChild(grid);
+  return section;
+}
+
+function renderStorefront(host, full, requests){
+  host.innerHTML = '';
+  host.appendChild(storeAwning());
+  const header = el('div','store-header');
+  const avatar = el('div','store-avatar');
+  const label = el('div','store-avatar-label');
+  label.style.background = full.labelColor;
+  avatar.appendChild(label);
+  header.appendChild(avatar);
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('h2','store-handle', full.profile.handle));
+  if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
+  header.appendChild(idBox);
+  host.appendChild(header);
+  if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
+  const visRow = el('div','store-vis-row');
+  const visChip = el('button','store-vis-chip', STORE_VIS_LABEL[full.profile.visibility] || 'Friends only');
+  visChip.setAttribute('aria-label','Change who can see your store — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));
+  visChip.addEventListener('click', ()=> cycleStoreVisibility(full.profile, host));
+  visRow.appendChild(visChip);
+  host.appendChild(visRow);
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', full.summary.records));
+  stats.appendChild(storeStat('Staff picks', full.summary.pins));
+  stats.appendChild(storeStat('Followers', full.summary.followers || 0, true));
+  stats.appendChild(storeStat('Digging', full.diggingCount || 0));
+  host.appendChild(stats);
+  if(requests && requests.length) host.appendChild(storeRequestsCard(requests, host));
+  host.appendChild(storeNowSpinningCard(full, host));
+  host.appendChild(storePicksSection(full));
+  if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
+  host.appendChild(storeCrateGrid());
+}
+
 function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
@@ -9625,6 +10019,7 @@ function renderProfile(){
 }
 
 function renderProfileHome(body){
+  renderStorefrontSection(body);
   const header = el('div','profile-header');
   const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change profile picture');
   if(S.profile.art) picBtn.classList.add('has-art');

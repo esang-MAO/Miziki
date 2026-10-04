@@ -9,7 +9,12 @@ const UID='11111111-1111-1111-1111-111111111111', UID2='22222222-2222-2222-2222-
 psql(`insert into auth.users values ('${UID}'),('${UID2}') on conflict do nothing;
 insert into profiles(id,handle,display_name,visibility) values ('${UID}','ken','Ken','public'),('${UID2}','amy','Amy','friends') on conflict do nothing`);
 let calls=[], offline=false, uid=UID;
-const SETS=new Set(['my_crate_meta','home_feed_rich','crate_page','fresh_for_you','home_feed','records_in_common']);
+// every `returns table(...)` function PostgREST hands back as an array of
+// rows regardless of how many rows come back — even exactly one (profile_summary,
+// my_follow_counts) or zero (digging_page) — so each belongs here, not in the
+// scalar branch below, which is only for a true scalar return (boolean/void/etc)
+const SETS=new Set(['my_crate_meta','home_feed_rich','crate_page','fresh_for_you','home_feed','records_in_common',
+  'digging_page','profile_summary','my_follow_counts']);
 const lit = v => "$j$"+JSON.stringify(v)+"$j$";
 const sb = {
   async rpc(name,args){
@@ -23,8 +28,8 @@ const sb = {
     try{ const out=psql(`set role authenticated; select set_config('request.jwt.claim.sub','${uid}',false); ${SETS.has(name)?`select coalesce(jsonb_agg(to_jsonb(q)),'[]'::jsonb)::text from ${name}(${p}) q;`:`select coalesce(to_jsonb(x),'null'::jsonb)::text from (select ${name}(${p}) as x) q;`}`);
       const lines=out.split('\n'); const last=lines[lines.length-1]; let d; try{d=JSON.parse(last)}catch(e){console.log('PARSE',name,JSON.stringify(out.slice(-200)));throw e} if(d&&typeof d==='object'&&'x' in d) d=d.x; return {data:d,error:null}; }
     catch(e){ return {data:null,error:e}; } },
-  from(t){ const f={}; const b={select(){return b},eq(c,v){f[c]=v;return b},
-      async maybeSingle(){ const w=Object.entries(f).map(([c,v])=>`${c}='${v}'`).join(' and ');
+  from(t){ const f={}; const b={select(){return b},eq(c,v){f[c]={op:'=',v};return b},gt(c,v){f[c]={op:'>',v};return b},
+      async maybeSingle(){ const w=Object.entries(f).map(([c,{op,v}])=>`${c}${op}'${v}'`).join(' and ');
         const o=psql(`select coalesce(to_jsonb(p),'null') from ${t} p ${w?'where '+w:''} limit 1`); const d=JSON.parse(o||'null'); return {data:d,error:null}; }};
     return b; },
   auth:{ onAuthStateChange(){}, async getSession(){ return {data:{session:{user:{id:uid}}}}; } }
@@ -92,5 +97,17 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    ALBUMS=[alb(1),alb(2),{...alb(2),id:'dup2'},{...alb(9),id:'na',artist:''}]; const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
    const s=M.status().skipped; assert.equal(s.collisions,1); assert.equal(s.noArtist,1); });
  await t('rating out of range rejected locally',()=>{ const r=M.setRating('a1',9); assert.ok(!r||r.ok===false||M.getAlbumSocial('a1').rating!==9); });
+ await t('own storefront reports a followers count, friend view does not',async()=>{
+   // the follows_before_insert trigger forces a fresh row to 'pending' unless
+   // the followee is public (amy is 'friends'), so force-accept afterward —
+   // this is fixture setup, not a test of the accept workflow itself
+   psql(`insert into follows(follower_id,followee_id) values ('${UID2}','${UID}') on conflict do nothing;
+     insert into follows(follower_id,followee_id) values ('${UID}','${UID2}') on conflict do nothing;
+     update follows set status='accepted' where (follower_id='${UID2}' and followee_id='${UID}') or (follower_id='${UID}' and followee_id='${UID2}')`);
+   const mine=await M.loadProfile('ken'); assert.equal(mine.ok,true,JSON.stringify(mine));
+   assert.equal(mine.isMe,true); assert.equal(mine.summary.followers,1,JSON.stringify(mine.summary));
+   const theirs=await M.loadProfile('amy'); assert.equal(theirs.ok,true,JSON.stringify(theirs));
+   assert.equal(theirs.isMe,false); assert.ok(theirs.canView,JSON.stringify(theirs));
+   assert.ok(!('followers' in theirs.summary),JSON.stringify(theirs.summary)); });
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
