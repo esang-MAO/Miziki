@@ -62,7 +62,7 @@ body{
 .hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
   border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
-.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:14px;font-family:var(--body)}
+.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:16px;font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
 .hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
@@ -182,7 +182,7 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 .g-text em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted)}
 .g-chev{color:var(--muted);font-size:18px}
 .pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
-  border-radius:3px;color:var(--paper);font-family:var(--body);font-size:13px;padding:10px 12px}
+  border-radius:3px;color:var(--paper);font-family:var(--body);font-size:16px;padding:10px 12px}
 .by{font-size:13px;color:var(--muted);margin-bottom:5px}
 .tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
 .tbtn.mini[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);
@@ -558,7 +558,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .gf-left .gf-star-btn.on{color:var(--accent)}
 .gf-left .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
-  font-size:13px;color:var(--paper);resize:none;min-height:44px}
+  font-size:16px;color:var(--paper);resize:none;min-height:44px}
 .gf-left .gf-note-input::placeholder{color:var(--muted)}
 .gf-left .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:10.5px;
@@ -851,6 +851,7 @@ input[type=file]{display:none}
 .store-avatar-label{position:absolute;left:32%;top:32%;width:36%;height:36%;border-radius:50%;
   display:flex;align-items:center;justify-content:center}
 .store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
+.store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
 .store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -8071,7 +8072,7 @@ function updateSearchChipsVisibility(){
    — see CRATE spec §3), one record centred, neighbours tilting away above
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
-const CRATE_ORIGIN_Y = 170;
+const CRATE_ORIGIN_Y = 98;   // was 170; raised ~0.75in (72px @ 96px/in) per feedback
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
@@ -8784,9 +8785,12 @@ function gatefoldTeardownGestures(){
   if(gfDragCleanup){ gfDragCleanup(); gfDragCleanup = null; }
 }
 
-// swipe right/left between the tracklist and the inside-left panel (a
-// direction lock after ~8px keeps a vertical scroll from also panning the
-// camera), plus a drag-down on the info strip to close (§A3, §A7)
+// swipe right/left between the tracklist and the inside-left panel in both
+// normal mode (live camera pan over #gfStage) and short mode (plain panel
+// swap over #gfFlatBody, since #gfFlatTracks sits on top of #gfStage there
+// and would otherwise swallow the gesture) — a direction lock after ~8px
+// keeps a vertical scroll from also triggering a panel switch — plus a
+// drag-down on the info strip to close (§A3, §A7)
 function gatefoldWireGestures(){
   let start = null;
   const onDown = e => { start = {x:e.clientX, y:e.clientY, locked:null, t:performance.now()}; };
@@ -8816,6 +8820,29 @@ function gatefoldWireGestures(){
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
 
+  // short mode shows #gfFlatTracks as an opaque full-cover sibling of
+  // #gfStage, so the stage's own listeners above never fire there — swipe
+  // needs its own (simpler: no live camera pan, just swap panels on release)
+  let flatStart = null;
+  const onFlatDown = e => { flatStart = {x:e.clientX, y:e.clientY, locked:null}; };
+  const onFlatMove = e => {
+    if(!flatStart || !GF || GF.mode !== 'short') return;
+    const dx = e.clientX - flatStart.x, dy = e.clientY - flatStart.y;
+    if(!flatStart.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) flatStart.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  };
+  const onFlatUp = e => {
+    if(!flatStart) return;
+    const dx = e.clientX - flatStart.x;
+    if(flatStart.locked === 'h' && GF && GF.mode === 'short' && Math.abs(dx) > 60)
+      gatefoldSwitchPanel(dx < 0 ? 'left' : (GF.panel === 'left' && dx > 0 ? 'right' : GF.panel));
+    flatStart = null;
+  };
+  const flatBody = $('#gfFlatBody');
+  flatBody.addEventListener('pointerdown', onFlatDown);
+  flatBody.addEventListener('pointermove', onFlatMove);
+  flatBody.addEventListener('pointerup', onFlatUp);
+  flatBody.addEventListener('pointercancel', onFlatUp);
+
   let infoDrag = null;
   const onInfoDown = e => { infoDrag = e.clientY; };
   const onInfoMove = e => {
@@ -8834,6 +8861,10 @@ function gatefoldWireGestures(){
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
     stage.removeEventListener('pointercancel', onUp);
+    flatBody.removeEventListener('pointerdown', onFlatDown);
+    flatBody.removeEventListener('pointermove', onFlatMove);
+    flatBody.removeEventListener('pointerup', onFlatUp);
+    flatBody.removeEventListener('pointercancel', onFlatUp);
     info.removeEventListener('pointerdown', onInfoDown);
     info.removeEventListener('pointermove', onInfoMove);
     info.removeEventListener('pointerup', onInfoUp);
@@ -10103,12 +10134,62 @@ function renderSocialSettingsScreen(body){
 
 function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
-  if(!soc.enabled) return;
   const host = el('div','store-host');
   body.appendChild(host);
   body.appendChild(el('div','store-legacy-head','YOUR LIBRARY'));
+  // everything a storefront needs for staff picks, ratings, notes and the
+  // crate preview already lives on this device (Step A's local engine never
+  // touched the network) — so the storefront shell shows up right away,
+  // with only the genuinely server-shaped pieces (followers, friend
+  // requests, digging from others, sharing now-spinning) gated behind a
+  // configured + signed-in account
+  if(!soc.enabled){ renderLocalStorefront(host); return; }
   if(soc.auth === 'ready') loadAndRenderStorefront(host);
   else renderOpenStoreCard(host, soc.auth);
+}
+
+// Local albumId -> social metadata, by way of the same pure adapter the
+// vendored client builds internally — none of this touches the network.
+function localStaffPicks(){
+  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
+  return MizikiSocial.getPins().map(albumId => {
+    const info = adapter.albumInfo(albumId);
+    if(!info) return null;
+    const social = MizikiSocial.getAlbumSocial(albumId);
+    return {release_id: albumId, title: info.title, artist: info.artist, quality_tier: info.tier,
+      rating: social.rating, sleeve_note: social.note, pin_rank: social.pinRank};
+  }).filter(Boolean);
+}
+
+function renderLocalStorefront(host){
+  host.innerHTML = '';
+  host.appendChild(storeAwning());
+  const header = el('div','store-header');
+  const avatar = el('div','store-avatar');
+  if(S.profile.art){
+    const im = document.createElement('img'); im.src = S.profile.art; im.alt = '';
+    avatar.appendChild(im);
+  } else {
+    const label = el('div','store-avatar-label');
+    label.style.background = MizikiSocial.labelColor(S.profile.name || 'me');
+    avatar.appendChild(label);
+  }
+  header.appendChild(avatar);
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('h2','store-handle', S.profile.name || 'Your Store'));
+  header.appendChild(idBox);
+  host.appendChild(header);
+
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', groupBy('album').length));
+  stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length, true));
+  host.appendChild(stats);
+
+  host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
+  host.appendChild(storeCrateGrid());
+
+  host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
 }
 
 function renderOpenStoreCard(host, authState){
