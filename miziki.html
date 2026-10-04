@@ -856,6 +856,14 @@ input[type=file]{display:none}
 .store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:13px;color:var(--muted)}
+.store-handle-input{font-family:var(--display);font-size:32px;line-height:1;margin:0;width:100%;
+  background:none;border:0;color:var(--paper);padding:0}
+.store-handle-input::placeholder{color:var(--muted);opacity:.65}
+.store-displayname-btn{display:block;background:none;border:0;padding:4px 0;margin:0;text-align:left;
+  font-size:13px;color:var(--muted);min-height:32px}
+.store-displayname-input{display:block;font-size:16px;color:var(--paper);background:none;border:0;
+  border-bottom:1px solid var(--line);padding:4px 0;margin:0;width:100%;max-width:240px}
+.profile-extras{margin-top:28px}
 .store-bio{font-size:14px;line-height:1.45;color:var(--paper);margin:14px 0 0;white-space:pre-wrap}
 
 .store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
@@ -922,9 +930,6 @@ input[type=file]{display:none}
 .store-requests-wrap{margin-top:14px}
 .store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px 4px}
 .store-requests-list .store-dig-row:last-child{border-bottom:0}
-
-.store-legacy-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);margin:30px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
 
 /* ---------- sign-in / settings (social layer §C) ---------- */
 .social-setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:26px}
@@ -2790,7 +2795,7 @@ const S = {
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
-  profile:{name:'', art:null, artBlob:null},
+  profile:{name:'', username:'', art:null, artBlob:null},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true},
@@ -4679,6 +4684,7 @@ async function restoreSessions(){
   const prof = await DB.get('profile', 'me');
   if(prof){
     S.profile.name = prof.name || '';
+    S.profile.username = prof.username || '';
     if(prof.pictureBlob) S.profile.art = URL.createObjectURL(prof.pictureBlob);
   }
 }
@@ -9828,7 +9834,15 @@ function renderTracks(){
    only — no locked slots, no progress bars, no "X more until Y", no
    general listening stats. See PROFILE spec §1. */
 async function persistProfile(){
-  await DB.put('profile', {k:'me', name:S.profile.name, pictureBlob:S.profile.artBlob || undefined});
+  await DB.put('profile', {k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
+}
+
+// "John Smith" -> "John S."; a single word (or nothing) passes through as-is
+function formatDisplayName(name){
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '';
+  if(parts.length === 1) return parts[0];
+  return parts[0] + ' ' + parts[parts.length - 1][0].toUpperCase() + '.';
 }
 
 const fmtCount = (n, one, many) => n + ' ' + (n === 1 ? one : many);
@@ -10136,16 +10150,23 @@ function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
   const host = el('div','store-host');
   body.appendChild(host);
-  body.appendChild(el('div','store-legacy-head','YOUR LIBRARY'));
   // everything a storefront needs for staff picks, ratings, notes and the
   // crate preview already lives on this device (Step A's local engine never
   // touched the network) — so the storefront shell shows up right away,
   // with only the genuinely server-shaped pieces (followers, friend
   // requests, digging from others, sharing now-spinning) gated behind a
-  // configured + signed-in account
-  if(!soc.enabled){ renderLocalStorefront(host); return; }
+  // configured + signed-in account. Either way this is now the WHOLE profile
+  // screen, not a storefront stacked on top of a duplicate "your library"
+  // section — Top Album/Achievements/Collection/Share (renderProfileExtras)
+  // just continue directly below, since nothing else shows them.
+  if(!soc.enabled){
+    renderLocalStorefront(host);
+    body.appendChild(renderProfileExtras(false));
+    return;
+  }
   if(soc.auth === 'ready') loadAndRenderStorefront(host);
   else renderOpenStoreCard(host, soc.auth);
+  body.appendChild(renderProfileExtras(true));
 }
 
 // Local albumId -> social metadata, by way of the same pure adapter the
@@ -10165,19 +10186,41 @@ function renderLocalStorefront(host){
   host.innerHTML = '';
   host.appendChild(storeAwning());
   const header = el('div','store-header');
-  const avatar = el('div','store-avatar');
+  const avatar = el('button','store-avatar'); avatar.setAttribute('aria-label','Change your picture');
   if(S.profile.art){
     const im = document.createElement('img'); im.src = S.profile.art; im.alt = '';
     avatar.appendChild(im);
   } else {
     const label = el('div','store-avatar-label');
-    label.style.background = MizikiSocial.labelColor(S.profile.name || 'me');
+    label.style.background = MizikiSocial.labelColor(S.profile.username || S.profile.name || 'me');
     avatar.appendChild(label);
   }
+  avatar.addEventListener('click', ()=> $('#profilePicFile').click());
   header.appendChild(avatar);
+
   const idBox = el('div','store-id');
   idBox.appendChild(el('div','store-kicker','RECORD STORE'));
-  idBox.appendChild(el('h2','store-handle', S.profile.name || 'Your Store'));
+  const userIn = document.createElement('input');
+  userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
+  userIn.setAttribute('aria-label','Your storefront username');
+  userIn.value = S.profile.username || '';
+  userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
+  idBox.appendChild(userIn);
+
+  const nameDisplay = el('button','store-displayname-btn', formatDisplayName(S.profile.name) || 'Add your name');
+  nameDisplay.setAttribute('aria-label','Edit your name');
+  const nameIn = document.createElement('input');
+  nameIn.className = 'store-displayname-input'; nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.maxLength = 50;
+  nameIn.value = S.profile.name || ''; nameIn.style.display = 'none';
+  nameDisplay.addEventListener('click', ()=>{ nameDisplay.style.display = 'none'; nameIn.style.display = ''; nameIn.focus(); });
+  const commitName = ()=>{
+    S.profile.name = nameIn.value.trim(); persistProfile();
+    nameDisplay.textContent = formatDisplayName(S.profile.name) || 'Add your name';
+    nameIn.style.display = 'none'; nameDisplay.style.display = '';
+  };
+  nameIn.addEventListener('blur', commitName);
+  nameIn.addEventListener('keydown', e => { if(e.key === 'Enter') nameIn.blur(); });
+  idBox.appendChild(nameDisplay); idBox.appendChild(nameIn);
   header.appendChild(idBox);
   host.appendChild(header);
 
@@ -11220,22 +11263,34 @@ function renderProfile(){
 
 function renderProfileHome(body){
   renderStorefrontSection(body);
-  const header = el('div','profile-header');
-  const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change profile picture');
-  if(S.profile.art) picBtn.classList.add('has-art');
-  if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
-  picBtn.appendChild(el('span','profile-pic-mark','+'));
-  picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
-  header.appendChild(picBtn);
+}
 
-  const nameIn = el('input','profile-name-input');
-  nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
-  nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
-  header.appendChild(nameIn);
-  body.appendChild(header);
+// Top Album/Top Song, Achievements, Collection and Share don't exist
+// anywhere else, so every storefront state (local-only, open-store card,
+// signed-in) appends this directly below its own header+stats rather than
+// repeating a whole second profile header — the avatar/name editor only
+// needs to appear once, inline in whichever header is actually showing.
+// includeShareCardEditor is true wherever the storefront's own header isn't
+// already editing S.profile.art/.name itself (i.e. everywhere except the
+// local-only storefront, which edits them directly as its avatar/name).
+function renderProfileExtras(includeShareCardEditor){
+  const wrap = el('div','profile-extras');
 
-  const albumCount = groupBy('album').length;
-  body.appendChild(el('div','profile-count', fmtCount(albumCount, 'album', 'albums') + ' in your library'));
+  if(includeShareCardEditor){
+    const header = el('div','profile-header');
+    const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change share-card picture');
+    if(S.profile.art) picBtn.classList.add('has-art');
+    if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
+    picBtn.appendChild(el('span','profile-pic-mark','+'));
+    picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
+    header.appendChild(picBtn);
+    const nameIn = el('input','profile-name-input');
+    nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
+    nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
+    header.appendChild(nameIn);
+    wrap.appendChild(header);
+    wrap.appendChild(el('p','note','Shown on shared cards (Now Playing, My Crate) — separate from your store.'));
+  }
 
   const row = el('div','profile-top-row');
   const albums = topAlbums(1), tracks = topTracks(1);
@@ -11245,7 +11300,7 @@ function renderProfileHome(body){
   row.appendChild(topTile('Top Song', tracks[0] ? tracks[0].art : null,
     tracks[0] ? tracks[0].title : null, tracks[0] ? tracks[0].artist : null,
     'nothing in the sleeve yet', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
-  body.appendChild(row);
+  wrap.appendChild(row);
 
   const achSection = el('div','profile-section');
   const achHead = el('div','profile-section-head'); achHead.appendChild(el('span', null, 'Achievements'));
@@ -11259,7 +11314,7 @@ function renderProfileHome(body){
     const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing earned yet.'));
     achSection.appendChild(empty);
   }
-  body.appendChild(achSection);
+  wrap.appendChild(achSection);
 
   const collList = Object.values(S.collection);
   const collSection = el('button','profile-section');
@@ -11276,12 +11331,14 @@ function renderProfileHome(body){
     collSection.appendChild(empty);
   }
   collSection.addEventListener('click', ()=>{ S.profileView.screen = 'collection'; renderProfile(); });
-  body.appendChild(collSection);
+  wrap.appendChild(collSection);
 
   const shareBtn = el('button','cta ghost profile-share','Share');
   shareBtn.classList.toggle('active', crateFilled());
   shareBtn.addEventListener('click', openShareSheet);
-  body.appendChild(shareBtn);
+  wrap.appendChild(shareBtn);
+
+  return wrap;
 }
 
 function renderTopAlbumsScreen(body){
