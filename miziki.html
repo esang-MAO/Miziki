@@ -89,8 +89,16 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 .add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
 
 /* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
+/* the outer row must never wrap: with only two flex children (the tab
+   group and the search/add icons), a wrap sends the icon group to its own
+   line, where justify-content:space-between — having nothing left to space
+   a lone item against — drops it to the left edge instead of the right.
+   That's what sent the add-menu popover (anchored off the icon's own rect)
+   off the left edge of the screen once the Select tab made the row too
+   wide to fit on one line. The tab group's own flex-wrap still lets it
+   spill onto a second line by itself, while the icons stay pinned right. */
 .lib-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  border-bottom:1px solid var(--line);flex-wrap:wrap}
+  border-bottom:1px solid var(--line)}
 .lib-tabs-group{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .lib-tabs-group button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -8092,12 +8100,8 @@ function updateSearchChipsVisibility(){
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
 // was 170, then 98; raised another ~0.75in (72px @ 96px/in) per feedback —
-// now 144px total above the original. The stage's own max height (see
-// CRATE_STAGE_MAX_H) shrinks by the same amount, so the info panel/rail
-// below the stage actually move up with the card instead of leaving empty
-// space at the bottom of an unchanged-height stage.
+// now 144px total above the original.
 const CRATE_ORIGIN_Y = 26;
-const CRATE_STAGE_MAX_H = 316;   // was 460
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
@@ -9195,27 +9199,34 @@ function applyCrateMiniInset(){
   const stage = document.querySelector('.crate-stage'), info = document.querySelector('.crate-info');
   const wrap = document.querySelector('.crate-wrap');
   if(!stage || !wrap) return;
-  wrap.style.marginTop = '0px';   // reset before measuring — otherwise a previous centering pass compounds
   const miniEl = $('#miniPlayer'), tabbarEl = $('#tabbar');
   const miniH = (miniEl && getComputedStyle(miniEl).display !== 'none') ? miniEl.getBoundingClientRect().height : 0;
   const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
   const infoReserve = info ? info.getBoundingClientRect().height : 84;
+  // the "now playing elsewhere" pill sits in normal flow above the stage
+  // (shown/hidden as the user scrolls past the playing album) and isn't
+  // fixed-height — when shown it has to come out of this same budget, same
+  // as the info panel below, or the stage claims room it doesn't have
+  const topbarEl = document.querySelector('.crate-topbar');
+  const topbarVisible = topbarEl && getComputedStyle(topbarEl).display !== 'none';
+  // include its own margin-bottom too — getBoundingClientRect only covers
+  // the border box, and the margin is exactly what separates it from the
+  // stage below
+  const topbarReserve = topbarVisible
+    ? topbarEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(topbarEl).marginBottom) || 0)
+    : 0;
   const wrapTop = wrap.getBoundingClientRect().top;
-  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - 24;
+  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - topbarReserve - 24;
   // the centre card can give up a little of its own bottom edge (background/
   // cover art, nothing critical — the title/artist live in the info panel
-  // below, not on the card) before this stops helping; never more than that
+  // below, not on the card) before this stops helping; never less than that
   const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
-  const stageHeight = available < CRATE_STAGE_MAX_H ? Math.max(available, minStageHeight) : CRATE_STAGE_MAX_H;
+  // the stage always claims all available room instead of capping and
+  // banking the rest as dead space below the info panel — the info panel
+  // sits flush just above the mini player, and the crate itself (the thing
+  // people are actually here to flip through) gets whatever room that frees up.
+  const stageHeight = Math.max(available, minStageHeight);
   stage.style.height = stageHeight + 'px';
-  // with room to spare, the crate sits toward the upper-middle of the
-  // available space rather than hugging the top — but capped well short of
-  // true centring, so any extra slack falls below the info panel instead of
-  // being split top/bottom. True centring on a tall screen pushed the focal
-  // record down far enough that the info panel/rail could run into the
-  // tabbar and need a scroll; capping keeps the whole crate on screen at once.
-  const slack = available - stageHeight;
-  wrap.style.marginTop = (slack > 0 ? Math.min(Math.round(slack / 2), 32) : 0) + 'px';
 }
 
 function renderCrate(host){
@@ -9337,8 +9348,18 @@ function renderCrate(host){
 
   // a chip above the stage for when the playing album has been scrolled
   // away from — tapping it scrolls back (CRATE spec §4, "Now playing")
+  let topbarShown = false;
   function updateNowPlayingTopBar(position){
-    if(nowPlayingIdx < 0 || Math.round(position) === nowPlayingIdx){
+    const shouldShow = nowPlayingIdx >= 0 && Math.round(position) !== nowPlayingIdx;
+    if(shouldShow !== topbarShown){
+      // the pill takes up real flow space above the stage, so the stage's
+      // own height budget (applyCrateMiniInset) has to be recomputed
+      // whenever it appears or disappears — but only on that transition,
+      // not every frame, since this runs continuously while scrubbing
+      topbarShown = shouldShow;
+      applyCrateMiniInset();
+    }
+    if(!shouldShow){
       nowPlayingBtn.classList.remove('show');
       return;
     }
@@ -9615,6 +9636,14 @@ function renderCrate(host){
   rail.addEventListener('pointercancel', endScrub);
 
   draw(0);
+  // info started out empty when applyCrateMiniInset() first ran above, so
+  // its height was measured at the CSS min-height floor rather than its
+  // real content height (title + artist + meta, sometimes a wrapped "Now
+  // playing" chip). Now that draw(0) has filled it in, remeasure so the
+  // stage doesn't claim room the info panel actually needs — without this,
+  // using all available space (rather than banking a safety margin of dead
+  // space) let the info panel's true height push past the mini player.
+  applyCrateMiniInset();
   announceCurrent();
   scheduleLargeSwap();
   prewarmCrateAnchorL().catch(() => {});
