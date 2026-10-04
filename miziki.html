@@ -1036,8 +1036,6 @@ input[type=file]{display:none}
 .share-actions-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .share-actions-row .cta{text-align:center;width:100%;box-sizing:border-box}
 
-.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
-  font-family:var(--data);font-size:10px;color:var(--muted);line-height:1.7;letter-spacing:.04em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -1336,10 +1334,6 @@ input[type=file]{display:none}
     </div>
   </section>
 
-  <p class="foot" id="foot">
-    Miziki · lossless in, one conversion out<br>
-    Fidelity is the file. Warmth is a choice you make on top of it.
-  </p>
 </div>
 
 <!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
@@ -9158,10 +9152,14 @@ function applyCrateMiniInset(){
   const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
   const stageHeight = available < 460 ? Math.max(available, minStageHeight) : 460;
   stage.style.height = stageHeight + 'px';
-  // with room to spare, the crate sits centred in it rather than always
-  // hugging the top of the route
+  // with room to spare, the crate sits toward the upper-middle of the
+  // available space rather than hugging the top — but capped well short of
+  // true centring, so any extra slack falls below the info panel instead of
+  // being split top/bottom. True centring on a tall screen pushed the focal
+  // record down far enough that the info panel/rail could run into the
+  // tabbar and need a scroll; capping keeps the whole crate on screen at once.
   const slack = available - stageHeight;
-  wrap.style.marginTop = (slack > 0 ? Math.round(slack / 2) : 0) + 'px';
+  wrap.style.marginTop = (slack > 0 ? Math.min(Math.round(slack / 2), 32) : 0) + 'px';
 }
 
 function renderCrate(host){
@@ -12156,6 +12154,10 @@ function isAddMenuOpen(){
 }
 
 function showRoute(name){
+  // the gatefold is a library-only view (opened from the crate); it must
+  // never persist over another tab's content since it's a fixed full-screen
+  // overlay that would otherwise hide whatever route is switched to
+  if(name !== 'library' && GF) closeGatefoldInstant();
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
   $('#appHeader').classList.toggle('no-border', name === 'library');
