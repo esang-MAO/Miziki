@@ -8099,9 +8099,9 @@ function updateSearchChipsVisibility(){
    — see CRATE spec §3), one record centred, neighbours tilting away above
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
-// was 170, then 98; raised another ~0.75in (72px @ 96px/in) per feedback —
-// now 144px total above the original.
-const CRATE_ORIGIN_Y = 26;
+// was 170, then 98, then 26 (raised 144px total above the original) —
+// now lowered back down .5in (48px @ 96px/in) per feedback, to 74.
+const CRATE_ORIGIN_Y = 74;
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
