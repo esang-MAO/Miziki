@@ -25,7 +25,13 @@
   --data:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+/* html needs its own dark background too, not just body's: iOS Safari's
+   rubber-band overscroll bounce at the top/bottom of the page reveals
+   whatever is behind the document, and with no background set here that
+   was the browser's default white, flashing behind the status bar/notch
+   on every pull-down. overscroll-behavior-y stops the bounce happening at
+   all, which also reads as more "app-like" than a web page that bounces. */
+html,body{height:100%; background:var(--sky2); overscroll-behavior-y:none}
 body{
   margin:0; font-family:var(--body); color:var(--paper);
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
@@ -44,13 +50,12 @@ body{
 .wrap{max-width:520px;margin:0 auto;padding:0 20px var(--chrome-inset, calc(150px + env(safe-area-inset-bottom)))}
 
 /* ---------- header ---------- */
-.top{padding:22px 0 14px;border-bottom:1px solid var(--line)}
-.top.no-border{border-bottom:none;padding-bottom:10px}
-.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.mark{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.16em;
-      text-transform:uppercase;line-height:1;margin:0}
-.mark span{color:var(--accent);transition:color .5s}
-/* search + add icons, top right of the library header only (S1) */
+/* with the wordmark gone this is just a slim spacer below the status bar,
+   present (mostly empty) on every route — except on the library route,
+   where the search field can swap into it */
+.top{padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.top.no-border{border-bottom:none;padding-bottom:6px}
+/* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 .hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
 .hdr-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -84,11 +89,13 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 .add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
 
 /* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
-.lib-tabs{display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.lib-tabs button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+.lib-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lib-tabs-group{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.lib-tabs-group button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-.lib-tabs button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
-.lib-tabs .lib-select-tab{margin-left:auto;color:var(--muted)}
+.lib-tabs-group button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
+.lib-tabs-group .lib-select-tab{color:var(--muted)}
 
 /* Profile > Library tools (S1 §5) */
 .lib-tools{margin-top:28px}
@@ -434,7 +441,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .crate-wrap{margin-top:10px;position:relative}
 .crate-group-toggle{margin-bottom:10px}
-.crate-stage{position:relative;height:460px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
+.crate-stage{position:relative;height:316px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 .crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
   border-radius:6px;overflow:hidden;
@@ -1064,18 +1071,11 @@ input[type=file]{display:none}
 
 <div class="wrap">
 
+  <!-- the wordmark used to live here; removed to free up vertical space on
+       every tab. The search/add icons moved down onto the library tabs row
+       (#libNav) — this header now exists only to host the expanded search
+       field, which still swaps in over that same row (see openSearchField). -->
   <header class="top" id="appHeader">
-    <div class="top-row" id="hdrNormalRow">
-      <h1 class="mark">Mi<span>zi</span>ki</h1>
-      <div class="hdr-actions" id="hdrActions" style="display:none">
-        <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
-          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
-        </button>
-        <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
-          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
-    </div>
     <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
       <div class="hdr-search-field">
         <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
@@ -1115,11 +1115,24 @@ input[type=file]{display:none}
     <input id="folderFile" type="file" webkitdirectory multiple>
 
     <div class="lib-tabs" id="libNav" style="display:none">
-      <button data-view="songs" aria-pressed="true">Songs</button>
-      <button data-view="albums" aria-pressed="false">Albums</button>
-      <button data-view="artists" aria-pressed="false">Artists</button>
-      <button data-view="playlists" aria-pressed="false">Playlists</button>
-      <button class="lib-select-tab" id="selectToggle">Select</button>
+      <div class="lib-tabs-group" id="libNavTabs" style="display:none">
+        <button data-view="songs" aria-pressed="true">Songs</button>
+        <button data-view="albums" aria-pressed="false">Albums</button>
+        <button data-view="artists" aria-pressed="false">Artists</button>
+        <button data-view="playlists" aria-pressed="false">Playlists</button>
+        <button class="lib-select-tab" id="selectToggle">Select</button>
+      </div>
+      <!-- search/add used to live in the big wordmark header above; moved
+           here so they still show (the add button even with an empty
+           library) without needing their own separate header row -->
+      <div class="hdr-actions" id="hdrActions">
+        <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
+          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        </button>
+        <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
@@ -2570,7 +2583,7 @@ input[type=file]{display:none}
   const loadProfile = handle => guarded(async () => {
     const h = String(handle || '').trim().toLowerCase().replace(/^@/, '');
     const profile = await q(X.sb.from('profiles').select('*').eq('handle', h).maybeSingle());
-    if (!profile) return fail('not_found', 'No such store.');
+    if (!profile) return fail('not_found', 'No such crate.');
     const isMe = profile.id === X.userId;
     const rel = isMe ? { following: 'self', followsYou: false } : await relationship(profile.id);
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
@@ -8078,7 +8091,13 @@ function updateSearchChipsVisibility(){
    — see CRATE spec §3), one record centred, neighbours tilting away above
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
-const CRATE_ORIGIN_Y = 98;   // was 170; raised ~0.75in (72px @ 96px/in) per feedback
+// was 170, then 98; raised another ~0.75in (72px @ 96px/in) per feedback —
+// now 144px total above the original. The stage's own max height (see
+// CRATE_STAGE_MAX_H) shrinks by the same amount, so the info panel/rail
+// below the stage actually move up with the card instead of leaving empty
+// space at the bottom of an unchanged-height stage.
+const CRATE_ORIGIN_Y = 26;
+const CRATE_STAGE_MAX_H = 316;   // was 460
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
@@ -8582,7 +8601,7 @@ function gatefoldSocialControlsHTML(item){
     if(document.activeElement !== note) note.value = s.note || '';
     const pinned = s.pinRank != null;
     pinBtn.setAttribute('aria-pressed', String(pinned));
-    pinBtn.textContent = pinned ? 'Pinned to storefront · #' + s.pinRank : 'Pin to storefront';
+    pinBtn.textContent = pinned ? 'Pinned to crate · #' + s.pinRank : 'Pin to crate';
   }
   stars.querySelectorAll('.gf-star-btn').forEach(b => {
     b.addEventListener('click', () => {
@@ -9187,7 +9206,7 @@ function applyCrateMiniInset(){
   // cover art, nothing critical — the title/artist live in the info panel
   // below, not on the card) before this stops helping; never more than that
   const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
-  const stageHeight = available < 460 ? Math.max(available, minStageHeight) : 460;
+  const stageHeight = available < CRATE_STAGE_MAX_H ? Math.max(available, minStageHeight) : CRATE_STAGE_MAX_H;
   stage.style.height = stageHeight + 'px';
   // with room to spare, the crate sits toward the upper-middle of the
   // available space rather than hugging the top — but capped well short of
@@ -9620,7 +9639,6 @@ function renderTracks(){
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();
-  $('#libNav').style.display = S.tracks.length ? 'flex' : 'none';
   $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
   updateLibTabsForLayout();
@@ -9997,8 +10015,8 @@ function renderSocialAuthCode(title, body){
 }
 
 function renderSocialAuthHandle(title, body){
-  title.textContent = 'Create your store';
-  body.appendChild(el('p','note','Your handle is how friends find you — it’s also your storefront name.'));
+  title.textContent = 'Create your crate';
+  body.appendChild(el('p','note','Your handle is how friends find you — it’s also your crate name.'));
   const { row, input } = socialField('Handle', socialAuth.handle,
     {type:'text', placeholder:'yourname', maxLength:24, autocapitalize:'none', autocorrect:'off'});
   body.appendChild(row);
@@ -10041,11 +10059,11 @@ function renderSocialAuthHandle(title, body){
 }
 
 function renderSocialAuthVisibility(title, body){
-  title.textContent = 'Who can see your store?';
+  title.textContent = 'Who can see your crate?';
   const opts = [
     {key:'private', label:'Only you', desc:'Nothing is visible to anyone else yet.'},
-    {key:'friends', label:'Friends only', desc:'People you approve can browse your store.'},
-    {key:'public', label:'Everyone', desc:'Anyone can find and follow your store.'}
+    {key:'friends', label:'Friends only', desc:'People you approve can browse your crate.'},
+    {key:'public', label:'Everyone', desc:'Anyone can find and follow your crate.'}
   ];
   const list = el('div','social-vis-list');
   opts.forEach(o => {
@@ -10061,7 +10079,7 @@ function renderSocialAuthVisibility(title, body){
   });
   body.appendChild(list);
   if(socialAuth.error) body.appendChild(el('p','note', socialAuth.error));
-  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Opening your store…' : 'Finish', async ()=>{
+  body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Opening your crate…' : 'Finish', async ()=>{
     socialAuth.busy = true; socialAuth.error = null; renderSocialAuth();
     const created = await MizikiSocial.createProfile({handle: socialAuth.handle, displayName: socialAuth.displayName});
     if(!created.ok){
@@ -10105,7 +10123,7 @@ function renderSocialSettingsScreen(body){
     const banner = el('div','store-open-card');
     banner.appendChild(el('h3', null, status.pendingRemovals === 1 ? '1 record disappeared from your library'
       : status.pendingRemovals + ' records disappeared from your library'));
-    banner.appendChild(el('p', null, 'Remove them from your store too, or keep them there until you’re sure.'));
+    banner.appendChild(el('p', null, 'Remove them from your crate too, or keep them there until you’re sure.'));
     const btn = el('button','cta','Confirm removal');
     btn.addEventListener('click', async ()=>{ await MizikiSocial.confirmRemovals(); renderSocialSettingsScreen(body); });
     banner.appendChild(btn);
@@ -10114,7 +10132,7 @@ function renderSocialSettingsScreen(body){
   body.appendChild(el('p','note', socialSyncStatusLine(status)));
   if(status.skipped && (status.skipped.collisions > 0 || status.skipped.noArtist > 0)){
     if(status.skipped.collisions > 0) body.appendChild(el('p','note',
-      status.skipped.collisions + ' album' + (status.skipped.collisions === 1 ? '' : 's') + ' share a title with another in your library, so only one of each made it to your store.'));
+      status.skipped.collisions + ' album' + (status.skipped.collisions === 1 ? '' : 's') + ' share a title with another in your library, so only one of each made it to your crate.'));
     if(status.skipped.noArtist > 0) body.appendChild(el('p','note',
       status.skipped.noArtist + ' album' + (status.skipped.noArtist === 1 ? ' has' : 's have') + ' no artist tagged, so ' +
       (status.skipped.noArtist === 1 ? 'it' : 'they') + ' can’t be shared yet.'));
@@ -10199,10 +10217,10 @@ function renderLocalStorefront(host){
   header.appendChild(avatar);
 
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('div','store-kicker','CRATE'));
   const userIn = document.createElement('input');
   userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
-  userIn.setAttribute('aria-label','Your storefront username');
+  userIn.setAttribute('aria-label','Your crate username');
   userIn.value = S.profile.username || '';
   userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
   idBox.appendChild(userIn);
@@ -10239,9 +10257,9 @@ function renderOpenStoreCard(host, authState){
   host.innerHTML = '';
   const needsProfile = authState === 'needsProfile';
   const card = el('div','store-open-card');
-  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your store' : 'Open your store'));
+  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Open your crate'));
   card.appendChild(el('p', null, needsProfile
-    ? 'Pick a handle to start your storefront — friends will find you there.'
+    ? 'Pick a handle to start your crate — friends will find you there.'
     : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
   const btn = el('button','cta', needsProfile ? 'Finish setup' : 'Sign in');
   btn.addEventListener('click', beginSocialSignIn);
@@ -10256,14 +10274,14 @@ function renderStoreError(host, error, retry){
   // viewer -- these must look identical (no retry affordance either way),
   // or blocking would leak information just by comparing the two states.
   if(error && error.code === 'not_found'){
-    wrap.appendChild(el('p', null, 'No such store.'));
+    wrap.appendChild(el('p', null, 'No such crate.'));
     host.appendChild(wrap);
     return;
   }
   const offline = error && error.code === 'offline';
   wrap.appendChild(el('p', null, offline
-    ? "You're offline — your store will load when you're back."
-    : "Couldn't load your store."));
+    ? "You're offline — your crate will load when you're back."
+    : "Couldn't load your crate."));
   const btn = el('button','cta ghost','Try again');
   btn.addEventListener('click', retry);
   wrap.appendChild(btn);
@@ -10272,7 +10290,7 @@ function renderStoreError(host, error, retry){
 
 async function loadAndRenderStorefront(host){
   host.innerHTML = '';
-  host.appendChild(el('div','store-loading','Loading your store…'));
+  host.appendChild(el('div','store-loading','Loading your crate…'));
   const me = await MizikiSocial.getMyProfile();
   if(!me.ok){ renderStoreError(host, me.error, ()=>loadAndRenderStorefront(host)); return; }
   if(!me.profile){ renderOpenStoreCard(host, 'needsProfile'); return; }
@@ -10426,7 +10444,7 @@ function storeDiggingSection(full, host){
   const section = el('div','store-section');
   const head = el('div','store-section-head');
   head.appendChild(el('h2', null, 'Digging list'));
-  head.appendChild(storeSwitch('Show digging list on my store', full.profile.show_digging_list !== false,
+  head.appendChild(storeSwitch('Show digging list on my crate', full.profile.show_digging_list !== false,
     on => MizikiSocial.updateProfile({showDiggingList: on})));
   section.appendChild(head);
   if(!full.digging.length){
@@ -10439,7 +10457,7 @@ function storeDiggingSection(full, host){
     const text = el('div','store-dig-text');
     text.appendChild(el('b', null, item.title));
     text.appendChild(el('em', null, item.artist));
-    text.appendChild(el('small', null, item.source_handle ? 'Spotted in @' + item.source_handle + '’s store' : 'Added by you'));
+    text.appendChild(el('small', null, item.source_handle ? 'Spotted in @' + item.source_handle + '’s crate' : 'Added by you'));
     row.appendChild(text);
     const rm = document.createElement('button');
     rm.type = 'button'; rm.className = 'store-dig-remove'; rm.textContent = '−';
@@ -10454,7 +10472,7 @@ function storeDiggingSection(full, host){
 function storeCrateGrid(){
   const section = el('div','store-section');
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'Crate'));
+  head.appendChild(el('h2', null, 'All records'));
   section.appendChild(head);
   const albums = groupBy('album');
   if(!albums.length){
@@ -10486,19 +10504,19 @@ function renderStorefront(host, full, requests){
   avatar.appendChild(label);
   header.appendChild(avatar);
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('div','store-kicker','CRATE'));
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
   const gear = el('button','store-gear','⚙');
-  gear.setAttribute('aria-label','Store settings');
+  gear.setAttribute('aria-label','Crate settings');
   gear.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
   header.appendChild(gear);
   host.appendChild(header);
   if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
   const visRow = el('div','store-vis-row');
   const visChip = el('button','store-vis-chip', STORE_VIS_LABEL[full.profile.visibility] || 'Friends only');
-  visChip.setAttribute('aria-label','Change who can see your store — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));
+  visChip.setAttribute('aria-label','Change who can see your crate — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));
   visChip.addEventListener('click', ()=> cycleStoreVisibility(full.profile, host));
   visRow.appendChild(visChip);
   host.appendChild(visRow);
@@ -10539,7 +10557,7 @@ function renderSocialNavTop(){
   const top = socialNav[socialNav.length - 1];
   const body = $('#socialNavBody'); body.innerHTML = '';
   if(top.type === 'friendStore'){
-    $('#socialNavTitle').textContent = top.handle;
+    $('#socialNavTitle').textContent = 'Browsing crate';
     loadAndRenderFriendStore(body, top.handle);
   }
 }
@@ -10549,10 +10567,10 @@ function openFriendStore(handle){
 
 async function loadAndRenderFriendStore(body, handle){
   body.innerHTML = '';
-  body.appendChild(el('p','store-loading','Loading store…'));
+  body.appendChild(el('p','store-loading','Loading crate…'));
   const full = await MizikiSocial.loadProfile(handle);
   if(!full.ok){ renderStoreError(body, full.error, ()=>loadAndRenderFriendStore(body, handle)); return; }
-  $('#socialNavTitle').textContent = full.profile.handle;
+  $('#socialNavTitle').textContent = 'Browsing crate';
   body.innerHTML = '';
   if(!full.canView){ renderLockedFriendStore(body, full); return; }
   renderFriendStoreContent(body, full);
@@ -10565,7 +10583,7 @@ function friendStoreHeader(full, extraBtn){
   avatar.appendChild(label);
   header.appendChild(avatar);
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('div','store-kicker','CRATE'));
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
@@ -10602,7 +10620,7 @@ function renderLockedFriendStore(body, full){
 }
 
 async function shareFriendStore(handle){
-  const text = 'Check out @' + handle + '’s record store on Miziki.';
+  const text = 'Check out @' + handle + '’s crate on Miziki.';
   if(navigator.share){ try{ await navigator.share({text}); } catch(e){ /* user cancelled */ } }
   else if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); } catch(e){ /* best effort */ } }
 }
@@ -10763,7 +10781,7 @@ async function loadFriendCrate(full, holder, limit){
 
 function friendCrateSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Crate'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'All records'));
   section.appendChild(head);
   const holder = el('div');
   holder.appendChild(el('p','store-loading','Loading crate…'));
@@ -10791,7 +10809,7 @@ function friendActivitySection(full){
 function renderFriendStoreContent(body, full){
   body.appendChild(storeAwning());
   const share = el('button','store-share-icon','↗');
-  share.setAttribute('aria-label','Share this store');
+  share.setAttribute('aria-label','Share this crate');
   share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));
   body.appendChild(friendStoreHeader(full, share));
   if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
@@ -11153,10 +11171,10 @@ function installSocialDemo(){
       };
     }
     if(handle === 'offline') return {ok:false, error:{code:'offline', message:'You appear to be offline.', retryable:true}};
-    if(handle === 'broken') return {ok:false, error:{code:'error', message:'Something went wrong loading this store.', retryable:false}};
-    if(handle === 'ghost') return {ok:false, error:{code:'not_found', message:'No such store.', retryable:false}};
+    if(handle === 'broken') return {ok:false, error:{code:'error', message:'Something went wrong loading this crate.', retryable:false}};
+    if(handle === 'ghost') return {ok:false, error:{code:'not_found', message:'No such crate.', retryable:false}};
     const f = friendByHandle(handle);
-    if(!f) return {ok:false, error:{code:'not_found', message:'No such store.', retryable:false}};
+    if(!f) return {ok:false, error:{code:'not_found', message:'No such crate.', retryable:false}};
     const rel = relationshipFor(handle);
     const canView = f.profile.visibility === 'public' || rel.following === 'accepted';
     const out = {ok:true, profile:f.profile, relationship:rel, isMe:false, canView, labelColor: MizikiSocial.labelColor(f.profile.handle)};
@@ -11289,7 +11307,7 @@ function renderProfileExtras(includeShareCardEditor){
     nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
     header.appendChild(nameIn);
     wrap.appendChild(header);
-    wrap.appendChild(el('p','note','Shown on shared cards (Now Playing, My Crate) — separate from your store.'));
+    wrap.appendChild(el('p','note','Shown on shared cards (Now Playing, My Crate) — separate from your crate.'));
   }
 
   const row = el('div','profile-top-row');
@@ -12220,11 +12238,15 @@ function isProfileRouteVisible(){
   return !!(r && r.classList.contains('on'));
 }
 
-// the header's search/+ icons only ever show on the library route, and the
-// search icon itself is hidden when there's nothing to search (S1 §2.1)
+// the library tabs row (icons + the Songs/Crate/Artists/Playlists group)
+// only ever shows on the library route; the icons stay even with an empty
+// library (the + button is how you add your first files), but the tab
+// buttons and the search icon itself only make sense once there's something
+// to switch between or search (S1 §2.1)
 function updateHeaderActionsAvailability(){
   const isLibrary = isLibraryRouteVisible();
-  $('#hdrActions').style.display = isLibrary ? 'flex' : 'none';
+  $('#libNav').style.display = isLibrary ? 'flex' : 'none';
+  $('#libNavTabs').style.display = (isLibrary && S.tracks.length) ? 'flex' : 'none';
   $('#hdrSearchBtn').style.display = (isLibrary && S.tracks.length) ? '' : 'none';
 }
 
@@ -12255,17 +12277,18 @@ function refreshLibraryTools(){
   $('#crateGenreBtn').style.display = (typeof libraryHasGenres === 'function' && libraryHasGenres()) ? '' : 'none';
 }
 
-// header search field: swaps the normal title row for a full-width search
-// input (S1 §2.1). Cancel clears and closes; the × only clears.
+// header search field: swaps the library tabs row for a full-width search
+// input, which lives in the header above it (S1 §2.1). Cancel clears and
+// closes; the × only clears.
 function openSearchField(){
-  $('#hdrNormalRow').style.display = 'none';
+  $('#libNav').style.display = 'none';
   $('#hdrSearchRow').style.display = 'flex';
   $('#hdrSearchBtn').classList.add('active');
   $('#librarySearch').focus();
   updateSearchChipsVisibility();
 }
 function closeSearchField(){
-  $('#hdrNormalRow').style.display = '';
+  updateHeaderActionsAvailability();
   $('#hdrSearchRow').style.display = 'none';
   $('#hdrSearchBtn').classList.remove('active');
   $('#searchChips').style.display = 'none';
@@ -12276,10 +12299,18 @@ function isSearchFieldOpen(){
 
 // header + menu: Add songs / Add folder popover (S1 §3)
 function openAddMenu(){
+  // positioned from the button's own rect rather than a fixed CSS offset,
+  // since the button now lives on the library tabs row instead of a fixed
+  // header height above it
+  const btn = $('#hdrAddBtn'), r = btn.getBoundingClientRect();
+  const menu = $('#addMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#addScrim').style.top = Math.round(r.bottom) + 'px';   // position:fixed, so viewport-relative
   $('#addScrim').classList.add('open');
-  $('#addMenu').classList.add('open');
-  $('#hdrAddBtn').classList.add('add-open');
-  $('#hdrAddBtn').setAttribute('aria-expanded', 'true');
+  menu.classList.add('open');
+  btn.classList.add('add-open');
+  btn.setAttribute('aria-expanded', 'true');
 }
 function closeAddMenu(){
   $('#addScrim').classList.remove('open');
