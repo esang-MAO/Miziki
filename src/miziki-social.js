@@ -741,7 +741,7 @@
   const loadProfile = handle => guarded(async () => {
     const h = String(handle || '').trim().toLowerCase().replace(/^@/, '');
     const profile = await q(X.sb.from('profiles').select('*').eq('handle', h).maybeSingle());
-    if (!profile) return fail('not_found', 'No such store.');
+    if (!profile) return fail('not_found', 'No such crate.');
     const isMe = profile.id === X.userId;
     const rel = isMe ? { following: 'self', followsYou: false } : await relationship(profile.id);
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
