@@ -62,7 +62,7 @@ body{
 .hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
   border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
-.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:14px;font-family:var(--body)}
+.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:16px;font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
 .hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
@@ -182,7 +182,7 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 .g-text em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted)}
 .g-chev{color:var(--muted);font-size:18px}
 .pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
-  border-radius:3px;color:var(--paper);font-family:var(--body);font-size:13px;padding:10px 12px}
+  border-radius:3px;color:var(--paper);font-family:var(--body);font-size:16px;padding:10px 12px}
 .by{font-size:13px;color:var(--muted);margin-bottom:5px}
 .tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
 .tbtn.mini[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);
@@ -558,7 +558,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .gf-left .gf-star-btn.on{color:var(--accent)}
 .gf-left .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
-  font-size:13px;color:var(--paper);resize:none;min-height:44px}
+  font-size:16px;color:var(--paper);resize:none;min-height:44px}
 .gf-left .gf-note-input::placeholder{color:var(--muted)}
 .gf-left .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:10.5px;
@@ -851,10 +851,19 @@ input[type=file]{display:none}
 .store-avatar-label{position:absolute;left:32%;top:32%;width:36%;height:36%;border-radius:50%;
   display:flex;align-items:center;justify-content:center}
 .store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
+.store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
 .store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:13px;color:var(--muted)}
+.store-handle-input{font-family:var(--display);font-size:32px;line-height:1;margin:0;width:100%;
+  background:none;border:0;color:var(--paper);padding:0}
+.store-handle-input::placeholder{color:var(--muted);opacity:.65}
+.store-displayname-btn{display:block;background:none;border:0;padding:4px 0;margin:0;text-align:left;
+  font-size:13px;color:var(--muted);min-height:32px}
+.store-displayname-input{display:block;font-size:16px;color:var(--paper);background:none;border:0;
+  border-bottom:1px solid var(--line);padding:4px 0;margin:0;width:100%;max-width:240px}
+.profile-extras{margin-top:28px}
 .store-bio{font-size:14px;line-height:1.45;color:var(--paper);margin:14px 0 0;white-space:pre-wrap}
 
 .store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
@@ -921,9 +930,6 @@ input[type=file]{display:none}
 .store-requests-wrap{margin-top:14px}
 .store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px 4px}
 .store-requests-list .store-dig-row:last-child{border-bottom:0}
-
-.store-legacy-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);margin:30px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
 
 /* ---------- sign-in / settings (social layer §C) ---------- */
 .social-setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:26px}
@@ -2789,7 +2795,7 @@ const S = {
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
-  profile:{name:'', art:null, artBlob:null},
+  profile:{name:'', username:'', art:null, artBlob:null},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true},
@@ -4678,6 +4684,7 @@ async function restoreSessions(){
   const prof = await DB.get('profile', 'me');
   if(prof){
     S.profile.name = prof.name || '';
+    S.profile.username = prof.username || '';
     if(prof.pictureBlob) S.profile.art = URL.createObjectURL(prof.pictureBlob);
   }
 }
@@ -8071,7 +8078,7 @@ function updateSearchChipsVisibility(){
    — see CRATE spec §3), one record centred, neighbours tilting away above
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
-const CRATE_ORIGIN_Y = 170;
+const CRATE_ORIGIN_Y = 98;   // was 170; raised ~0.75in (72px @ 96px/in) per feedback
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
@@ -8784,9 +8791,12 @@ function gatefoldTeardownGestures(){
   if(gfDragCleanup){ gfDragCleanup(); gfDragCleanup = null; }
 }
 
-// swipe right/left between the tracklist and the inside-left panel (a
-// direction lock after ~8px keeps a vertical scroll from also panning the
-// camera), plus a drag-down on the info strip to close (§A3, §A7)
+// swipe right/left between the tracklist and the inside-left panel in both
+// normal mode (live camera pan over #gfStage) and short mode (plain panel
+// swap over #gfFlatBody, since #gfFlatTracks sits on top of #gfStage there
+// and would otherwise swallow the gesture) — a direction lock after ~8px
+// keeps a vertical scroll from also triggering a panel switch — plus a
+// drag-down on the info strip to close (§A3, §A7)
 function gatefoldWireGestures(){
   let start = null;
   const onDown = e => { start = {x:e.clientX, y:e.clientY, locked:null, t:performance.now()}; };
@@ -8816,6 +8826,29 @@ function gatefoldWireGestures(){
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
 
+  // short mode shows #gfFlatTracks as an opaque full-cover sibling of
+  // #gfStage, so the stage's own listeners above never fire there — swipe
+  // needs its own (simpler: no live camera pan, just swap panels on release)
+  let flatStart = null;
+  const onFlatDown = e => { flatStart = {x:e.clientX, y:e.clientY, locked:null}; };
+  const onFlatMove = e => {
+    if(!flatStart || !GF || GF.mode !== 'short') return;
+    const dx = e.clientX - flatStart.x, dy = e.clientY - flatStart.y;
+    if(!flatStart.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) flatStart.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  };
+  const onFlatUp = e => {
+    if(!flatStart) return;
+    const dx = e.clientX - flatStart.x;
+    if(flatStart.locked === 'h' && GF && GF.mode === 'short' && Math.abs(dx) > 60)
+      gatefoldSwitchPanel(dx < 0 ? 'left' : (GF.panel === 'left' && dx > 0 ? 'right' : GF.panel));
+    flatStart = null;
+  };
+  const flatBody = $('#gfFlatBody');
+  flatBody.addEventListener('pointerdown', onFlatDown);
+  flatBody.addEventListener('pointermove', onFlatMove);
+  flatBody.addEventListener('pointerup', onFlatUp);
+  flatBody.addEventListener('pointercancel', onFlatUp);
+
   let infoDrag = null;
   const onInfoDown = e => { infoDrag = e.clientY; };
   const onInfoMove = e => {
@@ -8834,6 +8867,10 @@ function gatefoldWireGestures(){
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
     stage.removeEventListener('pointercancel', onUp);
+    flatBody.removeEventListener('pointerdown', onFlatDown);
+    flatBody.removeEventListener('pointermove', onFlatMove);
+    flatBody.removeEventListener('pointerup', onFlatUp);
+    flatBody.removeEventListener('pointercancel', onFlatUp);
     info.removeEventListener('pointerdown', onInfoDown);
     info.removeEventListener('pointermove', onInfoMove);
     info.removeEventListener('pointerup', onInfoUp);
@@ -9797,7 +9834,15 @@ function renderTracks(){
    only — no locked slots, no progress bars, no "X more until Y", no
    general listening stats. See PROFILE spec §1. */
 async function persistProfile(){
-  await DB.put('profile', {k:'me', name:S.profile.name, pictureBlob:S.profile.artBlob || undefined});
+  await DB.put('profile', {k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
+}
+
+// "John Smith" -> "John S."; a single word (or nothing) passes through as-is
+function formatDisplayName(name){
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '';
+  if(parts.length === 1) return parts[0];
+  return parts[0] + ' ' + parts[parts.length - 1][0].toUpperCase() + '.';
 }
 
 const fmtCount = (n, one, many) => n + ' ' + (n === 1 ? one : many);
@@ -10103,12 +10148,91 @@ function renderSocialSettingsScreen(body){
 
 function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
-  if(!soc.enabled) return;
   const host = el('div','store-host');
   body.appendChild(host);
-  body.appendChild(el('div','store-legacy-head','YOUR LIBRARY'));
+  // everything a storefront needs for staff picks, ratings, notes and the
+  // crate preview already lives on this device (Step A's local engine never
+  // touched the network) — so the storefront shell shows up right away,
+  // with only the genuinely server-shaped pieces (followers, friend
+  // requests, digging from others, sharing now-spinning) gated behind a
+  // configured + signed-in account. Either way this is now the WHOLE profile
+  // screen, not a storefront stacked on top of a duplicate "your library"
+  // section — Top Album/Achievements/Collection/Share (renderProfileExtras)
+  // just continue directly below, since nothing else shows them.
+  if(!soc.enabled){
+    renderLocalStorefront(host);
+    body.appendChild(renderProfileExtras(false));
+    return;
+  }
   if(soc.auth === 'ready') loadAndRenderStorefront(host);
   else renderOpenStoreCard(host, soc.auth);
+  body.appendChild(renderProfileExtras(true));
+}
+
+// Local albumId -> social metadata, by way of the same pure adapter the
+// vendored client builds internally — none of this touches the network.
+function localStaffPicks(){
+  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
+  return MizikiSocial.getPins().map(albumId => {
+    const info = adapter.albumInfo(albumId);
+    if(!info) return null;
+    const social = MizikiSocial.getAlbumSocial(albumId);
+    return {release_id: albumId, title: info.title, artist: info.artist, quality_tier: info.tier,
+      rating: social.rating, sleeve_note: social.note, pin_rank: social.pinRank};
+  }).filter(Boolean);
+}
+
+function renderLocalStorefront(host){
+  host.innerHTML = '';
+  host.appendChild(storeAwning());
+  const header = el('div','store-header');
+  const avatar = el('button','store-avatar'); avatar.setAttribute('aria-label','Change your picture');
+  if(S.profile.art){
+    const im = document.createElement('img'); im.src = S.profile.art; im.alt = '';
+    avatar.appendChild(im);
+  } else {
+    const label = el('div','store-avatar-label');
+    label.style.background = MizikiSocial.labelColor(S.profile.username || S.profile.name || 'me');
+    avatar.appendChild(label);
+  }
+  avatar.addEventListener('click', ()=> $('#profilePicFile').click());
+  header.appendChild(avatar);
+
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  const userIn = document.createElement('input');
+  userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
+  userIn.setAttribute('aria-label','Your storefront username');
+  userIn.value = S.profile.username || '';
+  userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
+  idBox.appendChild(userIn);
+
+  const nameDisplay = el('button','store-displayname-btn', formatDisplayName(S.profile.name) || 'Add your name');
+  nameDisplay.setAttribute('aria-label','Edit your name');
+  const nameIn = document.createElement('input');
+  nameIn.className = 'store-displayname-input'; nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.maxLength = 50;
+  nameIn.value = S.profile.name || ''; nameIn.style.display = 'none';
+  nameDisplay.addEventListener('click', ()=>{ nameDisplay.style.display = 'none'; nameIn.style.display = ''; nameIn.focus(); });
+  const commitName = ()=>{
+    S.profile.name = nameIn.value.trim(); persistProfile();
+    nameDisplay.textContent = formatDisplayName(S.profile.name) || 'Add your name';
+    nameIn.style.display = 'none'; nameDisplay.style.display = '';
+  };
+  nameIn.addEventListener('blur', commitName);
+  nameIn.addEventListener('keydown', e => { if(e.key === 'Enter') nameIn.blur(); });
+  idBox.appendChild(nameDisplay); idBox.appendChild(nameIn);
+  header.appendChild(idBox);
+  host.appendChild(header);
+
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', groupBy('album').length));
+  stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length, true));
+  host.appendChild(stats);
+
+  host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
+  host.appendChild(storeCrateGrid());
+
+  host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
 }
 
 function renderOpenStoreCard(host, authState){
@@ -11139,22 +11263,34 @@ function renderProfile(){
 
 function renderProfileHome(body){
   renderStorefrontSection(body);
-  const header = el('div','profile-header');
-  const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change profile picture');
-  if(S.profile.art) picBtn.classList.add('has-art');
-  if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
-  picBtn.appendChild(el('span','profile-pic-mark','+'));
-  picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
-  header.appendChild(picBtn);
+}
 
-  const nameIn = el('input','profile-name-input');
-  nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
-  nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
-  header.appendChild(nameIn);
-  body.appendChild(header);
+// Top Album/Top Song, Achievements, Collection and Share don't exist
+// anywhere else, so every storefront state (local-only, open-store card,
+// signed-in) appends this directly below its own header+stats rather than
+// repeating a whole second profile header — the avatar/name editor only
+// needs to appear once, inline in whichever header is actually showing.
+// includeShareCardEditor is true wherever the storefront's own header isn't
+// already editing S.profile.art/.name itself (i.e. everywhere except the
+// local-only storefront, which edits them directly as its avatar/name).
+function renderProfileExtras(includeShareCardEditor){
+  const wrap = el('div','profile-extras');
 
-  const albumCount = groupBy('album').length;
-  body.appendChild(el('div','profile-count', fmtCount(albumCount, 'album', 'albums') + ' in your library'));
+  if(includeShareCardEditor){
+    const header = el('div','profile-header');
+    const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change share-card picture');
+    if(S.profile.art) picBtn.classList.add('has-art');
+    if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
+    picBtn.appendChild(el('span','profile-pic-mark','+'));
+    picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
+    header.appendChild(picBtn);
+    const nameIn = el('input','profile-name-input');
+    nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
+    nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
+    header.appendChild(nameIn);
+    wrap.appendChild(header);
+    wrap.appendChild(el('p','note','Shown on shared cards (Now Playing, My Crate) — separate from your store.'));
+  }
 
   const row = el('div','profile-top-row');
   const albums = topAlbums(1), tracks = topTracks(1);
@@ -11164,7 +11300,7 @@ function renderProfileHome(body){
   row.appendChild(topTile('Top Song', tracks[0] ? tracks[0].art : null,
     tracks[0] ? tracks[0].title : null, tracks[0] ? tracks[0].artist : null,
     'nothing in the sleeve yet', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
-  body.appendChild(row);
+  wrap.appendChild(row);
 
   const achSection = el('div','profile-section');
   const achHead = el('div','profile-section-head'); achHead.appendChild(el('span', null, 'Achievements'));
@@ -11178,7 +11314,7 @@ function renderProfileHome(body){
     const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing earned yet.'));
     achSection.appendChild(empty);
   }
-  body.appendChild(achSection);
+  wrap.appendChild(achSection);
 
   const collList = Object.values(S.collection);
   const collSection = el('button','profile-section');
@@ -11195,12 +11331,14 @@ function renderProfileHome(body){
     collSection.appendChild(empty);
   }
   collSection.addEventListener('click', ()=>{ S.profileView.screen = 'collection'; renderProfile(); });
-  body.appendChild(collSection);
+  wrap.appendChild(collSection);
 
   const shareBtn = el('button','cta ghost profile-share','Share');
   shareBtn.classList.toggle('active', crateFilled());
   shareBtn.addEventListener('click', openShareSheet);
-  body.appendChild(shareBtn);
+  wrap.appendChild(shareBtn);
+
+  return wrap;
 }
 
 function renderTopAlbumsScreen(body){
