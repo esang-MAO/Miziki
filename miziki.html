@@ -816,6 +816,22 @@ input[type=file]{display:none}
 .share-toggles button[aria-pressed="true"]{border-color:var(--accent);color:var(--paper);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
 
+.share-section-label{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:14px 0 8px}
+.share-style-row{display:flex;gap:14px;margin-bottom:4px}
+.share-style-chip{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;
+  color:var(--muted);font-family:var(--data);font-size:10.5px;letter-spacing:.06em}
+.share-style-swatch{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);display:block}
+.share-style-chip[aria-pressed="true"]{color:var(--paper)}
+.share-style-chip[aria-pressed="true"] .share-style-swatch{box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.15)}
+.share-style-swatch.style-night{background:linear-gradient(160deg,#1D2F38,#07080C)}
+.share-style-swatch.style-cover{background:linear-gradient(160deg,#C77B3C,#4A1E12)}
+.share-style-swatch.style-paper{background:#EDE6D6}
+.share-primary{display:block;width:100%;box-sizing:border-box;text-align:center;margin-top:14px;
+  background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.share-actions-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.share-actions-row .cta{text-align:center;width:100%;box-sizing:border-box}
+
 .foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
   font-family:var(--data);font-size:10px;color:var(--muted);line-height:1.7;letter-spacing:.04em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -1436,18 +1452,30 @@ input[type=file]{display:none}
       <button class="edit-close" id="shareClose" aria-label="Close">✕</button>
     </div>
     <div class="share-canvas-wrap"><canvas id="shareCanvas"></canvas></div>
+    <p class="share-section-label">Style</p>
+    <div class="share-style-row" id="shareStyleRow">
+      <button class="share-style-chip" data-style="night" aria-pressed="true"><span class="share-style-swatch style-night"></span>Night</button>
+      <button class="share-style-chip" data-style="cover" aria-pressed="false"><span class="share-style-swatch style-cover"></span>Cover</button>
+      <button class="share-style-chip" data-style="paper" aria-pressed="false"><span class="share-style-swatch style-paper"></span>Paper</button>
+    </div>
+    <p class="share-section-label">Format</p>
+    <div class="seg" id="shareFormatSeg" style="margin-bottom:4px">
+      <button data-format="story" aria-pressed="false">Story 9:16</button>
+      <button data-format="portrait" aria-pressed="false">Portrait 4:5</button>
+      <button data-format="square" aria-pressed="true">Square 1:1</button>
+    </div>
+    <p class="share-section-label">Include</p>
     <div class="share-toggles" id="shareToggles">
-      <button class="cta ghost" data-section="albums" aria-pressed="true">Top Albums</button>
-      <button class="cta ghost" data-section="songs" aria-pressed="true">Top Songs</button>
+      <button class="cta ghost" data-section="albums" aria-pressed="true">Albums</button>
+      <button class="cta ghost" data-section="songs" aria-pressed="true">Songs</button>
       <button class="cta ghost" data-section="metals" aria-pressed="true">Metals</button>
       <button class="cta ghost" data-section="collection" aria-pressed="true">Collection</button>
+      <button class="cta ghost" data-section="name" aria-pressed="true">Name</button>
     </div>
-    <div class="seg" id="shareSizeSeg" style="margin-bottom:16px">
-      <button data-size="square" aria-pressed="true">Square</button>
-      <button data-size="story" aria-pressed="false">Story</button>
-    </div>
-    <div class="stack">
-      <button class="cta" id="shareSave">Save image</button>
+    <button class="cta share-primary" id="shareShareBtn" style="display:none">Share…</button>
+    <div class="share-actions-row">
+      <button class="cta ghost" id="shareSave">Save image</button>
+      <button class="cta ghost" id="shareCopy" style="display:none">Copy</button>
     </div>
   </div>
 </div>
@@ -1462,12 +1490,22 @@ input[type=file]{display:none}
       <button class="edit-close" id="playerShareClose" aria-label="Close">✕</button>
     </div>
     <div class="share-canvas-wrap"><canvas id="playerShareCanvas"></canvas></div>
-    <div class="seg" id="playerShareSizeSeg" style="margin-bottom:16px">
-      <button data-size="square" aria-pressed="true">Square</button>
-      <button data-size="story" aria-pressed="false">Story</button>
+    <p class="share-section-label">Style</p>
+    <div class="share-style-row" id="playerShareStyleRow">
+      <button class="share-style-chip" data-style="night" aria-pressed="true"><span class="share-style-swatch style-night"></span>Night</button>
+      <button class="share-style-chip" data-style="cover" aria-pressed="false"><span class="share-style-swatch style-cover"></span>Cover</button>
+      <button class="share-style-chip" data-style="paper" aria-pressed="false"><span class="share-style-swatch style-paper"></span>Paper</button>
     </div>
-    <div class="stack">
-      <button class="cta" id="playerShareSave">Save image</button>
+    <p class="share-section-label">Format</p>
+    <div class="seg" id="playerShareFormatSeg" style="margin-bottom:4px">
+      <button data-format="story" aria-pressed="true">Story 9:16</button>
+      <button data-format="portrait" aria-pressed="false">Portrait 4:5</button>
+      <button data-format="square" aria-pressed="false">Square 1:1</button>
+    </div>
+    <button class="cta share-primary" id="playerShareShareBtn" style="display:none">Share…</button>
+    <div class="share-actions-row">
+      <button class="cta ghost" id="playerShareSave">Save image</button>
+      <button class="cta ghost" id="playerShareCopy" style="display:none">Copy</button>
     </div>
   </div>
 </div>
@@ -1581,7 +1619,11 @@ const S = {
   profile:{name:'', art:null, artBlob:null},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
-  profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true},
+  profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true},
+  // Part 2 §2: remembered across both share sheets; format's own per-type
+  // default (story for Now Playing, square for Crate) only applies the very
+  // first time, before either sheet has ever set a preference
+  shareStyle:'night', shareFormat:null,
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
   sleep:{mode:null, at:null, timer:null, fading:false}
 };
@@ -3216,7 +3258,8 @@ async function saveMeta(){
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
     bgAudio:S.bgAudio, launchIntro:S.launchIntro,
     libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides,
-    sealedRecords:S.sealedRecords, playInFullPlayer:S.playInFullPlayer}});
+    sealedRecords:S.sealedRecords, playInFullPlayer:S.playInFullPlayer,
+    shareStyle:S.shareStyle, shareFormat:S.shareFormat}});
 }
 
 async function restoreMeta(){
@@ -3274,6 +3317,8 @@ function applyPrefs(p){
     document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
   }
+  if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') S.shareStyle = p.shareStyle;
+  if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') S.shareFormat = p.shareFormat;
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // push the restored values back into the controls
@@ -8698,7 +8743,18 @@ function renderCollectionScreen(body){
    returns a canvas, touches nothing else. Front is a record sleeve: the #1
    album's art as the jacket, wordmark fallback when there is none. Stats
    read like a back-cover track listing. */
+/* ---- style x format system (Part 2 §2). Styles (Night/Cover/Paper)
+   resolve to a small "kit" — a background painter plus ink/sub/accent
+   colours and chip styling — and formats resolve to pixel dimensions and a
+   safe-zone band, kept in one table each rather than per-card magic
+   numbers. Composers below take it from there. ---- */
 const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
+
+const SHARE_FORMATS = {
+  story:    {w:1080, h:1920, safeTop:250, safeBottom:1670},
+  portrait: {w:1080, h:1350, safeTop:90,  safeBottom:1270},
+  square:   {w:1080, h:1080, safeTop:70,  safeBottom:1010}
+};
 
 function shareFitText(ctx, text, maxWidth){
   if(ctx.measureText(text).width <= maxWidth) return text;
@@ -8707,177 +8763,451 @@ function shareFitText(ctx, text, maxWidth){
   return s + '…';
 }
 
+// measures and shrinks text to fit maxWidth across at most maxLines,
+// wrapping on spaces, stepping the font size down before ever truncating
+function shareFitLines(ctx, text, maxWidth, maxLines, baseSize, weight, family){
+  const wrap = size => {
+    ctx.font = weight + ' ' + size + 'px ' + family;
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const lines = []; let line = '';
+    for(const word of words){
+      const test = line ? line + ' ' + word : word;
+      if(line && ctx.measureText(test).width > maxWidth){ lines.push(line); line = word; }
+      else line = test;
+    }
+    if(line) lines.push(line);
+    return lines;
+  };
+  for(let size = baseSize; size >= Math.round(baseSize*0.55); size -= 2){
+    const lines = wrap(size);
+    if(lines.length <= maxLines) return { lines, fontSize: size };
+  }
+  const size = Math.round(baseSize*0.55);
+  const lines = wrap(size).slice(0, maxLines);
+  if(lines.length) lines[lines.length-1] = shareFitText(ctx, lines[lines.length-1], maxWidth);
+  return { lines, fontSize: size };
+}
+
 function shareSwatchGradient(ctx, cx, cy, r, colors){
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
   g.addColorStop(0, colors[0]); g.addColorStop(0.6, colors[1]); g.addColorStop(1, colors[2]);
   return g;
 }
 
+// waits for decode() too, not just the load event, so the first draw never
+// races a not-yet-decoded frame (spec §2 implementation notes)
 function loadImageEl(src){
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => { if(img.decode) img.decode().then(() => resolve(img), () => resolve(img)); else resolve(img); };
     img.onerror = reject;
     img.src = src;
   });
 }
 
+// whole-pixel positions, and a step-halving downscale for large source art
+// so it never samples a single too-sharp blit — never upscales past source
 function drawCover(ctx, img, x, y, w, h){
-  const scale = Math.max(w / img.width, h / img.height);
-  const sw = w / scale, sh = h / scale;
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  const scale = Math.min(1, Math.max(w / img.width, h / img.height));
+  const sw = Math.min(img.width, w / scale), sh = Math.min(img.height, h / scale);
   const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  let src = img, srcW = img.width, srcH = img.height, cropX = sx, cropY = sy, cropW = sw, cropH = sh;
+  while(cropW * scale < cropW / 2 && cropW > w * 2 && cropH > h * 2){
+    const half = document.createElement('canvas');
+    half.width = Math.max(1, Math.round(srcW/2)); half.height = Math.max(1, Math.round(srcH/2));
+    half.getContext('2d').drawImage(src, 0, 0, half.width, half.height);
+    const ratio = half.width / srcW;
+    cropX *= ratio; cropY *= ratio; cropW *= ratio; cropH *= ratio;
+    src = half; srcW = half.width; srcH = half.height;
+  }
+  ctx.drawImage(src, cropX, cropY, cropW, cropH, x, y, w, h);
 }
 
+function roundRectPath(ctx, x, y, w, h, r){
+  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+// the masthead wordmark, "zi" in the accent colour like the app header
+function drawShareWordmark(ctx, centerX, baselineY, fontPx, ink, accent){
+  ctx.save();
+  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const parts = [['Mi', ink], ['zi', accent], ['ki', ink]];
+  const total = parts.reduce((s,[txt]) => s + ctx.measureText(txt).width, 0);
+  let x = centerX - total/2;
+  parts.forEach(([txt, col]) => { ctx.fillStyle = col; ctx.fillText(txt, x, baselineY); x += ctx.measureText(txt).width; });
+  ctx.restore();
+}
+
+// a tiny, cached static-noise tile for Paper's grain — generated once,
+// tiled via a canvas pattern rather than redrawn per pixel
+let shareGrainCanvasCache = null;
+function shareGrainTile(){
+  if(shareGrainCanvasCache) return shareGrainCanvasCache;
+  const size = 96;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const cx = c.getContext('2d');
+  const img = cx.createImageData(size, size);
+  for(let i = 0; i < img.data.length; i += 4){
+    const v = 180 + Math.floor(Math.random()*50);
+    img.data[i] = v; img.data[i+1] = v; img.data[i+2] = v;
+    img.data[i+3] = Math.random() < 0.5 ? 12 : 5;
+  }
+  cx.putImageData(img, 0, 0);
+  shareGrainCanvasCache = c;
+  return c;
+}
+
+// downsamples art to ~32px and buckets by hue, picking the most saturated
+// mid-luminance bucket — returns null (greyscale/missing art) when nothing
+// qualifies, which the caller treats as "fall back to Night" (spec §2)
+function shareDominantColor(img){
+  try{
+    const size = 32;
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const cx = c.getContext('2d');
+    cx.drawImage(img, 0, 0, size, size);
+    const data = cx.getImageData(0, 0, size, size).data;
+    const buckets = {};
+    for(let i = 0; i < data.length; i += 4){
+      const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255;
+      const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2, d = max-min;
+      const s = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
+      // only exclude true greys/near-black/near-white — a dark but saturated
+      // colour (low l, high s) must still qualify, or legitimately dark art
+      // would wrongly fall back to Night instead of a darkened Cover card
+      if(s < 0.14 || l < 0.025 || l > 0.975) continue;
+      let h = 0;
+      if(d !== 0){
+        if(max === r) h = ((g-b)/d) % 6;
+        else if(max === g) h = (b-r)/d + 2;
+        else h = (r-g)/d + 4;
+        h = Math.round(h*60); if(h < 0) h += 360;
+      }
+      const key = Math.floor(h/24)*24;
+      const bucket = buckets[key] || (buckets[key] = {h:0, s:0, l:0, n:0, score:0});
+      const score = s * (1 - Math.abs(l - 0.5)*1.3);
+      bucket.h += h; bucket.s += s; bucket.l += l; bucket.n++; bucket.score += score;
+    }
+    let best = null;
+    Object.values(buckets).forEach(b => { if(!best || b.score > best.score) best = b; });
+    if(!best || best.n < 4) return null;
+    return { h: best.h/best.n, s: Math.min(1, best.s/best.n), l: Math.min(0.82, Math.max(0.12, best.l/best.n)) };
+  }catch(e){ return null; }
+}
+function hslStr(h, s, l){ return 'hsl(' + h.toFixed(0) + ',' + Math.round(s*100) + '%,' + Math.round(l*100) + '%)'; }
+
+// resolves a style name (+ optional art URL for Cover) into the kit every
+// card draws with: a background painter and a consistent ink/sub/accent/
+// chip palette, so cards never hand-roll per-style colours inline
+async function resolveShareStyle(style, artURL){
+  if(style === 'cover' && artURL){
+    try{
+      const img = await loadImageEl(artURL);
+      const dom = shareDominantColor(img);
+      if(dom){
+        // the top stop tracks the art's own lightness (darkened art stays
+        // dark, bright art stays bright) so ink contrast has something real
+        // to react to; the bottom stop always darkens toward the footer
+        const topL = Math.min(0.74, Math.max(0.2, dom.l));
+        const botL = Math.max(0.05, topL - 0.3);
+        const bgTop = hslStr(dom.h, Math.min(0.6, dom.s + 0.05), topL);
+        const bgBot = hslStr(dom.h, Math.min(0.5, dom.s), botL);
+        const accent = hslStr(dom.h, Math.min(0.8, dom.s+0.2), Math.min(0.74, topL+0.18));
+        // contrast is read against the top stop, since it's lighter/closer
+        // to the WCAG-binding case than the always-dark bottom (spec §2)
+        const useDark = topL > 0.52;
+        return {
+          name:'cover', ink: useDark ? '#171310' : '#EFE9DF',
+          sub: useDark ? 'rgba(23,19,16,.66)' : 'rgba(239,233,223,.66)', accent,
+          chipBorder: useDark ? 'rgba(23,19,16,.4)' : 'rgba(239,233,223,.4)',
+          chipBg: useDark ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)',
+          paintBg(ctx, w, h){
+            const g = ctx.createLinearGradient(0, 0, 0, h);
+            g.addColorStop(0, bgTop); g.addColorStop(1, bgBot);
+            ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+          }
+        };
+      }
+    }catch(e){ /* falls through to Night below */ }
+  }
+  if(style === 'paper'){
+    return {
+      name:'paper', ink:'#1C1816', sub:'rgba(28,24,22,.62)', accent:'#9A4B17',
+      chipBorder:'rgba(28,24,22,.35)', chipBg:'rgba(28,24,22,.07)',
+      paintBg(ctx, w, h){
+        ctx.fillStyle = '#EDE6D6'; ctx.fillRect(0, 0, w, h);
+        const pat = ctx.createPattern(shareGrainTile(), 'repeat');
+        ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = pat; ctx.fillRect(0, 0, w, h); ctx.restore();
+      }
+    };
+  }
+  return {
+    name:'night', ink:'#EFE9DF', sub:'#94A0A6', accent:'#FF9E2C',
+    chipBorder:'rgba(239,233,223,.32)', chipBg:'rgba(255,255,255,.05)',
+    paintBg(ctx, w, h){
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, SHARE_BG[0]); g.addColorStop(0.55, SHARE_BG[1]); g.addColorStop(1, SHARE_BG[2]);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    }
+  };
+}
+
+// one spec chip, e.g. "FLAC · 44.1 kHz · 16-bit" or "VINYL" — `filled`
+// renders it solid in the accent colour (used for the mode chip)
+function shareChip(ctx, kit, text, x, y, filled){
+  ctx.font = '600 22px "IBM Plex Mono", monospace';
+  const padX = 22, h = 46;
+  const w = ctx.measureText(text).width + padX*2;
+  if(filled){
+    roundRectPath(ctx, x, y, w, h, h/2);
+    ctx.fillStyle = kit.accent; ctx.fill();
+    ctx.fillStyle = kit.name === 'paper' ? '#EDE6D6' : '#171310';
+  } else {
+    roundRectPath(ctx, x, y, w, h, h/2);
+    ctx.strokeStyle = kit.chipBorder; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = kit.ink;
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + w/2, y + h/2 + 1);
+  ctx.textBaseline = 'alphabetic';
+  return w;
+}
+
+/* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
+   album, a grid of the next covers, top songs, metals + collection, brand.
+   `opts`: {style, format, sections}. Pure: no DOM reads, only the same
+   state-reading anchors the original drew from (topAlbums/topTracks/
+   achievementsList/S.collection/S.profile/S.tracks). ---- */
 async function composeShareImage(opts){
+  const style = opts.style || 'night', format = opts.format || 'square';
   const sections = opts.sections || {};
-  const w = 1080, h = opts.size === 'story' ? 1920 : 1080;
+  const dim = SHARE_FORMATS[format] || SHARE_FORMATS.square;
+  const w = dim.w, h = dim.h;
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   try{ await document.fonts.ready; }catch(e){}
 
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, SHARE_BG[0]); bgGrad.addColorStop(0.55, SHARE_BG[1]); bgGrad.addColorStop(1, SHARE_BG[2]);
-  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
-
   const topAlbum = topAlbums(1)[0];
-  const frontH = Math.round(h * (opts.size === 'story' ? 0.5 : 0.62));
+  const kit = await resolveShareStyle(style, topAlbum && topAlbum.display.art);
+  kit.paintBg(ctx, w, h);
 
-  if(topAlbum && topAlbum.display.art){
-    try{
-      const img = await loadImageEl(topAlbum.display.art);
-      drawCover(ctx, img, 0, 0, w, frontH);
-      const vig = ctx.createLinearGradient(0, frontH - 140, 0, frontH);
-      vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.55)');
-      ctx.fillStyle = vig; ctx.fillRect(0, frontH - 140, w, 140);
-    }catch(e){ drawWordmarkPanel(ctx, w, frontH); }
+  const pad = Math.round(w*0.055);
+  const topY = dim.safeTop, bottomY = dim.safeBottom;
+  const twoCol = format !== 'story';
+
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  // header: avatar, name (if on), album/track counts
+  const avSize = Math.round(w*0.075);
+  const avX = pad, avY = topY;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(avX+avSize/2, avY+avSize/2, avSize/2, 0, Math.PI*2); ctx.clip();
+  let drewAvatar = false;
+  if(S.profile.art){
+    try{ const img = await loadImageEl(S.profile.art); drawCover(ctx, img, avX, avY, avSize, avSize); drewAvatar = true; }catch(e){}
+  }
+  if(!drewAvatar){
+    ctx.fillStyle = shareSwatchGradient(ctx, avX+avSize/2, avY+avSize/2, avSize/2, ['#3E8E7E','#245048','#122623']);
+    ctx.fillRect(avX, avY, avSize, avSize);
+    if(S.profile.name){
+      ctx.fillStyle = kit.name === 'paper' ? '#EDE6D6' : '#EFE9DF';
+      ctx.font = '600 ' + Math.round(avSize*0.42) + 'px Archivo, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(S.profile.name[0].toUpperCase(), avX+avSize/2, avY+avSize/2+1);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+  }
+  ctx.restore();
+
+  const showName = sections.name !== false && !!S.profile.name;
+  const albumCount = new Set(S.tracks.map(t => albumKey(t))).size;
+  const trackCount = S.tracks.length;
+  const textX = avX + avSize + Math.round(w*0.025);
+  const headName = showName ? S.profile.name.toUpperCase() + "'S CRATE" : 'MY CRATE';
+  ctx.font = '700 ' + Math.round(w*0.042) + 'px Antonio, sans-serif';
+  ctx.fillStyle = kit.ink;
+  ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.42);
+  ctx.font = '500 ' + Math.round(w*0.02) + 'px "IBM Plex Mono", monospace';
+  ctx.fillStyle = kit.sub;
+  ctx.fillText(albumCount + ' ALBUMS · ' + trackCount + ' TRACKS', textX, avY + avSize*0.42 + Math.round(w*0.03));
+
+  let y = avY + avSize + Math.round(h*0.04);
+  const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.56);
+  const heroX = twoCol ? pad : Math.round((w-heroW)/2);
+  const heroH = heroW;
+
+  if(topAlbum){
+    if(topAlbum.display.art){
+      try{ const img = await loadImageEl(topAlbum.display.art); ctx.save(); roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.clip(); drawCover(ctx, img, heroX, y, heroW, heroH); ctx.restore(); }
+      catch(e){ drawDiagonalWordmark(ctx, heroX, y, heroW); }
+    } else drawDiagonalWordmark(ctx, heroX, y, heroW);
   } else {
-    drawWordmarkPanel(ctx, w, frontH);
+    ctx.fillStyle = kit.chipBg; roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.fill();
   }
-  // small wordmark, corner of the jacket — present even when there is art
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 26px Antonio, sans-serif';
-  ctx.fillStyle = 'rgba(10,14,18,.55)';
-  ctx.fillRect(36, frontH - 68, 190, 42);
-  ctx.fillStyle = '#FF9E2C';
-  ctx.fillText('MIZIKI', 50, frontH - 38);
 
-  let y = frontH + 56;
-  const pad = 56, colW = w - pad*2;
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-
-  const heading = text => {
-    ctx.font = '700 22px "IBM Plex Mono", monospace';
-    ctx.fillStyle = '#94A0A6';
-    ctx.fillText(text.toUpperCase(), pad, y);
-    y += 34;
-  };
-  const emptyLine = text => {
-    ctx.font = '400 22px Archivo, sans-serif'; ctx.fillStyle = '#94A0A6';
-    ctx.fillText(text, pad, y); y += 44;
-  };
-  const row = (rank, title, sub) => {
-    ctx.font = '500 30px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
-    const rankStr = String(rank).padStart(2,'0') + '  ';
-    ctx.fillText(rankStr, pad, y);
-    const rankW = ctx.measureText(rankStr).width;
-    ctx.fillText(shareFitText(ctx, title, colW - rankW - 20), pad + rankW, y);
-    y += 34;
-    if(sub){
-      ctx.font = '400 20px "IBM Plex Mono", monospace'; ctx.fillStyle = '#94A0A6';
-      ctx.fillText(shareFitText(ctx, sub, colW - rankW), pad + rankW, y);
-      y += 38;
-    } else y += 14;
-  };
-
-  if(sections.albums){
-    heading('Top Albums');
-    const list = topAlbums(5);
-    if(list.length) list.forEach((a,i) => row(i+1, a.display.name, a.display.artist));
-    else emptyLine('Nothing in the crate yet.');
-    y += 20;
+  if(twoCol){
+    // 2x2 grid of the next top covers, to the right of the hero
+    const gridX = heroX + heroW + Math.round(w*0.03);
+    const gridW = w - pad - gridX;
+    const cell = (gridW - Math.round(w*0.02)) / 2;
+    const nextAlbums = topAlbums(5).slice(1, 5);
+    for(let i = 0; i < 4; i++){
+      const cx = gridX + (i%2)*(cell + Math.round(w*0.02));
+      const cy = y + Math.floor(i/2)*(cell + Math.round(w*0.02));
+      const a = nextAlbums[i];
+      if(a && a.display.art){
+        try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, cy, cell, cell); ctx.restore(); }
+        catch(e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill(); }
+      } else {
+        ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill();
+        if(a){
+          ctx.fillStyle = kit.sub; ctx.font = '600 20px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(shareFitText(ctx, a.display.name, cell-16), cx+cell/2, cy+cell/2);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        }
+      }
+    }
+    y += heroH + Math.round(h*0.035);
+  } else {
+    // single column: a plain row of the next covers beneath the hero
+    y += heroH + Math.round(h*0.03);
+    const nextAlbums = topAlbums(5).slice(1, 5);
+    if(nextAlbums.length){
+      const cell = Math.round((w - pad*2 - (nextAlbums.length-1)*Math.round(w*0.025)) / 4);
+      let cx = pad;
+      for(const a of nextAlbums){
+        if(a.display.art){
+          try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, y, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, y, cell, cell); ctx.restore(); }
+          catch(e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
+        } else { ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
+        cx += cell + Math.round(w*0.025);
+      }
+      y += cell + Math.round(h*0.03);
+    }
   }
-  if(sections.songs){
-    heading('Top Songs');
+
+  ctx.font = '700 ' + Math.round(w*0.02) + 'px "IBM Plex Mono", monospace';
+  ctx.fillStyle = kit.accent;
+  ctx.fillText('01 · TOP ALBUM', twoCol ? heroX : pad, y);
+  y += Math.round(w*0.04);
+  ctx.font = '700 ' + Math.round(w*0.04) + 'px Archivo, sans-serif';
+  ctx.fillStyle = kit.ink;
+  ctx.fillText(shareFitText(ctx, topAlbum ? topAlbum.display.name : 'Nothing yet', w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
+  y += Math.round(w*0.034);
+  ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif';
+  ctx.fillStyle = kit.sub;
+  const subLine = topAlbum ? (topAlbum.display.artist + ' · ' + fmtCount(topAlbum.count, 'session', 'sessions')) : '';
+  ctx.fillText(shareFitText(ctx, subLine, w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
+  y += Math.round(h*0.05);
+
+  // two columns (portrait/square): songs left, metals+collection stacked
+  // right. Single column (story): all three stack in the one column, so
+  // rightY is kept in sync with leftY between sections rather than starting
+  // fresh — otherwise metals/collection would overlap songs instead of
+  // continuing below it (spec §2, "Story is a single column").
+  const colSplitX = twoCol ? Math.round(w/2) : null;
+  let leftY = y, rightY = y;
+  const leftX = pad, rightX = colSplitX != null ? colSplitX + Math.round(w*0.02) : pad;
+  const colW = (colSplitX != null ? colSplitX - leftX - Math.round(w*0.03) : w - pad*2);
+
+  if(sections.songs !== false){
+    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
+    ctx.fillStyle = kit.accent;
+    ctx.fillText('TOP SONGS', leftX, leftY);
+    leftY += Math.round(w*0.036);
     const list = topTracks(5);
-    if(list.length) list.forEach((t,i) => row(i+1, t.title, t.artist));
-    else emptyLine('Nothing in the sleeve yet.');
-    y += 20;
+    const rows = twoCol ? list.slice(0, 4) : list.slice(0, 4);
+    if(rows.length){
+      rows.forEach((t, i) => {
+        ctx.font = '600 ' + Math.round(w*0.027) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
+        const rankStr = String(i+1).padStart(2,'0') + '  ';
+        ctx.fillText(rankStr, leftX, leftY);
+        const rankW = ctx.measureText(rankStr).width;
+        const titleW = ctx.measureText(t.title).width;
+        ctx.fillText(shareFitText(ctx, t.title, colW - rankW), leftX + rankW, leftY);
+        ctx.font = '400 ' + Math.round(w*0.02) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+        const subX = leftX + rankW + Math.min(titleW, colW - rankW) + 8;
+        ctx.fillText(shareFitText(ctx, '· ' + t.artist, Math.max(10, leftX + colW - subX)), subX, leftY);
+        leftY += Math.round(w*0.042);
+      });
+    } else {
+      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+      ctx.fillText('Nothing in the sleeve yet.', leftX, leftY);
+      leftY += Math.round(w*0.04);
+    }
   }
-  if(sections.metals){
-    heading('Metals Earned');
+
+  if(!twoCol) rightY = leftY;
+  if(sections.metals !== false){
+    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
+    ctx.fillStyle = kit.accent;
+    ctx.fillText('METALS', rightX, rightY);
+    rightY += Math.round(w*0.036);
     const list = achievementsList();
     if(list.length){
       const counts = {};
       list.forEach(a => { counts[a.tier] = (counts[a.tier] || 0) + 1; });
       const order = ['rare','platinum','gold','silver','bronze'];
-      const parts = order.filter(k => counts[k]).map(k => counts[k] + ' ' + (k[0].toUpperCase() + k.slice(1)));
-      ctx.font = '500 26px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
-      ctx.fillText(shareFitText(ctx, parts.join('   ·   '), colW), pad, y);
-      y += 44;
-    } else emptyLine('Nothing earned yet.');
-    y += 20;
+      const r = Math.round(w*0.026);
+      let cx = rightX + r;
+      order.filter(k => counts[k]).forEach(k => {
+        ctx.beginPath(); ctx.arc(cx, rightY + r*0.2, r, 0, Math.PI*2);
+        ctx.fillStyle = shareSwatchGradient(ctx, cx, rightY + r*0.2, r, [METAL_COLORS[k] || '#9c8a74', hexMix(METAL_COLORS[k]||'#9c8a74','#000',0.35), hexMix(METAL_COLORS[k]||'#9c8a74','#000',0.6)]);
+        ctx.fill();
+        ctx.fillStyle = '#171310'; ctx.font = '700 ' + Math.round(r*0.85) + 'px Archivo, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(counts[k]), cx, rightY + r*0.2 + 1);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        cx += r*2 + Math.round(w*0.016);
+      });
+      rightY += r*2 + Math.round(w*0.03);
+    } else {
+      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+      ctx.fillText('Nothing earned yet.', rightX, rightY);
+      rightY += Math.round(w*0.04);
+    }
   }
-  if(sections.collection){
-    heading('Collection');
+
+  if(sections.collection !== false){
+    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
+    ctx.fillStyle = kit.accent;
+    ctx.fillText('COLLECTION', rightX, rightY);
+    rightY += Math.round(w*0.036);
     const items = Object.values(S.collection).slice(0, 6);
     if(items.length){
-      const r = 46, spacing = 58, startX = pad + r;
+      const r = Math.round(w*0.024), spacing = r*2 + Math.round(w*0.012);
       items.forEach((rec, i) => {
-        const cx = startX + i*spacing, cy = y + r, angle = (i % 2 === 0 ? -1 : 1) * 4;
-        ctx.save();
-        ctx.translate(cx, cy); ctx.rotate(angle * Math.PI/180);
-        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.fillStyle = shareSwatchGradient(ctx, 0, 0, r, VARIANT_DEFS[rec.variant].colors);
+        const cx = rightX + r + i*spacing, cy = rightY + r;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, VARIANT_DEFS[rec.variant].colors);
         ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
-        ctx.restore();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
       });
-      y += r*2 + 20;
-    } else emptyLine('Nothing collected yet.');
+      rightY += r*2 + Math.round(w*0.03);
+    } else {
+      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+      ctx.fillText('Nothing collected yet.', rightX, rightY);
+      rightY += Math.round(w*0.04);
+    }
   }
+
+  ctx.textAlign = 'center';
+  const markY = Math.max(leftY, rightY, Math.round(h*0.02)) + Math.round(h*0.03);
+  drawShareWordmark(ctx, w/2, Math.min(markY, bottomY), Math.round(w*0.034), kit.ink, kit.accent);
+  ctx.textAlign = 'left';
 
   return canvas;
 }
 
-function drawWordmarkPanel(ctx, w, frontH){
-  ctx.fillStyle = '#171310'; ctx.fillRect(0, 0, w, frontH);
-  ctx.fillStyle = 'rgba(239,233,223,.5)';
-  ctx.font = '700 64px Antonio, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('M I Z I K I', w/2, frontH/2);
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-}
-
-async function openShareSheet(){
-  $('#shareOverlay').classList.add('open');
-  $('#shareOverlay').setAttribute('aria-hidden','false');
-  await renderShareCanvas();
-}
-function closeShareSheet(){
-  $('#shareOverlay').classList.remove('open');
-  $('#shareOverlay').setAttribute('aria-hidden','true');
-}
-async function renderShareCanvas(){
-  const sizeBtn = document.querySelector('#shareSizeSeg [aria-pressed="true"]');
-  const size = sizeBtn ? sizeBtn.dataset.size : 'square';
-  const canvas = await composeShareImage({size, sections: S.shareSelection});
-  const target = $('#shareCanvas');
-  target.width = canvas.width; target.height = canvas.height;
-  target.getContext('2d').drawImage(canvas, 0, 0);
-}
-
-/* ---- player share: "this record, right now" — a single object, not a
-   stat card (see LIBRARY spec §2). Two distinct compositions:
-   - Normal: album art is a square whose side equals the disc's diameter,
-     vertically flush, disc centered on the square's left edge so roughly
-     half protrudes left; the art renders on top and occludes the disc's
-     right half — the disc passes behind it.
-   - Rare variant: no art square at all (the art is already suspended
-     inside the disc, so a jacket would duplicate it) — full disc, centered,
-     standing alone.
-   Pure function like composeShareImage(): takes options, returns a canvas. ---- */
 function hexMix(hex, target, amt){
   const c = parseInt(hex.slice(1), 16), t = parseInt(target.slice(1), 16);
   const mix = (shift) => Math.round(((c>>shift & 255) * (1-amt)) + ((t>>shift & 255) * amt));
@@ -8960,26 +9290,8 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
   }
 }
 
-// Small corner mark, top-right of whatever it's anchored to — the album
-// art square in the normal composition, or the canvas itself when there's
-// no square (rare composition). `onArt` adds a translucent backing pill
-// since it needs to stay legible sitting directly on a photo (see LIBRARY
-// spec §2, Branding).
-function drawCornerWordmark(ctx, rightX, topY, onArt){
-  ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 24px Antonio, sans-serif';
-  if(onArt){
-    const textW = ctx.measureText('MIZIKI').width;
-    ctx.fillStyle = 'rgba(10,14,18,.55)';
-    ctx.fillRect(rightX - textW - 26, topY + 14, textW + 24, 36);
-  }
-  ctx.fillStyle = '#FF9E2C';
-  ctx.fillText('MIZIKI', rightX - 14, topY + 40);
-  ctx.textAlign = 'left';
-}
-
-// Black square with "Miziki" written diagonally across it — distinct from
-// the sleeve pull's plain horizontal wordmark fallback (see LIBRARY spec §2)
+// Black square with "Miziki" written diagonally across it — the fallback
+// jacket when a track has no art at all (see LIBRARY spec §2)
 function drawDiagonalWordmark(ctx, x, y, side){
   ctx.save();
   ctx.fillStyle = '#0B0C0F'; ctx.fillRect(x, y, side, side);
@@ -8993,83 +9305,223 @@ function drawDiagonalWordmark(ctx, x, y, side){
   ctx.restore();
 }
 
+/* ---- Now Playing card (composePlayerShareImage) — the record peeking from
+   behind its sleeve (fillShareDisc), kicker + title (auto-shrink to 2
+   lines) + artist + album·year, a live progress line, spec chips, brand
+   footer. `opts`: {style, format, data}, data gathered by the caller
+   (renderPlayerShareCanvas) from current()/S.pos/resolveLook() — the
+   composer itself touches nothing but its arguments. ---- */
 async function composePlayerShareImage(opts){
-  const t = current();
-  const w = 1080, h = opts.size === 'story' ? 1920 : 1080;
+  const style = opts.style || 'night', format = opts.format || 'story';
+  const dim = SHARE_FORMATS[format] || SHARE_FORMATS.story;
+  const w = dim.w, h = dim.h;
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   try{ await document.fonts.ready; }catch(e){}
-  if(!t) return canvas;
+  const data = opts.data;
+  if(!data || !data.track) return canvas;
+  const t = data.track;
 
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, '#171310'); bgGrad.addColorStop(1, '#0B0C0F');
-  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+  const kit = await resolveShareStyle(style, t.art || null);
+  kit.paintBg(ctx, w, h);
 
-  const look = resolveLook(t);
-  const isStory = opts.size === 'story';
-  let captionY;
+  const pad = Math.round(w*0.06);
+  let y = dim.safeTop;
+  const bottomY = dim.safeBottom;
+  const look = data.look;
 
   if(look === 'rare'){
-    // full disc, centered, standing alone — a separate jacket would
-    // duplicate the art already suspended inside it
-    const r = isStory ? w * 0.38 : w * 0.36;
-    const cx = w / 2, cy = isStory ? h * 0.42 : h * 0.4;
+    // full disc, standing alone — a jacket would duplicate the art already
+    // suspended inside it (see the normal branch's own comment below)
+    const r = Math.round(w * (format === 'story' ? 0.27 : 0.23));
+    const cx = w/2, cy = y + r;
     await fillShareDisc(ctx, t, look, cx, cy, r, false);
-    captionY = cy + r + 90;
-    // no album art square for the wordmark to sit on, so it goes in the
-    // top right of the canvas instead, at the same scale
-    drawCornerWordmark(ctx, w - 40, 40, false);
+    y = cy + r + Math.round(h*0.05);
   } else {
-    const side = isStory ? w * 0.62 : w * 0.52;
-    const marginX = (w - side * 1.5) / 2;
-    const squareLeft = marginX + side / 2;
-    const squareTop = isStory ? h * 0.30 : h * 0.14;
-    const discCx = squareLeft, discCy = squareTop + side / 2, r = side / 2;
-
+    // the disc sits behind an album-art square, offset so roughly half of
+    // it peeks out to the left — same geometry the original player-share
+    // composition used, just placed per the format's own layout now
+    const side = Math.round(w * (format === 'story' ? 0.52 : format === 'square' ? 0.46 : 0.48));
+    const squareLeft = Math.round((w - side)/2 + side*0.22);
+    const squareTop = y;
+    const discCx = squareLeft, discCy = squareTop + side/2, r = side/2;
     await fillShareDisc(ctx, t, look, discCx, discCy, r, true);
-
-    // album art (or the diagonal-wordmark fallback) renders on top,
-    // occluding the disc's right half — the disc passes behind it
     if(t.art){
       try{
         const img = await loadImageEl(t.art);
-        ctx.save();
-        ctx.beginPath(); ctx.rect(squareLeft, squareTop, side, side); ctx.clip();
+        ctx.save(); roundRectPath(ctx, squareLeft, squareTop, side, side, 6); ctx.clip();
         drawCover(ctx, img, squareLeft, squareTop, side, side);
         ctx.restore();
-        // sits on the art itself, top right corner of the square — the
-        // diagonal fallback below replaces this rather than layering under it
-        drawCornerWordmark(ctx, squareLeft + side, squareTop, true);
       }catch(e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
     } else {
       drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
     }
-    captionY = squareTop + side + 90;
+    y = squareTop + side + Math.round(h*0.06);
   }
 
-  // caption: two lines, tolerant of long names — truncate, never reflow
-  const pad = 64;
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '600 40px Archivo, sans-serif'; ctx.fillStyle = '#EFE9DF';
-  const line1 = (t.tags ? t.tags.artist : '') + ' - ' + (t.tags ? t.tags.title : t.name);
-  ctx.fillText(shareFitText(ctx, line1, w - pad*2), w/2, captionY);
-  ctx.font = '400 24px "IBM Plex Mono", monospace'; ctx.fillStyle = '#94A0A6';
-  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.album : '', w - pad*2), w/2, captionY + 38);
+  ctx.font = '700 ' + Math.round(w*0.024) + 'px "IBM Plex Mono", monospace';
+  ctx.fillStyle = kit.accent;
+  ctx.fillText('NOW PLAYING', w/2, y);
+  y += Math.round(w*0.05);
+
+  const titleMax = w - pad*2;
+  const title = t.tags ? t.tags.title : (t.name || '');
+  const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Archivo, sans-serif');
+  ctx.font = '700 ' + titleSize + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
+  titleLines.forEach(line => { y += Math.round(titleSize*1.08); ctx.fillText(line, w/2, y); });
+  // clearance scaled to the title's own (auto-shrunk) size, not a fixed
+  // fraction of canvas height — otherwise a large title in a short format
+  // leaves too little room before the descender meets the artist line
+  y += Math.round(titleSize*0.85);
+
+  ctx.font = '400 ' + Math.round(w*0.032) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.artist : '', titleMax), w/2, y);
+  y += Math.round(w*0.045);
+
+  const albumYear = [t.tags ? t.tags.album : '', data.year || null].filter(Boolean).join(' · ');
+  ctx.font = '600 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
+  ctx.fillText(shareFitText(ctx, albumYear.toUpperCase(), titleMax), w/2, y);
+  y += Math.round(h*0.055);
+
+  if(typeof data.elapsed === 'number' && data.duration > 0){
+    const barW = w - pad*2, barY = y, barH = 6;
+    const frac = Math.max(0, Math.min(1, data.elapsed / data.duration));
+    ctx.fillStyle = kit.chipBg; roundRectPath(ctx, pad, barY, barW, barH, barH/2); ctx.fill();
+    ctx.fillStyle = kit.accent; roundRectPath(ctx, pad, barY, Math.max(barH, barW*frac), barH, barH/2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pad + barW*frac, barY + barH/2, barH*1.5, 0, Math.PI*2); ctx.fillStyle = kit.accent; ctx.fill();
+    y += Math.round(h*0.03);
+    ctx.font = '500 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
+    ctx.textAlign = 'left'; ctx.fillText(fmt(data.elapsed), pad, y);
+    ctx.textAlign = 'right'; ctx.fillText(fmt(data.duration), w - pad, y);
+    ctx.textAlign = 'center';
+    y += Math.round(h*0.05);
+  }
+
+  // spec chips: FLAC/sample-rate/bit-depth, plus the current mode — each
+  // omitted outright when its data is missing (spec §2)
+  const chips = [];
+  const specParts = [t.meta && t.meta.codec, t.meta && t.meta.rate ? (t.meta.rate/1000).toFixed(1)+' kHz' : null,
+    t.meta && t.meta.bits ? t.meta.bits+'-bit' : null].filter(Boolean);
+  if(specParts.length) chips.push({text: specParts.join(' · '), filled:false});
+  if(data.mode) chips.push({text: String(data.mode).toUpperCase(), filled:true});
+  if(chips.length){
+    ctx.font = '600 22px "IBM Plex Mono", monospace';
+    const gap = Math.round(w*0.018);
+    const widths = chips.map(c => ctx.measureText(c.text).width + 44);
+    const totalW = widths.reduce((s,x) => s+x, 0) + gap*(chips.length-1);
+    let cx = w/2 - totalW/2;
+    chips.forEach(c => { const cw = shareChip(ctx, kit, c.text, cx, y, c.filled); cx += cw + gap; });
+    y += 46 + Math.round(h*0.045);
+  }
+
+  ctx.textAlign = 'center';
+  const markY = Math.max(y, bottomY - Math.round(h*0.05));
+  drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
+  ctx.font = '600 ' + Math.round(w*0.0165) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
+  const lossless = !(t.meta && t.meta.lossless === false);
+  ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, markY + Math.round(h*0.026));
 
   return canvas;
 }
 
+/* ---- share sheet wiring: style/format read from the DOM (the sheet's own
+   chips), everything else (the pixels) comes from the pure composers above.
+   Live preview re-renders are debounced ~100ms so rapid taps don't each
+   trigger a full recompose. ---- */
+function shareSelectedStyle(rowId){
+  const b = document.querySelector('#' + rowId + ' .share-style-chip[aria-pressed="true"]');
+  return b ? b.dataset.style : 'night';
+}
+function shareSelectedFormat(segId, fallback){
+  const b = document.querySelector('#' + segId + ' [aria-pressed="true"]');
+  return b ? b.dataset.format : fallback;
+}
+function canShareFiles(){
+  try{ return !!(navigator.canShare && navigator.share && navigator.canShare({files:[new File([''], 'x.png', {type:'image/png'})]})); }
+  catch(e){ return false; }
+}
+function canCopyImages(){ return !!(navigator.clipboard && window.ClipboardItem); }
+function updateShareActionButtons(shareBtn, saveBtn, copyBtn){
+  const canShare = canShareFiles();
+  shareBtn.style.display = canShare ? '' : 'none';
+  saveBtn.classList.toggle('ghost', canShare);
+  saveBtn.classList.toggle('share-primary', !canShare);
+  copyBtn.style.display = canCopyImages() ? '' : 'none';
+}
+function shareExportToBlob(canvas, cb){ canvas.toBlob(cb, 'image/png'); }
+function shareDoSave(canvas, filename){
+  shareExportToBlob(canvas, blob => {
+    if(!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+}
+function shareDoShare(canvas, filename){
+  shareExportToBlob(canvas, blob => {
+    if(!blob) return;
+    const file = new File([blob], filename, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})) navigator.share({files:[file], title:'Miziki'}).catch(()=>{});
+  });
+}
+function shareDoCopy(canvas){
+  shareExportToBlob(canvas, blob => {
+    if(!blob || !canCopyImages()) return;
+    navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).catch(()=>{});
+  });
+}
+
+let shareRenderTimer = null;
+async function renderShareCanvas(){
+  const style = shareSelectedStyle('shareStyleRow');
+  const format = shareSelectedFormat('shareFormatSeg', 'square');
+  const canvas = await composeShareImage({style, format, sections: S.shareSelection});
+  const target = $('#shareCanvas');
+  target.width = canvas.width; target.height = canvas.height;
+  target.getContext('2d').drawImage(canvas, 0, 0);
+}
+function queueShareRender(){ clearTimeout(shareRenderTimer); shareRenderTimer = setTimeout(renderShareCanvas, 100); }
+async function openShareSheet(){
+  const format = S.shareFormat || 'square';
+  document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.style === S.shareStyle)));
+  document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.format === format)));
+  updateShareActionButtons($('#shareShareBtn'), $('#shareSave'), $('#shareCopy'));
+  $('#shareOverlay').classList.add('open');
+  $('#shareOverlay').setAttribute('aria-hidden','false');
+  await renderShareCanvas();
+}
+function closeShareSheet(){
+  $('#shareOverlay').classList.remove('open');
+  $('#shareOverlay').setAttribute('aria-hidden','true');
+}
+
+let playerShareRenderTimer = null;
 async function renderPlayerShareCanvas(){
-  const sizeBtn = document.querySelector('#playerShareSizeSeg [aria-pressed="true"]');
-  const size = sizeBtn ? sizeBtn.dataset.size : 'square';
-  const canvas = await composePlayerShareImage({size});
+  const t = current();
+  const style = shareSelectedStyle('playerShareStyleRow');
+  const format = shareSelectedFormat('playerShareFormatSeg', 'story');
+  const data = t ? { track: t, elapsed: S.pos, duration: t.duration || 0,
+    look: resolveLook(t), mode: S.mode, year: t.details && t.details.year } : null;
+  const canvas = await composePlayerShareImage({style, format, data});
   const target = $('#playerShareCanvas');
   target.width = canvas.width; target.height = canvas.height;
   target.getContext('2d').drawImage(canvas, 0, 0);
 }
+function queuePlayerShareRender(){ clearTimeout(playerShareRenderTimer); playerShareRenderTimer = setTimeout(renderPlayerShareCanvas, 100); }
 async function openPlayerShareSheet(){
   if(!current()) return;
+  const format = S.shareFormat || 'story';
+  document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.style === S.shareStyle)));
+  document.querySelectorAll('#playerShareFormatSeg [data-format]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.format === format)));
+  updateShareActionButtons($('#playerShareShareBtn'), $('#playerShareSave'), $('#playerShareCopy'));
   $('#playerShareOverlay').classList.add('open');
   $('#playerShareOverlay').setAttribute('aria-hidden', 'false');
   await renderPlayerShareCanvas();
@@ -9527,27 +9979,22 @@ function showRoute(name){
     const key = b.dataset.section;
     S.shareSelection[key] = !S.shareSelection[key];
     b.setAttribute('aria-pressed', String(S.shareSelection[key]));
-    renderShareCanvas();
+    queueShareRender();
   }));
-  document.querySelectorAll('#shareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
-    document.querySelectorAll('#shareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    renderShareCanvas();
+  document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(b => b.addEventListener('click', ()=>{
+    S.shareStyle = b.dataset.style;
+    document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.style === S.shareStyle)));
+    queueSave(); queueShareRender();
   }));
-  $('#shareSave').addEventListener('click', ()=>{
-    $('#shareCanvas').toBlob(blob => {
-      if(!blob) return;
-      const file = new File([blob], 'miziki-share.png', {type:'image/png'});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({files:[file], title:'Miziki'}).catch(()=>{});
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'miziki-share.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=> URL.revokeObjectURL(url), 4000);
-    }, 'image/png');
-  });
+  document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b => b.addEventListener('click', ()=>{
+    S.shareFormat = b.dataset.format;
+    document.querySelectorAll('#shareFormatSeg [data-format]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave(); queueShareRender();
+  }));
+  $('#shareShareBtn').addEventListener('click', () => shareDoShare($('#shareCanvas'), 'miziki-crate-' + shareSelectedFormat('shareFormatSeg','square') + '.png'));
+  $('#shareSave').addEventListener('click', () => shareDoSave($('#shareCanvas'), 'miziki-crate-' + shareSelectedFormat('shareFormatSeg','square') + '.png'));
+  $('#shareCopy').addEventListener('click', () => shareDoCopy($('#shareCanvas')));
 
   $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
   $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
@@ -9557,25 +10004,20 @@ function showRoute(name){
   $('#queueClose').addEventListener('click', closeQueueSheet);
   $('#lookClose').addEventListener('click', closeLookPicker);
   $('#sortMenuClose').addEventListener('click', closeSortMenu);
-  document.querySelectorAll('#playerShareSizeSeg button').forEach(b => b.addEventListener('click', ()=>{
-    document.querySelectorAll('#playerShareSizeSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    renderPlayerShareCanvas();
+  document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(b => b.addEventListener('click', ()=>{
+    S.shareStyle = b.dataset.style;
+    document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.style === S.shareStyle)));
+    queueSave(); queuePlayerShareRender();
   }));
-  $('#playerShareSave').addEventListener('click', ()=>{
-    $('#playerShareCanvas').toBlob(blob => {
-      if(!blob) return;
-      const file = new File([blob], 'miziki-record.png', {type:'image/png'});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({files:[file], title:'Miziki'}).catch(()=>{});
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'miziki-record.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=> URL.revokeObjectURL(url), 4000);
-    }, 'image/png');
-  });
+  document.querySelectorAll('#playerShareFormatSeg [data-format]').forEach(b => b.addEventListener('click', ()=>{
+    S.shareFormat = b.dataset.format;
+    document.querySelectorAll('#playerShareFormatSeg [data-format]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave(); queuePlayerShareRender();
+  }));
+  $('#playerShareShareBtn').addEventListener('click', () => shareDoShare($('#playerShareCanvas'), 'miziki-now-playing-' + shareSelectedFormat('playerShareFormatSeg','story') + '.png'));
+  $('#playerShareSave').addEventListener('click', () => shareDoSave($('#playerShareCanvas'), 'miziki-now-playing-' + shareSelectedFormat('playerShareFormatSeg','story') + '.png'));
+  $('#playerShareCopy').addEventListener('click', () => shareDoCopy($('#playerShareCanvas')));
 
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer
