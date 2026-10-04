@@ -400,7 +400,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
 .launch-stack.launch-settled{opacity:1}
 .launch-card{position:absolute;left:56px;top:128px;width:278px;height:278px;
-  border-radius:6px;overflow:hidden;will-change:transform,opacity,filter;
+  border-radius:6px;overflow:hidden;will-change:transform,opacity;
   box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
 .launch-card.launch-target{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
 .launch-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -4712,7 +4712,7 @@ function computeFlickPosition(elapsedMs, target, timing){
   return accelDist + cruiseDist + decelDist * (1 - Math.pow(1 - u, 3));
 }
 // trapezoidal 0->1->0 matching the accel/cruise/decel phases, used only to
-// scale the motion-blur/stretch cosmetics — not position itself
+// scale the speed-stretch cosmetics — not position itself
 function flickSpeed(elapsedMs, timing){
   const { accelMs, cruiseMs, decelMs } = timing;
   if(elapsedMs < accelMs) return elapsedMs / accelMs;
@@ -4740,8 +4740,7 @@ function flowPose(a, d, speed, opts){
   const scale = 0.86 - 0.06*Math.min(a,1) - 0.02*Math.max(0, Math.min(a,8)-1);
   const z = -70*Math.min(a,1) - 6*Math.max(0, a-1);
   const opacity = a <= 3 ? 1 : Math.max(0, 1 - 0.25*(a-3));
-  const blur = (a < 2 ? 2.6*speed : 1.3*speed);
-  return { y: originY + offset, rotX, scale, z, opacity, blur };
+  return { y: originY + offset, rotX, scale, z, opacity };
 }
 // stacking order for a card at |offset| `a` from the centre — nearest on top
 function flowZIndex(a){ return Math.round((9 - Math.min(a,9)) * 10); }
@@ -4751,7 +4750,7 @@ function flowZIndex(a){ return Math.round((9 - Math.min(a,9)) * 10); }
 function launchCardPose(d, speed, spread){
   const a = Math.abs(d);
   const p = flowPose(a, d, speed, {spread});
-  return { offset: p.y, tilt: p.rotX, scale: p.scale, depth: p.z, opacity: p.opacity, blurPx: p.blur,
+  return { offset: p.y, tilt: p.rotX, scale: p.scale, depth: p.z, opacity: p.opacity,
     z: flowZIndex(a) };
 }
 function applyLaunchCardPose(el, pose, extraScale){
@@ -4759,7 +4758,6 @@ function applyLaunchCardPose(el, pose, extraScale){
   el.style.transform = 'translateY(' + pose.offset.toFixed(1) + 'px) translateZ(' + pose.depth.toFixed(1) + 'px) '
     + 'rotateX(' + pose.tilt.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')';
   el.style.opacity = pose.opacity;
-  el.style.filter = pose.blurPx > 0.05 ? 'blur(' + pose.blurPx.toFixed(2) + 'px)' : 'none';
   el.style.zIndex = pose.z;
 }
 
@@ -4889,7 +4887,7 @@ async function runLaunchSequence(){
       requestAnimationFrame(step);
     });
     if(cancelled()) return;
-    syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual blur/speed-stretch
+    syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual speed-stretch
   }
 
   // CATCH: amber outline (already on the target card's class), small settle
@@ -4907,7 +4905,8 @@ async function runLaunchSequence(){
 
   // PULL TO CAMERA: the target scales up to face-on (it's already sitting at
   // the title's position/size — only its scale/tilt/depth are non-identity);
-  // neighbours spread apart, blur and fade; the records label fades out
+  // neighbours spread apart, dim and fade (opacity only, no blur); the
+  // records label fades out
   recordsEl.classList.add('launch-fading');
   const wordmarkEl = $('#launchWordmark');
   wordmarkEl.classList.add('launch-grown');
@@ -4921,7 +4920,6 @@ async function runLaunchSequence(){
       cards.forEach((el, i) => {
         if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased); return; }
         const pose = launchCardPose(i - stack.targetIndex, 0, spread);
-        pose.blurPx = 2.5 + 2.5*eased;
         pose.opacity = Math.max(0, pose.opacity) * (1 - 0.9*eased);
         applyLaunchCardPose(el, pose);
       });
@@ -7844,10 +7842,6 @@ function renderCrate(host){
       card.style.transform = 'translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
         + 'rotateX(' + pose.rotX.toFixed(2) + 'deg) scale(' + pose.scale.toFixed(3) + ')';
       card.style.opacity = pose.opacity;
-      // a zero blur still leaves the layer soft in Safari — drop the
-      // property entirely at rest rather than setting blur(0) or 'none'
-      if(pose.blur > 0.05) card.style.filter = 'blur(' + pose.blur.toFixed(2) + 'px)';
-      else card.style.removeProperty('filter');
       card.style.zIndex = flowZIndex(a);
       card.classList.toggle('crate-current', a < 0.02);
       if(a <= 2 && speed < 0.5) setCardImage(i, card);
