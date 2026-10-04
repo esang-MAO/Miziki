@@ -679,6 +679,13 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   display:none;box-shadow:0 22px 44px rgba(0,0,0,.55);background-position:center;background-size:cover}
 .platter-stage.morph-hidden{visibility:hidden}
 
+/* ---------- gatefold-to-player hand-off: the one record that travels from
+   the gatefold's pocket to the platter (Part 2 §1). A fixed-position host
+   sized/positioned by JS each frame; the real .disc/.label markup nested
+   inside gives it the same groove and label look as the real disc. ---------- */
+.gf-handoff-ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:150;display:none}
+.gf-handoff-ghost .disc{position:absolute;inset:0}
+
 /* ---------- metadata edit sheet ---------- */
 .edit-overlay{position:fixed;inset:0;z-index:120;background:rgba(5,7,9,.72);
   display:none;align-items:flex-end;justify-content:center}
@@ -1069,6 +1076,13 @@ input[type=file]{display:none}
               <button data-sealed="off" aria-pressed="false">Off</button>
             </div>
           </div>
+          <div class="lib-tools-row2" id="playFullRow">
+            <span class="k">Play records in full player</span>
+            <div class="seg" id="playFullToggle">
+              <button data-playfull="on" aria-pressed="true">On</button>
+              <button data-playfull="off" aria-pressed="false">Off</button>
+            </div>
+          </div>
 
           <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
           <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
@@ -1209,6 +1223,11 @@ input[type=file]{display:none}
 
 <!-- ghost element for the mini-player-to-full-player morph -->
 <div class="morph-disc" id="morphDisc" aria-hidden="true"></div>
+
+<!-- ghost element for the gatefold-to-player hand-off flight (Part 2 §1) -->
+<div class="gf-handoff-ghost" id="gfHandoffGhost" aria-hidden="true">
+  <div class="disc" id="gfHandoffDisc"><div class="label has-art" id="gfHandoffLabel"><img class="art" id="gfHandoffArt" alt=""></div></div>
+</div>
 
 <!-- METADATA EDIT SHEET: single-track (from the full player or a library
      row) and batch (from multi-select) both use this same form -->
@@ -1588,6 +1607,9 @@ S.albumSides = false;
 // listening history so "Clear listening history" never reseals anything
 S.sealed = new Set();
 S.sealedRecords = true;
+// Part 2 §1: the gatefold-to-player hand-off, on by default — off keeps a
+// gatefold track tap entirely in the mini player, no flight, no sheet
+S.playInFullPlayer = true;
 // pos stays null until first resolved — see renderCrate()'s cold-start
 // anchor logic (last-played album wins once, crateAnchor from then on)
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
@@ -3194,7 +3216,7 @@ async function saveMeta(){
     shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
     bgAudio:S.bgAudio, launchIntro:S.launchIntro,
     libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides,
-    sealedRecords:S.sealedRecords}});
+    sealedRecords:S.sealedRecords, playInFullPlayer:S.playInFullPlayer}});
 }
 
 async function restoreMeta(){
@@ -3246,6 +3268,11 @@ function applyPrefs(p){
     S.sealedRecords = p.sealedRecords;
     document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
+  }
+  if(typeof p.playInFullPlayer === 'boolean'){
+    S.playInFullPlayer = p.playInFullPlayer;
+    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
   }
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
@@ -4491,6 +4518,169 @@ function interruptStartSequence(){
   }
   $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
   if(wasActive && !S.playing) play();   // play() itself breaks the seal the instant it actually starts
+}
+
+/* ================= Part 2 §1: gatefold-to-player hand-off =================
+   Replaces the sleeve pull specifically for a track picked inside an open
+   gatefold whose album differs from whatever is currently playing: the one
+   record travels from the gatefold's pocket to the platter instead of
+   arriving/holding/emerging in the player's own sleeve. Shares S.sleeveSeq
+   with the pull/put-away so only one of the three ever runs at a time, and
+   a rapid second tap cancels this cleanly like any of the others. */
+const HANDOFF_ANIM = {
+  recedeMs: 400,        // 250-650ms: gatefold fades/scales/blurs back
+  sheetFadeMs: 450,      // 350-800ms: player sheet fades up behind the flight
+  flightMs: 750,         // 250-1000ms: pocket -> platter, growing 156->278px
+  overshootMs: 140, settleMs: 110,   // 1000-1250ms: overshoot to 1.035, settle to 1
+  overshootScale: 1.035,
+  arcLift: 34,          // px the flight's midpoint lifts above a straight line
+  tiltDeg: 5
+};
+function handoffEaseInOut(p){ return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2; }
+
+function gfHandoffInFlight(){ return $('#gfHandoffGhost').style.display === 'block'; }
+
+// `startRect` is measured from the gatefold's own sleeve-disc-wrap before
+// anything else moves. t/info/startAudio match runStartSequence's own
+// signature (info is unused here — the hand-off never reads "swap" vs
+// "pull", it always flies — but kept for call-site symmetry).
+async function runGatefoldHandoff(startRect, t, info, startAudio){
+  const token = ++S.sleeveSeq;
+  const cancelled = () => token !== S.sleeveSeq;
+  S.platterEmpty = false;
+  clearSpinDown();
+
+  const ghost = $('#gfHandoffGhost'), ghostArt = $('#gfHandoffArt'), ghostLabel = $('#gfHandoffLabel');
+  const ov = $('#playerOverlay'), stage = $('#platterStage'), discBox = $('#platterBox'), gf = $('#gatefold');
+
+  const bufferReady = ensureBuffer(S.index);
+
+  // ghost starts exactly where the gatefold's own disc currently sits, using
+  // whatever L-tier art the gatefold already loaded for this same album —
+  // read the attribute, not the .src property, which resolves to the page's
+  // own URL (never empty) when no src was ever set
+  const gfArt = $('#gfDiscArt').getAttribute('src') || t.art || '';
+  ghost.style.transition = 'none';
+  ghost.style.width = startRect.width + 'px';
+  ghost.style.height = startRect.height + 'px';
+  ghost.style.left = startRect.left + 'px';
+  ghost.style.top = startRect.top + 'px';
+  ghost.style.transform = 'rotate(0deg) scale(1)';
+  if(gfArt) ghostArt.src = gfArt; else ghostArt.removeAttribute('src');
+  ghostLabel.classList.toggle('has-art', !!gfArt);
+  void ghost.offsetWidth;
+  ghost.style.display = 'block';
+
+  discBox.classList.add('disc-hidden');
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+  $('#sleeve').style.display = 'none';
+
+  // player sheet fades up behind the flight rather than sliding up from the
+  // bottom — same transform-skip trick runMorphOpen() uses. Prepped hidden
+  // now (invisible either way), the fade-to-1 itself is timed below to
+  // start at the 350ms mark (spec §1 step 3), not immediately.
+  const wasPlayerOpen = S.playerOpen;
+  if(!wasPlayerOpen){
+    S.playerOpen = true;
+    ov.classList.add('instant');
+    ov.style.opacity = '0';
+    ov.classList.add('open');
+    ov.setAttribute('aria-hidden','false');
+    void ov.offsetWidth;
+    ov.classList.remove('instant');
+  }
+
+  // 0-250ms: row highlight (already live via updateGatefoldNowPlaying(),
+  // triggered inside the setQueue() the caller already ran) plus the record
+  // rising in place — nothing else starts moving until this beat finishes
+  await sleep(250);
+  if(cancelled()) return;
+
+  // the gatefold recedes behind the sheet — fade/scale/blur; the background
+  // goes soft on purpose (kept per Part 2 §3), the flying record stays sharp
+  gf.style.transition = 'opacity ' + HANDOFF_ANIM.recedeMs + 'ms linear,'
+    + 'transform ' + HANDOFF_ANIM.recedeMs + 'ms ease-out,filter ' + HANDOFF_ANIM.recedeMs + 'ms ease-out';
+  void gf.offsetWidth;
+  gf.style.opacity = '0';
+  gf.style.transform = 'scale(.93)';
+  gf.style.filter = 'blur(2.5px)';
+
+  // the sheet's own fade starts 100ms into this beat (350ms absolute) —
+  // skipped if the player was already open, since there's nothing to fade up
+  if(!wasPlayerOpen){
+    setTimeout(() => {
+      if(cancelled()) return;
+      ov.style.transition = 'opacity ' + HANDOFF_ANIM.sheetFadeMs + 'ms ease-out';
+      requestAnimationFrame(() => { if(!cancelled()) ov.style.opacity = '1'; });
+    }, 100);
+  }
+
+  // FLIGHT: pocket -> platter, a gentle arc with a slight tilt, growing to
+  // the platter's own size, ease-in-out (spec §1 steps 1-4)
+  const endRect = discBox.getBoundingClientRect();
+  const flightStart = performance.now();
+  await new Promise(resolve => {
+    function step(now){
+      if(cancelled()){ resolve(); return; }
+      const p = Math.min(1, (now - flightStart) / HANDOFF_ANIM.flightMs);
+      const e = handoffEaseInOut(p);
+      const w = startRect.width + (endRect.width - startRect.width) * e;
+      const h = startRect.height + (endRect.height - startRect.height) * e;
+      const cx0 = startRect.left + startRect.width/2, cy0 = startRect.top + startRect.height/2;
+      const cx1 = endRect.left + endRect.width/2, cy1 = endRect.top + endRect.height/2;
+      const cx = cx0 + (cx1 - cx0) * e;
+      const arc = Math.sin(Math.PI * e) * HANDOFF_ANIM.arcLift;
+      const cy = cy0 + (cy1 - cy0) * e - arc;
+      const tilt = Math.sin(Math.PI * e) * HANDOFF_ANIM.tiltDeg * (cx1 >= cx0 ? 1 : -1);
+      ghost.style.width = w.toFixed(1) + 'px'; ghost.style.height = h.toFixed(1) + 'px';
+      ghost.style.left = (cx - w/2).toFixed(1) + 'px'; ghost.style.top = (cy - h/2).toFixed(1) + 'px';
+      ghost.style.transform = 'rotate(' + tilt.toFixed(2) + 'deg)';
+      if(p >= 1){ resolve(); return; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  if(cancelled()) return;
+
+  await Promise.race([bufferReady, sleep(SLEEVE_ANIM.holdCapMs)]);
+  if(cancelled()) return;
+
+  // OVERSHOOT + SETTLE: scale 1.035 then back to 1 (spec §1 step 5)
+  ghost.style.transition = 'transform ' + HANDOFF_ANIM.overshootMs + 'ms ease-out';
+  ghost.style.transform = 'rotate(0deg) scale(' + HANDOFF_ANIM.overshootScale + ')';
+  await sleep(HANDOFF_ANIM.overshootMs);
+  if(cancelled()) return;
+  ghost.style.transition = 'transform ' + HANDOFF_ANIM.settleMs + 'ms ease-in-out';
+  ghost.style.transform = 'rotate(0deg) scale(1)';
+  await sleep(HANDOFF_ANIM.settleMs);
+  if(cancelled()) return;
+
+  ghost.style.display = 'none';
+  ghost.style.transition = ''; ghost.style.transform = '';
+  discBox.classList.remove('disc-hidden');
+  ov.style.transition = ''; ov.style.opacity = '';
+  gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
+  closeGatefoldInstant();
+  startAudio();
+}
+
+// Cuts the hand-off wherever it is and snaps to the landed state instantly —
+// same hard rule as interruptStartSequence(): no eased skip, ever. Reached
+// from the player overlay's existing capture-phase pointerdown listener, so
+// a tap anywhere during the flight (the sheet already covers the screen)
+// lands it immediately (spec §1, "Tapping anywhere during it").
+function interruptGatefoldHandoff(){
+  if(!gfHandoffInFlight()) return;
+  S.sleeveSeq++;
+  const ghost = $('#gfHandoffGhost');
+  ghost.style.transition = ''; ghost.style.transform = ''; ghost.style.display = 'none';
+  $('#platterBox').classList.remove('disc-hidden');
+  const ov = $('#playerOverlay');
+  ov.classList.remove('instant'); ov.style.transition = ''; ov.style.opacity = '';
+  const gf = $('#gatefold');
+  gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
+  if(isGatefoldOpen()) closeGatefoldInstant();
+  if(!S.playing) play();
 }
 
 /* ================= put-away: the record goes back in its sleeve =================
@@ -7170,24 +7360,62 @@ function gatefoldSleeveFlourish(){
   setTimeout(() => { wrap.classList.remove('gf-disc-out'); updateGatefoldSleeveState(); }, 400);
 }
 
-// queues and starts playback the same way as everywhere else, but through
-// play() directly rather than setQueue's autoplay path — that path always
-// opens the full player sheet, which the gatefold's tap-a-track explicitly
-// must not do (spec §A6: "don't auto-open the full player... or the pull")
+// A tap on a track already in the open gatefold's own album either changes
+// nothing but the song (same album as whatever's playing — just a plain,
+// quiet play, exactly as before) or hands the record off to the main player
+// (a different album — Part 2 §1). "Different" here compares the open
+// gatefold's album against whatever is CURRENTLY PLAYING, not against the
+// tapped track's album (every row in this tracklist is the same album as
+// the open gatefold by construction).
 function gatefoldPlayTrack(trackIdx, i){
+  const albumId = GF && GF.item && GF.item.albumId;
+  const curr = current();
+  const sameAlbum = !!albumId && !!curr && albumKey(curr) === albumId;
+  if(sameAlbum || !S.playInFullPlayer){
+    setQueue(trackIdx, trackIdx.indexOf(i), false);
+    play();
+    gatefoldSleeveFlourish();
+    return;
+  }
+  const startRect = $('#gfSleeveDiscWrap').getBoundingClientRect();
   setQueue(trackIdx, trackIdx.indexOf(i), false);
-  play();
-  gatefoldSleeveFlourish();
+  if(REDUCED){
+    // no flight — the player opens with the record already seated, then audio
+    closeGatefoldInstant();
+    if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+    else openPlayerViaSheet(current(), S.pendingShellInfo);
+    return;
+  }
+  runGatefoldHandoff(startRect, current(), S.pendingShellInfo, play);
 }
 
 // a sealed album's first play runs the normal ceremony (so the peel is
 // actually seen) but on the platter/mini-player only — never the full
 // player sheet (SEALED spec §5: "the sleeve pull runs behind the sheet as
-// usual... the player is not forced open"). Used by the sealed sheet's rows
-// and the crate's own Play affordances for a sealed record.
+// usual... the player is not forced open"). Used by the crate's own Play
+// affordances for a sealed record (list/crate rows) — unchanged by Part 2.
 function sealedQuietPlay(trackIdx, i){
   setQueue(trackIdx, trackIdx.indexOf(i), false);
   runStartSequence(current(), S.pendingShellInfo, play);
+}
+
+// the seal sheet's own row tap: the closest equivalent to "the gatefold
+// song-tap handler" for an album that can't open the gatefold yet (Part 2
+// §1, "Sealed albums"). A sealed album was by definition never played, so
+// this is always the "different album" case — peel first (the existing S5
+// peel, reused as-is via runStartSequence), then the hand-off's spirit is
+// satisfied by forcing the player open (rather than staying quiet) when the
+// setting is on. There is no separate pocket to fly from here, so unlike
+// gatefoldPlayTrack this reuses the ceremony wholesale instead of the flight.
+function sealedHandoffPlay(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  closeSealedSheetInstant();
+  if(!S.playInFullPlayer){
+    runStartSequence(current(), S.pendingShellInfo, play);
+    return;
+  }
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else openPlayerViaSheet(current(), S.pendingShellInfo);
 }
 
 function gatefoldRestoreRowNumber(row){
@@ -7361,7 +7589,7 @@ async function runGatefoldOpen(mode){
     overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.liftMs + 'ms ' + GATEFOLD_ANIM.liftEasing;
     overlay.style.opacity = '1';
     await sleep(GATEFOLD_ANIM.liftMs);
-    if(GF.seq !== seq) return;
+    if(!GF || GF.seq !== seq) return;
 
     if(mode !== 'wide'){
       camera.style.transition = 'transform ' + GATEFOLD_ANIM.swingMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
@@ -7372,10 +7600,10 @@ async function runGatefoldOpen(mode){
     $('#gfShadow').style.transition = 'opacity ' + GATEFOLD_ANIM.swingMs + 'ms linear';
     $('#gfShadow').style.opacity = '0';
     await sleep(GATEFOLD_ANIM.swingMs);
-    if(GF.seq !== seq) return;
+    if(!GF || GF.seq !== seq) return;
 
     await sleep(GATEFOLD_ANIM.holdMs);
-    if(GF.seq !== seq) return;
+    if(!GF || GF.seq !== seq) return;
 
     if(mode !== 'wide'){
       camera.style.transition = 'transform ' + GATEFOLD_ANIM.pushMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
@@ -7383,7 +7611,7 @@ async function runGatefoldOpen(mode){
     }
     overlay.classList.add('gf-chrome-in');
     await sleep(GATEFOLD_ANIM.pushMs);
-    if(GF.seq !== seq) return;
+    if(!GF || GF.seq !== seq) return;
   }
   overlay.removeEventListener('pointerdown', skip, {capture:true});
   gfSkipHandler = null;
@@ -7506,7 +7734,7 @@ function openSealedSheet(item){
   if(art) $('#sealSheetCoverArt').src = art;
   getCrateArtURL(item.albumId, 'S').then(url => { if(url && SEALSHEET && SEALSHEET.item === item) $('#sealSheetCoverArt').src = url; });
   $('#sealSheetBody').innerHTML = '';
-  $('#sealSheetBody').appendChild(buildGatefoldTracklist(item, trackIdx, sealedQuietPlay));
+  $('#sealSheetBody').appendChild(buildGatefoldTracklist(item, trackIdx, sealedHandoffPlay));
 
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden','false');
@@ -7523,6 +7751,16 @@ async function closeSealedSheet(){
   sheet.setAttribute('aria-hidden','true');
   if(s.returnFocus && document.contains(s.returnFocus) && typeof s.returnFocus.focus === 'function') s.returnFocus.focus();
   else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
+}
+
+// non-animated close, for when a track tap is already handing off to the
+// player sheet — mirrors closeGatefoldInstant()'s role for the gatefold
+function closeSealedSheetInstant(){
+  if(!SEALSHEET) return;
+  SEALSHEET = null;
+  const sheet = $('#sealSheet');
+  sheet.classList.remove('open','show');
+  sheet.setAttribute('aria-hidden','true');
 }
 
 function openCrateAlbum(item){
@@ -8999,6 +9237,11 @@ function showRoute(name){
     queueSave();
     renderTracks();
   }));
+  document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b => b.addEventListener('click', ()=>{
+    S.playInFullPlayer = b.dataset.playfull === 'on';
+    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    queueSave();
+  }));
   $('#scrub').addEventListener('input', ()=>{ scrubbing = true; });
   $('#scrub').addEventListener('change', e=>{
     scrubbing = false;
@@ -9363,6 +9606,7 @@ function showRoute(name){
   $('#playerOverlay').addEventListener('pointerdown', ()=>{
     interruptStartSequence();            // pull/return-to-sleeve: snap to end state
     if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead
+    if(gfHandoffInFlight()) interruptGatefoldHandoff();   // hand-off flight: land instantly
   }, {capture:true});
 
   setMode('vinyl');
