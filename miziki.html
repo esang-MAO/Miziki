@@ -938,6 +938,76 @@ input[type=file]{display:none}
 .social-vis-option[aria-pressed="true"]{border-color:var(--accent)}
 .social-vis-option[aria-pressed="true"] b{color:var(--accent)}
 
+/* ---------- friend store / locked state / record sheet (social layer §D) ---------- */
+.social-nav-overlay{position:fixed;inset:0;z-index:125;background:var(--sky2);display:none;flex-direction:column}
+/* record sheet can be opened from inside the friend-store screen above, so it
+   needs to stack higher than social-nav-overlay rather than the shared
+   edit-overlay default */
+#recordSheetOverlay{z-index:128}
+.social-nav-overlay.open{display:flex}
+.social-nav-head{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--line);flex:none}
+.social-nav-back{width:44px;height:44px;color:var(--paper);font-size:24px;flex:none;
+  display:flex;align-items:center;justify-content:center;background:none;border:0}
+.social-nav-title{font-family:var(--data);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.social-nav-body{flex:1;overflow-y:auto;padding:4px 20px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
+
+.store-follow-row{display:flex;align-items:center;gap:10px;margin-top:16px}
+.store-follow-btn{min-height:44px;padding:0 22px;border-radius:22px;border:1.5px solid var(--accent);
+  color:var(--accent);background:none;font-size:13px;font-weight:600}
+.store-follow-btn.following{border-color:var(--line);color:var(--paper)}
+.store-follow-btn.pending{border-color:var(--line);color:var(--muted)}
+.store-share-icon{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--line);
+  color:var(--paper);background:none;display:flex;align-items:center;justify-content:center;flex:none}
+
+.store-locked-card{margin-top:26px;background:var(--panel);border:1.5px dashed var(--line);
+  border-radius:14px;padding:24px 20px;text-align:center}
+.store-locked-card h3{font-family:var(--display);font-size:17px;letter-spacing:.04em;margin:0 0 8px;color:var(--accent)}
+.store-locked-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.store-locked-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
+.store-locked-slot{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--line);background:var(--panel)}
+.store-locked-note{text-align:center;font-size:12.5px;color:var(--muted);margin-top:14px}
+
+.store-picks-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.store-picks-dots span{width:6px;height:6px;border-radius:3px;background:var(--line);display:block;transition:width .15s,background .15s}
+.store-picks-dots span.on{background:var(--accent);width:16px}
+
+.store-fresh-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.store-fresh-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-fresh-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-fresh-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);
+  color:var(--accent);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px}
+.store-fresh-add.added{border-color:var(--line);color:var(--muted)}
+
+.store-spin-ago{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:none}
+
+.store-letter-bar{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
+.store-letter-btn{min-width:44px;height:44px;border-radius:8px;border:1px solid var(--line);
+  background:none;color:var(--muted);font-family:var(--data);font-size:12px}
+.store-crate-letter-head{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--muted);
+  grid-column:1/-1;margin:16px 0 -2px}
+
+.store-activity-row{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--paper)}
+.store-activity-row em{font-style:normal;color:var(--muted)}
+
+.store-crate-cell{background:none;border:0;padding:0;text-align:left;color:inherit;display:block;width:100%}
+
+.record-cover{width:100%;aspect-ratio:1;border-radius:10px;background:var(--panel);margin-bottom:14px;
+  overflow:hidden;position:relative}
+.record-cover img{width:100%;height:100%;object-fit:cover}
+.record-title{font-family:var(--display);font-size:22px;margin:0 0 2px}
+.record-artist{font-size:14px;color:var(--muted);margin:0 0 12px}
+.record-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.record-chip{padding:5px 11px;border-radius:10px;background:var(--panel);font-family:var(--data);
+  font-size:10.5px;letter-spacing:.04em;color:var(--accent)}
+.record-rating-label{font-family:var(--data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 6px}
+.record-stars{font-size:16px;letter-spacing:2px;color:#B8641A;margin-bottom:8px}
+.record-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:6px;
+  padding:12px 14px;font-size:13px;line-height:1.4;margin-bottom:18px}
+.record-owned{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+
 .share-overlay{position:fixed;inset:0;z-index:130;background:rgba(5,7,9,.78);
   display:none;align-items:flex-end;justify-content:center}
 .share-overlay.open{display:flex}
@@ -1058,6 +1128,11 @@ input[type=file]{display:none}
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
+  </section>
+
+  <!-- HOME: social feed, hidden via the tab button until social is configured -->
+  <section class="route" id="route-home" role="main">
+    <div id="homeBody"></div>
   </section>
 
   <!-- SUNDOWN -->
@@ -1294,6 +1369,10 @@ input[type=file]{display:none}
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
   </button>
+  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false" style="display:none">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
+    <span>Home</span>
+  </button>
   <button class="tabbar-btn" role="tab" data-route="sundown" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
     <span>Sundown</span>
@@ -1472,6 +1551,30 @@ input[type=file]{display:none}
       <button class="social-close" id="socialAuthClose" aria-label="Close">✕</button>
     </div>
     <div id="socialAuthBody"></div>
+  </div>
+</div>
+
+<!-- SOCIAL NAV: full-screen friend-store / locked-state view, pushed from
+     Home or a people search. Its own back header, independent of the tabbar.
+     socialNav is a stack so a record sheet opened from here can close back
+     onto the store beneath it. -->
+<div class="social-nav-overlay" id="socialNavOverlay" aria-hidden="true">
+  <div class="social-nav-head">
+    <button class="social-nav-back" id="socialNavBack" aria-label="Back">‹</button>
+    <span class="social-nav-title" id="socialNavTitle"></span>
+  </div>
+  <div class="social-nav-body" id="socialNavBody"></div>
+</div>
+
+<!-- RECORD SHEET: a single record from a friend's store (staff pick, crate,
+     or fresh-for-you), pushed on top of whatever's open underneath. -->
+<div class="edit-overlay" id="recordSheetOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="recordSheetBox">
+    <div class="edit-head">
+      <span id="recordSheetKicker"></span>
+      <button class="social-close" id="recordSheetClose" aria-label="Close">✕</button>
+    </div>
+    <div id="recordSheetBody"></div>
   </div>
 </div>
 
@@ -10078,7 +10181,7 @@ async function cycleStoreVisibility(profile, host){
   if(r.ok) loadAndRenderStorefront(host);
 }
 
-function storeRequestsCard(requests, host){
+function storeRequestsCard(requests, onChange){
   const wrap = el('div','store-requests-wrap');
   const card = el('button','store-card store-card-btn');
   card.appendChild(el('div','store-card-count', String(requests.length)));
@@ -10105,12 +10208,12 @@ function storeRequestsCard(requests, host){
     const accept = document.createElement('button');
     accept.type = 'button'; accept.className = 'store-dig-remove'; accept.textContent = '✓';
     accept.setAttribute('aria-label','Accept follow request from ' + (prof.handle || 'this person'));
-    accept.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, true); loadAndRenderStorefront(host); });
+    accept.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, true); onChange(); });
     row.appendChild(accept);
     const decline = document.createElement('button');
     decline.type = 'button'; decline.className = 'store-dig-remove'; decline.textContent = '✕';
     decline.setAttribute('aria-label','Decline follow request from ' + (prof.handle || 'this person'));
-    decline.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, false); loadAndRenderStorefront(host); });
+    decline.addEventListener('click', async ()=>{ await MizikiSocial.respondToRequest(r.follower_id, false); onChange(); });
     row.appendChild(decline);
     list.appendChild(row);
   });
@@ -10266,11 +10369,532 @@ function renderStorefront(host, full, requests){
   stats.appendChild(storeStat('Followers', full.summary.followers || 0, true));
   stats.appendChild(storeStat('Digging', full.diggingCount || 0));
   host.appendChild(stats);
-  if(requests && requests.length) host.appendChild(storeRequestsCard(requests, host));
+  if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
   host.appendChild(storeNowSpinningCard(full, host));
   host.appendChild(storePicksSection(full));
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
   host.appendChild(storeCrateGrid());
+}
+
+/* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
+
+let socialNav = [];
+
+function pushSocialScreen(screen){
+  socialNav.push(screen);
+  $('#socialNavOverlay').classList.add('open');
+  $('#socialNavOverlay').setAttribute('aria-hidden','false');
+  renderSocialNavTop();
+}
+function popSocialScreen(){
+  socialNav.pop();
+  if(!socialNav.length){ closeSocialNav(); return; }
+  renderSocialNavTop();
+}
+function closeSocialNav(){
+  socialNav = [];
+  $('#socialNavOverlay').classList.remove('open');
+  $('#socialNavOverlay').setAttribute('aria-hidden','true');
+}
+function renderSocialNavTop(){
+  const top = socialNav[socialNav.length - 1];
+  const body = $('#socialNavBody'); body.innerHTML = '';
+  if(top.type === 'friendStore'){
+    $('#socialNavTitle').textContent = top.handle;
+    loadAndRenderFriendStore(body, top.handle);
+  }
+}
+function openFriendStore(handle){
+  pushSocialScreen({type:'friendStore', handle: String(handle || '').replace(/^@/, '')});
+}
+
+async function loadAndRenderFriendStore(body, handle){
+  body.innerHTML = '';
+  body.appendChild(el('p','store-loading','Loading store…'));
+  const full = await MizikiSocial.loadProfile(handle);
+  if(!full.ok){ renderStoreError(body, full.error, ()=>loadAndRenderFriendStore(body, handle)); return; }
+  $('#socialNavTitle').textContent = full.profile.handle;
+  body.innerHTML = '';
+  if(!full.canView){ renderLockedFriendStore(body, full); return; }
+  renderFriendStoreContent(body, full);
+}
+
+function friendStoreHeader(full, extraBtn){
+  const header = el('div','store-header');
+  const avatar = el('div','store-avatar');
+  const label = el('div','store-avatar-label'); label.style.background = full.labelColor;
+  avatar.appendChild(label);
+  header.appendChild(avatar);
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','RECORD STORE'));
+  idBox.appendChild(el('h2','store-handle', full.profile.handle));
+  if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
+  header.appendChild(idBox);
+  if(extraBtn) header.appendChild(extraBtn);
+  return header;
+}
+
+function renderLockedFriendStore(body, full){
+  body.appendChild(storeAwning());
+  body.appendChild(friendStoreHeader(full));
+  if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
+
+  const row = el('div','store-follow-row');
+  const pending = full.relationship.following === 'pending';
+  const btn = el('button','store-follow-btn' + (pending ? ' pending' : ''), pending ? 'Requested' : 'Request to follow');
+  if(pending) btn.disabled = true;
+  else btn.addEventListener('click', async ()=>{
+    btn.disabled = true; btn.textContent = 'Requesting…';
+    const r = await MizikiSocial.follow(full.profile.id);
+    if(r.ok && r.status === 'accepted'){ loadAndRenderFriendStore(body, full.profile.handle); return; }
+    btn.textContent = 'Requested'; btn.classList.add('pending');
+  });
+  row.appendChild(btn);
+  body.appendChild(row);
+
+  const card = el('div','store-locked-card');
+  card.appendChild(el('h3', null, 'Crate is friends-only'));
+  card.appendChild(el('p', null, 'Closed until ' + full.profile.handle + ' approves your request.'));
+  body.appendChild(card);
+  const grid = el('div','store-locked-grid');
+  for(let i = 0; i < 9; i++) grid.appendChild(el('div','store-locked-slot'));
+  body.appendChild(grid);
+  body.appendChild(el('p','store-locked-note','Nothing on the shelves until you’re in.'));
+}
+
+async function shareFriendStore(handle){
+  const text = 'Check out @' + handle + '’s record store on Miziki.';
+  if(navigator.share){ try{ await navigator.share({text}); } catch(e){ /* user cancelled */ } }
+  else if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); } catch(e){ /* best effort */ } }
+}
+
+function friendNowSpinningRow(full){
+  const card = el('div','store-card');
+  card.appendChild(el('div','store-card-count','♪'));
+  const text = el('div','store-card-text');
+  if(full.nowSpinning && full.nowSpinning.track_title){
+    const rel = full.nowSpinning.releases || {};
+    text.appendChild(el('b', null, full.nowSpinning.track_title));
+    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ')));
+    card.appendChild(text);
+    if(full.nowSpinning.started_at) card.appendChild(el('span','store-spin-ago',
+      timeAgoShort(Date.now() - new Date(full.nowSpinning.started_at).getTime())));
+  } else {
+    text.appendChild(el('b', null, 'Nothing spinning right now'));
+    card.appendChild(text);
+  }
+  return card;
+}
+
+function friendPicksSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Staff picks'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  full.staffPicks.forEach((p, i) => {
+    const tile = storePickTile(p);
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', ()=> openRecordSheet(full, p,
+      full.profile.handle.toUpperCase() + ' · STAFF PICK ' + (p.pin_rank || i + 1) + ' OF ' + full.staffPicks.length));
+    row.appendChild(tile);
+  });
+  section.appendChild(row);
+  if(full.staffPicks.length > 1){
+    const dots = el('div','store-picks-dots');
+    full.staffPicks.forEach((_, i) => dots.appendChild(el('span', i === 0 ? 'on' : null)));
+    section.appendChild(dots);
+    let raf = null;
+    row.addEventListener('scroll', ()=>{
+      if(raf) return;
+      raf = requestAnimationFrame(()=>{
+        raf = null;
+        const w = row.firstChild ? row.firstChild.getBoundingClientRect().width + 12 : 1;
+        const idx = Math.max(0, Math.min(full.staffPicks.length - 1, Math.round(row.scrollLeft / w)));
+        Array.from(dots.children).forEach((d, i) => d.classList.toggle('on', i === idx));
+      });
+    });
+  }
+  return section;
+}
+
+function friendFreshSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Fresh for you'));
+  section.appendChild(head);
+  full.fresh.forEach(item => {
+    const row = el('div','store-fresh-row');
+    const text = el('div','store-fresh-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    row.appendChild(text);
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'store-fresh-add' + (item.in_digging ? ' added' : '');
+    add.textContent = item.in_digging ? '✓' : '+';
+    if(item.in_digging) add.disabled = true;
+    add.setAttribute('aria-label','Add ' + item.title + ' to your digging list');
+    add.addEventListener('click', async e => {
+      e.stopPropagation();
+      add.disabled = true; add.classList.add('added'); add.textContent = '✓';
+      await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+    });
+    row.appendChild(add);
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · FRESH FOR YOU'));
+    section.appendChild(row);
+  });
+  return section;
+}
+
+function friendDiggingPreview(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Digging list'));
+  section.appendChild(head);
+  full.digging.forEach(item => {
+    const row = el('div','store-dig-row');
+    row.appendChild(el('div','store-dig-cover'));
+    const text = el('div','store-dig-text');
+    text.appendChild(el('b', null, item.title));
+    text.appendChild(el('em', null, item.artist));
+    row.appendChild(text);
+    if(!item.in_my_digging && !item.in_my_crate){
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'store-fresh-add'; add.textContent = '+';
+      add.setAttribute('aria-label','Add ' + item.title + ' to your digging list');
+      add.addEventListener('click', async ()=>{
+        add.disabled = true; add.classList.add('added'); add.textContent = '✓';
+        await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+      });
+      row.appendChild(add);
+    }
+    section.appendChild(row);
+  });
+  return section;
+}
+
+async function loadFriendCrate(full, holder, limit){
+  const r = await MizikiSocial.crate(full.profile.id, {offset: 0, limit});
+  holder.innerHTML = '';
+  if(!r.ok || !r.items.length){
+    holder.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return;
+  }
+  const letters = [];
+  const grid = el('div','store-crate-grid');
+  let lastLetter = null;
+  r.items.forEach(item => {
+    const letter = (item.artist || '#').trim().charAt(0).toUpperCase();
+    if(letter !== lastLetter){
+      lastLetter = letter;
+      letters.push(letter);
+      grid.appendChild(el('div','store-crate-letter-head', letter));
+    }
+    const cell = document.createElement('button');
+    cell.type = 'button'; cell.className = 'store-crate-cell';
+    const art = localAlbumArt(item.title, item.artist);
+    const cover = el('div','store-crate-cover');
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', item.title));
+    cell.appendChild(el('div','store-crate-artist', item.artist));
+    cell.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · CRATE'));
+    grid.appendChild(cell);
+  });
+  if(letters.length > 1){
+    const bar = el('div','store-letter-bar');
+    const heads = Array.from(grid.querySelectorAll('.store-crate-letter-head'));
+    letters.forEach(l => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'store-letter-btn'; b.textContent = l;
+      b.addEventListener('click', ()=>{
+        const target = heads.find(h => h.textContent === l);
+        if(target) target.scrollIntoView({block:'start'});
+      });
+      bar.appendChild(b);
+    });
+    holder.appendChild(bar);
+  }
+  holder.appendChild(grid);
+  if(r.items.length < full.summary.records && limit < full.summary.records){
+    const more = el('button','cta ghost','Browse all ' + full.summary.records + ' records');
+    more.style.cssText = 'width:100%;margin-top:14px;box-sizing:border-box';
+    more.addEventListener('click', ()=> loadFriendCrate(full, holder, Math.min(full.summary.records, 200)));
+    holder.appendChild(more);
+  }
+}
+
+function friendCrateSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Crate'));
+  section.appendChild(head);
+  const holder = el('div');
+  holder.appendChild(el('p','store-loading','Loading crate…'));
+  section.appendChild(holder);
+  loadFriendCrate(full, holder, 60);
+  return section;
+}
+
+function friendActivitySection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Recently at the counter'));
+  section.appendChild(head);
+  const holder = el('div');
+  holder.appendChild(el('p','store-loading','Loading…'));
+  section.appendChild(holder);
+  MizikiSocial.homeFeed({limit:50}).then(r => {
+    holder.innerHTML = '';
+    const mine = (r.ok ? r.events : []).filter(e => e.actor_id === full.profile.id).slice(0, 5);
+    if(!mine.length){ holder.appendChild(el('p','store-loading','Nothing recent.')); return; }
+    mine.forEach(e => holder.appendChild(el('div','store-activity-row', feedEventText(e))));
+  });
+  return section;
+}
+
+function renderFriendStoreContent(body, full){
+  body.appendChild(storeAwning());
+  const share = el('button','store-share-icon','↗');
+  share.setAttribute('aria-label','Share this store');
+  share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));
+  body.appendChild(friendStoreHeader(full, share));
+  if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
+
+  const row = el('div','store-follow-row');
+  const isFollowing = full.relationship.following === 'accepted';
+  const btn = el('button','store-follow-btn' + (isFollowing ? ' following' : ''), isFollowing ? 'Following' : 'Follow');
+  btn.addEventListener('click', async ()=>{
+    btn.disabled = true;
+    if(isFollowing) await MizikiSocial.unfollow(full.profile.id);
+    else await MizikiSocial.follow(full.profile.id);
+    loadAndRenderFriendStore(body, full.profile.handle);
+  });
+  row.appendChild(btn);
+  body.appendChild(row);
+
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', full.summary.records));
+  stats.appendChild(storeStat('Staff picks', full.summary.pins));
+  stats.appendChild(storeStat('In common', full.summary.in_common || 0, true));
+  body.appendChild(stats);
+
+  body.appendChild(friendNowSpinningRow(full));
+  if(full.staffPicks.length) body.appendChild(friendPicksSection(full));
+  if(full.fresh && full.fresh.length) body.appendChild(friendFreshSection(full));
+  if(full.diggingShared && full.digging.length) body.appendChild(friendDiggingPreview(full));
+  body.appendChild(friendCrateSection(full));
+  body.appendChild(friendActivitySection(full));
+}
+
+/* ---- record sheet (frame 04) ---- */
+function openRecordSheet(full, item, kicker){
+  $('#recordSheetKicker').textContent = kicker || full.profile.handle.toUpperCase();
+  renderRecordSheetBody(full, item);
+  $('#recordSheetOverlay').classList.add('open');
+  $('#recordSheetOverlay').setAttribute('aria-hidden','false');
+}
+function closeRecordSheet(){
+  $('#recordSheetOverlay').classList.remove('open');
+  $('#recordSheetOverlay').setAttribute('aria-hidden','true');
+}
+
+function renderRecordSheetBody(full, item){
+  const body = $('#recordSheetBody'); body.innerHTML = '';
+  const cover = el('div','record-cover');
+  const art = localAlbumArt(item.title, item.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  body.appendChild(cover);
+  body.appendChild(el('h3','record-title', item.title));
+  body.appendChild(el('p','record-artist', [item.artist, item.year].filter(Boolean).join(' · ')));
+  if(item.quality_tier){
+    const chips = el('div','record-chips');
+    chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[item.quality_tier] || ''));
+    body.appendChild(chips);
+  }
+  if(item.rating){
+    body.appendChild(el('div','record-rating-label', full.profile.handle + '’s rating'));
+    body.appendChild(el('div','record-stars', '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating)));
+  }
+  if(item.sleeve_note) body.appendChild(el('div','record-note', item.sleeve_note));
+  const owned = 'in_my_crate' in item ? item.in_my_crate : false;
+  const inDigging = 'in_my_digging' in item ? item.in_my_digging : false;
+  body.appendChild(el('p','record-owned', owned ? 'Already in your crate.' : 'Not in your crate yet.'));
+  const stack = el('div','stack social-stack');
+  if(!owned){
+    const addBtn = el('button','cta', inDigging ? 'In your digging list' : 'Add to digging list');
+    if(inDigging) addBtn.disabled = true;
+    addBtn.addEventListener('click', async ()=>{
+      addBtn.disabled = true; addBtn.textContent = 'Added to digging list';
+      await MizikiSocial.addToDigging(item.release_id, full.profile.id);
+    });
+    stack.appendChild(addBtn);
+  }
+  const listen = el('button','cta ghost','Listen elsewhere ↗');
+  listen.addEventListener('click', ()=>{
+    const q = encodeURIComponent([item.artist, item.title].filter(Boolean).join(' '));
+    window.open('https://www.google.com/search?q=' + q, '_blank', 'noopener');
+  });
+  stack.appendChild(listen);
+  body.appendChild(stack);
+}
+
+/* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
+function feedEventText(e){
+  const title = e.title || 'a record';
+  if(e.type === 'added'){
+    const n = (e.payload && e.payload.count) || 1;
+    return n > 1 ? ('added ' + n + ' records') : ('added ' + title);
+  }
+  if(e.type === 'pinned') return 'pinned ' + title + ' to staff picks';
+  if(e.type === 'review'){
+    const p = e.payload || {};
+    if(p.rating) return 'rated ' + title + ' ' + '★'.repeat(p.rating);
+    return 'wrote a sleeve note on ' + title;
+  }
+  if(e.type === 'unlock') return 'unlocked a ' + ((e.payload && e.payload.variant) || 'rare') + ' pressing of ' + title;
+  return 'updated ' + title;
+}
+
+function groupFeedEvents(events){
+  const groups = [];
+  events.forEach(e => {
+    const last = groups[groups.length - 1];
+    if(last && last.actor_id === e.actor_id) last.events.push(e);
+    else groups.push({actor_id: e.actor_id, actor_handle: e.actor_handle, actor_name: e.actor_name, events: [e]});
+  });
+  return groups;
+}
+
+function homeFeedGroupCard(group){
+  const card = el('div','store-card');
+  card.style.cssText = 'flex-direction:column;align-items:stretch;cursor:pointer';
+  const head = el('div','store-card-text');
+  head.appendChild(el('b', null, group.actor_name || group.actor_handle));
+  head.style.marginBottom = '6px';
+  card.appendChild(head);
+  const shown = group.events.slice(0, 3);
+  shown.forEach(e => card.appendChild(el('div','store-activity-row', feedEventText(e))));
+  if(group.events.length > shown.length){
+    const more = el('div','store-activity-row', '+' + (group.events.length - shown.length) + ' more');
+    more.style.color = 'var(--accent)';
+    card.appendChild(more);
+  }
+  card.addEventListener('click', ()=> openFriendStore(group.actor_handle));
+  return card;
+}
+
+function homePeopleSearch(container){
+  const row = el('div','slider-row');
+  const input = el('input','pl-input');
+  input.type = 'search'; input.placeholder = 'Find people by handle';
+  input.setAttribute('aria-label','Find people by handle');
+  row.appendChild(input);
+  container.appendChild(row);
+  const results = el('div');
+  container.appendChild(results);
+  let seq = 0, timer = null;
+  input.addEventListener('input', ()=>{
+    clearTimeout(timer);
+    const q = input.value.trim();
+    timer = setTimeout(async ()=>{
+      results.innerHTML = '';
+      if(q.length < 2) return;
+      const mySeq = ++seq;
+      const r = await MizikiSocial.searchProfiles(q);
+      if(mySeq !== seq || !r.ok) return;
+      r.profiles.forEach(p => {
+        const btn = el('button','store-card-btn store-card');
+        const count = el('div','store-card-count');
+        count.style.background = MizikiSocial.labelColor(p.handle);
+        btn.appendChild(count);
+        const text = el('div','store-card-text');
+        text.appendChild(el('b', null, p.display_name || p.handle));
+        text.appendChild(el('em', null, p.handle));
+        btn.appendChild(text);
+        btn.addEventListener('click', ()=> openFriendStore(p.handle));
+        results.appendChild(btn);
+      });
+    }, 300);
+  });
+}
+
+const homeSpinState = new Map();
+let homeSpinUnsub = null;
+let homeFollowingHandles = new Map();
+
+function homeNowSpinningRow(container){
+  const section = el('div');
+  section.id = 'homeSpinSection';
+  section.style.display = 'none';
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Now spinning'));
+  section.appendChild(head);
+  const row = el('div','store-picks-row');
+  row.id = 'homeSpinRow';
+  section.appendChild(row);
+  container.appendChild(section);
+  paintHomeSpinRow();
+  if(homeSpinUnsub) homeSpinUnsub();
+  homeSpinUnsub = MizikiSocial.subscribeNowSpinning(evt => {
+    if(evt.type === 'stopped') homeSpinState.delete(evt.userId);
+    else homeSpinState.set(evt.userId, evt);
+    paintHomeSpinRow();
+  });
+}
+function paintHomeSpinRow(){
+  const section = $('#homeSpinSection'); if(!section) return;
+  const row = $('#homeSpinRow'); row.innerHTML = '';
+  const entries = [...homeSpinState.values()];
+  section.style.display = entries.length ? '' : 'none';
+  entries.forEach(evt => {
+    const tile = el('div','store-pick');
+    const cover = el('div','store-pick-cover');
+    cover.style.cssText += 'display:flex;align-items:center;justify-content:center;font-family:var(--data);font-size:11px;color:var(--accent)';
+    cover.textContent = '♪ SPINNING';
+    tile.appendChild(cover);
+    const note = el('div','store-pick-note');
+    note.appendChild(el('div','store-pick-name', (evt.release && evt.release.title) || evt.track || 'Now spinning'));
+    note.appendChild(el('div', null, (evt.release && evt.release.artist) || ''));
+    tile.appendChild(note);
+    const handle = homeFollowingHandles.get(evt.userId);
+    if(handle){
+      tile.style.cursor = 'pointer';
+      tile.addEventListener('click', ()=> openFriendStore(handle));
+    }
+    row.appendChild(tile);
+  });
+}
+
+async function renderHome(){
+  const container = $('#homeBody');
+  container.innerHTML = '';
+  const status = MizikiSocial.status();
+  if(status.auth !== 'ready'){
+    renderOpenStoreCard(container, status.auth);
+    return;
+  }
+  homePeopleSearch(container);
+
+  const [reqs, following] = await Promise.all([MizikiSocial.listRequests(), MizikiSocial.listFollowing()]);
+  if(reqs.ok && reqs.requests.length){
+    container.appendChild(storeRequestsCard(reqs.requests, renderHome));
+  }
+  homeFollowingHandles = new Map();
+  if(following.ok) following.following.forEach(f => {
+    if(f.status === 'accepted' && f.profiles) homeFollowingHandles.set(f.followee_id, f.profiles.handle);
+  });
+
+  homeNowSpinningRow(container);
+
+  const feedSection = el('div','store-section');
+  feedSection.appendChild(el('div','store-section-head')).appendChild(el('h2', null, 'Activity'));
+  const feedHolder = el('div');
+  feedHolder.appendChild(el('p','store-loading','Loading…'));
+  feedSection.appendChild(feedHolder);
+  container.appendChild(feedSection);
+  const feed = await MizikiSocial.homeFeed({limit:50});
+  feedHolder.innerHTML = '';
+  if(!feed.ok || !feed.events.length){
+    feedHolder.appendChild(el('p','store-loading','Nothing yet — follow some friends to see what they’re up to.'));
+    return;
+  }
+  groupFeedEvents(feed.events).forEach(g => feedHolder.appendChild(homeFeedGroupCard(g)));
 }
 
 function renderProfile(){
@@ -11322,6 +11946,7 @@ function showRoute(name){
     $('#libToolsToggle').setAttribute('aria-expanded', 'false');
     renderProfile();
   }
+  if(name === 'home') renderHome();
 }
 
 /* ================= wiring ================= */
@@ -11622,6 +12247,8 @@ function showRoute(name){
   $('#trackInfoBtn').addEventListener('click', ()=>{ const t = current(); if(t) openCreditsSheet(t); });
   $('#creditsClose').addEventListener('click', closeCreditsSheet);
   $('#socialAuthClose').addEventListener('click', closeSocialAuth);
+  $('#socialNavBack').addEventListener('click', popSocialScreen);
+  $('#recordSheetClose').addEventListener('click', closeRecordSheet);
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
   $('#miniFavBtn').addEventListener('click', e => { e.stopPropagation(); const t = current(); if(t) toggleFavorite(t.id); });
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
@@ -11802,6 +12429,8 @@ async function restoreLibrary(){
   await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
     env: { S, DB, albumKey, trackTier, albumMetalFor } });
   MizikiSocial.libraryLoaded();
+  $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';
+  MizikiSocial.on('status', s => { $('#homeTabBtn').style.display = s.enabled ? '' : 'none'; });
 }
 </script>
 </body>
