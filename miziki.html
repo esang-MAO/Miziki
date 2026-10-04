@@ -469,7 +469,7 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
   line-height:1.05;word-break:break-word}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:9px;letter-spacing:.08em}
-.crate-rail{position:absolute;right:2px;top:10px;height:440px;width:26px}
+.crate-rail{position:absolute;right:2px;top:10px;height:296px;width:26px}
 .crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:8.5px;letter-spacing:.04em;
   color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
 .crate-rail-item.crate-rail-current{color:var(--accent);opacity:1}
@@ -9216,17 +9216,40 @@ function applyCrateMiniInset(){
     ? topbarEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(topbarEl).marginBottom) || 0)
     : 0;
   const wrapTop = wrap.getBoundingClientRect().top;
-  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - topbarReserve - 24;
-  // the centre card can give up a little of its own bottom edge (background/
-  // cover art, nothing critical — the title/artist live in the info panel
-  // below, not on the card) before this stops helping; never less than that
-  const minStageHeight = CRATE_ORIGIN_Y + 278 * 0.8;
+  // .wrap itself already reserves tabbarH + miniH + 16px as its own
+  // bottom padding (--chrome-inset, set by updateChromeInset() for every
+  // route so a normally-scrolling list's last item doesn't hide under the
+  // fixed tabbar/mini player) — that padding lands right after this route's
+  // content regardless of what's inside it, stacking on top of whatever
+  // margin this function leaves. 28 here, not just the 16 that padding
+  // already covers, so after .crate-info's own 12px margin-top cancels
+  // part of it, the two reservations land flush with zero net overflow —
+  // verified against the actual rendered page height, not just by eye.
+  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - topbarReserve - 28;
   // the stage always claims all available room instead of capping and
   // banking the rest as dead space below the info panel — the info panel
   // sits flush just above the mini player, and the crate itself (the thing
   // people are actually here to flip through) gets whatever room that frees up.
-  const stageHeight = Math.max(available, minStageHeight);
+  // Crucially this must never be pushed ABOVE "available": on a short
+  // screen that would make the stage (plus the info panel still sitting
+  // right below it) taller than the room between the header and the fixed
+  // mini player/tabbar, overflowing the route and forcing the whole PAGE
+  // to scroll — the one thing this layout exists to prevent. A previous
+  // version enforced a floor here so the focal card wouldn't clip too much
+  // against the stage's own overflow:hidden; that floor could exceed
+  // "available" and is exactly what caused the page-scroll regression, so
+  // on a truly cramped screen the card clips a little more instead.
+  const stageHeight = Math.max(0, available);
   stage.style.height = stageHeight + 'px';
+  // the rail is a sibling of the stage, absolutely positioned against
+  // .crate-wrap rather than sized to the stage — it used to be a hardcoded
+  // 440px (left over from when the stage itself was a fixed height) and
+  // didn't shrink along with a dynamic stage, so on a short screen it could
+  // poke out well past the stage's own bottom edge and inflate the page's
+  // scrollable height even once the stage/info math above was correct.
+  // Keep it inset the same 10px top and bottom as the stage always has.
+  const railEl = document.querySelector('.crate-rail');
+  if(railEl) railEl.style.height = Math.max(0, stageHeight - 20) + 'px';
 }
 
 function renderCrate(host){
@@ -9409,7 +9432,11 @@ function renderCrate(host){
     const entries = model.railEntries;
     rail.innerHTML = '';
     if(!entries.length) return;
-    const h = 420;
+    // ticks spread across the rail's own current height (kept in sync with
+    // the dynamic stage by applyCrateMiniInset), not a number tuned to the
+    // old fixed-height stage — otherwise they'd run off the bottom of a
+    // shorter rail instead of spanning it
+    const h = Math.max(0, rail.getBoundingClientRect().height - 20);
     entries.forEach((e_, k) => {
       const t = entries.length > 1 ? k / (entries.length - 1) : 0;
       const tick = el('button','crate-rail-item' + (e_.present ? '' : ' crate-rail-dim'), e_.label);
