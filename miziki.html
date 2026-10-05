@@ -8099,9 +8099,9 @@ function updateSearchChipsVisibility(){
    — see CRATE spec §3), one record centred, neighbours tilting away above
    and below. Everything here derives from S.tracks; nothing new is stored
    except the three prefs in applyPrefs()/saveMeta(). */
-// was 170, then 98, then 26 (raised 144px total above the original) —
-// now lowered back down .5in (48px @ 96px/in) per feedback, to 74.
-const CRATE_ORIGIN_Y = 74;
+// was 170, then 98, then 26, then 74 — now moved back up .3in
+// (29px @ 96px/in) per feedback, to 45.
+const CRATE_ORIGIN_Y = 45;
 const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
 const CRATE_VISIBLE_A = 8;
 const CRATE_DPR = window.devicePixelRatio || 1;
@@ -9369,26 +9369,44 @@ function renderCrate(host){
     }, 200);
   }
 
+  // the info panel's rendered height isn't constant while scrolling: a
+  // divider item renders shorter (no play-button row) than a record, and a
+  // long album/artist name can wrap to an extra line. applyCrateMiniInset
+  // sized the stage against whatever the info panel measured at mount (or
+  // the last topbar toggle) — if the real height grows past that while
+  // scrolling, the stage doesn't shrink to compensate, and the taller info
+  // panel gets pushed down behind the (fixed-position) mini player.
+  // Re-measured after every updateInfoPanel call below, and only when it
+  // actually changed, so this doesn't force a layout pass every frame.
+  let lastInfoH = null;
+  function syncInfoReserve(){
+    const h = info.getBoundingClientRect().height;
+    if(h !== lastInfoH){ lastInfoH = h; applyCrateMiniInset(); }
+  }
+
   // a chip above the stage for when the playing album has been scrolled
   // away from — tapping it scrolls back (CRATE spec §4, "Now playing")
   let topbarShown = false;
   function updateNowPlayingTopBar(position){
     const shouldShow = nowPlayingIdx >= 0 && Math.round(position) !== nowPlayingIdx;
-    if(shouldShow !== topbarShown){
-      // the pill takes up real flow space above the stage, so the stage's
-      // own height budget (applyCrateMiniInset) has to be recomputed
-      // whenever it appears or disappears — but only on that transition,
-      // not every frame, since this runs continuously while scrubbing
-      topbarShown = shouldShow;
-      applyCrateMiniInset();
-    }
-    if(!shouldShow){
+    const changed = shouldShow !== topbarShown;
+    topbarShown = shouldShow;
+    if(shouldShow){
+      const item = itemAt(nowPlayingIdx);
+      nowPlayingBtn.textContent = '● Now playing — ' + item.album;
+      nowPlayingBtn.classList.add('show');
+    } else {
       nowPlayingBtn.classList.remove('show');
-      return;
     }
-    const item = itemAt(nowPlayingIdx);
-    nowPlayingBtn.textContent = '● Now playing — ' + item.album;
-    nowPlayingBtn.classList.add('show');
+    // the pill takes up real flow space above the stage, so the stage's
+    // own height budget (applyCrateMiniInset) has to be recomputed
+    // whenever it appears or disappears — but only on that transition, not
+    // every frame, since this runs continuously while scrubbing. This has
+    // to run AFTER the show/hide class above, not before: measuring with
+    // the old (stale) display state meant the stage never actually
+    // reserved room for a pill that was about to pop in a moment later,
+    // pushing the info panel down behind the mini player on that frame.
+    if(changed) applyCrateMiniInset();
   }
 
   function updateInfoPanel(idx){
@@ -9490,6 +9508,7 @@ function renderCrate(host){
     });
     applyMovingClass(speed);
     updateInfoPanel(Math.round(position));
+    syncInfoReserve();
     updateRailUI(position);
     updateNowPlayingTopBar(position);
   }
