@@ -1,0 +1,91 @@
+/* ---------- sleeve pull ----------
+   Three sprites on a timeline: the sleeve slides in, the disc (the real
+   platter-box, not a duplicate) emerges from under it, the sleeve exits
+   downward. Duration/easing come from --pull-duration/--pull-easing so the
+   feel can be tuned from one JS config object without touching this trigger
+   logic or the keyframe shapes. */
+.sleeve{position:absolute;inset:0;border-radius:6px;overflow:hidden;display:none;
+  background:linear-gradient(155deg,#2A2018,#171310);
+  box-shadow:0 22px 44px rgba(0,0,0,.55);
+  align-items:center;justify-content:center;text-align:center}
+.sleeve-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.sleeve.has-art .sleeve-art{opacity:1}
+.sleeve-mark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
+.sleeve.has-art .sleeve-mark{display:none}
+/* Driven as three separate steps from JS (see runStartSequence), not one
+   keyframe spanning the whole pull, because the middle step's length
+   depends on whether audio has finished buffering. Each step gets its own
+   easing per the presentation spec's per-motion-type table: sleeve arrives
+   (ease-out, decelerating into place) -> hold (JS-timed, no animation) ->
+   disc emerges (ease-in-out, slowest at the midpoint) while the sleeve
+   exits (ease-in, accelerating away) -> disc settles (tacked onto the tail
+   of the emerge keyframe as a slight scale overshoot eased out). */
+@keyframes sleeveArrive{
+  0%{transform:translateX(115%);opacity:0}
+  100%{transform:translateX(0%);opacity:1}
+}
+@keyframes sleeveExitDown{
+  0%{transform:translateX(0%);opacity:1}
+  100%{transform:translateY(140%);opacity:0}
+}
+@keyframes discEmergeSettle{
+  0%{transform:translateX(6%) scale(.9);opacity:0;animation-timing-function:ease-in-out}
+  75%{transform:translateX(0%) scale(1.035);opacity:1;animation-timing-function:ease-out}
+  100%{transform:translateX(0%) scale(1);opacity:1}
+}
+.platter-stage.sleeve-arriving .sleeve{animation:sleeveArrive var(--arrive-duration,1000ms) ease-out forwards}
+.platter-stage.sleeve-exiting .sleeve{animation:sleeveExitDown var(--emerge-duration,2000ms) ease-in forwards}
+.platter-stage.disc-emerging .platter-box{animation:discEmergeSettle var(--emerge-duration,2000ms) ease-in-out forwards}
+
+/* Return-to-sleeve is its own uniform ease-in motion, not the pull played
+   backwards -- reversing the pull would also reverse its deliberately
+   uneven per-phase easing, which this spec revision rules out. Kept
+   shorter than the pull: putting a record away is the quicker gesture. */
+@keyframes sleeveReturn{
+  0%{transform:translateY(140%);opacity:0}
+  45%{transform:translateX(0%);opacity:1}
+  100%{transform:translateX(115%);opacity:0}
+}
+@keyframes discReturn{
+  0%{transform:translateX(0%) scale(1);opacity:1}
+  45%{transform:translateX(-14%) scale(.96);opacity:1}
+  100%{transform:translateX(6%) scale(.9);opacity:0}
+}
+.platter-stage.returning .sleeve{animation:sleeveReturn var(--return-duration,1200ms) ease-in forwards}
+.platter-stage.returning .platter-box{animation:discReturn var(--return-duration,1200ms) ease-in forwards}
+
+/* Put-away: the queue ends with nothing next and repeat off, so the record
+   goes back in its sleeve on its own (see runPutAwaySequence). Distinct from
+   the swap's return-to-sleeve above — different target position (55%, not
+   0%) and timing, driven by its own JS-orchestrated phase sequence rather
+   than reversing the pull. The platter spin-down itself is eased in JS
+   (S.spinDown), not here, since it animates a rotation the frame loop owns. */
+@keyframes putawaySleeveIn{
+  0%{transform:translateX(115%);opacity:0}
+  100%{transform:translateX(55%);opacity:1}
+}
+@keyframes putawayDiscSlide{
+  0%{transform:translateX(0%) scale(1)}
+  50%{transform:translateX(28%) scale(.985)}
+  100%{transform:translateX(55%) scale(.985)}
+}
+@keyframes putawaySleeveOut{
+  0%{transform:translateX(55%);opacity:1}
+  50%{transform:translateX(85%);opacity:.68}
+  100%{transform:translateX(140%);opacity:0}
+}
+.platter-stage.putaway-in .sleeve{animation:putawaySleeveIn var(--putaway-in-duration,700ms) ease-out forwards}
+.platter-stage.putaway-slide .platter-box{animation:putawayDiscSlide var(--putaway-slide-duration,800ms) ease-in-out forwards}
+.platter-stage.putaway-out .sleeve{animation:putawaySleeveOut var(--putaway-out-duration,600ms) ease-in forwards}
+
+.now{text-align:center;margin-top:22px}
+.now-title-row{display:flex;align-items:center;justify-content:center;gap:4px}
+.now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.now .spec{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em}
+.icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
+  font-size:15px;color:var(--muted);margin-bottom:4px}
+.heart-btn[aria-pressed="true"]{color:#FF9E2C}
+.heart-btn.pop{animation:heartPop .35s ease}
+@keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
+

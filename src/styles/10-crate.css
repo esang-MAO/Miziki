@@ -1,0 +1,58 @@
+/* ---------- crate view: browse albums like a record-store bin ----------
+   Same vertical flip-through geometry as the launch (see flowPose()), but
+   inline in the Library route rather than a fullscreen overlay, and with
+   the centre lower (170px vs the launch's 128px) to leave room for the
+   top bar and the info panel below. A pool of ~17-20 cards is recycled as
+   S.crate.pos changes — see renderCrate()/syncCrateCards(). */
+.top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.crate-wrap{margin-top:10px;position:relative}
+.crate-group-toggle{margin-bottom:10px}
+.crate-stage{position:relative;height:316px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
+  touch-action:none;outline:none}
+.crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.crate-card.crate-moving{will-change:transform}
+.crate-card.crate-current{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
+.crate-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
+.crate-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.crate-now-dot{position:absolute;right:8px;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:50}
+.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,#E3D8C2,#C9BC9F);color:#2A1B38;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
+.crate-divider-tab{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;opacity:.65}
+.crate-divider-label{font-family:var(--display);font-weight:700;font-size:46px;letter-spacing:.02em;text-align:center;
+  line-height:1.05;word-break:break-word}
+.crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
+  font-family:var(--data);font-size:9px;letter-spacing:.08em}
+.crate-rail{position:absolute;right:2px;top:10px;height:296px;width:26px}
+.crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:8.5px;letter-spacing:.04em;
+  color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
+.crate-rail-item.crate-rail-current{color:var(--accent);opacity:1}
+.crate-rail-item.crate-rail-dim{opacity:.28}
+.crate-rail-bubble{position:fixed;width:68px;height:68px;border-radius:50%;background:var(--amber);color:#2A1B38;
+  display:grid;place-content:center;font-family:var(--display);font-weight:700;font-size:30px;
+  pointer-events:none;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.crate-info{margin-top:12px;min-height:84px}
+.crate-info h3{font-family:var(--display);font-weight:700;font-size:21px;margin:0 0 2px;letter-spacing:.02em}
+.crate-info .crate-info-sub{font-size:13px;color:var(--muted);margin:0 0 2px}
+.crate-info .crate-info-meta{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em}
+.crate-info-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
+  letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:4px 10px;
+  margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.crate-topbar{display:none;align-items:center;gap:6px;font-family:var(--data);font-size:10px;
+  letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:5px 12px;
+  margin-bottom:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-topbar.show{display:inline-flex}
+.crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
+.crate-flat-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;scroll-snap-align:center}
+.crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}
+.crate-flat-item img, .crate-flat-item .crate-flat-flat{width:56px;height:56px;border-radius:4px;object-fit:cover;flex:0 0 auto}
+.crate-flat-divider{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted);padding:4px 0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
+

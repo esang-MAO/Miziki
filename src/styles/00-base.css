@@ -1,0 +1,40 @@
+:root{
+  --sky1:#1D2F38; --sky2:#101A20;
+  --paper:#EFE9DF;
+  --muted:#94A0A6;
+  --line:rgba(239,233,223,.14);
+  --panel:rgba(10,14,18,.42);
+  --amber:#FF9E2C;
+  --cool:#9FD8E8;
+  --accent:var(--amber);
+  --miziki-orange:#FF9E2C;
+  --disc-a:#26282F; --disc-b:#15161B; --disc-c:#0D0E13;
+  --display:'Antonio','Oswald','Arial Narrow',sans-serif;
+  --body:'Archivo','Helvetica Neue',system-ui,sans-serif;
+  --data:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
+}
+*{box-sizing:border-box}
+/* html needs its own dark background too, not just body's: iOS Safari's
+   rubber-band overscroll bounce at the top/bottom of the page reveals
+   whatever is behind the document, and with no background set here that
+   was the browser's default white, flashing behind the status bar/notch
+   on every pull-down. overscroll-behavior-y stops the bounce happening at
+   all, which also reads as more "app-like" than a web page that bounces. */
+html,body{height:100%; background:var(--sky2); overscroll-behavior-y:none}
+body{
+  margin:0; font-family:var(--body); color:var(--paper);
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  transition:background 1.2s linear;
+}
+/* --chrome-inset is measured in JS from the tab bar's + mini-player's actual
+   rendered height (see updateChromeInset()) — the tab bar's own box already
+   includes its safe-area padding, so this value stands alone with no extra
+   env() added on top. Last row is never hidden under the fixed bottom
+   chrome, and the gap shrinks/grows as the mini-player strip appears and
+   disappears with playback rather than sitting at a fixed guess (see
+   LIBRARY spec §3). The literal fallback only covers the sliver before that
+   first measurement lands on load. */
+.wrap{max-width:520px;margin:0 auto;padding:0 20px var(--chrome-inset, calc(150px + env(safe-area-inset-bottom)))}
+
