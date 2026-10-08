@@ -13,8 +13,12 @@ const fs = require('fs');
 // warns "can't be bundled without type=module" and never copies the file),
 // so without this it would 404 in the built app. This plugin copies the
 // file to the same src/ path under outDir, and the HTML references it via
-// Vite's %BASE_URL% placeholder so the reference also resolves correctly
-// under the '/Miziki/' base, in both dev and the build.
+// a plain relative path (src="src/miziki-social.js"), not an absolute
+// %BASE_URL%-prefixed one — see the comment above that tag in miziki.html
+// for why. That relative reference is also what makes it base-agnostic:
+// it resolves correctly against the page's own URL regardless of what
+// `base` below is set to, so Netlify's '/' base (see netlify.toml) needs
+// no special-casing here.
 function copySocialClient() {
   return {
     name: 'copy-social-client',
@@ -32,8 +36,11 @@ module.exports = defineConfig({
   // The deployed app is saved to the home screen at this exact path
   // (https://esang-mao.github.io/Miziki/miziki.html) — base must stay
   // '/Miziki/' so every asset URL the build emits resolves correctly
-  // under GitHub Pages' project-site prefix.
-  base: '/Miziki/',
+  // under GitHub Pages' project-site prefix. The GitHub Actions workflow
+  // never sets MIZIKI_BASE, so that deploy is unaffected by this env var
+  // and always gets '/Miziki/'. Netlify (a root-domain preview, not a
+  // project-site subpath) sets MIZIKI_BASE=/ in netlify.toml instead.
+  base: process.env.MIZIKI_BASE || '/Miziki/',
   build: {
     outDir: 'dist',
     rollupOptions: {

@@ -9,10 +9,11 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 
 - `miziki.html` holds the markup and the main player script (the one big inline `<script>` block, ~10,100 lines). It is being split into modules. See "Refactor rules" below.
 - `src/styles/` holds the CSS, split out of what used to be one inline `<style>` block, one file per section (`00-base.css`, `01-header.css`, …), referenced from `miziki.html` as separate `<link rel="stylesheet">` tags in that same original order. Cascade order matters — that numeric prefix is load order, not importance, and the files must stay in it.
-- `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth and the only copy** — `miziki.html` loads it directly (as a plain classic `<script src="src/miziki-social.js">`, not `type="module"`, so it keeps executing synchronously in place the same as the inline copy it used to be; see the comment above that tag for why a relative path, not `%BASE_URL%`).
+- `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth and the only copy** — `miziki.html` loads it directly (as a plain classic `<script src="src/miziki-social.js">`, not `type="module"`, so it keeps executing synchronously in place the same as the inline copy it used to be; see the comment above that tag for why a relative path, not an absolute one — it's also what makes this reference work unchanged under both bases below).
 - `supabase/migrations/` holds the schema, RPCs, digging list and follow counts. Apply them in numeric order. Never edit a migration that has already been applied. Add a new numbered file instead.
 - `tests/client.test.js` holds Node tests for the social client against a real local Postgres (see `tests/supabase_stub.sql`). The player itself has no automated tests yet.
-- `vite.config.js` builds `miziki.html` (not `index.html`) as the one entry point, with `base: '/Miziki/'`, output to `dist/`. It also copies `src/miziki-social.js` into `dist/src/miziki-social.js` verbatim — Vite only bundles `type="module"` scripts referenced from HTML, so the plain classic script above needs that explicit copy step or it would 404 in the built app.
+- `vite.config.js` builds `miziki.html` (not `index.html`) as the one entry point, output to `dist/`. `base` reads from the `MIZIKI_BASE` env var, defaulting to `/Miziki/` when unset — the GitHub Actions workflow never sets it, so the real GitHub Pages deploy is unaffected; see "Deploy previews" below for the other value it takes. It also copies `src/miziki-social.js` into `dist/src/miziki-social.js` verbatim — Vite only bundles `type="module"` scripts referenced from HTML, so the plain classic script above needs that explicit copy step or it would 404 in the built app.
+- `netlify.toml` configures Netlify's PR deploy previews. See "Deploy previews" below.
 
 ## How the app is put together
 
@@ -70,6 +71,24 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 - `npm test` — runs `tests/client.test.js` (needs a local Postgres; see below).
 
 Social client tests need a local Postgres. See the header of `tests/client.test.js` for the connection defaults (`PGHOST=/var/tmp/pgmz`, `PGPORT=5544`, database `mz`).
+
+## Deploy previews (Netlify)
+
+Every PR gets a Netlify deploy preview, separate from the real GitHub Pages
+deploy — **GitHub Pages stays on `/Miziki/` and is untouched by this.**
+
+- `netlify.toml` runs `npm run build` with `MIZIKI_BASE=/` (Netlify previews
+  live at their own root domain, not under a `/Miziki/` subpath the way the
+  GitHub Pages project site does) and `NODE_VERSION=20`, publishes `dist`,
+  and rewrites `/` to `/miziki.html` (status 200, not a redirect — the URL
+  bar stays at the preview root) so the preview link opens the app
+  directly instead of 404ing on an index page that doesn't exist.
+- To test the same build locally: `MIZIKI_BASE=/ npm run build`, then
+  `MIZIKI_BASE=/ npm run preview` (the preview server also reads `base`
+  from the build, so it has to be set the same way or it'll try to serve
+  from `/Miziki/` again) — then open `http://localhost:4173/miziki.html`.
+- `MIZIKI_BASE` only changes `base` in `vite.config.js`; nothing else
+  about the build differs between the two targets.
 
 ### What changed in step 1 (tooling)
 
