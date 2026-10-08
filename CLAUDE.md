@@ -7,10 +7,12 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 
 ## Repo layout
 
-- `miziki.html` holds almost the whole app (~12,900 lines): inline CSS, markup, a vendored copy of the social client, and the main player script. It is being split into modules. See "Refactor rules" below.
-- `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth.** `miziki.html` currently carries a pasted copy that can drift. Change it here, not in the HTML.
+- `miziki.html` holds the markup and the main player script (the one big inline `<script>` block, ~10,100 lines). It is being split into modules. See "Refactor rules" below.
+- `src/styles/` holds the CSS, split out of what used to be one inline `<style>` block, one file per section (`00-base.css`, `01-header.css`, …), referenced from `miziki.html` as separate `<link rel="stylesheet">` tags in that same original order. Cascade order matters — that numeric prefix is load order, not importance, and the files must stay in it.
+- `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth and the only copy** — `miziki.html` loads it directly (as a plain classic `<script src="src/miziki-social.js">`, not `type="module"`, so it keeps executing synchronously in place the same as the inline copy it used to be; see the comment above that tag for why a relative path, not `%BASE_URL%`).
 - `supabase/migrations/` holds the schema, RPCs, digging list and follow counts. Apply them in numeric order. Never edit a migration that has already been applied. Add a new numbered file instead.
 - `tests/client.test.js` holds Node tests for the social client against a real local Postgres (see `tests/supabase_stub.sql`). The player itself has no automated tests yet.
+- `vite.config.js` builds `miziki.html` (not `index.html`) as the one entry point, with `base: '/Miziki/'`, output to `dist/`. It also copies `src/miziki-social.js` into `dist/src/miziki-social.js` verbatim — Vite only bundles `type="module"` scripts referenced from HTML, so the plain classic script above needs that explicit copy step or it would 404 in the built app.
 
 ## How the app is put together
 
@@ -61,6 +63,19 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 
 ## Commands
 
-_Fill in once Vite is added:_ `npm install`, `npm run dev`, `npm run build`, `npm test`.
+- `npm install` — install Vite (the only dependency so far).
+- `npm run dev` — Vite dev server at `http://localhost:5173/Miziki/` (note the `/Miziki/` — `base` is mounted in dev too, so `http://localhost:5173/` alone 404s).
+- `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` (bundled, hashed CSS) and `dist/src/miziki-social.js` (copied verbatim, see `vite.config.js`). `dist/` is gitignored.
+- `npm run preview` — serves the built `dist/` at `http://localhost:4173/Miziki/`, closest to what GitHub Pages actually serves.
+- `npm test` — runs `tests/client.test.js` (needs a local Postgres; see below).
 
 Social client tests need a local Postgres. See the header of `tests/client.test.js` for the connection defaults (`PGHOST=/var/tmp/pgmz`, `PGPORT=5544`, database `mz`).
+
+### What changed in step 1 (tooling)
+
+No behavior change — this step only adds build tooling and moves code, per the refactor rules above.
+
+- Added Vite (`package.json`, `vite.config.js`) with a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and deploys `dist/` to GitHub Pages on every push to `main`.
+- The inline `<style>` block became 21 files under `src/styles/`, referenced via `<link rel="stylesheet">` tags in the same order, immediately after the Google Fonts links (unchanged).
+- The vendored copy of the social client inside `miziki.html` is gone; it now loads `src/miziki-social.js` directly, as a classic script (not a module) so timing stays identical — the main script right after it still does a synchronous `typeof MizikiSocial` check.
+- Verified (see the PR): confirmed the two social-client copies were byte-identical before removing the vendored one; diffed the built `dist/miziki.html` against the pre-step-1 original with the CSS and social-script regions normalized out — the only remaining difference was a stale comment folded into the new one above the script tag. Nothing in the ~10,100-line main script changed.
