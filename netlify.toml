@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  MIZIKI_BASE = "/"
+  NODE_VERSION = "20"
+
+# The built miziki.html is the entry point, not index.html (see
+# CLAUDE.md / vite.config.js) — Netlify has nothing to serve at '/' on its
+# own, so a PR preview link would otherwise 404. This sends it straight to
+# the app.
+[[redirects]]
+  from = "/"
+  to = "/miziki.html"
+  status = 200
