@@ -1,0 +1,8 @@
+/* ---------- morph: mini-player disc growing into the full disc ----------
+   A ghost element travels from the mini-disc's screen rect to the full
+   disc's rect via a plain FLIP-style transform transition (translate+scale),
+   in a shared fixed-position coordinate space. */
+.morph-disc{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:150;
+  display:none;box-shadow:0 22px 44px rgba(0,0,0,.55);background-position:center;background-size:cover}
+.platter-stage.morph-hidden{visibility:hidden}
+

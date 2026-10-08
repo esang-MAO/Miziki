@@ -1,0 +1,48 @@
+/* ---------- launch intro: vertical digital-crate flip-through ----------
+   Cold start only (see runLaunchSequence). A fixed 390x740 design stage,
+   scaled uniformly to fit the viewport rather than redrawn per size.
+   Cover Flow turned on its side: one scalar `position` drives every visible
+   card's 3D transform (see launchCardPose()); cards are created/removed as
+   they enter/leave the +-8 visible window rather than existing all at once. */
+.launch-overlay{position:fixed;inset:0;z-index:500;
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity var(--launch-skip-duration,150ms) linear}
+.launch-overlay.launch-hidden{opacity:0;pointer-events:none}
+.launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;
+  perspective:1000px;perspective-origin:50% 36%;
+  transform:scale(var(--launch-scale,1))}
+.launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
+  font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.16em;color:var(--muted);
+  opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out}
+.launch-wordmark span{color:var(--accent)}
+.launch-wordmark.launch-grown{opacity:1;font-size:44px;letter-spacing:.1em;top:auto;bottom:140px}
+.launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
+  opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
+.launch-stack.launch-settled{opacity:1}
+.launch-card{position:absolute;left:56px;top:128px;width:278px;height:278px;
+  border-radius:6px;overflow:hidden;will-change:transform,opacity;
+  box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
+.launch-card.launch-target{box-shadow:0 14px 32px rgba(0,0,0,.4),0 0 0 1.5px rgba(255,158,44,.75)}
+.launch-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
+.launch-card-face::before{content:'';position:absolute;left:0;top:0;bottom:0;width:10px;
+  background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
+.launch-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
+  color:var(--paper);white-space:nowrap;transform:rotate(-35deg);font-size:34%}
+.launch-card-mark span{color:var(--accent)}
+/* no rail or position counter in the intro any more — the crate view has
+   its own rail (CRATE spec) — just a plain "N RECORDS" label */
+.launch-records{position:absolute;left:0;right:0;bottom:36px;text-align:center;
+  font-family:var(--data);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  opacity:1;transition:opacity var(--launch-pull-duration,600ms) ease-in}
+.launch-records.launch-fading{opacity:0}
+.launch-title{position:absolute;left:0;right:0;top:432px;text-align:center;
+  opacity:0;transition:opacity var(--launch-title-duration,300ms) ease-out}
+.launch-title.launch-shown{opacity:1}
+.launch-title-name{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.04em}
+.launch-title-sub{font-family:var(--data);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-top:6px}
+@media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
+

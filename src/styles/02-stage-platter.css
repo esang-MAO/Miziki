@@ -1,0 +1,96 @@
+/* ---------- stage / platter ---------- */
+.stage{padding:26px 0 6px}
+.platter-stage{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
+.platter-box{position:absolute;inset:0}
+/* the disc must never render unconditionally — a record sitting there
+   already would contradict the pull that's supposed to deliver it. Kept as
+   a plain class (not the animation's own fill-mode) so it can be cleared
+   right as the emerge animation takes over and left alone otherwise; see
+   runStartSequence()/interruptStartSequence(). Ships on by default in the
+   markup so first paint shows empty space, not a generic disc — there is
+   no platter or spindle to occupy that space instead (see PRESENTATION
+   spec, Disc Visibility). */
+.platter-box.disc-hidden{opacity:0;pointer-events:none}
+.disc{
+  position:absolute;inset:0;border-radius:50%;
+  /* variant color/pattern layer — set inline per track by applyDiscVariant();
+     this default is only what shows before any track has loaded */
+  background:radial-gradient(circle at 50% 50%,var(--disc-a) 0 27%,var(--disc-b) 27% 90%,var(--disc-c) 90% 100%);
+  box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06);
+  will-change:transform; touch-action:none; cursor:grab;
+}
+.disc:active{cursor:grabbing}
+.disc::before{
+  content:'';
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  /* a groove seam plus light catching the pressing — these turn with the disc,
+     so the eye can actually tell which way it is going. Layered over whatever
+     the variant background is, so it reads on every tier and pattern alike. */
+  background:
+    conic-gradient(from 0deg,
+      rgba(255,255,255,.10) 0deg 1.2deg, rgba(0,0,0,.18) 1.2deg 2.6deg,
+      rgba(255,255,255,0) 2.6deg 48deg,
+      rgba(255,255,255,.045) 48deg 54deg, rgba(255,255,255,0) 54deg 137deg,
+      rgba(255,255,255,.055) 137deg 142deg, rgba(255,255,255,0) 142deg 225deg,
+      rgba(255,255,255,.035) 225deg 231deg, rgba(255,255,255,0) 231deg 360deg),
+    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px);
+  transition:opacity .6s;
+}
+.disc.rare::before{opacity:.3}
+/* holds a snapshot of the disc's previous background and fades it out to
+   reveal the new one underneath — used for same-album metal/tier changes
+   that have no sleeve animation to cover an instant swap (see METAL spec §4) */
+.disc-fade{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0}
+.label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
+  display:grid;place-content:center;text-align:center;color:#170D04;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);transition:background .5s}
+.label .art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s}
+.label.has-art .art{opacity:1}
+.label.has-art .rpm,.label.has-art .mode-tag{display:none}
+/* the mode still has to read at a glance, so it moves to the label rim.
+   This ring is a fixed Miziki orange — unlike --accent it does not follow
+   Pure/Vinyl mode, since it is a brand mark on the format ladder, not a mode indicator. */
+.label.has-art{box-shadow:inset 0 0 0 3px var(--miziki-orange),inset 0 0 0 5px rgba(0,0,0,.45)}
+.label.rare{box-shadow:none}
+.t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
+.t-dur{font-family:var(--data);font-size:10px;color:var(--muted)}
+.tracklist li.picked{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.tracklist li.picked .t-idx::after{content:'✓';color:var(--accent);margin-left:2px}
+.lib-nav{margin:4px 0 6px}
+.crumb{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.crumb-back{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--accent)}
+.crumb-label{font-family:var(--display);font-size:17px;letter-spacing:.06em;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.grouprow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 0;
+  border-bottom:1px solid var(--line);text-align:left}
+.g-art{width:44px;height:44px;border-radius:2px;object-fit:cover;flex:0 0 auto;
+  background:rgba(255,255,255,.06);display:grid;place-content:center;color:var(--muted);font-size:15px}
+.g-text{flex:1;min-width:0}
+.g-text b{display:block;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-text em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted)}
+.g-chev{color:var(--muted);font-size:18px}
+.pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:3px;color:var(--paper);font-family:var(--body);font-size:16px;padding:10px 12px}
+.by{font-size:13px;color:var(--muted);margin-bottom:5px}
+.tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
+.tbtn.mini[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.tbtn.mini svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.rep-one{position:absolute;right:3px;bottom:2px;font-family:var(--data);font-size:8px;
+  background:var(--accent);color:#12100A;border-radius:2px;padding:0 2px;line-height:1.4}
+.movers{display:flex;gap:2px;flex:0 0 auto}
+.mv{width:28px;height:30px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
+  font-size:9px;line-height:1}
+.mv:active{color:var(--accent);border-color:var(--accent)}
+.sortbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.sortbar span{font-family:var(--data);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+.sort-toggle{width:30px;height:26px;flex:0 0 auto;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:4px}
+.sort-toggle span{display:block;width:18px;height:2px;background:var(--muted);border-radius:1px}
+.label .rpm{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
+.label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
+

@@ -1,0 +1,15 @@
+/* ---------- full player overlay ---------- */
+.player-overlay{position:fixed;inset:0;z-index:100;
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  transform:translateY(100%);transition:transform var(--sheet-duration,350ms) cubic-bezier(.32,.72,0,1);
+  overflow-y:auto;overflow-x:hidden;
+  padding:calc(14px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}
+.player-overlay.open{transform:translateY(0)}
+/* used only to reveal the overlay instantly for the morph, which drives its
+   own motion via the ghost disc rather than the sheet's slide transition */
+.player-overlay.instant{transition:none}
+.player-overlay .stage{max-width:480px;margin:0 auto;padding:44px 0 6px}
+.player-dismiss{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  width:44px;height:28px;color:var(--muted);font-size:20px;line-height:1;display:grid;place-content:center;z-index:1}
+@media (prefers-reduced-motion:reduce){.player-overlay{transition:none}}
+

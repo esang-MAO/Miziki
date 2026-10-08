@@ -1,0 +1,7 @@
+/* ---------- gatefold-to-player hand-off: the one record that travels from
+   the gatefold's pocket to the platter (Part 2 §1). A fixed-position host
+   sized/positioned by JS each frame; the real .disc/.label markup nested
+   inside gives it the same groove and label look as the real disc. ---------- */
+.gf-handoff-ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:150;display:none}
+.gf-handoff-ghost .disc{position:absolute;inset:0}
+

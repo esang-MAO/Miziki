@@ -1,0 +1,108 @@
+/* ---------- storefront (Part: social layer §B) ----------
+   Keeps the sticker/awning/record motifs from the design frames, restyled
+   to Miziki's own tokens: cream sticker -> --paper, amber accents ->
+   --accent, ground -> --sky2/--line. */
+.store-open-card{border:1px dashed var(--line);border-radius:8px;padding:20px;text-align:center;margin-bottom:24px}
+.store-open-card h3{font-family:var(--display);font-size:19px;margin:0 0 8px}
+.store-open-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 16px}
+.store-open-card .cta{width:100%}
+
+.store-loading,.store-error{font-size:13px;color:var(--muted);padding:16px 0}
+.store-error button{margin-top:10px}
+
+.store-awning{display:flex;margin:0 0 16px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.store-awning > div{flex:1;height:22px;border-radius:0 0 22px 22px}
+.store-awning > div:nth-child(odd){background:var(--accent)}
+.store-awning > div:nth-child(even){background:var(--paper)}
+
+.store-header{display:flex;align-items:center;gap:16px}
+.store-gear{width:44px;height:44px;flex:none;color:var(--muted);font-size:17px;
+  display:flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:-6px}
+.store-avatar{width:80px;height:80px;border-radius:50%;flex:none;position:relative;
+  background:repeating-radial-gradient(circle at 50% 50%,#0B0908 0px,#0B0908 2px,#17140F 2px,#17140F 3px);
+  box-shadow:0 8px 18px rgba(0,0,0,.45)}
+.store-avatar::before{content:'';position:absolute;inset:0;border-radius:50%;
+  background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.14) 38%,rgba(255,255,255,0) 46%)}
+.store-avatar-label{position:absolute;left:32%;top:32%;width:36%;height:36%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
+.store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.store-handle{font-family:var(--display);font-size:32px;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-displayname{font-size:13px;color:var(--muted)}
+.store-handle-input{font-family:var(--display);font-size:32px;line-height:1;margin:0;width:100%;
+  background:none;border:0;color:var(--paper);padding:0}
+.store-handle-input::placeholder{color:var(--muted);opacity:.65}
+.store-displayname-btn{display:block;background:none;border:0;padding:4px 0;margin:0;text-align:left;
+  font-size:13px;color:var(--muted);min-height:32px}
+.store-displayname-input{display:block;font-size:16px;color:var(--paper);background:none;border:0;
+  border-bottom:1px solid var(--line);padding:4px 0;margin:0;width:100%;max-width:240px}
+.profile-extras{margin-top:28px}
+.store-bio{font-size:14px;line-height:1.45;color:var(--paper);margin:14px 0 0;white-space:pre-wrap}
+
+.store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
+.store-vis-chip{min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid var(--line);
+  background:none;color:var(--paper);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.store-vis-link{font-family:var(--data);font-size:11.5px;color:var(--muted);background:none;border:0;min-height:44px}
+
+.store-stats{display:flex;margin:18px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.store-stat{flex:1;padding:12px 0;display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line);min-width:0}
+.store-stat:first-child{border-left:0}
+.store-stat b{font-size:20px;font-weight:700;font-family:var(--body)}
+.store-stat span{font-family:var(--data);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.store-stat.accent b{color:var(--accent)}
+
+.store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+.store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--paper);color:#1A1410;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.store-card-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-card-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-card-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-chev{color:var(--muted);font-size:17px;flex:none}
+.store-card-btn{background:none;border:0;padding:0;display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:inherit}
+
+.store-switch{width:44px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.store-switch-track{width:46px;height:28px;border-radius:14px;background:var(--line);position:relative}
+.store-switch[aria-checked="true"] .store-switch-track{background:var(--accent)}
+.store-switch-track i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#14110F;transition:left .15s;display:block}
+.store-switch[aria-checked="true"] .store-switch-track i{left:21px}
+
+.store-section-head{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 0}
+.store-section-head h2{margin:0;font-family:var(--display);font-size:19px}
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:11px;color:var(--accent);
+  letter-spacing:.06em;padding:12px 0 12px 12px;min-height:44px}
+
+.store-picks-row{display:flex;gap:12px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:none}
+.store-picks-row::-webkit-scrollbar{display:none}
+.store-pick{flex:none;width:164px;display:flex;flex-direction:column;gap:8px}
+.store-pick-cover{width:164px;height:164px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
+.store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
+  font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent)}
+.store-pick-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:4px;padding:8px 10px;
+  font-size:12px;line-height:1.35;display:flex;flex-direction:column;gap:4px}
+.store-pick-stars{font-size:13px;letter-spacing:1.5px;color:#B8641A}
+.store-pick-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-pick-empty{flex:none;width:164px;height:164px;border-radius:7px;border:1.5px dashed var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);background:var(--panel);font-size:12.5px}
+
+.store-dig-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.store-dig-cover{width:56px;height:56px;border-radius:5px;flex:none;background:var(--panel);object-fit:cover}
+.store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-dig-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-dig-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.store-dig-text small{font-family:var(--data);font-size:10.5px;color:var(--accent)}
+.store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);background:var(--accent);
+  color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
+
+.store-crate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;margin-top:12px}
+.store-crate-cover{width:100%;aspect-ratio:1;border-radius:5px;background:var(--panel);overflow:hidden}
+.store-crate-cover img{width:100%;height:100%;object-fit:cover}
+.store-crate-name{font-size:12px;font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-crate-artist{font-family:var(--data);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-requests-wrap{margin-top:14px}
+.store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px 4px}
+.store-requests-list .store-dig-row:last-child{border-bottom:0}
+
