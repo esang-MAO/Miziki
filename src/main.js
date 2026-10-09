@@ -2014,9 +2014,9 @@ async function deleteTracks(idsToDelete){
   if(sealedChanged) persistSealedAlbums();
 
   for(const id of idsToDelete){
-    await DB.del('tracks', id);
-    await DB.del('overlays', id);
-    await DB.del('artwork', id);
+    await tracks.del(id);
+    await overlays.del(id);
+    await artwork.del(id);
   }
 
   S.playlists = plSnapshot.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
@@ -2075,12 +2075,13 @@ async function forgetLibrary(){
   // achievements and the Collection outlive "forget library", so their thumbnails do too
   const keepThumbs = [];
   for(const id of new Set(Object.keys(S.achievements).concat(Object.keys(S.collection)))){
-    const row = await DB.get('meta', 'thumb:album:' + id);
-    if(row) keepThumbs.push(row);
+    const key = 'thumb:album:' + id;
+    const blob = await meta.get(key);
+    if(blob) keepThumbs.push({key, blob});
   }
-  await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
-  await DB.clear('overlays'); await DB.clear('artwork');
-  for(const row of keepThumbs) await DB.put('meta', row);
+  await tracks.clear(); await meta.clear(); await sessions.clear();
+  await overlays.clear(); await artwork.clear();
+  for(const {key, blob} of keepThumbs) await meta.put(key, blob);
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
@@ -2142,15 +2143,15 @@ async function clearListeningHistory(orphanedOnly){
     S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
     S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
     S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
-    for(const id of droppedAlbums) await DB.del('achievements', id);
-    for(const id of droppedCollection) await DB.del('collection', id);
-    for(const id of droppedSessions) await DB.del('sessions', id);
+    for(const id of droppedAlbums) await achievements.del(id);
+    for(const id of droppedCollection) await collection.del(id);
+    for(const id of droppedSessions) await sessions.del(id);
   } else {
     S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
     S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
     S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
     S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
-    await DB.clear('achievements'); await DB.clear('collection'); await DB.clear('sessions');
+    await achievements.clear(); await collection.clear(); await sessions.clear();
   }
   await pruneThumbs();
   await Promise.all([
@@ -2180,7 +2181,7 @@ export async function ensureBuffer(i){
   if(!t) return false;
   if(t.buffer){ touchLRU(i); return true; }
   let blob = t.blob;
-  if(!blob && t.stored){ const rec = await DB.get('tracks', t.id); blob = rec && rec.blob; }
+  if(!blob && t.stored){ const rec = await tracks.get(t.id); blob = rec && rec.blob; }
   if(!blob){ setPathNote('The file for this track is no longer available. Add it again from Library.', true); return false; }
   try{
     setPathNote('Decoding ' + t.tags.title + '…');
