@@ -1,19 +1,26 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// engine.js has a temporary circular import back to main.js (see the
-// refactor rule in CLAUDE.md) and main.js has DOM-dependent top-level
-// code, so loading it for real here would need a browser. Module mocking
-// (Node 22, behind --experimental-test-module-mocks — see package.json)
-// replaces main.js's two exports with no-ops before engine.js is loaded,
-// which is all engine.js needs from it for these tests.
-// engine.js imports stop/applyOutputRoute from main.js directly, and
-// location.js (which engine.js imports applyVolume from) imports
-// drawSun/queueSave from main.js too — mock.module replaces the whole
-// module by resolved specifier, so every export any importer in this
-// chain needs from main.js has to be covered here, not just engine.js's own.
+// engine.js has temporary circular imports back to main.js and
+// transport.js (see the refactor rule in CLAUDE.md), and main.js has
+// DOM-dependent top-level code, so loading it for real here would need a
+// browser. Module mocking (Node 22, behind
+// --experimental-test-module-mocks — see package.json) replaces both
+// with no-ops before engine.js is loaded.
+//
+// engine.js imports applyOutputRoute from main.js directly and stop from
+// transport.js; location.js (which engine.js imports applyVolume from)
+// imports drawSun/queueSave from main.js too — mock.module replaces the
+// whole module by resolved specifier, so every export any importer in
+// this chain needs from main.js has to be covered here, not just
+// engine.js's own. transport.js itself imports ~20 functions from
+// main.js (step 3b), which is exactly why it's mocked directly here too,
+// rather than trying to also list transport.js's main.js dependencies.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: { stop(){}, applyOutputRoute(){}, drawSun(){}, queueSave(){} },
+  namedExports: { applyOutputRoute(){}, drawSun(){}, queueSave(){} },
+});
+mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
+  namedExports: { stop(){} },
 });
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
