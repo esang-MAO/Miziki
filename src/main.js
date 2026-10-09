@@ -1499,13 +1499,13 @@ function albumExpectedOrder(albumId){
   return albumTracks(sample.tags.album).map(i => S.tracks[i].id);
 }
 
-async function persistSession(rec){ S.sessions[rec.albumId] = rec; await DB.put('sessions', rec); }
-async function persistSessionCounts(){ await DB.put('meta', {k:'sessionCounts', v:S.sessionCounts}); }
-async function persistRareUnlocked(){ await DB.put('meta', {k:'rareUnlocked', v:S.rareUnlocked}); }
-async function persistTrackPlayCounts(){ await DB.put('meta', {k:'trackPlayCounts', v:S.trackPlayCounts}); }
-async function persistMetalEligibleSessions(){ await DB.put('meta', {k:'metalEligibleSessions', v:S.metalEligibleSessions}); }
-async function persistTrackMetalEligiblePlays(){ await DB.put('meta', {k:'trackMetalEligiblePlays', v:S.trackMetalEligiblePlays}); }
-async function persistAlbumLookPref(){ await DB.put('meta', {k:'albumLookPref', v:S.albumLookPref}); }
+async function persistSession(rec){ S.sessions[rec.albumId] = rec; await sessions.put(rec); }
+async function persistSessionCounts(){ await meta.put('sessionCounts', S.sessionCounts); }
+async function persistRareUnlocked(){ await meta.put('rareUnlocked', S.rareUnlocked); }
+async function persistTrackPlayCounts(){ await meta.put('trackPlayCounts', S.trackPlayCounts); }
+async function persistMetalEligibleSessions(){ await meta.put('metalEligibleSessions', S.metalEligibleSessions); }
+async function persistTrackMetalEligiblePlays(){ await meta.put('trackMetalEligiblePlays', S.trackMetalEligiblePlays); }
+async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
@@ -1522,10 +1522,10 @@ function invalidateSession(albumId){
   const rec = S.sessions[albumId];
   if(!rec) return;
   rec.invalidated = true; rec.lastActivityAt = Date.now();
-  DB.put('sessions', rec);
+  sessions.put(rec);
   delete S.sessions[albumId];
 }
-function discardSession(albumId){ delete S.sessions[albumId]; DB.put('sessions', {albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
+function discardSession(albumId){ delete S.sessions[albumId]; sessions.put({albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
 
 function invalidateActiveSessionIfAny(){
   if(S.sessionActive) invalidateSession(S.sessionActive);
@@ -1536,7 +1536,7 @@ export function touchActiveSession(){
   const rec = S.sessionActive && S.sessions[S.sessionActive];
   if(!rec) return;
   rec.lastActivityAt = Date.now();
-  DB.put('sessions', rec);
+  sessions.put(rec);
 }
 
 // called whenever a new track finishes loading; decides whether this track
@@ -1585,7 +1585,7 @@ function sessionTrackComplete(t){
   rec.lastActivityAt = Date.now();
   if(rec.tracksCompleted.length >= rec.expectedOrder.length){
     delete S.sessions[albumId];
-    DB.put('sessions', rec);
+    sessions.put(rec);
     S.sessionActive = null;
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
     if(trackTier(t) === 1) S.metalEligibleSessions[albumId] = (S.metalEligibleSessions[albumId] || 0) + 1;
@@ -1618,43 +1618,43 @@ function checkRareUnlock(albumId){
 }
 
 async function restoreSessions(){
-  const recs = await DB.all('sessions');
+  const recs = await sessions.all();
   const now = Date.now();
   recs.forEach(r => {
     if(r.invalidated) return;
     if(now - r.lastActivityAt > FOUR_HOURS) return;
     S.sessions[r.albumId] = r;
   });
-  const counts = await DB.get('meta', 'sessionCounts');
-  if(counts && counts.v) S.sessionCounts = counts.v;
-  const unlocked = await DB.get('meta', 'rareUnlocked');
-  if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
-  const plays = await DB.get('meta', 'trackPlayCounts');
-  if(plays && plays.v) S.trackPlayCounts = plays.v;
+  const counts = await meta.get('sessionCounts');
+  if(counts) S.sessionCounts = counts;
+  const unlocked = await meta.get('rareUnlocked');
+  if(unlocked) S.rareUnlocked = unlocked;
+  const plays = await meta.get('trackPlayCounts');
+  if(plays) S.trackPlayCounts = plays;
   // fall back to a copy of the true lifetime counters if this is the first
   // load since the metal-eligible shadow counters were introduced — correct
   // for anyone who hasn't upgraded a tier-1 album yet, which is the common
   // case, and only diverges going forward for those who have
-  const metalSessions = await DB.get('meta', 'metalEligibleSessions');
-  S.metalEligibleSessions = (metalSessions && metalSessions.v) ? metalSessions.v : Object.assign({}, S.sessionCounts);
-  const metalPlays = await DB.get('meta', 'trackMetalEligiblePlays');
-  S.trackMetalEligiblePlays = (metalPlays && metalPlays.v) ? metalPlays.v : Object.assign({}, S.trackPlayCounts);
-  const lookPref = await DB.get('meta', 'albumLookPref');
-  if(lookPref && lookPref.v) S.albumLookPref = lookPref.v;
-  const albumLast = await DB.get('meta', 'albumLastPlayed');
-  if(albumLast && albumLast.v) S.albumLastPlayed = albumLast.v;
-  const trackLast = await DB.get('meta', 'trackLastPlayed');
-  if(trackLast && trackLast.v) S.trackLastPlayed = trackLast.v;
-  const display = await DB.get('meta', 'albumDisplay');
-  if(display && display.v) S.albumDisplay = display.v;
-  const trackDisp = await DB.get('meta', 'trackDisplay');
-  if(trackDisp && trackDisp.v) S.trackDisplay = trackDisp.v;
-  const edge = await DB.get('meta', 'albumEdge');
-  if(edge && edge.v) S.albumEdge = edge.v;
-  (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
-  (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
+  const metalSessions = await meta.get('metalEligibleSessions');
+  S.metalEligibleSessions = metalSessions || Object.assign({}, S.sessionCounts);
+  const metalPlays = await meta.get('trackMetalEligiblePlays');
+  S.trackMetalEligiblePlays = metalPlays || Object.assign({}, S.trackPlayCounts);
+  const lookPref = await meta.get('albumLookPref');
+  if(lookPref) S.albumLookPref = lookPref;
+  const albumLast = await meta.get('albumLastPlayed');
+  if(albumLast) S.albumLastPlayed = albumLast;
+  const trackLast = await meta.get('trackLastPlayed');
+  if(trackLast) S.trackLastPlayed = trackLast;
+  const display = await meta.get('albumDisplay');
+  if(display) S.albumDisplay = display;
+  const trackDisp = await meta.get('trackDisplay');
+  if(trackDisp) S.trackDisplay = trackDisp;
+  const edge = await meta.get('albumEdge');
+  if(edge) S.albumEdge = edge;
+  (await achievements.all()).forEach(r => { S.achievements[r.albumId] = r; });
+  (await collection.all()).forEach(r => { S.collection[r.albumId] = r; });
   await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
-  const prof = await DB.get('profile', 'me');
+  const prof = await profile.get('me');
   if(prof){
     S.profile.name = prof.name || '';
     S.profile.username = prof.username || '';
