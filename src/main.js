@@ -15,6 +15,7 @@ import { wireSpinToScrub } from './player/scrub.js';
 import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
+import { serializePrefs, parsePrefs } from './storage/prefs.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1401,12 +1402,7 @@ async function saveMeta(){
   await DB.put('meta', {k:'playlists', v:S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system}))});
   await DB.put('meta', {k:'albumOrder', v:orders});
   await DB.put('meta', {k:'albumSort', v:S.albumSort});
-  await DB.put('meta', {k:'prefs', v:{mode:S.mode, target:S.target, pace:S.pace, char:S.char,
-    shuffle:S.shuffle, repeat:S.repeat, auto:S.auto, sleevePullEnabled:S.sleevePullEnabled, librarySort:S.librarySort,
-    bgAudio:S.bgAudio, launchIntro:S.launchIntro,
-    libraryLayout:S.libraryLayout, crateGroup:S.crateGroup, crateAnchor:S.crateAnchor, albumSides:S.albumSides,
-    sealedRecords:S.sealedRecords, playInFullPlayer:S.playInFullPlayer,
-    shareStyle:S.shareStyle, shareFormat:S.shareFormat}});
+  await DB.put('meta', {k:'prefs', v:serializePrefs(S)});
 }
 
 async function restoreMeta(){
@@ -1420,7 +1416,7 @@ async function restoreMeta(){
   const srt = await DB.get('meta','albumSort');
   if(srt && srt.v) S.albumSort = srt.v;
   const pr = await DB.get('meta','prefs');
-  if(pr && pr.v) applyPrefs(pr.v);
+  if(pr && pr.v) applyPrefs(parsePrefs(pr.v));
 }
 
 function applyPrefs(p){
