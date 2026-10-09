@@ -1389,33 +1389,33 @@ const idxOf = id => S.tracks.findIndex(t => t.id === id);
 
 let saveTimer = null;
 export function queueSave(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveMeta, 600);
 }
 
 async function saveMeta(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   const orders = {};
   Object.keys(S.albumOrder).forEach(a => { orders[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
-  await DB.put('meta', {k:'playlists', v:S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system}))});
-  await DB.put('meta', {k:'albumOrder', v:orders});
-  await DB.put('meta', {k:'albumSort', v:S.albumSort});
-  await DB.put('meta', {k:'prefs', v:serializePrefs(S)});
+  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system})));
+  await meta.put('albumOrder', orders);
+  await meta.put('albumSort', S.albumSort);
+  await meta.put('prefs', serializePrefs(S));
 }
 
 async function restoreMeta(){
-  const pl = await DB.get('meta','playlists');
-  if(pl && pl.v) S.playlists = pl.v.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
-  const ord = await DB.get('meta','albumOrder');
-  if(ord && ord.v) Object.keys(ord.v).forEach(a => {
-    const arr = ord.v[a].map(idxOf).filter(i => i >= 0);
+  const pl = await meta.get('playlists');
+  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
+  const ord = await meta.get('albumOrder');
+  if(ord) Object.keys(ord).forEach(a => {
+    const arr = ord[a].map(idxOf).filter(i => i >= 0);
     if(arr.length) S.albumOrder[a] = arr;
   });
-  const srt = await DB.get('meta','albumSort');
-  if(srt && srt.v) S.albumSort = srt.v;
-  const pr = await DB.get('meta','prefs');
-  if(pr && pr.v) applyPrefs(parsePrefs(pr.v));
+  const srt = await meta.get('albumSort');
+  if(srt) S.albumSort = srt;
+  const pr = await meta.get('prefs');
+  if(pr) applyPrefs(parsePrefs(pr));
 }
 
 function applyPrefs(p){
