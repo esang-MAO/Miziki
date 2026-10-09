@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "description": "Local-first music player for iPhone, served from GitHub Pages.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
