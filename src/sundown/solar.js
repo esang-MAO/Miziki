@@ -54,7 +54,10 @@ export function easedProgress(){
   return smooth(p);
 }
 
+// Pure means untouched: no character chain, and no rate change either —
+// Sundown (auto or manual) only ever applies in Vinyl.
 export function computeRate(){
+  if(S.mode === 'pure') return 1;
   if(!S.auto) return S.manualRate;
   const e = easedProgress();
   return Math.pow(2, e * Math.log2(S.target));

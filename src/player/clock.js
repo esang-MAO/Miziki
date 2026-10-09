@@ -88,7 +88,11 @@ export function drawSun(){
   $('#rateOut').textContent = S.rate.toFixed(3) + '× · ' + (semis >= -0.05 ? '0.0' : semis.toFixed(1)) + ' st';
   $('#rpmText').textContent = (33.333 * S.rate).toFixed(1);
 
-  if(!S.auto) $('#rateWhy').textContent = 'Set by hand';
+  // Pure means untouched — Sundown only ever reaches the recording in Vinyl.
+  // The settings below stay live and usable in Pure anyway, since they
+  // describe what Vinyl will do the moment you switch back.
+  if(S.mode === 'pure') $('#rateWhy').textContent = 'Pure — always full speed (Sundown applies in Vinyl)';
+  else if(!S.auto) $('#rateWhy').textContent = 'Set by hand';
   else if(p <= 0) $('#rateWhy').textContent = 'Daylight — full speed';
   else if(p >= 1) $('#rateWhy').textContent = 'Night — settled at ' + S.target.toFixed(2) + '×';
   else $('#rateWhy').textContent = 'Twilight — ' + Math.round(e*100) + '% of the way down';

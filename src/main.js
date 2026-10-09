@@ -3506,8 +3506,9 @@ function interruptMorph(){
    MediaStreamDestination -> a hidden <audio> element instead. Browsers treat
    an <audio> element as real media playback, so the OS keeps it running when
    the app is left or the screen locks, and shows lock-screen controls through
-   the Media Session API. The Pure/Vinyl chain, Sundown rate and Car Mode gain
-   all sit in front of that destination, so none of them change.
+   the Media Session API. The Pure/Vinyl chain (Sundown's rate included,
+   in Vinyl) and Car Mode gain all sit in front of that destination, so
+   none of them change.
    Trade-offs: the browser's media pipeline may resample to the device's output
    rate, and iOS/Android can still end playback for their own reasons (a call,
    battery saver). If the element cannot start, output falls back to the normal
@@ -8734,7 +8735,7 @@ function setMode(m){
   $('#modeTag').textContent = m;
   $('#modeNote').textContent = vinyl
     ? 'Vinyl adds character on purpose: platter wobble, gentle saturation, a softer top end, a light squeeze. Dial it in under Character.'
-    : 'Pure is the reference: decode straight to the output, nothing added. The slow-down still works — that part is mechanical, not coloration.';
+    : 'Pure is the reference: decode straight to the output, nothing added — always at full speed. Sundown\'s slow-down is a Vinyl thing, part of the platter.';
   if(S.source) routeSource(S.source);
 }
 
