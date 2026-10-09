@@ -19,7 +19,10 @@ export const S = {
   previewMin:0, live:true,
   sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
-  char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35},
+  // scratch: true means spin-to-scrub plays real audio while spinning the
+  // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the
+  // default here is what back-fills prefs saved before this field existed
+  char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35,scratch:true},
   angle:0,
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,

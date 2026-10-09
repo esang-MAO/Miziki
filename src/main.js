@@ -1470,6 +1470,17 @@ async function restoreMeta(){
 
 function applyPrefs(p){
   if(p.char){ Object.keys(S.char).forEach(k => { if(typeof p.char[k] === 'number') S.char[k] = p.char[k]; }); }
+  // scratch is a boolean, not a slider percentage, and a saved prefs object
+  // from before F2 won't have it at all — missing must mean On, so S.char's
+  // own default (true) is left alone unless a saved value says otherwise
+  if(p.char && typeof p.char.scratch === 'boolean'){
+    S.char.scratch = p.char.scratch;
+  }
+  const scratchBtn = $('#scratchBtn');
+  if(scratchBtn){
+    scratchBtn.textContent = S.char.scratch ? 'On' : 'Off';
+    scratchBtn.setAttribute('aria-pressed', String(S.char.scratch));
+  }
   if(typeof p.target === 'number') S.target = p.target;
   if(p.pace) S.pace = p.pace;
   if(typeof p.auto === 'boolean') S.auto = p.auto;
@@ -3391,6 +3402,16 @@ function attachLaunchSettingRow(){
 function toggleLaunchIntro(){
   S.launchIntro = !S.launchIntro;
   attachLaunchSettingRow();
+  queueSave();
+}
+// F2: real scratch audio in spin-to-scrub, Vinyl only — see src/player/scrub.js.
+// Lives in S.char alongside the sliders (not its own top-level S field) since
+// it's saved the same way, as part of the same prefs.char object.
+function toggleScratch(){
+  S.char.scratch = !S.char.scratch;
+  const b = $('#scratchBtn');
+  b.textContent = S.char.scratch ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.char.scratch));
   queueSave();
 }
 
@@ -8974,6 +8995,7 @@ export function showRoute(name){
     if(S.mode !== 'vinyl') setMode('vinyl');
   }));
 
+  $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#motionBtn').addEventListener('click', toggleMotion);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#launchIntroBtn').addEventListener('click', toggleLaunchIntro);
