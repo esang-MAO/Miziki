@@ -2,7 +2,8 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { computeSun } from './solar.js';
-import { drawSun, queueSave } from '../main.js';
+import { drawSun } from '../player/clock.js';
+import { queueSave } from '../main.js';
 
 /* ================= location & motion ================= */
 export function askLocation(){

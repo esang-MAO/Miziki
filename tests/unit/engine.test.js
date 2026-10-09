@@ -5,22 +5,27 @@ import assert from 'node:assert/strict';
 // transport.js (see the refactor rule in CLAUDE.md), and main.js has
 // DOM-dependent top-level code, so loading it for real here would need a
 // browser. Module mocking (Node 22, behind
-// --experimental-test-module-mocks — see package.json) replaces both
-// with no-ops before engine.js is loaded.
+// --experimental-test-module-mocks — see package.json) replaces the
+// whole module by resolved specifier before engine.js is loaded, so
+// every real module in the chain that engine.js pulls in transitively
+// needs a stand-in here, not just engine.js's own two direct imports.
 //
-// engine.js imports applyOutputRoute from main.js directly and stop from
-// transport.js; location.js (which engine.js imports applyVolume from)
-// imports drawSun/queueSave from main.js too — mock.module replaces the
-// whole module by resolved specifier, so every export any importer in
-// this chain needs from main.js has to be covered here, not just
-// engine.js's own. transport.js itself imports ~20 functions from
-// main.js (step 3b), which is exactly why it's mocked directly here too,
-// rather than trying to also list transport.js's main.js dependencies.
+// engine.js imports applyOutputRoute from main.js and stop from
+// transport.js. location.js (loaded for applyVolume) imports
+// queueSave from main.js and, since step 3c, drawSun from clock.js —
+// mocking clock.js directly (rather than letting it load for real)
+// avoids also needing stand-ins for everything *it* needs (sleep-timer.js,
+// and several more main.js exports). transport.js itself still imports
+// ~20 functions from main.js (step 3b), which is why it's mocked
+// directly too, rather than listing its main.js dependencies here.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: { applyOutputRoute(){}, drawSun(){}, queueSave(){} },
+  namedExports: { applyOutputRoute(){}, queueSave(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { stop(){} },
+});
+mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
+  namedExports: { drawSun(){} },
 });
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
