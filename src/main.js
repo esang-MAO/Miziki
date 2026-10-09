@@ -1,10 +1,15 @@
 "use strict";
 import { S, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
-import { el } from './util/dom.js';
+import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
+import { normKey } from './util/text.js';
+import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
+import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
+import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
+import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
+import { updateSleepUI, stopSleepState, sleepStopPlayback, sleepCheckDeadline, openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
+import { clamp } from './util/math.js';
 
-const $ = s => document.querySelector(s);
-const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= audio graph ================= */
@@ -72,98 +77,6 @@ function applyCharacter(){
 function routeSource(src){
   src.disconnect();
   src.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
-}
-
-/* ================= record art: quality tiers + variant selection =================
-   Tier read from the decoder's own bit depth / sample rate, never file extension.
-   Boundary rule: either dimension over the standard qualifies as hi-res, not both —
-   ambiguous or missing metadata simply never crosses that threshold, which is the
-   spec's "fall back a tier" behavior for free. */
-function trackTier(t){
-  const m = t.meta || {};
-  if(!m.lossless) return 1;
-  if((m.bits || 0) > 16 || (m.rate || 0) > 44100) return 3;
-  return 2;
-}
-
-function normKey(s){
-  return (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'')
-    .replace(/[^a-z0-9]+/g,' ').trim();
-}
-function hash32(str){
-  let h = 2166136261;
-  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-// "album" here is the same grouping key the Library view already uses (t.tags.album),
-// so session tracking, the rare-variant unlock, and variant selection below all
-// line up with what the user sees as "the album"
-function albumKey(t){ return normKey(t.tags.album); }
-// normalized artist+album+title, independent of the file itself — lets a
-// track's play-count stats (and the metal ladder they drive) survive a
-// delete + re-import of a different file for the same song (see LIBRARY spec §1)
-function trackIdentityKey(t){ return normKey(t.tags.artist) + '|' + albumKey(t) + '|' + normKey(t.tags.title); }
-// hash input is the album identity, not the individual track — a real pressing
-// is one physical disc per release, not a different one per song, so every
-// track on the same body of work lands on the same index into its tier's
-// array. Never the file id/path, which changes when a library is reorganized.
-function variantHashKey(t){ return albumKey(t); }
-
-const SOLID_POOL = ['solid-white','solid-red','solid-blue','solid-yellow','solid-green','solid-purple'];
-const EFFECT_POOL = ['effect-swirl-a','effect-swirl-b','effect-split-ab','effect-splatter-a','effect-splatter-b'];
-// palette below is a placeholder — exact tier-2 solids / tier-3 effect designs are an open item
-const VARIANT_DEFS = {
-  'classic-black':     {pattern:'solid',    colors:['#26282F','#15161B','#0D0E13']},
-  'solid-white':       {pattern:'solid',    colors:['#F4F1E9','#D8D3C6','#B9B29E']},
-  'solid-red':         {pattern:'solid',    colors:['#D9503F','#A5321F','#6E1E12']},
-  'solid-blue':        {pattern:'solid',    colors:['#3E6FA8','#294C7C','#152A4A']},
-  'solid-yellow':      {pattern:'solid',    colors:['#E8C34A','#B8912A','#7A5C15']},
-  'solid-green':       {pattern:'solid',    colors:['#4E9563','#317047','#1B4229']},
-  'solid-purple':      {pattern:'solid',    colors:['#8B5FB0','#5F3C7E','#3A2350']},
-  'effect-swirl-a':    {pattern:'swirl',    colors:['#D9503F','#3E6FA8','#0D0E13']},
-  'effect-swirl-b':    {pattern:'swirl',    colors:['#E8C34A','#4E9563','#0D0E13']},
-  'effect-split-ab':   {pattern:'split',    colors:['#F4F1E9','#15161B','#0D0E13']},
-  'effect-splatter-a': {pattern:'splatter', colors:['#F4F1E9','#D9503F','#0D0E13']},
-  'effect-splatter-b': {pattern:'splatter', colors:['#3E6FA8','#E8C34A','#0D0E13']}
-};
-
-// expand tier weights into a flat lookup array once, at script load — selection
-// itself is then a single index, never a runtime probability roll
-function buildWeightedArray(pool, count){
-  const arr = [];
-  for(let i=0;i<count;i++) arr.push(pool[i % pool.length]);
-  return arr;
-}
-const TIER_ARRAYS = {
-  1: ['classic-black'],
-  2: buildWeightedArray(SOLID_POOL, 80).concat(buildWeightedArray(['classic-black'], 20)),
-  3: buildWeightedArray(EFFECT_POOL, 70).concat(buildWeightedArray(SOLID_POOL, 20)).concat(buildWeightedArray(['classic-black'], 10))
-};
-
-function selectVariant(t){
-  const tier = trackTier(t);
-  const arr = TIER_ARRAYS[tier];
-  const h = hash32(variantHashKey(t));
-  return {tier, variant: arr[h % arr.length]};
-}
-
-function variantBackground(def){
-  const [a,b,c] = def.colors;
-  if(def.pattern === 'split'){
-    return 'conic-gradient(from 0deg,' + a + ' 0deg 179deg,' + b + ' 179deg 180deg,'
-      + c + ' 180deg 359deg,' + b + ' 359deg 360deg)';
-  }
-  if(def.pattern === 'swirl'){
-    return 'conic-gradient(from 0deg,' + a + ',' + b + ',' + c + ',' + a + ',' + b + ',' + c + ',' + a + ')';
-  }
-  if(def.pattern === 'splatter'){
-    const spots = [[30,25],[70,20],[50,50],[20,65],[80,60],[40,80],[65,40],[15,40]];
-    const layers = spots.map(([x,y],i) =>
-      'radial-gradient(circle at ' + x + '% ' + y + '%,' + (i % 2 ? b : a) + ' 0 6%,transparent 7%)');
-    layers.push('radial-gradient(circle at 50% 50%,' + c + ' 0 90%,' + c + ' 90% 100%)');
-    return layers.join(',');
-  }
-  return 'radial-gradient(circle at 50% 50%,' + a + ' 0 27%,' + b + ' 27% 90%,' + c + ' 90% 100%)';
 }
 
 /* ================= metal tiers =================
@@ -1593,7 +1506,7 @@ const idOf = i => (S.tracks[i] ? S.tracks[i].id : null);
 const idxOf = id => S.tracks.findIndex(t => t.id === id);
 
 let saveTimer = null;
-function queueSave(){
+export function queueSave(){
   if(!DB.ok) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveMeta, 600);
@@ -3744,7 +3657,7 @@ function stop(){
   renderMiniPlayer();
 }
 
-function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
+export function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
   MizikiSocial.nowSpinningPaused();
   if(bgRouteActive()) bgIdleNow(); }
@@ -3758,259 +3671,6 @@ function seek(sec){
 }
 
 /* (next/prev now live in the queue section above) */
-
-/* ================= solar ================= */
-const rad = Math.PI/180;
-function julian(date){ return date.valueOf()/86400000 + 2440587.5; }
-function fromJulian(j){ return new Date((j - 2440587.5) * 86400000); }
-
-function solarEvent(date, lat, lon, altitude){
-  const lw = -lon;
-  const J = julian(date);
-  const n = Math.round(J - 2451545.0 - 0.0009 - lw/360);
-  const Js = 2451545.0 + 0.0009 + lw/360 + n;
-  const M = (357.5291 + 0.98560028*(Js - 2451545)) % 360;
-  const C = 1.9148*Math.sin(M*rad) + 0.02*Math.sin(2*M*rad) + 0.0003*Math.sin(3*M*rad);
-  const lam = (M + C + 180 + 102.9372) % 360;
-  const Jt = Js + 0.0053*Math.sin(M*rad) - 0.0069*Math.sin(2*lam*rad);
-  const dec = Math.asin(Math.sin(lam*rad) * Math.sin(23.4397*rad));
-  const cosW = (Math.sin(altitude*rad) - Math.sin(lat*rad)*Math.sin(dec)) / (Math.cos(lat*rad)*Math.cos(dec));
-  if(cosW > 1 || cosW < -1) return null;
-  const w = Math.acos(cosW)/rad;
-  return fromJulian(Jt + w/360);
-}
-
-function computeSun(){
-  const {lat, lon} = S.sun;
-  if(lat === null){ S.sun.ok = false; return; }
-  const now = new Date();
-  let set = solarEvent(now, lat, lon, -0.833);
-  let dusk = solarEvent(now, lat, lon, -6);
-  if(!set || !dusk){ S.sun.ok = false; return; }
-  if(dusk - set < 60000) dusk = new Date(set.getTime() + 25*60000);
-  S.sun.set = set; S.sun.dusk = dusk; S.sun.ok = true;
-}
-
-function nowClock(){
-  const t = Date.now() + S.previewMin*60000;
-  return new Date(t);
-}
-
-function sunProgress(){
-  if(!S.sun.ok) return 0;
-  const now = nowClock().getTime();
-  const a = S.sun.set.getTime(), b = S.sun.dusk.getTime();
-  if(now <= a) return 0;
-  if(now >= b) return 1;
-  return (now - a) / (b - a);
-}
-
-const smooth = p => p*p*(3 - 2*p);
-function easedProgress(){
-  const p = sunProgress();
-  if(S.pace === 'moment'){ return smooth(clamp((p - 0.62)/0.38, 0, 1)); }
-  return smooth(p);
-}
-
-function computeRate(){
-  if(!S.auto) return S.manualRate;
-  const e = easedProgress();
-  return Math.pow(2, e * Math.log2(S.target));
-}
-
-/* ================= location & motion ================= */
-function askLocation(){
-  if(!navigator.geolocation){ $('#locNote').textContent = 'This browser has no location access, so Miziki is using a stand-in sunset of 8:10 pm.'; fallbackSun(); return; }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      S.sun.lat = pos.coords.latitude; S.sun.lon = pos.coords.longitude;
-      computeSun(); drawSun();
-      $('#locNote').textContent = 'Sunset times come from your location and today\'s date, worked out on the device.';
-    },
-    () => { $('#locNote').innerHTML = 'Location is off, so tonight is a stand-in: sunset 8:10 pm, dusk 8:36 pm. <button class="cta ghost" id="retryLoc" style="margin-top:10px">Use my location</button>';
-            fallbackSun(); drawSun();
-            const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation); },
-    {timeout:8000, maximumAge:600000}
-  );
-}
-
-function fallbackSun(){
-  const d = new Date(); const set = new Date(d); set.setHours(20,10,0,0);
-  S.sun.set = set; S.sun.dusk = new Date(set.getTime() + 26*60000); S.sun.ok = true;
-}
-
-function toggleSleevePull(){
-  S.sleevePullEnabled = !S.sleevePullEnabled;
-  const b = $('#sleevePullBtn');
-  b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
-  queueSave();
-}
-
-function toggleMotion(){
-  const b = $('#motionBtn');
-  if(S.motion.on){
-    if(S.motion.watch !== null) navigator.geolocation.clearWatch(S.motion.watch);
-    S.motion.on = false; S.motion.watch = null; S.motion.factor = 1; S.motion.speed = null;
-    b.textContent = 'Off'; b.setAttribute('aria-pressed','false');
-    $('#speedOut').textContent = '—'; applyVolume();
-    $('#carModeDetails').style.display = 'none';
-    return;
-  }
-  if(!navigator.geolocation){ $('#motionNote').textContent = 'This browser has no GPS access, so Car Mode cannot compensate for road noise here.'; return; }
-  S.motion.on = true; b.textContent = 'On'; b.setAttribute('aria-pressed','true');
-  $('#carModeDetails').style.display = 'block';
-  S.motion.watch = navigator.geolocation.watchPosition(
-    pos => {
-      const s = pos.coords.speed;
-      if(s === null || isNaN(s)){
-        $('#speedOut').textContent = 'no reading';
-        $('#motionNote').textContent = 'Your device is not reporting speed yet. This needs GPS and actual movement — it stays blank sitting still indoors.';
-        return;
-      }
-      S.motion.speed = s;
-      $('#speedOut').textContent = (s*2.23694).toFixed(0) + ' mph · ' + (s*3.6).toFixed(0) + ' km/h';
-      S.motion.factor = S.motion.floor + (1 - S.motion.floor) * clamp(s / S.motion.max, 0, 1);
-      applyVolume(1.1);   // glide across the ~1 s gap between readings
-    },
-    () => { $('#motionNote').textContent = 'Location permission was declined, so Car Mode is off.'; toggleMotion(); },
-    {enableHighAccuracy:true, maximumAge:1000, timeout:20000}
-  );
-}
-
-// output is unity gain, so loudness tracks the device's own volume; the only
-// software shaping left on top of that is Car Mode's noise-compensation factor
-function applyVolume(glide){
-  if(!S.nodes) return;
-  const v = S.motion.on ? S.motion.factor : 1;
-  S.nodes.master.gain.setTargetAtTime(v, S.ctx.currentTime, glide ? glide/3 : 0.05);
-}
-
-/* ================= sleep timer (SLEEP spec §5) =================
-   Session-only (S.sleep is never persisted). Time mode is deadline-based —
-   always Date.now() vs a fixed target, never a counted-down interval — so
-   it survives a throttled/hidden page: checked by its own setTimeout chain
-   AND, as a fallback, from tick() (which already runs every frame when
-   visible and every second when hidden). End-of-track/album modes hook
-   into advance()'s automatic-advance path instead and never fade. */
-const SLEEP_FADE_MS = 20000;
-
-function clearSleepTimer(){ if(S.sleep.timer) clearTimeout(S.sleep.timer); S.sleep.timer = null; }
-
-function updateSleepUI(){
-  const btn = $('#sleepTimerBtn');
-  if(!btn) return;
-  if(S.sleep.mode === 'time' && S.sleep.at){
-    const mins = Math.max(1, Math.ceil((S.sleep.at - Date.now())/60000));
-    btn.textContent = '🌙 Sleep: ' + mins + ' min';
-  } else if(S.sleep.mode === 'track') btn.textContent = '🌙 Sleep: End of track';
-  else if(S.sleep.mode === 'album') btn.textContent = '🌙 Sleep: End of album';
-  else btn.textContent = '🌙 Sleep Timer';
-}
-
-function sleepCancelGainAutomation(){
-  if(!S.ctx || !S.nodes || !S.nodes.master) return;
-  try{ S.nodes.master.gain.cancelScheduledValues(S.ctx.currentTime); }catch(e){}
-}
-
-function stopSleepState(){
-  clearSleepTimer();
-  sleepCancelGainAutomation();
-  S.sleep.mode = null; S.sleep.at = null; S.sleep.fading = false;
-  applyVolume();
-  updateSleepUI();
-}
-
-// no fade, no put-away — just stop where advance() would otherwise have moved on
-function sleepStopPlayback(){
-  pause(); S.pos = 0; drawTime();
-  setPathNote('Sleep timer ended.');
-  stopSleepState();
-}
-
-function sleepStartFade(remainMs){
-  S.sleep.fading = true;
-  if(!S.ctx || !S.nodes || !S.nodes.master) return;
-  const g = S.nodes.master.gain, now = S.ctx.currentTime;
-  try{
-    g.cancelScheduledValues(now);
-    g.setValueAtTime(g.value, now);
-    g.linearRampToValueAtTime(0, now + Math.max(0.1, remainMs/1000));
-  }catch(e){}
-}
-
-function sleepTimeExpired(){
-  clearSleepTimer();
-  // already paused manually: nothing to fade or stop, just clear the state
-  if(S.playing){ pause(); S.pos = 0; drawTime(); }
-  sleepCancelGainAutomation();
-  S.sleep.fading = false;
-  applyVolume();
-  setPathNote('Sleep timer ended.');
-  S.sleep.mode = null; S.sleep.at = null;
-  updateSleepUI();
-}
-
-function sleepCheckDeadline(){
-  if(S.sleep.mode !== 'time' || !S.sleep.at) return;
-  const remain = S.sleep.at - Date.now();
-  if(remain <= 0){ sleepTimeExpired(); return; }
-  if(remain <= SLEEP_FADE_MS && S.playing && !S.sleep.fading) sleepStartFade(remain);
-  updateSleepUI();
-}
-
-function scheduleSleepCheck(){
-  clearSleepTimer();
-  if(S.sleep.mode !== 'time' || !S.sleep.at) return;
-  const remain = Math.max(0, S.sleep.at - Date.now());
-  const next = remain > SLEEP_FADE_MS ? (remain - SLEEP_FADE_MS) : remain;
-  S.sleep.timer = setTimeout(() => {
-    sleepCheckDeadline();
-    if(S.sleep.mode === 'time') scheduleSleepCheck();
-  }, Math.max(250, Math.min(next, 5000)));
-}
-
-function startSleepTimer(mode, minutes){
-  clearSleepTimer();
-  sleepCancelGainAutomation();
-  S.sleep.fading = false;
-  applyVolume();
-  S.sleep.mode = mode;
-  S.sleep.at = mode === 'time' ? Date.now() + minutes * 60000 : null;
-  if(mode === 'time') scheduleSleepCheck();
-  updateSleepUI();
-  setPathNote(mode === 'time' ? ('Sleeping in ' + minutes + ' min')
-    : mode === 'track' ? 'Sleeping at end of track' : 'Sleeping at end of album');
-}
-
-const SLEEP_MINUTE_OPTIONS = [15, 30, 45, 60, 90];
-function renderSleepOptions(){
-  const host = $('#sleepOptions'); host.innerHTML = '';
-  const currentMins = S.sleep.mode === 'time' ? Math.round((S.sleep.at - Date.now())/60000) : null;
-  SLEEP_MINUTE_OPTIONS.forEach(mins => {
-    const b = el('button','cta' + (currentMins === mins ? '' : ' ghost'), mins + ' min');
-    b.addEventListener('click', ()=>{ startSleepTimer('time', mins); closeSleepSheet(); });
-    host.appendChild(b);
-  });
-  const trackBtn = el('button','cta' + (S.sleep.mode === 'track' ? '' : ' ghost'), 'End of track');
-  trackBtn.addEventListener('click', ()=>{ startSleepTimer('track'); closeSleepSheet(); });
-  host.appendChild(trackBtn);
-  const albumBtn = el('button','cta' + (S.sleep.mode === 'album' ? '' : ' ghost'), 'End of album');
-  albumBtn.addEventListener('click', ()=>{ startSleepTimer('album'); closeSleepSheet(); });
-  host.appendChild(albumBtn);
-  const offBtn = el('button','cta ghost', 'Off');
-  offBtn.addEventListener('click', ()=>{ stopSleepState(); setPathNote('Sleep timer off.'); closeSleepSheet(); });
-  host.appendChild(offBtn);
-}
-function openSleepSheet(){
-  renderSleepOptions();
-  $('#sleepOverlay').classList.add('open');
-  $('#sleepOverlay').setAttribute('aria-hidden','false');
-}
-function closeSleepSheet(){
-  $('#sleepOverlay').classList.remove('open');
-  $('#sleepOverlay').setAttribute('aria-hidden','true');
-}
 
 /* ================= background playback (optional) =================
    Off by default, and when it is off none of this runs: audio goes master ->
@@ -4304,7 +3964,7 @@ setInterval(() => {
 function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
 
 let scrubbing = false;
-function drawTime(){
+export function drawTime(){
   const t = current();
   const dur = t ? (t.duration || 0) : 0;
   $('#tElapsed').textContent = fmt(S.pos);
@@ -4313,7 +3973,7 @@ function drawTime(){
   if(!scrubbing) $('#scrub').value = Math.round(p*1000);
 }
 
-function drawSun(){
+export function drawSun(){
   const p = sunProgress(), e = easedProgress();
   $('#sunFill').style.width = (p*100).toFixed(1) + '%';
   const semis = 12 * Math.log2(S.rate);
@@ -4408,7 +4068,7 @@ function wireSpinToScrub(){
   window.addEventListener('pointercancel', release);
 }
 
-function setPathNote(msg, warn){
+export function setPathNote(msg, warn){
   const el = $('#pathNote');
   if(msg){ el.textContent = msg; el.className = 'note' + (warn ? ' warn' : ''); return; }
   const t = current();
@@ -5235,20 +4895,6 @@ function updateSearchChipsVisibility(){
   if(!input || !chips) return;
   chips.style.display = (document.activeElement === input && !input.value.trim() && S.tracks.length > 0) ? 'flex' : 'none';
 }
-
-/* ================= crate view: browse like a record-store bin (CRATE spec) =================
-   A second library layout, beside the list. Albums (not songs) laid out in
-   the same vertical flip-through geometry as the launch (flowPose(), shared
-   — see CRATE spec §3), one record centred, neighbours tilting away above
-   and below. Everything here derives from S.tracks; nothing new is stored
-   except the three prefs in applyPrefs()/saveMeta(). */
-// was 170, then 98, then 26, then 74 — now moved back up .3in
-// (29px @ 96px/in) per feedback, to 45.
-const CRATE_ORIGIN_Y = 45;
-const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
-const CRATE_VISIBLE_A = 8;
-const CRATE_DPR = window.devicePixelRatio || 1;
-const CRATE_ALPHABET = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
 
 /* ================= S4: crate image tiers (640px "S", 1200px "L") =========
    Stored in the existing `artwork` store (keyed by id, never `meta` — that
