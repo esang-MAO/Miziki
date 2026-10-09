@@ -35,7 +35,7 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 - **Background playback** is optional and routes through a media element plus `navigator.mediaSession` for lock-screen controls. It works on iPhone today, so don't regress it.
 - **Persistence:** IndexedDB database `miziki`, **version 4**, with stores `tracks`, `meta`, `sessions`, `overlays`, `artwork`, `profile`, `achievements` and `collection`. It holds the original files plus tags, so the library survives restarts. If storage is unavailable, every call no-ops and the app runs session-only.
   - **Never rename the database or drop or rename a store.** Users' libraries live there. Schema changes go through a version bump with a non-destructive `onupgradeneeded`.
-  - IndexedDB is tied to the origin. Moving the app to a new domain (or a native shell) starts users with an empty library unless there is a migration or export path.
+  - IndexedDB is tied to the origin. Moving the app to a new domain (or a native shell) starts users with an empty library unless there is a migration or export path. The same goes for saved prefs in the `meta` store, including toggles like **Background playback** — a fresh origin starts with `S.bgAudio = false` (the default in `state.js`), even if it's on at the usual URL. This is why background/lock-screen playback can look broken on a Netlify preview the first time: the fix is to flip the toggle on there too, not a code change.
 - **Social config:** `SOCIAL_SUPABASE_URL` and `SOCIAL_SUPABASE_ANON_KEY` are empty, which means the social layer is inert. supabase-js loads from the jsDelivr CDN only when social is enabled. The anon key is safe in client code because RLS is the real protection.
 - `?social=demo` turns on a dev-only demo mode for the social screens. It must not run in production.
 - Fonts come from Google Fonts (Antonio, Archivo, IBM Plex Mono).
@@ -103,6 +103,11 @@ deploy — **GitHub Pages stays on `/Miziki/` and is untouched by this.**
   from `/Miziki/` again) — then open `http://localhost:4173/miziki.html`.
 - `MIZIKI_BASE` only changes `base` in `vite.config.js`; nothing else
   about the build differs between the two targets.
+- A Netlify preview is a different origin from GitHub Pages, so its
+  IndexedDB starts empty: an existing library doesn't show up, and prefs
+  (including **Background playback**) default off. If lock-screen
+  playback stops on a fresh preview, that's this, not a regression —
+  toggle Background playback on for that origin too.
 
 ### What changed in step 1 (tooling)
 
