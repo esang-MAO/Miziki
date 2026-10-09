@@ -76,7 +76,7 @@ test('tick never advances S.pos past the track duration', () => {
   assert.ok(S.pos <= 1);
 });
 
-const { angleDelta } = await import('../../src/player/scrub.js');
+const { angleDelta, SCRUB_SEC_PER_ROTATION, SCRATCH_SEC_PER_ROTATION } = await import('../../src/player/scrub.js');
 
 test('angleDelta handles wraparound across +180 degrees', () => {
   // from 170 to -170 is a 20-degree step forward (170 -> 180/-180 -> -170),
@@ -91,4 +91,11 @@ test('angleDelta handles wraparound across -180 degrees', () => {
 test('angleDelta is a plain difference away from the wrap boundary', () => {
   assert.equal(angleDelta(30, 10), 20);
   assert.equal(angleDelta(10, 30), -20);
+});
+
+// F2: a full 360° turn moves 30s with Scratch off, 1.8s (the real 33⅓ rpm
+// rate) with it on — see wireSpinToScrub's `d * (secPerRotation/360)`.
+test('F2: a full rotation moves 30s with Scratch off, 1.8s with Scratch on', () => {
+  assert.equal(360 * (SCRUB_SEC_PER_ROTATION / 360), 30);
+  assert.equal(360 * (SCRATCH_SEC_PER_ROTATION / 360), 1.8);
 });
