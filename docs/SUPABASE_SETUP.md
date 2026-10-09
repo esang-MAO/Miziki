@@ -27,6 +27,12 @@ Those PRs assume a working project with sign-in already tested.
    own testing, and friends-and-family use. Create the project and wait for
    it to finish provisioning (a minute or two).
 
+   **Free-tier projects pause themselves after a week with no activity.**
+   That's fine while you're building and testing yourself — just open the
+   project in the dashboard (or sign in through the app) to wake it back up.
+   Upgrade to a paid plan before real people start relying on sign-in or
+   backups, so the project doesn't go quiet on them between visits.
+
 ---
 
 ## 2. Apply the migrations, in order
@@ -78,13 +84,23 @@ this step changes that so the email shows a code instead.
    enabled. (It is by default.) Leave "Confirm email" settings as the
    Supabase default — the app doesn't use email/password sign-up, only the
    code flow.
-2. **Authentication** → **Email Templates** → **Magic Link**. This is the
-   template `signInWithOtp` actually sends — Supabase doesn't have a
-   separate "OTP" template, so this is the one to edit. Supabase exposes the
-   raw 6-digit code to every email template as `{{ .Token }}`, regardless of
-   the template's name.
-3. Replace the template's body with something that shows the code front and
-   center. A plain, working version:
+2. **Authentication** → **Email Templates** → edit **both** of these the
+   same way:
+   - **Magic Link** — the template `signInWithOtp` actually sends for an
+     existing user signing back in.
+   - **Confirm signup** — a brand-new email on its very first sign-in can
+     get this template instead. If it still shows the default link, that
+     new user's first sign-in attempt opens Safari and strands them there
+     instead of back in the app — the same problem the Magic Link template
+     has by default, just on first use instead of every time. Supabase
+     doesn't have a separate "OTP" template for either case, so both of
+     these existing ones need the same edit.
+
+   Supabase exposes the raw 6-digit code to every email template as
+   `{{ .Token }}`, regardless of the template's name — this works
+   identically in both templates above.
+3. Replace **each** template's body with something that shows the code
+   front and center. Use the same subject and body in both:
 
    **Subject:**
    ```
@@ -102,10 +118,15 @@ this step changes that so the email shows a code instead.
    The link variables (`{{ .ConfirmationURL }}` etc.) that come in the
    default template can be deleted — the app never uses them, and leaving
    them in just invites someone to tap the wrong thing.
-4. Save the template. There's no separate toggle for "code mode" — sending
-   the code instead of a usable link is purely a property of what the
-   template displays; `signInWithOtp`/`verifyOtp` on the client side already
-   expect a code and don't change.
+4. Save both templates. There's no separate toggle for "code mode" —
+   sending the code instead of a usable link is purely a property of what
+   the template displays; `signInWithOtp`/`verifyOtp` on the client side
+   already expect a code and don't change.
+5. **Code expiration and length:** **Authentication** → **Sign In /
+   Providers** → **Email** → **"Email OTP expiration"** controls how long a
+   sent code stays valid — it defaults to 1 hour, which is fine to leave as
+   is. The app's own check (`src/miziki-social.js`) accepts any 6–8 digit
+   code, so it won't reject a code if this setting is ever changed.
 
 ---
 
@@ -131,34 +152,50 @@ would need the redirect allowlist already in place.
 
 ---
 
-## 5. Project URL and anon key → `src/state.js`
+## 5. Project URL and key → `src/state.js`
 
-**Project Settings** (gear icon, bottom of sidebar) → **API**.
+**Project Settings** (gear icon, bottom of sidebar) → **API Keys**.
+
+Supabase is retiring the legacy `anon`/`service_role` keys by the end of
+2026, in favor of a new pair, and new projects may only show the new ones.
+Use whichever pair your project's **API Keys** page shows — if it's the new
+pair:
 
 - **Project URL** — looks like `https://xxxxxxxxxxxx.supabase.co`.
-- **anon / public key** — a long JWT starting `eyJ...`, labeled `anon` /
-  `public`.
+- **Publishable key** — under **"Publishable and secret API keys"**, starts
+  `sb_publishable_...`.
 
-These two values go into `src/state.js`:
+These go into `src/state.js`:
 
 ```js
 export const SOCIAL_SUPABASE_URL = '';          // <- Project URL here
-export const SOCIAL_SUPABASE_ANON_KEY = '';     // <- anon key here
+export const SOCIAL_SUPABASE_ANON_KEY = '';     // <- publishable key here
 ```
 
-**The anon key is safe to put in client code and commit to the repo.** It's
-meant to be public — row-level security (the policies the migrations set up)
-is what actually protects everyone's data, not keeping this key secret.
+`SOCIAL_SUPABASE_ANON_KEY` keeps its old name for now even though it holds
+the new publishable key — `supabase-js` accepts a publishable key anywhere
+it used to take an anon key, and row-level security protects the data
+exactly the same way either key is named.
 
-**The `service_role` key (also on that API settings page) must never go in
-the repo, in `src/state.js`, or anywhere in client code.** It bypasses row-
-level security entirely. If you ever need it (for the Postgres test harness,
-for example), it belongs in a local environment variable or CI secret, never
-committed.
+**The publishable key is safe to put in client code and commit to the
+repo**, the same way the old anon key was. It's meant to be public — RLS
+(the policies the migrations set up) is what actually protects everyone's
+data, not keeping this key secret.
 
-Per Part 0's own instructions, filling in these two values is a **separate,
-small PR** by itself — not part of this checklist's PR, and not something to
-do before the project exists.
+**The secret key (`sb_secret_...`, same page) must never go in the repo, in
+`src/state.js`, or anywhere in client code** — same rule, same reasoning, as
+the old `service_role` key it replaces: it bypasses row-level security
+entirely. If you ever need it (for the Postgres test harness, for example),
+it belongs in a local environment variable or CI secret, never committed.
+
+If your project still shows the legacy pair instead, the same rules carry
+over unchanged: the **anon / public** key (a JWT starting `eyJ...`) is the
+one that goes into `SOCIAL_SUPABASE_ANON_KEY`, and **`service_role`** is the
+one that never goes in the repo.
+
+Per Part 0's own instructions, filling in the project URL and key is a
+**separate, small PR** by itself — not part of this checklist's PR, and not
+something to do before the project exists.
 
 ---
 
