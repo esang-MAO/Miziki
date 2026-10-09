@@ -2,7 +2,8 @@ import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { applyVolume } from '../sundown/location.js';
 import { pause } from './transport.js';
-import { drawTime, setPathNote } from '../main.js';
+import { drawTime } from './clock.js';
+import { setPathNote } from '../ui/path-note.js';
 
 /* ================= sleep timer (SLEEP spec §5) =================
    Session-only (S.sleep is never persisted). Time mode is deadline-based —

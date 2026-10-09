@@ -86,3 +86,6 @@ S.playInFullPlayer = true;
 // pos stays null until first resolved — see renderCrate()'s cold-start
 // anchor logic (last-played album wins once, crateAnchor from then on)
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
+// true while the #scrub time slider is being dragged, so drawTime() doesn't
+// fight the user's own input value (step 3c — was a top-level let in main.js)
+S.scrubbing = false;
