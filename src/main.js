@@ -16,6 +16,9 @@ import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
 import { serializePrefs, parsePrefs } from './storage/prefs.js';
+import {
+  storage, tracks, meta, sessions, achievements, collection, overlays, artwork, profile,
+} from './storage/repo.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -225,7 +228,7 @@ export function applyDiscVariant(t, crossfade){
    Timestamps double as the recency tie-break and, per §11, keep every
    record ready for a future account system: stable ids, no device-keyed
    identifiers, no absolute paths. */
-async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
+async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
 /* ================= S5: sealed records =================
    S.sealed is its own saved list, independent of S.albumLastPlayed/session
@@ -233,10 +236,10 @@ async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlaye
    album (SEALED spec §2). Grandfathering: no sealedAlbums row at all means
    this feature hasn't run here yet, so nothing existing is sealed. */
 async function restoreSealedAlbums(){
-  const row = await DB.get('meta', 'sealedAlbums');
-  S.sealed = new Set(row && row.v && row.v.ids ? row.v.ids : []);
+  const row = await meta.get('sealedAlbums');
+  S.sealed = new Set(row && row.ids ? row.ids : []);
 }
-async function persistSealedAlbums(){ await DB.put('meta', {k:'sealedAlbums', v:{init:true, ids:[...S.sealed]}}); }
+async function persistSealedAlbums(){ await meta.put('sealedAlbums', {init:true, ids:[...S.sealed]}); }
 
 function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
 
@@ -266,7 +269,7 @@ function buildSealOverlay(sizePx){
   frag.appendChild(sticker);
   return frag;
 }
-async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
+async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
    page reloads — so anything persisted with it (Top Albums, achievements, the
@@ -336,7 +339,7 @@ function averageColorHex(blob){
     img.src = URL.createObjectURL(blob);
   });
 }
-async function persistAlbumEdge(){ await DB.put('meta', {k:'albumEdge', v:S.albumEdge}); }
+async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); }
 
 async function ensureThumb(kind, id, url){
   if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
@@ -346,7 +349,7 @@ async function ensureThumb(kind, id, url){
   const blob = await makeThumb(url, kind === 'album' ? ALBUM_THUMB_PX : TRACK_THUMB_PX);
   if(!blob){ delete thumbSrcSeen[key]; return; }
   thumbURL[key] = URL.createObjectURL(blob);
-  DB.put('meta', {k:'thumb:' + key, v:blob});
+  meta.put('thumb:' + key, blob);
   if(kind === 'album'){
     const hex = await averageColorHex(blob);
     if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(); }
@@ -356,12 +359,8 @@ async function ensureThumb(kind, id, url){
 }
 
 async function restoreThumbs(){
-  const rows = await DB.all('meta');
-  rows.forEach(r => {
-    if(r && typeof r.k === 'string' && r.k.indexOf('thumb:') === 0 && r.v instanceof Blob){
-      thumbURL[r.k.slice(6)] = URL.createObjectURL(r.v);
-    }
-  });
+  const thumbs = await meta.thumbs();
+  thumbs.forEach(({key, blob}) => { thumbURL[key] = URL.createObjectURL(blob); });
   applyThumbURLs();
 }
 
@@ -389,19 +388,19 @@ async function healThumbs(){
 // field existed — a non-blocking, batched re-read of each stored file's own
 // tags, same shape as healThumbs() above (see CREDITS spec §0)
 async function healDetails(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   const targets = S.tracks.filter(t => t.stored && !t.details);
   for(let i = 0; i < targets.length; i++){
     while(S.playing) await sleep(500);
     const t = targets[i];
     if(!S.tracks.includes(t)) continue;   // deleted while we waited
     try{
-      const rec = await DB.get('tracks', t.id);
+      const rec = await tracks.get(t.id);
       if(rec && rec.blob){
         const raw = await rec.blob.arrayBuffer();
         t.details = readDetails(raw);
         rec.details = t.details;
-        await DB.put('tracks', rec);
+        await tracks.put(rec);
       } else {
         t.details = emptyDetails();
       }
@@ -422,12 +421,12 @@ async function pruneThumbs(){
     if(keep) continue;
     try{ URL.revokeObjectURL(thumbURL[key]); }catch(e){}
     delete thumbURL[key]; delete thumbSrcSeen[key];
-    await DB.del('meta', 'thumb:' + key);
+    await meta.del('thumb:' + key);
   }
 }
 
-async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:persistableMap(S.albumDisplay)}); }
-async function persistTrackDisplay(){ await DB.put('meta', {k:'trackDisplay', v:persistableMap(S.trackDisplay)}); }
+async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
+async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
 
 function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
@@ -453,7 +452,7 @@ async function upsertAchievement(albumId, tier){
   const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '',
     art:thumbURL['album:' + albumId] || null, updatedAt:Date.now()};
   S.achievements[albumId] = rec;
-  await DB.put('achievements', persistable(rec));
+  await achievements.put(persistable(rec));
 }
 
 async function upsertCollectionEntry(albumId, tier, variant, pattern){
@@ -462,7 +461,7 @@ async function upsertCollectionEntry(albumId, tier, variant, pattern){
   const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
     art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now()};
   S.collection[albumId] = rec;
-  await DB.put('collection', persistable(rec));
+  await collection.put(persistable(rec));
 }
 
 // deliberately looser than a qualifying session — every track in the album
