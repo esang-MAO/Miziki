@@ -5,6 +5,7 @@ import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
+import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { clamp } from './util/math.js';
 
 const $ = s => document.querySelector(s);
@@ -5087,20 +5088,6 @@ function updateSearchChipsVisibility(){
   if(!input || !chips) return;
   chips.style.display = (document.activeElement === input && !input.value.trim() && S.tracks.length > 0) ? 'flex' : 'none';
 }
-
-/* ================= crate view: browse like a record-store bin (CRATE spec) =================
-   A second library layout, beside the list. Albums (not songs) laid out in
-   the same vertical flip-through geometry as the launch (flowPose(), shared
-   — see CRATE spec §3), one record centred, neighbours tilting away above
-   and below. Everything here derives from S.tracks; nothing new is stored
-   except the three prefs in applyPrefs()/saveMeta(). */
-// was 170, then 98, then 26, then 74 — now moved back up .3in
-// (29px @ 96px/in) per feedback, to 45.
-const CRATE_ORIGIN_Y = 45;
-const CRATE_PALETTE = ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A'];
-const CRATE_VISIBLE_A = 8;
-const CRATE_DPR = window.devicePixelRatio || 1;
-const CRATE_ALPHABET = ['#'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
 
 /* ================= S4: crate image tiers (640px "S", 1200px "L") =========
    Stored in the existing `artwork` store (keyed by id, never `meta` — that
