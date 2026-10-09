@@ -7,7 +7,8 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 
 ## Repo layout
 
-- `miziki.html` holds the markup and the main player script (the one big inline `<script>` block, ~10,100 lines). It is being split into modules. See "Refactor rules" below.
+- `miziki.html` holds the markup. The main player script used to be one big inline `<script>` block at the end of `<body>`; it now lives in `src/main.js` (step 2a), loaded via `<script type="module" src="src/main.js">` in that same position. It is still one big ~10,100-line file — splitting *that* up is the rest of step 2 and beyond. See "Refactor rules" below.
+- `src/main.js` is the main player script — global state (`S`), the audio graph, the library, every route and overlay, all ~536 top-level functions. A module now, not a classic script: nothing it declares at the top level is a property of `window` (confirmed nothing relies on that — see the step 2a PR). `src/miziki-social.js` stays a classic script loaded just before it, so `MizikiSocial` is already a real global by the time this runs.
 - `src/styles/` holds the CSS, split out of what used to be one inline `<style>` block, one file per section (`00-base.css`, `01-header.css`, …), referenced from `miziki.html` as separate `<link rel="stylesheet">` tags in that same original order. Cascade order matters — that numeric prefix is load order, not importance, and the files must stay in it.
 - `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth and the only copy** — `miziki.html` loads it directly (as a plain classic `<script src="src/miziki-social.js">`, not `type="module"`, so it keeps executing synchronously in place the same as the inline copy it used to be; see the comment above that tag for why a relative path, not an absolute one — it's also what makes this reference work unchanged under both bases below).
 - `supabase/migrations/` holds the schema, RPCs, digging list and follow counts. Apply them in numeric order. Never edit a migration that has already been applied. Add a new numbered file instead.
@@ -66,7 +67,7 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 
 - `npm install` — install Vite (the only dependency so far).
 - `npm run dev` — Vite dev server at `http://localhost:5173/Miziki/` (note the `/Miziki/` — `base` is mounted in dev too, so `http://localhost:5173/` alone 404s).
-- `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` (bundled, hashed CSS) and `dist/src/miziki-social.js` (copied verbatim, see `vite.config.js`). `dist/` is gitignored.
+- `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` (bundled, hashed CSS and, since step 2a, the bundled `main.js`) and `dist/src/miziki-social.js` (copied verbatim, see `vite.config.js`). `dist/` is gitignored.
 - `npm run preview` — serves the built `dist/` at `http://localhost:4173/Miziki/`, closest to what GitHub Pages actually serves.
 - `npm test` — runs `tests/client.test.js` (needs a local Postgres; see below).
 
