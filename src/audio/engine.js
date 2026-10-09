@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { applyVolume } from '../sundown/location.js';
-import { stop, applyOutputRoute } from '../main.js';
+import { stop } from '../player/transport.js';
+import { applyOutputRoute } from '../main.js';
 
 /* ================= audio graph ================= */
 export function makeContext(sampleRate){

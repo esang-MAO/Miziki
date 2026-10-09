@@ -56,6 +56,8 @@ export const S = {
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
   sleep:{mode:null, at:null, timer:null, fading:false}
 };
+
+export function current(){ return S.tracks[S.index] || null; }
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
 S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:''};

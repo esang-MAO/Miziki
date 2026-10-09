@@ -1,5 +1,5 @@
 "use strict";
-import { S, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
+import { S, current, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
 import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
@@ -9,6 +9,7 @@ import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHAB
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
 import { updateSleepUI, stopSleepState, sleepStopPlayback, sleepCheckDeadline, openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
 import { ensureContext, applyCharacter, routeSource } from './audio/engine.js';
+import { load, play, stop, pause, seek } from './player/transport.js';
 import { clamp } from './util/math.js';
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -179,7 +180,7 @@ function closeLookPicker(){
 // tier-derived surface is scoped to this renderer only (see spec §1).
 // `crossfade` should be true only for a same-album change with no sleeve
 // animation to cover it — see updateShellAlbum()'s sameAlbum flag.
-function applyDiscVariant(t, crossfade){
+export function applyDiscVariant(t, crossfade){
   const disc = $('#disc'), label = $('#label');
   if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); setDiscBackground(disc, '', false); $('#lookBtn').style.display = 'none'; return; }
   $('#lookBtn').style.display = availableLooks(t).length > 1 ? '' : 'none';
@@ -237,7 +238,7 @@ function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId)
 // "played" means playback began — no minimum duration, any track counts,
 // and once removed an id can never be re-added except by a fresh import
 // (SEALED spec §2, §6)
-function breakSeal(albumId){
+export function breakSeal(albumId){
   if(!S.sealed.has(albumId)) return;
   S.sealed.delete(albumId);
   persistSealedAlbums();
@@ -1567,7 +1568,7 @@ function invalidateActiveSessionIfAny(){
   S.sessionActive = null;
 }
 
-function touchActiveSession(){
+export function touchActiveSession(){
   const rec = S.sessionActive && S.sessions[S.sessionActive];
   if(!rec) return;
   rec.lastActivityAt = Date.now();
@@ -1576,7 +1577,7 @@ function touchActiveSession(){
 
 // called whenever a new track finishes loading; decides whether this track
 // continues, starts, or falls outside of album session tracking
-function sessionOnLoad(t){
+export function sessionOnLoad(t){
   if(!t){ S.sessionActive = null; return; }
   if(S.shuffle){ S.sessionActive = null; return; }
   const albumId = albumKey(t);
@@ -2210,7 +2211,7 @@ function touchLRU(i){
   }
 }
 
-async function ensureBuffer(i){
+export async function ensureBuffer(i){
   const t = S.tracks[i];
   if(!t) return false;
   if(t.buffer){ touchLRU(i); return true; }
@@ -2235,8 +2236,6 @@ async function ensureBuffer(i){
 }
 
 /* ================= queue, shuffle, repeat ================= */
-function current(){ return S.tracks[S.index] || null; }
-
 function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
   for(let i = rest.length - 1; i > 0; i--){
@@ -2386,7 +2385,7 @@ function peekNextIndex(){
 // finished decoding by the time this one's onended fires — decode latency,
 // not JS scheduling overhead, was the actual cause of the gap between
 // tracks. See PLAYBACK spec §1: "no buffer underrun."
-function preloadNextTrack(){
+export function preloadNextTrack(){
   const nextIdx = peekNextIndex();
   if(nextIdx === null || nextIdx === undefined) return;
   if(nextIdx === S.index) return;
@@ -2395,7 +2394,7 @@ function preloadNextTrack(){
   ensureBuffer(nextIdx).catch(()=>{});
 }
 
-function advance(dir, auto){
+export function advance(dir, auto){
   if(!S.queue.length) return;
   if(auto && S.repeat === 'one'){ seek(0); if(!S.playing) play(); return; }
   if(auto && S.sleep.mode === 'track'){ sleepStopPlayback(); return; }
@@ -2505,7 +2504,7 @@ document.documentElement.style.setProperty('--gatefold-push-duration', GATEFOLD_
 document.documentElement.style.setProperty('--gatefold-close-duration', GATEFOLD_ANIM.closeMs + 'ms');
 document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_ANIM.swingEasing);
 
-function renderMiniPlayer(){
+export function renderMiniPlayer(){
   const t = current();
   const mini = $('#miniPlayer');
   if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
@@ -2564,7 +2563,7 @@ function shellAlbumIdentity(t){
 // is closed or shuffled, so state stays correct for whenever it's next
 // shown. Returns what the disc SHOULD do, without running anything —
 // callers decide whether it's currently visible/safe to actually play it.
-function updateShellAlbum(t){
+export function updateShellAlbum(t){
   const newId = shellAlbumIdentity(t);
   const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
   // distinct from type:'none' below — that also covers shuffle/untagged
@@ -2939,7 +2938,7 @@ function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
 // ordinary pause is never touched by this.
 function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
 function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
-function clearSpinDown(){ S.spinDown = null; }
+export function clearSpinDown(){ S.spinDown = null; }
 
 // No player open, or the page is hidden (background playback) — nothing
 // would be visible either way, so skip straight to the end state rather
@@ -3498,103 +3497,6 @@ function interruptMorph(){
   }, {once:true});
 }
 
-function load(i){
-  if(!S.tracks[i]) return;
-  stop();
-  S.index = i; S.pos = 0;
-  S.curPlayed = []; S.curTrackDone = false;
-  const t = S.tracks[i];
-  sessionOnLoad(t);
-  S.pendingShellInfo = updateShellAlbum(t);
-  applyDiscVariant(t, S.pendingShellInfo.sameAlbum);
-  $('#trackName').textContent = t.tags ? t.tags.title : t.name;
-  $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
-  const lab = $('#label'), img = $('#labelArt');
-  if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
-  else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
-  const m = t.meta;
-  $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
-    m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
-  setPathNote('');
-  renderTracks();
-  renderMiniPlayer();
-  updateGatefoldNowPlaying();
-  drawTime();
-  $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
-  $('#queueBtn').style.display = '';
-  $('#sleepTimerBtn').style.display = '';
-  updateCreditsButtonForCurrent();
-  updateFavoriteButtons();
-  updateSleepUI();
-}
-
-function startSource(offset){
-  const t = current();
-  if(!t || !t.buffer || !S.ctx) return;
-  const src = S.ctx.createBufferSource();
-  src.buffer = t.buffer;
-  src.playbackRate.value = S.rate;
-  routeSource(src);
-  const gen = ++S.gen;
-  src.onended = () => {
-    if(gen === S.gen && S.playing){
-      if(document.hidden) settleTrackEnd();   // no frames ran, so credit the tail of the track here
-      advance(1, true);
-    }
-  };
-  // t.duration is already the trimmed (encoder delay/padding excluded)
-  // length; the delay offset shifts where playback actually starts reading
-  // from the buffer, and the explicit duration arg stops it before running
-  // into the padding region rather than relying on the buffer's own end —
-  // see PLAYBACK spec §1, encoder delay/padding.
-  const playOffset = clamp(offset, 0, t.duration - 0.02);
-  src.start(0, playOffset + (t.gaplessDelaySec || 0), t.duration - playOffset);
-  S.source = src;
-  preloadNextTrack();
-}
-
-async function play(){
-  bgPrime();   // before any await, while this is still inside the tap that asked for playback
-  const t = current();
-  if(!t){ showRoute('library'); return; }
-  if(!await ensureBuffer(S.index)) return;
-  if(!S.ctx) return;
-  await S.ctx.resume();
-  if(S.playing) return;
-  S.playing = true;
-  // the single point every playback path funnels through, ceremony or not —
-  // "played" means this, with no minimum duration (SEALED spec §2)
-  breakSeal(albumKey(t));
-  clearSpinDown();   // real playback resumed — any eased-down spin-rate from a put-away no longer applies
-  startSource(S.pos);
-  $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
-  renderMiniPlayer();
-  MizikiSocial.nowSpinning(albumKey(t), t.tags.title);
-}
-
-export function stop(){
-  S.gen++;
-  if(S.source){ try{ S.source.onended = null; S.source.stop(); }catch(e){} S.source = null; }
-  S.playing = false;
-  const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
-  renderMiniPlayer();
-}
-
-export function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
-  $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
-  MizikiSocial.nowSpinningPaused();
-  if(bgRouteActive()) bgIdleNow(); }
-
-function seek(sec){
-  const t = current(); if(!t) return;
-  S.pos = clamp(sec, 0, t.duration || 0);
-  if(S.playing){ if(S.source){ try{S.source.onended=null;S.source.stop();}catch(e){} } startSource(S.pos); }
-  drawTime();
-  bgPosition();
-}
-
-/* (next/prev now live in the queue section above) */
-
 /* ================= background playback (optional) =================
    Off by default, and when it is off none of this runs: audio goes master ->
    destination exactly as before. When on, the output goes master -> a
@@ -3616,7 +3518,7 @@ const BG_SUPPORTED = (function(){
   }catch(e){ return false; }
 })();
 
-function bgRouteActive(){ return BG_SUPPORTED && S.bgAudio && !S.bg.failed; }
+export function bgRouteActive(){ return BG_SUPPORTED && S.bgAudio && !S.bg.failed; }
 
 function bgEl(){
   if(S.bg.el) return S.bg.el;
@@ -3666,7 +3568,7 @@ function bgFallback(){
 }
 
 // call from inside a tap that is about to start playback
-function bgPrime(){
+export function bgPrime(){
   if(!bgRouteActive()) return;
   const el = bgEl();
   if(el.srcObject){ if(el.paused) bgStartEl(); return; }
@@ -3731,7 +3633,7 @@ function bgSync(){
   mediaSessionSync();
 }
 
-function bgIdleNow(){
+export function bgIdleNow(){
   const el = S.bg.el;
   if(el && el.srcObject && !el.paused) el.pause();
   if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(e){} }
@@ -3777,7 +3679,7 @@ function bgRemoveHandlers(){
   S.bg.handlers = false;
 }
 
-function bgPosition(){
+export function bgPosition(){
   if(!bgRouteActive() || !('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
   const t = current(); if(!t || !t.duration) return;
   try{
@@ -3848,7 +3750,7 @@ function tick(now, maxDt){
 
 // a track that ended on its own while hidden: bring the clock up to date, then credit
 // whatever remained, since the source really did play to its end
-function settleTrackEnd(){
+export function settleTrackEnd(){
   const t = current(); if(!t) return;
   tick(performance.now(), 120);
   if(S.pos < t.duration){ addPlayedRange(S.pos, t.duration); S.pos = t.duration; }
@@ -4248,7 +4150,7 @@ function closeCreditsSheet(){
   $('#creditsOverlay').setAttribute('aria-hidden','true');
 }
 
-function updateCreditsButtonForCurrent(){
+export function updateCreditsButtonForCurrent(){
   const t = current();
   $('#trackInfoBtn').style.display = (t && trackHasCreditsContent(t)) ? '' : 'none';
 }
@@ -4425,7 +4327,7 @@ function toggleFavorite(id){
   }
   renderTracks();
 }
-function updateFavoriteButtons(){
+export function updateFavoriteButtons(){
   const t = current();
   const fav = t ? isFavorite(t.id) : false;
   [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => {
@@ -5464,7 +5366,7 @@ function gatefoldRestoreRowNumber(row){
 // called from load() on every track change while the gatefold is open (§A4).
 // Rows are built in the same order as GF.trackIdx (sides only insert divider
 // headers between them, never reorder the tracks), so position maps directly.
-function updateGatefoldNowPlaying(){
+export function updateGatefoldNowPlaying(){
   if(!GF) return;
   updateGatefoldSleeveState();
   document.querySelectorAll('.gf-track-row.gf-now-playing').forEach(row => {
@@ -6421,7 +6323,7 @@ function centerEmptyState(){
   if(slack > 0) empty.style.marginTop = Math.round(slack / 2) + 'px';
 }
 
-function renderTracks(){
+export function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
@@ -9109,7 +9011,7 @@ function isAddMenuOpen(){
   return $('#addMenu').classList.contains('open');
 }
 
-function showRoute(name){
+export function showRoute(name){
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
   // overlay that would otherwise hide whatever route is switched to
