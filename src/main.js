@@ -14,6 +14,7 @@ import { fmt, drawTime, drawSun, frame } from './player/clock.js';
 import { wireSpinToScrub } from './player/scrub.js';
 import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
+import { DB } from './storage/idb.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1375,57 +1376,11 @@ async function addTestTone(){
 }
 
 /* ================= persistence =================
-   IndexedDB holds the original files plus their tags, so the library and every
-   order you set survive a restart. If storage is unavailable — a sandboxed
-   preview, private browsing, an old engine — every call below quietly no-ops
-   and Miziki behaves exactly as it did before: fully working, session-only. */
-const DB = {
-  db:null, ok:false,
-  req(r){ return new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
-  async open(){
-    if(typeof indexedDB === 'undefined') return false;
-    try{
-      this.db = await Promise.race([
-        new Promise((res,rej)=>{
-          const r = indexedDB.open('miziki', 4);
-          r.onupgradeneeded = () => {
-            const d = r.result;
-            if(!d.objectStoreNames.contains('tracks'))   d.createObjectStore('tracks',   {keyPath:'id'});
-            if(!d.objectStoreNames.contains('meta'))     d.createObjectStore('meta',     {keyPath:'k'});
-            if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions', {keyPath:'albumId'});
-            // user metadata edits (sparse — only fields the user actually changed)
-            // and their artwork, kept separate from the original file so the
-            // source stays untouched and a track can always revert
-            if(!d.objectStoreNames.contains('overlays'))  d.createObjectStore('overlays',  {keyPath:'id'});
-            if(!d.objectStoreNames.contains('artwork'))   d.createObjectStore('artwork',   {keyPath:'id'});
-            // profile tab: kept in its own store, separable from playback
-            // state, ready for a future account system (see PROFILE spec §11)
-            if(!d.objectStoreNames.contains('profile'))      d.createObjectStore('profile',      {keyPath:'k'});
-            if(!d.objectStoreNames.contains('achievements'))  d.createObjectStore('achievements',  {keyPath:'albumId'});
-            if(!d.objectStoreNames.contains('collection'))    d.createObjectStore('collection',    {keyPath:'albumId'});
-          };
-          r.onsuccess = () => res(r.result);
-          r.onerror = () => rej(r.error || new Error('open failed'));
-          r.onblocked = () => rej(new Error('blocked'));
-        }),
-        new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 4000))
-      ]);
-      this.ok = true;
-      return true;
-    }catch(e){ this.ok = false; return false; }
-  },
-  store(name, mode){ return this.db.transaction(name, mode).objectStore(name); },
-  async put(name, val){ if(!this.ok) return false;
-    try{ await this.req(this.store(name,'readwrite').put(val)); return true; }catch(e){ return false; } },
-  async get(name, k){ if(!this.ok) return null;
-    try{ return await this.req(this.store(name,'readonly').get(k)); }catch(e){ return null; } },
-  async all(name){ if(!this.ok) return [];
-    try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(e){ return []; } },
-  async clear(name){ if(!this.ok) return;
-    try{ await this.req(this.store(name,'readwrite').clear()); }catch(e){} },
-  async del(name, k){ if(!this.ok) return false;
-    try{ await this.req(this.store(name,'readwrite').delete(k)); return true; }catch(e){ return false; } }
-};
+   The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
+   src/storage/idb.js, step 4a): queueSave()/saveMeta()/restoreMeta() and the
+   various persist*() helpers below read and write through it. If storage is
+   unavailable, every DB call quietly no-ops and Miziki behaves exactly as it
+   did before: fully working, session-only. */
 
 /* orders and playlists are saved as track ids, never as positions —
    positions mean nothing once the library is rebuilt */
