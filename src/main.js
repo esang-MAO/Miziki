@@ -3667,6 +3667,12 @@ function bgInstallHandlers(){
   set('previoustrack', prevTrack);
   set('nexttrack', nextTrack);
   set('seekto', d => { if(d && typeof d.seekTime === 'number') seek(d.seekTime); });
+  // Left unset, iOS supplies its own default ±10s skip for these on the
+  // lock screen, which takes over the Now Playing widget instead of the
+  // previoustrack/nexttrack buttons above. Registering them as null
+  // explicitly turns that default off.
+  set('seekforward', null);
+  set('seekbackward', null);
   S.bg.handlers = true;
 }
 
@@ -3674,7 +3680,7 @@ function bgRemoveHandlers(){
   S.bg.msKey = '';
   if(!('mediaSession' in navigator) || !S.bg.handlers) return;
   const ms = navigator.mediaSession;
-  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(e){} });
+  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(e){} });
   try{ ms.metadata = null; ms.playbackState = 'none'; }catch(e){}
   S.bg.handlers = false;
 }
