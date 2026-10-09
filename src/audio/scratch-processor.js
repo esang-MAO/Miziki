@@ -1,16 +1,32 @@
 /* ================= scratch processor (F2: true scratching) =================
    Runs in the AudioWorkletGlobalScope, loaded via ctx.audioWorklet.addModule()
-   from src/player/scrub.js. Self-contained on purpose — no imports — because
-   worklet module loading and Vite's JS bundling don't mix reliably; Vite
-   copies this file as a plain asset (see scrub.js's `new URL(...)`) and the
-   browser loads it as-is.
+   from src/player/scrub.js. Self-contained on purpose — no imports, no
+   exports — for two independent reasons: Vite's JS bundling doesn't mix
+   reliably with worklet module loading (see scrub.js's `new URL(...)`,
+   which copies this file as a plain asset instead of bundling it), and
+   Safari's AudioWorklet module loader has not reliably supported ES module
+   `import`/`export` syntax in the processor file itself — a module that
+   addModule() loads fine in Chrome/Firefox can silently fail to register in
+   Safari. scrub.js already treats a failed addModule()/AudioWorkletNode
+   creation as "no scratch audio this session" rather than an error, which
+   is exactly the "works on desktop, not on an iPhone" symptom this plain-
+   script rewrite is meant to close off. (tests/unit/scratch-processor.test.js
+   loads this file's source with Node's vm module instead of import, since
+   there's nothing left to import.)
 
    The playhead follows a target position (seconds into the track), sent from
    the main thread on every pointermove, rather than following a velocity —
    see scrub.js for why position-following is what the spec wants. Reading
    samples at a continuously-moving fractional index naturally plays forward
    or backward depending on which way the target is, with linear interpolation
-   between samples so slow scratches don't sound gritty.
+   between samples so slow scratches don't sound gritty — and, just as on a
+   real record, this is also what gives the audio its pitch: advancing two
+   samples of source per output sample plays an octave high, half a sample
+   plays an octave low, with no separate pitch-shifting step needed. The
+   follower's time constant below is tuned slower than it first was so the
+   playhead glides between touch samples rather than snapping to each new
+   one — snapping made actual motion too brief to read as a held pitch, more
+   like a click per touch event than a scratch.
 
    Holding the target still would otherwise mean reading the exact same
    sample forever — a frozen, non-zero level that is inaudible as music but
@@ -20,19 +36,19 @@
    off and the needle resting on one point of the groove. That's what the
    velocity envelope below does — it is not just a click-avoidance ramp. */
 
-const FOLLOW_TIME_CONSTANT = 0.012;   // s — how tightly the playhead tracks the target
-const VELOCITY_FLOOR = 0.05;          // track-seconds/real-second below which output fades to silence
-const ENVELOPE_TIME_CONSTANT = 0.01;  // s — smooths the velocity envelope itself, so it doesn't buzz
+const FOLLOW_TIME_CONSTANT = 0.035;   // s — how tightly the playhead tracks the target; see the comment above on why this is slower than a single touch-event gap
+const VELOCITY_FLOOR = 0.03;          // track-seconds/real-second below which output fades to silence
+const ENVELOPE_TIME_CONSTANT = 0.02;  // s — smooths the velocity envelope itself, so it doesn't buzz
 
 // Always lands between its two neighbors (by construction, since it's a
 // straight blend) — cubic/Hermite would sound smoother but can overshoot
 // past the neighboring samples, which isn't worth it here.
-export function clampIndex(idx, length){
+function clampIndex(idx, length){
   if(length <= 0) return 0;
   return Math.min(Math.max(idx, 0), length - 1);
 }
 
-export function sampleAt(channel, idx){
+function sampleAt(channel, idx){
   const length = channel.length;
   const c = clampIndex(idx, length);
   const i0 = Math.floor(c);
@@ -45,12 +61,12 @@ export function sampleAt(channel, idx){
 // one-pole follower: moves `value` a fraction of the way to `target` on
 // each call, the fraction set by a time constant so the feel doesn't
 // depend on the (variable) render quantum size
-export function onePole(value, target, dt, timeConstant){
+function onePole(value, target, dt, timeConstant){
   const coeff = 1 - Math.exp(-dt / timeConstant);
   return value + (target - value) * coeff;
 }
 
-export function velocityEnvelopeTarget(velocityPerSec, floor){
+function velocityEnvelopeTarget(velocityPerSec, floor){
   return Math.min(1, Math.abs(velocityPerSec) / floor);
 }
 

@@ -1,24 +1,40 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
-// scratch-processor.js runs in the AudioWorkletGlobalScope, which supplies
-// AudioWorkletProcessor, registerProcessor and a bare `sampleRate` global —
-// none of which exist in Node. Stubbing them before importing lets the
-// module's top-level `class ... extends AudioWorkletProcessor` and
-// `registerProcessor(...)` run without a browser, same idea as
-// engine.test.js/clock.test.js's mock.module() for main.js's DOM-dependent
-// top level, just via plain globals instead since this file has no imports
-// of its own to mock.
+// scratch-processor.js is a plain classic script on purpose (see its own
+// top comment) — no import, no export — because Safari's AudioWorklet
+// module loader has not reliably supported ES module syntax in the
+// processor file itself. That means it can't be loaded with a normal ESM
+// `import` here either, so instead its source is read as text and run with
+// Node's vm module in a sandbox that stubs the AudioWorkletGlobalScope
+// globals it expects (AudioWorkletProcessor, registerProcessor, a bare
+// `sampleRate`). A classic script's top-level `function` declarations
+// become properties of the global object it runs against, which is how the
+// pure helpers below (clampIndex, sampleAt, onePole, velocityEnvelopeTarget)
+// end up reachable as `sandbox.<name>` afterward — `class` declarations
+// don't do that, so ScratchProcessor itself is only reachable through the
+// registerProcessor() call it makes, same as in the real AudioWorklet.
+const srcPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../src/audio/scratch-processor.js');
+const source = fs.readFileSync(srcPath, 'utf8');
+
 class FakeAudioWorkletProcessor {
   constructor(){ this.port = { onmessage: null, postMessage(){} }; }
 }
 let registered = null;
-globalThis.AudioWorkletProcessor = FakeAudioWorkletProcessor;
-globalThis.registerProcessor = (name, Cls) => { registered = { name, Cls }; };
-globalThis.sampleRate = 44100;
+const sandbox = {
+  AudioWorkletProcessor: FakeAudioWorkletProcessor,
+  registerProcessor: (name, Cls) => { registered = { name, Cls }; },
+  sampleRate: 44100,
+  console,
+};
+vm.createContext(sandbox);
+vm.runInContext(source, sandbox, { filename: 'scratch-processor.js' });
 
-const { clampIndex, sampleAt, onePole, velocityEnvelopeTarget } =
-  await import('../../src/audio/scratch-processor.js');
+const { clampIndex, sampleAt, onePole, velocityEnvelopeTarget } = sandbox;
 
 test('registers itself as "scratch-processor"', () => {
   assert.equal(registered.name, 'scratch-processor');
@@ -92,18 +108,18 @@ test('velocityEnvelopeTarget is 0 at rest and clamps to 1 well above the floor',
 test('process: a target that keeps moving ahead produces forward motion', () => {
   const proc = makeProcessor();
   loadWindow(proc, { channel: rampChannel(5000), sampleRate: 100, trackDuration: 50 });
-  const out = simulateContinuousMotion(proc, { startPos: 1, stepPerFrame: 0.1, frames: 40 });
-  // skip the first few frames (envelope still ramping up from silence)
-  assert.ok(out[35] > out[10], `expected later output clearly ahead of earlier, got ${out[10]} then ${out[35]}`);
-  assert.ok(out[35] > 50, 'expected a clearly audible (non-silent) level once moving steadily');
+  const out = simulateContinuousMotion(proc, { startPos: 1, stepPerFrame: 0.1, frames: 60 });
+  // skip the first several frames (envelope/follower still ramping up from silence)
+  assert.ok(out[55] > out[20], `expected later output clearly ahead of earlier, got ${out[20]} then ${out[55]}`);
+  assert.ok(out[55] > 50, 'expected a clearly audible (non-silent) level once moving steadily');
 });
 
 test('process: a target that keeps moving behind produces reverse motion', () => {
   const proc = makeProcessor();
   loadWindow(proc, { channel: rampChannel(5000), sampleRate: 100, trackDuration: 50 });
-  const out = simulateContinuousMotion(proc, { startPos: 40, stepPerFrame: -0.1, frames: 40 });
-  assert.ok(out[35] < out[10], `expected later output clearly behind earlier, got ${out[10]} then ${out[35]}`);
-  assert.ok(out[35] > 50, 'expected a clearly audible (non-silent) level once moving steadily');
+  const out = simulateContinuousMotion(proc, { startPos: 40, stepPerFrame: -0.1, frames: 60 });
+  assert.ok(out[55] < out[20], `expected later output clearly behind earlier, got ${out[20]} then ${out[55]}`);
+  assert.ok(out[55] > 50, 'expected a clearly audible (non-silent) level once moving steadily');
 });
 
 test('process: holding the target still settles the output to silence', () => {
@@ -111,7 +127,7 @@ test('process: holding the target still settles the output to silence', () => {
   loadWindow(proc, { channel: rampChannel(5000), sampleRate: 100, trackDuration: 50 });
   proc.onMessage({ type:'start', position: 5 });
   proc.onMessage({ type:'target', target: 6 }); // one small move, then held fixed
-  runFrames(proc, 50); // let the transient pass
+  runFrames(proc, 100); // let the transient pass
   const settled = runFrames(proc, 50);
   for (const v of settled) assert.ok(Math.abs(v) < 0.5, `expected near-silence once still, got ${v}`);
 });
@@ -119,7 +135,7 @@ test('process: holding the target still settles the output to silence', () => {
 test('process: the playhead and its reads never go outside the loaded window or the track', () => {
   const proc = makeProcessor();
   loadWindow(proc, { channel: rampChannel(50), sampleRate: 10, trackDuration: 5 }); // window covers 0..5s
-  const out = simulateContinuousMotion(proc, { startPos: 0, stepPerFrame: 5, frames: 50 }); // way past the end
+  const out = simulateContinuousMotion(proc, { startPos: 0, stepPerFrame: 5, frames: 80 }); // way past the end
   for (const v of out) assert.ok(Number.isFinite(v) && Math.abs(v) <= 50, `out-of-window read: ${v}`);
   assert.ok(proc.playhead <= proc.trackDuration, 'playhead exceeded the track duration');
   assert.ok(proc.playhead >= 0, 'playhead went negative');
