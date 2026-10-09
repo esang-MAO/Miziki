@@ -1710,9 +1710,9 @@ function applyOverlay(t, rec, artBlob){
 }
 
 async function loadOverlayFor(t){
-  if(!DB.ok) return;
-  const rec = await DB.get('overlays', t.id);
-  const artRec = await DB.get('artwork', t.id);
+  if(!storage.available()) return;
+  const rec = await overlays.get(t.id);
+  const artRec = await artwork.get(t.id);
   applyOverlay(t, rec, artRec && artRec.blob);
 }
 
@@ -1764,9 +1764,9 @@ async function applyEdit(trackIds, fields, artBlob){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
     const oldAlbumId = albumKey(t);
-    const existing = await DB.get('overlays', id);
+    const existing = await overlays.get(id);
     const merged = Object.assign({}, existing && existing.fields, fields);
-    await DB.put('overlays', {id, fields: merged});
+    await overlays.put({id, fields: merged});
     Object.assign(t.tags, fields);
     // the album id is recomputed from the (possibly just-edited) album
     // title — carry the seal state over so a retag never seals or unseals
@@ -1776,7 +1776,7 @@ async function applyEdit(trackIds, fields, artBlob){
       S.sealed.delete(oldAlbumId); S.sealed.add(newAlbumId); sealedChanged = true;
     }
     if(artBlob){
-      await DB.put('artwork', {id, blob: artBlob});
+      await artwork.put({id, blob: artBlob});
       if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
@@ -1801,8 +1801,8 @@ async function revertTrack(id){
   const i = idxOf(id); if(i < 0) return;
   const t = S.tracks[i];
   const hadArtOverlay = !!t.overlayArtBlob;
-  await DB.del('overlays', id);
-  await DB.del('artwork', id);
+  await overlays.del(id);
+  await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
   t.overlayArtBlob = null;
@@ -1821,8 +1821,8 @@ async function revertTrack(id){
 async function applyEditWithUndo(trackIds, fields, artBlob){
   const prevOverlays = {}, prevArt = {};
   for(const id of trackIds){
-    prevOverlays[id] = await DB.get('overlays', id);
-    prevArt[id] = await DB.get('artwork', id);
+    prevOverlays[id] = await overlays.get(id);
+    prevArt[id] = await artwork.get(id);
   }
   await applyEdit(trackIds, fields, artBlob);
   S.lastUndo = {trackIds: trackIds.slice(), prevOverlays, prevArt};
@@ -1837,8 +1837,8 @@ async function undoLastEdit(){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
     const prevRec = u.prevOverlays[id], prevArtRec = u.prevArt[id];
-    if(prevRec) await DB.put('overlays', prevRec); else await DB.del('overlays', id);
-    if(prevArtRec) await DB.put('artwork', prevArtRec); else await DB.del('artwork', id);
+    if(prevRec) await overlays.put(prevRec); else await overlays.del(id);
+    if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
     if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
@@ -1939,11 +1939,11 @@ async function saveEditSheet(){
 }
 
 async function storeTrack(t, blob){
-  if(!DB.ok) return false;
+  if(!storage.available()) return false;
   const artBlob = t.artBlob || null;
   // always the embedded tags, never the overlay-resolved ones — the overlay
   // already lives in its own store and is re-applied on every load
-  const ok = await DB.put('tracks', {id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), details:t.details || null, meta:t.meta,
+  const ok = await tracks.put({id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), details:t.details || null, meta:t.meta,
     duration:t.duration, gaplessDelaySec:t.gaplessDelaySec || 0, gaplessPaddingSec:t.gaplessPaddingSec || 0,
     addedAt:t.addedAt, sizeBytes:t.sizeBytes || 0});
   return ok;
