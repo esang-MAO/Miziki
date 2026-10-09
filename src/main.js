@@ -4055,7 +4055,7 @@ async function applyTrackNumbersInOrder(){
   });
   if(!ids.length) return;
   const prevOverlays = {}, prevArt = {};
-  for(const id of ids){ prevOverlays[id] = await DB.get('overlays', id); prevArt[id] = await DB.get('artwork', id); }
+  for(const id of ids){ prevOverlays[id] = await overlays.get(id); prevArt[id] = await artwork.get(id); }
   for(let k = 0; k < ids.length; k++){ await applyEdit([ids[k]], {track: k + 1}, null); }
   S.lastUndo = {trackIds: ids.slice(), prevOverlays, prevArt};
   showUndoBanner(ids.length);
@@ -4581,7 +4581,7 @@ async function buildCrateTier(albumId, tier){
   crateArtBuilding.add(buildKey);
   try{
     const key = crateTierKey(tier, albumId);
-    const existing = await DB.get('artwork', key);
+    const existing = await artwork.get(key);
     if(existing) return true;   // resumable: a heal pass just skips what's already built
     const srcUrl = crateArtSourceFor(albumId);
     if(!srcUrl) return false;
@@ -4589,7 +4589,7 @@ async function buildCrateTier(albumId, tier){
     const px = tier === 'L' ? CRATE_TIER_L_PX : CRATE_TIER_S_PX;
     const q = tier === 'L' ? CRATE_TIER_L_Q : CRATE_TIER_S_Q;
     const out = await cropSquareImageStepped(blob, px, q);
-    await DB.put('artwork', {id: key, blob: out});
+    await artwork.put({id: key, blob: out});
     return true;
   }catch(e){ return false; }
   finally{ crateArtBuilding.delete(buildKey); }
@@ -4617,10 +4617,10 @@ async function getCrateArtURL(albumId, tier){
     return url;
   }
   const key = crateTierKey(tier, albumId);
-  let rec = await DB.get('artwork', key);
+  let rec = await artwork.get(key);
   if(!rec){
     if(!(await buildCrateTier(albumId, tier))) return null;
-    rec = await DB.get('artwork', key);
+    rec = await artwork.get(key);
     if(!rec) return null;
   }
   const url = URL.createObjectURL(rec.blob);
@@ -4635,8 +4635,8 @@ function revokeCrateArtTier(albumId, tier){
 
 async function deleteCrateArtTiers(albumId){
   revokeCrateArtTier(albumId, 'S'); revokeCrateArtTier(albumId, 'L');
-  await DB.del('artwork', crateTierKey('S', albumId));
-  await DB.del('artwork', crateTierKey('L', albumId));
+  await artwork.del(crateTierKey('S', albumId));
+  await artwork.del(crateTierKey('L', albumId));
 }
 
 // background S-tier pass for the whole library, starting at the crate
