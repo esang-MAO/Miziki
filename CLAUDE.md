@@ -19,7 +19,8 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 - `src/sundown/location.js` — geolocation and Car Mode motion handling (`askLocation`, `fallbackSun`, `toggleSleevePull`, `toggleMotion`, `applyVolume`). Imports `drawSun`/`queueSave` back from `main.js` (a deliberate circular import — see "Refactor rules" below).
 - `src/crate/constants.js` — the small block of crate-view layout constants (`CRATE_ORIGIN_Y`, `CRATE_PALETTE`, `CRATE_VISIBLE_A`, `CRATE_DPR`, `CRATE_ALPHABET`).
 - `src/player/sleep-timer.js` — the sleep timer (SLEEP spec §5): `updateSleepUI`, `stopSleepState`, `sleepStopPlayback`, `sleepCheckDeadline`, `openSleepSheet`, `closeSleepSheet`. Imports `pause`/`drawTime`/`setPathNote` back from `main.js` (also circular, same reason).
-- `tests/unit/` holds `node:test` unit tests for pure functions extracted out of `main.js` (`tiers.test.js`, `solar.test.js`), run via `npm run test:unit`. Separate from `tests/client.test.js`, which needs Postgres.
+- `src/audio/engine.js` — the audio graph (`makeContext`, `buildGraph`, `satCurve`, `applyCharacter`, `routeSource`) and `ensureContext()` (from the "file loading" section — rebuilds the context when a file's sample rate differs). Imports `applyVolume` from `location.js` and `stop`/`applyOutputRoute` back from `main.js` (circular, same reason as above; step 3a).
+- `tests/unit/` holds `node:test` unit tests for pure functions extracted out of `main.js` (`tiers.test.js`, `solar.test.js`, `engine.test.js`), run via `npm run test:unit`. Separate from `tests/client.test.js`, which needs Postgres. `engine.test.js` uses Node's module-mocking (`node --experimental-test-module-mocks`, see Commands) to replace `main.js`'s exports with no-ops before loading `engine.js`, since `main.js` has DOM-dependent top-level code that would otherwise need a real browser to load at all.
 - `src/styles/` holds the CSS, split out of what used to be one inline `<style>` block, one file per section (`00-base.css`, `01-header.css`, …), referenced from `miziki.html` as separate `<link rel="stylesheet">` tags in that same original order. Cascade order matters — that numeric prefix is load order, not importance, and the files must stay in it.
 - `src/miziki-social.js` is the social client (Supabase). It exposes the `MizikiSocial` global. **This is the source of truth and the only copy** — `miziki.html` loads it directly (as a plain classic `<script src="src/miziki-social.js">`, not `type="module"`, so it keeps executing synchronously in place the same as the inline copy it used to be; see the comment above that tag for why a relative path, not an absolute one — it's also what makes this reference work unchanged under both bases below).
 - `supabase/migrations/` holds the schema, RPCs, digging list and follow counts. Apply them in numeric order. Never edit a migration that has already been applied. Add a new numbered file instead.
@@ -49,6 +50,10 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 5. Keep the section comments and spec references (e.g. "CREDITS spec §2") when moving code. They are the project's design history.
 6. After every extraction, run the build, then the device checklist below.
 7. **An importing module cannot reassign an exported `let`.** Live bindings are read-only on the import side — only the module that declared the `let` can assign to it. `const` exports are fine to mutate *properties* of (e.g. `S.tracks = …` on the exported `S` object), since that isn't reassigning the binding itself; the rule only bites for a top-level `let` whose value gets replaced wholesale. If code in one module needs to reassign a top-level `let` defined in another, either fold that value into `S` (so it's a property write, not a rebinding) or export a small setter function from the module that owns it. Never work around this with `window`. There are roughly two dozen such top-level `let`s still in `main.js` (`socialAuth`, `GF`, `SEALSHEET`, `saveTimer`, and others) — deal with one only once an extraction actually moves code across the boundary it crosses, not preemptively.
+8. **An extracted module may import from `main.js` only as a temporary step**, and only use those imports inside functions, never at module top level — the same shape as the circular imports from step 2c. Each later extraction should move those targets out of `main.js` too, so the number of imports from `main.js` keeps shrinking rather than growing. Modules currently importing from `main.js`:
+   - `src/sundown/location.js` imports `drawSun`, `queueSave`.
+   - `src/player/sleep-timer.js` imports `pause`, `drawTime`, `setPathNote`.
+   - `src/audio/engine.js` imports `stop`, `applyOutputRoute` (step 3a).
 
 ### Revised extraction order
 
@@ -82,7 +87,7 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 - `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` (bundled, hashed CSS and, since step 2a, the bundled `main.js`) and `dist/src/miziki-social.js` (copied verbatim, see `vite.config.js`). `dist/` is gitignored.
 - `npm run preview` — serves the built `dist/` at `http://localhost:4173/Miziki/`, closest to what GitHub Pages actually serves.
 - `npm test` — runs `tests/client.test.js` (needs a local Postgres; see below).
-- `npm run test:unit` — runs `tests/unit/*.test.js` with Node's built-in `node:test`. No Postgres, no extra dependency. Both CI pipelines (`deploy.yml` and the Netlify build) run this before building, so a failing unit test blocks both deploys.
+- `npm run test:unit` — runs `tests/unit/*.test.js` with Node's built-in `node:test`, under `--experimental-test-module-mocks` (needed by `engine.test.js`'s `mock.module()`; requires Node 22, see "Node version" below). No Postgres, no extra dependency. Both CI pipelines (`deploy.yml` and the Netlify build) run this before building, so a failing unit test blocks both deploys.
 
 Social client tests need a local Postgres. See the header of `tests/client.test.js` for the connection defaults (`PGHOST=/var/tmp/pgmz`, `PGPORT=5544`, database `mz`).
 
@@ -128,3 +133,17 @@ No behavior change — a move is a move, per the refactor rules above.
 - `location.js` and `sleep-timer.js` each import a few functions back from `main.js` (`drawSun`/`queueSave`, and `pause`/`drawTime`/`setPathNote` respectively) — a deliberate circular import. Those functions got `export` added in `main.js` with no other change; this is the standard, safe shape for extracting a section that leaf-level code elsewhere in `main.js` still depends on, before that code is extracted too.
 - Added the first player unit tests: `tests/unit/tiers.test.js` (`trackTier`) and `tests/unit/solar.test.js` (`solarEvent`, checked against a published sunset time for Columbia, MD plus a polar no-sunset case), run via the new `npm run test:unit` (Node's built-in `node:test`, no new dependency). Wired into both CI pipelines ahead of the build, so a failing unit test blocks both deploys.
 - Verified lossless: each new module was diffed against the exact original lines it was extracted from (modulo only `export`/`import` additions), and the full `git diff` of `main.js` for this step was reviewed end to end — every removal matches a verified new-module file, and every other change is either an added import line or a single `export` keyword.
+
+### Node version
+
+Node **22** (bumped from 20 in step 3a — Node 20 reached end-of-life in April 2026). Set in `.github/workflows/deploy.yml` (`node-version`), `netlify.toml` (`NODE_VERSION`), and `package.json`'s `engines` field. `npm run test:unit` also needs 22 for `--experimental-test-module-mocks` (see Commands).
+
+### What changed in step 3a (audio graph into `src/audio/engine.js`)
+
+No behavior change — a move is a move, per the refactor rules above.
+
+- Extracted the audio graph (`makeContext`, `buildGraph`, `satCurve`, `applyCharacter`, `routeSource`) and `ensureContext()` (the one function pulled out of the much larger "file loading" section) into `src/audio/engine.js`.
+- `ensureContext()` calls `stop()` and `applyOutputRoute()`, which stay in `main.js` for now (rule 8 above) — imported back as a deliberate, temporary circular import, same shape as `location.js`'s and `sleep-timer.js`'s from step 2c. `applyVolume()` was already available from `location.js`.
+- Added `tests/unit/engine.test.js`: `satCurve` (identity curve at 0, in-range/monotonic/trimmed-below-1 at 0.35 and 1 — with a small tolerance for a real, intentional overshoot the asymmetry term produces, not float noise) and the Pure/Vinyl chain-order promise (`buildGraph`'s wobble → sat → satTrim → dc → tone → comp → makeup → master wiring, and `routeSource`'s Pure-vs-Vinyl branch), using a fake `AudioContext` that just records `connect()` calls.
+- `engine.js`'s circular import back to `main.js` means loading it for real needs a browser (`main.js` has DOM-dependent code at module top level, not just inside functions). The test uses Node 22's `mock.module()` (`node --experimental-test-module-mocks`) to replace `main.js`'s exports with no-ops first — not just the two `engine.js` imports directly, but every export any module in that import chain needs from `main.js` (`location.js`, loaded for `applyVolume`, also needs `drawSun`/`queueSave`), since `mock.module` replaces the whole module by resolved path, not per-importer.
+- Upgraded Node 20 → 22 (separate commit) — see "Node version" above.

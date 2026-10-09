@@ -4,7 +4,7 @@
 
 [build.environment]
   MIZIKI_BASE = "/"
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
 
 # The built miziki.html is the entry point, not index.html (see
 # CLAUDE.md / vite.config.js) — Netlify has nothing to serve at '/' on its
