@@ -16,6 +16,9 @@ import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
 import { serializePrefs, parsePrefs } from './storage/prefs.js';
+import {
+  storage, tracks, meta, sessions, achievements, collection, overlays, artwork, profile,
+} from './storage/repo.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -225,7 +228,7 @@ export function applyDiscVariant(t, crossfade){
    Timestamps double as the recency tie-break and, per §11, keep every
    record ready for a future account system: stable ids, no device-keyed
    identifiers, no absolute paths. */
-async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlayed', v:S.albumLastPlayed}); }
+async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
 /* ================= S5: sealed records =================
    S.sealed is its own saved list, independent of S.albumLastPlayed/session
@@ -233,10 +236,10 @@ async function persistAlbumLastPlayed(){ await DB.put('meta', {k:'albumLastPlaye
    album (SEALED spec §2). Grandfathering: no sealedAlbums row at all means
    this feature hasn't run here yet, so nothing existing is sealed. */
 async function restoreSealedAlbums(){
-  const row = await DB.get('meta', 'sealedAlbums');
-  S.sealed = new Set(row && row.v && row.v.ids ? row.v.ids : []);
+  const row = await meta.get('sealedAlbums');
+  S.sealed = new Set(row && row.ids ? row.ids : []);
 }
-async function persistSealedAlbums(){ await DB.put('meta', {k:'sealedAlbums', v:{init:true, ids:[...S.sealed]}}); }
+async function persistSealedAlbums(){ await meta.put('sealedAlbums', {init:true, ids:[...S.sealed]}); }
 
 function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
 
@@ -266,7 +269,7 @@ function buildSealOverlay(sizePx){
   frag.appendChild(sticker);
   return frag;
 }
-async function persistTrackLastPlayed(){ await DB.put('meta', {k:'trackLastPlayed', v:S.trackLastPlayed}); }
+async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
    page reloads — so anything persisted with it (Top Albums, achievements, the
@@ -336,7 +339,7 @@ function averageColorHex(blob){
     img.src = URL.createObjectURL(blob);
   });
 }
-async function persistAlbumEdge(){ await DB.put('meta', {k:'albumEdge', v:S.albumEdge}); }
+async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); }
 
 async function ensureThumb(kind, id, url){
   if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
@@ -346,7 +349,7 @@ async function ensureThumb(kind, id, url){
   const blob = await makeThumb(url, kind === 'album' ? ALBUM_THUMB_PX : TRACK_THUMB_PX);
   if(!blob){ delete thumbSrcSeen[key]; return; }
   thumbURL[key] = URL.createObjectURL(blob);
-  DB.put('meta', {k:'thumb:' + key, v:blob});
+  meta.put('thumb:' + key, blob);
   if(kind === 'album'){
     const hex = await averageColorHex(blob);
     if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(); }
@@ -356,12 +359,8 @@ async function ensureThumb(kind, id, url){
 }
 
 async function restoreThumbs(){
-  const rows = await DB.all('meta');
-  rows.forEach(r => {
-    if(r && typeof r.k === 'string' && r.k.indexOf('thumb:') === 0 && r.v instanceof Blob){
-      thumbURL[r.k.slice(6)] = URL.createObjectURL(r.v);
-    }
-  });
+  const thumbs = await meta.thumbs();
+  thumbs.forEach(({key, blob}) => { thumbURL[key] = URL.createObjectURL(blob); });
   applyThumbURLs();
 }
 
@@ -389,19 +388,19 @@ async function healThumbs(){
 // field existed — a non-blocking, batched re-read of each stored file's own
 // tags, same shape as healThumbs() above (see CREDITS spec §0)
 async function healDetails(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   const targets = S.tracks.filter(t => t.stored && !t.details);
   for(let i = 0; i < targets.length; i++){
     while(S.playing) await sleep(500);
     const t = targets[i];
     if(!S.tracks.includes(t)) continue;   // deleted while we waited
     try{
-      const rec = await DB.get('tracks', t.id);
+      const rec = await tracks.get(t.id);
       if(rec && rec.blob){
         const raw = await rec.blob.arrayBuffer();
         t.details = readDetails(raw);
         rec.details = t.details;
-        await DB.put('tracks', rec);
+        await tracks.put(rec);
       } else {
         t.details = emptyDetails();
       }
@@ -422,12 +421,12 @@ async function pruneThumbs(){
     if(keep) continue;
     try{ URL.revokeObjectURL(thumbURL[key]); }catch(e){}
     delete thumbURL[key]; delete thumbSrcSeen[key];
-    await DB.del('meta', 'thumb:' + key);
+    await meta.del('thumb:' + key);
   }
 }
 
-async function persistAlbumDisplay(){ await DB.put('meta', {k:'albumDisplay', v:persistableMap(S.albumDisplay)}); }
-async function persistTrackDisplay(){ await DB.put('meta', {k:'trackDisplay', v:persistableMap(S.trackDisplay)}); }
+async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
+async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
 
 function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
@@ -453,7 +452,7 @@ async function upsertAchievement(albumId, tier){
   const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '',
     art:thumbURL['album:' + albumId] || null, updatedAt:Date.now()};
   S.achievements[albumId] = rec;
-  await DB.put('achievements', persistable(rec));
+  await achievements.put(persistable(rec));
 }
 
 async function upsertCollectionEntry(albumId, tier, variant, pattern){
@@ -462,7 +461,7 @@ async function upsertCollectionEntry(albumId, tier, variant, pattern){
   const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
     art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now()};
   S.collection[albumId] = rec;
-  await DB.put('collection', persistable(rec));
+  await collection.put(persistable(rec));
 }
 
 // deliberately looser than a qualifying session — every track in the album
@@ -1390,33 +1389,33 @@ const idxOf = id => S.tracks.findIndex(t => t.id === id);
 
 let saveTimer = null;
 export function queueSave(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveMeta, 600);
 }
 
 async function saveMeta(){
-  if(!DB.ok) return;
+  if(!storage.available()) return;
   const orders = {};
   Object.keys(S.albumOrder).forEach(a => { orders[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
-  await DB.put('meta', {k:'playlists', v:S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system}))});
-  await DB.put('meta', {k:'albumOrder', v:orders});
-  await DB.put('meta', {k:'albumSort', v:S.albumSort});
-  await DB.put('meta', {k:'prefs', v:serializePrefs(S)});
+  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system})));
+  await meta.put('albumOrder', orders);
+  await meta.put('albumSort', S.albumSort);
+  await meta.put('prefs', serializePrefs(S));
 }
 
 async function restoreMeta(){
-  const pl = await DB.get('meta','playlists');
-  if(pl && pl.v) S.playlists = pl.v.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
-  const ord = await DB.get('meta','albumOrder');
-  if(ord && ord.v) Object.keys(ord.v).forEach(a => {
-    const arr = ord.v[a].map(idxOf).filter(i => i >= 0);
+  const pl = await meta.get('playlists');
+  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
+  const ord = await meta.get('albumOrder');
+  if(ord) Object.keys(ord).forEach(a => {
+    const arr = ord[a].map(idxOf).filter(i => i >= 0);
     if(arr.length) S.albumOrder[a] = arr;
   });
-  const srt = await DB.get('meta','albumSort');
-  if(srt && srt.v) S.albumSort = srt.v;
-  const pr = await DB.get('meta','prefs');
-  if(pr && pr.v) applyPrefs(parsePrefs(pr.v));
+  const srt = await meta.get('albumSort');
+  if(srt) S.albumSort = srt;
+  const pr = await meta.get('prefs');
+  if(pr) applyPrefs(parsePrefs(pr));
 }
 
 function applyPrefs(p){
@@ -1500,13 +1499,13 @@ function albumExpectedOrder(albumId){
   return albumTracks(sample.tags.album).map(i => S.tracks[i].id);
 }
 
-async function persistSession(rec){ S.sessions[rec.albumId] = rec; await DB.put('sessions', rec); }
-async function persistSessionCounts(){ await DB.put('meta', {k:'sessionCounts', v:S.sessionCounts}); }
-async function persistRareUnlocked(){ await DB.put('meta', {k:'rareUnlocked', v:S.rareUnlocked}); }
-async function persistTrackPlayCounts(){ await DB.put('meta', {k:'trackPlayCounts', v:S.trackPlayCounts}); }
-async function persistMetalEligibleSessions(){ await DB.put('meta', {k:'metalEligibleSessions', v:S.metalEligibleSessions}); }
-async function persistTrackMetalEligiblePlays(){ await DB.put('meta', {k:'trackMetalEligiblePlays', v:S.trackMetalEligiblePlays}); }
-async function persistAlbumLookPref(){ await DB.put('meta', {k:'albumLookPref', v:S.albumLookPref}); }
+async function persistSession(rec){ S.sessions[rec.albumId] = rec; await sessions.put(rec); }
+async function persistSessionCounts(){ await meta.put('sessionCounts', S.sessionCounts); }
+async function persistRareUnlocked(){ await meta.put('rareUnlocked', S.rareUnlocked); }
+async function persistTrackPlayCounts(){ await meta.put('trackPlayCounts', S.trackPlayCounts); }
+async function persistMetalEligibleSessions(){ await meta.put('metalEligibleSessions', S.metalEligibleSessions); }
+async function persistTrackMetalEligiblePlays(){ await meta.put('trackMetalEligiblePlays', S.trackMetalEligiblePlays); }
+async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
@@ -1523,10 +1522,10 @@ function invalidateSession(albumId){
   const rec = S.sessions[albumId];
   if(!rec) return;
   rec.invalidated = true; rec.lastActivityAt = Date.now();
-  DB.put('sessions', rec);
+  sessions.put(rec);
   delete S.sessions[albumId];
 }
-function discardSession(albumId){ delete S.sessions[albumId]; DB.put('sessions', {albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
+function discardSession(albumId){ delete S.sessions[albumId]; sessions.put({albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
 
 function invalidateActiveSessionIfAny(){
   if(S.sessionActive) invalidateSession(S.sessionActive);
@@ -1537,7 +1536,7 @@ export function touchActiveSession(){
   const rec = S.sessionActive && S.sessions[S.sessionActive];
   if(!rec) return;
   rec.lastActivityAt = Date.now();
-  DB.put('sessions', rec);
+  sessions.put(rec);
 }
 
 // called whenever a new track finishes loading; decides whether this track
@@ -1586,7 +1585,7 @@ function sessionTrackComplete(t){
   rec.lastActivityAt = Date.now();
   if(rec.tracksCompleted.length >= rec.expectedOrder.length){
     delete S.sessions[albumId];
-    DB.put('sessions', rec);
+    sessions.put(rec);
     S.sessionActive = null;
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
     if(trackTier(t) === 1) S.metalEligibleSessions[albumId] = (S.metalEligibleSessions[albumId] || 0) + 1;
@@ -1619,43 +1618,43 @@ function checkRareUnlock(albumId){
 }
 
 async function restoreSessions(){
-  const recs = await DB.all('sessions');
+  const recs = await sessions.all();
   const now = Date.now();
   recs.forEach(r => {
     if(r.invalidated) return;
     if(now - r.lastActivityAt > FOUR_HOURS) return;
     S.sessions[r.albumId] = r;
   });
-  const counts = await DB.get('meta', 'sessionCounts');
-  if(counts && counts.v) S.sessionCounts = counts.v;
-  const unlocked = await DB.get('meta', 'rareUnlocked');
-  if(unlocked && unlocked.v) S.rareUnlocked = unlocked.v;
-  const plays = await DB.get('meta', 'trackPlayCounts');
-  if(plays && plays.v) S.trackPlayCounts = plays.v;
+  const counts = await meta.get('sessionCounts');
+  if(counts) S.sessionCounts = counts;
+  const unlocked = await meta.get('rareUnlocked');
+  if(unlocked) S.rareUnlocked = unlocked;
+  const plays = await meta.get('trackPlayCounts');
+  if(plays) S.trackPlayCounts = plays;
   // fall back to a copy of the true lifetime counters if this is the first
   // load since the metal-eligible shadow counters were introduced — correct
   // for anyone who hasn't upgraded a tier-1 album yet, which is the common
   // case, and only diverges going forward for those who have
-  const metalSessions = await DB.get('meta', 'metalEligibleSessions');
-  S.metalEligibleSessions = (metalSessions && metalSessions.v) ? metalSessions.v : Object.assign({}, S.sessionCounts);
-  const metalPlays = await DB.get('meta', 'trackMetalEligiblePlays');
-  S.trackMetalEligiblePlays = (metalPlays && metalPlays.v) ? metalPlays.v : Object.assign({}, S.trackPlayCounts);
-  const lookPref = await DB.get('meta', 'albumLookPref');
-  if(lookPref && lookPref.v) S.albumLookPref = lookPref.v;
-  const albumLast = await DB.get('meta', 'albumLastPlayed');
-  if(albumLast && albumLast.v) S.albumLastPlayed = albumLast.v;
-  const trackLast = await DB.get('meta', 'trackLastPlayed');
-  if(trackLast && trackLast.v) S.trackLastPlayed = trackLast.v;
-  const display = await DB.get('meta', 'albumDisplay');
-  if(display && display.v) S.albumDisplay = display.v;
-  const trackDisp = await DB.get('meta', 'trackDisplay');
-  if(trackDisp && trackDisp.v) S.trackDisplay = trackDisp.v;
-  const edge = await DB.get('meta', 'albumEdge');
-  if(edge && edge.v) S.albumEdge = edge.v;
-  (await DB.all('achievements')).forEach(r => { S.achievements[r.albumId] = r; });
-  (await DB.all('collection')).forEach(r => { S.collection[r.albumId] = r; });
+  const metalSessions = await meta.get('metalEligibleSessions');
+  S.metalEligibleSessions = metalSessions || Object.assign({}, S.sessionCounts);
+  const metalPlays = await meta.get('trackMetalEligiblePlays');
+  S.trackMetalEligiblePlays = metalPlays || Object.assign({}, S.trackPlayCounts);
+  const lookPref = await meta.get('albumLookPref');
+  if(lookPref) S.albumLookPref = lookPref;
+  const albumLast = await meta.get('albumLastPlayed');
+  if(albumLast) S.albumLastPlayed = albumLast;
+  const trackLast = await meta.get('trackLastPlayed');
+  if(trackLast) S.trackLastPlayed = trackLast;
+  const display = await meta.get('albumDisplay');
+  if(display) S.albumDisplay = display;
+  const trackDisp = await meta.get('trackDisplay');
+  if(trackDisp) S.trackDisplay = trackDisp;
+  const edge = await meta.get('albumEdge');
+  if(edge) S.albumEdge = edge;
+  (await achievements.all()).forEach(r => { S.achievements[r.albumId] = r; });
+  (await collection.all()).forEach(r => { S.collection[r.albumId] = r; });
   await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
-  const prof = await DB.get('profile', 'me');
+  const prof = await profile.get('me');
   if(prof){
     S.profile.name = prof.name || '';
     S.profile.username = prof.username || '';
@@ -1711,9 +1710,9 @@ function applyOverlay(t, rec, artBlob){
 }
 
 async function loadOverlayFor(t){
-  if(!DB.ok) return;
-  const rec = await DB.get('overlays', t.id);
-  const artRec = await DB.get('artwork', t.id);
+  if(!storage.available()) return;
+  const rec = await overlays.get(t.id);
+  const artRec = await artwork.get(t.id);
   applyOverlay(t, rec, artRec && artRec.blob);
 }
 
@@ -1765,9 +1764,9 @@ async function applyEdit(trackIds, fields, artBlob){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
     const oldAlbumId = albumKey(t);
-    const existing = await DB.get('overlays', id);
+    const existing = await overlays.get(id);
     const merged = Object.assign({}, existing && existing.fields, fields);
-    await DB.put('overlays', {id, fields: merged});
+    await overlays.put({id, fields: merged});
     Object.assign(t.tags, fields);
     // the album id is recomputed from the (possibly just-edited) album
     // title — carry the seal state over so a retag never seals or unseals
@@ -1777,7 +1776,7 @@ async function applyEdit(trackIds, fields, artBlob){
       S.sealed.delete(oldAlbumId); S.sealed.add(newAlbumId); sealedChanged = true;
     }
     if(artBlob){
-      await DB.put('artwork', {id, blob: artBlob});
+      await artwork.put({id, blob: artBlob});
       if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
@@ -1802,8 +1801,8 @@ async function revertTrack(id){
   const i = idxOf(id); if(i < 0) return;
   const t = S.tracks[i];
   const hadArtOverlay = !!t.overlayArtBlob;
-  await DB.del('overlays', id);
-  await DB.del('artwork', id);
+  await overlays.del(id);
+  await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
   t.overlayArtBlob = null;
@@ -1822,8 +1821,8 @@ async function revertTrack(id){
 async function applyEditWithUndo(trackIds, fields, artBlob){
   const prevOverlays = {}, prevArt = {};
   for(const id of trackIds){
-    prevOverlays[id] = await DB.get('overlays', id);
-    prevArt[id] = await DB.get('artwork', id);
+    prevOverlays[id] = await overlays.get(id);
+    prevArt[id] = await artwork.get(id);
   }
   await applyEdit(trackIds, fields, artBlob);
   S.lastUndo = {trackIds: trackIds.slice(), prevOverlays, prevArt};
@@ -1838,8 +1837,8 @@ async function undoLastEdit(){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
     const prevRec = u.prevOverlays[id], prevArtRec = u.prevArt[id];
-    if(prevRec) await DB.put('overlays', prevRec); else await DB.del('overlays', id);
-    if(prevArtRec) await DB.put('artwork', prevArtRec); else await DB.del('artwork', id);
+    if(prevRec) await overlays.put(prevRec); else await overlays.del(id);
+    if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
     if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
@@ -1940,11 +1939,11 @@ async function saveEditSheet(){
 }
 
 async function storeTrack(t, blob){
-  if(!DB.ok) return false;
+  if(!storage.available()) return false;
   const artBlob = t.artBlob || null;
   // always the embedded tags, never the overlay-resolved ones — the overlay
   // already lives in its own store and is re-applied on every load
-  const ok = await DB.put('tracks', {id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), details:t.details || null, meta:t.meta,
+  const ok = await tracks.put({id:t.id, blob, art:artBlob, tags:(t.embeddedTags || t.tags), details:t.details || null, meta:t.meta,
     duration:t.duration, gaplessDelaySec:t.gaplessDelaySec || 0, gaplessPaddingSec:t.gaplessPaddingSec || 0,
     addedAt:t.addedAt, sizeBytes:t.sizeBytes || 0});
   return ok;
@@ -2015,9 +2014,9 @@ async function deleteTracks(idsToDelete){
   if(sealedChanged) persistSealedAlbums();
 
   for(const id of idsToDelete){
-    await DB.del('tracks', id);
-    await DB.del('overlays', id);
-    await DB.del('artwork', id);
+    await tracks.del(id);
+    await overlays.del(id);
+    await artwork.del(id);
   }
 
   S.playlists = plSnapshot.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
@@ -2076,12 +2075,13 @@ async function forgetLibrary(){
   // achievements and the Collection outlive "forget library", so their thumbnails do too
   const keepThumbs = [];
   for(const id of new Set(Object.keys(S.achievements).concat(Object.keys(S.collection)))){
-    const row = await DB.get('meta', 'thumb:album:' + id);
-    if(row) keepThumbs.push(row);
+    const key = 'thumb:album:' + id;
+    const blob = await meta.get(key);
+    if(blob) keepThumbs.push({key, blob});
   }
-  await DB.clear('tracks'); await DB.clear('meta'); await DB.clear('sessions');
-  await DB.clear('overlays'); await DB.clear('artwork');
-  for(const row of keepThumbs) await DB.put('meta', row);
+  await tracks.clear(); await meta.clear(); await sessions.clear();
+  await overlays.clear(); await artwork.clear();
+  for(const {key, blob} of keepThumbs) await meta.put(key, blob);
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
@@ -2143,15 +2143,15 @@ async function clearListeningHistory(orphanedOnly){
     S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
     S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
     S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
-    for(const id of droppedAlbums) await DB.del('achievements', id);
-    for(const id of droppedCollection) await DB.del('collection', id);
-    for(const id of droppedSessions) await DB.del('sessions', id);
+    for(const id of droppedAlbums) await achievements.del(id);
+    for(const id of droppedCollection) await collection.del(id);
+    for(const id of droppedSessions) await sessions.del(id);
   } else {
     S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
     S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
     S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
     S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
-    await DB.clear('achievements'); await DB.clear('collection'); await DB.clear('sessions');
+    await achievements.clear(); await collection.clear(); await sessions.clear();
   }
   await pruneThumbs();
   await Promise.all([
@@ -2181,7 +2181,7 @@ export async function ensureBuffer(i){
   if(!t) return false;
   if(t.buffer){ touchLRU(i); return true; }
   let blob = t.blob;
-  if(!blob && t.stored){ const rec = await DB.get('tracks', t.id); blob = rec && rec.blob; }
+  if(!blob && t.stored){ const rec = await tracks.get(t.id); blob = rec && rec.blob; }
   if(!blob){ setPathNote('The file for this track is no longer available. Add it again from Library.', true); return false; }
   try{
     setPathNote('Decoding ' + t.tags.title + '…');
@@ -4055,7 +4055,7 @@ async function applyTrackNumbersInOrder(){
   });
   if(!ids.length) return;
   const prevOverlays = {}, prevArt = {};
-  for(const id of ids){ prevOverlays[id] = await DB.get('overlays', id); prevArt[id] = await DB.get('artwork', id); }
+  for(const id of ids){ prevOverlays[id] = await overlays.get(id); prevArt[id] = await artwork.get(id); }
   for(let k = 0; k < ids.length; k++){ await applyEdit([ids[k]], {track: k + 1}, null); }
   S.lastUndo = {trackIds: ids.slice(), prevOverlays, prevArt};
   showUndoBanner(ids.length);
@@ -4581,7 +4581,7 @@ async function buildCrateTier(albumId, tier){
   crateArtBuilding.add(buildKey);
   try{
     const key = crateTierKey(tier, albumId);
-    const existing = await DB.get('artwork', key);
+    const existing = await artwork.get(key);
     if(existing) return true;   // resumable: a heal pass just skips what's already built
     const srcUrl = crateArtSourceFor(albumId);
     if(!srcUrl) return false;
@@ -4589,7 +4589,7 @@ async function buildCrateTier(albumId, tier){
     const px = tier === 'L' ? CRATE_TIER_L_PX : CRATE_TIER_S_PX;
     const q = tier === 'L' ? CRATE_TIER_L_Q : CRATE_TIER_S_Q;
     const out = await cropSquareImageStepped(blob, px, q);
-    await DB.put('artwork', {id: key, blob: out});
+    await artwork.put({id: key, blob: out});
     return true;
   }catch(e){ return false; }
   finally{ crateArtBuilding.delete(buildKey); }
@@ -4617,10 +4617,10 @@ async function getCrateArtURL(albumId, tier){
     return url;
   }
   const key = crateTierKey(tier, albumId);
-  let rec = await DB.get('artwork', key);
+  let rec = await artwork.get(key);
   if(!rec){
     if(!(await buildCrateTier(albumId, tier))) return null;
-    rec = await DB.get('artwork', key);
+    rec = await artwork.get(key);
     if(!rec) return null;
   }
   const url = URL.createObjectURL(rec.blob);
@@ -4635,8 +4635,8 @@ function revokeCrateArtTier(albumId, tier){
 
 async function deleteCrateArtTiers(albumId){
   revokeCrateArtTier(albumId, 'S'); revokeCrateArtTier(albumId, 'L');
-  await DB.del('artwork', crateTierKey('S', albumId));
-  await DB.del('artwork', crateTierKey('L', albumId));
+  await artwork.del(crateTierKey('S', albumId));
+  await artwork.del(crateTierKey('L', albumId));
 }
 
 // background S-tier pass for the whole library, starting at the crate
@@ -6334,7 +6334,7 @@ export function renderTracks(){
    only — no locked slots, no progress bars, no "X more until Y", no
    general listening stats. See PROFILE spec §1. */
 async function persistProfile(){
-  await DB.put('profile', {k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
+  await profile.put({k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
 }
 
 // "John Smith" -> "John S."; a single word (or nothing) passes through as-is
@@ -6672,6 +6672,10 @@ function renderStorefrontSection(body){
 // Local albumId -> social metadata, by way of the same pure adapter the
 // vendored client builds internally — none of this touches the network.
 function localStaffPicks(){
+  // DB (not the repo.js interface) is what MizikiSocial.mizikiAdapter's own
+  // signature expects — this is the one call site step 4c's "no DB. calls
+  // outside src/storage/" leaves alone, since the adapter is social-client
+  // code, not main.js's own storage access.
   const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
   return MizikiSocial.getPins().map(albumId => {
     const info = adapter.albumInfo(albumId);
@@ -7545,6 +7549,8 @@ async function renderHome(){
    reading someone else's crate/feed/digging, now-spinning) with in-memory fixtures. This
    is reachable only behind the query flag below and is never wired into a real build. */
 function installSocialDemo(){
+  // see the same note on DB in localStaffPicks() above — mizikiAdapter's
+  // own signature expects DB, not the repo.js interface.
   const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
   const me = { handle:'', display_name:'', bio:'', visibility:'friends', show_digging_list:true };
   let auth = 'signedOut';
@@ -9257,7 +9263,7 @@ export function showRoute(name){
 
 async function restoreLibrary(){
   const note = $('#storeNote');
-  const ok = await DB.open();
+  const ok = await storage.open();
   if(!ok){
     note.textContent = 'Storage is not available here, so this library lasts only for the session. '
       + 'Served from your own address and added to the Home Screen, it persists.';
@@ -9266,7 +9272,7 @@ async function restoreLibrary(){
     return;
   }
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
-  const recs = await DB.all('tracks');
+  const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
   for(const r of recs){
     const t = {
