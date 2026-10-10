@@ -22,6 +22,7 @@ import {
   countForAlbum, countForArtist, formatBytes, totalLibraryBytes,
   deleteTracks, deleteAlbum, deleteArtist, forgetLibrary,
 } from './library/delete.js';
+import { openDuplicateScan } from './library/duplicate-scan.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -532,64 +533,8 @@ function collectionGroups(){
   return groups;
 }
 
-/* ================= duplicate scan (library-wide) =================
-   Separate from the single-file duplicate prompt shown during import (see
-   src/library/duplicates-ui.js) — this is the "scan my whole library"
-   screen reached from settings. Not yet extracted; it calls deleteTracks,
-   which moves in step 5d. */
-// Library-wide scan for duplicates that arise from metadata edits, not just
-// import (see PLAYBACK/IMPORT spec §6) — offered separately in settings.
-function findAllDuplicateGroups(){
-  const groups = {};
-  S.tracks.forEach((t,i) => {
-    const key = trackIdentityKey(t);
-    (groups[key] = groups[key] || []).push(i);
-  });
-  return Object.values(groups).filter(idxs => idxs.length > 1);
-}
-
-function openDuplicateScan(){
-  renderDupScan();
-  $('#dupScanOverlay').classList.add('open');
-  $('#dupScanOverlay').setAttribute('aria-hidden','false');
-}
-function renderDupScan(){
-  const groups = findAllDuplicateGroups();
-  const body = $('#dupScanBody');
-  if(!groups.length){
-    body.innerHTML = '<p class="note" style="margin-top:0">No duplicates found.</p>';
-    return;
-  }
-  body.innerHTML = '';
-  groups.forEach((idxs, gi) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'row';
-    wrap.style.flexDirection = 'column';
-    wrap.style.alignItems = 'stretch';
-    const names = idxs.map(i => S.tracks[i]).map(t => t.tags.title + ' — ' + t.tags.artist).join('<br>');
-    wrap.innerHTML = '<div class="k" style="margin-bottom:8px">' + names + '</div>';
-    const stack = document.createElement('div');
-    stack.className = 'stack';
-    const keepBtn = document.createElement('button');
-    keepBtn.className = 'cta ghost';
-    keepBtn.textContent = 'Keep newest only';
-    keepBtn.addEventListener('click', async () => {
-      const ranked = idxs.map(i => S.tracks[i]).sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-      const toRemove = ranked.slice(1).map(t => t.id);
-      await deleteTracks(toRemove);
-      renderDupScan();
-    });
-    const skipBtn = document.createElement('button');
-    skipBtn.className = 'cta ghost';
-    skipBtn.textContent = 'Skip';
-    skipBtn.addEventListener('click', () => {
-      wrap.remove();
-    });
-    stack.appendChild(keepBtn); stack.appendChild(skipBtn);
-    wrap.appendChild(stack);
-    body.appendChild(wrap);
-  });
-}
+/* findAllDuplicateGroups/openDuplicateScan/renderDupScan moved to
+   src/library/duplicate-scan.js (step 5d). */
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,

@@ -2,10 +2,10 @@
    Moved out of main.js's "file loading" section (step 5b), unchanged.
    askDuplicateResolution() is shown once per likely-duplicate file during
    import (see import.js); closeDuplicateScan() closes the separate,
-   library-wide duplicate-scan overlay that still opens from main.js's
-   settings screen (openDuplicateScan()/renderDupScan() haven't moved yet —
-   they call deleteTracks(), which moves in step 5d). No S, no main.js
-   import — just the dialog plumbing. */
+   library-wide duplicate-scan overlay opened by openDuplicateScan() (see
+   duplicate-scan.js, step 5d) — kept here rather than moved there since it
+   doesn't touch findAllDuplicateGroups/renderDupScan, just the dialog
+   plumbing shared with askDuplicateResolution(). No S, no main.js import. */
 import { $ } from '../util/dom.js';
 
 let dupResolvePromise = null;

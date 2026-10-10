@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/library/tags/index.js';
 
 // import.js has temporary circular imports back to main.js (rule 8 in
-// CLAUDE.md), plus real imports (queue.js, buffers.js) that themselves
-// pull in transport.js/clock.js/sleep-timer.js/engine.js, and those in
-// turn need more of main.js's DOM-dependent top level. findDuplicateTrack
-// and DUP_DURATION_TOLERANCE_SEC don't touch any of that — they only read
-// S.tracks — but loading import.js at all means stopping the chain at
-// the door, the same approach as engine.test.js/queue.test.js.
+// CLAUDE.md), plus real imports (queue.js, buffers.js, edit.js, delete.js)
+// that themselves pull in transport.js/clock.js/sleep-timer.js/engine.js,
+// and those in turn need more of main.js's DOM-dependent top level.
+// findDuplicateTrack and DUP_DURATION_TOLERANCE_SEC don't touch any of
+// that — they only read S.tracks — but loading import.js at all means
+// stopping the chain at the door, the same approach as
+// engine.test.js/queue.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
