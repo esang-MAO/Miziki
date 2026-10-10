@@ -8,6 +8,7 @@ import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './
 import { touchLRU, ensureBuffer } from './player/buffers.js';
 import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from './player/queue.js';
 import { readHeader, readTags, readDetails, findArtworkBlob, emptyDetails } from './library/tags/index.js';
+import { askDuplicateResolution, closeDupOverlay, closeDuplicateScan } from './library/duplicates-ui.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -548,21 +549,6 @@ function findDuplicateTrack(newTags, newDuration){
     Math.abs((t.duration||0) - (newDuration||0)) <= DUP_DURATION_TOLERANCE_SEC);
 }
 
-let dupResolvePromise = null;
-function askDuplicateResolution(existingTrack, newFileName){
-  return new Promise(resolve => {
-    $('#dupBody').textContent = '"' + newFileName + '" looks like a duplicate of "' + existingTrack.tags.title + '" already in your library.';
-    dupResolvePromise = resolve;
-    $('#dupOverlay').classList.add('open');
-    $('#dupOverlay').setAttribute('aria-hidden','false');
-  });
-}
-function closeDupOverlay(choice){
-  $('#dupOverlay').classList.remove('open');
-  $('#dupOverlay').setAttribute('aria-hidden','true');
-  if(dupResolvePromise){ const r = dupResolvePromise; dupResolvePromise = null; r(choice); }
-}
-
 // Library-wide scan for duplicates that arise from metadata edits, not just
 // import (see PLAYBACK/IMPORT spec §6) — offered separately in settings.
 function findAllDuplicateGroups(){
@@ -578,10 +564,6 @@ function openDuplicateScan(){
   renderDupScan();
   $('#dupScanOverlay').classList.add('open');
   $('#dupScanOverlay').setAttribute('aria-hidden','false');
-}
-function closeDuplicateScan(){
-  $('#dupScanOverlay').classList.remove('open');
-  $('#dupScanOverlay').setAttribute('aria-hidden','true');
 }
 function renderDupScan(){
   const groups = findAllDuplicateGroups();
