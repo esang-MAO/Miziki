@@ -6,10 +6,12 @@ import { routeSource } from '../audio/engine.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
+import { advance, preloadNextTrack } from './queue.js';
+import { ensureBuffer } from './buffers.js';
 import {
   sessionOnLoad, updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
   updateGatefoldNowPlaying, updateCreditsButtonForCurrent, updateFavoriteButtons,
-  advance, preloadNextTrack, bgPrime, showRoute, ensureBuffer, breakSeal,
+  bgPrime, showRoute, breakSeal,
   clearSpinDown, touchActiveSession, bgRouteActive, bgIdleNow, bgPosition,
 } from '../main.js';
 
