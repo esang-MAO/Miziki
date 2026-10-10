@@ -15,8 +15,12 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {}, deleteTracks: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
-    invalidateActiveSessionIfAny(){}, runStartSequence: async () => {}, openPlayerViaSheet(){},
+    runStartSequence: async () => {}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
+    // queue.js's invalidateActiveSessionIfAny import is now a real one
+    // from src/history/sessions.js (step 5c), which itself needs these
+    // from main.js
+    applyDiscVariant(){}, restoreThumbs: async () => {},
   },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {

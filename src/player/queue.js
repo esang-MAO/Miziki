@@ -8,11 +8,12 @@ import { sleepStopPlayback } from './sleep-timer.js';
 import { load, play, pause, seek } from './transport.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
+import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — these
-// are screen/session functions that haven't been extracted yet. Used only
-// inside the functions below, never at module load.
+// are screen functions that haven't been extracted yet. Used only inside
+// the functions below, never at module load.
 import {
-  invalidateActiveSessionIfAny, runStartSequence, openPlayerViaSheet,
+  runStartSequence, openPlayerViaSheet,
   shouldPutAway, putAwayInstant, runPutAwaySequence,
 } from '../main.js';
 

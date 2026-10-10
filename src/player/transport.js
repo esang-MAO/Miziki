@@ -8,11 +8,12 @@ import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
 import { advance, preloadNextTrack } from './queue.js';
 import { ensureBuffer } from './buffers.js';
+import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import {
-  sessionOnLoad, updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
+  updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
   updateGatefoldNowPlaying, updateCreditsButtonForCurrent, updateFavoriteButtons,
   bgPrime, showRoute, breakSeal,
-  clearSpinDown, touchActiveSession, bgRouteActive, bgIdleNow, bgPosition,
+  clearSpinDown, bgRouteActive, bgIdleNow, bgPosition,
 } from '../main.js';
 
 export function load(i){
