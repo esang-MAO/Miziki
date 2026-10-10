@@ -30,6 +30,7 @@ import {
   trackHasCreditsContent, openPersonOrArtist, creditRow, openCreditsSheet, closeCreditsSheet,
   updateCreditsButtonForCurrent, albumLinerNotes, albumCreditRoll, rebuildPeopleIndex, renderPersonView,
 } from './library/credits.js';
+import { isFavorite, toggleFavorite, updateFavoriteButtons } from './library/favorites.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -2111,51 +2112,8 @@ function togglePick(i, node){
   node.classList.toggle('picked', at < 0);
 }
 
-/* ================= favorites: a real playlist, not a separate flag
-   (CREDITS/FAVORITES spec §4). The system:'favorites' tag must be carried
-   through every place playlists are copied — saveMeta, restoreMeta and
-   deleteTracks' snapshot/rebuild — or it's lost on the next reload. */
-function findFavoritesPlaylist(){ return S.playlists.find(p => p.system === 'favorites'); }
-function ensureFavoritesPlaylist(){
-  let pl = findFavoritesPlaylist();
-  if(pl) return pl;
-  // adopt a playlist the user already named "Favorites" rather than duplicate it
-  pl = S.playlists.find(p => p.name === 'Favorites' && !p.system);
-  if(pl){ pl.system = 'favorites'; return pl; }
-  pl = {name:'Favorites', items:[], system:'favorites'};
-  S.playlists.unshift(pl);
-  return pl;
-}
-function isFavorite(id){
-  const pl = findFavoritesPlaylist();
-  if(!pl) return false;
-  const i = idxOf(id);
-  return i >= 0 && pl.items.includes(i);
-}
-function toggleFavorite(id){
-  const pl = ensureFavoritesPlaylist();
-  const i = idxOf(id);
-  if(i < 0) return;
-  const at = pl.items.indexOf(i);
-  if(at >= 0) pl.items.splice(at, 1); else pl.items.push(i);
-  queueSave();
-  updateFavoriteButtons();
-  const t = current();
-  if(!REDUCED && t && t.id === id){
-    [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => { if(!b) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
-  }
-  renderTracks();
-}
-export function updateFavoriteButtons(){
-  const t = current();
-  const fav = t ? isFavorite(t.id) : false;
-  [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => {
-    if(!b) return;
-    b.style.display = t ? '' : 'none';
-    b.setAttribute('aria-pressed', String(fav));
-    b.textContent = fav ? '♥' : '♡';
-  });
-}
+/* Favorites (a real playlist, not a separate flag) moved to
+   src/library/favorites.js (step 5e). */
 
 function moveIn(arr, pos, dir){
   const n = pos + dir;

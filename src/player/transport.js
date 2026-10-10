@@ -10,9 +10,10 @@ import { advance, preloadNextTrack } from './queue.js';
 import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
+import { updateFavoriteButtons } from '../library/favorites.js';
 import {
   updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
-  updateGatefoldNowPlaying, updateFavoriteButtons,
+  updateGatefoldNowPlaying,
   bgPrime, showRoute, breakSeal,
   clearSpinDown, bgRouteActive, bgIdleNow, bgPosition,
 } from '../main.js';
