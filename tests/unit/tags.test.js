@@ -11,7 +11,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // the door, the same approach as engine.test.js/queue.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    loadOverlayFor(){}, rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){},
+    rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
     queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {}, deleteTracks: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
@@ -21,6 +21,9 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // from src/history/sessions.js (step 5c), which itself needs these
     // from main.js
     applyDiscVariant(){}, restoreThumbs: async () => {},
+    // import.js's loadOverlayFor import is now a real one from
+    // src/library/edit.js (step 5d), which itself needs these from main.js
+    deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {}, exitSelectMode(){},
   },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {

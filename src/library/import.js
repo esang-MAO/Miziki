@@ -17,11 +17,12 @@ import { allIdx } from './model.js';
 import { storage, tracks } from '../storage/repo.js';
 import { readHeader, readTags, readDetails, findArtworkBlob, emptyDetails } from './tags/index.js';
 import { askDuplicateResolution } from './duplicates-ui.js';
+import { loadOverlayFor } from './edit.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — screen/
 // persistence functions not yet extracted. Used only inside the functions
 // below, never at module top level.
 import {
-  loadOverlayFor, rebuildPeopleIndex, invalidateCrateModel, renderTracks,
+  rebuildPeopleIndex, invalidateCrateModel, renderTracks,
   queueSave, persistSealedAlbums, healCrateArt, deleteTracks,
 } from '../main.js';
 
