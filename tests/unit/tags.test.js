@@ -12,7 +12,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
-    queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {}, deleteTracks: async () => {},
+    queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
     runStartSequence: async () => {}, openPlayerViaSheet(){},
@@ -21,19 +21,21 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // from src/history/sessions.js (step 5c), which itself needs these
     // from main.js
     applyDiscVariant(){}, restoreThumbs: async () => {},
-    // import.js's loadOverlayFor import is now a real one from
-    // src/library/edit.js (step 5d), which itself needs these from main.js
+    // import.js's loadOverlayFor/deleteTracks imports are now real ones
+    // from src/library/edit.js/delete.js (step 5d), which themselves need
+    // these from main.js
     deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {}, exitSelectMode(){},
+    clearSpinDown(){}, closePlayer(){},
   },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, play(){}, pause(){}, seek(){} },
+  namedExports: { load(){}, play(){}, pause(){}, seek(){}, stop(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
-  namedExports: { sleepStopPlayback(){} },
+  namedExports: { sleepStopPlayback(){}, stopSleepState(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext: async () => {} },
