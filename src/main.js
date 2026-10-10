@@ -4,7 +4,7 @@ import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
-import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
+import { byName, trackSort, groupBy, allIdx, albumTracks, idxOf } from './library/model.js';
 import { touchLRU, ensureBuffer } from './player/buffers.js';
 import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from './player/queue.js';
 import { readDetails, emptyDetails } from './library/tags/index.js';
@@ -14,12 +14,21 @@ import {
   albumExpectedOrder, persistAlbumLookPref, invalidateActiveSessionIfAny, touchActiveSession, restoreSessions,
 } from './history/sessions.js';
 import { clearListeningHistory } from './history/clear.js';
+import {
+  loadOverlayFor, cropSquareImage, applyEdit, revertTrack, applyEditWithUndo,
+  undoLastEdit, showUndoBanner, openEditSheet, closeEditSheet, saveEditSheet,
+} from './library/edit.js';
+import {
+  countForAlbum, countForArtist, formatBytes, totalLibraryBytes,
+  deleteTracks, deleteAlbum, deleteArtist, forgetLibrary,
+} from './library/delete.js';
+import { openDuplicateScan } from './library/duplicate-scan.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
 import { updateSleepUI, stopSleepState, sleepStopPlayback, sleepCheckDeadline, openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
 import { ensureContext, applyCharacter, routeSource } from './audio/engine.js';
-import { load, play, stop, pause, seek } from './player/transport.js';
+import { load, play, pause, seek } from './player/transport.js';
 import { fmt, drawTime, drawSun, frame } from './player/clock.js';
 import { wireSpinToScrub } from './player/scrub.js';
 import { setPathNote } from './ui/path-note.js';
@@ -27,7 +36,7 @@ import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
 import { serializePrefs, parsePrefs } from './storage/prefs.js';
 import {
-  storage, tracks, meta, sessions, achievements, collection, overlays, artwork, profile,
+  storage, tracks, meta, achievements, collection, overlays, artwork, profile,
 } from './storage/repo.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -524,64 +533,8 @@ function collectionGroups(){
   return groups;
 }
 
-/* ================= duplicate scan (library-wide) =================
-   Separate from the single-file duplicate prompt shown during import (see
-   src/library/duplicates-ui.js) — this is the "scan my whole library"
-   screen reached from settings. Not yet extracted; it calls deleteTracks,
-   which moves in step 5d. */
-// Library-wide scan for duplicates that arise from metadata edits, not just
-// import (see PLAYBACK/IMPORT spec §6) — offered separately in settings.
-function findAllDuplicateGroups(){
-  const groups = {};
-  S.tracks.forEach((t,i) => {
-    const key = trackIdentityKey(t);
-    (groups[key] = groups[key] || []).push(i);
-  });
-  return Object.values(groups).filter(idxs => idxs.length > 1);
-}
-
-function openDuplicateScan(){
-  renderDupScan();
-  $('#dupScanOverlay').classList.add('open');
-  $('#dupScanOverlay').setAttribute('aria-hidden','false');
-}
-function renderDupScan(){
-  const groups = findAllDuplicateGroups();
-  const body = $('#dupScanBody');
-  if(!groups.length){
-    body.innerHTML = '<p class="note" style="margin-top:0">No duplicates found.</p>';
-    return;
-  }
-  body.innerHTML = '';
-  groups.forEach((idxs, gi) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'row';
-    wrap.style.flexDirection = 'column';
-    wrap.style.alignItems = 'stretch';
-    const names = idxs.map(i => S.tracks[i]).map(t => t.tags.title + ' — ' + t.tags.artist).join('<br>');
-    wrap.innerHTML = '<div class="k" style="margin-bottom:8px">' + names + '</div>';
-    const stack = document.createElement('div');
-    stack.className = 'stack';
-    const keepBtn = document.createElement('button');
-    keepBtn.className = 'cta ghost';
-    keepBtn.textContent = 'Keep newest only';
-    keepBtn.addEventListener('click', async () => {
-      const ranked = idxs.map(i => S.tracks[i]).sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-      const toRemove = ranked.slice(1).map(t => t.id);
-      await deleteTracks(toRemove);
-      renderDupScan();
-    });
-    const skipBtn = document.createElement('button');
-    skipBtn.className = 'cta ghost';
-    skipBtn.textContent = 'Skip';
-    skipBtn.addEventListener('click', () => {
-      wrap.remove();
-    });
-    stack.appendChild(keepBtn); stack.appendChild(skipBtn);
-    wrap.appendChild(stack);
-    body.appendChild(wrap);
-  });
-}
+/* findAllDuplicateGroups/openDuplicateScan/renderDupScan moved to
+   src/library/duplicate-scan.js (step 5d). */
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
@@ -692,413 +645,12 @@ function applyPrefs(p){
 /* Session tracking and played-duration tracking moved to
    src/history/sessions.js and src/history/played.js (step 5c). */
 
-/* ================= metadata editing: sidecar overlay =================
-   Source of truth stays the app's own database. Edits are stored as a
-   sparse overlay (only the fields actually changed) keyed by the same
-   stable file id used everywhere else — never by mutating the original
-   file. Resolve order for any field: user edit > embedded file tag >
-   fallback. The overlay is applied once, when a track enters S.tracks, so
-   the rest of the app just reads t.tags/t.art as always; no caller needs
-   to know an overlay exists. t.embeddedTags/t.embeddedArt are kept aside
-   so a track can always revert. */
-function applyOverlay(t, rec, artBlob){
-  t.embeddedTags = Object.assign({}, t.tags);
-  t.embeddedArt = t.art;
-  if(rec && rec.fields) Object.keys(rec.fields).forEach(k => { t.tags[k] = rec.fields[k]; });
-  if(artBlob){ t.overlayArtBlob = artBlob; t.art = URL.createObjectURL(artBlob); }
-}
+/* Metadata editing (the sidecar-overlay section: applyEdit, revertTrack,
+   the undo banner, the edit sheet) moved to src/library/edit.js (step 5d). */
 
-export async function loadOverlayFor(t){
-  if(!storage.available()) return;
-  const rec = await overlays.get(t.id);
-  const artRec = await artwork.get(t.id);
-  applyOverlay(t, rec, artRec && artRec.blob);
-}
-
-// downscale + center-crop any image Blob/File to a square JPEG, capped at maxDim —
-// the full player crops square art to a circle for the label and the sleeve
-// renders it square, so a centered square source is what every render target wants
-function cropSquareImage(file, maxDim){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const side = Math.min(img.width, img.height);
-      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
-      const out = Math.min(maxDim || 800, side);
-      const canvas = document.createElement('canvas');
-      canvas.width = out; canvas.height = out;
-      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, out, out);
-      URL.revokeObjectURL(img.src);
-      canvas.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', 0.9);
-    };
-    img.onerror = () => reject(new Error('could not read image'));
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-// refreshes everything that depends on a track's tags/art after an edit —
-// the disc (if it's the one currently on the platter), the library list,
-// and the mini-player
-function recomputeTrack(i){
-  const t = S.tracks[i];
-  if(!t) return;
-  if(S.index === i){
-    applyDiscVariant(t, true);
-    $('#trackName').textContent = t.tags.title;
-    $('#trackBy').textContent = t.tags.artist + ' — ' + t.tags.album;
-    const lab = $('#label'), img = $('#labelArt');
-    if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
-    else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
-  }
-  renderTracks();
-  renderMiniPlayer();
-}
-
-// applies fields (and optionally new artwork) to one or more tracks, merging
-// onto any existing overlay rather than replacing it, and persists each
-async function applyEdit(trackIds, fields, artBlob){
-  const touchedAlbumIds = new Set();
-  let sealedChanged = false;
-  for(const id of trackIds){
-    const i = idxOf(id); if(i < 0) continue;
-    const t = S.tracks[i];
-    const oldAlbumId = albumKey(t);
-    const existing = await overlays.get(id);
-    const merged = Object.assign({}, existing && existing.fields, fields);
-    await overlays.put({id, fields: merged});
-    Object.assign(t.tags, fields);
-    // the album id is recomputed from the (possibly just-edited) album
-    // title — carry the seal state over so a retag never seals or unseals
-    // an album as a side effect (SEALED spec §2)
-    const newAlbumId = albumKey(t);
-    if(newAlbumId !== oldAlbumId && S.sealed.has(oldAlbumId)){
-      S.sealed.delete(oldAlbumId); S.sealed.add(newAlbumId); sealedChanged = true;
-    }
-    if(artBlob){
-      await artwork.put({id, blob: artBlob});
-      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
-      t.overlayArtBlob = artBlob;
-      t.art = URL.createObjectURL(artBlob);
-      touchedAlbumIds.add(albumKey(t));
-    }
-    recomputeTrack(i);
-  }
-  // the crate tiers are cut from this same artwork — a new cover makes the
-  // old tiers stale, so clear them and rebuild the S tier right away (the
-  // spec's "rebuild that album's tiers... from wherever ensureThumb is
-  // re-run for edits", §B3)
-  for(const albumId of touchedAlbumIds){
-    await deleteCrateArtTiers(albumId);
-    buildCrateTier(albumId, 'S').catch(() => {});
-  }
-  if(sealedChanged) persistSealedAlbums();
-}
-
-// clears a track's whole overlay (fields + artwork), restoring it to
-// whatever its embedded file tags said
-async function revertTrack(id){
-  const i = idxOf(id); if(i < 0) return;
-  const t = S.tracks[i];
-  const hadArtOverlay = !!t.overlayArtBlob;
-  await overlays.del(id);
-  await artwork.del(id);
-  t.tags = Object.assign({}, t.embeddedTags);
-  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
-  t.overlayArtBlob = null;
-  t.art = t.embeddedArt;
-  if(hadArtOverlay){
-    const albumId = albumKey(t);
-    await deleteCrateArtTiers(albumId);
-    buildCrateTier(albumId, 'S').catch(() => {});
-  }
-  recomputeTrack(i);
-}
-
-// single-level undo for a batch (or single) edit: snapshots exactly what was
-// in the overlay/artwork stores before the edit, so undo restores that exact
-// prior state rather than always falling back to the embedded tags
-async function applyEditWithUndo(trackIds, fields, artBlob){
-  const prevOverlays = {}, prevArt = {};
-  for(const id of trackIds){
-    prevOverlays[id] = await overlays.get(id);
-    prevArt[id] = await artwork.get(id);
-  }
-  await applyEdit(trackIds, fields, artBlob);
-  S.lastUndo = {trackIds: trackIds.slice(), prevOverlays, prevArt};
-  showUndoBanner(trackIds.length);
-}
-
-async function undoLastEdit(){
-  const u = S.lastUndo; if(!u) return;
-  S.lastUndo = null;
-  const touchedAlbumIds = new Set();
-  for(const id of u.trackIds){
-    const i = idxOf(id); if(i < 0) continue;
-    const t = S.tracks[i];
-    const prevRec = u.prevOverlays[id], prevArtRec = u.prevArt[id];
-    if(prevRec) await overlays.put(prevRec); else await overlays.del(id);
-    if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
-    t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
-    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
-    if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
-    else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
-    recomputeTrack(i);
-  }
-  for(const albumId of touchedAlbumIds){
-    await deleteCrateArtTiers(albumId);
-    buildCrateTier(albumId, 'S').catch(() => {});
-  }
-  hideUndoBanner();
-}
-
-function showUndoBanner(count){
-  const bar = $('#undoBanner');
-  $('#undoText').textContent = count === 1 ? 'Track updated.' : count + ' tracks updated.';
-  bar.style.display = 'flex';
-  clearTimeout(S.undoTimer);
-  S.undoTimer = setTimeout(hideUndoBanner, 8000);
-}
-function hideUndoBanner(){
-  $('#undoBanner').style.display = 'none';
-  S.lastUndo = null;
-}
-
-/* ---- edit sheet: same form for a single track or a batch selection ---- */
-function renderEditArtPreview(url){
-  const box = $('#editArtPreview'); box.innerHTML = '';
-  if(url){ const im = document.createElement('img'); im.src = url; im.alt = ''; box.appendChild(im); }
-  else box.appendChild(el('span', null, 'No art'));
-}
-
-function openEditSheet(trackIds){
-  if(!trackIds.length) return;
-  const batch = trackIds.length > 1;
-  S.editTarget = {trackIds, batch};
-  S.editArtBlob = null;
-  const first = S.tracks[idxOf(trackIds[0])];
-  if(!first) return;
-  $('#editTitleLabel').textContent = batch ? ('Edit ' + trackIds.length + ' tracks') : 'Edit track';
-  $('#editTitleRow').style.display = batch ? 'none' : '';
-  $('#editTitle').value = batch ? '' : (first.tags.title || '');
-  $('#editArtist').value = batch ? '' : (first.tags.artist || '');
-  $('#editAlbum').value = batch ? '' : (first.tags.album || '');
-  $('#editAlbumArtist').value = batch ? '' : (first.tags.albumArtist || '');
-  $('#editTrackRow').style.display = batch ? 'none' : '';
-  $('#editTrackNum').value = batch ? '' : (first.tags.track || '');
-  $('#editRevert').style.display = batch ? 'none' : '';
-  $('#editBatchNote').style.display = batch ? 'block' : 'none';
-  if(batch) $('#editBatchNote').textContent = 'Artist, album, and cover apply to all ' + trackIds.length
-    + ' selected tracks. Titles are left as they are.';
-  renderEditArtPreview(batch ? null : first.art);
-  // single-track fields start pre-filled with the current values (so the
-  // user can see them), which means only what actually changed from these
-  // should become a new overlay entry — otherwise every save would silently
-  // freeze untouched fields (like a fallback title) into the overlay forever
-  S.editOriginal = batch ? null : {
-    title: first.tags.title || '', artist: first.tags.artist || '', album: first.tags.album || '',
-    albumArtist: first.tags.albumArtist || '', track: String(first.tags.track || '')
-  };
-  $('#editOverlay').classList.add('open');
-  $('#editOverlay').setAttribute('aria-hidden','false');
-}
-
-function closeEditSheet(){
-  $('#editOverlay').classList.remove('open');
-  $('#editOverlay').setAttribute('aria-hidden','true');
-  S.editTarget = null; S.editArtBlob = null;
-}
-
-async function saveEditSheet(){
-  const target = S.editTarget; if(!target) return;
-  const fields = {};
-  if(target.batch){
-    // blank = leave alone; batch fields never start pre-filled, so any
-    // non-blank value here is something the user actually typed
-    const artist = $('#editArtist').value.trim(); if(artist) fields.artist = artist;
-    const album = $('#editAlbum').value.trim(); if(album) fields.album = album;
-    const albumArtist = $('#editAlbumArtist').value.trim(); if(albumArtist) fields.albumArtist = albumArtist;
-  } else {
-    // single-track fields start pre-filled with current values, so only
-    // what differs from that starting point counts as an actual edit
-    const orig = S.editOriginal || {};
-    const title = $('#editTitle').value.trim(); if(title && title !== orig.title) fields.title = title;
-    const artist = $('#editArtist').value.trim(); if(artist && artist !== orig.artist) fields.artist = artist;
-    const album = $('#editAlbum').value.trim(); if(album && album !== orig.album) fields.album = album;
-    const albumArtist = $('#editAlbumArtist').value.trim();
-    if(albumArtist && albumArtist !== orig.albumArtist) fields.albumArtist = albumArtist;
-    const trackNum = $('#editTrackNum').value;
-    if(trackNum !== '' && trackNum !== orig.track) fields.track = parseInt(trackNum, 10) || 0;
-  }
-
-  if(!Object.keys(fields).length && !S.editArtBlob){ closeEditSheet(); return; }
-  await applyEditWithUndo(target.trackIds, fields, S.editArtBlob);
-  closeEditSheet();
-  if(target.batch) exitSelectMode();
-  if('artist' in fields || 'album' in fields || 'albumArtist' in fields) MizikiSocial.libraryChanged();
-}
-
-/* ================= deletion =================
-   Removes files from Miziki's library only — never from disk. Listening
-   history is not file-scoped: sessionCounts/rareUnlocked/albumLastPlayed/
-   albumDisplay/achievements/collection are already keyed by the normalized
-   album identity (albumKey), and trackPlayCounts/trackLastPlayed/
-   trackDisplay by the normalized track identity (trackIdentityKey) — none
-   of that touches the file id, so it's untouched by deletion and rematches
-   automatically the moment a track with the same identity is added back.
-   See LIBRARY spec §1. */
-function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
-function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
-
-function formatBytes(n){
-  if(!n) return '0 MB';
-  const units = ['B','KB','MB','GB','TB'];
-  let i = 0;
-  while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
-  return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
-}
-function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
-
-export async function deleteTracks(idsToDelete){
-  const idSet = new Set(idsToDelete);
-  if(!idSet.size) return;
-
-  const currentId = idOf(S.index);
-  const removingCurrent = currentId !== null && idSet.has(currentId);
-
-  // every index-based structure gets snapshotted as ids first, then rebuilt
-  // onto whatever indices the survivors land at after the splice — the same
-  // id<->index round trip saveMeta()/restoreMeta() already use for persistence
-  const plSnapshot = S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system}));
-  const ordSnapshot = {};
-  Object.keys(S.albumOrder).forEach(a => { ordSnapshot[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
-  const queueIds = S.queue.map(idOf).filter(Boolean);
-  const baseQueueIds = S.baseQueue.map(idOf).filter(Boolean);
-
-  if(removingCurrent){
-    invalidateActiveSessionIfAny();
-    stop();
-    // cancel any in-flight ceremony without interruptStartSequence()'s
-    // auto-resume side effect — the track it would resume is being deleted
-    S.sleeveSeq++;
-    const stage = $('#platterStage');
-    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
-    clearSpinDown();
-    $('#sleeve').style.display = 'none';
-  }
-
-  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
-  const removedAlbumIds = new Set();
-  S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
-  S.tracks = S.tracks.filter(t => !idSet.has(t.id));
-  // an album that just lost its last track has no tracks left to cut crate
-  // art from — drop its tiers rather than leaving them stranded (spec §B3)
-  const survivingAlbumIds = new Set(S.tracks.map(albumKey));
-  let sealedChanged = false;
-  for(const albumId of removedAlbumIds){
-    if(survivingAlbumIds.has(albumId)) continue;
-    await deleteCrateArtTiers(albumId);
-    if(S.sealed.delete(albumId)) sealedChanged = true;   // SEALED spec §2
-  }
-  if(sealedChanged) persistSealedAlbums();
-
-  for(const id of idsToDelete){
-    await tracks.del(id);
-    await overlays.del(id);
-    await artwork.del(id);
-  }
-
-  S.playlists = plSnapshot.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
-  const newOrder = {};
-  Object.keys(ordSnapshot).forEach(a => { const arr = ordSnapshot[a].map(idxOf).filter(i => i >= 0); if(arr.length) newOrder[a] = arr; });
-  S.albumOrder = newOrder;
-  S.lru = [];
-
-  if(removingCurrent){
-    S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null; S.platterEmpty = false;
-    if(S.tracks.length){
-      $('#platterBox').classList.add('disc-hidden');
-      setQueue(allIdx(), 0, false);   // silent priming un-hides it again once the next track lands
-    } else {
-      S.queue = []; S.baseQueue = []; S.qpos = 0;
-      MizikiSocial.stopSpinning();
-      $('#trackName').textContent = 'Nothing on the platter';
-      $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
-      $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
-      applyDiscVariant(null);
-      // closePlayer()'s interrupt unconditionally un-hides the disc (skipping
-      // "lands" the record) — order matters here since there's no record to
-      // land, the library is empty, so disc-hidden must be (re-)applied after
-      if(S.playerOpen) closePlayer();
-      $('#platterBox').classList.add('disc-hidden');
-      $('#playerShareBtn').style.display = 'none';
-      $('#queueBtn').style.display = 'none';
-      $('#sleepTimerBtn').style.display = 'none';
-      $('#trackInfoBtn').style.display = 'none';
-      $('#playerFavBtn').style.display = 'none';
-      stopSleepState();
-    }
-  } else {
-    S.queue = queueIds.map(idxOf).filter(i => i >= 0);
-    S.baseQueue = baseQueueIds.map(idxOf).filter(i => i >= 0);
-    S.index = idxOf(currentId);
-    S.qpos = Math.max(0, S.queue.indexOf(S.index));
-  }
-
-  rebuildPeopleIndex();
-  invalidateCrateModel();
-  renderTracks();
-  renderMiniPlayer();
-  queueSave();
-  MizikiSocial.libraryChanged();
-}
-
-function deleteAlbum(album){
-  deleteTracks(S.tracks.filter(t => t.tags.album === album).map(t => t.id));
-}
-function deleteArtist(artist){
-  deleteTracks(S.tracks.filter(t => t.tags.artist === artist).map(t => t.id));
-}
-
-async function forgetLibrary(){
-  // achievements and the Collection outlive "forget library", so their thumbnails do too
-  const keepThumbs = [];
-  for(const id of new Set(Object.keys(S.achievements).concat(Object.keys(S.collection)))){
-    const key = 'thumb:album:' + id;
-    const blob = await meta.get(key);
-    if(blob) keepThumbs.push({key, blob});
-  }
-  await tracks.clear(); await meta.clear(); await sessions.clear();
-  await overlays.clear(); await artwork.clear();
-  for(const {key, blob} of keepThumbs) await meta.put(key, blob);
-  S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
-  stop();
-  S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
-  S.queue = []; S.baseQueue = []; S.lru = [];
-  S.sealed = new Set();   // the meta row holding it was just cleared above (SEALED spec §2)
-  S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
-  S.curPlayed = []; S.curTrackDone = false;
-  S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
-  $('#trackName').textContent = 'Nothing on the platter';
-  $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
-  $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
-  applyDiscVariant(null);
-  closePlayer();
-  // closePlayer()'s interrupt may have just finished putting a record away
-  // (S.platterEmpty true) or landed one instantly — either way there's no
-  // library left, so the empty-platter look is reasserted unconditionally
-  S.platterEmpty = false; clearSpinDown();
-  $('#sleeve').style.display = 'none';
-  $('#platterBox').classList.add('disc-hidden');
-  $('#playerShareBtn').style.display = 'none';
-  $('#queueBtn').style.display = 'none';
-  $('#sleepTimerBtn').style.display = 'none';
-  $('#trackInfoBtn').style.display = 'none';
-  $('#playerFavBtn').style.display = 'none';
-  stopSleepState();
-  renderTracks(); drawTime(); renderMiniPlayer();
-}
-
-/* clearListeningHistory moved to src/history/clear.js (step 5c). */
+/* Deletion (deleteTracks, deleteAlbum/deleteArtist, forgetLibrary) moved to
+   src/library/delete.js (step 5d). clearListeningHistory moved to
+   src/history/clear.js (step 5c). */
 
 /* ================= visible queue: reorder, remove, play next / add =================
    Shows the current track plus everything after it. Reordering or removing
@@ -2188,7 +1740,7 @@ function openPlayer(){
   runMorphOpen();
 }
 
-function closePlayer(){
+export function closePlayer(){
   if(morphInFlight()){ interruptMorph(); return; }
   S.playerOpen = false;
   interruptStartSequence();
@@ -2547,7 +2099,7 @@ function enterSelectMode(){
   renderTracks();
   updateSelectBar();
 }
-function exitSelectMode(){
+export function exitSelectMode(){
   S.view.editSelecting = false;
   S.editSelection.clear();
   renderTracks();
@@ -3339,7 +2891,7 @@ function crateArtSourceFor(albumId){
   return null;
 }
 
-async function buildCrateTier(albumId, tier){
+export async function buildCrateTier(albumId, tier){
   const buildKey = tier + ':' + albumId;
   if(crateArtBuilding.has(buildKey)) return false;
   crateArtBuilding.add(buildKey);
@@ -3397,7 +2949,7 @@ function revokeCrateArtTier(albumId, tier){
   if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(e){} cache.delete(albumId); }
 }
 
-async function deleteCrateArtTiers(albumId){
+export async function deleteCrateArtTiers(albumId){
   revokeCrateArtTier(albumId, 'S'); revokeCrateArtTier(albumId, 'L');
   await artwork.del(crateTierKey('S', albumId));
   await artwork.del(crateTierKey('L', albumId));
