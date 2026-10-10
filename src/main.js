@@ -4,6 +4,7 @@ import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
+import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -1381,11 +1382,6 @@ async function addTestTone(){
    various persist*() helpers below read and write through it. If storage is
    unavailable, every DB call quietly no-ops and Miziki behaves exactly as it
    did before: fully working, session-only. */
-
-/* orders and playlists are saved as track ids, never as positions —
-   positions mean nothing once the library is rebuilt */
-const idOf = i => (S.tracks[i] ? S.tracks[i].id : null);
-const idxOf = id => S.tracks.findIndex(t => t.id === id);
 
 let saveTimer = null;
 export function queueSave(){
@@ -3704,22 +3700,6 @@ function toggleBgAudio(){
 }
 
 /* ================= library ================= */
-const byName = (a,b) => String(a).localeCompare(String(b), undefined, {sensitivity:'base', numeric:true});
-const trackSort = (a,b) => (S.tracks[a].tags.disc - S.tracks[b].tags.disc)
-  || (S.tracks[a].tags.track - S.tracks[b].tags.track)
-  || byName(S.tracks[a].tags.title, S.tracks[b].tags.title);
-
-function allIdx(){ return S.tracks.map((_,i) => i); }
-function groupBy(key){
-  const m = new Map();
-  S.tracks.forEach((t,i) => {
-    const k = t.tags[key];
-    if(!m.has(k)) m.set(k, []);
-    m.get(k).push(i);
-  });
-  return [...m.entries()].sort((a,b) => byName(a[0], b[0]));
-}
-
 function artFor(indices){
   const withArt = indices.find(i => S.tracks[i].art);
   return withArt === undefined ? null : S.tracks[withArt].art;
@@ -4144,21 +4124,6 @@ function syncQueueOrder(order){
   if(!S.baseQueue.every(i => order.indexOf(i) >= 0)) return;
   S.baseQueue = order.slice();
   if(!S.shuffle){ S.queue = order.slice(); S.qpos = Math.max(0, S.queue.indexOf(S.index)); }
-}
-
-function albumTracks(album){
-  const base = S.tracks.map((t,i)=>i).filter(i => S.tracks[i].tags.album === album);
-  const mode = S.albumSort[album] || 'auto';
-  if(mode === 'title') return base.sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
-  if(mode === 'manual'){
-    let ord = S.albumOrder[album];
-    if(!ord) ord = base.slice().sort(trackSort);
-    base.forEach(i => { if(ord.indexOf(i) < 0) ord.push(i); });      // pick up newly added files
-    ord = ord.filter(i => base.indexOf(i) >= 0);
-    S.albumOrder[album] = ord;
-    return ord.slice();
-  }
-  return base.sort(trackSort);
 }
 
 function moverCtl(list, pos, after){
