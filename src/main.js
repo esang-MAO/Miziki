@@ -11,9 +11,9 @@ import { readDetails, emptyDetails } from './library/tags/index.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from './library/import.js';
 import { closeDupOverlay, closeDuplicateScan } from './library/duplicates-ui.js';
 import {
-  albumExpectedOrder, persistAlbumLookPref, persistAlbumLastPlayed, persistTrackPlayCounts, persistTrackMetalEligiblePlays,
-  invalidateActiveSessionIfAny, touchActiveSession, sessionTrackComplete, restoreSessions,
+  albumExpectedOrder, persistAlbumLookPref, invalidateActiveSessionIfAny, touchActiveSession, restoreSessions,
 } from './history/sessions.js';
+import { clearListeningHistory } from './history/clear.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -411,7 +411,7 @@ async function healDetails(){
 }
 
 // drops thumbnails whose records are gone (after clearing listening history)
-async function pruneThumbs(){
+export async function pruneThumbs(){
   for(const key of Object.keys(thumbURL)){
     const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
     const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
@@ -422,8 +422,8 @@ async function pruneThumbs(){
   }
 }
 
-async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
-async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
+export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
+export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
 
 export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
@@ -1098,60 +1098,7 @@ async function forgetLibrary(){
   renderTracks(); drawTime(); renderMiniPlayer();
 }
 
-/* ================= clear listening history =================
-   Deliberately separate from deletion — deletion never touches listening
-   history, this is the only path that does (see LIBRARY spec §1). Full
-   scope wipes everything; the lighter "orphaned only" scope drops just the
-   records for identities no longer in the library, leaving current albums
-   untouched. */
-function currentAlbumIds(){ return new Set(S.tracks.map(albumKey)); }
-function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }
-function filterKeep(dict, keepSet){
-  const out = {};
-  Object.keys(dict).forEach(k => { if(keepSet.has(k)) out[k] = dict[k]; });
-  return out;
-}
-
-async function clearListeningHistory(orphanedOnly){
-  if(orphanedOnly){
-    const albumIds = currentAlbumIds(), trackKeys = currentTrackKeys();
-    const droppedAlbums = Object.keys(S.achievements).filter(id => !albumIds.has(id));
-    const droppedCollection = Object.keys(S.collection).filter(id => !albumIds.has(id));
-    const droppedSessions = Object.keys(S.sessions).filter(id => !albumIds.has(id));
-    S.sessionCounts = filterKeep(S.sessionCounts, albumIds);
-    S.metalEligibleSessions = filterKeep(S.metalEligibleSessions, albumIds);
-    S.rareUnlocked = filterKeep(S.rareUnlocked, albumIds);
-    S.albumLastPlayed = filterKeep(S.albumLastPlayed, albumIds);
-    S.albumDisplay = filterKeep(S.albumDisplay, albumIds);
-    S.albumLookPref = filterKeep(S.albumLookPref, albumIds);
-    S.achievements = filterKeep(S.achievements, albumIds);
-    S.collection = filterKeep(S.collection, albumIds);
-    S.sessions = filterKeep(S.sessions, albumIds);
-    S.trackPlayCounts = filterKeep(S.trackPlayCounts, trackKeys);
-    S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
-    S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
-    S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
-    for(const id of droppedAlbums) await achievements.del(id);
-    for(const id of droppedCollection) await collection.del(id);
-    for(const id of droppedSessions) await sessions.del(id);
-  } else {
-    S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
-    S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
-    S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
-    S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
-    await achievements.clear(); await collection.clear(); await sessions.clear();
-  }
-  await pruneThumbs();
-  await Promise.all([
-    persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
-    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay()
-  ]);
-  const t = current();
-  if(t) applyDiscVariant(t, true);
-  const profileRoute = $('#route-profile');
-  if(profileRoute && profileRoute.classList.contains('on')) renderProfile();
-}
+/* clearListeningHistory moved to src/history/clear.js (step 5c). */
 
 /* ================= visible queue: reorder, remove, play next / add =================
    Shows the current track plus everything after it. Reordering or removing
@@ -6563,7 +6510,7 @@ function installSocialDemo(){
   console.info('[Miziki] social demo mode active — fixture data only, for UI development.');
 }
 
-function renderProfile(){
+export function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
   const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Settings'};
