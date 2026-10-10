@@ -1,6 +1,34 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
+// Since step 5e, queue.js also has the visible-queue functions
+// (queueInsert/playNext/addToQueue, queueRemoveAt, queueMove,
+// renderQueueSheet/openQueueSheet/closeQueueSheet), which call real $/el --
+// mocked to a tiny stub element, same approach as edit.test.js/
+// delete.test.js, but capable enough (appendChild, addEventListener,
+// cached by selector) for renderQueueSheet's tree-building to run without
+// throwing.
+const elCache = new Map();
+function fakeEl(){
+  const classes = new Set();
+  return {
+    textContent: '', style: {}, innerHTML: '', src: '', alt: '',
+    classList: {
+      add(...cs){ cs.forEach(c => classes.add(c)); },
+      remove(...cs){ cs.forEach(c => classes.delete(c)); },
+      contains(c){ return classes.has(c); },
+    },
+    setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
+    addEventListener(){}, appendChild(child){ return child; },
+  };
+}
+mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
+  namedExports: {
+    $(sel){ if(!elCache.has(sel)) elCache.set(sel, fakeEl()); return elCache.get(sel); },
+    el(tag, cls, text){ const e = fakeEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; },
+  },
+});
+
 // queue.js has temporary circular imports back to main.js (rule 8 in
 // CLAUDE.md) for screen functions not yet extracted, plus real circular
 // imports with transport.js (load/play/pause/seek) — the same shape
@@ -42,7 +70,10 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 
-const { buildOrder, setQueue, reorderQueue, advance } = await import('../../src/player/queue.js');
+const {
+  buildOrder, setQueue, reorderQueue, advance,
+  playNext, addToQueue, openQueueSheet, closeQueueSheet,
+} = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
 
@@ -51,10 +82,15 @@ function resetState(overrides){
     tracks: [], index: -1, playing: false, pos: 0,
     baseQueue: [], queue: [], qpos: 0, shuffle: false, repeat: 'off',
     sleep: { mode: null }, lru: [], playerOpen: false,
-    pendingShellInfo: null, sleevePullEnabled: true,
+    pendingShellInfo: null, sleevePullEnabled: true, sessionActive: null,
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); seekMock.mock.resetCalls();
+  elCache.clear();
+}
+
+function fakeTrackWithTags(title, artist){
+  return { tags: { title, artist }, meta: {} };
 }
 
 test('buildOrder with no "first" shuffles the whole base queue, keeping every index exactly once', () => {
@@ -159,4 +195,53 @@ test('touchLRU keeps the playing track decoded even when it is the one that woul
   // is also S.index -- the one currently playing -- so its buffer survives.
   touchLRU(3);
   assert.ok(S.tracks[2].buffer !== null);
+});
+
+test('playNext inserts right after the currently playing position', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c'), fakeTrackWithTags('d')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  playNext(3);
+  assert.deepEqual(S.queue, [0,3,1,2]);
+  assert.ok(S.baseQueue.includes(3));
+});
+
+test('addToQueue appends at the end of the queue', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c'), fakeTrackWithTags('d')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  addToQueue(3);
+  assert.deepEqual(S.queue, [0,1,2,3]);
+});
+
+test('playNext/addToQueue on the currently playing track is a no-op', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b')],
+    baseQueue: [0,1], queue: [0,1], qpos: 0, index: 0,
+  });
+  playNext(0);
+  assert.deepEqual(S.queue, [0,1]);
+});
+
+test('playNext moves an already-queued track rather than duplicating it', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  playNext(2);
+  assert.deepEqual(S.queue, [0,2,1]);
+});
+
+test('openQueueSheet/closeQueueSheet toggle the overlay open state', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a', 'Artist A'), fakeTrackWithTags('b', 'Artist B')],
+    queue: [0,1], qpos: 0, index: 0,
+  });
+  openQueueSheet();
+  const overlay = elCache.get('#queueOverlay');
+  assert.ok(overlay.classList.contains('open'));
+  closeQueueSheet();
+  assert.ok(!overlay.classList.contains('open'));
 });

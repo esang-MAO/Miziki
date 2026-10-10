@@ -6,7 +6,10 @@ import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
 import { byName, trackSort, groupBy, allIdx, albumTracks, idxOf } from './library/model.js';
 import { touchLRU, ensureBuffer } from './player/buffers.js';
-import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from './player/queue.js';
+import {
+  setQueue, buildOrder, reorderQueue, advance, preloadNextTrack,
+  playNext, addToQueue, openQueueSheet, closeQueueSheet,
+} from './player/queue.js';
 import { readDetails, emptyDetails } from './library/tags/index.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from './library/import.js';
 import { closeDupOverlay, closeDuplicateScan } from './library/duplicates-ui.js';
@@ -23,6 +26,15 @@ import {
   deleteTracks, deleteAlbum, deleteArtist, forgetLibrary,
 } from './library/delete.js';
 import { openDuplicateScan } from './library/duplicate-scan.js';
+import {
+  trackHasCreditsContent, openPersonOrArtist, creditRow, openCreditsSheet, closeCreditsSheet,
+  updateCreditsButtonForCurrent, albumLinerNotes, albumCreditRoll, rebuildPeopleIndex, renderPersonView,
+} from './library/credits.js';
+import { isFavorite, toggleFavorite, updateFavoriteButtons } from './library/favorites.js';
+import {
+  librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
+  renderSearchChips, updateSearchChipsVisibility, closeSortMenu,
+} from './library/search.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -652,96 +664,9 @@ function applyPrefs(p){
    src/library/delete.js (step 5d). clearListeningHistory moved to
    src/history/clear.js (step 5c). */
 
-/* ================= visible queue: reorder, remove, play next / add =================
-   Shows the current track plus everything after it. Reordering or removing
-   is manual queue manipulation, same as shuffle/skip, so it silently
-   invalidates whatever qualifying session is in progress — no warning, no
-   prompt (see PLAYBACK spec §5). */
-function queueInsert(idx, mode){
-  if(idx === S.index) return;   // already playing; nothing to insert
-  invalidateActiveSessionIfAny();
-  if(!S.baseQueue.includes(idx)) S.baseQueue.push(idx);
-  const existing = S.queue.indexOf(idx, S.qpos + 1);
-  if(existing !== -1) S.queue.splice(existing, 1);
-  const insertAt = mode === 'next' ? S.qpos + 1 : S.queue.length;
-  S.queue.splice(Math.min(insertAt, S.queue.length), 0, idx);
-  renderQueueSheet();
-}
-function playNext(idx){ queueInsert(idx, 'next'); }
-function addToQueue(idx){ queueInsert(idx, 'end'); }
-
-// pos is an offset into the "upcoming" portion (0 = the track right after
-// current) — the current track itself is shown but never removable here,
-// that's what skip is for
-function queueRemoveAt(pos){
-  const queueIdx = S.qpos + 1 + pos;
-  if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
-  invalidateActiveSessionIfAny();
-  S.queue.splice(queueIdx, 1);
-  renderQueueSheet();
-}
-function queueMove(pos, dir){
-  const queueIdx = S.qpos + 1 + pos;
-  const n = queueIdx + dir;
-  if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
-  invalidateActiveSessionIfAny();
-  const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
-  renderQueueSheet();
-}
-
-function renderQueueSheet(){
-  const host = $('#queueBody'); host.innerHTML = '';
-  if(!S.queue.length || S.qpos >= S.queue.length){
-    host.appendChild(el('p','note','Nothing queued.'));
-    return;
-  }
-  const ul = el('ul','tracklist');
-  const curT = S.tracks[S.queue[S.qpos]];
-  if(curT){
-    const li = el('li'); li.setAttribute('aria-current','true');
-    if(curT.art){ const im = el('img','t-art'); im.src = curT.art; im.alt=''; li.appendChild(im); }
-    else li.appendChild(el('span','t-art'));
-    const name = el('span','t-name');
-    name.appendChild(el('b', null, curT.tags.title));
-    name.appendChild(el('em', null, 'Now playing · ' + curT.tags.artist));
-    li.appendChild(name);
-    ul.appendChild(li);
-  }
-  const upcoming = S.queue.slice(S.qpos + 1);
-  upcoming.forEach((idx, pos) => {
-    const t = S.tracks[idx]; if(!t) return;
-    const li = el('li');
-    if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
-    else li.appendChild(el('span','t-art'));
-    const name = el('span','t-name');
-    name.appendChild(el('b', null, t.tags.title));
-    name.appendChild(el('em', null, t.tags.artist));
-    li.appendChild(name);
-    const movers = el('span','movers');
-    [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
-      const b = el('button','mv',glyph);
-      b.setAttribute('aria-label', dir < 0 ? 'Move up' : 'Move down');
-      b.addEventListener('click', e => { e.stopPropagation(); queueMove(pos, dir); });
-      movers.appendChild(b);
-    });
-    li.appendChild(movers);
-    const rm = el('button','mv','✕');
-    rm.setAttribute('aria-label','Remove from queue');
-    rm.addEventListener('click', e => { e.stopPropagation(); queueRemoveAt(pos); });
-    li.appendChild(rm);
-    ul.appendChild(li);
-  });
-  host.appendChild(ul);
-}
-function openQueueSheet(){
-  renderQueueSheet();
-  $('#queueOverlay').classList.add('open');
-  $('#queueOverlay').setAttribute('aria-hidden', 'false');
-}
-function closeQueueSheet(){
-  $('#queueOverlay').classList.remove('open');
-  $('#queueOverlay').setAttribute('aria-hidden', 'true');
-}
+/* The rest of "visible queue: reorder, remove, play next / add"
+   (queueInsert/playNext/addToQueue, queueRemoveAt, queueMove, the
+   queue-sheet UI) moved into src/player/queue.js (step 5e). */
 
 function nextTrack(){ advance(1, false); }
 function prevTrack(){
@@ -2056,7 +1981,7 @@ function artFor(indices){
   return withArt === undefined ? null : S.tracks[withArt].art;
 }
 
-function songRow(i, queue, pos, extra){
+export function songRow(i, queue, pos, extra){
   const t = S.tracks[i];
   const li = el('li');
   li.dataset.id = t.id;
@@ -2129,234 +2054,8 @@ function closeRowMenu(){
   $('#rowMenuOverlay').setAttribute('aria-hidden','true');
 }
 
-/* ================= liner notes & credits (CREDITS spec §1) =================
-   Read-only presentation of t.details — comments shown as "Notes" only when
-   they read like real liner notes (long enough, or multi-line, and not a
-   rip-tool signature), with everything else available behind a toggle. */
-const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
-const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
-  ['conductors','Conductor'],['arrangers','Arranger'],['engineers','Engineer'],['mixers','Mixer'],['remixers','Remixer']];
-
-function splitComments(raw){ return (raw || '').split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean); }
-function commentQualifies(c){ return !COMMENT_JUNK_RE.test(c.trim()) && (c.length >= 40 || /\n/.test(c)); }
-
-function trackHasCreditsContent(t){
-  const d = t && t.details;
-  if(!d) return false;
-  if(CREDIT_ROLE_BUCKETS.some(([k]) => (d[k]||[]).length)) return true;
-  if((d.performers||[]).length) return true;
-  if(d.genre || d.year || d.label || d.catalog || d.isrc) return true;
-  return splitComments(d.comment).length > 0;
-}
-
-// exact normKey() match only — same "never auto-merge" principle as the
-// duplicate scan (see CREDITS spec §2); if the name is already a library
-// artist, that artist view is the more useful destination
-function artistExists(name){
-  const key = normKey(name);
-  return S.tracks.some(t => normKey(t.tags.artist) === key || normKey(t.tags.albumArtist) === key);
-}
-
-function openPersonOrArtist(name){
-  closeCreditsSheet();
-  if($('#playerOverlay').classList.contains('open')) closePlayer();
-  const v = S.view;
-  if(artistExists(name)){
-    v.mode = 'artists'; v.group = name; v.artistAlbum = null; v.playlist = null; v.picking = false; v.person = null;
-  } else {
-    if(v.mode !== 'person') v.personReturn = {mode:v.mode, group:v.group, artistAlbum:v.artistAlbum, playlist:v.playlist};
-    v.mode = 'person'; v.person = name; v.group = null; v.playlist = null; v.picking = false;
-  }
-  $('#librarySearch').value = '';
-  showRoute('library');
-  renderTracks();
-}
-
-function creditLinkButton(name){
-  const b = el('button','credit-link', name);
-  b.addEventListener('click', () => openPersonOrArtist(name));
-  return b;
-}
-function creditNamesCell(names){
-  const span = el('span','credit-names');
-  names.forEach((n, i) => { if(i) span.appendChild(document.createTextNode(', ')); span.appendChild(creditLinkButton(n)); });
-  return span;
-}
-function creditRow(label, names){
-  const row = el('div','credit-row');
-  row.appendChild(el('span','credit-role', label));
-  row.appendChild(creditNamesCell(names));
-  return row;
-}
-
-function trackCreditRows(d){
-  const rows = [];
-  CREDIT_ROLE_BUCKETS.forEach(([key,label]) => { if((d[key]||[]).length) rows.push([label, d[key]]); });
-  if((d.performers||[]).length){
-    const byRole = new Map();
-    d.performers.forEach(p => {
-      const label = p.role || 'Performer';
-      if(!byRole.has(label)) byRole.set(label, []);
-      byRole.get(label).push(p.name);
-    });
-    byRole.forEach((names, label) => rows.push([label, names]));
-  }
-  return rows;
-}
-
-function renderCreditsSheet(t){
-  const host = $('#creditsBody'); host.innerHTML = '';
-  $('#creditsTitle').textContent = t.tags.title;
-  const d = t.details || emptyDetails();
-
-  const comments = splitComments(d.comment);
-  if(comments.length){
-    const section = el('div','credit-section');
-    section.appendChild(el('h3', null, 'Notes'));
-    const qualifying = comments.filter(commentQualifies);
-    const notesList = el('div');
-    let showingAll = !qualifying.length;
-    const renderNotes = () => {
-      notesList.innerHTML = '';
-      (showingAll ? comments : qualifying).forEach(c => notesList.appendChild(el('p','credit-note', c)));
-    };
-    renderNotes();
-    section.appendChild(notesList);
-    if(qualifying.length && qualifying.length < comments.length){
-      const toggle = el('button','credit-toggle', 'Show all comments');
-      toggle.addEventListener('click', () => {
-        showingAll = !showingAll;
-        toggle.textContent = showingAll ? 'Show fewer comments' : 'Show all comments';
-        renderNotes();
-      });
-      section.appendChild(toggle);
-    }
-    host.appendChild(section);
-  }
-
-  const creditRows = trackCreditRows(d);
-  if(creditRows.length){
-    const section = el('div','credit-section');
-    section.appendChild(el('h3', null, 'Credits'));
-    creditRows.forEach(([label, names]) => section.appendChild(creditRow(label, names)));
-    host.appendChild(section);
-  }
-
-  const detailRows = [];
-  if(d.genre) detailRows.push(['Genre', d.genre]);
-  if(d.year) detailRows.push(['Year', String(d.year)]);
-  if(d.label) detailRows.push(['Label', d.label]);
-  if(d.catalog) detailRows.push(['Catalog #', d.catalog]);
-  if(d.isrc) detailRows.push(['ISRC', d.isrc]);
-  if(d.hasLyrics) detailRows.push(['Lyrics', 'Embedded']);
-  if(detailRows.length){
-    const section = el('div','credit-section');
-    section.appendChild(el('h3', null, 'Details'));
-    detailRows.forEach(([label, val]) => {
-      const row = el('div','credit-row');
-      row.appendChild(el('span','credit-role', label));
-      row.appendChild(el('span','credit-names', val));
-      section.appendChild(row);
-    });
-    host.appendChild(section);
-  }
-
-  if(!host.children.length) host.appendChild(el('p','note','No notes or credits found in this file.'));
-}
-
-function openCreditsSheet(t){
-  renderCreditsSheet(t);
-  $('#creditsOverlay').classList.add('open');
-  $('#creditsOverlay').setAttribute('aria-hidden','false');
-}
-function closeCreditsSheet(){
-  $('#creditsOverlay').classList.remove('open');
-  $('#creditsOverlay').setAttribute('aria-hidden','true');
-}
-
-export function updateCreditsButtonForCurrent(){
-  const t = current();
-  $('#trackInfoBtn').style.display = (t && trackHasCreditsContent(t)) ? '' : 'none';
-}
-
-function albumLinerNotes(album){
-  let best = '';
-  albumTracks(album).forEach(i => {
-    const d = S.tracks[i].details;
-    if(!d) return;
-    splitComments(d.comment).filter(commentQualifies).forEach(c => { if(c.length > best.length) best = c; });
-  });
-  return best;
-}
-
-// de-duplicated by role + normKey(name) across every track on the album
-function albumCreditRoll(album){
-  const seen = new Set(), byRole = new Map();
-  const addCredit = (label, name) => {
-    const key = label + '|' + normKey(name);
-    if(!name || !normKey(name) || seen.has(key)) return;
-    seen.add(key);
-    if(!byRole.has(label)) byRole.set(label, []);
-    byRole.get(label).push(name);
-  };
-  albumTracks(album).forEach(i => {
-    const d = S.tracks[i].details;
-    if(!d) return;
-    CREDIT_ROLE_BUCKETS.forEach(([key,label]) => (d[key]||[]).forEach(n => addCredit(label, n)));
-    (d.performers||[]).forEach(p => addCredit(p.role || 'Performer', p.name));
-  });
-  return byRole;
-}
-
-/* ================= credits that link: person view (CREDITS spec §2) =================
-   A lazily-rebuilt index — rebuilt only when tracks change or healDetails
-   runs, never per-render — so tapping a name is a map lookup, not a scan. */
-let peopleIndex = new Map();
-const PERSON_ROLE_KEYS = CREDIT_ROLE_BUCKETS.map(([k]) => k);
-
-export function rebuildPeopleIndex(){
-  peopleIndex = new Map();
-  const addPerson = (name, role, trackIdx) => {
-    const n = (name || '').trim(); if(!n) return;
-    const key = normKey(n); if(!key) return;
-    if(!peopleIndex.has(key)) peopleIndex.set(key, {name:n, entries:[]});
-    peopleIndex.get(key).entries.push({trackIdx, role});
-  };
-  S.tracks.forEach((t, i) => {
-    const d = t.details;
-    if(!d) return;
-    PERSON_ROLE_KEYS.forEach(key => (d[key]||[]).forEach(name => addPerson(name, CREDIT_ROLE_BUCKETS.find(b=>b[0]===key)[1], i)));
-    (d.performers||[]).forEach(p => addPerson(p.name, p.role || 'Performer', i));
-  });
-}
-
-function renderPersonView(host, name){
-  const entry = peopleIndex.get(normKey(name));
-  if(!entry || !entry.entries.length){
-    host.appendChild(el('p','note','No credits found for “' + name + '”.'));
-    return;
-  }
-  const byRole = new Map();
-  entry.entries.forEach(({trackIdx, role}) => {
-    const label = role || 'Performer';
-    if(!S.tracks[trackIdx]) return;
-    if(!byRole.has(label)) byRole.set(label, []);
-    if(!byRole.get(label).includes(trackIdx)) byRole.get(label).push(trackIdx);
-  });
-  const everyIdx = [...new Set(entry.entries.map(e => e.trackIdx))].filter(i => S.tracks[i]);
-  const playAll = el('button','cta','Play all (' + everyIdx.length + (everyIdx.length===1?' track)':' tracks)'));
-  playAll.addEventListener('click', () => setQueue(everyIdx, 0, true));
-  host.appendChild(playAll);
-  [...byRole.entries()].sort((a,b) => byName(a[0], b[0])).forEach(([role, idxs]) => {
-    const section = el('div','credit-section');
-    section.appendChild(el('h3', null, role));
-    const ul = el('ul','tracklist');
-    idxs.slice().sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title))
-      .forEach((i,pos) => ul.appendChild(songRow(i, idxs, pos)));
-    section.appendChild(ul);
-    host.appendChild(section);
-  });
-}
+/* Liner notes & credits (CREDITS spec §1) and credits that link: person
+   view (CREDITS spec §2) moved to src/library/credits.js (step 5e). */
 
 let confirmDeleteAction = null;
 function openConfirmDelete(kind, count, name, action){
@@ -2393,7 +2092,7 @@ async function applyTrackNumbersInOrder(){
   exitSelectMode();
 }
 
-function groupRow(label, sub, indices, onTap){
+export function groupRow(label, sub, indices, onTap){
   const b = el('button','grouprow');
   const art = artFor(indices);
   if(art){ const im = el('img','g-art'); im.src = art; im.alt=''; b.appendChild(im); }
@@ -2416,51 +2115,8 @@ function togglePick(i, node){
   node.classList.toggle('picked', at < 0);
 }
 
-/* ================= favorites: a real playlist, not a separate flag
-   (CREDITS/FAVORITES spec §4). The system:'favorites' tag must be carried
-   through every place playlists are copied — saveMeta, restoreMeta and
-   deleteTracks' snapshot/rebuild — or it's lost on the next reload. */
-function findFavoritesPlaylist(){ return S.playlists.find(p => p.system === 'favorites'); }
-function ensureFavoritesPlaylist(){
-  let pl = findFavoritesPlaylist();
-  if(pl) return pl;
-  // adopt a playlist the user already named "Favorites" rather than duplicate it
-  pl = S.playlists.find(p => p.name === 'Favorites' && !p.system);
-  if(pl){ pl.system = 'favorites'; return pl; }
-  pl = {name:'Favorites', items:[], system:'favorites'};
-  S.playlists.unshift(pl);
-  return pl;
-}
-function isFavorite(id){
-  const pl = findFavoritesPlaylist();
-  if(!pl) return false;
-  const i = idxOf(id);
-  return i >= 0 && pl.items.includes(i);
-}
-function toggleFavorite(id){
-  const pl = ensureFavoritesPlaylist();
-  const i = idxOf(id);
-  if(i < 0) return;
-  const at = pl.items.indexOf(i);
-  if(at >= 0) pl.items.splice(at, 1); else pl.items.push(i);
-  queueSave();
-  updateFavoriteButtons();
-  const t = current();
-  if(!REDUCED && t && t.id === id){
-    [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => { if(!b) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
-  }
-  renderTracks();
-}
-export function updateFavoriteButtons(){
-  const t = current();
-  const fav = t ? isFavorite(t.id) : false;
-  [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => {
-    if(!b) return;
-    b.style.display = t ? '' : 'none';
-    b.setAttribute('aria-pressed', String(fav));
-    b.textContent = fav ? '♥' : '♡';
-  });
-}
+/* Favorites (a real playlist, not a separate flag) moved to
+   src/library/favorites.js (step 5e). */
 
 function moveIn(arr, pos, dir){
   const n = pos + dir;
@@ -2538,297 +2194,8 @@ function renderAlbumDetail(host, ul, album){
     'Your order for this album holds for the session. Tap a track to play the album in this order.'));
 }
 
-/* ================= library-wide search + sort =================
-   Search matches artist/album/track title and groups results by type
-   rather than interleaving them. Sort applies to whichever top-level list
-   (Songs or Albums) is showing; session count is meaningful at the album
-   scope, so on the Songs list it sorts by the containing album's count
-   rather than being omitted. Preference persists like other prefs (see
-   PLAYBACK spec §4). */
-const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
-
-function librarySortBar(){
-  const bar = el('div','sortbar');
-  const label = LIBRARY_SORTS.find(([k]) => k === S.librarySort);
-  bar.appendChild(el('span', null, 'Sort: ' + (label ? label[1] : '')));
-  const toggle = el('button','sort-toggle');
-  toggle.setAttribute('aria-label','Sort options');
-  toggle.setAttribute('aria-haspopup','true');
-  toggle.appendChild(el('span')); toggle.appendChild(el('span')); toggle.appendChild(el('span'));
-  toggle.addEventListener('click', openSortMenu);
-  bar.appendChild(toggle);
-  return bar;
-}
-
-function openSortMenu(){
-  const host = $('#sortMenuOptions');
-  host.innerHTML = '';
-  LIBRARY_SORTS.forEach(([k,label]) => {
-    const b = document.createElement('button');
-    b.className = 'cta' + (k === S.librarySort ? '' : ' ghost');
-    b.textContent = label;
-    b.addEventListener('click', () => {
-      S.librarySort = k; queueSave(); renderTracks(); closeSortMenu();
-    });
-    host.appendChild(b);
-  });
-  $('#sortMenuOverlay').classList.add('open');
-  $('#sortMenuOverlay').setAttribute('aria-hidden','false');
-}
-function closeSortMenu(){
-  $('#sortMenuOverlay').classList.remove('open');
-  $('#sortMenuOverlay').setAttribute('aria-hidden','true');
-}
-
-function librarySortComparator(mode){
-  const key = S.librarySort;
-  return (a, b) => {
-    const ta = S.tracks[a], tb = S.tracks[b];
-    switch(key){
-      case 'album': return byName(ta.tags.album, tb.tags.album) || trackSort(a, b);
-      case 'added': return (tb.addedAt||0) - (ta.addedAt||0);
-      case 'played': return (S.trackLastPlayed[trackIdentityKey(tb)]||0) - (S.trackLastPlayed[trackIdentityKey(ta)]||0);
-      case 'sessions': return (S.sessionCounts[albumKey(tb)]||0) - (S.sessionCounts[albumKey(ta)]||0) || byName(ta.tags.title, tb.tags.title);
-      default: return byName(ta.tags.artist, tb.tags.artist) || byName(ta.tags.album, tb.tags.album) || trackSort(a, b);
-    }
-  };
-}
-
-function sortAlbumGroups(groups){
-  const key = S.librarySort;
-  return groups.slice().sort((a, b) => {
-    const [albumA, idxA] = a, [albumB, idxB] = b;
-    const sampleA = S.tracks[idxA[0]], sampleB = S.tracks[idxB[0]];
-    switch(key){
-      case 'album': return byName(albumA, albumB);
-      case 'added': return Math.max(...idxB.map(i => S.tracks[i].addedAt||0)) - Math.max(...idxA.map(i => S.tracks[i].addedAt||0));
-      case 'played': return (S.albumLastPlayed[albumKey(sampleB)]||0) - (S.albumLastPlayed[albumKey(sampleA)]||0);
-      case 'sessions': return (S.sessionCounts[albumKey(sampleB)]||0) - (S.sessionCounts[albumKey(sampleA)]||0);
-      default: return byName(sampleA.tags.albumArtist, sampleB.tags.albumArtist) || byName(albumA, albumB);
-    }
-  });
-}
-
-/* ================= tag-aware search (CREDITS spec §3) =================
-   Free text matches artist/album/title plus people/genre/label/catalog;
-   fielded tokens (artist:/album:/title:/genre:/year:/label:/cat:/credit:/
-   composer:/producer:/format:/rate:/bits:/is:) combine with free text and
-   each other by AND. An unknown field name is just treated as plain text. */
-const SEARCH_FIELD_KEYS = new Set(['artist','album','title','genre','year','label','cat','credit','composer','producer','format','rate','bits','is']);
-const SEARCH_SMART_FILTERS = ['new','unplayed','hires','lossy','favorite'];
-
-function trackAllCreditNames(t){
-  const d = t.details; if(!d) return [];
-  const names = [];
-  PERSON_ROLE_KEYS.forEach(k => (d[k]||[]).forEach(n => names.push(n)));
-  (d.performers||[]).forEach(p => names.push(p.name));
-  return names;
-}
-
-function parseNumericToken(raw, kSuffix){
-  const m = /^(>=|<=|>|<)?(.+)$/.exec(raw.trim());
-  if(!m) return null;
-  const op = m[1] || '=';
-  let numStr = m[2], mult = 1;
-  if(kSuffix && /k$/i.test(numStr)){ mult = 1000; numStr = numStr.slice(0, -1); }
-  const value = parseFloat(numStr) * mult;
-  return isNaN(value) ? null : {op, value};
-}
-function numMatches(actual, parsed){
-  if(!parsed || actual === null || actual === undefined) return false;
-  switch(parsed.op){
-    case '>=': return actual >= parsed.value;
-    case '<=': return actual <= parsed.value;
-    case '>': return actual > parsed.value;
-    case '<': return actual < parsed.value;
-    default: return actual === parsed.value;
-  }
-}
-function parseYearToken(raw){
-  raw = raw.trim();
-  const range = /^(\d{4})-(\d{4})$/.exec(raw);
-  if(range) return {type:'range', lo:+range[1], hi:+range[2]};
-  const cmp = /^(>=|<=|>|<)(\d{4})$/.exec(raw);
-  if(cmp) return {type:'cmp', op:cmp[1], value:+cmp[2]};
-  if(/^\d{4}$/.test(raw)) return {type:'eq', value:+raw};
-  return null;
-}
-function yearMatches(actual, parsed){
-  if(!parsed || !actual) return false;
-  if(parsed.type === 'range') return actual >= parsed.lo && actual <= parsed.hi;
-  if(parsed.type === 'eq') return actual === parsed.value;
-  return numMatches(actual, parsed);
-}
-
-function parseSearchQuery(raw){
-  const tokens = raw.trim().split(/\s+/).filter(Boolean);
-  const fields = [], text = [];
-  tokens.forEach(tok => {
-    const m = /^([a-zA-Z]+):(.+)$/.exec(tok);
-    if(m && SEARCH_FIELD_KEYS.has(m[1].toLowerCase())) fields.push({key:m[1].toLowerCase(), value:m[2]});
-    else text.push(tok);
-  });
-  return {fields, text: text.join(' ')};
-}
-
-function trackMatchesField(t, field){
-  const d = t.details || emptyDetails();
-  const q = normKey(field.value);
-  switch(field.key){
-    case 'artist': return normKey(t.tags.artist).includes(q) || normKey(t.tags.albumArtist).includes(q);
-    case 'album': return normKey(t.tags.album).includes(q);
-    case 'title': return normKey(t.tags.title).includes(q);
-    case 'genre': return normKey(d.genre).includes(q);
-    case 'label': return normKey(d.label).includes(q);
-    case 'cat': return normKey(d.catalog).includes(q);
-    case 'credit': return trackAllCreditNames(t).some(n => normKey(n).includes(q));
-    case 'composer': return (d.composers||[]).some(n => normKey(n).includes(q));
-    case 'producer': return (d.producers||[]).some(n => normKey(n).includes(q));
-    case 'format': return normKey(t.meta.codec).includes(q);
-    case 'year': return yearMatches(d.year, parseYearToken(field.value));
-    case 'rate': return numMatches(t.meta.rate, parseNumericToken(field.value, true));
-    case 'bits': return numMatches(t.meta.bits, parseNumericToken(field.value, false));
-    case 'is': {
-      const v = field.value.toLowerCase();
-      if(v === 'favorite') return isFavorite(t.id);
-      if(v === 'unplayed') return !(S.trackPlayCounts[trackIdentityKey(t)] > 0);
-      if(v === 'hires') return trackTier(t) === 3;
-      if(v === 'lossy') return trackTier(t) === 1;
-      if(v === 'new') return (Date.now() - (t.addedAt || 0)) < 14 * 24 * 3600 * 1000;
-      return false;
-    }
-    default: return true;   // unknown field name — never filtered out
-  }
-}
-
-function searchLibrary(query){
-  const parsed = parseSearchQuery(query);
-  const textQ = normKey(parsed.text);
-  const artists = new Set(), albums = new Set(), people = new Set(), genres = new Set(), songs = [];
-  S.tracks.forEach((t, i) => {
-    if(!parsed.fields.every(f => trackMatchesField(t, f))) return;
-    if(!textQ){ songs.push(i); return; }
-    const d = t.details || emptyDetails();
-    if(normKey(t.tags.artist).includes(textQ) || normKey(t.tags.albumArtist).includes(textQ)) artists.add(t.tags.artist);
-    if(normKey(t.tags.album).includes(textQ)) albums.add(t.tags.album);
-    if(normKey(t.tags.title).includes(textQ)) songs.push(i);
-    if(d.genre && normKey(d.genre).includes(textQ)) genres.add(d.genre);
-    if((d.label && normKey(d.label).includes(textQ)) || (d.catalog && normKey(d.catalog).includes(textQ))){
-      if(!songs.includes(i)) songs.push(i);
-    }
-    trackAllCreditNames(t).forEach(n => { if(normKey(n).includes(textQ)) people.add(n); });
-  });
-  return { artists: [...artists].sort(byName), albums: [...albums].sort(byName), songs,
-    people: [...people].sort(byName), genres: [...genres].sort(byName) };
-}
-
-// wraps each case-insensitive occurrence of query in the result's visible
-// label text with <mark class="hl"> (amber, weight 600 — S1 §4)
-function highlightMatches(text, query){
-  const frag = document.createDocumentFragment();
-  if(!query){ frag.appendChild(document.createTextNode(text)); return frag; }
-  const lowerText = text.toLowerCase(), lowerQ = query.toLowerCase();
-  let i = 0;
-  while(i < text.length){
-    const at = lowerText.indexOf(lowerQ, i);
-    if(at < 0){ frag.appendChild(document.createTextNode(text.slice(i))); break; }
-    if(at > i) frag.appendChild(document.createTextNode(text.slice(i, at)));
-    const mark = el('mark','hl', text.slice(at, at + query.length));
-    frag.appendChild(mark);
-    i = at + query.length;
-  }
-  return frag;
-}
-function highlightRowLabel(row, selector, text, query){
-  const target = row.querySelector(selector);
-  if(!target || !query) return row;
-  target.textContent = '';
-  target.appendChild(highlightMatches(text, query));
-  return row;
-}
-
-function renderSearchResults(host, query){
-  const results = searchLibrary(query);
-  if(!results.artists.length && !results.albums.length && !results.songs.length
-     && !results.people.length && !results.genres.length){
-    host.appendChild(el('p','note','No matches for “' + query + '”.'));
-    return;
-  }
-  const textQ = parseSearchQuery(query).text.trim();
-  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
-  if(results.artists.length){
-    host.appendChild(el('p','note','Artists'));
-    results.artists.forEach(artist => {
-      const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
-      const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-      const row = groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
-        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist));
-      host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
-    });
-  }
-  if(results.albums.length){
-    host.appendChild(el('p','note','Albums'));
-    results.albums.forEach(album => {
-      const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
-      const artist = S.tracks[idx[0]].tags.albumArtist;
-      const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-        idx, () => goto('albums', album));
-      host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
-    });
-  }
-  if(results.people.length){
-    host.appendChild(el('p','note','People'));
-    results.people.forEach(name => {
-      const entry = peopleIndex.get(normKey(name));
-      const count = entry ? new Set(entry.entries.map(e => e.trackIdx)).size : 0;
-      const row = groupRow(name, count + (count===1?' credit':' credits'), [],
-        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); });
-      host.appendChild(highlightRowLabel(row, '.g-text b', name, textQ));
-    });
-  }
-  if(results.genres.length){
-    host.appendChild(el('p','note','Genres'));
-    results.genres.forEach(genre => {
-      const idx = allIdx().filter(i => S.tracks[i].details && S.tracks[i].details.genre === genre);
-      const row = groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
-        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); });
-      host.appendChild(highlightRowLabel(row, '.g-text b', genre, textQ));
-    });
-  }
-  if(results.songs.length){
-    host.appendChild(el('p','note','Songs'));
-    const ul = el('ul','tracklist');
-    results.songs.forEach((i, pos) => {
-      const row = songRow(i, results.songs, pos);
-      ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
-    });
-    host.appendChild(ul);
-  }
-}
-
-// discoverable field names + smart filters, shown while the search box is
-// focused and empty (CREDITS spec §3)
-function renderSearchChips(){
-  const host = $('#searchChips');
-  if(!host) return;
-  host.innerHTML = '';
-  const chips = [...SEARCH_FIELD_KEYS].map(k => k + ':').concat(SEARCH_SMART_FILTERS.map(f => 'is:' + f));
-  chips.forEach(label => {
-    const chip = el('button','search-chip', label);
-    chip.addEventListener('click', () => {
-      const input = $('#librarySearch');
-      input.value = (input.value.trim() ? input.value.trim() + ' ' : '') + label;
-      input.focus();
-      renderTracks();
-    });
-    host.appendChild(chip);
-  });
-}
-function updateSearchChipsVisibility(){
-  const input = $('#librarySearch'), chips = $('#searchChips');
-  if(!input || !chips) return;
-  chips.style.display = (document.activeElement === input && !input.value.trim() && S.tracks.length > 0) ? 'flex' : 'none';
-}
+/* Library-wide search + sort, and tag-aware search (CREDITS spec §3),
+   moved to src/library/search.js (step 5e). */
 
 /* ================= S4: crate image tiers (640px "S", 1200px "L") =========
    Stored in the existing `artwork` store (keyed by id, never `meta` — that

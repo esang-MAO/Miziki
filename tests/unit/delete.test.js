@@ -32,13 +32,16 @@ const persistSealedAlbumsMock = mock.fn();
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     clearSpinDown(){}, deleteCrateArtTiers: async () => {}, persistSealedAlbums: persistSealedAlbumsMock,
-    closePlayer(){}, rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
+    closePlayer(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
     queueSave(){}, applyDiscVariant(){}, restoreThumbs: async () => {},
     // setQueue (real, from player/queue.js) pulls in queue.js's own main.js
     // imports (step 5a) and, via history/sessions.js, applyDiscVariant/
     // restoreThumbs above
     runStartSequence: async () => {}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
+    // delete.js's rebuildPeopleIndex import is now a real one from
+    // src/library/credits.js (step 5e), which itself needs these from main.js
+    showRoute(){}, songRow(){},
   },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
