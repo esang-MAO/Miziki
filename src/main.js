@@ -6,6 +6,7 @@ import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
 import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
 import { touchLRU, ensureBuffer } from './player/buffers.js';
+import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from './player/queue.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -1524,7 +1525,7 @@ function invalidateSession(albumId){
 }
 function discardSession(albumId){ delete S.sessions[albumId]; sessions.put({albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
 
-function invalidateActiveSessionIfAny(){
+export function invalidateActiveSessionIfAny(){
   if(S.sessionActive) invalidateSession(S.sessionActive);
   S.sessionActive = null;
 }
@@ -2162,47 +2163,6 @@ async function clearListeningHistory(orphanedOnly){
   if(profileRoute && profileRoute.classList.contains('on')) renderProfile();
 }
 
-/* ================= queue, shuffle, repeat ================= */
-function buildOrder(first){
-  const rest = S.baseQueue.filter(i => i !== first);
-  for(let i = rest.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [rest[i], rest[j]] = [rest[j], rest[i]];
-  }
-  S.queue = (first === undefined || first === null) ? rest : [first].concat(rest);
-}
-
-function setQueue(indices, startPos, autoplay){
-  invalidateActiveSessionIfAny();
-  S.baseQueue = indices.slice();
-  const first = indices[startPos];
-  if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
-  S.qpos = Math.max(0, S.queue.indexOf(first));
-  load(S.queue[S.qpos]);
-  if(!autoplay){
-    // silent queue-priming (restoring a persisted library on boot) is not a
-    // ceremony — nothing is "arriving," so the disc just appears as-is
-    // instead of sitting hidden forever with no pull ever coming to reveal it
-    $('#platterBox').classList.remove('disc-hidden');
-    return;
-  }
-  // an explicit track pick (as opposed to the silent initial queue-priming
-  // calls, which pass autoplay:false) is always "starting something" —
-  // opens the full player via the sheet, not the mini-player's morph.
-  // Audio itself is strictly gated behind whichever ceremony runs, never
-  // started up front — see runStartSequence().
-  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
-  else openPlayerViaSheet(current(), S.pendingShellInfo);
-}
-
-function reorderQueue(){
-  const cur = S.index;
-  if(!S.baseQueue.length) return;
-  if(S.shuffle) buildOrder(cur >= 0 ? cur : undefined);
-  else S.queue = S.baseQueue.slice();
-  S.qpos = Math.max(0, S.queue.indexOf(cur));
-}
-
 /* ================= visible queue: reorder, remove, play next / add =================
    Shows the current track plus everything after it. Reordering or removing
    is manual queue manipulation, same as shuffle/skip, so it silently
@@ -2292,70 +2252,6 @@ function openQueueSheet(){
 function closeQueueSheet(){
   $('#queueOverlay').classList.remove('open');
   $('#queueOverlay').setAttribute('aria-hidden', 'true');
-}
-
-// Mirrors advance(1, true)'s own index math (natural end-of-track,
-// repeat-all wraparound) without mutating any state — used to know what to
-// preload before it's actually time to play it (see PLAYBACK spec §1).
-function peekNextIndex(){
-  if(!S.queue.length) return null;
-  if(S.repeat === 'one') return S.queue[S.qpos];
-  let n = S.qpos + 1;
-  if(n >= S.queue.length){
-    if(S.repeat === 'all') n = 0;
-    else return null;
-  }
-  return S.queue[n];
-}
-
-// Kicked off whenever a track starts, so whatever plays next has already
-// finished decoding by the time this one's onended fires — decode latency,
-// not JS scheduling overhead, was the actual cause of the gap between
-// tracks. See PLAYBACK spec §1: "no buffer underrun."
-export function preloadNextTrack(){
-  const nextIdx = peekNextIndex();
-  if(nextIdx === null || nextIdx === undefined) return;
-  if(nextIdx === S.index) return;
-  const nt = S.tracks[nextIdx];
-  if(!nt || nt.buffer) return;
-  ensureBuffer(nextIdx).catch(()=>{});
-}
-
-export function advance(dir, auto){
-  if(!S.queue.length) return;
-  if(auto && S.repeat === 'one'){ seek(0); if(!S.playing) play(); return; }
-  if(auto && S.sleep.mode === 'track'){ sleepStopPlayback(); return; }
-  if(auto && S.sleep.mode === 'album'){
-    const curT = S.tracks[S.queue[S.qpos]];
-    const n2 = S.qpos + dir;
-    const nextT = (n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
-    if(curT && (!nextT || albumKey(nextT) !== albumKey(curT))){ sleepStopPlayback(); return; }
-  }
-  if(!auto) invalidateActiveSessionIfAny();     // an explicit next/prev press is a skip
-  let n = S.qpos + dir;
-  if(n >= S.queue.length){
-    if(S.repeat === 'all'){ if(S.shuffle) buildOrder(); n = 0; }
-    else {
-      pause(); S.pos = 0; drawTime();
-      // the record goes back in its sleeve — but only for a real finish
-      // (auto), never a manual skip past the last track, and only where
-      // there's something to see or it would just be wasted motion
-      if(shouldPutAway(auto)){
-        if(document.hidden || !S.playerOpen) putAwayInstant();
-        else runPutAwaySequence(current());
-      }
-      return;        // end of the record
-    }
-  }
-  if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
-  S.qpos = n;
-  load(S.queue[n]);
-  // next/prev/auto-advance never open the player themselves — but if it's
-  // already open (sitting in it, or mid next/prev), there's no sheet or
-  // morph to wait for, so the disc ceremony (if any) runs immediately.
-  // With the player closed there's nothing to see, so audio just starts.
-  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
-  else play();
 }
 
 function nextTrack(){ advance(1, false); }
@@ -2570,7 +2466,7 @@ async function runSealPeel(cancelled){
   removeSleeveWrap();
 }
 
-async function runStartSequence(t, info, startAudio){
+export async function runStartSequence(t, info, startAudio){
   const stage = $('#platterStage');
   const token = ++S.sleeveSeq;
   const cancelled = () => token !== S.sleeveSeq;
@@ -2857,7 +2753,7 @@ function interruptGatefoldHandoff(){
 // the caller (advance()'s end-of-queue branch is unreachable for 'one', and
 // 'all' wraps instead of ending), and `auto` tells manual skips apart from
 // a real finish.
-function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
+export function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
 
 // The disc's rotation normally snaps to 0 the instant S.playing goes false
 // (see frame()). A put-away eases it down instead, over putSpinMs, read by
@@ -2871,7 +2767,7 @@ export function clearSpinDown(){ S.spinDown = null; }
 // would be visible either way, so skip straight to the end state rather
 // than running a ceremony no one can see (mirrors advance()'s own
 // "if(S.playerOpen) runStartSequence(...) else play()" for the pull).
-function putAwayInstant(){
+export function putAwayInstant(){
   S.sleeveSeq++;
   clearSpinDown();
   $('#sleeve').style.display = 'none';
@@ -2880,7 +2776,7 @@ function putAwayInstant(){
   renderMiniPlayer();
 }
 
-async function runPutAwaySequence(t){
+export async function runPutAwaySequence(t){
   const stage = $('#platterStage'), discBox = $('#platterBox');
   const token = ++S.sleeveSeq;
   const cancelled = () => token !== S.sleeveSeq;
@@ -3330,7 +3226,7 @@ function toggleScratch(){
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
-function openPlayerViaSheet(t, info){
+export function openPlayerViaSheet(t, info){
   if(!t) return;
   S.playerOpen = true;
   const ov = $('#playerOverlay');
