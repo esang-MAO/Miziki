@@ -10,6 +10,10 @@ import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from '.
 import { readDetails, emptyDetails } from './library/tags/index.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from './library/import.js';
 import { closeDupOverlay, closeDuplicateScan } from './library/duplicates-ui.js';
+import {
+  albumExpectedOrder, persistAlbumLookPref, invalidateActiveSessionIfAny, touchActiveSession, restoreSessions,
+} from './history/sessions.js';
+import { clearListeningHistory } from './history/clear.js';
 import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -64,22 +68,8 @@ function trackMetalFor(trackKey){
   return null;
 }
 
-// same audio-actually-played measure as sessions, not playhead position —
-// counts regardless of shuffle/order/skips, since track metals are earned
-// outside album context (repeat listens, singles, queue, search). Keyed by
-// trackIdentityKey(), not the file id, so the count survives a re-import.
-function incrementTrackPlay(t){
-  const key = trackIdentityKey(t);
-  S.trackPlayCounts[key] = (S.trackPlayCounts[key] || 0) + 1;
-  if(trackTier(t) === 1) S.trackMetalEligiblePlays[key] = (S.trackMetalEligiblePlays[key] || 0) + 1;
-  S.trackLastPlayed[key] = Date.now();
-  persistTrackPlayCounts();
-  persistTrackMetalEligiblePlays();
-  persistTrackLastPlayed();
-  snapshotAlbumDisplay(t);
-  snapshotTrackDisplay(t, key);
-  if(current() === t) applyDiscVariant(t, true);
-}
+// incrementTrackPlay moved to src/history/played.js (step 5c), alongside
+// checkTrackCompletion, its only caller.
 
 // plated metal, not a flat fill: a conic sheen band (bright arcs near the
 // light-catching angles, a darker arc opposite) over a radial base, so the
@@ -233,8 +223,9 @@ export function applyDiscVariant(t, crossfade){
    albumDisplay is the one place that snapshot lives, shared by both.
    Timestamps double as the recency tie-break and, per §11, keep every
    record ready for a future account system: stable ids, no device-keyed
-   identifiers, no absolute paths. */
-async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
+   identifiers, no absolute paths. persistAlbumLastPlayed moved to
+   src/history/sessions.js (step 5c) — its only writer, sessionTrackComplete,
+   lives there. */
 
 /* ================= S5: sealed records =================
    S.sealed is its own saved list, independent of S.albumLastPlayed/session
@@ -275,7 +266,7 @@ function buildSealOverlay(sizePx){
   frag.appendChild(sticker);
   return frag;
 }
-async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
+export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
    page reloads — so anything persisted with it (Top Albums, achievements, the
@@ -364,7 +355,7 @@ async function ensureThumb(kind, id, url){
   refreshProfileIfOpen();
 }
 
-async function restoreThumbs(){
+export async function restoreThumbs(){
   const thumbs = await meta.thumbs();
   thumbs.forEach(({key, blob}) => { thumbURL[key] = URL.createObjectURL(blob); });
   applyThumbURLs();
@@ -420,7 +411,7 @@ async function healDetails(){
 }
 
 // drops thumbnails whose records are gone (after clearing listening history)
-async function pruneThumbs(){
+export async function pruneThumbs(){
   for(const key of Object.keys(thumbURL)){
     const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
     const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
@@ -431,10 +422,10 @@ async function pruneThumbs(){
   }
 }
 
-async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
-async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
+export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
+export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
 
-function snapshotAlbumDisplay(t){
+export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
   S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist,
     art:thumbURL['album:' + albumId] || null};
@@ -445,7 +436,7 @@ function snapshotAlbumDisplay(t){
 // same idea as snapshotAlbumDisplay, one level down — keeps Top Songs
 // showing a real title/artist/art for a track whose file has since been
 // removed from the library (see LIBRARY spec §1, orphaned stats)
-function snapshotTrackDisplay(t, key){
+export function snapshotTrackDisplay(t, key){
   S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:thumbURL['track:' + key] || null};
   persistTrackDisplay();
   ensureThumb('track', key, t.art);
@@ -486,7 +477,7 @@ function albumPlayedThrough(albumId){
 
 // checked after every track-completion event, since that's the only thing
 // that can flip either condition from false to true
-function checkAlbumAchievementAndCollection(t){
+export function checkAlbumAchievementAndCollection(t){
   const albumId = albumKey(t);
   const tier = S.rareUnlocked[albumId] ? 'rare' : albumMetalFor(albumId);
   if(tier) upsertAchievement(albumId, tier);
@@ -698,212 +689,8 @@ function applyPrefs(p){
   applyVolume();
 }
 
-/* ================= record art: session tracking =================
-   A "qualifying session" is one full play-through of an album, in order, with
-   shuffle off, zero skips, and every track actually heard (not just scrubbed
-   past) to 95%. See spec §7-8. Persisted one record per in-progress album so a
-   backgrounded/killed app can resume within a 4-hour gap. */
-const FOUR_HOURS = 4 * 3600 * 1000;
-
-function albumExpectedOrder(albumId){
-  const sample = S.tracks.find(t => albumKey(t) === albumId);
-  if(!sample) return [];
-  return albumTracks(sample.tags.album).map(i => S.tracks[i].id);
-}
-
-async function persistSession(rec){ S.sessions[rec.albumId] = rec; await sessions.put(rec); }
-async function persistSessionCounts(){ await meta.put('sessionCounts', S.sessionCounts); }
-async function persistRareUnlocked(){ await meta.put('rareUnlocked', S.rareUnlocked); }
-async function persistTrackPlayCounts(){ await meta.put('trackPlayCounts', S.trackPlayCounts); }
-async function persistMetalEligibleSessions(){ await meta.put('metalEligibleSessions', S.metalEligibleSessions); }
-async function persistTrackMetalEligiblePlays(){ await meta.put('trackMetalEligiblePlays', S.trackMetalEligiblePlays); }
-async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); }
-
-function startSession(albumId){
-  const order = albumExpectedOrder(albumId);
-  if(!order.length) return null;
-  const rec = {albumId, startedAt:Date.now(), lastActivityAt:Date.now(),
-    tracksCompleted:[], expectedOrder:order, invalidated:false};
-  persistSession(rec);
-  return rec;
-}
-
-// skip, shuffle-on, and out-of-order jumps are all "invalidating events" —
-// write the flag (per spec §8), then drop it from the active set
-function invalidateSession(albumId){
-  const rec = S.sessions[albumId];
-  if(!rec) return;
-  rec.invalidated = true; rec.lastActivityAt = Date.now();
-  sessions.put(rec);
-  delete S.sessions[albumId];
-}
-function discardSession(albumId){ delete S.sessions[albumId]; sessions.put({albumId, invalidated:true, lastActivityAt:Date.now(), tracksCompleted:[], expectedOrder:[], startedAt:Date.now()}); }
-
-export function invalidateActiveSessionIfAny(){
-  if(S.sessionActive) invalidateSession(S.sessionActive);
-  S.sessionActive = null;
-}
-
-export function touchActiveSession(){
-  const rec = S.sessionActive && S.sessions[S.sessionActive];
-  if(!rec) return;
-  rec.lastActivityAt = Date.now();
-  sessions.put(rec);
-}
-
-// called whenever a new track finishes loading; decides whether this track
-// continues, starts, or falls outside of album session tracking
-export function sessionOnLoad(t){
-  if(!t){ S.sessionActive = null; return; }
-  if(S.shuffle){ S.sessionActive = null; return; }
-  const albumId = albumKey(t);
-  const order = albumExpectedOrder(albumId);
-  const idx = order.indexOf(t.id);
-  let rec = S.sessions[albumId];
-
-  if(rec && Date.now() - rec.lastActivityAt > FOUR_HOURS){
-    discardSession(albumId);
-    rec = null;
-  }
-
-  if(rec){
-    const expectedNext = rec.tracksCompleted.length;
-    if(idx === expectedNext){
-      rec.lastActivityAt = Date.now();
-      persistSession(rec);
-      S.sessionActive = albumId;
-      return;
-    }
-    invalidateSession(albumId);
-    rec = null;
-  }
-
-  if(idx === 0){
-    startSession(albumId);
-    S.sessionActive = albumId;
-  } else {
-    S.sessionActive = null;
-  }
-}
-
-function sessionTrackComplete(t){
-  const albumId = albumKey(t);
-  if(S.sessionActive !== albumId) return;
-  const rec = S.sessions[albumId];
-  if(!rec) return;
-  const nextIdx = rec.tracksCompleted.length;
-  if(rec.expectedOrder[nextIdx] !== t.id) return;
-  rec.tracksCompleted.push(t.id);
-  rec.lastActivityAt = Date.now();
-  if(rec.tracksCompleted.length >= rec.expectedOrder.length){
-    delete S.sessions[albumId];
-    sessions.put(rec);
-    S.sessionActive = null;
-    S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
-    if(trackTier(t) === 1) S.metalEligibleSessions[albumId] = (S.metalEligibleSessions[albumId] || 0) + 1;
-    S.albumLastPlayed[albumId] = Date.now();
-    persistSessionCounts();
-    persistMetalEligibleSessions();
-    persistAlbumLastPlayed();
-    checkRareUnlock(albumId);
-    MizikiSocial.listeningChanged();
-    // the album metal (if any) is a pure function of the count that just
-    // changed — re-render the platter if this album is still what's showing
-    const cur = current();
-    if(cur && albumKey(cur) === albumId) applyDiscVariant(cur, true);
-  } else {
-    persistSession(rec);
-  }
-}
-
-// no indicator, no progress display — the unlock is silent by design
-// sits above Platinum (40 sessions) as the true ceiling of the album ladder —
-// see METAL spec §5: Bronze 8 -> Silver 15 -> Gold 25 -> Platinum 40 -> Rare 50
-function checkRareUnlock(albumId){
-  if(S.rareUnlocked[albumId]) return;
-  if((S.sessionCounts[albumId] || 0) >= 50){
-    S.rareUnlocked[albumId] = true;
-    persistRareUnlocked();
-    const t = current();
-    if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
-  }
-}
-
-async function restoreSessions(){
-  const recs = await sessions.all();
-  const now = Date.now();
-  recs.forEach(r => {
-    if(r.invalidated) return;
-    if(now - r.lastActivityAt > FOUR_HOURS) return;
-    S.sessions[r.albumId] = r;
-  });
-  const counts = await meta.get('sessionCounts');
-  if(counts) S.sessionCounts = counts;
-  const unlocked = await meta.get('rareUnlocked');
-  if(unlocked) S.rareUnlocked = unlocked;
-  const plays = await meta.get('trackPlayCounts');
-  if(plays) S.trackPlayCounts = plays;
-  // fall back to a copy of the true lifetime counters if this is the first
-  // load since the metal-eligible shadow counters were introduced — correct
-  // for anyone who hasn't upgraded a tier-1 album yet, which is the common
-  // case, and only diverges going forward for those who have
-  const metalSessions = await meta.get('metalEligibleSessions');
-  S.metalEligibleSessions = metalSessions || Object.assign({}, S.sessionCounts);
-  const metalPlays = await meta.get('trackMetalEligiblePlays');
-  S.trackMetalEligiblePlays = metalPlays || Object.assign({}, S.trackPlayCounts);
-  const lookPref = await meta.get('albumLookPref');
-  if(lookPref) S.albumLookPref = lookPref;
-  const albumLast = await meta.get('albumLastPlayed');
-  if(albumLast) S.albumLastPlayed = albumLast;
-  const trackLast = await meta.get('trackLastPlayed');
-  if(trackLast) S.trackLastPlayed = trackLast;
-  const display = await meta.get('albumDisplay');
-  if(display) S.albumDisplay = display;
-  const trackDisp = await meta.get('trackDisplay');
-  if(trackDisp) S.trackDisplay = trackDisp;
-  const edge = await meta.get('albumEdge');
-  if(edge) S.albumEdge = edge;
-  (await achievements.all()).forEach(r => { S.achievements[r.albumId] = r; });
-  (await collection.all()).forEach(r => { S.collection[r.albumId] = r; });
-  await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
-  const prof = await profile.get('me');
-  if(prof){
-    S.profile.name = prof.name || '';
-    S.profile.username = prof.username || '';
-    if(prof.pictureBlob) S.profile.art = URL.createObjectURL(prof.pictureBlob);
-  }
-}
-
-/* ---- played-duration tracking: which portions of the current track's timeline
-   have actually sounded, not just been scrubbed past. Forward playback extends
-   the last interval in O(1); a merge only runs when coverage is asked for. ---- */
-export function addPlayedRange(a, b){
-  if(b <= a) return;
-  const n = S.curPlayed.length;
-  if(n && a <= S.curPlayed[n-1][1] + 0.05) S.curPlayed[n-1][1] = Math.max(S.curPlayed[n-1][1], b);
-  else S.curPlayed.push([a, b]);
-}
-function playedCoverage(){
-  if(!S.curPlayed.length) return 0;
-  const ivs = S.curPlayed.slice().sort((x,y) => x[0]-y[0]);
-  let total = 0, curStart = ivs[0][0], curEnd = ivs[0][1];
-  for(let i=1;i<ivs.length;i++){
-    const [s,e] = ivs[i];
-    if(s <= curEnd + 0.05) curEnd = Math.max(curEnd, e);
-    else { total += curEnd - curStart; curStart = s; curEnd = e; }
-  }
-  total += curEnd - curStart;
-  return total;
-}
-export function checkTrackCompletion(t){
-  if(S.curTrackDone || !t.duration) return;
-  if(playedCoverage() >= 0.95 * t.duration){
-    S.curTrackDone = true;
-    incrementTrackPlay(t);
-    sessionTrackComplete(t);
-    checkAlbumAchievementAndCollection(t);
-  }
-}
+/* Session tracking and played-duration tracking moved to
+   src/history/sessions.js and src/history/played.js (step 5c). */
 
 /* ================= metadata editing: sidecar overlay =================
    Source of truth stays the app's own database. Edits are stored as a
@@ -1311,60 +1098,7 @@ async function forgetLibrary(){
   renderTracks(); drawTime(); renderMiniPlayer();
 }
 
-/* ================= clear listening history =================
-   Deliberately separate from deletion — deletion never touches listening
-   history, this is the only path that does (see LIBRARY spec §1). Full
-   scope wipes everything; the lighter "orphaned only" scope drops just the
-   records for identities no longer in the library, leaving current albums
-   untouched. */
-function currentAlbumIds(){ return new Set(S.tracks.map(albumKey)); }
-function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }
-function filterKeep(dict, keepSet){
-  const out = {};
-  Object.keys(dict).forEach(k => { if(keepSet.has(k)) out[k] = dict[k]; });
-  return out;
-}
-
-async function clearListeningHistory(orphanedOnly){
-  if(orphanedOnly){
-    const albumIds = currentAlbumIds(), trackKeys = currentTrackKeys();
-    const droppedAlbums = Object.keys(S.achievements).filter(id => !albumIds.has(id));
-    const droppedCollection = Object.keys(S.collection).filter(id => !albumIds.has(id));
-    const droppedSessions = Object.keys(S.sessions).filter(id => !albumIds.has(id));
-    S.sessionCounts = filterKeep(S.sessionCounts, albumIds);
-    S.metalEligibleSessions = filterKeep(S.metalEligibleSessions, albumIds);
-    S.rareUnlocked = filterKeep(S.rareUnlocked, albumIds);
-    S.albumLastPlayed = filterKeep(S.albumLastPlayed, albumIds);
-    S.albumDisplay = filterKeep(S.albumDisplay, albumIds);
-    S.albumLookPref = filterKeep(S.albumLookPref, albumIds);
-    S.achievements = filterKeep(S.achievements, albumIds);
-    S.collection = filterKeep(S.collection, albumIds);
-    S.sessions = filterKeep(S.sessions, albumIds);
-    S.trackPlayCounts = filterKeep(S.trackPlayCounts, trackKeys);
-    S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
-    S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
-    S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
-    for(const id of droppedAlbums) await achievements.del(id);
-    for(const id of droppedCollection) await collection.del(id);
-    for(const id of droppedSessions) await sessions.del(id);
-  } else {
-    S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
-    S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
-    S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
-    S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
-    await achievements.clear(); await collection.clear(); await sessions.clear();
-  }
-  await pruneThumbs();
-  await Promise.all([
-    persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
-    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay()
-  ]);
-  const t = current();
-  if(t) applyDiscVariant(t, true);
-  const profileRoute = $('#route-profile');
-  if(profileRoute && profileRoute.classList.contains('on')) renderProfile();
-}
+/* clearListeningHistory moved to src/history/clear.js (step 5c). */
 
 /* ================= visible queue: reorder, remove, play next / add =================
    Shows the current track plus everything after it. Reordering or removing
@@ -6776,7 +6510,7 @@ function installSocialDemo(){
   console.info('[Miziki] social demo mode active — fixture data only, for UI development.');
 }
 
-function renderProfile(){
+export function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
   const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Settings'};
