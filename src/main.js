@@ -668,7 +668,6 @@ function applyPrefs(p){
    (queueInsert/playNext/addToQueue, queueRemoveAt, queueMove, the
    queue-sheet UI) moved into src/player/queue.js (step 5e). */
 
-
 function nextTrack(){ advance(1, false); }
 function prevTrack(){
   if(S.pos > 4){ seek(0); return; }
