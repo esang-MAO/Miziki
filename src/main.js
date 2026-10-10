@@ -4,7 +4,7 @@ import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
-import { byName, trackSort, groupBy, allIdx, albumTracks, idxOf } from './library/model.js';
+import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
 import { touchLRU, ensureBuffer } from './player/buffers.js';
 import { setQueue, buildOrder, reorderQueue, advance, preloadNextTrack } from './player/queue.js';
 import { readDetails, emptyDetails } from './library/tags/index.js';
