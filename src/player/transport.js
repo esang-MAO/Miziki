@@ -9,9 +9,10 @@ import { setPathNote } from '../ui/path-note.js';
 import { advance, preloadNextTrack } from './queue.js';
 import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
+import { updateCreditsButtonForCurrent } from '../library/credits.js';
 import {
   updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
-  updateGatefoldNowPlaying, updateCreditsButtonForCurrent, updateFavoriteButtons,
+  updateGatefoldNowPlaying, updateFavoriteButtons,
   bgPrime, showRoute, breakSeal,
   clearSpinDown, bgRouteActive, bgIdleNow, bgPosition,
 } from '../main.js';

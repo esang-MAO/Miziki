@@ -18,12 +18,13 @@ import { setQueue } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { drawTime } from '../player/clock.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
+import { rebuildPeopleIndex } from './credits.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
 // screen/crate-art-tier/sealed-records/persistence functions not yet
 // extracted. Used only inside the functions below, never at module top level.
 import {
   clearSpinDown, deleteCrateArtTiers, persistSealedAlbums, closePlayer,
-  rebuildPeopleIndex, invalidateCrateModel, renderTracks, renderMiniPlayer,
+  invalidateCrateModel, renderTracks, renderMiniPlayer,
   queueSave, applyDiscVariant,
 } from '../main.js';
 
