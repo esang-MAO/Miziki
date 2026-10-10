@@ -1,8 +1,10 @@
 /* ================= queue, shuffle, repeat =================
    Moved out of main.js (step 5a), together with the "visible queue"
-   section's advance()/preloadNextTrack() — see CLAUDE.md. */
+   section's advance()/preloadNextTrack() — see CLAUDE.md. The rest of the
+   "visible queue" section (queueInsert/playNext/addToQueue, queueRemoveAt,
+   queueMove, the queue-sheet UI) moved in here too, in step 5e. */
 import { S, current } from '../state.js';
-import { $ } from '../util/dom.js';
+import { $, el } from '../util/dom.js';
 import { albumKey } from '../record-art/tiers.js';
 import { sleepStopPlayback } from './sleep-timer.js';
 import { load, play, pause, seek } from './transport.js';
@@ -119,4 +121,95 @@ export function advance(dir, auto){
   // With the player closed there's nothing to see, so audio just starts.
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();
+}
+
+/* ================= visible queue: reorder, remove, play next / add =================
+   Shows the current track plus everything after it. Reordering or removing
+   is manual queue manipulation, same as shuffle/skip, so it silently
+   invalidates whatever qualifying session is in progress — no warning, no
+   prompt (see PLAYBACK spec §5). */
+function queueInsert(idx, mode){
+  if(idx === S.index) return;   // already playing; nothing to insert
+  invalidateActiveSessionIfAny();
+  if(!S.baseQueue.includes(idx)) S.baseQueue.push(idx);
+  const existing = S.queue.indexOf(idx, S.qpos + 1);
+  if(existing !== -1) S.queue.splice(existing, 1);
+  const insertAt = mode === 'next' ? S.qpos + 1 : S.queue.length;
+  S.queue.splice(Math.min(insertAt, S.queue.length), 0, idx);
+  renderQueueSheet();
+}
+export function playNext(idx){ queueInsert(idx, 'next'); }
+export function addToQueue(idx){ queueInsert(idx, 'end'); }
+
+// pos is an offset into the "upcoming" portion (0 = the track right after
+// current) — the current track itself is shown but never removable here,
+// that's what skip is for
+function queueRemoveAt(pos){
+  const queueIdx = S.qpos + 1 + pos;
+  if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
+  invalidateActiveSessionIfAny();
+  S.queue.splice(queueIdx, 1);
+  renderQueueSheet();
+}
+function queueMove(pos, dir){
+  const queueIdx = S.qpos + 1 + pos;
+  const n = queueIdx + dir;
+  if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
+  invalidateActiveSessionIfAny();
+  const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
+  renderQueueSheet();
+}
+
+function renderQueueSheet(){
+  const host = $('#queueBody'); host.innerHTML = '';
+  if(!S.queue.length || S.qpos >= S.queue.length){
+    host.appendChild(el('p','note','Nothing queued.'));
+    return;
+  }
+  const ul = el('ul','tracklist');
+  const curT = S.tracks[S.queue[S.qpos]];
+  if(curT){
+    const li = el('li'); li.setAttribute('aria-current','true');
+    if(curT.art){ const im = el('img','t-art'); im.src = curT.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, curT.tags.title));
+    name.appendChild(el('em', null, 'Now playing · ' + curT.tags.artist));
+    li.appendChild(name);
+    ul.appendChild(li);
+  }
+  const upcoming = S.queue.slice(S.qpos + 1);
+  upcoming.forEach((idx, pos) => {
+    const t = S.tracks[idx]; if(!t) return;
+    const li = el('li');
+    if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
+    else li.appendChild(el('span','t-art'));
+    const name = el('span','t-name');
+    name.appendChild(el('b', null, t.tags.title));
+    name.appendChild(el('em', null, t.tags.artist));
+    li.appendChild(name);
+    const movers = el('span','movers');
+    [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
+      const b = el('button','mv',glyph);
+      b.setAttribute('aria-label', dir < 0 ? 'Move up' : 'Move down');
+      b.addEventListener('click', e => { e.stopPropagation(); queueMove(pos, dir); });
+      movers.appendChild(b);
+    });
+    li.appendChild(movers);
+    const rm = el('button','mv','✕');
+    rm.setAttribute('aria-label','Remove from queue');
+    rm.addEventListener('click', e => { e.stopPropagation(); queueRemoveAt(pos); });
+    li.appendChild(rm);
+    ul.appendChild(li);
+  });
+  host.appendChild(ul);
+}
+export function openQueueSheet(){
+  renderQueueSheet();
+  $('#queueOverlay').classList.add('open');
+  $('#queueOverlay').setAttribute('aria-hidden', 'false');
+}
+export function closeQueueSheet(){
+  $('#queueOverlay').classList.remove('open');
+  $('#queueOverlay').setAttribute('aria-hidden', 'true');
 }

@@ -12,7 +12,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // engine.test.js/queue.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    rebuildPeopleIndex(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
+    invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
     queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
@@ -27,6 +27,9 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // these from main.js
     deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {}, exitSelectMode(){},
     clearSpinDown(){}, closePlayer(){},
+    // import.js's rebuildPeopleIndex import is now a real one from
+    // src/library/credits.js (step 5e), which itself needs these from main.js
+    showRoute(){}, songRow(){},
   },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
