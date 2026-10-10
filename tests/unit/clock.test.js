@@ -2,18 +2,23 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 // clock.js has temporary circular imports back to main.js (for
-// bgPosition/addPlayedRange/checkTrackCompletion/easeOutCubic/REDUCED)
-// and to sleep-timer.js (for sleepCheckDeadline) — see the refactor
-// rule in CLAUDE.md. main.js has DOM-dependent top-level code that
-// needs a browser, and sleep-timer.js's real file would in turn pull
+// bgPosition/easeOutCubic/REDUCED) and to sleep-timer.js (for
+// sleepCheckDeadline) — see the refactor rule in CLAUDE.md. Since step
+// 5c, clock.js also imports addPlayedRange/checkTrackCompletion from the
+// real src/history/played.js, which itself imports from the real
+// src/history/sessions.js — both load for real here, so the main.js mock
+// below also needs every name *they* need from main.js, not just
+// clock.js's own direct imports. main.js has DOM-dependent top-level code
+// that needs a browser, and sleep-timer.js's real file would in turn pull
 // in location.js and transport.js (which itself needs ~20 main.js
 // exports). Mocking both main.js and sleep-timer.js directly, rather
 // than also loading their real dependency chains, is what lets tick()
 // load here at all.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    bgPosition(){}, addPlayedRange(){}, checkTrackCompletion(){},
-    easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
+    bgPosition(){}, easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
+    persistTrackLastPlayed: async () => {}, snapshotAlbumDisplay(){}, snapshotTrackDisplay(){},
+    applyDiscVariant(){}, checkAlbumAchievementAndCollection(){}, restoreThumbs: async () => {},
   },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {

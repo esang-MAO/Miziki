@@ -68,22 +68,8 @@ function trackMetalFor(trackKey){
   return null;
 }
 
-// same audio-actually-played measure as sessions, not playhead position —
-// counts regardless of shuffle/order/skips, since track metals are earned
-// outside album context (repeat listens, singles, queue, search). Keyed by
-// trackIdentityKey(), not the file id, so the count survives a re-import.
-function incrementTrackPlay(t){
-  const key = trackIdentityKey(t);
-  S.trackPlayCounts[key] = (S.trackPlayCounts[key] || 0) + 1;
-  if(trackTier(t) === 1) S.trackMetalEligiblePlays[key] = (S.trackMetalEligiblePlays[key] || 0) + 1;
-  S.trackLastPlayed[key] = Date.now();
-  persistTrackPlayCounts();
-  persistTrackMetalEligiblePlays();
-  persistTrackLastPlayed();
-  snapshotAlbumDisplay(t);
-  snapshotTrackDisplay(t, key);
-  if(current() === t) applyDiscVariant(t, true);
-}
+// incrementTrackPlay moved to src/history/played.js (step 5c), alongside
+// checkTrackCompletion, its only caller.
 
 // plated metal, not a flat fill: a conic sheen band (bright arcs near the
 // light-catching angles, a darker arc opposite) over a radial base, so the
@@ -280,7 +266,7 @@ function buildSealOverlay(sizePx){
   frag.appendChild(sticker);
   return frag;
 }
-async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
+export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
    page reloads — so anything persisted with it (Top Albums, achievements, the
@@ -439,7 +425,7 @@ async function pruneThumbs(){
 async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
 async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
 
-function snapshotAlbumDisplay(t){
+export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
   S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist,
     art:thumbURL['album:' + albumId] || null};
@@ -450,7 +436,7 @@ function snapshotAlbumDisplay(t){
 // same idea as snapshotAlbumDisplay, one level down — keeps Top Songs
 // showing a real title/artist/art for a track whose file has since been
 // removed from the library (see LIBRARY spec §1, orphaned stats)
-function snapshotTrackDisplay(t, key){
+export function snapshotTrackDisplay(t, key){
   S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:thumbURL['track:' + key] || null};
   persistTrackDisplay();
   ensureThumb('track', key, t.art);
@@ -491,7 +477,7 @@ function albumPlayedThrough(albumId){
 
 // checked after every track-completion event, since that's the only thing
 // that can flip either condition from false to true
-function checkAlbumAchievementAndCollection(t){
+export function checkAlbumAchievementAndCollection(t){
   const albumId = albumKey(t);
   const tier = S.rareUnlocked[albumId] ? 'rare' : albumMetalFor(albumId);
   if(tier) upsertAchievement(albumId, tier);
@@ -703,38 +689,8 @@ function applyPrefs(p){
   applyVolume();
 }
 
-/* Session tracking moved to src/history/sessions.js (step 5c). */
-
-/* ---- played-duration tracking: which portions of the current track's timeline
-   have actually sounded, not just been scrubbed past. Forward playback extends
-   the last interval in O(1); a merge only runs when coverage is asked for. ---- */
-export function addPlayedRange(a, b){
-  if(b <= a) return;
-  const n = S.curPlayed.length;
-  if(n && a <= S.curPlayed[n-1][1] + 0.05) S.curPlayed[n-1][1] = Math.max(S.curPlayed[n-1][1], b);
-  else S.curPlayed.push([a, b]);
-}
-function playedCoverage(){
-  if(!S.curPlayed.length) return 0;
-  const ivs = S.curPlayed.slice().sort((x,y) => x[0]-y[0]);
-  let total = 0, curStart = ivs[0][0], curEnd = ivs[0][1];
-  for(let i=1;i<ivs.length;i++){
-    const [s,e] = ivs[i];
-    if(s <= curEnd + 0.05) curEnd = Math.max(curEnd, e);
-    else { total += curEnd - curStart; curStart = s; curEnd = e; }
-  }
-  total += curEnd - curStart;
-  return total;
-}
-export function checkTrackCompletion(t){
-  if(S.curTrackDone || !t.duration) return;
-  if(playedCoverage() >= 0.95 * t.duration){
-    S.curTrackDone = true;
-    incrementTrackPlay(t);
-    sessionTrackComplete(t);
-    checkAlbumAchievementAndCollection(t);
-  }
-}
+/* Session tracking and played-duration tracking moved to
+   src/history/sessions.js and src/history/played.js (step 5c). */
 
 /* ================= metadata editing: sidecar overlay =================
    Source of truth stays the app's own database. Edits are stored as a
