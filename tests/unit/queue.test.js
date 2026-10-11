@@ -71,7 +71,7 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
 });
 
 const {
-  buildOrder, setQueue, reorderQueue, advance,
+  buildOrder, reorderQueue, advance,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');

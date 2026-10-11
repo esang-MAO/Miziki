@@ -68,7 +68,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.equal(q1(`select pin_rank from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 1')`),'2'); });
  await t('unpin then pin other albums, 8 max',async()=>{ for(const n of [3,4,5,6,7,8,9]) M.pin('a'+n); assert.equal(M.getPins().length,8); const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r)); assert.equal(+q1(`select count(pin_rank) from crate_items where user_id='${UID}'`),8); });
  await t('small removal proceeds',async()=>{ ALBUMS=ALBUMS.filter(a=>a.id!=='a20'); const r=await M.syncNow(); assert.equal(r.removed,1); assert.equal(crateN(),19); });
- await t('mass removal held until confirm',async()=>{ const keep=ALBUMS.slice(); ALBUMS=ALBUMS.slice(0,8); const r=await M.syncNow(); assert.equal(r.held,11,JSON.stringify(r)); assert.equal(crateN(),19); assert.equal(M.status().sync,'needsReview');
+ await t('mass removal held until confirm',async()=>{ ALBUMS=ALBUMS.slice(0,8); const r=await M.syncNow(); assert.equal(r.held,11,JSON.stringify(r)); assert.equal(crateN(),19); assert.equal(M.status().sync,'needsReview');
    const r2=await M.confirmRemovals(); assert.equal(r2.removed,11,JSON.stringify(r2)); assert.equal(crateN(),8); });
  await t('emptied library held',async()=>{ ALBUMS=[]; const r=await M.syncNow(); assert.ok(r.held>0); assert.equal(crateN(),8); ALBUMS=[1,2,3,4,5,6,7,8].map(n=>alb(n)); const r2=await M.syncNow(); assert.equal(r2.held,0); assert.equal(crateN(),8); });
  await t('fresh device restores server metadata, no blank overwrite',async()=>{
