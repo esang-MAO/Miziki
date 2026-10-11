@@ -1,11 +1,13 @@
 /* ================= favorites: a real playlist, not a separate flag =======
    Moved out of main.js (step 5e). (CREDITS/FAVORITES spec §4). The
    system:'favorites' tag must be carried through every place playlists are
-   copied — saveMeta, restoreMeta and deleteTracks' snapshot/rebuild — or
-   it's lost on the next reload. */
+   copied — saveMeta/restoreMeta and deleteTracks' explicit-removal filter
+   — or it's lost on the next reload. Playlist items are track ids, not
+   positions (F3 spec, step 02) — a favorited track that's since been
+   forgotten (not deleted) just stays in the list, hidden until it
+   reconnects, so this module never needs to resolve an index at all. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
-import { idxOf } from './model.js';
 import { queueSave } from '../storage/meta.js';
 import { REDUCED } from '../util/motion.js';
 import { renderTracks } from './view.js';
@@ -23,16 +25,12 @@ function ensureFavoritesPlaylist(){
 }
 export function isFavorite(id){
   const pl = findFavoritesPlaylist();
-  if(!pl) return false;
-  const i = idxOf(id);
-  return i >= 0 && pl.items.includes(i);
+  return !!pl && pl.items.includes(id);
 }
 export function toggleFavorite(id){
   const pl = ensureFavoritesPlaylist();
-  const i = idxOf(id);
-  if(i < 0) return;
-  const at = pl.items.indexOf(i);
-  if(at >= 0) pl.items.splice(at, 1); else pl.items.push(i);
+  const at = pl.items.indexOf(id);
+  if(at >= 0) pl.items.splice(at, 1); else pl.items.push(id);
   queueSave();
   updateFavoriteButtons();
   const t = current();

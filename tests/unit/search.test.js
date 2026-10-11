@@ -178,9 +178,11 @@ test('searchLibrary: artist: field narrows by exact-ish artist match', () => {
 });
 
 test('searchLibrary: is:favorite smart filter delegates to favorites.js', () => {
-  resetState({ tracks: [fakeTrack(), fakeTrack()] });
-  // toggle the first track as a favorite via the real playlist shape
-  S.playlists.push({ name: 'Favorites', items: [0], system: 'favorites' });
+  const first = fakeTrack();
+  resetState({ tracks: [first, fakeTrack()] });
+  // playlist items are track ids, not positions (F3 spec, step 02) —
+  // favorite the first track via the real playlist shape
+  S.playlists.push({ name: 'Favorites', items: [first.id], system: 'favorites' });
   const results = searchLibrary('is:favorite');
   assert.deepEqual(results.songs, [0]);
 });

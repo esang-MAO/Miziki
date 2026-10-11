@@ -100,21 +100,24 @@ test('toggleFavorite persists and re-renders the library', () => {
   assert.equal(renderTracksMock.mock.calls.length, 1);
 });
 
-test('toggleFavorite on an id no longer in the library never adds an item (though ensureFavoritesPlaylist still runs)', () => {
+test('toggleFavorite on an id not currently in the library still favorites it (F3 spec: reconnects later)', () => {
   resetState();
   toggleFavorite('missing');
-  assert.equal(isFavorite('missing'), false);
+  // playlist items are track ids now, not positions (step 02) -- favoriting
+  // a track whose file isn't in the library this session (e.g. it was
+  // forgotten, not deleted) still records the id; it just renders hidden
+  // until a matching file is imported again
+  assert.ok(isFavorite('missing'));
   const pl = S.playlists.find(p => p.system === 'favorites');
-  assert.ok(pl);               // ensureFavoritesPlaylist() runs unconditionally, same as the original
-  assert.deepEqual(pl.items, []);   // but idxOf(id) < 0 stops it short of adding an item
+  assert.ok(pl);
+  assert.deepEqual(pl.items, ['missing']);
 });
 
-// Playlists (including favorites) store items by index, not id -- the
-// index<->id remap that lets them survive a reorder lives in deleteTracks'
-// snapshot/rebuild (src/library/delete.js), not in favorites.js itself.
-test('isFavorite reads S.playlists by the current index, not by a stored id', () => {
+// Playlist items (including favorites) are track ids, not positions (F3
+// spec, step 02) -- there's no index lookup left in this module at all.
+test('isFavorite reads S.playlists by track id directly', () => {
   resetState();
-  toggleFavorite('b');   // 'b' is S.tracks[1]
+  toggleFavorite('b');
   assert.ok(isFavorite('b'));
   assert.equal(isFavorite('a'), false);
 });

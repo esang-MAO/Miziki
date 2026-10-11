@@ -16,7 +16,7 @@ import { setQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
 import { queueSave } from '../storage/meta.js';
-import { byName, groupBy, allIdx, albumTracks } from './model.js';
+import { byName, groupBy, allIdx, albumTracks, idOf, idxOf } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
 import { applyEdit, showUndoBanner } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './delete.js';
@@ -162,8 +162,11 @@ export function groupRow(label, sub, indices, onTap){
 function togglePick(i, node){
   const pl = S.playlists[S.view.playlist];
   if(!pl) return;
-  const at = pl.items.indexOf(i);
-  if(at >= 0) pl.items.splice(at,1); else pl.items.push(i);
+  // playlist items are track ids, not positions (F3 spec) — see
+  // src/library/model.js's own note on S.albumOrder for why
+  const id = idOf(i);
+  const at = pl.items.indexOf(id);
+  if(at >= 0) pl.items.splice(at,1); else pl.items.push(id);
   queueSave();
   node.classList.toggle('picked', at < 0);
 }
@@ -239,7 +242,13 @@ function renderAlbumDetail(host, ul, album){
   const q = albumTracks(album);
   q.forEach((i,pos) => {
     const row = songRow(i, q, pos);
-    if(mode === 'manual') row.appendChild(moverCtl(S.albumOrder[album], pos, syncQueueOrder));
+    if(mode === 'manual'){
+      // position within the saved (id-based) order, not within q — q
+      // only lists tracks currently present, so the two can diverge once
+      // a track in this album has been forgotten but not yet reconnected
+      const fullPos = S.albumOrder[album].indexOf(idOf(i));
+      row.appendChild(moverCtl(S.albumOrder[album], fullPos, ord => syncQueueOrder(ord.map(idxOf).filter(x => x >= 0))));
+    }
     ul.appendChild(row);
   });
   host.appendChild(ul);
@@ -423,8 +432,12 @@ export function renderTracks(){
       const order = S.playlists.map((_, n) => n).sort((a, b) => (S.playlists[a].system?0:1) - (S.playlists[b].system?0:1));
       order.forEach(n => {
         const pl = S.playlists[n];
-        host.appendChild(groupRow(pl.name, pl.items.length + (pl.items.length===1?' track':' tracks'),
-          pl.items, ()=>{ v.playlist = n; renderTracks(); }));
+        // playlist items are track ids (F3 spec) — the count/art shown
+        // here is of the tracks currently reconnected; a forgotten track
+        // stays in the playlist but isn't counted until it comes back
+        const present = pl.items.map(idxOf).filter(i => i >= 0);
+        host.appendChild(groupRow(pl.name, present.length + (present.length===1?' track':' tracks'),
+          present, ()=>{ v.playlist = n; renderTracks(); }));
       });
       const add = el('div','stack');
       const nameIn = el('input','pl-input'); nameIn.placeholder = 'New playlist name'; nameIn.id = 'plName';
@@ -443,7 +456,7 @@ export function renderTracks(){
         const all = allIdx().sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
         all.forEach((i,pos) => {
           const row = songRow(i, all, pos);
-          if(pl.items.includes(i)) row.classList.add('picked');
+          if(pl.items.includes(idOf(i))) row.classList.add('picked');
           ul.appendChild(row);
         });
         host.appendChild(ul);
@@ -451,10 +464,21 @@ export function renderTracks(){
         done.addEventListener('click', ()=>{ v.picking = false; renderTracks(); });
         const wrap = el('div','stack'); wrap.appendChild(done); host.appendChild(wrap);
       } else {
-        if(!pl.items.length) host.appendChild(el('p','note','This playlist is empty.'));
-        pl.items.forEach((i,pos) => {
-          const row = songRow(i, pl.items, pos);
-          if(pl.items.length > 1) row.appendChild(moverCtl(pl.items, pos, syncQueueOrder));
+        // playlist items are track ids (F3 spec) — a forgotten track's id
+        // stays in pl.items but is simply skipped here, hidden until a
+        // matching file is imported again, at which point it reappears in
+        // its saved place rather than at the end
+        const present = pl.items.map(idxOf).filter(i => i >= 0);
+        if(!present.length) host.appendChild(el('p','note','This playlist is empty.'));
+        present.forEach((i,pos) => {
+          const row = songRow(i, present, pos);
+          if(present.length > 1){
+            // move within the full (id-based) order, not within `present`,
+            // so a hidden/forgotten entry elsewhere in the playlist keeps
+            // its own relative place
+            const fullPos = pl.items.indexOf(idOf(i));
+            row.appendChild(moverCtl(pl.items, fullPos, ord => syncQueueOrder(ord.map(idxOf).filter(x => x >= 0))));
+          }
           ul.appendChild(row);
         });
         host.appendChild(ul);
