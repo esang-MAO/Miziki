@@ -22,12 +22,15 @@ import { rebuildPeopleIndex } from './credits.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
+import { clearSpinDown } from '../shell/put-away.js';
+import { closePlayer } from '../shell/player-overlay.js';
+import { renderMiniPlayer } from '../shell/mini-player.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
 // screen/crate-art-tier functions not yet extracted. Used only inside the
 // functions below, never at module top level.
 import {
-  clearSpinDown, deleteCrateArtTiers, closePlayer,
-  invalidateCrateModel, renderTracks, renderMiniPlayer,
+  deleteCrateArtTiers,
+  invalidateCrateModel, renderTracks,
 } from '../main.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }

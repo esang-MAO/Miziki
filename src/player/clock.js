@@ -5,7 +5,7 @@ import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
-import { easeOutCubic, REDUCED } from '../main.js';
+import { easeOutCubic, REDUCED } from '../util/motion.js';
 
 /* ================= render loop ================= */
 let last = performance.now();

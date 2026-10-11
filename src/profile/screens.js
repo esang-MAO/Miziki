@@ -6,10 +6,7 @@ import { metalBadge, collectionBadge } from './badges.js';
 import { renderStorefrontSection } from './storefront.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { openShareSheet } from '../share/sheet.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// library-tools panel refresh hasn't been extracted yet. Used only inside
-// renderProfile, never at module top level.
-import { refreshLibraryTools } from '../main.js';
+import { refreshLibraryTools } from '../shell/header.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
