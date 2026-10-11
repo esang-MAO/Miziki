@@ -23,22 +23,25 @@ export function groupBy(key){
   return [...m.entries()].sort((a,b) => byName(a[0], b[0]));
 }
 
+/* orders and playlists are saved as track ids, never as positions —
+   positions mean nothing once the library is rebuilt */
+export const idOf = i => (S.tracks[i] ? S.tracks[i].id : null);
+export const idxOf = id => S.tracks.findIndex(t => t.id === id);
+
 export function albumTracks(album){
   const base = S.tracks.map((t,i)=>i).filter(i => S.tracks[i].tags.album === album);
   const mode = S.albumSort[album] || 'auto';
   if(mode === 'title') return base.sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
   if(mode === 'manual'){
+    // S.albumOrder[album] holds track ids, not positions (F3 spec) — ids
+    // the user can no longer see (forgotten, not yet reconnected) just
+    // stay in the saved order rather than being dropped from it
     let ord = S.albumOrder[album];
-    if(!ord) ord = base.slice().sort(trackSort);
-    base.forEach(i => { if(ord.indexOf(i) < 0) ord.push(i); });      // pick up newly added files
-    ord = ord.filter(i => base.indexOf(i) >= 0);
+    if(!ord) ord = base.slice().sort(trackSort).map(idOf);
+    base.forEach(i => { const id = idOf(i); if(ord.indexOf(id) < 0) ord.push(id); });   // pick up newly added files
     S.albumOrder[album] = ord;
-    return ord.slice();
+    const baseSet = new Set(base);
+    return ord.map(idxOf).filter(i => i >= 0 && baseSet.has(i));
   }
   return base.sort(trackSort);
 }
-
-/* orders and playlists are saved as track ids, never as positions —
-   positions mean nothing once the library is rebuilt */
-export const idOf = i => (S.tracks[i] ? S.tracks[i].id : null);
-export const idxOf = id => S.tracks.findIndex(t => t.id === id);

@@ -85,8 +85,8 @@ test('round trip: saveMeta()/restoreMeta() preserve playlists, album order, albu
   await openFresh();
   resetState({
     tracks: [fakeTrack('t1'), fakeTrack('t2'), fakeTrack('t3')],
-    playlists: [{ name: 'Faves', items: [0, 2], system: undefined }],
-    albumOrder: { Al: [2, 0, 1] },
+    playlists: [{ name: 'Faves', items: ['t1', 't3'], system: undefined }],
+    albumOrder: { Al: ['t3', 't1', 't2'] },
     albumSort: { Al: 'manual' },
   });
 
@@ -99,18 +99,22 @@ test('round trip: saveMeta()/restoreMeta() preserve playlists, album order, albu
 
   assert.equal(S.playlists.length, 1);
   assert.equal(S.playlists[0].name, 'Faves');
-  assert.deepEqual(S.playlists[0].items, [0, 2]);
-  assert.deepEqual(S.albumOrder.Al, [2, 0, 1]);
+  assert.deepEqual(S.playlists[0].items, ['t1', 't3']);
+  assert.deepEqual(S.albumOrder.Al, ['t3', 't1', 't2']);
   assert.equal(S.albumSort.Al, 'manual');
 
   DB.db.close();
 });
 
-test('restoreMeta: a playlist entry whose track no longer exists is dropped, not thrown on', async () => {
+// Step 02 (F3 spec): playlist/albumOrder entries are ids now, not
+// positions — restoreMeta() no longer drops one whose track is missing
+// (that was the write-back bug step 5d flagged and step 02 fixed); it
+// stays in S.playlists, ready to reconnect once the same file comes back.
+test('restoreMeta: a playlist entry whose track no longer exists is kept, not dropped', async () => {
   await openFresh();
   resetState({
     tracks: [fakeTrack('t1'), fakeTrack('t2'), fakeTrack('gone')],
-    playlists: [{ name: 'Mix', items: [0, 1, 2], system: undefined }],
+    playlists: [{ name: 'Mix', items: ['t1', 't2', 'gone'], system: undefined }],
   });
   queueSave();
   await new Promise(r => setTimeout(r, 650));
@@ -120,7 +124,7 @@ test('restoreMeta: a playlist entry whose track no longer exists is dropped, not
   await assert.doesNotReject(() => restoreMeta());
 
   assert.equal(S.playlists.length, 1);
-  assert.deepEqual(S.playlists[0].items, [0, 1]);
+  assert.deepEqual(S.playlists[0].items, ['t1', 't2', 'gone']);
 
   DB.db.close();
 });
@@ -132,7 +136,7 @@ test('restoreMeta: a playlist entry whose track no longer exists is dropped, not
 // those settle — a plain real wait is simpler and no less deterministic.
 test('queueSave debounces: several calls within 600ms produce exactly one save', async (t) => {
   await openFresh();
-  resetState({ tracks: [fakeTrack('t1')], playlists: [{ name: 'X', items: [0], system: undefined }] });
+  resetState({ tracks: [fakeTrack('t1')], playlists: [{ name: 'X', items: ['t1'], system: undefined }] });
 
   const { meta } = await import('../../src/storage/repo.js');
   const putSpy = t.mock.method(meta, 'put');

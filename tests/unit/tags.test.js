@@ -68,7 +68,10 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 // ones from library/sealed.js/record-art/looks.js/library/thumbs.js now
 // (step 6b) — mocked on their own modules so none of their further real
 // chains (sealed.js's/thumbs.js's own circular main.js imports, thumbs.js
-// reaching library/edit.js) have to load.
+// reaching library/edit.js) have to load. pruneThumbs is import.js's own
+// direct import since step 02 (via its real deleteTracks/delete.js import,
+// which forgetLibrary() calls it from) — mocked here too, for the same
+// reason.
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums(){} },
 });
@@ -76,7 +79,7 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, seek(){}, stop(){} },

@@ -1,6 +1,5 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { idOf, idxOf } from '../library/model.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
@@ -26,22 +25,21 @@ export function queueSave(){
 
 async function saveMeta(){
   if(!storage.available()) return;
-  const orders = {};
-  Object.keys(S.albumOrder).forEach(a => { orders[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
-  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system})));
-  await meta.put('albumOrder', orders);
+  // playlists/albumOrder already hold track ids, not positions (F3 spec,
+  // step 02) — they're written straight through, including any id whose
+  // track isn't currently in the library (forgotten, not yet reconnected);
+  // dropping those here is exactly the write-back bug step 02 fixed
+  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.slice(), system:p.system})));
+  await meta.put('albumOrder', S.albumOrder);
   await meta.put('albumSort', S.albumSort);
   await meta.put('prefs', serializePrefs(S));
 }
 
 export async function restoreMeta(){
   const pl = await meta.get('playlists');
-  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
+  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.slice(), system:p.system}));
   const ord = await meta.get('albumOrder');
-  if(ord) Object.keys(ord).forEach(a => {
-    const arr = ord[a].map(idxOf).filter(i => i >= 0);
-    if(arr.length) S.albumOrder[a] = arr;
-  });
+  if(ord) S.albumOrder = ord;
   const srt = await meta.get('albumSort');
   if(srt) S.albumSort = srt;
   const pr = await meta.get('prefs');

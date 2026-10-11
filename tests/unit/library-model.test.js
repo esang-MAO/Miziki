@@ -63,24 +63,29 @@ test('albumTracks: title mode sorts by title via byName', () => {
   assert.deepEqual(albumTracks('X'), [1,0]);
 });
 
-test('albumTracks: manual mode keeps saved order and appends newly added tracks', () => {
+test('albumTracks: manual mode keeps saved order (by id) and appends newly added tracks', () => {
   S.tracks = [
     track('a', { album: 'X', disc: 1, track: 1, title: 'A' }),
     track('b', { album: 'X', disc: 1, track: 2, title: 'B' }),
   ];
   S.albumSort = { X: 'manual' };
-  S.albumOrder = { X: [1,0] }; // saved order: b, a
+  S.albumOrder = { X: ['b','a'] }; // saved order: b, a
   assert.deepEqual(albumTracks('X'), [1,0]);
   // a new track for the album appears without a saved position — gets appended
   S.tracks.push(track('c', { album: 'X', disc: 1, track: 3, title: 'C' }));
   assert.deepEqual(albumTracks('X'), [1,0,2]);
+  assert.deepEqual(S.albumOrder.X, ['b','a','c']);
 });
 
-test('albumTracks: manual mode drops tracks no longer in the album', () => {
+test('albumTracks: manual mode hides (not drops) an id no longer in the album', () => {
   S.tracks = [track('a', { album: 'X' })];
   S.albumSort = { X: 'manual' };
-  S.albumOrder = { X: [0, 99] }; // 99 no longer exists in the base set
+  // 'gone' isn't currently in the album (deleted, or forgotten and not yet
+  // reconnected — F3 spec) — it stays in the saved order but is skipped
+  // when resolving to indices for display
+  S.albumOrder = { X: ['a', 'gone'] };
   assert.deepEqual(albumTracks('X'), [0]);
+  assert.deepEqual(S.albumOrder.X, ['a', 'gone']); // the id itself survives, unpruned
 });
 
 test('idOf returns the track id at an index, or null out of range', () => {
