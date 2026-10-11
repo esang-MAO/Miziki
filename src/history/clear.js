@@ -17,11 +17,7 @@ import {
 } from './sessions.js';
 import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — the
-// trackLastPlayed persist setter and the profile screen haven't been
-// extracted yet. Used only inside the functions below, never at module
-// top level.
-import { persistTrackLastPlayed, renderProfile } from '../main.js';
+import { persistTrackLastPlayed, renderProfile } from '../profile/screens.js';
 
 function currentAlbumIds(){ return new Set(S.tracks.map(albumKey)); }
 function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }

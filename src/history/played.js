@@ -9,10 +9,7 @@ import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligible
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// trackLastPlayed persist setter hasn't been extracted yet. Used only
-// inside the functions below, never at module top level.
-import { persistTrackLastPlayed } from '../main.js';
+import { persistTrackLastPlayed } from '../profile/screens.js';
 
 export function addPlayedRange(a, b){
   if(b <= a) return;
