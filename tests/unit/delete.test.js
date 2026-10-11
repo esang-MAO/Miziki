@@ -36,7 +36,11 @@ globalThis.MizikiSocial = { stopSpinning(){}, libraryChanged(){} };
 // reasoning for thumbs.js's restoreThumbs (sessions.js's other real
 // import, step 6b) — mocking just that one export stops thumbs.js's own
 // chain (which reaches library/edit.js and, through that, credits.js)
-// from loading.
+// from loading. pruneThumbs is delete.js's own direct import since step 02
+// (forgetLibrary() calls it) — mocked as a no-op for the same "stop the
+// chain at the door" reason; its own correctness (which thumbnails survive)
+// is already covered by history.test.js's clearListeningHistory tests, the
+// other caller of the same function.
 mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
@@ -45,7 +49,7 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {} },
 });
 // Since step 7c, delete.js's deleteCrateArtTiers/invalidateCrateModel
 // imports are real ones from src/crate/tiers.js/model.js instead of
@@ -122,7 +126,7 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 
-const { countForAlbum, countForArtist, formatBytes, totalLibraryBytes, deleteTracks, forgetLibrary } =
+const { countForAlbum, countForArtist, formatBytes, totalLibraryBytes, deleteTracks } =
   await import('../../src/library/delete.js');
 const { S } = await import('../../src/state.js');
 
@@ -259,7 +263,8 @@ test('deleteTracks: playlist/queue entries referencing a deleted track are dropp
   const t2 = fakeTrack({ id:'t2', tags:{ title:'B', artist:'A', album:'Al', albumArtist:'A', track:2 } });
   resetState({
     tracks: [t1, t2],
-    playlists: [{ name:'Favorites', items:[0,1], system:'favorites' }],
+    // playlist items are track ids, not positions (F3 spec, step 02)
+    playlists: [{ name:'Favorites', items:['t1','t2'], system:'favorites' }],
     queue: [0,1], baseQueue: [0,1], qpos: 0, index: -1,
   });
 
@@ -267,48 +272,14 @@ test('deleteTracks: playlist/queue entries referencing a deleted track are dropp
 
   assert.equal(S.tracks.length, 1);
   assert.equal(S.tracks[0].id, 't2');
-  assert.equal(S.playlists[0].items.length, 1);
-  assert.equal(S.tracks[S.playlists[0].items[0]].id, 't2');
+  assert.deepEqual(S.playlists[0].items, ['t2']);
   DB.db.close();
 });
 
-// -- forgetLibrary -----------------------------------------------------------
-
-test('forgetLibrary: clears the whole library and every session/metal counter', async () => {
-  await openFresh();
-  resetState({
-    tracks: [fakeTrack({ id:'t1' })],
-    sessionCounts: { al: 3 }, rareUnlocked: { al: true }, sessions: { al: {} },
-    sealed: new Set(['al']),
-  });
-
-  await forgetLibrary();
-
-  assert.equal(S.tracks.length, 0);
-  assert.equal(S.index, -1);
-  assert.deepEqual(S.playlists, []);
-  assert.deepEqual(S.sessionCounts, {});
-  assert.deepEqual(S.rareUnlocked, {});
-  assert.deepEqual(S.sessions, {});
-  assert.equal(S.sealed.size, 0);
-  DB.db.close();
-});
-
-test('forgetLibrary: keeps achievement/collection thumbnails in meta', async () => {
-  await openFresh();
-  const { meta } = await import('../../src/storage/repo.js');
-  await meta.put('thumb:album:al1', new Blob(['x']));
-  resetState({
-    tracks: [fakeTrack({ id:'t1' })],
-    achievements: { al1: { albumId:'al1', tier:'bronze' } },
-  });
-
-  await forgetLibrary();
-
-  const kept = await meta.get('thumb:album:al1');
-  assert.ok(kept instanceof Blob);
-  DB.db.close();
-});
+// forgetLibrary() has its own dedicated test file —
+// tests/unit/forget-library.test.js — since step 02 (F3 spec) gave it
+// enough new behavior (and enough reconnect-after-reimport scenarios) to
+// outgrow this file's "one function, a couple of cases" shape.
 
 // -- findAllDuplicateGroups (src/library/duplicate-scan.js) ------------------
 // Pure and import-free beyond S/tiers.js, so it's tested here alongside

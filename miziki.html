@@ -13,10 +13,17 @@
      needs 'unsafe-inline' for this app's many inline style="..." writes
      (crate/gatefold/share-canvas layout math, etc.) — no inline <script>
      exists anywhere, so script-src stays 'self' with no exception.
-     When Supabase keys are added (see CLAUDE.md's security hardening
-     note), connect-src needs the project's https:// and wss:// origins
-     added, and img-src needs the https:// one too, or sign-in breaks. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+     connect-src needs blob: too (found and fixed in step 02): the crate
+     art/thumbnail builders (src/crate/tiers.js, src/library/thumbs.js)
+     fetch() the track's own blob: object URL to re-read its embedded
+     cover art before resizing it — without blob: here, every one of
+     those fetches was silently blocked and swallowed by its own
+     catch(_e){return false}, so crate art and thumbnails never built for
+     any file with embedded artwork. When Supabase keys are added (see
+     CLAUDE.md's security hardening note), connect-src also needs the
+     project's https:// and wss:// origins added, and img-src needs the
+     https:// one too, or sign-in breaks. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Miziki</title>
 <!-- self-hosted fonts (step 01: security hardening) — no more Google
@@ -340,7 +347,7 @@
 
           <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
           <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
-            <span class="k">Forget library<em>Removes every track from Miziki. Files stay where they are</em></span>
+            <span class="k">Forget library<em>Removes every song from Miziki. Your stats, playlists and settings stay, and reconnect if you add the songs again. Files on your device aren't touched — to reset stats instead, use Clear listening history above.</em></span>
             <button class="cta forget-btn" id="forget">FORGET</button>
           </div>
         </div>

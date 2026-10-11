@@ -12,7 +12,7 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey } from '../record-art/tiers.js';
 import { idOf, idxOf, allIdx } from './model.js';
-import { tracks, overlays, artwork, meta, sessions } from '../storage/repo.js';
+import { tracks, overlays, artwork } from '../storage/repo.js';
 import { stop } from '../player/transport.js';
 import { setQueue } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
@@ -28,6 +28,7 @@ import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers } from '../crate/tiers.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { renderTracks } from './view.js';
+import { pruneThumbs } from './thumbs.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
 export function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
@@ -48,12 +49,10 @@ export async function deleteTracks(idsToDelete){
   const currentId = idOf(S.index);
   const removingCurrent = currentId !== null && idSet.has(currentId);
 
-  // every index-based structure gets snapshotted as ids first, then rebuilt
-  // onto whatever indices the survivors land at after the splice — the same
-  // id<->index round trip saveMeta()/restoreMeta() already use for persistence
-  const plSnapshot = S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system}));
-  const ordSnapshot = {};
-  Object.keys(S.albumOrder).forEach(a => { ordSnapshot[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
+  // the queue is still index-based, so it gets snapshotted as ids first and
+  // rebuilt onto whatever indices the survivors land at after the splice;
+  // playlists/albumOrder are already ids (F3 spec), so deleting a track is
+  // just dropping its id from them below, no snapshot/rebuild needed
   const queueIds = S.queue.map(idOf).filter(Boolean);
   const baseQueueIds = S.baseQueue.map(idOf).filter(Boolean);
 
@@ -90,10 +89,13 @@ export async function deleteTracks(idsToDelete){
     await artwork.del(id);
   }
 
-  S.playlists = plSnapshot.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
-  const newOrder = {};
-  Object.keys(ordSnapshot).forEach(a => { const arr = ordSnapshot[a].map(idxOf).filter(i => i >= 0); if(arr.length) newOrder[a] = arr; });
-  S.albumOrder = newOrder;
+  // explicit deletion actually drops membership — unlike forgetLibrary
+  // (F3 spec), which never touches these at all so everything reconnects
+  S.playlists.forEach(p => { p.items = p.items.filter(id => !idSet.has(id)); });
+  Object.keys(S.albumOrder).forEach(a => {
+    S.albumOrder[a] = S.albumOrder[a].filter(id => !idSet.has(id));
+    if(!S.albumOrder[a].length) delete S.albumOrder[a];
+  });
   S.lru = [];
 
   if(removingCurrent){
@@ -142,25 +144,43 @@ export function deleteArtist(artist){
   deleteTracks(S.tracks.filter(t => t.tags.artist === artist).map(t => t.id));
 }
 
+/* F3 spec (step 02): "Forget library" removes your songs and keeps your
+   listening stats. It used to clear the tracks/meta/sessions/overlays/
+   artwork stores wholesale, which erased play counts, sessions, metals,
+   sealed state, playlists, edits and settings along with the songs
+   themselves — and left some in-memory stats fields un-reset, so a later
+   save could write part of that half-cleared state back (the write-back
+   bug step 5d already flagged). Now only the tracks store, this album's
+   crate-art tiers, and thumbnails nothing else still references are
+   removed; meta/sessions/overlays/achievements/collection are untouched,
+   so playlists, track edits, custom covers, manual order/sort and sealed
+   state all wait and reconnect automatically once the same files (same
+   id: name|size|lastModified) are added back. "Clear listening history"
+   stays the one place that resets stats. */
 export async function forgetLibrary(){
-  // achievements and the Collection outlive "forget library", so their thumbnails do too
-  const keepThumbs = [];
-  for(const id of new Set(Object.keys(S.achievements).concat(Object.keys(S.collection)))){
-    const key = 'thumb:album:' + id;
-    const blob = await meta.get(key);
-    if(blob) keepThumbs.push({key, blob});
-  }
-  await tracks.clear(); await meta.clear(); await sessions.clear();
-  await overlays.clear(); await artwork.clear();
-  for(const {key, blob} of keepThumbs) await meta.put(key, blob);
+  // every crate-tier image belongs to an album about to lose its last
+  // track — drop them all up front, the same per-album cleanup
+  // deleteTracks() already does when a single album empties out
+  for(const albumId of new Set(S.tracks.map(albumKey))) await deleteCrateArtTiers(albumId);
+
+  await tracks.clear();
+  // overlays (track edits, custom covers) and every stats store (meta,
+  // sessions, achievements, collection) are deliberately left alone —
+  // they're keyed by the file's own id, or by trackIdentityKey/albumKey,
+  // never by position, so they're exactly where they were the moment a
+  // file with the same id comes back
+  await pruneThumbs();   // drops only the thumbnails nothing else still references
+
   S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} });
+  invalidateActiveSessionIfAny();   // end any in-flight session cleanly first, so a half-played album is never counted
   stop();
-  S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
-  S.queue = []; S.baseQueue = []; S.lru = [];
-  S.sealed = new Set();   // the meta row holding it was just cleared above (SEALED spec §2)
-  S.sessions = {}; S.sessionCounts = {}; S.rareUnlocked = {}; S.sessionActive = null;
+  S.tracks = []; S.index = -1;
+  S.queue = []; S.baseQueue = []; S.qpos = 0; S.lru = [];
   S.curPlayed = []; S.curTrackDone = false;
   S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
+  // playlists, albumOrder/albumSort, S.sealed, every listening-stats field
+  // on S, settings and the profile are deliberately left exactly as they
+  // were — see this function's own header comment
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
