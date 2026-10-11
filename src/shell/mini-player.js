@@ -4,12 +4,7 @@ import { albumKey } from '../record-art/tiers.js';
 import { REDUCED } from '../util/motion.js';
 import { bgSync } from '../player/background.js';
 import { isLibraryRouteVisible } from './routes.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — the
-// crate model (applyCrateMiniInset) and the empty-library centering
-// (centerEmptyState) haven't been extracted yet (step 7c). Used only
-// inside updateChromeInset below, never at module top level, with the
-// same `typeof === 'function'` guards this moved from main.js with.
-import { applyCrateMiniInset, centerEmptyState } from '../main.js';
+import { applyCrateMiniInset, centerEmptyState } from '../crate/view.js';
 
 /* ================= navigation shell: mini-player, full-player overlay, sleeve pull =================
    Library is the landing route; Sundown and Character are peer routes reached
