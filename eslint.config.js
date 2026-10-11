@@ -11,7 +11,16 @@ const globals = require('globals');
 // rules here on purpose.
 const SAFETY_NET_RULES = {
   'no-undef': 'error',
-  'no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+  // step 7g: caughtErrorsIgnorePattern added alongside args/vars — a
+  // deliberately-ignored catch(e) is the single most common shape of
+  // "unused on purpose" in this codebase (see CLAUDE.md's step 6a/7g
+  // entries), and every one of them is now named with a leading `_` so
+  // this rule can stop warning on it by the same convention as args/vars,
+  // rather than needing its own exemption.
+  'no-unused-vars': ['warn', {
+    args: 'after-used', argsIgnorePattern: '^_',
+    varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_',
+  }],
   'no-redeclare': 'error',
   'no-dupe-keys': 'error',
   'no-unreachable': 'error',
