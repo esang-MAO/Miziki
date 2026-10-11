@@ -25,13 +25,12 @@ import { queueSave } from '../storage/meta.js';
 import { clearSpinDown } from '../shell/put-away.js';
 import { closePlayer } from '../shell/player-overlay.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/crate-art-tier functions not yet extracted. Used only inside the
-// functions below, never at module top level.
-import {
-  deleteCrateArtTiers,
-  invalidateCrateModel, renderTracks,
-} from '../main.js';
+import { deleteCrateArtTiers } from '../crate/tiers.js';
+import { invalidateCrateModel } from '../crate/model.js';
+// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
+// library screen render, not yet extracted. Used only inside the functions
+// below, never at module top level.
+import { renderTracks } from '../main.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
 export function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }

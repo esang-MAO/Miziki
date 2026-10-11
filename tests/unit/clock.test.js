@@ -34,10 +34,20 @@ import assert from 'node:assert/strict';
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     queueSave(){},
-    renderTracks(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
-    exitSelectMode(){}, invalidateCrateModel(){},
+    renderTracks(){}, exitSelectMode(){},
     updateSealedSheetAfterBreak(){}, songRow(){},
   },
+});
+// Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier imports are
+// real ones from src/crate/tiers.js instead of main.js — mocked directly
+// here, same "stop the chain at the door" reasoning as the rest of this
+// file (crate/model.js's own real chain reads window.devicePixelRatio via
+// crate/constants.js at module load, which there's no browser for here).
+mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
+  namedExports: { deleteCrateArtTiers(){}, buildCrateTier(){} },
+});
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { invalidateCrateModel(){} },
 });
 // Since step 7b, easeOutCubic/REDUCED moved off main.js into
 // src/util/motion.js, and the five screen/ceremony functions that used to

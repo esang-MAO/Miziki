@@ -3,11 +3,7 @@ import { $ } from '../util/dom.js';
 import { formatBytes, totalLibraryBytes } from '../library/delete.js';
 import { updateSearchChipsVisibility } from '../library/search.js';
 import { isLibraryRouteVisible, isProfileRouteVisible } from './routes.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// crate view hasn't been extracted yet (step 7c). Used only inside
-// refreshLibraryTools below, behind the same `typeof === 'function'` guard
-// this moved from main.js with, never at module top level.
-import { libraryHasGenres } from '../main.js';
+import { libraryHasGenres } from '../crate/model.js';
 
 /* ================= navigation shell: header actions, search field, add menu =================
    isLibraryRouteVisible/isProfileRouteVisible, updateHeaderActionsAvailability,

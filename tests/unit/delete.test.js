@@ -47,10 +47,20 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {} },
 });
+// Since step 7c, delete.js's deleteCrateArtTiers/invalidateCrateModel
+// imports are real ones from src/crate/tiers.js/model.js instead of
+// main.js — mocked directly here, same "stop the chain at the door"
+// reasoning (crate/model.js's own real chain reads window.devicePixelRatio
+// via crate/constants.js at module load, which there's no browser for).
+mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
+  namedExports: { deleteCrateArtTiers: async () => {} },
+});
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { invalidateCrateModel(){} },
+});
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    deleteCrateArtTiers: async () => {},
-    invalidateCrateModel(){}, renderTracks(){},
+    renderTracks(){},
     // delete.js's rebuildPeopleIndex import is now a real one from
     // src/library/credits.js (step 5e), which itself needs this from main.js
     songRow(){},

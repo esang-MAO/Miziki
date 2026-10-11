@@ -3,6 +3,21 @@ import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { drawTime } from './clock.js';
 import { pause, play, seek } from './transport.js';
+import { queueSave } from '../storage/meta.js';
+
+// F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
+// alongside the sliders (not its own top-level S field) since it's saved
+// the same way, as part of the same prefs.char object. Sat in main.js's
+// "launch intro" section only by physical accident (step 7c) — moved here
+// instead, since this is the module that already owns Scratch (the
+// gesture-handling code above reads S.char.scratch directly).
+export function toggleScratch(){
+  S.char.scratch = !S.char.scratch;
+  const b = $('#scratchBtn');
+  b.textContent = S.char.scratch ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.char.scratch));
+  queueSave();
+}
 
 /* ================= spin-to-scrub =================
    Full player only. Rotating the disc clockwise fast-forwards, counter-clockwise

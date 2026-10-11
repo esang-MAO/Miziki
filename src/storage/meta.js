@@ -8,10 +8,7 @@ import { applyCharacter } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
 import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// launch-intro section hasn't been extracted yet (step 7c). Used only
-// inside applyPrefs below, never at module top level.
-import { attachLaunchSettingRow } from '../main.js';
+import { attachLaunchSettingRow } from '../launch/intro.js';
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
