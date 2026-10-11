@@ -20,10 +20,11 @@ import { emptyDetails } from './tags/index.js';
 import { setQueue } from '../player/queue.js';
 import { isFavorite } from './favorites.js';
 import { openPersonOrArtist, personEntryFor, PERSON_ROLE_KEYS } from './credits.js';
+import { queueSave } from '../storage/meta.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// persistence/library-rendering functions not yet extracted. Used only
-// inside the functions below, never at module top level.
-import { queueSave, renderTracks, groupRow, songRow } from '../main.js';
+// library-rendering functions not yet extracted. Used only inside the
+// functions below, never at module top level.
+import { renderTracks, groupRow, songRow } from '../main.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
 
