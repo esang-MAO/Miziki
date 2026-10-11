@@ -4,7 +4,8 @@ import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
-import { bgPosition, easeOutCubic, REDUCED } from '../main.js';
+import { bgPosition } from './background.js';
+import { easeOutCubic, REDUCED } from '../main.js';
 
 /* ================= render loop ================= */
 let last = performance.now();
