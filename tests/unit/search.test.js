@@ -50,9 +50,19 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     groupRow: groupRowMock, songRow: songRowMock,
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
-    applyDiscVariant(){}, restoreThumbs: async () => {},
     closePlayer(){}, showRoute(){}, REDUCED: false,
   },
+});
+// applyDiscVariant/restoreThumbs are real imports from looks.js/thumbs.js
+// now (step 6b, reached via the real history/sessions.js the setQueue
+// chain below pulls in) — mocked on their own modules so neither's
+// further real chain (thumbs.js reaches library/edit.js, which reaches
+// library/sealed.js) has to load.
+mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
+  namedExports: { applyDiscVariant(){} },
+});
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { restoreThumbs: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, seek(){} },

@@ -8,27 +8,46 @@ import assert from 'node:assert/strict';
 // real src/history/played.js, which itself imports from the real
 // src/history/sessions.js — both load for real here, so the main.js mock
 // below also needs every name *they* need from main.js, not just
-// clock.js's own direct imports. main.js has DOM-dependent top-level code
-// that needs a browser, and sleep-timer.js's real file would in turn pull
-// in location.js and transport.js (which itself needs ~20 main.js
-// exports). Mocking both main.js and sleep-timer.js directly, rather
-// than also loading their real dependency chains, is what lets tick()
-// load here at all.
+// clock.js's own direct imports. Since step 6b, played.js's/sessions.js's
+// own applyDiscVariant/restoreThumbs/snapshotAlbumDisplay/etc. imports are
+// real (looks.js/thumbs.js/achievements.js, not main.js), but loading
+// those for real reaches thumbs.js's own further real chain: edit.js,
+// which reaches sealed.js and credits.js (each circularly importing a
+// few more names from main.js, rule 8) and, through credits.js's own real
+// setQueue import, player/queue.js — which would in turn reach
+// player/buffers.js's ensureContext (audio/engine.js) and, through that,
+// sundown/location.js's own circular import of queueSave from main.js —
+// same reasoning tags.test.js/credits.test.js/search.test.js give for
+// mocking audio/engine.js directly rather than loading that whole chain.
+// main.js has DOM-dependent top-level code that needs a browser, and
+// sleep-timer.js's real file would in turn pull in location.js and
+// transport.js (which itself needs ~13 main.js exports). Mocking main.js,
+// sleep-timer.js and audio/engine.js directly, rather than loading their
+// real dependency chains, is what lets tick() load here at all.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     bgPosition(){}, easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
-    persistTrackLastPlayed: async () => {}, snapshotAlbumDisplay(){}, snapshotTrackDisplay(){},
-    applyDiscVariant(){}, checkAlbumAchievementAndCollection(){}, restoreThumbs: async () => {},
+    persistTrackLastPlayed: async () => {},
+    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    exitSelectMode(){}, invalidateCrateModel(){}, renderProfile(){},
+    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
+    runStartSequence(){}, openPlayerViaSheet(){},
+    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
   },
 });
+mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
+  namedExports: { ensureContext(){} },
+});
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
-  namedExports: { sleepCheckDeadline(){} },
+  namedExports: { sleepCheckDeadline(){}, sleepStopPlayback(){} },
 });
 // scrub.js (loaded below for angleDelta) imports pause/play/seek from
-// transport.js, which has its own ~20-function main.js dependency list
-// (step 3b) — mocked directly for the same reason as above.
+// transport.js, which has its own ~13-function main.js dependency list
+// (step 3b) — mocked directly for the same reason as above. `load` is
+// needed too since step 6b's transitive chain (see above) reaches the
+// real player/queue.js, which imports it alongside play/pause/seek.
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { pause(){}, play(){}, seek(){} },
+  namedExports: { load(){}, pause(){}, play(){}, seek(){} },
 });
 // clock.js's top-level setInterval (the hidden-page fallback clock) is a
 // real OS timer once clock.js is imported directly here — unlike in the

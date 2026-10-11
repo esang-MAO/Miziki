@@ -28,15 +28,32 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 
 globalThis.MizikiSocial = { stopSpinning(){}, libraryChanged(){} };
 
+// applyDiscVariant/persistSealedAlbums are real imports from looks.js/
+// sealed.js now (step 6b, both delete.js's own direct imports and, via
+// history/sessions.js, the chain setQueue below pulls in) — mocked on
+// their own modules so neither's further real chain (sealed.js's circular
+// main.js import, looks.js's real sessions.js import) has to load. Same
+// reasoning for thumbs.js's restoreThumbs (sessions.js's other real
+// import, step 6b) — mocking just that one export stops thumbs.js's own
+// chain (which reaches library/edit.js and, through that, credits.js)
+// from loading.
+mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
+  namedExports: { applyDiscVariant(){} },
+});
 const persistSealedAlbumsMock = mock.fn();
+mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
+  namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
+});
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { restoreThumbs: async () => {} },
+});
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    clearSpinDown(){}, deleteCrateArtTiers: async () => {}, persistSealedAlbums: persistSealedAlbumsMock,
+    clearSpinDown(){}, deleteCrateArtTiers: async () => {},
     closePlayer(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
-    queueSave(){}, applyDiscVariant(){}, restoreThumbs: async () => {},
+    queueSave(){},
     // setQueue (real, from player/queue.js) pulls in queue.js's own main.js
-    // imports (step 5a) and, via history/sessions.js, applyDiscVariant/
-    // restoreThumbs above
+    // imports (step 5a)
     runStartSequence: async () => {}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
     // delete.js's rebuildPeopleIndex import is now a real one from

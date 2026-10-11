@@ -13,15 +13,11 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
-    queueSave(){}, persistSealedAlbums(){}, healCrateArt: async () => {},
+    queueSave(){}, healCrateArt: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
     runStartSequence: async () => {}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
-    // queue.js's invalidateActiveSessionIfAny import is now a real one
-    // from src/history/sessions.js (step 5c), which itself needs these
-    // from main.js
-    applyDiscVariant(){}, restoreThumbs: async () => {},
     // import.js's loadOverlayFor/deleteTracks imports are now real ones
     // from src/library/edit.js/delete.js (step 5d), which themselves need
     // these from main.js
@@ -31,6 +27,21 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // src/library/credits.js (step 5e), which itself needs these from main.js
     showRoute(){}, songRow(){},
   },
+});
+// import.js's own persistSealedAlbums import, and queue.js's (via
+// history/sessions.js) applyDiscVariant/restoreThumbs imports, are real
+// ones from library/sealed.js/record-art/looks.js/library/thumbs.js now
+// (step 6b) — mocked on their own modules so none of their further real
+// chains (sealed.js's/thumbs.js's own circular main.js imports, thumbs.js
+// reaching library/edit.js) have to load.
+mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
+  namedExports: { persistSealedAlbums(){} },
+});
+mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
+  namedExports: { applyDiscVariant(){} },
+});
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { restoreThumbs: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, seek(){}, stop(){} },

@@ -19,13 +19,15 @@ import { stopSleepState } from '../player/sleep-timer.js';
 import { drawTime } from '../player/clock.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { rebuildPeopleIndex } from './credits.js';
+import { applyDiscVariant } from '../record-art/looks.js';
+import { persistSealedAlbums } from './sealed.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/crate-art-tier/sealed-records/persistence functions not yet
-// extracted. Used only inside the functions below, never at module top level.
+// screen/crate-art-tier/persistence functions not yet extracted. Used only
+// inside the functions below, never at module top level.
 import {
-  clearSpinDown, deleteCrateArtTiers, persistSealedAlbums, closePlayer,
+  clearSpinDown, deleteCrateArtTiers, closePlayer,
   invalidateCrateModel, renderTracks, renderMiniPlayer,
-  queueSave, applyDiscVariant,
+  queueSave,
 } from '../main.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }

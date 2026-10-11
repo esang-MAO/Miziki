@@ -34,18 +34,25 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 // imports with transport.js (load/play/pause/seek) — the same shape
 // already established between engine.js and transport.js. Since step 5c,
 // queue.js also imports invalidateActiveSessionIfAny from the real
-// src/history/sessions.js, which itself needs applyDiscVariant/
-// restoreThumbs from main.js — added to the mock below for that reason,
-// not queue.js's own direct imports. main.js has DOM-dependent top-level
-// code that needs a browser, and transport.js itself still imports ~15
-// functions from main.js, so both are mocked directly here rather than
-// loading their real dependency chains — same approach as engine.test.js
-// and clock.test.js.
+// src/history/sessions.js. Since step 6b, sessions.js's own applyDiscVariant/
+// restoreThumbs imports are real (looks.js/thumbs.js, not main.js), but
+// loading those for real pulls in their own further real chains —
+// thumbs.js's cropSquareImage import reaches library/edit.js, which reaches
+// library/sealed.js (persistSealedAlbums) and library/credits.js
+// (rebuildPeopleIndex/updateCreditsButtonForCurrent) — and each of those
+// still has its own circular import back to main.js (rule 8), which is why
+// this mock's export list is wider than queue.js's own direct needs.
+// main.js has DOM-dependent top-level code that needs a browser, and
+// transport.js itself still imports ~13 functions from main.js, so both
+// are mocked directly here rather than loading their real dependency
+// chains — same approach as engine.test.js and clock.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
-    applyDiscVariant(){}, restoreThumbs: async () => {},
+    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    exitSelectMode(){}, invalidateCrateModel(){}, renderProfile(){},
+    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
   },
 });
 const loadMock = mock.fn();

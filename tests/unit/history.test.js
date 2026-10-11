@@ -4,14 +4,23 @@ import { IDBFactory } from 'fake-indexeddb';
 import { DB } from '../../src/storage/idb.js';
 
 // played.js imports from the real src/history/sessions.js (sessionTrackComplete,
-// persistTrackPlayCounts, persistTrackMetalEligiblePlays), which in turn needs
-// applyDiscVariant/restoreThumbs from main.js; played.js itself also needs a
-// few more main.js names directly (persistTrackLastPlayed, snapshotAlbumDisplay,
-// snapshotTrackDisplay, checkAlbumAchievementAndCollection). clear.js needs a
-// further few (persistAlbumDisplay, persistTrackDisplay, pruneThumbs,
-// renderProfile). main.js has DOM-dependent top-level code that needs a
-// browser, so it's mocked directly here with the union of everything the real
-// chain asks of it — same approach as queue.test.js/tags.test.js.
+// persistTrackPlayCounts, persistTrackMetalEligiblePlays); played.js and
+// sessions.js's own applyDiscVariant/restoreThumbs/snapshotAlbumDisplay/etc.
+// imports are real too (looks.js/thumbs.js/achievements.js, step 6b), and
+// loading those for real reaches a further real chain: thumbs.js's
+// cropSquareImage import reaches library/edit.js, which reaches
+// library/sealed.js and library/credits.js — and credits.js's own real
+// setQueue import reaches player/queue.js, which would in turn reach
+// player/buffers.js's ensureContext (audio/engine.js) and, through that,
+// sundown/location.js's circular queueSave import — same reasoning
+// tags.test.js/credits.test.js/search.test.js give for mocking
+// audio/engine.js, transport.js and sleep-timer.js directly rather than
+// loading that whole chain. Each of edit.js/sealed.js/credits.js/queue.js
+// still circularly imports a few names from main.js (rule 8); clear.js
+// needs a couple more directly (persistTrackLastPlayed, renderProfile).
+// main.js has DOM-dependent top-level code that needs a browser, so it's
+// mocked directly here with the union of everything the real chain asks
+// of it.
 // clear.js also calls $('#route-profile') (util/dom.js), which needs a real
 // `document` global -- mocked to a no-op stub rather than pulling in a DOM.
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
@@ -19,14 +28,33 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 });
 
 const checkAlbumAchievementAndCollectionMock = mock.fn();
+// checkAlbumAchievementAndCollection moved to history/achievements.js
+// (step 6b) — mocked there now instead of on main.js, same spy so the
+// "counts once, never twice" assertions below still work unchanged.
+mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
+  namedExports: { checkAlbumAchievementAndCollection: checkAlbumAchievementAndCollectionMock },
+});
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    persistTrackLastPlayed: async () => {}, snapshotAlbumDisplay(){}, snapshotTrackDisplay(){},
-    applyDiscVariant(){}, checkAlbumAchievementAndCollection: checkAlbumAchievementAndCollectionMock,
-    restoreThumbs: async () => {},
-    persistAlbumDisplay: async () => {}, persistTrackDisplay: async () => {},
-    pruneThumbs: async () => {}, renderProfile(){},
+    persistTrackLastPlayed: async () => {}, renderProfile(){},
+    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    exitSelectMode(){}, invalidateCrateModel(){},
+    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
+    runStartSequence(){}, openPlayerViaSheet(){},
+    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
   },
+});
+mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
+  namedExports: { ensureContext(){} },
+});
+mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
+  namedExports: { load(){}, pause(){}, play(){}, seek(){} },
+});
+mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
+  namedExports: { sleepStopPlayback(){} },
+});
+mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
+  namedExports: { drawTime(){} },
 });
 
 const { addPlayedRange, playedCoverage, checkTrackCompletion } = await import('../../src/history/played.js');

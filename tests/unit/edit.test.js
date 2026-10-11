@@ -23,12 +23,22 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: { $(){ return fakeEl(); }, el(){ return fakeEl(); } },
 });
 
+// applyDiscVariant/persistSealedAlbums are real imports from looks.js/
+// sealed.js now (step 6b), not main.js — mocked on their own modules
+// instead, so loading either doesn't pull in its own further real chain
+// (sealed.js's circular main.js import, looks.js's real sessions.js import).
+mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
+  namedExports: { applyDiscVariant(){} },
+});
 const persistSealedAlbumsMock = mock.fn();
+mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
+  namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
+});
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    applyDiscVariant(){}, renderTracks(){}, renderMiniPlayer(){},
+    renderTracks(){}, renderMiniPlayer(){},
     deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {},
-    persistSealedAlbums: persistSealedAlbumsMock, exitSelectMode(){},
+    exitSelectMode(){},
   },
 });
 

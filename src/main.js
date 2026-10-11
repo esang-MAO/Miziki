@@ -4,17 +4,18 @@ import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
+import { albumMetalFor, trackMetalFor, metalBackground, METAL_COLORS } from './record-art/metals.js';
+import { resolveLook, openLookPicker, closeLookPicker } from './record-art/looks.js';
 import { byName, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
 import { ensureBuffer } from './player/buffers.js';
 import {
   setQueue, reorderQueue, advance,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
 } from './player/queue.js';
-import { readDetails, emptyDetails } from './library/tags/index.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from './library/import.js';
 import { closeDupOverlay, closeDuplicateScan } from './library/duplicates-ui.js';
 import {
-  albumExpectedOrder, persistAlbumLookPref, invalidateActiveSessionIfAny, touchActiveSession, restoreSessions,
+  persistAlbumLookPref, invalidateActiveSessionIfAny, touchActiveSession, restoreSessions,
 } from './history/sessions.js';
 import { clearListeningHistory } from './history/clear.js';
 import {
@@ -36,6 +37,9 @@ import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
   renderSearchChips, updateSearchChipsVisibility, closeSortMenu,
 } from './library/search.js';
+import { isAlbumSealed, buildSealOverlay, breakSeal, restoreSealedAlbums } from './library/sealed.js';
+import { thumbURL, healThumbs, healDetails } from './library/thumbs.js';
+import { crateFilled, topAlbums, topTracks, achievementsList, collectionGroups } from './history/achievements.js';
 import { nowClock } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
@@ -49,192 +53,18 @@ import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
 import { serializePrefs, parsePrefs } from './storage/prefs.js';
 import {
-  storage, tracks, meta, achievements, collection, overlays, artwork, profile,
+  storage, tracks, meta, overlays, artwork, profile,
 } from './storage/repo.js';
 
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ================= metal tiers =================
-   Play-count-driven record colors for Tier 1 (lossy) only — the one tier
-   with no visual variance of its own. Two disjoint ladders: album metals
-   keyed to qualifying sessions (the same counter/definition session
-   tracking already uses), track metals keyed to the track's own lifetime
-   play count. Metal level is always a pure function of these counters —
-   nothing about "current metal" is ever stored. Thresholds live in one
-   config object so they can be retuned without touching render logic. */
-const ALBUM_METAL_THRESHOLDS = [
-  {name:'platinum', sessions:40},
-  {name:'gold',     sessions:25},
-  {name:'silver',   sessions:15},
-  {name:'bronze',   sessions:8}
-];
-const TRACK_METAL_THRESHOLDS = [
-  {name:'platinum', plays:250},
-  {name:'gold',     plays:125}
-];
-const METAL_COLORS = {bronze:'#CE8946', silver:'#797B80', gold:'#FFC30B', platinum:'#BBC2CC'};
-const METAL_FADE_MS = 400;
+/* metal tiers (albumMetalFor/trackMetalFor/metalBackground/setDiscBackground,
+   plus the threshold/color tables) moved to src/record-art/metals.js
+   (step 6b). */
 
-// reads the tier-1-only shadow counter, not the true lifetime total, so a
-// tier-upgraded album's metal is grandfathered (frozen) rather than
-// continuing to climb thresholds it can no longer earn — see METAL spec §2
-function albumMetalFor(albumId){
-  const n = S.metalEligibleSessions[albumId] || 0;
-  for(const lvl of ALBUM_METAL_THRESHOLDS) if(n >= lvl.sessions) return lvl.name;
-  return null;
-}
-// takes a trackIdentityKey(), not a file id — see that function
-function trackMetalFor(trackKey){
-  const n = S.trackMetalEligiblePlays[trackKey] || 0;
-  for(const lvl of TRACK_METAL_THRESHOLDS) if(n >= lvl.plays) return lvl.name;
-  return null;
-}
-
-// incrementTrackPlay moved to src/history/played.js (step 5c), alongside
-// checkTrackCompletion, its only caller.
-
-// plated metal, not a flat fill: a conic sheen band (bright arcs near the
-// light-catching angles, a darker arc opposite) over a radial base, so the
-// existing groove/light overlay in .disc::before still reads as reflection
-// catching the surface rather than being painted on top of a solid color
-function metalBackground(name){
-  const base = METAL_COLORS[name];
-  // Silver's rung is both darker AND cooler than Bronze on a straight
-  // luminance reading, which can misread as a downgrade rather than a step
-  // up — lean harder on the highlight ("finish") here to keep it polished
-  const hi = name === 'silver' ? 92 : 82, lo = name === 'silver' ? 45 : 35;
-  const bright = 'color-mix(in srgb,' + base + ' ' + (100-hi) + '%, white ' + hi + '%)';
-  const dark = 'color-mix(in srgb,' + base + ' ' + lo + '%, black ' + (100-lo) + '%)';
-  return 'conic-gradient(from 205deg,' + bright + ' 0deg 10deg,' + base + ' 10deg 150deg,'
-      + dark + ' 150deg 195deg,' + base + ' 195deg 340deg,' + bright + ' 340deg 360deg),'
-    + 'radial-gradient(circle at 50% 50%,' + bright + ' 0 27%,' + base + ' 27% 88%,' + dark + ' 88% 100%)';
-}
-
-// crossfades when asked to (a same-album background change with no sleeve
-// pull to cover it) and the background actually changed; otherwise applies
-// immediately — either nothing was visible yet, or a sleeve/pull is already
-// covering the change, so an instant swap underneath it is imperceptible
-function setDiscBackground(disc, bg, crossfade){
-  const fade = $('#discFade');
-  const prev = disc.style.background;
-  if(crossfade && prev && prev !== bg){
-    fade.style.transition = 'none';
-    fade.style.background = prev;
-    fade.style.opacity = '1';
-    disc.style.background = bg;
-    void fade.offsetWidth;
-    fade.style.transition = 'opacity ' + METAL_FADE_MS + 'ms ease';
-    fade.style.opacity = '0';
-  } else {
-    disc.style.background = bg || '';
-    fade.style.transition = 'none';
-    fade.style.opacity = '0';
-  }
-}
-
-/* ================= look switching =================
-   Once an album has more than one available "look" — the rare variant, an
-   earned metal, or a genuine format variant (tier 2/3 only; tier 1's plain
-   black is not itself a selectable look) — the user can switch between
-   them, silently and immediately, and the choice persists per album. Rare
-   is the default the moment it unlocks; anything else is the opt-back. See
-   METAL spec §5. */
-function availableLooks(t){
-  const albumId = albumKey(t);
-  const tier = trackTier(t);
-  const looks = [];
-  if(S.rareUnlocked[albumId] && t.art) looks.push('rare');
-  const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId);
-  if(metal) looks.push('metal');
-  // tier 1 with nothing earned has no real alternative to fall back to, so
-  // the plain format variant only counts as a genuine "look" once there's
-  // either something else to switch away from, or the tier itself carries
-  // real variance (2/3)
-  if(tier !== 1 || looks.length === 0) looks.push('variant');
-  return looks;
-}
-
-function resolveLook(t){
-  const looks = availableLooks(t);
-  const pref = S.albumLookPref[albumKey(t)];
-  if(pref && looks.includes(pref)) return pref;
-  if(looks.includes('rare')) return 'rare';
-  if(looks.includes('metal')) return 'metal';
-  return 'variant';
-}
-
-function setLookPref(albumId, look){
-  S.albumLookPref[albumId] = look;
-  persistAlbumLookPref();
-  const t = current();
-  if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
-}
-
-function lookLabel(kind, t){
-  if(kind === 'rare') return 'Rare — Art Suspended in Vinyl';
-  if(kind === 'metal'){
-    const m = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
-    return m ? (m[0].toUpperCase() + m.slice(1) + ' Metal') : 'Metal';
-  }
-  return 'Format Variant';
-}
-
-function openLookPicker(){
-  const t = current(); if(!t) return;
-  const albumId = albumKey(t);
-  const looks = availableLooks(t);
-  const current_ = resolveLook(t);
-  const host = $('#lookOptions');
-  host.innerHTML = '';
-  looks.forEach(kind => {
-    const b = document.createElement('button');
-    b.className = 'cta' + (kind === current_ ? '' : ' ghost');
-    b.textContent = lookLabel(kind, t);
-    // silent and immediate — no confirmation, no animation (see METAL spec §5)
-    b.addEventListener('click', () => { setLookPref(albumId, kind); closeLookPicker(); });
-    host.appendChild(b);
-  });
-  $('#lookOverlay').classList.add('open');
-  $('#lookOverlay').setAttribute('aria-hidden', 'false');
-}
-function closeLookPicker(){
-  $('#lookOverlay').classList.remove('open');
-  $('#lookOverlay').setAttribute('aria-hidden', 'true');
-}
-
-// Outside the full player the artwork travels as a plain circular label; the disc's
-// tier-derived surface is scoped to this renderer only (see spec §1).
-// `crossfade` should be true only for a same-album change with no sleeve
-// animation to cover it — see updateShellAlbum()'s sameAlbum flag.
-export function applyDiscVariant(t, crossfade){
-  const disc = $('#disc'), label = $('#label');
-  if(!t){ disc.classList.remove('rare'); label.classList.remove('rare'); setDiscBackground(disc, '', false); $('#lookBtn').style.display = 'none'; return; }
-  $('#lookBtn').style.display = availableLooks(t).length > 1 ? '' : 'none';
-  const look = resolveLook(t);
-  const rare = look === 'rare';
-  disc.classList.toggle('rare', rare);
-  label.classList.toggle('rare', rare);
-  let bg;
-  if(rare){
-    // "Art Suspended in Vinyl": continuous material, no paper seam — the same
-    // artwork the label shows extends across the whole disc, read through the grooves
-    bg = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
-      + 'url("' + t.art + '") center/cover';
-    delete disc.dataset.variant; delete disc.dataset.tier;
-  } else {
-    const {tier, variant} = selectVariant(t);
-    // track wins over album — see METAL spec §4. Grandfathered metals are
-    // no longer gated to tier===1 here: a metal earned pre-upgrade stays
-    // selectable regardless of the track's current tier, since it's the
-    // resolveLook() call above (via availableLooks()) that decides whether
-    // 'metal' is even a candidate in the first place.
-    const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
-    disc.dataset.tier = tier;
-    disc.dataset.variant = metal ? 'metal-' + metal : variant;
-    bg = metal ? metalBackground(metal) : variantBackground(VARIANT_DEFS[variant]);
-  }
-  setDiscBackground(disc, bg, crossfade);
-}
+/* look switching (availableLooks/resolveLook/setLookPref/lookLabel/
+   openLookPicker/closeLookPicker/applyDiscVariant) moved to
+   src/record-art/looks.js (step 6b). */
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -249,301 +79,18 @@ export function applyDiscVariant(t, crossfade){
    src/history/sessions.js (step 5c) — its only writer, sessionTrackComplete,
    lives there. */
 
-/* ================= S5: sealed records =================
-   S.sealed is its own saved list, independent of S.albumLastPlayed/session
-   history on purpose — "Clear listening history" must never reseal an
-   album (SEALED spec §2). Grandfathering: no sealedAlbums row at all means
-   this feature hasn't run here yet, so nothing existing is sealed. */
-async function restoreSealedAlbums(){
-  const row = await meta.get('sealedAlbums');
-  S.sealed = new Set(row && row.ids ? row.ids : []);
-}
-export async function persistSealedAlbums(){ await meta.put('sealedAlbums', {init:true, ids:[...S.sealed]}); }
-
-function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
-
-// "played" means playback began — no minimum duration, any track counts,
-// and once removed an id can never be re-added except by a fresh import
-// (SEALED spec §2, §6)
-export function breakSeal(albumId){
-  if(!S.sealed.has(albumId)) return;
-  S.sealed.delete(albumId);
-  persistSealedAlbums();
-  updateSealedSheetAfterBreak(albumId);
-  renderTracks();
-}
-
-// one overlay + one sticker, plain CSS gradients, no images — shared by the
-// crate card, the sealed sheet's small cover and the player's sleeve
-// (SEALED spec §4). sizePx sizes only the sticker's text; everything else
-// is percentage-based so the same markup scales with its host.
-function buildSealOverlay(sizePx){
-  const frag = document.createDocumentFragment();
-  const wrap = el('div','seal-wrap'); wrap.setAttribute('aria-hidden','true');
-  frag.appendChild(wrap);
-  const sticker = el('div','seal-sticker'); sticker.setAttribute('aria-hidden','true');
-  const label = el('span', null, 'NEW');
-  label.style.fontSize = Math.round(sizePx * 0.075) + 'px';
-  sticker.appendChild(label);
-  frag.appendChild(sticker);
-  return frag;
-}
+/* S5: sealed records (restoreSealedAlbums/persistSealedAlbums/
+   isAlbumSealed/breakSeal/buildSealOverlay) moved to src/library/sealed.js
+   (step 6b). */
 export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
-/* ---- persisted artwork: thumbnails, never object URLs ----
-   t.art is a URL.createObjectURL() string, which stops working the moment the
-   page reloads — so anything persisted with it (Top Albums, achievements, the
-   Collection, Top Songs) came back with broken images after a restart. These
-   records now carry no art of their own: a small JPEG thumbnail per album and
-   per track is stored once under its own key in the meta store ('thumb:album:…'
-   / 'thumb:track:…'), and the `art` URL on each record is rebuilt from that
-   thumbnail each session. Nothing the renderers read has changed — they still
-   see a plain `art` URL — and the thumbnails survive the original file being
-   removed from the library, which is what orphaned stats need. */
-const ALBUM_THUMB_PX = 800, TRACK_THUMB_PX = 300;
-const thumbURL = {};        // 'album:<id>' / 'track:<key>' -> live object URL for this session
-const thumbSrcSeen = {};    // which artwork URL each thumbnail was last cut from, this session
 
-async function makeThumb(url, px){
-  try{
-    const blob = await (await fetch(url)).blob();
-    return await cropSquareImage(blob, px);
-  }catch(e){ return null; }
-}
-
-// records are saved without their runtime `art` URL
-function persistableMap(map){
-  const out = {};
-  Object.keys(map).forEach(k => { const r = Object.assign({}, map[k]); delete r.art; out[k] = r; });
-  return out;
-}
-function persistable(rec){ const r = Object.assign({}, rec); delete r.art; return r; }
-
-function applyThumbURLs(){
-  Object.keys(S.albumDisplay).forEach(id => { S.albumDisplay[id].art = thumbURL['album:' + id] || null; });
-  Object.keys(S.achievements).forEach(id => { S.achievements[id].art = thumbURL['album:' + id] || null; });
-  Object.keys(S.collection).forEach(id => { S.collection[id].art = thumbURL['album:' + id] || null; });
-  Object.keys(S.trackDisplay).forEach(k => { S.trackDisplay[k].art = thumbURL['track:' + k] || null; });
-}
-
-let profileRefreshTimer = null;
-function refreshProfileIfOpen(){
-  clearTimeout(profileRefreshTimer);
-  profileRefreshTimer = setTimeout(() => {
-    const pr = $('#route-profile');
-    if(pr && pr.classList.contains('on')) renderProfile();
-  }, 300);
-}
-
-// A small average colour cut from an album's thumbnail, for the launch
-// sequence's crate records — one hairline-thin read per album, so the crate
-// never has to decode full artwork just to pick an edge colour.
-function averageColorHex(blob){
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = 8; c.height = 8;
-      const cx = c.getContext('2d');
-      cx.drawImage(img, 0, 0, 8, 8);
-      URL.revokeObjectURL(img.src);
-      try{
-        const data = cx.getImageData(0, 0, 8, 8).data;
-        let r=0, g=0, b=0, n=0;
-        for(let i=0; i<data.length; i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
-        const hex = v => Math.round(v/n).toString(16).padStart(2,'0');
-        resolve('#' + hex(r) + hex(g) + hex(b));
-      }catch(e){ resolve(null); }
-    };
-    img.onerror = () => resolve(null);
-    img.src = URL.createObjectURL(blob);
-  });
-}
-async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); }
-
-async function ensureThumb(kind, id, url){
-  if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
-  const key = kind + ':' + id;
-  if(thumbSrcSeen[key] === url) return;     // already cut from this exact artwork this session
-  thumbSrcSeen[key] = url;
-  const blob = await makeThumb(url, kind === 'album' ? ALBUM_THUMB_PX : TRACK_THUMB_PX);
-  if(!blob){ delete thumbSrcSeen[key]; return; }
-  thumbURL[key] = URL.createObjectURL(blob);
-  meta.put('thumb:' + key, blob);
-  if(kind === 'album'){
-    const hex = await averageColorHex(blob);
-    if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(); }
-  }
-  applyThumbURLs();
-  refreshProfileIfOpen();
-}
-
-export async function restoreThumbs(){
-  const thumbs = await meta.thumbs();
-  thumbs.forEach(({key, blob}) => { thumbURL[key] = URL.createObjectURL(blob); });
-  applyThumbURLs();
-}
-
-// records saved before thumbnails existed have a dead URL and no thumbnail;
-// rebuild theirs from the artwork still in the library, where there is any
-async function healThumbs(){
-  const albumIds = new Set(Object.keys(S.albumDisplay).concat(Object.keys(S.achievements), Object.keys(S.collection)));
-  const byAlbum = {}, byTrack = {};
-  S.tracks.forEach(t => {
-    if(!t.art) return;
-    const a = albumKey(t); if(!byAlbum[a]) byAlbum[a] = t;
-    byTrack[trackIdentityKey(t)] = t;
-  });
-  for(const id of albumIds){
-    if(thumbURL['album:' + id]) continue;
-    if(byAlbum[id]) await ensureThumb('album', id, byAlbum[id].art);
-  }
-  for(const k of Object.keys(S.trackDisplay)){
-    if(thumbURL['track:' + k]) continue;
-    if(byTrack[k]) await ensureThumb('track', k, byTrack[k].art);
-  }
-}
-
-// back-fills t.details (liner notes/credits) on libraries stored before that
-// field existed — a non-blocking, batched re-read of each stored file's own
-// tags, same shape as healThumbs() above (see CREDITS spec §0)
-async function healDetails(){
-  if(!storage.available()) return;
-  const targets = S.tracks.filter(t => t.stored && !t.details);
-  for(let i = 0; i < targets.length; i++){
-    while(S.playing) await sleep(500);
-    const t = targets[i];
-    if(!S.tracks.includes(t)) continue;   // deleted while we waited
-    try{
-      const rec = await tracks.get(t.id);
-      if(rec && rec.blob){
-        const raw = await rec.blob.arrayBuffer();
-        t.details = readDetails(raw);
-        rec.details = t.details;
-        await tracks.put(rec);
-      } else {
-        t.details = emptyDetails();
-      }
-    }catch(e){ t.details = emptyDetails(); }
-    await sleep(0);
-    if((i + 1) % 5 === 0) await sleep(30);
-  }
-  if(typeof rebuildPeopleIndex === 'function') rebuildPeopleIndex();
-  if(typeof invalidateCrateModel === 'function') invalidateCrateModel();
-  if(typeof updateCreditsButtonForCurrent === 'function') updateCreditsButtonForCurrent();
-}
-
-// drops thumbnails whose records are gone (after clearing listening history)
-export async function pruneThumbs(){
-  for(const key of Object.keys(thumbURL)){
-    const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
-    const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
-    if(keep) continue;
-    try{ URL.revokeObjectURL(thumbURL[key]); }catch(e){}
-    delete thumbURL[key]; delete thumbSrcSeen[key];
-    await meta.del('thumb:' + key);
-  }
-}
-
-export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
-export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
-
-export function snapshotAlbumDisplay(t){
-  const albumId = albumKey(t);
-  S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist,
-    art:thumbURL['album:' + albumId] || null};
-  persistAlbumDisplay();
-  ensureThumb('album', albumId, t.art);
-}
-
-// same idea as snapshotAlbumDisplay, one level down — keeps Top Songs
-// showing a real title/artist/art for a track whose file has since been
-// removed from the library (see LIBRARY spec §1, orphaned stats)
-export function snapshotTrackDisplay(t, key){
-  S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:thumbURL['track:' + key] || null};
-  persistTrackDisplay();
-  ensureThumb('track', key, t.art);
-}
-
-async function upsertAchievement(albumId, tier){
-  const existing = S.achievements[albumId];
-  if(existing && existing.tier === tier) return;
-  const disp = S.albumDisplay[albumId] || {};
-  const rec = {albumId, tier, name:disp.name || albumId, artist:disp.artist || '',
-    art:thumbURL['album:' + albumId] || null, updatedAt:Date.now()};
-  S.achievements[albumId] = rec;
-  await achievements.put(persistable(rec));
-}
-
-async function upsertCollectionEntry(albumId, tier, variant, pattern){
-  if(S.collection[albumId]) return;   // discovered once, stays discovered
-  const disp = S.albumDisplay[albumId] || {};
-  const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
-    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now()};
-  S.collection[albumId] = rec;
-  await collection.put(persistable(rec));
-}
-
-// deliberately looser than a qualifying session — every track in the album
-// has been heard (95% played) at least once, in any order, across any
-// number of sittings. Used for Collection discovery and the crate/sleeve
-// first-run signals (see PROFILE spec §5, §10) — the bar is discovery, not
-// achievement, so shuffle/skips/order don't disqualify it here
-function albumPlayedThrough(albumId){
-  const order = albumExpectedOrder(albumId);
-  if(!order.length) return false;
-  return order.every(trackId => {
-    const t = S.tracks[idxOf(trackId)];
-    return t && (S.trackPlayCounts[trackIdentityKey(t)] || 0) > 0;
-  });
-}
-
-// checked after every track-completion event, since that's the only thing
-// that can flip either condition from false to true
-export function checkAlbumAchievementAndCollection(t){
-  const albumId = albumKey(t);
-  const tier = S.rareUnlocked[albumId] ? 'rare' : albumMetalFor(albumId);
-  if(tier) upsertAchievement(albumId, tier);
-  const tn = trackTier(t);
-  if((tn === 2 || tn === 3) && albumPlayedThrough(albumId)){
-    const {variant} = selectVariant(t);
-    upsertCollectionEntry(albumId, tn, variant, VARIANT_DEFS[variant].pattern);
-  }
-}
-
-// crate/share-button first-run gating — each clears independently, on the
-// metric that actually drives it (see PROFILE spec §9)
-function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
-
-function topAlbums(n){
-  return Object.keys(S.sessionCounts)
-    .map(albumId => ({albumId, count:S.sessionCounts[albumId], last:S.albumLastPlayed[albumId] || 0,
-      display: S.albumDisplay[albumId] || {name:albumId, artist:'', art:null}}))
-    .sort((a,b) => b.count - a.count || b.last - a.last)
-    .slice(0, n);
-}
-function topTracks(n){
-  return Object.keys(S.trackPlayCounts)
-    .map(trackKey => {
-      const disp = S.trackDisplay[trackKey] || {title:trackKey, artist:'', art:null};
-      return {trackKey, count:S.trackPlayCounts[trackKey], last:S.trackLastPlayed[trackKey] || 0,
-        title: disp.title, artist: disp.artist, art: disp.art};
-    })
-    .sort((a,b) => b.count - a.count || b.last - a.last)
-    .slice(0, n);
-}
-
-// highest tier first; 'rare' outranks platinum since it sits above the ladder
-const METAL_RANK = {rare:5, platinum:4, gold:3, silver:2, bronze:1};
-function achievementsList(){
-  return Object.values(S.achievements).sort((a,b) => METAL_RANK[b.tier] - METAL_RANK[a.tier] || b.updatedAt - a.updatedAt);
-}
-
-// colors / splits / splatter as distinct groups, per PROFILE spec §9
-function collectionGroups(){
-  const groups = {solid:[], split:[], splatter:[], swirl:[]};
-  Object.values(S.collection).forEach(rec => { (groups[rec.pattern] || (groups[rec.pattern] = [])).push(rec); });
-  return groups;
-}
+/* Thumbnails (restoreThumbs/healThumbs/healDetails/pruneThumbs/
+   persistAlbumDisplay/persistTrackDisplay/snapshotAlbumDisplay/
+   snapshotTrackDisplay and their helpers) moved to src/library/thumbs.js
+   (step 6b). Achievements/Collection/Top Albums/Top Songs
+   (checkAlbumAchievementAndCollection/crateFilled/topAlbums/topTracks/
+   achievementsList/collectionGroups and their helpers) moved to
+   src/history/achievements.js (step 6b). */
 
 /* findAllDuplicateGroups/openDuplicateScan/renderDupScan moved to
    src/library/duplicate-scan.js (step 5d). */
@@ -3144,7 +2691,7 @@ function isSealedSheetOpen(){ return !!SEALSHEET; }
 
 // after a seal breaks, fade the wrap off the small cover if its sheet is
 // the one open right now — the sheet itself stays as it is (SEALED spec §5)
-function updateSealedSheetAfterBreak(albumId){
+export function updateSealedSheetAfterBreak(albumId){
   if(!SEALSHEET || SEALSHEET.item.albumId !== albumId) return;
   const host = $('#sealSheetCoverWrap');
   const bits = host.querySelectorAll('.seal-wrap, .seal-sticker');

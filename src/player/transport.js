@@ -11,10 +11,12 @@ import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
 import { updateFavoriteButtons } from '../library/favorites.js';
+import { applyDiscVariant } from '../record-art/looks.js';
+import { breakSeal } from '../library/sealed.js';
 import {
-  updateShellAlbum, applyDiscVariant, renderTracks, renderMiniPlayer,
+  updateShellAlbum, renderTracks, renderMiniPlayer,
   updateGatefoldNowPlaying,
-  bgPrime, showRoute, breakSeal,
+  bgPrime, showRoute,
   clearSpinDown, bgRouteActive, bgIdleNow, bgPosition,
 } from '../main.js';
 
