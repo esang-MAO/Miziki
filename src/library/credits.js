@@ -15,10 +15,7 @@ import { emptyDetails } from './tags/index.js';
 import { setQueue } from '../player/queue.js';
 import { closePlayer } from '../shell/player-overlay.js';
 import { showRoute } from '../shell/routes.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/library-rendering functions not yet extracted. Used only inside
-// the functions below, never at module top level.
-import { renderTracks, songRow } from '../main.js';
+import { renderTracks, songRow } from './view.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],

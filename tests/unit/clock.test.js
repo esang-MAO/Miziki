@@ -32,11 +32,15 @@ import assert from 'node:assert/strict';
 // nothing new needs mocking except background.js's own queueSave
 // circular import, added to the main.js mock below.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    queueSave(){},
-    renderTracks(){}, exitSelectMode(){},
-    updateSealedSheetAfterBreak(){}, songRow(){},
-  },
+  namedExports: { queueSave(){}, updateSealedSheetAfterBreak(){} },
+});
+// Since step 7d, renderTracks/exitSelectMode/songRow (reached via
+// edit.js/credits.js, transitively through the chain the comment above
+// describes) are all real imports from src/library/view.js instead of
+// main.js — mocked directly here, same "stop the chain at the door"
+// reasoning.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
 });
 // Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier imports are
 // real ones from src/crate/tiers.js instead of main.js — mocked directly

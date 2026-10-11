@@ -24,10 +24,7 @@ import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// library screen render, not yet extracted. Used only inside the functions
-// below, never at module top level.
-import { renderTracks } from '../main.js';
+import { renderTracks } from './view.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced

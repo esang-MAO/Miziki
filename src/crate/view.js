@@ -4,7 +4,7 @@
    header because that's physically where it landed; the step 7 prompt
    itself flagged that header as covering more than just the gatefold.
    `renderCrate()`/`applyCrateMiniInset()`/`centerEmptyState()` are
-   exported for `renderTracks()` (`main.js`, step 7d) and
+   exported for `renderTracks()` (`src/library/view.js`, step 7d) and
    `src/shell/mini-player.js` (step 7b) to call; `openCrateAlbum()` is the
    crate's own entry point into the gatefold/sealed sheet, neither of
    which has moved yet (step 7e). */
@@ -25,11 +25,11 @@ import {
   crateRailJumpTarget, libraryHasGenres,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — the
-// gatefold and sealed-record sheet haven't been extracted yet (step 7e),
-// and renderTracks (the library screen's own dispatcher) hasn't either
-// (step 7d). Used only inside the functions below, never at module top level.
-import { openGatefold, openSealedSheet, sealedQuietPlay, renderTracks } from '../main.js';
+import { renderTracks } from '../library/view.js';
+// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
+// gatefold and sealed-record sheet haven't been extracted yet (step 7e).
+// Used only inside the functions below, never at module top level.
+import { openGatefold, openSealedSheet, sealedQuietPlay } from '../main.js';
 
 function openCrateAlbum(item){
   const v = S.view;

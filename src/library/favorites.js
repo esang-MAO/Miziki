@@ -8,10 +8,7 @@ import { $ } from '../util/dom.js';
 import { idxOf } from './model.js';
 import { queueSave } from '../storage/meta.js';
 import { REDUCED } from '../util/motion.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// library-screen render hasn't been extracted yet. Used only inside the
-// functions below, never at module top level.
-import { renderTracks } from '../main.js';
+import { renderTracks } from './view.js';
 
 function findFavoritesPlaylist(){ return S.playlists.find(p => p.system === 'favorites'); }
 function ensureFavoritesPlaylist(){
