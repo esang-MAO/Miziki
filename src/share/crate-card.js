@@ -6,9 +6,7 @@ import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
   roundRectPath, drawShareWordmark, resolveShareStyle, hexMix, drawDiagonalWordmark,
 } from './styles.js';
-// fmtCount is a tiny pure helper that lives with profile-tab rendering in
-// main.js (step 6b), not extracted yet — temporary circular import, rule 8.
-import { fmtCount } from '../main.js';
+import { fmtCount } from '../profile/screens.js';
 
 /* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
    album, a grid of the next covers, top songs, metals + collection, brand.

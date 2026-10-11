@@ -6,10 +6,11 @@ import { storage, tracks, meta } from '../storage/repo.js';
 import { cropSquareImage } from './edit.js';
 import { readDetails, emptyDetails } from './tags/index.js';
 import { rebuildPeopleIndex, updateCreditsButtonForCurrent } from './credits.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — the
-// crate model and profile screen haven't been extracted yet. Used only
-// inside healDetails/ensureThumb below, never at module top level.
-import { invalidateCrateModel, renderProfile } from '../main.js';
+import { renderProfile } from '../profile/screens.js';
+// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
+// crate model hasn't been extracted yet. Used only inside ensureThumb
+// below, never at module top level.
+import { invalidateCrateModel } from '../main.js';
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the

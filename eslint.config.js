@@ -74,6 +74,11 @@ module.exports = [
       'src/library/edit.js',
       'src/library/import.js',
       'src/player/transport.js',
+      'src/profile/storefront.js',
+      'src/profile/settings.js',
+      'src/social/screens/friend-store.js',
+      'src/social/screens/home.js',
+      'src/social/demo.js',
     ],
     languageOptions: {
       globals: { MizikiSocial: 'readonly' },
