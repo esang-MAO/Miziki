@@ -48,10 +48,21 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 // chains — same approach as engine.test.js and clock.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    renderTracks(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
-    exitSelectMode(){}, invalidateCrateModel(){},
+    renderTracks(){}, exitSelectMode(){},
     updateSealedSheetAfterBreak(){}, songRow(){},
   },
+});
+// Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier and thumbs.js's
+// invalidateCrateModel imports are real ones from src/crate/tiers.js/
+// model.js instead of main.js — mocked directly here, same "stop the chain
+// at the door" reasoning (crate/model.js's own real chain reaches
+// storage/meta.js -> audio/mode.js -> audio/engine.js's routeSource, which
+// this file's engine.js mock below doesn't provide).
+mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
+  namedExports: { deleteCrateArtTiers(){}, buildCrateTier(){} },
+});
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { invalidateCrateModel(){} },
 });
 // Since step 7b, the five screen/ceremony functions above moved off
 // main.js's own export list into real src/shell/ modules — mocked

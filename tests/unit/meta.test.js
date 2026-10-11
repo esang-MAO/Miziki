@@ -34,7 +34,12 @@ mock.module(new URL('../../src/player/controls.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/background.js', import.meta.url).href, {
   namedExports: { bgUpdateUI(){}, applyBgAudioSetting(){} },
 });
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// Since step 7c, meta.js's attachLaunchSettingRow import is a real one from
+// src/launch/intro.js instead of main.js — mocked directly here, same
+// "stop the chain at the door" reasoning as the rest of this file, since
+// the real intro.js would pull in crate/tiers.js/library/thumbs.js and,
+// through those, the same wide chains already stopped above.
+mock.module(new URL('../../src/launch/intro.js', import.meta.url).href, {
   namedExports: { attachLaunchSettingRow(){} },
 });
 globalThis.document = { querySelectorAll(){ return []; } };

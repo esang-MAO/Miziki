@@ -12,16 +12,30 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // engine.test.js/queue.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    invalidateCrateModel(){}, renderTracks(){},
-    healCrateArt: async () => {},
+    renderTracks(){},
     // import.js's loadOverlayFor/deleteTracks imports are now real ones
     // from src/library/edit.js/delete.js (step 5d), which themselves need
     // these from main.js
-    deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {}, exitSelectMode(){},
+    exitSelectMode(){},
     // import.js's rebuildPeopleIndex import is now a real one from
     // src/library/credits.js (step 5e), which itself needs this from main.js
     songRow(){},
   },
+});
+// Since step 7c, import.js's invalidateCrateModel/healCrateArt imports and
+// edit.js's/delete.js's deleteCrateArtTiers/buildCrateTier imports are real
+// ones from src/crate/model.js/tiers.js instead of main.js — mocked
+// directly here, same "stop the chain at the door" reasoning (crate/
+// model.js's own real chain reads window.devicePixelRatio via crate/
+// constants.js at module load, which there's no browser for here).
+mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
+  namedExports: {
+    healCrateArt: async () => {},
+    deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {},
+  },
+});
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { invalidateCrateModel(){} },
 });
 // Since step 7b, queue.js's five screen/ceremony functions, edit.js's/
 // delete.js's renderMiniPlayer, delete.js's clearSpinDown, delete.js's/
