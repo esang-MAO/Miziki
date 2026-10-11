@@ -183,7 +183,7 @@ export function hideUndoBanner(){
 }
 
 /* ---- edit sheet: same form for a single track or a batch selection ---- */
-function renderEditArtPreview(url){
+export function renderEditArtPreview(url){
   const box = $('#editArtPreview'); box.innerHTML = '';
   if(url){ const im = document.createElement('img'); im.src = url; im.alt = ''; box.appendChild(im); }
   else box.appendChild(el('span', null, 'No art'));

@@ -20,6 +20,7 @@ import { clearListeningHistory } from './history/clear.js';
 import {
   loadOverlayFor, cropSquareImage, applyEdit, revertTrack, applyEditWithUndo,
   undoLastEdit, showUndoBanner, openEditSheet, closeEditSheet, saveEditSheet,
+  renderEditArtPreview,
 } from './library/edit.js';
 import {
   countForAlbum, countForArtist, formatBytes, totalLibraryBytes,
