@@ -18,7 +18,7 @@ import { updateShellAlbum, renderMiniPlayer } from '../shell/mini-player.js';
 import { showRoute } from '../shell/routes.js';
 import { clearSpinDown } from '../shell/put-away.js';
 import { renderTracks } from '../library/view.js';
-import { updateGatefoldNowPlaying } from '../main.js';
+import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 
 export function load(i){
   if(!S.tracks[i]) return;
