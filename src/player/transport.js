@@ -13,11 +13,12 @@ import { updateCreditsButtonForCurrent } from '../library/credits.js';
 import { updateFavoriteButtons } from '../library/favorites.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { breakSeal } from '../library/sealed.js';
+import { bgPrime, bgRouteActive, bgIdleNow, bgPosition } from './background.js';
 import {
   updateShellAlbum, renderTracks, renderMiniPlayer,
   updateGatefoldNowPlaying,
-  bgPrime, showRoute,
-  clearSpinDown, bgRouteActive, bgIdleNow, bgPosition,
+  showRoute,
+  clearSpinDown,
 } from '../main.js';
 
 export function load(i){

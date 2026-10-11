@@ -10,16 +10,23 @@ import assert from 'node:assert/strict';
 // every real module in the chain that engine.js pulls in transitively
 // needs a stand-in here, not just engine.js's own two direct imports.
 //
-// engine.js imports applyOutputRoute from main.js and stop from
-// transport.js. location.js (loaded for applyVolume) imports
+// engine.js imports stop from transport.js and, since step 6c,
+// applyOutputRoute from player/background.js rather than main.js —
+// mocked directly rather than letting it load for real, since its own
+// real player/controls.js import would reach player/queue.js and
+// history/sessions.js's full chain (the same reasoning clock.js is
+// mocked for below). location.js (loaded for applyVolume) still imports
 // queueSave from main.js and, since step 3c, drawSun from clock.js —
 // mocking clock.js directly (rather than letting it load for real)
 // avoids also needing stand-ins for everything *it* needs (sleep-timer.js,
 // and several more main.js exports). transport.js itself still imports
-// ~20 functions from main.js (step 3b), which is why it's mocked
+// ~11 functions from main.js (step 3b), which is why it's mocked
 // directly too, rather than listing its main.js dependencies here.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: { applyOutputRoute(){}, queueSave(){} },
+  namedExports: { queueSave(){} },
+});
+mock.module(new URL('../../src/player/background.js', import.meta.url).href, {
+  namedExports: { applyOutputRoute(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { stop(){} },
