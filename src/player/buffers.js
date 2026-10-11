@@ -32,7 +32,7 @@ export async function ensureBuffer(i){
     touchLRU(i);
     setPathNote();
     return true;
-  }catch(e){
+  }catch(_e){
     setPathNote('Could not decode ' + t.tags.title + '.', true);
     return false;
   }

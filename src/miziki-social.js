@@ -68,9 +68,9 @@
       .map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
   }
 
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const _sleep = ms => new Promise(r => setTimeout(r, ms));
   function chunk(arr, n) { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; }
-  const clone = o => JSON.parse(JSON.stringify(o));
+  const _clone = o => JSON.parse(JSON.stringify(o));
   function cps(s) { return Array.from(String(s)); }              // code points, to match Postgres char_length
 
   /* ---- release identity -------------------------------------------------
@@ -142,7 +142,7 @@
   }
 
   function emit(evt, payload) {
-    (X.listeners[evt] || []).slice().forEach(fn => { try { fn(payload); } catch (e) { /* listener bugs must not break sync */ } });
+    (X.listeners[evt] || []).slice().forEach(fn => { try { fn(payload); } catch (_e) { /* listener bugs must not break sync */ } });
   }
   function on(evt, fn) {
     (X.listeners[evt] = X.listeners[evt] || []).push(fn);
@@ -188,11 +188,11 @@
   }
   async function persistNow() {
     clearTimeout(X.saveTimer);
-    try { if (X.adapter && X.adapter.save) await X.adapter.save(X.state); } catch (e) { /* storage unavailable: session-only */ }
+    try { if (X.adapter && X.adapter.save) await X.adapter.save(X.state); } catch (_e) { /* storage unavailable: session-only */ }
   }
   async function loadState() {
     let s = null;
-    try { s = X.adapter && X.adapter.load ? await X.adapter.load() : null; } catch (e) { s = null; }
+    try { s = X.adapter && X.adapter.load ? await X.adapter.load() : null; } catch (_e) { s = null; }
     const base = freshState();
     if (s && s.v === 1) {
       X.state = { ...base, ...s, settings: { ...base.settings, ...(s.settings || {}) } };
@@ -479,7 +479,7 @@
     return { items, skipped, idByKey };
   }
   function toWire(it) {
-    const { fp, ...rest } = it;
+    const { fp: _fp, ...rest } = it;
     return rest;
   }
 
@@ -629,7 +629,7 @@
   /* ====================================================================
      8. now spinning
      ==================================================================== */
-  function spinKey(albumId, trackTitle) { return albumId + '|' + (trackTitle || ''); }
+  function _spinKey(albumId, trackTitle) { return albumId + '|' + (trackTitle || ''); }
 
   /** Call whenever a track starts. Debounced; a no-op unless the user opted in. */
   function nowSpinning(albumId, trackTitle) {
@@ -656,7 +656,7 @@
           if (X.spin.last) publishSpin(X.spin.last.albumId, X.spin.last.trackTitle);
         }, X.timing.spinHeartbeat);
       }
-    } catch (e) { /* best effort */ }
+    } catch (_e) { /* best effort */ }
   }
   /** Call on pause: the disc stays up briefly, then disappears. */
   function nowSpinningPaused() {
@@ -826,9 +826,9 @@
           if (!row || row.user_id === X.userId) return;
           const rel = await releaseInfo(row.release_id);
           cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel });
-        } catch (e) { /* ignore */ }
+        } catch (_e) { /* ignore */ }
       }).subscribe();
-    return () => { try { X.sb.removeChannel(ch); } catch (e) { /* noop */ } };
+    return () => { try { X.sb.removeChannel(ch); } catch (_e) { /* noop */ } };
   }
 
   /* ====================================================================

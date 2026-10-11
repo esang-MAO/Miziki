@@ -26,7 +26,7 @@ const BG_SUPPORTED = (function(){
     const AC = window.AudioContext || window.webkitAudioContext;
     return !!(AC && AC.prototype && typeof AC.prototype.createMediaStreamDestination === 'function'
       && typeof HTMLMediaElement !== 'undefined' && 'srcObject' in HTMLMediaElement.prototype);
-  }catch(e){ return false; }
+  }catch(_e){ return false; }
 })();
 
 export function bgRouteActive(){ return BG_SUPPORTED && S.bgAudio && !S.bg.failed; }
@@ -101,7 +101,7 @@ export function applyOutputRoute(){
       n.bgDest = S.ctx.createMediaStreamDestination();
       n.master.disconnect();
       n.master.connect(n.bgDest);
-    }catch(e){
+    }catch(_e){
       try{ n.master.connect(S.ctx.destination); }catch(_){}
       n.bgDest = null;
       bgFallback();
@@ -113,9 +113,9 @@ export function applyOutputRoute(){
     el.srcObject = n.bgDest.stream;
     if(S.playing) bgStartEl();
   } else if(!want && n.bgDest){
-    try{ n.master.disconnect(); }catch(e){}
+    try{ n.master.disconnect(); }catch(_e){}
     n.master.connect(S.ctx.destination);
-    try{ n.bgDest.disconnect(); }catch(e){}
+    try{ n.bgDest.disconnect(); }catch(_e){}
     n.bgDest = null;
     bgTeardown();
   }
@@ -147,7 +147,7 @@ export function bgSync(){
 export function bgIdleNow(){
   const el = S.bg.el;
   if(el && el.srcObject && !el.paused) el.pause();
-  if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(e){} }
+  if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(_e){} }
 }
 
 function mediaSessionSync(){
@@ -161,17 +161,17 @@ function mediaSessionSync(){
     const base = {title:t.tags.title, artist:t.tags.artist, album:t.tags.album};
     try{
       ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: t.art ? [{src:t.art, sizes:'512x512'}] : []}));
-    }catch(e){
+    }catch(_e){
       try{ ms.metadata = new MediaMetadata(base); }catch(_){}
     }
   }
-  if(S.playing){ try{ ms.playbackState = 'playing'; }catch(e){} }
+  if(S.playing){ try{ ms.playbackState = 'playing'; }catch(_e){} }
   bgPosition();
 }
 
 function bgInstallHandlers(){
   const ms = navigator.mediaSession;
-  const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(e){} };
+  const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(_e){} };
   set('play', async () => { if(!S.ctx) await ensureContext(null); if(!S.playing) play(); });
   set('pause', () => { if(S.playing) pause(); });
   set('stop', () => { if(S.playing) pause(); });
@@ -191,8 +191,8 @@ function bgRemoveHandlers(){
   S.bg.msKey = '';
   if(!('mediaSession' in navigator) || !S.bg.handlers) return;
   const ms = navigator.mediaSession;
-  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(e){} });
-  try{ ms.metadata = null; ms.playbackState = 'none'; }catch(e){}
+  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(_e){} });
+  try{ ms.metadata = null; ms.playbackState = 'none'; }catch(_e){}
   S.bg.handlers = false;
 }
 
@@ -202,7 +202,7 @@ export function bgPosition(){
   try{
     navigator.mediaSession.setPositionState({duration:t.duration, playbackRate:S.rate > 0 ? S.rate : 1,
       position:clamp(S.pos, 0, t.duration)});
-  }catch(e){}
+  }catch(_e){}
 }
 
 export function bgUpdateUI(){
@@ -223,7 +223,7 @@ export function bgUpdateUI(){
 
 export function applyBgAudioSetting(){
   // on iOS this also lets Web Audio play with the silent switch on
-  try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(e){}
+  try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(_e){}
   applyOutputRoute();
   if(bgRouteActive()) mediaSessionSync();
   else bgTeardown();

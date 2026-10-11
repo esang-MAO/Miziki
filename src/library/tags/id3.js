@@ -109,10 +109,10 @@ export function id3Details(b, offset){
         } else if(id === 'TSRC'){
           d.isrc = plainText();
         }
-      }catch(e){}
+      }catch(_e){}
       i += 10 + size;
     }
-  }catch(e){}
+  }catch(_e){}
   return d;
 }
 

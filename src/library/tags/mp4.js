@@ -52,7 +52,7 @@ export function mp4GaplessInfo(b){
       if(!isFinite(delay) || !isFinite(padding)) return null;
       return {delay, padding};
     }
-  }catch(e){ return null; }
+  }catch(_e){ return null; }
   return null;
 }
 

@@ -22,6 +22,6 @@ export function decodeText(bytes, enc){
     if(enc === 2) return new TextDecoder('utf-16be').decode(bytes);
     if(enc === 0) return new TextDecoder('iso-8859-1').decode(bytes);
     return new TextDecoder('utf-8').decode(bytes);
-  }catch(e){ return txt(bytes, 0, bytes.length); }
+  }catch(_e){ return txt(bytes, 0, bytes.length); }
 }
 export const clean = s => (s || '').replace(/\0+$/,'').trim();

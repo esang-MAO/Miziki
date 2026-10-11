@@ -54,6 +54,6 @@ export function wavDetails(b){
       if(!size) break;
       i += 8 + size + (size % 2);
     }
-  }catch(e){}
+  }catch(_e){}
   return d;
 }

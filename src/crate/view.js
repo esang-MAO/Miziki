@@ -271,7 +271,7 @@ export function renderCrate(host){
       const img = new Image();
       img.decoding = 'async';
       img.src = url;
-      try{ await img.decode(); }catch(e){ return; }
+      try{ await img.decode(); }catch(_e){ return; }
       if(Math.round(S.crate.pos) !== idx || pool.get(idx) !== card) return;
       const face = card.querySelector('.crate-card-face');
       const liveImg = face && face.querySelector('img');
@@ -478,7 +478,7 @@ export function renderCrate(host){
   stage.addEventListener('pointerdown', e => {
     if(e.button != null && e.button !== 0) return;
     cancelAnim();
-    try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+    try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
     dragState = {startY:e.clientY, lastY:e.clientY, lastT:performance.now(), v:0, moved:false};
   });
   stage.addEventListener('pointermove', e => {
@@ -563,7 +563,7 @@ export function renderCrate(host){
     if(!entry) return;
     scrubbing = true;
     cancelAnim();
-    try{ rail.setPointerCapture(e.pointerId); }catch(err){}
+    try{ rail.setPointerCapture(e.pointerId); }catch(_err){}
     bubbleEl = document.createElement('div');
     bubbleEl.className = 'crate-rail-bubble';
     document.body.appendChild(bubbleEl);

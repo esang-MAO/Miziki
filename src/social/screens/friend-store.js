@@ -98,8 +98,8 @@ function renderLockedFriendStore(body, full){
 
 async function shareFriendStore(handle){
   const text = 'Check out @' + handle + '’s crate on Miziki.';
-  if(navigator.share){ try{ await navigator.share({text}); } catch(e){ /* user cancelled */ } }
-  else if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); } catch(e){ /* best effort */ } }
+  if(navigator.share){ try{ await navigator.share({text}); } catch(_e){ /* user cancelled */ } }
+  else if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); } catch(_e){ /* best effort */ } }
 }
 
 function friendNowSpinningRow(full){

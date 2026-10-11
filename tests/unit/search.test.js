@@ -40,8 +40,8 @@ globalThis.document = {
   activeElement: null,
 };
 
-const groupRowMock = mock.fn((label, sub, idx, onTap) => fakeEl());
-const songRowMock = mock.fn((i) => fakeEl());
+const groupRowMock = mock.fn((_label, _sub, _idx, _onTap) => fakeEl());
+const songRowMock = mock.fn((_i) => fakeEl());
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
 // Since step 7d, search.js's renderTracks/groupRow/songRow imports are

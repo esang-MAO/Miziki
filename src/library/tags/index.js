@@ -61,7 +61,7 @@ function readTags(buf, filename){
         if(b[i]===0x49 && b[i+1]===0x44 && b[i+2]===0x33){ t = id3Tags(b, i); break; }
       }
     }
-  }catch(e){}
+  }catch(_e){}
   return {
     title: clean(t.title) || filename.replace(/\.[^.]+$/,''),
     artist: clean(t.artist) || 'Unknown Artist',
@@ -84,7 +84,7 @@ function readDetails(buf){
         if(b[i]===0x49 && b[i+1]===0x44 && b[i+2]===0x33) return id3Details(b, i);
       }
     }
-  }catch(e){}
+  }catch(_e){}
   return emptyDetails();
 }
 
@@ -102,7 +102,7 @@ function findArtworkBlob(buf){
         }
       }
     }
-  }catch(e){}
+  }catch(_e){}
   return null;
 }
 

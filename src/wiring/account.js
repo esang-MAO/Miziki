@@ -18,12 +18,12 @@ export function wireAccount(){
     if(!file) return;
     try{
       const blob = await cropSquareImage(file, 500);
-      if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(err){}
+      if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(_err){}
       S.profile.artBlob = blob;
       S.profile.art = URL.createObjectURL(blob);
       await persistProfile();
       renderProfile();
-    }catch(err){ /* bad image — leave the existing picture as-is */ }
+    }catch(_err){ /* bad image — leave the existing picture as-is */ }
   });
 
   $('#socialAuthClose').addEventListener('click', closeSocialAuth);

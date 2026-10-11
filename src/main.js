@@ -1,5 +1,5 @@
 "use strict";
-import { S, current, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
+import { S, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
 import { $ } from './util/dom.js';
 import { trackTier, albumKey } from './record-art/tiers.js';
 import { albumMetalFor } from './record-art/metals.js';
@@ -93,7 +93,7 @@ async function restoreLibrary(){
     markLibraryReady();
     return;
   }
-  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){}
   const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
   for(const r of recs){

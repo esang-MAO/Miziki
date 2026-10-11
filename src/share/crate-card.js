@@ -21,7 +21,7 @@ export async function composeShareImage(opts){
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  try{ await document.fonts.ready; }catch(e){}
+  try{ await document.fonts.ready; }catch(_e){}
 
   const topAlbum = topAlbums(1)[0];
   const kit = await resolveShareStyle(style, topAlbum && topAlbum.display.art);
@@ -40,7 +40,7 @@ export async function composeShareImage(opts){
   ctx.beginPath(); ctx.arc(avX+avSize/2, avY+avSize/2, avSize/2, 0, Math.PI*2); ctx.clip();
   let drewAvatar = false;
   if(S.profile.art){
-    try{ const img = await loadImageEl(S.profile.art); drawCover(ctx, img, avX, avY, avSize, avSize); drewAvatar = true; }catch(e){}
+    try{ const img = await loadImageEl(S.profile.art); drawCover(ctx, img, avX, avY, avSize, avSize); drewAvatar = true; }catch(_e){}
   }
   if(!drewAvatar){
     ctx.fillStyle = shareSwatchGradient(ctx, avX+avSize/2, avY+avSize/2, avSize/2, ['#3E8E7E','#245048','#122623']);
@@ -75,7 +75,7 @@ export async function composeShareImage(opts){
   if(topAlbum){
     if(topAlbum.display.art){
       try{ const img = await loadImageEl(topAlbum.display.art); ctx.save(); roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.clip(); drawCover(ctx, img, heroX, y, heroW, heroH); ctx.restore(); }
-      catch(e){ drawDiagonalWordmark(ctx, heroX, y, heroW); }
+      catch(_e){ drawDiagonalWordmark(ctx, heroX, y, heroW); }
     } else drawDiagonalWordmark(ctx, heroX, y, heroW);
   } else {
     ctx.fillStyle = kit.chipBg; roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.fill();
@@ -93,7 +93,7 @@ export async function composeShareImage(opts){
       const a = nextAlbums[i];
       if(a && a.display.art){
         try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, cy, cell, cell); ctx.restore(); }
-        catch(e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill(); }
+        catch(_e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill(); }
       } else {
         ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill();
         if(a){
@@ -115,7 +115,7 @@ export async function composeShareImage(opts){
       for(const a of nextAlbums){
         if(a.display.art){
           try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, y, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, y, cell, cell); ctx.restore(); }
-          catch(e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
+          catch(_e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
         } else { ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
         cx += cell + Math.round(w*0.025);
       }

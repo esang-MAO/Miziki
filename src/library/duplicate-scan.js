@@ -31,7 +31,7 @@ export function renderDupScan(){
     return;
   }
   body.innerHTML = '';
-  groups.forEach((idxs, gi) => {
+  groups.forEach((idxs, _gi) => {
     const wrap = document.createElement('div');
     wrap.className = 'row';
     wrap.style.flexDirection = 'column';

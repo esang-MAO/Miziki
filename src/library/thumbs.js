@@ -31,7 +31,7 @@ async function makeThumb(url, px){
   try{
     const blob = await (await fetch(url)).blob();
     return await cropSquareImage(blob, px);
-  }catch(e){ return null; }
+  }catch(_e){ return null; }
 }
 
 // records are saved without their runtime `art` URL
@@ -78,7 +78,7 @@ function averageColorHex(blob){
         for(let i=0; i<data.length; i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
         const hex = v => Math.round(v/n).toString(16).padStart(2,'0');
         resolve('#' + hex(r) + hex(g) + hex(b));
-      }catch(e){ resolve(null); }
+      }catch(_e){ resolve(null); }
     };
     img.onerror = () => resolve(null);
     img.src = URL.createObjectURL(blob);
@@ -149,7 +149,7 @@ export async function healDetails(){
       } else {
         t.details = emptyDetails();
       }
-    }catch(e){ t.details = emptyDetails(); }
+    }catch(_e){ t.details = emptyDetails(); }
     await sleep(0);
     if((i + 1) % 5 === 0) await sleep(30);
   }
@@ -164,7 +164,7 @@ export async function pruneThumbs(){
     const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
     const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
     if(keep) continue;
-    try{ URL.revokeObjectURL(thumbURL[key]); }catch(e){}
+    try{ URL.revokeObjectURL(thumbURL[key]); }catch(_e){}
     delete thumbURL[key]; delete thumbSrcSeen[key];
     await meta.del('thumb:' + key);
   }

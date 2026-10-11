@@ -33,7 +33,7 @@ export function wireEdit(){
       const blob = await cropSquareImage(file, 800);
       S.editArtBlob = blob;
       renderEditArtPreview(URL.createObjectURL(blob));
-    }catch(err){ /* bad image — leave whatever preview was already showing */ }
+    }catch(_err){ /* bad image — leave whatever preview was already showing */ }
   });
   $('#undoBtn').addEventListener('click', undoLastEdit);
 }
