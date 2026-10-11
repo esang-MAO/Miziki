@@ -2,31 +2,39 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 // clock.js has temporary circular imports back to main.js (for
-// bgPosition/easeOutCubic/REDUCED) and to sleep-timer.js (for
-// sleepCheckDeadline) — see the refactor rule in CLAUDE.md. Since step
-// 5c, clock.js also imports addPlayedRange/checkTrackCompletion from the
-// real src/history/played.js, which itself imports from the real
-// src/history/sessions.js — both load for real here, so the main.js mock
-// below also needs every name *they* need from main.js, not just
-// clock.js's own direct imports. Since step 6b, played.js's/sessions.js's
-// own applyDiscVariant/restoreThumbs/snapshotAlbumDisplay/etc. imports are
-// real (looks.js/thumbs.js/achievements.js, not main.js), but loading
-// those for real reaches thumbs.js's own further real chain: edit.js,
-// which reaches sealed.js and credits.js (each circularly importing a
-// few more names from main.js, rule 8) and, through credits.js's own real
-// setQueue import, player/queue.js — which would in turn reach
-// player/buffers.js's ensureContext (audio/engine.js) and, through that,
-// sundown/location.js's own circular import of queueSave from main.js —
-// same reasoning tags.test.js/credits.test.js/search.test.js give for
-// mocking audio/engine.js directly rather than loading that whole chain.
+// easeOutCubic/REDUCED) and to sleep-timer.js (for sleepCheckDeadline) —
+// see the refactor rule in CLAUDE.md. Since step 5c, clock.js also imports
+// addPlayedRange/checkTrackCompletion from the real src/history/played.js,
+// which itself imports from the real src/history/sessions.js — both load
+// for real here, so the main.js mock below also needs every name *they*
+// need from main.js, not just clock.js's own direct imports. Since step
+// 6b, played.js's/sessions.js's own applyDiscVariant/restoreThumbs/
+// snapshotAlbumDisplay/etc. imports are real (looks.js/thumbs.js/
+// achievements.js, not main.js), but loading those for real reaches
+// thumbs.js's own further real chain: edit.js, which reaches sealed.js
+// and credits.js (each circularly importing a few more names from
+// main.js, rule 8) and, through credits.js's own real setQueue import,
+// player/queue.js — which would in turn reach player/buffers.js's
+// ensureContext (audio/engine.js) and, through that, sundown/location.js's
+// own circular import of queueSave from main.js — same reasoning
+// tags.test.js/credits.test.js/search.test.js give for mocking
+// audio/engine.js directly rather than loading that whole chain.
 // main.js has DOM-dependent top-level code that needs a browser, and
 // sleep-timer.js's real file would in turn pull in location.js and
-// transport.js (which itself needs ~13 main.js exports). Mocking main.js,
+// transport.js (which itself needs ~11 main.js exports). Mocking main.js,
 // sleep-timer.js and audio/engine.js directly, rather than loading their
-// real dependency chains, is what lets tick() load here at all.
+// real dependency chains, is what lets tick() load here at all. Since
+// step 6c, clock.js's own bgPosition import is real (player/background.js
+// instead of main.js) — background.js loads for real too: its own
+// engine.js/transport.js imports resolve to the mocks already set up for
+// this test, and its player/controls.js import reaches the same real
+// queue.js/sessions.js chain already loaded via played.js above, so
+// nothing new needs mocking except background.js's own queueSave
+// circular import, added to the main.js mock below.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    bgPosition(){}, easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
+    easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
+    queueSave(){},
     persistTrackLastPlayed: async () => {},
     renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
     exitSelectMode(){}, invalidateCrateModel(){}, renderProfile(){},
