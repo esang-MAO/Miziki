@@ -60,8 +60,6 @@
 .gf-left .gf-credit-row em{font-style:normal;color:var(--muted)}
 .gf-left .gf-credit-row a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
 .gf-left .gf-meta-line{font-family:var(--data);font-size:10px;color:var(--muted);margin:10px 0}
-.gf-left .gf-booklet-btn{margin-top:10px;border:1px solid var(--accent);color:var(--accent);
-  border-radius:16px;padding:8px 16px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em}
 .gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
 .gf-left .gf-social{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:10px}

@@ -2725,8 +2725,7 @@ function buildGatefoldLeftPanel(item){
   const host = document.createDocumentFragment();
   const liner = albumLinerNotes(item.album);
   const roll = albumCreditRoll(item.album);
-  const hasBooklet = !!(S.booklets && S.booklets[item.albumId]);
-  if(!liner && !roll.size && !hasBooklet){
+  if(!liner && !roll.size){
     host.appendChild(el('h3', null, item.album));
     const metaBits = [item.year || null, item.genre || null,
       item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
@@ -2749,11 +2748,6 @@ function buildGatefoldLeftPanel(item){
   const metaBits = [item.year || null, item.genre || null,
     item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
   host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
-  if(hasBooklet){
-    const btn = el('button','gf-booklet-btn', 'BOOKLET · ' + S.booklets[item.albumId].length + ' PAGES');
-    btn.addEventListener('click', () => openBookletViewer(item.albumId));
-    host.appendChild(btn);
-  }
   host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
 }
@@ -3086,7 +3080,7 @@ function openGatefold(item){
   gatefoldSetCoverArt(item).catch(() => {});
   updateGatefoldSleeveState();
 
-  const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size || (S.booklets && S.booklets[item.albumId]));
+  const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size);
   $('#gfLeftCue').style.display = hasLeftContent ? '' : 'none';
 
   if(mode === 'short'){
