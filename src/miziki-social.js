@@ -202,21 +202,18 @@
   }
 
   /* ====================================================================
-     4. loading supabase-js and starting up
+     4. starting up supabase-js
      ==================================================================== */
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const el = document.createElement('script');
-      el.src = src; el.async = true;
-      el.onload = resolve; el.onerror = () => reject(new Error('Failed to fetch supabase-js'));
-      document.head.appendChild(el);
-    });
-  }
-
   /**
-   * init({ url, anonKey, adapter | env, sb?, supabaseLib?, libUrl?, timing? })
+   * init({ url, anonKey, adapter | env, sb?, supabaseLib?, timing? })
    *   env = { S, DB, albumKey, trackTier, albumMetalFor }  → builds the Miziki adapter
    *   sb  = a ready client (tests); otherwise one is created from url/anonKey.
+   *   supabaseLib = the bundled @supabase/supabase-js module (security
+   *   hardening, step 01 — this used to fall back to fetching an unpinned
+   *   copy from a CDN; the app now always passes its own bundled copy, or
+   *   a real global at `root.supabase` for callers that load it another
+   *   way, and init() fails closed (inert, same as no keys) rather than
+   *   ever reaching out to a CDN on its own).
    */
   async function init(opts) {
     opts = opts || {};
@@ -233,11 +230,8 @@
       if (opts.sb) {
         X.sb = opts.sb;
       } else {
-        let lib = opts.supabaseLib || root.supabase;
-        if (!lib || !lib.createClient) {
-          await loadScript(opts.libUrl || 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
-          lib = root.supabase;
-        }
+        const lib = opts.supabaseLib || root.supabase;
+        if (!lib || !lib.createClient) throw new Error('supabase-js not available (pass supabaseLib).');
         X.sb = lib.createClient(opts.url, opts.anonKey, {
           auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
         });
