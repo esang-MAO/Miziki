@@ -6,10 +6,11 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { idxOf } from './model.js';
+import { queueSave } from '../storage/meta.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// persistence/screen functions not yet extracted. Used only inside the
-// functions below, never at module top level.
-import { queueSave, renderTracks, REDUCED } from '../main.js';
+// screen functions and the reduced-motion flag not yet extracted. Used
+// only inside the functions below, never at module top level.
+import { renderTracks, REDUCED } from '../main.js';
 
 function findFavoritesPlaylist(){ return S.playlists.find(p => p.system === 'favorites'); }
 function ensureFavoritesPlaylist(){

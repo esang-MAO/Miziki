@@ -5,7 +5,7 @@ import { setPathNote } from '../ui/path-note.js';
 import { ensureContext } from '../audio/engine.js';
 import { play, pause, seek } from './transport.js';
 import { prevTrack, nextTrack } from './controls.js';
-import { queueSave } from '../main.js';
+import { queueSave } from '../storage/meta.js';
 
 /* ================= background playback (optional) =================
    Off by default, and when it is off none of this runs: audio goes master ->

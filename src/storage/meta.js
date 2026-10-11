@@ -1,0 +1,120 @@
+import { S } from '../state.js';
+import { $ } from '../util/dom.js';
+import { idOf, idxOf } from '../library/model.js';
+import { storage, meta } from './repo.js';
+import { serializePrefs, parsePrefs } from './prefs.js';
+import { setMode } from '../audio/mode.js';
+import { applyCharacter } from '../audio/engine.js';
+import { applyVolume } from '../sundown/location.js';
+import { toggleShuffle, cycleRepeat } from '../player/controls.js';
+import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
+// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
+// launch-intro section hasn't been extracted yet (step 7c). Used only
+// inside applyPrefs below, never at module top level.
+import { attachLaunchSettingRow } from '../main.js';
+
+/* ================= persistence =================
+   The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
+   src/storage/idb.js, step 4a): queueSave()/saveMeta()/restoreMeta() and the
+   various persist*() helpers elsewhere read and write through it. If storage
+   is unavailable, every DB call quietly no-ops and Miziki behaves exactly as
+   it did before: fully working, session-only. */
+
+let saveTimer = null;
+export function queueSave(){
+  if(!storage.available()) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveMeta, 600);
+}
+
+async function saveMeta(){
+  if(!storage.available()) return;
+  const orders = {};
+  Object.keys(S.albumOrder).forEach(a => { orders[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
+  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system})));
+  await meta.put('albumOrder', orders);
+  await meta.put('albumSort', S.albumSort);
+  await meta.put('prefs', serializePrefs(S));
+}
+
+export async function restoreMeta(){
+  const pl = await meta.get('playlists');
+  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
+  const ord = await meta.get('albumOrder');
+  if(ord) Object.keys(ord).forEach(a => {
+    const arr = ord[a].map(idxOf).filter(i => i >= 0);
+    if(arr.length) S.albumOrder[a] = arr;
+  });
+  const srt = await meta.get('albumSort');
+  if(srt) S.albumSort = srt;
+  const pr = await meta.get('prefs');
+  if(pr) applyPrefs(parsePrefs(pr));
+}
+
+function applyPrefs(p){
+  if(p.char){ Object.keys(S.char).forEach(k => { if(typeof p.char[k] === 'number') S.char[k] = p.char[k]; }); }
+  // scratch is a boolean, not a slider percentage, and a saved prefs object
+  // from before F2 won't have it at all — missing must mean On, so S.char's
+  // own default (true) is left alone unless a saved value says otherwise
+  if(p.char && typeof p.char.scratch === 'boolean'){
+    S.char.scratch = p.char.scratch;
+  }
+  const scratchBtn = $('#scratchBtn');
+  if(scratchBtn){
+    scratchBtn.textContent = S.char.scratch ? 'On' : 'Off';
+    scratchBtn.setAttribute('aria-pressed', String(S.char.scratch));
+  }
+  if(typeof p.target === 'number') S.target = p.target;
+  if(p.pace) S.pace = p.pace;
+  if(typeof p.auto === 'boolean') S.auto = p.auto;
+  if(p.librarySort) S.librarySort = p.librarySort;
+  if(typeof p.sleevePullEnabled === 'boolean'){
+    S.sleevePullEnabled = p.sleevePullEnabled;
+    const b = $('#sleevePullBtn');
+    b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
+    b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
+  }
+  if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
+  if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
+  if(p.libraryLayout === 'crate' || p.libraryLayout === 'list'){
+    S.libraryLayout = p.libraryLayout;
+    // this runs before the library's first render, while the view is still
+    // at its pristine top-level default, so keep the two in sync (S1/S2 spec)
+    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
+      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
+    }
+    document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
+  }
+  if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
+  if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
+  if(typeof p.albumSides === 'boolean'){
+    S.albumSides = p.albumSides;
+    document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
+  }
+  if(typeof p.sealedRecords === 'boolean'){
+    S.sealedRecords = p.sealedRecords;
+    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
+  }
+  if(typeof p.playInFullPlayer === 'boolean'){
+    S.playInFullPlayer = p.playInFullPlayer;
+    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
+  }
+  if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') S.shareStyle = p.shareStyle;
+  if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') S.shareFormat = p.shareFormat;
+  if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
+  if(p.shuffle && !S.shuffle) toggleShuffle();
+  // push the restored values back into the controls
+  Object.keys(S.char).forEach(k => {
+    const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }
+    const out = $('#'+k+'Out'); if(out) out.textContent = Math.round(S.char[k]*100) + '%';
+  });
+  document.querySelectorAll('[data-target]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.target) === S.target)));
+  document.querySelectorAll('[data-pace]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pace === S.pace)));
+  if(p.mode) setMode(p.mode);
+  applyCharacter();
+  applyVolume();
+}

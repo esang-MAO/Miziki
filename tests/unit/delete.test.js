@@ -51,7 +51,6 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     clearSpinDown(){}, deleteCrateArtTiers: async () => {},
     closePlayer(){}, invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
-    queueSave(){},
     // setQueue (real, from player/queue.js) pulls in queue.js's own main.js
     // imports (step 5a)
     runStartSequence: async () => {}, openPlayerViaSheet(){},
@@ -60,6 +59,15 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // src/library/credits.js (step 5e), which itself needs these from main.js
     showRoute(){}, songRow(){},
   },
+});
+// Since step 7a, delete.js's own queueSave import is real (from
+// storage/meta.js) instead of main.js — mocked directly here, same "stop
+// the chain at the door" reasoning as the rest of this file, since
+// meta.js's own real imports (audio/mode.js, player/controls.js,
+// player/background.js, for applyPrefs()) would otherwise reach the same
+// wide chains already stopped above.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){} },

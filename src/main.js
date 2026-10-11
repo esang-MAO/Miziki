@@ -6,7 +6,7 @@ import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey } from './record-art/tiers.js';
 import { albumMetalFor } from './record-art/metals.js';
 import { openLookPicker, closeLookPicker } from './record-art/looks.js';
-import { byName, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
+import { byName, groupBy, allIdx, albumTracks, idxOf } from './library/model.js';
 import { ensureBuffer } from './player/buffers.js';
 import {
   setQueue,
@@ -41,14 +41,14 @@ import { isAlbumSealed, buildSealOverlay, breakSeal, restoreSealedAlbums } from 
 import { thumbURL, healThumbs, healDetails } from './library/thumbs.js';
 import { nowClock } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
-import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
+import { askLocation, fallbackSun, toggleSleevePull, toggleMotion } from './sundown/location.js';
 import { openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
 import { ensureContext, applyCharacter } from './audio/engine.js';
 import { setMode } from './audio/mode.js';
 import { play, pause, seek } from './player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from './player/controls.js';
 import {
-  bgPrime, bgSync, bgUpdateUI, applyBgAudioSetting, toggleBgAudio,
+  bgPrime, bgSync, bgUpdateUI, toggleBgAudio,
 } from './player/background.js';
 import { fmt, drawSun, frame } from './player/clock.js';
 import { wireSpinToScrub } from './player/scrub.js';
@@ -59,10 +59,10 @@ import {
 import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
 import { DB } from './storage/idb.js';
-import { serializePrefs, parsePrefs } from './storage/prefs.js';
 import {
-  storage, tracks, meta, overlays, artwork,
+  storage, tracks, overlays, artwork,
 } from './storage/repo.js';
+import { queueSave, restoreMeta } from './storage/meta.js';
 import { persistProfile, renderProfile } from './profile/screens.js';
 import { closeSocialAuth } from './profile/settings.js';
 import { popSocialScreen, closeRecordSheet } from './social/screens/friend-store.js';
@@ -78,140 +78,17 @@ export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').mat
    openLookPicker/closeLookPicker/applyDiscVariant) moved to
    src/record-art/looks.js (step 6b). */
 
-/* ================= profile tab =================
-   Everything here reads from existing counters — session records, track
-   play counts, variant assignments. No new tracking, per the spec's build
-   notes. Achievements and Collection do persist lightweight pointer+tier
-   records, since "has this album reached Gold" can't assume the source
-   track is still in the library to read a display name/cover off of —
-   albumDisplay is the one place that snapshot lives, shared by both.
-   Timestamps double as the recency tie-break and, per §11, keep every
-   record ready for a future account system: stable ids, no device-keyed
-   identifiers, no absolute paths. persistAlbumLastPlayed moved to
-   src/history/sessions.js (step 5c) — its only writer, sessionTrackComplete,
-   lives there. */
+/* The "profile tab" / S5 sealed-records / thumbnails / achievements /
+   duplicate-scan leftover comments that used to sit here were pure
+   documentation of code already moved out in steps 5c/5d/6b — each
+   destination module (profile/screens.js, library/sealed.js,
+   library/thumbs.js, history/achievements.js, library/duplicate-scan.js)
+   already carries its own copy of the relevant note, so this was a stale
+   duplicate with no code under it. Removed in step 7a rather than moved
+   again.
 
-/* S5: sealed records (restoreSealedAlbums/persistSealedAlbums/
-   isAlbumSealed/breakSeal/buildSealOverlay) moved to src/library/sealed.js
-   (step 6b). persistTrackLastPlayed moved to src/profile/screens.js
-   (step 6e). */
-
-/* Thumbnails (restoreThumbs/healThumbs/healDetails/pruneThumbs/
-   persistAlbumDisplay/persistTrackDisplay/snapshotAlbumDisplay/
-   snapshotTrackDisplay and their helpers) moved to src/library/thumbs.js
-   (step 6b). Achievements/Collection/Top Albums/Top Songs
-   (checkAlbumAchievementAndCollection/crateFilled/topAlbums/topTracks/
-   achievementsList/collectionGroups and their helpers) moved to
-   src/history/achievements.js (step 6b). */
-
-/* findAllDuplicateGroups/openDuplicateScan/renderDupScan moved to
-   src/library/duplicate-scan.js (step 5d). */
-
-/* ================= persistence =================
-   The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
-   src/storage/idb.js, step 4a): queueSave()/saveMeta()/restoreMeta() and the
-   various persist*() helpers below read and write through it. If storage is
-   unavailable, every DB call quietly no-ops and Miziki behaves exactly as it
-   did before: fully working, session-only. */
-
-let saveTimer = null;
-export function queueSave(){
-  if(!storage.available()) return;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveMeta, 600);
-}
-
-async function saveMeta(){
-  if(!storage.available()) return;
-  const orders = {};
-  Object.keys(S.albumOrder).forEach(a => { orders[a] = S.albumOrder[a].map(idOf).filter(Boolean); });
-  await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.map(idOf).filter(Boolean), system:p.system})));
-  await meta.put('albumOrder', orders);
-  await meta.put('albumSort', S.albumSort);
-  await meta.put('prefs', serializePrefs(S));
-}
-
-async function restoreMeta(){
-  const pl = await meta.get('playlists');
-  if(pl) S.playlists = pl.map(p => ({name:p.name, items:p.items.map(idxOf).filter(i => i >= 0), system:p.system}));
-  const ord = await meta.get('albumOrder');
-  if(ord) Object.keys(ord).forEach(a => {
-    const arr = ord[a].map(idxOf).filter(i => i >= 0);
-    if(arr.length) S.albumOrder[a] = arr;
-  });
-  const srt = await meta.get('albumSort');
-  if(srt) S.albumSort = srt;
-  const pr = await meta.get('prefs');
-  if(pr) applyPrefs(parsePrefs(pr));
-}
-
-function applyPrefs(p){
-  if(p.char){ Object.keys(S.char).forEach(k => { if(typeof p.char[k] === 'number') S.char[k] = p.char[k]; }); }
-  // scratch is a boolean, not a slider percentage, and a saved prefs object
-  // from before F2 won't have it at all — missing must mean On, so S.char's
-  // own default (true) is left alone unless a saved value says otherwise
-  if(p.char && typeof p.char.scratch === 'boolean'){
-    S.char.scratch = p.char.scratch;
-  }
-  const scratchBtn = $('#scratchBtn');
-  if(scratchBtn){
-    scratchBtn.textContent = S.char.scratch ? 'On' : 'Off';
-    scratchBtn.setAttribute('aria-pressed', String(S.char.scratch));
-  }
-  if(typeof p.target === 'number') S.target = p.target;
-  if(p.pace) S.pace = p.pace;
-  if(typeof p.auto === 'boolean') S.auto = p.auto;
-  if(p.librarySort) S.librarySort = p.librarySort;
-  if(typeof p.sleevePullEnabled === 'boolean'){
-    S.sleevePullEnabled = p.sleevePullEnabled;
-    const b = $('#sleevePullBtn');
-    b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
-    b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
-  }
-  if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
-  if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
-  if(p.libraryLayout === 'crate' || p.libraryLayout === 'list'){
-    S.libraryLayout = p.libraryLayout;
-    // this runs before the library's first render, while the view is still
-    // at its pristine top-level default, so keep the two in sync (S1/S2 spec)
-    if(S.view.mode === 'crate' || (S.view.mode === 'albums' && S.view.group === null)){
-      S.view.mode = (S.libraryLayout === 'crate') ? 'crate' : 'albums';
-    }
-    document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
-  }
-  if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
-  if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
-  if(typeof p.albumSides === 'boolean'){
-    S.albumSides = p.albumSides;
-    document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
-  }
-  if(typeof p.sealedRecords === 'boolean'){
-    S.sealedRecords = p.sealedRecords;
-    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
-  }
-  if(typeof p.playInFullPlayer === 'boolean'){
-    S.playInFullPlayer = p.playInFullPlayer;
-    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
-  }
-  if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') S.shareStyle = p.shareStyle;
-  if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') S.shareFormat = p.shareFormat;
-  if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
-  if(p.shuffle && !S.shuffle) toggleShuffle();
-  // push the restored values back into the controls
-  Object.keys(S.char).forEach(k => {
-    const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }
-    const out = $('#'+k+'Out'); if(out) out.textContent = Math.round(S.char[k]*100) + '%';
-  });
-  document.querySelectorAll('[data-target]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.target) === S.target)));
-  document.querySelectorAll('[data-pace]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pace === S.pace)));
-  if(p.mode) setMode(p.mode);
-  applyCharacter();
-  applyVolume();
-}
+   Persistence (queueSave/saveTimer/saveMeta/restoreMeta/applyPrefs) moved
+   to src/storage/meta.js (step 7a). */
 
 /* Session tracking and played-duration tracking moved to
    src/history/sessions.js and src/history/played.js (step 5c). */
@@ -1152,7 +1029,7 @@ async function runLaunchSequence(){
   else finishLaunch();
 }
 
-function attachLaunchSettingRow(){
+export function attachLaunchSettingRow(){
   const b = $('#launchIntroBtn');
   if(!b) return;
   b.textContent = S.launchIntro ? 'On' : 'Off';

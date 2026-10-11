@@ -21,13 +21,11 @@ import { loadOverlayFor } from './edit.js';
 import { deleteTracks } from './delete.js';
 import { rebuildPeopleIndex } from './credits.js';
 import { persistSealedAlbums } from './sealed.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — screen/
-// persistence functions not yet extracted. Used only inside the functions
-// below, never at module top level.
-import {
-  invalidateCrateModel, renderTracks,
-  queueSave, healCrateArt,
-} from '../main.js';
+import { queueSave } from '../storage/meta.js';
+// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — screen
+// functions not yet extracted. Used only inside the functions below, never
+// at module top level.
+import { invalidateCrateModel, renderTracks, healCrateArt } from '../main.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced

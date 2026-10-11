@@ -53,6 +53,15 @@ mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext(){} },
 });
+// Since step 7a, clock.js's own real player/background.js import (for
+// bgPosition, step 6c) reaches background.js's own real queueSave import,
+// now from storage/meta.js instead of main.js — meta.js itself real-chains
+// into audio/mode.js/engine.js/location.js/player/controls.js for its own
+// applyPrefs() helpers, so it's mocked directly here, same "stop the chain
+// at the door" reasoning as every other mock in this file.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
+});
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepCheckDeadline(){}, sleepStopPlayback(){} },
 });

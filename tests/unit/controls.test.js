@@ -66,6 +66,15 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/background.js', import.meta.url).href, {
   namedExports: { applyOutputRoute(){} },
 });
+// Since step 7a, sundown/location.js's own queueSave import is real (from
+// storage/meta.js, which real-chains into audio/mode.js/player/controls.js/
+// player/background.js for its own applyPrefs() helpers) instead of
+// main.js — mocked directly here, same "stop the chain at the door"
+// reasoning as every other mock in this file, since queue.js's real
+// buffers.js->engine.js->location.js import chain would otherwise reach it.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
+});
 
 const { toggleShuffle, cycleRepeat } = await import('../../src/player/controls.js');
 const { setMode } = await import('../../src/audio/mode.js');
