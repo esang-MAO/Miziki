@@ -48,10 +48,28 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     renderTracks: renderTracksMock,
     groupRow: groupRowMock, songRow: songRowMock,
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
-    closePlayer(){}, showRoute(){}, REDUCED: false,
   },
+});
+// Since step 7b, favorites.js's REDUCED, credits.js's closePlayer/showRoute
+// and queue.js's runStartSequence/openPlayerViaSheet/shouldPutAway/
+// putAwayInstant/runPutAwaySequence all moved off main.js into real
+// src/shell/ (or src/util/motion.js) modules — mocked there directly
+// instead, same "stop the chain at the door" reasoning as the rest of
+// this file's comments.
+mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
+  namedExports: { REDUCED: false },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { closePlayer(){}, openPlayerViaSheet(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(){} },
+});
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });
 // Since step 7a, search.js's own queueSave import is real (from
 // storage/meta.js) instead of main.js — mocked directly here, same "stop

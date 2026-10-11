@@ -7,7 +7,6 @@ import { trackTier, albumKey, trackIdentityKey } from './record-art/tiers.js';
 import { albumMetalFor } from './record-art/metals.js';
 import { openLookPicker, closeLookPicker } from './record-art/looks.js';
 import { byName, groupBy, allIdx, albumTracks, idxOf } from './library/model.js';
-import { ensureBuffer } from './player/buffers.js';
 import {
   setQueue,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
@@ -24,7 +23,7 @@ import {
   renderEditArtPreview,
 } from './library/edit.js';
 import {
-  countForAlbum, countForArtist, formatBytes, totalLibraryBytes,
+  countForAlbum, countForArtist,
   deleteTracks, deleteAlbum, deleteArtist, forgetLibrary,
 } from './library/delete.js';
 import { openDuplicateScan } from './library/duplicate-scan.js';
@@ -37,7 +36,7 @@ import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
   renderSearchChips, updateSearchChipsVisibility, closeSortMenu,
 } from './library/search.js';
-import { isAlbumSealed, buildSealOverlay, breakSeal, restoreSealedAlbums } from './library/sealed.js';
+import { isAlbumSealed, buildSealOverlay, restoreSealedAlbums } from './library/sealed.js';
 import { thumbURL, healThumbs, healDetails } from './library/thumbs.js';
 import { nowClock } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
@@ -48,7 +47,7 @@ import { setMode } from './audio/mode.js';
 import { play, pause, seek } from './player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from './player/controls.js';
 import {
-  bgPrime, bgSync, bgUpdateUI, toggleBgAudio,
+  bgPrime, bgUpdateUI, toggleBgAudio,
 } from './player/background.js';
 import { fmt, drawSun, frame } from './player/clock.js';
 import { wireSpinToScrub } from './player/scrub.js';
@@ -66,11 +65,23 @@ import { queueSave, restoreMeta } from './storage/meta.js';
 import { persistProfile, renderProfile } from './profile/screens.js';
 import { closeSocialAuth } from './profile/settings.js';
 import { popSocialScreen, closeRecordSheet } from './social/screens/friend-store.js';
-import { renderHome } from './social/screens/home.js';
+import { REDUCED } from './util/motion.js';
+import { updateShellAlbum, updateChromeInset } from './shell/mini-player.js';
+import { isLibraryRouteVisible, showRoute } from './shell/routes.js';
+import {
+  updateHeaderActionsAvailability, updateLibTabsForLayout, refreshLibraryTools,
+  openSearchField, closeSearchField, isSearchFieldOpen,
+  openAddMenu, closeAddMenu, isAddMenuOpen,
+} from './shell/header.js';
+import {
+  openPlayerViaSheet, openPlayer, closePlayer, morphInFlight, interruptMorph,
+} from './shell/player-overlay.js';
+import { runStartSequence, interruptStartSequence } from './shell/start-sequence.js';
+import { runGatefoldHandoff, gfHandoffInFlight, interruptGatefoldHandoff } from './shell/handoff.js';
 
-export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* REDUCED moved to src/util/motion.js (step 7b), alongside easeOutCubic.
 
-/* metal tiers (albumMetalFor/trackMetalFor/metalBackground/setDiscBackground,
+   metal tiers (albumMetalFor/trackMetalFor/metalBackground/setDiscBackground,
    plus the threshold/color tables) moved to src/record-art/metals.js
    (step 6b). */
 
@@ -107,41 +118,11 @@ export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').mat
 /* nextTrack/prevTrack/toggleShuffle/cycleRepeat moved to
    src/player/controls.js (step 6c). */
 
-/* ================= navigation shell: mini-player, full-player overlay, sleeve pull =================
-   Library is the landing route; Sundown and Character are peer routes reached
-   via the tab bar. The full player is not a fourth tab — it only exists as an
-   overlay, reached through the mini-player strip, once something is loaded. */
-/* Two ways into the full player, chosen by whether a record is already on
-   the platter: picking a track from Library always arrives via the SHEET
-   (something is being started); tapping the mini-player always arrives via
-   the MORPH (returning to what's already there). The sheet settles fully
-   before any disc transition begins; the morph itself IS the disc arriving,
-   so nothing else runs alongside it. Durations/easing live in one object so
-   the return-to-sleeve/pull/morph ratio can be tuned without touching any
-   trigger logic below. */
-const SLEEVE_ANIM = {
-  sheetMs: 350,      // sheet settles fully before any disc transition begins
-  arriveMs: 1000,    // sleeve slides in from the right
-  holdCapMs: 2000,   // longest the sleeve sits static waiting on the buffer
-  emergeMs: 2000,    // disc emerges + sleeve exits, concurrently (~3s total pull)
-  returnMs: 1200,    // putting a record away — quicker than pulling one out
-  morphMs: 420,
-  // put-away: the queue ends, the sleeve comes to collect the disc (see
-  // PRESENTATION spec, put-away sequence). Shorter than the pull (2.0s total).
-  putSpinMs: 500, putInMs: 700, putSlideDelayMs: 600, putSlideMs: 800, putOutMs: 600,
-  // the seal peel, inserted into a sealed album's first pull only (SEALED spec §6)
-  peelTearMs: 300, peelOffMs: 400,
-  easing: 'cubic-bezier(.3,.66,.35,1)'   // morph only; sleeve/disc easing lives in CSS per-phase
-};
-document.documentElement.style.setProperty('--sheet-duration', SLEEVE_ANIM.sheetMs + 'ms');
-document.documentElement.style.setProperty('--arrive-duration', SLEEVE_ANIM.arriveMs + 'ms');
-document.documentElement.style.setProperty('--emerge-duration', SLEEVE_ANIM.emergeMs + 'ms');
-document.documentElement.style.setProperty('--return-duration', SLEEVE_ANIM.returnMs + 'ms');
-document.documentElement.style.setProperty('--putaway-in-duration', SLEEVE_ANIM.putInMs + 'ms');
-document.documentElement.style.setProperty('--putaway-slide-duration', SLEEVE_ANIM.putSlideMs + 'ms');
-document.documentElement.style.setProperty('--putaway-out-duration', SLEEVE_ANIM.putOutMs + 'ms');
-document.documentElement.style.setProperty('--sleeve-peel-tear-duration', SLEEVE_ANIM.peelTearMs + 'ms');
-document.documentElement.style.setProperty('--sleeve-peel-off-duration', SLEEVE_ANIM.peelOffMs + 'ms');
+/* Navigation shell: mini-player, full-player overlay, sleeve pull
+   (SLEEVE_ANIM, renderMiniPlayer, updateChromeInset, updateShellAlbum) moved
+   to src/shell/mini-player.js (step 7b). GATEFOLD_ANIM stays here — it's
+   gatefold's own open/close timing, not mini-player/overlay code, and the
+   gatefold itself hasn't moved yet (step 7e). */
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -156,490 +137,15 @@ document.documentElement.style.setProperty('--gatefold-push-duration', GATEFOLD_
 document.documentElement.style.setProperty('--gatefold-close-duration', GATEFOLD_ANIM.closeMs + 'ms');
 document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_ANIM.swingEasing);
 
-export function renderMiniPlayer(){
-  const t = current();
-  const mini = $('#miniPlayer');
-  if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
-  mini.style.display = 'flex';
-  $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;
-  $('#miniArtist').textContent = t.tags ? t.tags.artist : '';
-  $('#miniSquare').classList.toggle('has-art', !!t.art);
-  const art = $('#miniArt');
-  if(t.art) art.src = t.art; else art.removeAttribute('src');
-  $('#miniIndicator').classList.toggle('playing', S.playing);
-  // the mini disc surface stays plain black regardless of tier — only this
-  // tiny inset label carries artwork
-  const discArt = $('#miniDiscArt');
-  // the put-away leaves the disc put away — the tiny indicator shows idle,
-  // even though the title/artist text above it still names the track
-  if(t.art && !S.platterEmpty){ discArt.src = t.art; $('#miniDisc').classList.add('has-art'); }
-  else { discArt.removeAttribute('src'); $('#miniDisc').classList.remove('has-art'); }
-  const btn = $('#miniPlay');
-  btn.textContent = S.playing ? '❚❚' : '▶';
-  btn.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
-  updateChromeInset();
-  bgSync();
-}
+/* Gatefold-to-player hand-off (HANDOFF_ANIM, runGatefoldHandoff,
+   interruptGatefoldHandoff and helpers) moved to src/shell/handoff.js
+   (step 7b). */
 
-// Scrollable content needs bottom padding equal to the chrome's actual
-// rendered height, not a fixed guess — the mini-player strip comes and
-// goes with playback, so this is re-measured every time renderMiniPlayer()
-// runs rather than baked into CSS once (see LIBRARY spec §3). The tab bar's
-// own box already includes its safe-area padding, so nothing is added here.
-let chromeInsetRAF = null;
-function updateChromeInset(){
-  if(chromeInsetRAF) return;
-  chromeInsetRAF = requestAnimationFrame(() => {
-    chromeInsetRAF = null;
-    const tabbar = $('#tabbar'), mini = $('#miniPlayer');
-    const tabH = tabbar ? tabbar.offsetHeight : 0;
-    const miniVisible = mini && getComputedStyle(mini).display !== 'none';
-    const miniH = miniVisible ? mini.offsetHeight : 0;
-    document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
-    if(typeof applyCrateMiniInset === 'function') applyCrateMiniInset();
-    if(typeof centerEmptyState === 'function' && !S.tracks.length && isLibraryRouteVisible()) centerEmptyState();
-  });
-}
-
-// each untagged file gets its own identity here (never a shared "Unknown Album"
-// bucket) purely so state stays coherent once a real, tagged album shows up
-// next — untagged tracks are excluded from the pull/return ceremony entirely,
-// see updateShellAlbum()
-function shellAlbumIdentity(t){
-  if(!t) return null;
-  if(t.tags.album === 'Unknown Album') return 'single:' + t.id;
-  return albumKey(t);
-}
-
-// Always updates "what's on the platter" bookkeeping, even while the player
-// is closed or shuffled, so state stays correct for whenever it's next
-// shown. Returns what the disc SHOULD do, without running anything —
-// callers decide whether it's currently visible/safe to actually play it.
-export function updateShellAlbum(t){
-  const newId = shellAlbumIdentity(t);
-  const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
-  // distinct from type:'none' below — that also covers shuffle/untagged
-  // suppression, where the album may genuinely have changed. This is
-  // specifically "still the same album", which is what the metal-tier
-  // crossfade needs (see METAL spec §4): a real sleeve pull already covers
-  // any background change when the album is actually different.
-  const sameAlbum = prevId !== null && prevId === newId;
-  S.shellAlbumId = newId;
-  S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
-  // the sleeve is physically sitting over an empty platter — always pull,
-  // regardless of album identity/shuffle/reduced-motion, or the disc stays
-  // stuck hidden behind it with nothing left to bring it back out
-  if(S.platterEmpty) return {type:'pull', sameAlbum};
-  // untagged tracks don't get the ceremony — an untagged file hasn't
-  // established a release identity yet, so it silently occupies the
-  // platter without a pull until a genuinely tagged one arrives
-  if(t.tags.album === 'Unknown Album') return {type:'none', sameAlbum};
-  if(S.shuffle || REDUCED || prevId === newId) return {type:'none', sameAlbum};
-  if(prevId === null) return {type:'pull', sameAlbum};
-  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt, sameAlbum};
-}
-
-// ================= start sequence: sheet/pull/return orchestration =================
-// A single async, cancellable sequence drives everything from "the sheet has
-// settled" (or "the player was already open") through "the record is on the
-// platter and audio has started." Every await is followed by a token check
-// so interruptStartSequence() can cut in cleanly at any point instead of
-// racing a stale animation to the end. Playback itself is strictly gated:
-// startAudio (always play()) is only ever invoked once, at the moment the
-// disc actually reaches the platter — never before, never overlapping.
-function waitAnimEnd(el, ms){
-  return new Promise(resolve => {
-    let done = false;
-    const finish = () => { if(done) return; done = true; el.removeEventListener('animationend', onEnd); resolve(); };
-    const onEnd = (e) => { if(e.target === el) finish(); };
-    el.addEventListener('animationend', onEnd);
-    setTimeout(finish, ms + 150);   // safety net if animationend never fires
-  });
-}
-
-function sleeveArtFor(art, hasArt){
-  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt');
-  if(hasArt){ sleeveArt.src = art; sleeve.classList.add('has-art'); }
-  else { sleeveArt.removeAttribute('src'); sleeve.classList.remove('has-art'); }
-}
-
-// info comes from updateShellAlbum(). startAudio runs immediately when
-// there's no ceremony to run at all (untagged/shuffled/same-album, the
-// toggle is off, or reduced motion) — otherwise it runs only after the
-// full return+pull (swap) or pull-only (fresh platter) sequence completes.
-// the seal wrap on the incoming sleeve, shown from the moment it starts
-// arriving so it arrives wrapped (SEALED spec §6)
-function attachSleeveWrap(){
-  removeSleeveWrap();
-  const wrap = document.createElement('div');
-  wrap.id = 'sleeveWrap';
-  wrap.setAttribute('aria-hidden','true');
-  wrap.appendChild(buildSealOverlay(278));
-  wrap.appendChild(el('div','seal-tear'));
-  $('#sleeve').appendChild(wrap);
-}
-function removeSleeveWrap(){ const w = $('#sleeveWrap'); if(w) w.remove(); }
-
-// tear (~300ms) then slide-off (~400ms); each step is checked against the
-// same cancellation token as the rest of the ceremony (SEALED spec §6)
-async function runSealPeel(cancelled){
-  const wrap = $('#sleeveWrap');
-  if(!wrap) return;
-  void wrap.offsetWidth;
-  wrap.classList.add('peel-tear');
-  await sleep(SLEEVE_ANIM.peelTearMs);
-  if(cancelled()) return;
-  wrap.classList.add('peel-off');
-  await sleep(SLEEVE_ANIM.peelOffMs);
-  if(cancelled()) return;
-  removeSleeveWrap();
-}
-
-export async function runStartSequence(t, info, startAudio){
-  const stage = $('#platterStage');
-  const token = ++S.sleeveSeq;
-  const cancelled = () => token !== S.sleeveSeq;
-  S.platterEmpty = false;   // a pull is starting, so the sleeve no longer covers an empty platter
-  clearSpinDown();
-
-  // clear any in-flight ceremony's visuals immediately — a fresh sequence
-  // (or a "nothing to show" one) always takes the stage back over from
-  // whatever a just-cancelled prior invocation left behind
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
-  $('#sleeve').style.display = 'none';
-  removeSleeveWrap();
-
-  if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
-    // no ceremony to carry it — play() itself breaks a sealed album's seal
-    // silently the instant it actually starts (SEALED spec §6)
-    $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
-    startAudio();
-    return;
-  }
-
-  // captured once, at the start — not re-checked mid-ceremony, so the peel
-  // either runs once in full or not at all (SEALED spec §6, "once per album")
-  const sealedForPeel = isAlbumSealed(albumKey(t));
-
-  // decode ahead of time so playback can start the instant the disc lands,
-  // never after — runs in parallel with the sleeve/disc motion below
-  const bufferReady = ensureBuffer(S.index);
-  const discBox = $('#platterBox');
-
-  if(info.type === 'swap'){
-    sleeveArtFor(info.outgoingArt, info.outgoingHasArt);
-    $('#sleeve').style.display = 'flex';
-    void stage.offsetWidth;
-    stage.classList.add('returning');
-    await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.returnMs);
-    if(cancelled()) return;
-    stage.classList.remove('returning');
-    // the outgoing disc just animated to opacity 0 via discReturn's forwards
-    // fill — removing that class would otherwise snap it straight back to
-    // fully visible, so this class takes over holding it hidden
-    discBox.classList.add('disc-hidden');
-  }
-  if(cancelled()) return;
-
-  sleeveArtFor(t.art, !!t.art);
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
-  $('#sleeve').style.display = 'flex';
-  if(sealedForPeel) attachSleeveWrap();
-  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
-  stage.classList.add('sleeve-arriving');
-  await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.arriveMs);
-  if(cancelled()) return;
-  stage.classList.remove('sleeve-arriving');
-
-  if(sealedForPeel){
-    await runSealPeel(cancelled);
-    if(cancelled()) return;
-    breakSeal(albumKey(t));
-  }
-
-  // hold: the sleeve sits static on an empty platter until the buffer is
-  // ready, capped so a slow decode never stalls the ceremony indefinitely
-  await Promise.race([bufferReady, sleep(SLEEVE_ANIM.holdCapMs)]);
-  if(cancelled()) return;
-
-  // disc-hidden comes off exactly as the emerge animation takes over, so its
-  // own 0%-opacity start frame is what the disc is actually cutting in from
-  discBox.classList.remove('disc-hidden');
-  stage.classList.add('sleeve-exiting','disc-emerging');
-  await Promise.all([waitAnimEnd($('#sleeve'), SLEEVE_ANIM.emergeMs), waitAnimEnd(discBox, SLEEVE_ANIM.emergeMs)]);
-  if(cancelled()) return;
-  stage.classList.remove('sleeve-exiting','disc-emerging');
-  $('#sleeve').style.display = 'none';
-
-  startAudio();
-}
-
-// Cuts the ceremony at whatever point it's in and snaps to the end state
-// instantly — no transition, per the hard rule that skipping is instant,
-// never eased. Playback is clearly no longer waiting on ceremony once
-// interrupted, so it starts right away if it hadn't already.
-function interruptStartSequence(){
-  S.sleeveSeq++;
-  const stage = $('#platterStage');
-  const wasPutAway = stage.classList.contains('putaway-in') || stage.classList.contains('putaway-slide') ||
-    stage.classList.contains('putaway-out');
-  // the peel sits in a gap between stage classes (after 'sleeve-arriving' is
-  // removed, before the hold/emerge classes are added) — #sleeveWrap's
-  // presence is what marks that window as "active" (SEALED spec §6)
-  const wasActive = wasPutAway || stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
-    stage.classList.contains('disc-emerging') || stage.classList.contains('returning') || !!$('#sleeveWrap');
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
-  clearSpinDown();
-  $('#sleeve').style.display = 'none';
-  // a tap during the peel snaps straight to the end state: wrap gone, no
-  // eased snap (SEALED spec §6, "Interrupt") — the seal itself only breaks
-  // once playback is actually about to start, same as everywhere else
-  removeSleeveWrap();
-  if(wasPutAway){
-    // the record was mid-way into its sleeve — finish putting it away rather
-    // than resurrecting the disc; pressing play afterwards is what brings it
-    // back out (via the S.platterEmpty rule in updateShellAlbum())
-    $('#platterBox').classList.add('disc-hidden');
-    S.platterEmpty = true;
-    renderMiniPlayer();
-    return;
-  }
-  $('#platterBox').classList.remove('disc-hidden');   // skipping lands the record instantly
-  if(wasActive && !S.playing) play();   // play() itself breaks the seal the instant it actually starts
-}
-
-/* ================= Part 2 §1: gatefold-to-player hand-off =================
-   Replaces the sleeve pull specifically for a track picked inside an open
-   gatefold whose album differs from whatever is currently playing: the one
-   record travels from the gatefold's pocket to the platter instead of
-   arriving/holding/emerging in the player's own sleeve. Shares S.sleeveSeq
-   with the pull/put-away so only one of the three ever runs at a time, and
-   a rapid second tap cancels this cleanly like any of the others. */
-const HANDOFF_ANIM = {
-  recedeMs: 400,        // 250-650ms: gatefold fades/scales/blurs back
-  sheetFadeMs: 450,      // 350-800ms: player sheet fades up behind the flight
-  flightMs: 750,         // 250-1000ms: pocket -> platter, growing 156->278px
-  overshootMs: 140, settleMs: 110,   // 1000-1250ms: overshoot to 1.035, settle to 1
-  overshootScale: 1.035,
-  arcLift: 34,          // px the flight's midpoint lifts above a straight line
-  tiltDeg: 5
-};
-function handoffEaseInOut(p){ return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2; }
-
-function gfHandoffInFlight(){ return $('#gfHandoffGhost').style.display === 'block'; }
-
-// `startRect` is measured from the gatefold's own sleeve-disc-wrap before
-// anything else moves. t/info/startAudio match runStartSequence's own
-// signature (info is unused here — the hand-off never reads "swap" vs
-// "pull", it always flies — but kept for call-site symmetry).
-async function runGatefoldHandoff(startRect, t, info, startAudio){
-  const token = ++S.sleeveSeq;
-  const cancelled = () => token !== S.sleeveSeq;
-  S.platterEmpty = false;
-  clearSpinDown();
-
-  const ghost = $('#gfHandoffGhost'), ghostArt = $('#gfHandoffArt'), ghostLabel = $('#gfHandoffLabel');
-  const ov = $('#playerOverlay'), stage = $('#platterStage'), discBox = $('#platterBox'), gf = $('#gatefold');
-
-  const bufferReady = ensureBuffer(S.index);
-
-  // ghost starts exactly where the gatefold's own disc currently sits, using
-  // whatever L-tier art the gatefold already loaded for this same album —
-  // read the attribute, not the .src property, which resolves to the page's
-  // own URL (never empty) when no src was ever set
-  const gfArt = $('#gfDiscArt').getAttribute('src') || t.art || '';
-  ghost.style.transition = 'none';
-  ghost.style.width = startRect.width + 'px';
-  ghost.style.height = startRect.height + 'px';
-  ghost.style.left = startRect.left + 'px';
-  ghost.style.top = startRect.top + 'px';
-  ghost.style.transform = 'rotate(0deg) scale(1)';
-  if(gfArt) ghostArt.src = gfArt; else ghostArt.removeAttribute('src');
-  ghostLabel.classList.toggle('has-art', !!gfArt);
-  void ghost.offsetWidth;
-  ghost.style.display = 'block';
-
-  discBox.classList.add('disc-hidden');
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
-  $('#sleeve').style.display = 'none';
-
-  // player sheet fades up behind the flight rather than sliding up from the
-  // bottom — same transform-skip trick runMorphOpen() uses. Prepped hidden
-  // now (invisible either way), the fade-to-1 itself is timed below to
-  // start at the 350ms mark (spec §1 step 3), not immediately.
-  const wasPlayerOpen = S.playerOpen;
-  if(!wasPlayerOpen){
-    S.playerOpen = true;
-    ov.classList.add('instant');
-    ov.style.opacity = '0';
-    ov.classList.add('open');
-    ov.setAttribute('aria-hidden','false');
-    void ov.offsetWidth;
-    ov.classList.remove('instant');
-  }
-
-  // 0-250ms: row highlight (already live via updateGatefoldNowPlaying(),
-  // triggered inside the setQueue() the caller already ran) plus the record
-  // rising in place — nothing else starts moving until this beat finishes
-  await sleep(250);
-  if(cancelled()) return;
-
-  // the gatefold recedes behind the sheet — fade/scale/blur; the background
-  // goes soft on purpose (kept per Part 2 §3), the flying record stays sharp
-  gf.style.transition = 'opacity ' + HANDOFF_ANIM.recedeMs + 'ms linear,'
-    + 'transform ' + HANDOFF_ANIM.recedeMs + 'ms ease-out,filter ' + HANDOFF_ANIM.recedeMs + 'ms ease-out';
-  void gf.offsetWidth;
-  gf.style.opacity = '0';
-  gf.style.transform = 'scale(.93)';
-  gf.style.filter = 'blur(2.5px)';
-
-  // the sheet's own fade starts 100ms into this beat (350ms absolute) —
-  // skipped if the player was already open, since there's nothing to fade up
-  if(!wasPlayerOpen){
-    setTimeout(() => {
-      if(cancelled()) return;
-      ov.style.transition = 'opacity ' + HANDOFF_ANIM.sheetFadeMs + 'ms ease-out';
-      requestAnimationFrame(() => { if(!cancelled()) ov.style.opacity = '1'; });
-    }, 100);
-  }
-
-  // FLIGHT: pocket -> platter, a gentle arc with a slight tilt, growing to
-  // the platter's own size, ease-in-out (spec §1 steps 1-4)
-  const endRect = discBox.getBoundingClientRect();
-  const flightStart = performance.now();
-  await new Promise(resolve => {
-    function step(now){
-      if(cancelled()){ resolve(); return; }
-      const p = Math.min(1, (now - flightStart) / HANDOFF_ANIM.flightMs);
-      const e = handoffEaseInOut(p);
-      const w = startRect.width + (endRect.width - startRect.width) * e;
-      const h = startRect.height + (endRect.height - startRect.height) * e;
-      const cx0 = startRect.left + startRect.width/2, cy0 = startRect.top + startRect.height/2;
-      const cx1 = endRect.left + endRect.width/2, cy1 = endRect.top + endRect.height/2;
-      const cx = cx0 + (cx1 - cx0) * e;
-      const arc = Math.sin(Math.PI * e) * HANDOFF_ANIM.arcLift;
-      const cy = cy0 + (cy1 - cy0) * e - arc;
-      const tilt = Math.sin(Math.PI * e) * HANDOFF_ANIM.tiltDeg * (cx1 >= cx0 ? 1 : -1);
-      ghost.style.width = w.toFixed(1) + 'px'; ghost.style.height = h.toFixed(1) + 'px';
-      ghost.style.left = (cx - w/2).toFixed(1) + 'px'; ghost.style.top = (cy - h/2).toFixed(1) + 'px';
-      ghost.style.transform = 'rotate(' + tilt.toFixed(2) + 'deg)';
-      if(p >= 1){ resolve(); return; }
-      requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  });
-  if(cancelled()) return;
-
-  await Promise.race([bufferReady, sleep(SLEEVE_ANIM.holdCapMs)]);
-  if(cancelled()) return;
-
-  // OVERSHOOT + SETTLE: scale 1.035 then back to 1 (spec §1 step 5)
-  ghost.style.transition = 'transform ' + HANDOFF_ANIM.overshootMs + 'ms ease-out';
-  ghost.style.transform = 'rotate(0deg) scale(' + HANDOFF_ANIM.overshootScale + ')';
-  await sleep(HANDOFF_ANIM.overshootMs);
-  if(cancelled()) return;
-  ghost.style.transition = 'transform ' + HANDOFF_ANIM.settleMs + 'ms ease-in-out';
-  ghost.style.transform = 'rotate(0deg) scale(1)';
-  await sleep(HANDOFF_ANIM.settleMs);
-  if(cancelled()) return;
-
-  ghost.style.display = 'none';
-  ghost.style.transition = ''; ghost.style.transform = '';
-  discBox.classList.remove('disc-hidden');
-  ov.style.transition = ''; ov.style.opacity = '';
-  gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  closeGatefoldInstant();
-  startAudio();
-}
-
-// Cuts the hand-off wherever it is and snaps to the landed state instantly —
-// same hard rule as interruptStartSequence(): no eased skip, ever. Reached
-// from the player overlay's existing capture-phase pointerdown listener, so
-// a tap anywhere during the flight (the sheet already covers the screen)
-// lands it immediately (spec §1, "Tapping anywhere during it").
-function interruptGatefoldHandoff(){
-  if(!gfHandoffInFlight()) return;
-  S.sleeveSeq++;
-  const ghost = $('#gfHandoffGhost');
-  ghost.style.transition = ''; ghost.style.transform = ''; ghost.style.display = 'none';
-  $('#platterBox').classList.remove('disc-hidden');
-  const ov = $('#playerOverlay');
-  ov.classList.remove('instant'); ov.style.transition = ''; ov.style.opacity = '';
-  const gf = $('#gatefold');
-  gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  if(isGatefoldOpen()) closeGatefoldInstant();
-  if(!S.playing) play();
-}
-
-/* ================= put-away: the record goes back in its sleeve =================
-   Mirror image of the pull, run from advance()'s end-of-queue branch: the
-   last track finished naturally, nothing is queued next, and repeat is off.
-   Shares S.sleeveSeq with the pull on purpose — only one of them ever runs,
-   and a pull picking up the token mid-sequence cancels this cleanly. */
-
-// A track ending naturally at the end of the queue only goes away if the
-// settings allow a ceremony at all — repeat 'off' is already guaranteed by
-// the caller (advance()'s end-of-queue branch is unreachable for 'one', and
-// 'all' wraps instead of ending), and `auto` tells manual skips apart from
-// a real finish.
-export function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
-
-// The disc's rotation normally snaps to 0 the instant S.playing goes false
-// (see frame()). A put-away eases it down instead, over putSpinMs, read by
-// the draw loop and cleared the moment it finishes or is cancelled — an
-// ordinary pause is never touched by this.
-export function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
-function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
-export function clearSpinDown(){ S.spinDown = null; }
-
-// No player open, or the page is hidden (background playback) — nothing
-// would be visible either way, so skip straight to the end state rather
-// than running a ceremony no one can see (mirrors advance()'s own
-// "if(S.playerOpen) runStartSequence(...) else play()" for the pull).
-export function putAwayInstant(){
-  S.sleeveSeq++;
-  clearSpinDown();
-  $('#sleeve').style.display = 'none';
-  $('#platterBox').classList.add('disc-hidden');
-  S.platterEmpty = true;
-  renderMiniPlayer();
-}
-
-export async function runPutAwaySequence(t){
-  const stage = $('#platterStage'), discBox = $('#platterBox');
-  const token = ++S.sleeveSeq;
-  const cancelled = () => token !== S.sleeveSeq;
-
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
-  startSpinDown(SLEEVE_ANIM.putSpinMs);
-
-  sleeveArtFor(t.art, !!t.art);
-  $('#sleeve').style.display = 'flex';
-  void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
-  stage.classList.add('putaway-in');
-
-  // the disc slide starts 600ms in, overlapping the sleeve's own arrival —
-  // a plain timer rather than waitAnimEnd since nothing here is waiting on
-  // the sleeve's animation to finish, just on the clock
-  await sleep(SLEEVE_ANIM.putSlideDelayMs);
-  if(cancelled()) return;
-  stage.classList.add('putaway-slide');
-
-  await waitAnimEnd(discBox, SLEEVE_ANIM.putSlideMs);
-  if(cancelled()) return;
-  // the disc has caught up to the sleeve's edge — it's "inside" now, so it
-  // disappears exactly as the sleeve starts its own exit
-  stage.classList.remove('putaway-in');
-  discBox.classList.add('disc-hidden');
-  stage.classList.add('putaway-out');
-
-  await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.putOutMs);
-  if(cancelled()) return;
-  stage.classList.remove('putaway-slide','putaway-out');
-  $('#sleeve').style.display = 'none';
-  S.platterEmpty = true;
-  renderMiniPlayer();
-}
+/* Put-away (runPutAwaySequence/putAwayInstant/shouldPutAway/clearSpinDown)
+   moved to src/shell/put-away.js (step 7b). easeOutCubic moved to
+   src/util/motion.js instead, alongside REDUCED (step 7b) — it's a generic
+   easing helper only player/clock.js's render loop actually calls, not
+   put-away-specific despite sitting physically in this section. */
 
 /* ================= launch intro: crate riffle to a title screen =================
    Cold start only — see runLaunchSequence(). Fully independent of the
@@ -1051,111 +557,10 @@ function toggleScratch(){
   queueSave();
 }
 
-// Library selection always arrives via the sheet — something is being
-// started. The sheet must settle fully before the disc transition begins.
-export function openPlayerViaSheet(t, info){
-  if(!t) return;
-  S.playerOpen = true;
-  const ov = $('#playerOverlay');
-  ov.setAttribute('aria-hidden','false');
-  ov.classList.add('open');
-  // under REDUCED the sheet's slide-up transition is `none` (see .player-
-  // overlay's reduced-motion rule), so transitionend never fires — go
-  // straight to the ceremony instead of waiting on an event that won't come
-  if(REDUCED){ runStartSequence(t, info, play); return; }
-  let done = false;
-  const settle = () => { if(done) return; done = true; ov.removeEventListener('transitionend', settle); runStartSequence(t, info, play); };
-  ov.addEventListener('transitionend', settle, {once:true});
-  setTimeout(settle, SLEEVE_ANIM.sheetMs + 150);   // safety net if transitionend never fires
-}
-
-// Tapping the mini-player is always a return to what's already playing —
-// never a new selection — so it arrives via the morph and never runs a
-// disc transition of its own.
-function openPlayer(){
-  if(!current() || S.playerOpen) return;
-  S.playerOpen = true;
-  runMorphOpen();
-}
-
-export function closePlayer(){
-  if(morphInFlight()){ interruptMorph(); return; }
-  S.playerOpen = false;
-  interruptStartSequence();
-  const ov = $('#playerOverlay');
-  ov.classList.remove('open');
-  ov.setAttribute('aria-hidden','true');
-}
-
-/* ---- morph: the mini-player's disc grows and travels into the full disc's
-   position. A plain FLIP: measure both rects (a shared fixed-position
-   coordinate space), place a ghost at the small one, transition its
-   transform to the delta+scale needed to become the large one, then hand
-   off to the real disc. Must reverse cleanly if interrupted mid-flight,
-   unlike the sleeve transitions, which snap straight to the end state. ---- */
-function morphInFlight(){ return $('#morphDisc').style.display === 'block'; }
-
-function runMorphOpen(){
-  const t = current(); if(!t){ S.playerOpen = false; return; }
-  const mini = $('#miniIndicator'), ghost = $('#morphDisc'), ov = $('#playerOverlay'),
-        realDisc = $('#disc'), stage = $('#platterStage');
-  const miniRect = mini.getBoundingClientRect();
-
-  ov.classList.add('instant');
-  ov.classList.add('open');
-  ov.setAttribute('aria-hidden','false');
-  void ov.offsetWidth;
-  ov.classList.remove('instant');
-
-  const targetRect = stage.getBoundingClientRect();
-  stage.classList.add('morph-hidden');
-
-  ghost.style.width = miniRect.width + 'px';
-  ghost.style.height = miniRect.height + 'px';
-  ghost.style.left = miniRect.left + 'px';
-  ghost.style.top = miniRect.top + 'px';
-  ghost.style.background = realDisc.style.background || '#15161B';
-  ghost.style.transition = 'none';
-  ghost.style.transform = 'translate(0,0) scale(1)';
-  ghost.style.display = 'block';
-
-  const scale = targetRect.width / miniRect.width;
-  const dx = (targetRect.left + targetRect.width/2) - (miniRect.left + miniRect.width/2);
-  const dy = (targetRect.top + targetRect.height/2) - (miniRect.top + miniRect.height/2);
-
-  void ghost.offsetWidth;
-  ghost.style.transition = 'transform ' + SLEEVE_ANIM.morphMs + 'ms ' + SLEEVE_ANIM.easing;
-  ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
-
-  ghost.addEventListener('transitionend', function done(){
-    ghost.removeEventListener('transitionend', done);
-    ghost.style.display = 'none';
-    ghost.style.transition = '';
-    stage.classList.remove('morph-hidden');
-  }, {once:true});
-}
-
-// reverses the ghost back down to the mini-player's position, then closes
-// the overlay only once that shrink actually finishes
-function interruptMorph(){
-  const ghost = $('#morphDisc'), stage = $('#platterStage');
-  const cs = getComputedStyle(ghost);
-  ghost.style.transition = 'none';
-  ghost.style.transform = cs.transform === 'none' ? 'translate(0,0) scale(1)' : cs.transform;
-  void ghost.offsetWidth;
-  ghost.style.transition = 'transform ' + Math.round(SLEEVE_ANIM.morphMs*0.6) + 'ms ' + SLEEVE_ANIM.easing;
-  ghost.style.transform = 'translate(0,0) scale(1)';
-  ghost.addEventListener('transitionend', function done(){
-    ghost.removeEventListener('transitionend', done);
-    ghost.style.display = 'none';
-    ghost.style.transition = '';
-    stage.classList.remove('morph-hidden');
-    S.playerOpen = false;
-    const ov = $('#playerOverlay');
-    ov.classList.remove('open');
-    ov.setAttribute('aria-hidden','true');
-  }, {once:true});
-}
+/* The player overlay (openPlayerViaSheet, openPlayer, closePlayer,
+   morphInFlight, runMorphOpen, interruptMorph) sat under this "launch
+   intro" header only by physical accident — moved to
+   src/shell/player-overlay.js (step 7b). */
 
 /* Background playback (background.js/bgPrime/bgRouteActive/bgIdleNow/
    bgPosition/bgSync/bgUpdateUI/toggleBgAudio/applyBgAudioSetting/
@@ -1578,7 +983,7 @@ function compareCrateYear(a, b){
   if(!by) return -1;
   return ay - by;
 }
-function libraryHasGenres(){ return S.tracks.some(t => t.details && firstGenreValue(t.details.genre)); }
+export function libraryHasGenres(){ return S.tracks.some(t => t.details && firstGenreValue(t.details.genre)); }
 
 function albumGenreFor(idx){
   const counts = new Map();
@@ -1750,9 +1155,9 @@ function crateRailJumpTarget(model, key){
    back face as the inside-left panel, and the tracklist sitting behind it
    at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
    every other album entry point keeps renderAlbumDetail() untouched. */
-let GF = null;   // ephemeral render state for the open gatefold; null when closed
+export let GF = null;   // ephemeral render state for the open gatefold; null when closed
 
-function isGatefoldOpen(){ return !!GF; }
+export function isGatefoldOpen(){ return !!GF; }
 
 function gatefoldViewportMode(){
   const w = window.innerWidth, h = window.innerHeight;
@@ -2316,7 +1721,7 @@ async function closeGatefold(){
 
 // an immediate, non-animated close for when the gatefold is being replaced
 // by real navigation (a credit link) rather than dismissed on its own
-function closeGatefoldInstant(){
+export function closeGatefoldInstant(){
   if(!GF) return;
   GF = null;
   gatefoldTeardownGestures();
@@ -2466,7 +1871,7 @@ function renderCrateFlat(host, model){
 // centre record and info panel are unaffected. Called at mount time and
 // again from updateChromeInset() whenever the mini player's own visibility
 // changes later, since that happens after the crate has already rendered.
-function applyCrateMiniInset(){
+export function applyCrateMiniInset(){
   const stage = document.querySelector('.crate-stage'), info = document.querySelector('.crate-info');
   const wrap = document.querySelector('.crate-wrap');
   if(!stage || !wrap) return;
@@ -2969,7 +2374,7 @@ function renderCrate(host){
 // vertically centres the empty-library placeholder in whatever room is left
 // under the header and above the tab bar, rather than always hugging the
 // top — a one-off static block, unlike the scrollable track lists
-function centerEmptyState(){
+export function centerEmptyState(){
   const empty = $('#empty');
   empty.style.marginTop = '0px';
   const tabbarEl = $('#tabbar');
@@ -3217,126 +2622,14 @@ export function renderTracks(){
    Playing card, and the share sheets' wiring) moved to src/share/
    (styles.js, crate-card.js, now-playing-card.js, sheet.js — step 6d). */
 
-/* ================= navigation shell: header actions, search field, add menu =================
-   isLibraryRouteVisible/isProfileRouteVisible, updateHeaderActionsAvailability,
-   updateLibTabsForLayout, refreshLibraryTools, the header search field
-   (openSearchField/closeSearchField/isSearchFieldOpen), the header + menu
-   (openAddMenu/closeAddMenu/isAddMenuOpen), and showRoute. These sat under
+/* Navigation shell: header actions, search field, add menu
+   (isLibraryRouteVisible/isProfileRouteVisible/showRoute moved to
+   src/shell/routes.js; updateHeaderActionsAvailability/
+   updateLibTabsForLayout/refreshLibraryTools/the header search field/the
+   header + menu moved to src/shell/header.js — step 7b). These sat under
    the old "share image"/"setMode" header only because that's physically
    where they were in the file, not because they're share-image or mode
-   code — left in main.js for step 7's navigation-shell module. */
-
-function isLibraryRouteVisible(){
-  const r = document.getElementById('route-library');
-  return !!(r && r.classList.contains('on'));
-}
-function isProfileRouteVisible(){
-  const r = document.getElementById('route-profile');
-  return !!(r && r.classList.contains('on'));
-}
-
-// the library tabs row (icons + the Songs/Crate/Artists/Playlists group)
-// only ever shows on the library route; the icons stay even with an empty
-// library (the + button is how you add your first files), but the tab
-// buttons and the search icon itself only make sense once there's something
-// to switch between or search (S1 §2.1)
-function updateHeaderActionsAvailability(){
-  const isLibrary = isLibraryRouteVisible();
-  $('#libNav').style.display = isLibrary ? 'flex' : 'none';
-  $('#libNavTabs').style.display = (isLibrary && S.tracks.length) ? 'flex' : 'none';
-  $('#hdrSearchBtn').style.display = (isLibrary && S.tracks.length) ? '' : 'none';
-}
-
-// the crate replaces Albums as the first tab when that's the saved layout,
-// so Songs/Artists/Playlists are never hidden by it (S1 §2.2, S2 §5)
-function updateLibTabsForLayout(){
-  const firstTab = $('#libNav [data-view="crate"]') || $('#libNav [data-view="albums"]');
-  if(!firstTab) return;
-  if(S.libraryLayout === 'crate'){ firstTab.dataset.view = 'crate'; firstTab.textContent = 'Crate'; }
-  else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
-}
-
-// Library tools lives in static markup under #route-profile so re-renders
-// of #profileBody never destroy its listeners (S1 §5 implementation note);
-// this just refreshes its visibility, counts and row states
-export function refreshLibraryTools(){
-  const tools = $('#libTools');
-  if(!tools) return;
-  const onHome = isProfileRouteVisible() && S.profileView.screen === 'home';
-  tools.style.display = onHome ? 'block' : 'none';
-  if(!onHome) return;
-  const hasTracks = S.tracks.length > 0;
-  $('#libToolsBody').style.display = hasTracks ? '' : 'none';
-  $('#libToolsFooter').textContent = hasTracks
-    ? (S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks') + ' · ' + formatBytes(totalLibraryBytes()) + ' · stored on this device')
-    : '';
-  $('#crateGroupRow').style.display = (S.libraryLayout === 'crate') ? 'flex' : 'none';
-  $('#crateGenreBtn').style.display = (typeof libraryHasGenres === 'function' && libraryHasGenres()) ? '' : 'none';
-}
-
-// header search field: swaps the library tabs row for a full-width search
-// input, which lives in the header above it (S1 §2.1). Cancel clears and
-// closes; the × only clears.
-function openSearchField(){
-  $('#libNav').style.display = 'none';
-  $('#hdrSearchRow').style.display = 'flex';
-  $('#hdrSearchBtn').classList.add('active');
-  $('#librarySearch').focus();
-  updateSearchChipsVisibility();
-}
-function closeSearchField(){
-  updateHeaderActionsAvailability();
-  $('#hdrSearchRow').style.display = 'none';
-  $('#hdrSearchBtn').classList.remove('active');
-  $('#searchChips').style.display = 'none';
-}
-function isSearchFieldOpen(){
-  return $('#hdrSearchRow').style.display !== 'none';
-}
-
-// header + menu: Add songs / Add folder popover (S1 §3)
-function openAddMenu(){
-  // positioned from the button's own rect rather than a fixed CSS offset,
-  // since the button now lives on the library tabs row instead of a fixed
-  // header height above it
-  const btn = $('#hdrAddBtn'), r = btn.getBoundingClientRect();
-  const menu = $('#addMenu');
-  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
-  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
-  $('#addScrim').style.top = Math.round(r.bottom) + 'px';   // position:fixed, so viewport-relative
-  $('#addScrim').classList.add('open');
-  menu.classList.add('open');
-  btn.classList.add('add-open');
-  btn.setAttribute('aria-expanded', 'true');
-}
-function closeAddMenu(){
-  $('#addScrim').classList.remove('open');
-  $('#addMenu').classList.remove('open');
-  $('#hdrAddBtn').classList.remove('add-open');
-  $('#hdrAddBtn').setAttribute('aria-expanded', 'false');
-}
-function isAddMenuOpen(){
-  return $('#addMenu').classList.contains('open');
-}
-
-export function showRoute(name){
-  // the gatefold is a library-only view (opened from the crate); it must
-  // never persist over another tab's content since it's a fixed full-screen
-  // overlay that would otherwise hide whatever route is switched to
-  if(name !== 'library' && GF) closeGatefoldInstant();
-  document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
-  document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
-  $('#appHeader').classList.toggle('no-border', name === 'library');
-  updateHeaderActionsAvailability();
-  if(name !== 'library'){ closeSearchField(); closeAddMenu(); }
-  if(name === 'profile'){
-    // library tools starts closed on every fresh visit to Profile (S1 §5)
-    $('#libToolsPanel').classList.remove('open');
-    $('#libToolsToggle').setAttribute('aria-expanded', 'false');
-    renderProfile();
-  }
-  if(name === 'home') renderHome();
-}
+   code. */
 
 /* ================= wiring ================= */
 (function init(){

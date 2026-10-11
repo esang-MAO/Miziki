@@ -45,7 +45,9 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
     crateFilled(){ return false; }, collectionGroups(){ return {}; },
   },
 });
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// Since step 7b, screens.js's refreshLibraryTools import is a real one from
+// src/shell/header.js instead of main.js — mocked there directly instead.
+mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
   namedExports: { refreshLibraryTools(){} },
 });
 

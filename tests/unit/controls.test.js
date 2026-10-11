@@ -42,11 +42,21 @@ mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
   namedExports: { invalidateActiveSessionIfAny(){} },
 });
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    queueSave(){},
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
-  },
+  namedExports: { queueSave(){} },
+});
+// Since step 7b, the five screen/ceremony functions queue.js used to reach
+// through main.js (above) moved into real src/shell/ modules — mocked
+// directly here, same "stop the chain at the door" reasoning: letting
+// shell/start-sequence.js load for real would reach library/sealed.js's
+// own circular import of main.js's renderTracks/updateSealedSheetAfterBreak.
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { openPlayerViaSheet(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });
 const playMock = mock.fn();
 const pauseMock = mock.fn();

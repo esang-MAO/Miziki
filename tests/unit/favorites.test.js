@@ -30,7 +30,12 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: { renderTracks: renderTracksMock, REDUCED: false },
+  namedExports: { renderTracks: renderTracksMock },
+});
+// Since step 7b, favorites.js's REDUCED import moved off main.js into the
+// real src/util/motion.js — mocked there directly instead.
+mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
+  namedExports: { REDUCED: false },
 });
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave: queueSaveMock },

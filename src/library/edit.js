@@ -14,11 +14,12 @@ import { albumKey } from '../record-art/tiers.js';
 import { storage, overlays, artwork } from '../storage/repo.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
+import { renderMiniPlayer } from '../shell/mini-player.js';
 // Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
 // screen/crate-art-tier/select-mode functions not yet extracted. Used only
 // inside the functions below, never at module top level.
 import {
-  renderTracks, renderMiniPlayer,
+  renderTracks,
   deleteCrateArtTiers, buildCrateTier, exitSelectMode,
 } from '../main.js';
 

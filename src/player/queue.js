@@ -11,13 +11,9 @@ import { load, play, pause, seek } from './transport.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) — these
-// are screen functions that haven't been extracted yet. Used only inside
-// the functions below, never at module load.
-import {
-  runStartSequence, openPlayerViaSheet,
-  shouldPutAway, putAwayInstant, runPutAwaySequence,
-} from '../main.js';
+import { runStartSequence } from '../shell/start-sequence.js';
+import { openPlayerViaSheet } from '../shell/player-overlay.js';
+import { shouldPutAway, putAwayInstant, runPutAwaySequence } from '../shell/put-away.js';
 
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);

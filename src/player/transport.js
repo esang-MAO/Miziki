@@ -14,11 +14,12 @@ import { updateFavoriteButtons } from '../library/favorites.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { breakSeal } from '../library/sealed.js';
 import { bgPrime, bgRouteActive, bgIdleNow, bgPosition } from './background.js';
+import { updateShellAlbum, renderMiniPlayer } from '../shell/mini-player.js';
+import { showRoute } from '../shell/routes.js';
+import { clearSpinDown } from '../shell/put-away.js';
 import {
-  updateShellAlbum, renderTracks, renderMiniPlayer,
+  renderTracks,
   updateGatefoldNowPlaying,
-  showRoute,
-  clearSpinDown,
 } from '../main.js';
 
 export function load(i){
