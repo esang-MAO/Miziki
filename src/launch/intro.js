@@ -230,6 +230,20 @@ function updateLaunchRecordsLabel(stack){
   $('#launchRecords').textContent = stack.variant === 'library' ? (stack.count + ' RECORDS') : '';
 }
 
+// Pure-ish DOM builder, split out so a malicious tag value's handling is
+// testable without the rest of runLaunchSequence's choreography (security
+// hardening, step 01 — the last-played artist is untrusted file-tag text,
+// so this must never reach innerHTML).
+export function renderLaunchTitleSub(subEl, artist){
+  subEl.textContent = '';
+  subEl.appendChild(document.createTextNode(artist || ''));
+  subEl.appendChild(document.createElement('br'));
+  const lastPlayedEl = document.createElement('span');
+  lastPlayedEl.style.color = 'var(--accent)';
+  lastPlayedEl.textContent = 'LAST PLAYED';
+  subEl.appendChild(lastPlayedEl);
+}
+
 export async function runLaunchSequence(){
   const token = ++S.launchSeq;
   const cancelled = () => token !== S.launchSeq;
@@ -358,7 +372,7 @@ export async function runLaunchSequence(){
   const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle');
   if(stack.variant === 'library'){
     nameEl.textContent = stack.targetTitle;
-    subEl.innerHTML = (stack.targetArtist || '') + '<br><span style="color:var(--accent)">LAST PLAYED</span>';
+    renderLaunchTitleSub(subEl, stack.targetArtist);
   } else {
     nameEl.innerHTML = 'Mi<span>zi</span>ki';
     subEl.textContent = 'LOCAL · LOSSLESS';

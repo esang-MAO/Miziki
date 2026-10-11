@@ -26,6 +26,23 @@ const SAFETY_NET_RULES = {
   'no-unreachable': 'error',
   'no-const-assign': 'error',
   'no-import-assign': 'error',   // catches reassigning an imported `let` — refactor rule 7 in CLAUDE.md
+  // security hardening, step 01: innerHTML/outerHTML/insertAdjacentHTML
+  // with anything but a plain string literal is how song-tag text (an
+  // artist/title the user doesn't control) turns into runnable markup —
+  // see CLAUDE.md's "Security" notes. A literal like 'Mi<span>zi</span>ki'
+  // or '' is fine; concatenating or interpolating any variable into one is
+  // not — build the DOM with textContent/createElement/createTextNode
+  // instead.
+  'no-restricted-syntax': ['error',
+    {
+      selector: "AssignmentExpression[left.type='MemberExpression'][left.computed=false][left.property.name=/^(innerHTML|outerHTML)$/][right.type!='Literal']",
+      message: 'Assigning to innerHTML/outerHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
+    },
+    {
+      selector: "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='insertAdjacentHTML'][arguments.1.type!='Literal']",
+      message: 'Calling insertAdjacentHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
+    },
+  ],
 };
 
 module.exports = [

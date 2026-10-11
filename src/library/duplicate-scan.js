@@ -23,6 +23,20 @@ export function openDuplicateScan(){
   $('#dupScanOverlay').classList.add('open');
   $('#dupScanOverlay').setAttribute('aria-hidden','false');
 }
+// Pure-ish DOM builder, split out so a malicious tag value's handling is
+// testable without the rest of renderDupScan's $()/deleteTracks chain
+// (security hardening, step 01 — track title/artist are untrusted file-tag
+// text, so this must never reach innerHTML).
+export function duplicateNamesElement(tracks){
+  const namesEl = document.createElement('div');
+  namesEl.className = 'k';
+  namesEl.style.marginBottom = '8px';
+  tracks.forEach((t, idx) => {
+    if(idx > 0) namesEl.appendChild(document.createElement('br'));
+    namesEl.appendChild(document.createTextNode(t.tags.title + ' — ' + t.tags.artist));
+  });
+  return namesEl;
+}
 export function renderDupScan(){
   const groups = findAllDuplicateGroups();
   const body = $('#dupScanBody');
@@ -36,8 +50,7 @@ export function renderDupScan(){
     wrap.className = 'row';
     wrap.style.flexDirection = 'column';
     wrap.style.alignItems = 'stretch';
-    const names = idxs.map(i => S.tracks[i]).map(t => t.tags.title + ' — ' + t.tags.artist).join('<br>');
-    wrap.innerHTML = '<div class="k" style="margin-bottom:8px">' + names + '</div>';
+    wrap.appendChild(duplicateNamesElement(idxs.map(i => S.tracks[i])));
     const stack = document.createElement('div');
     stack.className = 'stack';
     const keepBtn = document.createElement('button');

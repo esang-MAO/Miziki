@@ -6,7 +6,22 @@ import assert from 'node:assert/strict';
 // durations) and window.innerWidth/innerHeight inside updateLaunchScale --
 // stubbed here rather than pulling in a real DOM, same "stub only what a
 // browser would otherwise provide" approach idb.test.js/shell.test.js use.
-globalThis.document = { documentElement: { style: { setProperty(){} } } };
+// createElement/createTextNode are also stubbed (for renderLaunchTitleSub's
+// own test below) with a minimal fake DOM that keeps text-node data
+// separate from element tags, so a test can tell "stored as literal text"
+// apart from "parsed as markup" without a real DOM/jsdom dependency.
+function fakeElement(tag){
+  return { tagName: tag.toUpperCase(), style: {}, className: '', children: [],
+    appendChild(c){ this.children.push(c); return c; },
+    set textContent(v){ this.children = v ? [fakeTextNode(v)] : []; },
+    get textContent(){ return this.children.map(c => c.nodeType === 3 ? c.data : c.textContent).join(''); } };
+}
+function fakeTextNode(data){ return { nodeType: 3, data }; }
+globalThis.document = {
+  documentElement: { style: { setProperty(){} } },
+  createElement: fakeElement,
+  createTextNode: fakeTextNode,
+};
 // crate/tiers.js's own crateArtCache (imported here for makeLaunchCard,
 // read-only) needs artwork/storage.repo real -- mocked directly since this
 // file only wants the pure math/resolution helpers below, not the image
@@ -29,8 +44,19 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,
   computeFlickPosition, flickSpeed, sampleStackAlbums,
+  renderLaunchTitleSub,
 } = await import('../../src/launch/intro.js');
 const { S } = await import('../../src/state.js');
+
+function collectText(node){
+  if(node.nodeType === 3) return node.data;
+  return (node.children || []).map(collectText).join('');
+}
+function collectTagNames(node, out = []){
+  if(node.tagName) out.push(node.tagName);
+  (node.children || []).forEach(c => collectTagNames(c, out));
+  return out;
+}
 
 function fakeTrack(id, overrides){
   return Object.assign({
@@ -126,4 +152,22 @@ test('sampleStackAlbums: samples down to exactly `cap` entries and always keeps 
   const picked = sampleStackAlbums(allIds, 50, 'album77');
   assert.equal(picked.length, 50);
   assert.ok(picked.includes('album77'));
+});
+
+test('renderLaunchTitleSub: an artist tag containing HTML renders as literal text', () => {
+  const payload = '<img src=x onerror=alert(1)>';
+  const subEl = fakeElement('div');
+  renderLaunchTitleSub(subEl, payload);
+  assert.ok(collectText(subEl).startsWith(payload), 'the malicious artist survives as literal text');
+  assert.ok(collectText(subEl).includes('LAST PLAYED'));
+  // never interpreted as markup -- no <img> element was created out of the
+  // tag text, only the <br> separator and the LAST PLAYED <span> this
+  // function itself builds
+  assert.deepEqual(collectTagNames(subEl), ['DIV', 'BR', 'SPAN']);
+});
+
+test('renderLaunchTitleSub: a missing artist still renders the LAST PLAYED badge', () => {
+  const subEl = fakeElement('div');
+  renderLaunchTitleSub(subEl, '');
+  assert.equal(collectText(subEl), 'LAST PLAYED');
 });

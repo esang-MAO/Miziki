@@ -129,8 +129,16 @@ async function restoreLibrary(){
   } else {
     note.textContent = 'Your library will be kept on this device. Add it to your Home Screen so iOS does not clear it.';
   }
+  // Dynamic import, not a static one, for the same reason as the
+  // ?social=demo import below: SOCIAL_SUPABASE_URL/ANON_KEY are empty for
+  // every real user today, so supabase-js (bundled, not CDN-loaded — see
+  // CLAUDE.md's security hardening note) should never be in what they
+  // download. Only fetched once both keys are actually set.
+  const supabaseLib = (SOCIAL_SUPABASE_URL && SOCIAL_SUPABASE_ANON_KEY)
+    ? await import('@supabase/supabase-js')
+    : undefined;
   await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
-    env: { S, DB, albumKey, trackTier, albumMetalFor } });
+    env: { S, DB, albumKey, trackTier, albumMetalFor }, supabaseLib });
   MizikiSocial.libraryLoaded();
   $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';
   MizikiSocial.on('status', s => { $('#homeTabBtn').style.display = s.enabled ? '' : 'none'; });
