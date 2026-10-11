@@ -13,7 +13,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
-    queueSave(){}, healCrateArt: async () => {},
+    healCrateArt: async () => {},
     // queue.js's own main.js imports (step 5a) -- pulled in transitively
     // since import.js imports setQueue from queue.js
     runStartSequence: async () => {}, openPlayerViaSheet(){},
@@ -27,6 +27,12 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     // src/library/credits.js (step 5e), which itself needs these from main.js
     showRoute(){}, songRow(){},
   },
+});
+// Since step 7a, import.js's own queueSave import is real (from
+// storage/meta.js) instead of main.js — mocked directly here, same "stop
+// the chain at the door" reasoning as the rest of this file.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
 });
 // import.js's own persistSealedAlbums import, and queue.js's (via
 // history/sessions.js) applyDiscVariant/restoreThumbs imports, are real

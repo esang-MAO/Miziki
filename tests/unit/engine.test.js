@@ -15,14 +15,18 @@ import assert from 'node:assert/strict';
 // mocked directly rather than letting it load for real, since its own
 // real player/controls.js import would reach player/queue.js and
 // history/sessions.js's full chain (the same reasoning clock.js is
-// mocked for below). location.js (loaded for applyVolume) still imports
-// queueSave from main.js and, since step 3c, drawSun from clock.js —
-// mocking clock.js directly (rather than letting it load for real)
-// avoids also needing stand-ins for everything *it* needs (sleep-timer.js,
-// and several more main.js exports). transport.js itself still imports
-// ~11 functions from main.js (step 3b), which is why it's mocked
-// directly too, rather than listing its main.js dependencies here.
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// mocked for below). location.js (loaded for applyVolume), since step 7a,
+// imports queueSave from storage/meta.js instead of main.js — mocked
+// directly below, since meta.js's own real imports (audio/mode.js,
+// player/controls.js, player/background.js, for applyPrefs()) would
+// otherwise reach the same wide chains this file already stops at the
+// door. drawSun from clock.js — mocking clock.js directly (rather than
+// letting it load for real) avoids also needing stand-ins for everything
+// *it* needs (sleep-timer.js, and several more main.js exports).
+// transport.js itself still imports ~11 functions from main.js (step 3b),
+// which is why it's mocked directly too, rather than listing its main.js
+// dependencies here.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
 });
 mock.module(new URL('../../src/player/background.js', import.meta.url).href, {

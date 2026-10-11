@@ -46,12 +46,18 @@ const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    queueSave: queueSaveMock, renderTracks: renderTracksMock,
+    renderTracks: renderTracksMock,
     groupRow: groupRowMock, songRow: songRowMock,
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
     closePlayer(){}, showRoute(){}, REDUCED: false,
   },
+});
+// Since step 7a, search.js's own queueSave import is real (from
+// storage/meta.js) instead of main.js — mocked directly here, same "stop
+// the chain at the door" reasoning as the rest of this file.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave: queueSaveMock },
 });
 // applyDiscVariant/restoreThumbs are real imports from looks.js/thumbs.js
 // now (step 6b, reached via the real history/sessions.js the setQueue
