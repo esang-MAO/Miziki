@@ -32,7 +32,7 @@ import assert from 'node:assert/strict';
 // nothing new needs mocking except background.js's own queueSave
 // circular import, added to the main.js mock below.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: { queueSave(){}, updateSealedSheetAfterBreak(){} },
+  namedExports: { queueSave(){} },
 });
 // Since step 7d, renderTracks/exitSelectMode/songRow (reached via
 // edit.js/credits.js, transitively through the chain the comment above
@@ -41,6 +41,14 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
 // reasoning.
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
+});
+// Since step 7e, sealed.js's updateSealedSheetAfterBreak import is real
+// (from src/gatefold/sealed-sheet.js) instead of main.js — mocked here
+// rather than main.js, since the real sealed-sheet.js would otherwise
+// reach gatefold/view.js's own wide real chain (library/credits.js,
+// shell/start-sequence.js and more) just to satisfy this one name.
+mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href, {
+  namedExports: { updateSealedSheetAfterBreak(){} },
 });
 // Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier imports are
 // real ones from src/crate/tiers.js instead of main.js — mocked directly

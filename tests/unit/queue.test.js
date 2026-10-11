@@ -46,7 +46,12 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 // transport.js itself still imports ~13 functions from main.js, so both
 // are mocked directly here rather than loading their real dependency
 // chains — same approach as engine.test.js and clock.test.js.
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// Since step 7e, sealed.js's updateSealedSheetAfterBreak import is real
+// (from src/gatefold/sealed-sheet.js) instead of main.js — mocked here
+// rather than main.js, since the real sealed-sheet.js would otherwise
+// reach gatefold/view.js's own wide real chain just to satisfy this one
+// name. main.js is no longer mocked in this file at all as a result.
+mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href, {
   namedExports: { updateSealedSheetAfterBreak(){} },
 });
 // Since step 7d, renderTracks/exitSelectMode/songRow (reached via

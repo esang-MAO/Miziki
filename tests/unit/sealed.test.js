@@ -1,24 +1,25 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// sealed.js has a temporary circular import back to main.js (rule 8 in
-// CLAUDE.md) for the sealed sheet's own UI and the library screen render,
-// neither extracted yet — mocked to no-ops rather than pulling in a
-// browser.
-const updateSealedSheetAfterBreakMock = mock.fn();
-const renderTracksMock = mock.fn();
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    updateSealedSheetAfterBreak: updateSealedSheetAfterBreakMock,
-  },
-});
 // Since step 7d, sealed.js's renderTracks import is real (from
 // src/library/view.js) instead of main.js — mocked directly here, since
 // the real view.js would otherwise reach back into library/sealed.js
 // itself (a real circular pair) plus favorites.js/credits.js/search.js/
 // edit.js/delete.js and crate/view.js's own wide chains.
+const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks: renderTracksMock },
+});
+// Since step 7e, sealed.js's updateSealedSheetAfterBreak import is real
+// (from src/gatefold/sealed-sheet.js) instead of main.js — mocked here,
+// since the real sealed-sheet.js would otherwise reach back into
+// gatefold/view.js's own wide real chain (shell/start-sequence.js,
+// shell/player-overlay.js, shell/handoff.js, player/transport.js and
+// more) just to satisfy this one name. sealed.js no longer imports
+// anything from main.js at all.
+const updateSealedSheetAfterBreakMock = mock.fn();
+mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href, {
+  namedExports: { updateSealedSheetAfterBreak: updateSealedSheetAfterBreakMock },
 });
 // history/achievements.js's real import chain (via history/sessions.js)
 // reaches library/thumbs.js for thumbURL/persistable/restoreThumbs —
