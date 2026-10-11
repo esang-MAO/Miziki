@@ -4,10 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0F1A20">
+<!-- GitHub Pages can't set HTTP response headers, so the Content Security
+     Policy lives here as a meta tag instead — a second line of defense
+     limiting where code/data can come from. worker-src covers the
+     AudioWorklet scratch processor (loaded same-origin, no blob: needed
+     for the worklet script itself, but harmless to allow); img-src/
+     media-src allow blob: for locally-decoded artwork/audio; style-src
+     needs 'unsafe-inline' for this app's many inline style="..." writes
+     (crate/gatefold/share-canvas layout math, etc.) — no inline <script>
+     exists anywhere, so script-src stays 'self' with no exception.
+     When Supabase keys are added (see CLAUDE.md's security hardening
+     note), connect-src needs the project's https:// and wss:// origins
+     added, and img-src needs the https:// one too, or sign-in breaks. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <title>Miziki</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- self-hosted fonts (step 01: security hardening) — no more Google
+     Fonts preconnect/CDN link, no more third-party request on launch -->
+<link rel="stylesheet" href="/src/styles/fonts.css">
 <!-- split from a single inline <style> block (step 1: tooling);
      cascade order matters, so these stay in this exact order -->
 <link rel="stylesheet" href="/src/styles/00-base.css">
