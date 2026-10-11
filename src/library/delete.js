@@ -27,10 +27,7 @@ import { closePlayer } from '../shell/player-overlay.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers } from '../crate/tiers.js';
 import { invalidateCrateModel } from '../crate/model.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// library screen render, not yet extracted. Used only inside the functions
-// below, never at module top level.
-import { renderTracks } from '../main.js';
+import { renderTracks } from './view.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
 export function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }

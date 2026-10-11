@@ -16,10 +16,7 @@ import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/select-mode functions not yet extracted. Used only inside the
-// functions below, never at module top level.
-import { renderTracks, exitSelectMode } from '../main.js';
+import { renderTracks, exitSelectMode } from './view.js';
 
 function applyOverlay(t, rec, artBlob){
   t.embeddedTags = Object.assign({}, t.tags);
