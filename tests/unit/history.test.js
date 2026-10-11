@@ -16,8 +16,12 @@ import { DB } from '../../src/storage/idb.js';
 // tags.test.js/credits.test.js/search.test.js give for mocking
 // audio/engine.js, transport.js and sleep-timer.js directly rather than
 // loading that whole chain. Each of edit.js/sealed.js/credits.js/queue.js
-// still circularly imports a few names from main.js (rule 8); clear.js
-// needs a couple more directly (persistTrackLastPlayed, renderProfile).
+// still circularly imports a few names from main.js (rule 8). Since step
+// 6e, played.js's and clear.js's persistTrackLastPlayed/renderProfile are
+// real imports from src/profile/screens.js instead — mocked directly
+// below, same "stop the chain at the door" reasoning, since the real
+// screens.js would pull in profile/storefront.js, profile/settings.js and
+// the social/ screens too.
 // main.js has DOM-dependent top-level code that needs a browser, so it's
 // mocked directly here with the union of everything the real chain asks
 // of it.
@@ -36,13 +40,15 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
 });
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    persistTrackLastPlayed: async () => {}, renderProfile(){},
     renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
     exitSelectMode(){}, invalidateCrateModel(){},
     updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
   },
+});
+mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
+  namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext(){} },

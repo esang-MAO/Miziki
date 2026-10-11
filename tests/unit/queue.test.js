@@ -51,9 +51,15 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
     renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
-    exitSelectMode(){}, invalidateCrateModel(){}, renderProfile(){},
+    exitSelectMode(){}, invalidateCrateModel(){},
     updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
   },
+});
+// Since step 6e, thumbs.js's renderProfile is a real import from
+// src/profile/screens.js instead of main.js — mocked directly here,
+// same "stop the chain at the door" reasoning the comment above gives.
+mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
+  namedExports: { renderProfile(){} },
 });
 const loadMock = mock.fn();
 const playMock = mock.fn();

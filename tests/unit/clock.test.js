@@ -35,13 +35,20 @@ mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
     queueSave(){},
-    persistTrackLastPlayed: async () => {},
     renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
-    exitSelectMode(){}, invalidateCrateModel(){}, renderProfile(){},
+    exitSelectMode(){}, invalidateCrateModel(){},
     updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
     runStartSequence(){}, openPlayerViaSheet(){},
     shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
   },
+});
+// Since step 6e, played.js's persistTrackLastPlayed and thumbs.js's
+// renderProfile are real imports from src/profile/screens.js instead of
+// main.js — mocked directly here, same "stop the chain at the door"
+// reasoning as above, since the real screens.js would pull in
+// profile/storefront.js, profile/settings.js and the social/ screens too.
+mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
+  namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext(){} },
