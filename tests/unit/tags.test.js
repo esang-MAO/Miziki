@@ -12,21 +12,39 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // engine.test.js/queue.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    invalidateCrateModel(){}, renderTracks(){}, renderMiniPlayer(){},
+    invalidateCrateModel(){}, renderTracks(){},
     healCrateArt: async () => {},
-    // queue.js's own main.js imports (step 5a) -- pulled in transitively
-    // since import.js imports setQueue from queue.js
-    runStartSequence: async () => {}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
     // import.js's loadOverlayFor/deleteTracks imports are now real ones
     // from src/library/edit.js/delete.js (step 5d), which themselves need
     // these from main.js
     deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {}, exitSelectMode(){},
-    clearSpinDown(){}, closePlayer(){},
     // import.js's rebuildPeopleIndex import is now a real one from
-    // src/library/credits.js (step 5e), which itself needs these from main.js
-    showRoute(){}, songRow(){},
+    // src/library/credits.js (step 5e), which itself needs this from main.js
+    songRow(){},
   },
+});
+// Since step 7b, queue.js's five screen/ceremony functions, edit.js's/
+// delete.js's renderMiniPlayer, delete.js's clearSpinDown, delete.js's/
+// credits.js's closePlayer and credits.js's showRoute all moved off
+// main.js into real src/shell/ modules — mocked there directly instead,
+// same "stop the chain at the door" reasoning as the rest of this file.
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence: async () => {} },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: {
+    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence: async () => {},
+    clearSpinDown(){},
+  },
+});
+mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
+  namedExports: { renderMiniPlayer(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(){} },
 });
 // Since step 7a, import.js's own queueSave import is real (from
 // storage/meta.js) instead of main.js — mocked directly here, same "stop

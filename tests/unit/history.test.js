@@ -40,12 +40,30 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
 });
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    renderTracks(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
     exitSelectMode(){}, invalidateCrateModel(){},
-    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
+    updateSealedSheetAfterBreak(){}, songRow(){},
   },
+});
+// Since step 7b, the five screen/ceremony functions above moved off
+// main.js into real src/shell/ modules — mocked there directly instead,
+// same "stop the chain at the door" reasoning as every other mock in this
+// file (shell/mini-player.js's own real player/background.js import would
+// otherwise reach player/controls.js/storage/meta.js/audio/mode.js).
+mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
+  namedExports: { renderMiniPlayer(){} },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { closePlayer(){}, openPlayerViaSheet(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(){} },
+});
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },

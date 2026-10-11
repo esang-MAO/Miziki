@@ -36,10 +36,15 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 });
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    renderTracks(){}, renderMiniPlayer(){},
+    renderTracks(){},
     deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {},
     exitSelectMode(){},
   },
+});
+// Since step 7b, edit.js's own renderMiniPlayer import moved off main.js
+// into the real src/shell/mini-player.js — mocked there directly instead.
+mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
+  namedExports: { renderMiniPlayer(){} },
 });
 
 const {

@@ -48,12 +48,34 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 // chains — same approach as engine.test.js and clock.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
-    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    renderTracks(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
     exitSelectMode(){}, invalidateCrateModel(){},
-    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
+    updateSealedSheetAfterBreak(){}, songRow(){},
   },
+});
+// Since step 7b, the five screen/ceremony functions above moved off
+// main.js's own export list into real src/shell/ modules — mocked
+// directly here, same "stop the chain at the door" reasoning: letting
+// them load for real would pull in shell/mini-player.js's own real
+// player/background.js import (bgSync), which chains into
+// player/controls.js/storage/meta.js/audio/mode.js. This mock list also
+// covers library/edit.js's/delete.js's/credits.js's own shell/ imports
+// (renderMiniPlayer/closePlayer/showRoute), reached transitively via
+// history/sessions.js -> library/thumbs.js -> library/edit.js.
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
+});
+mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
+  namedExports: { renderMiniPlayer(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(){} },
 });
 // Since step 6e, thumbs.js's renderProfile is a real import from
 // src/profile/screens.js instead of main.js — mocked directly here,

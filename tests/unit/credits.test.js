@@ -42,11 +42,27 @@ const renderTracksMock = mock.fn();
 const closePlayerMock = mock.fn();
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    closePlayer: closePlayerMock, showRoute: showRouteMock,
     renderTracks: renderTracksMock, songRow: songRowMock,
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
   },
+});
+// Since step 7b, credits.js's closePlayer/showRoute moved off main.js into
+// real src/shell/ modules (player-overlay.js/routes.js) — mocked there
+// instead, same mock.fn()s so the test's own assertions on call args still
+// work. The other three (queue.js's own shell/ imports, reached via setQueue
+// below) are stubbed the same "stop the chain at the door" way the rest of
+// this file's mocks are, so shell/start-sequence.js never reaches library/
+// sealed.js's own circular main.js import.
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { closePlayer: closePlayerMock, openPlayerViaSheet(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute: showRouteMock },
+});
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });
 // applyDiscVariant/restoreThumbs are real imports from looks.js/thumbs.js
 // now (step 6b, reached via the real history/sessions.js the setQueue

@@ -33,14 +33,36 @@ import assert from 'node:assert/strict';
 // circular import, added to the main.js mock below.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
-    easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false,
     queueSave(){},
-    renderTracks(){}, renderMiniPlayer(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
+    renderTracks(){}, deleteCrateArtTiers(){}, buildCrateTier(){},
     exitSelectMode(){}, invalidateCrateModel(){},
-    updateSealedSheetAfterBreak(){}, closePlayer(){}, showRoute(){}, songRow(){},
-    runStartSequence(){}, openPlayerViaSheet(){},
-    shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){},
+    updateSealedSheetAfterBreak(){}, songRow(){},
   },
+});
+// Since step 7b, easeOutCubic/REDUCED moved off main.js into
+// src/util/motion.js, and the five screen/ceremony functions that used to
+// be mocked above moved into real src/shell/ modules — mocked directly
+// here for the same "stop the chain at the door" reasoning the rest of
+// this file's comment gives (shell/mini-player.js's own real
+// player/background.js import would otherwise reach player/controls.js/
+// storage/meta.js/audio/mode.js).
+mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
+  namedExports: { easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false },
+});
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence(){} },
+});
+mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+});
+mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
+  namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
+});
+mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
+  namedExports: { renderMiniPlayer(){} },
+});
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(){} },
 });
 // Since step 6e, played.js's persistTrackLastPlayed and thumbs.js's
 // renderProfile are real imports from src/profile/screens.js instead of
