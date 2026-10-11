@@ -9,20 +9,21 @@
    section — S.albumLastPlayed is written only by sessionTrackComplete
    below, so its setter belongs beside its one writer, not beside the
    profile screen that merely reads it for display. persistSealedAlbums
-   stayed in main.js's "sealed records" section instead: it's tightly
-   coupled to restoreSealedAlbums/isAlbumSealed/breakSeal there, none of
-   which are session-tracking, and S.sealed is deliberately independent
-   of listening history (SEALED spec §2) — moving just the persist
-   function away from its siblings would split a cohesive unit for no
-   benefit. */
+   stayed out of this module in step 5c — it's tightly coupled to
+   restoreSealedAlbums/isAlbumSealed/breakSeal, none of which are
+   session-tracking, and S.sealed is deliberately independent of
+   listening history (SEALED spec §2) — it moved, with the rest of that
+   cohesive unit, into src/library/sealed.js in step 6b instead. */
 import { S, current } from '../state.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { sessions, meta, achievements, collection, profile } from '../storage/repo.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/thumbnail functions not yet extracted. Used only inside the
-// functions below, never at module top level.
-import { applyDiscVariant, restoreThumbs } from '../main.js';
+// Real circular import with looks.js (step 6b) — looks.js imports
+// persistAlbumLookPref back from here, the same shape already established
+// between engine.js and transport.js (step 3a). restoreThumbs is a real,
+// non-circular import (step 6b) — thumbs.js doesn't depend on this module.
+import { applyDiscVariant } from '../record-art/looks.js';
+import { restoreThumbs } from '../library/thumbs.js';
 
 const FOUR_HOURS = 4 * 3600 * 1000;
 

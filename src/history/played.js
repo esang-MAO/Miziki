@@ -6,13 +6,13 @@
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier } from '../record-art/tiers.js';
 import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays } from './sessions.js';
-// Temporary circular imports back to main.js (rule 8 in CLAUDE.md) —
-// screen/sealed-records functions not yet extracted. Used only inside the
-// functions below, never at module top level.
-import {
-  persistTrackLastPlayed, snapshotAlbumDisplay, snapshotTrackDisplay,
-  applyDiscVariant, checkAlbumAchievementAndCollection,
-} from '../main.js';
+import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
+import { applyDiscVariant } from '../record-art/looks.js';
+import { checkAlbumAchievementAndCollection } from './achievements.js';
+// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
+// trackLastPlayed persist setter hasn't been extracted yet. Used only
+// inside the functions below, never at module top level.
+import { persistTrackLastPlayed } from '../main.js';
 
 export function addPlayedRange(a, b){
   if(b <= a) return;
