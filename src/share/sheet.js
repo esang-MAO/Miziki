@@ -18,7 +18,7 @@ export function shareSelectedFormat(segId, fallback){
 }
 function canShareFiles(){
   try{ return !!(navigator.canShare && navigator.share && navigator.canShare({files:[new File([''], 'x.png', {type:'image/png'})]})); }
-  catch(e){ return false; }
+  catch(_e){ return false; }
 }
 function canCopyImages(){ return !!(navigator.clipboard && window.ClipboardItem); }
 export function updateShareActionButtons(shareBtn, saveBtn, copyBtn){

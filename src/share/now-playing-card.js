@@ -24,7 +24,7 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
       const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
       ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    }catch(e){}
+    }catch(_e){}
   } else if(look === 'metal'){
     const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
     const base = METAL_COLORS[metal] || METAL_COLORS.bronze;
@@ -78,7 +78,7 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
       drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
       ctx.restore();
-    }catch(e){}
+    }catch(_e){}
   }
 }
 
@@ -95,7 +95,7 @@ export async function composePlayerShareImage(opts){
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  try{ await document.fonts.ready; }catch(e){}
+  try{ await document.fonts.ready; }catch(_e){}
   const data = opts.data;
   if(!data || !data.track) return canvas;
   const t = data.track;
@@ -130,7 +130,7 @@ export async function composePlayerShareImage(opts){
         ctx.save(); roundRectPath(ctx, squareLeft, squareTop, side, side, 6); ctx.clip();
         drawCover(ctx, img, squareLeft, squareTop, side, side);
         ctx.restore();
-      }catch(e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
+      }catch(_e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
     } else {
       drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
     }

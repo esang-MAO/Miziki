@@ -36,7 +36,7 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   },
 });
 
-const songRowMock = mock.fn((i) => fakeEl());
+const songRowMock = mock.fn((_i) => fakeEl());
 const showRouteMock = mock.fn();
 const renderTracksMock = mock.fn();
 const closePlayerMock = mock.fn();

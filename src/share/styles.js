@@ -161,7 +161,7 @@ export function shareDominantColor(img){
     Object.values(buckets).forEach(b => { if(!best || b.score > best.score) best = b; });
     if(!best || best.n < 4) return null;
     return { h: best.h/best.n, s: Math.min(1, best.s/best.n), l: Math.min(0.82, Math.max(0.12, best.l/best.n)) };
-  }catch(e){ return null; }
+  }catch(_e){ return null; }
 }
 export function hslStr(h, s, l){ return 'hsl(' + h.toFixed(0) + ',' + Math.round(s*100) + '%,' + Math.round(l*100) + '%)'; }
 
@@ -197,7 +197,7 @@ export async function resolveShareStyle(style, artURL){
           }
         };
       }
-    }catch(e){ /* falls through to Night below */ }
+    }catch(_e){ /* falls through to Night below */ }
   }
   if(style === 'paper'){
     return {

@@ -84,7 +84,7 @@ export async function buildCrateTier(albumId, tier){
     const out = await cropSquareImageStepped(blob, px, q);
     await artwork.put({id: key, blob: out});
     return true;
-  }catch(e){ return false; }
+  }catch(_e){ return false; }
   finally{ crateArtBuilding.delete(buildKey); }
 }
 
@@ -94,7 +94,7 @@ function crateArtCacheSet(tier, albumId, url){
   cache.set(albumId, url);
   while(cache.size > cap){
     const oldestId = cache.keys().next().value;
-    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(e){}
+    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(_e){}
     cache.delete(oldestId);
   }
 }
@@ -123,7 +123,7 @@ export async function getCrateArtURL(albumId, tier){
 
 function revokeCrateArtTier(albumId, tier){
   const cache = crateArtCache[tier];
-  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(e){} cache.delete(albumId); }
+  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(_e){} cache.delete(albumId); }
 }
 
 export async function deleteCrateArtTiers(albumId){

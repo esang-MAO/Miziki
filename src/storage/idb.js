@@ -45,17 +45,17 @@ export const DB = {
       ]);
       this.ok = true;
       return true;
-    }catch(e){ this.ok = false; return false; }
+    }catch(_e){ this.ok = false; return false; }
   },
   store(name, mode){ return this.db.transaction(name, mode).objectStore(name); },
   async put(name, val){ if(!this.ok) return false;
-    try{ await this.req(this.store(name,'readwrite').put(val)); return true; }catch(e){ return false; } },
+    try{ await this.req(this.store(name,'readwrite').put(val)); return true; }catch(_e){ return false; } },
   async get(name, k){ if(!this.ok) return null;
-    try{ return await this.req(this.store(name,'readonly').get(k)); }catch(e){ return null; } },
+    try{ return await this.req(this.store(name,'readonly').get(k)); }catch(_e){ return null; } },
   async all(name){ if(!this.ok) return [];
-    try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(e){ return []; } },
+    try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(_e){ return []; } },
   async clear(name){ if(!this.ok) return;
-    try{ await this.req(this.store(name,'readwrite').clear()); }catch(e){} },
+    try{ await this.req(this.store(name,'readwrite').clear()); }catch(_e){} },
   async del(name, k){ if(!this.ok) return false;
-    try{ await this.req(this.store(name,'readwrite').delete(k)); return true; }catch(e){ return false; } }
+    try{ await this.req(this.store(name,'readwrite').delete(k)); return true; }catch(_e){ return false; } }
 };

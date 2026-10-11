@@ -8,7 +8,7 @@ export function makeContext(sampleRate){
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx;
   try { ctx = sampleRate ? new AC({sampleRate, latencyHint:'playback'}) : new AC(); }
-  catch(e){ ctx = new AC(); }
+  catch(_e){ ctx = new AC(); }
   return ctx;
 }
 
@@ -75,7 +75,7 @@ export function routeSource(src){
 // output route
 export async function ensureContext(rate){
   if(S.ctx && (!rate || S.ctx.sampleRate === rate)) { await S.ctx.resume(); return; }
-  if(S.ctx){ stop(); try{ await S.ctx.close(); }catch(e){} }
+  if(S.ctx){ stop(); try{ await S.ctx.close(); }catch(_e){} }
   S.ctx = makeContext(rate);
   S.nodes = buildGraph(S.ctx);
   applyCharacter();

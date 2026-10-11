@@ -131,7 +131,7 @@ export async function addFiles(list){
         t.blob = null;            // it lives on disk now; no need to hold it in memory
         t.artBlob = null;
       }
-    }catch(err){
+    }catch(_err){
       // one bad file should never stop the rest of the batch — note it and
       // move on, then summarize every failure once the batch is done
       failed.push(f.name);

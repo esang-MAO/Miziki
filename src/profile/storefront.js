@@ -269,7 +269,7 @@ async function cycleStoreVisibility(profile, host){
   if(r.ok) loadAndRenderStorefront(host);
 }
 
-function storeNowSpinningCard(full, host){
+function storeNowSpinningCard(full, _host){
   const settings = MizikiSocial.getSettings();
   const card = el('div','store-card');
   const count = el('div','store-card-count','♪');

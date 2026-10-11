@@ -58,7 +58,7 @@ export function closeSortMenu(){
   $('#sortMenuOverlay').setAttribute('aria-hidden','true');
 }
 
-export function librarySortComparator(mode){
+export function librarySortComparator(_mode){
   const key = S.librarySort;
   return (a, b) => {
     const ta = S.tracks[a], tb = S.tracks[b];

@@ -93,7 +93,7 @@ export async function applyEdit(trackIds, fields, artBlob){
     }
     if(artBlob){
       await artwork.put({id, blob: artBlob});
-      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
       touchedAlbumIds.add(albumKey(t));
@@ -120,7 +120,7 @@ export async function revertTrack(id){
   await overlays.del(id);
   await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
-  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
   t.overlayArtBlob = null;
   t.art = t.embeddedArt;
   if(hadArtOverlay){
@@ -156,7 +156,7 @@ export async function undoLastEdit(){
     if(prevRec) await overlays.put(prevRec); else await overlays.del(id);
     if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
-    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(e){}
+    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
     if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
     else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
     recomputeTrack(i);

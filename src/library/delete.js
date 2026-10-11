@@ -69,7 +69,7 @@ export async function deleteTracks(idsToDelete){
     $('#sleeve').style.display = 'none';
   }
 
-  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
+  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} });
   const removedAlbumIds = new Set();
   S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
   S.tracks = S.tracks.filter(t => !idSet.has(t.id));
@@ -153,7 +153,7 @@ export async function forgetLibrary(){
   await tracks.clear(); await meta.clear(); await sessions.clear();
   await overlays.clear(); await artwork.clear();
   for(const {key, blob} of keepThumbs) await meta.put(key, blob);
-  S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(e){} });
+  S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} });
   stop();
   S.tracks = []; S.index = -1; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
   S.queue = []; S.baseQueue = []; S.lru = [];

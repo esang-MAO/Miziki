@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test": "node tests/client.test.js",
     "test:unit": "node --experimental-test-module-mocks --test tests/unit/*.test.js"
   },

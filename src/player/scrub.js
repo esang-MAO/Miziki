@@ -71,8 +71,8 @@ async function ensureScratchModule(ctx){
 }
 
 function freeScratchNode(){
-  if(scratchNode){ try{ scratchNode.port.postMessage({type:'stop'}); scratchNode.disconnect(); }catch(err){} }
-  if(scratchGain){ try{ scratchGain.disconnect(); }catch(err){} }
+  if(scratchNode){ try{ scratchNode.port.postMessage({type:'stop'}); scratchNode.disconnect(); }catch(_err){} }
+  if(scratchGain){ try{ scratchGain.disconnect(); }catch(_err){} }
   scratchNode = null; scratchGain = null; scratchGraphCtx = null;
 }
 
@@ -177,7 +177,7 @@ export function wireSpinToScrub(){
       // ordinary drag/scroll can still win if this wasn't really a spin
       if(Math.abs(angleDelta(ang, scrubGesture.startAngle)) < SCRUB_CLAIM_THRESHOLD_DEG) return;
       scrubGesture.claimed = true;
-      try{ disc.setPointerCapture(e.pointerId); }catch(err){}
+      try{ disc.setPointerCapture(e.pointerId); }catch(_err){}
       if(S.playing) pause();               // silence the normal transport during a scrub...
       // ...replaced by real scratch audio if Vinyl + Scratch are both on.
       // Scratch works even while paused, same as a real record moved by hand

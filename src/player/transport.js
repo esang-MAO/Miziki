@@ -96,13 +96,13 @@ export async function play(){
 
 export function stop(){
   S.gen++;
-  if(S.source){ try{ S.source.onended = null; S.source.stop(); }catch(e){} S.source = null; }
+  if(S.source){ try{ S.source.onended = null; S.source.stop(); }catch(_e){} S.source = null; }
   S.playing = false;
   const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
   renderMiniPlayer();
 }
 
-export function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(e){} S.source=null; }
+export function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(_e){} S.source=null; }
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
   MizikiSocial.nowSpinningPaused();
   if(bgRouteActive()) bgIdleNow(); }
@@ -110,7 +110,7 @@ export function pause(){ S.playing = false; if(S.source){ try{ S.source.onended=
 export function seek(sec){
   const t = current(); if(!t) return;
   S.pos = clamp(sec, 0, t.duration || 0);
-  if(S.playing){ if(S.source){ try{S.source.onended=null;S.source.stop();}catch(e){} } startSource(S.pos); }
+  if(S.playing){ if(S.source){ try{S.source.onended=null;S.source.stop();}catch(_e){} } startSource(S.pos); }
   drawTime();
   bgPosition();
 }
