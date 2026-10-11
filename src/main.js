@@ -4,10 +4,10 @@ import { $, el } from './util/dom.js';
 import { sleep } from './util/async.js';
 import { normKey } from './util/text.js';
 import { trackTier, albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant, variantBackground } from './record-art/tiers.js';
-import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
-import { touchLRU, ensureBuffer } from './player/buffers.js';
+import { byName, groupBy, allIdx, albumTracks, idOf, idxOf } from './library/model.js';
+import { ensureBuffer } from './player/buffers.js';
 import {
-  setQueue, buildOrder, reorderQueue, advance, preloadNextTrack,
+  setQueue, reorderQueue, advance,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
 } from './player/queue.js';
 import { readDetails, emptyDetails } from './library/tags/index.js';
@@ -18,7 +18,7 @@ import {
 } from './history/sessions.js';
 import { clearListeningHistory } from './history/clear.js';
 import {
-  loadOverlayFor, cropSquareImage, applyEdit, revertTrack, applyEditWithUndo,
+  loadOverlayFor, cropSquareImage, applyEdit, revertTrack,
   undoLastEdit, showUndoBanner, openEditSheet, closeEditSheet, saveEditSheet,
   renderEditArtPreview,
 } from './library/edit.js';
@@ -31,18 +31,18 @@ import {
   trackHasCreditsContent, openPersonOrArtist, creditRow, openCreditsSheet, closeCreditsSheet,
   updateCreditsButtonForCurrent, albumLinerNotes, albumCreditRoll, rebuildPeopleIndex, renderPersonView,
 } from './library/credits.js';
-import { isFavorite, toggleFavorite, updateFavoriteButtons } from './library/favorites.js';
+import { isFavorite, toggleFavorite } from './library/favorites.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
   renderSearchChips, updateSearchChipsVisibility, closeSortMenu,
 } from './library/search.js';
-import { computeSun, nowClock, sunProgress, easedProgress, computeRate } from './sundown/solar.js';
+import { nowClock } from './sundown/solar.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_ALPHABET } from './crate/constants.js';
 import { askLocation, fallbackSun, toggleSleevePull, toggleMotion, applyVolume } from './sundown/location.js';
-import { updateSleepUI, stopSleepState, sleepStopPlayback, sleepCheckDeadline, openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
+import { openSleepSheet, closeSleepSheet } from './player/sleep-timer.js';
 import { ensureContext, applyCharacter, routeSource } from './audio/engine.js';
-import { load, play, pause, seek } from './player/transport.js';
-import { fmt, drawTime, drawSun, frame } from './player/clock.js';
+import { play, pause, seek } from './player/transport.js';
+import { fmt, drawSun, frame } from './player/clock.js';
 import { wireSpinToScrub } from './player/scrub.js';
 import { setPathNote } from './ui/path-note.js';
 import { clamp } from './util/math.js';
@@ -510,10 +510,9 @@ export function checkAlbumAchievementAndCollection(t){
   }
 }
 
-// crate/sleeve/share-button first-run gating — each clears independently,
-// on the metric that actually drives it (see PROFILE spec §9)
+// crate/share-button first-run gating — each clears independently, on the
+// metric that actually drives it (see PROFILE spec §9)
 function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
-function sleeveFilled(){ return Object.keys(S.trackPlayCounts).length > 0; }
 
 function topAlbums(n){
   return Object.keys(S.sessionCounts)
@@ -1228,10 +1227,10 @@ export async function runPutAwaySequence(t){
 }
 
 /* ================= launch intro: crate riffle to a title screen =================
-   Cold start only — see shouldShowLaunch()/runLaunchSequence(). Fully
-   independent of the sleeve pull/put-away: its own token (S.launchSeq), its
-   own overlay, removed from the DOM once it finishes or is skipped. Never
-   delays the app — restoreLibrary() runs underneath it from the first paint. */
+   Cold start only — see runLaunchSequence(). Fully independent of the
+   sleeve pull/put-away: its own token (S.launchSeq), its own overlay,
+   removed from the DOM once it finishes or is skipped. Never delays the
+   app — restoreLibrary() runs underneath it from the first paint. */
 // resolved by restoreLibrary() once S.tracks/sessions/thumbnails are in
 // place — the launch intro races this against a timeout rather than ever
 // blocking on it (see runLaunchSequence, "Never delay the app")
@@ -1264,8 +1263,6 @@ document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM
 document.documentElement.style.setProperty('--launch-title-duration', LAUNCH_ANIM.titleHoldMs + 'ms');
 document.documentElement.style.setProperty('--launch-wordmark-duration', (LAUNCH_ANIM.catchMs + LAUNCH_ANIM.pullMs) + 'ms');
 document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
-
-function shouldShowLaunch(){ return S.launchIntro && !REDUCED && !document.hidden; }
 
 // the 390x740 design stage scales uniformly to fit the viewport rather than
 // being redrawn per size — CSS alone can't turn a viewport length into a
