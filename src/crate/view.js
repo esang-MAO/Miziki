@@ -6,8 +6,7 @@
    `renderCrate()`/`applyCrateMiniInset()`/`centerEmptyState()` are
    exported for `renderTracks()` (`src/library/view.js`, step 7d) and
    `src/shell/mini-player.js` (step 7b) to call; `openCrateAlbum()` is the
-   crate's own entry point into the gatefold/sealed sheet, neither of
-   which has moved yet (step 7e). */
+   crate's own entry point into the gatefold/sealed sheet (step 7e). */
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { clamp } from '../util/math.js';
@@ -26,10 +25,8 @@ import {
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// gatefold and sealed-record sheet haven't been extracted yet (step 7e).
-// Used only inside the functions below, never at module top level.
-import { openGatefold, openSealedSheet, sealedQuietPlay } from '../main.js';
+import { openGatefold } from '../gatefold/view.js';
+import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
 
 function openCrateAlbum(item){
   const v = S.view;

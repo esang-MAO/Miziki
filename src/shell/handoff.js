@@ -4,10 +4,7 @@ import { sleep } from '../util/async.js';
 import { ensureBuffer } from '../player/buffers.js';
 import { SLEEVE_ANIM } from './mini-player.js';
 import { clearSpinDown } from './put-away.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// gatefold hasn't been extracted yet (step 7e). Used only inside the
-// functions below, never at module top level.
-import { isGatefoldOpen, closeGatefoldInstant } from '../main.js';
+import { isGatefoldOpen, closeGatefoldInstant } from '../gatefold/view.js';
 import { play } from '../player/transport.js';
 
 /* ================= Part 2 §1: gatefold-to-player hand-off =================

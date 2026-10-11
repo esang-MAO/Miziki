@@ -2,11 +2,8 @@ import { $ } from '../util/dom.js';
 import { renderProfile } from '../profile/screens.js';
 import { renderHome } from '../social/screens/home.js';
 import { updateHeaderActionsAvailability, closeSearchField, closeAddMenu } from './header.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// gatefold hasn't been extracted yet (step 7e). GF is read-only here (see
-// refactor rule 7); closeGatefoldInstant is used only inside showRoute
-// below, never at module top level.
-import { GF, closeGatefoldInstant } from '../main.js';
+// GF is read-only here (see refactor rule 7) — not reassigned, only read.
+import { GF, closeGatefoldInstant } from '../gatefold/view.js';
 
 export function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');

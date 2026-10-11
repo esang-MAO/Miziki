@@ -2,11 +2,7 @@ import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { meta } from '../storage/repo.js';
 import { renderTracks } from './view.js';
-// Temporary circular import back to main.js (rule 8 in CLAUDE.md) — the
-// sealed sheet's own UI (SEALSHEET, openSealedSheet) hasn't been
-// extracted yet. Used only inside breakSeal below, never at module top
-// level.
-import { updateSealedSheetAfterBreak } from '../main.js';
+import { updateSealedSheetAfterBreak } from '../gatefold/sealed-sheet.js';
 
 /* ================= S5: sealed records =================
    S.sealed is its own saved list, independent of S.albumLastPlayed/session
