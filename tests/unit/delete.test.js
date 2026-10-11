@@ -58,13 +58,17 @@ mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
 mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
   namedExports: { invalidateCrateModel(){} },
 });
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    renderTracks(){},
-    // delete.js's rebuildPeopleIndex import is now a real one from
-    // src/library/credits.js (step 5e), which itself needs this from main.js
-    songRow(){},
-  },
+// Since step 7d, delete.js's own renderTracks import, and credits.js's
+// renderTracks/songRow imports (reached via delete.js's real
+// rebuildPeopleIndex import, step 5e), are all real ones from
+// src/library/view.js instead of main.js — mocked directly here, same
+// "stop the chain at the door" reasoning as the rest of this file, since
+// the real view.js would otherwise reach back into library/delete.js
+// itself (a real circular pair) plus library/edit.js's own
+// crate/tiers.js needs (buildCrateTier, which this file's crate/tiers.js
+// mock above doesn't provide) and favorites.js/search.js/sealed.js.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks(){}, songRow(){} },
 });
 // Since step 7b, clearSpinDown/closePlayer/renderMiniPlayer (delete.js's own
 // imports), runStartSequence/openPlayerViaSheet/shouldPutAway/putAwayInstant/

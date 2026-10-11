@@ -10,17 +10,14 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // that — they only read S.tracks — but loading import.js at all means
 // stopping the chain at the door, the same approach as
 // engine.test.js/queue.test.js.
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    renderTracks(){},
-    // import.js's loadOverlayFor/deleteTracks imports are now real ones
-    // from src/library/edit.js/delete.js (step 5d), which themselves need
-    // these from main.js
-    exitSelectMode(){},
-    // import.js's rebuildPeopleIndex import is now a real one from
-    // src/library/credits.js (step 5e), which itself needs this from main.js
-    songRow(){},
-  },
+// Since step 7d, import.js's own renderTracks import, edit.js's
+// exitSelectMode import (reached via import.js's real loadOverlayFor
+// import, step 5d) and credits.js's songRow import (reached via
+// import.js's real rebuildPeopleIndex import, step 5e) are all real ones
+// from src/library/view.js instead of main.js — mocked directly here,
+// same "stop the chain at the door" reasoning as the rest of this file.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
 });
 // Since step 7c, import.js's invalidateCrateModel/healCrateArt imports and
 // edit.js's/delete.js's deleteCrateArtTiers/buildCrateTier imports are real

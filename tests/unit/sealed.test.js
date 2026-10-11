@@ -10,8 +10,15 @@ const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
   namedExports: {
     updateSealedSheetAfterBreak: updateSealedSheetAfterBreakMock,
-    renderTracks: renderTracksMock,
   },
+});
+// Since step 7d, sealed.js's renderTracks import is real (from
+// src/library/view.js) instead of main.js — mocked directly here, since
+// the real view.js would otherwise reach back into library/sealed.js
+// itself (a real circular pair) plus favorites.js/credits.js/search.js/
+// edit.js/delete.js and crate/view.js's own wide chains.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks: renderTracksMock },
 });
 // history/achievements.js's real import chain (via history/sessions.js)
 // reaches library/thumbs.js for thumbURL/persistable/restoreThumbs —

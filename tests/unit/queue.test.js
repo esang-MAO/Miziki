@@ -47,10 +47,15 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 // are mocked directly here rather than loading their real dependency
 // chains — same approach as engine.test.js and clock.test.js.
 mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    renderTracks(){}, exitSelectMode(){},
-    updateSealedSheetAfterBreak(){}, songRow(){},
-  },
+  namedExports: { updateSealedSheetAfterBreak(){} },
+});
+// Since step 7d, renderTracks/exitSelectMode/songRow (reached via
+// edit.js/credits.js, transitively through sessions.js -> thumbs.js ->
+// edit.js as the comment above describes) are all real imports from
+// src/library/view.js instead of main.js — mocked directly here, same
+// "stop the chain at the door" reasoning.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
 });
 // Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier and thumbs.js's
 // invalidateCrateModel imports are real ones from src/crate/tiers.js/

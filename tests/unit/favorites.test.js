@@ -29,7 +29,12 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 });
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// Since step 7d, favorites.js's renderTracks import is real (from
+// src/library/view.js) instead of main.js -- mocked directly here, same
+// "stop the chain at the door" reasoning as the rest of this file, since
+// the real view.js would otherwise reach library/credits.js/search.js/
+// sealed.js/edit.js/delete.js and crate/view.js's own wide chains.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks: renderTracksMock },
 });
 // Since step 7b, favorites.js's REDUCED import moved off main.js into the

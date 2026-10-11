@@ -34,12 +34,16 @@ const persistSealedAlbumsMock = mock.fn();
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
 });
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
-  namedExports: {
-    renderTracks(){},
-    deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {},
-    exitSelectMode(){},
-  },
+// Since step 7d, edit.js's renderTracks/exitSelectMode imports are real
+// (from src/library/view.js) instead of main.js — mocked directly here
+// (edit.js has no main.js import left at all), since the real view.js
+// would otherwise reach back into library/edit.js itself (a real
+// circular pair) plus favorites.js/credits.js/search.js/sealed.js/
+// delete.js and crate/view.js's own wide chains (including
+// shell/put-away.js, which needs more from shell/mini-player.js than
+// this file's own mock of it provides).
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { renderTracks(){}, exitSelectMode(){} },
 });
 // Since step 7b, edit.js's own renderMiniPlayer import moved off main.js
 // into the real src/shell/mini-player.js — mocked there directly instead.

@@ -40,7 +40,13 @@ const songRowMock = mock.fn((i) => fakeEl());
 const showRouteMock = mock.fn();
 const renderTracksMock = mock.fn();
 const closePlayerMock = mock.fn();
-mock.module(new URL('../../src/main.js', import.meta.url).href, {
+// Since step 7d, credits.js's renderTracks/songRow imports are real (from
+// src/library/view.js) instead of main.js — mocked directly here, same
+// "stop the chain at the door" reasoning as the rest of this file, since
+// the real view.js would otherwise reach back into library/credits.js
+// itself (a real circular pair) plus favorites.js/search.js/sealed.js/
+// edit.js/delete.js and crate/view.js's own wide chains.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: {
     renderTracks: renderTracksMock, songRow: songRowMock,
   },
