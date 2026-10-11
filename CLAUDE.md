@@ -50,7 +50,7 @@ Long-term plan: modularize the codebase, build out the Supabase social layer, th
 - `supabase/migrations/` holds the schema, RPCs, digging list and follow counts. Apply them in numeric order. Never edit a migration that has already been applied. Add a new numbered file instead.
 - `tests/client.test.js` holds Node tests for the social client against a real local Postgres (see `tests/supabase_stub.sql`). The player itself has no automated tests yet.
 - `vite.config.js` builds `miziki.html` (not `index.html`) as the one entry point, output to `dist/`. `base` reads from the `MIZIKI_BASE` env var, defaulting to `/Miziki/` when unset — the GitHub Actions workflow never sets it, so the real GitHub Pages deploy is unaffected; see "Deploy previews" below for the other value it takes. It also copies `src/miziki-social.js` into `dist/src/miziki-social.js` verbatim — Vite only bundles `type="module"` scripts referenced from HTML, so the plain classic script above needs that explicit copy step or it would 404 in the built app.
-- `netlify.toml` configures Netlify's PR deploy previews. See "Deploy previews" below.
+- `netlify.toml` configures Netlify's PR deploy previews. Production builds (pushes to `main`) are deliberately skipped there — `miziki.netlify.app` no longer updates. See "Deploy previews" below.
 
 ## How the app is put together
 
@@ -160,6 +160,29 @@ deploy — **GitHub Pages stays on `/Miziki/` and is untouched by this.**
   (including **Background playback**) default off. If lock-screen
   playback stops on a fresh preview, that's this, not a regression —
   toggle Background playback on for that origin too.
+- **`miziki.netlify.app` (the production domain) no longer updates, on
+  purpose.** Netlify builds both a production deploy (whatever's pushed to
+  the site's production branch, `main`) and a deploy preview for every PR,
+  as two separate billed builds — but nothing ever links to or uses
+  `miziki.netlify.app`; the real app is GitHub Pages. Paying for a
+  production rebuild on every push to `main`, on top of the PR previews
+  that are the only thing this Netlify site is actually for, is what ran
+  the account's build credits out before. `netlify.toml`'s `[build]` table
+  now has `ignore = "[ \"$BRANCH\" = \"main\" ]"`: Netlify's `ignore` setting
+  runs that command before starting a build and, per Netlify's own docs,
+  "skips the build, returning early from the build process" if it exits
+  `0` — which happens, per that same bash test, only when the branch being
+  built is `main`. Per Netlify's billing FAQ, build-minute counting starts
+  when dependencies begin loading, which is after this check, so a skipped
+  build shouldn't be billed — this is also the documented, standard way
+  (e.g. in monorepo setups) to avoid paying for builds Netlify would
+  otherwise run unnecessarily, not a workaround. A PR's deploy preview
+  builds its own head branch, never `main`,
+  so `$BRANCH` there is the PR branch name, the check is false, and the
+  preview builds exactly as before. If `miziki.netlify.app` itself is ever
+  needed again (e.g. to compare against a GitHub Pages regression), it's
+  one `enabled = false` removal away, or a manual "Trigger deploy" from the
+  Netlify dashboard still works regardless of this setting.
 
 ### What changed in step 1 (tooling)
 

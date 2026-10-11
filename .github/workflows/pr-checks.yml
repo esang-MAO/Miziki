@@ -1,0 +1,30 @@
+name: PR checks
+
+# Runs on every pull request, independent of Netlify's build (which is now
+# PR deploy previews only — see CLAUDE.md's "Deploy previews (Netlify)"
+# section). GitHub Actions is free for public repos, so this is the
+# zero-cost place for lint/tests/build to gate a PR, whether or not the
+# Netlify preview build is the one that actually runs for a given push.
+on:
+  pull_request:
+
+# A new push to the PR cancels the previous run for that PR rather than
+# queuing behind it — same reasoning as deploy.yml's concurrency group.
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run build
+      - run: MIZIKI_BASE=/ npm run build

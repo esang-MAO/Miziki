@@ -1,5 +1,15 @@
 [build]
   command = "npm run lint && npm run test:unit && npm run build"
+  # The real deploy is GitHub Pages (.github/workflows/deploy.yml) — Netlify
+  # is PR deploy previews only. Without this, every push to main also
+  # triggered a Netlify *production* deploy to miziki.netlify.app that
+  # nobody uses, burning credits for nothing; that's what ran the account
+  # out last time. `ignore`'s exit code decides: 0 skips the build, anything
+  # else lets it run. `[ "$BRANCH" = "main" ]` exits 0 (skip) only when the
+  # branch being built is main; for a PR's head branch it's false (exit 1),
+  # so deploy previews are unaffected. See CLAUDE.md's "Deploy previews
+  # (Netlify)" section.
+  ignore = "[ \"$BRANCH\" = \"main\" ]"
   publish = "dist"
 
 [build.environment]
