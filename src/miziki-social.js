@@ -115,6 +115,15 @@
   };
   const MAX_PINS = 8, CHUNK = 200, GUARD_MIN = 10, GUARD_RATIO = 0.25;
   const HANDLE_RX = /^[a-z0-9_]{3,24}$/;
+  // Nobody should be able to claim a handle that impersonates the app.
+  // Keep this list in sync with the matching trigger in
+  // supabase/migrations/005_backup.sql — this is just the fast, offline
+  // check; the server-side trigger is the real enforcement.
+  const RESERVED_HANDLES = new Set([
+    'admin', 'administrator', 'support', 'help', 'miziki', 'official',
+    'security', 'moderator', 'mod', 'staff', 'team', 'root', 'system',
+    'null', 'undefined'
+  ]);
 
   const X = {
     enabled: false, sb: null, adapter: null, timing: { ...DEFAULT_TIMING },
@@ -318,6 +327,7 @@
   const checkHandle = handle => guarded(async () => {
     const h = String(handle || '').trim().toLowerCase();
     if (!HANDLE_RX.test(h)) return { ok: true, available: false, reason: 'format' };
+    if (RESERVED_HANDLES.has(h)) return { ok: true, available: false, reason: 'reserved' };
     const row = await q(X.sb.from('profiles').select('id').eq('handle', h).maybeSingle());
     return { ok: true, available: !row };
   });
@@ -325,11 +335,13 @@
     if (!X.userId) return fail('auth', 'Sign in first.');
     const h = String(handle || '').trim().toLowerCase();
     if (!HANDLE_RX.test(h)) return fail('bad_handle', '3–24 characters: letters, numbers, underscore.');
+    if (RESERVED_HANDLES.has(h)) return fail('handle_reserved', 'That handle is reserved.');
     const dn = displayName ? cps(String(displayName).trim()).slice(0, 50).join('') : null;
     const { data, error } = await X.sb.from('profiles')
       .insert({ id: X.userId, handle: h, display_name: dn || null }).select().single();
     if (error) {
       if (error.code === '23505') return fail('handle_taken', 'That handle is taken.');
+      if (error.code === 'P0001') return fail('handle_reserved', 'That handle is reserved.');
       throw error;
     }
     X.profile = data;
@@ -349,10 +361,15 @@
     if ('handle' in patch) {
       const h = String(patch.handle).trim().toLowerCase();
       if (!HANDLE_RX.test(h)) return fail('bad_handle', '3–24 characters: letters, numbers, underscore.');
+      if (RESERVED_HANDLES.has(h)) return fail('handle_reserved', 'That handle is reserved.');
       allowed.handle = h;
     }
     const { data, error } = await X.sb.from('profiles').update(allowed).eq('id', X.userId).select().single();
-    if (error) { if (error.code === '23505') return fail('handle_taken', 'That handle is taken.'); throw error; }
+    if (error) {
+      if (error.code === '23505') return fail('handle_taken', 'That handle is taken.');
+      if (error.code === 'P0001') return fail('handle_reserved', 'That handle is reserved.');
+      throw error;
+    }
     X.profile = data;
     return { ok: true, profile: data };
   });
