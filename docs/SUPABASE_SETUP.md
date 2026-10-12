@@ -57,16 +57,51 @@ Order:
 2. `002_rpc.sql` — the RPC functions the client calls.
 3. `003_digging.sql` — the digging-list table.
 4. `004_follow_counts.sql` — follower/following counts.
+5. `005_backup.sql` — the account-backup table, reserved handles, account
+   deletion, and a security hardening pass. **See its own section below**
+   before applying this one — it needs a follow-up step (re-running the
+   Security Advisor) that the others don't.
 
 **Never edit a migration that's already been applied** — if something needs
-to change later, it goes in a new numbered file (`005_...`, and so on; the
-account-backup PRs will add `005_backup.sql` and, later, `006_images.sql`).
+to change later, it goes in a new numbered file (`006_...`, and so on).
 
 **Verify it worked:** open **Table Editor** in the sidebar. You should see
 `profiles`, `follows`, `blocks`, `releases`, and the rest of the tables from
 `001_schema.sql`, plus whatever `003`/`004` added. If a table is missing,
 re-check that file ran without an error before moving on — running them out
 of order, or skipping one, is the most common way this breaks.
+
+### Applying `005_backup.sql`
+
+This one needs a follow-up step the earlier four don't, because part of what
+it does is fix findings from Supabase's own **Security Advisor** scan.
+
+1. Apply it the same way as every other migration (copy, paste into a new
+   SQL editor query, **Run**). It should finish with no errors.
+2. **Verify the new table:** **Table Editor** → confirm `library_backup`
+   exists, with columns `user_id`, `device_id`, `device_label`,
+   `schema_version`, `doc`, `updated_at`.
+3. **Re-run the Security Advisor:** **Advisors** (sidebar) → **Security
+   Advisor** → **Rerun linter** (or refresh the page — it re-scans
+   automatically on load too). Confirm the four `security definer`-function-
+   in-`public` findings this migration fixes are gone:
+   `is_blocked_between`, `item_visibility`, `effective_visibility`, and
+   `can_view` — all four now live in a new `private` schema the Advisor
+   (and the Data API) can't reach directly. The "Leaked password
+   protection" suggestion, if the Advisor still shows it, doesn't apply to
+   this app — Miziki signs in with emailed one-time codes, never
+   passwords; it's safe to leave as is.
+4. **Test reserved handles**: try (as yourself, or a throwaway test
+   account) to claim the handle `admin` or `support` — it should be
+   rejected with "That handle is reserved." A handle you'd already claimed
+   before this migration keeps working untouched; this only blocks new
+   claims and renames going forward.
+
+`public.delete_my_account()` (added by this migration too) isn't called
+from the app yet — there's no "delete my account" button in Settings as of
+this step — so there's nothing to test by hand here beyond confirming the
+migration itself applied cleanly. See CLAUDE.md's step 05 changelog entry
+for the full detail on everything `005_backup.sql` does.
 
 ---
 
