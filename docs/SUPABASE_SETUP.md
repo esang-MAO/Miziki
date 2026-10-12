@@ -197,6 +197,15 @@ Per Part 0's own instructions, filling in the project URL and key is a
 **separate, small PR** by itself — not part of this checklist's PR, and not
 something to do before the project exists.
 
+**Done, as of step 04.** `src/state.js` now has this project's real URL and
+publishable key. **That PR also had to widen the CSP** (`miziki.html`'s
+`<meta http-equiv="Content-Security-Policy">`) — the project's
+`https://<ref>.supabase.co` origin in both `connect-src` and `img-src`, and
+`wss://<ref>.supabase.co` in `connect-src` for the realtime subscription.
+If you're repeating this setup for a different project later, remember that
+CSP update too — without it, sign-in fails closed with a CSP violation,
+not a clear error. See CLAUDE.md's "Security" section for the exact policy.
+
 ---
 
 ## 6. Email rate limits, and moving to a real sender later
