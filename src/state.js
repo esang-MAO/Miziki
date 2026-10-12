@@ -1,11 +1,16 @@
 /* ================= social layer config =================
    Empty strings mean inert: MizikiSocial.init() leaves enabled:false and
    every screen that needs a server shows a calm "not set up yet" state (or
-   hides). Paste a Supabase project URL + anon key here once one exists —
-   the anon key is safe in client code, RLS is the actual protection. See
-   miziki-social-handoff/README.md §9 for the one-time project setup. */
-export const SOCIAL_SUPABASE_URL = '';
-export const SOCIAL_SUPABASE_ANON_KEY = '';
+   hides). Step 04 of the backup/account-system plan (docs/SUPABASE_SETUP.md)
+   fills these in once the project and its migrations exist — the anon key
+   is safe in client code, RLS is the actual protection.
+   SOCIAL_SUPABASE_ANON_KEY keeps its old name, but as of step 04 it holds
+   Supabase's newer *publishable* key (sb_publishable_…, Settings -> API
+   Keys), not the legacy JWT-shaped anon key Supabase is retiring at the
+   end of 2026 — never the secret key (sb_secret_…), which must never be
+   in client code or this repo at all. */
+export const SOCIAL_SUPABASE_URL = 'https://yeyeprzdlbyacisfftjp.supabase.co';
+export const SOCIAL_SUPABASE_ANON_KEY = 'sb_publishable_g7Ywv3lxDfwqxuAyCUSojg_wXd9Csnv';
 
 export const S = {
   ctx:null, nodes:null, source:null, gen:0,
