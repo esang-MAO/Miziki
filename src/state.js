@@ -66,6 +66,23 @@ export const S = {
 };
 
 export function current(){ return S.tracks[S.index] || null; }
+
+// one last-write timestamp per backed-up field that's otherwise just a
+// bare value (step 06, B3 — see the matching S.backupUpdatedAt default
+// near the bottom of this file for which fields and why). Lives here, not
+// in storage/meta.js, deliberately: state.js is the one module every one
+// of this function's callers (library/view.js, library/favorites.js,
+// library/delete.js, library/thumbs.js, history/sessions.js,
+// profile/screens.js, storage/meta.js itself) already imports for `S`
+// anyway, so this adds zero new real-module dependencies to any of them —
+// putting it in storage/meta.js instead would have made every one of
+// those modules (several of them widely depended-on themselves) reach
+// meta.js's own much larger chain (audio/mode.js, sundown/location.js,
+// player/controls.js, player/background.js, launch/intro.js,
+// sync/backup.js) just to stamp a timestamp.
+export function touchBackupField(name){
+  if(S.backupUpdatedAt) S.backupUpdatedAt[name] = Date.now();
+}
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
 S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:''};
@@ -97,3 +114,29 @@ S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
 // fight the user's own input value (step 3c — was a top-level let in main.js)
 S.scrubbing = false;
+
+/* ================= account backup (step 06, B3) =================
+   Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
+   step 03) needs but nothing wrote yet, per that step's own "doesn't exist
+   locally yet" list — now written by src/sync/backup.js and the small
+   touch-site edits across library/history/profile this step adds. None of
+   this is read unless signed in; see src/sync/backup.js's own header. */
+S.deviceId = null;
+S.deviceLabel = null;
+// bumped only by a *full*-scope "Clear listening history" (never the
+// orphaned-only scope) — see history/clear.js and CLAUDE.md's backup table
+S.historyClearedAt = 0;
+// a durable "ever broken" record per album, independent of S.sealed itself
+// (which only ever records "still sealed") — see library/sealed.js
+S.sealedBroken = new Set();
+// one last-write timestamp per backed-up field that's otherwise just a
+// last-value with no timestamp of its own — see storage/meta.js's
+// touchBackupField() and every call site that calls it
+S.backupUpdatedAt = {
+  playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0,
+  albumEdge:0, albumLookPref:0, prefs:0, profileName:0
+};
+// the account id this device has already merged a backup restore for —
+// null until the first successful merge, so the one-time "Restored..."
+// summary shows exactly once per account per device
+S.backupRestoredFor = null;

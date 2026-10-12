@@ -1,4 +1,4 @@
-import { S } from '../state.js';
+import { S, touchBackupField } from '../state.js';
 import { $ } from '../util/dom.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
@@ -8,6 +8,7 @@ import { applyVolume } from '../sundown/location.js';
 import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
 import { attachLaunchSettingRow } from '../launch/intro.js';
+import { scheduleBackupSync } from '../sync/backup.js';
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
@@ -23,6 +24,11 @@ export function queueSave(){
   saveTimer = setTimeout(saveMeta, 600);
 }
 
+// touchBackupField (step 06, B3) lives in state.js, not here — see its own
+// comment there for why. prefs has no finer-grained merge unit than the
+// whole prefs object (unlike playlists/albumOrder/albumSort, each touched
+// at its own real mutation site instead), so saveMeta() is the one place
+// that field's timestamp is stamped, every time it runs.
 async function saveMeta(){
   if(!storage.available()) return;
   // playlists/albumOrder already hold track ids, not positions (F3 spec,
@@ -33,6 +39,9 @@ async function saveMeta(){
   await meta.put('albumOrder', S.albumOrder);
   await meta.put('albumSort', S.albumSort);
   await meta.put('prefs', serializePrefs(S));
+  touchBackupField('prefs');
+  await meta.put('backupUpdatedAt', S.backupUpdatedAt);
+  scheduleBackupSync();
 }
 
 export async function restoreMeta(){
@@ -42,6 +51,10 @@ export async function restoreMeta(){
   if(ord) S.albumOrder = ord;
   const srt = await meta.get('albumSort');
   if(srt) S.albumSort = srt;
+  const bua = await meta.get('backupUpdatedAt');
+  if(bua) Object.assign(S.backupUpdatedAt, bua);
+  const hca = await meta.get('historyClearedAt');
+  if(typeof hca === 'number') S.historyClearedAt = hca;
   const pr = await meta.get('prefs');
   if(pr) applyPrefs(parsePrefs(pr));
 }
