@@ -309,10 +309,37 @@
     await applySession(data.session);
     return { ok: true, status: status() };
   });
+  // scope is always passed explicitly — supabase-js's own default has
+  // changed across versions, and "sign out" vs. "sign out everywhere"
+  // (step 06, B3 — a lost-phone escape hatch) must never depend on it.
   const signOut = () => guarded(async () => {
     stopSpinningNow();
-    await X.sb.auth.signOut();
+    await X.sb.auth.signOut({ scope: 'local' });
     X.state.synced = {}; X.state.statsSynced = {}; X.state.restoredFor = null; X.state.userId = null;
+    persistSoon();
+    await applySession(null);
+    return { ok: true };
+  });
+  const signOutEverywhere = () => guarded(async () => {
+    stopSpinningNow();
+    await X.sb.auth.signOut({ scope: 'global' });
+    X.state.synced = {}; X.state.statsSynced = {}; X.state.restoredFor = null; X.state.userId = null;
+    persistSoon();
+    await applySession(null);
+    return { ok: true };
+  });
+  // Irreversible — removes the account, handle, backup and social data from
+  // the server (supabase/migrations/005_backup.sql's delete_my_account(),
+  // cascading through every table that references the caller's own row).
+  // Music and history on THIS device are never touched: they live in
+  // IndexedDB, not in anything this RPC can reach. The caller (the Account
+  // screen) is responsible for the type-your-handle confirmation — this
+  // function does not ask again.
+  const deleteAccount = () => guarded(async () => {
+    await rpc('delete_my_account');
+    stopSpinningNow();
+    try { await X.sb.auth.signOut({ scope: 'local' }); } catch (_e) { /* account is already gone server-side */ }
+    X.state = freshState();
     persistSoon();
     await applySession(null);
     return { ok: true };
@@ -730,6 +757,12 @@
     await q(X.sb.from('blocks').delete().eq('blocker_id', X.userId).eq('blocked_id', userId));
     return { ok: true };
   });
+  const listBlocked = () => guarded(async () => {
+    const rows = await q(X.sb.from('blocks')
+      .select('blocked_id, created_at, profiles!blocks_blocked_id_fkey(handle, display_name)')
+      .eq('blocker_id', X.userId).order('created_at', { ascending: false }));
+    return { ok: true, blocked: rows || [] };
+  });
   const report = ({ userId, releaseId, reason }) => guarded(async () => {
     const r = cps(String(reason || '').trim()).slice(0, 500).join('');
     if (!r) return fail('bad_reason', 'Say what is wrong.');
@@ -900,21 +933,32 @@
   /* ====================================================================
      12. public API
      ==================================================================== */
+  // Step 06 (B3, account backup): the backup sync engine (src/sync/backup.js)
+  // needs the same signed-in Supabase client this module already creates,
+  // not a second one — a second client would mean two separate auth
+  // sessions/token refreshes racing each other for no reason. getClient()
+  // returns null whenever this module itself is inert (no keys configured,
+  // or init() hasn't resolved yet), the same "behaves exactly as before"
+  // fallback every other public method here already guards with.
+  function getClient(){ return X.enabled ? X.sb : null; }
+
   root.MizikiSocial = {
-    init, status, on,
+    init, status, on, getClient,
     // host-app hooks
     libraryLoaded() { X.libraryReady = true; scheduleSync(1500); },
     libraryChanged() { scheduleSync(); },
     listeningChanged() { scheduleSync(); },
     nowSpinning, nowSpinningPaused, stopSpinning,
     // auth + profile
-    sendCode, verifyCode, signOut, getMyProfile, checkHandle, createProfile, updateProfile,
+    sendCode, verifyCode, signOut, signOutEverywhere, deleteAccount,
+    getMyProfile, checkHandle, createProfile, updateProfile,
     // local social metadata
     setRating, setNote, setVisibility, pin, unpin, movePin, getPins, getAlbumSocial, getSettings, setSetting,
     // sync
     syncNow, confirmRemovals,
     // people
-    searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing, block, unblock, report,
+    searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing,
+    block, unblock, listBlocked, report,
     // reading
     loadProfile, crate, inCommon, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
     // helpers (also used by tests / UI)
