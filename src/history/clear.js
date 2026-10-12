@@ -9,7 +9,7 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
-import { achievements, collection, sessions } from '../storage/repo.js';
+import { achievements, collection, sessions, meta } from '../storage/repo.js';
 import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
@@ -18,6 +18,7 @@ import {
 import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { persistTrackLastPlayed, renderProfile } from '../profile/screens.js';
+import { scheduleBackupSync } from '../sync/backup.js';
 
 function currentAlbumIds(){ return new Set(S.tracks.map(albumKey)); }
 function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }
@@ -55,6 +56,12 @@ export async function clearListeningHistory(orphanedOnly){
     S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
     S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
     await achievements.clear(); await collection.clear(); await sessions.clear();
+    // only a *full*-scope clear counts as "I want my stats reset" for the
+    // cross-device merge (B2 table) — orphaned-only just prunes identities
+    // no longer in *this* device's library, which forcing onto every other
+    // device could wipe stats they still have every reason to keep
+    S.historyClearedAt = Date.now();
+    await meta.put('historyClearedAt', S.historyClearedAt);
   }
   await pruneThumbs();
   await Promise.all([
@@ -66,4 +73,5 @@ export async function clearListeningHistory(orphanedOnly){
   if(t) applyDiscVariant(t, true);
   const profileRoute = $('#route-profile');
   if(profileRoute && profileRoute.classList.contains('on')) renderProfile();
+  scheduleBackupSync();
 }

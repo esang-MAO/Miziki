@@ -12,8 +12,16 @@ import { updateSealedSheetAfterBreak } from '../gatefold/sealed-sheet.js';
 export async function restoreSealedAlbums(){
   const row = await meta.get('sealedAlbums');
   S.sealed = new Set(row && row.ids ? row.ids : []);
+  // a durable "ever broken" record, independent of S.sealed itself (which
+  // only ever records "still sealed") — step 06, B3: the cross-device merge
+  // rule ("a seal broken on any device stays broken everywhere") needs to
+  // tell "broken" apart from "this device never had the album at all",
+  // which S.sealed alone can't (see CLAUDE.md's step-03 backup-table note)
+  const broken = await meta.get('sealedBrokenAlbums');
+  S.sealedBroken = new Set(broken && broken.ids ? broken.ids : []);
 }
 export async function persistSealedAlbums(){ await meta.put('sealedAlbums', {init:true, ids:[...S.sealed]}); }
+export async function persistBrokenSeals(){ await meta.put('sealedBrokenAlbums', {ids:[...S.sealedBroken]}); }
 
 export function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(albumId); }
 
@@ -23,7 +31,9 @@ export function isAlbumSealed(albumId){ return S.sealedRecords && S.sealed.has(a
 export function breakSeal(albumId){
   if(!S.sealed.has(albumId)) return;
   S.sealed.delete(albumId);
+  S.sealedBroken.add(albumId);
   persistSealedAlbums();
+  persistBrokenSeals();
   updateSealedSheetAfterBreak(albumId);
   renderTracks();
 }

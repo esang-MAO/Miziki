@@ -9,7 +9,7 @@
    here — that's step 7e's territory, see src/crate/view.js's own step 7c
    note) — purely a physical-position accident, not because it has
    anything to do with the gatefold. */
-import { S } from '../state.js';
+import { S, touchBackupField } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { fmt } from '../player/clock.js';
 import { setQueue } from '../player/queue.js';
@@ -168,6 +168,7 @@ function togglePick(i, node){
   const at = pl.items.indexOf(id);
   if(at >= 0) pl.items.splice(at,1); else pl.items.push(id);
   queueSave();
+  touchBackupField('playlists');
   node.classList.toggle('picked', at < 0);
 }
 
@@ -212,8 +213,9 @@ function sortBar(album){
     const b = el('button', null, label);
     b.setAttribute('aria-pressed', String(mode === k));
     b.addEventListener('click', ()=>{
-      if(k === 'manual' && !S.albumOrder[album]) S.albumOrder[album] = albumTracks(album);
+      if(k === 'manual' && !S.albumOrder[album]){ S.albumOrder[album] = albumTracks(album); touchBackupField('albumOrder'); }
       S.albumSort[album] = k;
+      touchBackupField('albumSort');
       syncQueueOrder(albumTracks(album));
       queueSave();
       renderTracks();
@@ -247,7 +249,7 @@ function renderAlbumDetail(host, ul, album){
       // only lists tracks currently present, so the two can diverge once
       // a track in this album has been forgotten but not yet reconnected
       const fullPos = S.albumOrder[album].indexOf(idOf(i));
-      row.appendChild(moverCtl(S.albumOrder[album], fullPos, ord => syncQueueOrder(ord.map(idxOf).filter(x => x >= 0))));
+      row.appendChild(moverCtl(S.albumOrder[album], fullPos, ord => { touchBackupField('albumOrder'); syncQueueOrder(ord.map(idxOf).filter(x => x >= 0)); }));
     }
     ul.appendChild(row);
   });
@@ -444,7 +446,7 @@ export function renderTracks(){
       const mk = el('button','cta','Create');
       mk.addEventListener('click', ()=>{
         const nm = nameIn.value.trim(); if(!nm) return;
-        S.playlists.push({name:nm, items:[]}); queueSave();
+        S.playlists.push({name:nm, items:[]}); queueSave(); touchBackupField('playlists');
         v.playlist = S.playlists.length - 1; v.picking = true; renderTracks();
       });
       add.appendChild(nameIn); add.appendChild(mk);
@@ -477,7 +479,7 @@ export function renderTracks(){
             // so a hidden/forgotten entry elsewhere in the playlist keeps
             // its own relative place
             const fullPos = pl.items.indexOf(idOf(i));
-            row.appendChild(moverCtl(pl.items, fullPos, ord => syncQueueOrder(ord.map(idxOf).filter(x => x >= 0))));
+            row.appendChild(moverCtl(pl.items, fullPos, ord => { touchBackupField('playlists'); syncQueueOrder(ord.map(idxOf).filter(x => x >= 0)); }));
           }
           ul.appendChild(row);
         });

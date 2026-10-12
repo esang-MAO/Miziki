@@ -17,6 +17,7 @@ import { persistSealedAlbums } from './sealed.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { renderTracks, exitSelectMode } from './view.js';
+import { scheduleBackupSync } from '../sync/backup.js';
 
 function applyOverlay(t, rec, artBlob){
   t.embeddedTags = Object.assign({}, t.tags);
@@ -82,7 +83,11 @@ export async function applyEdit(trackIds, fields, artBlob){
     const oldAlbumId = albumKey(t);
     const existing = await overlays.get(id);
     const merged = Object.assign({}, existing && existing.fields, fields);
-    await overlays.put({id, fields: merged});
+    // editedAt stamps this exact write for the cross-device overlay merge
+    // (B2 table: "last edit wins by timestamp") — step 06, B3. A sparse
+    // overlay row carries no other identity than this track's file id, so
+    // this is the only place that timestamp can be recorded.
+    await overlays.put({id, fields: merged, editedAt: Date.now()});
     Object.assign(t.tags, fields);
     // the album id is recomputed from the (possibly just-edited) album
     // title — carry the seal state over so a retag never seals or unseals
@@ -109,6 +114,7 @@ export async function applyEdit(trackIds, fields, artBlob){
     buildCrateTier(albumId, 'S').catch(() => {});
   }
   if(sealedChanged) persistSealedAlbums();
+  scheduleBackupSync();
 }
 
 // clears a track's whole overlay (fields + artwork), restoring it to
@@ -117,7 +123,13 @@ export async function revertTrack(id){
   const i = idxOf(id); if(i < 0) return;
   const t = S.tracks[i];
   const hadArtOverlay = !!t.overlayArtBlob;
-  await overlays.del(id);
+  // a tombstone, not a plain delete: the cross-device merge (B2 table —
+  // "a revert is a tombstone that also wins by timestamp") needs this
+  // device's own revert to be able to out-race a stale edit still sitting
+  // unsynced on another device. loadOverlayFor()/applyEdit()'s merge both
+  // already treat a falsy `fields` as "nothing to apply", so this is no
+  // behavior change for local use — only the row's own survival changes.
+  await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now()});
   await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
@@ -129,6 +141,7 @@ export async function revertTrack(id){
     buildCrateTier(albumId, 'S').catch(() => {});
   }
   recomputeTrack(i);
+  scheduleBackupSync();
 }
 
 // single-level undo for a batch (or single) edit: snapshots exactly what was
@@ -153,7 +166,10 @@ export async function undoLastEdit(){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
     const prevRec = u.prevOverlays[id], prevArtRec = u.prevArt[id];
-    if(prevRec) await overlays.put(prevRec); else await overlays.del(id);
+    // same tombstone shape as revertTrack() above, for the same reason —
+    // undoing an edit that had no prior overlay is exactly a revert
+    if(prevRec) await overlays.put(prevRec);
+    else await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now()});
     if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
@@ -166,6 +182,7 @@ export async function undoLastEdit(){
     buildCrateTier(albumId, 'S').catch(() => {});
   }
   hideUndoBanner();
+  scheduleBackupSync();
 }
 
 export function showUndoBanner(count){
