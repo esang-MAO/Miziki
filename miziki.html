@@ -19,11 +19,12 @@
      cover art before resizing it — without blob: here, every one of
      those fetches was silently blocked and swallowed by its own
      catch(_e){return false}, so crate art and thumbnails never built for
-     any file with embedded artwork. When Supabase keys are added (see
-     CLAUDE.md's security hardening note), connect-src also needs the
-     project's https:// and wss:// origins added, and img-src needs the
-     https:// one too, or sign-in breaks. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+     any file with embedded artwork. Step 04 added the Supabase project's
+     own https:// and wss:// origins to connect-src, and the https:// one
+     to img-src too (REST/auth calls, the realtime "now spinning"
+     subscription, and any Storage-hosted avatar) — without these,
+     sign-in silently fails once real keys exist. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co wss://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Miziki</title>
 <!-- self-hosted fonts (step 01: security hardening) — no more Google
