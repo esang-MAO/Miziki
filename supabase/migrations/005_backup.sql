@@ -66,6 +66,15 @@ create trigger profiles_handle_reserved
   before insert or update of handle on public.profiles
   for each row execute function public.profiles_handle_not_reserved();
 
+-- Trigger functions are invoked by the system, never called directly by a
+-- role, so no role ever needs EXECUTE on this one — revoking it from
+-- everyone, including authenticated, closes that off entirely. Same
+-- mutable-search_path fix as touch_updated_at() below, for the same
+-- reason (every built-in this body calls -- lower(), array[], any() --
+-- lives in pg_catalog, which search_path = '' still always searches).
+alter function public.profiles_handle_not_reserved() set search_path = '';
+revoke execute on function public.profiles_handle_not_reserved() from public, anon, authenticated;
+
 -- ---------- 3. delete_my_account(): irreversible, caller-only ---------
 -- auth.users' existing `on delete cascade` foreign keys (profiles, and
 -- everything that cascades from profiles: follows, blocks, crate_items,
