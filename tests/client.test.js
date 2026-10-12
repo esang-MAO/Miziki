@@ -109,5 +109,132 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const theirs=await M.loadProfile('amy'); assert.equal(theirs.ok,true,JSON.stringify(theirs));
    assert.equal(theirs.isMe,false); assert.ok(theirs.canView,JSON.stringify(theirs));
    assert.ok(!('followers' in theirs.summary),JSON.stringify(theirs.summary)); });
+ // ---------------------------------------------------------------------
+ // B1 (step 05): library_backup, reserved handles, account deletion, and
+ // the Oct 12 Security Advisor fixes (005_backup.sql). Raw SQL throughout
+ // -- this PR is server-only, and the JS mock `sb` above has no insert/
+ // update/delete on `.from()` to route these through, so these exercise
+ // Postgres directly, the same way the follows-fixture setup just above
+ // already does. New fixture users (not ken/amy) so nothing here can
+ // collide with the tests above.
+ // ---------------------------------------------------------------------
+ const UID3='33333333-3333-3333-3333-333333333333', UID4='44444444-4444-4444-4444-444444444444';
+ const DEV1='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', DEV2='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+ psql(`insert into auth.users values ('${UID3}'),('${UID4}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values ('${UID3}','cora','Cora','private'),('${UID4}','dale','Dale','private') on conflict do nothing`);
+ // last line only (set_config's own output line, or an earlier statement's,
+ // would otherwise shadow the thing we actually want) -- same convention
+ // sb.rpc() above already uses.
+ const lastLine = out => { const l=out.split('\n'); return l[l.length-1]; };
+ const asUser = (uid, sql) => lastLine(psql(`set role authenticated; select set_config('request.jwt.claim.sub','${uid}',false); ${sql}`));
+ const asAnon = sql => lastLine(psql(`set role anon; ${sql}`));
+
+ await t('library_backup: a user can insert and update their own row',()=>{
+   asUser(UID3, `insert into library_backup(user_id,device_id,device_label,schema_version,doc) values ('${UID3}','${DEV1}','Test device',1,'{"a":1}'::jsonb)`);
+   asUser(UID3, `update library_backup set doc='{"a":2}'::jsonb where user_id='${UID3}' and device_id='${DEV1}'`);
+   assert.equal(asUser(UID3, `select doc->>'a' from library_backup where user_id='${UID3}' and device_id='${DEV1}'`), '2'); });
+
+ await t('library_backup: two devices for the same user produce two rows, both readable',()=>{
+   asUser(UID3, `insert into library_backup(user_id,device_id,device_label,schema_version,doc) values ('${UID3}','${DEV2}','Second device',1,'{"b":1}'::jsonb)`);
+   assert.equal(asUser(UID3, `select count(*) from library_backup where user_id='${UID3}'`), '2'); });
+
+ await t('library_backup: a user cannot read another user\'s rows',()=>{
+   assert.equal(asUser(UID4, `select count(*) from library_backup where user_id='${UID3}'`), '0'); });
+
+ await t('library_backup: a user cannot write another user\'s row',()=>{
+   let threw=false;
+   try{ asUser(UID4, `insert into library_backup(user_id,device_id,schema_version,doc) values ('${UID3}','${DEV1}',1,'{}'::jsonb)`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected RLS to reject a cross-user insert');
+   // UPDATE just matches zero rows rather than throwing (USING, not WITH
+   // CHECK) -- confirm the real owner's value is untouched by reading it
+   // back as the real owner, not as the attacker (who can't see it either).
+   asUser(UID4, `update library_backup set doc='{"x":1}'::jsonb where user_id='${UID3}' and device_id='${DEV1}'`);
+   assert.equal(asUser(UID3, `select doc->>'a' from library_backup where user_id='${UID3}' and device_id='${DEV1}'`), '2'); });
+
+ await t('library_backup: the size check rejects an oversized doc',()=>{
+   const DEV3='cccccccc-cccc-cccc-cccc-cccccccccccc';
+   let threw=false;
+   try{ asUser(UID3, `insert into library_backup(user_id,device_id,schema_version,doc) values ('${UID3}','${DEV3}',1,jsonb_build_object('pad', repeat('x', 3*1024*1024)))`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected the size check to reject a 3MB doc');
+   assert.equal(asUser(UID3, `select count(*) from library_backup where device_id='${DEV3}'`), '0'); });
+
+ await t('reserved handles are rejected on insert; normal handles still work',()=>{
+   const UID6='66666666-6666-6666-6666-666666666666';
+   psql(`insert into auth.users values ('${UID6}') on conflict do nothing`);
+   let threw=false;
+   try{ psql(`insert into profiles(id,handle,visibility) values ('${UID6}','admin','private')`); }
+   catch(e){ threw = /reserved/i.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected the reserved-handle trigger to fire for "admin"');
+   assert.equal(q1(`select count(*) from profiles where id='${UID6}'`), '0');
+   psql(`insert into profiles(id,handle,display_name,visibility) values ('${UID6}','frank','Frank','private')`);
+   assert.equal(q1(`select handle from profiles where id='${UID6}'`), 'frank'); });
+
+ await t('reserved handles are rejected on update too; existing rows are never retroactively checked',()=>{
+   let threw=false;
+   try{ psql(`update profiles set handle='staff' where id='66666666-6666-6666-6666-666666666666'`); }
+   catch(e){ threw = /reserved/i.test(e.message); if(!threw) throw e; }
+   assert.ok(threw);
+   assert.equal(q1(`select handle from profiles where id='66666666-6666-6666-6666-666666666666'`), 'frank');
+   // ken/amy (inserted long before this trigger existed) are untouched -- a
+   // BEFORE trigger only ever fires on a future write, never a backfill.
+   assert.equal(q1(`select handle from profiles where id='${UID}'`), 'ken'); });
+
+ await t('the four RLS helpers now live in private, not public (API-schema lockout)',()=>{
+   for(const n of ['is_blocked_between','item_visibility','effective_visibility','can_view']){
+     const schema=q1(`select nspname from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where p.proname='${n}' and ns.nspname in ('public','private')`);
+     assert.equal(schema, 'private', n+' should be in schema private, found '+JSON.stringify(schema));
+   } });
+
+ await t('anon cannot call the four helpers directly',()=>{
+   for(const call of [
+     `select private.is_blocked_between('${UID3}'::uuid,'${UID4}'::uuid)`,
+     `select private.item_visibility('${UID3}'::uuid, (select id from releases limit 1))`,
+     `select private.effective_visibility('${UID3}'::uuid, null::public.visibility_level)`,
+     `select private.can_view('${UID3}'::uuid)`]){
+     let threw=false;
+     try{ asAnon(call); } catch(e){ threw=/permission denied/i.test(e.message); if(!threw) throw e; }
+     assert.ok(threw, 'expected permission denied for: '+call);
+   } });
+
+ await t('authenticated keeps direct execute on the four helpers (what the RLS policies themselves rely on)',()=>{
+   assert.doesNotThrow(()=> asUser(UID3, `select private.can_view('${UID3}'::uuid)`)); });
+
+ await t('sync_crate attributes a newly-created release to the caller (created_by)',()=>{
+   asUser(UID3, `select sync_crate('[{"release_key":"createdbykey1","title":"CB Album","artist":"CB Artist"}]'::jsonb, true)`);
+   assert.equal(q1(`select created_by from releases where release_key='createdbykey1'`), UID3); });
+
+ await t('a direct insert into releases with someone else\'s created_by is rejected',()=>{
+   let threw=false;
+   try{ asUser(UID3, `insert into releases(release_key,title,artist,created_by) values ('createdbykey2','CB2','CB2 Artist','${UID4}')`); }
+   catch(e){ threw=/row-level security|permission denied/i.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected RLS to reject created_by spoofing');
+   assert.equal(q1(`select count(*) from releases where release_key='createdbykey2'`), '0'); });
+
+ await t('delete_my_account removes the caller\'s auth user, profile, crate, follows and backup rows -- and leaves everyone else untouched',async()=>{
+   const UID5='55555555-5555-5555-5555-555555555555';
+   psql(`insert into auth.users values ('${UID5}') on conflict do nothing;
+     insert into profiles(id,handle,display_name,visibility) values ('${UID5}','erin','Erin','public') on conflict do nothing;
+     insert into follows(follower_id,followee_id,status) values ('${UID5}','${UID3}','accepted') on conflict do nothing;
+     insert into library_backup(user_id,device_id,schema_version,doc) values ('${UID5}','dddddddd-dddd-dddd-dddd-dddddddddddd',1,'{}'::jsonb) on conflict do nothing;
+     insert into releases(release_key,title,artist) values ('erin-delete-test-key','Erin Test Album','Erin Test Artist') on conflict do nothing;
+     insert into crate_items(user_id,release_id,quality_tier) select '${UID5}', id, 2 from releases where release_key='erin-delete-test-key' on conflict (user_id,release_id) do nothing`);
+   assert.equal(q1(`select count(*) from crate_items where user_id='${UID5}'`), '1');
+   asUser(UID5, `select delete_my_account()`);
+   assert.equal(q1(`select count(*) from auth.users where id='${UID5}'`), '0');
+   assert.equal(q1(`select count(*) from profiles where id='${UID5}'`), '0');
+   assert.equal(q1(`select count(*) from follows where follower_id='${UID5}'`), '0');
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID5}'`), '0');
+   assert.equal(q1(`select count(*) from crate_items where user_id='${UID5}'`), '0');
+   assert.equal(q1(`select count(*) from profiles where id='${UID3}'`), '1');
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '2'); });
+
+ await t('delete_my_account can only ever remove the caller\'s own account',()=>{
+   asUser(UID4, `select delete_my_account()`); // deletes UID4, and only UID4
+   assert.equal(q1(`select count(*) from auth.users where id='${UID4}'`), '0');
+   assert.equal(q1(`select count(*) from profiles where id='${UID3}'`), '1');
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '2'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
