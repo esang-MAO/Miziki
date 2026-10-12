@@ -43,7 +43,7 @@ mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
   namedExports: { REDUCED: false },
 });
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave: queueSaveMock },
+  namedExports: { queueSave: queueSaveMock, touchBackupField(){} },
 });
 
 const { isFavorite, toggleFavorite, updateFavoriteButtons } = await import('../../src/library/favorites.js');

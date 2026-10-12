@@ -60,7 +60,7 @@ mock.module(new URL('../../src/library/favorites.js', import.meta.url).href, {
 });
 const queueSaveMock = mock.fn();
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave: queueSaveMock },
+  namedExports: { queueSave: queueSaveMock, touchBackupField(){} },
 });
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: { overlays: { get: async () => null }, artwork: { get: async () => null } },

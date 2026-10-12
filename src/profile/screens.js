@@ -1,10 +1,11 @@
-import { S } from '../state.js';
+import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { meta, profile } from '../storage/repo.js';
 import { topAlbums, topTracks, achievementsList, crateFilled, collectionGroups } from '../history/achievements.js';
 import { metalBadge, collectionBadge } from './badges.js';
 import { renderStorefrontSection } from './storefront.js';
 import { renderSocialSettingsScreen } from './settings.js';
+import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
 import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 
@@ -28,6 +29,7 @@ export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed'
    general listening stats. See PROFILE spec §1. */
 export async function persistProfile(){
   await profile.put({k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
+  touchBackupField('profileName');
 }
 
 // "John Smith" -> "John S."; a single word (or nothing) passes through as-is
@@ -60,7 +62,7 @@ export function topTile(label, art, title, subtitle, emptyText, onTap){
 export function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Settings'};
+  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
     crumb.innerHTML = '';
@@ -74,12 +76,17 @@ export function renderProfile(){
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
   else if(screen === 'socialSettings') renderSocialSettingsScreen(body);
+  else if(screen === 'privacy') renderPrivacyScreen(body);
   else renderProfileHome(body);
   refreshLibraryTools();
 }
 
 function renderProfileHome(body){
   renderStorefrontSection(body);
+  // reachable from Profile regardless of sign-in state — the privacy
+  // screen itself shows the calm "sign in to use this" row for the
+  // social-only sections when signed out (step 06, B3)
+  wirePrivacyLink(body, renderProfile);
 }
 
 // Top Album/Top Song, Achievements, Collection and Share don't exist

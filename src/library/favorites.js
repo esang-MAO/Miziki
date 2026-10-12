@@ -6,7 +6,7 @@
    positions (F3 spec, step 02) — a favorited track that's since been
    forgotten (not deleted) just stays in the list, hidden until it
    reconnects, so this module never needs to resolve an index at all. */
-import { S, current } from '../state.js';
+import { S, current, touchBackupField } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { REDUCED } from '../util/motion.js';
@@ -32,6 +32,7 @@ export function toggleFavorite(id){
   const at = pl.items.indexOf(id);
   if(at >= 0) pl.items.splice(at, 1); else pl.items.push(id);
   queueSave();
+  touchBackupField('playlists');
   updateFavoriteButtons();
   const t = current();
   if(!REDUCED && t && t.id === id){

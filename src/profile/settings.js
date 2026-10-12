@@ -1,21 +1,43 @@
 import { S } from '../state.js';
 import { el, $ } from '../util/dom.js';
-import { storeSwitch, timeAgoShort } from './storefront.js';
+import { timeAgoShort } from './storefront.js';
 import { renderProfile } from './screens.js';
 import { renderHome } from '../social/screens/home.js';
+import { wirePrivacyLink } from './privacy.js';
+import { getBackupStatus, listBackupDevices } from '../sync/backup.js';
 
 let socialAuth = null;
 
+// A handle must already look valid (same shape as MizikiSocial's own
+// HANDLE_RX) before it's worth pre-filling or checking — a username with
+// spaces/punctuation, or too short once stripped, just leaves the field
+// blank for the user to type their own, same as a fresh sign-in always has.
+function handleFromUsername(username){
+  const h = String(username || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24);
+  return /^[a-z0-9_]{3,24}$/.test(h) ? h : '';
+}
+
 export function beginSocialSignIn(){
   const auth = MizikiSocial.status().auth;
+  const prefillHandle = auth === 'needsProfile' ? handleFromUsername(S.profile.username) : '';
   socialAuth = {
     step: auth === 'needsProfile' ? 'handle' : 'email',
-    email: '', code: '', handle: '', displayName: '', visibility: 'friends',
-    error: null, busy: false
+    email: '', code: '', handle: prefillHandle, displayName: '', visibility: 'friends',
+    error: null, busy: false, handleStatus: null
   };
   $('#socialAuthOverlay').classList.add('open');
   $('#socialAuthOverlay').setAttribute('aria-hidden','false');
   renderSocialAuth();
+  if(prefillHandle) checkPrefilledHandle(prefillHandle);
+}
+
+async function checkPrefilledHandle(h){
+  const r = await MizikiSocial.checkHandle(h);
+  if(!socialAuth || socialAuth.handle !== h) return;   // user already changed it
+  socialAuth.handleStatus = !r.ok ? r.error.message
+    : r.available ? '@' + h + ' is available.'
+    : (r.reason === 'reserved' ? 'That handle is reserved.' : 'That handle is taken.');
+  if(socialAuth.step === 'handle') renderSocialAuth();
 }
 export function closeSocialAuth(){
   $('#socialAuthOverlay').classList.remove('open');
@@ -115,7 +137,7 @@ function renderSocialAuthHandle(title, body){
   const { row, input } = socialField('Handle', socialAuth.handle,
     {type:'text', placeholder:'yourname', maxLength:24, autocapitalize:'none', autocorrect:'off'});
   body.appendChild(row);
-  const status = el('p','note','3–24 characters: letters, numbers, underscore.');
+  const status = el('p','note', socialAuth.handleStatus || '3–24 characters: letters, numbers, underscore.');
   body.appendChild(status);
   const { row: nameRow, input: nameInput } = socialField('Display name (optional)', socialAuth.displayName,
     {type:'text', placeholder:'Shown under your handle', maxLength:50});
@@ -133,7 +155,8 @@ function renderSocialAuthHandle(title, body){
       if(mySeq !== seq) return;
       if(!r.ok){ status.textContent = r.error.message; return; }
       status.textContent = r.available ? '@' + h + ' is available.'
-        : (r.reason === 'format' ? '3–24 characters: letters, numbers, underscore.' : 'That handle is taken.');
+        : (r.reason === 'format' ? '3–24 characters: letters, numbers, underscore.'
+          : r.reason === 'reserved' ? 'That handle is reserved.' : 'That handle is taken.');
     }, 350);
   });
   body.appendChild(socialPrimaryStack(socialAuth.busy ? 'Checking…' : 'Continue', async ()=>{
@@ -142,8 +165,10 @@ function renderSocialAuthHandle(title, body){
     const avail = await MizikiSocial.checkHandle(h);
     if(!avail.ok || !avail.available){
       socialAuth.busy = false;
-      socialAuth.error = (avail.ok && avail.reason !== 'format') ? 'That handle is taken.'
-        : '3–24 characters: letters, numbers, underscore.';
+      socialAuth.error = !avail.ok ? avail.error.message
+        : avail.reason === 'reserved' ? 'That handle is reserved.'
+        : avail.reason === 'format' ? '3–24 characters: letters, numbers, underscore.'
+        : 'That handle is taken.';
       socialAuth.handle = h;
       renderSocialAuth(); return;
     }
@@ -200,6 +225,68 @@ function socialSyncStatusLine(status){
   return 'Not synced yet.';
 }
 
+// Account screen (step 06, B3) — @handle + email, backup status, the
+// device list, sign out (this device only) / sign out everywhere (every
+// device — a lost-phone escape hatch) / delete account. The sharing
+// toggles and crate visibility moved to the Privacy screen
+// (src/profile/privacy.js); the crate-sync review banner/skip notices
+// below are kept here, not there, since they're about this account's
+// crate sync specifically, not a privacy control.
+function accountBackupStatusLine(){
+  const st = getBackupStatus();
+  if(st.waiting) return 'Backed up · syncing…';
+  if(st.lastSyncedAt) return 'Backed up · ' + timeAgoShort(Date.now() - st.lastSyncedAt) + ' ago';
+  return 'Waiting for connection.';
+}
+
+function renderDeviceList(body){
+  const section = el('div','social-setting-row');
+  section.appendChild(el('h2', null, 'Devices'));
+  body.appendChild(section);
+  const list = el('p','note','Loading…');
+  body.appendChild(list);
+  listBackupDevices().then(devices => {
+    list.remove();
+    if(!devices.length){ body.appendChild(el('p','note','No devices yet.')); return; }
+    devices.forEach(d => {
+      const row = el('div','social-setting-row');
+      row.appendChild(el('span', null, d.label + (d.isThisDevice ? ' (this device)' : '')));
+      row.appendChild(el('em', null, d.updatedAt ? 'Synced ' + timeAgoShort(Date.now() - d.updatedAt) + ' ago' : 'Never synced'));
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderDeleteAccount(body, profile){
+  const section = el('div','social-setting-row');
+  section.appendChild(el('h2', null, 'Delete account'));
+  body.appendChild(section);
+  body.appendChild(el('p','note',
+    'This permanently removes your account, handle, backup and social data from the server. '
+    + 'Your music and listening history on this device stay exactly as they are.'));
+  const confirmInput = el('input','pl-input');
+  confirmInput.type = 'text'; confirmInput.placeholder = 'Type @' + profile.handle + ' to confirm';
+  confirmInput.autocapitalize = 'none'; confirmInput.autocorrect = 'off';
+  body.appendChild(confirmInput);
+  const deleteBtn = el('button','cta forget-btn','Delete account');
+  deleteBtn.disabled = true;
+  confirmInput.addEventListener('input', ()=>{
+    deleteBtn.disabled = confirmInput.value.trim().toLowerCase().replace(/^@/,'') !== profile.handle.toLowerCase();
+  });
+  deleteBtn.addEventListener('click', async ()=>{
+    deleteBtn.disabled = true; deleteBtn.textContent = 'Deleting…';
+    const r = await MizikiSocial.deleteAccount();
+    if(!r.ok){
+      deleteBtn.textContent = 'Delete account';
+      body.appendChild(el('p','note', r.error.message));
+      return;
+    }
+    S.profileView.screen = 'home';
+    renderProfile();
+  });
+  body.appendChild(deleteBtn);
+}
+
 export function renderSocialSettingsScreen(body){
   body.innerHTML = '';
   const status = MizikiSocial.status();
@@ -222,20 +309,20 @@ export function renderSocialSettingsScreen(body){
       (status.skipped.noArtist === 1 ? 'it' : 'they') + ' can’t be shared yet.'));
   }
 
-  const settings = MizikiSocial.getSettings();
-  const spinRow = el('div','social-setting-row');
-  spinRow.appendChild(el('h2', null, 'Share what you’re spinning'));
-  spinRow.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
-    on => MizikiSocial.setSetting('shareNowSpinning', on)));
-  body.appendChild(spinRow);
-  body.appendChild(el('p','note','Friends who follow you see the album and track while you listen.'));
+  MizikiSocial.getMyProfile().then(profRes => {
+    const profile = profRes.ok ? profRes.profile : null;
+    if(!profile) return;
+    MizikiSocial.getClient().auth.getUser().then(({data}) => {
+      const email = data && data.user && data.user.email;
+      const idRow = el('div','social-setting-row');
+      idRow.appendChild(el('b', null, '@' + profile.handle));
+      if(email) idRow.appendChild(el('em', null, email));
+      body.insertBefore(idRow, body.firstChild);
+      body.insertBefore(el('p','note', accountBackupStatusLine()), idRow.nextSibling);
+    });
+  });
 
-  const milestoneRow = el('div','social-setting-row');
-  milestoneRow.appendChild(el('h2', null, 'Share rare-pressing milestones'));
-  milestoneRow.appendChild(storeSwitch('Share rare-pressing milestones', settings.shareMilestones,
-    on => MizikiSocial.setSetting('shareMilestones', on)));
-  body.appendChild(milestoneRow);
-  body.appendChild(el('p','note','Off by default. When on, hitting a rare pressing posts to your activity for friends to see.'));
+  renderDeviceList(body);
 
   const signOutStack = el('div','stack social-stack');
   const signOutBtn = el('button','cta ghost','Sign out');
@@ -245,5 +332,18 @@ export function renderSocialSettingsScreen(body){
     renderProfile();
   });
   signOutStack.appendChild(signOutBtn);
+  const signOutAllBtn = el('button','cta ghost','Sign out everywhere');
+  signOutAllBtn.addEventListener('click', async ()=>{
+    await MizikiSocial.signOutEverywhere();
+    S.profileView.screen = 'home';
+    renderProfile();
+  });
+  signOutStack.appendChild(signOutAllBtn);
   body.appendChild(signOutStack);
+
+  wirePrivacyLink(body, renderProfile);
+
+  MizikiSocial.getMyProfile().then(profRes => {
+    if(profRes.ok && profRes.profile) renderDeleteAccount(body, profRes.profile);
+  });
 }

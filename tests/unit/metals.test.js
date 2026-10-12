@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 // thumbs.js's one export stops that chain at the door, the same approach
 // tags.test.js/credits.test.js/search.test.js use.
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, persistable: rec => rec, thumbURL: {}, pruneThumbs: async () => {} },
 });
 
 const {

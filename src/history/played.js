@@ -10,6 +10,7 @@ import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
 import { persistTrackLastPlayed } from '../profile/screens.js';
+import { scheduleBackupSync } from '../sync/backup.js';
 
 export function addPlayedRange(a, b){
   if(b <= a) return;
@@ -54,5 +55,6 @@ export function checkTrackCompletion(t){
     incrementTrackPlay(t);
     sessionTrackComplete(t);
     checkAlbumAchievementAndCollection(t);
+    scheduleBackupSync();
   }
 }

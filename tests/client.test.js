@@ -236,5 +236,94 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.equal(q1(`select count(*) from profiles where id='${UID3}'`), '1');
    assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '2'); });
 
+ // ---------------------------------------------------------------------
+ // B3 (step 06): two real devices, sharing one account, syncing their
+ // play counts through the real library_backup table. The merge logic
+ // itself (sum/max/union/last-write-wins) already has its own thorough,
+ // DB-free tests in tests/unit/backup-merge.test.js -- this one checks
+ // the actual wiring end to end: each device's own toDoc()/fromDocs()
+ // (src/sync/backup-doc.js, loaded for real via dynamic import, since
+ // this file is CommonJS) writing to and reading from Postgres through
+ // the real RLS policies, not a stand-in.
+ // ---------------------------------------------------------------------
+ const { toDoc, fromDocs } = await import('../src/sync/backup-doc.js');
+ const { trackIdentityKey } = await import('../src/record-art/tiers.js');
+ const UID7 = '77777777-7777-7777-7777-777777777777';
+ const DEVA = 'a0000000-0000-0000-0000-00000000000a', DEVB = 'b0000000-0000-0000-0000-00000000000b';
+ psql(`insert into auth.users values ('${UID7}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values ('${UID7}','gail','Gail','private') on conflict do nothing`);
+
+ // fetches every row library_backup's RLS will actually hand back for
+ // UID7 (sign-in + pull, from whichever device is asking) and shapes it
+ // the way fromDocs() expects: the doc plus its own deviceId
+ function pullRows(asUid){
+   const rows = JSON.parse(asUser(asUid, `select coalesce(jsonb_agg(jsonb_build_object('deviceId', device_id, 'doc', doc)), '[]') from library_backup where user_id='${UID7}'`));
+   return rows.map(r => Object.assign({}, r.doc, { deviceId: r.deviceId }));
+ }
+ function pushDoc(asUid, deviceId, label, localState){
+   const doc = toDoc(localState);
+   asUser(asUid, `insert into library_backup(user_id,device_id,device_label,schema_version,doc)
+     values ('${UID7}','${deviceId}','${label}',1,'${JSON.stringify(doc).replace(/'/g,"''")}'::jsonb)
+     on conflict (user_id,device_id) do update set doc=excluded.doc`);
+ }
+ const SONG_KEY = trackIdentityKey({ tags: { artist: 'Band', album: 'Record', title: 'Song' } });
+ const baseLocal = deviceId => ({
+   deviceId, historyClearedAt: 0, tracks: [{ id: 't1', tags: { title: 'Song', artist: 'Band', album: 'Record' } }],
+   playlists: [], albumOrder: {}, albumSort: {}, albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
+   prefs: {}, profileName: '',
+   trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
+   trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+   sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
+ });
+
+ await t('two devices, one account: sign in, play, sync, play, sync -- the total goes up by exactly two',()=>{
+   // device A signs in first (nothing on the server yet), plays one song,
+   // and pushes its own doc
+   const localA = baseLocal(DEVA);
+   localA.trackPlayCounts = { [SONG_KEY]: 1 };
+   pushDoc(UID7, DEVA, 'Device A', localA);
+
+   // device B signs in for the first time on this account: pulls
+   // (device A's row only) and merges -- the "first sign-in merge" path
+   const mergedOnB = fromDocs(baseLocal(DEVB), pullRows(UID7));
+   assert.equal(mergedOnB.totals.counters.trackPlayCounts[SONG_KEY], 1);
+
+   // device B plays the same song once on its own, independent of A's
+   // count, then pushes its own doc
+   const localB = baseLocal(DEVB);
+   localB.trackPlayCounts = { [SONG_KEY]: 1 };
+   pushDoc(UID7, DEVB, 'Device B', localB);
+
+   // device A syncs again: pulls both rows (its own + B's) and merges --
+   // per-device counters are summed, never double-counted
+   const mergedOnA = fromDocs(localA, pullRows(UID7));
+   assert.equal(mergedOnA.totals.counters.trackPlayCounts[SONG_KEY], 2);
+
+   // syncing the exact same rows again must never inflate the total
+   const mergedAgain = fromDocs(localA, pullRows(UID7));
+   assert.equal(mergedAgain.totals.counters.trackPlayCounts[SONG_KEY], 2);
+
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID7}'`), '2'); });
+
+ await t('a full-scope clear on one device wins everywhere once synced',()=>{
+   // device A clears listening history locally (bumps its own
+   // historyClearedAt) and pushes -- its own trackPlayCounts resets to {}
+   // in the same local action, matching history/clear.js's real behavior
+   const localA = baseLocal(DEVA);
+   localA.historyClearedAt = Date.now();
+   localA.trackPlayCounts = {};
+   pushDoc(UID7, DEVA, 'Device A', localA);
+
+   // device B, still holding its own pre-clear count, syncs: its row is
+   // older than the clear, so fromDocs reports ownReset and excludes it
+   // from the merged totals -- device B's own next upload should zero
+   // itself and adopt the newer historyClearedAt (the caller's job, not
+   // fromDocs' own -- checked here is exactly what fromDocs reports)
+   const localB = baseLocal(DEVB);
+   localB.trackPlayCounts = { [SONG_KEY]: 1 }; // B's own stale, pre-clear count
+   const merged = fromDocs(localB, pullRows(UID7));
+   assert.equal(merged.ownReset, true);
+   assert.equal(merged.totals.counters.trackPlayCounts[SONG_KEY] || 0, 0); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

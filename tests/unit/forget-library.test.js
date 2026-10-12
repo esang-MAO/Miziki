@@ -28,7 +28,7 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: { $(){ return fakeEl(); }, el(){ return fakeEl(); } },
 });
 
-globalThis.MizikiSocial = { stopSpinning(){}, libraryChanged(){} };
+globalThis.MizikiSocial = { stopSpinning(){}, libraryChanged(){}, getClient(){ return null; } };
 
 mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
@@ -70,7 +70,7 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute(){} },
 });
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave(){} },
+  namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },

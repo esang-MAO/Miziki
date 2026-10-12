@@ -84,6 +84,10 @@ export const overlays = {
   put(rec){ return DB.put('overlays', rec); },
   del(id){ return DB.del('overlays', id); },
   clear(){ return DB.clear('overlays'); },
+  // step 06 (B3, account backup): the one place anything reads every
+  // overlay row at once, rather than by track id — src/sync/backup.js's
+  // own snapshot of this device's edits/reverts for the cross-device merge.
+  all(){ return DB.all('overlays'); },
 };
 
 export const artwork = {

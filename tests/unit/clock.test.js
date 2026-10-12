@@ -104,7 +104,7 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
 // applyPrefs() helpers, so it's mocked directly here, same "stop the chain
 // at the door" reasoning as every other mock in this file.
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave(){} },
+  namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepCheckDeadline(){}, sleepStopPlayback(){} },

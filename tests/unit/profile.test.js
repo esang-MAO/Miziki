@@ -31,7 +31,10 @@ globalThis.document = { createElement(){ return fakeEl(); } };
 // every other test file in this suite already uses, since this file only
 // wants fmtCount itself.
 mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
-  namedExports: { renderStorefrontSection(){} },
+  namedExports: {
+    renderStorefrontSection(){}, STORE_TIER_LABEL: {}, localAlbumArt(){ return null; }, renderStoreError(){},
+    storeSwitch(){}, timeAgoShort(){ return ''; },
+  },
 });
 mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
   namedExports: { renderSocialSettingsScreen(){} },

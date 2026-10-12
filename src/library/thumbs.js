@@ -1,4 +1,4 @@
-import { S } from '../state.js';
+import { S, touchBackupField } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
@@ -84,7 +84,7 @@ function averageColorHex(blob){
     img.src = URL.createObjectURL(blob);
   });
 }
-async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); }
+async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); touchBackupField('albumEdge'); }
 
 async function ensureThumb(kind, id, url){
   if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
@@ -170,8 +170,8 @@ export async function pruneThumbs(){
   }
 }
 
-export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); }
-export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); }
+export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); touchBackupField('albumDisplay'); }
+export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); touchBackupField('trackDisplay'); }
 
 export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);

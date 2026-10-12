@@ -14,7 +14,7 @@
    session-tracking, and S.sealed is deliberately independent of
    listening history (SEALED spec §2) — it moved, with the rest of that
    cohesive unit, into src/library/sealed.js in step 6b instead. */
-import { S, current } from '../state.js';
+import { S, current, touchBackupField } from '../state.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { sessions, meta, achievements, collection, profile } from '../storage/repo.js';
@@ -39,7 +39,7 @@ export async function persistRareUnlocked(){ await meta.put('rareUnlocked', S.ra
 export async function persistTrackPlayCounts(){ await meta.put('trackPlayCounts', S.trackPlayCounts); }
 export async function persistMetalEligibleSessions(){ await meta.put('metalEligibleSessions', S.metalEligibleSessions); }
 export async function persistTrackMetalEligiblePlays(){ await meta.put('trackMetalEligiblePlays', S.trackMetalEligiblePlays); }
-export async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); }
+export async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); touchBackupField('albumLookPref'); }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
 function startSession(albumId){

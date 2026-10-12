@@ -105,7 +105,7 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
 // player/background.js, for applyPrefs()) would otherwise reach the same
 // wide chains already stopped above.
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave(){} },
+  namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){} },

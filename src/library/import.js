@@ -25,6 +25,7 @@ import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
 import { renderTracks } from './view.js';
+import { reconcileImportedTrack } from '../sync/backup.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -122,6 +123,10 @@ export async function addFiles(list){
       await loadOverlayFor(t);
       S.tracks.push(t);
       touchLRU(S.tracks.length - 1);
+      // a backed-up edit/playlist entry that arrived (via sync) before this
+      // exact file ever did — step 06, B3's "music re-added later" — waits
+      // by identity key until this moment to attach
+      reconcileImportedTrack(t);
       {
         const aid = albumKey(t);
         if(tags.album !== 'Unknown Album' && !existingAlbumIds.has(aid)){ S.sealed.add(aid); existingAlbumIds.add(aid); }

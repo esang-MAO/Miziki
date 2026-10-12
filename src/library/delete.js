@@ -8,7 +8,7 @@
    file id, so it's untouched by deletion and rematches automatically the
    moment a track with the same identity is added back. See LIBRARY
    spec §1. */
-import { S } from '../state.js';
+import { S, touchBackupField } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey } from '../record-art/tiers.js';
 import { idOf, idxOf, allIdx } from './model.js';
@@ -92,10 +92,12 @@ export async function deleteTracks(idsToDelete){
   // explicit deletion actually drops membership — unlike forgetLibrary
   // (F3 spec), which never touches these at all so everything reconnects
   S.playlists.forEach(p => { p.items = p.items.filter(id => !idSet.has(id)); });
+  touchBackupField('playlists');
   Object.keys(S.albumOrder).forEach(a => {
     S.albumOrder[a] = S.albumOrder[a].filter(id => !idSet.has(id));
     if(!S.albumOrder[a].length) delete S.albumOrder[a];
   });
+  touchBackupField('albumOrder');
   S.lru = [];
 
   if(removingCurrent){

@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 // edit.js/delete.js and crate/view.js's own wide chains.
 const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
-  namedExports: { renderTracks: renderTracksMock },
+  namedExports: { renderTracks: renderTracksMock, songRow(){}, groupRow(){} },
 });
 // Since step 7e, sealed.js's updateSealedSheetAfterBreak import is real
 // (from src/gatefold/sealed-sheet.js) instead of main.js — mocked here,
@@ -27,7 +27,7 @@ mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href,
 // own further chain (library/edit.js, which reaches library/sealed.js
 // itself and library/credits.js) never has to load.
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; } },
+  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {} },
 });
 
 const {

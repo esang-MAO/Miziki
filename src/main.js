@@ -1,8 +1,9 @@
 "use strict";
-import { S, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
+import { S, current, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
 import { $ } from './util/dom.js';
 import { trackTier, albumKey } from './record-art/tiers.js';
 import { albumMetalFor } from './record-art/metals.js';
+import { applyDiscVariant } from './record-art/looks.js';
 import { allIdx } from './library/model.js';
 import { setQueue } from './player/queue.js';
 import { restoreSessions } from './history/sessions.js';
@@ -25,6 +26,7 @@ import { storage, tracks } from './storage/repo.js';
 import { restoreMeta } from './storage/meta.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
+import { initBackupSync, onBackup } from './sync/backup.js';
 
 import { wireTransport } from './wiring/transport.js';
 import { wireLibraryView } from './wiring/library-view.js';
@@ -39,6 +41,7 @@ import { wireAccount } from './wiring/account.js';
 import { wireShare } from './wiring/share.js';
 import { wireOverlays } from './wiring/overlays.js';
 import { wireRoutes } from './wiring/routes.js';
+import { wireLifecycle } from './wiring/lifecycle.js';
 
 /* Everything that used to live here — the audio graph, the library, the
    gatefold and sealed-record sheet, the crate, the launch intro, the
@@ -68,6 +71,7 @@ wireAccount();
 wireShare();
 wireOverlays();
 wireRoutes();
+wireLifecycle();
 
 setMode('vinyl');
 fallbackSun();
@@ -139,6 +143,15 @@ async function restoreLibrary(){
     : undefined;
   await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
     env: { S, DB, albumKey, trackTier, albumMetalFor }, supabaseLib });
+  // sync/backup.js deliberately doesn't import library/view.js itself (see
+  // its own applyMerged() comment) — main.js already has renderTracks for
+  // the boot sequence, so it's the one place that connects the two.
+  onBackup('applied', ()=>{
+    renderTracks();
+    const t = current();
+    if(t) applyDiscVariant(t, true);
+  });
+  initBackupSync();
   MizikiSocial.libraryLoaded();
   $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';
   MizikiSocial.on('status', s => { $('#homeTabBtn').style.display = s.enabled ? '' : 'none'; });
