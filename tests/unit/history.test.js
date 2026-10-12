@@ -101,6 +101,18 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
 });
+// Since step 06 (B3), sessions.js's touchBackupField and played.js's/
+// clear.js's scheduleBackupSync imports are real (storage/meta.js and
+// sync/backup.js respectively) — mocked directly here, same "stop the
+// chain at the door" reasoning as the rest of this file, since the real
+// sync/backup.js would pull in library/view.js's whole wide chain and
+// the real storage/meta.js would pull in audio/mode.js's routeSource.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){}, touchBackupField(){} },
+});
+mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
+  namedExports: { scheduleBackupSync(){}, reconcileImportedTrack(){} },
+});
 
 const { addPlayedRange, playedCoverage, checkTrackCompletion } = await import('../../src/history/played.js');
 const { clearListeningHistory } = await import('../../src/history/clear.js');

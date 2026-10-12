@@ -104,6 +104,13 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { renderProfile(){} },
 });
+// Since step 06 (B3), history/sessions.js's own touchBackupField import is
+// a real one from storage/meta.js, which real-chains into audio/mode.js's
+// routeSource->audio/engine.js — mocked directly here, same "stop the
+// chain at the door" reasoning as every other mock in this file.
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){}, touchBackupField(){} },
+});
 const loadMock = mock.fn();
 const playMock = mock.fn();
 const pauseMock = mock.fn();

@@ -61,7 +61,7 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
 // storage/meta.js) instead of main.js — mocked directly here, same "stop
 // the chain at the door" reasoning as the rest of this file.
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
-  namedExports: { queueSave(){} },
+  namedExports: { queueSave(){}, touchBackupField(){} },
 });
 // import.js's own persistSealedAlbums import, and queue.js's (via
 // history/sessions.js) applyDiscVariant/restoreThumbs imports, are real

@@ -42,6 +42,13 @@ mock.module(new URL('../../src/player/background.js', import.meta.url).href, {
 mock.module(new URL('../../src/launch/intro.js', import.meta.url).href, {
   namedExports: { attachLaunchSettingRow(){} },
 });
+// Since step 06 (B3), meta.js's own saveMeta() calls scheduleBackupSync()
+// at the end of every save — the real sync/backup.js would otherwise pull
+// in library/view.js's own wide real chain (its six circular-pair
+// siblings plus crate/view.js) just to satisfy this one call.
+mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
+  namedExports: { scheduleBackupSync(){} },
+});
 globalThis.document = { querySelectorAll(){ return []; } };
 
 const { queueSave, restoreMeta } = await import('../../src/storage/meta.js');

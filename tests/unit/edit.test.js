@@ -153,7 +153,14 @@ test('revertTrack: clears the overlay and restores the track to its embedded tag
   await revertTrack('t1');
 
   assert.equal(t.tags.title, 'Original');
-  assert.equal(await overlays.get('t1'), undefined);
+  // a tombstone, not a plain delete (step 06, B3) — the cross-device merge
+  // needs this device's own revert to be able to out-race a stale edit
+  // still sitting unsynced elsewhere; fields:null means nothing is applied
+  // locally, same effective result as no row at all (loadOverlayFor/
+  // applyEdit both already treat a falsy fields as "nothing to apply")
+  const rec = await overlays.get('t1');
+  assert.equal(rec.fields, null);
+  assert.equal(rec.reverted, true);
   DB.db.close();
 });
 
@@ -187,8 +194,12 @@ test('applyEditWithUndo + undoLastEdit: undo clears the overlay entirely when th
   await undoLastEdit();
 
   assert.equal(t.tags.title, 'T'); // back to embeddedTags
+  // a tombstone, not a plain delete — same reasoning as revertTrack's own
+  // test above
   const { overlays } = await import('../../src/storage/repo.js');
-  assert.equal(await overlays.get('t1'), undefined);
+  const rec = await overlays.get('t1');
+  assert.equal(rec.fields, null);
+  assert.equal(rec.reverted, true);
   DB.db.close();
 });
 
