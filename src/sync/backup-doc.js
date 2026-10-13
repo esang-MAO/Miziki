@@ -21,12 +21,20 @@
      sealedIds, brokenSealIds,       (S.sealed as an array, plus a *new*
        local list this device has ever broken — S doesn't track that today;
        see CLAUDE.md's step-03 note)
-     overlaysRaw: [{id, fields, editedAt, reverted, revertedAt}, ...],
+     overlaysRaw: [{id, fields, editedAt, reverted, revertedAt, cover}, ...],
        (today's overlays store has no timestamps at all; the wiring PR
-       needs to start recording editedAt/revertedAt alongside each write)
+       needs to start recording editedAt/revertedAt alongside each write.
+       cover, step 07/B4, is either {hash, updatedAt} — a custom cover is
+       set and already re-encoded/hashed — or absent/null if this track
+       has never had one or its cover was reverted along with the rest
+       of the overlay)
+     picture: {hash, updatedAt} | null,  (step 07/B4 — the profile picture,
+       re-encoded/hashed the same way as a cover; doubles as the public
+       account avatar once signed in)
      updatedAt: {playlists, albumOrder, albumSort, albumDisplay, trackDisplay,
-       albumEdge, albumLookPref, prefs, profileName}  (one last-write
-       timestamp per field — also new local state the wiring PR must add)
+       albumEdge, albumLookPref, prefs, profileName, picture}  (one
+       last-write timestamp per field — also new local state the wiring
+       PR must add)
 
    Tracks, embedded/custom art, and the social meta key are excluded here
    by construction: toDoc() never reads localState.tracks for anything but
@@ -36,7 +44,15 @@
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
 import { mergeRows } from './merge.js';
 
-export const SCHEMA_VERSION = 1;
+// v2 (step 07, B4) added `covers` (per-track custom-cover hash, last write
+// wins by its own timestamp — separate from the overlay's text-field
+// editedAt, since a cover change and a tag change are independent edits)
+// and `lastWrite.picture` (the profile picture / public avatar hash, the
+// same last-write-wins shape as profileName). A v1 doc simply has neither
+// — every reader below already treats a missing field as "no claim" by
+// construction (`row.covers || []`, `row.lastWrite && row.lastWrite[field]`),
+// so an old doc still loads; see tests/unit/backup-merge.test.js.
+export const SCHEMA_VERSION = 2;
 
 function stripArt(rec){
   if(!rec) return rec;
@@ -99,6 +115,26 @@ function lw(updatedAt, field, value){
   return { at: (updatedAt && updatedAt[field]) || 0, value };
 }
 
+// step 07, B4: the per-track cover-image claim, kept apart from
+// convertOverlays()'s text-field entries on purpose — a cover change and
+// a tag change are independent edits with their own timestamps (B2's own
+// "per field" rule, applied here one level deeper than the top-level doc
+// fields it was written for). A whole-overlay revert tombstones the cover
+// too (hash: null, at: the same revertedAt), matching the spec's own "a
+// revert to the file's own art is a tombstone" — but a plain tag-only
+// edit that never touched the cover emits no cover entry at all, since
+// there is no claim to make either way.
+function convertCovers(overlaysRaw, idToKey){
+  const out = [];
+  (overlaysRaw || []).forEach(o => {
+    const key = idToKey[o.id];
+    if(!key) return;
+    if(o.reverted) out.push({ identityKey: key, at: o.revertedAt || 0, hash: null });
+    else if(o.cover) out.push({ identityKey: key, at: o.cover.updatedAt || 0, hash: o.cover.hash });
+  });
+  return out;
+}
+
 export function toDoc(localState){
   const s = localState || {};
   const idToKey = buildIdentityLookup(s.tracks);
@@ -135,9 +171,12 @@ export function toDoc(localState){
       albumLookPref: lw(updatedAt, 'albumLookPref', s.albumLookPref || {}),
       prefs: lw(updatedAt, 'prefs', s.prefs || {}),
       profileName: lw(updatedAt, 'profileName', s.profileName || ''),
+      // step 07, B4
+      picture: lw(updatedAt, 'picture', s.picture || null),
     },
 
     overlays: convertOverlays(s.overlaysRaw, idToKey),
+    covers: convertCovers(s.overlaysRaw, idToKey),
   };
 }
 

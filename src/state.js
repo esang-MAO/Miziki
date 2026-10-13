@@ -53,7 +53,10 @@ export const S = {
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)
-  profile:{name:'', username:'', art:null, artBlob:null},
+  // pictureHash: step 07 (B4) — the re-encoded hash this device last
+  // uploaded for the profile picture / public avatar; null until the
+  // first successful re-encode (upload itself may still be pending)
+  profile:{name:'', username:'', art:null, artBlob:null, pictureHash:null},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
   profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true},
@@ -134,7 +137,8 @@ S.sealedBroken = new Set();
 // touchBackupField() and every call site that calls it
 S.backupUpdatedAt = {
   playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0,
-  albumEdge:0, albumLookPref:0, prefs:0, profileName:0
+  albumEdge:0, albumLookPref:0, prefs:0, profileName:0,
+  picture:0,   // step 07, B4 — the profile picture / public avatar
 };
 // the account id this device has already merged a backup restore for —
 // null until the first successful merge, so the one-time "Restored..."

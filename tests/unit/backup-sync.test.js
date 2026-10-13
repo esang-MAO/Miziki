@@ -2,21 +2,37 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 /* ================= src/sync/backup.js: the scheduler =================
-   Step 06 (B3). backup.js's own `meta`/`overlays` come from
-   storage/repo.js, which wraps real IndexedDB (src/storage/idb.js) —
-   mocked here to a tiny in-memory stand-in so these tests don't need
-   fake-indexeddb at all, the same "stop the chain at the door" reasoning
-   as every other mock-heavy file in this suite. Everything else backup.js
-   imports (state.js, storage/prefs.js, record-art/tiers.js,
-   library/model.js, backup-doc.js) is pure and loaded for real. */
-const metaStore = new Map();
+   Step 06 (B3), extended in step 07 (B4). backup.js's own `meta`/
+   `overlays`/`artwork`/`profile` come from storage/repo.js, which wraps
+   real IndexedDB (src/storage/idb.js) — mocked here to a tiny in-memory
+   stand-in so these tests don't need fake-indexeddb at all, the same
+   "stop the chain at the door" reasoning as every other mock-heavy file
+   in this suite. Everything else backup.js imports (state.js, storage/
+   prefs.js, record-art/tiers.js, library/model.js, backup-doc.js,
+   crate/tiers.js, sync/images.js) is pure/DOM-free at module top level
+   and loaded for real — confirmed directly: `node --input-type=module
+   -e "import('./src/sync/backup.js')"` resolves cleanly with no mocking
+   at all, which is also the real reason this file doesn't need to mock
+   crate/tiers.js or sync/images.js the way every DOM-reaching chain in
+   this suite otherwise would. */
+const metaStore = new Map(), artworkStore = new Map();
+let profileRecord = null;
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: {
     meta: {
       async get(k){ return metaStore.has(k) ? metaStore.get(k) : null; },
       async put(k, v){ metaStore.set(k, v); },
     },
-    overlays: { async all(){ return []; } },
+    overlays: { async all(){ return []; }, async get(){ return null; }, async put(){}, async del(){} },
+    artwork: {
+      async get(id){ return artworkStore.has(id) ? artworkStore.get(id) : null; },
+      async put(rec){ artworkStore.set(rec.id, rec); },
+      async del(id){ artworkStore.delete(id); },
+    },
+    profile: {
+      async get(){ return profileRecord; },
+      async put(rec){ profileRecord = rec; },
+    },
   },
 });
 
@@ -24,19 +40,20 @@ const { S } = await import('../../src/state.js');
 const { SCHEMA_VERSION } = await import('../../src/sync/backup-doc.js');
 const {
   scheduleBackupSync, flushBackupSync, getBackupStatus, collectDownloadData, collectLocalDownloadData,
+  orphanedFiles,
 } = await import('../../src/sync/backup.js');
 
 function freshState(){
   S.tracks = []; S.playlists = []; S.albumOrder = {}; S.albumSort = {};
   S.albumDisplay = {}; S.trackDisplay = {}; S.albumEdge = {}; S.albumLookPref = {};
-  S.profile = { name: '', username: '', art: null, artBlob: null };
+  S.profile = { name: '', username: '', art: null, artBlob: null, pictureHash: null };
   S.trackPlayCounts = {}; S.sessionCounts = {}; S.metalEligibleSessions = {};
   S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.albumLastPlayed = {};
   S.rareUnlocked = {}; S.achievements = {}; S.collection = {};
   S.sealed = new Set(); S.sealedBroken = new Set();
-  S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0 };
+  S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0, picture:0 };
   S.historyClearedAt = 0; S.deviceId = null; S.deviceLabel = null; S.backupRestoredFor = null;
-  metaStore.clear();
+  metaStore.clear(); artworkStore.clear(); profileRecord = null;
 }
 
 // a minimal fake of the one Supabase client shape backup.js's push path
@@ -184,4 +201,50 @@ test('deviceId is generated once and persisted, not regenerated on a later push'
   await flushMicrotasks();
   assert.equal(S.deviceId, first);
   assert.equal(await metaStore.get('deviceId'), first);
+});
+
+/* ================= orphanedFiles (step 07, B4, point 5) =================
+   cleanup must never delete a hash some merged-doc entry still
+   references, and must keep at most one unreferenced avatar file —
+   covers keep zero, since a cover's old file is only ever orphaned once
+   something newer has fully replaced it. */
+
+test('orphanedFiles: an unreferenced file is returned for deletion (keepNewest=0, covers)', () => {
+  const files = [{ name: 'u1/aaa.jpg', hash: 'aaa', updatedAt: 1 }];
+  const out = orphanedFiles(files, new Set(), 0);
+  assert.deepEqual(out, ['u1/aaa.jpg']);
+});
+
+test('orphanedFiles: a referenced file is never returned, even with keepNewest=0', () => {
+  const files = [{ name: 'u1/aaa.jpg', hash: 'aaa', updatedAt: 1 }];
+  const out = orphanedFiles(files, new Set(['aaa']), 0);
+  assert.deepEqual(out, []);
+});
+
+test('orphanedFiles: keepNewest=1 spares the most recently updated unreferenced file, not the others', () => {
+  const files = [
+    { name: 'u1/old.jpg', hash: 'old', updatedAt: 1 },
+    { name: 'u1/mid.jpg', hash: 'mid', updatedAt: 2 },
+    { name: 'u1/new.jpg', hash: 'new', updatedAt: 3 },
+  ];
+  const out = orphanedFiles(files, new Set(), 1);
+  assert.deepEqual(out.sort(), ['u1/mid.jpg', 'u1/old.jpg']);
+});
+
+test('orphanedFiles: keepNewest only considers unreferenced files, not the referenced newest one', () => {
+  const files = [
+    { name: 'u1/veryOld.jpg', hash: 'veryOld', updatedAt: 1 },
+    { name: 'u1/old.jpg', hash: 'old', updatedAt: 2 },
+    { name: 'u1/new.jpg', hash: 'new', updatedAt: 3 },
+  ];
+  // "new" is still referenced, so it's excluded from the unreferenced set
+  // entirely (never a deletion candidate); of the two unreferenced files,
+  // keepNewest=1 spares the newer one ("old") and deletes "veryOld"
+  const out = orphanedFiles(files, new Set(['new']), 1);
+  assert.deepEqual(out, ['u1/veryOld.jpg']);
+});
+
+test('orphanedFiles: no files and no referenced hashes is just an empty result', () => {
+  assert.deepEqual(orphanedFiles([], new Set(), 0), []);
+  assert.deepEqual(orphanedFiles(undefined, new Set(), 1), []);
 });

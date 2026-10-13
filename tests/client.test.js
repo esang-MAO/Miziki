@@ -32,8 +32,18 @@ const sb = {
       async maybeSingle(){ const w=Object.entries(f).map(([c,{op,v}])=>`${c}${op}'${v}'`).join(' and ');
         const o=psql(`select coalesce(to_jsonb(p),'null') from ${t} p ${w?'where '+w:''} limit 1`); const d=JSON.parse(o||'null'); return {data:d,error:null}; }};
     return b; },
-  auth:{ onAuthStateChange(){}, async getSession(){ return {data:{session:{user:{id:uid}}}}; } }
+  auth:{ onAuthStateChange(){}, async getSession(){ return {data:{session:{user:{id:uid}}}}; } },
+  // step 07 (B4): a bare recorder, not a real Storage client -- just
+  // enough for deleteAccount()'s own list-then-remove sequence (src/
+  // miziki-social.js) to be observed, since neither Postgres nor this
+  // fake sb has a real Storage API behind it. Each call appends to
+  // storageCalls rather than touching anything.
+  storage:{ from(bucket){ return {
+    async list(){ storageCalls.push({op:'list', bucket}); return {data:[{name:'x.jpg'}]}; },
+    async remove(paths){ storageCalls.push({op:'remove', bucket, paths}); return {data:paths, error:null}; },
+  }; } },
 };
+let storageCalls=[];
 let ALBUMS=[]; let store=null;
 const adapter={ async load(){return store}, async save(v){store=JSON.parse(JSON.stringify(v))}, listAlbums(){return ALBUMS.map(a=>({...a}))}, albumInfo(id){return ALBUMS.find(a=>a.id===id)||null} };
 const alb=(n,o={})=>({id:'a'+n,title:'Album '+n,artist:'Artist '+(n%7+1),year:2000+n%20,tier:2,addedAt:1700000000000+n,sessions:0,metal:null,lastPlayed:null,...o});
@@ -324,6 +334,62 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const merged = fromDocs(localB, pullRows(UID7));
    assert.equal(merged.ownReset, true);
    assert.equal(merged.totals.counters.trackPlayCounts[SONG_KEY] || 0, 0); });
+
+ // ---------------------------------------------------------------------
+ // B4 (step 07): migration 006's Storage policies, exercised against
+ // this file's own minimal storage.objects/storage.buckets stub (see
+ // tests/supabase_stub.sql) with real Postgres roles and auth.uid() --
+ // the same "real RLS, not a real Storage API" approach the rest of this
+ // file already takes for auth.users. What this can't cover -- the
+ // Storage API's own file_size_limit/allowed_mime_types enforcement, and
+ // actual byte upload/download -- isn't RLS and isn't testable here; see
+ // docs/SUPABASE_SETUP.md's manual check for that.
+ // ---------------------------------------------------------------------
+ const UID8='88888888-8888-8888-8888-888888888888', UID9='99999999-9999-9999-9999-999999999999';
+ psql(`insert into auth.users values ('${UID8}'),('${UID9}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values ('${UID8}','hank','Hank','private'),('${UID9}','ivy','Ivy','private') on conflict do nothing`);
+
+ await t('covers: a user can insert, read and delete their own file',()=>{
+   asUser(UID8, `insert into storage.objects(bucket_id,name,owner) values ('covers','${UID8}/hash1.jpg','${UID8}')`);
+   assert.equal(asUser(UID8, `select count(*) from storage.objects where bucket_id='covers' and name='${UID8}/hash1.jpg'`), '1');
+   asUser(UID8, `delete from storage.objects where bucket_id='covers' and name='${UID8}/hash1.jpg'`);
+   assert.equal(asUser(UID8, `select count(*) from storage.objects where bucket_id='covers' and name='${UID8}/hash1.jpg'`), '0'); });
+
+ await t('covers: another user can neither read nor write someone else\'s folder',()=>{
+   asUser(UID8, `insert into storage.objects(bucket_id,name,owner) values ('covers','${UID8}/hash2.jpg','${UID8}')`);
+   assert.equal(asUser(UID9, `select count(*) from storage.objects where bucket_id='covers' and name='${UID8}/hash2.jpg'`), '0');
+   let threw=false;
+   try{ asUser(UID9, `insert into storage.objects(bucket_id,name,owner) values ('covers','${UID8}/hash3.jpg','${UID9}')`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected RLS to reject a cross-user covers insert');
+   asUser(UID9, `delete from storage.objects where bucket_id='covers' and name='${UID8}/hash2.jpg'`);
+   assert.equal(asUser(UID8, `select count(*) from storage.objects where bucket_id='covers' and name='${UID8}/hash2.jpg'`), '1', 'the attacker\'s delete must match zero rows, leaving the real file untouched'); });
+
+ await t('avatars: anyone signed in can read, but only the owner can write',()=>{
+   asUser(UID8, `insert into storage.objects(bucket_id,name,owner) values ('avatars','${UID8}/avatar-hash1.jpg','${UID8}')`);
+   assert.equal(asUser(UID9, `select count(*) from storage.objects where bucket_id='avatars' and name='${UID8}/avatar-hash1.jpg'`), '1', 'a public bucket\'s files should be readable by any authenticated user');
+   assert.equal(asAnon(`select count(*) from storage.objects where bucket_id='avatars' and name='${UID8}/avatar-hash1.jpg'`), '1', 'and by a signed-out (anon) request too');
+   // UPDATE's USING clause can either throw or just match zero rows --
+   // either way is fine here, so this doesn't assert on which happened,
+   // only that the real file below is left untouched
+   try{ asUser(UID9, `update storage.objects set name='${UID8}/avatar-stolen.jpg' where bucket_id='avatars' and name='${UID8}/avatar-hash1.jpg'`); }
+   catch(_e){ /* either outcome is acceptable here */ }
+   assert.equal(asUser(UID8, `select count(*) from storage.objects where bucket_id='avatars' and name='${UID8}/avatar-hash1.jpg'`), '1'); });
+
+ await t('deleteAccount lists and removes the caller\'s own covers and avatars before the RPC call',async()=>{
+   // the JS-level half of account deletion's Storage cleanup
+   // (src/miziki-social.js's deleteAccount(), since Storage objects have
+   // no foreign key to auth.users for delete_my_account()'s own cascades
+   // to reach) -- exercised here against this test file's own fake `sb`
+   // client (see its storage stub above M.init()), which just records
+   // what it was asked to list/remove rather than touching Postgres.
+   storageCalls.length = 0;
+   const r = await M.deleteAccount();
+   assert.equal(r.ok, true, JSON.stringify(r));
+   assert.ok(storageCalls.some(c => c.op==='list' && c.bucket==='covers'), JSON.stringify(storageCalls));
+   assert.ok(storageCalls.some(c => c.op==='list' && c.bucket==='avatars'), JSON.stringify(storageCalls));
+   assert.ok(storageCalls.some(c => c.op==='remove' && c.bucket==='covers'), JSON.stringify(storageCalls));
+   assert.ok(storageCalls.some(c => c.op==='remove' && c.bucket==='avatars'), JSON.stringify(storageCalls)); });
 
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

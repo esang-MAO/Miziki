@@ -26,6 +26,8 @@ import { storage, tracks } from './storage/repo.js';
 import { restoreMeta } from './storage/meta.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
+import { isProfileRouteVisible } from './shell/routes.js';
+import { renderProfile } from './profile/screens.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
 
 import { wireTransport } from './wiring/transport.js';
@@ -150,6 +152,13 @@ async function restoreLibrary(){
     renderTracks();
     const t = current();
     if(t) applyDiscVariant(t, true);
+    // step 07, B4: a downloaded cover/avatar also needs the profile tab
+    // redrawn if it's the one currently on screen — renderTracks() alone
+    // doesn't touch it. Cheap and rare enough (only fires after an
+    // actual pull-merge) that there's no need for its own debounce the
+    // way library/thumbs.js's refreshProfileIfOpen() has for its own,
+    // much more frequent, per-thumbnail callers.
+    if(isProfileRouteVisible()) renderProfile();
   });
   initBackupSync();
   MizikiSocial.libraryLoaded();

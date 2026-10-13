@@ -17,7 +17,7 @@ import { persistSealedAlbums } from './sealed.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { renderTracks, exitSelectMode } from './view.js';
-import { scheduleBackupSync } from '../sync/backup.js';
+import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
 
 function applyOverlay(t, rec, artBlob){
   t.embeddedTags = Object.assign({}, t.tags);
@@ -102,6 +102,11 @@ export async function applyEdit(trackIds, fields, artBlob){
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
       touchedAlbumIds.add(albumKey(t));
+      // step 07, B4: stamps the overlay's own cover hash (re-encode is
+      // fast, local, no network) and leaves the actual upload to the
+      // same debounced/backoff sync cycle scheduleBackupSync() below
+      // already drives — never awaited here, nowhere near playback
+      queueCoverUpload(id, artBlob);
     }
     recomputeTrack(i);
   }
@@ -129,7 +134,10 @@ export async function revertTrack(id){
   // unsynced on another device. loadOverlayFor()/applyEdit()'s merge both
   // already treat a falsy `fields` as "nothing to apply", so this is no
   // behavior change for local use — only the row's own survival changes.
-  await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now()});
+  // cover: null clears any custom-cover claim the same way (step 07, B4
+  // — "a revert to the file's own art is a tombstone" applies to the
+  // cover exactly as it does to the text fields).
+  await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now(), cover: null});
   await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
@@ -169,7 +177,7 @@ export async function undoLastEdit(){
     // same tombstone shape as revertTrack() above, for the same reason —
     // undoing an edit that had no prior overlay is exactly a revert
     if(prevRec) await overlays.put(prevRec);
-    else await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now()});
+    else await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now(), cover: null});
     if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
     t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
