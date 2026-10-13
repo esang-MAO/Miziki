@@ -49,7 +49,7 @@ export function renderPrivacyPolicyScreen(body){
   bulletList(body, [
     'Email — only to send you a 6-digit sign-in code. It’s never shown to other users and never used for anything else.',
     'Handle, display name, bio and avatar — the profile you choose to show once signed in.',
-    'Social activity you choose to share — your crate, ratings and notes, what you’re currently spinning, and milestones. Sharing “now spinning” and milestones is off by default — you turn each on yourself in the Privacy screen.',
+    'Social activity you choose to share — your crate, ratings and notes, what you’re currently spinning, milestones, and your listening rhythm (a one-line verdict and the percentage of your plays in each part of the day — never your individual plays or the times you played them). Sharing “now spinning”, milestones and listening rhythm is off by default — you turn each on yourself in the Privacy screen. Listening rhythm also needs at least 20 counted plays before there’s anything to show.',
     'Your private listening backup — play counts, session counts, achievements and Collection progress, sealed/broken-record state, the text of any track edits you’ve made (never the audio itself), playlists, and your app settings. This is private to your account.',
     'Uploaded custom covers and your profile picture — a resized copy (with photo metadata like location stripped out) is stored so it can appear on your other devices. Custom covers are private to your account; your profile picture is public, since it doubles as your account’s avatar once you’re signed in.',
   ]);
@@ -66,7 +66,7 @@ export function renderPrivacyPolicyScreen(body){
   bulletList(body, [
     'Your listening backup and your custom covers are private to your account — nobody else ever reads them in the ordinary course of running the app.',
     'Your handle, display name and avatar are visible to other signed-in users, except anyone you’ve blocked.',
-    'Anything you choose to share follows your visibility setting (private, friends, or everyone — friends by default), found in the Privacy screen.',
+    'Anything you choose to share — including listening rhythm — follows your visibility setting (private, friends, or everyone — friends by default), found in the Privacy screen.',
   ]);
 
   section(body, 'Where your data lives, and for how long', [
