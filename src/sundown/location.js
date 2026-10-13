@@ -21,9 +21,36 @@ export function askLocation(){
   );
 }
 
+// DA1 (docs/DAY_ARC.md): fills all five day-model events, not just
+// tonight's sunset/dusk — the doc's own fixed stand-in times (dawn 6:20,
+// sunrise 6:50, noon 1:00 pm, sunset 8:10 pm — unchanged from before DA1
+// — dusk 8:36 pm, the same 26-minute gap sunset/dusk already had) for
+// whenever location is unavailable.
 export function fallbackSun(){
-  const d = new Date(); const set = new Date(d); set.setHours(20,10,0,0);
-  S.sun.set = set; S.sun.dusk = new Date(set.getTime() + 26*60000); S.sun.ok = true;
+  const d = new Date();
+  const at = (h, m) => { const x = new Date(d); x.setHours(h, m, 0, 0); return x; };
+  S.sun.dawn = at(6, 20); S.sun.rise = at(6, 50); S.sun.noon = at(13, 0);
+  S.sun.set = at(20, 10); S.sun.dusk = at(20, 36);
+  S.sun.altitudeAtNoon = null;
+  S.sun.ok = true;
+}
+
+// DA1 (docs/DAY_ARC.md): recompute the day model at local midnight so a
+// session left open overnight never plays the night through on a stale
+// "today's" dawn/dusk (the exact bug the doc's own "stale times" gap
+// names) — a recursive setTimeout rather than setInterval, so each
+// firing is scheduled from the real current time and the daily cadence
+// never drifts. src/wiring/lifecycle.js's own visibilitychange handler
+// covers the other half: a session that was backgrounded across midnight
+// and never had this timer actually fire while hidden.
+export function scheduleMidnightRecompute(){
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(24, 0, 5, 0); // a few seconds past local midnight, not exactly on it
+  setTimeout(() => {
+    computeSun(); drawSun();
+    scheduleMidnightRecompute();
+  }, next.getTime() - now.getTime());
 }
 
 export function toggleSleevePull(){

@@ -18,7 +18,7 @@ import { renderTracks } from './library/view.js';
 import {
   runLaunchSequence, resolveLastPlayedAlbum, resolveLastPlayedTrackIndex, markLibraryReady,
 } from './launch/intro.js';
-import { askLocation, fallbackSun } from './sundown/location.js';
+import { askLocation, fallbackSun, scheduleMidnightRecompute } from './sundown/location.js';
 import { setMode } from './audio/mode.js';
 import { drawSun, frame } from './player/clock.js';
 import { DB } from './storage/idb.js';
@@ -81,6 +81,7 @@ applyTheme();
 fallbackSun();
 askLocation();
 drawSun();
+scheduleMidnightRecompute();   // DA1: keeps the day model from going stale overnight
 updateChromeInset();
 window.addEventListener('resize', updateChromeInset);
 requestAnimationFrame(frame);
