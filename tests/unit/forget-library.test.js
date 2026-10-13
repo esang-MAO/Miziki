@@ -43,7 +43,12 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
-  namedExports: { deleteCrateArtTiers: async () => {} },
+  // buildCrateTier: step 07 (B4) added it to sync/backup.js's own real
+  // import of this module (library/edit.js -> sync/backup.js -> here) --
+  // sync/backup.js itself isn't mocked in this file (its whole real import
+  // chain is DOM-free, so there's nothing to stop at the door), so this
+  // mock has to satisfy both its own caller's need and backup.js's.
+  namedExports: { deleteCrateArtTiers: async () => {}, buildCrateTier: async () => {} },
 });
 mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
   namedExports: { invalidateCrateModel(){} },

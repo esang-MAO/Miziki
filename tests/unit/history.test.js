@@ -111,7 +111,10 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
-  namedExports: { scheduleBackupSync(){}, reconcileImportedTrack(){} },
+  // queueCoverUpload: step 07 (B4)'s own addition to library/edit.js's
+  // real import of this module, reached the same way scheduleBackupSync
+  // already was (via the real cropSquareImage -> library/edit.js chain).
+  namedExports: { scheduleBackupSync(){}, reconcileImportedTrack(){}, queueCoverUpload(){} },
 });
 
 const { addPlayedRange, playedCoverage, checkTrackCompletion } = await import('../../src/history/played.js');

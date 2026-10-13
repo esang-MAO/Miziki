@@ -8,6 +8,7 @@ import { renderSocialSettingsScreen } from './settings.js';
 import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
 import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
+import { queueAvatarUpload } from '../sync/backup.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -30,6 +31,13 @@ export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed'
 export async function persistProfile(){
   await profile.put({k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
   touchBackupField('profileName');
+  // step 07, B4: the profile picture doubles as the account's public
+  // avatar once signed in — re-encode/hash is idempotent and cheap, so
+  // this runs on every save (including a name-only change) rather than
+  // tracking separately whether the picture itself actually changed;
+  // the real network upload is deduped by hash in queueAvatarUpload's
+  // own flush cycle regardless.
+  if(S.profile.artBlob) queueAvatarUpload(S.profile.artBlob);
 }
 
 // "John Smith" -> "John S."; a single word (or nothing) passes through as-is
