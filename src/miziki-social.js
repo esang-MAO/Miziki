@@ -141,7 +141,7 @@
   function freshState() {
     return {
       v: 1, userId: null,
-      settings: { shareNowSpinning: false, shareMilestones: false, syncEnabled: true },
+      settings: { shareNowSpinning: false, shareMilestones: false, syncEnabled: true, shareListeningRhythm: false },
       pins: [],                   // local album ids, order = rank (1..8)
       items: {},                  // localAlbumId -> {rating, note, vis}
       synced: {},                 // releaseKey -> {fp, pin}
@@ -404,6 +404,13 @@
       allowed.visibility = patch.visibility;
     }
     if ('showDiggingList' in patch) allowed.show_digging_list = !!patch.showDiggingList;
+    if ('listeningRhythm' in patch) {
+      const lr = patch.listeningRhythm;
+      if (lr !== null && (typeof lr !== 'object' || typeof lr.verdict !== 'string' || typeof lr.shares !== 'object' || lr.shares === null)) {
+        return fail('bad_listening_rhythm', 'Malformed listening rhythm payload.');
+      }
+      allowed.listening_rhythm = lr;
+    }
     if ('handle' in patch) {
       const h = String(patch.handle).trim().toLowerCase();
       if (!HANDLE_RX.test(h)) return fail('bad_handle', '3–24 characters: letters, numbers, underscore.');
@@ -419,6 +426,27 @@
     X.profile = data;
     return { ok: true, profile: data };
   });
+  // DA5 (docs/DAY_ARC.md): the shared half of listening rhythm -- the
+  // aggregate percentages/verdict only, never raw plays, never raw times
+  // (those stay local, src/sundown/rhythm.js's own callers). `payload` is
+  // either null (clear, the Privacy switch's own "off" path) or a plain
+  // {verdict, shares} object -- routed through updateProfile() so it gets
+  // the exact same validated, single-column write every other profile
+  // field already does, not a second write path of its own.
+  const setListeningRhythm = payload => updateProfile({ listeningRhythm: payload });
+  // Reads someone else's (or, trivially, your own) shared value through
+  // the new get_listening_rhythm() RPC (007_rhythm.sql) -- never a direct
+  // `.from('profiles').select('listening_rhythm')`, since profiles_select
+  // is deliberately blanket and the RPC is where the crate's own
+  // visibility check actually lives for this one column; see that
+  // migration's own comment for why. Returns `rhythm: null` for an owner
+  // who hasn't shared one, isn't visible to this viewer, or isn't signed
+  // in at all -- the same "absent, not denied" shape can_view()'s own
+  // callers already use, never an error for the ordinary "nothing to
+  // show" case.
+  const getListeningRhythm = userId => guarded(async () => ({
+    ok: true, rhythm: (await rpc('get_listening_rhythm', { p_user: userId })) || null
+  }));
 
   /* ====================================================================
      6. local social metadata: ratings, sleeve notes, staff picks, visibility
@@ -810,7 +838,7 @@
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
     const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
     if (!canView) return out;
-    const [summary, picks, spinning, fresh, follows] = await Promise.all([
+    const [summary, picks, spinning, fresh, follows, rhythm] = await Promise.all([
       rpc('profile_summary', { p_user: profile.id }),
       rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
       q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, releases(title, artist)')
@@ -819,8 +847,17 @@
       // follower/following counts only make sense (and are only visible under
       // RLS) for your own storefront — frame 02's friend store shows
       // Records/Staff picks/In common instead, no followers count at all
-      isMe ? rpc('my_follow_counts') : Promise.resolve(null)
+      isMe ? rpc('my_follow_counts') : Promise.resolve(null),
+      // DA5 (docs/DAY_ARC.md): the shared half of listening rhythm —
+      // get_listening_rhythm() (007_rhythm.sql) does its own can_view()
+      // check server-side (which also covers blocking, unlike the plain
+      // `canView` computed just above), so this is always safe to call
+      // regardless — it comes back null for anyone who shouldn't see it,
+      // or for an owner who never shared one, same "absent, not denied"
+      // shape as everything else in this function.
+      rpc('get_listening_rhythm', { p_user: profile.id })
     ]);
+    out.listeningRhythm = rhythm || null;
     out.summary = (summary && summary[0]) || { records: 0, pins: 0, in_common: 0 };
     if (isMe) {
       const f = (follows && follows[0]) || { followers: 0, following: 0 };
@@ -971,6 +1008,7 @@
     // auth + profile
     sendCode, verifyCode, signOut, signOutEverywhere, deleteAccount,
     getMyProfile, checkHandle, createProfile, updateProfile,
+    setListeningRhythm, getListeningRhythm,
     // local social metadata
     setRating, setNote, setVisibility, pin, unpin, movePin, getPins, getAlbumSocial, getSettings, setSetting,
     // sync
