@@ -285,6 +285,11 @@ export function renderTracks(){
   updateHeaderActionsAvailability();
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
   refreshLibraryTools();
+  // D5 (docs/DESKTOP_LAYOUT.md): hidden by default every render, same as
+  // #crumb just below — the crate branch (renderCrate() -> crate/view.js's
+  // own updateCrateGroupToggleUI()) is what turns this back on when
+  // S.view.mode is actually 'crate' and the viewport is desktop-width.
+  $('#crateGroupToggleTab').style.display = 'none';
   if(!S.tracks.length){ setPathNote(); return; }
 
   // a live search takes over the whole body, grouped by type, regardless

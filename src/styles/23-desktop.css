@@ -131,6 +131,36 @@
   .mini-bar-mode:hover,.mini-bar-mode:focus-visible{color:var(--paper)}
 }
 
+/* D5 (docs/DESKTOP_LAYOUT.md): the crate on desktop — a larger card (via
+   --crate-card-size, src/styles/10-crate.css; crate/view.js reads the
+   live value and scales flowPose()'s own vertical spacing to match, via
+   its existing opts.spread lever, so bigger neighbours never overlap any
+   more tightly than the 278px phone baseline already does) and the
+   inline record-detail panel beside it, which replaces the gatefold
+   overlay as the way in on a tap (src/crate/view.js's own
+   openCrateAlbum()) — the gatefold itself is untouched, still the
+   phone's own way in, and a sealed record still opens the sealed sheet
+   either way. .crate-layout is invisible scaffolding below this
+   breakpoint (display:contents, the same pattern .sidebar already
+   established in D3), so .crate-wrap lays out exactly as it always has
+   on a phone — confirmed as part of this step's own phone-regression
+   pass, the same as every prior desktop-layout PR. */
+.crate-layout{display:contents}
+.crate-detail-panel{display:none}
+
+@media (min-width:1024px){
+  :root{--crate-card-size:340px}
+  .crate-layout{display:flex;align-items:flex-start;gap:28px}
+  .crate-wrap{flex:1 1 auto}
+  .crate-detail-panel{
+    display:flex;flex-direction:column;flex:0 0 320px;min-width:0;
+    margin-top:10px;padding-left:24px;border-left:1px solid var(--line);
+    max-height:calc(100vh - 160px);overflow-y:auto;
+  }
+  .crate-detail-art{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-bottom:12px}
+  .crate-detail-play{align-self:flex-start;margin-bottom:14px}
+}
+
 @media (min-width:1280px){
   .sidebar{flex:0 0 232px;width:232px;padding:16px 16px 20px}
   .tabbar{gap:2px}

@@ -26,8 +26,23 @@ import {
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
-import { openGatefold } from '../gatefold/view.js';
+import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices } from '../gatefold/view.js';
 import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
+
+// D5 (docs/DESKTOP_LAYOUT.md): flowPose()'s own pixel offsets (170, 34, 70…)
+// were tuned against this exact card edge length — reading the live
+// --crate-card-size (src/styles/10-crate.css, overridden larger at
+// 1024px+ by src/styles/23-desktop.css) and scaling flowPose()'s existing
+// opts.spread lever by the ratio keeps a bigger desktop card from
+// overlapping its neighbours any more tightly than this baseline already
+// does on a phone — no change needed to flowPose() itself, since spread
+// already exists for exactly this (launch/intro.js's own flourish already
+// uses it the same way).
+const BASE_CRATE_CARD_SIZE = 278;
+function currentCardSize(){
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--crate-card-size'));
+  return (v > 0) ? v : BASE_CRATE_CARD_SIZE;
+}
 
 function openCrateAlbum(item){
   const v = S.view;
@@ -38,12 +53,55 @@ function openCrateAlbum(item){
     return;
   }
   // a sealed record can't be opened — the gatefold and its left panel only
-  // unlock after the first play (SEALED spec §1, §5)
+  // unlock after the first play (SEALED spec §1, §5). Unchanged on desktop
+  // too, per the doc's own instruction — a sealed record still opens the
+  // sealed sheet there, same as on a phone.
   if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
+  // D5 (docs/DESKTOP_LAYOUT.md): on desktop, tapping a record shows its
+  // tracklist in the panel beside the crate instead of opening the
+  // gatefold overlay — the gatefold stays the phone's own way in,
+  // untouched just below.
+  if(isDesktopShell()){ renderCrateDetailPanel(item); return; }
   // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
   // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
   // navigation back, it's simply still there
   openGatefold(item);
+}
+
+// D5 (docs/DESKTOP_LAYOUT.md): the right-hand panel's own two states —
+// nothing opened yet, and a record's own tracklist, reusing
+// buildGatefoldTracklist()/gatefoldTrackIndices() (gatefold/view.js) so
+// the row styling, side-splitting and now-playing marker are identical to
+// the phone's own gatefold rather than a second implementation. Credits,
+// liner notes and the gatefold's own social controls aren't reproduced
+// here — the doc's own table names only "inline detail panel" and a
+// tracklist; the existing credits sheet (reached from the player, not
+// duplicated here) stays the one place for that.
+function renderCrateDetailPlaceholder(panel){
+  panel.innerHTML = '';
+  panel.appendChild(el('p','note','Tap a record to see its track list.'));
+}
+
+function renderCrateDetailPanel(item){
+  const panel = $('#crateDetailPanel');
+  if(!panel) return;
+  panel.innerHTML = '';
+  const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
+  if(art){
+    const im = document.createElement('img');
+    im.className = 'crate-detail-art';
+    im.src = art; im.alt = '';
+    panel.appendChild(im);
+  }
+  const playBtn = el('button','tbtn play crate-detail-play','▶ Play album');
+  playBtn.setAttribute('aria-label','Play ' + item.album);
+  playBtn.addEventListener('click', () => setQueue(item.idx, 0, true));
+  panel.appendChild(playBtn);
+  const trackIdx = gatefoldTrackIndices(item);
+  const list = el('div','crate-detail-tracklist');
+  list.setAttribute('role','list');
+  list.appendChild(buildGatefoldTracklist(item, trackIdx, (idx, i) => setQueue(idx, idx.indexOf(i), true)));
+  panel.appendChild(list);
 }
 
 function updateCrateGroupToggleUI(){
@@ -52,6 +110,21 @@ function updateCrateGroupToggleUI(){
   if(!hasGenres && S.crateGroup === 'genre'){ S.crateGroup = 'az'; invalidateCrateModel(); queueSave(); }
   document.querySelectorAll('#crateGroupToggle [data-group]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));
+  // D5 (docs/DESKTOP_LAYOUT.md): the tab row's own desktop-only mirror —
+  // renderTracks() already hides it by default on every render; this is
+  // the one place (crate mode's own re-render hook) that turns it back on,
+  // gated on isDesktopShell() so it never shows on a phone. A bare window
+  // resize across the breakpoint isn't separately handled here — the next
+  // crate re-render (switching tabs, grouping, etc.) catches it, the same
+  // small, accepted gap as every other breakpoint-only control in this
+  // engagement that isn't wired into the resize listener.
+  const tabToggle = $('#crateGroupToggleTab');
+  if(tabToggle){
+    tabToggle.style.display = isDesktopShell() ? 'flex' : 'none';
+    $('#crateGenreBtnTab').style.display = hasGenres ? '' : 'none';
+    document.querySelectorAll('#crateGroupToggleTab [data-group]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));
+  }
 }
 
 // flat, non-3D fallback for prefers-reduced-motion: a plain scrollable list,
@@ -195,6 +268,14 @@ export function renderCrate(host){
   // recomputed every frame (CRATE spec §4, "Now playing")
   const nowPlayingIdx = model.items.findIndex(isNowPlayingAlbum);
 
+  // D5 (docs/DESKTOP_LAYOUT.md): read once per render, not per frame — the
+  // card's own CSS size only ever changes on a breakpoint crossing (see
+  // currentCardSize()'s own comment for why a bare resize isn't separately
+  // re-synced), the same assumption applyCrateMiniInset()'s own measurements
+  // already make about .crate-stage's rendered width/height.
+  const cardSize = currentCardSize();
+  const cardSpread = cardSize / BASE_CRATE_CARD_SIZE;
+
   const wrap = el('div','crate-wrap');
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
@@ -208,7 +289,22 @@ export function renderCrate(host){
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
   wrap.appendChild(nowPlayingBtn); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
-  host.appendChild(wrap);
+
+  // D5 (docs/DESKTOP_LAYOUT.md): the inline record-detail panel beside the
+  // crate — a new sibling of .crate-wrap, not a child of it, so .crate-wrap
+  // itself (and every selector/measurement above that already assumes it's
+  // host's own direct child, e.g. applyCrateMiniInset()'s .crate-wrap
+  // lookup) is completely untouched. Invisible scaffolding below 1024px
+  // (src/styles/23-desktop.css's .crate-layout{display:contents}), the
+  // same pattern D3's own sidebar wrapper already established, so the
+  // phone layout stays byte-for-byte what it was before this PR.
+  const layout = el('div','crate-layout');
+  const detailPanel = el('div','crate-detail-panel');
+  detailPanel.id = 'crateDetailPanel';
+  renderCrateDetailPlaceholder(detailPanel);
+  layout.appendChild(wrap);
+  layout.appendChild(detailPanel);
+  host.appendChild(layout);
 
   applyCrateMiniInset();
 
@@ -236,7 +332,7 @@ export function renderCrate(host){
       if(isNowPlayingAlbum(item)){
         const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
       }
-      if(isAlbumSealed(item.albumId)) card.appendChild(buildSealOverlay(278));
+      if(isAlbumSealed(item.albumId)) card.appendChild(buildSealOverlay(cardSize));
     }
     return card;
   }
@@ -412,7 +508,7 @@ export function renderCrate(host){
     for(let i = lo; i <= hi; i++) if(!pool.has(i)){ const c = makeCardEl(i); stage.appendChild(c); pool.set(i, c); }
     pool.forEach((card, i) => {
       const d = i - position, a = Math.abs(d);
-      const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y});
+      const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y, spread: cardSpread});
       // integer device pixels so edges don't smear at rest (spec §B4)
       const y = Math.round(pose.y * CRATE_DPR) / CRATE_DPR;
       card.style.transform = 'translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '

@@ -4,12 +4,24 @@
    the centre lower (170px vs the launch's 128px) to leave room for the
    top bar and the info panel below. A pool of ~17-20 cards is recycled as
    S.crate.pos changes — see renderCrate()/syncCrateCards(). */
+/* D5 (docs/DESKTOP_LAYOUT.md): the card's own edge length, a CSS variable
+   so a wider desktop breakpoint can set it larger (src/styles/23-desktop.
+   css) without this file or crate/view.js needing to know the actual
+   number — renderCrate() reads the live computed value (getCardSize())
+   both to size buildSealOverlay() correctly and to scale flowPose()'s own
+   vertical spacing (via its existing opts.spread lever) so a bigger card
+   doesn't overlap its neighbours any more tightly than this 278px
+   baseline already does on a phone. Default here matches the literal
+   this replaces exactly — no visible change at the phone width this
+   token was always implicitly fixed at. */
+:root{--crate-card-size:278px}
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.crate-wrap{margin-top:10px;position:relative}
+.crate-wrap{margin-top:10px;position:relative;min-width:0}
 .crate-group-toggle{margin-bottom:10px}
 .crate-stage{position:relative;height:316px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
-.crate-card{position:absolute;left:50%;top:0;width:278px;height:278px;margin-left:-139px;
+.crate-card{position:absolute;left:50%;top:0;width:var(--crate-card-size);height:var(--crate-card-size);
+  margin-left:calc(var(--crate-card-size) / -2);
   border-radius:6px;overflow:hidden;
   box-shadow:0 14px 32px rgba(0,0,0,.4);backface-visibility:hidden}
 .crate-card.crate-moving{will-change:transform}

@@ -150,6 +150,20 @@
         <button data-view="playlists" aria-pressed="false">Playlists</button>
         <button class="lib-select-tab" id="selectToggle">Select</button>
       </div>
+      <!-- D5 (docs/DESKTOP_LAYOUT.md): a desktop-only mirror of the A-Z/
+           Genre crate-grouping toggle that's otherwise tucked inside
+           Profile > Library tools — new ids, not a clone of
+           #crateGroupToggle's own, wired to the exact same S.crateGroup
+           state (src/wiring/library-view.js). Starts hidden; src/library/
+           view.js's renderTracks() hides it by default every render, and
+           src/crate/view.js's updateCrateGroupToggleUI() (crate mode's own
+           re-render hook) is what actually shows it, gated on
+           isDesktopShell() — see that function's own comment for why a
+           bare resize isn't separately handled. -->
+      <div class="seg" id="crateGroupToggleTab" style="display:none">
+        <button data-group="az" aria-pressed="true">A–Z</button>
+        <button data-group="genre" aria-pressed="false" id="crateGenreBtnTab" style="display:none">Genre</button>
+      </div>
       <!-- search/add used to live in the big wordmark header above; moved
            here so they still show (the add button even with an empty
            library) without needing their own separate header row -->

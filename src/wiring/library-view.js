@@ -39,7 +39,10 @@ export function wireLibraryView(){
     queueSave();
     renderTracks();
   }));
-  document.querySelectorAll('#crateGroupToggle [data-group]').forEach(b => b.addEventListener('click', ()=>{
+  // D5 (docs/DESKTOP_LAYOUT.md): the tab row's own desktop-only mirror of
+  // this same toggle (#crateGroupToggleTab) drives the exact same state —
+  // one combined selector, one listener body, not a second implementation.
+  document.querySelectorAll('#crateGroupToggle [data-group], #crateGroupToggleTab [data-group]').forEach(b => b.addEventListener('click', ()=>{
     if(b.style.display === 'none') return;
     S.crateGroup = b.dataset.group;
     invalidateCrateModel();
