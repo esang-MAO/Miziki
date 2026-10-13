@@ -19,9 +19,13 @@ optional account features (sign-in, backup, social).
   show once signed in.
 - **Social activity you choose to share** — your crate (the records
   you've picked to show), ratings and notes, what you're currently
-  spinning, and milestones (hitting a rare pressing). Sharing "now
-  spinning" and milestones is **off by default** — you turn each on
-  yourself in the Privacy screen.
+  spinning, milestones (hitting a rare pressing), and your listening
+  rhythm (a one-line verdict — "Mostly a night listener" — and the
+  percentage of your plays in each part of the day; never your individual
+  plays or the times you played them). Sharing "now spinning", milestones
+  and listening rhythm is **off by default** — you turn each on yourself
+  in the Privacy screen. Listening rhythm also needs at least 20 counted
+  plays before there's anything to show.
 - **Your private listening backup** — play counts, session counts,
   achievements and Collection progress, sealed/broken-record state, the
   text of any track edits you've made (title/artist/album — never the
@@ -60,8 +64,9 @@ optional account features (sign-in, backup, social).
 - Your handle, display name and avatar are visible to other signed-in
   users, except anyone you've blocked.
 - Anything you choose to share — your crate, notes, now-spinning status,
-  milestones — follows your visibility setting (private, friends, or
-  everyone; **friends by default**), found in the Privacy screen.
+  milestones, listening rhythm — follows your visibility setting
+  (private, friends, or everyone; **friends by default**), found in the
+  Privacy screen.
 
 ## Where your data lives, and for how long
 

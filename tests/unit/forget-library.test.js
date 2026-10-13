@@ -119,6 +119,8 @@ function resetState(overrides){
     playerOpen: false, metalEligibleSessions: {}, albumLastPlayed: {}, albumDisplay: {},
     albumLookPref: {}, trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {},
     trackDisplay: {},
+    // DA5 (docs/DAY_ARC.md)
+    phasePlayCounts: {}, albumPhaseCounts: {},
   }, overrides);
 }
 
@@ -169,6 +171,25 @@ test('forgetLibrary: empties the tracks store and leaves meta/sessions/overlays/
   // sealed/broken-seal state is in-memory only (S.sealed) and is never
   // touched by forgetLibrary (F3 spec: "kept and reconnected")
   assert.ok(S.sealed.has('al'));
+
+  DB.db.close();
+});
+
+test('forgetLibrary: DA5 phasePlayCounts/albumPhaseCounts are never touched (not even referenced by src/library/delete.js at all)', async () => {
+  await openFresh();
+  await meta.put('phasePlayCounts', { night: 7 });
+  await meta.put('albumPhaseCounts', { al: { night: 7 } });
+  resetState({
+    tracks: [fakeTrack({ id: 't1' })], index: 0,
+    phasePlayCounts: { night: 7 }, albumPhaseCounts: { al: { night: 7 } },
+  });
+
+  await forgetLibrary();
+
+  assert.deepEqual(S.phasePlayCounts, { night: 7 });
+  assert.deepEqual(S.albumPhaseCounts, { al: { night: 7 } });
+  assert.deepEqual(await meta.get('phasePlayCounts'), { night: 7 });
+  assert.deepEqual(await meta.get('albumPhaseCounts'), { al: { night: 7 } });
 
   DB.db.close();
 });

@@ -39,6 +39,11 @@ export async function persistRareUnlocked(){ await meta.put('rareUnlocked', S.ra
 export async function persistTrackPlayCounts(){ await meta.put('trackPlayCounts', S.trackPlayCounts); }
 export async function persistMetalEligibleSessions(){ await meta.put('metalEligibleSessions', S.metalEligibleSessions); }
 export async function persistTrackMetalEligiblePlays(){ await meta.put('trackMetalEligiblePlays', S.trackMetalEligiblePlays); }
+// DA5 (docs/DAY_ARC.md) — written by history/played.js's incrementTrackPlay(),
+// persisted/restored here alongside every other history counter it's a
+// sibling of (the same split this module already has for trackPlayCounts).
+export async function persistPhasePlayCounts(){ await meta.put('phasePlayCounts', S.phasePlayCounts); }
+export async function persistAlbumPhaseCounts(){ await meta.put('albumPhaseCounts', S.albumPhaseCounts); }
 export async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); touchBackupField('albumLookPref'); }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
@@ -174,6 +179,10 @@ export async function restoreSessions(){
   S.metalEligibleSessions = metalSessions || Object.assign({}, S.sessionCounts);
   const metalPlays = await meta.get('trackMetalEligiblePlays');
   S.trackMetalEligiblePlays = metalPlays || Object.assign({}, S.trackPlayCounts);
+  const phaseCounts = await meta.get('phasePlayCounts');
+  if(phaseCounts) S.phasePlayCounts = phaseCounts;
+  const albumPhase = await meta.get('albumPhaseCounts');
+  if(albumPhase) S.albumPhaseCounts = albumPhase;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
   const albumLast = await meta.get('albumLastPlayed');

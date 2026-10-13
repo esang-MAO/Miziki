@@ -41,6 +41,9 @@ import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION } from './backup-do
 // applyMerged()'s own note below for why those two stay out).
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { prepareCoverUpload, prepareAvatarUpload } from './images.js';
+// sundown/rhythm.js is a leaf (no imports at all) -- the same safe-to-
+// import-directly shape as crate/tiers.js above, for the exact same reason.
+import { RHYTHM_MIN_PLAYS, computeRhythmShares, rhythmVerdictLabel } from '../sundown/rhythm.js';
 
 const BACKUP_DEBOUNCE_MS = 30000;
 const BACKOFF = [15000, 30000, 60000, 120000, 300000];
@@ -157,6 +160,10 @@ function buildLocalState(){
     sessionCounts: S.sessionCounts,
     metalEligibleSessions: S.metalEligibleSessions,
     trackMetalEligiblePlays: S.trackMetalEligiblePlays,
+    // DA5 (docs/DAY_ARC.md): per-device counters, same shape/rule as
+    // trackPlayCounts above
+    phasePlayCounts: S.phasePlayCounts,
+    albumPhaseCounts: S.albumPhaseCounts,
     trackLastPlayed: S.trackLastPlayed,
     albumLastPlayed: S.albumLastPlayed,
     rareUnlocked: S.rareUnlocked,
@@ -190,7 +197,90 @@ async function pushBackup(){
   }, { onConflict: 'user_id,device_id' });
   if(error) throw error;
   await flushPendingImages(client, uid);
+  // DA5 (docs/DAY_ARC.md): "updated at most daily" piggybacks this same
+  // debounced/offline-safe push cycle rather than a timer of its own —
+  // see maybePushListeningRhythm()'s own comment below for the gate.
+  await maybePushListeningRhythm();
   return { ok:true };
+}
+
+/* ================= listening rhythm (step DA5, docs/DAY_ARC.md) =================
+   The shared half of listening rhythm: an opt-in (default off), at-most-
+   daily snapshot of the aggregate {verdict, shares} only — never raw
+   plays, never S.phasePlayCounts/S.albumPhaseCounts themselves, which
+   stay local like every other per-device counter (see the backup
+   key-inventory table, CLAUDE.md). Written through MizikiSocial's own
+   setListeningRhythm() (updateProfile()'s own validated write path), not
+   a direct `.from('profiles').update(...)` the way avatar_url above is —
+   unlike that one write (which the sync engine itself derives from a
+   Storage upload's own result), this one has real, reusable shape
+   validation worth going through once rather than duplicating here. */
+const RHYTHM_PUSH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+let rhythmPushedAtLoaded = false;
+async function ensureRhythmPushedAt(){
+  if(rhythmPushedAtLoaded) return;
+  rhythmPushedAtLoaded = true;
+  const saved = await meta.get('rhythmPushedAt');
+  if(typeof saved === 'number') S.rhythmPushedAt = saved;
+}
+function setRhythmPushedAt(at){
+  S.rhythmPushedAt = at;
+  meta.put('rhythmPushedAt', at).catch(() => {});
+}
+// null (not a thrown error) when there's nothing to share yet — below the
+// 20-play gate (DA5 point 2) is the ordinary "just signed up" case, not a
+// failure, so every caller treats it the same way a signed-out/not-
+// configured social layer already is: a quiet no-op, not a surfaced error.
+function buildRhythmPayload(){
+  const { total, shares } = computeRhythmShares(S.phasePlayCounts);
+  if(total < RHYTHM_MIN_PLAYS) return null;
+  return { verdict: rhythmVerdictLabel(shares), shares };
+}
+// Called from pushBackup()'s own already-running cycle, every ordinary
+// debounced sync — a no-op unless the Privacy switch is on, the daily
+// interval has actually elapsed, and there's enough data to share at all.
+async function maybePushListeningRhythm(){
+  // best-effort, piggybacked onto a push that has already actually
+  // succeeded by the time this runs (see pushBackup()'s own call site) --
+  // any failure here (a missing/old MizikiSocial build without
+  // getSettings()/setListeningRhythm(), a network hiccup on just this one
+  // extra write) must never turn an otherwise-successful backup push into
+  // a failed one, the same posture cleanupOrphanedImages() already has.
+  try{
+    const soc = getSocial();
+    if(!soc || typeof soc.getSettings !== 'function' || typeof soc.setListeningRhythm !== 'function') return;
+    if(!soc.getSettings().shareListeningRhythm) return;
+    await ensureRhythmPushedAt();
+    if(Date.now() - S.rhythmPushedAt < RHYTHM_PUSH_INTERVAL_MS) return;
+    const payload = buildRhythmPayload();
+    if(!payload) return;   // not 20 plays yet -- the next push after that picks it up
+    const r = await soc.setListeningRhythm(payload);
+    if(r && r.ok) setRhythmPushedAt(Date.now());
+  }catch(_e){ /* best-effort -- see the comment above */ }
+}
+// The Privacy screen's own switch handler calls this directly (DA5 point
+// 3's "updated... immediately when the switch is flipped") rather than
+// waiting out the daily interval above, which exists only to keep an
+// *already-on* switch's shared value from going stale, not to gate the
+// very first share or an explicit turn-off. Turning off always clears the
+// column right away, even if nothing was ever actually shared (a harmless
+// no-op null-over-null write) -- simpler than first checking whether a
+// value exists, and it's what makes "flip off" an unconditional guarantee
+// rather than one with its own exception.
+export async function pushOrClearListeningRhythm(on){
+  const soc = getSocial();
+  if(!soc) return { ok:false };
+  await ensureRhythmPushedAt();
+  if(!on){
+    const r = await soc.setListeningRhythm(null);
+    if(r && r.ok) setRhythmPushedAt(0);
+    return r;
+  }
+  const payload = buildRhythmPayload();
+  if(!payload) return { ok:true, skipped:true };
+  const r = await soc.setListeningRhythm(payload);
+  if(r && r.ok) setRhythmPushedAt(Date.now());
+  return r;
 }
 
 /* ================= images: upload (step 07, B4) =================
@@ -724,6 +814,11 @@ export function collectLocalDownloadData(){
       prefs: local.prefs,
       profileName: local.profileName,
       trackPlayCounts: local.trackPlayCounts,
+      // DA5 (docs/DAY_ARC.md) — the per-device counters behind the
+      // listening-rhythm card (src/profile/rhythm-card.js), same class of
+      // local data as trackPlayCounts just above
+      phasePlayCounts: local.phasePlayCounts,
+      albumPhaseCounts: local.albumPhaseCounts,
       sessionCounts: local.sessionCounts,
       metalEligibleSessions: local.metalEligibleSessions,
       trackMetalEligiblePlays: local.trackMetalEligiblePlays,

@@ -28,9 +28,26 @@ const sb = {
     try{ const out=psql(`set role authenticated; select set_config('request.jwt.claim.sub','${uid}',false); ${SETS.has(name)?`select coalesce(jsonb_agg(to_jsonb(q)),'[]'::jsonb)::text from ${name}(${p}) q;`:`select coalesce(to_jsonb(x),'null'::jsonb)::text from (select ${name}(${p}) as x) q;`}`);
       const lines=out.split('\n'); const last=lines[lines.length-1]; let d; try{d=JSON.parse(last)}catch(e){console.log('PARSE',name,JSON.stringify(out.slice(-200)));throw e} if(d&&typeof d==='object'&&'x' in d) d=d.x; return {data:d,error:null}; }
     catch(e){ return {data:null,error:e}; } },
-  from(t){ const f={}; const b={select(){return b},eq(c,v){f[c]={op:'=',v};return b},gt(c,v){f[c]={op:'>',v};return b},
+  from(t){ const f={}; let patch=null; const b={select(){return b},eq(c,v){f[c]={op:'=',v};return b},gt(c,v){f[c]={op:'>',v};return b},
+      update(p){ patch=p; return b; },
       async maybeSingle(){ const w=Object.entries(f).map(([c,{op,v}])=>`${c}${op}'${v}'`).join(' and ');
-        const o=psql(`select coalesce(to_jsonb(p),'null') from ${t} p ${w?'where '+w:''} limit 1`); const d=JSON.parse(o||'null'); return {data:d,error:null}; }};
+        const o=psql(`select coalesce(to_jsonb(p),'null') from ${t} p ${w?'where '+w:''} limit 1`); const d=JSON.parse(o||'null'); return {data:d,error:null}; },
+      // minimal real-Postgres UPDATE, for updateProfile()'s own write path
+      // (setListeningRhythm among them) -- same "real Postgres, not a
+      // second fake of it" posture maybeSingle() already has above.
+      async single(){
+        const w=Object.entries(f).map(([c,{op,v}])=>`${c}${op}'${v}'`).join(' and ');
+        const sets=Object.entries(patch||{}).map(([c,v])=>
+          v===null ? `${c}=null` : typeof v==='object' ? `${c}=${lit(v)}::jsonb` : typeof v==='boolean' ? `${c}=${v}` : `${c}='${String(v).replace(/'/g,"''")}'`).join(', ');
+        try{ const o=psql(`set role authenticated; select set_config('request.jwt.claim.sub','${uid}',false); update ${t} set ${sets} where ${w} returning to_jsonb(${t}.*)`);
+          // -At still prints the UPDATE/INSERT/DELETE command tag as its own
+          // trailing line after the returned row's own JSON -- unlike every
+          // other call site here, which only ever runs a bare SELECT (no
+          // such tag) -- so take the last line that actually looks like a
+          // value, not just the textual last line.
+          const lines=o.split('\n').filter(l => !/^(SET|UPDATE|INSERT|DELETE)\b[^{[]*$/.test(l.trim()));
+          const d=JSON.parse(lines[lines.length-1]||'null'); return {data:d,error:null}; }
+        catch(e){ return {data:null,error:e}; } }};
     return b; },
   auth:{ onAuthStateChange(){}, async getSession(){ return {data:{session:{user:{id:uid}}}}; } },
   // step 07 (B4): a bare recorder, not a real Storage client -- just
@@ -83,7 +100,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await t('emptied library held',async()=>{ ALBUMS=[]; const r=await M.syncNow(); assert.ok(r.held>0); assert.equal(crateN(),8); ALBUMS=[1,2,3,4,5,6,7,8].map(n=>alb(n)); const r2=await M.syncNow(); assert.equal(r2.held,0); assert.equal(crateN(),8); });
  await t('fresh device restores server metadata, no blank overwrite',async()=>{
    store=null; const X=M._internals.X; X.state=null; // simulate wiped device
-   X.state={v:1,userId:null,settings:{shareNowSpinning:false,shareMilestones:false,syncEnabled:true},pins:[],items:{},synced:{},statsSynced:{},restoredFor:null};
+   X.state={v:1,userId:null,settings:{shareNowSpinning:false,shareMilestones:false,syncEnabled:true,shareListeningRhythm:false},pins:[],items:{},synced:{},statsSynced:{},restoredFor:null};
    const r=await M.syncNow(); assert.equal(r.firstSync,true);
    assert.equal(M.getAlbumSocial('a1').rating,5); assert.ok(M.getPins().length>0,'pins restored');
    assert.equal(q1(`select rating from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 1')`),'5'); });
@@ -119,6 +136,34 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const theirs=await M.loadProfile('amy'); assert.equal(theirs.ok,true,JSON.stringify(theirs));
    assert.equal(theirs.isMe,false); assert.ok(theirs.canView,JSON.stringify(theirs));
    assert.ok(!('followers' in theirs.summary),JSON.stringify(theirs.summary)); });
+ // ---------------------------------------------------------------------
+ // DA5 (docs/DAY_ARC.md): the MizikiSocial-client half of listening
+ // rhythm -- the shareListeningRhythm setting default, and
+ // setListeningRhythm()/getListeningRhythm() against the real Postgres
+ // backing this fake `sb` client (ken/UID is still signed in here, from
+ // the init test at the top of this file). The RLS/visibility gating
+ // itself (friend vs. stranger vs. blocked vs. signed-out) is already
+ // covered at the SQL level further down -- this is just "does the JS
+ // wrapper actually call the right thing, with the right validation."
+ // ---------------------------------------------------------------------
+ await t('shareListeningRhythm defaults to off',()=>{ assert.equal(M.getSettings().shareListeningRhythm,false); });
+ await t('setListeningRhythm writes a valid payload, readable back via getListeningRhythm',async()=>{
+   const r=await M.setListeningRhythm({verdict:'Mostly a night listener',shares:{night:0.6}});
+   assert.equal(r.ok,true,JSON.stringify(r));
+   const g=await M.getListeningRhythm(UID);
+   assert.equal(g.ok,true,JSON.stringify(g));
+   assert.equal(g.rhythm.verdict,'Mostly a night listener'); });
+ await t('setListeningRhythm(null) clears it -- getListeningRhythm then reads null, not an error',async()=>{
+   const r=await M.setListeningRhythm(null); assert.equal(r.ok,true,JSON.stringify(r));
+   const g=await M.getListeningRhythm(UID); assert.equal(g.ok,true,JSON.stringify(g)); assert.equal(g.rhythm,null); });
+ await t('setListeningRhythm rejects a malformed payload locally, before ever reaching Postgres',async()=>{
+   const r=await M.setListeningRhythm({verdict:'x'}); // missing shares
+   assert.equal(r.ok,false); assert.equal(r.error.code,'bad_listening_rhythm',JSON.stringify(r)); });
+ await t('getListeningRhythm for someone who has never shared one reads null, not an error',async()=>{
+   // amy (UID2) has no listening_rhythm set at all -- visible or not, there's
+   // nothing there; the friend/stranger/blocked visibility gating itself is
+   // the Postgres-level get_listening_rhythm tests further down this file
+   const g=await M.getListeningRhythm(UID2); assert.equal(g.ok,true,JSON.stringify(g)); assert.equal(g.rhythm,null); });
  // ---------------------------------------------------------------------
  // B1 (step 05): library_backup, reserved handles, account deletion, and
  // the Oct 12 Security Advisor fixes (005_backup.sql). Raw SQL throughout
@@ -390,6 +435,80 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.ok(storageCalls.some(c => c.op==='list' && c.bucket==='avatars'), JSON.stringify(storageCalls));
    assert.ok(storageCalls.some(c => c.op==='remove' && c.bucket==='covers'), JSON.stringify(storageCalls));
    assert.ok(storageCalls.some(c => c.op==='remove' && c.bucket==='avatars'), JSON.stringify(storageCalls)); });
+
+ // ---------------------------------------------------------------------
+ // DA5 (docs/DAY_ARC.md, migration 007_rhythm.sql): get_listening_rhythm()
+ // -- the one new server-side surface this step adds. The column itself
+ // (profiles.listening_rhythm) is written by the owner through the
+ // ordinary column-grant + updateProfile() mechanism (not re-tested here
+ // -- it's the exact same mechanism 001's own display_name/bio grant
+ // already uses, already covered by this file's profile-write coverage
+ // elsewhere); what's new and actually worth its own RLS test is reading
+ // *someone else's* value, gated by can_view(owner, null) rather than by
+ // profiles_select (which stays deliberately blanket -- see 007's own
+ // comment for why). Fresh fixture users, not ken/amy/cora/dale/etc., so
+ // nothing here can collide with any test above.
+ // ---------------------------------------------------------------------
+ const RUID_OWNER='c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1',
+       RUID_FRIEND='c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2',
+       RUID_STRANGER='c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3',
+       RUID_BLOCKED='c4c4c4c4-c4c4-c4c4-c4c4-c4c4c4c4c4c4';
+ const RHYTHM_PAYLOAD = `'{"verdict":"Mostly a night listener","shares":{"night":0.6}}'::jsonb`;
+ psql(`insert into auth.users values ('${RUID_OWNER}'),('${RUID_FRIEND}'),('${RUID_STRANGER}'),('${RUID_BLOCKED}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values
+     ('${RUID_OWNER}','rhyown','Rhy Owner','friends'),
+     ('${RUID_FRIEND}','rhyfriend','Rhy Friend','friends'),
+     ('${RUID_STRANGER}','rhystranger','Rhy Stranger','friends'),
+     ('${RUID_BLOCKED}','rhyblocked','Rhy Blocked','friends')
+   on conflict do nothing`);
+ // an accepted, one-directional follow (friend -> owner) is exactly what
+ // can_view(owner, null)'s own 'friends' branch checks -- see 001_schema.sql.
+ // follows_before_insert always recomputes NEW.status itself (auto-accept
+ // only for a *public* followee, 'pending' otherwise) regardless of what
+ // the insert names, so -- same two-step dance the fixture setup at the
+ // top of this file already uses for exactly this reason -- insert, then
+ // force-accept with a separate update.
+ psql(`insert into follows(follower_id,followee_id) values
+     ('${RUID_FRIEND}','${RUID_OWNER}'),
+     ('${RUID_BLOCKED}','${RUID_OWNER}')
+   on conflict do nothing;
+   update follows set status='accepted'
+     where followee_id='${RUID_OWNER}' and follower_id in ('${RUID_FRIEND}','${RUID_BLOCKED}');
+   insert into blocks(blocker_id,blocked_id) values ('${RUID_OWNER}','${RUID_BLOCKED}') on conflict do nothing`);
+ asUser(RUID_OWNER, `update profiles set listening_rhythm=${RHYTHM_PAYLOAD} where id='${RUID_OWNER}'`);
+
+ await t('get_listening_rhythm: the owner always sees their own value',()=>{
+   assert.equal(asUser(RUID_OWNER, `select get_listening_rhythm('${RUID_OWNER}')->>'verdict'`), 'Mostly a night listener'); });
+
+ await t('get_listening_rhythm: a friend (accepted follow, owner visibility friends) sees it',()=>{
+   assert.equal(asUser(RUID_FRIEND, `select get_listening_rhythm('${RUID_OWNER}')->>'verdict'`), 'Mostly a night listener'); });
+
+ await t('get_listening_rhythm: a stranger (no follow relationship) never sees it',()=>{
+   assert.equal(asUser(RUID_STRANGER, `select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null'); });
+
+ await t('get_listening_rhythm: a blocked account never sees it, even with an accepted follow',()=>{
+   assert.equal(asUser(RUID_BLOCKED, `select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null'); });
+
+ await t('get_listening_rhythm: a signed-out (anon) request never sees it',()=>{
+   assert.equal(asAnon(`select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null'); });
+
+ await t('get_listening_rhythm: an owner with visibility private is never visible to a friend',()=>{
+   asUser(RUID_OWNER, `update profiles set visibility='private' where id='${RUID_OWNER}'`);
+   assert.equal(asUser(RUID_FRIEND, `select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null');
+   // owner can still always see their own, regardless of their own visibility
+   assert.equal(asUser(RUID_OWNER, `select get_listening_rhythm('${RUID_OWNER}')->>'verdict'`), 'Mostly a night listener');
+   asUser(RUID_OWNER, `update profiles set visibility='friends' where id='${RUID_OWNER}'`); });
+
+ await t('get_listening_rhythm: a null column value reads back null, not an error, once cleared',()=>{
+   asUser(RUID_OWNER, `update profiles set listening_rhythm=null where id='${RUID_OWNER}'`);
+   assert.equal(asUser(RUID_OWNER, `select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null');
+   assert.equal(asUser(RUID_FRIEND, `select coalesce(get_listening_rhythm('${RUID_OWNER}')::text,'null')`), 'null'); });
+
+ await t('listening_rhythm: the size check rejects an oversized payload',()=>{
+   let threw=false;
+   try{ asUser(RUID_OWNER, `update profiles set listening_rhythm=jsonb_build_object('pad', repeat('x', 3*1024)) where id='${RUID_OWNER}'`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected the 2000-byte check to reject an oversized listening_rhythm value'); });
 
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

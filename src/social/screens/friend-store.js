@@ -9,6 +9,7 @@ import {
 // counter" section of a friend's store) formats a friend's activity rows
 // with the same text as the home feed does.
 import { feedEventText } from './home.js';
+import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 
 /* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
 
@@ -310,6 +311,17 @@ function renderFriendStoreContent(body, full){
   body.appendChild(stats);
 
   body.appendChild(friendNowSpinningRow(full));
+  // DA5 (docs/DAY_ARC.md): only when this friend has actually turned the
+  // Privacy screen's own "Share my listening rhythm" switch on and has
+  // enough plays to show anything — get_listening_rhythm() (007_rhythm.sql)
+  // already came back null for every other case (not shared, not enough
+  // plays, this viewer isn't allowed to see it, or signed out), so a plain
+  // truthiness check here is the whole gate.
+  if(full.listeningRhythm){
+    const rhythmHost = el('div', null);
+    body.appendChild(rhythmHost);
+    renderSharedRhythmCard(rhythmHost, full.listeningRhythm);
+  }
   if(full.staffPicks.length) body.appendChild(friendPicksSection(full));
   if(full.fresh && full.fresh.length) body.appendChild(friendFreshSection(full));
   if(full.diggingShared && full.digging.length) body.appendChild(friendDiggingPreview(full));

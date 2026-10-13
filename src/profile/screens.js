@@ -4,6 +4,7 @@ import { meta, profile } from '../storage/repo.js';
 import { topAlbums, topTracks, achievementsList, crateFilled, collectionGroups } from '../history/achievements.js';
 import { metalBadge, collectionBadge } from './badges.js';
 import { renderStorefrontSection } from './storefront.js';
+import { renderRhythmCard } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
 import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './legal.js';
@@ -98,6 +99,13 @@ export function renderProfile(){
 
 function renderProfileHome(body){
   renderStorefrontSection(body);
+  // DA5 (docs/DAY_ARC.md): local to this device, visible regardless of
+  // sign-in state — the same posture the privacy link just below already
+  // has. The *sharing* switch is the social-only half (Privacy screen,
+  // src/profile/privacy.js) and stays separate.
+  const rhythmHost = el('div', null);
+  body.appendChild(rhythmHost);
+  renderRhythmCard(rhythmHost);
   // reachable from Profile regardless of sign-in state — the privacy
   // screen itself shows the calm "sign in to use this" row for the
   // social-only sections when signed out (step 06, B3)

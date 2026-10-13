@@ -4,13 +4,14 @@
    Moved out of main.js's "record art: session tracking" section, plus
    incrementTrackPlay (out of "metal tiers") — step 5c. */
 import { S, current } from '../state.js';
-import { trackIdentityKey, trackTier } from '../record-art/tiers.js';
-import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays } from './sessions.js';
+import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
+import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts } from './sessions.js';
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
 import { persistTrackLastPlayed } from '../profile/screens.js';
 import { scheduleBackupSync } from '../sync/backup.js';
+import { realDayPosition } from '../sundown/solar.js';
 
 export function addPlayedRange(a, b){
   if(b <= a) return;
@@ -40,9 +41,19 @@ export function incrementTrackPlay(t){
   S.trackPlayCounts[key] = (S.trackPlayCounts[key] || 0) + 1;
   if(trackTier(t) === 1) S.trackMetalEligiblePlays[key] = (S.trackMetalEligiblePlays[key] || 0) + 1;
   S.trackLastPlayed[key] = Date.now();
+  // DA5 (docs/DAY_ARC.md): realDayPosition(), not currentDayPosition() —
+  // the real clock, never S.previewMin, so Preview the day can never
+  // create or change this stat.
+  const phase = realDayPosition().phase;
+  S.phasePlayCounts[phase] = (S.phasePlayCounts[phase] || 0) + 1;
+  const albumId = albumKey(t);
+  const perAlbum = S.albumPhaseCounts[albumId] || (S.albumPhaseCounts[albumId] = {});
+  perAlbum[phase] = (perAlbum[phase] || 0) + 1;
   persistTrackPlayCounts();
   persistTrackMetalEligiblePlays();
   persistTrackLastPlayed();
+  persistPhasePlayCounts();
+  persistAlbumPhaseCounts();
   snapshotAlbumDisplay(t);
   snapshotTrackDisplay(t, key);
   if(current() === t) applyDiscVariant(t, true);

@@ -17,6 +17,9 @@
        by albumKey/trackIdentityKey in real S — see each module's own file)
      prefs, profileName,
      trackPlayCounts, sessionCounts, metalEligibleSessions, trackMetalEligiblePlays,
+     phasePlayCounts, albumPhaseCounts,  (DA5, docs/DAY_ARC.md — per-device
+       counters, same rule as trackPlayCounts/sessionCounts; already keyed
+       by a portable string, no idToKey conversion needed)
      trackLastPlayed, albumLastPlayed, rareUnlocked, achievements, collection,
      sealedIds, brokenSealIds,       (S.sealed as an array, plus a *new*
        local list this device has ever broken — S doesn't track that today;
@@ -150,6 +153,15 @@ export function toDoc(localState){
       sessionCounts: s.sessionCounts || {},
       metalEligibleSessions: s.metalEligibleSessions || {},
       trackMetalEligiblePlays: s.trackMetalEligiblePlays || {},
+      // DA5 (docs/DAY_ARC.md): both already keyed by a portable string —
+      // phasePlayCounts by the phase name itself, albumPhaseCounts by
+      // albumKey() (normKey(album title), same as sessionCounts/
+      // albumLastPlayed above) — so neither needs idToKey conversion,
+      // unlike trackPlayCounts's trackIdentityKey (computed by the
+      // caller before it ever lands in S, not here either, for the
+      // same reason).
+      phasePlayCounts: s.phasePlayCounts || {},
+      albumPhaseCounts: s.albumPhaseCounts || {},
     },
     maxFields: {
       trackLastPlayed: s.trackLastPlayed || {},
