@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
-import { computeRate, sunProgress, easedProgress } from '../sundown/solar.js';
+import { computeRate, sunProgress, easedProgress, currentDayPosition } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
@@ -105,8 +105,18 @@ export function drawSun(){
   // Pure means untouched — Sundown only ever reaches the recording in Vinyl.
   // The settings below stay live and usable in Pure anyway, since they
   // describe what Vinyl will do the moment you switch back.
+  //
+  // DA1 (docs/DAY_ARC.md): Dawn and Morning are the two new cases — every
+  // other phase (midday/afternoon/golden, all still "full daylight" as
+  // far as the rate is concerned) keeps the existing "Daylight — full
+  // speed" wording, since DA1 only asks for Dawn's and Morning's own text,
+  // not a distinct line for each of the seven phases (that's DA3's own
+  // richer phase line).
+  const dayPos = currentDayPosition();
   if(S.mode === 'pure') $('#rateWhy').textContent = 'Pure — always full speed (Sundown applies in Vinyl)';
   else if(!S.auto) $('#rateWhy').textContent = 'Set by hand';
+  else if(dayPos.phase === 'dawn') $('#rateWhy').textContent = 'Dawn — rising, ' + Math.round(dayPos.phaseProgress*100) + '% of the way up';
+  else if(dayPos.phase === 'morning') $('#rateWhy').textContent = 'Morning — full speed';
   else if(p <= 0) $('#rateWhy').textContent = 'Daylight — full speed';
   else if(p >= 1) $('#rateWhy').textContent = 'Night — settled at ' + S.target.toFixed(2) + '×';
   else $('#rateWhy').textContent = 'Twilight — ' + Math.round(e*100) + '% of the way down';

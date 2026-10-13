@@ -22,7 +22,12 @@ export const S = {
   albumSort:{}, albumOrder:{}, lru:[], librarySort:'artist',
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
   previewMin:0, live:true,
-  sun:{lat:null,lon:null,set:null,dusk:null,ok:false},
+  // DA1 (docs/DAY_ARC.md): dawn/rise/noon alongside the original set/dusk
+  // — dayPosition() (src/sundown/day.js) reads all five, plus
+  // altitudeAtNoon (used only for the polar-day/polar-night fallback when
+  // the other four come back null). computeSun()/fallbackSun() fill all
+  // six whenever ok is set true.
+  sun:{lat:null,lon:null,dawn:null,rise:null,noon:null,set:null,dusk:null,altitudeAtNoon:null,ok:false},
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
   // scratch: true means spin-to-scrub plays real audio while spinning the
   // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the
