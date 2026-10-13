@@ -13,7 +13,7 @@ import { achievements, collection, sessions, meta } from '../storage/repo.js';
 import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
-  persistTrackMetalEligiblePlays,
+  persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
 } from './sessions.js';
 import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
@@ -47,6 +47,13 @@ export async function clearListeningHistory(orphanedOnly){
     S.trackMetalEligiblePlays = filterKeep(S.trackMetalEligiblePlays, trackKeys);
     S.trackLastPlayed = filterKeep(S.trackLastPlayed, trackKeys);
     S.trackDisplay = filterKeep(S.trackDisplay, trackKeys);
+    // DA5 (docs/DAY_ARC.md): albumPhaseCounts is keyed by album, same
+    // identity shape as sessionCounts/albumLastPlayed just above — pruned
+    // the same way. phasePlayCounts has no per-identity shape at all (it's
+    // a pure phase aggregate with nothing to key an orphaned-only prune
+    // by), so it's never touched here, the same way a full-scope clear is
+    // the only thing that ever resets it below.
+    S.albumPhaseCounts = filterKeep(S.albumPhaseCounts, albumIds);
     for(const id of droppedAlbums) await achievements.del(id);
     for(const id of droppedCollection) await collection.del(id);
     for(const id of droppedSessions) await sessions.del(id);
@@ -55,6 +62,7 @@ export async function clearListeningHistory(orphanedOnly){
     S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
     S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
     S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
+    S.phasePlayCounts = {}; S.albumPhaseCounts = {};
     await achievements.clear(); await collection.clear(); await sessions.clear();
     // only a *full*-scope clear counts as "I want my stats reset" for the
     // cross-device merge (B2 table) — orphaned-only just prunes identities
@@ -67,7 +75,8 @@ export async function clearListeningHistory(orphanedOnly){
   await Promise.all([
     persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
     persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay()
+    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
+    persistPhasePlayCounts(), persistAlbumPhaseCounts()
   ]);
   const t = current();
   if(t) applyDiscVariant(t, true);

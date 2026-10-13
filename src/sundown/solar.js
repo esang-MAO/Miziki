@@ -118,13 +118,28 @@ export function nowClock(){
   return new Date(t);
 }
 
+// Shared by currentDayPosition()/realDayPosition() below — dayPosition()'s
+// own "no data yet" default (see day.js's own comment on this exact shape).
+const FALLBACK_DAY_POSITION = { phase: 'midday', phaseProgress: 0, nightness: 0, rateProgress: 0, duskRampProgress: 0 };
+
 // Exported for drawSun()'s own Dawn/Morning readout text
 // (src/player/clock.js) — the one place outside this file that needs
 // `phase`/`phaseProgress` directly, rather than the rateProgress-only
 // view sunProgress()/easedProgress() give everyone else.
 export function currentDayPosition(){
-  if(!S.sun.ok) return { phase: 'midday', phaseProgress: 0, nightness: 0, rateProgress: 0, duskRampProgress: 0 };
+  if(!S.sun.ok) return FALLBACK_DAY_POSITION;
   return dayPosition(nowClock(), S.sun);
+}
+
+// DA5 (docs/DAY_ARC.md): the real day position, bypassing S.previewMin —
+// nowClock() folds the preview offset in on purpose (every Sundown readout,
+// including the Day drift blend, is supposed to follow Preview the day),
+// but a *counted* play must never be attributed to a previewed time, or
+// dragging the slider could fabricate or skew the listening-rhythm stat.
+// history/played.js's incrementTrackPlay() is the one real caller.
+export function realDayPosition(){
+  if(!S.sun.ok) return FALLBACK_DAY_POSITION;
+  return dayPosition(new Date(), S.sun);
 }
 
 // Kept as its own export, same name and meaning for every existing

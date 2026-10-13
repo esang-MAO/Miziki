@@ -20,6 +20,27 @@ export function sumCounters(rows, field){
   return out;
 }
 
+// ---- albumPhaseCounts (DA5): a per-device counter like sumCounters above,
+// just one level deeper — {albumId: {phase: count}} rather than
+// {key: count}. Kept as its own primitive rather than teaching sumCounters
+// to recurse, since every other per-device counter in this file (and B2's
+// own table) is genuinely flat; phasePlayCounts itself (flat, {phase:
+// count}) uses plain sumCounters directly, no new primitive needed ----
+export function sumNestedCounters(rows, field){
+  const out = {};
+  for(const row of rows){
+    const c = row.counters && row.counters[field];
+    if(!c) continue;
+    for(const albumId of Object.keys(c)){
+      const inner = c[albumId];
+      if(!inner) continue;
+      const dest = out[albumId] || (out[albumId] = {});
+      for(const phase of Object.keys(inner)) dest[phase] = (dest[phase] || 0) + (inner[phase] || 0);
+    }
+  }
+  return out;
+}
+
 // ---- trackLastPlayed / albumLastPlayed: max() across devices ----
 export function maxField(rows, field){
   const out = {};
@@ -154,6 +175,10 @@ export function mergeRows(rows){
         sessionCounts: sumCounters(fresh, 'sessionCounts'),
         metalEligibleSessions: sumCounters(fresh, 'metalEligibleSessions'),
         trackMetalEligiblePlays: sumCounters(fresh, 'trackMetalEligiblePlays'),
+        // DA5 (docs/DAY_ARC.md): per-device counters, same rule as every
+        // other row in this object
+        phasePlayCounts: sumCounters(fresh, 'phasePlayCounts'),
+        albumPhaseCounts: sumNestedCounters(fresh, 'albumPhaseCounts'),
       },
       maxFields: {
         trackLastPlayed: maxField(fresh, 'trackLastPlayed'),

@@ -168,3 +168,29 @@ S.backupUpdatedAt = {
 // null until the first successful merge, so the one-time "Restored..."
 // summary shows exactly once per account per device
 S.backupRestoredFor = null;
+
+/* ================= DA5 (docs/DAY_ARC.md) — listening rhythm =================
+   Every counted play (checkTrackCompletion -> incrementTrackPlay,
+   src/history/played.js) also tallies which day-arc phase it happened in,
+   using the real clock -- never S.previewMin -- so dragging Preview the
+   day can never create or change a stat (see sundown/solar.js's
+   realDayPosition(), the one place this distinction is enforced).
+   phasePlayCounts is a flat {phase: count} map, the same per-device-
+   counter shape as trackPlayCounts; albumPhaseCounts is keyed by
+   albumKey() same as sessionCounts/albumLastPlayed, one {phase: count}
+   map per album -- both are "per-device counters: summed across
+   devices" in the backup key-inventory table (CLAUDE.md), the exact same
+   merge rule trackPlayCounts already has. Persisted by the matching
+   persist-and-restore functions in history/sessions.js, written by
+   history/played.js, reset by a full-scope Clear listening history,
+   pruned (albumPhaseCounts only -- phasePlayCounts has no per-identity
+   shape to prune by) on an orphaned-only clear, and left alone by Forget
+   library (F3) like every other history counter. */
+S.phasePlayCounts = {};
+S.albumPhaseCounts = {};
+// device-only sync bookkeeping -- the last time this device actually
+// pushed a listening-rhythm snapshot to the account (src/sync/backup.js's
+// pushBackup(), "updated at most daily" per the doc) -- never itself
+// backed up or shown to the user, the same class of local-only timestamp
+// as uploadedImageHashes in backup.js.
+S.rhythmPushedAt = 0;
