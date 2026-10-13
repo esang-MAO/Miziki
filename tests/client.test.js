@@ -116,6 +116,20 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    M.nowSpinning('a3','Track X'); await sleep(400);
    assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}'`),1);
    M.stopSpinning(); await sleep(400); assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}'`),0); });
+ // DA6 (docs/DAY_ARC.md, migration 008_spin_phase.sql): the phase rides
+ // along as nowSpinning's third argument, through publishSpin's own
+ // p_phase param, into the real now_spinning.phase column -- exercised
+ // here through the real MizikiSocial client against the real Postgres
+ // RPC, the same end-to-end shape every other now-spinning test above
+ // already uses, not a second fake of the RPC layer.
+ await t('now spinning sends the phase through to the real column',async()=>{
+   M.nowSpinning('a3','Track X','golden'); await sleep(400);
+   assert.equal(q1(`select phase from now_spinning where user_id='${UID}'`),'golden');
+   M.stopSpinning(); await sleep(400); });
+ await t('now spinning with no phase leaves the column null, not an error',async()=>{
+   M.nowSpinning('a3','Track X'); await sleep(400);
+   assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}' and phase is null`),1);
+   M.stopSpinning(); await sleep(400); });
  await t('now spinning pause clears after delay',async()=>{ M.nowSpinning('a3','T'); await sleep(400); M.nowSpinningPaused(); await sleep(500); assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}'`),0); });
  await t('private record never spins',async()=>{ M.setVisibility('a4','private'); await M.syncNow(); M.nowSpinning('a4','T'); await sleep(400); assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}'`),0); });
  await t('offline => backoff then recovery',async()=>{ M.setRating('a5',3); offline=true; const r=await M.syncNow(); assert.equal(r.error.code,'offline',JSON.stringify(r)); assert.equal(M.status().sync,'offline');
@@ -509,6 +523,50 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    try{ asUser(RUID_OWNER, `update profiles set listening_rhythm=jsonb_build_object('pad', repeat('x', 3*1024)) where id='${RUID_OWNER}'`); }
    catch(_e){ threw=true; }
    assert.ok(threw, 'expected the 2000-byte check to reject an oversized listening_rhythm value'); });
+
+ // DA6 (docs/DAY_ARC.md, migration 008_spin_phase.sql): now_spinning.phase's
+ // own check constraint, and the "exactly one set_now_spinning, not two
+ // overloads" requirement the migration's own drop-then-create exists for.
+ // The JS-level nowSpinning()/phase round-trip tests live up with the rest
+ // of the "now spinning" section above (M is the real client, same real
+ // Postgres backend) -- this section is the lower-level SQL the doc's own
+ // point 3 ("set_now_spinning accepts and rejects phases per the check
+ // constraint... no stray overload remains") asks for directly.
+ //
+ // Its own fresh fixture user, not UID -- by this point in the file, UID's
+ // own auth.users row no longer exists (the "deleteAccount lists and
+ // removes..." test above genuinely deletes it, via the real
+ // delete_my_account() RPC, acting as whatever `uid` the module-level
+ // closure variable still holds) -- the same "fresh fixture users, so
+ // nothing here can collide with any test above" reasoning the DA5
+ // section right above this one already states for its own RUID_* users.
+ const SUID='d1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1';
+ psql(`insert into auth.users values ('${SUID}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values ('${SUID}','spinphasetest','Spin Phase Test','public')
+   on conflict do nothing`);
+ await t('now_spinning.phase: the check constraint accepts every one of the seven phase names',()=>{
+   asUser(SUID, `insert into releases(release_key,title,artist) values ('phase-accept-rel','Phase Accept','Artist') on conflict do nothing`);
+   const relId = asUser(SUID, `select id from releases where release_key='phase-accept-rel'`);
+   for(const phase of ['night','dawn','morning','midday','afternoon','golden','twilight']){
+     asUser(SUID, `insert into now_spinning(user_id,release_id,phase) values ('${SUID}','${relId}','${phase}')
+       on conflict (user_id) do update set release_id=excluded.release_id, phase=excluded.phase`);
+     assert.equal(asUser(SUID, `select phase from now_spinning where user_id='${SUID}'`), phase);
+   }
+   asUser(SUID, `delete from now_spinning where user_id='${SUID}'`); });
+ await t('now_spinning.phase: the check constraint rejects a phase name outside the seven',()=>{
+   asUser(SUID, `insert into releases(release_key,title,artist) values ('phase-check-rel','Phase Check','Artist') on conflict do nothing`);
+   const relId = asUser(SUID, `select id from releases where release_key='phase-check-rel'`);
+   let threw=false;
+   try{ asUser(SUID, `insert into now_spinning(user_id,release_id,phase) values ('${SUID}','${relId}','not-a-real-phase')
+     on conflict (user_id) do update set release_id=excluded.release_id, phase=excluded.phase`); }
+   catch(e){ threw = /now_spinning_phase_check/.test(e.message) || /violates check constraint/.test(e.message); }
+   assert.ok(threw, 'expected the phase check constraint (not some other error) to reject an unlisted value'); });
+ await t('set_now_spinning: still works called with no p_phase at all (an older client)',()=>{
+   asUser(SUID, `select set_now_spinning('older-client-rel','Older Client','Artist')`);
+   assert.equal(asUser(SUID, `select coalesce(phase,'null') from now_spinning where user_id='${SUID}'`),'null');
+   asUser(SUID, `select clear_now_spinning()`); });
+ await t('set_now_spinning: exactly one overload exists after the migration, not two',()=>{
+   assert.equal(q1(`select count(*) from pg_proc where proname='set_now_spinning' and pronamespace=(select oid from pg_namespace where nspname='public')`), '1'); });
 
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
