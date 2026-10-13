@@ -273,6 +273,21 @@
     </div>
     <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
 
+    <!-- DA2 (docs/DAY_ARC.md): a small segmented control beside the
+         sliders it drifts off of, per the doc's own "UI" instruction —
+         DA3 moves this into Sundown's own Sound view; it stays here, in
+         Character, until then. data-char-drift (not a fixed id list) is
+         the same querySelectorAll convention data-theme-choice already
+         established just below, so a later move needs no wiring change. -->
+    <div class="row">
+      <div class="k">Day drift<em>Your settings are midday. Mornings drift brighter, nights warmer.</em></div>
+      <div class="seg">
+        <button data-char-drift="off" aria-pressed="false">Off</button>
+        <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
+        <button data-char-drift="full" aria-pressed="false">Full</button>
+      </div>
+    </div>
+
     <!-- D2 (docs/DESKTOP_LAYOUT.md): on phones this is the one control for
          the Auto/Light/Dark appearance preference; the desktop sidebar's
          segmented control (D7) will carry the same data-theme-choice

@@ -42,6 +42,19 @@ export function wireCharacter(){
   document.querySelectorAll('[data-theme-choice]').forEach(b =>
     b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
 
+  // DA2 (docs/DAY_ARC.md): the intensity change itself, not the user's own
+  // slider value, so it rides the slow ~2s ramp engine.js's own drift
+  // recompute timer uses — a sudden intensity jump is exactly the kind of
+  // thing "never audible as a change" is about, unlike a slider the user
+  // is actively dragging and expects to respond instantly.
+  document.querySelectorAll('[data-char-drift]').forEach(b => b.addEventListener('click', () => {
+    S.charDrift = b.dataset.charDrift;
+    document.querySelectorAll('[data-char-drift]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.charDrift === S.charDrift)));
+    applyCharacter(2);
+    queueSave();
+  }));
+
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#motionBtn').addEventListener('click', toggleMotion);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
