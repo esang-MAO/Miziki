@@ -487,9 +487,17 @@
     <svg viewBox="0 0 24 24"><path d="M6 20v-7M6 10V4M12 20v-3M12 14V4M18 20v-9M18 8V4"/><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="10" r="1.6" fill="currentColor" stroke="none"/></svg>
     <span>Character</span>
   </button>
+  <!-- D7 (docs/DESKTOP_LAYOUT.md): "Keep the route id, change only the
+       visible label on desktop" — data-route stays "profile" (routing,
+       aria-selected and every other reference go by that attribute, never
+       by this button's text — confirmed via grep of shell/routes.js and
+       wiring/routes.js before making this change), and only which of the
+       two spans is visible flips at 1024px+ (src/styles/23-desktop.css).
+       Phones keep seeing "Profile"; nothing here needs a JS change. -->
   <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
-    <span>Profile</span>
+    <span class="tabbar-label">Profile</span>
+    <span class="tabbar-label-desktop">Crate</span>
   </button>
 </nav>
 <div class="sidebar-extra" id="sidebarExtra">
@@ -502,6 +510,23 @@
     <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
     <div class="sidebar-sundown-leg" id="sideLegStart"></div>
     <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
+  </div>
+</div>
+<!-- D7: the desktop sidebar's own Auto/Light/Dark control, at the foot of
+     the sidebar per the doc's own "where the control lives" instruction.
+     Same data-theme-choice convention the phone Character-menu row already
+     uses (src/wiring/character.js's existing querySelectorAll('[data-
+     theme-choice]') wires this one too, with zero code change there), so
+     both call the exact same setTheme() — applyTheme() also already syncs
+     aria-pressed on every [data-theme-choice] button in the DOM, this one
+     included, with no change needed there either. display:none below
+     1024px (src/styles/23-desktop.css), the same invisible-scaffolding
+     pattern every other desktop-only sidebar addition already uses. -->
+<div class="sidebar-appearance" id="sidebarAppearance">
+  <div class="seg">
+    <button data-theme-choice="auto" aria-pressed="true">Auto</button>
+    <button data-theme-choice="light" aria-pressed="false">Light</button>
+    <button data-theme-choice="dark" aria-pressed="false">Dark</button>
   </div>
 </div>
 </div>

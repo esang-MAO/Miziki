@@ -25,6 +25,12 @@
    The sidebar's own new content stays hidden the whole time on a phone. */
 .sidebar{display:contents}
 .sidebar-extra{display:none}
+/* D7 (docs/DESKTOP_LAYOUT.md): the Profile tab button's own desktop-only
+   label swap ("Keep the route id, change only the visible label") and
+   the sidebar's own Auto/Light/Dark control, both hidden by default —
+   see the two @media blocks below for where each actually shows. */
+.tabbar-label-desktop{display:none}
+.sidebar-appearance{display:none}
 
 @media (min-width:1024px){
   /* D6 (docs/DESKTOP_LAYOUT.md): the sidebar's own current width, named so
@@ -191,6 +197,29 @@
   .sidebar-sundown{padding:0 10px}
   .sidebar-sundown-rate{font-size:13px;color:var(--paper);margin-bottom:4px}
   .sidebar-sundown-leg{font-family:var(--data);font-size:11px;color:var(--muted)}
+
+  /* D7: "where the control lives... the three-way segmented control at
+     the bottom of the desktop sidebar" — same tier as the playlists/
+     Sundown content (1280px+ only; the 76px icon rail has no room for
+     three labeled buttons any more than it does for the playlists list),
+     pinned to the sidebar's own foot via margin-top:auto on the flex
+     column .sidebar already is, rather than a fixed position that would
+     ignore how tall the playlists list above it happens to be. */
+  .sidebar-appearance{
+    display:flex;margin-top:auto;padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .sidebar-appearance .seg{width:100%}
+  .sidebar-appearance .seg button{flex:1;text-align:center}
+
+  /* D7: "Keep the route id, change only the visible label on desktop" —
+     the generic .tabbar-btn span{display:inline} rule just above would
+     otherwise show both of the Profile button's two spans at once; this
+     is more specific (three selectors vs. one class + one type) so it
+     wins regardless of source order, same as every other override in
+     this file relies on. */
+  .tabbar-btn[data-route="profile"] .tabbar-label{display:none}
+  .tabbar-btn[data-route="profile"] .tabbar-label-desktop{display:inline}
 }
 
 /* D6 (docs/DESKTOP_LAYOUT.md): Now Playing on desktop — the full-player
@@ -275,4 +304,98 @@
      stays — see that id's own CLAUDE.md note) would just be a second,
      redundant way to see the identical list right next to it */
   #queueBtn{display:none !important}
+}
+
+/* D7 (docs/DESKTOP_LAYOUT.md): Crate profile on desktop — the mockup's
+   two-column grid ("top records and digging list on the left, collection
+   and now spinning on the right"), plus wider versions of the grids
+   that already exist (the doc's own "the awning, avatar disc, stats and
+   metals row already exist and only need the wider grid" — no new
+   layout for those, just more columns now that .wrap's 520px cap is
+   gone, D3). .profile-desktop-grid is the same invisible-scaffolding
+   pattern every prior D-step's own wrapper already uses: display:contents
+   below this breakpoint, so renderProfileHome()'s existing #profileBody
+   content (one .store-host, one .profile-extras, each built by existing,
+   unmodified functions in src/profile/storefront.js/screens.js) renders
+   exactly as it always has on a phone.
+   At 1024px+, both .store-host and .profile-extras become display:contents
+   too, so their own children spill into being direct items of the one
+   shared grid — display:contents doesn't change DOM structure or how
+   selectors match it, only box generation, so every selector below still
+   targets the real element, just via a descendant (not child) relation.
+   Everything not named in the two-column mapping stays a full-width row
+   (grid-column:1/-1) in its own fixed order, so the overall page reads:
+   identity/stats header, then the two-column band, then the metals row,
+   staff picks, the full crate grid, and Share last — regardless of which
+   of the two original wrapper subtrees each piece's markup happens to
+   live under. order has zero effect below this breakpoint (it only does
+   anything inside an actual grid/flex formatting context), so none of
+   this touches phone layout. */
+.profile-desktop-grid{display:contents}
+
+@media (min-width:1024px){
+  .profile-desktop-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:32px}
+  .store-host{display:contents}
+  .profile-extras{display:contents}
+
+  /* every piece not named in the doc's own two-column mapping, full
+     width, in a fixed reading order — covers both renderLocalStorefront
+     (signed out) and renderStorefront (signed in), which don't share
+     every element: .store-bio/.store-vis-row/.store-requests-wrap only
+     ever exist signed in, .profile-header (the share-card picture/name
+     editor) only when renderProfileExtras's own includeShareCardEditor
+     is true (also signed-in-only, src/profile/screens.js) — a missing
+     one just means that order slot has nothing to fill it. */
+  .store-awning{grid-column:1/-1;order:1}
+  .store-header{grid-column:1/-1;order:2}
+  .store-bio{grid-column:1/-1;order:3}
+  .store-vis-row{grid-column:1/-1;order:4}
+  .store-stats{grid-column:1/-1;order:5}
+  .store-requests-wrap{grid-column:1/-1;order:6}
+  .profile-header{grid-column:1/-1;order:7}
+
+  /* "top records" (the Top Album/Top Song tiles) and "now spinning"
+     share a row; "digging list" and "collection" share the row below
+     them — four distinct pieces for the doc's own four-item mapping,
+     left/right via grid-column, paired via order. A missing piece
+     (now-spinning/digging-list are both social-only, absent in the
+     common signed-out/local-only case) just leaves that cell empty —
+     grid auto-placement needs no row-span bookkeeping for that. */
+  .profile-top-row{grid-column:1;order:10}
+  .store-card{grid-column:2;order:10}
+  .store-section-digging{grid-column:1;order:11}
+  button.profile-section{grid-column:2;order:11}
+
+  /* achievements ("metals row") stays full width — div, not button,
+     the one thing distinguishing it from the collection button above,
+     which shares the exact same base class */
+  div.profile-section{grid-column:1/-1;order:20}
+  /* staff picks and the full crate grid ("All records") both share the
+     base .store-section class with the digging list above — the more
+     specific .store-section-digging rule already won that one element's
+     own grid-column/order, so this plain rule only ever actually applies
+     to these other two, in their own existing DOM order */
+  .store-section{grid-column:1/-1;order:21}
+
+  .profile-share{grid-column:1/-1;order:30}
+  /* the local-only storefront's own closing note ("This is a local
+     preview...") — a direct child of .store-host, so the child
+     combinator still matches it correctly even though .store-host
+     itself no longer generates a box */
+  .store-host > .note{grid-column:1/-1;order:31}
+
+  /* the achievements grid and the dedicated Collection screen's own full
+     grid (both .profile-grid, not .profile-grid.mini — that one stays a
+     compact preview confined to the half-width Collection card above,
+     untouched) */
+  .profile-grid{grid-template-columns:repeat(6,1fr)}
+  /* unscoped on purpose — also used by a friend's crate preview
+     (src/social/screens/friend-store.js), which benefits from the same
+     wider grid on desktop */
+  .store-crate-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+
+@media (min-width:1280px){
+  .profile-grid{grid-template-columns:repeat(8,1fr)}
+  .store-crate-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
