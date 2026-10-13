@@ -81,6 +81,17 @@ export function drawTime(){
   $('#tTotal').textContent = fmt(dur);
   const p = dur ? S.pos/dur : 0;
   if(!S.scrubbing) $('#scrub').value = Math.round(p*1000);
+
+  // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own seek
+  // readout mirrors this exact value, the same "reuse the readout
+  // rather than compute it twice" approach drawSun() already uses for
+  // the sidebar's Sundown card below — null-guarded since these ids
+  // exist only in the player bar's own markup (miziki.html), hidden
+  // below 1024px by CSS, never a breakpoint check.
+  const barElapsed = $('#barElapsed'), barTotal = $('#barTotal');
+  if(barElapsed) barElapsed.textContent = fmt(S.pos);
+  if(barTotal) barTotal.textContent = fmt(dur);
+  if(!S.scrubbing){ const barScrub = $('#barScrub'); if(barScrub) barScrub.value = Math.round(p*1000); }
 }
 
 export function drawSun(){

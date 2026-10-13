@@ -420,8 +420,30 @@
     </span>
   </button>
   <button class="mini-play tbtn heart-btn" id="miniFavBtn" aria-label="Favorite" aria-pressed="false" title="Favorite">♡</button>
+  <!-- D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
+       next/seek/mode controls. New ids throughout, driving the exact
+       same prevTrack()/nextTrack()/seek()/setMode() the full player's
+       own #prev/#next/#scrub/#modePure/#modeVinyl already call
+       (src/wiring/transport.js) — per the doc's own "a desktop player
+       bar must reuse or restyle those [ids], not clone them" rule, so
+       these are new elements, not copies of those ids. Each is
+       display:none below 1024px (src/styles/08-shell.css), so on a
+       phone none of them occupy a flex slot in this strip at all — the
+       existing #miniTap/#miniFavBtn/#miniQueueBtn/#miniPlay stay in
+       their same relative visual order, unchanged. -->
+  <button class="mini-bar-btn" id="barPrev" aria-label="Previous track">◀◀</button>
   <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
+  <button class="mini-bar-btn" id="barNext" aria-label="Next track">▶▶</button>
+  <div class="mini-bar-seek" id="miniBarSeek">
+    <span class="mini-bar-time" id="barElapsed">0:00</span>
+    <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+    <span class="mini-bar-time" id="barTotal">0:00</span>
+  </div>
+  <div class="mini-bar-modes" id="miniBarModes">
+    <button class="mini-bar-mode" id="barModePure" aria-pressed="false">Pure</button>
+    <button class="mini-bar-mode" id="barModeVinyl" aria-pressed="true">Vinyl</button>
+  </div>
 </div>
 
 <!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible

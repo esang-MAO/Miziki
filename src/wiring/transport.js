@@ -47,6 +47,21 @@ export function wireTransport(){
   $('#modeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
   $('#modePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
 
+  // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/next/
+  // seek/mode controls — new ids (miziki.html), hidden below 1024px, but
+  // wired unconditionally here since a hidden button's own listener
+  // simply never fires. Each calls the exact same function its full-
+  // player counterpart above does; nothing new is implemented twice.
+  $('#barPrev').addEventListener('click', prevTrack);
+  $('#barNext').addEventListener('click', nextTrack);
+  $('#barScrub').addEventListener('input', ()=>{ S.scrubbing = true; });
+  $('#barScrub').addEventListener('change', e=>{
+    S.scrubbing = false;
+    const t = current(); if(t) seek((t.duration || 0) * e.target.value/1000);
+  });
+  $('#barModeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
+  $('#barModePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
+
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
   $('#sleepClose').addEventListener('click', closeSleepSheet);
 
