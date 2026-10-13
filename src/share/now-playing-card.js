@@ -5,6 +5,7 @@ import {
   SHARE_FORMATS, shareFitText, shareFitLines, shareSwatchGradient, loadImageEl, drawCover,
   roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark, hexMix,
 } from './styles.js';
+import { spinChipText } from '../sundown/spin-wording.js';
 
 // Fills the full disc circle with whatever look is resolved for this track
 // — same precedence applyDiscVariant() uses on the real platter — so the
@@ -183,6 +184,11 @@ export async function composePlayerShareImage(opts){
     t.meta && t.meta.bits ? t.meta.bits+'-bit' : null].filter(Boolean);
   if(specParts.length) chips.push({text: specParts.join(' · '), filled:false});
   if(data.mode) chips.push({text: String(data.mode).toUpperCase(), filled:true});
+  // DA6 (docs/DAY_ARC.md): "SPUN AT DUSK" -- the same chip style as the
+  // spec/mode chips above, gated by the share sheet's own "Time of day"
+  // Include toggle (data.includePhase, default on).
+  const spinText = spinChipText(data.phase, data.includePhase);
+  if(spinText) chips.push({text: spinText, filled:false});
   if(chips.length){
     ctx.font = '600 22px "IBM Plex Mono", monospace';
     const gap = Math.round(w*0.018);

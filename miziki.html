@@ -959,6 +959,7 @@
       <button class="cta ghost" data-section="metals" aria-pressed="true">Metals</button>
       <button class="cta ghost" data-section="collection" aria-pressed="true">Collection</button>
       <button class="cta ghost" data-section="name" aria-pressed="true">Name</button>
+      <button class="cta ghost" data-section="rhythm" aria-pressed="true">Listening rhythm</button>
     </div>
     <button class="cta share-primary" id="shareShareBtn" style="display:none">Share…</button>
     <div class="share-actions-row">
@@ -969,8 +970,10 @@
 </div>
 
 <!-- PLAYER SHARE: this record, right now — distinct from the profile stat
-     sheet above. No selectable sections; it's always the current disc +
-     jacket. See LIBRARY spec §2. -->
+     sheet above. No selectable content sections; it's always the current
+     disc + jacket. See LIBRARY spec §2. Since DA6 (docs/DAY_ARC.md), it
+     does carry one Include toggle of its own — "Time of day", the "Spun
+     at dusk" line, default on. -->
 <div class="share-overlay" id="playerShareOverlay" aria-hidden="true">
   <div class="share-sheet" id="playerShareSheetBox">
     <div class="edit-head">
@@ -989,6 +992,10 @@
       <button data-format="story" aria-pressed="true">Story 9:16</button>
       <button data-format="portrait" aria-pressed="false">Portrait 4:5</button>
       <button data-format="square" aria-pressed="false">Square 1:1</button>
+    </div>
+    <p class="share-section-label">Include</p>
+    <div class="share-toggles" id="playerShareToggles">
+      <button class="cta ghost" data-section="phase" aria-pressed="true">Time of day</button>
     </div>
     <button class="cta share-primary" id="playerShareShareBtn" style="display:none">Share…</button>
     <div class="share-actions-row">

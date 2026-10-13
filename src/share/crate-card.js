@@ -4,9 +4,10 @@ import { METAL_COLORS } from '../record-art/metals.js';
 import { topAlbums, topTracks, achievementsList } from '../history/achievements.js';
 import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, resolveShareStyle, hexMix, drawDiagonalWordmark,
+  roundRectPath, drawShareWordmark, resolveShareStyle, hexMix, drawDiagonalWordmark, shareChip,
 } from './styles.js';
 import { fmtCount } from '../profile/screens.js';
+import { computeRhythmShares, rhythmVerdictLabel, RHYTHM_MIN_PLAYS } from '../sundown/rhythm.js';
 
 /* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
    album, a grid of the next covers, top songs, metals + collection, brand.
@@ -228,8 +229,27 @@ export async function composeShareImage(opts){
     }
   }
 
+  // DA6 (docs/DAY_ARC.md): the rhythm verdict ("Night listener"), shown
+  // only once the DA5 profile card itself would be unlocked (>= 20
+  // counted plays) -- not separately unit-tested, per the same escape
+  // valve tests/unit/share.test.js's own entry already documents for
+  // composeShareImage's hero/top-items selection: it's inline in an
+  // async canvas-drawing function with no meaningful pure core beyond
+  // the already-tested computeRhythmShares/rhythmVerdictLabel/
+  // RHYTHM_MIN_PLAYS this reuses, not a new decision of its own.
+  let markY = Math.max(leftY, rightY, Math.round(h*0.02)) + Math.round(h*0.03);
+  if(sections.rhythm !== false){
+    const total = Object.values(S.phasePlayCounts || {}).reduce((a,b) => a+b, 0);
+    if(total >= RHYTHM_MIN_PLAYS){
+      const label = rhythmVerdictLabel(computeRhythmShares(S.phasePlayCounts).shares).toUpperCase();
+      ctx.font = '600 22px "IBM Plex Mono", monospace';
+      const chipW = ctx.measureText(label).width + 44;
+      shareChip(ctx, kit, label, Math.round((w - chipW) / 2), markY, false);
+      markY += 46 + Math.round(h*0.03);
+    }
+  }
+
   ctx.textAlign = 'center';
-  const markY = Math.max(leftY, rightY, Math.round(h*0.02)) + Math.round(h*0.03);
   drawShareWordmark(ctx, w/2, Math.min(markY, bottomY), Math.round(w*0.034), kit.ink, kit.accent);
   ctx.textAlign = 'left';
 

@@ -1,6 +1,7 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { resolveLook } from '../record-art/looks.js';
+import { currentDayPosition } from '../sundown/solar.js';
 import { composeShareImage } from './crate-card.js';
 import { composePlayerShareImage } from './now-playing-card.js';
 
@@ -84,8 +85,13 @@ async function renderPlayerShareCanvas(){
   const t = current();
   const style = shareSelectedStyle('playerShareStyleRow');
   const format = shareSelectedFormat('playerShareFormatSeg', 'story');
+  // DA6 (docs/DAY_ARC.md): currentDayPosition(), not realDayPosition() --
+  // the card is "a picture of what's on screen," per the doc's own
+  // wording, so it shows the previewed phase while Preview the day is
+  // active, the same as every other on-screen Sundown readout.
   const data = t ? { track: t, elapsed: S.pos, duration: t.duration || 0,
-    look: resolveLook(t), mode: S.mode, year: t.details && t.details.year } : null;
+    look: resolveLook(t), mode: S.mode, year: t.details && t.details.year,
+    phase: currentDayPosition().phase, includePhase: S.playerShareSelection.phase !== false } : null;
   const canvas = await composePlayerShareImage({style, format, data});
   const target = $('#playerShareCanvas');
   target.width = canvas.width; target.height = canvas.height;
