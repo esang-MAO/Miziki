@@ -157,6 +157,20 @@ export function renderStoreError(host, error, retry){
 
 export function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
+  // DA3 (docs/DAY_ARC.md, artboard ProfileSettings): a universal Settings
+  // entry point, added here rather than inside any one of the three
+  // branches below, since before this step only the signed-in
+  // renderStorefront() branch had its own gear button — the other two
+  // states (renderLocalStorefront, the common default; renderOpenStoreCard,
+  // "social enabled but not signed in yet") had no settings entry point
+  // at all, which would have made the Appearance control (now moved off
+  // the old Character tab onto a new screen reached from here)
+  // unreachable in either of them. One button at the very top of every
+  // state, rather than three separate additions.
+  const settingsBtn = el('button','profile-settings-btn','Settings ›');
+  settingsBtn.setAttribute('aria-label','Settings');
+  settingsBtn.addEventListener('click', ()=>{ S.profileView.screen = 'settings'; renderProfile(); });
+  body.appendChild(settingsBtn);
   // D7 (docs/DESKTOP_LAYOUT.md): wraps the two existing top-level pieces
   // (.store-host below, .profile-extras appended further down) so
   // src/styles/23-desktop.css's own two-column grid can reach into both
@@ -389,10 +403,11 @@ function renderStorefront(host, full, requests){
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
-  const gear = el('button','store-gear','⚙');
-  gear.setAttribute('aria-label','Crate settings');
-  gear.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
-  header.appendChild(gear);
+  // DA3: the signed-in storefront's own gear (which jumped straight to
+  // Account) is gone — the new universal Settings button
+  // renderStorefrontSection() now adds at the top of every profile-home
+  // state covers this, one tap further (Settings -> Account), the same
+  // entry point every other state uses too.
   host.appendChild(header);
   if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
   const visRow = el('div','store-vis-row');

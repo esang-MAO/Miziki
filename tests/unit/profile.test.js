@@ -48,6 +48,18 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
     crateFilled(){ return false; }, collectionGroups(){ return {}; },
   },
 });
+// DA3 (docs/DAY_ARC.md): screens.js's new setTheme import (for the new
+// Settings screen's Appearance control) is real, from src/ui/theme.js —
+// mocked directly here, same "stop the chain at the door" reasoning as
+// every other mock in this file, since the real theme.js's own real
+// storage/meta.js import would otherwise reach player/background.js ->
+// player/transport.js -> library/view.js's own seven-circular-pair web
+// -> shell/header.js -> shell/routes.js -> social/screens/home.js ->
+// social/screens/friend-store.js, whose own real storeAwning import
+// would then fail against this file's already-narrow storefront.js mock.
+mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
+  namedExports: { setTheme(){} },
+});
 // Since step 7b, screens.js's refreshLibraryTools import is a real one from
 // src/shell/header.js instead of main.js — mocked there directly instead.
 mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
