@@ -47,10 +47,6 @@
 input[type=range]{width:100%;accent-color:var(--accent);height:22px}
 input[type=file]{display:none}
 
-.sun-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden;margin:14px 0 8px}
-.sun-fill{height:100%;width:0;background:linear-gradient(90deg,#7FB0C6,var(--amber));transition:width .4s linear}
-.sun-legend{display:flex;justify-content:space-between;font-family:var(--data);font-size:10px;color:var(--muted)}
-
 .cta{display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:3px;
   padding:11px 16px;font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:color .5s,border-color .5s}
 .cta.ghost{border-color:var(--line);color:var(--paper)}

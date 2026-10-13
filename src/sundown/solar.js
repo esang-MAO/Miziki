@@ -94,12 +94,12 @@ export function nowClock(){
 // `phase`/`phaseProgress` directly, rather than the rateProgress-only
 // view sunProgress()/easedProgress() give everyone else.
 export function currentDayPosition(){
-  if(!S.sun.ok) return { phase: 'midday', phaseProgress: 0, nightness: 0, rateProgress: 0 };
+  if(!S.sun.ok) return { phase: 'midday', phaseProgress: 0, nightness: 0, rateProgress: 0, duskRampProgress: 0 };
   return dayPosition(nowClock(), S.sun);
 }
 
 // Kept as its own export, same name and meaning for every existing
-// caller (drawSun()'s #sunFill bar and the dark-theme sky animation,
+// caller (drawSun()'s day-arc dot position and the sky animation,
 // easedProgress() below) — now just dayPosition()'s own rateProgress,
 // continuous across the whole day rather than the sunset-window-only
 // value this returned before DA1.

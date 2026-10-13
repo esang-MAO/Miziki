@@ -116,3 +116,20 @@ export function effectiveChar(userChar, dayPos, intensity){
     comp: clamp(userChar.comp + o.comp, 0, 1),
   };
 }
+
+// DA3 (docs/DAY_ARC.md): the Day view's own "Character now: a touch
+// warmer (Subtle)" shortcut row — a one-line summary of what Sound is
+// doing right now, read off the same offsets effectiveChar() already
+// computes, not a second judgment of its own. `soft`'s own sign is the
+// one read: Night's anchor is positive (warmer/softer top end), Morning's
+// is negative (brighter) — the same two words the mockup itself uses —
+// and the rest of the four offsets always share soft's sign by
+// construction (every ANCHORS row in this file is uniformly signed one
+// way or the other), so reading just one of them is never misleading.
+export function driftSummaryText(dayPos, intensity){
+  if(intensity === 'off' || !INTENSITY_SCALE[intensity]) return 'Off — your own settings, no drift today.';
+  const label = intensity === 'full' ? 'Full' : 'Subtle';
+  const soft = driftOffsets(dayPos, intensity).soft;
+  if(Math.abs(soft) < 1e-9) return 'Right where you set it (' + label + ').';
+  return (soft > 0 ? 'A touch warmer' : 'A touch brighter') + ' (' + label + ').';
+}

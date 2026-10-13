@@ -80,6 +80,7 @@
 <link rel="stylesheet" href="/src/styles/21-legal.css">
 <link rel="stylesheet" href="/src/styles/22-theme.css">
 <link rel="stylesheet" href="/src/styles/23-desktop.css">
+<link rel="stylesheet" href="/src/styles/24-sundown-arc.css">
 </head>
 <body>
 <!-- LAUNCH INTRO: cold-start only, first thing in the DOM so it paints
@@ -196,155 +197,191 @@
 
   <!-- SUNDOWN -->
   <section class="route" id="route-sundown" role="main">
-    <div class="row">
-      <div class="k">Platter speed<em id="autoDesc">The platter eases down across twilight.</em></div>
-      <div class="seg">
-        <button id="autoOn" aria-pressed="true">Auto</button>
-        <button id="autoOff" aria-pressed="false">Manual</button>
+    <!-- DA3 (docs/DAY_ARC.md): the Character tab is gone — its content
+         lives here, in a Sound view, beside Sundown's own Day view,
+         behind this one two-tab switch. src/wiring/sundown.js wires
+         these two buttons (and src/shell/routes.js's own
+         selectSundownView(), which this calls) to flip which of the two
+         views below is visible and remember the choice per device. -->
+    <div class="sd-tabs" role="tablist" aria-label="Sundown view">
+      <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
+      <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
+    </div>
+
+    <!-- DAY -->
+    <div id="sundownDayView">
+      <p class="sd-eyebrow" id="sundownEyebrow">Now</p>
+
+      <!-- the day arc: a schematic (not-to-scale) sun path from dawn to
+           dusk, with a dotted under-horizon arc for the night, and the
+           sun-or-moon dot src/player/clock.js's updateDayArc() moves —
+           see that function's own header comment for the exact,
+           deliberately-simplified position math. -->
+      <svg class="day-arc" id="dayArc" viewBox="0 0 342 150" aria-hidden="true" focusable="false">
+        <line class="arc-horizon" x1="12" y1="92" x2="330" y2="92"></line>
+        <path class="arc-day-path" d="M24,92 Q171,24 318,92"></path>
+        <path class="arc-night-path" d="M24,92 Q171,160 318,92"></path>
+        <circle class="arc-dot" id="sunDot" cx="24" cy="92" r="6"></circle>
+      </svg>
+      <div class="arc-labels">
+        <div class="arc-label" id="arcLabelDawn"><span>Dawn</span><b id="arcTimeDawn">—</b></div>
+        <div class="arc-label" id="arcLabelSunrise"><span>Sunrise</span><b id="arcTimeSunrise">—</b></div>
+        <div class="arc-label" id="arcLabelNoon"><span>Noon</span><b id="arcTimeNoon">—</b></div>
+        <div class="arc-label" id="arcLabelSunset"><span>Sunset</span><b id="arcTimeSunset">—</b></div>
+        <div class="arc-label" id="arcLabelDusk"><span>Dusk</span><b id="arcTimeDusk">—</b></div>
       </div>
-    </div>
 
-    <div class="sun-bar"><div class="sun-fill" id="sunFill"></div></div>
-    <div class="sun-legend"><span id="legStart">Sunset</span><span id="legEnd">Dusk</span></div>
-
-    <div class="row">
-      <div class="k">Now playing at<em id="rateWhy">Daylight — full speed</em></div>
-      <div class="readout" id="rateOut">1.000× · 0.0 st</div>
-    </div>
-
-    <div class="slider-row" id="manualRow" style="display:none">
-      <div class="slider-head"><span>Manual rate</span><b id="manualOut">1.000×</b></div>
-      <input id="manual" type="range" min="700" max="1000" value="1000" aria-label="Manual rate">
-    </div>
-
-    <div class="row">
-      <div class="k">Full-night rate<em>How far down the platter settles</em></div>
-      <div class="seg">
-        <button data-target="0.85" aria-pressed="false">0.85 · 2.8 st</button>
-        <button data-target="0.80" aria-pressed="true">0.80 · 3.9 st</button>
-        <button data-target="0.75" aria-pressed="false">0.75 · 5.0 st</button>
+      <div class="phase-block">
+        <h2 id="phaseName">Daylight</h2>
+        <p id="phaseSub">Full speed</p>
       </div>
-    </div>
 
-    <div class="row">
-      <div class="k">Pacing<em id="pacingDesc">Spread across the whole twilight window.</em></div>
-      <div class="seg">
-        <button data-pace="window" aria-pressed="true">Window</button>
-        <button data-pace="moment" aria-pressed="false">Moment</button>
-      </div>
-    </div>
-
-    <div class="slider-row">
-      <div class="slider-head"><span>Preview the evening</span><b id="previewOut">Live</b></div>
-      <input id="preview" type="range" min="0" max="100" value="0" aria-label="Preview the evening">
-      <p class="note">Drag to hear tonight now. Release back to zero, or tap Live, to follow the real clock.
-        <button class="cta ghost" id="liveBtn" style="margin-top:10px">Back to live</button></p>
-    </div>
-
-    <p class="note" id="locNote"></p>
-  </section>
-
-  <!-- CHARACTER -->
-  <section class="route" id="route-character" role="main">
-    <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
-      platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
-
-    <div class="slider-row">
-      <div class="slider-head"><span>Wow &amp; flutter</span><b id="wowOut">30%</b></div>
-      <input id="wow" type="range" min="0" max="100" value="30" aria-label="Wow and flutter">
-    </div>
-    <div class="slider-row">
-      <div class="slider-head"><span>Saturation</span><b id="satOut">35%</b></div>
-      <input id="sat" type="range" min="0" max="100" value="35" aria-label="Saturation">
-    </div>
-    <div class="slider-row">
-      <div class="slider-head"><span>Top-end softening</span><b id="softOut">40%</b></div>
-      <input id="soft" type="range" min="0" max="100" value="40" aria-label="Top end softening">
-    </div>
-    <div class="slider-row">
-      <div class="slider-head"><span>Bus compression</span><b id="compOut">35%</b></div>
-      <input id="comp" type="range" min="0" max="100" value="35" aria-label="Bus compression">
-    </div>
-
-    <div class="stack">
-      <button class="cta ghost" data-preset="light">Light dust</button>
-      <button class="cta ghost" data-preset="classic">Classic press</button>
-      <button class="cta ghost" data-preset="worn">Well-played</button>
-    </div>
-    <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
-
-    <!-- DA2 (docs/DAY_ARC.md): a small segmented control beside the
-         sliders it drifts off of, per the doc's own "UI" instruction —
-         DA3 moves this into Sundown's own Sound view; it stays here, in
-         Character, until then. data-char-drift (not a fixed id list) is
-         the same querySelectorAll convention data-theme-choice already
-         established just below, so a later move needs no wiring change. -->
-    <div class="row">
-      <div class="k">Day drift<em>Your settings are midday. Mornings drift brighter, nights warmer.</em></div>
-      <div class="seg">
-        <button data-char-drift="off" aria-pressed="false">Off</button>
-        <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
-        <button data-char-drift="full" aria-pressed="false">Full</button>
-      </div>
-    </div>
-
-    <!-- D2 (docs/DESKTOP_LAYOUT.md): on phones this is the one control for
-         the Auto/Light/Dark appearance preference; the desktop sidebar's
-         segmented control (D7) will carry the same data-theme-choice
-         convention, so src/ui/theme.js's applyTheme() can sync aria-pressed
-         on either one without knowing which is actually on screen. -->
-    <div class="row">
-      <div class="k">Appearance<em>Auto follows your device's own Light/Dark setting, including live if it changes — at sunset, say. Choosing Light or Dark keeps that look regardless of the device.</em></div>
-      <div class="seg">
-        <button data-theme-choice="auto" aria-pressed="true">Auto</button>
-        <button data-theme-choice="light" aria-pressed="false">Light</button>
-        <button data-theme-choice="dark" aria-pressed="false">Dark</button>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
-      <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
-    </div>
-
-    <div class="row">
-      <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
-      <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
-    </div>
-
-    <div class="row">
-      <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
-      <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
-    </div>
-
-    <div class="row">
-      <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
-      <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
-    </div>
-
-    <div class="carmode" id="carmode">
       <div class="row">
-        <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
-        <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
+        <div class="k">Now playing at<em id="rateWhy">Daylight — full speed</em></div>
+        <div class="readout" id="rateOut">1.000× · 0.0 st</div>
       </div>
-      <div id="carModeDetails" style="display:none">
-        <div class="row">
-          <div class="k">Current speed</div>
-          <div class="readout" id="speedOut">—</div>
+
+      <h3 class="sd-heading">Sundown</h3>
+      <div class="row">
+        <div class="k">Platter speed<em id="autoDesc">The platter eases down across twilight.</em></div>
+        <div class="seg">
+          <button id="autoOn" aria-pressed="true">Auto</button>
+          <button id="autoOff" aria-pressed="false">Manual</button>
         </div>
-        <div class="slider-row">
-          <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
-          <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
-        </div>
-        <div class="slider-row">
-          <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
-          <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
-        </div>
-        <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
       </div>
+
+      <div class="slider-row" id="manualRow" style="display:none">
+        <div class="slider-head"><span>Manual rate</span><b id="manualOut">1.000×</b></div>
+        <input id="manual" type="range" min="700" max="1000" value="1000" aria-label="Manual rate">
+      </div>
+
+      <div class="row">
+        <div class="k">Full-night rate<em>How far down the platter settles</em></div>
+        <div class="seg">
+          <button data-target="0.85" aria-pressed="false">0.85 · 2.8 st</button>
+          <button data-target="0.80" aria-pressed="true">0.80 · 3.9 st</button>
+          <button data-target="0.75" aria-pressed="false">0.75 · 5.0 st</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="k">Pacing<em id="pacingDesc">Spread across the whole twilight window.</em></div>
+        <div class="seg">
+          <button data-pace="window" aria-pressed="true">Window</button>
+          <button data-pace="moment" aria-pressed="false">Moment</button>
+        </div>
+      </div>
+
+      <h3 class="sd-heading">Sunrise</h3>
+      <div class="row">
+        <div class="k">Rise at dawn<em>The platter eases back up to full speed across dawn, using the same pacing above.</em></div>
+        <div class="readout" id="sunriseNext">—</div>
+      </div>
+
+      <!-- the Day-drift shortcut row: a one-line summary of what Sound's
+           own Day-drift control is doing right now (src/sundown/drift.js's
+           driftSummaryText(), mirrored here the same "reuse, don't
+           recompute" way drawSun() already treats everything else it
+           writes), with a button into Sound for the actual control. -->
+      <div class="row">
+        <div class="k">Character now<em id="dayDriftSummary">Off — your own settings, no drift today.</em></div>
+        <button type="button" class="cta ghost" id="dayDriftLink">Sound ›</button>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-head"><span>Preview the day</span><b id="previewOut">Live</b></div>
+        <input id="preview" type="range" min="0" max="1440" value="0" aria-label="Preview the day">
+        <div class="preview-ticks" aria-hidden="true"><span>Now</span><span>Midnight</span><span>Dawn</span><span>Noon</span><span>Now</span></div>
+        <p class="note">Drag to hear the whole day from now. Plays never count while previewing.
+          <button class="cta ghost" id="liveBtn" style="margin-top:10px">Back to live</button></p>
+      </div>
+
+      <p class="note" id="locNote"></p>
     </div>
 
-    <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
+    <!-- SOUND (was the Character route) -->
+    <div id="sundownSoundView" style="display:none">
+      <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
+        platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
+
+      <div class="slider-row">
+        <div class="slider-head"><span>Wow &amp; flutter</span><b id="wowOut">30%</b><i class="now-badge" id="wowNow"></i></div>
+        <input id="wow" type="range" min="0" max="100" value="30" aria-label="Wow and flutter">
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Saturation</span><b id="satOut">35%</b><i class="now-badge" id="satNow"></i></div>
+        <input id="sat" type="range" min="0" max="100" value="35" aria-label="Saturation">
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Top-end softening</span><b id="softOut">40%</b><i class="now-badge" id="softNow"></i></div>
+        <input id="soft" type="range" min="0" max="100" value="40" aria-label="Top end softening">
+      </div>
+      <div class="slider-row">
+        <div class="slider-head"><span>Bus compression</span><b id="compOut">35%</b><i class="now-badge" id="compNow"></i></div>
+        <input id="comp" type="range" min="0" max="100" value="35" aria-label="Bus compression">
+      </div>
+      <p class="note" id="charNowLegend" style="display:none">"Now" shows where today's Day drift currently has each knob, on top of your own setting above.</p>
+
+      <div class="stack">
+        <button class="cta ghost" data-preset="light">Light dust</button>
+        <button class="cta ghost" data-preset="classic">Classic press</button>
+        <button class="cta ghost" data-preset="worn">Well-played</button>
+      </div>
+      <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
+
+      <div class="row">
+        <div class="k">Day drift<em>Your settings are midday. Mornings drift brighter, nights warmer.</em></div>
+        <div class="seg">
+          <button data-char-drift="off" aria-pressed="false">Off</button>
+          <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
+          <button data-char-drift="full" aria-pressed="false">Full</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
+        <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
+        <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
+        <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
+        <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
+      </div>
+
+      <div class="carmode" id="carmode">
+        <div class="row">
+          <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
+          <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
+        </div>
+        <div id="carModeDetails" style="display:none">
+          <div class="row">
+            <div class="k">Current speed</div>
+            <div class="readout" id="speedOut">—</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
+            <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
+            <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
+          </div>
+          <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
+        </div>
+      </div>
+
+      <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
+    </div>
   </section>
 
   <!-- PROFILE -->
@@ -494,13 +531,14 @@
     <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
     <span>Home</span>
   </button>
+  <!-- DA3 (docs/DAY_ARC.md): the Character tab is gone — four equal tabs
+       now (Library/Home/Sundown/Profile). Its content lives in Sundown's
+       own Sound view (data-sundown-view="sound" above); anything that
+       still asks for showRoute('character') lands there too
+       (src/shell/routes.js). -->
   <button class="tabbar-btn" role="tab" data-route="sundown" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
     <span>Sundown</span>
-  </button>
-  <button class="tabbar-btn" role="tab" data-route="character" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M6 20v-7M6 10V4M12 20v-3M12 14V4M18 20v-9M18 8V4"/><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="10" r="1.6" fill="currentColor" stroke="none"/></svg>
-    <span>Character</span>
   </button>
   <!-- D7 (docs/DESKTOP_LAYOUT.md): "Keep the route id, change only the
        visible label on desktop" — data-route stays "profile" (routing,
@@ -522,6 +560,11 @@
   </div>
   <div class="sidebar-section sidebar-sundown" id="sidebarSundown">
     <div class="sidebar-heading">Sundown</div>
+    <!-- DA3 (docs/DAY_ARC.md): mirrors the Day view's own phase block —
+         "reuse the readout, don't compute it twice," same as every other
+         mirror drawSun() already writes into this card. -->
+    <div class="sidebar-sundown-phase" id="sidePhaseName"></div>
+    <div class="sidebar-sundown-rate" id="sidePhaseSub"></div>
     <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
     <div class="sidebar-sundown-leg" id="sideLegStart"></div>
     <div class="sidebar-sundown-leg" id="sideLegEnd"></div>

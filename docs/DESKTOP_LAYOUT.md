@@ -63,14 +63,14 @@ In the CSS, `--paper` is the text color, so keeping its name means existing text
 
 **Avoiding a flash.** A pinned Light or Dark is stored in IndexedDB, which is read after first paint. Mirror the choice in `localStorage` and read it from a small external classic script in `<head>`, which the CSP permits. Wrap both in try/catch, since storage can be blocked.
 
-**Where the control lives.** A Character-menu row on phones, and the three-way segmented control at the bottom of the desktop sidebar. Both call the same function.
+**Where the control lives.** A Character-menu row on phones, and the three-way segmented control at the bottom of the desktop sidebar. Both call the same function. *(Updated by DA3, `docs/DAY_ARC.md`: the phone row moved off Character — gone — onto a new Profile → Settings screen, still calling the same `setTheme()`; the desktop sidebar's own control is unchanged.)*
 
 ## Desktop shell
 
 The phone layout is built from a 520 px column (`.wrap`) with a fixed bottom tab bar and a fixed mini-player, both capped at 520 px. The desktop mode reuses the same markup and routes, and changes how they are laid out.
 
 - **Breakpoint.** `@media (min-width: 1024px)` turns on desktop. Under 1024 px nothing changes. Put these rules in new files so they can be reviewed apart from the phone CSS.
-- **Sidebar from the tab bar.** The existing `.tabbar` buttons (`data-route="library"`, `home`, `sundown`, `character`, `profile`) become a vertical sidebar. Keep the same buttons and `wireRoutes()`, so routing needs no JavaScript change. At 1280 px and wider it is 232 px with labels; from 1024 to 1279 px it is a 76 px icon rail.
+- **Sidebar from the tab bar.** The existing `.tabbar` buttons (`data-route="library"`, `home`, `sundown`, `character`, `profile`) become a vertical sidebar. Keep the same buttons and `wireRoutes()`, so routing needs no JavaScript change. At 1280 px and wider it is 232 px with labels; from 1024 to 1279 px it is a 76 px icon rail. *(Updated by DA3, `docs/DAY_ARC.md`: `data-route="character"` is gone — the Character tab merged into Sundown's own Day/Sound switch, and the tab bar is four buttons, not five. See CLAUDE.md's own DA3 changelog entry for the full change; this doc's own text above is left as written for its own history.)*
 - **New sidebar content.** The playlists list, the Sundown summary card and the appearance control are new DOM. Build the playlists list from `S.playlists` with `textContent`. Reuse the Sundown readout that `drawSun()` already writes rather than computing it twice.
 - **Main area.** Drop the 520 px cap on `.wrap` and let the routes fill the space beside the sidebar. The header's search field and `+` menu move into the main header row.
 - **Player bar.** On desktop the mini-player becomes an 88 px bar across the bottom: now playing on the left, transport and seek in the middle, mode, queue and volume on the right. It must drive the existing playback functions, not a second set of controls.

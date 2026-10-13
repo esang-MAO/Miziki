@@ -10,6 +10,7 @@ import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './l
 import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
+import { setTheme } from '../ui/theme.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -72,7 +73,7 @@ export function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
   const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy',
-    privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use'};
+    privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use', settings:'Settings'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
     crumb.innerHTML = '';
@@ -85,6 +86,7 @@ export function renderProfile(){
   if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
+  else if(screen === 'settings') renderAppSettingsScreen(body);
   else if(screen === 'socialSettings'){ renderSocialSettingsScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
   else if(screen === 'privacy'){ renderPrivacyScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
   else if(screen === 'privacyPolicy') renderPrivacyPolicyScreen(body);
@@ -99,6 +101,65 @@ function renderProfileHome(body){
   // screen itself shows the calm "sign in to use this" row for the
   // social-only sections when signed out (step 06, B3)
   wirePrivacyLink(body, renderProfile);
+}
+
+// DA3 (docs/DAY_ARC.md, artboard ProfileSettings): the Appearance control
+// moved off the old Character tab (now gone — its content lives in
+// Sundown's own Sound view, src/wiring/sundown.js) into this new screen,
+// reached via the Settings button renderStorefrontSection() now adds at
+// the top of every profile-home state — see storefront.js's own comment
+// for why that needed to move there rather than staying only on the
+// signed-in storefront's own gear button. The desktop sidebar's own
+// Appearance control (D7, #sidebarAppearance) is untouched: static
+// markup, wired once at boot by wireCharacter()'s existing
+// querySelectorAll('[data-theme-choice]') call. This screen's own three
+// buttons are built fresh on every render, so — per the same reasoning
+// that call can't reach them — each gets its own click listener right
+// here rather than relying on that boot-time pass; setTheme() still
+// syncs aria-pressed on every [data-theme-choice] button in the document,
+// this screen's included, whenever any one of them (phone or desktop) is
+// actually clicked.
+//
+// Only Auto/Light/Dark exist yet — Nychthemeron (DA4) adds the fourth
+// choice and, with it, the mockup's own 2×2 grid layout; three choices
+// read naturally in one row, so that layout isn't anticipated here.
+function renderAppSettingsScreen(body){
+  const appearance = el('div','settings-section');
+  appearance.appendChild(el('div','settings-section-head', 'Appearance'));
+  const seg = el('div','seg settings-appearance');
+  [['auto','Auto'], ['light','Light'], ['dark','Dark']].forEach(([value, label]) => {
+    const b = el('button', null, label);
+    b.dataset.themeChoice = value;
+    b.setAttribute('aria-pressed', String(S.theme === value));
+    b.addEventListener('click', () => setTheme(value));
+    seg.appendChild(b);
+  });
+  appearance.appendChild(seg);
+  appearance.appendChild(el('p','note',
+    'Auto follows your device’s own Light/Dark setting, including live if it changes. Choosing Light or Dark keeps that look regardless of the device.'));
+  body.appendChild(appearance);
+
+  const links = el('div','settings-section');
+  links.appendChild(el('div','settings-section-head', 'Account & privacy'));
+  const row = (label, onTap) => {
+    const b = el('button','settings-link-row');
+    b.appendChild(el('span', null, label));
+    b.appendChild(el('span','g-chev','›'));
+    b.addEventListener('click', onTap);
+    links.appendChild(b);
+  };
+  row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
+  row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
+  row('Library tools', () => {
+    const panel = $('#libToolsPanel'), toggle = $('#libToolsToggle');
+    if(panel && !panel.classList.contains('open')){
+      panel.classList.add('open');
+      if(toggle) toggle.setAttribute('aria-expanded', 'true');
+    }
+    if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  body.appendChild(links);
+  body.appendChild(legalLinksRow(renderProfile));
 }
 
 // Top Album/Top Song, Achievements, Collection and Share don't exist

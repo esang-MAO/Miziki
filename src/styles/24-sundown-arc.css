@@ -1,0 +1,77 @@
+/* DA3 (docs/DAY_ARC.md): the Sundown tab's own Day/Sound switch, day-arc
+   SVG, phase block and the few other small new pieces this step adds.
+   A new, appended file rather than inserted before 23-desktop.css — see
+   this step's own CLAUDE.md changelog entry for why a new component
+   file always appends at the end of the cascade in this project, and why
+   that's safe here (nothing in this file's own selectors collides with
+   23-desktop.css's). Any desktop-only sizing this file itself needs lives
+   in its own media query below, not in 23-desktop.css. */
+
+.sd-tabs{
+  display:flex; gap:4px; margin-bottom:14px;
+  border-bottom:1px solid var(--line);
+}
+.sd-tabs button{
+  flex:1; height:44px; border:none; background:transparent; color:var(--muted);
+  font-family:var(--data); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  cursor:pointer; border-bottom:2px solid transparent;
+}
+.sd-tabs button[aria-selected="true"]{
+  color:var(--paper); border-bottom-color:var(--accent);
+  background:color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.sd-eyebrow{
+  font-family:var(--data); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 8px;
+}
+.sd-eyebrow.sd-previewing{ color:var(--accent-text); }
+
+.sd-heading{
+  font-family:var(--data); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); margin:22px 0 4px;
+}
+
+.day-arc{ display:block; width:100%; height:auto; margin:4px 0 8px; }
+.arc-horizon{ stroke:var(--line); stroke-width:1; }
+.arc-day-path{ fill:none; stroke:var(--cool); stroke-width:1.5; opacity:.5; }
+.arc-night-path{ fill:none; stroke:var(--muted); stroke-width:1; stroke-dasharray:2 4; opacity:.5; }
+.arc-dot{ fill:var(--accent); filter:drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent)); }
+.arc-dot.arc-dot-night{ fill:var(--cool); filter:drop-shadow(0 0 4px color-mix(in srgb, var(--cool) 60%, transparent)); }
+
+.arc-labels{
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;
+  font-family:var(--data); font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--muted); text-align:center; margin-bottom:18px;
+}
+.arc-label span{ display:block; }
+.arc-label b{ display:block; font-weight:400; color:var(--muted); margin-top:2px; font-size:10.5px; }
+.arc-label.arc-label-active span, .arc-label.arc-label-active b{ color:var(--accent-text); }
+
+.phase-block{ margin-bottom:10px; }
+.phase-block h2{
+  font-family:var(--display); font-size:34px; line-height:1.05; margin:0 0 2px;
+  text-transform:uppercase; color:var(--paper);
+}
+.phase-block p{ margin:0; color:var(--muted); font-size:13px; }
+
+.preview-ticks{
+  display:flex; justify-content:space-between;
+  font-family:var(--data); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); margin-top:4px;
+}
+
+/* DA2's own Day-drift "now" value, next to each Sound slider's existing
+   user-value label — a small textual badge rather than rebuilding each
+   native <input type=range> as a custom tick/thumb control (the mockup's
+   own fuller slider redesign); see this step's own changelog entry for
+   why that's a deliberate, documented scope trim. Hidden by default —
+   src/wiring/character.js only shows it once Day drift is actually on. */
+.now-badge{
+  font-family:var(--data); font-size:10px; color:var(--cool); margin-left:8px;
+}
+.now-badge:empty{ display:none; }
+
+@media (min-width:1024px){
+  .phase-block h2{ font-size:40px; }
+}
