@@ -79,6 +79,7 @@
 <link rel="stylesheet" href="/src/styles/20-friend-store.css">
 <link rel="stylesheet" href="/src/styles/21-legal.css">
 <link rel="stylesheet" href="/src/styles/22-theme.css">
+<link rel="stylesheet" href="/src/styles/23-desktop.css">
 </head>
 <body>
 <!-- LAUNCH INTRO: cold-start only, first thing in the DOM so it paints
@@ -423,6 +424,16 @@
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
 </div>
 
+<!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible
+     scaffolding — the nav below renders exactly as it always has, and
+     #sidebarExtra stays display:none the whole time. At 1024px and
+     wider, src/styles/23-desktop.css turns this into the left sidebar:
+     the same nav buttons (now a vertical column, wireRoutes() unchanged)
+     plus the new playlists list and Sundown summary card the mockup adds,
+     built by src/shell/sidebar.js/drawSun() (src/player/clock.js) rather
+     than duplicating the computation that already exists for the phone's
+     own Playlists tab and Sundown route. -->
+<div class="sidebar" id="sidebar">
 <nav class="tabbar" id="tabbar" role="tablist">
   <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
@@ -445,6 +456,19 @@
     <span>Profile</span>
   </button>
 </nav>
+<div class="sidebar-extra" id="sidebarExtra">
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Playlists</div>
+    <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>
+  </div>
+  <div class="sidebar-section sidebar-sundown" id="sidebarSundown">
+    <div class="sidebar-heading">Sundown</div>
+    <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
+    <div class="sidebar-sundown-leg" id="sideLegStart"></div>
+    <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
+  </div>
+</div>
+</div>
 
 <!-- FULL PLAYER: overlay, not a fourth tab -->
 <div class="player-overlay" id="playerOverlay" aria-hidden="true">
