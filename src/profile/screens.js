@@ -6,6 +6,7 @@ import { metalBadge, collectionBadge } from './badges.js';
 import { renderStorefrontSection } from './storefront.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
+import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './legal.js';
 import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
@@ -70,7 +71,8 @@ export function topTile(label, art, title, subtitle, emptyText, onTap){
 export function renderProfile(){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy'};
+  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy',
+    privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
     crumb.innerHTML = '';
@@ -83,8 +85,10 @@ export function renderProfile(){
   if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
-  else if(screen === 'socialSettings') renderSocialSettingsScreen(body);
-  else if(screen === 'privacy') renderPrivacyScreen(body);
+  else if(screen === 'socialSettings'){ renderSocialSettingsScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
+  else if(screen === 'privacy'){ renderPrivacyScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
+  else if(screen === 'privacyPolicy') renderPrivacyPolicyScreen(body);
+  else if(screen === 'termsOfUse') renderTermsScreen(body);
   else renderProfileHome(body);
   refreshLibraryTools();
 }
