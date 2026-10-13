@@ -61,6 +61,10 @@ Order:
    deletion, and a security hardening pass. **See its own section below**
    before applying this one — it needs a follow-up step (re-running the
    Security Advisor) that the others don't.
+6. `006_images.sql` — the `covers` and `avatars` Storage buckets and their
+   policies, for custom cover art and the profile picture / public avatar.
+   **See its own section below** — it needs a follow-up check (confirming
+   the buckets exist with the right settings) the SQL alone can't prove.
 
 **Never edit a migration that's already been applied** — if something needs
 to change later, it goes in a new numbered file (`006_...`, and so on).
@@ -102,6 +106,54 @@ from the app yet — there's no "delete my account" button in Settings as of
 this step — so there's nothing to test by hand here beyond confirming the
 migration itself applied cleanly. See CLAUDE.md's step 05 changelog entry
 for the full detail on everything `005_backup.sql` does.
+
+### Applying `006_images.sql`
+
+This one creates two **Storage** buckets, not database tables — Supabase
+Storage has its own section of the dashboard, separate from Table Editor,
+so the usual "check Table Editor" verification doesn't apply here.
+
+1. Apply it the same way as every other migration (copy, paste into a new
+   SQL editor query, **Run**). It should finish with no errors.
+2. **Verify the buckets:** **Storage** (sidebar) → confirm two buckets
+   exist: `covers` and `avatars`.
+   - `covers` should show as **Private**, with a file size limit around
+     **1 MB** and allowed types `image/jpeg`, `image/webp`.
+   - `avatars` should show as **Public**, with a file size limit around
+     **300 KB** and the same two allowed types.
+3. **Manual policy check** (RLS on `storage.objects` can't be fully
+   exercised from the SQL editor the way a table's policies can, since
+   there's no `auth.uid()` session there to sign in as — this is the
+   "manual-check fallback" the B4 spec itself asks for): with two
+   different signed-in test accounts (or one account and a signed-out
+   browser tab for the avatars half):
+   - Set a custom cover on a track (the edit sheet's art picker) on
+     account A, then sign in as account B and confirm there's no way to
+     read or list account A's file under `covers/<A's user id>/` — the
+     Storage API should return nothing, same as a real cross-user RLS
+     rejection.
+   - Set a profile picture on account A, then open the app **signed out**
+     (or as account B) and confirm the picture is visible — `avatars` is
+     the one bucket that's supposed to be readable by anyone.
+   - Still signed in as account B, confirm there's no way to upload or
+     delete a file under `avatars/<A's user id>/` — only A's own session
+     can write there.
+   This mirrors what `tests/client.test.js`'s own `covers`/`avatars` tests
+   already check against a real Postgres `storage.objects` stand-in (see
+   `tests/supabase_stub.sql`) — this manual pass is the real-Supabase-API
+   confirmation that the actual Storage service enforces the same thing,
+   plus the one thing the stub can't check at all: the `file_size_limit`/
+   `allowed_mime_types` enforcement itself (try uploading an oversized or
+   wrong-type file from the app and confirm it's rejected, rather than
+   silently accepted).
+
+Account deletion's own Storage cleanup (every file under both buckets'
+`<user id>/` folder, since Storage objects have no foreign key to
+`auth.users` for `delete_my_account()`'s cascades to reach) happens in the
+app (`src/miziki-social.js`'s `deleteAccount()`), before the RPC call —
+nothing in this migration does it. See CLAUDE.md's step 07 changelog entry
+for the full detail on everything `006_images.sql` does and how the app
+uploads/downloads/cleans up around it.
 
 ---
 
