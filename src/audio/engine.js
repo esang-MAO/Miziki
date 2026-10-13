@@ -2,6 +2,8 @@ import { S } from '../state.js';
 import { applyVolume } from '../sundown/location.js';
 import { stop } from '../player/transport.js';
 import { applyOutputRoute } from '../player/background.js';
+import { currentDayPosition } from '../sundown/solar.js';
+import { effectiveChar } from '../sundown/drift.js';
 
 /* ================= audio graph ================= */
 export function makeContext(sampleRate){
@@ -51,23 +53,66 @@ export function satCurve(amount){
   return {curve:c, trim: 1/(1 + amount*0.5)};
 }
 
-export function applyCharacter(){
-  if(!S.nodes) return;
-  const n = S.nodes, c = S.char, t = S.ctx.currentTime;
-  n.wowAmt.gain.setTargetAtTime(0.00050 * c.wow, t, 0.05);
-  n.flutAmt.gain.setTargetAtTime(0.000015 * c.wow, t, 0.05);
-  const s = satCurve(c.sat);
-  n.sat.curve = s.curve;
-  n.satTrim.gain.setTargetAtTime(s.trim, t, 0.05);
-  n.tone.gain.setTargetAtTime(-9 * c.soft, t, 0.05);
-  n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, 0.05);
-  n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, 0.05);
-  n.makeup.gain.setTargetAtTime(1 + 0.4*c.comp, t, 0.05);
+// DA2 (docs/DAY_ARC.md): the one effective-value gate for the whole day
+// arc's character drift, the same single-place shape F1's own Pure-rate
+// rule has in solar.js's computeRate() — Pure means untouched, so drift is
+// forced to 'off' before intensity is even read, regardless of S.charDrift,
+// rather than relying only on routeSource() bypassing these nodes in Pure:
+// a slider moved (or a mode switch back to Vinyl) while in Pure should
+// never leave a drifted value sitting on a node Pure doesn't even route
+// through, waiting to surprise the next Vinyl switch.
+//
+// `ramp` defaults to the same 50ms every existing call site here already
+// used before DA2 (a slider drag, a preset click, a mode switch, restoring
+// saved prefs) — none of those should suddenly feel sluggish just because
+// drift now rides along with them. src/wiring/character.js's own ~30s
+// drift-recompute timer (the one new call site DA2 adds) passes a longer
+// ~2s time constant instead, per the doc's own "ramping with a longer time
+// constant, so the drift is never audible as a change" — that line is
+// about the drift's own slow background movement, not about making a
+// direct user edit laggy.
+let lastAppliedSat = null;
+export function applyCharacter(ramp = 0.05){
+  if(!S.nodes || !S.ctx) return;
+  const n = S.nodes, t = S.ctx.currentTime;
+  const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
+  const c = effectiveChar(S.char, currentDayPosition(), intensity);
+  n.wowAmt.gain.setTargetAtTime(0.00050 * c.wow, t, ramp);
+  n.flutAmt.gain.setTargetAtTime(0.000015 * c.wow, t, ramp);
+  // satCurve() builds a brand-new Float32Array every call — only worth it
+  // once the effective value has actually moved enough to matter, per the
+  // doc's own "only rebuild when the effective sat moves by more than
+  // 0.005" instruction; satTrim's own gain still glides every call either
+  // way, since that's a cheap setTargetAtTime, not a curve rebuild.
+  if(lastAppliedSat === null || Math.abs(c.sat - lastAppliedSat) > 0.005){
+    const s = satCurve(c.sat);
+    n.sat.curve = s.curve;
+    n.satTrim.gain.setTargetAtTime(s.trim, t, ramp);
+    lastAppliedSat = c.sat;
+  }
+  n.tone.gain.setTargetAtTime(-9 * c.soft, t, ramp);
+  n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, ramp);
+  n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, ramp);
+  n.makeup.gain.setTargetAtTime(1 + 0.4*c.comp, t, ramp);
 }
 
 export function routeSource(src){
   src.disconnect();
   src.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
+}
+
+// DA2 (docs/DAY_ARC.md): "recompute about every 30s" — called once from
+// main.js's boot sequence, the same "set it up once, the function re-arms
+// on its own" shape sundown/location.js's scheduleMidnightRecompute() has,
+// just on a plain setInterval rather than a recursive setTimeout, since
+// there's no wall-clock boundary to stay anchored to here the way midnight
+// is — "about every 30s" tolerates ordinary setInterval drift just fine.
+// Passes the slow ~2s ramp (applyCharacter()'s own default stays the fast
+// 50ms every pre-existing call site already used) — this is drift moving
+// on its own, not a direct user edit, so it's exactly the kind of change
+// the doc's own "never audible as a change" instruction is about.
+export function scheduleDriftRecompute(){
+  setInterval(() => applyCharacter(2), 30000);
 }
 
 // from the "file loading" section in main.js — rebuilds the context when

@@ -20,6 +20,7 @@ import {
 } from './launch/intro.js';
 import { askLocation, fallbackSun, scheduleMidnightRecompute } from './sundown/location.js';
 import { setMode } from './audio/mode.js';
+import { scheduleDriftRecompute } from './audio/engine.js';
 import { drawSun, frame } from './player/clock.js';
 import { DB } from './storage/idb.js';
 import { storage, tracks } from './storage/repo.js';
@@ -82,6 +83,7 @@ fallbackSun();
 askLocation();
 drawSun();
 scheduleMidnightRecompute();   // DA1: keeps the day model from going stale overnight
+scheduleDriftRecompute();      // DA2: keeps Vinyl's character drift tracking the day
 updateChromeInset();
 window.addEventListener('resize', updateChromeInset);
 requestAnimationFrame(frame);
