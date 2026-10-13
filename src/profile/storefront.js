@@ -157,8 +157,17 @@ export function renderStoreError(host, error, retry){
 
 export function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
+  // D7 (docs/DESKTOP_LAYOUT.md): wraps the two existing top-level pieces
+  // (.store-host below, .profile-extras appended further down) so
+  // src/styles/23-desktop.css's own two-column grid can reach into both
+  // of their children at once — display:contents below 1024px, the same
+  // invisible-scaffolding pattern every prior D-step's own wrapper
+  // already uses, so this changes nothing about how either piece renders
+  // on a phone.
+  const grid = el('div','profile-desktop-grid');
+  body.appendChild(grid);
   const host = el('div','store-host');
-  body.appendChild(host);
+  grid.appendChild(host);
   // everything a storefront needs for staff picks, ratings, notes and the
   // crate preview already lives on this device (Step A's local engine never
   // touched the network) — so the storefront shell shows up right away,
@@ -170,12 +179,12 @@ export function renderStorefrontSection(body){
   // just continue directly below, since nothing else shows them.
   if(!soc.enabled){
     renderLocalStorefront(host);
-    body.appendChild(renderProfileExtras(false));
+    grid.appendChild(renderProfileExtras(false));
     return;
   }
   if(soc.auth === 'ready') loadAndRenderStorefront(host);
   else renderOpenStoreCard(host, soc.auth);
-  body.appendChild(renderProfileExtras(true));
+  grid.appendChild(renderProfileExtras(true));
 }
 
 // Local albumId -> social metadata, by way of the same pure adapter the
@@ -307,7 +316,13 @@ function storePicksSection(full){
 }
 
 function storeDiggingSection(full, host){
-  const section = el('div','store-section');
+  // D7: the one modifier class this step adds, since store-section alone
+  // (shared with storePicksSection/storeCrateGrid below) gives
+  // src/styles/23-desktop.css's own two-column grid no way to place this
+  // one section differently from its siblings — "digging list" goes in
+  // the left column, per the mockup's own mapping; the other two stay
+  // full width.
+  const section = el('div','store-section store-section-digging');
   const head = el('div','store-section-head');
   head.appendChild(el('h2', null, 'Digging list'));
   head.appendChild(storeSwitch('Show digging list on my crate', full.profile.show_digging_list !== false,
