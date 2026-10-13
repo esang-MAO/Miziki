@@ -195,6 +195,44 @@ test('easedProgress/computeRate: Moment holds back longer than Window during daw
   assert.ok(Math.abs(momentRate - S.target) < 0.01, 'moment should still read essentially the night rate this early in dawn');
 });
 
+// DA3 (docs/DAY_ARC.md): duskRampProgress is the extra, independent 0..1
+// value the sky's 8-anchor blend (src/player/clock.js's skyGradientStops())
+// needs for the one interior waypoint ("Dusk," 30 minutes after dusk) that
+// has no dayPosition() phase of its own — see day.js's own header comment.
+test('dayPosition: duskRampProgress is 0 right at dusk, 1 after 30 minutes, and stays 1 the rest of the night', () => {
+  const date = new Date('2025-06-21T12:00:00Z');
+  const ev = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
+  assert.ok(Math.abs(dayPosition(ev.dusk, ev).duskRampProgress - 0) < 0.01);
+  const fifteenAfter = new Date(ev.dusk.getTime() + 15 * 60000);
+  assert.ok(Math.abs(dayPosition(fifteenAfter, ev).duskRampProgress - 0.5) < 0.01);
+  const thirtyAfter = new Date(ev.dusk.getTime() + 30 * 60000);
+  assert.ok(Math.abs(dayPosition(thirtyAfter, ev).duskRampProgress - 1) < 0.01);
+  const deepNight = new Date(ev.dusk.getTime() + 5 * 60 * 60000); // 5h after dusk
+  assert.equal(dayPosition(deepNight, ev).duskRampProgress, 1);
+  // the pre-dawn tail of the same night (the *other* branch that returns
+  // phase 'night') is always fully settled too, with nothing to ramp from.
+  const beforeDawn = new Date(ev.dawn.getTime() - 60 * 60000);
+  assert.equal(dayPosition(beforeDawn, ev).duskRampProgress, 1);
+  // every other phase doesn't use this field, but it's always a present,
+  // in-range number, never undefined/NaN — skyGradientStops() only reads
+  // it for phase 'night', but nothing should ever have to guard for it
+  // being missing.
+  for(const t of [ev.dawn, (new Date((ev.dawn.getTime()+ev.rise.getTime())/2)), date]){
+    const d = dayPosition(t, ev).duskRampProgress;
+    assert.ok(typeof d === 'number' && d >= 0 && d <= 1, `duskRampProgress should be a 0..1 number, got ${d}`);
+  }
+});
+
+test('dayPosition: duskRampProgress is 1 for the legacy-partial-data and polar-night fallback branches', () => {
+  const now = Date.now();
+  const legacyNight = dayPosition(new Date(now + 60 * 60000), { set: new Date(now - 60 * 60000), dusk: new Date(now - 30 * 60000) });
+  assert.equal(legacyNight.phase, 'night');
+  assert.ok(legacyNight.duskRampProgress > 0 && legacyNight.duskRampProgress <= 1);
+  const polarNight = dayPosition(new Date('2025-12-21T12:00:00Z'), dayEvents(new Date('2025-12-21T12:00:00Z'), 78.2, 15.6));
+  assert.equal(polarNight.phase, 'night');
+  assert.equal(polarNight.duskRampProgress, 1);
+});
+
 test('easedProgress: twilight (dusk) pacing is unchanged from before DA1', () => {
   const now = Date.now();
   S.mode = 'vinyl'; S.auto = true; S.target = 0.80; S.previewMin = 0;

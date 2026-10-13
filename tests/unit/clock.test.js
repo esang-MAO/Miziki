@@ -147,8 +147,18 @@ mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
 // --sky1/--sky2 fix under test — neither exists in this file's Node
 // environment otherwise. A single reusable stub element is enough: none
 // of drawSun()'s own tests care about its textContent/style.width, only
-// about the one inline-style side effect this fix changed.
-function fakeEl(){ return { style: {}, textContent: '', toLocaleTimeString(){ return ''; } }; }
+// about the one inline-style side effect this fix changed. DA3's own
+// updateDayArc() additionally reads/writes classList.toggle (the sun/
+// moon dot and the five arc labels) and setAttribute (the dot's cx/cy) —
+// a plain classList.toggle stub (recording the last call, not a real
+// Set) and a no-op setAttribute are enough, since no test here reads
+// either back.
+function fakeEl(){
+  return {
+    style: {}, textContent: '', toLocaleTimeString(){ return ''; },
+    classList: { toggle(){}, add(){}, remove(){} }, setAttribute(){},
+  };
+}
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: { $(){ return fakeEl(); }, el(){ return fakeEl(); } },
 });
@@ -162,7 +172,7 @@ globalThis.document = {
   },
 };
 
-const { tick, drawSun, skyGradientStops } = await import('../../src/player/clock.js');
+const { tick, drawSun, skyGradientStops, phaseText, dayArcPosition } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -238,44 +248,163 @@ test('F2: a full rotation moves 30s with Scratch off, 1.8s with Scratch on', () 
   assert.equal(360 * (SCRATCH_SEC_PER_ROTATION / 360), 1.8);
 });
 
-// skyGradientStops: the dark-theme dusk animation's own pure color math —
-// p=0 is exactly A, p=0.5 is exactly B, p=1 is exactly C, and it's
-// monotonic in between (no discontinuity at the p=0.5 seam).
-test('skyGradientStops: p=0 is daylight-teal (A)', () => {
-  assert.deepEqual(skyGradientStops(0), ['rgb(29,47,56)', 'rgb(16,26,32)']);
+// DA3 (docs/DAY_ARC.md): skyGradientStops(dayPos, theme) — the 8-anchor
+// sky across the whole day, both themes. A tiny dayPos-shaped fixture
+// builder, same shape dayPosition() itself returns.
+function pos(phase, phaseProgress = 0, duskRampProgress = 0){
+  return { phase, phaseProgress, nightness: 0, rateProgress: 0, duskRampProgress };
+}
+
+test('skyGradientStops: midday is the exact dark anchor (byte-identical to the old A triple)', () => {
+  assert.deepEqual(skyGradientStops(pos('midday'), 'dark'), ['rgb(29,47,56)', 'rgb(16,26,32)']);
 });
-test('skyGradientStops: p=0.5 is dusk (B)', () => {
-  assert.deepEqual(skyGradientStops(0.5), ['rgb(59,33,48)', 'rgb(26,16,24)']);
+// Golden hour holds flat at its own anchor for its whole phase (the same
+// "flat for the whole phase" judgment call drift.js already makes for
+// its own anchors). Twilight itself ramps toward the Dusk anchor, not
+// its own same-named "Twilight" table row — see skyGradientStops()'s own
+// header comment for why: Dusk is the one true interior waypoint this
+// design needs (continuous with Night's own first 30 minutes), while the
+// "Twilight"/"Morning"/"Midday"/"Golden" table rows each describe a
+// single representative instant, used here as a flat hold across their
+// own whole phase rather than a second, separately-targeted waypoint.
+test('skyGradientStops: golden hour holds its own anchor; twilight ramps toward Dusk, reaching it exactly at the dusk instant', () => {
+  assert.deepEqual(skyGradientStops(pos('golden'), 'dark'), ['rgb(61,42,31)', 'rgb(26,19,16)']);
+  assert.deepEqual(skyGradientStops(pos('twilight', 1), 'dark'), ['rgb(30,24,40)', 'rgb(13,11,19)']);
 });
-test('skyGradientStops: p=1 is near-black night (C)', () => {
-  assert.deepEqual(skyGradientStops(1), ['rgb(18,14,25)', 'rgb(8,7,12)']);
+test('skyGradientStops: night, once settled, is the exact dark anchor (old C triple)', () => {
+  assert.deepEqual(skyGradientStops(pos('night', 0, 1), 'dark'), ['rgb(18,14,25)', 'rgb(8,7,12)']);
 });
-test('skyGradientStops: no seam discontinuity around p=0.5', () => {
-  const justBelow = skyGradientStops(0.499999);
-  const at = skyGradientStops(0.5);
-  assert.deepEqual(justBelow, at); // rounds to the same integer RGB triples
+test('skyGradientStops: light theme never matches the dark anchors, for every phase', () => {
+  for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+    const dark = skyGradientStops(pos(phase, 0.5, 0.5), 'dark');
+    const light = skyGradientStops(pos(phase, 0.5, 0.5), 'light');
+    assert.notDeepEqual(dark, light, `${phase} should differ between themes`);
+  }
+});
+test('skyGradientStops: an unknown/missing dayPos falls back to midday', () => {
+  assert.deepEqual(skyGradientStops(null, 'dark'), skyGradientStops(pos('midday'), 'dark'));
 });
 
-// The fix under test: drawSun()'s --sky1/--sky2 inline overrides must
-// never fight the Light theme's own CSS-declared tokens (22-theme.css) —
-// see this module's own comment at the fix. Dark/Auto-resolved-dark keep
-// the existing animated inline override; Light clears any previously-set
-// inline value instead of writing a new one.
+// Continuity across all eight anchors, both themes: the end of one
+// phase's blend must match the start of the next phase's blend exactly —
+// this is the whole point of the shared-anchor architecture (same
+// precedent as drift.test.js's own six-boundary continuity test).
+test('skyGradientStops: every phase boundary is continuous, in both themes', () => {
+  for(const theme of ['dark', 'light']){
+    // twilight(1) -> night(duskRamp=0): the dusk anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('twilight', 1), theme), skyGradientStops(pos('night', 0, 0), theme));
+    // night(duskRamp=1) -> dawn(0): the night anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('night', 0, 1), theme), skyGradientStops(pos('dawn', 0), theme));
+    // dawn(1) -> morning(0): the morning anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('dawn', 1), theme), skyGradientStops(pos('morning', 0), theme));
+    // morning(1) -> midday: the midday anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('morning', 1), theme), skyGradientStops(pos('midday'), theme));
+    // midday -> afternoon(0): the midday anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('midday'), theme), skyGradientStops(pos('afternoon', 0), theme));
+    // afternoon(1) -> golden: the golden anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('afternoon', 1), theme), skyGradientStops(pos('golden'), theme));
+    // golden -> twilight(0): the golden anchor on both sides
+    assert.deepEqual(skyGradientStops(pos('golden'), theme), skyGradientStops(pos('twilight', 0), theme));
+  }
+});
+
+// WCAG contrast — the design README's own ≥4.5:1 requirement, including
+// "blended values between anchors also stay above 4.5:1," sampled every
+// 10 minutes across a real 24h day (Columbia, MD) rather than just at
+// the eight named anchors, the same "sample the whole continuous range,
+// not just the fixture points" approach drift.test.js's own whole-day
+// sweep already uses.
+function srgbToLinear(c){ c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+function relLuminance([r, g, b]){ return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b); }
+function parseRGB(s){ return s.match(/\d+/g).map(Number); }
+function contrastRatio(hexOrRgb, rgbStr){
+  const fg = Array.isArray(hexOrRgb) ? hexOrRgb : hexOrRgb;
+  const L1 = relLuminance(fg), L2 = relLuminance(parseRGB(rgbStr));
+  const lighter = Math.max(L1, L2), darker = Math.min(L1, L2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+const TEXT_TOKENS = {
+  dark: { paper: [239,233,223], muted: [148,160,166], accentText: [255,158,44] },
+  light: { paper: [21,35,43], muted: [79,97,106], accentText: [154,71,0] },
+};
+
+test('skyGradientStops: every anchor stays >=4.5:1 against paper/muted/accent-text, both themes', () => {
+  for(const theme of ['dark', 'light']){
+    for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+      const [sky1, sky2] = skyGradientStops(pos(phase, 0, 1), theme);
+      for(const token in TEXT_TOKENS[theme]){
+        const fg = TEXT_TOKENS[theme][token];
+        const ratio = Math.min(contrastRatio(fg, sky1), contrastRatio(fg, sky2));
+        assert.ok(ratio >= 4.5, `${theme}/${phase}/${token}: contrast ${ratio.toFixed(2)} below 4.5`);
+      }
+    }
+  }
+});
+
+test('skyGradientStops: blended values stay >=4.5:1 too, sampled every 10 minutes across a full day', async () => {
+  const { dayEvents, dayPosition } = await import('../../src/sundown/day.js');
+  const COLUMBIA = { lat: 39.20, lon: -76.86 };
+  const date = new Date('2025-06-21T12:00:00Z');
+  const events = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
+  const start = new Date('2025-06-21T04:00:00Z');
+  for(const theme of ['dark', 'light']){
+    for(let m = 0; m < 24 * 60; m += 10){
+      const now = new Date(start.getTime() + m * 60000);
+      const dayPos = dayPosition(now, events);
+      const [sky1, sky2] = skyGradientStops(dayPos, theme);
+      for(const token in TEXT_TOKENS[theme]){
+        const fg = TEXT_TOKENS[theme][token];
+        const ratio = Math.min(contrastRatio(fg, sky1), contrastRatio(fg, sky2));
+        assert.ok(ratio >= 4.5, `${theme} at +${m}min (${dayPos.phase}) / ${token}: contrast ${ratio.toFixed(2)} below 4.5`);
+      }
+    }
+  }
+});
+
+// phaseText: the new phase line's own wording — separate from #rateWhy's
+// existing, shorter copy (untouched by DA3, still tested via drawSunAt
+// below).
+test('phaseText: dawn reads "percent risen", twilight reads "percent down", others are flat copy', () => {
+  assert.deepEqual(phaseText(pos('dawn', 0.5), 0, 0), { name: 'Dawn', sub: '50% of the way up' });
+  assert.deepEqual(phaseText(pos('twilight', 0.6), 0, 0.6), { name: 'Twilight', sub: '60% of the way down' });
+  assert.deepEqual(phaseText(pos('morning'), 0, 0), { name: 'Morning', sub: 'Bright, full speed' });
+  assert.deepEqual(phaseText(pos('night'), 0, 0), { name: 'Night', sub: 'Settled in for the night' });
+});
+
+// dayArcPosition: pure, schematic x/y for the arc's sun/moon dot.
+test('dayArcPosition: day phases walk left to right and never go below the horizon', () => {
+  const dawnStart = dayArcPosition(pos('dawn', 0));
+  const twilightEnd = dayArcPosition(pos('twilight', 1));
+  assert.ok(dawnStart.x < twilightEnd.x, 'dawn should start to the left of where twilight ends');
+  for(const phase of ['dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+    const { y, isNight } = dayArcPosition(pos(phase, 0.5));
+    assert.equal(isNight, false);
+    assert.ok(y <= 92, 'day phases should sit at or above the horizon line');
+  }
+});
+test('dayArcPosition: night sits below the horizon, flagged isNight', () => {
+  const { y, isNight } = dayArcPosition(pos('night'));
+  assert.equal(isNight, true);
+  assert.ok(y > 92, 'night should sit below the horizon line');
+});
+
+// The fix under test since the sky-fix changelog entry, now extended by
+// DA3: drawSun() always sets --sky1/--sky2 inline, in both themes (the
+// D2-era "light clears instead of setting" behavior is gone — see
+// clock.js's own updated comment at the call site).
 test('drawSun(): dark theme sets animated --sky1/--sky2 inline', () => {
   const style = drawSunAt('dark', false);
   assert.ok(style['--sky1'] && style['--sky1'].startsWith('rgb('));
   assert.ok(style['--sky2'] && style['--sky2'].startsWith('rgb('));
 });
-test('drawSun(): light theme never sets --sky1/--sky2 inline', () => {
+test('drawSun(): light theme now also sets animated --sky1/--sky2 inline', () => {
   const style = drawSunAt('light', false);
-  assert.equal('--sky1' in style, false);
-  assert.equal('--sky2' in style, false);
+  assert.ok(style['--sky1'] && style['--sky1'].startsWith('rgb('));
+  assert.ok(style['--sky2'] && style['--sky2'].startsWith('rgb('));
 });
-test('drawSun(): switching dark -> light clears a previously-set inline override', () => {
-  fakeRootStyle['--sky1'] = 'rgb(1,2,3)'; fakeRootStyle['--sky2'] = 'rgb(4,5,6)';
-  fakeEffectiveTheme = 'light';
-  S.mode = 'vinyl'; S.auto = false; S.rate = 1; S.target = 1.2; S.sun = { ok: false };
-  drawSun();
-  assert.equal('--sky1' in fakeRootStyle, false);
-  assert.equal('--sky2' in fakeRootStyle, false);
+test('drawSun(): dark and light produce different inline values for the same day position', () => {
+  const dark = drawSunAt('dark', false);
+  const darkSky1 = dark['--sky1'];
+  const light = drawSunAt('light', false);
+  assert.notEqual(light['--sky1'], darkSky1);
 });
