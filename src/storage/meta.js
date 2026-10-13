@@ -123,6 +123,14 @@ function applyPrefs(p){
   // restore where this field simply isn't there yet.
   if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark') S.theme = p.theme;
   applyTheme();
+  // DA2: no dedicated UI side effect call of its own the way bgAudio/
+  // launchIntro have above — just sync the segmented control's own
+  // aria-pressed state here, the same inline shape sleevePullEnabled's own
+  // button sync above already uses, rather than a whole extra function for
+  // three buttons.
+  if(p.charDrift === 'off' || p.charDrift === 'subtle' || p.charDrift === 'full') S.charDrift = p.charDrift;
+  document.querySelectorAll('[data-char-drift]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.charDrift === S.charDrift)));
   // push the restored values back into the controls
   Object.keys(S.char).forEach(k => {
     const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }
