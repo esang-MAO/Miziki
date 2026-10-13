@@ -1,0 +1,78 @@
+/* ================= light/dark theming (D2, docs/DESKTOP_LAYOUT.md) =======
+   Dark stays on bare :root in 00-base.css, untouched — this file only adds
+   the light values and the selectors that choose between the two. Every
+   token not redeclared here (--accent, --on-accent, --cool, --disc-a/b/c,
+   the font stacks) keeps the exact same value in both themes by design:
+   "The disc, sleeve art, metal tiers and the share-image styles (Night,
+   Cover, Paper) keep their own colors in both themes. Only chrome
+   changes." (docs/DESKTOP_LAYOUT.md's own "Light and dark theming"
+   section) — so those are left to inherit from :root rather than
+   redeclared with an identical value here.
+
+   Three selector blocks, exactly as the doc specifies:
+     1. :root[data-theme="light"] — a pinned Light choice.
+     2. @media (prefers-color-scheme: light) { :root:not([data-theme]) }
+        — Auto, only while nothing is pinned. This is the one block that
+        needs zero JavaScript to apply correctly at first paint.
+     3. :root[data-theme="dark"] re-asserting the dark values — under
+        normal CSS cascade rules this selector is never actually needed
+        (bare :root already holds the dark values, and neither of the
+        two blocks above can ever match a [data-theme="dark"] element),
+        but the doc calls for it explicitly as a third, independent
+        place a pinned choice is asserted rather than relying on that
+        reasoning holding forever as this file grows — kept for that
+        robustness, not because today's cascade requires it.
+
+   src/ui/theme.js is what actually sets/removes the data-theme attribute
+   (applyTheme()) and keeps <meta name="theme-color"> in sync, since a
+   meta attribute can't read a CSS custom property. */
+
+:root[data-theme="light"]{
+  --sky1:#F6F1E7; --sky2:#ECE5D8; --sky3:#E0D8C7;
+  --paper:#15232B;
+  --cream:#FFFDF8;
+  --muted:#4F616A;
+  --line:rgba(21,35,43,.16);
+  --panel:rgba(255,252,246,.55);
+  --chrome:rgba(246,241,231,.92);
+  --raised:rgba(255,255,255,.55);
+  --field:rgba(21,35,43,.06);
+  --sel:rgba(154,71,0,.12);
+  --accent-text:#9A4700;
+  --shadow:rgba(21,35,43,.22);
+  color-scheme:light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --sky1:#F6F1E7; --sky2:#ECE5D8; --sky3:#E0D8C7;
+    --paper:#15232B;
+    --cream:#FFFDF8;
+    --muted:#4F616A;
+    --line:rgba(21,35,43,.16);
+    --panel:rgba(255,252,246,.55);
+    --chrome:rgba(246,241,231,.92);
+    --raised:rgba(255,255,255,.55);
+    --field:rgba(21,35,43,.06);
+    --sel:rgba(154,71,0,.12);
+    --accent-text:#9A4700;
+    --shadow:rgba(21,35,43,.22);
+    color-scheme:light;
+  }
+}
+
+:root[data-theme="dark"]{
+  --sky1:#1D2F38; --sky2:#101A20; --sky3:#07080C;
+  --paper:#EFE9DF;
+  --cream:#EFE9DF;
+  --muted:#94A0A6;
+  --line:rgba(239,233,223,.14);
+  --panel:rgba(10,14,18,.42);
+  --chrome:rgba(10,14,18,.9);
+  --raised:rgba(239,233,223,.04);
+  --field:rgba(239,233,223,.06);
+  --sel:rgba(255,158,44,.14);
+  --accent-text:#FF9E2C;
+  --shadow:rgba(0,0,0,.45);
+  color-scheme:dark;
+}

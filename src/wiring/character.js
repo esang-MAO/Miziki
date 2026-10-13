@@ -13,6 +13,7 @@ import { toggleScratch } from '../player/scrub.js';
 import { toggleMotion, toggleSleevePull } from '../sundown/location.js';
 import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
 import { toggleBgAudio, bgUpdateUI } from '../player/background.js';
+import { setTheme } from '../ui/theme.js';
 
 export function wireCharacter(){
   const charMap = {wow:'wowOut', sat:'satOut', soft:'softOut', comp:'compOut'};
@@ -33,6 +34,13 @@ export function wireCharacter(){
     applyCharacter(); queueSave();
     if(S.mode !== 'vinyl') setMode('vinyl');
   }));
+
+  // D2: the one control today (the desktop sidebar's own segmented
+  // control, D7, will carry the same data-theme-choice convention and
+  // call the same setTheme()) — querySelectorAll rather than a fixed id
+  // list, so a second control sharing the attribute needs no change here.
+  document.querySelectorAll('[data-theme-choice]').forEach(b =>
+    b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
 
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#motionBtn').addEventListener('click', toggleMotion);

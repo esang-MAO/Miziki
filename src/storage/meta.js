@@ -9,6 +9,7 @@ import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
 import { attachLaunchSettingRow } from '../launch/intro.js';
 import { scheduleBackupSync } from '../sync/backup.js';
+import { applyTheme } from '../ui/theme.js';
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
@@ -115,6 +116,13 @@ function applyPrefs(p){
   if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') S.shareFormat = p.shareFormat;
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
+  // D2: theme has no dedicated UI side effect of its own here, the way
+  // sleevePullEnabled/bgAudio do above -- applyTheme() is called
+  // unconditionally below regardless of whether a saved value exists, so
+  // it also re-applies S.theme's own default (Auto) correctly on a
+  // restore where this field simply isn't there yet.
+  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark') S.theme = p.theme;
+  applyTheme();
   // push the restored values back into the controls
   Object.keys(S.char).forEach(k => {
     const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }

@@ -144,7 +144,14 @@ function buildLocalState(){
     trackDisplay: S.trackDisplay,
     albumEdge: S.albumEdge,
     albumLookPref: S.albumLookPref,
-    prefs: serializePrefs(S),
+    // D2 (docs/DESKTOP_LAYOUT.md): theme is device-only by that doc's own
+    // default -- stripped here, not in serializePrefs itself, since it's
+    // still a perfectly normal local pref (saveMeta()'s own
+    // serializePrefs(S) call, in storage/meta.js, keeps it) -- only the
+    // uploaded copy must never carry it, or a pinned choice on one device
+    // would silently follow the account to every other one via prefs'
+    // existing last-write-wins sync.
+    prefs: (() => { const p = serializePrefs(S); delete p.theme; return p; })(),
     profileName: S.profile.name || '',
     trackPlayCounts: S.trackPlayCounts,
     sessionCounts: S.sessionCounts,

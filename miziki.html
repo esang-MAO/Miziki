@@ -3,11 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- Tracks --sky2 (00-base.css) at the dark value; a <meta> attribute can't
-     read a CSS custom property, so this stays a literal here until D2's
-     src/ui/theme.js starts setting it in JS per the active theme (see
-     docs/DESKTOP_LAYOUT.md's D1/D2 split). -->
-<meta name="theme-color" content="#0F1A20">
+<!-- D2 (docs/DESKTOP_LAYOUT.md): avoids a flash of the wrong theme for a
+     pinned Light or Dark choice. The real saved choice (S.theme) lives in
+     IndexedDB, only readable after first paint — this tiny external
+     classic script (the CSP allows only same-origin scripts, no inline)
+     reads the localStorage mirror src/ui/theme.js keeps in sync with it
+     instead, and sets documentElement's data-theme attribute before the
+     stylesheet <link> tags below are even parsed, since it's a blocking
+     classic script placed ahead of them. A relative path, not an
+     absolute one — see the comment on src/miziki-social.js's own
+     <script> tag further down for why a plain (non type="module") script
+     src needs that to resolve correctly under both deploy bases; the
+     copy-theme-boot plugin in vite.config.js keeps the file at this same
+     src/ path under the build output, the same way copy-social-client
+     already does for miziki-social.js. Auto needs none of this — with no
+     data-theme attribute set, src/styles/22-theme.css's own
+     @media (prefers-color-scheme) rule handles it with zero JavaScript
+     at first paint. -->
+<script src="src/theme-boot.js"></script>
+<!-- Tracks --sky2 (00-base.css's dark block / 22-theme.css's light block)
+     at the active theme's own value. A <meta> attribute can't read a CSS
+     custom property, so src/ui/theme.js's applyTheme() sets this
+     literal in JS instead, resolved against the device's own scheme
+     while Auto is active — this is just the fallback value for the
+     brief window before that JS has run. -->
+<meta name="theme-color" content="#101A20">
 <!-- GitHub Pages can't set HTTP response headers, so the Content Security
      Policy lives here as a meta tag instead — a second line of defense
      limiting where code/data can come from. worker-src covers the
@@ -58,6 +78,7 @@
 <link rel="stylesheet" href="/src/styles/19-signin.css">
 <link rel="stylesheet" href="/src/styles/20-friend-store.css">
 <link rel="stylesheet" href="/src/styles/21-legal.css">
+<link rel="stylesheet" href="/src/styles/22-theme.css">
 </head>
 <body>
 <!-- LAUNCH INTRO: cold-start only, first thing in the DOM so it paints
@@ -236,6 +257,20 @@
       <button class="cta ghost" data-preset="worn">Well-played</button>
     </div>
     <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
+
+    <!-- D2 (docs/DESKTOP_LAYOUT.md): on phones this is the one control for
+         the Auto/Light/Dark appearance preference; the desktop sidebar's
+         segmented control (D7) will carry the same data-theme-choice
+         convention, so src/ui/theme.js's applyTheme() can sync aria-pressed
+         on either one without knowing which is actually on screen. -->
+    <div class="row">
+      <div class="k">Appearance<em>Auto follows your device's own Light/Dark setting, including live if it changes — at sunset, say. Choosing Light or Dark keeps that look regardless of the device.</em></div>
+      <div class="seg">
+        <button data-theme-choice="auto" aria-pressed="true">Auto</button>
+        <button data-theme-choice="light" aria-pressed="false">Light</button>
+        <button data-theme-choice="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
 
     <div class="row">
       <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>

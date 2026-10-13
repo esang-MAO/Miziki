@@ -20,6 +20,11 @@
   --display:'Antonio','Oswald','Arial Narrow',sans-serif;
   --body:'Archivo','Helvetica Neue',system-ui,sans-serif;
   --data:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
+  /* D2 (docs/DESKTOP_LAYOUT.md): lets native controls (scrollbars, form
+     fields, the system's own UI chrome) follow the active theme too.
+     src/styles/22-theme.css's light/auto blocks each set this to `light`
+     for the same reason "three places" applies to every other token. */
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 /* html needs its own dark background too, not just body's: iOS Safari's

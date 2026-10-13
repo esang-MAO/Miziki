@@ -32,6 +32,25 @@ function copySocialClient() {
   };
 }
 
+// src/theme-boot.js (D2, docs/DESKTOP_LAYOUT.md) — the anti-flash head
+// script, same shape and same reason as copySocialClient() just above: a
+// plain classic <script src>, not type="module", so Vite leaves it
+// completely untouched rather than bundling it. It has to run before
+// src/ui/theme.js (a real module, bundled normally) even loads, which is
+// the whole point of it being a separate file in the first place.
+function copyThemeBoot() {
+  return {
+    name: 'copy-theme-boot',
+    apply: 'build',
+    closeBundle() {
+      const from = path.resolve(__dirname, 'src/theme-boot.js');
+      const toDir = path.resolve(__dirname, 'dist/src');
+      fs.mkdirSync(toDir, { recursive: true });
+      fs.copyFileSync(from, path.join(toDir, 'theme-boot.js'));
+    },
+  };
+}
+
 module.exports = defineConfig({
   // The deployed app is saved to the home screen at this exact path
   // (https://esang-mao.github.io/Miziki/miziki.html) — base must stay
@@ -49,5 +68,5 @@ module.exports = defineConfig({
       input: path.resolve(__dirname, 'miziki.html'),
     },
   },
-  plugins: [copySocialClient()],
+  plugins: [copySocialClient(), copyThemeBoot()],
 });

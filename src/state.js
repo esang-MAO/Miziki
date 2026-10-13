@@ -118,6 +118,17 @@ S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone
 // fight the user's own input value (step 3c — was a top-level let in main.js)
 S.scrubbing = false;
 
+// D2 (docs/DESKTOP_LAYOUT.md): one of 'auto'/'light'/'dark'. Auto is the
+// default for new installs, and a saved prefs object without this field
+// (every device before D2) also loads as Auto — the doc's own stated
+// default for both open questions it left to a default. Saved alongside
+// the rest of prefs (src/storage/prefs.js) but deliberately excluded from
+// the account backup doc (src/sync/backup.js's buildLocalState() strips
+// it before upload) — an appearance choice is device-only by the same
+// doc's own default, not something that should follow the account to a
+// different device the way the rest of `prefs` does.
+S.theme = 'auto';
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist
