@@ -58,7 +58,7 @@ export function renderPrivacyPolicyScreen(body){
   bulletList(body, [
     'Your music files. Audio stays on your device — nothing is uploaded, ever, even when signed in.',
     'Embedded cover art inside your music files — it stays with the file.',
-    'Your location. Used only on your own device, for Sundown’s sunset calculation and Car Mode’s speed reading. It never leaves the device.',
+    'Your location. Used only on your own device, for Sundown’s sunset calculation and Car Mode’s speed reading. It never leaves the device. If you choose the Nychthemeron appearance (light by day, dark by night), the only thing kept from this is today’s sunrise and sunset times — never your coordinates — so the app can pick the right look before the page even finishes loading.',
     'Contacts, analytics, advertising identifiers, or tracking of any kind. Miziki makes no requests to any third party at all, other than your own Supabase project, when you’ve signed in.',
   ]);
 
