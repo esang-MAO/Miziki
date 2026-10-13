@@ -195,6 +195,9 @@
   }
   .sidebar-playlists-empty{color:var(--muted)}
   .sidebar-sundown{padding:0 10px}
+  /* DA3 (docs/DAY_ARC.md): the phase block's own mirror — see
+     src/player/clock.js's drawSun() for what writes into these two. */
+  .sidebar-sundown-phase{font-family:var(--display);font-size:18px;text-transform:uppercase;color:var(--paper);margin-bottom:2px}
   .sidebar-sundown-rate{font-size:13px;color:var(--paper);margin-bottom:4px}
   .sidebar-sundown-leg{font-family:var(--data);font-size:11px;color:var(--muted)}
 
