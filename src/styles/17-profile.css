@@ -52,7 +52,19 @@
 .settings-section{margin-top:22px}
 .settings-section-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px}
-.settings-appearance{width:100%}
+/* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a 2x2 grid once
+   Nychthemeron made this a four-button row — "the grid gives the long
+   word room at 320-390px" rather than needing the narrower desktop
+   sidebar's own letter-spacing tightening (src/styles/23-desktop.css's
+   .sidebar-appearance .seg). Overrides .seg's own display:flex (16-
+   edit-sheet.css) the same way this rule's pre-DA4 width:100% already
+   did — later in the cascade, equal specificity. white-space:normal is
+   a defensive fallback, not something the four labels are expected to
+   actually need at this width — "wrap rather than truncate" per the
+   doc's own instruction, in case a very large text-zoom setting ever
+   makes one not fit. */
+.settings-appearance{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.settings-appearance button{text-align:center;white-space:normal;line-height:1.3}
 .settings-link-row{display:flex;align-items:center;justify-content:space-between;width:100%;
   background:none;border:0;border-bottom:1px solid var(--line);color:var(--paper);font-size:14px;
   padding:14px 2px;text-align:left}

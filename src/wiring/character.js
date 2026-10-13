@@ -35,10 +35,15 @@ export function wireCharacter(){
     if(S.mode !== 'vinyl') setMode('vinyl');
   }));
 
-  // D2: the one control today (the desktop sidebar's own segmented
-  // control, D7, will carry the same data-theme-choice convention and
-  // call the same setTheme()) — querySelectorAll rather than a fixed id
-  // list, so a second control sharing the attribute needs no change here.
+  // D2: wires the one *static* [data-theme-choice] control left in the
+  // DOM at boot — the desktop sidebar's own segmented control (D7,
+  // #sidebarAppearance). Profile › Settings' own four buttons (DA3
+  // relocated Appearance there; DA4 added the fourth, Nychthemeron) are
+  // built fresh on every render instead, so they wire themselves
+  // directly at render time (src/profile/screens.js) rather than through
+  // this boot-time pass — querySelectorAll rather than a fixed id list
+  // here regardless, so a future static control sharing the attribute
+  // would need no change in this file either.
   document.querySelectorAll('[data-theme-choice]').forEach(b =>
     b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
 

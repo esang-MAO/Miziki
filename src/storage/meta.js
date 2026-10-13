@@ -120,8 +120,14 @@ function applyPrefs(p){
   // sleevePullEnabled/bgAudio do above -- applyTheme() is called
   // unconditionally below regardless of whether a saved value exists, so
   // it also re-applies S.theme's own default (Auto) correctly on a
-  // restore where this field simply isn't there yet.
-  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark') S.theme = p.theme;
+  // restore where this field simply isn't there yet. DA4 added
+  // 'nychthemeron' to the same enum here -- parsePrefs() (storage/
+  // prefs.js) already accepts it, but this function keeps its own
+  // independent copy of the check rather than trusting parsePrefs()'s
+  // own filtering, so it needs the same addition or a saved Nychthemeron
+  // choice would silently fail to restore here even though it survived
+  // parsePrefs() correctly.
+  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark' || p.theme === 'nychthemeron') S.theme = p.theme;
   applyTheme();
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own

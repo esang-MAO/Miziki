@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
-import { computeSun } from './solar.js';
+import { computeSun, persistSunTimesCache } from './solar.js';
 import { drawSun } from '../player/clock.js';
 import { queueSave } from '../storage/meta.js';
 
@@ -25,7 +25,17 @@ export function askLocation(){
 // tonight's sunset/dusk — the doc's own fixed stand-in times (dawn 6:20,
 // sunrise 6:50, noon 1:00 pm, sunset 8:10 pm — unchanged from before DA1
 // — dusk 8:36 pm, the same 26-minute gap sunset/dusk already had) for
-// whenever location is unavailable.
+// whenever location is unavailable. Since DA4, also writes the same
+// device-only sun-times cache computeSun() does (solar.js's own
+// persistSunTimesCache()) — "written whenever events are computed," per
+// that step's own doc, and these fixed stand-ins count: without this, a
+// device that never grants location would carry a stale (or entirely
+// absent) cache forever, leaving theme-boot.js's own freshness check
+// ("is this cache from today") permanently false and always falling
+// through to its own hardcoded 6:50 am/8:10 pm default — which happens
+// to equal these same two numbers anyway, so this call is a belt-and-
+// suspenders freshness stamp more than a behavior change for that one
+// device, not a correctness fix on its own.
 export function fallbackSun(){
   const d = new Date();
   const at = (h, m) => { const x = new Date(d); x.setHours(h, m, 0, 0); return x; };
@@ -33,6 +43,7 @@ export function fallbackSun(){
   S.sun.set = at(20, 10); S.sun.dusk = at(20, 36);
   S.sun.altitudeAtNoon = null;
   S.sun.ok = true;
+  persistSunTimesCache(S.sun.rise, S.sun.set);
 }
 
 // DA1 (docs/DAY_ARC.md): recompute the day model at local midnight so a

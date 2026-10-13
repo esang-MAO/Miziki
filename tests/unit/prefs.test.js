@@ -38,6 +38,12 @@ test('round trip: theme survives as light and as dark, not just the default auto
   assert.equal(darkParsed.theme, 'dark');
 });
 
+// DA4 (docs/DAY_ARC.md): the fourth theme value, same enum, no new field.
+test('round trip: theme survives as nychthemeron', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ theme: 'nychthemeron' })));
+  assert.equal(parsed.theme, 'nychthemeron');
+});
+
 // D2 (docs/DESKTOP_LAYOUT.md): a saved object without `theme` at all (every
 // device before D2) loads as if it had been Auto — the doc's own default
 // for that open question, applied the same way scratch's missing-means-On

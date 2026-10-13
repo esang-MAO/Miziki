@@ -42,7 +42,11 @@ optional account features (sign-in, backup, social).
   file and is never uploaded.
 - **Your location.** Used only on your own device, for Sundown's sunset
   calculation and Car Mode's speed reading. It never leaves the device
-  and is never sent to Miziki or anyone else.
+  and is never sent to Miziki or anyone else. If you choose the
+  Nychthemeron appearance (light by day, dark by night), the only thing
+  kept from this is today's sunrise and sunset *times* — never your
+  coordinates — so the app can pick the right look before the page even
+  finishes loading.
 - **Contacts, analytics, advertising identifiers, or tracking of any
   kind.** Miziki makes no requests to any third party at all, other than
   your own Supabase project (the service that stores the account data

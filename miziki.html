@@ -570,21 +570,28 @@
     <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
   </div>
 </div>
-<!-- D7: the desktop sidebar's own Auto/Light/Dark control, at the foot of
-     the sidebar per the doc's own "where the control lives" instruction.
-     Same data-theme-choice convention the phone Character-menu row already
-     uses (src/wiring/character.js's existing querySelectorAll('[data-
-     theme-choice]') wires this one too, with zero code change there), so
-     both call the exact same setTheme() — applyTheme() also already syncs
-     aria-pressed on every [data-theme-choice] button in the DOM, this one
-     included, with no change needed there either. display:none below
-     1024px (src/styles/23-desktop.css), the same invisible-scaffolding
-     pattern every other desktop-only sidebar addition already uses. -->
+<!-- D7: the desktop sidebar's own Auto/Light/Dark(/Nychthemeron, DA4)
+     control, at the foot of the sidebar per the doc's own "where the
+     control lives" instruction. Same data-theme-choice convention
+     Profile › Settings' own four buttons use (src/profile/screens.js;
+     DA3 moved this control off the old Character tab onto that screen —
+     src/wiring/character.js's existing querySelectorAll('[data-
+     theme-choice]') wires this static copy too, with zero code change
+     there), so both call the exact same setTheme() — applyTheme() also
+     already syncs aria-pressed on every [data-theme-choice] button in
+     the DOM, this one included, with no change needed there either.
+     display:none below 1024px (src/styles/23-desktop.css), the same
+     invisible-scaffolding pattern every other desktop-only sidebar
+     addition already uses. DA4 (docs/design/day-arc/README.md,
+     DesktopSidebar artboard): the grid widens to 2x2 for the fourth
+     button, which also gets its own tighter letter-spacing/font-size —
+     the narrow sidebar has less room than Profile › Settings does. -->
 <div class="sidebar-appearance" id="sidebarAppearance">
   <div class="seg">
     <button data-theme-choice="auto" aria-pressed="true">Auto</button>
     <button data-theme-choice="light" aria-pressed="false">Light</button>
     <button data-theme-choice="dark" aria-pressed="false">Dark</button>
+    <button data-theme-choice="nychthemeron" aria-pressed="false" aria-label="Nychthemeron: follows sunrise and sunset">Nychthemeron</button>
   </div>
 </div>
 </div>

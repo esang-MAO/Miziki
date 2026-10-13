@@ -76,3 +76,20 @@
   --shadow:rgba(0,0,0,.45);
   color-scheme:dark;
 }
+
+/* DA4 (docs/DAY_ARC.md): "switch with a ~1.5s colour transition" — for
+   Nychthemeron's own live light<->dark crossing only (src/ui/theme.js's
+   syncNychthemeronTheme() toggles this class briefly); every other theme
+   change in the app (a manual Auto/Light/Dark tap, Auto following a live
+   OS scheme change) stays an instant snap, unchanged. Declared on every
+   element, not just :root, since a CSS transition animates the element
+   that actually reads the changed custom property (--panel, --chrome,
+   --paper, etc. all live on :root, but child elements are what paint
+   with them) — :root itself has no visible background/color of its own
+   to transition. "None under reduced motion" is enforced in JS
+   (theme.js never adds this class when REDUCED), not by a second
+   @media query here, so there's exactly one place that decision lives. */
+.theme-transition, .theme-transition *{
+  transition:background-color 1.5s ease, color 1.5s ease, border-color 1.5s ease,
+    fill 1.5s ease, stroke 1.5s ease !important;
+}
