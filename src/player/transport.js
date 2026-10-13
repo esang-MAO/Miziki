@@ -20,6 +20,7 @@ import { clearSpinDown } from '../shell/put-away.js';
 import { renderTracks } from '../library/view.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
+import { realDayPosition } from '../sundown/solar.js';
 
 export function load(i){
   if(!S.tracks[i]) return;
@@ -102,7 +103,12 @@ export async function play(){
   startSource(S.pos);
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
   renderMiniPlayer();
-  MizikiSocial.nowSpinning(albumKey(t), t.tags.title);
+  // DA6 (docs/DAY_ARC.md): the spinner's own real local day-arc phase,
+  // never the clock time or location -- realDayPosition(), not
+  // currentDayPosition(), since what friends see has to be this
+  // listener's own actual phase, never fooled by their own "Preview the
+  // day" slider.
+  MizikiSocial.nowSpinning(albumKey(t), t.tags.title, realDayPosition().phase);
 }
 
 export function stop(){
