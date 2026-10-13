@@ -10,6 +10,7 @@ import {
 // with the same text as the home feed does.
 import { feedEventText } from './home.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
+import { spinPhaseWording } from '../../sundown/spin-wording.js';
 
 /* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
 
@@ -110,7 +111,13 @@ function friendNowSpinningRow(full){
   if(full.nowSpinning && full.nowSpinning.track_title){
     const rel = full.nowSpinning.releases || {};
     text.appendChild(el('b', null, full.nowSpinning.track_title));
-    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ')));
+    // DA6 (docs/DAY_ARC.md): "Now spinning [Album] at golden hour" --
+    // the wording table's exact phrase, appended when the row carries a
+    // phase at all (older rows, or a row from before migration 008 is
+    // applied, simply have none -- omitted, not rendered as "undefined").
+    const sub = [rel.artist, rel.title].filter(Boolean).join(' · ');
+    const wording = spinPhaseWording(full.nowSpinning.phase);
+    text.appendChild(el('em', null, wording ? (sub + ' · ' + wording) : sub));
     card.appendChild(text);
     if(full.nowSpinning.started_at) card.appendChild(el('span','store-spin-ago',
       timeAgoShort(Date.now() - new Date(full.nowSpinning.started_at).getTime())));
