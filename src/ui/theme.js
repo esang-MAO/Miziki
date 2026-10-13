@@ -36,7 +36,14 @@
    try/catch, the same defensive posture src/theme-boot.js's own copy
    takes — storage or matchMedia can be blocked (private browsing, some
    embedded contexts), and losing the optimization there is a far smaller
-   problem than throwing. */
+   problem than throwing.
+
+   effectiveTheme() gained `export` after D7 shipped, for one external
+   caller: src/player/clock.js's drawSun() (fix, not part of D1-D7 —
+   see that file's own comment at its sky-color block). It resolves
+   'light'/'dark'/'auto' down to the one the device is actually showing
+   right now, the same question drawSun() needs answered to know whether
+   its own dark-leaning animated sky palette is still in-theme. */
 import { S } from '../state.js';
 import { queueSave } from '../storage/meta.js';
 
@@ -49,7 +56,7 @@ const THEME_COLOR = { dark: '#101A20', light: '#ECE5D8' };
 let mq = null;
 let mqHandler = null;
 
-function effectiveTheme(){
+export function effectiveTheme(){
   if(S.theme === 'light' || S.theme === 'dark') return S.theme;
   try {
     return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';

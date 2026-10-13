@@ -125,8 +125,54 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
 // created, with no change to clock.js itself.
 mock.timers.enable({ apis: ['setInterval'] });
 
-const { tick } = await import('../../src/player/clock.js');
+// ui/theme.js's own real chain is just state.js + storage/meta.js, and
+// the latter is already mocked above (for background.js's benefit), so
+// this loads for real with no new mock needed, EXCEPT that drawSun()'s
+// tests below want deterministic control over which branch it takes —
+// done via a thin override on top of the real effectiveTheme(), not a
+// full mock. The real light/dark/auto resolution logic itself is already
+// covered by tests/unit/theme.test.js; this file only ever asks "did
+// drawSun() believe it was light, or not, and did it behave correctly."
+let fakeEffectiveTheme = null;
+const realTheme = await import('../../src/ui/theme.js');
+mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
+  namedExports: {
+    ...realTheme,
+    effectiveTheme(){ return fakeEffectiveTheme ?? realTheme.effectiveTheme(); },
+  },
+});
+
+// drawSun() (tested below, alongside tick()) touches about a dozen ids
+// via $ and, separately, document.documentElement.style directly for the
+// --sky1/--sky2 fix under test — neither exists in this file's Node
+// environment otherwise. A single reusable stub element is enough: none
+// of drawSun()'s own tests care about its textContent/style.width, only
+// about the one inline-style side effect this fix changed.
+function fakeEl(){ return { style: {}, textContent: '', toLocaleTimeString(){ return ''; } }; }
+mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
+  namedExports: { $(){ return fakeEl(); }, el(){ return fakeEl(); } },
+});
+const fakeRootStyle = {};
+globalThis.document = {
+  documentElement: {
+    style: {
+      setProperty(name, value){ fakeRootStyle[name] = value; },
+      removeProperty(name){ delete fakeRootStyle[name]; },
+    },
+  },
+};
+
+const { tick, drawSun, skyGradientStops } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
+
+function drawSunAt(theme, sunOk){
+  fakeEffectiveTheme = theme;
+  S.mode = 'vinyl'; S.auto = false; S.rate = 1; S.target = 1.2;
+  S.sun = { ok: !!sunOk };
+  for(const k of Object.keys(fakeRootStyle)) delete fakeRootStyle[k];
+  drawSun();
+  return fakeRootStyle;
+}
 
 function fakeTrack(duration){ return { duration, tags: {} }; }
 
@@ -190,4 +236,46 @@ test('angleDelta is a plain difference away from the wrap boundary', () => {
 test('F2: a full rotation moves 30s with Scratch off, 1.8s with Scratch on', () => {
   assert.equal(360 * (SCRUB_SEC_PER_ROTATION / 360), 30);
   assert.equal(360 * (SCRATCH_SEC_PER_ROTATION / 360), 1.8);
+});
+
+// skyGradientStops: the dark-theme dusk animation's own pure color math —
+// p=0 is exactly A, p=0.5 is exactly B, p=1 is exactly C, and it's
+// monotonic in between (no discontinuity at the p=0.5 seam).
+test('skyGradientStops: p=0 is daylight-teal (A)', () => {
+  assert.deepEqual(skyGradientStops(0), ['rgb(29,47,56)', 'rgb(16,26,32)']);
+});
+test('skyGradientStops: p=0.5 is dusk (B)', () => {
+  assert.deepEqual(skyGradientStops(0.5), ['rgb(59,33,48)', 'rgb(26,16,24)']);
+});
+test('skyGradientStops: p=1 is near-black night (C)', () => {
+  assert.deepEqual(skyGradientStops(1), ['rgb(18,14,25)', 'rgb(8,7,12)']);
+});
+test('skyGradientStops: no seam discontinuity around p=0.5', () => {
+  const justBelow = skyGradientStops(0.499999);
+  const at = skyGradientStops(0.5);
+  assert.deepEqual(justBelow, at); // rounds to the same integer RGB triples
+});
+
+// The fix under test: drawSun()'s --sky1/--sky2 inline overrides must
+// never fight the Light theme's own CSS-declared tokens (22-theme.css) —
+// see this module's own comment at the fix. Dark/Auto-resolved-dark keep
+// the existing animated inline override; Light clears any previously-set
+// inline value instead of writing a new one.
+test('drawSun(): dark theme sets animated --sky1/--sky2 inline', () => {
+  const style = drawSunAt('dark', false);
+  assert.ok(style['--sky1'] && style['--sky1'].startsWith('rgb('));
+  assert.ok(style['--sky2'] && style['--sky2'].startsWith('rgb('));
+});
+test('drawSun(): light theme never sets --sky1/--sky2 inline', () => {
+  const style = drawSunAt('light', false);
+  assert.equal('--sky1' in style, false);
+  assert.equal('--sky2' in style, false);
+});
+test('drawSun(): switching dark -> light clears a previously-set inline override', () => {
+  fakeRootStyle['--sky1'] = 'rgb(1,2,3)'; fakeRootStyle['--sky2'] = 'rgb(4,5,6)';
+  fakeEffectiveTheme = 'light';
+  S.mode = 'vinyl'; S.auto = false; S.rate = 1; S.target = 1.2; S.sun = { ok: false };
+  drawSun();
+  assert.equal('--sky1' in fakeRootStyle, false);
+  assert.equal('--sky2' in fakeRootStyle, false);
 });
