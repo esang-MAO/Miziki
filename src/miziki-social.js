@@ -328,14 +328,33 @@
     await applySession(null);
     return { ok: true };
   });
+  // step 07 (B4): delete_my_account()'s own cascades (on delete cascade
+  // foreign keys) reach every table that references the caller's row,
+  // but Storage objects have no foreign key to auth.users at all — a
+  // deleted account's covers/{uid}/ and avatars/{uid}/ files would
+  // otherwise just sit there forever, orphaned. Listed and removed here,
+  // before the RPC call, while this account's own Storage RLS policies
+  // (migration 006, owner-only by uid) still clearly apply to it.
+  // Best-effort: a Storage failure must never block the account deletion
+  // itself, which is the part that actually matters for the App Store
+  // requirement this exists for.
+  async function removeStorageFolder(bucket, uid) {
+    try {
+      const { data } = await X.sb.storage.from(bucket).list(uid);
+      if (data && data.length) await X.sb.storage.from(bucket).remove(data.map(f => uid + '/' + f.name));
+    } catch (_e) { /* best-effort — account deletion must still proceed */ }
+  }
   // Irreversible — removes the account, handle, backup and social data from
   // the server (supabase/migrations/005_backup.sql's delete_my_account(),
-  // cascading through every table that references the caller's own row).
-  // Music and history on THIS device are never touched: they live in
-  // IndexedDB, not in anything this RPC can reach. The caller (the Account
-  // screen) is responsible for the type-your-handle confirmation — this
-  // function does not ask again.
+  // cascading through every table that references the caller's own row),
+  // plus the caller's own Storage files (above), which the RPC's cascades
+  // can't reach. Music and history on THIS device are never touched: they
+  // live in IndexedDB, not in anything this RPC can reach. The caller (the
+  // Account screen) is responsible for the type-your-handle confirmation —
+  // this function does not ask again.
   const deleteAccount = () => guarded(async () => {
+    const uid = X.userId;
+    if (uid) { await removeStorageFolder('covers', uid); await removeStorageFolder('avatars', uid); }
     await rpc('delete_my_account');
     stopSpinningNow();
     try { await X.sb.auth.signOut({ scope: 'local' }); } catch (_e) { /* account is already gone server-side */ }
