@@ -5,7 +5,7 @@
    card's 3D transform (see launchCardPose()); cards are created/removed as
    they enter/leave the +-8 visible window rather than existing all at once. */
 .launch-overlay{position:fixed;inset:0;z-index:500;
-  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%);
   display:flex;align-items:center;justify-content:center;
   transition:opacity var(--launch-skip-duration,150ms) linear}
 .launch-overlay.launch-hidden{opacity:0;pointer-events:none}
