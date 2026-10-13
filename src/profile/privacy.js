@@ -15,7 +15,7 @@
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { storeSwitch, timeAgoShort } from './storefront.js';
-import { getBackupStatus, collectDownloadData } from '../sync/backup.js';
+import { getBackupStatus, collectDownloadData, pushOrClearListeningRhythm } from '../sync/backup.js';
 
 function backupStatusLine(){
   const st = getBackupStatus();
@@ -75,6 +75,24 @@ function renderSocialSection(body, status){
         on => MizikiSocial.setSetting('shareMilestones', on)));
       body.appendChild(milestoneRow);
       body.appendChild(el('p','note','Off by default. When on, hitting a rare pressing posts to your activity for friends to see.'));
+
+      // DA5 (docs/DAY_ARC.md point 3): "updated at most daily, and
+      // immediately when the switch is flipped" -- setSetting() alone only
+      // ever changes this device's own local flag, the same as the two
+      // toggles just above; pushOrClearListeningRhythm() (src/sync/
+      // backup.js) is the one call that actually does the immediate part,
+      // fire-and-forget the same way every other sign-in-adjacent action on
+      // this screen already is (respondToRequest, unblock, …) rather than
+      // making the switch itself wait on a network round trip.
+      const rhythmRow = el('div','social-setting-row');
+      rhythmRow.appendChild(el('h2', null, 'Share my listening rhythm'));
+      rhythmRow.appendChild(storeSwitch('Share my listening rhythm', settings.shareListeningRhythm, on => {
+        MizikiSocial.setSetting('shareListeningRhythm', on);
+        pushOrClearListeningRhythm(on);
+      }));
+      body.appendChild(rhythmRow);
+      body.appendChild(el('p','note',
+        'Off by default. When on, friends who can see your crate see your listening-rhythm verdict and the share for each part of the day — never your individual plays or times. Needs 20 counted plays to show anything.'));
 
       const requests = (reqRes.ok && reqRes.requests) || [];
       body.appendChild(el('h2', null, 'Follow requests'));
