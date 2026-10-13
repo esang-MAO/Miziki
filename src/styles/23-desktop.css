@@ -27,6 +27,11 @@
 .sidebar-extra{display:none}
 
 @media (min-width:1024px){
+  /* D6 (docs/DESKTOP_LAYOUT.md): the sidebar's own current width, named so
+     .player-overlay (below) can offset itself past it without a third
+     place repeating the 76px/232px numbers the sidebar's own flex-basis
+     already sets just below — read, never written, outside this file. */
+  :root{--sidebar-width:76px}
   /* .wrap stops being a centered 520px column and becomes a flex item
      sharing a row with the sidebar — this is what actually gives it "the
      rest of the space beside the sidebar" with no manual width/margin
@@ -162,6 +167,7 @@
 }
 
 @media (min-width:1280px){
+  :root{--sidebar-width:232px}
   .sidebar{flex:0 0 232px;width:232px;padding:16px 16px 20px}
   .tabbar{gap:2px}
   .tabbar-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:10px 10px}
@@ -185,4 +191,88 @@
   .sidebar-sundown{padding:0 10px}
   .sidebar-sundown-rate{font-size:13px;color:var(--paper);margin-bottom:4px}
   .sidebar-sundown-leg{font-family:var(--data);font-size:11px;color:var(--muted)}
+}
+
+/* D6 (docs/DESKTOP_LAYOUT.md): Now Playing on desktop — the full-player
+   overlay repositioned to the main area only (between the sidebar and
+   the D4 player bar, no slide), a larger platter via --platter-size
+   (src/styles/02-stage-platter.css), and the side panel (Up next / Liner
+   notes / Credits) in a third column. .player-layout/.stage-info are
+   invisible scaffolding below this breakpoint (display:contents, the
+   same pattern .sidebar/.crate-layout already established in D3/D5), so
+   .stage's six wrapped children lay out exactly as they always have on
+   a phone. .player-side-panel stays display:none until then. */
+.player-layout{display:contents}
+.stage-info{display:contents}
+.player-side-panel{display:none}
+
+@media (min-width:1024px){
+  :root{--platter-size:min(32vw,440px)}
+
+  /* confined to the main area, not the full viewport: left clears the
+     sidebar, bottom clears the D4 player bar (88px). "No slide" (the
+     doc's own words) means transform never moves at this width — open/
+     close is a plain opacity cross-fade instead, which still fires
+     transitionend normally, so openPlayerViaSheet()'s own "wait for the
+     sheet to settle before running the pull ceremony" logic (src/shell/
+     player-overlay.js) needs no change: it already has a setTimeout
+     safety net for exactly the reduced-motion case, where the slide
+     transition is also `none` and transitionend never fires either. */
+  .player-overlay{
+    left:var(--sidebar-width);right:0;top:0;bottom:88px;
+    max-width:none;padding:32px 40px;
+    transform:none;opacity:0;visibility:hidden;
+    transition:opacity 180ms ease;
+  }
+  /* explicit, not left to a cascade coincidence: 13-player-overlay.css's
+     own .player-overlay.open{transform:translateY(0)} (two classes) would
+     already beat the bare .player-overlay{transform:none} above on
+     specificity alone regardless of file order, and translateY(0) is
+     itself a no-op — so this line changes nothing in practice, but says
+     outright "still no slide while open," rather than relying on a reader
+     correctly working out that specificity math on their own. */
+  .player-overlay.open{opacity:1;visibility:visible;transform:translateY(0)}
+  .player-overlay.instant{transition:none}
+  /* .player-dismiss is itself position:fixed (13-player-overlay.css),
+     which always measures against the real viewport, not against
+     .player-overlay, even though .player-overlay is also position:fixed
+     — a fixed descendant's containing block is the viewport unless an
+     ancestor has a transform/filter, not merely position:fixed.
+     position:absolute, by contrast, *does* use the nearest positioned
+     ancestor (fixed counts) as its containing block, so this one
+     override is enough to re-center it within the confined overlay
+     instead of the full window. */
+  .player-dismiss{position:absolute;top:28px;left:50%;transform:translateX(-50%)}
+
+  .player-layout{display:flex;align-items:flex-start;gap:40px;height:100%}
+  /* ".player-overlay .stage", not the plain ".stage" every other override
+     in this file gets away with, specifically to match (and so actually
+     win over) 13-player-overlay.css's own .player-overlay .stage rule —
+     two classes beats one regardless of which file loads later; a plain
+     .stage{} here would lose the specificity fight and never apply. */
+  .player-overlay .stage{display:flex;flex-direction:row;align-items:flex-start;gap:40px;
+    flex:1 1 auto;min-width:0;max-width:none;margin:0;padding:0}
+  .platter-stage{flex:0 0 auto;margin:0}
+  .stage-info{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;padding-top:12px}
+
+  .player-side-panel{
+    display:flex;flex-direction:column;flex:0 0 320px;min-width:0;
+    height:100%;padding-left:24px;border-left:1px solid var(--line);
+  }
+  .player-side-tabs{display:flex;gap:6px;margin-bottom:14px;flex:0 0 auto}
+  .player-side-tab{
+    flex:1 1 auto;border:1px solid var(--line);border-radius:3px;padding:8px 6px;
+    background:transparent;color:var(--muted);font-family:var(--display);
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  }
+  .player-side-tab[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
+  .player-side-tab:hover,.player-side-tab:focus-visible{color:var(--paper)}
+  .player-side-body{flex:1 1 auto;overflow-y:auto;min-height:0}
+
+  /* the side panel's own "Up next" tab is always visible whenever Now
+     Playing is open on desktop, so the full player's own Queue button
+     (distinct from the mini-player/D4 bar's own #miniQueueBtn, which
+     stays — see that id's own CLAUDE.md note) would just be a second,
+     redundant way to see the identical list right next to it */
+  #queueBtn{display:none !important}
 }

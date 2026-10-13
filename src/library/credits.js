@@ -88,9 +88,21 @@ function trackCreditRows(d){
   return rows;
 }
 
-function renderCreditsSheet(t){
-  const host = $('#creditsBody'); host.innerHTML = '';
-  $('#creditsTitle').textContent = t.tags.title;
+// exported (previously module-private) since step D6 lets the desktop
+// side panel's "Credits" tab target this at #playerSideBody instead of
+// the phone overlay's #creditsBody — same render, just a different host.
+// host defaults to the phone sheet's own element, unchanged for that call
+// site (openCreditsSheet() below). The "#creditsTitle text" line that used
+// to live here moved to openCreditsSheet() instead — it's overlay-sheet
+// chrome, not part of "build credits content for this track," and the
+// side panel has its own "Credits" tab label for the same job. A falsy t
+// (never possible from the existing #trackInfoBtn call site, which is
+// only ever shown once a track with real credits content is loaded, but
+// reachable from the side panel before anything has ever played) renders
+// a plain fallback instead of throwing.
+export function renderCreditsSheet(t, host){
+  host = host || $('#creditsBody'); host.innerHTML = '';
+  if(!t){ host.appendChild(el('p','note','Nothing is playing.')); return; }
   const d = t.details || emptyDetails();
 
   const comments = splitComments(d.comment);
@@ -149,6 +161,7 @@ function renderCreditsSheet(t){
 }
 
 export function openCreditsSheet(t){
+  $('#creditsTitle').textContent = t.tags.title;
   renderCreditsSheet(t);
   $('#creditsOverlay').classList.add('open');
   $('#creditsOverlay').setAttribute('aria-hidden','false');
@@ -171,6 +184,22 @@ export function albumLinerNotes(album){
     splitComments(d.comment).filter(commentQualifies).forEach(c => { if(c.length > best.length) best = c; });
   });
   return best;
+}
+
+// D6 (docs/DESKTOP_LAYOUT.md): the desktop side panel's own "Liner notes"
+// tab — the one new render function this step adds, since albumLinerNotes()
+// above was always a pure data accessor (a string), never something with
+// a render counterpart of its own on the phone (the gatefold's left panel,
+// src/gatefold/view.js, folds the same string into a bigger block alongside
+// the credit roll and social controls — not reusable here, since this tab
+// is deliberately just the notes, per the doc's own three-tab split). A
+// falsy album (reachable before anything has ever played) gets the exact
+// same "no notes" copy the gatefold's own minimal-note fallback uses, for
+// the same reason: no notes and no album are both "nothing to show here."
+export function renderLinerNotes(host, album){
+  host.innerHTML = '';
+  const text = album ? albumLinerNotes(album) : '';
+  host.appendChild(text ? el('p','credit-note', text) : el('p','note','No liner notes in these files.'));
 }
 
 // de-duplicated by role + normKey(name) across every track on the album

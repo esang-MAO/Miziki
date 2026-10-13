@@ -19,6 +19,7 @@ import { showRoute } from '../shell/routes.js';
 import { clearSpinDown } from '../shell/put-away.js';
 import { renderTracks } from '../library/view.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
+import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 
 export function load(i){
   if(!S.tracks[i]) return;
@@ -48,6 +49,16 @@ export function load(i){
   updateCreditsButtonForCurrent();
   updateFavoriteButtons();
   updateSleepUI();
+  // D6 (docs/DESKTOP_LAYOUT.md): keeps the desktop side panel's active
+  // tab (Up next / Liner notes / Credits) in step with whichever track
+  // just loaded — the same choke point every other "must track current()"
+  // UI update above already uses. S.queue/S.qpos are always updated by
+  // this function's own caller before load() runs (setQueue()/advance()),
+  // so renderPlayerSidePanel()'s own "Up next" branch never sees stale
+  // queue state. Harmless to call even when the panel is hidden (phone,
+  // or the overlay not open) — same "paint it anyway, CSS hides it"
+  // precedent D3's sidebar and D5's crate detail panel already set.
+  renderPlayerSidePanel();
 }
 
 export function startSource(offset){

@@ -1,6 +1,16 @@
 /* ---------- stage / platter ---------- */
+/* D6 (docs/DESKTOP_LAYOUT.md): the platter's own edge length, a CSS
+   variable so src/styles/23-desktop.css can drive it larger at desktop
+   widths without this file or any JS needing to know the actual number —
+   every place that measures the platter already does so live, via
+   getBoundingClientRect() (src/shell/player-overlay.js's morph geometry,
+   src/shell/handoff.js/put-away.js/start-sequence.js), so nothing reads
+   this value directly and nothing needed to change for the var alone to
+   work. Default matches the literal this replaces exactly — no visible
+   change at the phone width this token was always implicitly fixed at. */
+:root{--platter-size:min(72vw,278px)}
 .stage{padding:26px 0 6px}
-.platter-stage{position:relative;width:min(72vw,278px);aspect-ratio:1;margin:0 auto}
+.platter-stage{position:relative;width:var(--platter-size);aspect-ratio:1;margin:0 auto}
 .platter-box{position:absolute;inset:0}
 /* the disc must never render unconditionally — a record sitting there
    already would contradict the pull that's supposed to deliver it. Kept as
