@@ -145,7 +145,7 @@ function queueRemoveAt(pos){
   if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
   invalidateActiveSessionIfAny();
   S.queue.splice(queueIdx, 1);
-  renderQueueSheet();
+  renderQueueSheet(queueSheetHost);
 }
 function queueMove(pos, dir){
   const queueIdx = S.qpos + 1 + pos;
@@ -153,13 +153,25 @@ function queueMove(pos, dir){
   if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
   invalidateActiveSessionIfAny();
   const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
-  renderQueueSheet();
+  renderQueueSheet(queueSheetHost);
 }
 
-function renderQueueSheet(){
-  const host = $('#queueBody'); host.innerHTML = '';
+// D6 (docs/DESKTOP_LAYOUT.md): tracks whichever host renderQueueSheet()
+// was last asked to paint into — the phone overlay's own #queueBody (the
+// default, when called with no argument) or the desktop side panel's
+// #playerSideBody (shell/player-side-panel.js) — so a move/remove click
+// made *inside* whichever one is actually visible repaints that same one,
+// not whichever happens to be the hardcoded default.
+let queueSheetHost = null;
+
+// exported (previously module-private) since step D6 lets the desktop side
+// panel's "Up next" tab target this at #playerSideBody instead of the
+// phone overlay's #queueBody — same render, just a different host
+export function renderQueueSheet(host){
+  queueSheetHost = host || $('#queueBody');
+  const dest = queueSheetHost; dest.innerHTML = '';
   if(!S.queue.length || S.qpos >= S.queue.length){
-    host.appendChild(el('p','note','Nothing queued.'));
+    dest.appendChild(el('p','note','Nothing queued.'));
     return;
   }
   const ul = el('ul','tracklist');
@@ -198,7 +210,7 @@ function renderQueueSheet(){
     li.appendChild(rm);
     ul.appendChild(li);
   });
-  host.appendChild(ul);
+  dest.appendChild(ul);
 }
 export function openQueueSheet(){
   renderQueueSheet();

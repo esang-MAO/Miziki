@@ -21,6 +21,7 @@ import { updateShellAlbum } from '../shell/mini-player.js';
 import { openPlayer, closePlayer, morphInFlight, interruptMorph } from '../shell/player-overlay.js';
 import { runStartSequence, interruptStartSequence } from '../shell/start-sequence.js';
 import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js';
+import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -97,4 +98,19 @@ export function wireTransport(){
     if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead
     if(gfHandoffInFlight()) interruptGatefoldHandoff();   // hand-off flight: land instantly
   }, {capture:true});
+
+  // D6 (docs/DESKTOP_LAYOUT.md): the desktop-only side panel's three tabs
+  // (hidden below 1024px, same as the rest of #playerSidePanel) — each
+  // click just flips which one is aria-selected and asks shell/player-
+  // side-panel.js to repaint, the same render functions the phone's own
+  // sheets use (player/queue.js's renderQueueSheet, library/credits.js's
+  // renderCreditsSheet/renderLinerNotes), never a second implementation.
+  document.querySelectorAll('#playerSideTabs [data-panel-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#playerSideTabs [data-panel-tab]')
+        .forEach(b => b.setAttribute('aria-selected', String(b === btn)));
+      renderPlayerSidePanel();
+    });
+  });
+  renderPlayerSidePanel();   // initial paint — matches wireCharacter()'s own "initial bgUpdateUI() call" precedent
 }

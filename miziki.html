@@ -510,6 +510,19 @@
 <div class="player-overlay" id="playerOverlay" aria-hidden="true">
   <button class="player-dismiss" id="playerDismiss" aria-label="Close player">︿</button>
 
+  <!-- D6 (docs/DESKTOP_LAYOUT.md): .player-layout is invisible scaffolding
+       below the desktop breakpoint (display:contents, the same pattern
+       .sidebar/.crate-layout already established in D3/D5), so .stage
+       lays out exactly as it always has on a phone. At 1024px+ it becomes
+       a flex row: .stage (platter+sleeve, then #stageInfo) on the left,
+       #playerSidePanel (Up next / Liner notes / Credits) on the right.
+       #stageInfo wraps six pre-existing, untouched elements (unchanged
+       ids, unchanged content, unchanged own CSS) purely so .stage can lay
+       the platter and "everything else" out side by side on desktop
+       without becoming a flat, un-groupable multi-item flex row — it is
+       itself display:contents below 1024px, so these six elements remain
+       exactly as if they were still direct children of .stage there. -->
+  <div class="player-layout">
   <section class="stage">
     <div class="platter-stage" id="platterStage">
       <div class="platter-box disc-hidden" id="platterBox">
@@ -528,6 +541,7 @@
       </div>
     </div>
 
+    <div class="stage-info" id="stageInfo">
     <div class="now">
       <div class="now-title-row">
         <h2 id="trackName">Nothing on the platter</h2>
@@ -566,7 +580,23 @@
       <button class="mode" id="modeVinyl" aria-pressed="true"><b>Vinyl</b><i>character on</i></button>
     </div>
     <p class="mode-note" id="modeNote"></p>
+    </div>
   </section>
+
+  <!-- D6: desktop-only side panel, display:none below 1024px
+       (src/styles/23-desktop.css). Each tab repaints #playerSideBody with
+       the exact render functions the phone's own sheets already use,
+       targeted at this host instead of an overlay — see
+       src/shell/player-side-panel.js. -->
+  <div class="player-side-panel" id="playerSidePanel">
+    <div class="player-side-tabs" id="playerSideTabs" role="tablist">
+      <button class="player-side-tab" data-panel-tab="upnext" role="tab" aria-selected="true">Up next</button>
+      <button class="player-side-tab" data-panel-tab="liner" role="tab" aria-selected="false">Liner notes</button>
+      <button class="player-side-tab" data-panel-tab="credits" role="tab" aria-selected="false">Credits</button>
+    </div>
+    <div class="player-side-body" id="playerSideBody"></div>
+  </div>
+  </div>
 </div>
 
 <!-- ghost element for the mini-player-to-full-player morph -->
