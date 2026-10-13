@@ -11,6 +11,7 @@ import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
+import { isDesktopShell } from '../util/viewport.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR } from './constants.js';
 import { flowPose, flowZIndex } from './geometry.js';
 import { isAlbumSealed, buildSealOverlay } from '../library/sealed.js';
@@ -111,7 +112,13 @@ export function applyCrateMiniInset(){
   if(!stage || !wrap) return;
   const miniEl = $('#miniPlayer'), tabbarEl = $('#tabbar');
   const miniH = (miniEl && getComputedStyle(miniEl).display !== 'none') ? miniEl.getBoundingClientRect().height : 0;
-  const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
+  // D3 (docs/DESKTOP_LAYOUT.md): same reasoning as updateChromeInset()'s
+  // own guard (src/shell/mini-player.js) — on desktop the tab bar is a
+  // full-height vertical sidebar, not bottom chrome, so its height has
+  // nothing to do with this budget. Full desktop crate sizing is D5's
+  // job; this is strictly "don't let the sidebar's own height break the
+  // pre-existing phone-layout math" ahead of that.
+  const tabbarH = (tabbarEl && !isDesktopShell()) ? tabbarEl.getBoundingClientRect().height : 0;
   const infoReserve = info ? info.getBoundingClientRect().height : 84;
   // the "now playing elsewhere" pill sits in normal flow above the stage
   // (shown/hidden as the user scrolls past the playing album) and isn't

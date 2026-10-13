@@ -105,6 +105,22 @@ export function drawSun(){
     $('#legEnd').textContent = 'Dusk ' + f(S.sun.dusk);
   }
 
+  // D3 (docs/DESKTOP_LAYOUT.md): the desktop sidebar's own Sundown summary
+  // card mirrors this exact readout — "reuse the Sundown readout drawSun()
+  // already writes rather than computing it twice," per that doc — rather
+  // than having a second module call sunProgress()/computeRate() on its
+  // own. These ids exist only in the sidebar's own DOM (src/shell/
+  // sidebar.js has no render function of its own for them), hidden below
+  // the 1024px breakpoint by CSS, so the null guard here is just "does
+  // the sidebar card exist in the DOM," never a breakpoint check.
+  const sideWhy = $('#sideRateWhy');
+  if(sideWhy) sideWhy.textContent = $('#rateWhy').textContent;
+  if(S.sun.ok){
+    const sideStart = $('#sideLegStart'), sideEnd = $('#sideLegEnd');
+    if(sideStart) sideStart.textContent = $('#legStart').textContent;
+    if(sideEnd) sideEnd.textContent = $('#legEnd').textContent;
+  }
+
   // sky follows the same progress the platter does
   const A = [[29,47,56],[16,26,32]], B = [[59,33,48],[26,16,24]], C = [[18,14,25],[8,7,12]];
   const mix = (x,y,k) => x.map((v,i)=> Math.round(v + (y[i]-v)*k));

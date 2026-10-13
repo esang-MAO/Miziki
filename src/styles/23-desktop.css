@@ -1,0 +1,107 @@
+/* D3 (docs/DESKTOP_LAYOUT.md): the desktop shell — breakpoint, sidebar
+   from the tab bar, main-area width, and the sidebar's own new content
+   (the playlists list and the Sundown summary card). Everything below
+   sits behind @media (min-width:1024px) (or 1280px for the wider
+   icon-rail/full-sidebar split the doc's own token table calls for);
+   below 1024px nothing here applies at all, so the phone layout is
+   byte-for-byte unaffected — confirmed with a before/after pixel
+   comparison at 390x844 (see this step's CLAUDE.md changelog entry).
+   Loaded last (23-, right after 22-theme.css) purely so these overrides
+   win the cascade the ordinary way — same selector specificity, later
+   file in source order — not via !important anywhere except the one
+   mini-player hide below, which does need it (see its own comment).
+   The header's search field and + menu ("main header row," per the doc)
+   need no new markup or rule here at all: #libNav already lays its
+   view-mode tabs and #hdrActions out with justify-content:space-between
+   (src/styles/01-header.css) specifically so the icon group stays
+   pinned to the right edge of whatever width .wrap actually is — once
+   the 520px cap below is dropped, that existing row simply widens into
+   the proper top header-row bar the mockup shows, with the icons
+   right-aligned the same way they already are on a phone. */
+
+/* .sidebar is invisible scaffolding below the breakpoint: display:contents
+   drops it out of the box model entirely, so .tabbar (its one child
+   below 1024px) lays out exactly as if this wrapper didn't exist at all.
+   The sidebar's own new content stays hidden the whole time on a phone. */
+.sidebar{display:contents}
+.sidebar-extra{display:none}
+
+@media (min-width:1024px){
+  /* .wrap stops being a centered 520px column and becomes a flex item
+     sharing a row with the sidebar — this is what actually gives it "the
+     rest of the space beside the sidebar" with no manual width/margin
+     bookkeeping to keep the two from overlapping. .wrap physically comes
+     before .sidebar/.tabbar in the DOM (unchanged from the phone
+     markup, where the tab bar has always sat at the end of <body>), so
+     order:-1 puts the sidebar first visually without reparenting
+     anything — every other fixed-position overlay in <body> (the
+     launch/player/edit/share overlays, the gatefold, the sealed-record
+     sheet) is excluded from this flex row entirely by its own
+     position:fixed, confirmed against every one of their own CSS rules
+     before relying on that. */
+  body{display:flex}
+  .wrap{max-width:none;margin:0;flex:1 1 auto;min-width:0;order:0;
+    padding:28px 32px calc(28px + env(safe-area-inset-bottom))}
+
+  /* the sidebar itself: a normal-flow flex item (not position:fixed —
+     flex already keeps it from ever overlapping .wrap), the 76px icon
+     rail the doc's own two-width table calls for between 1024 and
+     1279px, scrollable in case a long playlists list ever needs it */
+  .sidebar{
+    display:flex;flex-direction:column;flex:0 0 76px;width:76px;order:-1;
+    position:sticky;top:0;align-self:flex-start;height:100vh;
+    background:var(--chrome);border-right:1px solid var(--line);
+    padding:16px 0;overflow-y:auto;
+  }
+  .tabbar{
+    position:static;left:auto;right:auto;bottom:auto;max-width:none;
+    margin:0;flex:0 0 auto;flex-direction:column;
+    background:transparent;border:none;padding:0;
+  }
+  .tabbar-btn{padding:12px 6px;border-radius:8px}
+  .tabbar-btn span{display:none}
+  .tabbar-btn:hover,.tabbar-btn:focus-visible{color:var(--paper)}
+  .tabbar-btn[aria-selected="true"]:hover,
+  .tabbar-btn[aria-selected="true"]:focus-visible{color:var(--accent)}
+
+  /* the playlists list and Sundown card need real width for their own
+     text — cut below 1280px rather than crammed into a 76px icon rail,
+     per the doc's own two-width split */
+  .sidebar-extra{display:none}
+
+  /* D4's own job (that PR's scope in docs/DESKTOP_LAYOUT.md): the real
+     bottom player bar, wired to the existing playback functions. Hiding
+     the phone's narrow, centered mini-player strip here rather than
+     leaving it floating, unstyled, over the sidebar/main-area boundary
+     ahead of that work — renderMiniPlayer() still runs and still flips
+     this to display:flex every time a track loads, so !important is the
+     only way this rule can actually win that fight until D4 replaces
+     the strip with its own desktop-aware markup. */
+  .mini-player{display:none !important}
+}
+
+@media (min-width:1280px){
+  .sidebar{flex:0 0 232px;width:232px;padding:16px 16px 20px}
+  .tabbar{gap:2px}
+  .tabbar-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:10px 10px}
+  .tabbar-btn span{display:inline;font-size:12px;letter-spacing:.06em;text-transform:none}
+  .tabbar-btn[aria-selected="true"]{background:var(--sel)}
+
+  .sidebar-extra{
+    display:flex;flex-direction:column;gap:22px;margin-top:20px;padding-top:16px;
+    border-top:1px solid var(--line);overflow-y:auto;min-height:0;
+  }
+  .sidebar-heading{
+    font-family:var(--data);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 8px;padding:0 10px;
+  }
+  .sidebar-playlists{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .sidebar-playlist-row,.sidebar-playlists-empty{
+    font-size:13px;padding:7px 10px;border-radius:6px;color:var(--paper);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .sidebar-playlists-empty{color:var(--muted)}
+  .sidebar-sundown{padding:0 10px}
+  .sidebar-sundown-rate{font-size:13px;color:var(--paper);margin-bottom:4px}
+  .sidebar-sundown-leg{font-family:var(--data);font-size:11px;color:var(--muted)}
+}

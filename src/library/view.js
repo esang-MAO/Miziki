@@ -22,6 +22,7 @@ import { applyEdit, showUndoBanner } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './delete.js';
 import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
+import { renderSidebarPlaylists } from '../shell/sidebar.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
 } from './search.js';
@@ -268,6 +269,13 @@ function renderAlbumDetail(host, ul, album){
 
 export function renderTracks(){
   const host = $('#libBody'); host.innerHTML = '';
+  // D3 (docs/DESKTOP_LAYOUT.md): every S.playlists mutation already lands
+  // here (see this module's own CLAUDE.md entry — it's the hub every
+  // library-mutating action's "now redraw the screen" call reaches), so
+  // this is the one place the desktop sidebar's own playlists list needs
+  // to be kept in sync from, rather than adding a second call site at
+  // each of S.playlists' own mutation points.
+  renderSidebarPlaylists();
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();

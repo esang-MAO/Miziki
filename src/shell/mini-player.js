@@ -5,6 +5,7 @@ import { REDUCED } from '../util/motion.js';
 import { bgSync } from '../player/background.js';
 import { isLibraryRouteVisible } from './routes.js';
 import { applyCrateMiniInset, centerEmptyState } from '../crate/view.js';
+import { isDesktopShell } from '../util/viewport.js';
 
 /* ================= navigation shell: mini-player, full-player overlay, sleeve pull =================
    Library is the landing route; Sundown and Character are peer routes reached
@@ -78,7 +79,19 @@ export function updateChromeInset(){
   chromeInsetRAF = requestAnimationFrame(() => {
     chromeInsetRAF = null;
     const tabbar = $('#tabbar'), mini = $('#miniPlayer');
-    const tabH = tabbar ? tabbar.offsetHeight : 0;
+    // D3 (docs/DESKTOP_LAYOUT.md): on desktop the tab bar is a vertical
+    // sidebar (full viewport height, not a fixed strip at the bottom of
+    // .wrap), so its own offsetHeight is no longer a bottom-chrome
+    // measurement at all — including it here would inflate --chrome-inset
+    // to roughly the sidebar's own height. The mini-player is hidden on
+    // desktop until D4's player bar replaces it (its own "visible" check
+    // below already yields 0 for it once hidden, with no change needed
+    // here), so this collapses to the flat 16px fallback below on
+    // desktop — moot in practice, since src/styles/23-desktop.css
+    // overrides .wrap's padding outright there and never reads this
+    // property at all, but a small, accurate number here beats a wildly
+    // wrong one in case something else ever comes to depend on it.
+    const tabH = (tabbar && !isDesktopShell()) ? tabbar.offsetHeight : 0;
     const miniVisible = mini && getComputedStyle(mini).display !== 'none';
     const miniH = miniVisible ? mini.offsetHeight : 0;
     document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
