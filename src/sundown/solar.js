@@ -59,6 +59,34 @@ export function solarAltitudeAtNoon(date, lat, lon){
   return 90 - Math.abs(lat - decDeg);
 }
 
+// DA4 (docs/DAY_ARC.md): the device-only, no-coordinates cache
+// theme-boot.js reads to resolve the first-paint theme when the saved
+// appearance choice is Nychthemeron. Location is never stored (CLAUDE.md,
+// the privacy policy), so theme-boot.js — which runs before any module
+// here, before S.sun exists at all — can't compute the sun itself; this
+// is the one small fact about today it's allowed to remember instead.
+// Written here (and from location.js's fallbackSun(), which already
+// imports computeSun from this file) rather than in ui/theme.js, since
+// this is where "today's" rise/set are actually computed, real or
+// fallback alike — the same reasoning the rest of the day model stays in
+// solar.js/day.js rather than theme.js. `date` is the cache's own
+// freshness check (today's toDateString(), the same local-wall-clock
+// string both this writer and theme-boot.js's own reader compare
+// against) — never used for anything else, and never a coordinate: no
+// lat/lon is ever written here. THEME_STORAGE_KEY-style literal
+// duplicated in theme-boot.js rather than imported, since that file has
+// to stay import-free to run as a plain classic script.
+export const SUN_TIMES_STORAGE_KEY = 'miziki-sun-times';
+
+export function persistSunTimesCache(rise, set){
+  if(!rise || !set) return;
+  try {
+    localStorage.setItem(SUN_TIMES_STORAGE_KEY, JSON.stringify({
+      date: new Date().toDateString(), rise: rise.toISOString(), set: set.toISOString(),
+    }));
+  } catch(_e) {}
+}
+
 // DA1 (docs/DAY_ARC.md): computeSun() fills the full day model, not just
 // tonight's sunset/dusk — dayEvents() is day.js's own pure function, a
 // real circular import with it (day.js imports solarEvent/solarNoon/
@@ -82,6 +110,7 @@ export function computeSun(){
   S.sun.dawn = ev.dawn; S.sun.rise = ev.rise; S.sun.noon = ev.noon;
   S.sun.set = ev.set; S.sun.dusk = ev.dusk; S.sun.altitudeAtNoon = ev.altitudeAtNoon;
   S.sun.ok = true;
+  persistSunTimesCache(ev.rise, ev.set);
 }
 
 export function nowClock(){

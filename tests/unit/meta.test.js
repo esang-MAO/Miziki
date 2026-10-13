@@ -145,6 +145,28 @@ test('restoreMeta: a playlist entry whose track no longer exists is kept, not dr
   DB.db.close();
 });
 
+// DA4 (docs/DAY_ARC.md): applyPrefs() keeps its own independent copy of
+// the theme enum check (rather than trusting parsePrefs()'s own
+// filtering), separate from storage/prefs.js's parsePrefs() -- a round
+// trip through parsePrefs() alone (tests/unit/prefs.test.js's own job)
+// isn't enough to catch a value that parsePrefs() accepts but this
+// function's own, separately-maintained check still silently drops.
+// This is the regression a manual browser check (not any existing unit
+// test) caught: 'nychthemeron' was added to parsePrefs() but missed here,
+// so a saved Nychthemeron choice restored as Auto on every reload.
+test('restoreMeta: a saved theme of "nychthemeron" actually lands in S.theme on restore', async () => {
+  await openFresh();
+  resetState({ theme: 'nychthemeron' });
+  queueSave();
+  await new Promise(r => setTimeout(r, 650));
+
+  resetState({ theme: 'auto' }); // simulate the boot-time default, pre-restore
+  await restoreMeta();
+  assert.equal(S.theme, 'nychthemeron');
+
+  DB.db.close();
+});
+
 // Uses a real 650ms wait rather than node:test's mock.timers: saveMeta()'s
 // own body awaits fake-indexeddb requests, whose completion callbacks fire
 // on the real event loop regardless of whether setTimeout is faked, so

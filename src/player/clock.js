@@ -7,7 +7,7 @@ import { driftSummaryText, effectiveChar } from '../sundown/drift.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
-import { effectiveTheme } from '../ui/theme.js';
+import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 
 /* ================= render loop ================= */
 let last = performance.now();
@@ -165,6 +165,16 @@ export function drawSun(){
   // animating it. document.documentElement.style.setProperty() still
   // writes an inline style (always wins over the stylesheet's own
   // 22-theme.css tokens), which is exactly the point now in both themes.
+  // DA4 (docs/DAY_ARC.md): this is the one place in the app that already
+  // recomputes the day position on a steady ~220ms cadence while
+  // visible, so it's also where a live Nychthemeron crossing (the sun
+  // actually rising or setting while the app is open) gets caught and
+  // applied — a no-op the rest of the time (not on Nychthemeron, or
+  // nothing's actually changed since the last tick). See
+  // src/ui/theme.js's own comment for why this isn't a second matchMedia-
+  // style listener.
+  syncNychthemeronTheme();
+
   const [sky1, sky2] = skyGradientStops(dayPos, effectiveTheme());
   document.documentElement.style.setProperty('--sky1', sky1);
   document.documentElement.style.setProperty('--sky2', sky2);

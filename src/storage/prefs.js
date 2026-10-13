@@ -67,8 +67,11 @@ export function parsePrefs(raw){
   if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') out.shareFormat = p.shareFormat;
   // D2 (docs/DESKTOP_LAYOUT.md): a saved object without this field (every
   // device before D2) is meant to load as the default (Auto) — same as
-  // any other missing field, just leaving it out of `out` below.
-  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark') out.theme = p.theme;
+  // any other missing field, just leaving it out of `out` below. DA4
+  // (docs/DAY_ARC.md) adds 'nychthemeron' to the same enum — an old saved
+  // object predating DA4 simply never wrote that value, so it needs no
+  // extra handling here beyond listing it as allowed.
+  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark' || p.theme === 'nychthemeron') out.theme = p.theme;
   // DA2 (docs/DAY_ARC.md): a saved object without this field (every device
   // before DA2) is meant to load as the default (Subtle) — same shape as
   // theme's own D2 addition just above, just leaving it out of `out`.
