@@ -212,8 +212,17 @@
     display:flex;margin-top:auto;padding-top:14px;
     border-top:1px solid var(--line);
   }
-  .sidebar-appearance .seg{width:100%}
-  .sidebar-appearance .seg button{flex:1;text-align:center}
+  /* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a fourth
+     button (Nychthemeron) needs the 2x2 grid the DesktopSidebar artboard
+     uses, in place of the old 3-across flex row — this control is
+     narrower than Profile > Settings' own copy (182px sidebar vs.
+     320-390px), so Nychthemeron also gets its own tighter letter-
+     spacing/font-size here, matching the artboard's own
+     "letter-spacing: .02em; font-size: 9px" for this one button; the
+     other three keep the row's existing 10px size unchanged. */
+  .sidebar-appearance .seg{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .sidebar-appearance .seg button{text-align:center}
+  .sidebar-appearance .seg button[data-theme-choice="nychthemeron"]{letter-spacing:.02em;font-size:9px}
 
   /* D7: "Keep the route id, change only the visible label on desktop" —
      the generic .tabbar-btn span{display:inline} rule just above would

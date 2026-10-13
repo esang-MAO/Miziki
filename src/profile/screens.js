@@ -10,7 +10,8 @@ import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './l
 import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
-import { setTheme } from '../ui/theme.js';
+import { setTheme, isDaylightPhase } from '../ui/theme.js';
+import { currentDayPosition } from '../sundown/solar.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -112,7 +113,7 @@ function renderProfileHome(body){
 // signed-in storefront's own gear button. The desktop sidebar's own
 // Appearance control (D7, #sidebarAppearance) is untouched: static
 // markup, wired once at boot by wireCharacter()'s existing
-// querySelectorAll('[data-theme-choice]') call. This screen's own three
+// querySelectorAll('[data-theme-choice]') call. This screen's own
 // buttons are built fresh on every render, so — per the same reasoning
 // that call can't reach them — each gets its own click listener right
 // here rather than relying on that boot-time pass; setTheme() still
@@ -120,23 +121,45 @@ function renderProfileHome(body){
 // this screen's included, whenever any one of them (phone or desktop) is
 // actually clicked.
 //
-// Only Auto/Light/Dark exist yet — Nychthemeron (DA4) adds the fourth
-// choice and, with it, the mockup's own 2×2 grid layout; three choices
-// read naturally in one row, so that layout isn't anticipated here.
+// DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): Nychthemeron is
+// the fourth choice — the mockup's own 2×2 grid (settings-appearance's
+// own CSS, src/styles/17-profile.css) gives the long word room at this
+// screen's 320–390px width without needing the extra letter-spacing
+// tightening the narrower desktop sidebar control needs (D7,
+// #sidebarAppearance, src/styles/23-desktop.css). Only this one button
+// gets an aria-label — the other three's own visible text already says
+// everything their aria-pressed state needs to convey; Nychthemeron's
+// doesn't ("Nychthemeron" alone says nothing about what it does).
+function nychthemeronSwitchCaption(){
+  if(!S.sun.ok) return 'Resolves once your location is known.';
+  const fmt = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  if(isDaylightPhase(currentDayPosition().phase)) return 'Turns dark at ' + fmt(S.sun.set) + ' today.';
+  // "Today" only if today's own rise hasn't happened yet (the dawn phase,
+  // or the night phase's own pre-dawn tail) — dayEvents()'s Julian-day
+  // rounding always gives *today's* rise regardless of what hour `now`
+  // is (DA1's own "continuity across midnight" trick), so right after
+  // today's sunset S.sun.rise is already a past time, not an upcoming
+  // one; saying so plainly beats showing a time that's already gone by.
+  const now = Date.now() + S.previewMin*60000;
+  return now < S.sun.rise.getTime()
+    ? 'Turns light at ' + fmt(S.sun.rise) + ' today.'
+    : 'Turns light at sunrise tomorrow.';
+}
 function renderAppSettingsScreen(body){
   const appearance = el('div','settings-section');
   appearance.appendChild(el('div','settings-section-head', 'Appearance'));
   const seg = el('div','seg settings-appearance');
-  [['auto','Auto'], ['light','Light'], ['dark','Dark']].forEach(([value, label]) => {
+  [['auto','Auto'], ['light','Light'], ['dark','Dark'], ['nychthemeron','Nychthemeron']].forEach(([value, label]) => {
     const b = el('button', null, label);
     b.dataset.themeChoice = value;
     b.setAttribute('aria-pressed', String(S.theme === value));
+    if(value === 'nychthemeron') b.setAttribute('aria-label', 'Nychthemeron: follows sunrise and sunset');
     b.addEventListener('click', () => setTheme(value));
     seg.appendChild(b);
   });
   appearance.appendChild(seg);
   appearance.appendChild(el('p','note',
-    'Auto follows your device’s own Light/Dark setting, including live if it changes. Choosing Light or Dark keeps that look regardless of the device.'));
+    'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. ' + nychthemeronSwitchCaption() + ' Choosing Light or Dark keeps that look regardless of the device.'));
   body.appendChild(appearance);
 
   const links = el('div','settings-section');
