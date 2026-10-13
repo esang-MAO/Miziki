@@ -27,6 +27,14 @@
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mini-play.tbtn{flex:0 0 auto;width:36px;height:36px;font-size:12px}
 
+/* D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own extra
+   transport/seek/mode controls — invisible on a phone, the same
+   "hidden until the breakpoint, not omitted" approach as the sidebar's
+   own extra content (src/styles/23-desktop.css's .sidebar-extra).
+   Un-hidden and laid out there, not here, since this file is the phone
+   cascade's own section. */
+.mini-bar-btn,.mini-bar-seek,.mini-bar-modes{display:none}
+
 .tabbar{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:40;
   display:flex;background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
