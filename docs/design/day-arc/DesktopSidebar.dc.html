@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Desktop sidebar Sundown card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.ap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.ap button{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;padding:8px 6px;border-radius:3px;background:transparent;min-height:34px}
+</style>
+</helmet>
+<div style="width: 440px; height: 700px; box-sizing: border-box; padding: 28px; background: #0B0C10; display: flex; gap: 20px; font-family: 'Archivo', sans-serif">
+
+<aside aria-label="Sidebar, dark theme at twilight" style="width: 182px; padding: 18px 14px; border-radius: 8px; background: linear-gradient(180deg, #3B2130, #1A1018); color: #EFE9DF; display: flex; flex-direction: column; gap: 14px">
+<div class="mono" style="font-size: 9.5px; letter-spacing: .14em; color: #94A0A6">SUNDOWN</div>
+<svg viewBox="0 0 160 70" width="154" height="67" role="img" aria-label="Sun just below the horizon, 60 percent from sunset to dusk.">
+<line x1="0" y1="54" x2="160" y2="54" stroke="rgba(239,233,223,.22)"></line>
+<path d="M34,54 A46,42 0 0 1 126,54" fill="none" stroke="rgba(239,233,223,.35)" stroke-width="1.2"></path>
+<rect x="126" y="52.5" width="22" height="3" rx="1.5" fill="#FF9E2C" opacity=".75"></rect>
+<rect x="12" y="52.5" width="22" height="3" rx="1.5" fill="#9FD8E8" opacity=".5"></rect>
+<circle cx="139" cy="58" r="10" fill="#FF9E2C" opacity=".25"></circle>
+<circle cx="139" cy="58" r="4.5" fill="#FF9E2C"></circle>
+</svg>
+<div>
+<div class="disp" style="font-size: 24px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; line-height: 1">Twilight</div>
+<div style="font-size: 12px; color: #94A0A6; margin-top: 4px">60% of the way down</div>
+</div>
+<div class="mono" style="font-size: 12px; color: #FF9E2C">0.875× · −2.3 st</div>
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 10px; color: #94A0A6"><span>SET 6:33</span><span>DUSK 7:00</span></div>
+<div class="mono" style="font-size: 10px; color: #94A0A6">DRIFT · A TOUCH WARMER</div>
+<div style="flex-grow: 1"></div>
+<div class="mono" style="font-size: 9.5px; letter-spacing: .14em; color: #94A0A6">APPEARANCE</div>
+<div class="ap" role="group" aria-label="Theme">
+<button aria-pressed="false" style="border: 1px solid rgba(239,233,223,.14); color: #94A0A6">AUTO</button>
+<button aria-pressed="false" style="border: 1px solid rgba(239,233,223,.14); color: #94A0A6">LIGHT</button>
+<button aria-pressed="false" style="border: 1px solid rgba(239,233,223,.14); color: #94A0A6">DARK</button>
+<button aria-pressed="true" aria-label="Nychthemeron: follows sunrise and sunset" style="border: 1px solid #FF9E2C; color: #EFE9DF; background: rgba(255,158,44,.12); letter-spacing: .02em; font-size: 9px">NYCHTHEMERON</button>
+</div>
+</aside>
+
+<aside aria-label="Sidebar, light theme in the morning" style="width: 182px; padding: 18px 14px; border-radius: 8px; background: linear-gradient(180deg, #EFF4F2, #E3ECEA); color: #15232B; display: flex; flex-direction: column; gap: 14px">
+<div class="mono" style="font-size: 9.5px; letter-spacing: .14em; color: #4F616A">SUNDOWN</div>
+<svg viewBox="0 0 160 70" width="154" height="67" role="img" aria-label="Sun low in the morning sky, shortly after sunrise.">
+<line x1="0" y1="54" x2="160" y2="54" stroke="rgba(21,35,43,.25)"></line>
+<path d="M34,54 A46,42 0 0 1 126,54" fill="none" stroke="rgba(21,35,43,.25)" stroke-width="1.2"></path>
+<rect x="12" y="52.5" width="22" height="3" rx="1.5" fill="#3E8CA6" opacity=".55"></rect>
+<rect x="126" y="52.5" width="22" height="3" rx="1.5" fill="#FF9E2C" opacity=".55"></rect>
+<circle cx="38" cy="37" r="10" fill="#FF9E2C" opacity=".3"></circle>
+<circle cx="38" cy="37" r="4.5" fill="#FF9E2C" stroke="#9A4700" stroke-width="1"></circle>
+</svg>
+<div>
+<div class="disp" style="font-size: 24px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; line-height: 1">Morning</div>
+<div style="font-size: 12px; color: #4F616A; margin-top: 4px">Bright · full speed</div>
+</div>
+<div class="mono" style="font-size: 12px; color: #9A4700">1.000× · 0.0 st</div>
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 10px; color: #4F616A"><span>RISE 7:16</span><span>SET 6:33</span></div>
+<div class="mono" style="font-size: 10px; color: #4F616A">DRIFT · A TOUCH BRIGHTER</div>
+<div style="flex-grow: 1"></div>
+<div class="mono" style="font-size: 9.5px; letter-spacing: .14em; color: #4F616A">APPEARANCE</div>
+<div class="ap" role="group" aria-label="Theme">
+<button aria-pressed="false" style="border: 1px solid rgba(21,35,43,.16); color: #4F616A">AUTO</button>
+<button aria-pressed="false" style="border: 1px solid rgba(21,35,43,.16); color: #4F616A">LIGHT</button>
+<button aria-pressed="false" style="border: 1px solid rgba(21,35,43,.16); color: #4F616A">DARK</button>
+<button aria-pressed="true" aria-label="Nychthemeron: follows sunrise and sunset" style="border: 1px solid #FF9E2C; color: #15232B; background: rgba(154,71,0,.10); letter-spacing: .02em; font-size: 9px">NYCHTHEMERON</button>
+</div>
+</aside>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

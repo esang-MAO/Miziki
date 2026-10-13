@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sky palette across the day</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+</style>
+</helmet>
+<div style="width: 1280px; height: 700px; box-sizing: border-box; padding: 40px 48px; background: #14161B; color: #EFE9DF; font-family: 'Archivo', sans-serif; display: flex; flex-direction: column; gap: 22px">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<div>
+<h1 class="disp" style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase">Sky across the day</h1>
+<p style="margin: 6px 0 0; font-size: 13px; color: #94A0A6">--sky1 → --sky2 at eight anchors per theme, blended with smoothstep between them. Numbers are text contrast on the darker-for-text of the two stops: paper / muted / accent text. Every pair ≥ 4.5:1.</p>
+</div>
+<div class="mono" style="font-size: 10px; letter-spacing: .12em; color: #94A0A6; text-align: right">COLUMBIA, MD · OCT 13<br>DAWN 6:49 · RISE 7:16 · NOON 12:54 · SET 6:33 · DUSK 7:00</div>
+</div>
+
+<div>
+<div class="mono" style="font-size: 10.5px; letter-spacing: .14em; color: #94A0A6; margin-bottom: 8px">DARK THEME</div>
+<div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{dark}}" as="a" hint-placeholder-count="8">
+<div style="border-radius: 6px; overflow: hidden; border: 1px solid rgba(239,233,223,.12)">
+<div style="height: 118px; padding: 12px; box-sizing: border-box; background: {{a.grad}}; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #EFE9DF">{{a.name}}</div>
+<div style="display: flex; gap: 8px; align-items: baseline; font-family: 'IBM Plex Mono', monospace; font-size: 10px">
+<span style="color: #EFE9DF">Aa {{a.cp}}</span><span style="color: #94A0A6">Aa {{a.cm}}</span><span style="color: #FF9E2C">Aa {{a.ca}}</span>
+</div>
+</div>
+<div class="mono" style="padding: 8px 10px; font-size: 9.5px; color: #94A0A6; line-height: 1.5; background: #0E1014">{{a.s1}}<br>{{a.s2}}<br><span style="color: #EFE9DF">{{a.when}}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div>
+<div class="mono" style="font-size: 10.5px; letter-spacing: .14em; color: #94A0A6; margin-bottom: 8px">LIGHT THEME · REPLACES THE STATIC LIGHT SKY FROM PR #87</div>
+<div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{light}}" as="a" hint-placeholder-count="8">
+<div style="border-radius: 6px; overflow: hidden; border: 1px solid rgba(239,233,223,.12)">
+<div style="height: 118px; padding: 12px; box-sizing: border-box; background: {{a.grad}}; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #15232B">{{a.name}}</div>
+<div style="display: flex; gap: 8px; align-items: baseline; font-family: 'IBM Plex Mono', monospace; font-size: 10px">
+<span style="color: #15232B">Aa {{a.cp}}</span><span style="color: #4F616A">Aa {{a.cm}}</span><span style="color: #9A4700">Aa {{a.ca}}</span>
+</div>
+</div>
+<div class="mono" style="padding: 8px 10px; font-size: 9.5px; color: #94A0A6; line-height: 1.5; background: #0E1014">{{a.s1}}<br>{{a.s2}}<br><span style="color: #EFE9DF">{{a.when}}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div>
+<div class="mono" style="font-size: 10.5px; letter-spacing: .14em; color: #94A0A6; margin-bottom: 8px">TODAY, 24 HOURS · --sky1</div>
+<div style="height: 26px; border-radius: 4px; background: linear-gradient(90deg, #120E19 0%, #120E19 26%, #382842 28.4%, #1C3843 35%, #1D2F38 53.8%, #23353C 64.6%, #3D2A1F 72%, #3B2130 77.5%, #1E1828 79.2%, #120E19 87%, #120E19 100%)"></div>
+<div style="height: 26px; border-radius: 4px; margin-top: 6px; background: linear-gradient(90deg, #E8E3EE 0%, #E8E3EE 26%, #F5E5E0 28.4%, #EFF4F2 35%, #F6F1E7 53.8%, #F5EFE3 64.6%, #F7E6CD 72%, #F3E6E7 77.5%, #ECE6EE 79.2%, #E8E3EE 87%, #E8E3EE 100%)"></div>
+<div class="mono" style="position: relative; height: 14px; font-size: 9.5px; color: #94A0A6; margin-top: 6px">
+<span style="position: absolute; left: 0">12 AM</span>
+<span style="position: absolute; left: 26%">DAWN</span>
+<span style="position: absolute; left: 51%">NOON</span>
+<span style="position: absolute; left: 75%">SUNSET</span>
+<span style="position: absolute; right: 0">12 AM</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (name, s1, s2, cp, cm, ca, when) => ({ name, s1, s2, cp, cm, ca, when, grad: 'linear-gradient(180deg, ' + s1 + ' 0%, ' + s2 + ' 100%)' });
+    return {
+      dark: [
+        mk('Night', '#120E19', '#08070C', '15.8', '7.1', '9.2', 'dusk → dawn'),
+        mk('Dawn', '#382842', '#18131F', '11.2', '5.1', '6.6', 'dawn → sunrise'),
+        mk('Morning', '#1C3843', '#0F1F27', '10.3', '4.6', '6.0', 'sunrise + 1.5 h'),
+        mk('Midday', '#1D2F38', '#101A20', '11.5', '5.2', '6.7', 'solar noon'),
+        mk('Afternoon', '#23353C', '#11191E', '10.6', '4.8', '6.2', 'noon → golden'),
+        mk('Golden', '#3D2A1F', '#1A1310', '11.2', '5.1', '6.6', 'sunset − 1 h'),
+        mk('Twilight', '#3B2130', '#1A1018', '12.0', '5.4', '7.0', 'sunset → dusk'),
+        mk('Dusk', '#1E1828', '#0D0B13', '14.3', '6.4', '8.4', 'dusk + 30 m')
+      ],
+      light: [
+        mk('Night', '#E8E3EE', '#E0DAE8', '11.8', '4.7', '4.7', 'dusk → dawn'),
+        mk('Dawn', '#F5E5E0', '#EDD8D1', '11.7', '4.7', '4.7', 'dawn → sunrise'),
+        mk('Morning', '#EFF4F2', '#E3ECEA', '13.4', '5.4', '5.3', 'sunrise + 1.5 h'),
+        mk('Midday', '#F6F1E7', '#ECE5D8', '12.8', '5.2', '5.1', 'solar noon'),
+        mk('Afternoon', '#F5EFE3', '#EBE3D3', '12.6', '5.1', '5.0', 'noon → golden'),
+        mk('Golden', '#F7E6CD', '#F0D9B6', '11.7', '4.7', '4.7', 'sunset − 1 h'),
+        mk('Twilight', '#F3E6E7', '#EBDDE0', '12.2', '4.9', '4.9', 'sunset → dusk'),
+        mk('Dusk', '#ECE6EE', '#E3DDE8', '12.1', '4.9', '4.8', 'dusk + 30 m')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

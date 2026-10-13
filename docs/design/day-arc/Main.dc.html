@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown tab at twilight, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(239,233,223,.14)}
+.k{font-size:13.5px}
+.k em{display:block;font-style:normal;font-size:11.5px;color:#94A0A6;margin-top:2px;line-height:1.45}
+.seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:7px 10px;border:1px solid rgba(239,233,223,.14);border-radius:3px;background:transparent;color:#94A0A6;min-height:32px}
+.seg button[aria-pressed="true"]{border-color:#FF9E2C;color:#EFE9DF;background:rgba(255,158,44,.12)}
+.sec{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#94A0A6;margin:20px 0 2px;text-transform:uppercase}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; box-sizing: border-box; background: linear-gradient(180deg, #3B2130 0%, #1A1018 62%, #0D0B13 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; position: relative; overflow: hidden">
+
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 6px">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase">Sundown</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .12em; color: #94A0A6; border: 1px solid rgba(239,233,223,.14); border-radius: 12px; padding: 5px 10px">COLUMBIA · LIVE</span>
+</header>
+<div role="tablist" aria-label="Sundown view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 18px 4px; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<a href="Main.dc.html" role="tab" aria-selected="true" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #EFE9DF; background: rgba(255,158,44,.14); border-bottom: 2px solid #FF9E2C">DAY</a>
+<a href="Character.dc.html" role="tab" aria-selected="false" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #94A0A6">SOUND</a>
+</div>
+
+<section aria-label="The day arc" style="margin: 6px 18px 0; padding: 14px 12px 10px; background: rgba(10,14,18,.42); border: 1px solid rgba(239,233,223,.10); border-radius: 6px">
+<svg viewBox="0 0 342 150" width="318" height="140" role="img" aria-label="Sun path for today. The sun has set and is 60 percent of the way to dusk.">
+<defs>
+<linearGradient id="dayStroke" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0" stop-color="#9FD8E8"></stop>
+<stop offset=".5" stop-color="#EFE9DF"></stop>
+<stop offset="1" stop-color="#FF9E2C"></stop>
+</linearGradient>
+<radialGradient id="sunGlow">
+<stop offset="0" stop-color="#FF9E2C" stop-opacity=".55"></stop>
+<stop offset="1" stop-color="#FF9E2C" stop-opacity="0"></stop>
+</radialGradient>
+</defs>
+<line x1="0" y1="118" x2="342" y2="118" stroke="rgba(239,233,223,.22)" stroke-width="1"></line>
+<line x1="0" y1="124" x2="22" y2="124" stroke="rgba(239,233,223,.25)" stroke-width="1" stroke-dasharray="2 4"></line>
+<line x1="320" y1="124" x2="342" y2="124" stroke="rgba(239,233,223,.25)" stroke-width="1" stroke-dasharray="2 4"></line>
+<rect x="22" y="116" width="48" height="4" rx="2" fill="#9FD8E8" opacity=".55"></rect>
+<rect x="272" y="116" width="48" height="4" rx="2" fill="#FF9E2C" opacity=".75"></rect>
+<path d="M70,118 A101,92 0 0 1 272,118" fill="none" stroke="url(#dayStroke)" stroke-width="1.5" opacity=".55"></path>
+<g stroke="rgba(239,233,223,.45)" stroke-width="1">
+<line x1="22" y1="112" x2="22" y2="124"></line>
+<line x1="70" y1="112" x2="70" y2="124"></line>
+<line x1="171" y1="22" x2="171" y2="30"></line>
+<line x1="272" y1="112" x2="272" y2="124"></line>
+<line x1="320" y1="112" x2="320" y2="124"></line>
+</g>
+<circle cx="301" cy="127" r="18" fill="url(#sunGlow)"></circle>
+<circle cx="301" cy="127" r="6.5" fill="#FF9E2C"></circle>
+<rect x="272" y="128" width="70" height="22" fill="#1E1420" opacity=".55"></rect>
+</svg>
+<div class="mono" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); font-size: 9.5px; letter-spacing: .06em; color: #94A0A6; text-align: center; margin-top: 2px">
+<span>DAWN<br><b style="color: #EFE9DF; font-weight: 500">6:49</b></span>
+<span>SUNRISE<br><b style="color: #EFE9DF; font-weight: 500">7:16</b></span>
+<span>NOON<br><b style="color: #EFE9DF; font-weight: 500">12:54</b></span>
+<span>SUNSET<br><b style="color: #EFE9DF; font-weight: 500">6:33</b></span>
+<span style="color: #FF9E2C">DUSK<br><b style="font-weight: 500">7:00</b></span>
+</div>
+</section>
+
+<section style="padding: 16px 18px 0">
+<div class="mono" style="font-size: 10px; letter-spacing: .14em; color: #94A0A6">NOW · 6:49 PM</div>
+<div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px">
+<h2 class="disp" style="margin: 0; font-size: 38px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; line-height: 1">Twilight</h2>
+<span style="font-size: 13px; color: #94A0A6">60% of the way down</span>
+</div>
+<div class="row" style="margin-top: 8px">
+<div class="k">Now playing at<em>Easing toward the night rate</em></div>
+<div class="mono" style="font-size: 13px; color: #FF9E2C">0.875× · −2.3 st</div>
+</div>
+</section>
+
+<section style="padding: 0 18px">
+<div class="sec">Sundown · evening</div>
+<div class="row">
+<div class="k">Full-night rate<em>How far down the platter settles</em></div>
+<div class="seg"><button aria-pressed="false">0.85</button><button aria-pressed="true">0.80</button><button aria-pressed="false">0.75</button></div>
+</div>
+<div class="row">
+<div class="k">Pacing<em>Spread across twilight and dawn</em></div>
+<div class="seg"><button aria-pressed="true">Window</button><button aria-pressed="false">Moment</button></div>
+</div>
+<div class="sec">Sunrise · morning</div>
+<div class="row">
+<div class="k">Rise at dawn<em>The platter climbs back to full speed between dawn and sunrise, on the same pacing.</em></div>
+<div class="mono" style="font-size: 10.5px; color: #94A0A6; text-align: right; white-space: nowrap">NEXT<br>6:50 AM</div>
+</div>
+<div class="row" style="border-bottom: 0">
+<div class="k">Day drift<em>Character now: a touch warmer</em></div>
+<a href="Character.dc.html" class="mono" style="font-size: 10.5px; letter-spacing: .08em; text-decoration: none; border: 1px solid rgba(239,233,223,.14); border-radius: 3px; padding: 8px 10px">SUBTLE ›</a>
+</div>
+</section>
+
+<section style="padding: 6px 18px 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<label for="previewDay" style="font-size: 13.5px">Preview the day</label>
+<b class="mono" style="font-size: 11px; color: #FF9E2C; letter-spacing: .1em">LIVE</b>
+</div>
+<input id="previewDay" type="range" min="0" max="1440" value="0" style="width: 100%; accent-color: #FF9E2C; margin: 10px 0 2px">
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 9.5px; color: #94A0A6; letter-spacing: .06em"><span>NOW</span><span>MIDNIGHT</span><span>DAWN</span><span>NOON</span><span>NOW</span></div>
+</section>
+
+<div style="flex-grow: 1"></div>
+
+<div style="margin: 0 10px 8px; display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: rgba(10,14,18,.9); border: 1px solid rgba(239,233,223,.10); border-radius: 8px">
+<div style="width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle, #FF9E2C 0 18%, #15161B 19% 100%); flex: 0 0 auto" aria-hidden="true"></div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Track title]</div>
+<div class="mono" style="font-size: 10px; color: #94A0A6">[Artist] · VINYL</div>
+</div>
+<button aria-label="Pause" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(239,233,223,.2); background: transparent; color: #EFE9DF; font-size: 13px">❚❚</button>
+</div>
+<nav aria-label="Tabs" class="mono" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; font-size: 10.5px; letter-spacing: .12em; color: #94A0A6; padding: 10px 6px 22px; background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.10)">
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">LIBRARY</a>
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">HOME</a>
+<a href="#" aria-current="page" style="color: #FF9E2C; text-decoration: none; padding: 8px 0">SUNDOWN</a>
+<a href="Rhythm.dc.html" style="color: #94A0A6; text-decoration: none; padding: 8px 0">PROFILE</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
