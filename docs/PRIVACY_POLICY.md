@@ -94,5 +94,5 @@ version will be shown the same way — as a screen inside the app.
 
 ## Contact
 
-Questions about this policy, or about your data: `<YOUR CONTACT EMAIL>`
-*(Ken: fill this in before publishing.)*
+Questions about this policy, or about your data: `sckhitokiri@gmail.com`
+*(Temporary contact address. Update to an admin@ address on Miziki's own domain once one is purchased.)*

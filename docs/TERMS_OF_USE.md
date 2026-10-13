@@ -72,6 +72,6 @@ version will be shown the same way — as a screen inside the app.
 
 ## Contact
 
-Questions about these terms: `<YOUR CONTACT EMAIL>`
-*(Ken: fill this in before publishing — same address as the Privacy
-Policy.)*
+Questions about these terms: `sckhitokiri@gmail.com`
+*(Temporary contact address, same as the Privacy Policy. Update to an
+admin@ address on Miziki's own domain once one is purchased.)*

@@ -88,7 +88,7 @@ export function renderPrivacyPolicyScreen(body){
   ]);
 
   section(body, 'Contact', [
-    'Questions about this policy, or about your data: <YOUR CONTACT EMAIL>',
+    'Questions about this policy, or about your data: sckhitokiri@gmail.com',
   ]);
 }
 
@@ -137,7 +137,7 @@ export function renderTermsScreen(body){
   ]);
 
   section(body, 'Contact', [
-    'Questions about these terms: <YOUR CONTACT EMAIL>',
+    'Questions about these terms: sckhitokiri@gmail.com',
   ]);
 }
 
