@@ -28,6 +28,14 @@ export const S = {
   // the other four come back null). computeSun()/fallbackSun() fill all
   // six whenever ok is set true.
   sun:{lat:null,lon:null,dawn:null,rise:null,noon:null,set:null,dusk:null,altitudeAtNoon:null,ok:false},
+  // DA2 (docs/DAY_ARC.md): 'off'/'subtle'/'full' — how much Vinyl's own
+  // character drifts off the user's own midday-baseline sliders across the
+  // day (src/sundown/drift.js's driftOffsets()/effectiveChar(), applied in
+  // src/audio/engine.js's applyCharacter()). Default 'subtle' per the
+  // doc's own instruction; a saved prefs object from before DA2 has no
+  // such field, and a missing value means Subtle, the same "missing means
+  // the stated default" shape S.char.scratch (F2) already established.
+  charDrift:'subtle',
   motion:{on:false,watch:null,speed:null,max:25,floor:0.55,factor:1},
   // scratch: true means spin-to-scrub plays real audio while spinning the
   // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the

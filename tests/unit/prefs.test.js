@@ -12,6 +12,7 @@ function fakeS(overrides = {}){
     sealedRecords: true, playInFullPlayer: true,
     shareStyle: 'night', shareFormat: 'story',
     theme: 'auto',
+    charDrift: 'subtle',
   }, overrides);
 }
 
@@ -26,6 +27,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     sealedRecords: S.sealedRecords, playInFullPlayer: S.playInFullPlayer,
     shareStyle: S.shareStyle, shareFormat: S.shareFormat,
     theme: S.theme,
+    charDrift: S.charDrift,
   });
 });
 
@@ -45,6 +47,28 @@ test('old saved data: no theme (saved before D2) leaves it out, so the default (
   delete raw.theme;
   const parsed = parsePrefs(raw);
   assert.equal('theme' in parsed, false);
+});
+
+test('round trip: charDrift survives as off and as full, not just the default subtle', () => {
+  const offParsed = parsePrefs(serializePrefs(fakeS({ charDrift: 'off' })));
+  assert.equal(offParsed.charDrift, 'off');
+  const fullParsed = parsePrefs(serializePrefs(fakeS({ charDrift: 'full' })));
+  assert.equal(fullParsed.charDrift, 'full');
+});
+
+// DA2 (docs/DAY_ARC.md): a saved object without `charDrift` at all (every
+// device before DA2) loads as if it had been Subtle — the doc's own
+// stated default, applied the same way theme's own D2 default already is.
+test('old saved data: no charDrift (saved before DA2) leaves it out, so the default (Subtle) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.charDrift;
+  const parsed = parsePrefs(raw);
+  assert.equal('charDrift' in parsed, false);
+});
+
+test('bad values are ignored: an unlisted charDrift value is ignored', () => {
+  const parsed = parsePrefs({ charDrift: 'maximum' });
+  assert.deepEqual(parsed, {});
 });
 
 test('round trip: shuffle true and repeat non-off also survive (falsy-looking values are real values here)', () => {

@@ -1,6 +1,6 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { routeSource } from './engine.js';
+import { routeSource, applyCharacter } from './engine.js';
 
 export function setMode(m){
   S.mode = m;
@@ -20,4 +20,13 @@ export function setMode(m){
     ? 'Vinyl adds character on purpose: platter wobble, gentle saturation, a softer top end, a light squeeze. Dial it in under Character.'
     : 'Pure is the reference: decode straight to the output, nothing added — always at full speed. Sundown\'s slow-down is a Vinyl thing, part of the platter.';
   if(S.source) routeSource(S.source);
+  // DA2 (docs/DAY_ARC.md): applyCharacter() now also gates on S.mode (Pure
+  // forces drift to 'off' regardless of S.charDrift — see engine.js's own
+  // comment), so every one of this function's own callers needs the Vinyl
+  // chain's nodes re-applied the moment a switch actually happens, not
+  // left holding whichever gate was in effect up to 30s ago — not just the
+  // few call sites that already happened to call applyCharacter() of
+  // their own accord afterward (storage/meta.js's applyPrefs() still does,
+  // redundantly but harmlessly, right after its own setMode(p.mode) call).
+  applyCharacter();
 }
