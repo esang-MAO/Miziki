@@ -49,6 +49,15 @@ mock.module(new URL('../../src/launch/intro.js', import.meta.url).href, {
 mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
   namedExports: { scheduleBackupSync(){} },
 });
+// D2: applyPrefs() now calls applyTheme() unconditionally (so a restore
+// with no saved theme still re-applies the default) — mocked directly,
+// same reasoning as every import above, since the real applyTheme() needs
+// document.documentElement/localStorage/matchMedia, none of which this
+// file's own fake `document` provides, and none of which this test cares
+// about (that's tests/unit/theme.test.js's own job).
+mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
+  namedExports: { applyTheme(){} },
+});
 globalThis.document = { querySelectorAll(){ return []; } };
 
 const { queueSave, restoreMeta } = await import('../../src/storage/meta.js');
@@ -81,7 +90,7 @@ function resetState(overrides){
     sleevePullEnabled: true, bgAudio: false, launchIntro: true,
     libraryLayout: 'crate', crateGroup: 'az', crateAnchor: null, albumSides: false,
     sealedRecords: true, playInFullPlayer: true, shareStyle: 'night', shareFormat: null,
-    shuffle: false, repeat: 'off', view: { mode: 'crate', group: null },
+    shuffle: false, repeat: 'off', view: { mode: 'crate', group: null }, theme: 'auto',
   }, overrides);
 }
 

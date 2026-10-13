@@ -11,6 +11,7 @@ function fakeS(overrides = {}){
     libraryLayout: 'crate', crateGroup: 'az', crateAnchor: 'some-anchor', albumSides: false,
     sealedRecords: true, playInFullPlayer: true,
     shareStyle: 'night', shareFormat: 'story',
+    theme: 'auto',
   }, overrides);
 }
 
@@ -24,7 +25,26 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     libraryLayout: S.libraryLayout, crateGroup: S.crateGroup, crateAnchor: S.crateAnchor, albumSides: S.albumSides,
     sealedRecords: S.sealedRecords, playInFullPlayer: S.playInFullPlayer,
     shareStyle: S.shareStyle, shareFormat: S.shareFormat,
+    theme: S.theme,
   });
+});
+
+test('round trip: theme survives as light and as dark, not just the default auto', () => {
+  const lightParsed = parsePrefs(serializePrefs(fakeS({ theme: 'light' })));
+  assert.equal(lightParsed.theme, 'light');
+  const darkParsed = parsePrefs(serializePrefs(fakeS({ theme: 'dark' })));
+  assert.equal(darkParsed.theme, 'dark');
+});
+
+// D2 (docs/DESKTOP_LAYOUT.md): a saved object without `theme` at all (every
+// device before D2) loads as if it had been Auto — the doc's own default
+// for that open question, applied the same way scratch's missing-means-On
+// default already is above.
+test('old saved data: no theme (saved before D2) leaves it out, so the default (Auto) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.theme;
+  const parsed = parsePrefs(raw);
+  assert.equal('theme' in parsed, false);
 });
 
 test('round trip: shuffle true and repeat non-off also survive (falsy-looking values are real values here)', () => {
@@ -76,6 +96,13 @@ test('bad values are ignored: unlisted enum values', () => {
     shareStyle: 'neon',
     shareFormat: 'widescreen',
   });
+  assert.deepEqual(parsed, {});
+});
+
+// docs/DESKTOP_LAYOUT.md's own required test case, almost verbatim: "an
+// unlisted value such as 'sepia' is ignored."
+test('bad values are ignored: an unlisted theme value (e.g. "sepia") is ignored', () => {
+  const parsed = parsePrefs({ theme: 'sepia' });
   assert.deepEqual(parsed, {});
 });
 

@@ -48,12 +48,12 @@ const SAFETY_NET_RULES = {
 module.exports = [
   { ignores: ['dist/**', 'node_modules/**'] },
 
-  // src/ — ES modules, browser runtime, except the two deliberate classic
+  // src/ — ES modules, browser runtime, except the three deliberate classic
   // scripts carved out below (see CLAUDE.md's repo-layout entries for why
   // each one is a plain script rather than a module).
   {
     files: ['src/**/*.js'],
-    ignores: ['src/audio/scratch-processor.js', 'src/miziki-social.js'],
+    ignores: ['src/audio/scratch-processor.js', 'src/miziki-social.js', 'src/theme-boot.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -62,11 +62,14 @@ module.exports = [
     rules: SAFETY_NET_RULES,
   },
 
-  // src/miziki-social.js — a plain classic script (no import/export),
-  // loaded via <script src> immediately before src/main.js so MizikiSocial
-  // is already a real global by the time main.js runs.
+  // src/miziki-social.js, src/theme-boot.js — plain classic scripts (no
+  // import/export). miziki-social.js loads via <script src> immediately
+  // before src/main.js so MizikiSocial is already a real global by the
+  // time main.js runs; theme-boot.js (D2) loads early in <head>, before
+  // main.js even starts fetching, specifically so it can run import-free
+  // — see that file's own header comment.
   {
-    files: ['src/miziki-social.js'],
+    files: ['src/miziki-social.js', 'src/theme-boot.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'script',

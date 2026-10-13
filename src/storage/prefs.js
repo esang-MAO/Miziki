@@ -25,6 +25,7 @@ export function serializePrefs(S){
     libraryLayout: S.libraryLayout, crateGroup: S.crateGroup, crateAnchor: S.crateAnchor, albumSides: S.albumSides,
     sealedRecords: S.sealedRecords, playInFullPlayer: S.playInFullPlayer,
     shareStyle: S.shareStyle, shareFormat: S.shareFormat,
+    theme: S.theme,
   };
 }
 
@@ -63,6 +64,10 @@ export function parsePrefs(raw){
   if(typeof p.playInFullPlayer === 'boolean') out.playInFullPlayer = p.playInFullPlayer;
   if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') out.shareStyle = p.shareStyle;
   if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') out.shareFormat = p.shareFormat;
+  // D2 (docs/DESKTOP_LAYOUT.md): a saved object without this field (every
+  // device before D2) is meant to load as the default (Auto) — same as
+  // any other missing field, just leaving it out of `out` below.
+  if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark') out.theme = p.theme;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

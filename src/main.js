@@ -29,6 +29,7 @@ import { updateChromeInset } from './shell/mini-player.js';
 import { isProfileRouteVisible } from './shell/routes.js';
 import { renderProfile } from './profile/screens.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
+import { applyTheme } from './ui/theme.js';
 
 import { wireTransport } from './wiring/transport.js';
 import { wireLibraryView } from './wiring/library-view.js';
@@ -76,6 +77,7 @@ wireRoutes();
 wireLifecycle();
 
 setMode('vinyl');
+applyTheme();
 fallbackSun();
 askLocation();
 drawSun();
