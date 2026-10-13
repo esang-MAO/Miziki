@@ -36,6 +36,12 @@ export function wireShare(){
 
   $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
   $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
+  document.querySelectorAll('#playerShareToggles button').forEach(b => b.addEventListener('click', ()=>{
+    const key = b.dataset.section;
+    S.playerShareSelection[key] = !S.playerShareSelection[key];
+    b.setAttribute('aria-pressed', String(S.playerShareSelection[key]));
+    queuePlayerShareRender();
+  }));
   document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(b => b.addEventListener('click', ()=>{
     S.shareStyle = b.dataset.style;
     document.querySelectorAll('#playerShareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));

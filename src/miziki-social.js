@@ -716,14 +716,22 @@
      ==================================================================== */
   function _spinKey(albumId, trackTitle) { return albumId + '|' + (trackTitle || ''); }
 
-  /** Call whenever a track starts. Debounced; a no-op unless the user opted in. */
-  function nowSpinning(albumId, trackTitle) {
+  /** Call whenever a track starts. Debounced; a no-op unless the user opted in.
+      `phase` (DA6, docs/DAY_ARC.md) is the spinner's own local day-arc phase
+      ('night'/'dawn'/'morning'/'midday'/'afternoon'/'golden'/'twilight') at
+      the moment playback started — never a clock time, never a location.
+      It rides along with trackTitle/albumId for the heartbeat republish
+      below: like those two, it's captured once per real play() call, not
+      recomputed every 4-minute heartbeat tick, since miziki-social.js stays
+      import-free by design (see its own repo-layout entry) and can't reach
+      sundown/solar.js itself to recompute it. */
+  function nowSpinning(albumId, trackTitle, phase) {
     if (!X.enabled || !X.userId || !X.profile || !X.state.settings.shareNowSpinning) return;
     clearTimeout(X.spin.pauseTimer);
     clearTimeout(X.spin.timer);
-    X.spin.timer = setTimeout(() => publishSpin(albumId, trackTitle), X.timing.spinDebounce);
+    X.spin.timer = setTimeout(() => publishSpin(albumId, trackTitle, phase), X.timing.spinDebounce);
   }
-  async function publishSpin(albumId, trackTitle) {
+  async function publishSpin(albumId, trackTitle, phase) {
     try {
       const info = await X.adapter.albumInfo(albumId);
       if (!info) return;
@@ -731,14 +739,15 @@
       if (!key) return;
       const ok = await rpc('set_now_spinning', {
         p_key: key, p_title: info.title, p_artist: info.artist,
-        p_track: trackTitle || null, p_ttl_seconds: Math.round(X.timing.spinTtlSeconds)
+        p_track: trackTitle || null, p_ttl_seconds: Math.round(X.timing.spinTtlSeconds),
+        p_phase: phase || null
       });
-      X.spin.last = { albumId, trackTitle, key };
+      X.spin.last = { albumId, trackTitle, key, phase };
       X.spin.active = ok === true;
       clearInterval(X.spin.heartbeat);
       if (X.spin.active) {
         X.spin.heartbeat = setInterval(() => {
-          if (X.spin.last) publishSpin(X.spin.last.albumId, X.spin.last.trackTitle);
+          if (X.spin.last) publishSpin(X.spin.last.albumId, X.spin.last.trackTitle, X.spin.last.phase);
         }, X.timing.spinHeartbeat);
       }
     } catch (_e) { /* best effort */ }
@@ -841,7 +850,7 @@
     const [summary, picks, spinning, fresh, follows, rhythm] = await Promise.all([
       rpc('profile_summary', { p_user: profile.id }),
       rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
-      q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, releases(title, artist)')
+      q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, phase, releases(title, artist)')
         .eq('user_id', profile.id).gt('expires_at', new Date().toISOString()).maybeSingle()),
       isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 }),
       // follower/following counts only make sense (and are only visible under
@@ -925,7 +934,7 @@
           const row = payload.new;
           if (!row || row.user_id === X.userId) return;
           const rel = await releaseInfo(row.release_id);
-          cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel });
+          cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel, phase: row.phase });
         } catch (_e) { /* ignore */ }
       }).subscribe();
     return () => { try { X.sb.removeChannel(ch); } catch (_e) { /* noop */ } };

@@ -7,6 +7,7 @@ import { renderOpenStoreCard, storeRequestsCard } from '../../profile/storefront
 // file in turn imports feedEventText back from here, for the friend
 // store's own "recently at the counter" activity rows.
 import { openFriendStore } from './friend-store.js';
+import { spinPhaseWording } from '../../sundown/spin-wording.js';
 
 /* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
 export function feedEventText(e){
@@ -123,7 +124,11 @@ function paintHomeSpinRow(){
     tile.appendChild(cover);
     const note = el('div','store-pick-note');
     note.appendChild(el('div','store-pick-name', (evt.release && evt.release.title) || evt.track || 'Now spinning'));
-    note.appendChild(el('div', null, (evt.release && evt.release.artist) || ''));
+    const artist = (evt.release && evt.release.artist) || '';
+    // DA6 (docs/DAY_ARC.md): the phase wording ("at dusk") the publisher's
+    // own set_now_spinning call sent -- never a clock time or location.
+    const wording = spinPhaseWording(evt.phase);
+    note.appendChild(el('div', null, wording ? [artist, wording].filter(Boolean).join(' · ') : artist));
     tile.appendChild(note);
     const handle = homeFollowingHandles.get(evt.userId);
     if(handle){

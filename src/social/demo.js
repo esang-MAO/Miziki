@@ -192,7 +192,7 @@ export function installSocialDemo(){
   MizikiSocial.subscribeNowSpinning = cb => {
     const timer = setTimeout(()=> cb({type:'spinning', userId:'june', track:'So What',
       expiresAt: new Date(Date.now() + 600000).toISOString(),
-      release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}}), 2500);
+      release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}, phase:'golden'}), 2500);
     return () => clearTimeout(timer);
   };
   MizikiSocial.homeFeed = async () => ({ok:true, events: [
