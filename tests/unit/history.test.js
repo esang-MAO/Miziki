@@ -116,8 +116,19 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
   // already was (via the real cropSquareImage -> library/edit.js chain).
   namedExports: { scheduleBackupSync(){}, reconcileImportedTrack(){}, queueCoverUpload(){} },
 });
+// DA5 (docs/DAY_ARC.md): played.js's own incrementTrackPlay() calls
+// realDayPosition() (sundown/solar.js) to tally S.phasePlayCounts/
+// S.albumPhaseCounts -- mocked here to a settable `fakePhase`, not
+// loaded for real, so these tests can pin down exactly which phase a
+// play counts into rather than depending on whatever the real clock
+// (or S.previewMin, which realDayPosition() itself never reads) happens
+// to say when the suite runs.
+let fakePhase = 'midday';
+mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
+  namedExports: { realDayPosition(){ return { phase: fakePhase }; } },
+});
 
-const { addPlayedRange, playedCoverage, checkTrackCompletion } = await import('../../src/history/played.js');
+const { addPlayedRange, playedCoverage, checkTrackCompletion, incrementTrackPlay } = await import('../../src/history/played.js');
 const { clearListeningHistory } = await import('../../src/history/clear.js');
 const { S } = await import('../../src/state.js');
 
@@ -128,8 +139,11 @@ function resetState(overrides){
     albumLastPlayed: {}, albumDisplay: {}, albumLookPref: {},
     achievements: {}, collection: {},
     trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {}, trackDisplay: {},
+    // DA5 (docs/DAY_ARC.md)
+    phasePlayCounts: {}, albumPhaseCounts: {}, previewMin: 0,
   }, overrides);
   checkAlbumAchievementAndCollectionMock.mock.resetCalls();
+  fakePhase = 'midday';
 }
 
 function fakeTrack(overrides){
@@ -229,6 +243,87 @@ test('checkTrackCompletion: a track with no duration never completes', () => {
   checkTrackCompletion(t);
   assert.equal(S.curTrackDone, false);
 });
+
+// -- DA5 (docs/DAY_ARC.md): phase-of-play counting ----------------------------
+
+test('incrementTrackPlay: tallies the current real-clock phase into both phasePlayCounts and albumPhaseCounts', () => {
+  resetState();
+  fakePhase = 'golden';
+  const t = fakeTrack();
+  incrementTrackPlay(t);
+  assert.deepEqual(S.phasePlayCounts, { golden: 1 });
+  assert.deepEqual(S.albumPhaseCounts, { al: { golden: 1 } });   // albumKey(t) === normKey('Al') === 'al'
+  incrementTrackPlay(t);
+  assert.deepEqual(S.phasePlayCounts, { golden: 2 });
+  assert.deepEqual(S.albumPhaseCounts, { al: { golden: 2 } });
+});
+
+test('incrementTrackPlay: a second play in a different phase adds its own bucket rather than replacing the first', () => {
+  resetState();
+  fakePhase = 'night';
+  const t = fakeTrack();
+  incrementTrackPlay(t);
+  fakePhase = 'morning';
+  incrementTrackPlay(t);
+  assert.deepEqual(S.phasePlayCounts, { night: 1, morning: 1 });
+  assert.deepEqual(S.albumPhaseCounts, { al: { night: 1, morning: 1 } });
+});
+
+test('checkTrackCompletion: the counted phase comes from realDayPosition(), never S.previewMin -- dragging Preview the day can never create or change this stat', () => {
+  resetState();
+  fakePhase = 'twilight';   // what the mocked realDayPosition() itself reports
+  S.previewMin = 600;       // "Preview the day" dragged ten hours ahead -- irrelevant here, since
+                            // realDayPosition() (unlike currentDayPosition()) never reads this at all
+  const t = fakeTrack({ duration: 100 });
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.deepEqual(S.phasePlayCounts, { twilight: 1 });
+});
+
+test('a second track in a different album gets its own albumPhaseCounts entry, phasePlayCounts stays one shared tally', () => {
+  resetState();
+  fakePhase = 'dawn';
+  incrementTrackPlay(fakeTrack({ id:'t1', tags:{title:'T1', artist:'A', album:'Al1', albumArtist:'A', track:1, disc:0} }));
+  incrementTrackPlay(fakeTrack({ id:'t2', tags:{title:'T2', artist:'A', album:'Al2', albumArtist:'A', track:1, disc:0} }));
+  assert.deepEqual(S.phasePlayCounts, { dawn: 2 });
+  assert.deepEqual(S.albumPhaseCounts, { al1: { dawn: 1 }, al2: { dawn: 1 } });
+});
+
+test('clearListeningHistory: full scope resets phasePlayCounts/albumPhaseCounts too', async () => {
+  await openFresh();
+  resetState({
+    tracks: [fakeTrack({ id:'t1' })],
+    phasePlayCounts: { night: 7 }, albumPhaseCounts: { al: { night: 7 } },
+  });
+  await clearListeningHistory(false);
+  assert.deepEqual(S.phasePlayCounts, {});
+  assert.deepEqual(S.albumPhaseCounts, {});
+  DB.db.close();
+});
+
+test('clearListeningHistory: orphaned-only scope prunes albumPhaseCounts by identity, but leaves phasePlayCounts alone (it has no per-identity shape to prune by)', async () => {
+  await openFresh();
+  resetState({
+    tracks: [fakeTrack({ id:'t1', tags:{title:'T', artist:'A', album:'Al', albumArtist:'A', track:1, disc:0} })],
+    // albumKey() is normKey(album) alone -- "al" for the still-present track, "goneAlbum" for one that's gone
+    phasePlayCounts: { night: 5, golden: 2 },   // never touched by the orphaned-only scope -- see the doc comment in state.js
+    albumPhaseCounts: { al: { night: 5 }, goneAlbum: { golden: 2 } },
+  });
+  await clearListeningHistory(true);
+  assert.deepEqual(S.phasePlayCounts, { night: 5, golden: 2 });
+  assert.ok('al' in S.albumPhaseCounts);
+  assert.ok(!('goneAlbum' in S.albumPhaseCounts));
+  DB.db.close();
+});
+
+// Forget library (F3) never touches history/* at all -- src/library/delete.js's
+// forgetLibrary() only clears the tracks store, crate-art tiers and
+// thumbnails, confirmed by that module's own test (tests/unit/forget-
+// library.test.js) asserting every history counter -- phasePlayCounts/
+// albumPhaseCounts included, since forgetLibrary() never imports anything
+// from src/history/ at all -- persists its *current* value unchanged
+// across a Forget. Nothing to add here that that file doesn't already
+// cover by construction.
 
 // -- clearListeningHistory ----------------------------------------------------
 

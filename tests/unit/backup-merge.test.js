@@ -49,6 +49,37 @@ test('counter invariant: three devices, interleaved sync order never changes the
   assert.deepEqual(totals, [10, 10, 10, 10]);
 });
 
+// ---- DA5 (docs/DAY_ARC.md): phasePlayCounts/albumPhaseCounts are per-
+// device counters, the exact same rule as trackPlayCounts above —
+// phasePlayCounts flat (sumCounters), albumPhaseCounts one level deeper
+// (sumNestedCounters) ----
+
+test('DA5: phasePlayCounts sums across devices, the same shape as trackPlayCounts', () => {
+  const a = baseLocal('a', { phasePlayCounts: { night: 3, morning: 1 } });
+  const b = toDoc(baseLocal('b', { phasePlayCounts: { night: 2, golden: 1 } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.phasePlayCounts, { night: 5, morning: 1, golden: 1 });
+});
+
+test('DA5: albumPhaseCounts sums per album, per phase, across devices', () => {
+  const a = baseLocal('a', { albumPhaseCounts: { alb1: { night: 2 }, alb2: { morning: 1 } } });
+  const b = toDoc(baseLocal('b', { albumPhaseCounts: { alb1: { night: 1, dawn: 1 } } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.albumPhaseCounts, {
+    alb1: { night: 3, dawn: 1 },
+    alb2: { morning: 1 },
+  });
+});
+
+test('DA5: albumPhaseCounts repeated/duplicate syncs never inflate the total', () => {
+  const a = baseLocal('a', { albumPhaseCounts: { alb1: { night: 2 } } });
+  const b = toDoc(baseLocal('b', { albumPhaseCounts: { alb1: { night: 1 } } }));
+  const first = fromDocs(a, [b]);
+  const second = fromDocs(a, [b, b]);
+  assert.deepEqual(first.totals.counters.albumPhaseCounts, { alb1: { night: 3 } });
+  assert.deepEqual(second.totals.counters.albumPhaseCounts, { alb1: { night: 3 } });
+});
+
 test('counter invariant: syncing any number of times by itself never changes the total', () => {
   const a = baseLocal('a', { trackPlayCounts: { k1: 3 } });
   const b = toDoc(baseLocal('b', { trackPlayCounts: { k1: 2 } }));
@@ -308,6 +339,11 @@ test('schema v1 compatibility: a doc with no covers/picture fields at all merges
   // out-competes it, since it has no claim of its own to offer at all
   assert.equal(merged.lastWrite.picture, null);
   assert.equal(merged.lastWrite.profileName, 'Old Name');
+  // DA5: a doc from before phasePlayCounts/albumPhaseCounts existed (this
+  // same v1Doc has neither) still merges, reading back {} rather than
+  // undefined or throwing
+  assert.deepEqual(merged.totals.counters.phasePlayCounts, {});
+  assert.deepEqual(merged.totals.counters.albumPhaseCounts, {});
 });
 
 test('schema v1 compatibility: mergeRows on a bare v1-shaped row never throws reading .covers/.picture', () => {

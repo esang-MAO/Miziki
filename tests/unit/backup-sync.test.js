@@ -40,7 +40,7 @@ const { S } = await import('../../src/state.js');
 const { SCHEMA_VERSION } = await import('../../src/sync/backup-doc.js');
 const {
   scheduleBackupSync, flushBackupSync, getBackupStatus, collectDownloadData, collectLocalDownloadData,
-  orphanedFiles,
+  orphanedFiles, pushOrClearListeningRhythm,
 } = await import('../../src/sync/backup.js');
 
 function freshState(){
@@ -53,6 +53,8 @@ function freshState(){
   S.sealed = new Set(); S.sealedBroken = new Set();
   S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0, picture:0 };
   S.historyClearedAt = 0; S.deviceId = null; S.deviceLabel = null; S.backupRestoredFor = null;
+  // DA5 (docs/DAY_ARC.md)
+  S.phasePlayCounts = {}; S.albumPhaseCounts = {}; S.rhythmPushedAt = 0;
   metaStore.clear(); artworkStore.clear(); profileRecord = null;
 }
 
@@ -79,8 +81,9 @@ function makeClient(behavior = {}){
 // as the rest of the social layer (see its own repo-layout entry). Each
 // test installs its own stub, via getClient() alone, the one accessor
 // src/sync/backup.js actually uses.
-function stubSocial(client){
-  globalThis.MizikiSocial = { getClient(){ return client; }, on(){}, status(){ return { auth: 'signedOut' }; } };
+function stubSocial(client, extra = {}){
+  globalThis.MizikiSocial = Object.assign(
+    { getClient(){ return client; }, on(){}, status(){ return { auth: 'signedOut' }; } }, extra);
 }
 
 async function flushMicrotasks(){
@@ -189,6 +192,18 @@ test('Download my data: signed out with no client at all is the same local-only 
   assert.equal('account' in out, false);
 });
 
+test('Download my data: DA5 phasePlayCounts/albumPhaseCounts are included, never raw tracks/images', () => {
+  freshState();
+  globalThis.MizikiSocial = undefined;
+  S.phasePlayCounts = { night: 5, dawn: 2 };
+  S.albumPhaseCounts = { alb1: { night: 5 } };
+  const out = collectLocalDownloadData();
+  assert.deepEqual(out.local.phasePlayCounts, S.phasePlayCounts);
+  assert.deepEqual(out.local.albumPhaseCounts, S.albumPhaseCounts);
+  // round-trips cleanly through JSON, the same bar every other field here meets
+  assert.deepEqual(JSON.parse(JSON.stringify(out)).local.phasePlayCounts, S.phasePlayCounts);
+});
+
 test('deviceId is generated once and persisted, not regenerated on a later push', async () => {
   freshState();
   const client = makeClient();
@@ -247,4 +262,124 @@ test('orphanedFiles: keepNewest only considers unreferenced files, not the refer
 test('orphanedFiles: no files and no referenced hashes is just an empty result', () => {
   assert.deepEqual(orphanedFiles([], new Set(), 0), []);
   assert.deepEqual(orphanedFiles(undefined, new Set(), 1), []);
+});
+
+// ================= DA5 (docs/DAY_ARC.md): listening rhythm =================
+function stubSocialWithRhythm(client, { shareListeningRhythm = false } = {}){
+  const rhythmCalls = [];
+  stubSocial(client, {
+    getSettings(){ return { shareListeningRhythm }; },
+    async setListeningRhythm(payload){ rhythmCalls.push(payload); return { ok: true }; },
+  });
+  return rhythmCalls;
+}
+function setPhasePlays(n){
+  // one phase, n plays -- more than enough to clear RHYTHM_MIN_PLAYS (20)
+  // without needing to care which phase actually wins the verdict here
+  S.phasePlayCounts = { night: n };
+}
+
+test('pushOrClearListeningRhythm(true): below the 20-play gate is a quiet skip, nothing pushed', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: true });
+  setPhasePlays(19);
+  const r = await pushOrClearListeningRhythm(true);
+  assert.equal(r.ok, true); assert.equal(r.skipped, true);
+  assert.equal(calls.length, 0);
+  assert.equal(S.rhythmPushedAt, 0);
+});
+
+test('pushOrClearListeningRhythm(true): at/above the gate pushes the verdict+shares, never raw plays', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: true });
+  setPhasePlays(25);
+  const before = Date.now();
+  const r = await pushOrClearListeningRhythm(true);
+  assert.equal(r.ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].verdict, 'Mostly a night listener');
+  assert.deepEqual(calls[0].shares, { night: 1, dawn: 0, morning: 0, midday: 0, afternoon: 0, golden: 0, twilight: 0 });
+  assert.equal('night' in calls[0], false, 'the raw play count itself must never be part of the payload');
+  assert.ok(S.rhythmPushedAt >= before, 'rhythmPushedAt should be stamped to roughly now');
+  assert.equal(metaStore.get('rhythmPushedAt'), S.rhythmPushedAt, 'persisted, not just in-memory');
+});
+
+test('pushOrClearListeningRhythm(false): always clears immediately, even with nothing shared yet', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: false });
+  const r = await pushOrClearListeningRhythm(false);
+  assert.equal(r.ok, true);
+  assert.deepEqual(calls, [null]);
+  assert.equal(S.rhythmPushedAt, 0);
+  assert.equal(metaStore.get('rhythmPushedAt'), 0);
+});
+
+test('pushOrClearListeningRhythm: no MizikiSocial at all is a quiet no-op, not a throw', async () => {
+  freshState();
+  globalThis.MizikiSocial = undefined;
+  const r = await pushOrClearListeningRhythm(true);
+  assert.equal(r.ok, false);
+});
+
+test('an ordinary backup push also shares the rhythm when the switch is on and the gate passes', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: true });
+  setPhasePlays(30);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    flushBackupSync();
+    await flushMicrotasks();
+    assert.equal(client.calls.upsert, 1);
+    assert.equal(calls.length, 1, 'the rhythm snapshot should ride along with the ordinary doc push');
+  }finally{ mock.timers.reset(); }
+});
+
+test('an ordinary backup push does NOT re-share the rhythm within the same day', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: true });
+  setPhasePlays(30);
+  S.rhythmPushedAt = Date.now();   // "already pushed a moment ago"
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    flushBackupSync();
+    await flushMicrotasks();
+    assert.equal(client.calls.upsert, 1, 'the ordinary doc push still happens');
+    assert.equal(calls.length, 0, 'but the rhythm snapshot is not re-pushed inside the same 24h window');
+  }finally{ mock.timers.reset(); }
+});
+
+test('an ordinary backup push never shares the rhythm when the switch is off', async () => {
+  freshState();
+  const client = makeClient();
+  const calls = stubSocialWithRhythm(client, { shareListeningRhythm: false });
+  setPhasePlays(30);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    flushBackupSync();
+    await flushMicrotasks();
+    assert.equal(client.calls.upsert, 1);
+    assert.equal(calls.length, 0);
+  }finally{ mock.timers.reset(); }
+});
+
+test('an ordinary backup push still succeeds against a MizikiSocial build with no getSettings/setListeningRhythm at all', async () => {
+  // the exact shape every other test in this file's own stubSocial() already
+  // uses -- confirming the DA5 hook degrades to a quiet no-op rather than
+  // ever failing an otherwise-successful push, the real bug this test guards
+  freshState();
+  const client = makeClient();
+  stubSocial(client);
+  setPhasePlays(30);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    flushBackupSync();
+    await flushMicrotasks();
+    assert.equal(client.calls.upsert, 1);
+    assert.equal(getBackupStatus().backedUp, true, 'the push as a whole must still be reported successful');
+  }finally{ mock.timers.reset(); }
 });
