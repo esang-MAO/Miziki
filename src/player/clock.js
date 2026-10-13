@@ -6,6 +6,7 @@ import { computeRate, sunProgress, easedProgress } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
+import { effectiveTheme } from '../ui/theme.js';
 
 /* ================= render loop ================= */
 let last = performance.now();
@@ -132,10 +133,42 @@ export function drawSun(){
     if(sideEnd) sideEnd.textContent = $('#legEnd').textContent;
   }
 
-  // sky follows the same progress the platter does
+  // sky follows the same progress the platter does — but this animated
+  // palette (A/B/C below) is the dark theme's own visual language, a
+  // daylight-teal-to-dusk-to-near-black descent that was written years
+  // before Light/Auto/Dark (D2) existed, when --sky1/--sky2 had only one
+  // possible value. Since D2, both are real theme tokens too (22-theme.css
+  // sets light values for them), read by html/body's own background and
+  // by the ground gradient in 00-base.css/13-player-overlay.css/
+  // 09-launch-intro.css — but document.documentElement.style.setProperty()
+  // writes an *inline* style, which always wins over a stylesheet rule
+  // regardless of theme, so this was clobbering the light tokens with a
+  // dark gradient every 220ms whenever the effective theme was Light
+  // (flagged as a known, deliberately-deferred gap in CLAUDE.md's own D2
+  // changelog entry, now actually fixed). Rather than invent a second,
+  // light-appropriate animated palette — Sundown's whole premise is a
+  // sunset, which is the dark theme's own chrome palette already answers
+  // for — Light theme simply keeps the light tokens 22-theme.css already
+  // set: no inline override to fight them, consistent with D2's "only
+  // chrome changes" rule (the disc/sleeve/metals/share-image colors stay
+  // as they are in both themes; the sky *is* chrome, so it follows suit).
+  if(effectiveTheme() === 'light'){
+    document.documentElement.style.removeProperty('--sky1');
+    document.documentElement.style.removeProperty('--sky2');
+  } else {
+    const [sky1, sky2] = skyGradientStops(p);
+    document.documentElement.style.setProperty('--sky1', sky1);
+    document.documentElement.style.setProperty('--sky2', sky2);
+  }
+}
+
+// The dark-theme sky animation's own color math, pulled out to a small
+// pure function (exported for its own unit test — same precedent as
+// angleDelta in scrub.js) rather than tested only through drawSun()
+// itself, which needs a real document for everything else it touches.
+export function skyGradientStops(p){
   const A = [[29,47,56],[16,26,32]], B = [[59,33,48],[26,16,24]], C = [[18,14,25],[8,7,12]];
   const mix = (x,y,k) => x.map((v,i)=> Math.round(v + (y[i]-v)*k));
   const key = p < 0.5 ? [mix(A[0],B[0],p*2), mix(A[1],B[1],p*2)] : [mix(B[0],C[0],(p-0.5)*2), mix(B[1],C[1],(p-0.5)*2)];
-  document.documentElement.style.setProperty('--sky1','rgb('+key[0].join(',')+')');
-  document.documentElement.style.setProperty('--sky2','rgb('+key[1].join(',')+')');
+  return ['rgb('+key[0].join(',')+')', 'rgb('+key[1].join(',')+')'];
 }
