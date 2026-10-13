@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile listening rhythm</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.k{font-size:13.5px}
+.k em{display:block;font-style:normal;font-size:11.5px;color:#94A0A6;margin-top:2px;line-height:1.45}
+.seg{display:flex;gap:6px}
+.seg button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:7px 10px;border:1px solid rgba(239,233,223,.14);border-radius:3px;background:transparent;color:#94A0A6;min-height:32px}
+.seg button[aria-pressed="true"]{border-color:#FF9E2C;color:#EFE9DF;background:rgba(255,158,44,.12)}
+a{color:#FF9E2C}
+</style>
+</helmet>
+<div style="width: 390px; height: 920px; box-sizing: border-box; background: linear-gradient(180deg, #1E1828 0%, #0D0B13 70%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="padding: 18px 18px 8px; position: relative">
+<div class="mono" style="font-size: 10px; letter-spacing: .14em; color: #94A0A6">YOUR CRATE</div>
+<h1 class="disp" style="margin: 4px 0 0; font-size: 30px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase">[Crate name]</h1>
+<div class="mono" style="font-size: 11px; color: #94A0A6; margin-top: 2px">@[handle]</div>
+<a href="ProfileSettings.dc.html" class="mono" style="position: absolute; top: 18px; right: 18px; font-size: 10.5px; letter-spacing: .12em; color: #EFE9DF; text-decoration: none; border: 1px solid rgba(239,233,223,.18); border-radius: 3px; padding: 11px 12px">SETTINGS</a>
+</header>
+
+<section aria-label="Listening rhythm" style="margin: 8px 14px 0; padding: 16px; background: rgba(10,14,18,.42); border: 1px solid rgba(239,233,223,.10); border-radius: 8px">
+<div class="mono" style="font-size: 10px; letter-spacing: .14em; color: #94A0A6">LISTENING RHYTHM · SINCE OCT 13</div>
+<h2 class="disp" style="margin: 6px 0 0; font-size: 28px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; line-height: 1.05">Mostly a night listener</h2>
+
+<div style="display: flex; gap: 14px; align-items: center; margin-top: 14px">
+<svg viewBox="0 0 200 200" width="168" height="168" role="img" aria-label="Plays by hour of day, midnight at the top. Most listening falls between 7 pm and 2 am.">
+<circle cx="100" cy="100" r="44" fill="none" stroke="rgba(239,233,223,.12)"></circle>
+<path d="{{pNight}}" stroke="#8E7CC3" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pDawn}}" stroke="#E7A7B8" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pMorning}}" stroke="#9FD8E8" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pMidday}}" stroke="#EFE9DF" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pAfternoon}}" stroke="#D9C7A0" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pGolden}}" stroke="#FFB85E" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="{{pTwilight}}" stroke="#FF9E2C" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<text x="100" y="20" text-anchor="middle" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">12 AM</text>
+<text x="100" y="190" text-anchor="middle" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">NOON</text>
+<text x="100" y="97" text-anchor="middle" fill="#EFE9DF" font-family="Antonio, sans-serif" font-size="22" font-weight="600">92</text>
+<text x="100" y="111" text-anchor="middle" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="8">PLAYS</text>
+</svg>
+<ul class="mono" style="list-style: none; margin: 0; padding: 0; font-size: 10.5px; letter-spacing: .04em; display: flex; flex-direction: column; gap: 5px; flex: 1">
+<sc-for list="{{legend}}" as="l" hint-placeholder-count="7">
+<li style="display: flex; align-items: center; gap: 7px"><span style="width: 9px; height: 9px; border-radius: 2px; background: {{l.c}}; flex: 0 0 auto" aria-hidden="true"></span><span style="flex: 1; color: #94A0A6">{{l.n}}</span><b style="font-weight: 500">{{l.p}}</b></li>
+</sc-for>
+</ul>
+</div>
+
+<div class="mono" style="font-size: 10px; letter-spacing: .14em; color: #94A0A6; margin-top: 16px">A RECORD FOR EACH HOUR</div>
+<sc-for list="{{records}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(239,233,223,.10)">
+<div style="width: 40px; height: 40px; border-radius: 3px; background: {{r.art}}; flex: 0 0 auto" aria-hidden="true"></div>
+<div style="flex: 1; min-width: 0">
+<div class="mono" style="font-size: 9.5px; letter-spacing: .1em; color: {{r.c}}">{{r.when}}</div>
+<div style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Album title] · [Artist]</div>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section style="margin: 12px 14px 0; padding: 4px 16px; background: rgba(10,14,18,.42); border: 1px solid rgba(239,233,223,.10); border-radius: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0">
+<div class="k">Show my rhythm on my crate<em>Friends see only the percentages and the verdict, never plays or times.</em></div>
+<div class="seg"><button aria-pressed="false">On</button><button aria-pressed="true">Off</button></div>
+</div>
+</section>
+
+<section aria-label="Before 20 plays" style="margin: 12px 14px 0; padding: 14px 16px; border: 1px dashed rgba(239,233,223,.22); border-radius: 8px">
+<div class="mono" style="font-size: 9.5px; letter-spacing: .14em; color: #94A0A6">BEFORE 20 PLAYS · LOCKED STATE</div>
+<div style="font-size: 13px; margin-top: 6px">Listen a little more and your rhythm will show here.</div>
+<div style="height: 4px; border-radius: 2px; background: rgba(239,233,223,.12); margin-top: 10px"><div style="width: 60%; height: 4px; border-radius: 2px; background: #FF9E2C"></div></div>
+<div class="mono" style="font-size: 10px; color: #94A0A6; margin-top: 6px">12 OF 20 PLAYS</div>
+</section>
+
+<div style="flex-grow: 1"></div>
+<nav aria-label="Tabs" class="mono" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; font-size: 10.5px; letter-spacing: .12em; padding: 10px 6px 22px; background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.10)">
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">LIBRARY</a>
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">HOME</a>
+<a href="Main.dc.html" style="color: #94A0A6; text-decoration: none; padding: 8px 0">SUNDOWN</a>
+<a href="#" aria-current="page" style="color: #FF9E2C; text-decoration: none; padding: 8px 0">PROFILE</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":920}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const plays = [6,4,2,1,0,0,1,2,3,3,2,2,2,2,3,3,4,5,6,8,9,9,8,7];
+    const phaseOf = h => h <= 5 ? 'night' : h === 6 ? 'dawn' : h <= 10 ? 'morning' : h <= 13 ? 'midday' : h <= 16 ? 'afternoon' : h === 17 ? 'golden' : h === 18 ? 'twilight' : 'night';
+    const paths = { night: '', dawn: '', morning: '', midday: '', afternoon: '', golden: '', twilight: '' };
+    const max = 9;
+    plays.forEach((n, h) => {
+      if (!n) return;
+      const a = ((h + 0.5) / 24) * Math.PI * 2 - Math.PI / 2;
+      const r1 = 50, r2 = 50 + (n / max) * 38;
+      const x1 = (100 + r1 * Math.cos(a)).toFixed(1), y1 = (100 + r1 * Math.sin(a)).toFixed(1);
+      const x2 = (100 + r2 * Math.cos(a)).toFixed(1), y2 = (100 + r2 * Math.sin(a)).toFixed(1);
+      paths[phaseOf(h)] += 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2 + ' ';
+    });
+    return {
+      pNight: paths.night, pDawn: paths.dawn, pMorning: paths.morning, pMidday: paths.midday,
+      pAfternoon: paths.afternoon, pGolden: paths.golden, pTwilight: paths.twilight,
+      legend: [
+        { n: 'Night', p: '58%', c: '#8E7CC3' },
+        { n: 'Morning', p: '11%', c: '#9FD8E8' },
+        { n: 'Afternoon', p: '11%', c: '#D9C7A0' },
+        { n: 'Midday', p: '7%', c: '#EFE9DF' },
+        { n: 'Twilight', p: '7%', c: '#FF9E2C' },
+        { n: 'Golden hour', p: '5%', c: '#FFB85E' },
+        { n: 'Dawn', p: '1%', c: '#E7A7B8' }
+      ],
+      records: [
+        { when: 'YOUR NIGHT RECORD', c: '#8E7CC3', art: 'linear-gradient(135deg, #2A2140, #120E19)' },
+        { when: 'YOUR DUSK RECORD', c: '#FF9E2C', art: 'linear-gradient(135deg, #5A3020, #1A1018)' },
+        { when: 'YOUR MORNING RECORD', c: '#9FD8E8', art: 'linear-gradient(135deg, #2E5866, #102029)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

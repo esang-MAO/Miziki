@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown tab previewing night, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(239,233,223,.14)}
+.k{font-size:13.5px}
+.k em{display:block;font-style:normal;font-size:11.5px;color:#94A0A6;margin-top:2px;line-height:1.45}
+.seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:7px 10px;border:1px solid rgba(239,233,223,.14);border-radius:3px;background:transparent;color:#94A0A6;min-height:32px}
+.seg button[aria-pressed="true"]{border-color:#FF9E2C;color:#EFE9DF;background:rgba(255,158,44,.12)}
+.sec{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#94A0A6;margin:20px 0 2px;text-transform:uppercase}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; box-sizing: border-box; background: linear-gradient(180deg, #120E19 0%, #08070C 70%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 6px">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase">Sundown</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .12em; color: #2A1B38; background: #FF9E2C; border-radius: 12px; padding: 5px 10px">PREVIEW · 11:40 PM</span>
+</header>
+<div role="tablist" aria-label="Sundown view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 18px 4px; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<a href="Main.dc.html" role="tab" aria-selected="true" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #EFE9DF; background: rgba(255,158,44,.14); border-bottom: 2px solid #FF9E2C">DAY</a>
+<a href="Character.dc.html" role="tab" aria-selected="false" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #94A0A6">SOUND</a>
+</div>
+
+<section aria-label="The day arc" style="margin: 6px 18px 0; padding: 14px 12px 10px; background: rgba(10,14,18,.42); border: 1px solid rgba(239,233,223,.10); border-radius: 6px">
+<svg viewBox="0 0 342 160" width="318" height="149" role="img" aria-label="Night. The sun is below the horizon; the moon marks 11:40 pm, about two fifths of the way from dusk to dawn.">
+<line x1="0" y1="118" x2="342" y2="118" stroke="rgba(239,233,223,.22)" stroke-width="1"></line>
+<path d="M70,118 A101,92 0 0 1 272,118" fill="none" stroke="rgba(239,233,223,.16)" stroke-width="1.5"></path>
+<path d="M320,118 A149,30 0 0 1 22,118" fill="none" stroke="rgba(159,216,232,.55)" stroke-width="1.5" stroke-dasharray="2 4"></path>
+<rect x="22" y="116" width="48" height="4" rx="2" fill="#9FD8E8" opacity=".35"></rect>
+<rect x="272" y="116" width="48" height="4" rx="2" fill="#FF9E2C" opacity=".35"></rect>
+<g stroke="rgba(239,233,223,.45)" stroke-width="1">
+<line x1="22" y1="112" x2="22" y2="124"></line>
+<line x1="70" y1="112" x2="70" y2="124"></line>
+<line x1="171" y1="22" x2="171" y2="30"></line>
+<line x1="272" y1="112" x2="272" y2="124"></line>
+<line x1="320" y1="112" x2="320" y2="124"></line>
+</g>
+<circle cx="219" cy="146" r="7" fill="#EFE9DF"></circle>
+<circle cx="222.5" cy="143.5" r="6" fill="#120E19"></circle>
+<g fill="#EFE9DF" opacity=".55">
+<circle cx="40" cy="30" r="1"></circle><circle cx="96" cy="16" r="1.2"></circle><circle cx="250" cy="24" r="1"></circle><circle cx="300" cy="52" r="1.2"></circle><circle cx="150" cy="60" r=".9"></circle>
+</g>
+</svg>
+<div class="mono" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); font-size: 9.5px; letter-spacing: .06em; color: #94A0A6; text-align: center; margin-top: 2px">
+<span>DAWN<br><b style="color: #EFE9DF; font-weight: 500">6:50</b></span>
+<span>SUNRISE<br><b style="color: #EFE9DF; font-weight: 500">7:17</b></span>
+<span>NOON<br><b style="color: #EFE9DF; font-weight: 500">12:54</b></span>
+<span>SUNSET<br><b style="color: #EFE9DF; font-weight: 500">6:33</b></span>
+<span>DUSK<br><b style="color: #EFE9DF; font-weight: 500">7:00</b></span>
+</div>
+</section>
+
+<section style="padding: 16px 18px 0">
+<div class="mono" style="font-size: 10px; letter-spacing: .14em; color: #FF9E2C">PREVIEWING · 11:40 PM</div>
+<div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px">
+<h2 class="disp" style="margin: 0; font-size: 38px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; line-height: 1">Night</h2>
+<span style="font-size: 13px; color: #94A0A6">Settled at 0.80×</span>
+</div>
+<div class="row" style="margin-top: 8px">
+<div class="k">Now playing at<em>Holds until dawn, then rises</em></div>
+<div class="mono" style="font-size: 13px; color: #FF9E2C">0.800× · −3.9 st</div>
+</div>
+</section>
+
+<section style="padding: 0 18px">
+<div class="sec">Sundown · evening</div>
+<div class="row">
+<div class="k">Full-night rate<em>How far down the platter settles</em></div>
+<div class="seg"><button aria-pressed="false">0.85</button><button aria-pressed="true">0.80</button><button aria-pressed="false">0.75</button></div>
+</div>
+<div class="sec">Sunrise · morning</div>
+<div class="row">
+<div class="k">Rise at dawn<em>Starts at 6:50 am, full speed by 7:17</em></div>
+<div class="mono" style="font-size: 10.5px; color: #94A0A6; text-align: right; white-space: nowrap">IN<br>7 H 10 M</div>
+</div>
+<div class="row" style="border-bottom: 0">
+<div class="k">Day drift<em>Character now: warmer and softer (night)</em></div>
+<a href="Character.dc.html" class="mono" style="font-size: 10.5px; letter-spacing: .08em; text-decoration: none; border: 1px solid rgba(239,233,223,.14); border-radius: 3px; padding: 8px 10px">SUBTLE ›</a>
+</div>
+</section>
+
+<section style="padding: 6px 18px 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<label for="previewDayN" style="font-size: 13.5px">Preview the day</label>
+<b class="mono" style="font-size: 11px; color: #FF9E2C; letter-spacing: .1em">11:40 PM</b>
+</div>
+<input id="previewDayN" type="range" min="0" max="1440" value="291" style="width: 100%; accent-color: #FF9E2C; margin: 10px 0 2px">
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 9.5px; color: #94A0A6; letter-spacing: .06em"><span>NOW</span><span>MIDNIGHT</span><span>DAWN</span><span>NOON</span><span>NOW</span></div>
+<p style="font-size: 12px; color: #94A0A6; line-height: 1.55; margin: 12px 0 0">Speed, sound, sky and theme follow the previewed time. Plays and stats never count while previewing.</p>
+<a href="Main.dc.html" class="mono" style="display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: .1em; color: #EFE9DF; text-decoration: none; border: 1px solid rgba(239,233,223,.25); border-radius: 3px; padding: 11px 14px">BACK TO LIVE</a>
+</section>
+
+<div style="flex-grow: 1"></div>
+
+<nav aria-label="Tabs" class="mono" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; font-size: 10.5px; letter-spacing: .12em; padding: 10px 6px 22px; background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.10)">
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">LIBRARY</a>
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">HOME</a>
+<a href="Main.dc.html" aria-current="page" style="color: #FF9E2C; text-decoration: none; padding: 8px 0">SUNDOWN</a>
+<a href="Rhythm.dc.html" style="color: #94A0A6; text-decoration: none; padding: 8px 0">PROFILE</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

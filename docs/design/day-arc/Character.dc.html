@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown tab, Sound view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(239,233,223,.14)}
+.k{font-size:13.5px}
+.k em{display:block;font-style:normal;font-size:11.5px;color:#94A0A6;margin-top:2px;line-height:1.45}
+.seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:7px 10px;border:1px solid rgba(239,233,223,.14);border-radius:3px;background:transparent;color:#94A0A6;min-height:32px}
+.seg button[aria-pressed="true"]{border-color:#FF9E2C;color:#EFE9DF;background:rgba(255,158,44,.12)}
+.sec{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#94A0A6;margin:20px 0 4px;text-transform:uppercase}
+.sl{padding:10px 0 12px;border-bottom:1px solid rgba(239,233,223,.14)}
+.slh{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px}
+.slv{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#94A0A6;letter-spacing:.04em}
+.slv b{color:#9FD8E8;font-weight:500}
+.trk{position:relative;height:4px;border-radius:2px;background:rgba(239,233,223,.12);margin-top:12px}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#FF9E2C}
+.thumb{position:absolute;top:-7px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#EFE9DF;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.now{position:absolute;top:-6px;width:2px;height:16px;margin-left:-1px;background:#9FD8E8}
+.ap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ap button{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:10px 8px;border:1px solid rgba(239,233,223,.14);border-radius:3px;background:transparent;color:#94A0A6;min-height:44px}
+.ap button[aria-pressed="true"]{border-color:#FF9E2C;color:#EFE9DF;background:rgba(255,158,44,.12)}
+a{color:#FF9E2C}
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; box-sizing: border-box; background: linear-gradient(180deg, #3B2130 0%, #1A1018 62%, #0D0B13 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 18px 4px">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase">Sundown</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .12em; color: #94A0A6; border: 1px solid rgba(239,233,223,.14); border-radius: 12px; padding: 5px 10px">VINYL · TWILIGHT</span>
+</header>
+<div role="tablist" aria-label="Sundown view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 18px 4px; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<a href="Main.dc.html" role="tab" aria-selected="false" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #94A0A6">DAY</a>
+<a href="Character.dc.html" role="tab" aria-selected="true" class="mono" style="text-align: center; padding: 12px 0; font-size: 11px; letter-spacing: .16em; text-decoration: none; color: #EFE9DF; background: rgba(255,158,44,.14); border-bottom: 2px solid #FF9E2C">SOUND</a>
+</div>
+<p style="font-size: 12px; color: #94A0A6; line-height: 1.55; margin: 8px 18px 0">Character: the Vinyl sound, in the order a record makes it. Your settings are the midday sound; the day drifts them gently around it. Pure ignores all of this.</p>
+
+<section style="padding: 4px 18px 0" aria-label="Character settings">
+<div class="sl">
+<div class="slh"><span>Wow &amp; flutter</span><span class="slv">YOU 30% · NOW <b>31%</b></span></div>
+<div class="trk"><div class="fill" style="width: 30%"></div><div class="now" style="left: 31%"></div><div class="thumb" style="left: 30%"></div></div>
+</div>
+<div class="sl">
+<div class="slh"><span>Saturation</span><span class="slv">YOU 35% · NOW <b>39%</b></span></div>
+<div class="trk"><div class="fill" style="width: 35%"></div><div class="now" style="left: 39%"></div><div class="thumb" style="left: 35%"></div></div>
+</div>
+<div class="sl">
+<div class="slh"><span>Top-end softening</span><span class="slv">YOU 40% · NOW <b>47%</b></span></div>
+<div class="trk"><div class="fill" style="width: 40%"></div><div class="now" style="left: 47%"></div><div class="thumb" style="left: 40%"></div></div>
+</div>
+<div class="sl" style="border-bottom: 0">
+<div class="slh"><span>Bus compression</span><span class="slv">YOU 35% · NOW <b>38%</b></span></div>
+<div class="trk"><div class="fill" style="width: 35%"></div><div class="now" style="left: 38%"></div><div class="thumb" style="left: 35%"></div></div>
+</div>
+<div class="mono" style="display: flex; gap: 14px; font-size: 9.5px; color: #94A0A6; letter-spacing: .08em; margin-top: 4px">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #EFE9DF" aria-hidden="true"></span>YOUR SETTING</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 2px; height: 12px; background: #9FD8E8" aria-hidden="true"></span>WHERE THE DAY HAS IT NOW</span>
+</div>
+</section>
+
+<section style="padding: 0 18px">
+<div class="sec">Day drift</div>
+<div class="row">
+<div class="k">Drift with the day<em>Mornings brighter and more open, nights warmer and softer.</em></div>
+<div class="seg"><button aria-pressed="false">Off</button><button aria-pressed="true">Subtle</button><button aria-pressed="false">Full</button></div>
+</div>
+<div style="padding: 10px 0 4px">
+<svg viewBox="0 0 354 70" width="354" height="70" role="img" aria-label="Today's drift of top-end softening: lowest in the morning, zero at midday, highest at night. Now is twilight, rising toward the night level.">
+<line x1="0" y1="35" x2="354" y2="35" stroke="rgba(239,233,223,.18)" stroke-dasharray="2 4"></line>
+<path d="M0,14 C30,14 50,16 70,30 C90,48 105,56 120,56 C150,56 160,40 177,35 C200,30 230,32 255,26 C275,20 290,16 310,14 C330,13 344,14 354,14" fill="none" stroke="#9FD8E8" stroke-width="1.6"></path>
+<circle cx="292" cy="16.5" r="4.5" fill="#FF9E2C"></circle>
+<text x="0" y="68" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">MIDNIGHT</text>
+<text x="96" y="68" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">MORNING</text>
+<text x="160" y="68" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">NOON</text>
+<text x="268" y="68" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">NOW</text>
+<text x="318" y="10" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9">WARMER</text>
+<text x="104" y="52" fill="#94A0A6" font-family="IBM Plex Mono, monospace" font-size="9" text-anchor="end">BRIGHTER</text>
+</svg>
+</div>
+<div class="row" style="border-bottom: 0">
+<div class="k">Scratch<em>Spinning the record plays it, forward and back</em></div>
+<div class="seg"><button aria-pressed="true">On</button><button aria-pressed="false">Off</button></div>
+</div>
+</section>
+
+
+<div style="flex-grow: 1"></div>
+<nav aria-label="Tabs" class="mono" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; font-size: 10.5px; letter-spacing: .12em; padding: 10px 6px 22px; background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.10)">
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">LIBRARY</a>
+<a href="#" style="color: #94A0A6; text-decoration: none; padding: 8px 0">HOME</a>
+<a href="Main.dc.html" aria-current="page" style="color: #FF9E2C; text-decoration: none; padding: 8px 0">SUNDOWN</a>
+<a href="Rhythm.dc.html" style="color: #94A0A6; text-decoration: none; padding: 8px 0">PROFILE</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
