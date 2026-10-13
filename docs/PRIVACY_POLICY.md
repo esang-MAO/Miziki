@@ -77,7 +77,7 @@ delete it or delete your account.
 
 ## Who can use Miziki
 
-You must be at least **13 years old** to create an account. You must own,
+You must be at least **16 years old** to create an account. You must own,
 or otherwise have the right to play, any music you add to your library.
 
 ## Community rules

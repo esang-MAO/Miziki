@@ -21,7 +21,7 @@ crate with friends — but the player works fully without ever signing in.
 
 ## Who can use it
 
-You must be at least 13 years old to create an account. You must own, or
+You must be at least 16 years old to create an account. You must own, or
 otherwise have the legal right to play, every piece of music you add to
 your library. Miziki doesn't provide or sell music — it only plays files
 you already have.

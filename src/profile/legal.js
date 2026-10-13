@@ -76,7 +76,7 @@ export function renderPrivacyPolicyScreen(body){
   ]);
 
   section(body, 'Who can use Miziki', [
-    'You must be at least 13 years old to create an account. You must own, or otherwise have the right to play, any music you add to your library.',
+    'You must be at least 16 years old to create an account. You must own, or otherwise have the right to play, any music you add to your library.',
   ]);
 
   section(body, 'Community rules', [
@@ -105,7 +105,7 @@ export function renderTermsScreen(body){
   ]);
 
   section(body, 'Who can use it', [
-    'You must be at least 13 years old to create an account. You must own, or otherwise have the legal right to play, every piece of music you add to your library. Miziki doesn’t provide or sell music — it only plays files you already have.',
+    'You must be at least 16 years old to create an account. You must own, or otherwise have the legal right to play, every piece of music you add to your library. Miziki doesn’t provide or sell music — it only plays files you already have.',
   ]);
 
   section(body, 'Your account', [
