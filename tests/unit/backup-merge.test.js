@@ -17,7 +17,7 @@ function baseLocal(deviceId, overrides){
     deviceId, historyClearedAt: 0, tracks: [],
     playlists: [], albumOrder: {}, albumSort: {},
     albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
-    prefs: {}, profileName: '',
+    prefs: {}, profileName: '', picture: null,
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
     trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
@@ -226,6 +226,92 @@ test('round trip: toDoc -> fromDocs with no other devices reproduces this device
   assert.equal(merged.totals.counters.sessionCounts.Album, 2);
   assert.deepEqual(merged.totals.rareUnlocked, { Album: true });
   assert.deepEqual(merged.lastWrite.playlists[0].items, [trackIdentityKey(t)]);
+});
+
+// ---- step 07 (B4): custom-cover images, per-track last write wins ----
+
+test('covers: a later cover change on another device wins over an earlier one', () => {
+  const t = mkTrack('local-a', 'Song', 'Artist', 'Album');
+  const key = trackIdentityKey(t);
+  const a = baseLocal('a', { tracks: [t], overlaysRaw: [{ id: 'local-a', cover: { hash: 'old-hash', updatedAt: 100 } }] });
+  const b = toDoc(baseLocal('b', { tracks: [t], overlaysRaw: [{ id: 'local-a', cover: { hash: 'new-hash', updatedAt: 200 } }] }));
+  const merged = fromDocs(a, [b]);
+  assert.equal(merged.covers[key].hash, 'new-hash');
+  assert.equal(merged.covers[key].at, 200);
+});
+
+test('covers: an earlier cover change never beats a later one, regardless of row order', () => {
+  const t = mkTrack('local-a', 'Song', 'Artist', 'Album');
+  const a = toDoc(baseLocal('a', { tracks: [t], overlaysRaw: [{ id: 'local-a', cover: { hash: 'new-hash', updatedAt: 200 } }] }));
+  const b = toDoc(baseLocal('b', { tracks: [t], overlaysRaw: [{ id: 'local-a', cover: { hash: 'old-hash', updatedAt: 100 } }] }));
+  const key = trackIdentityKey(t);
+  assert.equal(mergeRows([a, b]).covers[key].hash, 'new-hash');
+  assert.equal(mergeRows([b, a]).covers[key].hash, 'new-hash');
+});
+
+test('covers: a revert tombstone (hash: null) wins over an earlier cover set, same as overlays', () => {
+  const t = mkTrack('local-a', 'Song', 'Artist', 'Album');
+  const key = trackIdentityKey(t);
+  const a = baseLocal('a', { tracks: [t], overlaysRaw: [{ id: 'local-a', cover: { hash: 'some-hash', updatedAt: 100 } }] });
+  const b = toDoc(baseLocal('b', { tracks: [t], overlaysRaw: [{ id: 'local-a', reverted: true, revertedAt: 200 }] }));
+  const merged = fromDocs(a, [b]);
+  assert.equal(merged.covers[key].hash, null);
+  assert.equal(merged.covers[key].at, 200);
+});
+
+test('covers: a plain tag-only edit with no cover field makes no cover claim at all', () => {
+  const t = mkTrack('local-a', 'Song', 'Artist', 'Album');
+  const a = baseLocal('a', { tracks: [t], overlaysRaw: [{ id: 'local-a', fields: { title: 'Edited' }, editedAt: 100 }] });
+  assert.deepEqual(toDoc(a).covers, []);
+});
+
+test('covers: an unresolvable local id (track not currently present) is skipped, not crashed on', () => {
+  const a = baseLocal('a', { tracks: [], overlaysRaw: [{ id: 'ghost', cover: { hash: 'x', updatedAt: 1 } }] });
+  assert.deepEqual(toDoc(a).covers, []);
+});
+
+// ---- step 07 (B4): profile picture / public avatar, last write wins ----
+
+test('picture: a later profile-picture change on another device wins over an earlier one', () => {
+  const a = toDoc(baseLocal('a', { picture: { hash: 'old', updatedAt: 1 }, updatedAt: { picture: 1 } }));
+  const b = toDoc(baseLocal('b', { picture: { hash: 'new', updatedAt: 2 }, updatedAt: { picture: 2 } }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.lastWrite.picture, { hash: 'new', updatedAt: 2 });
+});
+
+test('picture: an unrelated, later change to a different field never clobbers an earlier picture change', () => {
+  const a = toDoc(baseLocal('a', { picture: { hash: 'mine', updatedAt: 500 }, updatedAt: { picture: 500 } }));
+  const b = toDoc(baseLocal('b', { prefs: { x: 1 }, updatedAt: { prefs: 9999 } }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.lastWrite.picture, { hash: 'mine', updatedAt: 500 });
+});
+
+// ---- schema v1 docs (pre-step-07, no covers/picture fields) must still load ----
+
+test('schema v1 compatibility: a doc with no covers/picture fields at all merges without throwing', () => {
+  const v1Doc = {
+    schemaVersion: 1, deviceId: 'old-device', historyClearedAt: 0,
+    counters: { trackPlayCounts: { k1: 3 } },
+    maxFields: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealed: { sealed: [], broken: [] },
+    lastWrite: { playlists: { at: 1, value: [] }, profileName: { at: 1, value: 'Old Name' } },
+    overlays: [],
+    // deliberately no `covers` key at all -- the pre-step-07 shape
+  };
+  const a = baseLocal('a', { trackPlayCounts: { k1: 1 } });
+  assert.doesNotThrow(() => fromDocs(a, [v1Doc]));
+  const merged = fromDocs(a, [v1Doc]);
+  assert.equal(merged.totals.counters.trackPlayCounts.k1, 4);
+  assert.deepEqual(merged.covers, {});          // no covers claimed by either side
+  // ownLocal's own (current-schema) doc always contributes a lastWrite.picture
+  // claim, even an unset one (value: null) -- the v1 remote row simply never
+  // out-competes it, since it has no claim of its own to offer at all
+  assert.equal(merged.lastWrite.picture, null);
+  assert.equal(merged.lastWrite.profileName, 'Old Name');
+});
+
+test('schema v1 compatibility: mergeRows on a bare v1-shaped row never throws reading .covers/.picture', () => {
+  assert.doesNotThrow(() => mergeRows([{ deviceId: 'x', lastWrite: {} }]));
 });
 
 // ---- F3 interaction ----

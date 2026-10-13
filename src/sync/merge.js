@@ -103,6 +103,21 @@ export function mergeOverlays(rows){
   return out;
 }
 
+// ---- cover images: last write wins per track identity key, same shape as
+// mergeOverlays above and for the same reason — a null hash is the
+// tombstone ("reverted to the file's own embedded art") and wins exactly
+// like any other newer value (step 07, B4, point 4) ----
+export function mergeCovers(rows){
+  const out = {};
+  for(const row of rows){
+    for(const entry of row.covers || []){
+      const prev = out[entry.identityKey];
+      if(!prev || (entry.at || 0) > (prev.at || 0)) out[entry.identityKey] = entry;
+    }
+  }
+  return out;
+}
+
 // ---- "Clear listening history" has to win everywhere (B2 doc, point 4) ----
 export function computeHistoryClearedAt(rows){
   let max = 0;
@@ -150,6 +165,7 @@ export function mergeRows(rows){
     },
     sealed: mergeSealed(rows),
     overlays: mergeOverlays(rows),
+    covers: mergeCovers(rows),
     lastWrite: {
       playlists: lastWriteWins(rows, 'playlists'),
       albumOrder: lastWriteWins(rows, 'albumOrder'),
@@ -160,6 +176,9 @@ export function mergeRows(rows){
       albumLookPref: lastWriteWins(rows, 'albumLookPref'),
       prefs: lastWriteWins(rows, 'prefs'),
       profileName: lastWriteWins(rows, 'profileName'),
+      // step 07, B4: the profile picture / public avatar — last write
+      // wins per field, the same shape as profileName right above it
+      picture: lastWriteWins(rows, 'picture'),
     },
   };
 }
