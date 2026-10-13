@@ -13,7 +13,7 @@
 .store-awning{display:flex;margin:0 0 16px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
 .store-awning > div{flex:1;height:22px;border-radius:0 0 22px 22px}
 .store-awning > div:nth-child(odd){background:var(--accent)}
-.store-awning > div:nth-child(even){background:var(--paper)}
+.store-awning > div:nth-child(even){background:var(--cream)}
 
 .store-header{display:flex;align-items:center;gap:16px}
 .store-gear{width:44px;height:44px;flex:none;color:var(--muted);font-size:17px;
@@ -54,7 +54,7 @@
 .store-stat.accent b{color:var(--accent)}
 
 .store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px}
-.store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--paper);color:#1A1410;
+.store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--cream);color:#1A1410;
   display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .store-card-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-card-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -81,7 +81,7 @@
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
   font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent)}
-.store-pick-note{transform:rotate(-1deg);background:var(--paper);color:#1A1410;border-radius:4px;padding:8px 10px;
+.store-pick-note{transform:rotate(-1deg);background:var(--cream);color:#1A1410;border-radius:4px;padding:8px 10px;
   font-size:12px;line-height:1.35;display:flex;flex-direction:column;gap:4px}
 .store-pick-stars{font-size:13px;letter-spacing:1.5px;color:#B8641A}
 .store-pick-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

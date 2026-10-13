@@ -1,6 +1,6 @@
 /* ---------- full player overlay ---------- */
 .player-overlay{position:fixed;inset:0;z-index:100;
-  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,#07080C 100%);
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%);
   transform:translateY(100%);transition:transform var(--sheet-duration,350ms) cubic-bezier(.32,.72,0,1);
   overflow-y:auto;overflow-x:hidden;
   padding:calc(14px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}

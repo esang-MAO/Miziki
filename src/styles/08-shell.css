@@ -2,7 +2,7 @@
 .mini-player{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));
   max-width:520px;margin:0 auto;z-index:40;
   display:flex;align-items:center;gap:10px;padding:8px 10px;
-  background:rgba(10,14,18,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line)}
 .mini-tap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
 .mini-indicator{position:relative;width:38px;height:38px;flex:0 0 auto}
@@ -28,7 +28,7 @@
 .mini-play.tbtn{flex:0 0 auto;width:36px;height:36px;font-size:12px}
 
 .tabbar{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:40;
-  display:flex;background:rgba(10,14,18,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:flex;background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
 .tabbar-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
