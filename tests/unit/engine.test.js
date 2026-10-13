@@ -41,7 +41,7 @@ mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
 
-const { satCurve, buildGraph, routeSource } = await import('../../src/audio/engine.js');
+const { satCurve, buildGraph, routeSource, applyCharacter } = await import('../../src/audio/engine.js');
 const { S } = await import('../../src/state.js');
 
 test('satCurve(0) is an identity curve with trim 1', () => {
@@ -72,8 +72,8 @@ for (const amount of [0.35, 1]) {
 }
 
 class FakeParam {
-  constructor(value) { this.value = value; }
-  setTargetAtTime() {}
+  constructor(value) { this.value = value; this.lastTarget = null; }
+  setTargetAtTime(target) { this.lastTarget = target; }
 }
 
 class FakeNode {
@@ -128,4 +128,55 @@ test('routeSource connects to wobble in Vinyl mode', () => {
   routeSource(src);
   assert.ok(src.connections.includes(S.nodes.wobble));
   assert.ok(!src.connections.includes(S.nodes.master));
+});
+
+// DA2 (docs/DAY_ARC.md): a real "night" day position (the same
+// legacy-partial-data S.sun shape solar.test.js's own pastDusk fixture
+// uses — set+dusk in the past, no dawn/rise, which dayPosition() reads as
+// flat night) so Full-intensity drift would be nonzero if it weren't
+// gated — this is what makes the Pure test below meaningful rather than
+// vacuously true (currentDayPosition() falls back to a flat midday,
+// drift-free regardless of mode, whenever S.sun.ok is false).
+const now = Date.now();
+S.sun = { lat: 39.20, lon: -76.86, set: new Date(now - 60 * 60000), dusk: new Date(now - 30 * 60000), ok: true };
+
+test('applyCharacter: Pure never applies drift, even at Full intensity and full night', () => {
+  S.mode = 'pure';
+  S.charDrift = 'full';
+  S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
+  S.ctx = { currentTime: 0 };
+  S.nodes = buildGraph(makeFakeContext());
+  applyCharacter();
+  // undrifted: soft 0.40 -> tone gain -9*0.40; drifted (Night, Full) would
+  // instead be soft 0.60 -> -5.4, so this also confirms the gate actually
+  // does something, not just that nothing threw.
+  assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
+  assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
+});
+
+test('applyCharacter: Vinyl applies the Night drift at Full intensity', () => {
+  S.mode = 'vinyl';
+  S.charDrift = 'full';
+  S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
+  S.ctx = { currentTime: 0 };
+  S.nodes = buildGraph(makeFakeContext());
+  applyCharacter();
+  // Night, Full: soft +0.20, comp +0.10 (docs/DAY_ARC.md's own table) — an
+  // epsilon-tolerant compare, same EPS as satCurve's own above, since
+  // -9*0.60 and effectiveChar()'s clamp(0.40+0.20,0,1)-derived value can
+  // differ by a float ULP (-5.3999999999999995 vs -5.4) despite being
+  // mathematically identical.
+  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.60)) < EPS);
+  assert.ok(Math.abs(S.nodes.comp.threshold.lastTarget - (-6 - 18 * 0.45)) < EPS);
+});
+
+test('applyCharacter: Vinyl with intensity off matches the user\'s own raw sliders, same as Pure', () => {
+  S.mode = 'vinyl';
+  S.charDrift = 'off';
+  S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
+  S.ctx = { currentTime: 0 };
+  S.nodes = buildGraph(makeFakeContext());
+  applyCharacter();
+  assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
+  assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
 });
