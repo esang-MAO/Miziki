@@ -4,6 +4,7 @@ import { timeAgoShort } from './storefront.js';
 import { renderProfile } from './screens.js';
 import { renderHome } from '../social/screens/home.js';
 import { wirePrivacyLink } from './privacy.js';
+import { legalLinksRow } from './legal.js';
 import { getBackupStatus, listBackupDevices } from '../sync/backup.js';
 
 let socialAuth = null;
@@ -99,6 +100,10 @@ function renderSocialAuthEmail(title, body){
     socialAuth.email = email; socialAuth.step = 'code';
     renderSocialAuth();
   }, socialAuth.busy));
+  // closeSocialAuth first — otherwise the sign-in modal would stay open on
+  // top of the profile screen underneath it once renderProfile() runs.
+  body.appendChild(el('p','note','By continuing, you agree to our Privacy Policy and Terms of use.'));
+  body.appendChild(legalLinksRow(renderProfile, closeSocialAuth));
 }
 
 function renderSocialAuthCode(title, body){
