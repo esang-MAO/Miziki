@@ -6,15 +6,20 @@ export function setMode(m){
   S.mode = m;
   const vinyl = m === 'vinyl';
   document.documentElement.style.setProperty('--accent', vinyl ? 'var(--amber)' : 'var(--cool)');
-  $('#modeVinyl').setAttribute('aria-pressed', String(vinyl));
-  $('#modePure').setAttribute('aria-pressed', String(!vinyl));
+  // CEREMONY (docs/CEREMONY.md, §1): one toggle, not a two-button group —
+  // a real switch (role="switch", aria-checked) whose own label text
+  // reads the current mode, same as the mockup's "Label reads the
+  // current mode" requirement.
+  const toggle = $('#modeToggle'), label = $('#modeToggleLabel');
+  if(toggle) toggle.setAttribute('aria-checked', String(vinyl));
+  if(label) label.textContent = vinyl ? 'Vinyl' : 'Pure';
   // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own mode
-  // buttons mirror the same state — null-guarded the same way drawSun()
+  // toggle mirrors the same state — null-guarded the same way drawSun()
   // guards its sidebar mirror, since these ids exist only in the player
   // bar's own markup (miziki.html), hidden below 1024px by CSS.
-  const barVinyl = $('#barModeVinyl'), barPure = $('#barModePure');
-  if(barVinyl) barVinyl.setAttribute('aria-pressed', String(vinyl));
-  if(barPure) barPure.setAttribute('aria-pressed', String(!vinyl));
+  const barToggle = $('#barModeToggle'), barLabel = $('#barModeToggleLabel');
+  if(barToggle) barToggle.setAttribute('aria-checked', String(vinyl));
+  if(barLabel) barLabel.textContent = vinyl ? 'Vinyl' : 'Pure';
   $('#modeTag').textContent = m;
   $('#modeNote').textContent = vinyl
     ? 'Vinyl adds character on purpose: platter wobble, gentle saturation, a softer top end, a light squeeze. Dial it in under Character.'

@@ -506,9 +506,15 @@
     <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
     <span class="mini-bar-time" id="barTotal">0:00</span>
   </div>
+  <!-- CEREMONY (docs/CEREMONY.md, §1): the bar mirrors the same single
+       toggle, same rule as every other D4 bar control — a new id driving
+       the exact same setMode(), never a clone of the full player's own
+       #modeToggle. -->
   <div class="mini-bar-modes" id="miniBarModes">
-    <button class="mini-bar-mode" id="barModePure" aria-pressed="false">Pure</button>
-    <button class="mini-bar-mode" id="barModeVinyl" aria-pressed="true">Vinyl</button>
+    <button class="mini-bar-mode-toggle" id="barModeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
+      <span class="mode-toggle-track mode-toggle-track-sm"><i class="mode-toggle-thumb mode-toggle-thumb-sm"></i></span>
+      <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
+    </button>
   </div>
 </div>
 
@@ -665,9 +671,15 @@
       </button>
     </div>
 
+    <!-- CEREMONY (docs/CEREMONY.md, §1): one toggle replaces the old
+         #modePure/#modeVinyl two-button group. A real switch — Space/
+         Enter toggles it the same as a tap — whose own label text
+         reads the current mode ("Vinyl"/"Pure"), set by setMode(). -->
     <div class="modes">
-      <button class="mode" id="modePure" aria-pressed="false"><b>Pure</b><i>reference path</i></button>
-      <button class="mode" id="modeVinyl" aria-pressed="true"><b>Vinyl</b><i>character on</i></button>
+      <button class="mode-toggle" id="modeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
+        <span class="mode-toggle-track"><i class="mode-toggle-thumb"></i></span>
+        <span class="mode-toggle-text" id="modeToggleLabel">Vinyl</span>
+      </button>
     </div>
     <p class="mode-note" id="modeNote"></p>
     </div>
