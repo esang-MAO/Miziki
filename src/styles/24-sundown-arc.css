@@ -8,7 +8,7 @@
    in its own media query below, not in 23-desktop.css. */
 
 .sd-tabs{
-  display:flex; gap:4px; margin-bottom:14px;
+  display:flex; gap:4px; margin-bottom:14px; position:relative;
   border-bottom:1px solid var(--line);
 }
 .sd-tabs button{
@@ -17,8 +17,23 @@
   cursor:pointer; border-bottom:2px solid transparent;
 }
 .sd-tabs button[aria-selected="true"]{
-  color:var(--paper); border-bottom-color:var(--accent);
+  color:var(--paper);
   background:color-mix(in srgb, var(--accent) 8%, transparent);
+}
+/* NV5 (docs/11_SMOOTH_NAVIGATION.md): one shared underline that slides
+   between the two tabs' own halves, replacing each button's own static
+   border-bottom-color swap above (still present as a transparent spacer,
+   so neither button's own height/layout shifts when selected). Assumes
+   exactly two equal-width (flex:1) tabs, same as this row has always had
+   -- a third tab would need this generalized to read each button's own
+   offsetLeft/offsetWidth instead of a fixed 50%. */
+.sd-tabs-indicator{
+  position:absolute; left:0; bottom:-1px; width:50%; height:2px;
+  background:var(--accent); transform:translateX(0); transition:transform .2s ease;
+}
+.sd-tabs[data-selected="sound"] .sd-tabs-indicator{transform:translateX(100%)}
+@media (prefers-reduced-motion:reduce){
+  .sd-tabs-indicator{transition:none}
 }
 
 .sd-eyebrow{

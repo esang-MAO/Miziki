@@ -204,9 +204,16 @@
          these two buttons (and src/shell/routes.js's own
          selectSundownView(), which this calls) to flip which of the two
          views below is visible and remember the choice per device. -->
+    <!-- NV5 (docs/11_SMOOTH_NAVIGATION.md): the sliding underline itself --
+         src/shell/routes.js's selectSundownView() sets .sd-tabs' own
+         [data-selected] attribute; src/styles/24-sundown-arc.css's
+         .sd-tabs-indicator slides between the two tabs' own halves off
+         that one attribute, so there's exactly one indicator, not a
+         separately-colored border under each button any more. -->
     <div class="sd-tabs" role="tablist" aria-label="Sundown view">
       <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
       <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
+      <span class="sd-tabs-indicator" aria-hidden="true"></span>
     </div>
 
     <!-- DAY -->
