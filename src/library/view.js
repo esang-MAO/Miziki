@@ -24,11 +24,58 @@ import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
 import { renderSidebarPlaylists } from '../shell/sidebar.js';
 import {
-  librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
+  librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
 } from './search.js';
 import { centerEmptyState, renderCrate } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
+
+// NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
+// on a single screen (~400+), the first screenful renders synchronously —
+// so the tab paints immediately — and the rest trickle in a chunk at a
+// time during idle time, so a huge library never costs one giant
+// synchronous append that could block a tap or audio. iOS Safari has no
+// requestIdleCallback at all, so setTimeout is the universal fallback;
+// either way each chunk is small enough to never show up as a long task.
+// viewRenderGen is a generation token, the same "stale work gives up
+// gracefully" shape as S.gen for audio sources (CLAUDE.md rule 9) — it lets
+// a still-running chunk job notice the view moved on (another render, a
+// tab switch, a new search) and quietly stop instead of appending into a
+// list nobody's looking at any more.
+const CHUNK_THRESHOLD = 400;
+const CHUNK_FIRST = 60;
+const CHUNK_SIZE = 120;
+let viewRenderGen = 0;
+
+function scheduleIdle(fn){
+  if(typeof requestIdleCallback === 'function') requestIdleCallback(fn, {timeout: 200});
+  else setTimeout(fn, 0);
+}
+
+// Appends one row per item into `host` via makeRow(item, pos). At or under
+// CHUNK_THRESHOLD items this is exactly a plain forEach (the previous,
+// fully-synchronous behavior, unchanged for every library this size or
+// smaller). Past it, the first CHUNK_FIRST rows still render synchronously
+// — so the screen the user is actually looking at is complete the instant
+// renderTracks() returns — and the rest render CHUNK_SIZE at a time on
+// later idle turns.
+function appendRowsChunked(host, items, makeRow){
+  if(items.length <= CHUNK_THRESHOLD){
+    items.forEach((item, pos) => host.appendChild(makeRow(item, pos)));
+    return;
+  }
+  const gen = viewRenderGen;
+  let at = 0;
+  const firstEnd = Math.min(CHUNK_FIRST, items.length);
+  for(; at < firstEnd; at++) host.appendChild(makeRow(items[at], at));
+  function next(){
+    if(gen !== viewRenderGen) return; // the view moved on — stop appending
+    const end = Math.min(at + CHUNK_SIZE, items.length);
+    for(; at < end; at++) host.appendChild(makeRow(items[at], at));
+    if(at < items.length) scheduleIdle(next);
+  }
+  if(at < items.length) scheduleIdle(next);
+}
 
 function artFor(indices){
   const withArt = indices.find(i => S.tracks[i].art);
@@ -43,7 +90,17 @@ export function songRow(i, queue, pos, extra){
   if(S.view.editSelecting && S.editSelection.has(t.id)) li.classList.add('picked');
   const idx = el('span','t-idx', String(pos + 1).padStart(2,'0'));
   li.appendChild(idx);
-  if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
+  if(t.art){
+    const im = el('img','t-art'); im.src = t.art; im.alt='';
+    // NV6 (docs/11_SMOOTH_NAVIGATION.md): a large library can have
+    // thousands of these — lazy/async decoding keeps an off-screen row's
+    // art from costing anything until it's actually scrolled near, and the
+    // fixed width/height (matching .t-art's own CSS, 02-stage-platter.css)
+    // means the browser never has to reflow once the image actually loads.
+    im.loading = 'lazy'; im.decoding = 'async';
+    im.width = 34; im.height = 34;
+    li.appendChild(im);
+  }
   else li.appendChild(el('span','t-art'));
   const name = el('span','t-name');
   name.appendChild(el('b', null, t.tags.title));
@@ -60,7 +117,14 @@ export function songRow(i, queue, pos, extra){
   li.addEventListener('click', ()=>{
     if(S.view.editSelecting){ toggleEditSelect(t.id, li); return; }
     if(S.view.picking){ togglePick(i, li); return; }
-    setQueue(queue, pos, true);
+    // NV6: looked up live (rather than the `pos` this row was built with)
+    // so a row kept across library/search.js's own in-place search-result
+    // filtering — which narrows `queue` in place rather than rebuilding it,
+    // see that module's own filterSongsSection() — always plays from its
+    // current position in whatever `queue` now holds, never a stale one.
+    // Every other caller still gets the exact same value `pos` always was,
+    // since nothing else ever mutates a `queue` array after building it.
+    setQueue(queue, queue.indexOf(i), true);
   });
   if(extra) extra(li, i);
   return li;
@@ -202,7 +266,12 @@ export async function applyTrackNumbersInOrder(){
 export function groupRow(label, sub, indices, onTap){
   const b = el('button','grouprow');
   const art = artFor(indices);
-  if(art){ const im = el('img','g-art'); im.src = art; im.alt=''; b.appendChild(im); }
+  if(art){
+    const im = el('img','g-art'); im.src = art; im.alt='';
+    im.loading = 'lazy'; im.decoding = 'async';
+    im.width = 44; im.height = 44;
+    b.appendChild(im);
+  }
   else b.appendChild(el('span','g-art','◍'));
   const box = el('span','g-text');
   box.appendChild(el('b', null, label));
@@ -362,12 +431,21 @@ function restoreScrollAnchor(host, anchor){
 
 export function renderTracks(){
   const host = $('#libBody');
+  // NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather
+  // than rebuilding when possible" — a narrowing search-query refinement
+  // (library/search.js's own canFilterInPlace()) can patch the already-
+  // rendered search results directly and skip renderTracksBody() entirely,
+  // since that function's own host.innerHTML = '' reset (below) would
+  // otherwise tear down the very rows there'd be nothing left to filter.
+  const query = $('#librarySearch').value.trim();
+  if(query && filterSearchInPlace(host, query)) return;
   const anchor = captureScrollAnchor(host);
   try{ renderTracksBody(host); }
   finally{ restoreScrollAnchor(host, anchor); }
 }
 
 function renderTracksBody(host){
+  viewRenderGen++; // invalidate any chunked append job still running from a previous render
   host.innerHTML = '';
   // D3 (docs/DESKTOP_LAYOUT.md): every S.playlists mutation already lands
   // here (see this module's own CLAUDE.md entry — it's the hub every
@@ -479,12 +557,12 @@ function renderTracksBody(host){
   if(v.mode === 'songs'){
     host.appendChild(librarySortBar());
     const q = allIdx().sort(librarySortComparator('songs'));
-    q.forEach((i,pos) => {
+    host.appendChild(ul);
+    appendRowsChunked(ul, q, (i, pos) => {
       const row = songRow(i, q, pos);
       if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
-      ul.appendChild(row);
+      return row;
     });
-    host.appendChild(ul);
   }
 
   else if(v.mode === 'person'){
@@ -500,12 +578,12 @@ function renderTracksBody(host){
   else if(v.mode === 'albums'){
     if(v.group === null){
       host.appendChild(librarySortBar());
-      sortAlbumGroups(groupBy('album')).forEach(([album, idx]) => {
+      appendRowsChunked(host, sortAlbumGroups(groupBy('album')), ([album, idx]) => {
         const artist = S.tracks[idx[0]].tags.albumArtist;
         const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
           idx, ()=>{ v.group = album; renderTracks(); });
         if(isAlbumSealed(albumKey(S.tracks[idx[0]]))) row.querySelector('.g-text b').appendChild(el('span','new-tag','NEW'));
-        host.appendChild(row);
+        return row;
       });
     } else {
       renderAlbumDetail(host, ul, v.group);
@@ -514,10 +592,10 @@ function renderTracksBody(host){
 
   else if(v.mode === 'artists'){
     if(v.group === null){
-      groupBy('artist').forEach(([artist, idx]) => {
+      appendRowsChunked(host, groupBy('artist'), ([artist, idx]) => {
         const albums = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-        host.appendChild(groupRow(artist, albums + (albums===1?' album · ':' albums · ') + idx.length
-          + (idx.length===1?' track':' tracks'), idx, ()=>{ v.group = artist; renderTracks(); }));
+        return groupRow(artist, albums + (albums===1?' album · ':' albums · ') + idx.length
+          + (idx.length===1?' track':' tracks'), idx, ()=>{ v.group = artist; renderTracks(); });
       });
     } else if(v.artistAlbum === null){
       // an artist with multiple albums lands here first — pick an album

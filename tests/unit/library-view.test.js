@@ -152,6 +152,11 @@ mock.module(new URL('../../src/library/search.js', import.meta.url).href, {
   namedExports: {
     librarySortBar(){ return fakeEl(); }, librarySortComparator(){ return () => 0; },
     sortAlbumGroups(groups){ return groups; }, renderSearchResults(){},
+    // NV6 (docs/11_SMOOTH_NAVIGATION.md): renderTracks()'s own new fast
+    // path, tried before the full rebuild below -- false here means "not
+    // handled," the same as the real function whenever there's no prior
+    // search query to refine, which is always true in this test file.
+    filterSearchInPlace(){ return false; },
   },
 });
 const renderCrateMock = mock.fn();
@@ -238,6 +243,38 @@ test('renderTracks: songs mode renders one row per track', () => {
   assert.equal(ul.children.length, 2);
 });
 
+test('renderTracks (NV6, docs/11_SMOOTH_NAVIGATION.md): past the chunk threshold, the first screenful renders synchronously and the rest arrive in background chunks', async () => {
+  const tracks = [];
+  for(let i = 0; i < 450; i++) tracks.push(fakeTrack('t' + i));
+  resetState({ tracks });
+  renderTracks();
+  const host = elCache.get('#libBody');
+  const ul = host.children.find(c => c && c.className === 'tracklist');
+  assert.ok(ul, 'the <ul> is appended up front, even before every row is in it');
+  assert.equal(ul.children.length, 60, 'only the first screenful renders before renderTracks() returns');
+  // Node has no requestIdleCallback -- the module falls back to setTimeout,
+  // so flushing pending timers is how the rest of the chunks actually run.
+  for(let guard = 0; guard < 20 && ul.children.length < 450; guard++){
+    await new Promise(r => setTimeout(r, 0));
+  }
+  assert.equal(ul.children.length, 450, 'every row eventually arrives');
+});
+
+test('renderTracks (NV6): a still-running chunk job stops once a newer render starts, instead of appending into a list nobody is looking at', async () => {
+  const tracks = [];
+  for(let i = 0; i < 450; i++) tracks.push(fakeTrack('t' + i));
+  resetState({ tracks });
+  renderTracks();
+  const firstHost = elCache.get('#libBody');
+  const firstUl = firstHost.children.find(c => c && c.className === 'tracklist');
+  assert.equal(firstUl.children.length, 60);
+  renderTracks(); // a second render starts before the first one's chunks finished
+  const secondUl = firstHost.children.find(c => c && c.className === 'tracklist');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(firstUl.children.length, 60, 'the old, abandoned <ul> never grows past its first screenful');
+  assert.ok(secondUl.children.length >= 60, 'the new render keeps making progress');
+});
+
 test('renderTracks: crate mode delegates to renderCrate() and skips the songs list', () => {
   resetState({ tracks: [fakeTrack('a')], view: { mode: 'crate', group: null, playlist: null } });
   renderTracks();
@@ -249,6 +286,21 @@ test('songRow: clicking a row calls setQueue with its own queue/position', () =>
   const q = [0, 1];
   const row = songRow(1, q, 1);
   assert.equal(row.dataset.id, 'b');
+  row.fire('click');
+  assert.equal(setQueueMock.mock.callCount(), 1);
+  assert.deepEqual(setQueueMock.mock.calls[0].arguments, [q, 1, true]);
+});
+
+test('songRow: a kept row\'s click handler reads its position in `queue` live, not the position it was built with (NV6, docs/11_SMOOTH_NAVIGATION.md)', () => {
+  // library/search.js's own in-place search-result filtering narrows a
+  // shared `queue` array in place (splice), rather than rebuilding rows,
+  // so every row it keeps has to find its own *current* slot at click
+  // time -- this is the mechanism that makes that safe: songRow() never
+  // bakes `pos` into the click handler, it looks up queue.indexOf(i).
+  resetState({ tracks: [fakeTrack('a'), fakeTrack('b'), fakeTrack('c')] });
+  const q = [0, 1, 2];
+  const row = songRow(2, q, 2); // built when track 'c' was at position 2
+  q.splice(0, 1); // track 'a' (index 0) no longer matches -- 'c' is now at position 1
   row.fire('click');
   assert.equal(setQueueMock.mock.callCount(), 1);
   assert.deepEqual(setQueueMock.mock.calls[0].arguments, [q, 1, true]);

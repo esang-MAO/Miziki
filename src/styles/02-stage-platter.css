@@ -65,6 +65,22 @@
 .label.rare{box-shadow:none}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
 .t-dur{font-family:var(--data);font-size:10px;color:var(--muted)}
+/* NV6 (docs/11_SMOOTH_NAVIGATION.md): a library of thousands of rows costs
+   nothing to lay out or paint once it's scrolled off screen — the browser
+   skips layout/paint/hit-testing for anything content-visibility:auto hides,
+   while still reserving its place in the page via contain-intrinsic-size
+   (the "auto <px>" form: remembers the row's own real rendered size once
+   it's actually been on screen, falling back to this approximate height
+   until then) so scrollbar length and jump-to-position both stay correct.
+   An unsupported browser just ignores the unknown property and renders
+   everything as before — this is a pure, safe-to-no-op perf opt-in, not a
+   layout requirement. The browser's own find-in-page (Ctrl/Cmd-F) already
+   knows to temporarily reveal a content-visibility:auto element that
+   matches, per spec — auto, not hidden, is what makes that work; nothing
+   here needs JS of its own for it. Row height here matches what the row's
+   own content actually renders at (34px art + 11px padding top/bottom). */
+.tracklist li{content-visibility:auto;contain-intrinsic-size:auto 57px}
+.grouprow{content-visibility:auto;contain-intrinsic-size:auto 67px}
 .tracklist li.picked{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .tracklist li.picked .t-idx::after{content:'✓';color:var(--accent);margin-left:2px}
 .lib-nav{margin:4px 0 6px}
