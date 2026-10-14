@@ -11,6 +11,10 @@ import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 
 /* ================= render loop ================= */
 let last = performance.now();
+// NV1: the last --sky1/--sky2 strings actually written, so drawSun() can
+// skip the setProperty call (and the repaint it forces) when nothing's
+// changed since the previous tick.
+let lastSky1 = null, lastSky2 = null;
 // The playback clock: position, played-range tracking (which feeds the 95% rule,
 // sessions and metals) and Sundown's rate. Split out of frame() so it can also run
 // while the page is hidden — the browser stops calling frame() then, but audio can
@@ -176,9 +180,20 @@ export function drawSun(){
   // style listener.
   syncNychthemeronTheme();
 
+  // NV1: drawSun() runs every ~220ms while visible, but the sky's two
+  // stops rarely actually change that often (skyGradientStops() only
+  // moves between its anchors as the day itself progresses). Writing an
+  // identical custom-property value still forces a full repaint of the
+  // fixed-position gradient layer behind everything (.sky-bg,
+  // 00-base.css) — skip the writes entirely once the strings match what
+  // was last written, the same "don't touch the DOM for a no-op" shape
+  // every other guarded id in this function already uses.
   const [sky1, sky2] = skyGradientStops(dayPos, effectiveTheme());
-  document.documentElement.style.setProperty('--sky1', sky1);
-  document.documentElement.style.setProperty('--sky2', sky2);
+  if(sky1 !== lastSky1 || sky2 !== lastSky2){
+    lastSky1 = sky1; lastSky2 = sky2;
+    document.documentElement.style.setProperty('--sky1', sky1);
+    document.documentElement.style.setProperty('--sky2', sky2);
+  }
 
   // DA3's own phase block: a big phase name ("Twilight") plus a muted
   // sub-line ("60% of the way down"), kept separate from #rateWhy just
