@@ -154,7 +154,13 @@ function buildLocalState(){
     // uploaded copy must never carry it, or a pinned choice on one device
     // would silently follow the account to every other one via prefs'
     // existing last-write-wins sync.
-    prefs: (() => { const p = serializePrefs(S); delete p.theme; return p; })(),
+    // CEREMONY §6: the slipmat flags are device-only too, since the image
+    // they point at never leaves this device.
+    prefs: (() => {
+      const p = serializePrefs(S);
+      delete p.theme; delete p.slipmatCustom; delete p.slipmatWordmark; delete p.slipmatDim;
+      return p;
+    })(),
     profileName: S.profile.name || '',
     trackPlayCounts: S.trackPlayCounts,
     sessionCounts: S.sessionCounts,

@@ -109,3 +109,42 @@
   color:var(--muted)}
 .rhythm-record-text span{font-size:12.5px;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+
+/* CEREMONY §6: Settings › Appearance › Slipmat (src/profile/slipmat-editor.js) */
+.settings-sub-head{font-size:13px;font-weight:600;margin:20px 0 10px}
+.slipmat-tiles{display:flex;gap:12px}
+.slipmat-tile{width:100px;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:center}
+.slipmat-tile > div{height:100px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+  position:relative;overflow:hidden;box-sizing:border-box}
+.slipmat-tile[aria-pressed="true"] > div{border:2px solid var(--accent)}
+.slipmat-tile-label{display:block;margin-top:6px;font-family:var(--data);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.slipmat-tile[aria-pressed="true"] .slipmat-tile-label{color:var(--accent)}
+.slipmat-felt::after{content:'';position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
+  background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);box-shadow:inset 0 0 0 1px var(--line)}
+.slipmat-felt span{position:absolute;inset:0;display:grid;place-content:center;z-index:1;
+  font-family:var(--display);font-weight:600;font-size:9px;letter-spacing:.32em;padding-left:.32em;color:var(--muted)}
+.slipmat-thumb{position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
+  background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.slipmat-plus{position:absolute;inset:0;display:grid;place-content:center;font-size:28px;color:var(--muted)}
+.slipmat-actions{margin-top:12px}
+.slipmat-editor{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--raised)}
+.slipmat-editor-title{font-size:13px;font-weight:600;margin-bottom:12px}
+.slipmat-drop{min-height:130px;border:1.5px dashed var(--line);border-radius:12px;display:grid;
+  place-content:center;justify-items:center;text-align:center;gap:8px;padding:12px;margin-bottom:10px}
+.slipmat-drop.over{border-color:var(--accent)}
+.slipmat-error:empty{display:none}
+.slipmat-error{color:var(--accent)}
+.slipmat-preview{position:relative;width:220px;height:220px;margin:4px auto 14px;border-radius:50%;overflow:hidden;
+  touch-action:none;cursor:grab;background:var(--panel);
+  box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.12)}
+.slipmat-preview canvas{position:absolute;inset:0;width:100%;height:100%}
+.slipmat-preview.slipmat-dim::before{content:'';position:absolute;inset:0;z-index:1;background:rgba(0,0,0,.28);pointer-events:none}
+.slipmat-preview::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:repeating-radial-gradient(circle at 50% 50%,transparent 0 6px,rgba(255,255,255,.05) 6px 7px)}
+.slipmat-mark{position:absolute;left:0;right:0;bottom:17%;z-index:2;text-align:center;font-family:var(--display);
+  font-weight:600;font-size:20px;letter-spacing:.32em;padding-left:.32em;color:#EFE9DF;opacity:.9;
+  text-shadow:0 1px 6px rgba(0,0,0,.5);pointer-events:none}
+.slipmat-zoom{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.slipmat-zoom-label{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.slipmat-zoom input{flex:1}

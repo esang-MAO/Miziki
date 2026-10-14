@@ -27,6 +27,7 @@ export function serializePrefs(S){
     shareStyle: S.shareStyle, shareFormat: S.shareFormat,
     theme: S.theme,
     charDrift: S.charDrift,
+    slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
   };
 }
 
@@ -76,6 +77,11 @@ export function parsePrefs(raw){
   // before DA2) is meant to load as the default (Subtle) — same shape as
   // theme's own D2 addition just above, just leaving it out of `out`.
   if(p.charDrift === 'off' || p.charDrift === 'subtle' || p.charDrift === 'full') out.charDrift = p.charDrift;
+  // CEREMONY §6: the custom slipmat's flags. An object saved before them
+  // loads as felt, wordmark on, dim on (the S defaults).
+  if(typeof p.slipmatCustom === 'boolean') out.slipmatCustom = p.slipmatCustom;
+  if(typeof p.slipmatWordmark === 'boolean') out.slipmatWordmark = p.slipmatWordmark;
+  if(typeof p.slipmatDim === 'boolean') out.slipmatDim = p.slipmatDim;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime
