@@ -19,10 +19,18 @@ mock.module(new URL('../../src/social/screens/home.js', import.meta.url).href, {
   namedExports: { renderHome(){} },
 });
 mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
-  namedExports: { updateHeaderActionsAvailability(){}, closeSearchField(){}, closeAddMenu(){} },
+  namedExports: { updateHeaderActionsAvailability(){}, isSearchFieldOpen(){ return false; }, isAddMenuOpen(){ return false; } },
 });
 mock.module(new URL('../../src/gatefold/view.js', import.meta.url).href, {
-  namedExports: { GF: null, closeGatefoldInstant(){} },
+  namedExports: { GF: null },
+});
+// NV2 (docs/11_SMOOTH_NAVIGATION.md): showRoute() now force-closes the
+// gatefold/search-field/add-menu nav-stack layers instead of calling each
+// overlay's own close function directly, and records the route for the
+// tab-switch Back exception — both stubbed to no-ops, same "stop the chain
+// at the door" reasoning as every other mock in this file.
+mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
+  namedExports: { forceCloseLayer(){}, recordRoute(){} },
 });
 
 // A tiny, DOM-free fake document — just enough for showRoute()/

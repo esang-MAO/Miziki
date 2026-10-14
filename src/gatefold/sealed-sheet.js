@@ -22,6 +22,7 @@ import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { GF, buildGatefoldTracklist, gatefoldTrackIndices } from './view.js';
+import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 let SEALSHEET = null;   // {item}, null when closed
 
@@ -60,7 +61,7 @@ export function sealedQuietPlay(trackIdx, i){
 // gatefoldPlayTrack this reuses the ceremony wholesale instead of the flight.
 function sealedHandoffPlay(trackIdx, i){
   setQueue(trackIdx, trackIdx.indexOf(i), false);
-  closeSealedSheetInstant();
+  forceCloseLayer('sealed-sheet');
   if(!S.playInFullPlayer){
     runStartSequence(current(), S.pendingShellInfo, play);
     return;
@@ -90,6 +91,7 @@ export function openSealedSheet(item){
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden','false');
   requestAnimationFrame(() => { sheet.classList.add('show'); $('#sealSheetBody').focus(); });
+  openLayer('sealed-sheet', closeSealedSheet, { instantClose: closeSealedSheetInstant, container: sheet });
 }
 
 export async function closeSealedSheet(){

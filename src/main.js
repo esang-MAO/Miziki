@@ -28,7 +28,8 @@ import { restoreMeta } from './storage/meta.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
 import { putAwayInstant } from './shell/put-away.js';
-import { isProfileRouteVisible } from './shell/routes.js';
+import { isProfileRouteVisible, showRoute } from './shell/routes.js';
+import { initNavStack, onRouteRestore } from './shell/nav-stack.js';
 import { renderProfile } from './profile/screens.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
 import { applyTheme } from './ui/theme.js';
@@ -77,6 +78,15 @@ wireShare();
 wireOverlays();
 wireRoutes();
 wireLifecycle();
+
+// NV2 (docs/11_SMOOTH_NAVIGATION.md): establishes the one clean history
+// entry every later pushState/replaceState builds on, before anything else
+// in the boot sequence (including restoreLibrary(), below) has a chance to
+// run. onRouteRestore(showRoute) is what makes a real Back press (not one
+// consumed by closing an overlay) land back on the route the tab-switch
+// history exception (recordRoute(), shell/routes.js) saved.
+initNavStack();
+onRouteRestore(showRoute);
 
 setMode('vinyl');
 applyTheme();

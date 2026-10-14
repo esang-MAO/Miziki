@@ -14,6 +14,7 @@ import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { endOfQueue, maybeSideFlip } from '../shell/runout.js';
+import { openLayer } from '../shell/nav-stack.js';
 
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
@@ -213,8 +214,10 @@ export function renderQueueSheet(host){
 }
 export function openQueueSheet(){
   renderQueueSheet();
-  $('#queueOverlay').classList.add('open');
-  $('#queueOverlay').setAttribute('aria-hidden', 'false');
+  const overlay = $('#queueOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  openLayer('queue', closeQueueSheet, { container: overlay });
 }
 export function closeQueueSheet(){
   $('#queueOverlay').classList.remove('open');

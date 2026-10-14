@@ -18,6 +18,7 @@ import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { renderTracks, exitSelectMode } from './view.js';
 import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 function applyOverlay(t, rec, artBlob){
   t.embeddedTags = Object.assign({}, t.tags);
@@ -240,8 +241,10 @@ export function openEditSheet(trackIds){
     title: first.tags.title || '', artist: first.tags.artist || '', album: first.tags.album || '',
     albumArtist: first.tags.albumArtist || '', track: String(first.tags.track || '')
   };
-  $('#editOverlay').classList.add('open');
-  $('#editOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#editOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('edit', closeEditSheet, { container: overlay });
 }
 
 export function closeEditSheet(){
@@ -272,9 +275,9 @@ export async function saveEditSheet(){
     if(trackNum !== '' && trackNum !== orig.track) fields.track = parseInt(trackNum, 10) || 0;
   }
 
-  if(!Object.keys(fields).length && !S.editArtBlob){ closeEditSheet(); return; }
+  if(!Object.keys(fields).length && !S.editArtBlob){ closeLayer('edit'); return; }
   await applyEditWithUndo(target.trackIds, fields, S.editArtBlob);
-  closeEditSheet();
+  closeLayer('edit');
   if(target.batch) exitSelectMode();
   if('artist' in fields || 'album' in fields || 'albumArtist' in fields) MizikiSocial.libraryChanged();
 }

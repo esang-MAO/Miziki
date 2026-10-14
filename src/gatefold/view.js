@@ -29,6 +29,7 @@ import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides } from '../shell/ceremony-timing.js';
+import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -125,7 +126,7 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
 function gatefoldCreditLink(name){
   const b = el('button','', name);
   b.style.color = 'var(--accent)'; b.style.textDecoration = 'underline';
-  b.addEventListener('click', () => { closeGatefoldInstant(); openPersonOrArtist(name); });
+  b.addEventListener('click', () => { forceCloseLayer('gatefold'); openPersonOrArtist(name); });
   return b;
 }
 
@@ -274,7 +275,7 @@ function gatefoldPlayTrack(trackIdx, i){
   setQueue(trackIdx, trackIdx.indexOf(i), false);
   if(REDUCED){
     // no flight — the player opens with the record already seated, then audio
-    closeGatefoldInstant();
+    forceCloseLayer('gatefold');
     if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
     else openPlayerViaSheet(current(), S.pendingShellInfo);
     return;
@@ -416,7 +417,7 @@ function gatefoldWireGestures(){
   const onInfoMove = e => {
     if(infoDrag == null) return;
     const dy = e.clientY - infoDrag;
-    if(dy > 50) closeGatefold();
+    if(dy > 50) closeLayer('gatefold');
   };
   const onInfoUp = () => { infoDrag = null; };
   const info = $('#gfInfo');
@@ -550,6 +551,7 @@ export function openGatefold(item){
   overlay.setAttribute('aria-hidden','false');
   gatefoldWireGestures();
   runGatefoldOpen(mode);
+  openLayer('gatefold', closeGatefold, { instantClose: closeGatefoldInstant, container: overlay });
 }
 
 export async function closeGatefold(){

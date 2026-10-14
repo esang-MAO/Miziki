@@ -6,6 +6,7 @@ import { renderHome } from '../social/screens/home.js';
 import { wirePrivacyLink } from './privacy.js';
 import { legalLinksRow } from './legal.js';
 import { getBackupStatus, listBackupDevices } from '../sync/backup.js';
+import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 let socialAuth = null;
 
@@ -26,10 +27,12 @@ export function beginSocialSignIn(){
     email: '', code: '', handle: prefillHandle, displayName: '', visibility: 'friends',
     error: null, busy: false, handleStatus: null
   };
-  $('#socialAuthOverlay').classList.add('open');
-  $('#socialAuthOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#socialAuthOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
   renderSocialAuth();
   if(prefillHandle) checkPrefilledHandle(prefillHandle);
+  openLayer('social-auth', closeSocialAuth, { container: overlay });
 }
 
 async function checkPrefilledHandle(h){
@@ -103,7 +106,7 @@ function renderSocialAuthEmail(title, body){
   // closeSocialAuth first — otherwise the sign-in modal would stay open on
   // top of the profile screen underneath it once renderProfile() runs.
   body.appendChild(el('p','note','By continuing, you agree to our Privacy Policy and Terms of use.'));
-  body.appendChild(legalLinksRow(renderProfile, closeSocialAuth));
+  body.appendChild(legalLinksRow(renderProfile, () => forceCloseLayer('social-auth')));
 }
 
 function renderSocialAuthCode(title, body){
@@ -119,7 +122,7 @@ function renderSocialAuthCode(title, body){
     const r = await MizikiSocial.verifyCode(socialAuth.email, code);
     socialAuth.busy = false;
     if(!r.ok){ socialAuth.error = r.error.message; renderSocialAuth(); return; }
-    if(r.status.auth === 'ready'){ closeSocialAuth(); refreshSocialEntryHost(); return; }
+    if(r.status.auth === 'ready'){ closeLayer('social-auth'); refreshSocialEntryHost(); return; }
     socialAuth.step = 'handle';
     renderSocialAuth();
   }, socialAuth.busy));
@@ -216,7 +219,7 @@ function renderSocialAuthVisibility(title, body){
       if(!updated.ok){ socialAuth.busy = false; socialAuth.error = updated.error.message; renderSocialAuth(); return; }
     }
     socialAuth.busy = false;
-    closeSocialAuth();
+    closeLayer('social-auth');
     refreshSocialEntryHost();
   }, socialAuth.busy));
 }

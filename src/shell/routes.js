@@ -1,9 +1,10 @@
 import { $ } from '../util/dom.js';
 import { renderProfile } from '../profile/screens.js';
 import { renderHome } from '../social/screens/home.js';
-import { updateHeaderActionsAvailability, closeSearchField, closeAddMenu } from './header.js';
+import { updateHeaderActionsAvailability, isSearchFieldOpen, isAddMenuOpen } from './header.js';
 // GF is read-only here (see refactor rule 7) — not reassigned, only read.
-import { GF, closeGatefoldInstant } from '../gatefold/view.js';
+import { GF } from '../gatefold/view.js';
+import { forceCloseLayer, recordRoute } from './nav-stack.js';
 
 export function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
@@ -47,13 +48,20 @@ export function showRoute(name){
   if(name === 'character'){ name = 'sundown'; selectSundownView('sound'); }
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
-  // overlay that would otherwise hide whatever route is switched to
-  if(name !== 'library' && GF) closeGatefoldInstant();
+  // overlay that would otherwise hide whatever route is switched to — an
+  // instant, non-animated close (NV2, docs/11_SMOOTH_NAVIGATION.md): an
+  // unrelated tab switch is not the user dismissing the gatefold, so it
+  // shouldn't also play the gatefold's own ~600ms close animation
+  if(name !== 'library' && GF) forceCloseLayer('gatefold');
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
   $('#appHeader').classList.toggle('no-border', name === 'library');
   updateHeaderActionsAvailability();
-  if(name !== 'library'){ closeSearchField(); closeAddMenu(); }
+  if(name !== 'library'){
+    if(isSearchFieldOpen()) forceCloseLayer('search-field');
+    if(isAddMenuOpen()) forceCloseLayer('add-menu');
+  }
+  recordRoute(name);
   if(name === 'profile'){
     // library tools starts closed on every fresh visit to Profile (S1 §5)
     $('#libToolsPanel').classList.remove('open');

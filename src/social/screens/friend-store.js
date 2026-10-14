@@ -11,21 +11,35 @@ import {
 import { feedEventText } from './home.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
+import { openLayer, closeLayer } from '../../shell/nav-stack.js';
 
 /* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
 
+// NV2 (docs/11_SMOOTH_NAVIGATION.md): each pushed screen gets its own
+// nav-stack layer ('social-nav-1', 'social-nav-2', ...) so Back/Escape pop
+// exactly one screen at a time, the same as a real drill-down stack — the
+// overlay itself only closes once the last screen pops. popSocialScreen()
+// (the back button's own handler) goes through closeLayer() rather than
+// popping socialNav directly, so Back and the on-screen back button always
+// consume history the same way.
 let socialNav = [];
 
 function pushSocialScreen(screen){
   socialNav.push(screen);
-  $('#socialNavOverlay').classList.add('open');
-  $('#socialNavOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#socialNavOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
   renderSocialNavTop();
+  openLayer('social-nav-' + socialNav.length, popSocialScreenLayer, { container: overlay });
 }
-export function popSocialScreen(){
+function popSocialScreenLayer(){
   socialNav.pop();
   if(!socialNav.length){ closeSocialNav(); return; }
   renderSocialNavTop();
+}
+export function popSocialScreen(){
+  if(!socialNav.length) return;
+  closeLayer('social-nav-' + socialNav.length);
 }
 function closeSocialNav(){
   socialNav = [];
@@ -340,8 +354,10 @@ function renderFriendStoreContent(body, full){
 export function openRecordSheet(full, item, kicker){
   $('#recordSheetKicker').textContent = kicker || full.profile.handle.toUpperCase();
   renderRecordSheetBody(full, item);
-  $('#recordSheetOverlay').classList.add('open');
-  $('#recordSheetOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#recordSheetOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('record-sheet', closeRecordSheet, { container: overlay });
 }
 export function closeRecordSheet(){
   $('#recordSheetOverlay').classList.remove('open');

@@ -4,6 +4,7 @@ import { resolveLook } from '../record-art/looks.js';
 import { currentDayPosition } from '../sundown/solar.js';
 import { composeShareImage } from './crate-card.js';
 import { composePlayerShareImage } from './now-playing-card.js';
+import { openLayer } from '../shell/nav-stack.js';
 
 /* ---- share sheet wiring: style/format read from the DOM (the sheet's own
    chips), everything else (the pixels) comes from the pure composers above.
@@ -71,8 +72,10 @@ export async function openShareSheet(){
   document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.format === format)));
   updateShareActionButtons($('#shareShareBtn'), $('#shareSave'), $('#shareCopy'));
-  $('#shareOverlay').classList.add('open');
-  $('#shareOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#shareOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('share', closeShareSheet, { container: overlay });
   await renderShareCanvas();
 }
 export function closeShareSheet(){
@@ -106,8 +109,10 @@ export async function openPlayerShareSheet(){
   document.querySelectorAll('#playerShareFormatSeg [data-format]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.format === format)));
   updateShareActionButtons($('#playerShareShareBtn'), $('#playerShareSave'), $('#playerShareCopy'));
-  $('#playerShareOverlay').classList.add('open');
-  $('#playerShareOverlay').setAttribute('aria-hidden', 'false');
+  const overlay = $('#playerShareOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  openLayer('player-share', closePlayerShareSheet, { container: overlay });
   await renderPlayerShareCanvas();
 }
 export function closePlayerShareSheet(){

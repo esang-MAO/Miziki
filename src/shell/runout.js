@@ -14,8 +14,8 @@ import { startRunout } from '../audio/runout.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { GROOVE, FLIP, splitSides, sideTurn } from './ceremony-timing.js';
 import { renderMiniPlayer } from './mini-player.js';
-import { closePlayer } from './player-overlay.js';
 import { renderPlayerSidePanel } from './player-side-panel.js';
+import { forceCloseLayer } from './nav-stack.js';
 import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown } from './put-away.js';
 
 /* ================= run-out groove, rest, side flip (docs/CEREMONY.md §2, §3) =================
@@ -54,7 +54,7 @@ export function clearToRest(){
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   applyDiscVariant(null);
-  if(S.playerOpen && !isDesktopShell()) closePlayer();
+  if(S.playerOpen && !isDesktopShell()) forceCloseLayer('player');
   $('#platterBox').classList.add('disc-hidden');
   $('#sleeve').style.display = 'none';
   S.platterEmpty = true;

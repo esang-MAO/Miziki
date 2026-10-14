@@ -6,7 +6,8 @@
 import { $ } from '../util/dom.js';
 import { renderTracks } from '../library/view.js';
 import { updateSearchChipsVisibility } from '../library/search.js';
-import { openSearchField, closeSearchField } from '../shell/header.js';
+import { openSearchField } from '../shell/header.js';
+import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireSearch(){
   let searchDebounce = null;
@@ -24,7 +25,7 @@ export function wireSearch(){
   $('#hdrSearchCancel').addEventListener('click', ()=>{
     $('#librarySearch').value = '';
     $('#hdrSearchClear').style.display = 'none';
-    closeSearchField();
+    closeLayer('search-field');
     renderTracks();
   });
   $('#hdrSearchClear').addEventListener('click', ()=>{

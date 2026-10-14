@@ -8,6 +8,8 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { trackIdentityKey } from '../record-art/tiers.js';
 import { deleteTracks } from './delete.js';
+import { openLayer } from '../shell/nav-stack.js';
+import { closeDuplicateScan } from './duplicates-ui.js';
 
 export function findAllDuplicateGroups(){
   const groups = {};
@@ -20,8 +22,10 @@ export function findAllDuplicateGroups(){
 
 export function openDuplicateScan(){
   renderDupScan();
-  $('#dupScanOverlay').classList.add('open');
-  $('#dupScanOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#dupScanOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('duplicate-scan', closeDuplicateScan, { container: overlay });
 }
 // Pure-ish DOM builder, split out so a malicious tag value's handling is
 // testable without the rest of renderDupScan's $()/deleteTracks chain

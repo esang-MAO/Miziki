@@ -4,6 +4,7 @@ import { applyVolume } from '../sundown/location.js';
 import { pause } from './transport.js';
 import { drawTime } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 /* ================= sleep timer (SLEEP spec §5) =================
    Session-only (S.sleep is never persisted). Time mode is deadline-based —
@@ -108,23 +109,25 @@ function renderSleepOptions(){
   const currentMins = S.sleep.mode === 'time' ? Math.round((S.sleep.at - Date.now())/60000) : null;
   SLEEP_MINUTE_OPTIONS.forEach(mins => {
     const b = el('button','cta' + (currentMins === mins ? '' : ' ghost'), mins + ' min');
-    b.addEventListener('click', ()=>{ startSleepTimer('time', mins); closeSleepSheet(); });
+    b.addEventListener('click', ()=>{ startSleepTimer('time', mins); closeLayer('sleep'); });
     host.appendChild(b);
   });
   const trackBtn = el('button','cta' + (S.sleep.mode === 'track' ? '' : ' ghost'), 'End of track');
-  trackBtn.addEventListener('click', ()=>{ startSleepTimer('track'); closeSleepSheet(); });
+  trackBtn.addEventListener('click', ()=>{ startSleepTimer('track'); closeLayer('sleep'); });
   host.appendChild(trackBtn);
   const albumBtn = el('button','cta' + (S.sleep.mode === 'album' ? '' : ' ghost'), 'End of album');
-  albumBtn.addEventListener('click', ()=>{ startSleepTimer('album'); closeSleepSheet(); });
+  albumBtn.addEventListener('click', ()=>{ startSleepTimer('album'); closeLayer('sleep'); });
   host.appendChild(albumBtn);
   const offBtn = el('button','cta ghost', 'Off');
-  offBtn.addEventListener('click', ()=>{ stopSleepState(); setPathNote('Sleep timer off.'); closeSleepSheet(); });
+  offBtn.addEventListener('click', ()=>{ stopSleepState(); setPathNote('Sleep timer off.'); closeLayer('sleep'); });
   host.appendChild(offBtn);
 }
 export function openSleepSheet(){
   renderSleepOptions();
-  $('#sleepOverlay').classList.add('open');
-  $('#sleepOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#sleepOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('sleep', closeSleepSheet, { container: overlay });
 }
 export function closeSleepSheet(){
   $('#sleepOverlay').classList.remove('open');

@@ -64,6 +64,16 @@ mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, 
 mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute: showRouteMock },
 });
+// NV2 (docs/11_SMOOTH_NAVIGATION.md): credits.js's openCreditsSheet/
+// openPersonOrArtist now register with the real history-based nav-stack
+// layer stack — which reads the real browser history/document/window, none
+// of which exist in this Node test environment. Stubbed to no-ops, the same
+// "stop the chain at the door" reasoning as every other mock in this file;
+// nav-stack.js's own push/pop/popstate behavior is covered by its own
+// tests/unit/nav-stack.test.js.
+mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
+  namedExports: { openLayer(){}, closeLayer(){}, forceCloseLayer(){} },
+});
 mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
   namedExports: { runStartSequence(){} },
 });
