@@ -413,3 +413,18 @@ test('drawSun(): dark and light produce different inline values for the same day
   const light = drawSunAt('light', false);
   assert.notEqual(light['--sky1'], darkSky1);
 });
+
+// NV1: drawSun() runs on a steady ~220ms timer while visible, repainting
+// the fixed-position sky gradient (.sky-bg, 00-base.css) every time it
+// writes --sky1/--sky2 — a classic cause of scroll stutter on iPhone when
+// the colors haven't actually moved. drawSunAt() always clears
+// fakeRootStyle before calling drawSun(), so calling drawSun() directly a
+// second time with the exact same S state (no drawSunAt() in between)
+// isolates just the skip: nothing should land in the cleared object.
+test('drawSun(): repeating the same day position skips the redundant write', () => {
+  drawSunAt('dark', false); // establishes the cached sky values
+  for(const k of Object.keys(fakeRootStyle)) delete fakeRootStyle[k];
+  drawSun(); // identical S.mode/auto/rate/target/sun — identical sky output
+  assert.equal(fakeRootStyle['--sky1'], undefined);
+  assert.equal(fakeRootStyle['--sky2'], undefined);
+});

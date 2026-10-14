@@ -130,6 +130,22 @@ module.exports = [
     rules: SAFETY_NET_RULES,
   },
 
+  // tests/perf/**/*.js (NV1) — plain Node scripts (ESM) that also contain
+  // inline page.evaluate() closures executed inside a real Chromium page,
+  // so both Node's and the browser's globals are in play in the same
+  // file (indexedDB/document/performance/requestAnimationFrame/
+  // PerformanceObserver inside the closures; process/console/import.meta
+  // outside them).
+  {
+    files: ['tests/perf/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: SAFETY_NET_RULES,
+  },
+
   // tests/client.test.js and config files — plain CommonJS, run under Node.
   {
     files: ['tests/client.test.js', 'vite.config.js', 'eslint.config.js'],

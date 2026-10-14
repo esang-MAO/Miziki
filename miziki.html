@@ -83,6 +83,11 @@
 <link rel="stylesheet" href="/src/styles/24-sundown-arc.css">
 </head>
 <body>
+<!-- NV1: the sky gradient, as a real position:fixed layer instead of
+     body's own background-attachment:fixed (see 00-base.css's .sky-bg
+     comment for why) — drawSun() still writes --sky1/--sky2 onto :root,
+     which this element reads the same way body's background used to. -->
+<div class="sky-bg" aria-hidden="true"></div>
 <!-- LAUNCH INTRO: cold-start only, first thing in the DOM so it paints
      before anything else — see runLaunchSequence(). Removed entirely once
      it finishes or is skipped. -->
