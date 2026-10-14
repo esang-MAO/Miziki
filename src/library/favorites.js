@@ -38,7 +38,22 @@ export function toggleFavorite(id){
   if(!REDUCED && t && t.id === id){
     [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => { if(!b) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
   }
-  renderTracks();
+  // NV3 (docs/11_SMOOTH_NAVIGATION.md): songRow() never shows favorite
+  // status at all, so toggling it changes nothing on screen except when
+  // the visible list's own *membership* depends on it — the Favorites
+  // playlist itself, or an active "is:favorite" search. Every other view
+  // (Songs, Artists, Albums, any other playlist, the crate) is a pure
+  // no-op here, not a render worth running at all.
+  if(libraryShowsFavoriteMembership()) renderTracks();
+}
+
+function libraryShowsFavoriteMembership(){
+  const v = S.view;
+  const pl = v.playlist !== null ? S.playlists[v.playlist] : null;
+  if(pl && pl.system === 'favorites') return true;
+  const field = $('#librarySearch');
+  const query = (field && typeof field.value === 'string') ? field.value.trim() : '';
+  return /(^|\s)is:favorite(\s|$)/i.test(query);
 }
 export function updateFavoriteButtons(){
   const t = current();

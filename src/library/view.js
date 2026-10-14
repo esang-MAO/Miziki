@@ -66,6 +66,59 @@ export function songRow(i, queue, pos, extra){
   return li;
 }
 
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): a targeted patch for one row, instead
+// of renderTracks()'s whole-list rebuild — for the handful of changes that
+// only ever affect a single track's own row: the now-playing marker moving
+// (player/transport.js's load()) and a single-track edit's title/artist/art
+// (library/edit.js's recomputeTrack()). Patches the row's DOM in place
+// rather than rebuilding it, so scroll position and focus are untouched.
+// Returns false (doing nothing else) when the row isn't currently on
+// screen — grouped/drilled-into views, an active search, or the crate —
+// so the caller can fall back to a full renderTracks() exactly as before.
+// Escapes a track id for use inside a `[data-id="..."]` attribute selector.
+// Backslashes must be escaped *before* quotes, or a value ending in a
+// backslash followed by a quote could close the selector's string early
+// (CodeQL: incomplete string escaping) -- order matters here.
+function idSelector(id){
+  return 'li[data-id="' + String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
+}
+
+export function updateTrackRow(id){
+  const host = $('#libBody');
+  if(!host) return false;
+  const li = host.querySelector(idSelector(id));
+  if(!li) return false;
+  const i = idxOf(id);
+  if(i < 0) return false;
+  const t = S.tracks[i];
+
+  if(i === S.index) li.setAttribute('aria-current', 'true');
+  else li.removeAttribute('aria-current');
+  li.classList.toggle('picked', S.view.editSelecting && S.editSelection.has(t.id));
+
+  const artEl = li.querySelector('.t-art');
+  if(artEl){
+    if(t.art){
+      let img = artEl.tagName === 'IMG' ? artEl : null;
+      if(!img){ img = el('img', 't-art'); img.alt = ''; artEl.replaceWith(img); }
+      img.src = t.art;
+    } else if(artEl.tagName === 'IMG'){
+      artEl.replaceWith(el('span', 't-art'));
+    }
+  }
+  const nameEl = li.querySelector('.t-name');
+  if(nameEl){
+    nameEl.innerHTML = '';
+    nameEl.appendChild(el('b', null, t.tags.title));
+    nameEl.appendChild(el('em', null, t.tags.artist + ' · ' + t.meta.codec
+      + (t.meta.lossless ? '' : ' · lossy')));
+  }
+  const durEl = li.querySelector('.t-dur');
+  if(durEl) durEl.textContent = fmt(t.duration);
+
+  return true;
+}
+
 function toggleEditSelect(id, node){
   if(S.editSelection.has(id)) S.editSelection.delete(id); else S.editSelection.add(id);
   node.classList.toggle('picked', S.editSelection.has(id));
@@ -267,8 +320,55 @@ function renderAlbumDetail(host, ul, album){
    only by physical accident, not because grouping/sorting albums is
    image-tier work. */
 
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): "anchor-preserving" rebuilds —
+// renderTracks() wipes and rebuilds #libBody's whole contents every time
+// (sort/filter/group can all change between one render and the next, so a
+// partial patch here isn't generally possible, unlike updateTrackRow()'s
+// one-row case above). Finding the first row still on screen before the
+// rebuild and scrolling that same row (by id) back to the same screen
+// position after it is what actually keeps a rebuild from reading as a
+// jump — same "the id survives the rebuild, the position doesn't" idea as
+// crate/model.js's own persistCrateAnchor().
+function captureScrollAnchor(host){
+  if(!host || typeof host.querySelectorAll !== 'function') return null;
+  const rows = host.querySelectorAll('li[data-id]');
+  let target = null;
+  for(const li of rows){
+    if(typeof li.getBoundingClientRect !== 'function') continue;
+    if(li.getBoundingClientRect().bottom > 0){ target = li; break; }
+  }
+  if(!target) return null;
+  const rect = target.getBoundingClientRect();
+  const active = typeof document !== 'undefined' ? document.activeElement : null;
+  let focusSelector = null;
+  if(active && active !== target && typeof target.contains === 'function' && target.contains(active)){
+    const cls = active.className && String(active.className).trim();
+    focusSelector = cls ? '.' + cls.split(/\s+/).join('.') : null;
+  }
+  return { id: target.dataset.id, top: rect.top, focusSelector };
+}
+
+function restoreScrollAnchor(host, anchor){
+  if(!host || !anchor) return;
+  const li = host.querySelector(idSelector(anchor.id));
+  if(!li || typeof li.getBoundingClientRect !== 'function') return;
+  const delta = li.getBoundingClientRect().top - anchor.top;
+  if(delta && typeof window !== 'undefined' && window.scrollBy) window.scrollBy(0, delta);
+  if(anchor.focusSelector){
+    const target = li.querySelector(anchor.focusSelector);
+    if(target && typeof target.focus === 'function') target.focus({ preventScroll: true });
+  }
+}
+
 export function renderTracks(){
-  const host = $('#libBody'); host.innerHTML = '';
+  const host = $('#libBody');
+  const anchor = captureScrollAnchor(host);
+  try{ renderTracksBody(host); }
+  finally{ restoreScrollAnchor(host, anchor); }
+}
+
+function renderTracksBody(host){
+  host.innerHTML = '';
   // D3 (docs/DESKTOP_LAYOUT.md): every S.playlists mutation already lands
   // here (see this module's own CLAUDE.md entry — it's the hub every
   // library-mutating action's "now redraw the screen" call reaches), so

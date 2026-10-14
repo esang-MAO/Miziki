@@ -60,7 +60,7 @@ mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href,
 // src/library/view.js instead of main.js — mocked directly here, same
 // "stop the chain at the door" reasoning.
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
-  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
+  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
 // Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier and thumbs.js's
 // invalidateCrateModel imports are real ones from src/crate/tiers.js/

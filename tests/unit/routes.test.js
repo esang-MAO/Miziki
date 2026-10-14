@@ -90,6 +90,11 @@ globalThis.document = {
   },
 };
 
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): routes.js's own scroll-memory calls
+// are real (src/shell/scroll-memory.js, which has no imports of its own),
+// so a real window stand-in is enough -- no mock.module needed for it.
+globalThis.window = { scrollY: 0, scrollTo(x, y){ globalThis.window.scrollY = y; } };
+
 const { showRoute, selectSundownView, lastSundownView, isLibraryRouteVisible, isProfileRouteVisible } =
   await import('../../src/shell/routes.js');
 
@@ -148,4 +153,35 @@ test('isLibraryRouteVisible/isProfileRouteVisible read the real "on" class off t
   showRoute('profile');
   assert.equal(isProfileRouteVisible(), true);
   assert.equal(isLibraryRouteVisible(), false);
+});
+
+// --- NV3 (docs/11_SMOOTH_NAVIGATION.md): per-tab scroll memory -----------
+
+test('showRoute: scrolling down on one tab, then switching away and back, restores that same position', () => {
+  showRoute('library');
+  globalThis.window.scrollY = 850;
+  showRoute('sundown');
+  assert.equal(globalThis.window.scrollY, 0, 'a tab visited for the first time starts at the top');
+  globalThis.window.scrollY = 120;
+  showRoute('library');
+  assert.equal(globalThis.window.scrollY, 850, 'library\'s own remembered position comes back');
+});
+
+test('showRoute: switching to the tab already on screen doesn\'t save over its own position', () => {
+  showRoute('profile');
+  globalThis.window.scrollY = 300;
+  showRoute('profile');
+  assert.equal(globalThis.window.scrollY, 300);
+});
+
+test('selectSundownView: Day and Sound each keep their own scroll position, independent of the route level', () => {
+  showRoute('sundown');
+  selectSundownView('day');
+  globalThis.window.scrollY = 400;
+  selectSundownView('sound');
+  globalThis.window.scrollY = 77;
+  selectSundownView('day');
+  assert.equal(globalThis.window.scrollY, 400, 'Day\'s own remembered position comes back');
+  selectSundownView('sound');
+  assert.equal(globalThis.window.scrollY, 77, 'Sound\'s own remembered position comes back');
 });

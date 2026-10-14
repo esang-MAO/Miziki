@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 function fakeEl(){
   const classes = new Set();
   return {
-    offsetWidth: 0, style: {},
+    offsetWidth: 0, style: {}, value: '',
     classList: {
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
@@ -24,8 +24,12 @@ function fakeEl(){
     setAttribute(){}, textContent: '',
   };
 }
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): #librarySearch's own fake element is
+// shared (not a fresh one per call), so a test can set .value on it to
+// exercise libraryShowsFavoriteMembership()'s "is:favorite" branch.
+const librarySearchEl = fakeEl();
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
-  namedExports: { $(){ return fakeEl(); }, el(){ return fakeEl(); } },
+  namedExports: { $(sel){ return sel === '#librarySearch' ? librarySearchEl : fakeEl(); }, el(){ return fakeEl(); } },
 });
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
@@ -57,7 +61,10 @@ function resetState(overrides){
       { id: 'c', tags: { title: 'C' } },
     ],
     index: -1, playlists: [],
+    view: { mode: 'songs', group: null, artistAlbum: null, playlist: null, person: null, personReturn: null,
+      picking: false, editSelecting: false, crateLooseIdx: null, crateLooseArtist: null },
   }, overrides);
+  librarySearchEl.value = '';
   queueSaveMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
 }
@@ -93,11 +100,25 @@ test('toggleFavorite adopts an existing user playlist literally named "Favorites
   assert.ok(isFavorite('a'));
 });
 
-test('toggleFavorite persists and re-renders the library', () => {
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): songRow() never shows favorite status
+// at all, so toggling it only re-renders the library when the visible
+// list's own membership actually depends on favorite status — the
+// Favorites playlist itself, or an active "is:favorite" search. Every
+// other view (the common case) always saves, but skips the render outright.
+test('toggleFavorite always persists; only re-renders when the visible list depends on favorite status', () => {
   resetState();
   toggleFavorite('b');
   assert.equal(queueSaveMock.mock.calls.length, 1);
-  assert.equal(renderTracksMock.mock.calls.length, 1);
+  assert.equal(renderTracksMock.mock.calls.length, 0, 'Songs view never shows favorite status -- no render needed');
+
+  resetState({ playlists: [{ name: 'Favorites', items: [], system: 'favorites' }], view: { playlist: 0 } });
+  toggleFavorite('b');
+  assert.equal(renderTracksMock.mock.calls.length, 1, 'viewing the Favorites playlist itself does need a render');
+
+  resetState();
+  librarySearchEl.value = 'is:favorite';
+  toggleFavorite('b');
+  assert.equal(renderTracksMock.mock.calls.length, 1, 'an active is:favorite search does need a render');
 });
 
 test('toggleFavorite on an id not currently in the library still favorites it (F3 spec: reconnects later)', () => {

@@ -16,7 +16,7 @@ import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
-import { renderTracks, exitSelectMode } from './view.js';
+import { renderTracks, updateTrackRow, exitSelectMode } from './view.js';
 import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
@@ -69,7 +69,13 @@ function recomputeTrack(i){
     if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
     else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
   }
-  renderTracks();
+  // NV3: a single-track edit only ever changes that one row's own content
+  // (title/artist/art) — patch it in place instead of rebuilding the whole
+  // library list, falling back to a full render when the row isn't
+  // currently on screen (a batch edit can easily span tracks across more
+  // than one visible group, and a grouped/drilled-into view, an active
+  // search, or the crate has no flat row for updateTrackRow to find at all).
+  if(!updateTrackRow(t.id)) renderTracks();
   renderMiniPlayer();
 }
 
