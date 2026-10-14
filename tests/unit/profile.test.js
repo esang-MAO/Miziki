@@ -9,19 +9,54 @@ import assert from 'node:assert/strict';
 // in a real document.
 function fakeEl(){
   const children = [];
-  return {
+  const node = {
     className: '', textContent: '', style: {}, src: '', alt: '',
     appendChild(child){ children.push(child); return child; },
     get childNodes(){ return children; },
+    // NV4's own renderProfile() builds real back/link buttons (addEventListener)
+    // outside of badges.js's own narrower needs — harmless no-ops here, since
+    // no test in this file ever fires a click.
+    addEventListener(){},
+    classList: { add(){}, contains(){ return false; } },
   };
+  Object.defineProperty(node, 'innerHTML', {
+    get(){ return children.length ? '…' : ''; },
+    set(v){ if(v === '') children.length = 0; },
+  });
+  return node;
 }
+function el(tag, cls, text){ const e = fakeEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: {
-    el(tag, cls, text){ const e = fakeEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; },
-    $(){ return fakeEl(); },
+    el,
+    $(sel){ return profileHosts[sel] || fakeEl(); },
   },
 });
 globalThis.document = { createElement(){ return fakeEl(); } };
+
+// NV4 (docs/11_SMOOTH_NAVIGATION.md): renderProfile()/renderProfileHome()'s
+// own "build once, refresh in place" claim needs #profileCrumb/#profileBody
+// to be the *same* stable elements across calls within one test, unlike the
+// badges-only tests above which never cared — a small by-selector map, not
+// a new element every call.
+function fakeHostEl(){
+  const children = [];
+  const node = {
+    style: {}, dataset: {},
+    appendChild(child){ children.push(child); child.parent = node; return child; },
+    get childNodes(){ return children; },
+    get children(){ return children; },
+  };
+  Object.defineProperty(node, 'innerHTML', {
+    get(){ return children.length ? '…' : ''; },
+    set(v){ if(v === '') children.length = 0; },
+  });
+  return node;
+}
+const profileHosts = { '#profileCrumb': fakeHostEl(), '#profileBody': fakeHostEl() };
+function resetProfileHosts(){
+  Object.values(profileHosts).forEach(h => { h.innerHTML = ''; });
+}
 
 // fmtCount lives in src/profile/screens.js, which also exports the real
 // profile screens — those pull in profile/storefront.js, profile/
@@ -30,14 +65,35 @@ globalThis.document = { createElement(){ return fakeEl(); } };
 // chain. Mocked directly here, same "stop the chain at the door" reasoning
 // every other test file in this suite already uses, since this file only
 // wants fmtCount itself.
+// NV4: tracked (not a bare no-op) so a test can tell whether
+// renderProfile({refresh:true}) actually reused the same storefront/rhythm
+// hosts across calls versus tearing them down and rebuilding fresh ones —
+// each call records the exact host object it was given.
+const storefrontCalls = [];
+const rhythmCalls = [];
 mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
   namedExports: {
-    renderStorefrontSection(){}, STORE_TIER_LABEL: {}, localAlbumArt(){ return null; }, renderStoreError(){},
+    renderStorefrontSection(host){ storefrontCalls.push(host); host.appendChild(el('span','storefront-marker')); },
+    STORE_TIER_LABEL: {}, localAlbumArt(){ return null; }, renderStoreError(){},
     storeSwitch(){}, timeAgoShort(){ return ''; },
+  },
+});
+mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, {
+  namedExports: {
+    renderRhythmCard(host){ rhythmCalls.push(host); },
   },
 });
 mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
   namedExports: { renderSocialSettingsScreen(){} },
+});
+mock.module(new URL('../../src/profile/privacy.js', import.meta.url).href, {
+  namedExports: { renderPrivacyScreen(){}, wirePrivacyLink(){} },
+});
+mock.module(new URL('../../src/profile/legal.js', import.meta.url).href, {
+  namedExports: { renderPrivacyPolicyScreen(){}, renderTermsScreen(){}, legalLinksRow(){ return fakeEl(); } },
+});
+mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
+  namedExports: { queueAvatarUpload(){} },
 });
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
@@ -82,7 +138,8 @@ mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
   namedExports: { refreshLibraryTools(){} },
 });
 
-const { fmtCount } = await import('../../src/profile/screens.js');
+const { fmtCount, renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
+const { S } = await import('../../src/state.js');
 const { metalBadge, collectionBadge } = await import('../../src/profile/badges.js');
 const { METAL_COLORS } = await import('../../src/record-art/metals.js');
 const { VARIANT_DEFS } = await import('../../src/record-art/tiers.js');
@@ -142,4 +199,62 @@ test('METAL_COLORS/VARIANT_DEFS sanity: every metal tier and variant badges can 
   assert.ok(METAL_COLORS.gold);
   assert.ok(METAL_COLORS.bronze);
   assert.ok(Object.keys(VARIANT_DEFS).length > 0);
+});
+
+// --- NV4 (docs/11_SMOOTH_NAVIGATION.md): renderProfile/refreshProfileHome's
+// own "build once, refresh in place" claim for the Profile home screen ----
+
+function resetProfileState(){
+  resetProfileHosts();
+  storefrontCalls.length = 0;
+  rhythmCalls.length = 0;
+  S.profileView.screen = 'home';
+}
+
+test('renderProfile: a plain call on the home screen builds fresh storefront/rhythm hosts', () => {
+  resetProfileState();
+  renderProfile();
+  assert.equal(storefrontCalls.length, 1);
+  assert.equal(rhythmCalls.length, 1);
+  assert.equal(profileHosts['#profileBody'].children.length, 2, 'storefrontHost + rhythmHost, nothing else');
+});
+
+test('renderProfile({refresh:true}) while already on home never wipes #profileBody -- same hosts, re-painted', () => {
+  resetProfileState();
+  renderProfile();
+  const [storefrontHost, rhythmHost] = profileHosts['#profileBody'].children;
+  renderProfile({ refresh: true });
+  assert.equal(storefrontCalls.length, 2, 'renderStorefrontSection ran again, to pick up fresh data');
+  assert.equal(rhythmCalls.length, 2);
+  assert.equal(profileHosts['#profileBody'].children.length, 2, 'no new top-level host was appended');
+  assert.equal(profileHosts['#profileBody'].children[0], storefrontHost, 'same storefront host, not torn down');
+  assert.equal(profileHosts['#profileBody'].children[1], rhythmHost, 'same rhythm host, not torn down');
+});
+
+test('refreshProfileHome: is a no-op when a different screen is showing', () => {
+  resetProfileState();
+  S.profileView.screen = 'topAlbums';
+  refreshProfileHome();
+  assert.equal(storefrontCalls.length, 0);
+  assert.equal(rhythmCalls.length, 0);
+});
+
+test('refreshProfileHome: refreshes in place when the home screen is showing', () => {
+  resetProfileState();
+  renderProfile();
+  refreshProfileHome();
+  assert.equal(storefrontCalls.length, 2);
+  assert.equal(rhythmCalls.length, 2);
+});
+
+test('renderProfile: leaving home for another screen and back rebuilds fresh hosts (not stale ones)', () => {
+  resetProfileState();
+  renderProfile();
+  const [firstStorefrontHost] = profileHosts['#profileBody'].children;
+  S.profileView.screen = 'topAlbums';
+  renderProfile();
+  S.profileView.screen = 'home';
+  renderProfile();
+  const [secondStorefrontHost] = profileHosts['#profileBody'].children;
+  assert.notEqual(secondStorefrontHost, firstStorefrontHost, 'a genuine screen change always rebuilds fresh, even back on home');
 });

@@ -49,6 +49,7 @@ import { wireShare } from './wiring/share.js';
 import { wireOverlays } from './wiring/overlays.js';
 import { wireRoutes } from './wiring/routes.js';
 import { wireLifecycle } from './wiring/lifecycle.js';
+import { wirePullRefresh } from './wiring/pull-refresh.js';
 
 /* Everything that used to live here — the audio graph, the library, the
    gatefold and sealed-record sheet, the crate, the launch intro, the
@@ -79,6 +80,7 @@ wireShare();
 wireOverlays();
 wireRoutes();
 wireLifecycle();
+wirePullRefresh();
 
 // NV2 (docs/11_SMOOTH_NAVIGATION.md): establishes the one clean history
 // entry every later pushState/replaceState builds on, before anything else

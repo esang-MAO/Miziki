@@ -72,7 +72,25 @@ export function topTile(label, art, title, subtitle, emptyText, onTap){
   return b;
 }
 
-export function renderProfile(){
+// NV4 (docs/11_SMOOTH_NAVIGATION.md): "build once; on later visits, update
+// only the parts whose data changed" for the Profile home screen.
+// profileHomeHosts persists the two sub-sections' own host elements
+// (storefront, rhythm card) across refreshes, so a refresh (pull-to-refresh,
+// or any other "just redraw with current data" call) never wipes the whole
+// #profileBody — only a genuine screen change does (including entering the
+// home screen from somewhere else, since the old hosts are detached once
+// the body is wiped for a different screen anyway). Navigating to a
+// sub-screen (Top Albums, Settings, …) and back still does a full rebuild
+// of the home screen itself the first time it's entered again — this only
+// changes what happens on a *refresh while already looking at it*, per the
+// plan's own "Profile" bullet; avoiding re-creating unchanged <img>
+// elements inside the storefront's own avatar (its header always rebuilds
+// internally once called) is a deeper change to src/profile/storefront.js
+// itself, deliberately left out of this PR's scope — see its PR description.
+let profileHomeHosts = null;
+let lastProfileScreen = null;
+
+export function renderProfile(opts = {}){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
   const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy',
@@ -85,7 +103,9 @@ export function renderProfile(){
     crumb.appendChild(back);
     crumb.appendChild(el('span','crumb-label', labels[screen] || ''));
   }
-  const body = $('#profileBody'); body.innerHTML = '';
+  const body = $('#profileBody');
+  const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
+  if(!refreshingHome) body.innerHTML = '';
   if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
@@ -94,23 +114,43 @@ export function renderProfile(){
   else if(screen === 'privacy'){ renderPrivacyScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
   else if(screen === 'privacyPolicy') renderPrivacyPolicyScreen(body);
   else if(screen === 'termsOfUse') renderTermsScreen(body);
-  else renderProfileHome(body);
+  else renderProfileHome(body, refreshingHome);
+  lastProfileScreen = screen;
   refreshLibraryTools();
 }
 
-function renderProfileHome(body){
-  renderStorefrontSection(body);
+// NV4: refreshes the Profile tab's own home screen in place (re-fetches the
+// storefront/stats/rhythm card), without rebuilding #profileBody — a no-op
+// when a different screen (Top Albums, Settings, …) is currently showing,
+// since there's nothing "home" to refresh there. Never starts a restore,
+// merge, or anything that writes library data — renderStorefrontSection()/
+// renderRhythmCard() only ever read from S and re-fetch the signed-in
+// storefront's own already-read-only profile data.
+export function refreshProfileHome(){
+  if(S.profileView.screen !== 'home') return;
+  renderProfile({ refresh: true });
+}
+
+function renderProfileHome(body, refresh){
+  if(!refresh || !profileHomeHosts){
+    const storefrontHost = el('div', null);
+    const rhythmHost = el('div', null);
+    body.appendChild(storefrontHost);
+    body.appendChild(rhythmHost);
+    profileHomeHosts = { storefrontHost, rhythmHost };
+    // reachable from Profile regardless of sign-in state — the privacy
+    // screen itself shows the calm "sign in to use this" row for the
+    // social-only sections when signed out (step 06, B3). Static across
+    // refreshes, so only built the first time, like the two hosts above.
+    wirePrivacyLink(body, renderProfile);
+  }
+  profileHomeHosts.storefrontHost.innerHTML = '';
+  renderStorefrontSection(profileHomeHosts.storefrontHost);
   // DA5 (docs/DAY_ARC.md): local to this device, visible regardless of
   // sign-in state — the same posture the privacy link just below already
   // has. The *sharing* switch is the social-only half (Privacy screen,
   // src/profile/privacy.js) and stays separate.
-  const rhythmHost = el('div', null);
-  body.appendChild(rhythmHost);
-  renderRhythmCard(rhythmHost);
-  // reachable from Profile regardless of sign-in state — the privacy
-  // screen itself shows the calm "sign in to use this" row for the
-  // social-only sections when signed out (step 06, B3)
-  wirePrivacyLink(body, renderProfile);
+  renderRhythmCard(profileHomeHosts.rhythmHost);
 }
 
 // DA3 (docs/DAY_ARC.md, artboard ProfileSettings): the Appearance control

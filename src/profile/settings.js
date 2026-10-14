@@ -2,7 +2,7 @@ import { S } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { timeAgoShort } from './storefront.js';
 import { renderProfile } from './screens.js';
-import { renderHome } from '../social/screens/home.js';
+import { renderHome, clearHomeFeedCache } from '../social/screens/home.js';
 import { wirePrivacyLink } from './privacy.js';
 import { legalLinksRow } from './legal.js';
 import { getBackupStatus, listBackupDevices } from '../sync/backup.js';
@@ -289,6 +289,9 @@ function renderDeleteAccount(body, profile){
       body.appendChild(el('p','note', r.error.message));
       return;
     }
+    // NV4 (docs/11_SMOOTH_NAVIGATION.md): the Home feed's own device-only
+    // cache must never survive a sign-out/account deletion.
+    clearHomeFeedCache();
     S.profileView.screen = 'home';
     renderProfile();
   });
@@ -336,6 +339,7 @@ export function renderSocialSettingsScreen(body){
   const signOutBtn = el('button','cta ghost','Sign out');
   signOutBtn.addEventListener('click', async ()=>{
     await MizikiSocial.signOut();
+    clearHomeFeedCache();
     S.profileView.screen = 'home';
     renderProfile();
   });
@@ -343,6 +347,7 @@ export function renderSocialSettingsScreen(body){
   const signOutAllBtn = el('button','cta ghost','Sign out everywhere');
   signOutAllBtn.addEventListener('click', async ()=>{
     await MizikiSocial.signOutEverywhere();
+    clearHomeFeedCache();
     S.profileView.screen = 'home';
     renderProfile();
   });
