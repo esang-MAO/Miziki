@@ -80,6 +80,11 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 // (credits.js's chain, via rebuildPeopleIndex) all moved off main.js into
 // real src/shell/ modules — mocked there directly instead, same "stop the
 // chain at the door" reasoning the rest of this file's comments give.
+// CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
+// shell/runout.js, whose real chain reaches library/view.js — stop it here.
+mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
+  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){} },
+});
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: {
     clearSpinDown(){},

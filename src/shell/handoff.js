@@ -59,7 +59,7 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   ghost.style.display = 'block';
 
   discBox.classList.add('disc-hidden');
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning');
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
   $('#sleeve').style.display = 'none';
 
   // player sheet fades up behind the flight rather than sliding up from the

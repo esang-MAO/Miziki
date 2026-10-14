@@ -89,3 +89,48 @@
 .heart-btn.pop{animation:heartPop .35s ease}
 @keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
 
+
+/* ---------- ceremonies (docs/CEREMONY.md §2-§4) ---------- */
+/* §4 change records: the outgoing disc lifts, slides into its own sleeve,
+   and that sleeve leaves while the next one arrives (JS adds .changing,
+   then 1200 ms in starts the usual sleeve-arriving over 700 ms). */
+.sleeve-out{z-index:2}
+@keyframes changeDisc{
+  0%{transform:translateX(0%) scale(1);opacity:1}
+  24%{transform:translateX(0%) scale(1)}
+  43%{transform:translateX(0%) scale(1.04);opacity:1}
+  100%{transform:translateX(55%) scale(.985);opacity:0}
+}
+@keyframes changeSleeveOut{
+  0%{transform:translateX(115%);opacity:0}
+  30%{transform:translateX(55%);opacity:1}
+  70%{transform:translateX(55%);opacity:1}
+  100%{transform:translateY(140%);opacity:0}
+}
+.platter-stage.changing .platter-box{animation:changeDisc 1050ms ease-in-out forwards}
+.platter-stage.changing .sleeve-out{animation:changeSleeveOut 1500ms ease-in-out forwards}
+
+/* §2/§3 run-out groove: the needle rides the last groove, the label ring glows. */
+.platter-stage.runout .label{box-shadow:inset 0 0 0 3px var(--accent),0 0 18px rgba(255,158,44,.35)}
+
+/* §3 side flip: lifted, turned edge-on, the other face comes round. */
+@keyframes sideFlip{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.08)}
+  50%{transform:scale(.13,1.08)}
+  80%{transform:scale(1.02)}
+  100%{transform:scale(1)}
+}
+.platter-stage.flipping .platter-box{animation:sideFlip 700ms ease-in-out forwards}
+.side-letter{position:absolute;inset:0;display:grid;place-content:center;pointer-events:none;
+  font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.06em;color:var(--paper);
+  text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.side-letter:empty{display:none}
+
+/* §2 rest: the empty slipmat, and the desktop "pick a record" hint. Both
+   hidden until .player-overlay.at-rest shows them (23-desktop.css). */
+.slipmat-rest{position:absolute;inset:0;border-radius:50%;display:none;place-content:center;
+  background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);
+  box-shadow:inset 0 0 0 1px var(--line)}
+.slipmat-rest span{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
+.rest-hint{display:none}

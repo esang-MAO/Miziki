@@ -28,6 +28,7 @@ import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
+import { splitSides } from '../shell/ceremony-timing.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -68,14 +69,9 @@ export function gatefoldTrackIndices(item){ return albumTracks(item.album); }
 // Exported for its own unit test (step 7e), same precedent as angleDelta
 // (scrub.js, step 3c) and sampleStackAlbums (launch/intro.js, step 7c).
 export function gatefoldSideSplits(trackIdx){
-  if(!S.albumSides || trackIdx.length < 4) return null;
-  const discs = [...new Set(trackIdx.map(i => S.tracks[i].tags.disc || 0))];
-  if(discs.length > 1){
-    return discs.map((d, k) => ({label:'SIDE ' + String.fromCharCode(65 + k),
-      idx: trackIdx.filter(i => (S.tracks[i].tags.disc || 0) === d)}));
-  }
-  const mid = Math.ceil(trackIdx.length / 2);
-  return [{label:'SIDE A', idx: trackIdx.slice(0, mid)}, {label:'SIDE B', idx: trackIdx.slice(mid)}];
+  // the split rule itself lives in shell/ceremony-timing.js so the side flip
+  // (CEREMONY §3) reads exactly the same sides the gatefold shows
+  return splitSides(trackIdx, S.tracks, S.albumSides);
 }
 
 function gatefoldNowGlyph(){
