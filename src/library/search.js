@@ -220,62 +220,209 @@ export function highlightRowLabel(row, selector, text, query){
   return row;
 }
 
+// NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather than
+// rebuilding when possible." Typing one more character into an already-
+// open, plain-text (no field: tokens) search query can only ever narrow
+// each result category — substring matching is monotonic under a prefix
+// extension: if a field doesn't contain the shorter query, it can't
+// possibly contain a longer string that *starts with* that same query
+// either (any prefix of a match is itself a match, at the same position).
+// That guarantee is what makes dropping rows in place safe without
+// re-deriving anything about *which* rows to drop from scratch — every row
+// still shown either stays (if its name/id is still in the new result set)
+// or goes, never the other way around, and nothing new can ever need
+// adding. A query with any field: token is excluded entirely (field
+// matching — especially numeric/year comparisons — isn't generally
+// monotonic this way), and so is a query that isn't a straight extension
+// of the previous one (backspacing, pasting, clearing) — both fall back to
+// the full rebuild below, which is always correct.
+export function canFilterInPlace(prevQuery, nextQuery){
+  if(!prevQuery) return false;
+  const prev = parseSearchQuery(prevQuery), next = parseSearchQuery(nextQuery);
+  if(prev.fields.length || next.fields.length) return false;
+  const prevText = normKey(prev.text), nextText = normKey(next.text);
+  if(!prevText) return false;
+  return nextText.startsWith(prevText);
+}
+
+// Bookkeeping for the in-place path, rebuilt fresh every time the full
+// rebuild below runs. `lastCanary` is simply the first node that rebuild
+// appended — enough to detect a rebuild that happened without going
+// through this module (e.g. the user cleared the search box, so
+// renderTracksBody() wiped #libBody and drew the plain Songs/Albums/etc.
+// view instead) and bail to a fresh rebuild rather than silently filtering
+// a detached, no-longer-visible tree.
+let lastQuery = null;
+let lastHost = null;
+let lastCanary = null;
+let lastSections = null; // {artists,albums,people,genres}: {header, rows: Map(label -> el)}
+let lastSongsHeader = null;
+let lastSongsUl = null;
+let lastSongsQueue = null; // the exact array object every kept songRow's click handler closes over
+let lastSongsRows = null;  // Map(track id -> li)
+
+function stateIsFresh(host){
+  return lastHost === host && !!lastCanary && lastCanary.parentNode === host;
+}
+
+function filterGroupSection(section, keepLabels, textQ){
+  if(!section) return keepLabels.length === 0; // monotonic: was empty, must stay empty
+  const keep = new Set(keepLabels);
+  for(const [label, row] of [...section.rows]){
+    if(keep.has(label)) highlightRowLabel(row, '.g-text b', label, textQ);
+    else { row.remove(); section.rows.delete(label); }
+  }
+  if(section.rows.size === 0 && section.header){ section.header.remove(); section.header = null; }
+  return true;
+}
+
+function filterSongsSection(songIdxs, textQ){
+  if(!lastSongsUl) return songIdxs.length === 0;
+  const keepIds = new Set(songIdxs.map(i => S.tracks[i].id));
+  for(const [id, row] of [...lastSongsRows]){
+    if(!keepIds.has(id)){ row.remove(); lastSongsRows.delete(id); }
+  }
+  // same array object every remaining row's click handler already closes
+  // over (library/view.js's songRow looks up queue.indexOf(i) live, not a
+  // baked-in position) — splicing it in place, rather than handing
+  // renderSearchResults a fresh array, is what keeps every kept row
+  // playing from its correct new position with no row rebuilt at all.
+  lastSongsQueue.length = 0;
+  lastSongsQueue.push(...songIdxs);
+  songIdxs.forEach((i, pos) => {
+    const row = lastSongsRows.get(S.tracks[i].id);
+    if(!row) return;
+    highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ);
+    const idxEl = row.querySelector('.t-idx');
+    if(idxEl) idxEl.textContent = String(pos + 1).padStart(2, '0');
+  });
+  if(lastSongsRows.size === 0){
+    if(lastSongsHeader){ lastSongsHeader.remove(); lastSongsHeader = null; }
+    lastSongsUl.remove(); lastSongsUl = null;
+  }
+  return true;
+}
+
+function filterSearchResultsInPlace(host, query){
+  if(!stateIsFresh(host)) return false;
+  const results = searchLibrary(query);
+  const anyMatches = results.artists.length || results.albums.length || results.songs.length
+    || results.people.length || results.genres.length;
+  if(!anyMatches) return false; // let the caller fall back to the plain "No matches" rebuild
+  const textQ = parseSearchQuery(query).text.trim();
+  if(!filterGroupSection(lastSections.artists, results.artists, textQ)) return false;
+  if(!filterGroupSection(lastSections.albums, results.albums, textQ)) return false;
+  if(!filterGroupSection(lastSections.people, results.people, textQ)) return false;
+  if(!filterGroupSection(lastSections.genres, results.genres, textQ)) return false;
+  if(!filterSongsSection(results.songs, textQ)) return false;
+  return true;
+}
+
+// Exported so library/view.js's renderTracks() can try this *before*
+// renderTracksBody() does its own unconditional host.innerHTML = '' — by
+// the time that reset has run there's nothing left in the DOM to filter,
+// so this has to run first and, on success, skip the reset (and the rest
+// of renderTracksBody()) entirely. renderSearchResults() below (the
+// rebuild renderTracksBody() itself calls once it's already decided to do
+// a full rebuild) never takes this path, since the host is already empty
+// by the time it runs.
+export function filterSearchInPlace(host, query){
+  if(!canFilterInPlace(lastQuery, query)) return false;
+  if(!filterSearchResultsInPlace(host, query)) return false;
+  lastQuery = query;
+  return true;
+}
+
 export function renderSearchResults(host, query){
+  rebuildSearchResults(host, query);
+  lastQuery = query;
+  lastHost = host;
+}
+
+function rebuildSearchResults(host, query){
+  lastCanary = null; lastSections = null;
+  lastSongsHeader = null; lastSongsUl = null; lastSongsQueue = null; lastSongsRows = null;
   const results = searchLibrary(query);
   if(!results.artists.length && !results.albums.length && !results.songs.length
      && !results.people.length && !results.genres.length){
-    host.appendChild(el('p','note','No matches for “' + query + '”.'));
+    lastCanary = host.appendChild(el('p','note','No matches for “' + query + '”.'));
     return;
   }
   const textQ = parseSearchQuery(query).text.trim();
+  const sections = { artists: null, albums: null, people: null, genres: null };
   const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
   if(results.artists.length){
-    host.appendChild(el('p','note','Artists'));
+    const header = host.appendChild(el('p','note','Artists'));
+    if(!lastCanary) lastCanary = header;
+    const rows = new Map();
     results.artists.forEach(artist => {
       const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
       const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
       const row = groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
         + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist));
       host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
+      rows.set(artist, row);
     });
+    sections.artists = { header, rows };
   }
   if(results.albums.length){
-    host.appendChild(el('p','note','Albums'));
+    const header = host.appendChild(el('p','note','Albums'));
+    if(!lastCanary) lastCanary = header;
+    const rows = new Map();
     results.albums.forEach(album => {
       const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
       const artist = S.tracks[idx[0]].tags.albumArtist;
       const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
         idx, () => goto('albums', album));
       host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
+      rows.set(album, row);
     });
+    sections.albums = { header, rows };
   }
   if(results.people.length){
-    host.appendChild(el('p','note','People'));
+    const header = host.appendChild(el('p','note','People'));
+    if(!lastCanary) lastCanary = header;
+    const rows = new Map();
     results.people.forEach(name => {
       const entry = personEntryFor(name);
       const count = entry ? new Set(entry.entries.map(e => e.trackIdx)).size : 0;
       const row = groupRow(name, count + (count===1?' credit':' credits'), [],
         () => { $('#librarySearch').value = ''; openPersonOrArtist(name); });
       host.appendChild(highlightRowLabel(row, '.g-text b', name, textQ));
+      rows.set(name, row);
     });
+    sections.people = { header, rows };
   }
   if(results.genres.length){
-    host.appendChild(el('p','note','Genres'));
+    const header = host.appendChild(el('p','note','Genres'));
+    if(!lastCanary) lastCanary = header;
+    const rows = new Map();
     results.genres.forEach(genre => {
       const idx = allIdx().filter(i => S.tracks[i].details && S.tracks[i].details.genre === genre);
       const row = groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
         () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); });
       host.appendChild(highlightRowLabel(row, '.g-text b', genre, textQ));
+      rows.set(genre, row);
     });
+    sections.genres = { header, rows };
   }
+  lastSections = sections;
   if(results.songs.length){
-    host.appendChild(el('p','note','Songs'));
+    const header = host.appendChild(el('p','note','Songs'));
+    if(!lastCanary) lastCanary = header;
     const ul = el('ul','tracklist');
+    const rows = new Map();
+    const queue = results.songs; // the array every songRow below closes over — kept live for filterSongsSection
     results.songs.forEach((i, pos) => {
-      const row = songRow(i, results.songs, pos);
+      const row = songRow(i, queue, pos);
       ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
+      rows.set(S.tracks[i].id, row);
     });
     host.appendChild(ul);
+    lastSongsHeader = header;
+    lastSongsUl = ul;
+    lastSongsQueue = queue;
+    lastSongsRows = rows;
   }
 }
 

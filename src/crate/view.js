@@ -172,7 +172,19 @@ function renderCrateFlat(host, model){
     if(isNowPlayingAlbum(item)) row.classList.add('crate-flat-current');
     const sealed = isAlbumSealed(item.albumId);
     const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
-    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; row.appendChild(im); }
+    if(art){
+      // NV6 (docs/11_SMOOTH_NAVIGATION.md): this is a plain scrolling list
+      // of thumbnails (the reduced-motion fallback crate), the same "list
+      // thumbnail" case library/view.js's songRow/groupRow already cover —
+      // lazy/async plus the fixed size .crate-flat-item img already has in
+      // CSS (10-crate.css, 56x56). The animated 3D crate stage just below
+      // this function is a different, bounded-count case and is untouched.
+      const im = document.createElement('img');
+      im.src = art; im.alt = '';
+      im.loading = 'lazy'; im.decoding = 'async';
+      im.width = 56; im.height = 56;
+      row.appendChild(im);
+    }
     else { const flat = el('span','crate-flat-flat'); flat.style.background = CRATE_PALETTE[row.childElementCount % CRATE_PALETTE.length]; row.appendChild(flat); }
     const text = el('span','t-name');
     const titleEl = el('b', null, item.album);
