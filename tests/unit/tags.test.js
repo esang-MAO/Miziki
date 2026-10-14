@@ -17,7 +17,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // from src/library/view.js instead of main.js — mocked directly here,
 // same "stop the chain at the door" reasoning as the rest of this file.
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
-  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){} },
+  namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
 // Since step 7c, import.js's invalidateCrateModel/healCrateArt imports and
 // edit.js's/delete.js's deleteCrateArtTiers/buildCrateTier imports are real

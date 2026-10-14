@@ -5,6 +5,7 @@ import { updateHeaderActionsAvailability, isSearchFieldOpen, isAddMenuOpen } fro
 // GF is read-only here (see refactor rule 7) — not reassigned, only read.
 import { GF } from '../gatefold/view.js';
 import { forceCloseLayer, recordRoute } from './nav-stack.js';
+import { saveScrollPosition, restoreScrollPosition } from './scroll-memory.js';
 
 export function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
@@ -24,8 +25,17 @@ export function isProfileRouteVisible(){
 // click handlers and its own "restore last view" call at boot, the usual
 // direction for a wiring file reaching into a shell/ one.
 const SUNDOWN_VIEW_KEY = 'miziki.sundownView';
+// NV3 (docs/11_SMOOTH_NAVIGATION.md): which sub-view is on screen right now,
+// so its own scroll position can be saved before switching away from it —
+// module-private, the same "track what's current so the thing leaving can
+// be saved" shape showRoute() itself uses below for the route level.
+let currentSundownView = null;
 export function selectSundownView(view){
   view = view === 'sound' ? 'sound' : 'day';
+  // switching to the view already on screen (e.g. re-tapping the same tab)
+  // must never fight the scroll position the user is already at
+  const isNewView = currentSundownView !== view;
+  if(currentSundownView && isNewView) saveScrollPosition('sundown-view:' + currentSundownView);
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
     b.setAttribute('aria-selected', String(b.dataset.sundownView === view)));
   const dayEl = $('#sundownDayView'), soundEl = $('#sundownSoundView');
@@ -34,18 +44,29 @@ export function selectSundownView(view){
   // device-only, same posture as S.theme's own localStorage mirror
   // (src/theme-boot.js) — never synced, never part of prefs/backup.
   try{ localStorage.setItem(SUNDOWN_VIEW_KEY, view); }catch(_e){}
+  currentSundownView = view;
+  if(isNewView) restoreScrollPosition('sundown-view:' + view);
 }
 export function lastSundownView(){
   try{ return localStorage.getItem(SUNDOWN_VIEW_KEY) === 'sound' ? 'sound' : 'day'; }
   catch(_e){ return 'day'; }
 }
 
+// NV3: which route is on screen right now, so its own scroll position can be
+// saved just before showRoute() switches to a different one.
+let currentRouteName = null;
 export function showRoute(name){
   // DA3: the Character tab is gone — its content lives in Sundown's own
   // Sound view now. Anything that still asks for "character" (a stale
   // saved last-tab value, an old link, a future typo) lands there instead
   // of 404ing onto a route that no longer exists in the DOM at all.
   if(name === 'character'){ name = 'sundown'; selectSundownView('sound'); }
+  // re-tapping the tab already on screen must never fight the scroll
+  // position the user is already at
+  const isNewRoute = currentRouteName !== name;
+  // NV3: save the leaving route's own scroll position before anything about
+  // the DOM changes — window.scrollY here is still wherever the user left it.
+  if(currentRouteName && isNewRoute) saveScrollPosition('route:' + currentRouteName);
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
   // overlay that would otherwise hide whatever route is switched to — an
@@ -69,4 +90,8 @@ export function showRoute(name){
     renderProfile();
   }
   if(name === 'home') renderHome();
+  currentRouteName = name;
+  // NV3: restore the entering route's own remembered position (top, on a
+  // first visit) — after its content is actually on screen, not before.
+  if(isNewRoute) restoreScrollPosition('route:' + name);
 }

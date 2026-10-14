@@ -30,6 +30,7 @@ import { updateChromeInset } from './shell/mini-player.js';
 import { putAwayInstant } from './shell/put-away.js';
 import { isProfileRouteVisible, showRoute } from './shell/routes.js';
 import { initNavStack, onRouteRestore } from './shell/nav-stack.js';
+import { initScrollRestoration } from './shell/scroll-memory.js';
 import { renderProfile } from './profile/screens.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
 import { applyTheme } from './ui/theme.js';
@@ -87,6 +88,7 @@ wireLifecycle();
 // history exception (recordRoute(), shell/routes.js) saved.
 initNavStack();
 onRouteRestore(showRoute);
+initScrollRestoration();   // NV3: hands scroll-position restoration entirely to the app
 
 setMode('vinyl');
 applyTheme();

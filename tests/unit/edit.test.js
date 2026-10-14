@@ -43,7 +43,7 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 // shell/put-away.js, which needs more from shell/mini-player.js than
 // this file's own mock of it provides).
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
-  namedExports: { renderTracks(){}, exitSelectMode(){} },
+  namedExports: { renderTracks(){}, exitSelectMode(){}, updateTrackRow(){ return false; } },
 });
 // Since step 7b, edit.js's own renderMiniPlayer import moved off main.js
 // into the real src/shell/mini-player.js — mocked there directly instead.

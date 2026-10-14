@@ -17,13 +17,16 @@ import { bgPrime, bgRouteActive, bgIdleNow, bgPosition } from './background.js';
 import { updateShellAlbum, renderMiniPlayer } from '../shell/mini-player.js';
 import { showRoute } from '../shell/routes.js';
 import { clearSpinDown } from '../shell/put-away.js';
-import { renderTracks } from '../library/view.js';
+import { renderTracks, updateTrackRow } from '../library/view.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { realDayPosition } from '../sundown/solar.js';
 
 export function load(i){
   if(!S.tracks[i]) return;
+  // captured before S.index moves, so the row that's losing the now-playing
+  // marker can be found by its own (still-current) id, below
+  const prevTrack = current();
   stop();
   S.index = i; S.pos = 0;
   S.curPlayed = []; S.curTrackDone = false;
@@ -40,7 +43,15 @@ export function load(i){
   $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
     m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
   setPathNote('');
-  renderTracks();
+  // NV3: only the now-playing marker moved — patch the old and new rows in
+  // place rather than rebuilding the whole library list on every track
+  // change. The old row not being found just means it wasn't on screen to
+  // begin with (nothing to fix there); only the new row's own row has to
+  // exist for this to be enough — if it isn't currently on screen either
+  // (grouped/drilled-into views, an active search, the crate), fall back
+  // to a full render exactly as before this change.
+  if(prevTrack && prevTrack.id !== t.id) updateTrackRow(prevTrack.id);
+  if(!updateTrackRow(t.id)) renderTracks();
   renderMiniPlayer();
   updateGatefoldNowPlaying();
   drawTime();
