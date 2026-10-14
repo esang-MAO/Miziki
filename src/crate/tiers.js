@@ -13,9 +13,7 @@ import { artwork } from '../storage/repo.js';
 const CRATE_TIER_S_PX = 640, CRATE_TIER_L_PX = 1200;
 const CRATE_TIER_S_Q = 0.88, CRATE_TIER_L_Q = 0.92;
 const CRATE_TIER_S_CAP = 40, CRATE_TIER_L_CAP = 4;
-// albumId -> object URL; Map insertion order is LRU recency. Exported for
-// src/launch/intro.js's makeLaunchCard(), which only ever reads a
-// synchronous cache hit here — never triggers a build (spec §B5).
+// albumId -> object URL; Map insertion order is LRU recency.
 export const crateArtCache = { S: new Map(), L: new Map() };
 const crateArtBuilding = new Set();                      // 'tier:albumId' in flight, so concurrent askers don't double-build
 

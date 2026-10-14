@@ -27,6 +27,7 @@ import { storage, tracks } from './storage/repo.js';
 import { restoreMeta } from './storage/meta.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
+import { putAwayInstant } from './shell/put-away.js';
 import { isProfileRouteVisible } from './shell/routes.js';
 import { renderProfile } from './profile/screens.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
@@ -127,14 +128,14 @@ async function restoreLibrary(){
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
   healCrateArt().catch(() => {});
-  markLibraryReady();   // from here on the launch intro's library variant has what it needs
+  markLibraryReady();   // from here on the launch intro knows S.launchIntro
   if(S.tracks.length){
-    // the mini player should agree with the launch intro's title screen —
-    // both show what was last played, not just the first file in the
-    // library (see LAUNCH spec C5)
+    // prime the last-played album into the mini player, silently, but leave
+    // the platter empty: Play pulls the record (CEREMONY §2, §5)
     const lastAlbum = resolveLastPlayedAlbum();
     const lastIdx = lastAlbum !== null ? resolveLastPlayedTrackIndex(lastAlbum) : -1;
     setQueue(allIdx(), lastIdx >= 0 ? lastIdx : 0, false);
+    putAwayInstant();
     note.textContent = S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks')
       + ' restored from this device. Tracks are decoded as you play them, so opening Miziki stays quick.';
   } else {

@@ -6,57 +6,18 @@ import assert from 'node:assert/strict';
 // durations) and window.innerWidth/innerHeight inside updateLaunchScale --
 // stubbed here rather than pulling in a real DOM, same "stub only what a
 // browser would otherwise provide" approach idb.test.js/shell.test.js use.
-// createElement/createTextNode are also stubbed (for renderLaunchTitleSub's
-// own test below) with a minimal fake DOM that keeps text-node data
-// separate from element tags, so a test can tell "stored as literal text"
-// apart from "parsed as markup" without a real DOM/jsdom dependency.
-function fakeElement(tag){
-  return { tagName: tag.toUpperCase(), style: {}, className: '', children: [],
-    appendChild(c){ this.children.push(c); return c; },
-    set textContent(v){ this.children = v ? [fakeTextNode(v)] : []; },
-    get textContent(){ return this.children.map(c => c.nodeType === 3 ? c.data : c.textContent).join(''); } };
-}
-function fakeTextNode(data){ return { nodeType: 3, data }; }
 globalThis.document = {
   documentElement: { style: { setProperty(){} } },
-  createElement: fakeElement,
-  createTextNode: fakeTextNode,
 };
-// crate/tiers.js's own crateArtCache (imported here for makeLaunchCard,
-// read-only) needs artwork/storage.repo real -- mocked directly since this
-// file only wants the pure math/resolution helpers below, not the image
-// pipeline, the usual "stop the chain at the door" reasoning.
-mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
-  namedExports: { crateArtCache: { S: new Map(), L: new Map() } },
-});
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
-});
-// library/thumbs.js's thumbURL (imported here for makeLaunchCard, read-only)
-// real-chains into library/edit.js -> shell/mini-player.js -> crate/view.js
-// for its own renderMiniPlayer/applyCrateMiniInset needs -- mocked directly
-// to stop that chain at the door, same reasoning as the crate/tiers.js mock
-// above.
-mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { thumbURL: {} },
 });
 
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,
-  computeFlickPosition, flickSpeed, sampleStackAlbums,
-  renderLaunchTitleSub,
+  computeFlickPosition, flickSpeed,
 } = await import('../../src/launch/intro.js');
 const { S } = await import('../../src/state.js');
-
-function collectText(node){
-  if(node.nodeType === 3) return node.data;
-  return (node.children || []).map(collectText).join('');
-}
-function collectTagNames(node, out = []){
-  if(node.tagName) out.push(node.tagName);
-  (node.children || []).forEach(c => collectTagNames(c, out));
-  return out;
-}
 
 function fakeTrack(id, overrides){
   return Object.assign({
@@ -147,27 +108,8 @@ test('flickSpeed: ramps up through accel, holds at 1 through cruise, ramps down 
   assert.equal(flickSpeed(2250, timing), 0);
 });
 
-test('sampleStackAlbums: samples down to exactly `cap` entries and always keeps the must-include id', () => {
-  const allIds = Array.from({length: 100}, (_, i) => 'album' + i);
-  const picked = sampleStackAlbums(allIds, 50, 'album77');
-  assert.equal(picked.length, 50);
-  assert.ok(picked.includes('album77'));
-});
-
-test('renderLaunchTitleSub: an artist tag containing HTML renders as literal text', () => {
-  const payload = '<img src=x onerror=alert(1)>';
-  const subEl = fakeElement('div');
-  renderLaunchTitleSub(subEl, payload);
-  assert.ok(collectText(subEl).startsWith(payload), 'the malicious artist survives as literal text');
-  assert.ok(collectText(subEl).includes('LAST PLAYED'));
-  // never interpreted as markup -- no <img> element was created out of the
-  // tag text, only the <br> separator and the LAST PLAYED <span> this
-  // function itself builds
-  assert.deepEqual(collectTagNames(subEl), ['DIV', 'BR', 'SPAN']);
-});
-
-test('renderLaunchTitleSub: a missing artist still renders the LAST PLAYED badge', () => {
-  const subEl = fakeElement('div');
-  renderLaunchTitleSub(subEl, '');
-  assert.equal(collectText(subEl), 'LAST PLAYED');
+test('computeFlickPosition: the fixed 18-record stack lands exactly on the Miziki sleeve, four from the end', () => {
+  const timing = { accelMs: 650, cruiseMs: 800, decelMs: 800 };
+  assert.equal(computeFlickPosition(0, 14, timing), 0);
+  assert.ok(Math.abs(computeFlickPosition(2250, 14, timing) - 14) < 1e-9);
 });

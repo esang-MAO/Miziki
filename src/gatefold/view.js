@@ -67,7 +67,7 @@ export function gatefoldTrackIndices(item){ return albumTracks(item.album); }
 // splits by disc, a single disc of 4+ tracks splits at the midpoint, 3 or
 // fewer never splits (spec §A5); track numbers still count straight through.
 // Exported for its own unit test (step 7e), same precedent as angleDelta
-// (scrub.js, step 3c) and sampleStackAlbums (launch/intro.js, step 7c).
+// (scrub.js, step 3c) and computeFlickPosition (launch/intro.js, step 7c).
 export function gatefoldSideSplits(trackIdx){
   // the split rule itself lives in shell/ceremony-timing.js so the side flip
   // (CEREMONY §3) reads exactly the same sides the gatefold shows
