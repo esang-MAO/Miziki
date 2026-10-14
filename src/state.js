@@ -152,6 +152,13 @@ S.scrubbing = false;
 // different device the way the rest of `prefs` does.
 S.theme = 'auto';
 
+// CEREMONY §6: the custom slipmat. Only these flags are prefs; the image
+// itself lives in the artwork store (src/ui/slipmat.js). Device-only, like
+// theme: stripped from the uploaded prefs in src/sync/backup.js.
+S.slipmatCustom = false;
+S.slipmatWordmark = true;
+S.slipmatDim = true;
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist

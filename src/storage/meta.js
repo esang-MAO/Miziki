@@ -10,6 +10,7 @@ import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
 import { attachLaunchSettingRow } from '../launch/intro.js';
 import { scheduleBackupSync } from '../sync/backup.js';
 import { applyTheme } from '../ui/theme.js';
+import { applySlipmat } from '../ui/slipmat.js';
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
@@ -137,6 +138,12 @@ function applyPrefs(p){
   if(p.charDrift === 'off' || p.charDrift === 'subtle' || p.charDrift === 'full') S.charDrift = p.charDrift;
   document.querySelectorAll('[data-char-drift]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.charDrift === S.charDrift)));
+  // CEREMONY §6: called unconditionally, like applyTheme() above, so the
+  // default (felt) is applied too; fire-and-forget, it only touches the DOM
+  if(typeof p.slipmatCustom === 'boolean') S.slipmatCustom = p.slipmatCustom;
+  if(typeof p.slipmatWordmark === 'boolean') S.slipmatWordmark = p.slipmatWordmark;
+  if(typeof p.slipmatDim === 'boolean') S.slipmatDim = p.slipmatDim;
+  applySlipmat();
   // push the restored values back into the controls
   Object.keys(S.char).forEach(k => {
     const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }

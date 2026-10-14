@@ -13,6 +13,7 @@ function fakeS(overrides = {}){
     shareStyle: 'night', shareFormat: 'story',
     theme: 'auto',
     charDrift: 'subtle',
+    slipmatCustom: false, slipmatWordmark: true, slipmatDim: true,
   }, overrides);
 }
 
@@ -28,7 +29,29 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     shareStyle: S.shareStyle, shareFormat: S.shareFormat,
     theme: S.theme,
     charDrift: S.charDrift,
+    slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
   });
+});
+
+test('round trip: the slipmat flags survive with non-default values (CEREMONY §6)', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ slipmatCustom: true, slipmatWordmark: false, slipmatDim: false })));
+  assert.equal(parsed.slipmatCustom, true);
+  assert.equal(parsed.slipmatWordmark, false);
+  assert.equal(parsed.slipmatDim, false);
+});
+
+test('old saved data: no slipmat fields (saved before CEREMONY §6) leaves them out, so felt stays the default', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.slipmatCustom; delete raw.slipmatWordmark; delete raw.slipmatDim;
+  const parsed = parsePrefs(raw);
+  assert.equal('slipmatCustom' in parsed, false);
+  assert.equal('slipmatWordmark' in parsed, false);
+  assert.equal('slipmatDim' in parsed, false);
+});
+
+test('bad values are ignored: non-boolean slipmat flags', () => {
+  const parsed = parsePrefs({ slipmatCustom: 'yes', slipmatWordmark: 1, slipmatDim: null });
+  assert.deepEqual(parsed, {});
 });
 
 test('round trip: theme survives as light and as dark, not just the default auto', () => {

@@ -137,3 +137,21 @@
 /* a primed but empty platter (app start, CEREMONY §2/§5) shows the felt on
    every width; the record covers it once it lands */
 .player-overlay.platter-empty .slipmat-rest{display:grid}
+
+/* §6 custom slipmat (src/ui/slipmat.js): the user's image replaces the felt.
+   While a record plays, the mat stays visible and the record sits inside it,
+   so the image reads as a ring; grooves and the record stay on top. The
+   wordmark only shows while the platter is empty. */
+.platter-stage.slipmat-custom .slipmat-rest{display:grid;background-size:cover;background-position:center;
+  background-color:var(--panel);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 6px 22px rgba(0,0,0,.4)}
+.platter-stage.slipmat-custom .slipmat-rest::before,
+.platter-stage.slipmat-custom .slipmat-rest::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.platter-stage.slipmat-custom .slipmat-rest.slipmat-dim::before{background:rgba(0,0,0,.28)}
+.platter-stage.slipmat-custom .slipmat-rest::after{
+  background:repeating-radial-gradient(circle at 50% 50%,transparent 0 6px,rgba(255,255,255,.05) 6px 7px)}
+.platter-stage.slipmat-custom .slipmat-rest span{position:absolute;left:0;right:0;bottom:17%;z-index:1;text-align:center;
+  color:#EFE9DF;opacity:.9;letter-spacing:.32em;padding-left:.32em;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.platter-stage.slipmat-custom .slipmat-rest span{display:none}
+.player-overlay.platter-empty .platter-stage.slipmat-custom .slipmat-rest:not(.slipmat-no-wordmark) span,
+.player-overlay.at-rest .platter-stage.slipmat-custom .slipmat-rest:not(.slipmat-no-wordmark) span{display:block}
+.platter-stage.slipmat-custom .platter-box{inset:13%}

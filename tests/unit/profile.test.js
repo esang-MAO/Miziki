@@ -57,6 +57,11 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
 // -> shell/header.js -> shell/routes.js -> social/screens/home.js ->
 // social/screens/friend-store.js, whose own real storeAwning import
 // would then fail against this file's already-narrow storefront.js mock.
+// CEREMONY §6: screens.js's Slipmat row; its real module reaches
+// storage/meta.js's wide chain, so it stops at the door like the rest.
+mock.module(new URL('../../src/profile/slipmat-editor.js', import.meta.url).href, {
+  namedExports: { renderSlipmatRow(){} },
+});
 // DA4 added isDaylightPhase, screens.js's own Nychthemeron-caption-text
 // helper's one call into theme.js -- same mock, one more name.
 mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {

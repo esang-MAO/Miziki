@@ -12,6 +12,7 @@ import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, isDaylightPhase } from '../ui/theme.js';
+import { renderSlipmatRow } from './slipmat-editor.js';
 import { currentDayPosition } from '../sundown/solar.js';
 
 /* ================= profile tab =================
@@ -169,6 +170,12 @@ function renderAppSettingsScreen(body){
   appearance.appendChild(el('p','note',
     'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. ' + nychthemeronSwitchCaption() + ' Choosing Light or Dark keeps that look regardless of the device.'));
   body.appendChild(appearance);
+
+  // CEREMONY §6: the Slipmat row, part of Appearance. Filled once the saved
+  // image (if any) has been read; placed now so the screen order is fixed.
+  const slipmat = el('div','settings-slipmat');
+  appearance.appendChild(slipmat);
+  renderSlipmatRow(slipmat, () => { if(S.profileView.screen === 'settings') renderProfile(); });
 
   const links = el('div','settings-section');
   links.appendChild(el('div','settings-section-head', 'Account & privacy'));
