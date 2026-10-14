@@ -139,7 +139,14 @@ function gatefoldCreditLink(name){
 // the end of the gatefold's "Inside" panel — today's closest thing to an
 // album detail view — so it's reachable from both the normal left panel and
 // the short-viewport flat "Inside" tab, which both call this same builder.
-function gatefoldSocialControlsHTML(item){
+// Exported (design-layout polish pass, docs/DESKTOP_LAYOUT.md's own Library
+// mockup) so the desktop crate's inline detail panel (src/crate/view.js)
+// can reuse the exact same rating/sleeve-note/pin controls instead of a
+// second implementation — the mockup's own "RATING" dots and "SLEEVE NOTE"
+// field are this, not a new feature. src/styles/11-gatefold.css's
+// .gf-left-scoped rules were widened to also match .crate-detail-panel so
+// this renders with the same styling in its new home.
+export function gatefoldSocialControlsHTML(item){
   const wrap = el('div','gf-social');
   wrap.appendChild(el('p','gf-social-caption','YOUR COPY'));
 

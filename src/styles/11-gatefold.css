@@ -59,24 +59,28 @@
   padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .gf-left .gf-credit-row em{font-style:normal;color:var(--muted)}
 .gf-left .gf-credit-row a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px}
-.gf-left .gf-meta-line{font-family:var(--data);font-size:10px;color:var(--muted);margin:10px 0}
+/* .crate-detail-panel (src/crate/view.js) reuses gatefoldSocialControlsHTML()
+   verbatim (design-layout polish pass) for its own rating/sleeve-note/pin
+   controls — same function, so the same styling applies in both homes
+   rather than a second copy of these rules. */
+.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line{font-family:var(--data);font-size:10px;color:var(--muted);margin:10px 0}
 .gf-left .gf-minimal-note{font-size:12px;color:var(--muted);margin-top:6px}
-.gf-left .gf-social{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+.gf-left .gf-social, .crate-detail-panel .gf-social{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:10px}
-.gf-left .gf-social-caption{font-family:var(--data);font-size:10px;letter-spacing:.14em;
+.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption{font-family:var(--data);font-size:10px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--muted);margin:0}
-.gf-left .gf-stars{display:flex;gap:2px;margin-left:-5px}
-.gf-left .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+.gf-left .gf-stars, .crate-detail-panel .gf-stars{display:flex;gap:2px;margin-left:-5px}
+.gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:none;border:0;color:var(--muted);font-size:19px;padding:0}
-.gf-left .gf-star-btn.on{color:var(--accent)}
-.gf-left .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
+.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on{color:var(--accent)}
+.gf-left .gf-note-input, .crate-detail-panel .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:16px;color:var(--paper);resize:none;min-height:44px}
-.gf-left .gf-note-input::placeholder{color:var(--muted)}
-.gf-left .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+.gf-left .gf-note-input::placeholder, .crate-detail-panel .gf-note-input::placeholder{color:var(--muted)}
+.gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:10.5px;
   letter-spacing:.06em;background:none}
-.gf-left .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}

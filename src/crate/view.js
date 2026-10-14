@@ -26,8 +26,9 @@ import {
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
-import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices } from '../gatefold/view.js';
+import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices, gatefoldSocialControlsHTML } from '../gatefold/view.js';
 import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
+import { openCreditsSheet } from '../library/credits.js';
 
 // D5 (docs/DESKTOP_LAYOUT.md): flowPose()'s own pixel offsets (170, 34, 70…)
 // were tuned against this exact card edge length — reading the live
@@ -60,8 +61,15 @@ function openCrateAlbum(item){
   // D5 (docs/DESKTOP_LAYOUT.md): on desktop, tapping a record shows its
   // tracklist in the panel beside the crate instead of opening the
   // gatefold overlay — the gatefold stays the phone's own way in,
-  // untouched just below.
-  if(isDesktopShell()){ renderCrateDetailPanel(item); return; }
+  // untouched just below. The panel only exists alongside the real 3D
+  // crate stage (renderCrate()'s own layout build); prefers-reduced-motion
+  // falls back to renderCrateFlat(), which never builds it (a real,
+  // pre-existing gap found during a design-layout review pass, not touched
+  // by D5 itself) — checking for the panel here, rather than assuming
+  // isDesktopShell() alone is enough, keeps a reduced-motion desktop user
+  // from a silent no-op tap and falls back to the one other way in that
+  // already works everywhere: the gatefold.
+  if(isDesktopShell() && $('#crateDetailPanel')){ renderCrateDetailPanel(item); return; }
   // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
   // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
   // navigation back, it's simply still there
@@ -72,11 +80,17 @@ function openCrateAlbum(item){
 // nothing opened yet, and a record's own tracklist, reusing
 // buildGatefoldTracklist()/gatefoldTrackIndices() (gatefold/view.js) so
 // the row styling, side-splitting and now-playing marker are identical to
-// the phone's own gatefold rather than a second implementation. Credits,
-// liner notes and the gatefold's own social controls aren't reproduced
-// here — the doc's own table names only "inline detail panel" and a
-// tracklist; the existing credits sheet (reached from the player, not
-// duplicated here) stays the one place for that.
+// the phone's own gatefold rather than a second implementation. D5's own
+// "first cut" trimmed this down to just the art/Play/tracklist, deferring
+// Credits and the gatefold's own rating/sleeve-note controls for later —
+// a design-layout review pass (reading the original Oct 13 mockup, which
+// shows both) added them back here the same way: a Credits button that
+// opens the existing overlay sheet (openCreditsSheet(), library/credits.js)
+// for this album rather than whatever's currently playing, and the
+// gatefold's own gatefoldSocialControlsHTML() (now exported) appended
+// after the tracklist, unchanged — same function, new container. Liner
+// notes still aren't reproduced here; the mockup's own panel doesn't show
+// them either, only a sleeve note.
 function renderCrateDetailPlaceholder(panel){
   panel.innerHTML = '';
   panel.appendChild(el('p','note','Tap a record to see its track list.'));
@@ -93,15 +107,28 @@ function renderCrateDetailPanel(item){
     im.src = art; im.alt = '';
     panel.appendChild(im);
   }
-  const playBtn = el('button','tbtn play crate-detail-play','▶ Play album');
+  // .cta/.cta.ghost (src/styles/16-edit-sheet.css) rather than .tbtn —
+  // .tbtn is the transport row's own 44px circular button, never meant to
+  // hold a multi-word label; "▶ Play album" inside one wrapped onto two
+  // lines (found during a design-layout review pass against the original
+  // mockup, which shows a normal pill button here, the same shape the
+  // player's own "Edit info"/"Share" row already uses).
+  const actions = el('div','stack crate-detail-actions');
+  const playBtn = el('button','cta crate-detail-play','▶ Play album');
   playBtn.setAttribute('aria-label','Play ' + item.album);
   playBtn.addEventListener('click', () => setQueue(item.idx, 0, true));
-  panel.appendChild(playBtn);
+  actions.appendChild(playBtn);
+  const creditsBtn = el('button','cta ghost','Credits');
+  creditsBtn.setAttribute('aria-label','Credits for ' + item.album);
+  creditsBtn.addEventListener('click', () => { const t = S.tracks[item.idx[0]]; if(t) openCreditsSheet(t); });
+  actions.appendChild(creditsBtn);
+  panel.appendChild(actions);
   const trackIdx = gatefoldTrackIndices(item);
   const list = el('div','crate-detail-tracklist');
   list.setAttribute('role','list');
   list.appendChild(buildGatefoldTracklist(item, trackIdx, (idx, i) => setQueue(idx, idx.indexOf(i), true)));
   panel.appendChild(list);
+  panel.appendChild(gatefoldSocialControlsHTML(item));
 }
 
 function updateCrateGroupToggleUI(){
