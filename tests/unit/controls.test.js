@@ -55,6 +55,11 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
   namedExports: { openPlayerViaSheet(){} },
 });
+// CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
+// shell/runout.js, whose real chain reaches library/view.js — stop it here.
+mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
+  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){} },
+});
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });

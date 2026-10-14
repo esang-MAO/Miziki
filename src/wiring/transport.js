@@ -22,6 +22,8 @@ import { openPlayer, closePlayer, morphInFlight, interruptMorph } from '../shell
 import { runStartSequence, interruptStartSequence } from '../shell/start-sequence.js';
 import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
+import { showRoute } from '../shell/routes.js';
+import { renderTracks } from '../library/view.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -95,6 +97,17 @@ export function wireTransport(){
     else play();
   });
   $('#playerDismiss').addEventListener('click', closePlayer);
+  // CEREMONY §2: the desktop rest state's two ways back to a record.
+  const openLibraryAt = mode => {
+    closePlayer();
+    if(mode){
+      S.view.mode = mode; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+    }
+    showRoute('library');
+    renderTracks();
+  };
+  $('#restOpenCrate').addEventListener('click', () => openLibraryAt(S.libraryLayout === 'crate' ? 'crate' : 'albums'));
+  $('#restOpenLibrary').addEventListener('click', () => openLibraryAt(null));
   $('#playerOverlay').addEventListener('pointerdown', ()=>{
     interruptStartSequence();            // pull/return-to-sleeve: snap to end state
     if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead

@@ -13,7 +13,7 @@ import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
-import { shouldPutAway, putAwayInstant, runPutAwaySequence } from '../shell/put-away.js';
+import { endOfQueue, maybeSideFlip } from '../shell/runout.js';
 
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
@@ -98,17 +98,15 @@ export function advance(dir, auto){
     if(S.repeat === 'all'){ if(S.shuffle) buildOrder(); n = 0; }
     else {
       pause(); S.pos = 0; drawTime();
-      // the record goes back in its sleeve — but only for a real finish
-      // (auto), never a manual skip past the last track, and only where
-      // there's something to see or it would just be wasted motion
-      if(shouldPutAway(auto)){
-        if(document.hidden || !S.playerOpen) putAwayInstant();
-        else runPutAwaySequence(current());
-      }
+      // a real finish rides the run-out groove, goes back in its sleeve and
+      // clears to the empty slipmat (CEREMONY §2); a manual skip past the
+      // last track just stops, as it always has
+      endOfQueue(auto);
       return;        // end of the record
     }
   }
   if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
+  if(auto && maybeSideFlip(n)) return;   // side A ran out: turn the record over first (CEREMONY §3)
   S.qpos = n;
   load(S.queue[n]);
   // next/prev/auto-advance never open the player themselves — but if it's
@@ -171,7 +169,8 @@ export function renderQueueSheet(host){
   queueSheetHost = host || $('#queueBody');
   const dest = queueSheetHost; dest.innerHTML = '';
   if(!S.queue.length || S.qpos >= S.queue.length){
-    dest.appendChild(el('p','note','Nothing queued.'));
+    dest.appendChild(el('p','note','Nothing queued'));
+    dest.appendChild(el('p','note','Play something and what follows shows up here.'));
     return;
   }
   const ul = el('ul','tracklist');

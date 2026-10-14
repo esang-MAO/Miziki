@@ -18,7 +18,7 @@ import { waitAnimEnd, sleeveArtFor } from './start-sequence.js';
 // a real finish.
 export function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
 
-function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
+export function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
 export function clearSpinDown(){ S.spinDown = null; }
 
 // No player open, or the page is hidden (background playback) — nothing
@@ -34,13 +34,16 @@ export function putAwayInstant(){
   renderMiniPlayer();
 }
 
-export async function runPutAwaySequence(t){
+// opts.token: run under a caller's own ceremony token (the run-out groove,
+// shell/runout.js) instead of taking a new one; opts.skipSpin: the caller
+// already spun the platter down.
+export async function runPutAwaySequence(t, opts = {}){
   const stage = $('#platterStage'), discBox = $('#platterBox');
-  const token = ++S.sleeveSeq;
+  const token = opts.token || ++S.sleeveSeq;
   const cancelled = () => token !== S.sleeveSeq;
 
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
-  startSpinDown(SLEEVE_ANIM.putSpinMs);
+  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out');
+  if(!opts.skipSpin) startSpinDown(SLEEVE_ANIM.putSpinMs);
 
   sleeveArtFor(t.art, !!t.art);
   $('#sleeve').style.display = 'flex';

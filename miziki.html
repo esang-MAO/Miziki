@@ -621,6 +621,8 @@
   <div class="player-layout">
   <section class="stage">
     <div class="platter-stage" id="platterStage">
+      <!-- CEREMONY §2: the empty slipmat, shown only at rest (nothing loaded) -->
+      <div class="slipmat-rest" aria-hidden="true"><span>MIZIKI</span></div>
       <div class="platter-box disc-hidden" id="platterBox">
         <div class="disc" id="disc">
           <div class="disc-fade" id="discFade" aria-hidden="true"></div>
@@ -628,6 +630,7 @@
             <img class="art" id="labelArt" alt="">
             <div class="rpm" id="rpmText">33⅓</div>
             <div class="mode-tag" id="modeTag">vinyl</div>
+            <span class="side-letter" id="sideLetter" aria-hidden="true"></span>
           </div>
         </div>
       </div>
@@ -635,9 +638,24 @@
         <img class="sleeve-art" id="sleeveArt" alt="">
         <div class="sleeve-mark">MIZIKI</div>
       </div>
+      <!-- CEREMONY §4: the outgoing record's sleeve during a change -->
+      <div class="sleeve sleeve-out" id="sleeveOut" aria-hidden="true">
+        <img class="sleeve-art" id="sleeveOutArt" alt="">
+        <div class="sleeve-mark">MIZIKI</div>
+      </div>
     </div>
 
     <div class="stage-info" id="stageInfo">
+    <!-- CEREMONY §2: desktop rest state, shown only by .player-overlay.at-rest -->
+    <div class="rest-hint" id="restHint">
+      <div class="rest-eyebrow">Nothing spinning</div>
+      <h2>Pick a record</h2>
+      <p>Choose something from your Crate or Library and it will be pulled from its sleeve.</p>
+      <div class="stack">
+        <button class="cta" id="restOpenCrate">Open Crate</button>
+        <button class="cta ghost" id="restOpenLibrary">Open Library</button>
+      </div>
+    </div>
     <div class="now">
       <div class="now-title-row">
         <h2 id="trackName">Nothing on the platter</h2>

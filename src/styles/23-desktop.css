@@ -421,3 +421,30 @@
   .profile-grid{grid-template-columns:repeat(8,1fr)}
   .store-crate-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+
+/* CEREMONY §2 (docs/CEREMONY.md): with nothing loaded, the desktop player
+   stays open on an empty slipmat with a way back to a record. .at-rest is
+   toggled by renderMiniPlayer() (shell/mini-player.js). §4: on desktop the
+   outgoing sleeve leaves toward the crate, to the left. */
+@media (min-width:1024px){
+  .player-overlay.at-rest .platter-box,
+  .player-overlay.at-rest .sleeve,
+  .player-overlay.at-rest .now,
+  .player-overlay.at-rest #scrub,
+  .player-overlay.at-rest .times,
+  .player-overlay.at-rest .transport,
+  .player-overlay.at-rest .modes,
+  .player-overlay.at-rest #modeNote{display:none !important}
+  .player-overlay.at-rest .slipmat-rest{display:grid}
+  .player-overlay.at-rest .rest-hint{display:block;max-width:340px}
+  .rest-eyebrow{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .rest-hint h2{font-family:var(--display);font-weight:600;font-size:26px;letter-spacing:.03em;margin:6px 0 8px}
+  .rest-hint p{color:var(--muted);margin:0 0 16px;line-height:1.45}
+  @keyframes changeSleeveOutLeft{
+    0%{transform:translateX(115%);opacity:0}
+    30%{transform:translateX(55%);opacity:1}
+    70%{transform:translateX(55%);opacity:1}
+    100%{transform:translateX(-140%);opacity:0}
+  }
+  .platter-stage.changing .sleeve-out{animation-name:changeSleeveOutLeft}
+}

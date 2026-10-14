@@ -63,6 +63,7 @@ export const S = {
   // true once a put-away sequence completes (or is snapped to its end) —
   // not persisted; on reload the app restores the last track as it does today
   platterEmpty:false, spinDown:null,
+  runout:null,   // CEREMONY §2/§3: the run-out groove or side flip in flight (shell/runout.js) — runtime only, never saved
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
   // profile tab (see spec)

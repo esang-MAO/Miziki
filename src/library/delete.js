@@ -63,7 +63,7 @@ export async function deleteTracks(idsToDelete){
     // auto-resume side effect — the track it would resume is being deleted
     S.sleeveSeq++;
     const stage = $('#platterStage');
-    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+    stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out');
     clearSpinDown();
     $('#sleeve').style.display = 'none';
   }

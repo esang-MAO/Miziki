@@ -50,7 +50,8 @@ export function frame(now){
 
   if(!REDUCED){
     let spin;
-    if(S.playing) spin = S.rate;
+    // the run-out groove keeps the platter turning with no track playing (CEREMONY §2/§3)
+    if(S.playing || (S.runout && S.runout.turning)) spin = S.rate;
     else if(S.spinDown){
       const p = clamp((now - S.spinDown.start) / S.spinDown.ms, 0, 1);
       spin = S.spinDown.from * (1 - easeOutCubic(p));

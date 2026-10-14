@@ -7,7 +7,26 @@ import { ensureBuffer } from '../player/buffers.js';
 import { isAlbumSealed, buildSealOverlay, breakSeal } from '../library/sealed.js';
 import { SLEEVE_ANIM, renderMiniPlayer } from './mini-player.js';
 import { play } from '../player/transport.js';
-import { clearSpinDown } from './put-away.js';
+import { clearSpinDown, startSpinDown } from './put-away.js';
+import { cancelRunout, interruptRunout } from './runout.js';
+import { CHANGE_TIMELINE } from './ceremony-timing.js';
+
+const STAGE_CLASSES = ['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
+
+// the outgoing sleeve of an overlapped change (CEREMONY §4) — its own
+// element, so it can still be leaving while the new #sleeve arrives
+function showOutgoingSleeve(art, hasArt){
+  const out = $('#sleeveOut'), img = $('#sleeveOutArt');
+  if(!out) return;
+  if(hasArt){ img.src = art; out.classList.add('has-art'); }
+  else { img.removeAttribute('src'); out.classList.remove('has-art'); }
+  out.style.display = 'flex';
+}
+function hideOutgoingSleeve(){
+  const out = $('#sleeveOut');
+  if(out) out.style.display = 'none';
+  $('#platterStage').style.removeProperty('--arrive-duration');
+}
 
 // ================= start sequence: sheet/pull/return orchestration =================
 // A single async, cancellable sequence drives everything from "the sheet has
@@ -70,13 +89,15 @@ export async function runStartSequence(t, info, startAudio){
   const token = ++S.sleeveSeq;
   const cancelled = () => token !== S.sleeveSeq;
   S.platterEmpty = false;   // a pull is starting, so the sleeve no longer covers an empty platter
+  cancelRunout();           // a new record cancels a groove or flip still running
   clearSpinDown();
 
   // clear any in-flight ceremony's visuals immediately — a fresh sequence
   // (or a "nothing to show" one) always takes the stage back over from
   // whatever a just-cancelled prior invocation left behind
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+  stage.classList.remove(...STAGE_CLASSES);
   $('#sleeve').style.display = 'none';
+  hideOutgoingSleeve();
   removeSleeveWrap();
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
@@ -96,18 +117,23 @@ export async function runStartSequence(t, info, startAudio){
   const bufferReady = ensureBuffer(S.index);
   const discBox = $('#platterBox');
 
-  if(info.type === 'swap'){
-    sleeveArtFor(info.outgoingArt, info.outgoingHasArt);
-    $('#sleeve').style.display = 'flex';
+  // CEREMONY §4: the change overlaps. The platter spins down while the old
+  // record lifts and slides into its own sleeve, that sleeve leaves (left on
+  // desktop, down on a phone), and the new sleeve starts arriving before the
+  // old one has gone (CHANGE_TIMELINE, shell/ceremony-timing.js).
+  const swapping = info.type === 'swap';
+  if(swapping){
+    showOutgoingSleeve(info.outgoingArt, info.outgoingHasArt);
+    startSpinDown(CHANGE_TIMELINE.spinDown[1] - CHANGE_TIMELINE.spinDown[0]);
     void stage.offsetWidth;
-    stage.classList.add('returning');
-    await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.returnMs);
+    stage.classList.add('changing');
+    await sleep(CHANGE_TIMELINE.arriveStart);
     if(cancelled()) return;
-    stage.classList.remove('returning');
-    // the outgoing disc just animated to opacity 0 via discReturn's forwards
-    // fill — removing that class would otherwise snap it straight back to
-    // fully visible, so this class takes over holding it hidden
+    clearSpinDown();
+    // the old disc is inside its sleeve by now (the 'changing' keyframe ends
+    // it at opacity 0) — this class keeps it hidden once that class goes
     discBox.classList.add('disc-hidden');
+    stage.style.setProperty('--arrive-duration', CHANGE_TIMELINE.arriveMs + 'ms');
   }
   if(cancelled()) return;
 
@@ -117,9 +143,10 @@ export async function runStartSequence(t, info, startAudio){
   if(sealedForPeel) attachSleeveWrap();
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('sleeve-arriving');
-  await waitAnimEnd($('#sleeve'), SLEEVE_ANIM.arriveMs);
+  await waitAnimEnd($('#sleeve'), swapping ? CHANGE_TIMELINE.arriveMs : SLEEVE_ANIM.arriveMs);
   if(cancelled()) return;
-  stage.classList.remove('sleeve-arriving');
+  stage.classList.remove('sleeve-arriving', 'changing');
+  if(swapping) hideOutgoingSleeve();
 
   if(sealedForPeel){
     await runSealPeel(cancelled);
@@ -149,6 +176,8 @@ export async function runStartSequence(t, info, startAudio){
 // never eased. Playback is clearly no longer waiting on ceremony once
 // interrupted, so it starts right away if it hadn't already.
 export function interruptStartSequence(){
+  // a groove or a side flip lands where it was heading instead (CEREMONY §2/§3)
+  if(interruptRunout()) return;
   S.sleeveSeq++;
   const stage = $('#platterStage');
   const wasPutAway = stage.classList.contains('putaway-in') || stage.classList.contains('putaway-slide') ||
@@ -157,10 +186,12 @@ export function interruptStartSequence(){
   // removed, before the hold/emerge classes are added) — #sleeveWrap's
   // presence is what marks that window as "active" (SEALED spec §6)
   const wasActive = wasPutAway || stage.classList.contains('sleeve-arriving') || stage.classList.contains('sleeve-exiting') ||
-    stage.classList.contains('disc-emerging') || stage.classList.contains('returning') || !!$('#sleeveWrap');
-  stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','putaway-in','putaway-slide','putaway-out');
+    stage.classList.contains('disc-emerging') || stage.classList.contains('returning') ||
+    stage.classList.contains('changing') || !!$('#sleeveWrap');
+  stage.classList.remove(...STAGE_CLASSES);
   clearSpinDown();
   $('#sleeve').style.display = 'none';
+  hideOutgoingSleeve();
   // a tap during the peel snaps straight to the end state: wrap gone, no
   // eased snap (SEALED spec §6, "Interrupt") — the seal itself only breaks
   // once playback is actually about to start, same as everywhere else

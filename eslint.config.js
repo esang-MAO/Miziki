@@ -112,6 +112,7 @@ module.exports = [
       'src/sync/backup.js',
       'src/profile/account.js',
       'src/profile/privacy.js',
+      'src/shell/runout.js',
     ],
     languageOptions: {
       globals: { MizikiSocial: 'readonly' },

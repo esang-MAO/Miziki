@@ -46,6 +46,9 @@ document.documentElement.style.setProperty('--sleeve-peel-off-duration', SLEEVE_
 export function renderMiniPlayer(){
   const t = current();
   const mini = $('#miniPlayer');
+  // nothing loaded is the rest state: the empty slipmat (CEREMONY §2)
+  const ov = $('#playerOverlay');
+  if(ov) ov.classList.toggle('at-rest', !t);
   if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
   mini.style.display = 'flex';
   $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;
