@@ -8,12 +8,26 @@ import assert from 'node:assert/strict';
 // needs for the same reason), so `window` has to exist before this module
 // is ever imported -- a dynamic import, after the stub, rather than a
 // static one at the top of the file.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false }; }, scrollY: 0 };
+// NV5 (docs/11_SMOOTH_NAVIGATION.md) cross-feature test below: real
+// history/document stubs minimal enough for src/shell/nav-stack.js's
+// openLayer()/closeLayer() to run without throwing (the same shape
+// tests/unit/nav-stack.test.js's own fakes already establish) -- used only
+// to confirm hasOpenLayer() actually blocks wirePullToRefresh()'s own
+// gesture, not to re-test nav-stack.js's own behavior.
+globalThis.history = { replaceState(){}, pushState(){}, go(){} };
+globalThis.document = {
+  activeElement: null,
+  createElement(){
+    return { className:'', textContent:'', style:{}, dataset:{}, setAttribute(){}, appendChild(){}, addEventListener(){} };
+  },
+};
 
 const {
-  decidePull, pullTravel, shouldThrottle,
+  decidePull, pullTravel, shouldThrottle, wirePullToRefresh,
   PULL_AXIS_LOCK_PX, PULL_THRESHOLD_PX, PULL_MAX_TRAVEL_PX, REFRESH_THROTTLE_MS,
 } = await import('../../src/shell/pull-refresh.js');
+const { openLayer, closeLayer } = await import('../../src/shell/nav-stack.js');
 
 test('decidePull: starts only at the top -- any startScrollY > 0 is idle no matter the drag', () => {
   assert.equal(decidePull({ dy: 200, dx: 0, startScrollY: 1 }), 'idle');
@@ -59,4 +73,31 @@ test('shouldThrottle: true inside the 10s window, false once it has elapsed', ()
   // is always a real Date.now() timestamp, so this reads as "plenty of time
   // has passed since never," never as a same-instant collision.
   assert.equal(shouldThrottle(0, REFRESH_THROTTLE_MS), false);
+});
+
+// NV5 (docs/11_SMOOTH_NAVIGATION.md) item 3's own required test: "with a
+// sheet open on Home, dragging down moves the sheet, never pull to
+// refresh." The sheet side of that is src/shell/swipe-close.js's own
+// gesture (tests/unit/swipe-close.test.js); this is the pull-to-refresh
+// side -- confirming wirePullToRefresh() actually honors the hasOpenLayer()
+// gate it already carries (added in NV4, before any sheet used it).
+function fakeRouteEl(){
+  const listeners = {};
+  return {
+    firstChild: null,
+    insertBefore(){},
+    addEventListener(type, fn){ (listeners[type] = listeners[type] || []).push(fn); },
+    _fire(type, ev){ (listeners[type] || []).forEach(fn => fn(ev)); },
+  };
+}
+test('wirePullToRefresh: a layer open anywhere (a sheet, the full player, …) blocks the gesture entirely', async () => {
+  const routeEl = fakeRouteEl();
+  let refreshed = 0;
+  wirePullToRefresh(routeEl, { onRefresh: async () => { refreshed++; } });
+  openLayer('some-sheet', () => {});
+  routeEl._fire('touchstart', { touches: [{ clientX: 0, clientY: 0 }] });
+  routeEl._fire('touchmove', { touches: [{ clientX: 0, clientY: 200 }], preventDefault(){} });
+  routeEl._fire('touchend', {});
+  assert.equal(refreshed, 0, 'a pull must never even arm while a layer is open');
+  closeLayer('some-sheet');
 });

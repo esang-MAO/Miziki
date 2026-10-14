@@ -3,3 +3,17 @@
 .route.on{display:block}
 .route.drag-over{outline:2px dashed var(--accent);outline-offset:-8px;background:rgba(255,255,255,.03)}
 
+/* NV5 (docs/11_SMOOTH_NAVIGATION.md): tab transitions. The incoming route
+   fades in and rises 6px over 140ms; the outgoing one hides instantly
+   (display:none, above, same as before this step) -- no sideways slide,
+   since the tabs aren't a sequence with a direction between them. A plain
+   @keyframes animation, not a transition, specifically because it has to
+   play across the exact same display:none -> block flip .route.on already
+   does -- a transition can't start from display:none, but an animation
+   already attached when an element becomes displayed plays from scratch. */
+@keyframes route-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.route.on{animation:route-enter .14s ease-out}
+@media (prefers-reduced-motion:reduce){
+  .route.on{animation:none}
+}
+
