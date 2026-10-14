@@ -13,9 +13,9 @@ import { normKey } from '../util/text.js';
 import { byName, albumTracks } from './model.js';
 import { emptyDetails } from './tags/index.js';
 import { setQueue } from '../player/queue.js';
-import { closePlayer } from '../shell/player-overlay.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks, songRow } from './view.js';
+import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -42,8 +42,8 @@ function artistExists(name){
 }
 
 export function openPersonOrArtist(name){
-  closeCreditsSheet();
-  if($('#playerOverlay').classList.contains('open')) closePlayer();
+  if($('#creditsOverlay').classList.contains('open')) forceCloseLayer('credits');
+  if($('#playerOverlay').classList.contains('open')) forceCloseLayer('player');
   const v = S.view;
   if(artistExists(name)){
     v.mode = 'artists'; v.group = name; v.artistAlbum = null; v.playlist = null; v.picking = false; v.person = null;
@@ -163,8 +163,10 @@ export function renderCreditsSheet(t, host){
 export function openCreditsSheet(t){
   $('#creditsTitle').textContent = t.tags.title;
   renderCreditsSheet(t);
-  $('#creditsOverlay').classList.add('open');
-  $('#creditsOverlay').setAttribute('aria-hidden','false');
+  const overlay = $('#creditsOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('credits', closeCreditsSheet, { container: overlay });
 }
 export function closeCreditsSheet(){
   $('#creditsOverlay').classList.remove('open');

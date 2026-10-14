@@ -4,6 +4,7 @@ import { REDUCED } from '../util/motion.js';
 import { play } from '../player/transport.js';
 import { SLEEVE_ANIM } from './mini-player.js';
 import { runStartSequence, interruptStartSequence } from './start-sequence.js';
+import { openLayer } from './nav-stack.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
@@ -13,6 +14,7 @@ export function openPlayerViaSheet(t, info){
   const ov = $('#playerOverlay');
   ov.setAttribute('aria-hidden','false');
   ov.classList.add('open');
+  openLayer('player', closePlayer, { container: ov });
   // under REDUCED the sheet's slide-up transition is `none` (see .player-
   // overlay's reduced-motion rule), so transitionend never fires — go
   // straight to the ceremony instead of waiting on an event that won't come
@@ -29,6 +31,7 @@ export function openPlayerViaSheet(t, info){
 export function openPlayer(){
   if(!current() || S.playerOpen) return;
   S.playerOpen = true;
+  openLayer('player', closePlayer, { container: $('#playerOverlay') });
   runMorphOpen();
 }
 

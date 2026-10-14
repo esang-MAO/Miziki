@@ -7,9 +7,9 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { persistProfile, renderProfile } from '../profile/screens.js';
-import { closeSocialAuth } from '../profile/settings.js';
-import { popSocialScreen, closeRecordSheet } from '../social/screens/friend-store.js';
+import { popSocialScreen } from '../social/screens/friend-store.js';
 import { cropSquareImage } from '../library/edit.js';
+import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireAccount(){
   $('#profilePicFile').addEventListener('change', async e=>{
@@ -26,7 +26,7 @@ export function wireAccount(){
     }catch(_err){ /* bad image — leave the existing picture as-is */ }
   });
 
-  $('#socialAuthClose').addEventListener('click', closeSocialAuth);
+  $('#socialAuthClose').addEventListener('click', () => closeLayer('social-auth'));
   $('#socialNavBack').addEventListener('click', popSocialScreen);
-  $('#recordSheetClose').addEventListener('click', closeRecordSheet);
+  $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
 }

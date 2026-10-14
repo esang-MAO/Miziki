@@ -4,8 +4,10 @@ import { sleep } from '../util/async.js';
 import { ensureBuffer } from '../player/buffers.js';
 import { SLEEVE_ANIM } from './mini-player.js';
 import { clearSpinDown } from './put-away.js';
-import { isGatefoldOpen, closeGatefoldInstant } from '../gatefold/view.js';
+import { isGatefoldOpen } from '../gatefold/view.js';
 import { play } from '../player/transport.js';
+import { forceCloseLayer, openLayer } from './nav-stack.js';
+import { closePlayer } from './player-overlay.js';
 
 /* ================= Part 2 §1: gatefold-to-player hand-off =================
    Replaces the sleeve pull specifically for a track picked inside an open
@@ -75,6 +77,7 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
     ov.setAttribute('aria-hidden','false');
     void ov.offsetWidth;
     ov.classList.remove('instant');
+    openLayer('player', closePlayer, { container: ov });
   }
 
   // 0-250ms: row highlight (already live via updateGatefoldNowPlaying(),
@@ -147,7 +150,7 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   discBox.classList.remove('disc-hidden');
   ov.style.transition = ''; ov.style.opacity = '';
   gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  closeGatefoldInstant();
+  forceCloseLayer('gatefold');
   startAudio();
 }
 
@@ -166,6 +169,6 @@ export function interruptGatefoldHandoff(){
   ov.classList.remove('instant'); ov.style.transition = ''; ov.style.opacity = '';
   const gf = $('#gatefold');
   gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  if(isGatefoldOpen()) closeGatefoldInstant();
+  if(isGatefoldOpen()) forceCloseLayer('gatefold');
   if(!S.playing) play();
 }

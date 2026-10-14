@@ -6,17 +6,21 @@
    module. */
 import { $ } from '../util/dom.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from '../library/import.js';
-import { closeDupOverlay, closeDuplicateScan } from '../library/duplicates-ui.js';
+import { resolveDuplicatePrompt } from '../library/duplicates-ui.js';
 import { openDuplicateScan } from '../library/duplicate-scan.js';
-import { openAddMenu, closeAddMenu, isAddMenuOpen } from '../shell/header.js';
+import { openAddMenu, isAddMenuOpen } from '../shell/header.js';
+import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 export function wireImport(){
   // header + menu: Add songs / Add folder (S1 §3). The file-picker .click()
   // must fire synchronously inside this user-gesture handler (iOS Safari).
-  $('#hdrAddBtn').addEventListener('click', ()=> isAddMenuOpen() ? closeAddMenu() : openAddMenu());
-  $('#addScrim').addEventListener('click', closeAddMenu);
-  $('#addSongsRow').addEventListener('click', ()=>{ closeAddMenu(); $('#file').click(); });
-  $('#addFolderRow').addEventListener('click', ()=>{ closeAddMenu(); $('#folderFile').click(); });
+  $('#hdrAddBtn').addEventListener('click', ()=> isAddMenuOpen() ? closeLayer('add-menu') : openAddMenu());
+  $('#addScrim').addEventListener('click', () => closeLayer('add-menu'));
+  // the file-picker .click() must fire synchronously inside this user-gesture
+  // handler (iOS Safari) — forceCloseLayer (no animation either way) keeps
+  // that synchronous, same as the direct closeAddMenu() call this replaces
+  $('#addSongsRow').addEventListener('click', ()=>{ forceCloseLayer('add-menu'); $('#file').click(); });
+  $('#addFolderRow').addEventListener('click', ()=>{ forceCloseLayer('add-menu'); $('#folderFile').click(); });
 
   $('#pick').addEventListener('click', ()=> $('#file').click());
   $('#pickFolder').addEventListener('click', ()=> $('#folderFile').click());
@@ -42,11 +46,11 @@ export function wireImport(){
     if(files.length) addFiles(files);
   });
 
-  $('#dupClose').addEventListener('click', ()=>closeDupOverlay('skip'));
-  $('#dupKeepBoth').addEventListener('click', ()=>closeDupOverlay('keep'));
-  $('#dupReplace').addEventListener('click', ()=>closeDupOverlay('replace'));
-  $('#dupSkip').addEventListener('click', ()=>closeDupOverlay('skip'));
+  $('#dupClose').addEventListener('click', ()=>resolveDuplicatePrompt('skip'));
+  $('#dupKeepBoth').addEventListener('click', ()=>resolveDuplicatePrompt('keep'));
+  $('#dupReplace').addEventListener('click', ()=>resolveDuplicatePrompt('replace'));
+  $('#dupSkip').addEventListener('click', ()=>resolveDuplicatePrompt('skip'));
 
   $('#scanDuplicatesBtn').addEventListener('click', openDuplicateScan);
-  $('#dupScanClose').addEventListener('click', closeDuplicateScan);
+  $('#dupScanClose').addEventListener('click', () => closeLayer('duplicate-scan'));
 }

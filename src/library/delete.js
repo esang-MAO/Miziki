@@ -23,7 +23,7 @@ import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { clearSpinDown } from '../shell/put-away.js';
-import { closePlayer } from '../shell/player-overlay.js';
+import { forceCloseLayer } from '../shell/nav-stack.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers } from '../crate/tiers.js';
 import { invalidateCrateModel } from '../crate/model.js';
@@ -115,7 +115,7 @@ export async function deleteTracks(idsToDelete){
       // closePlayer()'s interrupt unconditionally un-hides the disc (skipping
       // "lands" the record) — order matters here since there's no record to
       // land, the library is empty, so disc-hidden must be (re-)applied after
-      if(S.playerOpen) closePlayer();
+      if(S.playerOpen) forceCloseLayer('player');
       $('#platterBox').classList.add('disc-hidden');
       $('#playerShareBtn').style.display = 'none';
       $('#queueBtn').style.display = 'none';
@@ -187,7 +187,7 @@ export async function forgetLibrary(){
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   applyDiscVariant(null);
-  closePlayer();
+  forceCloseLayer('player');
   // closePlayer()'s interrupt may have just finished putting a record away
   // (S.platterEmpty true) or landed one instantly — either way there's no
   // library left, so the empty-platter look is reasserted unconditionally

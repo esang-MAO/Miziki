@@ -7,12 +7,13 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import {
-  closeShareSheet, openPlayerShareSheet, closePlayerShareSheet,
+  openPlayerShareSheet,
   queueShareRender, queuePlayerShareRender, shareDoSave, shareDoShare, shareDoCopy, shareSelectedFormat,
 } from '../share/sheet.js';
+import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireShare(){
-  $('#shareClose').addEventListener('click', closeShareSheet);
+  $('#shareClose').addEventListener('click', () => closeLayer('share'));
   document.querySelectorAll('#shareToggles button').forEach(b => b.addEventListener('click', ()=>{
     const key = b.dataset.section;
     S.shareSelection[key] = !S.shareSelection[key];
@@ -35,7 +36,7 @@ export function wireShare(){
   $('#shareCopy').addEventListener('click', () => shareDoCopy($('#shareCanvas')));
 
   $('#playerShareBtn').addEventListener('click', openPlayerShareSheet);
-  $('#playerShareClose').addEventListener('click', closePlayerShareSheet);
+  $('#playerShareClose').addEventListener('click', () => closeLayer('player-share'));
   document.querySelectorAll('#playerShareToggles button').forEach(b => b.addEventListener('click', ()=>{
     const key = b.dataset.section;
     S.playerShareSelection[key] = !S.playerShareSelection[key];

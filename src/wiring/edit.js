@@ -7,22 +7,23 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import {
   cropSquareImage, revertTrack, undoLastEdit, openEditSheet,
-  closeEditSheet, saveEditSheet, renderEditArtPreview,
+  saveEditSheet, renderEditArtPreview,
 } from '../library/edit.js';
-import { openCreditsSheet, closeCreditsSheet } from '../library/credits.js';
+import { openCreditsSheet } from '../library/credits.js';
+import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireEdit(){
   $('#editCurrentBtn').addEventListener('click', ()=>{ const t = current(); if(t) openEditSheet([t.id]); });
   $('#trackInfoBtn').addEventListener('click', ()=>{ const t = current(); if(t) openCreditsSheet(t); });
-  $('#creditsClose').addEventListener('click', closeCreditsSheet);
+  $('#creditsClose').addEventListener('click', () => closeLayer('credits'));
 
-  $('#editClose').addEventListener('click', closeEditSheet);
+  $('#editClose').addEventListener('click', () => closeLayer('edit'));
   $('#editSave').addEventListener('click', saveEditSheet);
   $('#editRevert').addEventListener('click', async ()=>{
     const target = S.editTarget;
     if(!target || target.batch) return;
     await revertTrack(target.trackIds[0]);
-    closeEditSheet();
+    closeLayer('edit');
   });
   $('#editArtPick').addEventListener('click', ()=> $('#editArtFile').click());
   $('#editArtFile').addEventListener('change', async e=>{

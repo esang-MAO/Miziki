@@ -89,6 +89,14 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
   namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
 });
+// NV2 (docs/11_SMOOTH_NAVIGATION.md): player/queue.js's openQueueSheet now
+// registers with the real history-based nav-stack layer stack, which reads
+// the real browser history/document/window — stubbed to no-ops here, same
+// "stop the chain at the door" reasoning as the rest of this file's mocks;
+// nav-stack.js's own behavior is covered by tests/unit/nav-stack.test.js.
+mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
+  namedExports: { openLayer(){}, closeLayer(){}, forceCloseLayer(){} },
+});
 // CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
 // shell/runout.js, whose real chain reaches library/view.js — stop it here.
 mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {

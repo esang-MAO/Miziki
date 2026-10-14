@@ -14,16 +14,17 @@ import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/cont
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
-import { openSleepSheet, closeSleepSheet } from '../player/sleep-timer.js';
+import { openSleepSheet } from '../player/sleep-timer.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { touchActiveSession } from '../history/sessions.js';
 import { updateShellAlbum } from '../shell/mini-player.js';
-import { openPlayer, closePlayer, morphInFlight, interruptMorph } from '../shell/player-overlay.js';
+import { openPlayer, morphInFlight, interruptMorph } from '../shell/player-overlay.js';
 import { runStartSequence, interruptStartSequence } from '../shell/start-sequence.js';
 import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
+import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -68,7 +69,7 @@ export function wireTransport(){
   $('#barModeToggle').addEventListener('click', ()=>{ setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
 
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
-  $('#sleepClose').addEventListener('click', closeSleepSheet);
+  $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
   $('#miniFavBtn').addEventListener('click', e => { e.stopPropagation(); const t = current(); if(t) toggleFavorite(t.id); });
@@ -96,10 +97,10 @@ export function wireTransport(){
     }
     else play();
   });
-  $('#playerDismiss').addEventListener('click', closePlayer);
+  $('#playerDismiss').addEventListener('click', () => closeLayer('player'));
   // CEREMONY §2: the desktop rest state's two ways back to a record.
   const openLibraryAt = mode => {
-    closePlayer();
+    closeLayer('player');
     if(mode){
       S.view.mode = mode; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
     }

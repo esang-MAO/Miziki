@@ -4,6 +4,7 @@ import { formatBytes, totalLibraryBytes } from '../library/delete.js';
 import { updateSearchChipsVisibility } from '../library/search.js';
 import { isLibraryRouteVisible, isProfileRouteVisible } from './routes.js';
 import { libraryHasGenres } from '../crate/model.js';
+import { openLayer } from './nav-stack.js';
 
 /* ================= navigation shell: header actions, search field, add menu =================
    isLibraryRouteVisible/isProfileRouteVisible, updateHeaderActionsAvailability,
@@ -62,6 +63,7 @@ export function openSearchField(){
   $('#hdrSearchBtn').classList.add('active');
   $('#librarySearch').focus();
   updateSearchChipsVisibility();
+  openLayer('search-field', closeSearchField, { container: $('#hdrSearchRow') });
 }
 export function closeSearchField(){
   updateHeaderActionsAvailability();
@@ -87,6 +89,7 @@ export function openAddMenu(){
   menu.classList.add('open');
   btn.classList.add('add-open');
   btn.setAttribute('aria-expanded', 'true');
+  openLayer('add-menu', closeAddMenu, { container: menu });
 }
 export function closeAddMenu(){
   $('#addScrim').classList.remove('open');
