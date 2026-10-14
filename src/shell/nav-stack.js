@@ -195,6 +195,14 @@ function handleRoutePopstate(ev){
   }
 }
 
+// NV4 (docs/11_SMOOTH_NAVIGATION.md): pull-to-refresh must never start while
+// an overlay/sheet is open (a layer and a pull would otherwise compete for
+// the same downward drag) — a real, non-test-only accessor, unlike
+// _debugLayers() below.
+export function hasOpenLayer(){
+  return layers.length > 0;
+}
+
 export function initNavStack(root){
   appRoot = root || document.getElementById('app') || document.body;
   history.replaceState({ navRoute: 'library' }, '');

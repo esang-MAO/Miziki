@@ -113,6 +113,7 @@ module.exports = [
       'src/profile/account.js',
       'src/profile/privacy.js',
       'src/shell/runout.js',
+      'src/wiring/pull-refresh.js',
     ],
     languageOptions: {
       globals: { MizikiSocial: 'readonly' },

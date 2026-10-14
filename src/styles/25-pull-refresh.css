@@ -1,0 +1,62 @@
+/* NV4 (docs/11_SMOOTH_NAVIGATION.md): pull-to-refresh's own indicator,
+   wired onto #route-home/#route-profile by src/wiring/pull-refresh.js.
+   The indicator sits under the header, translated down by the gesture's
+   own resistance-scaled travel (src/shell/pull-refresh.js); the accessible
+   "Refresh" button and the aria-live status line are reachable by keyboard
+   and screen reader regardless of touch support, so neither is
+   aria-hidden -- only the spinning dot is purely decorative. */
+/* .route itself (07-routes.css) has no position of its own -- scoped here
+   rather than widening that shared rule, since only these two routes ever
+   get the indicator. */
+#route-home, #route-profile{ position: relative; }
+
+.pull-refresh{
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+.pull-refresh-dot{
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  margin-top: -36px;
+}
+.pull-refresh[data-state="armed"] .pull-refresh-dot,
+.pull-refresh[data-state="refreshing"] .pull-refresh-dot{
+  animation: pull-refresh-spin .7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .pull-refresh-dot{ animation: none !important; }
+}
+@keyframes pull-refresh-spin{ to{ transform: rotate(360deg); } }
+
+/* The button is the accessible equivalent of the gesture -- visually small
+   and out of the way, but a real, keyboard-reachable control, not merely a
+   screen-reader-only one, since desktop/no-touch never gets the gesture at
+   all (NV4's own "pull is touch-only" + "accessibility and desktop" rule). */
+.pull-refresh-btn{
+  position: absolute;
+  top: 6px; right: 10px;
+  pointer-events: auto;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.pull-refresh-live{
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

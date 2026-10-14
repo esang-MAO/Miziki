@@ -45,7 +45,7 @@ globalThis.document = {
 
 const {
   idsToClose, openLayer, closeLayer, forceCloseLayer,
-  recordRoute, onRouteRestore, initNavStack, _debugLayers,
+  recordRoute, onRouteRestore, initNavStack, hasOpenLayer, _debugLayers,
 } = await import('../../src/shell/nav-stack.js');
 
 function fire(type, ev){
@@ -234,4 +234,15 @@ test('onRouteRestore: a layer popstate never reaches the route-restore callback'
   fire('popstate', { state: { navLayer: 'a' } });
   assert.equal(restoredTo, null);   // handlePopstate owned this one, not handleRoutePopstate
   closeLayer('a');
+});
+
+// NV4 (docs/11_SMOOTH_NAVIGATION.md): pull-to-refresh must never start
+// while any overlay/sheet is open -- hasOpenLayer() is the real (not
+// test-only) accessor it checks.
+test('hasOpenLayer: false with nothing open, true with a layer open, false again once it closes', () => {
+  assert.equal(hasOpenLayer(), false);
+  openLayer('a', () => {});
+  assert.equal(hasOpenLayer(), true);
+  closeLayer('a');
+  assert.equal(hasOpenLayer(), false);
 });
