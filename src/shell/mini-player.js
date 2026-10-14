@@ -49,6 +49,8 @@ export function renderMiniPlayer(){
   // nothing loaded is the rest state: the empty slipmat (CEREMONY §2)
   const ov = $('#playerOverlay');
   if(ov) ov.classList.toggle('at-rest', !t);
+  // a primed but empty platter shows the felt under where the record lands
+  if(ov) ov.classList.toggle('platter-empty', !!t && S.platterEmpty);
   if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
   mini.style.display = 'flex';
   $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;

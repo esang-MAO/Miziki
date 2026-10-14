@@ -1,4 +1,7 @@
-/* ================= launch intro: crate riffle to a title screen =================
+/* ================= launch intro: plain records to the Miziki sleeve =================
+   CEREMONY §5 replaced the real-art riffle and title screen with a fixed
+   stack of plain records; a "Miziki" sleeve is caught, pulled to camera and
+   cross-faded into the app, which is already sitting on the empty slipmat.
    Moved out of main.js (step 7c). Cold start only — see runLaunchSequence().
    Fully independent of the sleeve pull/put-away: its own token
    (S.launchSeq), its own overlay, removed from the DOM once it finishes or
@@ -9,11 +12,9 @@ import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
-import { albumTracks, groupBy } from '../library/model.js';
-import { thumbURL } from '../library/thumbs.js';
+import { albumTracks } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { flowPose, flowZIndex } from '../crate/geometry.js';
-import { crateArtCache } from '../crate/tiers.js';
 
 // resolved by restoreLibrary() (main.js) once S.tracks/sessions/thumbnails
 // are in place — the launch intro races this against a timeout rather than
@@ -24,28 +25,17 @@ export function markLibraryReady(){ libraryReadyResolve(); }
 
 const LAUNCH_ANIM = {
   fadeMs: 250, accelMs: 650, cruiseMs: 800, decelMs: 800,
-  catchMs: 300, pullMs: 600, titleHoldMs: 300, crossfadeMs: 600,
+  catchMs: 300, pullMs: 600, crossfadeMs: 600,
   skipMs: 150, readyWaitMs: 700,
-  // a 2-7 album library gets a shorter "riffle" instead of the full flick
-  // (about 1.35s of scroll vs 2.25s), so the whole sequence comes in around
-  // 3.4s rather than 4.3s — see LAUNCH spec §1/§3
-  riffleAccelMs: 300, riffleCruiseMs: 650, riffleDecelMs: 400,
-  // settling the pulled title sleeve into the crate view's centre slot —
-  // the crate (or the list, if that's the saved layout) is already correct
-  // underneath by the time this runs, so this is just how long the handoff
-  // fade takes, not anything it has to build (LAUNCH spec §3, 3700-4300ms)
-  intoCrateMs: 600,
-  firstRunCount: 44, stackMax: 50,
+  stackCount: 18,
   // distance share of the scroll each phase covers, by construction summing
   // to 1 so position lands exactly on the target at the end of decel — see
   // computeFlickPosition(). Proportions come from the reference timeline
   // (about 15:21:4 records for a 40-record flick).
-  accelShare: 0.375, cruiseShare: 0.525, decelShare: 0.10,
-  edgePalette: ['#B8452F','#6E8F5C','#4C5FA0','#C9A24A','#8E5C8F','#3F8C8A','#A8A29A']
+  accelShare: 0.375, cruiseShare: 0.525, decelShare: 0.10
 };
 document.documentElement.style.setProperty('--launch-fade-duration', LAUNCH_ANIM.fadeMs + 'ms');
 document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM.pullMs + 'ms');
-document.documentElement.style.setProperty('--launch-title-duration', LAUNCH_ANIM.titleHoldMs + 'ms');
 document.documentElement.style.setProperty('--launch-wordmark-duration', (LAUNCH_ANIM.catchMs + LAUNCH_ANIM.pullMs) + 'ms');
 document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
 
@@ -84,64 +74,14 @@ export function resolveLastPlayedTrackIndex(albumId){
   return best;
 }
 
-// Evenly samples down to `cap` entries, always keeping mustIncludeId among
-// them (see LAUNCH spec §1, flick-length rule, A > 50 case). Exported for
-// its unit test, same as angleDelta in scrub.js (step 3c).
-export function sampleStackAlbums(allIds, cap, mustIncludeId){
-  const picked = [];
-  const step = allIds.length / cap;
-  for(let i=0;i<cap;i++) picked.push(allIds[Math.floor(i*step)]);
-  if(mustIncludeId && !picked.includes(mustIncludeId)) picked[Math.floor(picked.length/2)] = mustIncludeId;
-  return picked;
-}
-
-function shuffledCopy(arr){
-  const out = arr.slice();
-  for(let i = out.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = out[i]; out[i] = out[j]; out[j] = tmp;
-  }
-  return out;
-}
-
-// Resolves which variant to show and everything it needs, without touching
-// any DOM — kept separate from rendering so it's independently testable.
-// Flick-length rule: N = min(A, 50), no repeats and no padding — a small
-// library just flicks through exactly its own albums. A > 50 samples 50
-// evenly, always keeping the last-played one. The whole stack is shuffled
-// (it should feel like digging, not a sorted list) and the last-played
-// album always ends up at about index N-4, the record that gets caught
-// (see LAUNCH spec §1).
-function buildLaunchStack(){
-  const firstRun = {variant:'first-run', count: LAUNCH_ANIM.firstRunCount, targetIndex: LAUNCH_ANIM.firstRunCount - 4};
-  if(!S.tracks.length) return firstRun;
-  const targetAlbumId = resolveLastPlayedAlbum();
-  if(!targetAlbumId) return firstRun;
-  const allAlbumIds = groupBy('album').map(([,idx]) => albumKey(S.tracks[idx[0]]));
-  const A = allAlbumIds.length;
-  const N = Math.min(A, LAUNCH_ANIM.stackMax);
-  const picked = A > LAUNCH_ANIM.stackMax ? sampleStackAlbums(allAlbumIds, N, targetAlbumId) : allAlbumIds.slice();
-  const albumIds = shuffledCopy(picked);
-  const targetIndex = Math.max(0, N - 4);
-  const curPos = albumIds.indexOf(targetAlbumId);
-  if(curPos >= 0 && curPos !== targetIndex){
-    const tmp = albumIds[targetIndex]; albumIds[targetIndex] = albumIds[curPos]; albumIds[curPos] = tmp;
-  } else if(curPos < 0){
-    albumIds[targetIndex] = targetAlbumId;   // the caught record is always the real last-played album
-  }
-  const sampleTrack = S.tracks.find(t => albumKey(t) === targetAlbumId);
-  return {
-    variant:'library', albumIds, targetIndex, targetAlbumId, count: N,
-    targetArt: thumbURL['album:' + targetAlbumId] || null,
-    targetTitle: sampleTrack ? sampleTrack.tags.album : '',
-    targetArtist: sampleTrack ? (sampleTrack.tags.albumArtist || sampleTrack.tags.artist) : ''
-  };
-}
+// A fixed stack of plain records, the same on every launch (CEREMONY §5):
+// no album art is read, so nothing waits on thumbnails or crate tiers. The
+// "Miziki" sleeve is caught four from the end.
+const LAUNCH_STACK = { count: LAUNCH_ANIM.stackCount, targetIndex: LAUNCH_ANIM.stackCount - 4 };
 
 // one scalar drives the whole flick: ease-in over accelMs, linear cruise,
 // ease-out over decelMs, landing exactly on `target` (see LAUNCH spec §3).
-// `timing` is {accelMs,cruiseMs,decelMs} — the standard flick for 8+ albums
-// (and the first-run variant) or the shorter riffle for a 2-7 album library.
+// `timing` is {accelMs,cruiseMs,decelMs}.
 // exported for its unit test, same as angleDelta in scrub.js (step 3c)
 export function computeFlickPosition(elapsedMs, target, timing){
   const { accelMs, cruiseMs, decelMs } = timing;
@@ -185,63 +125,24 @@ function applyLaunchCardPose(el, pose, extraScale){
   el.style.zIndex = pose.z;
 }
 
-// Builds one card's DOM (cover art for the library variant, the default
-// cover otherwise) — only ever called for indices inside the visible
-// window, never all N up front (see LAUNCH spec §3 implementation note).
-function makeLaunchCard(stack, index){
+// One card's DOM: a plain record, or the Miziki sleeve for the caught one.
+// Colour comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off
+// the resolved data-theme, so it matches the app before first paint. Only
+// built for indices inside the visible window, never all at once.
+function makeLaunchCard(index){
   const el = document.createElement('div');
   el.className = 'launch-card';
-  if(index === stack.targetIndex) el.classList.add('launch-target');
   const face = document.createElement('div');
   face.className = 'launch-card-face';
-  let art = null;
-  if(stack.variant === 'library'){
-    const albumId = stack.albumIds[index];
-    // an already-warmed crate tier (S for the flying stack, L for the
-    // caught record) is sharper than the 800px thumbnail — but this never
-    // waits on a build, only a synchronous cache hit (spec §B5)
-    const tier = index === stack.targetIndex ? 'L' : 'S';
-    art = crateArtCache[tier].get(albumId) || thumbURL['album:' + albumId];
-  }
-  if(art){
-    const img = document.createElement('img');
-    img.src = art; img.alt = '';
-    img.decode().catch(() => {});
-    face.appendChild(img);
-  } else if(index === stack.targetIndex){
-    // the caught record becomes the title screen, so it always gets a
-    // presentable cover even with no thumbnail yet (see LAUNCH spec §5)
+  if(index === LAUNCH_STACK.targetIndex){
+    el.classList.add('launch-target');
     const mark = document.createElement('div');
     mark.className = 'launch-card-mark';
     mark.innerHTML = 'Mi<span>zi</span>ki';
     face.appendChild(mark);
-  } else if(stack.variant === 'library'){
-    face.style.background = S.albumEdge[stack.albumIds[index]] || LAUNCH_ANIM.edgePalette[index % LAUNCH_ANIM.edgePalette.length];
-  } else {
-    face.style.background = LAUNCH_ANIM.edgePalette[index % LAUNCH_ANIM.edgePalette.length];
   }
   el.appendChild(face);
   return el;
-}
-
-// a plain mono "N RECORDS" label, bottom centre — no rail or position
-// counter in the intro any more (the crate view has its own rail)
-function updateLaunchRecordsLabel(stack){
-  $('#launchRecords').textContent = stack.variant === 'library' ? (stack.count + ' RECORDS') : '';
-}
-
-// Pure-ish DOM builder, split out so a malicious tag value's handling is
-// testable without the rest of runLaunchSequence's choreography (security
-// hardening, step 01 — the last-played artist is untrusted file-tag text,
-// so this must never reach innerHTML).
-export function renderLaunchTitleSub(subEl, artist){
-  subEl.textContent = '';
-  subEl.appendChild(document.createTextNode(artist || ''));
-  subEl.appendChild(document.createElement('br'));
-  const lastPlayedEl = document.createElement('span');
-  lastPlayedEl.style.color = 'var(--accent)';
-  lastPlayedEl.textContent = 'LAST PLAYED';
-  subEl.appendChild(lastPlayedEl);
 }
 
 export async function runLaunchSequence(){
@@ -252,28 +153,20 @@ export async function runLaunchSequence(){
   updateLaunchScale();
   window.addEventListener('resize', updateLaunchScale);
 
-  // the variant choice depends on whether restoreLibrary() actually finished
-  // in time, not on whatever S.tracks happens to hold at this instant — data
-  // that arrives mid-way (tracks populated but sessions/thumbnails still
-  // loading) is exactly the "not ready" case the 700ms cap exists for
-  const ready = await Promise.race([
-    libraryReadyPromise.then(() => true),
-    sleep(LAUNCH_ANIM.readyWaitMs).then(() => false)
-  ]);
+  // wait for restoreLibrary() (so S.launchIntro is known), capped at 700ms
+  await Promise.race([libraryReadyPromise, sleep(LAUNCH_ANIM.readyWaitMs)]);
   if(cancelled()) return;
-  const stack = ready ? buildLaunchStack() : {variant:'first-run', count: LAUNCH_ANIM.firstRunCount, targetIndex: LAUNCH_ANIM.firstRunCount - 4};
-  if(cancelled()) return;
+  const stack = LAUNCH_STACK;
   // S.launchIntro's persisted value loads inside restoreLibrary(), which by
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
 
-  const stackEl = $('#launchStack'), recordsEl = $('#launchRecords');
-  updateLaunchRecordsLabel(stack);
+  const stackEl = $('#launchStack');
   const cards = new Map();   // index -> element, only for the currently-visible window
   function syncCards(position, speed, spread){
     const lo = Math.max(0, Math.floor(position) - 8), hi = Math.min(stack.count - 1, Math.ceil(position) + 8);
     for(const i of Array.from(cards.keys())) if(i < lo || i > hi){ cards.get(i).remove(); cards.delete(i); }
-    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(stack, i); stackEl.appendChild(el); cards.set(i, el); }
+    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(i); stackEl.appendChild(el); cards.set(i, el); }
     cards.forEach((el, i) => applyLaunchCardPose(el, launchCardPose(i - position, speed, spread)));
   }
   syncCards(0, 0, 1);
@@ -301,15 +194,9 @@ export async function runLaunchSequence(){
   await sleep(LAUNCH_ANIM.fadeMs);
   if(cancelled()) return;
 
-  // FLICK: accelerate, cruise, decelerate — one position, driven by rAF.
-  // A single record never scrolls at all ("no flick: the sleeve pulls
-  // straight to the title screen"); 2-7 albums get the shorter riffle
-  // timing; everything else (8+, and the first-run variant) gets the
-  // standard flick (LAUNCH spec §1/§3).
-  if(stack.count > 1){
-    const timing = (stack.variant === 'library' && stack.count <= 7)
-      ? {accelMs: LAUNCH_ANIM.riffleAccelMs, cruiseMs: LAUNCH_ANIM.riffleCruiseMs, decelMs: LAUNCH_ANIM.riffleDecelMs}
-      : {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
+  // FLICK: accelerate, cruise, decelerate — one position, driven by rAF
+  {
+    const timing = {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
     const scrollMs = timing.accelMs + timing.cruiseMs + timing.decelMs;
     const flickStart = performance.now();
     await new Promise(resolve => {
@@ -341,11 +228,8 @@ export async function runLaunchSequence(){
   await sleep(LAUNCH_ANIM.catchMs / 2);
   if(cancelled()) return;
 
-  // PULL TO CAMERA: the target scales up to face-on (it's already sitting at
-  // the title's position/size — only its scale/tilt/depth are non-identity);
-  // neighbours spread apart, dim and fade (opacity only, no blur); the
-  // records label fades out
-  recordsEl.classList.add('launch-fading');
+  // PULL TO CAMERA: the sleeve scales up to face-on; neighbours spread apart,
+  // dim and fade (opacity only, no blur); the wordmark grows
   const wordmarkEl = $('#launchWordmark');
   wordmarkEl.classList.add('launch-grown');
   const pullStart = performance.now();
@@ -368,27 +252,9 @@ export async function runLaunchSequence(){
   });
   if(cancelled()) return;
 
-  // TITLE: holds as the title screen
-  const nameEl = $('#launchTitleName'), subEl = $('#launchTitleSub'), titleEl = $('#launchTitle');
-  if(stack.variant === 'library'){
-    nameEl.textContent = stack.targetTitle;
-    renderLaunchTitleSub(subEl, stack.targetArtist);
-  } else {
-    nameEl.innerHTML = 'Mi<span>zi</span>ki';
-    subEl.textContent = 'LOCAL · LOSSLESS';
-  }
-  titleEl.classList.add('launch-shown');
-  await sleep(LAUNCH_ANIM.titleHoldMs);
-  if(cancelled()) return;
-
-  // INTO THE CRATE: the library route (crate or list, whichever is saved —
-  // restoreLibrary() already rendered it underneath, anchored on this same
-  // last-played album, so there is nothing left to build) is already
-  // correct behind this opaque overlay. Landing in the crate gets the
-  // slower "settle" fade (LAUNCH spec §3, 3700-4300ms); a saved list layout,
-  // or the first-run/empty-library variant, just crossfades the plain way.
-  if(stack.variant === 'library' && S.libraryLayout !== 'list') finishLaunch(LAUNCH_ANIM.intoCrateMs);
-  else finishLaunch();
+  // HAND-OFF: the app underneath is already on the empty slipmat with the
+  // last-played album primed (main.js), so this is just the crossfade
+  finishLaunch(LAUNCH_ANIM.crossfadeMs);
 }
 
 export function attachLaunchSettingRow(){
