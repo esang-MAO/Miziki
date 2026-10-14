@@ -1,8 +1,22 @@
-/* ---------- mode switch ---------- */
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0 6px}
-.mode{border:1px solid var(--line);border-radius:3px;padding:11px 12px;text-align:left;background:rgba(255,255,255,.02)}
-.mode[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
-.mode b{display:block;font-family:var(--display);font-size:16px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
-.mode i{display:block;font-style:normal;font-family:var(--data);font-size:9.5px;color:var(--muted);margin-top:3px}
+/* ---------- mode switch (CEREMONY, docs/CEREMONY.md §1: one toggle,
+   not a two-button group — track 44x24px/thumb 18px, per the design
+   frame's own ModeToggle sizing) ---------- */
+.modes{margin:22px 0 6px}
+.mode-toggle{display:inline-flex;align-items:center;gap:10px;min-height:44px}
+.mode-toggle-track{
+  position:relative;flex:0 0 auto;width:44px;height:24px;border-radius:12px;
+  background:var(--line);box-shadow:inset 0 0 0 1px var(--line);
+  transition:background .15s;
+}
+.mode-toggle[aria-checked="true"] .mode-toggle-track{background:var(--accent)}
+.mode-toggle-thumb{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+  background:var(--paper);transition:left .15s;
+}
+.mode-toggle[aria-checked="true"] .mode-toggle-thumb{left:23px;background:var(--on-accent)}
+.mode-toggle-text{
+  font-family:var(--display);font-size:12px;letter-spacing:.06em;font-weight:600;
+  text-transform:uppercase;min-width:44px;text-align:left;
+}
 .mode-note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:2px 0 0}
 

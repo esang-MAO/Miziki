@@ -91,7 +91,7 @@
      across the full viewport width (not .wrap's own column), driving
      the exact same prevTrack()/nextTrack()/seek()/setMode()/
      openQueueSheet() the full player's own #prev/#next/#scrub/
-     #modePure/#modeVinyl/#queueBtn already call (src/wiring/
+     #modeToggle/#queueBtn already call (src/wiring/
      transport.js, src/wiring/overlays.js) — per the doc's own
      "duplicate element ids are not allowed... must reuse or restyle
      those, not clone them" rule, every control below is a *new* id
@@ -132,14 +132,19 @@
   .mini-bar-time{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:0 0 auto}
   .mini-bar-scrub{flex:1 1 auto;min-width:0;margin:0}
 
-  .mini-bar-modes{display:flex;gap:6px}
-  .mini-bar-mode{
-    border:1px solid var(--line);border-radius:3px;padding:6px 10px;
-    background:transparent;color:var(--muted);font-family:var(--display);
-    font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
-  }
-  .mini-bar-mode[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
-  .mini-bar-mode:hover,.mini-bar-mode:focus-visible{color:var(--paper)}
+  /* CEREMONY (docs/CEREMONY.md, §1): the bar's own mirror of the single
+     Vinyl/Pure toggle — 36x20px track/14px thumb, per the design frame's
+     own smaller bar-sized switch, driving the exact setMode() the full
+     player's own #modeToggle does (src/wiring/transport.js). */
+  .mini-bar-modes{display:flex}
+  .mini-bar-mode-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;cursor:pointer}
+  .mode-toggle-track-sm{width:36px;height:20px;border-radius:10px}
+  .mode-toggle-thumb-sm{width:14px;height:14px;top:3px;left:3px}
+  .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-thumb-sm{left:19px}
+  .mini-bar-mode-toggle .mode-toggle-text{font-size:10.5px;color:var(--muted)}
+  .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-text{color:var(--paper)}
+  .mini-bar-mode-toggle:hover .mode-toggle-text,
+  .mini-bar-mode-toggle:focus-visible .mode-toggle-text{color:var(--paper)}
 }
 
 /* D5 (docs/DESKTOP_LAYOUT.md): the crate on desktop — a larger card (via

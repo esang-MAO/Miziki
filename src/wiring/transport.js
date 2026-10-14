@@ -45,8 +45,11 @@ export function wireTransport(){
   });
   wireSpinToScrub();
 
-  $('#modeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
-  $('#modePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
+  // CEREMONY (docs/CEREMONY.md, §1): one toggle, not a two-button group —
+  // flips between the two modes through the same setMode() either button
+  // used to call. A real switch (role="switch" in the markup), so Space/
+  // Enter on the focused button already toggles it, same as a click.
+  $('#modeToggle').addEventListener('click', ()=>{ setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
 
   // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/next/
   // seek/mode controls — new ids (miziki.html), hidden below 1024px, but
@@ -60,8 +63,7 @@ export function wireTransport(){
     S.scrubbing = false;
     const t = current(); if(t) seek((t.duration || 0) * e.target.value/1000);
   });
-  $('#barModeVinyl').addEventListener('click', ()=>{ setMode('vinyl'); queueSave(); });
-  $('#barModePure').addEventListener('click', ()=>{ setMode('pure'); queueSave(); });
+  $('#barModeToggle').addEventListener('click', ()=>{ setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
 
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
   $('#sleepClose').addEventListener('click', closeSleepSheet);
