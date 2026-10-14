@@ -75,10 +75,18 @@ export function songRow(i, queue, pos, extra){
 // Returns false (doing nothing else) when the row isn't currently on
 // screen — grouped/drilled-into views, an active search, or the crate —
 // so the caller can fall back to a full renderTracks() exactly as before.
+// Escapes a track id for use inside a `[data-id="..."]` attribute selector.
+// Backslashes must be escaped *before* quotes, or a value ending in a
+// backslash followed by a quote could close the selector's string early
+// (CodeQL: incomplete string escaping) -- order matters here.
+function idSelector(id){
+  return 'li[data-id="' + String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
+}
+
 export function updateTrackRow(id){
   const host = $('#libBody');
   if(!host) return false;
-  const li = host.querySelector('li[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+  const li = host.querySelector(idSelector(id));
   if(!li) return false;
   const i = idxOf(id);
   if(i < 0) return false;
@@ -342,7 +350,7 @@ function captureScrollAnchor(host){
 
 function restoreScrollAnchor(host, anchor){
   if(!host || !anchor) return;
-  const li = host.querySelector('li[data-id="' + String(anchor.id).replace(/"/g, '\\"') + '"]');
+  const li = host.querySelector(idSelector(anchor.id));
   if(!li || typeof li.getBoundingClientRect !== 'function') return;
   const delta = li.getBoundingClientRect().top - anchor.top;
   if(delta && typeof window !== 'undefined' && window.scrollBy) window.scrollBy(0, delta);
