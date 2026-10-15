@@ -174,25 +174,54 @@ test('computeRate: Pure is always 1 during a dawn transition, whatever the pace'
   }
 });
 
-// Window vs. Moment pacing on the dawn (rising) side — mirrors the
-// existing dusk-side behavior: Window eases evenly across the whole
-// window; Moment holds back near dawn (barely risen yet) and only
+// Window vs. Moment pacing on the dawn (rising) side of easedProgress() —
+// mirrors the existing dusk-side behavior: Window eases evenly across the
+// whole window; Moment holds back near dawn (barely risen yet) and only
 // catches up with a felt rise near the very end, close to sunrise.
-test('easedProgress/computeRate: Moment holds back longer than Window during dawn, same as it does during twilight', () => {
+// easedProgress() itself is unchanged by Day Arc v2 (DAY_ARC_BRIEF.md) —
+// it still drives the pre-v2 Day Arc UI's own readouts (drawSun(), etc.);
+// see the test below for what changed in computeRate() specifically.
+test('easedProgress: Moment holds back longer than Window during dawn, same as it does during twilight', () => {
   const date = new Date('2025-06-21T12:00:00Z');
   const ev = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
-  S.mode = 'vinyl'; S.auto = true; S.target = 0.80;
   S.sun = { lat: COLUMBIA.lat, lon: COLUMBIA.lon, ok: true, ...ev };
   // 30% of the way through the dawn window (still well before sunrise)
   const t = new Date(ev.dawn.getTime() + 0.3 * (ev.rise.getTime() - ev.dawn.getTime()));
   S.previewMin = (t.getTime() - Date.now()) / 60000;
-  S.pace = 'window'; const windowRate = computeRate();
-  S.pace = 'moment'; const momentRate = computeRate();
+  S.pace = 'window'; const windowProgress = easedProgress();
+  S.pace = 'moment'; const momentProgress = easedProgress();
   // Moment hasn't started rising back toward full speed yet this early in
-  // the window, so it's still much closer to the night-rate target than
-  // Window already is.
-  assert.ok(momentRate < windowRate, `expected moment (${momentRate}) still held back below window (${windowRate}) at 30% through dawn`);
-  assert.ok(Math.abs(momentRate - S.target) < 0.01, 'moment should still read essentially the night rate this early in dawn');
+  // the window, so its progress (1 = full night-rate) is still much
+  // closer to 1 than Window's already is.
+  assert.ok(momentProgress > windowProgress, `expected moment (${momentProgress}) still held back above window (${windowProgress}) at 30% through dawn`);
+  assert.ok(Math.abs(momentProgress - 1) < 0.02, 'moment should still read essentially full night-rate progress this early in dawn');
+});
+
+// Day Arc v2 (DAY_ARC_BRIEF.md, PR 2): computeRate()'s auto path now goes
+// through arc.js's rateAt() instead of easedProgress() — the down-leg
+// (dusk side) still honors S.pace exactly as before (§3.3's own "do not
+// rewrite the existing down-leg"), but the new fixed-window recovery leg
+// before sunrise is plain smoothstep, pace-independent (§3.3: "Use
+// smoothstep... reaches exactly 1.0 at sunrise" — no Window/Moment split
+// is specified for it), superseding DA1's own dawn-side pace() mirroring.
+test('computeRate: the down-leg still honors S.pace, but the new recovery leg does not', () => {
+  const date = new Date('2025-06-21T12:00:00Z');
+  const ev = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
+  S.mode = 'vinyl'; S.auto = true; S.target = 0.80;
+  S.sun = { lat: COLUMBIA.lat, lon: COLUMBIA.lon, ok: true, ...ev };
+
+  const midDusk = new Date((ev.set.getTime() + ev.dusk.getTime()) / 2);
+  S.previewMin = (midDusk.getTime() - Date.now()) / 60000;
+  S.pace = 'window'; const windowDown = computeRate();
+  S.pace = 'moment'; const momentDown = computeRate();
+  assert.notEqual(windowDown, momentDown, 'the down-leg still differs by pace, unchanged');
+
+  const midRecovery = new Date(ev.rise.getTime() - 60 * 60000); // 1h before sunrise
+  S.previewMin = (midRecovery.getTime() - Date.now()) / 60000;
+  S.pace = 'window'; const windowRecovery = computeRate();
+  S.pace = 'moment'; const momentRecovery = computeRate();
+  assert.equal(windowRecovery, momentRecovery, 'the new recovery leg is pace-independent');
+  assert.ok(windowRecovery > S.target && windowRecovery < 1, 'and is actually mid-recovery, not stuck at the floor or already at 1.0');
 });
 
 // DA3 (docs/DAY_ARC.md): duskRampProgress is the extra, independent 0..1

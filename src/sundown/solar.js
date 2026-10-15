@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { clamp } from '../util/math.js';
 import { dayEvents, dayPosition } from './day.js';
+import { rateAt } from './arc.js';
 
 /* ================= solar ================= */
 const rad = Math.PI/180;
@@ -178,10 +179,18 @@ export function easedProgress(){
 }
 
 // Pure means untouched: no character chain, and no rate change either —
-// Sundown (auto or manual) only ever applies in Vinyl.
+// Sundown (auto or manual) only ever applies in Vinyl. Manual (auto off)
+// is a separate override that also wins over the day-arc curve entirely,
+// unchanged — this function's own job is only the auto path.
+//
+// Day Arc v2 (DAY_ARC_BRIEF.md, PR 2): the auto path now goes through
+// arc.js's rateAt() — the same down-leg/floor/hold shape this function
+// always had (continuity confirmed by tests/unit/arc.test.js's own join
+// tests), plus the new fixed-window recovery leg before sunrise (§3.3).
+// nowClock() (not a bare `new Date()`) is what makes Preview the day
+// audible here, same as it always was for the pre-recovery curve.
 export function computeRate(){
   if(S.mode === 'pure') return 1;
   if(!S.auto) return S.manualRate;
-  const e = easedProgress();
-  return Math.pow(2, e * Math.log2(S.target));
+  return rateAt(nowClock(), S.sun, { target: S.target, paceMode: S.pace });
 }

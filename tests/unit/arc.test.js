@@ -82,6 +82,16 @@ test('rateAt: no usable sun data (polar/no location) never throws and returns a 
   assert.equal(rateAt(new Date(), { rise: SUN.rise }, s), 1, 'partial sun object (no set/dusk) is also treated as no data');
 });
 
+test('rateAt: legacy/partial sun (set+dusk known, no rise) still drives the down-leg/hold, just never recovers', () => {
+  const now = Date.now();
+  const pastDusk = { set: new Date(now - 60 * 60000), dusk: new Date(now - 30 * 60000) };
+  const s = settings();
+  assert.equal(rateAt(new Date(now), pastDusk, s), 0.85, 'settles at the floor past dusk with no rise to recover toward');
+  const midTwilight = { set: new Date(now - 10 * 60000), dusk: new Date(now + 10 * 60000) };
+  const mid = rateAt(new Date(now), midTwilight, s);
+  assert.ok(mid > 0.85 && mid < 1, 'still eases through the down-leg with no rise known');
+});
+
 test('rateAt: output never goes negative or outside [floor, 1] across a full 24h sweep (no reversed leg)', () => {
   const s = settings();
   const lo = 0.85 - 1e-9, hi = 1 + 1e-9;
