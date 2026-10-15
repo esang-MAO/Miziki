@@ -1,9 +1,15 @@
 /* ================= wiring: Character panel and Settings toggles =================
    Moved out of main.js's "wiring" IIFE (step 7f) — the character
-   presets (the four sliders were removed — the Sound cards show the values), Scratch, Car Mode's motion toggle, sleeve pull,
-   launch intro, background playback, and the Car Mode floor/max-speed
-   sliders. Every function called here was already a real export of
-   its owning module. */
+   presets, Scratch, Car Mode's motion toggle, sleeve pull, launch intro,
+   background playback, and the Car Mode floor/max-speed sliders. Every
+   function called here was already a real export of its owning module.
+
+   tabs-design-unify removed the four always-visible character sliders,
+   leaving only the three presets; a later follow-up (per that branch's
+   own "possible follow-ups" note, and Ken's own ask) re-added per-value
+   fine-tuning, but tucked behind each Sound card instead of restoring
+   the old always-on block — see the `[data-char-tune]`/`[data-char-fine]`
+   wiring below. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { applyCharacter } from '../audio/engine.js';
@@ -17,12 +23,55 @@ import { setTheme } from '../ui/theme.js';
 
 export function wireCharacter(){
   const presets = {light:{wow:.12,sat:.18,soft:.22,comp:.2}, classic:{wow:.30,sat:.35,soft:.40,comp:.35}, worn:{wow:.62,sat:.6,soft:.68,comp:.55}};
-  document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', ()=>{
+  const presetBtns = document.querySelectorAll('[data-preset]');
+  presetBtns.forEach(b => b.addEventListener('click', ()=>{
     const p = presets[b.dataset.preset];
     Object.keys(p).forEach(k => { S.char[k] = p[k]; });
     applyCharacter(); queueSave();
     if(S.mode !== 'vinyl') setMode('vinyl');
+    // Visual only (session-only, like the drift seg's own pressed state) —
+    // a preset is a starting point, not a mode the app remembers was
+    // "last picked"; nothing here is persisted or restored on reload.
+    presetBtns.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   }));
+
+  // Per-value fine-tuning, behind the cards: tapping a .sd-charcard
+  // reveals the one slider for that parameter, right underneath it.
+  // Collapsed again on a second tap, or by opening a different card
+  // (only one open at a time, so the grid doesn't grow unboundedly).
+  // Reusing the old slider ids/wiring shape (`[data-preset]`'s own
+  // input-event pattern, pre-tabs-design-unify) — just mounted inside a
+  // disclosure instead of always on screen, and with no write-back loop
+  // needed in storage/meta.js: the slider only ever reads S.char[k] at
+  // the moment it's revealed, never at boot (nothing to desync).
+  const fineInputs = {wow:'charFineWow', sat:'charFineSat', soft:'charFineSoft', comp:'charFineComp'};
+  const fineOuts = {wow:'charFineWowOut', sat:'charFineSatOut', soft:'charFineSoftOut', comp:'charFineCompOut'};
+  const tuneBtns = document.querySelectorAll('[data-char-tune]');
+  tuneBtns.forEach(b => b.addEventListener('click', ()=>{
+    const key = b.dataset.charTune;
+    const panel = $('#' + b.getAttribute('aria-controls'));
+    const opening = panel.hidden;
+    tuneBtns.forEach(x => {
+      const p = $('#' + x.getAttribute('aria-controls'));
+      const show = opening && x === b;
+      p.hidden = !show;
+      x.setAttribute('aria-expanded', String(show));
+    });
+    if(opening){
+      const pct = Math.round(S.char[key] * 100);
+      $('#' + fineInputs[key]).value = pct;
+      $('#' + fineOuts[key]).textContent = pct + '%';
+    }
+  }));
+  Object.keys(fineInputs).forEach(key => {
+    $('#' + fineInputs[key]).addEventListener('input', e=>{
+      S.char[key] = e.target.value / 100;
+      $('#' + fineOuts[key]).textContent = e.target.value + '%';
+      applyCharacter(); queueSave();
+      if(S.mode !== 'vinyl') setMode('vinyl');
+      presetBtns.forEach(x => x.setAttribute('aria-pressed', 'false'));
+    });
+  });
 
   // D2: wires the one *static* [data-theme-choice] control left in the
   // DOM at boot — the desktop sidebar's own segmented control (D7,
