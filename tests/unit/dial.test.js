@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { angleDegAt, nextEventText, dialStateAt } from '../../src/sundown/dial.js';
+import { angleDegAt, angleDeltaMinutes, nextEventText, dialStateAt } from '../../src/sundown/dial.js';
 
 // src/sundown/dial.js has no DOM/`S`-mutating top level — no mocking
 // needed, same precedent as arc.test.js/day.test.js/solar.test.js.
@@ -47,6 +47,24 @@ test('nextEventText: no usable sun returns null rather than a bogus countdown', 
   assert.equal(nextEventText(new Date(), null), null);
 });
 
+test('angleDeltaMinutes: converts a small clockwise angle change into forward minutes', () => {
+  // 90deg (18:00) -> 100deg is +10deg forward = +40 minutes (4 min/deg).
+  assert.equal(angleDeltaMinutes(100, 90), 40);
+  // the reverse is exactly the negative.
+  assert.equal(angleDeltaMinutes(90, 100), -40);
+});
+
+test('angleDeltaMinutes: takes the short way around a wrap, never the long way (PR 5\'s drag gesture depends on this for every pointermove sample)', () => {
+  // 350deg -> 10deg is a short +20deg hop across the 0/360 seam (not -340).
+  assert.equal(angleDeltaMinutes(10, 350), 80);
+  // and the reverse crosses the same seam the other way.
+  assert.equal(angleDeltaMinutes(350, 10), -80);
+});
+
+test('angleDeltaMinutes: exactly half a turn (180deg) is never ambiguous either direction — both signs are valid, but the magnitude must be the max, 720 minutes', () => {
+  assert.equal(Math.abs(angleDeltaMinutes(270, 90)), 720);
+});
+
 test('nextEventText: "Preview the day" can push `now` more than 24h past a transit (S.previewMin maxes at 1440) — must never read "IN 0 MIN" for an event that is actually hours away', () => {
   // 23h50m past today's sunrise: a single +24h still lands 10 minutes
   // *before* `now`, so nextOccurrence must keep adding a day, not stop
@@ -73,6 +91,19 @@ test('dialStateAt: midday matches §5\'s own Midday row (100%, Full speed, BRIGH
   assert.equal(st.trend, 'Full speed');
   assert.equal(st.tone, 'BRIGHT');
   assert.equal(st.paletteName, 'AZURE');
+});
+
+test('dialStateAt: ariaValueNow/ariaValueText (§4.4a\'s own "5:58 PM, dusk" shape) track minutes-of-day and the readable time+phase, not the raw (possibly multi-day) preview offset', () => {
+  const st = dialStateAt(SUN.noon, SUN, settings());
+  const expectedMinutes = Math.round(SUN.noon.getHours() * 60 + SUN.noon.getMinutes() + SUN.noon.getSeconds() / 60);
+  assert.equal(st.ariaValueNow, expectedMinutes);
+  assert.equal(st.ariaValueText, st.timeBig + ' ' + st.timeAmPm + ', ' + st.phase);
+  // a multi-day-forward preview (the drag gesture's own unbounded
+  // S.previewMin) must still read as a plain today's-clock value, not
+  // something like "1,845 PM" — same wrap this field exists for.
+  const farFuture = new Date(SUN.noon.getTime() + 5 * 24 * 3600000 + 10 * 60000);
+  const farSt = dialStateAt(farFuture, SUN, settings());
+  assert.ok(farSt.ariaValueNow >= 0 && farSt.ariaValueNow < 1440);
 });
 
 test('dialStateAt: night matches §5\'s own Night row (floor, Slowest, WARM, INDIGO)', () => {

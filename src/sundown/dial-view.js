@@ -1,23 +1,28 @@
-/* ================= Day Arc v2: Day view dial rendering (PR 4) =================
+/* ================= Day Arc v2: Day view dial rendering (PR 4, gesture PR 5) =================
    The DOM-painting half of dial.js's dialStateAt() — renderDialView()
    reads S, computes the state once via dialStateAt(), and writes it into
    the new markup miziki.html's #sundownDayView carries (§4.1/§4.2). Called
    from player/clock.js's drawSun(), the one place already recomputing the
    day position on a steady ~220ms cadence while the app is visible — no
    new timer, same "reuse the loop that's already ticking" precedent
-   skyGradientStops()/syncNychthemeronTheme() already follow there.
+   skyGradientStops()/syncNychthemeronTheme() already follow there; also
+   called directly from dial-gesture.js's setPreviewMinutes() on every
+   drag/keyboard change, so a preview update never waits for the next
+   tick.
 
-   No gesture yet (PR 5's own job, DAY_ARC_BRIEF.md §8) — this always
-   paints the *real* clock (nowClock(), so Preview the day still moves it,
-   same as every other Sundown readout), never a dragged preview angle,
-   and there is no NOW button or hint row here yet (§4.2 items 4-5's
-   touch-interaction half is PR 5's). The old day-arc SVG/phase-block/
-   "Now playing at" row (miziki.html, DA3) stay in the DOM, hidden by CSS
-   only (#sundownDayView .sdv1), so player/clock.js's own drawSun() keeps
-   writing to them with zero code change there — the sidebar's own mirror
-   ids (#sidePhaseName etc.) read those, not this. */
+   Always paints nowClock() (real clock, or real clock + S.previewMin
+   while previewing — the same single state every other Sundown readout
+   already follows), never a half-dragged intermediate angle: the drag
+   gesture (dial-gesture.js) writes S.previewMin first, then calls this to
+   repaint from that new, settled value, so there's exactly one source of
+   truth for "what time is the dial showing" at any instant. The old
+   day-arc SVG/phase-block/"Now playing at" row (miziki.html, DA3) stay in
+   the DOM, hidden by CSS only (#sundownDayView .sdv1), so player/clock.js's
+   own drawSun() keeps writing to them with zero code change there — the
+   sidebar's own mirror ids (#sidePhaseName etc.) read those, not this. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
+import { REDUCED } from '../util/motion.js';
 import { nowClock } from './solar.js';
 import { dialStateAt } from './dial.js';
 
@@ -74,8 +79,12 @@ function updateSkyBackground(skyPhase, stops) {
   const backLayer = skyLayerFront === 'A' ? $('#sdSkyB') : $('#sdSkyA');
   if (!frontLayer || !backLayer) return;
   backLayer.style.background = verticalGradient(stops);
-  backLayer.style.transition = 'opacity ' + SKY_CROSSFADE_MS + 'ms linear';
-  frontLayer.style.transition = 'opacity ' + SKY_CROSSFADE_MS + 'ms linear';
+  // §4.4: "Respect prefers-reduced-motion (no... sky cross-fade
+  // animation; values still update)" — the new gradient still lands on
+  // the back layer so a render mid-crossfade is never wrong, but with
+  // REDUCED it swaps instantly instead of fading over SKY_CROSSFADE_MS.
+  const duration = REDUCED ? 0 : SKY_CROSSFADE_MS;
+  backLayer.style.transition = frontLayer.style.transition = duration ? 'opacity ' + duration + 'ms linear' : 'none';
   backLayer.style.opacity = '1';
   frontLayer.style.opacity = '0';
   skyLayerFront = skyLayerFront === 'A' ? 'B' : 'A';
@@ -114,6 +123,16 @@ export function renderDialView() {
   const time = $('#dayDialTime'), ampm = $('#dayDialAmPm');
   if (time) time.textContent = st.timeBig;
   if (ampm) ampm.textContent = st.timeAmPm + ' · ' + st.phaseLabel;
+
+  // §4.4a: "the dial exposes role='slider' with aria-valuetext" — role
+  // and the static valuemin/valuemax live on the element itself
+  // (miziki.html); only the live value changes here, same as every other
+  // per-tick text write in this function.
+  dial.setAttribute('aria-valuenow', String(st.ariaValueNow));
+  dial.setAttribute('aria-valuetext', st.ariaValueText);
+
+  const nowBtn = $('#sdNowBtn');
+  if (nowBtn) nowBtn.classList.toggle('previewing', S.previewMin !== 0);
 
   paintMarker($('#dayDialMarker'), dial, st.markerAngleDeg);
   paintMarker($('#dayDialSunriseTick'), dial, st.sunriseAngleDeg);

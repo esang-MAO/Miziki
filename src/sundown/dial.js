@@ -23,6 +23,25 @@ export function angleDegAt(date) {
   return ((deg % 360) + 360) % 360;
 }
 
+// angleDeltaMinutes(a, b) -> the signed minutes-of-day change from angle
+// `b` to angle `a`, taking the shorter way around the ring (never more
+// than half a turn) — the same shape and argument order as
+// player/scrub.js's own angleDelta(a, b) (`d = a - b`, wrapped to
+// +/-180), just scaled from degrees to minutes via angleDegAt's own
+// inverse (1 degree = 1440/360 = 4 minutes). PR 5's drag gesture
+// (dial-gesture.js) samples the pointer's angle on every pointermove and
+// feeds consecutive samples through this to accumulate into
+// S.previewMin — the same "many small deltas, not one absolute lookup"
+// shape scrub.js's own spin-to-scrub already uses, which is also what
+// makes multiple full turns (brief §4.4: "wraps... multiple turns are
+// fine") work for free: a delta never has to resolve which lap it's on.
+export function angleDeltaMinutes(a, b) {
+  let d = a - b;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return d * (DAY_MIN / 360);
+}
+
 const fmtClock = date => {
   const h24 = date.getHours(), m = date.getMinutes();
   const h12 = h24 % 12 || 12;
@@ -91,5 +110,12 @@ export function dialStateAt(now, sun, settings = {}) {
     sunriseAngleDeg: sun && sun.rise ? angleDegAt(sun.rise) : null,
     sunsetAngleDeg: sun && sun.set ? angleDegAt(sun.set) : null,
     warmth: warmthAt(now, sun),
+    // §4.4's own accessibility example verbatim ("5:58 PM, dusk") — a
+    // slider's aria-valuenow is conventionally a plain number, so this
+    // uses minutes-of-day (0..1439, wrapping every real day) rather than
+    // the dial-gesture's own unbounded S.previewMin, which can run
+    // negative or past 1440 across multiple drag turns.
+    ariaValueNow: Math.round(minutesOfDay(now)) % DAY_MIN,
+    ariaValueText: big + ' ' + ampm + ', ' + phase,
   };
 }

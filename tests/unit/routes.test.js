@@ -32,6 +32,15 @@ mock.module(new URL('../../src/gatefold/view.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
   namedExports: { forceCloseLayer(){}, recordRoute(){} },
 });
+// PR 5 (DAY_ARC_BRIEF.md §4.4): showRoute() now resets the Sundown
+// dial's own preview state on leaving that tab — dial-gesture.js's real
+// chain reaches dial-view.js -> util/motion.js's REDUCED, which reads
+// window.matchMedia at module load; this test's fake document below has
+// no window at all, so stop the chain here, same reasoning as every
+// other mock in this file.
+mock.module(new URL('../../src/sundown/dial-gesture.js', import.meta.url).href, {
+  namedExports: { resetPreview(){} },
+});
 
 // A tiny, DOM-free fake document — just enough for showRoute()/
 // selectSundownView() to run without throwing: getElementById for the

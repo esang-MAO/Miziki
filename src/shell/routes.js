@@ -6,6 +6,7 @@ import { updateHeaderActionsAvailability, isSearchFieldOpen, isAddMenuOpen } fro
 import { GF } from '../gatefold/view.js';
 import { forceCloseLayer, recordRoute } from './nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from './scroll-memory.js';
+import { resetPreview } from '../sundown/dial-gesture.js';
 
 export function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
@@ -74,6 +75,12 @@ export function showRoute(name){
   // NV3: save the leaving route's own scroll position before anything about
   // the DOM changes — window.scrollY here is still wherever the user left it.
   if(currentRouteName && isNewRoute) saveScrollPosition('route:' + currentRouteName);
+  // DAY_ARC_BRIEF.md §4.4: "NOW (and leaving the Sundown tab) returns to
+  // live time. The preview never persists across a tab change, so audio
+  // can never be left in a forgotten preview state." — only on an actual
+  // route *change* away from sundown, never re-tapping the tab already
+  // on screen.
+  if(currentRouteName === 'sundown' && isNewRoute && name !== 'sundown') resetPreview();
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
   // overlay that would otherwise hide whatever route is switched to — an
