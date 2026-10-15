@@ -123,14 +123,19 @@ mock.module(new URL('../../src/profile/slipmat-editor.js', import.meta.url).href
 mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
   namedExports: { setTheme(){}, isDaylightPhase(){ return false; } },
 });
-// DA4: screens.js's new currentDayPosition import for the same caption --
-// sundown/solar.js is itself DOM-free (and already real-loaded elsewhere
-// in this suite with no mock needed), but mocked here anyway for the
-// same "stop the chain at the door" reasoning, since this file's own
-// fakeEl()/document stubs have no reason to also support whatever a
-// real solar.js/day.js call site might eventually need from a document.
+// PR7 (DAY_ARC_BRIEF.md) swapped screens.js's own Nychthemeron-caption
+// helper from solar.js's currentDayPosition() to nowClock() + arc.js's
+// phaseAt() -- sundown/solar.js is itself DOM-free (and already
+// real-loaded elsewhere in this suite with no mock needed), but mocked
+// here anyway for the same "stop the chain at the door" reasoning, since
+// this file's own fakeEl()/document stubs have no reason to also support
+// whatever a real solar.js/day.js call site might eventually need from a
+// document.
 mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
-  namedExports: { currentDayPosition(){ return { phase: 'midday' }; } },
+  namedExports: { nowClock(){ return new Date(); } },
+});
+mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
+  namedExports: { phaseAt(){ return 'day'; } },
 });
 // Since step 7b, screens.js's refreshLibraryTools import is a real one from
 // src/shell/header.js instead of main.js — mocked there directly instead.

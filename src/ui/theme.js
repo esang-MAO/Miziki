@@ -34,6 +34,16 @@
        read a CSS custom property — resolved against the *effective*
        theme (the device's own scheme while Auto; the sun's own position
        while Nychthemeron)
+
+   PR 7 (DAY_ARC_BRIEF.md §8 item 7): Nychthemeron's own light/dark
+   resolution now reads arc.js's phaseAt() — "the app light/dark theme
+   follows the sun using the same phase function [as the rest of Day
+   Arc v2]. Do not add a second clock" — in place of the old DA1-DA6
+   7-phase dayPosition()/currentDayPosition() model
+   (sundown/solar.js/day.js, both left in place for the still-shipping
+   old Sundown UI behind .sdv1, untouched by this PR). phaseAt()'s own
+   four labels (dawn/day/dusk/night) split cleanly into light (day) and
+   dark (dawn/dusk/night) — see isDaylightPhase() below.
      - while Auto is active, listens for the device's own scheme changing
        live (e.g. at sunset) and re-applies; the listener is torn down
        the moment a pinned choice (Light/Dark/Nychthemeron) takes over,
@@ -63,7 +73,8 @@
    in-theme. */
 import { S } from '../state.js';
 import { queueSave } from '../storage/meta.js';
-import { currentDayPosition } from '../sundown/solar.js';
+import { nowClock } from '../sundown/solar.js';
+import { phaseAt } from '../sundown/arc.js';
 import { REDUCED } from '../util/motion.js';
 
 export const THEME_STORAGE_KEY = 'miziki-theme';
@@ -72,26 +83,20 @@ export const THEME_STORAGE_KEY = 'miziki-theme';
 // 22-theme.css's light block), not a separately-chosen approximation
 const THEME_COLOR = { dark: '#101A20', light: '#ECE5D8' };
 
-// DA4 (docs/DAY_ARC.md): the phases dayPosition() (sundown/day.js) calls
-// light for Nychthemeron's purposes — "light from sunrise to sunset,
-// dark from sunset to sunrise." Dawn and twilight are both before
-// sunrise/after sunset respectively (civil-twilight windows, not inside
-// the sunrise-to-sunset span itself), so they stay dark here even though
-// Sundown's own rate curve treats them as transitional — a deliberately
-// different cut of the same phase list for a deliberately different
-// question ("is the sun up" vs. "how much should the platter slow down").
-const LIGHT_PHASES = new Set(['morning', 'midday', 'afternoon', 'golden']);
-
+// PR7 (DAY_ARC_BRIEF.md): arc.js's phaseAt() only ever names one light
+// phase ('day' — sunrise up to ~32 min before sunset, §3.2's own fixed
+// offsets); 'dawn'/'dusk'/'night' are all dark, the same "is the sun up"
+// cut the old 7-phase LIGHT_PHASES set made, just against the new
+// 4-phase model instead of day.js's dayPosition().
+//
 // exported so the Settings/sidebar caption ("Turns dark at 6:33pm today")
 // can ask "is the sun up right now" the same way effectiveTheme() itself
-// does, without duplicating LIGHT_PHASES a second time somewhere that
-// could quietly drift from this one — src/profile/screens.js's own
-// nychthemeronSwitchCaption() is the one caller, and it needs this
-// independent of whatever S.theme is actually set to right now (the
-// caption describes what Nychthemeron would do, not what the currently
-// selected choice is doing).
+// does — src/profile/screens.js's own nychthemeronSwitchCaption() is the
+// one caller, and it needs this independent of whatever S.theme is
+// actually set to right now (the caption describes what Nychthemeron
+// would do, not what the currently selected choice is doing).
 export function isDaylightPhase(phase){
-  return LIGHT_PHASES.has(phase);
+  return phase === 'day';
 }
 
 let mq = null;
@@ -106,7 +111,10 @@ let lastNychthemeronEffective = null;
 
 export function effectiveTheme(){
   if(S.theme === 'light' || S.theme === 'dark') return S.theme;
-  if(S.theme === 'nychthemeron') return LIGHT_PHASES.has(currentDayPosition().phase) ? 'light' : 'dark';
+  // nowClock() (not a bare `new Date()`) is what makes "Preview the day"
+  // move Nychthemeron's own resolution too, the same as every other
+  // Day Arc v2 readout — see sundown/solar.js's own comment on nowClock().
+  if(S.theme === 'nychthemeron') return isDaylightPhase(phaseAt(nowClock(), S.sun)) ? 'light' : 'dark';
   try {
     return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
   } catch(_e) { return 'dark'; }
