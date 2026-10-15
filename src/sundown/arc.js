@@ -151,6 +151,24 @@ export function warmthAt(now, sun) {
   return (1 - Math.cos(phase)) / 2;
 }
 
+// toneWordAt(now, sun) -> 'BRIGHT' | 'OPENING' | 'WARMING' | 'WARM' — §3.4's
+// own word table, read off warmthAt() and its own direction (brightening
+// after midnight toward noon = OPENING, warming after noon toward midnight
+// = WARMING), using the brief's own thresholds on brightness = 1 - w.
+// Falls back to 'BRIGHT' with no usable solar noon — the same "no data
+// yet, default to the full/day state" posture rateInfoAt/phaseAt already
+// take, rather than a fifth, undocumented word.
+export function toneWordAt(now, sun) {
+  if (!sun || !sun.noon) return 'BRIGHT';
+  const w = warmthAt(now, sun);
+  const brightness = 1 - w;
+  if (brightness <= 0.12) return 'WARM';
+  if (brightness >= 0.93) return 'BRIGHT';
+  const t = now.getTime(), noon = sun.noon.getTime();
+  const rad = 2 * Math.PI * ((t - noon) / DAY_MS);
+  return Math.sin(rad) > 0 ? 'WARMING' : 'OPENING';
+}
+
 /* ---------------- 3.4 Tone drift: per-parameter offsets ---------------- */
 
 // §3.4's own table — direction and size, as a fraction of each parameter's
@@ -226,6 +244,15 @@ export function skyPhaseAt(now, sun, settings = {}) {
 
 export function skyBackgroundStops(skyPhase) {
   return SKY_STOPS[skyPhase] || SKY_STOPS.day;
+}
+
+// §4.2's own SKY reading-card palette names, one per skyPhaseAt() row —
+// 'night' and 'pre-dawn' deliberately share one name (INDIGO): the brief
+// names only four palette words for five background rows.
+const SKY_PALETTE_NAME = { dusk: 'EMBER', night: 'INDIGO', 'pre-dawn': 'INDIGO', dawn: 'ROSE', day: 'AZURE' };
+
+export function skyPaletteNameAt(now, sun, settings = {}) {
+  return SKY_PALETTE_NAME[skyPhaseAt(now, sun, settings)] || 'AZURE';
 }
 
 const minutesOfDay = date => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;

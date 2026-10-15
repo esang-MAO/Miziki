@@ -81,6 +81,7 @@
 <link rel="stylesheet" href="/src/styles/22-theme.css">
 <link rel="stylesheet" href="/src/styles/23-desktop.css">
 <link rel="stylesheet" href="/src/styles/24-sundown-arc.css">
+<link rel="stylesheet" href="/src/styles/25-day-arc-v2.css">
 <link rel="stylesheet" href="/src/styles/25-pull-refresh.css">
 </head>
 <body>
@@ -220,33 +221,95 @@
     <div id="sundownDayView">
       <p class="sd-eyebrow" id="sundownEyebrow">Now</p>
 
-      <!-- the day arc: a schematic (not-to-scale) sun path from dawn to
-           dusk, with a dotted under-horizon arc for the night, and the
-           sun-or-moon dot src/player/clock.js's updateDayArc() moves —
-           see that function's own header comment for the exact,
-           deliberately-simplified position math. -->
-      <svg class="day-arc" id="dayArc" viewBox="0 0 342 150" aria-hidden="true" focusable="false">
-        <line class="arc-horizon" x1="12" y1="92" x2="330" y2="92"></line>
-        <path class="arc-day-path" d="M24,92 Q171,24 318,92"></path>
-        <path class="arc-night-path" d="M24,92 Q171,160 318,92"></path>
-        <circle class="arc-dot" id="sunDot" cx="24" cy="92" r="6"></circle>
-      </svg>
-      <div class="arc-labels">
-        <div class="arc-label" id="arcLabelDawn"><span>Dawn</span><b id="arcTimeDawn">—</b></div>
-        <div class="arc-label" id="arcLabelSunrise"><span>Sunrise</span><b id="arcTimeSunrise">—</b></div>
-        <div class="arc-label" id="arcLabelNoon"><span>Noon</span><b id="arcTimeNoon">—</b></div>
-        <div class="arc-label" id="arcLabelSunset"><span>Sunset</span><b id="arcTimeSunset">—</b></div>
-        <div class="arc-label" id="arcLabelDusk"><span>Dusk</span><b id="arcTimeDusk">—</b></div>
+      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4), PR 4: the record-shaped dial,
+           the event row and the three reading cards. src/sundown/
+           dial-view.js's renderDialView() paints all of it, driven by
+           src/sundown/dial.js's dialStateAt() — no gesture yet (PR 5's
+           own job), so the dial is display-only here and always shows
+           the real clock. -->
+      <!-- §3.5B's own screen-background gradient, scoped to this view
+           only (not the app-wide .sky-bg layer, which still follows the
+           old DA3 model untouched) — src/sundown/dial-view.js crossfades
+           between #sdSkyA/#sdSkyB whenever the sky phase actually
+           changes, per the brief's "never hard-cut." -->
+      <div class="sd-sky-bg" id="sdSkyBg" aria-hidden="true">
+        <div class="sd-sky-layer" id="sdSkyA"></div>
+        <div class="sd-sky-layer" id="sdSkyB"></div>
       </div>
 
-      <div class="phase-block">
-        <h2 id="phaseName">Daylight</h2>
-        <p id="phaseSub">Full speed</p>
+      <div class="day-dial-wrap">
+        <div class="day-dial" id="dayDial">
+          <div class="day-dial-ring" id="dayDialRing" aria-hidden="true"></div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-bottom" aria-hidden="true">12A</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-left" aria-hidden="true">6A</div>
+          <div class="day-dial-tick" id="dayDialSunriseTick" aria-hidden="true"></div>
+          <div class="day-dial-tick" id="dayDialSunsetTick" aria-hidden="true"></div>
+          <div class="day-dial-marker" id="dayDialMarker" aria-hidden="true"></div>
+          <div class="day-dial-disc" aria-hidden="true">
+            <div class="day-dial-label">
+              <b id="dayDialTime">—</b>
+              <span id="dayDialAmPm">—</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="row">
-        <div class="k">Now playing at<em id="rateWhy">Daylight — full speed</em></div>
-        <div class="readout" id="rateOut">1.000× · 0.0 st</div>
+      <div class="sd-event-row" aria-hidden="true">
+        <span id="sdSunrise">SUNRISE —</span>
+        <em id="sdNextEvent">—</em>
+        <span id="sdSunset">SUNSET —</span>
+      </div>
+
+      <div class="sd-cards">
+        <div class="sd-card">
+          <p class="sd-card-label">Platter</p>
+          <b id="sdCardPlatter">—</b>
+          <span id="sdCardPlatterSub">—</span>
+        </div>
+        <div class="sd-card">
+          <p class="sd-card-label">Sound</p>
+          <b id="sdCardSound">—</b>
+          <span id="sdCardSoundSub">—</span>
+        </div>
+        <div class="sd-card">
+          <p class="sd-card-label">Sky</p>
+          <b id="sdCardSky">—</b>
+          <span id="sdCardSkySub">—</span>
+        </div>
+      </div>
+
+      <!-- DA3's own day-arc SVG/phase-block/"Now playing at" row: kept in
+           the DOM, hidden by CSS only (.sdv1, src/styles/25-day-arc-v2.css)
+           so player/clock.js's drawSun() keeps writing to these exact ids
+           with no code change there, and the desktop sidebar's own mirror
+           (#sidePhaseName/#sideRateWhy/etc.) keeps reading them unchanged —
+           see src/sundown/dial-view.js's own header comment. -->
+      <div class="sdv1">
+        <svg class="day-arc" id="dayArc" viewBox="0 0 342 150" aria-hidden="true" focusable="false">
+          <line class="arc-horizon" x1="12" y1="92" x2="330" y2="92"></line>
+          <path class="arc-day-path" d="M24,92 Q171,24 318,92"></path>
+          <path class="arc-night-path" d="M24,92 Q171,160 318,92"></path>
+          <circle class="arc-dot" id="sunDot" cx="24" cy="92" r="6"></circle>
+        </svg>
+        <div class="arc-labels">
+          <div class="arc-label" id="arcLabelDawn"><span>Dawn</span><b id="arcTimeDawn">—</b></div>
+          <div class="arc-label" id="arcLabelSunrise"><span>Sunrise</span><b id="arcTimeSunrise">—</b></div>
+          <div class="arc-label" id="arcLabelNoon"><span>Noon</span><b id="arcTimeNoon">—</b></div>
+          <div class="arc-label" id="arcLabelSunset"><span>Sunset</span><b id="arcTimeSunset">—</b></div>
+          <div class="arc-label" id="arcLabelDusk"><span>Dusk</span><b id="arcTimeDusk">—</b></div>
+        </div>
+
+        <div class="phase-block">
+          <h2 id="phaseName">Daylight</h2>
+          <p id="phaseSub">Full speed</p>
+        </div>
+
+        <div class="row">
+          <div class="k">Now playing at<em id="rateWhy">Daylight — full speed</em></div>
+          <div class="readout" id="rateOut">1.000× · 0.0 st</div>
+        </div>
       </div>
 
       <h3 class="sd-heading">Sundown</h3>

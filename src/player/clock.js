@@ -8,6 +8,7 @@ import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
+import { renderDialView } from '../sundown/dial-view.js';
 
 /* ================= render loop ================= */
 let last = performance.now();
@@ -244,6 +245,12 @@ export function drawSun(){
     const legend = $('#charNowLegend');
     if(legend) legend.style.display = intensity === 'off' ? 'none' : '';
   }
+
+  // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the new dial + reading cards paint
+  // off the exact same tick this whole function already runs on — see
+  // sundown/dial-view.js's own header comment for why this rides along
+  // here rather than a second timer.
+  renderDialView();
 }
 
 // DA3's day arc: moves the sun-or-moon dot and highlights the current

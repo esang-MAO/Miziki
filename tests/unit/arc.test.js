@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
+import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, toneWordAt, skyPaletteNameAt, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
 
 // src/sundown/arc.js has no DOM/`S`-mutating top level (same precedent as
 // day.test.js/solar.test.js) — no mocking needed.
@@ -222,6 +222,31 @@ test('effectiveCharAt: no offset ever pushes an effective value outside 0-1, eve
   for (const k of ['wow', 'sat', 'soft', 'comp']) {
     assert.ok(eff[k] >= 0 && eff[k] <= 1, `${k} stays within [0,1]`);
   }
+});
+
+test('toneWordAt: BRIGHT at solar noon, WARM at solar midnight', () => {
+  assert.equal(toneWordAt(SUN.noon, SUN), 'BRIGHT');
+  assert.equal(toneWordAt(new Date(SUN.noon.getTime() + 12 * 3600000), SUN), 'WARM');
+});
+
+test('toneWordAt: WARMING after noon approaching dusk, OPENING after midnight approaching dawn', () => {
+  assert.equal(toneWordAt(new Date(SUN.noon.getTime() + 4 * 3600000), SUN), 'WARMING');
+  assert.equal(toneWordAt(new Date(SUN.noon.getTime() + 16 * 3600000), SUN), 'OPENING');
+});
+
+test('toneWordAt: no usable solar noon falls back to BRIGHT, never throws', () => {
+  assert.equal(toneWordAt(new Date(), {}), 'BRIGHT');
+  assert.equal(toneWordAt(new Date(), null), 'BRIGHT');
+});
+
+test('skyPaletteNameAt: matches §4.2\'s own four palette names, INDIGO covering both night rows', () => {
+  const s = settings();
+  assert.equal(skyPaletteNameAt(SUN.noon, SUN, s), 'AZURE');
+  assert.equal(skyPaletteNameAt(SUN.dusk, SUN, s), 'EMBER');
+  assert.equal(skyPaletteNameAt(new Date(SUN.rise.getTime() - 10 * 60000), SUN, s), 'ROSE', 'within the dawn window, just before sunrise');
+  assert.equal(skyPaletteNameAt(new Date(SUN.dusk.getTime() + 3600000), SUN, s), 'INDIGO');
+  const preDawn = new Date(SUN.rise.getTime() - RECOVERY_WINDOW_MS / 2);
+  assert.equal(skyPaletteNameAt(preDawn, SUN, s), 'INDIGO');
 });
 
 test('effectiveCharAt: never mutates the userChar object passed in', () => {

@@ -1,0 +1,112 @@
+/* Day Arc v2 (DAY_ARC_BRIEF.md), PR 4: the record-shaped dial, the event
+   row and the three reading cards on the Sundown tab's Day view. A new,
+   appended file, same reason as 24-sundown-arc.css's own header comment —
+   a new component file always appends at the end of the cascade here.
+   src/sundown/dial-view.js is the one place that paints any of this. */
+
+/* DA3's own day-arc SVG/phase-block/"Now playing at" row stay in the DOM
+   (miziki.html) so player/clock.js's drawSun() keeps writing to them
+   unchanged — see dial-view.js's header comment — but this view no
+   longer shows them: the new dial above replaces them visually. */
+.sdv1{ display:none; }
+
+/* §3.5B's own screen-background gradient, scoped to the Day view only —
+   a plain two-layer crossfade (dial-view.js's updateSkyBackground())
+   sitting behind the dial/event-row/cards, not the app-wide .sky-bg
+   layer (00-base.css), which is untouched and still follows DA3's model. */
+.sd-sky-bg{
+  position:absolute; left:0; right:0; top:0; height:420px;
+  border-radius:0 0 28px 28px; overflow:hidden; z-index:-1;
+}
+.sd-sky-layer{
+  position:absolute; inset:0; opacity:0;
+}
+#sundownDayView{ position:relative; }
+
+.day-dial-wrap{ display:flex; justify-content:center; margin:8px 0 14px; }
+.day-dial{
+  position:relative; width:300px; height:300px; border-radius:50%;
+  flex:none;
+}
+.day-dial-ring{
+  position:absolute; inset:0; border-radius:50%;
+  /* dial-view.js overwrites `background` with the real conic-gradient
+     once sun data exists; this is only the pre-data/no-location fallback. */
+  background:conic-gradient(from 180deg at 50% 50%, var(--sky2), var(--sky1), var(--sky2));
+  filter:drop-shadow(0 0 10px color-mix(in srgb, var(--amber) 18%, transparent));
+}
+/* The ring is masked to its outer 17% by layering the disc (83% of the
+   dial's size) on top, rather than a CSS mask — simpler, and works the
+   same in every browser this app supports (CLAUDE.md's own "Android and
+   non-Safari iOS" requirement). */
+.day-dial-disc{
+  position:absolute; inset:8.5%; border-radius:50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.22) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 38% 32%, var(--disc-a), var(--disc-b) 55%, var(--disc-c) 100%);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 10px 24px rgba(0,0,0,.45);
+  display:flex; align-items:center; justify-content:center;
+}
+.day-dial-label{
+  width:46%; height:46%; border-radius:50%; background:var(--amber);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:var(--on-accent); box-shadow:0 0 18px color-mix(in srgb, var(--amber) 55%, transparent);
+}
+.day-dial-label b{ font-family:var(--display); font-size:28px; line-height:1; }
+.day-dial-label span{ font-family:var(--data); font-size:10px; letter-spacing:.08em; margin-top:4px; }
+
+.day-dial-hourlabel{
+  position:absolute; font-family:var(--data); font-size:10px; letter-spacing:.06em;
+  color:var(--muted);
+}
+.day-dial-hourlabel-top{ top:2%; left:50%; transform:translateX(-50%); }
+.day-dial-hourlabel-right{ right:2%; top:50%; transform:translateY(-50%); }
+.day-dial-hourlabel-bottom{ bottom:2%; left:50%; transform:translateX(-50%); }
+.day-dial-hourlabel-left{ left:2%; top:50%; transform:translateY(-50%); }
+
+/* The sun-record marker and the sunrise/sunset ticks are all positioned
+   the same way: a zero-size anchor at the dial's own center, moved by
+   dial-view.js's own inline transform:translate(x,y) to the ring's
+   mid-radius at the right angle — see polarOffset() there. */
+.day-dial-marker, .day-dial-tick{
+  position:absolute; left:50%; top:50%; width:0; height:0;
+}
+.day-dial-marker::before{
+  content:''; position:absolute; left:-7px; top:-7px; width:14px; height:14px;
+  border-radius:50%; background:#0b0c10;
+  box-shadow:0 0 0 2px var(--amber), 0 0 10px 3px color-mix(in srgb, var(--amber) 70%, transparent);
+}
+.day-dial-marker::after{
+  content:''; position:absolute; left:-3px; top:-3px; width:6px; height:6px;
+  border-radius:50%; background:var(--amber);
+}
+.day-dial-tick::before{
+  content:''; position:absolute; left:-1px; top:-6px; width:2px; height:12px;
+  background:#fff; border-radius:1px; opacity:.85;
+}
+
+.sd-event-row{
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:var(--data); font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:14px;
+}
+.sd-event-row em{ color:var(--accent-text); font-style:normal; font-weight:600; }
+
+.sd-cards{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:18px;
+}
+.sd-card{
+  padding:10px 10px 12px; border-radius:12px;
+  background:var(--panel); border:1px solid var(--line);
+  display:flex; flex-direction:column; gap:2px;
+}
+.sd-card-label{
+  margin:0; font-family:var(--data); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted);
+}
+.sd-card b{ font-family:var(--display); font-size:19px; color:var(--paper); line-height:1.1; }
+.sd-card span{ font-family:var(--data); font-size:10px; color:var(--muted); }
+
+@media (min-width:1024px){
+  .day-dial{ width:340px; height:340px; }
+}
