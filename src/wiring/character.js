@@ -1,6 +1,6 @@
 /* ================= wiring: Character panel and Settings toggles =================
    Moved out of main.js's "wiring" IIFE (step 7f) — the character
-   sliders and presets, Scratch, Car Mode's motion toggle, sleeve pull,
+   presets (the four sliders were removed — the Sound cards show the values), Scratch, Car Mode's motion toggle, sleeve pull,
    launch intro, background playback, and the Car Mode floor/max-speed
    sliders. Every function called here was already a real export of
    its owning module. */
@@ -16,21 +16,10 @@ import { toggleBgAudio, bgUpdateUI } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
 
 export function wireCharacter(){
-  const charMap = {wow:'wowOut', sat:'satOut', soft:'softOut', comp:'compOut'};
-  Object.keys(charMap).forEach(k => {
-    $('#' + k).addEventListener('input', e=>{
-      S.char[k] = e.target.value/100;
-      $('#' + charMap[k]).textContent = e.target.value + '%';
-      applyCharacter(); queueSave();
-    });
-  });
   const presets = {light:{wow:.12,sat:.18,soft:.22,comp:.2}, classic:{wow:.30,sat:.35,soft:.40,comp:.35}, worn:{wow:.62,sat:.6,soft:.68,comp:.55}};
   document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', ()=>{
     const p = presets[b.dataset.preset];
-    Object.keys(p).forEach(k => {
-      S.char[k] = p[k]; $('#' + k).value = Math.round(p[k]*100);
-      $('#' + charMap[k]).textContent = Math.round(p[k]*100) + '%';
-    });
+    Object.keys(p).forEach(k => { S.char[k] = p[k]; });
     applyCharacter(); queueSave();
     if(S.mode !== 'vinyl') setMode('vinyl');
   }));

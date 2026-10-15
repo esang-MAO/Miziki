@@ -57,19 +57,4 @@ export function wireSundown(){
   // way back to live. The old 0..1440 range slider and its "Back to live"
   // button were a second copy of both and are gone.
   wireDialGesture();
-
-  // §4.3 item 4: "Tapping a card should open the existing Character
-  // control for that parameter." — the four sliders this opens are the
-  // same ones src/wiring/character.js already wires (#wow/#sat/#soft/
-  // #comp); each lives in its own id'd row (#charRowWow etc., miziki.html)
-  // purely so this can scroll straight to it, rather than duplicating a
-  // second slider UI inside the card itself.
-  const CHAR_ROW_ID = { wow: 'charRowWow', sat: 'charRowSat', soft: 'charRowSoft', comp: 'charRowComp' };
-  document.querySelectorAll('[data-char-target]').forEach(btn => btn.addEventListener('click', () => {
-    const row = $('#' + CHAR_ROW_ID[btn.dataset.charTarget]);
-    if (!row) return;
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const input = row.querySelector('input[type="range"]');
-    if (input) input.focus({ preventScroll: true });
-  }));
 }

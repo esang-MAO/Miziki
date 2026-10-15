@@ -3,7 +3,7 @@ import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock } from '../sundown/solar.js';
-import { driftSummaryText, effectiveChar } from '../sundown/drift.js';
+import { driftSummaryText } from '../sundown/drift.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
@@ -219,32 +219,13 @@ export function drawSun(){
   if(sunriseNext && S.sun.ok) sunriseNext.textContent = 'Next ' + S.sun.rise.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
 
   // DA3's Day-drift shortcut row ("Character now: a touch warmer
-  // (Subtle)") — reuses the exact intensity Sound's own sliders drift
+  // (Subtle)") — reuses the exact intensity Sound's cards drift
   // by (effectiveChar()'s own S.charDrift read, src/audio/engine.js),
   // computed fresh every drawSun() tick alongside everything else here
   // rather than on its own timer.
   const driftSummary = $('#dayDriftSummary');
   const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
   if(driftSummary) driftSummary.textContent = driftSummaryText(dayPos, intensity);
-
-  // DA2/DA3: each Sound slider's own "now" badge — the same drifted value
-  // applyCharacter() (src/audio/engine.js) actually sent to the audio
-  // graph, read back here rather than recomputed a third time. Shown only
-  // once it would say something different from the slider's own user
-  // value, the same "don't clutter the UI with a number that matches
-  // what's already on screen" judgment the mockup's own dual-label
-  // slider design implies — '' clears the badge (CSS hides an empty one).
-  if(S.char){
-    const now = effectiveChar(S.char, dayPos, intensity);
-    for(const k of ['wow', 'sat', 'soft', 'comp']){
-      const badge = $('#' + k + 'Now');
-      if(!badge) continue;
-      const nowPct = Math.round(now[k] * 100), userPct = Math.round(S.char[k] * 100);
-      badge.textContent = nowPct === userPct ? '' : 'now ' + nowPct + '%';
-    }
-    const legend = $('#charNowLegend');
-    if(legend) legend.style.display = intensity === 'off' ? 'none' : '';
-  }
 
   // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the new dial + reading cards paint
   // off the exact same tick this whole function already runs on — see
