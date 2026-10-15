@@ -235,7 +235,7 @@ function renderLocalStorefront(host){
   header.appendChild(avatar);
 
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','CRATE'));
+  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   const userIn = document.createElement('input');
   userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
   userIn.setAttribute('aria-label','Your crate username');
@@ -258,6 +258,10 @@ function renderLocalStorefront(host){
   nameIn.addEventListener('keydown', e => { if(e.key === 'Enter') nameIn.blur(); });
   idBox.appendChild(nameDisplay); idBox.appendChild(nameIn);
   header.appendChild(idBox);
+  const editBtn = el('button','store-edit-btn','Edit');
+  editBtn.setAttribute('aria-label','Edit your crate username');
+  editBtn.addEventListener('click', ()=>{ userIn.focus(); });
+  header.appendChild(editBtn);
   host.appendChild(header);
 
   const stats = el('div','store-stats');
@@ -399,15 +403,20 @@ function renderStorefront(host, full, requests){
   avatar.appendChild(label);
   header.appendChild(avatar);
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','CRATE'));
+  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
   // DA3: the signed-in storefront's own gear (which jumped straight to
   // Account) is gone — the new universal Settings button
   // renderStorefrontSection() now adds at the top of every profile-home
-  // state covers this, one tap further (Settings -> Account), the same
-  // entry point every other state uses too.
+  // state covers this, one tap further (Settings -> Account). The header's
+  // own Edit button (added alongside the mockup-matching restyle) is a
+  // second, closer-at-hand way to the same screen.
+  const editBtn = el('button','store-edit-btn','Edit');
+  editBtn.setAttribute('aria-label','Edit your profile');
+  editBtn.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
+  header.appendChild(editBtn);
   host.appendChild(header);
   if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
   const visRow = el('div','store-vis-row');
