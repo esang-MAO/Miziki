@@ -24,7 +24,7 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { REDUCED } from '../util/motion.js';
 import { nowClock } from './solar.js';
-import { dialStateAt } from './dial.js';
+import { dialStateAt, soundCardsAt, toneCurveSamples } from './dial.js';
 
 // The dial's own ring sits at the outer 17% of its radius (§4.1) — the
 // sun-record marker and the sunrise/sunset ticks are drawn at the ring's
@@ -55,8 +55,6 @@ function paintMarker(el, dial, angleDeg) {
 // same "don't touch the DOM for a no-op" guard drawSun()'s own
 // --sky1/--sky2 write already uses.
 const SKY_CROSSFADE_MS = 180000;
-let skyLayerFront = 'A';
-let lastSkyPhase = null;
 
 function verticalGradient(stops) {
   // §3.5B's own stop positions: 0, 28, 50, 66, 82, 100%.
@@ -64,31 +62,40 @@ function verticalGradient(stops) {
   return 'linear-gradient(180deg, ' + stops.map((c, i) => c + ' ' + pct[i] + '%').join(', ') + ')';
 }
 
-function updateSkyBackground(skyPhase, stops) {
-  if (skyPhase === lastSkyPhase) return;
-  const isFirstPaint = lastSkyPhase === null;
-  lastSkyPhase = skyPhase;
-  const frontLayer = $('#sdSky' + skyLayerFront);
-  if (isFirstPaint) {
-    // The very first paint shows the real sky immediately, with no
-    // transition and no 3-minute fade-in from blank — only a phase
-    // *change* after that crossfades.
-    if (frontLayer) { frontLayer.style.transition = 'none'; frontLayer.style.background = verticalGradient(stops); frontLayer.style.opacity = '1'; }
-    return;
-  }
-  const backLayer = skyLayerFront === 'A' ? $('#sdSkyB') : $('#sdSkyA');
-  if (!frontLayer || !backLayer) return;
-  backLayer.style.background = verticalGradient(stops);
-  // §4.4: "Respect prefers-reduced-motion (no... sky cross-fade
-  // animation; values still update)" — the new gradient still lands on
-  // the back layer so a render mid-crossfade is never wrong, but with
-  // REDUCED it swaps instantly instead of fading over SKY_CROSSFADE_MS.
-  const duration = REDUCED ? 0 : SKY_CROSSFADE_MS;
-  backLayer.style.transition = frontLayer.style.transition = duration ? 'opacity ' + duration + 'ms linear' : 'none';
-  backLayer.style.opacity = '1';
-  frontLayer.style.opacity = '0';
-  skyLayerFront = skyLayerFront === 'A' ? 'B' : 'A';
+// PR 6: the Sound view carries its own copy of this same crossfade
+// (#sdSkySoundA/B, miziki.html) — factored to take the layer-id prefix
+// and its own module-private front/lastPhase pair (via `state`, below)
+// rather than duplicating this whole function a second time.
+function makeSkyUpdater(idPrefix) {
+  const state = { front: 'A', lastPhase: null };
+  return function updateSkyBackground(skyPhase, stops) {
+    if (skyPhase === state.lastPhase) return;
+    const isFirstPaint = state.lastPhase === null;
+    state.lastPhase = skyPhase;
+    const frontLayer = $('#' + idPrefix + state.front);
+    if (isFirstPaint) {
+      // The very first paint shows the real sky immediately, with no
+      // transition and no 3-minute fade-in from blank — only a phase
+      // *change* after that crossfades.
+      if (frontLayer) { frontLayer.style.transition = 'none'; frontLayer.style.background = verticalGradient(stops); frontLayer.style.opacity = '1'; }
+      return;
+    }
+    const backLayer = state.front === 'A' ? $('#' + idPrefix + 'B') : $('#' + idPrefix + 'A');
+    if (!frontLayer || !backLayer) return;
+    backLayer.style.background = verticalGradient(stops);
+    // §4.4: "Respect prefers-reduced-motion (no... sky cross-fade
+    // animation; values still update)" — the new gradient still lands on
+    // the back layer so a render mid-crossfade is never wrong, but with
+    // REDUCED it swaps instantly instead of fading over SKY_CROSSFADE_MS.
+    const duration = REDUCED ? 0 : SKY_CROSSFADE_MS;
+    backLayer.style.transition = frontLayer.style.transition = duration ? 'opacity ' + duration + 'ms linear' : 'none';
+    backLayer.style.opacity = '1';
+    frontLayer.style.opacity = '0';
+    state.front = state.front === 'A' ? 'B' : 'A';
+  };
 }
+const updateSkyBackground = makeSkyUpdater('sdSky');
+const updateSoundSkyBackground = makeSkyUpdater('sdSkySound');
 
 function conicGradientFromRingStops(stops) {
   if (!stops || !stops.length) return null;
@@ -101,22 +108,9 @@ function conicGradientFromRingStops(stops) {
   return 'conic-gradient(from 180deg at 50% 50%, ' + parts.join(', ') + ')';
 }
 
-// renderDialView() — null-guarded on its own host element the same way
-// every other optional id in drawSun() already is, since #dayDial only
-// exists in the Sundown route's own markup, not in every test harness
-// that loads player/clock.js.
-export function renderDialView() {
-  const dial = $('#dayDial');
-  if (!dial) return;
-
-  const settings = { mode: S.mode, auto: S.auto, target: S.target, paceMode: S.pace };
-  const st = dialStateAt(nowClock(), S.sun, settings);
-
+function paintDayView(dial, st) {
   const ring = $('#dayDialRing');
-  if (ring) {
-    const gradient = conicGradientFromRingStops(st.ringStops);
-    ring.style.background = gradient || '';
-  }
+  if (ring) ring.style.background = conicGradientFromRingStops(st.ringStops) || '';
 
   updateSkyBackground(st.skyPhase, st.skyStops);
 
@@ -130,9 +124,6 @@ export function renderDialView() {
   // per-tick text write in this function.
   dial.setAttribute('aria-valuenow', String(st.ariaValueNow));
   dial.setAttribute('aria-valuetext', st.ariaValueText);
-
-  const nowBtn = $('#sdNowBtn');
-  if (nowBtn) nowBtn.classList.toggle('previewing', S.previewMin !== 0);
 
   paintMarker($('#dayDialMarker'), dial, st.markerAngleDeg);
   paintMarker($('#dayDialSunriseTick'), dial, st.sunriseAngleDeg);
@@ -154,4 +145,98 @@ export function renderDialView() {
   const skyEl = $('#sdCardSky'), skySub = $('#sdCardSkySub');
   if (skyEl) skyEl.textContent = st.paletteName;
   if (skySub) skySub.textContent = st.paletteName.toLowerCase() + ' palette';
+}
+
+const CARD_ID = { wow: 'sdCharWow', sat: 'sdCharSat', soft: 'sdCharSoft', comp: 'sdCharComp' };
+
+// §4.3 item 4: "The white tick is the user's own Character setting. The
+// amber fill is where the time of day has moved it." — paints each of
+// soundCardsAt()'s four cards' word + track.
+function paintCharCards(now) {
+  const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
+  const cards = soundCardsAt(S.char, now, S.sun, intensity);
+  for (const c of cards) {
+    const idBase = CARD_ID[c.key];
+    const wordEl = $('#' + idBase + 'Word'), fillEl = $('#' + idBase + 'Fill'), tickEl = $('#' + idBase + 'Tick');
+    if (wordEl) wordEl.textContent = c.word;
+    if (fillEl) fillEl.style.width = c.nowPct + '%';
+    if (tickEl) tickEl.style.left = c.userPct + '%';
+  }
+}
+
+// §4.3 item 5: "Tone today" card — a 24h curve (warmthAt(), bright at the
+// top, warm at the bottom) with a dashed "now" line and a dot on the
+// curve. The curve's own path is a plain polyline through
+// toneCurveSamples()'s 49 points — smooth enough to read as a curve
+// without needing a spline fit, since warmthAt() itself is already a
+// smooth cosine (see dial.js's own comment on "do not copy its bezier").
+const TONECURVE_W = 322, TONECURVE_H = 44, TONECURVE_TOP = 6, TONECURVE_BOTTOM = 38;
+function paintToneCurve(now, st) {
+  const svg = $('#sdToneCurveSvg');
+  if (!svg) return;
+  const pts = toneCurveSamples(now, S.sun);
+  const xy = p => [p.frac * TONECURVE_W, TONECURVE_TOP + p.warmth * (TONECURVE_BOTTOM - TONECURVE_TOP)];
+  const coords = pts.map(xy);
+  const line = coords.map(([x, y], i) => (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1)).join(' ');
+  const fill = line + ' L ' + TONECURVE_W + ' ' + TONECURVE_H + ' L 0 ' + TONECURVE_H + ' Z';
+  const lineEl = $('#sdToneCurveLine'), fillEl = $('#sdToneCurveFill');
+  if (lineEl) lineEl.setAttribute('d', line);
+  if (fillEl) fillEl.setAttribute('d', fill);
+
+  const nowFrac = (now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60) / 1440;
+  const nowX = nowFrac * TONECURVE_W;
+  const nowY = TONECURVE_TOP + st.warmth * (TONECURVE_BOTTOM - TONECURVE_TOP);
+  const nowLine = $('#sdToneCurveNowLine'), nowDot = $('#sdToneCurveNowDot');
+  if (nowLine) { nowLine.setAttribute('x1', nowX.toFixed(1)); nowLine.setAttribute('x2', nowX.toFixed(1)); }
+  if (nowDot) { nowDot.setAttribute('cx', nowX.toFixed(1)); nowDot.setAttribute('cy', nowY.toFixed(1)); }
+
+  const word = $('#sdToneCurveWord');
+  if (word) word.textContent = st.tone;
+}
+
+function paintSoundView(dial, st, now) {
+  const ring = $('#soundDialRing');
+  if (ring) ring.style.background = conicGradientFromRingStops(st.ringStops) || '';
+
+  updateSoundSkyBackground(st.skyPhase, st.skyStops);
+
+  const tone = $('#soundDialTone'), time = $('#soundDialTime');
+  if (tone) tone.textContent = st.tone;
+  if (time) time.textContent = st.timeBig + ' ' + st.timeAmPm;
+
+  dial.setAttribute('aria-valuenow', String(st.ariaValueNow));
+  dial.setAttribute('aria-valuetext', st.ariaValueText);
+
+  paintMarker($('#soundDialMarker'), dial, st.markerAngleDeg);
+  paintMarker($('#soundDialSunriseTick'), dial, st.sunriseAngleDeg);
+  paintMarker($('#soundDialSunsetTick'), dial, st.sunsetAngleDeg);
+
+  paintCharCards(now);
+  paintToneCurve(now, st);
+}
+
+// renderDialView() — null-guarded per dial the same way every other
+// optional id in drawSun() already is, since #dayDial/#soundDial only
+// exist in the Sundown route's own markup, not in every test harness
+// that loads player/clock.js. Computes dialStateAt() exactly once per
+// call (both views are painting the same instant) even when only one of
+// the two dials is actually in the DOM.
+export function renderDialView() {
+  const dayDial = $('#dayDial'), soundDial = $('#soundDial');
+  if (!dayDial && !soundDial) return;
+
+  const settings = { mode: S.mode, auto: S.auto, target: S.target, paceMode: S.pace };
+  const now = nowClock();
+  const st = dialStateAt(now, S.sun, settings);
+
+  if (dayDial) paintDayView(dayDial, st);
+  if (soundDial) paintSoundView(soundDial, st, now);
+
+  // Both views' own NOW buttons share one amber-when-previewing rule
+  // (§4.3/§4.4) — by id rather than `.sd-now-btn` querySelectorAll, since
+  // $() (util/dom.js) is the one DOM entry point every test harness in
+  // this suite already stubs.
+  const dayNowBtn = $('#sdNowBtn'), soundNowBtn = $('#sdNowBtnSound');
+  if (dayNowBtn) dayNowBtn.classList.toggle('previewing', S.previewMin !== 0);
+  if (soundNowBtn) soundNowBtn.classList.toggle('previewing', S.previewMin !== 0);
 }

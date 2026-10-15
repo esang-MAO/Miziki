@@ -182,7 +182,7 @@ const DRIFT_SIZE = { wow: 0.30, sat: 0.27, soft: 0.27, comp: 0 };
 // scale, not DA2's {off:0, subtle:0.5, full:1} (sundown/drift.js's
 // INTENSITY_SCALE): a different table with different per-parameter sizes
 // gets its own proportion rather than inheriting DA2's.
-const DRIFT_SCALE = { off: 0, subtle: 1 / 3, full: 1 };
+export const DRIFT_SCALE = { off: 0, subtle: 1 / 3, full: 1 };
 
 // driftOffsetsAt(now, sun, intensity) -> {wow, sat, soft, comp}, each an
 // additive offset onto the user's own 0..1 Character slider value.

@@ -83,23 +83,43 @@ export function resetPreview() {
   if (S.previewMin !== 0) setPreviewMinutes(0);
 }
 
+// PR 6 (DAY_ARC_BRIEF.md §4.3): the Sound view has its own, smaller dial
+// (#soundDial) driving the exact same shared S.previewMin — "a single
+// previewMinute state, shared by Day and Sound" (§4.4). Wiring every
+// `.day-dial` element in one pass, rather than repeating this whole
+// function body per dial, is what makes that sharing automatic: a drag
+// started on either one calls the same setPreviewMinutes(), which repaints
+// both (renderDialView() null-guards on whichever dial actually exists).
 export function wireDialGesture() {
-  const dial = $('#dayDial');
-  if (!dial) return;
+  const dials = document.querySelectorAll('.day-dial');
+  if (!dials.length) return;
 
-  let gesture = null; // {pointerId, lastAngle}
+  let gesture = null; // {dial, pointerId, lastAngle}
 
-  dial.addEventListener('pointerdown', e => {
-    const rect = dial.getBoundingClientRect();
-    gesture = { pointerId: e.pointerId, lastAngle: pointerAngleDeg(e.clientX, e.clientY, rect) };
-    try { dial.setPointerCapture(e.pointerId); } catch (_err) { /* unsupported */ }
-    dial.classList.add('dragging');
+  dials.forEach(dial => {
+    dial.addEventListener('pointerdown', e => {
+      const rect = dial.getBoundingClientRect();
+      gesture = { dial, pointerId: e.pointerId, lastAngle: pointerAngleDeg(e.clientX, e.clientY, rect) };
+      try { dial.setPointerCapture(e.pointerId); } catch (_err) { /* unsupported */ }
+      dial.classList.add('dragging');
+    });
+
+    dial.addEventListener('keydown', e => {
+      let delta = 0;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = KEY_STEP_MIN;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -KEY_STEP_MIN;
+      else if (e.key === 'PageUp') delta = KEY_PAGE_MIN;
+      else if (e.key === 'PageDown') delta = -KEY_PAGE_MIN;
+      else return;
+      e.preventDefault();
+      setPreviewMinutes(S.previewMin + delta);
+    });
   });
 
   window.addEventListener('pointermove', e => {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     e.preventDefault();
-    const rect = dial.getBoundingClientRect();
+    const rect = gesture.dial.getBoundingClientRect();
     const ang = pointerAngleDeg(e.clientX, e.clientY, rect);
     const deltaMin = angleDeltaMinutes(ang, gesture.lastAngle);
     gesture.lastAngle = ang;
@@ -110,23 +130,13 @@ export function wireDialGesture() {
 
   const release = e => {
     if (!gesture || e.pointerId !== gesture.pointerId) return;
+    gesture.dial.classList.remove('dragging');
     gesture = null;
-    dial.classList.remove('dragging');
   };
   window.addEventListener('pointerup', release);
   window.addEventListener('pointercancel', release);
 
-  dial.addEventListener('keydown', e => {
-    let delta = 0;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = KEY_STEP_MIN;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -KEY_STEP_MIN;
-    else if (e.key === 'PageUp') delta = KEY_PAGE_MIN;
-    else if (e.key === 'PageDown') delta = -KEY_PAGE_MIN;
-    else return;
-    e.preventDefault();
-    setPreviewMinutes(S.previewMin + delta);
-  });
-
-  const nowBtn = $('#sdNowBtn');
-  if (nowBtn) nowBtn.addEventListener('click', resetPreview);
+  // Day's #sdNowBtn and Sound's own #sdNowBtnSound (PR 6) share the
+  // `.sd-now-btn` class and the exact same reset behavior.
+  document.querySelectorAll('.sd-now-btn').forEach(btn => btn.addEventListener('click', resetPreview));
 }
