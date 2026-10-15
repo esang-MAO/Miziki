@@ -2,8 +2,8 @@ import { S } from '../state.js';
 import { applyVolume } from '../sundown/location.js';
 import { stop } from '../player/transport.js';
 import { applyOutputRoute } from '../player/background.js';
-import { currentDayPosition } from '../sundown/solar.js';
-import { effectiveChar } from '../sundown/drift.js';
+import { nowClock } from '../sundown/solar.js';
+import { effectiveCharAt } from '../sundown/arc.js';
 
 /* ================= audio graph ================= */
 export function makeContext(sampleRate){
@@ -62,6 +62,20 @@ export function satCurve(amount){
 // never leave a drifted value sitting on a node Pure doesn't even route
 // through, waiting to surprise the next Vinyl switch.
 //
+// Day Arc v2 (DAY_ARC_BRIEF.md, PR 3): the effective value now comes from
+// arc.js's effectiveCharAt() (warmth-based, §3.4) instead of drift.js's
+// effectiveChar() (DA2's 7-phase anchor table) — same gate, same S.charDrift
+// setting (reused per Q1: the Sound view's own control is relabeled
+// Off/Subtle/Full rather than borrowing the "Pure" name), new source model.
+// nowClock() (not a bare currentDayPosition()/`new Date()`) is what keeps
+// Preview the day audible here, same reasoning as solar.js's computeRate().
+// Known, accepted gap until the new Sound view ships (brief §8 PR 6): the
+// *old* Sundown/Character screen's own per-slider "now" badge (clock.js's
+// drawSun(), still reading drift.js's effectiveChar()) no longer matches
+// what's actually audible — the same class of temporary UI/audio
+// discrepancy already accepted in PR 2 for the rate readout, until the
+// screens that show it are themselves replaced.
+//
 // `ramp` defaults to the same 50ms every existing call site here already
 // used before DA2 (a slider drag, a preset click, a mode switch, restoring
 // saved prefs) — none of those should suddenly feel sluggish just because
@@ -76,7 +90,7 @@ export function applyCharacter(ramp = 0.05){
   if(!S.nodes || !S.ctx) return;
   const n = S.nodes, t = S.ctx.currentTime;
   const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
-  const c = effectiveChar(S.char, currentDayPosition(), intensity);
+  const c = effectiveCharAt(S.char, nowClock(), S.sun, intensity);
   n.wowAmt.gain.setTargetAtTime(0.00050 * c.wow, t, ramp);
   n.flutAmt.gain.setTargetAtTime(0.000015 * c.wow, t, ramp);
   // satCurve() builds a brand-new Float32Array every call — only worth it

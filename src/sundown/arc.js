@@ -151,6 +151,50 @@ export function warmthAt(now, sun) {
   return (1 - Math.cos(phase)) / 2;
 }
 
+/* ---------------- 3.4 Tone drift: per-parameter offsets ---------------- */
+
+// §3.4's own table — direction and size, as a fraction of each parameter's
+// own 0..1 range, at Full intensity. Bus compression is deliberately 0
+// ("unchanged") — DA2's old anchor table (sundown/drift.js) drifted it
+// too, but this brief's own table does not, and this is an implementation
+// of what the brief specifies, not a carry-over of DA2's shape.
+const DRIFT_SIZE = { wow: 0.30, sat: 0.27, soft: 0.27, comp: 0 };
+
+// "Subtle is roughly one third of Full" (§3.4) — deliberately its own
+// scale, not DA2's {off:0, subtle:0.5, full:1} (sundown/drift.js's
+// INTENSITY_SCALE): a different table with different per-parameter sizes
+// gets its own proportion rather than inheriting DA2's.
+const DRIFT_SCALE = { off: 0, subtle: 1 / 3, full: 1 };
+
+// driftOffsetsAt(now, sun, intensity) -> {wow, sat, soft, comp}, each an
+// additive offset onto the user's own 0..1 Character slider value.
+// Unlike DA2's driftOffsets() (an anchor table that can push either warmer
+// or brighter than the user's own baseline), warmth w(t) only ever rises
+// off of 0 at its brightest (solar noon) — so every offset here is >= 0;
+// "softer / warmer / more" is the only direction §3.4's table names.
+export function driftOffsetsAt(now, sun, intensity) {
+  const scale = DRIFT_SCALE[intensity] || 0;
+  if (scale === 0) return { wow: 0, sat: 0, soft: 0, comp: 0 };
+  const f = warmthAt(now, sun) * scale;
+  return { wow: DRIFT_SIZE.wow * f, sat: DRIFT_SIZE.sat * f, soft: DRIFT_SIZE.soft * f, comp: DRIFT_SIZE.comp * f };
+}
+
+// effectiveCharAt(userChar, now, sun, intensity) -> {wow, sat, soft, comp},
+// each clamp(user + offset, 0, 1) — the Day Arc v2 replacement for
+// sundown/drift.js's effectiveChar(); src/audio/engine.js's
+// applyCharacter() is the one real caller (PR 3, DAY_ARC_BRIEF.md).
+// userChar is a plain {wow,sat,soft,comp} object (S.char itself, or
+// anything shaped like it); never mutated.
+export function effectiveCharAt(userChar, now, sun, intensity) {
+  const o = driftOffsetsAt(now, sun, intensity);
+  return {
+    wow: clamp(userChar.wow + o.wow, 0, 1),
+    sat: clamp(userChar.sat + o.sat, 0, 1),
+    soft: clamp(userChar.soft + o.soft, 0, 1),
+    comp: clamp(userChar.comp + o.comp, 0, 1),
+  };
+}
+
 /* ---------------- 3.5 Sky ---------------- */
 
 // §3.5B: the screen-background gradient, chosen by phase (phaseAt's own
