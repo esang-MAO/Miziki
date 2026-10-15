@@ -38,16 +38,14 @@ export function groupFeedEvents(events){
 
 function homeFeedGroupCard(group){
   const card = el('div','store-card');
-  card.style.cssText = 'flex-direction:column;align-items:stretch;cursor:pointer';
-  const head = el('div','store-card-text');
+  card.classList.add('home-feed-card');
+  const head = el('div','store-card-text home-feed-head');
   head.appendChild(el('b', null, group.actor_name || group.actor_handle));
-  head.style.marginBottom = '6px';
   card.appendChild(head);
   const shown = group.events.slice(0, 3);
   shown.forEach(e => card.appendChild(el('div','store-activity-row', feedEventText(e))));
   if(group.events.length > shown.length){
-    const more = el('div','store-activity-row', '+' + (group.events.length - shown.length) + ' more');
-    more.style.color = 'var(--accent)';
+    const more = el('div','store-activity-row home-feed-more', '+' + (group.events.length - shown.length) + ' more');
     card.appendChild(more);
   }
   card.addEventListener('click', ()=> openFriendStore(group.actor_handle));
@@ -125,7 +123,7 @@ function paintHomeSpinRow(){
   entries.forEach(evt => {
     const tile = el('div','store-pick');
     const cover = el('div','store-pick-cover');
-    cover.style.cssText += 'display:flex;align-items:center;justify-content:center;font-family:var(--data);font-size:11px;color:var(--accent)';
+    cover.classList.add('home-spin-cover');
     cover.textContent = '♪ SPINNING';
     tile.appendChild(cover);
     const note = el('div','store-pick-note');
@@ -138,7 +136,7 @@ function paintHomeSpinRow(){
     tile.appendChild(note);
     const handle = homeFollowingHandles.get(evt.userId);
     if(handle){
-      tile.style.cursor = 'pointer';
+      tile.classList.add('home-spin-tap');
       tile.addEventListener('click', ()=> openFriendStore(handle));
     }
     row.appendChild(tile);

@@ -8,10 +8,9 @@
    Keyboard/VoiceOver: arrows +/-15 min, PageUp/PageDown +/-1h.
 
    setPreviewMinutes() is the one place S.previewMin is ever written from
-   this view, so the old #preview slider (src/wiring/sundown.js, still the
-   only thing driving the hidden DA3 UI) and this new dial gesture can
-   never disagree about what "the preview" currently is — both write
-   through here instead of setting S.previewMin directly.
+   this view, and the dial is now the only control for it (the old
+   #preview range slider and its "Back to live" button were removed), so
+   everything writes through here instead of setting S.previewMin directly.
 
    Mirrors player/scrub.js's own wireSpinToScrub() shape (pointerAngle +
    an angleDelta-style helper, pointerdown/pointermove/pointerup on
@@ -63,17 +62,10 @@ function crossedSunEvent(fromMs, toMs, sun) {
 export function setPreviewMinutes(v) {
   S.previewMin = Math.round(v);
   const eyebrow = $('#sundownEyebrow');
-  const previewOut = $('#previewOut');
-  // the old #preview slider (src/wiring/sundown.js) only shows a sensible
-  // position for 0..1440 — a multi-turn or negative value from the new
-  // dial gesture simply leaves it wherever it last was, since that
-  // control is hidden (.sdv1) and nothing reads its own .value back.
   if (S.previewMin === 0) {
-    if (previewOut) previewOut.textContent = 'Live';
     if (eyebrow) { eyebrow.textContent = 'Now'; eyebrow.classList.remove('sd-previewing'); }
   } else {
     const label = nowClock().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    if (previewOut) previewOut.textContent = label;
     if (eyebrow) { eyebrow.textContent = 'Previewing · ' + label; eyebrow.classList.add('sd-previewing'); }
   }
   renderDialView();

@@ -13,7 +13,7 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { selectSundownView, lastSundownView } from '../shell/routes.js';
-import { setPreviewMinutes, resetPreview, wireDialGesture } from '../sundown/dial-gesture.js';
+import { wireDialGesture } from '../sundown/dial-gesture.js';
 
 export function wireSundown(){
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
@@ -51,35 +51,10 @@ export function wireSundown(){
       : 'Held back, then a felt drop near the end.';
   }));
 
-  // DA3: the slider's own value is now the direct minute offset from
-  // "now" (0..1440, a full day), not a 0..100 position mapped onto the
-  // sunset->dusk window — S.previewMin already means exactly this to
-  // every consumer (nowClock(), currentDayPosition(), sunProgress(),
-  // easedProgress(), computeRate(), and, since DA2, effectiveChar() via
-  // currentDayPosition()), so this is a UI simplification, not a new
-  // capability: "preview the day" needed no change anywhere else.
-  //
-  // PR 5 (DAY_ARC_BRIEF.md §4.4): both this slider and the new dial's
-  // own drag/keyboard gesture (dial-gesture.js) write S.previewMin
-  // through the one shared setPreviewMinutes(), so neither can leave the
-  // eyebrow text or the dial's own readouts out of sync with the other.
-  $('#preview').addEventListener('input', e => setPreviewMinutes(+e.target.value));
-  $('#liveBtn').addEventListener('click', () => { resetPreview(); $('#preview').value = 0; });
-
+  // "Preview the day" lives only on the dial now (dial-gesture.js): drag
+  // or arrow-key it to write S.previewMin through the one shared
+  // setPreviewMinutes(), and the NOW button (also wired there) is the one
+  // way back to live. The old 0..1440 range slider and its "Back to live"
+  // button were a second copy of both and are gone.
   wireDialGesture();
-
-  // §4.3 item 4: "Tapping a card should open the existing Character
-  // control for that parameter." — the four sliders this opens are the
-  // same ones src/wiring/character.js already wires (#wow/#sat/#soft/
-  // #comp); each lives in its own id'd row (#charRowWow etc., miziki.html)
-  // purely so this can scroll straight to it, rather than duplicating a
-  // second slider UI inside the card itself.
-  const CHAR_ROW_ID = { wow: 'charRowWow', sat: 'charRowSat', soft: 'charRowSoft', comp: 'charRowComp' };
-  document.querySelectorAll('[data-char-target]').forEach(btn => btn.addEventListener('click', () => {
-    const row = $('#' + CHAR_ROW_ID[btn.dataset.charTarget]);
-    if (!row) return;
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const input = row.querySelector('input[type="range"]');
-    if (input) input.focus({ preventScroll: true });
-  }));
 }

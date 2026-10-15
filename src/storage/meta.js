@@ -144,11 +144,6 @@ function applyPrefs(p){
   if(typeof p.slipmatWordmark === 'boolean') S.slipmatWordmark = p.slipmatWordmark;
   if(typeof p.slipmatDim === 'boolean') S.slipmatDim = p.slipmatDim;
   applySlipmat();
-  // push the restored values back into the controls
-  Object.keys(S.char).forEach(k => {
-    const el2 = $('#'+k); if(el2){ el2.value = Math.round(S.char[k]*100); }
-    const out = $('#'+k+'Out'); if(out) out.textContent = Math.round(S.char[k]*100) + '%';
-  });
   document.querySelectorAll('[data-target]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.target) === S.target)));
   document.querySelectorAll('[data-pace]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pace === S.pace)));
   if(p.mode) setMode(p.mode);

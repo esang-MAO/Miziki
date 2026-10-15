@@ -177,8 +177,19 @@
 .sound-dial-label span{ font-family:var(--data); font-size:9px; letter-spacing:.06em; }
 
 .sd-section-label{
-  margin:4px 0 6px; font-family:var(--data); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--muted);
+  margin:4px 0 6px;
+}
+
+/* One section-label look for every tab (the design mocks' own ".sec":
+   mono, 10px, .14em, uppercase, muted). Each rule below keeps its own
+   margin/padding/border; only the type treatment is shared, so Library
+   tools, Sundown, Sound, Settings and the Profile home read the same. */
+.lib-tools-caption,
+.sd-heading,
+.sd-section-label,
+.settings-section-head,
+.profile-section-head{
+  font-family:var(--data); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
 /* §4.3 item 3: a full-width three-way segmented control — visually its
@@ -195,10 +206,8 @@
 }
 .sd-drift-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
 
-/* §4.3 item 4: four character cards, 2x2. Each is a real <button> (so
-   tapping it is a single, obvious tap target — src/wiring/sundown.js
-   scrolls to the matching slider below) rather than a second, separate
-   tap zone layered over a plain .sd-card. */
+/* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
+   current (drifted) value; presets below are how they're set. */
 .sd-charcards{
   display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:18px;
 }
@@ -242,3 +251,22 @@
 @media (min-width:1024px){
   .sound-dial{ width:240px; height:240px; }
 }
+
+/* Home tab, brought in line with the other three: section heads use the
+   same mono label + hairline as Settings/Library tools instead of the
+   big display heading Profile's storefront keeps (scoped to #homeBody so
+   that page is untouched), and the feed's former inline styles live here. */
+#homeBody .store-section-head{
+  margin:22px 0 10px; padding-bottom:10px; border-bottom:1px solid var(--line);
+}
+#homeBody .store-section-head h2{
+  font-family:var(--data); font-size:10px; font-weight:400; letter-spacing:.14em; color:var(--muted);
+}
+.home-feed-card{ flex-direction:column; align-items:stretch; cursor:pointer; }
+.home-feed-head{ margin-bottom:6px; }
+.home-feed-more{ color:var(--accent-text); }
+.home-spin-cover{
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--data); font-size:11px; color:var(--accent-text);
+}
+.home-spin-tap{ cursor:pointer; }

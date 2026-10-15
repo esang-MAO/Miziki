@@ -105,6 +105,7 @@ export function renderProfile(opts = {}){
     crumb.appendChild(el('span','crumb-label', labels[screen] || ''));
   }
   const body = $('#profileBody');
+  parkPlaybackSettings();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
   if(!refreshingHome) body.innerHTML = '';
   if(screen === 'topAlbums') renderTopAlbumsScreen(body);
@@ -201,6 +202,16 @@ function nychthemeronSwitchCaption(){
     ? 'Turns light at ' + fmt(S.sun.rise) + ' today.'
     : 'Turns light at sunrise tomorrow.';
 }
+// The playback toggles (Scratch, Sleeve Pull, Launch intro, Background
+// playback, Car Mode) are static markup in miziki.html so the listeners
+// src/wiring/character.js attached at boot, and the ids bgUpdateUI()/
+// applyPrefs() look up, survive every render. They sit hidden in
+// #playbackSettingsStash; Settings borrows them, and renderProfile()
+// hands them back before #profileBody is wiped.
+function parkPlaybackSettings(){
+  const panel = $('#playbackSettings'), stash = $('#playbackSettingsStash');
+  if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
+}
 function renderAppSettingsScreen(body){
   const appearance = el('div','settings-section');
   appearance.appendChild(el('div','settings-section-head', 'Appearance'));
@@ -224,6 +235,12 @@ function renderAppSettingsScreen(body){
   appearance.appendChild(slipmat);
   renderSlipmatRow(slipmat, () => { if(S.profileView.screen === 'settings') renderProfile(); });
 
+  const playback = el('div','settings-section');
+  playback.appendChild(el('div','settings-section-head', 'Playback & behavior'));
+  const panel = $('#playbackSettings');
+  if(panel) playback.appendChild(panel);
+  body.appendChild(playback);
+
   const links = el('div','settings-section');
   links.appendChild(el('div','settings-section-head', 'Account & privacy'));
   const row = (label, onTap) => {
@@ -235,14 +252,9 @@ function renderAppSettingsScreen(body){
   };
   row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
   row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
-  row('Library tools', () => {
-    const panel = $('#libToolsPanel'), toggle = $('#libToolsToggle');
-    if(panel && !panel.classList.contains('open')){
-      panel.classList.add('open');
-      if(toggle) toggle.setAttribute('aria-expanded', 'true');
-    }
-    if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  // No "Library tools" row here: the panel is only ever shown on the
+  // profile home (refreshLibraryTools), where its own toggle row already
+  // sits, so a second entry on this screen opened a panel that was hidden.
   body.appendChild(links);
   body.appendChild(legalLinksRow(renderProfile));
 }

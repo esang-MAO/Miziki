@@ -295,7 +295,7 @@
            S.previewMin" shape every other readout on this view uses. -->
       <div class="sd-hint-row">
         <span class="sd-hint-icon" aria-hidden="true">↻</span>
-        <span class="sd-hint-text">Spin the record to preview any hour</span>
+        <span class="sd-hint-text">Spin the record to preview any hour. Plays never count while previewing.</span>
         <button type="button" class="sd-now-btn" id="sdNowBtn">NOW</button>
       </div>
 
@@ -378,14 +378,6 @@
         <button type="button" class="cta ghost" id="dayDriftLink">Sound ›</button>
       </div>
 
-      <div class="slider-row">
-        <div class="slider-head"><span>Preview the day</span><b id="previewOut">Live</b></div>
-        <input id="preview" type="range" min="0" max="1440" value="0" aria-label="Preview the day">
-        <div class="preview-ticks" aria-hidden="true"><span>Now</span><span>Midnight</span><span>Dawn</span><span>Noon</span><span>Now</span></div>
-        <p class="note">Drag to hear the whole day from now. Plays never count while previewing.
-          <button class="cta ghost" id="liveBtn" style="margin-top:10px">Back to live</button></p>
-      </div>
-
       <p class="note" id="locNote"></p>
     </div>
 
@@ -439,26 +431,26 @@
       </div>
 
       <div class="sd-charcards">
-        <button type="button" class="sd-charcard" data-char-target="wow">
+        <div class="sd-charcard" data-char-target="wow">
           <p class="sd-charcard-label">Wow &amp; flutter</p>
           <b id="sdCharWowWord">—</b>
           <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharWowFill"></i><i id="sdCharWowTick"></i></div>
-        </button>
-        <button type="button" class="sd-charcard" data-char-target="sat">
+        </div>
+        <div class="sd-charcard" data-char-target="sat">
           <p class="sd-charcard-label">Saturation</p>
           <b id="sdCharSatWord">—</b>
           <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSatFill"></i><i id="sdCharSatTick"></i></div>
-        </button>
-        <button type="button" class="sd-charcard" data-char-target="soft">
+        </div>
+        <div class="sd-charcard" data-char-target="soft">
           <p class="sd-charcard-label">Top end</p>
           <b id="sdCharSoftWord">—</b>
           <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSoftFill"></i><i id="sdCharSoftTick"></i></div>
-        </button>
-        <button type="button" class="sd-charcard" data-char-target="comp">
+        </div>
+        <div class="sd-charcard" data-char-target="comp">
           <p class="sd-charcard-label">Bus compression</p>
           <b id="sdCharCompWord">—</b>
           <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharCompFill"></i><i id="sdCharCompTick"></i></div>
-        </button>
+        </div>
       </div>
 
       <div class="sd-tonecurve">
@@ -485,35 +477,28 @@
         </div>
       </div>
 
-      <h3 class="sd-heading">Your settings</h3>
-      <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
-        platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
-
-      <div class="slider-row" id="charRowWow">
-        <div class="slider-head"><span>Wow &amp; flutter</span><b id="wowOut">30%</b><i class="now-badge" id="wowNow"></i></div>
-        <input id="wow" type="range" min="0" max="100" value="30" aria-label="Wow and flutter">
-      </div>
-      <div class="slider-row" id="charRowSat">
-        <div class="slider-head"><span>Saturation</span><b id="satOut">35%</b><i class="now-badge" id="satNow"></i></div>
-        <input id="sat" type="range" min="0" max="100" value="35" aria-label="Saturation">
-      </div>
-      <div class="slider-row" id="charRowSoft">
-        <div class="slider-head"><span>Top-end softening</span><b id="softOut">40%</b><i class="now-badge" id="softNow"></i></div>
-        <input id="soft" type="range" min="0" max="100" value="40" aria-label="Top end softening">
-      </div>
-      <div class="slider-row" id="charRowComp">
-        <div class="slider-head"><span>Bus compression</span><b id="compOut">35%</b><i class="now-badge" id="compNow"></i></div>
-        <input id="comp" type="range" min="0" max="100" value="35" aria-label="Bus compression">
-      </div>
-      <p class="note" id="charNowLegend" style="display:none">"Now" shows where today's Day drift currently has each knob, on top of your own setting above.</p>
+      <p class="sd-section-label">Starting point</p>
+      <p class="note" style="margin-top:0">Character runs only in Vinyl, in the order a record makes it: platter wobble, tube-ish saturation, a softer top end, then a gentle squeeze. Pure takes this chain out of the path entirely and always plays at full speed, so Sundown's rate change is Vinyl-only too. Pick a preset; Vinyl drift above moves it through the day.</p>
 
       <div class="stack">
         <button class="cta ghost" data-preset="light">Light dust</button>
         <button class="cta ghost" data-preset="classic">Classic press</button>
         <button class="cta ghost" data-preset="worn">Well-played</button>
       </div>
-      <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
+    </div>
+  </section>
 
+  <!-- PROFILE -->
+  <section class="route" id="route-profile" role="main">
+    <div class="crumb" id="profileCrumb" style="display:none"></div>
+    <div id="profileBody"></div>
+    <input id="profilePicFile" type="file" accept="image/*">
+    <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
+         survive renderProfile()'s innerHTML reset. Parked here, hidden, and
+         moved into Profile › Settings by renderAppSettingsScreen(); moved
+         back by renderProfile() before the body is wiped. -->
+    <div id="playbackSettingsStash" style="display:none">
+      <div id="playbackSettings">
       <div class="row">
         <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
         <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
@@ -557,14 +542,8 @@
       </div>
 
       <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
+      </div>
     </div>
-  </section>
-
-  <!-- PROFILE -->
-  <section class="route" id="route-profile" role="main">
-    <div class="crumb" id="profileCrumb" style="display:none"></div>
-    <div id="profileBody"></div>
-    <input id="profilePicFile" type="file" accept="image/*">
 
     <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s
          innerHTML reset) so its listeners survive every re-render — see

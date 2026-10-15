@@ -70,23 +70,6 @@
 }
 .phase-block p{ margin:0; color:var(--muted); font-size:13px; }
 
-.preview-ticks{
-  display:flex; justify-content:space-between;
-  font-family:var(--data); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--muted); margin-top:4px;
-}
-
-/* DA2's own Day-drift "now" value, next to each Sound slider's existing
-   user-value label — a small textual badge rather than rebuilding each
-   native <input type=range> as a custom tick/thumb control (the mockup's
-   own fuller slider redesign); see this step's own changelog entry for
-   why that's a deliberate, documented scope trim. Hidden by default —
-   src/wiring/character.js only shows it once Day drift is actually on. */
-.now-badge{
-  font-family:var(--data); font-size:10px; color:var(--cool); margin-left:8px;
-}
-.now-badge:empty{ display:none; }
-
 @media (min-width:1024px){
   .phase-block h2{ font-size:40px; }
 }

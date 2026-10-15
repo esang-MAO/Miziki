@@ -29,7 +29,13 @@
   border: 2px solid var(--accent);
   border-top-color: transparent;
   margin-top: -36px;
+  opacity: 0;
+  transition: opacity .15s;
 }
+/* only visible while a pull is actually in progress */
+.pull-refresh[data-state="pulling"] .pull-refresh-dot,
+.pull-refresh[data-state="armed"] .pull-refresh-dot,
+.pull-refresh[data-state="refreshing"] .pull-refresh-dot{ opacity: 1; }
 .pull-refresh[data-state="armed"] .pull-refresh-dot,
 .pull-refresh[data-state="refreshing"] .pull-refresh-dot{
   animation: pull-refresh-spin .7s linear infinite;
@@ -47,16 +53,26 @@
   position: absolute;
   top: 6px; right: 10px;
   pointer-events: auto;
+  /* hidden until keyboard focus (still reachable by Tab and screen readers) */
+  opacity: 0;
   background: none;
   border: none;
   color: var(--accent);
   font-size: 12px;
   padding: 4px 8px;
 }
+.pull-refresh-btn:focus-visible{ opacity: 1; background: var(--panel); border-radius: 8px; }
 .pull-refresh-live{
   position: absolute;
   width: 1px; height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Mouse-driven devices have no pull gesture, so the button is always
+   visible there; touch devices keep only the pull (button stays
+   keyboard-focus-only for accessibility). */
+@media (hover: hover) and (pointer: fine){
+  .pull-refresh-btn{ opacity: 1; }
 }
