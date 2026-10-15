@@ -28,10 +28,20 @@ mock.module(new URL('../../src/sundown/spin-wording.js', import.meta.url).href, 
 // test here.
 function fakeEl(tag){
   const kids = [];
+  const classes = new Set();
   const node = {
     tagName: (tag || 'div').toUpperCase(),
     children: kids,
     className: '', textContent: '', type: '', placeholder: '', style: {}, id: '', dataset: {},
+    // tabs-design-unify swapped a few inline-style writes in home.js for
+    // classList.add() (home-feed-card/home-feed-more/home-spin-cover/
+    // home-spin-tap) -- a real classList, same stub shape as
+    // favorites.test.js's fakeEl().
+    classList: {
+      add(...cs){ cs.forEach(c => classes.add(c)); },
+      remove(...cs){ cs.forEach(c => classes.delete(c)); },
+      contains(c){ return classes.has(c); },
+    },
     appendChild(child){ kids.push(child); child.parent = node; return child; },
     addEventListener(){},
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
