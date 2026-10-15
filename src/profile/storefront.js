@@ -120,11 +120,30 @@ export function timeAgoShort(ms){
   return d + ' day' + (d === 1 ? '' : 's') + ' ago';
 }
 
+// The identity (avatar + name) and the local crate stats/preview are shown
+// here exactly the way renderLocalStorefront shows them — signing in adds
+// the social features (staff picks, followers, digging, sharing), it
+// doesn't replace this view with a different one. See storeAvatarButton()/
+// appendNameEditor() just above/below for the shared header pieces.
 export function renderOpenStoreCard(host, authState){
   host.innerHTML = '';
+  host.appendChild(storeAwning());
   const needsProfile = authState === 'needsProfile';
+
+  const header = el('div','store-header');
+  header.appendChild(storeAvatarButton());
+  const idBox = el('div','store-id');
+  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
+  appendNameEditor(idBox);
+  header.appendChild(idBox);
+  host.appendChild(header);
+
+  const stats = el('div','store-stats');
+  stats.appendChild(storeStat('Records', groupBy('album').length));
+  host.appendChild(stats);
+
   const card = el('div','store-open-card');
-  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Open your crate'));
+  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
   card.appendChild(el('p', null, needsProfile
     ? 'Pick a handle to start your crate — friends will find you there.'
     : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
@@ -132,6 +151,47 @@ export function renderOpenStoreCard(host, authState){
   btn.addEventListener('click', beginSocialSignIn);
   card.appendChild(btn);
   host.appendChild(card);
+
+  host.appendChild(storeCrateGrid());
+}
+
+// The one avatar button, reused by every storefront state (local-only,
+// not-yet-signed-in, signed-in) so there's exactly one identity picture
+// shown and edited — never a second one further down the page. Always
+// edits S.profile.art, which, once signed in, also doubles as the account's
+// public avatar (step 07, B4 — see CLAUDE.md's "Backup: what gets synced").
+function storeAvatarButton(){
+  const avatar = el('button','store-avatar'); avatar.setAttribute('aria-label','Change your picture');
+  if(S.profile.art){
+    const im = document.createElement('img'); im.src = S.profile.art; im.alt = '';
+    avatar.appendChild(im);
+  } else {
+    const label = el('div','store-avatar-label');
+    label.style.background = MizikiSocial.labelColor(S.profile.username || S.profile.name || 'me');
+    avatar.appendChild(label);
+  }
+  avatar.addEventListener('click', ()=> $('#profilePicFile').click());
+  return avatar;
+}
+
+// The one name editor, reused the same way as storeAvatarButton() above —
+// appended into whichever .store-id is already showing. Always edits
+// S.profile.name (the same name used on share cards).
+function appendNameEditor(idBox){
+  const nameDisplay = el('button','store-displayname-btn', formatDisplayName(S.profile.name) || 'Add your name');
+  nameDisplay.setAttribute('aria-label','Edit your name');
+  const nameIn = document.createElement('input');
+  nameIn.className = 'store-displayname-input'; nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.maxLength = 50;
+  nameIn.value = S.profile.name || ''; nameIn.style.display = 'none';
+  nameDisplay.addEventListener('click', ()=>{ nameDisplay.style.display = 'none'; nameIn.style.display = ''; nameIn.focus(); });
+  const commitName = ()=>{
+    S.profile.name = nameIn.value.trim(); persistProfile();
+    nameDisplay.textContent = formatDisplayName(S.profile.name) || 'Add your name';
+    nameIn.style.display = 'none'; nameDisplay.style.display = '';
+  };
+  nameIn.addEventListener('blur', commitName);
+  nameIn.addEventListener('keydown', e => { if(e.key === 'Enter') nameIn.blur(); });
+  idBox.appendChild(nameDisplay); idBox.appendChild(nameIn);
 }
 
 export function renderStoreError(host, error, retry){
@@ -187,18 +247,22 @@ export function renderStorefrontSection(body){
   // touched the network) — so the storefront shell shows up right away,
   // with only the genuinely server-shaped pieces (followers, friend
   // requests, digging from others, sharing now-spinning) gated behind a
-  // configured + signed-in account. Either way this is now the WHOLE profile
-  // screen, not a storefront stacked on top of a duplicate "your library"
-  // section — Top Album/Achievements/Collection/Share (renderProfileExtras)
-  // just continue directly below, since nothing else shows them.
+  // configured + signed-in account. This is the WHOLE profile screen, one
+  // continuous view in every state — local-only, not-yet-signed-in, and
+  // signed-in all share the same single identity header (storeAvatarButton()/
+  // appendNameEditor()) and the same Top Album/Achievements/Collection/Share
+  // block (renderProfileExtras) right below it; signing in only adds the
+  // extra social pieces (staff picks, followers, digging, requests, now
+  // spinning) into that one view, never a second "profile" section of its
+  // own.
   if(!soc.enabled){
     renderLocalStorefront(host);
-    grid.appendChild(renderProfileExtras(false));
-    return;
+  } else if(soc.auth === 'ready'){
+    loadAndRenderStorefront(host);
+  } else {
+    renderOpenStoreCard(host, soc.auth);
   }
-  if(soc.auth === 'ready') loadAndRenderStorefront(host);
-  else renderOpenStoreCard(host, soc.auth);
-  grid.appendChild(renderProfileExtras(true));
+  grid.appendChild(renderProfileExtras());
 }
 
 // Local albumId -> social metadata, by way of the same pure adapter the
@@ -222,17 +286,7 @@ function renderLocalStorefront(host){
   host.innerHTML = '';
   host.appendChild(storeAwning());
   const header = el('div','store-header');
-  const avatar = el('button','store-avatar'); avatar.setAttribute('aria-label','Change your picture');
-  if(S.profile.art){
-    const im = document.createElement('img'); im.src = S.profile.art; im.alt = '';
-    avatar.appendChild(im);
-  } else {
-    const label = el('div','store-avatar-label');
-    label.style.background = MizikiSocial.labelColor(S.profile.username || S.profile.name || 'me');
-    avatar.appendChild(label);
-  }
-  avatar.addEventListener('click', ()=> $('#profilePicFile').click());
-  header.appendChild(avatar);
+  header.appendChild(storeAvatarButton());
 
   const idBox = el('div','store-id');
   idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
@@ -243,20 +297,7 @@ function renderLocalStorefront(host){
   userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
   idBox.appendChild(userIn);
 
-  const nameDisplay = el('button','store-displayname-btn', formatDisplayName(S.profile.name) || 'Add your name');
-  nameDisplay.setAttribute('aria-label','Edit your name');
-  const nameIn = document.createElement('input');
-  nameIn.className = 'store-displayname-input'; nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.maxLength = 50;
-  nameIn.value = S.profile.name || ''; nameIn.style.display = 'none';
-  nameDisplay.addEventListener('click', ()=>{ nameDisplay.style.display = 'none'; nameIn.style.display = ''; nameIn.focus(); });
-  const commitName = ()=>{
-    S.profile.name = nameIn.value.trim(); persistProfile();
-    nameDisplay.textContent = formatDisplayName(S.profile.name) || 'Add your name';
-    nameIn.style.display = 'none'; nameDisplay.style.display = '';
-  };
-  nameIn.addEventListener('blur', commitName);
-  nameIn.addEventListener('keydown', e => { if(e.key === 'Enter') nameIn.blur(); });
-  idBox.appendChild(nameDisplay); idBox.appendChild(nameIn);
+  appendNameEditor(idBox);
   header.appendChild(idBox);
   const editBtn = el('button','store-edit-btn','Edit');
   editBtn.setAttribute('aria-label','Edit your crate username');
@@ -397,11 +438,7 @@ function renderStorefront(host, full, requests){
   host.innerHTML = '';
   host.appendChild(storeAwning());
   const header = el('div','store-header');
-  const avatar = el('div','store-avatar');
-  const label = el('div','store-avatar-label');
-  label.style.background = full.labelColor;
-  avatar.appendChild(label);
-  header.appendChild(avatar);
+  header.appendChild(storeAvatarButton());
   const idBox = el('div','store-id');
   idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
