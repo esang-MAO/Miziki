@@ -130,44 +130,45 @@ test('routeSource connects to wobble in Vinyl mode', () => {
   assert.ok(!src.connections.includes(S.nodes.master));
 });
 
-// DA2 (docs/DAY_ARC.md): a real "night" day position (the same
-// legacy-partial-data S.sun shape solar.test.js's own pastDusk fixture
-// uses — set+dusk in the past, no dawn/rise, which dayPosition() reads as
-// flat night) so Full-intensity drift would be nonzero if it weren't
-// gated — this is what makes the Pure test below meaningful rather than
-// vacuously true (currentDayPosition() falls back to a flat midday,
-// drift-free regardless of mode, whenever S.sun.ok is false).
+// Day Arc v2 (DAY_ARC_BRIEF.md, PR 3): applyCharacter() now sources its
+// drift from arc.js's effectiveCharAt() (warmth-based, §3.4) rather than
+// drift.js's old DA2 anchor table — a fixture with `noon` set exactly 12h
+// before "now" gives warmthAt() == 1 (solar midnight) exactly, the
+// warmest/most-drifted point of the whole curve, so Full-intensity drift
+// is nonzero if it weren't gated — this is what makes the Pure test below
+// meaningful rather than vacuously true (warmthAt() falls back to a
+// neutral, drift-free 0.5 only when S.sun.noon itself is missing).
 const now = Date.now();
-S.sun = { lat: 39.20, lon: -76.86, set: new Date(now - 60 * 60000), dusk: new Date(now - 30 * 60000), ok: true };
+S.sun = { lat: 39.20, lon: -76.86, noon: new Date(now - 12 * 3600000), ok: true };
 
-test('applyCharacter: Pure never applies drift, even at Full intensity and full night', () => {
+test('applyCharacter: Pure never applies drift, even at Full intensity and solar midnight (max warmth)', () => {
   S.mode = 'pure';
   S.charDrift = 'full';
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
   S.nodes = buildGraph(makeFakeContext());
   applyCharacter();
-  // undrifted: soft 0.40 -> tone gain -9*0.40; drifted (Night, Full) would
-  // instead be soft 0.60 -> -5.4, so this also confirms the gate actually
-  // does something, not just that nothing threw.
+  // undrifted: soft 0.40 -> tone gain -9*0.40; drifted (warmth=1, Full)
+  // would instead be soft 0.67 -> -6.03 (§3.4: soft +0.27 at Full), so this
+  // also confirms the gate actually does something, not just that nothing
+  // threw.
   assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
 });
 
-test('applyCharacter: Vinyl applies the Night drift at Full intensity', () => {
+test('applyCharacter: Vinyl applies the warmth-based drift at Full intensity', () => {
   S.mode = 'vinyl';
   S.charDrift = 'full';
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
   S.nodes = buildGraph(makeFakeContext());
   applyCharacter();
-  // Night, Full: soft +0.20, comp +0.10 (docs/DAY_ARC.md's own table) — an
-  // epsilon-tolerant compare, same EPS as satCurve's own above, since
-  // -9*0.60 and effectiveChar()'s clamp(0.40+0.20,0,1)-derived value can
-  // differ by a float ULP (-5.3999999999999995 vs -5.4) despite being
-  // mathematically identical.
-  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.60)) < EPS);
-  assert.ok(Math.abs(S.nodes.comp.threshold.lastTarget - (-6 - 18 * 0.45)) < EPS);
+  // warmth=1, Full (§3.4's own table): soft +0.27, comp +0 ("unchanged" —
+  // deliberately not drifted, unlike DA2's old anchor table) — an
+  // epsilon-tolerant compare, same EPS as satCurve's own above, for the
+  // same float-ULP reason as before.
+  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.67)) < EPS);
+  assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35, 'bus compression never drifts (§3.4)');
 });
 
 test('applyCharacter: Vinyl with intensity off matches the user\'s own raw sliders, same as Pure', () => {

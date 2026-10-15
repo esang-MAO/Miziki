@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { phaseAt, rateAt, trendAt, warmthAt, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
+import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
 
 // src/sundown/arc.js has no DOM/`S`-mutating top level (same precedent as
 // day.test.js/solar.test.js) — no mocking needed.
@@ -170,4 +170,63 @@ test('warmthAt: 0 at solar noon, 1 at solar midnight, continuous across midnight
 test('warmthAt: no usable solar noon falls back to a neutral 0.5, never throws', () => {
   assert.equal(warmthAt(new Date(), {}), 0.5);
   assert.equal(warmthAt(new Date(), null), 0.5);
+});
+
+test('driftOffsetsAt: off is always zero regardless of warmth', () => {
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  assert.deepEqual(driftOffsetsAt(midnight, SUN, 'off'), { wow: 0, sat: 0, soft: 0, comp: 0 });
+  assert.deepEqual(driftOffsetsAt(SUN.noon, SUN, 'full'), { wow: 0, sat: 0, soft: 0, comp: 0 }, 'also zero at noon itself (warmth 0)');
+});
+
+test('driftOffsetsAt: at Full and max warmth (solar midnight), matches §3.4\'s own sizes; comp is always 0', () => {
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  const o = driftOffsetsAt(midnight, SUN, 'full');
+  assert.ok(Math.abs(o.wow - 0.30) < 1e-9, 'wow up to +30% of range at Full');
+  assert.ok(Math.abs(o.sat - 0.27) < 1e-9, 'sat up to +27% of range at Full');
+  assert.ok(Math.abs(o.soft - 0.27) < 1e-9, 'soft up to +27% of range at Full');
+  assert.equal(o.comp, 0, 'bus compression never drifts, at any intensity');
+});
+
+test('driftOffsetsAt: Subtle is exactly one third of Full at the same time', () => {
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  const full = driftOffsetsAt(midnight, SUN, 'full');
+  const subtle = driftOffsetsAt(midnight, SUN, 'subtle');
+  for (const k of ['wow', 'sat', 'soft']) {
+    assert.ok(Math.abs(subtle[k] - full[k] / 3) < 1e-9, `${k}: subtle is one third of full`);
+  }
+});
+
+test('driftOffsetsAt: never negative — warmth only ever rises off of 0 at noon, unlike DA2\'s old anchor table', () => {
+  for (let h = 0; h < 24; h++) {
+    const t = new Date(SUN.noon.getTime() + h * 3600000);
+    const o = driftOffsetsAt(t, SUN, 'full');
+    assert.ok(o.wow >= 0 && o.sat >= 0 && o.soft >= 0, `offsets at +${h}h are never negative`);
+  }
+});
+
+test('driftOffsetsAt: an unrecognized intensity value is treated as off, not thrown on', () => {
+  assert.deepEqual(driftOffsetsAt(SUN.noon, SUN, 'bogus'), { wow: 0, sat: 0, soft: 0, comp: 0 });
+  assert.deepEqual(driftOffsetsAt(SUN.noon, SUN, undefined), { wow: 0, sat: 0, soft: 0, comp: 0 });
+});
+
+test('effectiveCharAt: with intensity off, the effective value is exactly the user\'s own', () => {
+  const userChar = { wow: 0.3, sat: 0.4, soft: 0.5, comp: 0.6 };
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  assert.deepEqual(effectiveCharAt(userChar, midnight, SUN, 'off'), userChar);
+});
+
+test('effectiveCharAt: no offset ever pushes an effective value outside 0-1, even starting near the ceiling', () => {
+  const userChar = { wow: 0.95, sat: 0.9, soft: 0.85, comp: 0.5 };
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  const eff = effectiveCharAt(userChar, midnight, SUN, 'full');
+  for (const k of ['wow', 'sat', 'soft', 'comp']) {
+    assert.ok(eff[k] >= 0 && eff[k] <= 1, `${k} stays within [0,1]`);
+  }
+});
+
+test('effectiveCharAt: never mutates the userChar object passed in', () => {
+  const userChar = { wow: 0.3, sat: 0.4, soft: 0.5, comp: 0.6 };
+  const snapshot = { ...userChar };
+  effectiveCharAt(userChar, new Date(SUN.noon.getTime() + 12 * 3600000), SUN, 'full');
+  assert.deepEqual(userChar, snapshot);
 });
