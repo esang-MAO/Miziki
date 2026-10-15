@@ -7,10 +7,18 @@
    and edited once, in every state (local, open-store, signed-in). */
 .profile-count{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em;margin:12px 0 0}
 
+/* Top Album/Top Song tiles, and the Achievements/Collection empty states,
+   predate the storefront card redesign (PR #109/#110) and the Day Arc v2
+   Sound tab (sd-charcard) — both since settled on the same card family
+   (14px radius, var(--panel)/var(--raised) fill, 1px var(--line) border;
+   a dashed var(--line) border at a flatter 8px radius for an empty/not-
+   yet-filled state, matching .store-open-card/.store-pick-empty). These
+   were left on an older, flatter 4px-radius/translucent-white look —
+   brought in line here so the whole Profile tab reads as one style. */
 .profile-top-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 0}
-.profile-top-tile{border:1px solid var(--line);border-radius:4px;padding:12px;text-align:left;background:rgba(255,255,255,.02)}
-.profile-top-cover{display:block;width:100%;aspect-ratio:1;border-radius:3px;overflow:hidden;margin-bottom:9px;
-  background:var(--panel);position:relative}
+.profile-top-tile{border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;background:var(--panel)}
+.profile-top-cover{display:block;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:9px;
+  background:var(--raised);position:relative}
 .profile-top-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .profile-top-tile b{display:block;font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profile-top-tile em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted);
@@ -18,21 +26,21 @@
 
 .profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
   font-size:22px;opacity:.6}
-.profile-empty{border:1px dashed var(--line);border-radius:4px;padding:16px;text-align:center;margin-top:14px}
+.profile-empty{border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center;margin-top:14px}
 .profile-empty p{margin:0;font-size:12.5px;color:var(--muted)}
 
-.profile-section{width:100%;background:none;border:0;text-align:left;margin-top:26px;padding:0}
+.profile-section{width:100%;background:var(--raised);border:1px solid var(--line);border-radius:14px;
+  text-align:left;margin-top:18px;padding:16px}
 .profile-section-head{display:flex;align-items:center;justify-content:space-between;
   font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   padding-bottom:10px;border-bottom:1px solid var(--line)}
-/* matches the mockup's own bordered "COLLECTION" card — only the clickable
-   (button) section gets it: the achievements grid above stays a full-width
-   plain section, the same div/button split src/styles/23-desktop.css's
-   own desktop grid already relies on (button.profile-section vs
-   div.profile-section) to place one in the two-column band and keep the
-   other full width. */
-button.profile-section{border:1px solid var(--line);border-radius:14px;background:var(--raised);
-  padding:16px;margin-top:18px}
+/* Both the Achievements div and the Collection button share the bordered
+   card look above now (one style for the whole tab); this rule is just
+   the one cosmetic difference — a clickable card's own heading doesn't
+   need the full-width list's underline-style divider. The div/button
+   split itself stays, since src/styles/23-desktop.css's own desktop grid
+   relies on it (button.profile-section vs div.profile-section) to place
+   one in the two-column band and keep the other full width. */
 button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;margin-bottom:2px}
 .profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;margin-top:12px}
 .profile-grid.mini{grid-template-columns:repeat(6,1fr)}

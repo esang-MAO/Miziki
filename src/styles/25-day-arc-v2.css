@@ -194,17 +194,25 @@
 
 /* §4.3 item 3: a full-width three-way segmented control — visually its
    own thing (not the smaller pill-row .seg used by the Day view's
-   Auto/Manual and Pacing rows), scoped here so those rows are untouched. */
-.sd-drift-seg{
+   Auto/Manual and Pacing rows), scoped here so those rows are untouched.
+   .sd-preset-seg (the character presets, below the cards) shares this
+   exact look on purpose — same view, same "pick one of three" shape as
+   the drift control above the cards, so the tab reads as one style
+   rather than the drift control looking native and the presets looking
+   like a leftover from the old slider-era rectangular buttons. */
+.sd-drift-seg,
+.sd-preset-seg{
   display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
   border:1px solid var(--line); border-radius:12px; overflow:hidden;
-  background:var(--panel); margin-bottom:18px;
+  background:var(--panel); margin-bottom:18px; gap:0;
 }
-.sd-drift-seg button{
+.sd-drift-seg button,
+.sd-preset-seg button{
   min-height:44px; border:0; background:transparent; color:var(--paper);
-  font-family:var(--body); font-size:14px; font-weight:500;
+  font-family:var(--body); font-size:13px; font-weight:500; padding:4px 6px;
 }
-.sd-drift-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
+.sd-drift-seg button[aria-pressed="true"],
+.sd-preset-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
 
 /* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
    current (drifted) value; presets below are how they're set. */
@@ -212,11 +220,12 @@
   display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:18px;
 }
 .sd-charcard{
-  box-sizing:border-box; padding:9px 12px 10px; border-radius:14px;
+  box-sizing:border-box; width:100%; padding:9px 12px 10px; border-radius:14px;
   background:var(--panel); border:1px solid var(--line);
   display:flex; flex-direction:column; gap:2px; text-align:left;
-  font-family:inherit; color:inherit; min-height:44px;
+  font-family:inherit; color:inherit; min-height:44px; cursor:pointer;
 }
+.sd-charcard[aria-expanded="true"]{ border-color:var(--amber); }
 .sd-charcard-label{
   margin:0; font-family:var(--data); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted);
@@ -228,6 +237,27 @@
 .sd-charcard-track i{ position:absolute; display:block; border-radius:2px; }
 .sd-charcard-track i:first-child{ left:0; top:0; height:4px; width:0%; background:var(--amber); }
 .sd-charcard-track i:last-child{ top:-3px; left:0%; width:2px; height:10px; background:var(--paper); }
+
+/* The fine-tune slider revealed by tapping the card right above it
+   (wireCharacter()) — one actual <input type=range> per parameter, the
+   same control the old always-visible slider block used, just hidden
+   behind the card instead of always on screen. grid-column:1/-1 so it
+   drops into its own full-width row between the 2x2 grid's pairs rather
+   than squeezing into one card's own half-width column. */
+.sd-charcard-fine{
+  grid-column:1 / -1; box-sizing:border-box; display:flex; align-items:center; gap:10px;
+  margin:-4px 0 4px; padding:8px 12px; border-radius:10px;
+  background:var(--raised); border:1px solid var(--line);
+}
+/* an author display:flex above would otherwise always beat the UA
+   stylesheet's [hidden]{display:none}, same specificity but author
+   origin always wins over UA regardless -- this rule is what actually
+   keeps the panel hidden until wireCharacter() clears the attribute. */
+.sd-charcard-fine[hidden]{ display:none; }
+.sd-charcard-fine input[type="range"]{ flex:1; }
+.sd-charcard-fine span{
+  flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:11px; color:var(--muted);
+}
 
 /* §4.3 item 5: the "Tone today" curve card. */
 .sd-tonecurve{
