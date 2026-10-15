@@ -242,30 +242,18 @@ function renderAppSettingsScreen(body){
 
 // Top Album/Top Song, Achievements, Collection and Share don't exist
 // anywhere else, so every storefront state (local-only, open-store card,
-// signed-in) appends this directly below its own header+stats rather than
-// repeating a whole second profile header — the avatar/name editor only
-// needs to appear once, inline in whichever header is actually showing.
-// includeShareCardEditor is true wherever the storefront's own header isn't
-// already editing S.profile.art/.name itself (i.e. everywhere except the
-// local-only storefront, which edits them directly as its avatar/name).
-export function renderProfileExtras(includeShareCardEditor){
+// signed-in) appends this directly below its own single identity header —
+// there is deliberately no second avatar/name editor here any more. The
+// avatar/name identity (S.profile.art/.name) is edited exactly once, inline
+// in whichever store-header is already showing (storeAvatarButton()/
+// appendNameEditor(), src/profile/storefront.js), the same one header in
+// every state — local-only, not-yet-signed-in, and signed-in alike —
+// rather than a second "profile view" that only appeared once a user was
+// signed in to a configured social backend. Signing in only adds the
+// extra social elements (staff picks, followers, digging, now spinning)
+// to that same view, per Ken's own framing of this.
+export function renderProfileExtras(){
   const wrap = el('div','profile-extras');
-
-  if(includeShareCardEditor){
-    const header = el('div','profile-header');
-    const picBtn = el('button','profile-pic'); picBtn.setAttribute('aria-label','Change share-card picture');
-    if(S.profile.art) picBtn.classList.add('has-art');
-    if(S.profile.art){ const im = document.createElement('img'); im.src = S.profile.art; im.alt = ''; picBtn.appendChild(im); }
-    picBtn.appendChild(el('span','profile-pic-mark','+'));
-    picBtn.addEventListener('click', ()=> $('#profilePicFile').click());
-    header.appendChild(picBtn);
-    const nameIn = el('input','profile-name-input');
-    nameIn.type = 'text'; nameIn.placeholder = 'Your name'; nameIn.value = S.profile.name || '';
-    nameIn.addEventListener('change', ()=>{ S.profile.name = nameIn.value.trim(); persistProfile(); });
-    header.appendChild(nameIn);
-    wrap.appendChild(header);
-    wrap.appendChild(el('p','note','Shown on shared cards (Now Playing, My Crate) — separate from your crate.'));
-  }
 
   const row = el('div','profile-top-row');
   const albums = topAlbums(1), tracks = topTracks(1);

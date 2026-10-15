@@ -361,20 +361,22 @@
   .profile-extras{display:contents}
 
   /* every piece not named in the doc's own two-column mapping, full
-     width, in a fixed reading order — covers both renderLocalStorefront
-     (signed out) and renderStorefront (signed in), which don't share
-     every element: .store-bio/.store-vis-row/.store-requests-wrap only
-     ever exist signed in, .profile-header (the share-card picture/name
-     editor) only when renderProfileExtras's own includeShareCardEditor
-     is true (also signed-in-only, src/profile/screens.js) — a missing
-     one just means that order slot has nothing to fill it. */
+     width, in a fixed reading order — covers renderLocalStorefront
+     (signed out), renderOpenStoreCard (social enabled, not signed in yet)
+     and renderStorefront (signed in), which don't share every element:
+     .store-bio/.store-vis-row/.store-requests-wrap only ever exist signed
+     in, .store-open-card only while not yet signed in — a missing one
+     just means that order slot has nothing to fill it. The identity
+     header itself (.store-header) is now the one place the avatar/name
+     is edited in every state, so there's no separate editor section to
+     order here any more. */
   .store-awning{grid-column:1/-1;order:1}
   .store-header{grid-column:1/-1;order:2}
   .store-bio{grid-column:1/-1;order:3}
   .store-vis-row{grid-column:1/-1;order:4}
   .store-stats{grid-column:1/-1;order:5}
   .store-requests-wrap{grid-column:1/-1;order:6}
-  .profile-header{grid-column:1/-1;order:7}
+  .store-open-card{grid-column:1/-1;order:7}
 
   /* "top records" (the Top Album/Top Song tiles) and "now spinning"
      share a row; "digging list" and "collection" share the row below
