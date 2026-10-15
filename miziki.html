@@ -238,7 +238,15 @@
       </div>
 
       <div class="day-dial-wrap">
-        <div class="day-dial" id="dayDial">
+        <!-- §4.4/§4.4a (PR 5): a touch/drag + keyboard slider, not just a
+             display — src/sundown/dial-gesture.js wires the drag and the
+             arrow/PageUp/PageDown keys; it and dial-view.js's
+             renderDialView() keep aria-valuenow/aria-valuetext current.
+             aria-valuemin/valuemax are the one real day's worth of
+             minutes (0..1439): the *displayed* value always wraps into
+             that range even though the drag itself (S.previewMin) is
+             unbounded across multiple turns. -->
+        <div class="day-dial" id="dayDial" role="slider" tabindex="0" aria-label="Preview the day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0" aria-valuetext="Live">
           <div class="day-dial-ring" id="dayDialRing" aria-hidden="true"></div>
           <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
           <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
@@ -278,6 +286,17 @@
           <b id="sdCardSky">—</b>
           <span id="sdCardSkySub">—</span>
         </div>
+      </div>
+
+      <!-- §4.2 item 4 (PR 5): the hint row + NOW button. src/sundown/
+           dial-gesture.js wires the button (resetPreview()) and toggles
+           its own "previewing" (filled amber) class from
+           dial-view.js's renderDialView(), the same "repaint reflects
+           S.previewMin" shape every other readout on this view uses. -->
+      <div class="sd-hint-row">
+        <span class="sd-hint-icon" aria-hidden="true">↻</span>
+        <span class="sd-hint-text">Spin the record to preview any hour</span>
+        <button type="button" class="sd-now-btn" id="sdNowBtn">NOW</button>
       </div>
 
       <!-- DA3's own day-arc SVG/phase-block/"Now playing at" row: kept in

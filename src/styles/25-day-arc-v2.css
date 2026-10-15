@@ -27,6 +27,18 @@
 .day-dial{
   position:relative; width:300px; height:300px; border-radius:50%;
   flex:none;
+  /* §4.4 (PR 5): a drag surface, not just a display — touch-action:none
+     stops the browser's own scroll/pan from fighting the gesture, the
+     same fix 02-stage-platter.css's #disc and 10-crate.css's crate stage
+     already use for their own rotate/flick gestures. */
+  touch-action:none; cursor:grab; outline:none;
+}
+.day-dial.dragging{ cursor:grabbing; }
+/* A focus ring for keyboard/VoiceOver use (§4.4a) — the ring and disc are
+   both visually round already, so a plain outline would look odd; this
+   traces the dial's own circle instead. */
+.day-dial:focus-visible{
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--amber) 55%, transparent);
 }
 .day-dial-ring{
   position:absolute; inset:0; border-radius:50%;
@@ -80,6 +92,16 @@
   content:''; position:absolute; left:-3px; top:-3px; width:6px; height:6px;
   border-radius:50%; background:var(--amber);
 }
+/* §4.4: "Respect prefers-reduced-motion (no glow pulse...)". A plain CSS
+   @media query, not a JS check — the animation simply doesn't exist for
+   a reduced-motion viewer, no dial-gesture.js/dial-view.js code needed. */
+@media (prefers-reduced-motion:no-preference){
+  .day-dial-marker::before{ animation:day-dial-marker-pulse 2.6s ease-in-out infinite; }
+  @keyframes day-dial-marker-pulse{
+    0%, 100%{ box-shadow:0 0 0 2px var(--amber), 0 0 10px 3px color-mix(in srgb, var(--amber) 70%, transparent); }
+    50%{ box-shadow:0 0 0 2px var(--amber), 0 0 16px 6px color-mix(in srgb, var(--amber) 85%, transparent); }
+  }
+}
 .day-dial-tick::before{
   content:''; position:absolute; left:-1px; top:-6px; width:2px; height:12px;
   background:#fff; border-radius:1px; opacity:.85;
@@ -106,6 +128,26 @@
 }
 .sd-card b{ font-family:var(--display); font-size:19px; color:var(--paper); line-height:1.1; }
 .sd-card span{ font-family:var(--data); font-size:10px; color:var(--muted); }
+
+/* §4.2 item 4 (PR 5): the hint row + NOW button. */
+.sd-hint-row{
+  display:flex; align-items:center; gap:8px; margin-bottom:16px;
+  font-family:var(--body); font-size:12px; color:var(--muted);
+}
+.sd-hint-icon{ font-size:14px; line-height:1; }
+.sd-hint-text{ flex:1; }
+.sd-now-btn{
+  flex:none; min-width:44px; min-height:28px; padding:0 12px;
+  border-radius:999px; border:1px solid var(--line); background:transparent;
+  color:var(--muted); font-family:var(--data); font-size:11px; letter-spacing:.06em;
+  touch-action:manipulation;
+}
+/* Filled amber while a preview is active (S.previewMin !== 0) — toggled
+   by dial-view.js's renderDialView(), the same "repaint reflects state"
+   shape every other readout on this view already uses. */
+.sd-now-btn.previewing{
+  background:var(--amber); border-color:var(--amber); color:var(--on-accent);
+}
 
 @media (min-width:1024px){
   .day-dial{ width:340px; height:340px; }

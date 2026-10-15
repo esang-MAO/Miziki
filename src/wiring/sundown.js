@@ -11,9 +11,9 @@
    mockup's own <input min="0" max="1440">. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { nowClock } from '../sundown/solar.js';
 import { queueSave } from '../storage/meta.js';
 import { selectSundownView, lastSundownView } from '../shell/routes.js';
+import { setPreviewMinutes, resetPreview, wireDialGesture } from '../sundown/dial-gesture.js';
 
 export function wireSundown(){
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
@@ -58,23 +58,13 @@ export function wireSundown(){
   // easedProgress(), computeRate(), and, since DA2, effectiveChar() via
   // currentDayPosition()), so this is a UI simplification, not a new
   // capability: "preview the day" needed no change anywhere else.
-  $('#preview').addEventListener('input', e=>{
-    const v = +e.target.value;
-    S.previewMin = v;
-    const eyebrow = $('#sundownEyebrow');
-    if(v === 0){
-      $('#previewOut').textContent = 'Live';
-      if(eyebrow){ eyebrow.textContent = 'Now'; eyebrow.classList.remove('sd-previewing'); }
-      return;
-    }
-    const c = nowClock();
-    const label = c.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    $('#previewOut').textContent = label;
-    if(eyebrow){ eyebrow.textContent = 'Previewing · ' + label; eyebrow.classList.add('sd-previewing'); }
-  });
-  $('#liveBtn').addEventListener('click', ()=>{
-    S.previewMin = 0; $('#preview').value = 0; $('#previewOut').textContent = 'Live';
-    const eyebrow = $('#sundownEyebrow');
-    if(eyebrow){ eyebrow.textContent = 'Now'; eyebrow.classList.remove('sd-previewing'); }
-  });
+  //
+  // PR 5 (DAY_ARC_BRIEF.md §4.4): both this slider and the new dial's
+  // own drag/keyboard gesture (dial-gesture.js) write S.previewMin
+  // through the one shared setPreviewMinutes(), so neither can leave the
+  // eyebrow text or the dial's own readouts out of sync with the other.
+  $('#preview').addEventListener('input', e => setPreviewMinutes(+e.target.value));
+  $('#liveBtn').addEventListener('click', () => { resetPreview(); $('#preview').value = 0; });
+
+  wireDialGesture();
 }
