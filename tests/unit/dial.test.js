@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { angleDegAt, angleDeltaMinutes, nextEventText, dialStateAt } from '../../src/sundown/dial.js';
+import { warmthAt } from '../../src/sundown/arc.js';
+import { angleDegAt, angleDeltaMinutes, nextEventText, dialStateAt, soundCardsAt, toneCurveSamples } from '../../src/sundown/dial.js';
 
 // src/sundown/dial.js has no DOM/`S`-mutating top level — no mocking
 // needed, same precedent as arc.test.js/day.test.js/solar.test.js.
@@ -126,4 +127,54 @@ test('dialStateAt: carries sunrise/sunset labels and ring/sky stops straight fro
   assert.equal(noData.sunriseLabel, '—');
   assert.equal(noData.nextEvent, null);
   assert.deepEqual(noData.ringStops, []);
+});
+
+// --- §4.3 (PR 6): the Sound view's cards + "Tone today" curve ------------
+
+const CHAR = { wow: 0.3, sat: 0.35, soft: 0.4, comp: 0.35 };
+
+test('soundCardsAt: Off intensity never drifts — every card\'s word is its own lowest and nowPct equals userPct', () => {
+  const cards = soundCardsAt(CHAR, SUN.set, SUN, 'off');
+  assert.equal(cards.length, 4);
+  for (const c of cards) {
+    assert.equal(c.nowPct, c.userPct, c.key + ' should not have drifted at all');
+  }
+  assert.equal(cards.find(c => c.key === 'wow').word, 'SLIGHT');
+  assert.equal(cards.find(c => c.key === 'sat').word, 'CLEAN');
+  assert.equal(cards.find(c => c.key === 'soft').word, 'OPEN');
+  assert.equal(cards.find(c => c.key === 'comp').word, 'STEADY');
+});
+
+test('soundCardsAt: Full intensity at solar midnight (max warmth) drifts wow/sat/soft to their highest word, never past 100%, and always leaves bus compression exactly at the user\'s own value', () => {
+  const midnight = new Date(SUN.noon.getTime() + 12 * 3600000);
+  const cards = soundCardsAt(CHAR, midnight, SUN, 'full');
+  assert.equal(cards.find(c => c.key === 'wow').word, 'LOOSER');
+  assert.equal(cards.find(c => c.key === 'sat').word, 'WARMER');
+  assert.equal(cards.find(c => c.key === 'soft').word, 'SOFT');
+  assert.equal(cards.find(c => c.key === 'comp').word, 'STEADY');
+  for (const key of ['wow', 'sat', 'soft']) {
+    const c = cards.find(x => x.key === key);
+    assert.ok(c.nowPct >= c.userPct, key + ' only ever drifts upward, per arc.js\'s own driftOffsetsAt');
+    assert.ok(c.nowPct <= 100);
+  }
+  const comp = cards.find(c => c.key === 'comp');
+  assert.equal(comp.nowPct, comp.userPct, 'bus compression is unchanged by drift (§3.4\'s own table)');
+});
+
+test('soundCardsAt: missing userChar fields default to 0 rather than throwing', () => {
+  assert.doesNotThrow(() => soundCardsAt({}, SUN.noon, SUN, 'subtle'));
+  assert.doesNotThrow(() => soundCardsAt(null, SUN.noon, SUN, 'subtle'));
+});
+
+test('toneCurveSamples: 49 evenly-spaced points (default count 48) spanning local midnight to midnight, each matching warmthAt() at that same instant', () => {
+  const pts = toneCurveSamples(SUN.noon, SUN);
+  assert.equal(pts.length, 49);
+  assert.equal(pts[0].frac, 0);
+  assert.equal(pts[48].frac, 1);
+  const dayStart = new Date(SUN.noon);
+  dayStart.setHours(0, 0, 0, 0);
+  const sampleAt = (i) => new Date(dayStart.getTime() + (i / 48) * 1440 * 60000);
+  assert.equal(pts[0].warmth, warmthAt(sampleAt(0), SUN));
+  assert.equal(pts[24].warmth, warmthAt(sampleAt(24), SUN));
+  assert.equal(pts[48].warmth, warmthAt(sampleAt(48), SUN));
 });

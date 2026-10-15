@@ -391,22 +391,117 @@
 
     <!-- SOUND (was the Character route) -->
     <div id="sundownSoundView" style="display:none">
+      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4.3), PR 6: the Sound view's own
+           dial + hint row + Vinyl-drift segmented control + four
+           character cards + Tone today curve. src/sundown/dial-view.js's
+           renderDialView() paints all of it, driven by the same
+           dialStateAt()/soundCardsAt()/toneCurveSamples() (src/sundown/
+           dial.js) the Day view already uses for its own dial — the drag
+           gesture (src/sundown/dial-gesture.js) is wired to this dial too,
+           sharing one S.previewMin with the Day view's own (§4.4: "a
+           single previewMinute state, shared by Day and Sound"). -->
+      <div class="sd-sky-bg sd-sky-bg-sound" id="sdSkyBgSound" aria-hidden="true">
+        <div class="sd-sky-layer" id="sdSkySoundA"></div>
+        <div class="sd-sky-layer" id="sdSkySoundB"></div>
+      </div>
+
+      <div class="day-dial-wrap sound-dial-wrap">
+        <div class="day-dial sound-dial" id="soundDial" role="slider" tabindex="0" aria-label="Preview the day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0" aria-valuetext="Live">
+          <div class="day-dial-ring" id="soundDialRing" aria-hidden="true"></div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-bottom" aria-hidden="true">12A</div>
+          <div class="day-dial-hourlabel day-dial-hourlabel-left" aria-hidden="true">6A</div>
+          <div class="day-dial-tick" id="soundDialSunriseTick" aria-hidden="true"></div>
+          <div class="day-dial-tick" id="soundDialSunsetTick" aria-hidden="true"></div>
+          <div class="day-dial-marker" id="soundDialMarker" aria-hidden="true"></div>
+          <div class="day-dial-disc" aria-hidden="true">
+            <div class="day-dial-label sound-dial-label">
+              <span class="sound-dial-tone-caption">TONE</span>
+              <b id="soundDialTone">—</b>
+              <span id="soundDialTime">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sd-hint-row">
+        <span class="sd-hint-icon" aria-hidden="true">↻</span>
+        <span class="sd-hint-text">Spin the record to hear any hour</span>
+        <button type="button" class="sd-now-btn" id="sdNowBtnSound">NOW</button>
+      </div>
+
+      <p class="sd-section-label">Vinyl drift through the day</p>
+      <div class="seg sd-drift-seg" role="group" aria-label="Vinyl drift level">
+        <button data-char-drift="off" aria-pressed="false">Off</button>
+        <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
+        <button data-char-drift="full" aria-pressed="false">Full</button>
+      </div>
+
+      <div class="sd-charcards">
+        <button type="button" class="sd-charcard" data-char-target="wow">
+          <p class="sd-charcard-label">Wow &amp; flutter</p>
+          <b id="sdCharWowWord">—</b>
+          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharWowFill"></i><i id="sdCharWowTick"></i></div>
+        </button>
+        <button type="button" class="sd-charcard" data-char-target="sat">
+          <p class="sd-charcard-label">Saturation</p>
+          <b id="sdCharSatWord">—</b>
+          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSatFill"></i><i id="sdCharSatTick"></i></div>
+        </button>
+        <button type="button" class="sd-charcard" data-char-target="soft">
+          <p class="sd-charcard-label">Top end</p>
+          <b id="sdCharSoftWord">—</b>
+          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSoftFill"></i><i id="sdCharSoftTick"></i></div>
+        </button>
+        <button type="button" class="sd-charcard" data-char-target="comp">
+          <p class="sd-charcard-label">Bus compression</p>
+          <b id="sdCharCompWord">—</b>
+          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharCompFill"></i><i id="sdCharCompTick"></i></div>
+        </button>
+      </div>
+
+      <div class="sd-tonecurve">
+        <div class="sd-tonecurve-head">
+          <span>Tone today</span>
+          <span id="sdToneCurveWord">—</span>
+        </div>
+        <svg class="sd-tonecurve-svg" id="sdToneCurveSvg" viewBox="0 0 322 44" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="sdToneCurveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#8ec5e6" stop-opacity="0.35"></stop>
+              <stop offset="1" stop-color="#8ec5e6" stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+          <path id="sdToneCurveFill" fill="url(#sdToneCurveGrad)"></path>
+          <path id="sdToneCurveLine" fill="none"></path>
+          <line id="sdToneCurveNowLine" x1="0" y1="0" x2="0" y2="44"></line>
+          <circle id="sdToneCurveNowDot" r="4.5"></circle>
+          <text x="2" y="10" class="sd-tonecurve-axislabel">BRIGHT</text>
+          <text x="2" y="29" class="sd-tonecurve-axislabel">WARM</text>
+        </svg>
+        <div class="sd-tonecurve-ticks">
+          <span>12A</span><span>6A</span><span>12P</span><span>6P</span><span>12A</span>
+        </div>
+      </div>
+
+      <h3 class="sd-heading">Your settings</h3>
       <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
         platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
 
-      <div class="slider-row">
+      <div class="slider-row" id="charRowWow">
         <div class="slider-head"><span>Wow &amp; flutter</span><b id="wowOut">30%</b><i class="now-badge" id="wowNow"></i></div>
         <input id="wow" type="range" min="0" max="100" value="30" aria-label="Wow and flutter">
       </div>
-      <div class="slider-row">
+      <div class="slider-row" id="charRowSat">
         <div class="slider-head"><span>Saturation</span><b id="satOut">35%</b><i class="now-badge" id="satNow"></i></div>
         <input id="sat" type="range" min="0" max="100" value="35" aria-label="Saturation">
       </div>
-      <div class="slider-row">
+      <div class="slider-row" id="charRowSoft">
         <div class="slider-head"><span>Top-end softening</span><b id="softOut">40%</b><i class="now-badge" id="softNow"></i></div>
         <input id="soft" type="range" min="0" max="100" value="40" aria-label="Top end softening">
       </div>
-      <div class="slider-row">
+      <div class="slider-row" id="charRowComp">
         <div class="slider-head"><span>Bus compression</span><b id="compOut">35%</b><i class="now-badge" id="compNow"></i></div>
         <input id="comp" type="range" min="0" max="100" value="35" aria-label="Bus compression">
       </div>
@@ -418,15 +513,6 @@
         <button class="cta ghost" data-preset="worn">Well-played</button>
       </div>
       <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
-
-      <div class="row">
-        <div class="k">Day drift<em>Your settings are midday. Mornings drift brighter, nights warmer.</em></div>
-        <div class="seg">
-          <button data-char-drift="off" aria-pressed="false">Off</button>
-          <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
-          <button data-char-drift="full" aria-pressed="false">Full</button>
-        </div>
-      </div>
 
       <div class="row">
         <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>

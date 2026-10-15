@@ -6,7 +6,7 @@
    DOM-painting module (dial-view.js) only ever reads this object, it
    never recomputes any of the day-model math itself. */
 import { clamp } from '../util/math.js';
-import { phaseAt, rateAt, trendAt, warmthAt, toneWordAt, skyPaletteNameAt, skyPhaseAt, skyBackgroundStops, skyRingStops } from './arc.js';
+import { phaseAt, rateAt, trendAt, warmthAt, toneWordAt, skyPaletteNameAt, skyPhaseAt, skyBackgroundStops, skyRingStops, driftOffsetsAt, DRIFT_SCALE } from './arc.js';
 
 const MIN = 60000;
 const DAY_MIN = 1440;
@@ -118,4 +118,70 @@ export function dialStateAt(now, sun, settings = {}) {
     ariaValueNow: Math.round(minutesOfDay(now)) % DAY_MIN,
     ariaValueText: big + ' ' + ampm + ', ' + phase,
   };
+}
+
+/* ================= §4.3 Sound view: character cards + tone curve ================= */
+
+// §3.4's own word table ("Per-card words (SLIGHT / LOOSER, WARMER / CLEAN,
+// OPEN / SOFTENING / SOFT, STEADY) follow w the same way") — each list runs
+// low-drift to high-drift, picked by index so a 2-word param is a plain
+// on/off-ish split and a 3-word one gets a middle word too. Bus compression
+// never drifts (§3.4's own table: "unchanged, 0"), so its one-word list
+// always resolves to the same word regardless of frac.
+const CARD_DEFS = [
+  { key: 'wow', label: 'Wow & flutter', words: ['SLIGHT', 'LOOSER'] },
+  { key: 'sat', label: 'Saturation', words: ['CLEAN', 'WARMER'] },
+  { key: 'soft', label: 'Top end', words: ['OPEN', 'SOFTENING', 'SOFT'] },
+  { key: 'comp', label: 'Bus compression', words: ['STEADY'] },
+];
+
+function wordForFrac(words, frac) {
+  if (words.length <= 1) return words[0];
+  const idx = Math.min(words.length - 1, Math.floor(clamp(frac, 0, 0.999) * words.length));
+  return words[idx];
+}
+
+// soundCardsAt(userChar, now, sun, intensity) -> one entry per §4.3 card,
+// in display order. `frac` (how far into today's drift each card's word
+// has moved) is warmth(t) * the intensity's own scale — the same shared
+// timeline every parameter drifts along, independent of each parameter's
+// own drift *size* (driftOffsetsAt already bakes that into userPct/nowPct
+// below, via the real per-track offset) — so the word and the percentage
+// always agree on direction even though they're computed two different
+// ways. Bus compression's word never moves (frac forced to 0): §3.4's
+// table gives it no direction to drift in at all.
+export function soundCardsAt(userChar, now, sun, intensity) {
+  const offsets = driftOffsetsAt(now, sun, intensity);
+  const frac = warmthAt(now, sun) * (DRIFT_SCALE[intensity] || 0);
+  const char = userChar || {};
+  return CARD_DEFS.map(def => {
+    const o = offsets[def.key] || 0;
+    const userVal = clamp(char[def.key] || 0, 0, 1);
+    const nowVal = clamp(userVal + o, 0, 1);
+    return {
+      key: def.key,
+      label: def.label,
+      word: wordForFrac(def.words, def.key === 'comp' ? 0 : frac),
+      userPct: Math.round(userVal * 100),
+      nowPct: Math.round(nowVal * 100),
+    };
+  });
+}
+
+// toneCurveSamples(now, sun, count) -> [{ frac, warmth }, ...], frac 0..1
+// across local midnight-to-midnight of `now`'s own day, warmth from
+// warmthAt() (0 bright/noon .. 1 warm/midnight) — the "Tone today" card's
+// own 24h curve (§4.3 item 5). warmthAt() is a plain continuous cosine of
+// time (see arc.js), so this is "a smooth monotonic equivalent" of the
+// brief's own illustrative bezier (§3.4: "do not copy its bezier") by
+// construction, not a second curve shape to keep in sync with it.
+export function toneCurveSamples(now, sun, count = 48) {
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const pts = [];
+  for (let i = 0; i <= count; i++) {
+    const t = new Date(dayStart.getTime() + (i / count) * DAY_MIN * MIN);
+    pts.push({ frac: i / count, warmth: warmthAt(t, sun) });
+  }
+  return pts;
 }
