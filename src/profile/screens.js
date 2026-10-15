@@ -235,14 +235,9 @@ function renderAppSettingsScreen(body){
   };
   row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
   row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
-  row('Library tools', () => {
-    const panel = $('#libToolsPanel'), toggle = $('#libToolsToggle');
-    if(panel && !panel.classList.contains('open')){
-      panel.classList.add('open');
-      if(toggle) toggle.setAttribute('aria-expanded', 'true');
-    }
-    if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  // No "Library tools" row here: the panel is only ever shown on the
+  // profile home (refreshLibraryTools), where its own toggle row already
+  // sits, so a second entry on this screen opened a panel that was hidden.
   body.appendChild(links);
   body.appendChild(legalLinksRow(renderProfile));
 }

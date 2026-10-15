@@ -70,12 +70,6 @@
 }
 .phase-block p{ margin:0; color:var(--muted); font-size:13px; }
 
-.preview-ticks{
-  display:flex; justify-content:space-between;
-  font-family:var(--data); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--muted); margin-top:4px;
-}
-
 /* DA2's own Day-drift "now" value, next to each Sound slider's existing
    user-value label — a small textual badge rather than rebuilding each
    native <input type=range> as a custom tick/thumb control (the mockup's

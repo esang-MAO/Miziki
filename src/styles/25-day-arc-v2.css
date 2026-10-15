@@ -177,8 +177,19 @@
 .sound-dial-label span{ font-family:var(--data); font-size:9px; letter-spacing:.06em; }
 
 .sd-section-label{
-  margin:4px 0 6px; font-family:var(--data); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--muted);
+  margin:4px 0 6px;
+}
+
+/* One section-label look for every tab (the design mocks' own ".sec":
+   mono, 10px, .14em, uppercase, muted). Each rule below keeps its own
+   margin/padding/border; only the type treatment is shared, so Library
+   tools, Sundown, Sound, Settings and the Profile home read the same. */
+.lib-tools-caption,
+.sd-heading,
+.sd-section-label,
+.settings-section-head,
+.profile-section-head{
+  font-family:var(--data); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
 /* §4.3 item 3: a full-width three-way segmented control — visually its

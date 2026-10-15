@@ -107,8 +107,8 @@ export function drawSun(){
   const semis = 12 * Math.log2(S.rate);
 
   // DA3's own header eyebrow ("Now · 6:49 PM") — only while live;
-  // src/wiring/sundown.js's own #preview input handler owns the
-  // "Previewing · <time>" text the instant the slider moves, since that
+  // src/sundown/dial-gesture.js's setPreviewMinutes() owns the
+  // "Previewing · <time>" text the instant the dial moves, since that
   // has to feel immediate, not wait for this ~220ms-throttled tick.
   if(S.previewMin === 0){
     const eyebrow = $('#sundownEyebrow');

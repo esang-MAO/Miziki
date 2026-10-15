@@ -295,7 +295,7 @@
            S.previewMin" shape every other readout on this view uses. -->
       <div class="sd-hint-row">
         <span class="sd-hint-icon" aria-hidden="true">↻</span>
-        <span class="sd-hint-text">Spin the record to preview any hour</span>
+        <span class="sd-hint-text">Spin the record to preview any hour. Plays never count while previewing.</span>
         <button type="button" class="sd-now-btn" id="sdNowBtn">NOW</button>
       </div>
 
@@ -376,14 +376,6 @@
       <div class="row">
         <div class="k">Character now<em id="dayDriftSummary">Off — your own settings, no drift today.</em></div>
         <button type="button" class="cta ghost" id="dayDriftLink">Sound ›</button>
-      </div>
-
-      <div class="slider-row">
-        <div class="slider-head"><span>Preview the day</span><b id="previewOut">Live</b></div>
-        <input id="preview" type="range" min="0" max="1440" value="0" aria-label="Preview the day">
-        <div class="preview-ticks" aria-hidden="true"><span>Now</span><span>Midnight</span><span>Dawn</span><span>Noon</span><span>Now</span></div>
-        <p class="note">Drag to hear the whole day from now. Plays never count while previewing.
-          <button class="cta ghost" id="liveBtn" style="margin-top:10px">Back to live</button></p>
       </div>
 
       <p class="note" id="locNote"></p>
@@ -486,8 +478,7 @@
       </div>
 
       <h3 class="sd-heading">Your settings</h3>
-      <p class="note" style="margin-top:0">Character runs only in Vinyl mode, in the order a record makes it:
-        platter wobble, then tube-ish saturation, then the softer top end, then a gentle squeeze.</p>
+      <p class="note" style="margin-top:0">Character runs only in Vinyl, in the order a record makes it: platter wobble, tube-ish saturation, a softer top end, then a gentle squeeze. Pure takes this chain out of the path entirely and always plays at full speed, so Sundown's rate change is Vinyl-only too.</p>
 
       <div class="slider-row" id="charRowWow">
         <div class="slider-head"><span>Wow &amp; flutter</span><b id="wowOut">30%</b><i class="now-badge" id="wowNow"></i></div>
@@ -512,7 +503,6 @@
         <button class="cta ghost" data-preset="classic">Classic press</button>
         <button class="cta ghost" data-preset="worn">Well-played</button>
       </div>
-      <p class="note">Switching to Pure disconnects this chain entirely — it is not turned down, it is out of the path. Pure also always plays at full speed; Sundown's rate change applies in Vinyl only.</p>
 
       <div class="row">
         <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
