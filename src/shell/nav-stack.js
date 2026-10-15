@@ -56,16 +56,60 @@ function focusFirstIn(container){
   (target || container).focus?.({ preventScroll: true });
 }
 
+// Elements this module itself set `inert` on, so a later recompute (a new
+// topmost layer, or every layer closing) can cleanly undo exactly those and
+// no others, rather than walking the whole tree guessing what to clear.
+const inertedEls = [];
+
+function clearInert(){
+  for(const el of inertedEls) el.removeAttribute('inert');
+  inertedEls.length = 0;
+}
+
+// Marks `inert` on every sibling along the path from `root` down to
+// `target`, leaving `target` itself -- and every ancestor on the way down
+// to it, including `root` -- untouched. `inert` can't be un-set on a node
+// once an ancestor already carries it (it isn't a CSS cascade a child rule
+// can override), so "the background is inert but the topmost layer's own
+// container is still reachable" can only be done this way: never inerting
+// an ancestor of the one thing that must stay reachable, only that
+// ancestor's *other* children at each level. Nearly every overlay in this
+// app (the full player, the gatefold, every sheet) is a direct sibling of
+// `root`'s other top-level content, so in the common case this only ever
+// inerts one level of siblings -- but a couple of layers (the header's
+// search field, the `+` menu) have containers nested inside the regular
+// library screen, and this walk handles that exactly the same way, with no
+// special case needed. Falls back to inerting `root` wholesale when there
+// is no real path to walk (no container was given for this layer, or it
+// isn't actually inside `root`) -- the one case this can't do better than
+// the old blanket behavior.
+function inertSiblingsOnPathTo(root, target){
+  if(!root) return;
+  if(!target || !root.contains?.(target)){
+    root.setAttribute('inert', '');
+    inertedEls.push(root);
+    return;
+  }
+  let node = target;
+  while(node && node !== root){
+    const parent = node.parentNode;
+    if(!parent || !parent.children) break;
+    for(const sib of parent.children){
+      if(sib !== node){ sib.setAttribute('inert', ''); inertedEls.push(sib); }
+    }
+    node = parent;
+  }
+}
+
 function applyInert(){
   if(!appRoot) return;
+  clearInert();
   // Background becomes inert (unreachable by focus/AT) whenever at least
   // one layer is open; the topmost layer's own container is never made
   // inert, since it's the thing that should be reachable.
-  if(layers.length === 0){
-    appRoot.removeAttribute('inert');
-    return;
-  }
-  appRoot.setAttribute('inert', '');
+  if(layers.length === 0) return;
+  const top = layers[layers.length - 1];
+  inertSiblingsOnPathTo(appRoot, top.container);
 }
 
 // Registers a newly-opened overlay as the topmost layer: pushes one history
