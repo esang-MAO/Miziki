@@ -165,14 +165,14 @@ test('setTheme: "nychthemeron" is a real, accepted choice', () => {
   assert.equal(queueSaveSpy.mock.calls.length, 1);
 });
 
-// DA4 (docs/DAY_ARC.md): effectiveTheme()'s own Nychthemeron resolution —
-// "light from sunrise to sunset, dark from sunset to sunrise," read from
-// dayPosition() via currentDayPosition() (sundown/solar.js, real here —
-// it's DOM-free, so no mock needed). Fixtures use the full DA1 event
-// shape (dawn/rise/noon/set/dusk/altitudeAtNoon), relative to the real
-// Date.now() the same way tests/unit/solar.test.js's own fixtures are,
-// so these don't depend on which real-world date/time the suite happens
-// to run at.
+// PR7 (DAY_ARC_BRIEF.md): effectiveTheme()'s own Nychthemeron resolution —
+// "the app light/dark theme follows the sun using the same phase
+// function" — now reads arc.js's phaseAt() (real here, it's DOM-free, so
+// no mock needed) instead of the old DA1-DA6 dayPosition()/
+// currentDayPosition(). Fixtures use the full dawn/rise/noon/set/dusk
+// event shape, relative to the real Date.now() the same way
+// tests/unit/solar.test.js's own fixtures are, so these don't depend on
+// which real-world date/time the suite happens to run at.
 const dayArcNow = Date.now();
 // a small, consistently-ordered (dawn < rise < noon < set < dusk) day
 // fixture builder, hour offsets from dayArcNow — every test below builds
@@ -220,17 +220,22 @@ test('effectiveTheme: Nychthemeron follows the previewed time, not the real cloc
   S.previewMin = 0;
 });
 
-test('effectiveTheme: Nychthemeron reads light for a polar day, dark for a polar night', () => {
+// PR7 (DAY_ARC_BRIEF.md) switched Nychthemeron's own resolution from the
+// old dayPosition()'s altitude-based polar fallback to arc.js's phaseAt(),
+// which has no altitude input at all and — by the same "no usable sun
+// data" convention every arc.js export shares (phaseAt/rateInfoAt/
+// warmthAt all default to the ordinary daytime case rather than reading
+// altitudeAtNoon) — reads as plain 'day' with no rise/set regardless of
+// whether that's a polar day or a polar night. So both poles now read
+// 'light': a real, intentional behavior change that comes with tying to
+// the new shared day model, not a regression to fix.
+test('effectiveTheme: Nychthemeron reads light for a polar day, and also for a polar night (phaseAt has no altitude fallback, unlike the old dayPosition())', () => {
   S.theme = 'nychthemeron'; S.previewMin = 0;
-  // no dawn/rise/set/dusk at all (solarEvent() returns null for every one
-  // of them) is day.js's own "no usable data" branch, classified by
-  // altitudeAtNoon alone — the exact fixture shape tests/unit/day.test.js
-  // already uses for its own polar-day/polar-night cases.
   S.sun = { dawn: null, rise: null, noon: new Date(dayArcNow), set: null, dusk: null, altitudeAtNoon: 20, ok: true };
   assert.equal(effectiveTheme(), 'light', 'polar day (sun never sets)');
 
   S.sun = { dawn: null, rise: null, noon: new Date(dayArcNow), set: null, dusk: null, altitudeAtNoon: -20, ok: true };
-  assert.equal(effectiveTheme(), 'dark', 'polar night (sun never rises)');
+  assert.equal(effectiveTheme(), 'light', 'polar night also reads light now -- phaseAt falls back to "day" with no rise/set at all');
 });
 
 test('applyTheme: Nychthemeron sets data-theme to the resolved light/dark, not the literal choice, and mirrors "nychthemeron" to localStorage', () => {

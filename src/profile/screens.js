@@ -13,7 +13,8 @@ import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
-import { currentDayPosition } from '../sundown/solar.js';
+import { nowClock } from '../sundown/solar.js';
+import { phaseAt } from '../sundown/arc.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -182,15 +183,21 @@ function renderProfileHome(body, refresh){
 function nychthemeronSwitchCaption(){
   if(!S.sun.ok) return 'Resolves once your location is known.';
   const fmt = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  if(isDaylightPhase(currentDayPosition().phase)) return 'Turns dark at ' + fmt(S.sun.set) + ' today.';
+  // PR7 (DAY_ARC_BRIEF.md): reads arc.js's phaseAt() (via theme.js's own
+  // isDaylightPhase()), the same day model Nychthemeron's own
+  // light/dark resolution now uses (src/ui/theme.js's effectiveTheme()),
+  // in place of the old DA1-DA6 dayPosition()/currentDayPosition().
+  // nowClock() folds S.previewMin in the same way every other Day Arc v2
+  // readout does, so "Preview the day" moves this caption too.
+  const now = nowClock();
+  if(isDaylightPhase(phaseAt(now, S.sun))) return 'Turns dark at ' + fmt(S.sun.set) + ' today.';
   // "Today" only if today's own rise hasn't happened yet (the dawn phase,
   // or the night phase's own pre-dawn tail) — dayEvents()'s Julian-day
   // rounding always gives *today's* rise regardless of what hour `now`
   // is (DA1's own "continuity across midnight" trick), so right after
   // today's sunset S.sun.rise is already a past time, not an upcoming
   // one; saying so plainly beats showing a time that's already gone by.
-  const now = Date.now() + S.previewMin*60000;
-  return now < S.sun.rise.getTime()
+  return now.getTime() < S.sun.rise.getTime()
     ? 'Turns light at ' + fmt(S.sun.rise) + ' today.'
     : 'Turns light at sunrise tomorrow.';
 }
