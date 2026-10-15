@@ -69,3 +69,10 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Mouse-driven devices have no pull gesture, so the button is always
+   visible there; touch devices keep only the pull (button stays
+   keyboard-focus-only for accessibility). */
+@media (hover: hover) and (pointer: fine){
+  .pull-refresh-btn{ opacity: 1; }
+}
