@@ -246,3 +246,92 @@ test('hasOpenLayer: false with nothing open, true with a layer open, false again
   closeLayer('a');
   assert.equal(hasOpenLayer(), false);
 });
+
+/* ---- applyInert: the background must go inert, but the topmost layer's
+   own container (and the app's one open overlay, not the whole page) must
+   stay reachable -- regression coverage for the real bug: every overlay in
+   this app (the full player, the gatefold, every sheet) is a direct
+   sibling of the rest of the app's own top-level content, not a
+   descendant of it, so inerting a single "whole app" root used to also
+   inert the overlay that was just opened, right along with it. */
+
+function makeTreeEl(id, children = []){
+  const el = {
+    id,
+    _attrs: {},
+    children,
+    parentNode: null,
+    setAttribute(k, v){ this._attrs[k] = v; },
+    removeAttribute(k){ delete this._attrs[k]; },
+    contains(other){
+      for(let n = other; n; n = n.parentNode) if(n === this) return true;
+      return false;
+    },
+    querySelector(){ return null; },
+  };
+  children.forEach(c => { c.parentNode = el; });
+  return el;
+}
+
+function isInert(el){ return el._attrs.inert === ''; }
+
+test('applyInert: a layer whose container is a top-level sibling (the full player, the gatefold) inerts every OTHER sibling, never the container itself', () => {
+  const gatefold = makeTreeEl('gatefold');
+  const playerOverlay = makeTreeEl('playerOverlay');
+  const wrap = makeTreeEl('wrap');
+  const miniPlayer = makeTreeEl('miniPlayer');
+  const body = makeTreeEl('body', [wrap, miniPlayer, playerOverlay, gatefold]);
+
+  initNavStack(body);
+  openLayer('player', () => {}, { container: playerOverlay });
+
+  assert.equal(isInert(playerOverlay), false, 'the open layer\'s own container must stay reachable');
+  assert.equal(isInert(wrap), true);
+  assert.equal(isInert(miniPlayer), true);
+  assert.equal(isInert(gatefold), true);
+  assert.equal(isInert(body), false, 'the whole page must never go inert, only the container\'s siblings');
+
+  closeLayer('player');
+  assert.equal(isInert(wrap), false);
+  assert.equal(isInert(miniPlayer), false);
+  assert.equal(isInert(gatefold), false);
+});
+
+test('applyInert: a layer whose container is nested inside other reachable content (the header search field) inerts siblings at every level, leaving the whole path to it reachable', () => {
+  const hdrSearchRow = makeTreeEl('hdrSearchRow');
+  const addMenu = makeTreeEl('addMenu');
+  const header = makeTreeEl('header', [hdrSearchRow, addMenu]);
+  const routeLibrary = makeTreeEl('route-library', [header]);
+  const routeHome = makeTreeEl('route-home');
+  const wrap = makeTreeEl('wrap', [routeLibrary, routeHome]);
+  const gatefold = makeTreeEl('gatefold');
+  const body = makeTreeEl('body', [wrap, gatefold]);
+
+  initNavStack(body);
+  openLayer('search-field', () => {}, { container: hdrSearchRow });
+
+  // the path down to the container stays reachable at every level...
+  assert.equal(isInert(hdrSearchRow), false);
+  assert.equal(isInert(header), false);
+  assert.equal(isInert(routeLibrary), false);
+  assert.equal(isInert(wrap), false);
+  // ...while its siblings at each of those same levels go inert
+  assert.equal(isInert(addMenu), true);
+  assert.equal(isInert(routeHome), true);
+  assert.equal(isInert(gatefold), true);
+
+  closeLayer('search-field');
+  assert.equal(isInert(addMenu), false);
+  assert.equal(isInert(routeHome), false);
+  assert.equal(isInert(gatefold), false);
+});
+
+test('applyInert: a layer with no container (or one not actually in the tree) falls back to inerting the whole root, the same as before this behavior existed', () => {
+  const wrap = makeTreeEl('wrap');
+  const body = makeTreeEl('body', [wrap]);
+  initNavStack(body);
+  openLayer('no-container', () => {});
+  assert.equal(isInert(body), true);
+  closeLayer('no-container');
+  assert.equal(isInert(body), false);
+});
