@@ -88,10 +88,18 @@ export function rateInfoAt(now, sun, settings = {}) {
   const { mode, auto, target = 1, paceMode = 'window', recoveryWindowMs = RECOVERY_WINDOW_MS } = settings;
   if (mode === 'pure') return { rate: 1, trend: 'full' };
   if (auto === false) return { rate: 1, trend: 'full' };
-  if (!sun || !sun.set || !sun.dusk || !sun.rise) return { rate: 1, trend: 'full' };
+  // sun.rise is checked separately below (not here): a sun object with
+  // only set/dusk known (no usable sunrise — the brief's own "polar
+  // day/night, no location" case, or a legacy/partial fixture) still
+  // drives the existing down-leg/floor/hold shape correctly; it just
+  // never recovers, since there's no sunrise to recover toward. This
+  // mirrors day.js's own "legacy/partial data" fallback for exactly the
+  // same reason (see that file's own comment on the shape).
+  if (!sun || !sun.set || !sun.dusk) return { rate: 1, trend: 'full' };
 
   const t = now.getTime();
-  const riseT = sun.rise.getTime(), setT = sun.set.getTime(), duskT = sun.dusk.getTime();
+  const setT = sun.set.getTime(), duskT = sun.dusk.getTime();
+  const riseT = sun.rise ? sun.rise.getTime() : null;
   const lo = Math.min(1, target), hi = Math.max(1, target);
 
   // `t < riseT` is only ever true here when `now` is genuinely approaching
@@ -100,7 +108,7 @@ export function rateInfoAt(now, sun, settings = {}) {
   // consult sun.set/sun.dusk (which, for a pre-dawn `now`, name *this
   // transit's own* evening — still hours in the future, not the dusk that
   // actually preceded this stretch of night).
-  if (t < riseT) {
+  if (riseT !== null && t < riseT) {
     const recoveryStart = riseT - recoveryWindowMs;
     if (t >= recoveryStart) {
       const p = smooth(clamp((t - recoveryStart) / (recoveryWindowMs || 1), 0, 1));
