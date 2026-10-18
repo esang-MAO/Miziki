@@ -1,8 +1,9 @@
 /* ================= wiring: Character panel and Settings toggles =================
    Moved out of main.js's "wiring" IIFE (step 7f) — the character
-   presets, Scratch, Car Mode's motion toggle, sleeve pull, launch intro,
-   background playback, and the Car Mode floor/max-speed sliders. Every
-   function called here was already a real export of its owning module.
+   presets, Scratch, sleeve pull, launch intro, and background playback.
+   Every function called here was already a real export of its owning
+   module. RF6 (docs/12_REFINE.md) removed Car Mode's motion toggle and
+   floor/max-speed sliders outright.
 
    tabs-design-unify removed the four always-visible character sliders,
    leaving only the three presets; a later follow-up (per that branch's
@@ -16,7 +17,7 @@ import { applyCharacter } from '../audio/engine.js';
 import { queueSave } from '../storage/meta.js';
 import { setMode } from '../audio/mode.js';
 import { toggleScratch } from '../player/scrub.js';
-import { toggleMotion, toggleSleevePull } from '../sundown/location.js';
+import { toggleSleevePull } from '../sundown/location.js';
 import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
 import { toggleBgAudio, bgUpdateUI } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
@@ -99,15 +100,9 @@ export function wireCharacter(){
   }));
 
   $('#scratchBtn').addEventListener('click', toggleScratch);
-  $('#motionBtn').addEventListener('click', toggleMotion);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#launchIntroBtn').addEventListener('click', toggleLaunchIntro);
   attachLaunchSettingRow();
   $('#bgAudioBtn').addEventListener('click', toggleBgAudio);
   bgUpdateUI();
-  $('#floor').addEventListener('input', e=>{ S.motion.floor = e.target.value/100; $('#floorOut').textContent = e.target.value + '%'; });
-  $('#maxSpeed').addEventListener('input', e=>{
-    S.motion.max = +e.target.value;
-    $('#maxSpeedOut').textContent = Math.round(S.motion.max*2.23694) + ' mph';
-  });
 }

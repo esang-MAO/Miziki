@@ -1,6 +1,5 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { clamp } from '../util/math.js';
 import { computeSun, persistSunTimesCache } from './solar.js';
 import { drawSun } from '../player/clock.js';
 import { queueSave } from '../storage/meta.js';
@@ -72,42 +71,11 @@ export function toggleSleevePull(){
   queueSave();
 }
 
-export function toggleMotion(){
-  const b = $('#motionBtn');
-  if(S.motion.on){
-    if(S.motion.watch !== null) navigator.geolocation.clearWatch(S.motion.watch);
-    S.motion.on = false; S.motion.watch = null; S.motion.factor = 1; S.motion.speed = null;
-    b.textContent = 'Off'; b.setAttribute('aria-pressed','false');
-    $('#speedOut').textContent = '—'; applyVolume();
-    $('#carModeDetails').style.display = 'none';
-    return;
-  }
-  if(!navigator.geolocation){ $('#motionNote').textContent = 'This browser has no GPS access, so Car Mode cannot compensate for road noise here.'; return; }
-  S.motion.on = true; b.textContent = 'On'; b.setAttribute('aria-pressed','true');
-  $('#carModeDetails').style.display = 'block';
-  S.motion.watch = navigator.geolocation.watchPosition(
-    pos => {
-      const s = pos.coords.speed;
-      if(s === null || isNaN(s)){
-        $('#speedOut').textContent = 'no reading';
-        $('#motionNote').textContent = 'Your device is not reporting speed yet. This needs GPS and actual movement — it stays blank sitting still indoors.';
-        return;
-      }
-      S.motion.speed = s;
-      $('#speedOut').textContent = (s*2.23694).toFixed(0) + ' mph · ' + (s*3.6).toFixed(0) + ' km/h';
-      S.motion.factor = S.motion.floor + (1 - S.motion.floor) * clamp(s / S.motion.max, 0, 1);
-      applyVolume(1.1);   // glide across the ~1 s gap between readings
-    },
-    () => { $('#motionNote').textContent = 'Location permission was declined, so Car Mode is off.'; toggleMotion(); },
-    {enableHighAccuracy:true, maximumAge:1000, timeout:20000}
-  );
-}
-
-// output is unity gain, so loudness tracks the device's own volume; the only
-// software shaping left on top of that is Car Mode's noise-compensation factor
+// RF6 (docs/12_REFINE.md): Car Mode (toggleMotion, the GPS speed watch) is
+// removed outright — this is just the master gain now, at unity (or the
+// sleep-timer fade, the one other thing that still passes a glide here).
 export function applyVolume(glide){
   if(!S.nodes) return;
-  const v = S.motion.on ? S.motion.factor : 1;
-  S.nodes.master.gain.setTargetAtTime(v, S.ctx.currentTime, glide ? glide/3 : 0.05);
+  S.nodes.master.gain.setTargetAtTime(1, S.ctx.currentTime, glide ? glide/3 : 0.05);
 }
 

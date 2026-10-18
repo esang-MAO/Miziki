@@ -1,6 +1,6 @@
 # Miziki privacy policy
 
-**Last updated: October 13, 2026**
+**Last updated: October 18, 2026**
 
 This is the canonical source for the Privacy Policy shown inside the app
 (`src/profile/legal.js`'s `renderPrivacyPolicyScreen`). The two must say the
@@ -45,8 +45,8 @@ optional account features (sign-in, backup, social).
 - **Embedded cover art** inside your music files — it stays with the
   file and is never uploaded.
 - **Your location.** Used only on your own device, for Sundown's sunset
-  calculation and Car Mode's speed reading. It never leaves the device
-  and is never sent to Miziki or anyone else. If you choose the
+  calculation. It never leaves the device and is never sent to Miziki or
+  anyone else. If you choose the
   Nychthemeron appearance (light by day, dark by night), the only thing
   kept from this is today's sunrise and sunset *times* — never your
   coordinates — so the app can pick the right look before the page even
