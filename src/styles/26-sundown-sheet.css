@@ -58,13 +58,22 @@
 /* the sheet itself: a bottom sheet by default, half height on open,
    .full on a drag-up or picking Sound. */
 .sundown-sheet-scrim{
-  position:fixed; inset:0; background:rgba(7,8,12,.55); z-index:60;
+  /* above every overlay the sheet can be opened from or alongside — the
+     full player (13-player-overlay.css, z-index:100) in particular, since
+     the sun knob's one way in sits on the platter, inside the open full
+     player. Before this, the sheet still opened correctly (nav-stack.js
+     still marked the player inert) but painted *behind* it, so the player
+     looked identical and completely frozen with nothing visibly different
+     on screen — reported by Ken as the knob "loading another page that
+     doesn't go anywhere." gf-handoff-ghost/morph-disc (14-morph.css,
+     15-gatefold-handoff.css) are the next-highest at 150. */
+  position:fixed; inset:0; background:rgba(7,8,12,.55); z-index:160;
   opacity:0; pointer-events:none; transition:opacity .25s ease;
 }
 .sundown-sheet-scrim.open{ opacity:1; pointer-events:auto }
 
 .sundown-sheet{
-  position:fixed; left:0; right:0; bottom:0; z-index:61;
+  position:fixed; left:0; right:0; bottom:0; z-index:161;
   background:#1E1815; border-radius:12px 12px 0 0;
   box-shadow: var(--sh-3, 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45));
   display:flex; flex-direction:column;
