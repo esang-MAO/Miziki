@@ -173,10 +173,46 @@ function friendPicksSection(full){
   return section;
 }
 
+// RF20 point 4: one caption line under every rule-chosen list, naming the
+// rule rather than leaving the heading to imply it.
+function storeRuleCaption(text){
+  return el('p','store-rule-caption', text);
+}
+
+// RF20 point 3: "a friend's crate opens on what you have in common... then
+// Fresh, then everything" — this section renders first, ahead of Staff
+// picks/Fresh/the crate grid. records_in_common (already fetched into
+// full.inCommon by loadProfile) has no pin/rating of its own, just the
+// plain release row — alphabetical by artist/year/title, same order the
+// RPC itself returns it in (001_schema.sql's records_in_common).
+function friendInCommonSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'You both have'));
+  section.appendChild(head);
+  section.appendChild(storeRuleCaption('Records in both your crates, ' + full.inCommon.length + ' total.'));
+  const grid = el('div','store-crate-grid');
+  full.inCommon.forEach(item => {
+    const cell = document.createElement('button');
+    cell.type = 'button'; cell.className = 'store-crate-cell';
+    const art = localAlbumArt(item.title, item.artist);
+    const cover = el('div','store-crate-cover');
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', item.title));
+    cell.appendChild(el('div','store-crate-artist', item.artist));
+    cell.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · IN COMMON'));
+    grid.appendChild(cell);
+  });
+  section.appendChild(grid);
+  return section;
+}
+
 function friendFreshSection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Fresh for you'));
   section.appendChild(head);
+  section.appendChild(storeRuleCaption(
+    'Records ' + full.profile.handle + ' pinned or wrote about that you don’t have, newest first.'));
   full.fresh.forEach(item => {
     const row = el('div','store-fresh-row');
     const text = el('div','store-fresh-text');
@@ -343,6 +379,8 @@ function renderFriendStoreContent(body, full){
     body.appendChild(rhythmHost);
     renderSharedRhythmCard(rhythmHost, full.listeningRhythm);
   }
+  // RF20 point 3: overlap first, then Fresh, then everything else.
+  if(full.inCommon && full.inCommon.length) body.appendChild(friendInCommonSection(full));
   if(full.staffPicks.length) body.appendChild(friendPicksSection(full));
   if(full.fresh && full.fresh.length) body.appendChild(friendFreshSection(full));
   if(full.diggingShared && full.digging.length) body.appendChild(friendDiggingPreview(full));

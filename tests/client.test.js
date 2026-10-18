@@ -748,5 +748,54 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.doesNotThrow(() => psql(`insert into private.schema_migrations(version) select generate_series(1,12) on conflict (version) do nothing`));
    assert.equal(q1(`select count(*) from private.schema_migrations where version between 1 and 12`),'12'); });
 
+ // RF20 (docs/12_REFINE.md, migration 015_fresh_from_pins_notes.sql):
+ // fresh_for_you now runs on pin_rank/sleeve_note, never the 1-5 rating --
+ // a high rating alone no longer qualifies, and a low-rated pin does.
+ // Reusing FUID_A (owner, visibility 'friends')/FUID_B (friend, follows
+ // FUID_A, accepted) from the RF2 fixtures above -- the same visibility
+ // shape fresh_for_you's own `security invoker` + crate_items RLS needs.
+ await t('RF20: an unpinned, un-noted 5-star record is not fresh',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-1','RF20 High Rated','RF20 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-1'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',5,null,null)
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
+   assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '0',
+     'a 5-star record with no pin and no note must not show up as fresh'); });
+ await t('RF20: a pinned 2-star record is fresh',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-2','RF20 Pinned Low Rated','RF20 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',2,8,null)
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
+   assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '1',
+     'a pinned record must be fresh even at a low rating'); });
+ await t('RF20: an unpinned record with a sleeve note is fresh too',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-3','RF20 Noted Not Pinned','RF20 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-3'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',1,null,'Still my favorite side B.')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
+   assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '1',
+     'a noted-but-unpinned record must be fresh even at a 1-star rating'); });
+ await t('RF20: pins outrank an unpinned note regardless of rating',()=>{
+   // From the two fresh records above: rf20-rel-2 (pin_rank 8, rating 2)
+   // must sort ahead of rf20-rel-3 (no pin, rating 1, note) -- pin beats
+   // note-only, never mind which one has the higher rating.
+   const relPinned = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
+   const relNoted = asUser(FUID_A, `select id from releases where release_key='rf20-rel-3'`);
+   // asUser/lastLine only ever keeps the final output line -- fine for a
+   // scalar, wrong for a multi-row result, so the ordered list of ids is
+   // collapsed into one comma-joined row server-side instead of trusting
+   // lastLine to hand back every row.
+   const order = asUser(FUID_B,
+     `select string_agg(release_id::text, ',') from fresh_for_you(p_other=>'${FUID_A}') q`).split(',');
+   assert.ok(order.indexOf(relPinned) < order.indexOf(relNoted) && order.indexOf(relPinned) >= 0,
+     'expected the pinned record to rank ahead of the merely-noted one: ' + JSON.stringify(order)); });
+ await t('RF20: records_in_common already exists and still works unchanged',()=>{
+   // RF20 adds an "overlap first" UI section around this existing RPC --
+   // it isn't touched by migration 015, so a quick smoke check is enough.
+   asUser(FUID_B, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_B}','${asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`)}','public')
+     on conflict (user_id,release_id) do nothing`);
+   const relPinned = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
+   assert.equal(asUser(FUID_B, `select count(*) from records_in_common(p_other=>'${FUID_A}') where release_id='${relPinned}'`), '1'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

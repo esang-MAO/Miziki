@@ -952,12 +952,17 @@
     const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
     const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
     if (!canView) return out;
-    const [summary, picks, spinning, fresh, follows, rhythm] = await Promise.all([
+    const [summary, picks, spinning, fresh, inCommonRows, follows, rhythm] = await Promise.all([
       rpc('profile_summary', { p_user: profile.id }),
       rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
       q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, phase, releases(title, artist)')
         .eq('user_id', profile.id).gt('expires_at', new Date().toISOString()).maybeSingle()),
       isMe ? Promise.resolve([]) : rpc('fresh_for_you', { p_other: profile.id, p_min_rating: 4, p_limit: 12 }),
+      // RF20 point 3: "overlap first" — what the viewer already shares with
+      // this crate, fetched eagerly alongside Fresh rather than lazily via
+      // the separate inCommon() export, so the friend-store screen can
+      // render it as its own, always-first section with no extra round trip.
+      isMe ? Promise.resolve([]) : rpc('records_in_common', { p_other: profile.id }),
       // follower/following counts only make sense (and are only visible under
       // RLS) for your own storefront — frame 02's friend store shows
       // Records/Staff picks/In common instead, no followers count at all
@@ -981,6 +986,7 @@
     out.staffPicks = picks || [];
     out.nowSpinning = spinning || null;
     out.fresh = fresh || [];
+    out.inCommon = inCommonRows || [];
     // Digging list: shown only when the owner left it on (default on). RLS enforces this too.
     out.diggingShared = isMe || profile.show_digging_list !== false;
     if (out.diggingShared) {
