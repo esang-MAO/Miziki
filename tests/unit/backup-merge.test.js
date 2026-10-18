@@ -21,6 +21,10 @@ function baseLocal(deviceId, overrides){
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
     trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
+    // RF17 (docs/12_REFINE.md): add-wins playlist membership, local-id
+    // keyed (state.js's S.playlistMembershipAt) — see toDoc()'s own
+    // convertPlaylistMembership() for how it's converted to identityKey.
+    playlistMembershipAt: {},
   }, overrides);
 }
 
@@ -144,12 +148,17 @@ test('playlist portability: an item for a track only present on another device s
   const a = toDoc(baseLocal('a', {
     tracks: [x],
     playlists: [{ name: 'Mix', items: ['a-local-id'], system: undefined }],
-    updatedAt: { playlists: { at: 500 } },
+    updatedAt: {
+      playlistDefs: { Mix: { seq: 1, at: 500 } },
+      playlistOrder: { Mix: { seq: 1, at: 500 } },
+    },
   }));
-  const b = baseLocal('b', { tracks: [], playlists: [], updatedAt: { playlists: { at: 100 } } }); // older -> A's playlist wins LWW
+  // B has no track to resolve and no claim of its own for 'Mix' at all —
+  // A's own def/order/membership for it simply has nothing to compete with.
+  const b = baseLocal('b', { tracks: [], playlists: [] });
   const merged = fromDocs(b, [a]);
-  const items = merged.lastWrite.playlists[0].items;
-  assert.deepEqual(items, [keyX]);
+  assert.deepEqual(merged.itemWrites.playlistOrder.Mix, [keyX]);
+  assert.deepEqual(merged.playlistMembership.Mix, [keyX]);
 });
 
 test('playlist portability: the surviving identity key attaches once a matching track is imported', () => {
@@ -211,17 +220,108 @@ test('sealed: a seal broken on one device stays broken after merging with a devi
   assert.deepEqual(merged.sealed.broken, ['al1']);
 });
 
-// ---- last write wins, per field ----
+// ---- RF17 (docs/12_REFINE.md): per-key last write wins ----
 
-test('last write wins: an unrelated, later change to one field never clobbers an earlier change to another field', () => {
+test('RF17: an unrelated, later change to one field never clobbers an earlier change to another field', () => {
   const a = toDoc(baseLocal('a', {
-    albumSort: { 'Album X': 'manual' }, updatedAt: { albumSort: { at: 100 }, crateAnchor: 1 }, prefs: { crateAnchor: 'a1' },
+    albumSort: { 'Album X': 'manual' },
+    updatedAt: { albumSort: { 'Album X': { seq: 1, at: 100 } }, prefs: { crateAnchor: { seq: 1, at: 100 } } },
+    prefs: { crateAnchor: 'a1' },
   }));
-  const b = toDoc(baseLocal('b', { prefs: { crateAnchor: 'b1' }, updatedAt: { prefs: { at: 500 } } }));
+  const b = toDoc(baseLocal('b', {
+    prefs: { crateAnchor: 'b1' },
+    updatedAt: { prefs: { crateAnchor: { seq: 2, at: 500 } } },
+  }));
   const merged = mergeRows([a, b]);
-  // B's prefs are newer and win, but A's albumSort (a field B never touched/claims no newer write for) must survive
-  assert.deepEqual(merged.lastWrite.prefs, { crateAnchor: 'b1' });
-  assert.deepEqual(merged.lastWrite.albumSort, { 'Album X': 'manual' });
+  // B's crateAnchor pref is newer and wins, but A's albumSort (a different
+  // field, and one B never claims a write for at all) must survive untouched
+  assert.deepEqual(merged.itemWrites.prefs, { crateAnchor: 'b1' });
+  assert.deepEqual(merged.itemWrites.albumSort, { 'Album X': 'manual' });
+});
+
+test('RF17: a later change to one key of a map field never clobbers an earlier change to a different key of the same field', () => {
+  const a = toDoc(baseLocal('a', {
+    albumSort: { 'Album X': 'manual' },
+    updatedAt: { albumSort: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumSort: { 'Album Y': 'title' },
+    updatedAt: { albumSort: { 'Album Y': { seq: 1, at: 900 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  // two different albums, two different keys -- both survive regardless of
+  // which stamp is newer, since neither competes with the other's key
+  assert.deepEqual(merged.itemWrites.albumSort, { 'Album X': 'manual', 'Album Y': 'title' });
+});
+
+test('RF17: a removed key (present as a stamp, absent from the current value map) becomes a tombstone that drops out of the merged map', () => {
+  const a = toDoc(baseLocal('a', {
+    albumOrder: { 'Album X': ['id1', 'id2'] },
+    updatedAt: { albumOrder: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  // B deleted the album's own manual order entirely (e.g. the album lost
+  // its last track) -- a later stamp, no current value for that key at all
+  const b = toDoc(baseLocal('b', {
+    albumOrder: {},
+    updatedAt: { albumOrder: { 'Album X': { seq: 2, at: 200 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.equal('Album X' in merged.itemWrites.albumOrder, false);
+});
+
+test('RF17: two offline hearts to the same playlist, on two different devices, both survive', () => {
+  const x = mkTrack('a-local-x', 'Song X', 'Artist', 'Album X');
+  const y = mkTrack('b-local-y', 'Song Y', 'Artist', 'Album Y');
+  const keyX = trackIdentityKey(x), keyY = trackIdentityKey(y);
+  // A hearts X while offline; B hearts Y while offline -- neither device
+  // ever saw the other's edit, so their own membership map only has its own
+  // addition, never a tombstone for the other device's pick.
+  const a = toDoc(baseLocal('a', {
+    tracks: [x],
+    playlists: [{ name: 'Favorites', items: ['a-local-x'], system: 'favorites' }],
+    playlistMembershipAt: { ['Favorites\u0000a-local-x']: { added: { seq: 1, at: 100 }, removed: null } },
+    updatedAt: { playlistDefs: { Favorites: { seq: 1, at: 100 } }, playlistOrder: { Favorites: { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    tracks: [y],
+    playlists: [{ name: 'Favorites', items: ['b-local-y'], system: 'favorites' }],
+    playlistMembershipAt: { ['Favorites\u0000b-local-y']: { added: { seq: 1, at: 150 }, removed: null } },
+    updatedAt: { playlistDefs: { Favorites: { seq: 1, at: 150 } }, playlistOrder: { Favorites: { seq: 1, at: 150 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  const members = new Set(merged.playlistMembership.Favorites || []);
+  assert.equal(members.has(keyX), true);
+  assert.equal(members.has(keyY), true);
+  assert.equal(members.size, 2);
+});
+
+// ---- RF17: forward compatibility -- a v2 (whole-blob) doc upgrades cleanly ----
+
+test('RF17: a v2 doc (whole-blob lastWrite, no itemWrites/playlistMembership) upgrades cleanly through fromDocs', () => {
+  const t = mkTrack('local-a', 'Old Title', 'Artist', 'Album');
+  const key = trackIdentityKey(t);
+  const v2Doc = {
+    schemaVersion: 2, deviceId: 'old-device', historyClearedAt: 0,
+    counters: { trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {}, phasePlayCounts: {}, albumPhaseCounts: {} },
+    maxFields: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealed: { sealed: [], broken: [] },
+    lastWrite: {
+      albumSort: { seq: 3, at: 1000, deviceId: 'old-device', value: { 'Album': 'manual' } },
+      prefs: { seq: 2, at: 900, deviceId: 'old-device', value: { crateAnchor: 'legacy' } },
+      playlists: { seq: 1, at: 500, deviceId: 'old-device', value: [{ name: 'Mix', items: [key], system: undefined }] },
+      profileName: { seq: 1, at: 500, deviceId: 'old-device', value: 'Old Name' },
+    },
+    overlays: [], covers: [],
+  };
+  const a = baseLocal('a', { tracks: [t] });
+  const merged = fromDocs(a, [v2Doc]);
+  // the whole-blob stamp explodes onto every key that field's value held,
+  // so each key still merges through the one, current (per-key) path
+  assert.deepEqual(merged.itemWrites.albumSort, { Album: 'manual' });
+  assert.deepEqual(merged.itemWrites.prefs, { crateAnchor: 'legacy' });
+  assert.deepEqual(merged.itemWrites.playlistOrder.Mix, [key]);
+  assert.deepEqual(merged.playlistMembership.Mix, [key]);
+  assert.equal(merged.lastWrite.profileName, 'Old Name');
 });
 
 // ---- RF16 (docs/12_REFINE.md): seq beats a slow clock, deviceId breaks ties ----
@@ -278,19 +378,24 @@ test('robustness: mergeRows on rows missing every optional field does not throw'
 
 test('round trip: toDoc -> fromDocs with no other devices reproduces this device\'s own data exactly', () => {
   const t = mkTrack('local-a', 'Title', 'Artist', 'Album');
+  const key = trackIdentityKey(t);
   const local = baseLocal('solo', {
     tracks: [t],
-    trackPlayCounts: { [trackIdentityKey(t)]: 4 },
+    trackPlayCounts: { [key]: 4 },
     sessionCounts: { Album: 2 },
     rareUnlocked: { Album: true },
     playlists: [{ name: 'Mix', items: ['local-a'], system: undefined }],
-    updatedAt: { playlists: { at: 1 } },
+    updatedAt: {
+      playlistDefs: { Mix: { seq: 1, at: 1 } },
+      playlistOrder: { Mix: { seq: 1, at: 1 } },
+    },
   });
   const merged = fromDocs(local, []);
-  assert.equal(merged.totals.counters.trackPlayCounts[trackIdentityKey(t)], 4);
+  assert.equal(merged.totals.counters.trackPlayCounts[key], 4);
   assert.equal(merged.totals.counters.sessionCounts.Album, 2);
   assert.deepEqual(merged.totals.rareUnlocked, { Album: true });
-  assert.deepEqual(merged.lastWrite.playlists[0].items, [trackIdentityKey(t)]);
+  assert.deepEqual(merged.itemWrites.playlistOrder.Mix, [key]);
+  assert.deepEqual(merged.playlistMembership.Mix, [key]);
 });
 
 // ---- step 07 (B4): custom-cover images, per-track last write wins ----

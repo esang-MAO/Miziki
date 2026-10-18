@@ -8,7 +8,7 @@
    file id, so it's untouched by deletion and rematches automatically the
    moment a track with the same identity is added back. See LIBRARY
    spec §1. */
-import { S, touchBackupField } from '../state.js';
+import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey } from '../record-art/tiers.js';
 import { idOf, idxOf, allIdx } from './model.js';
@@ -90,14 +90,25 @@ export async function deleteTracks(idsToDelete){
   }
 
   // explicit deletion actually drops membership — unlike forgetLibrary
-  // (F3 spec), which never touches these at all so everything reconnects
-  S.playlists.forEach(p => { p.items = p.items.filter(id => !idSet.has(id)); });
-  touchBackupField('playlists');
-  Object.keys(S.albumOrder).forEach(a => {
-    S.albumOrder[a] = S.albumOrder[a].filter(id => !idSet.has(id));
-    if(!S.albumOrder[a].length) delete S.albumOrder[a];
+  // (F3 spec), which never touches these at all so everything reconnects.
+  // RF17 (docs/12_REFINE.md): each dropped (playlist, id) pair gets its own
+  // removal tombstone (touchBackupMembership), same add-wins shape as
+  // view.js's togglePick()/favorites.js's toggleFavorite() — a removal
+  // here must win on merge over a device that still has the track.
+  S.playlists.forEach(p => {
+    const removedIds = p.items.filter(id => idSet.has(id));
+    if(!removedIds.length) return;
+    p.items = p.items.filter(id => !idSet.has(id));
+    removedIds.forEach(id => touchBackupMembership(p.name, id, 'removed'));
+    touchBackupKey('playlistOrder', p.name);
   });
-  touchBackupField('albumOrder');
+  Object.keys(S.albumOrder).forEach(a => {
+    const before = S.albumOrder[a];
+    const after = before.filter(id => !idSet.has(id));
+    if(after.length === before.length) return;
+    if(after.length) S.albumOrder[a] = after; else delete S.albumOrder[a];
+    touchBackupKey('albumOrder', a);
+  });
   S.lru = [];
 
   if(removingCurrent){

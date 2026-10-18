@@ -40,6 +40,14 @@ function filterKeep(dict, keepSet){
 // itself untouched: a local clear stamps today's date, while adopting
 // another device's clear adopts its stamp instead — see each caller.
 export async function resetLocalHistory(){
+  // RF17 (docs/12_REFINE.md): capture every key being wiped *before* wiping
+  // it, so persistAlbumDisplay/persistAlbumLookPref/persistTrackDisplay (now
+  // per-key — thumbs.js's/sessions.js's own entries) can stamp a tombstone
+  // for each one, rather than touching nothing and leaving every album's
+  // last stamp (and thus its merged value) unchanged on the next sync.
+  const albumDisplayKeys = Object.keys(S.albumDisplay);
+  const albumLookPrefKeys = Object.keys(S.albumLookPref);
+  const trackDisplayKeys = Object.keys(S.trackDisplay);
   S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
   S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
   S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
@@ -49,8 +57,8 @@ export async function resetLocalHistory(){
   await pruneThumbs();
   await Promise.all([
     persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
-    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
+    persistAlbumLastPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
+    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
     persistPhasePlayCounts(), persistAlbumPhaseCounts()
   ]);
 }
@@ -61,6 +69,12 @@ export async function clearListeningHistory(orphanedOnly){
     const droppedAlbums = Object.keys(S.achievements).filter(id => !albumIds.has(id));
     const droppedCollection = Object.keys(S.collection).filter(id => !albumIds.has(id));
     const droppedSessions = Object.keys(S.sessions).filter(id => !albumIds.has(id));
+    // RF17: the keys actually pruned by this orphaned-only pass, for the
+    // same per-key tombstone reason resetLocalHistory() captures its own
+    // full-wipe keys above.
+    const droppedAlbumDisplay = Object.keys(S.albumDisplay).filter(id => !albumIds.has(id));
+    const droppedAlbumLookPref = Object.keys(S.albumLookPref).filter(id => !albumIds.has(id));
+    const droppedTrackDisplay = Object.keys(S.trackDisplay).filter(k => !trackKeys.has(k));
     S.sessionCounts = filterKeep(S.sessionCounts, albumIds);
     S.metalEligibleSessions = filterKeep(S.metalEligibleSessions, albumIds);
     S.rareUnlocked = filterKeep(S.rareUnlocked, albumIds);
@@ -87,8 +101,8 @@ export async function clearListeningHistory(orphanedOnly){
     await pruneThumbs();
     await Promise.all([
       persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
-      persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-      persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
+      persistAlbumLastPlayed(), persistAlbumDisplay(droppedAlbumDisplay), persistAlbumLookPref(droppedAlbumLookPref),
+      persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(droppedTrackDisplay),
       persistPhasePlayCounts(), persistAlbumPhaseCounts()
     ]);
   } else {

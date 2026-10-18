@@ -130,6 +130,43 @@ export function touchBackupField(name){
   S.backupSeq = (S.backupSeq || 0) + 1;
   S.backupUpdatedAt[name] = { seq: S.backupSeq, at: Date.now() };
 }
+
+// RF17 (docs/12_REFINE.md, "merge per item, not per blob"): the per-key
+// twin of touchBackupField() above, for the fields that no longer carry
+// one stamp for the whole value but one stamp per entry (albumOrder,
+// albumSort, albumDisplay, trackDisplay, albumEdge, albumLookPref,
+// playlistDefs, playlistOrder — each S.backupUpdatedAt[name] is now a map
+// {key: {seq, at}}, not a single stamp) — so a change to one album/
+// playlist never bumps, or competes on merge with, every other album's
+// own last-touched stamp. prefs is touched this way too, but not by any UI
+// call site directly — storage/meta.js's saveMeta() diffs the new prefs
+// blob against the last-saved one and calls this once per pref key that
+// actually changed, which is what gives prefs real per-key granularity
+// without a touch call at every individual settings control.
+export function touchBackupKey(name, key){
+  if(!S.backupUpdatedAt) return;
+  const map = S.backupUpdatedAt[name] || (S.backupUpdatedAt[name] = {});
+  S.backupSeq = (S.backupSeq || 0) + 1;
+  map[key] = { seq: S.backupSeq, at: Date.now() };
+}
+
+// RF17: playlist membership is an add-wins set, not a last-write-wins
+// value — hearting track X on one offline device and track Y on another
+// must keep both once they sync, which a single per-playlist stamp (the
+// old touchBackupField('playlists')) could never guarantee if the two
+// edits raced for the same whole-field stamp. Each (playlist, local track
+// id) pair gets its own {added, removed} pair of stamps, keyed by
+// 'playlistName\u0000localId' — identity-key conversion (the portable key
+// a cross-device merge actually compares) happens only at toDoc() time,
+// same as every other local-id list in this app (see backup-doc.js's own
+// header). kind is 'added' or 'removed'.
+export function touchBackupMembership(playlistName, localId, kind){
+  if(!S.playlistMembershipAt) return;
+  const mapKey = playlistName + '\u0000' + localId;
+  const entry = S.playlistMembershipAt[mapKey] || (S.playlistMembershipAt[mapKey] = { added: null, removed: null });
+  S.backupSeq = (S.backupSeq || 0) + 1;
+  entry[kind] = { seq: S.backupSeq, at: Date.now() };
+}
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
 S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:'', awaitingReturnOffer:false};
@@ -209,11 +246,28 @@ S.sealedBroken = new Set();
 // itself writes is {seq, at}, not a bare number — the 0 default here is only
 // ever read by lastWriteWins()'s own "no entry yet" fallback (src/sync/
 // merge.js), which treats a falsy entry as absent regardless of shape.
+//
+// RF17 (docs/12_REFINE.md): profileName/picture are the only two fields
+// left with a single whole-value stamp — everything else here is now a
+// *map* of per-key stamps ({} default, not 0), touched by touchBackupKey()
+// above rather than touchBackupField(). playlists itself is gone from this
+// object entirely, replaced by playlistDefs/playlistOrder (per-playlist-
+// name stamps, same map shape) plus S.playlistMembershipAt below (a
+// different shape again — see touchBackupMembership()'s own comment).
 S.backupUpdatedAt = {
-  playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0,
-  albumEdge:0, albumLookPref:0, prefs:0, profileName:0,
+  albumOrder:{}, albumSort:{}, albumDisplay:{}, trackDisplay:{},
+  albumEdge:{}, albumLookPref:{}, prefs:{},
+  playlistDefs:{}, playlistOrder:{},
+  profileName:0,
   picture:0,   // step 07, B4 — the profile picture / public avatar
 };
+// RF17: add-wins playlist membership, {['playlistName\u0000localId']:
+// {added: {seq,at}|null, removed: {seq,at}|null}} — see
+// touchBackupMembership()'s own comment above for why this needs its own
+// shape rather than reusing S.backupUpdatedAt. Device-only in the sense
+// that it's keyed by *local* ids, not identity keys — converted at
+// toDoc() time, same as S.playlists itself.
+S.playlistMembershipAt = {};
 // the account id this device has already merged a backup restore for —
 // null until the first successful merge, so the one-time "Restored..."
 // summary shows exactly once per account per device

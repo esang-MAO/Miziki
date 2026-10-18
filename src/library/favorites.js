@@ -6,7 +6,7 @@
    positions (F3 spec, step 02) — a favorited track that's since been
    forgotten (not deleted) just stays in the list, hidden until it
    reconnects, so this module never needs to resolve an index at all. */
-import { S, current, touchBackupField } from '../state.js';
+import { S, current, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { REDUCED } from '../util/motion.js';
@@ -21,6 +21,7 @@ function ensureFavoritesPlaylist(){
   if(pl){ pl.system = 'favorites'; return pl; }
   pl = {name:'Favorites', items:[], system:'favorites'};
   S.playlists.unshift(pl);
+  touchBackupKey('playlistDefs', pl.name);
   return pl;
 }
 export function isFavorite(id){
@@ -32,7 +33,11 @@ export function toggleFavorite(id){
   const at = pl.items.indexOf(id);
   if(at >= 0) pl.items.splice(at, 1); else pl.items.push(id);
   queueSave();
-  touchBackupField('playlists');
+  // RF17 (docs/12_REFINE.md): add-wins membership per (playlist, track) pair
+  // — see state.js's touchBackupMembership() and view.js's togglePick() for
+  // the same shape.
+  touchBackupMembership(pl.name, id, at >= 0 ? 'removed' : 'added');
+  touchBackupKey('playlistOrder', pl.name);
   updateFavoriteButtons();
   const t = current();
   if(!REDUCED && t && t.id === id){

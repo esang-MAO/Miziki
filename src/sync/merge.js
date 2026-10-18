@@ -128,29 +128,111 @@ export function lastWriteWins(rows, field){
   return winner ? winner.value : undefined;
 }
 
-function isNewerStamp(a, b){
-  const aSeq = a.seq || 0, bSeq = b.seq || 0;
+// RF17 (docs/12_REFINE.md, "merge per item, not per blob"): the same
+// seq/at/deviceId precedence as lastWriteWins above, exported so the
+// per-key and playlist-membership merges below (and backup-doc.js's own
+// upconverter) can share one definition of "newer."
+export function isNewerStamp(a, b){
+  const aSeq = (a && a.seq) || 0, bSeq = (b && b.seq) || 0;
   if(aSeq !== bSeq) return aSeq > bSeq;
-  const aAt = a.at || 0, bAt = b.at || 0;
+  const aAt = (a && a.at) || 0, bAt = (b && b.at) || 0;
   if(aAt !== bAt) return aAt > bAt;
-  const aDev = a.deviceId || '', bDev = b.deviceId || '';
+  const aDev = (a && a.deviceId) || '', bDev = (b && b.deviceId) || '';
   return aDev > bDev;
 }
 
-// ---- the highest seq seen anywhere across every lastWrite field of every
-// given row (RF16) — src/sync/backup.js's pull path uses this to bump this
-// device's own S.backupSeq to at least as high as anything it's just seen,
-// so its next edit is guaranteed a higher seq than every stamp it has ever
-// observed, on any device ----
-export function maxSeqAcross(rows){
-  let max = 0;
+// ---- RF17: per-item last-write-wins, for a field that used to be one
+// whole-blob stamp (B2 table) and is now one stamp per key — albumOrder,
+// albumSort, albumDisplay, trackDisplay, albumEdge, albumLookPref, prefs,
+// playlistDefs, playlistOrder. Each row contributes row.itemWrites[field],
+// an array of {key, seq, at, deviceId, value} (the same shape
+// mergeOverlays/mergeCovers already use, just keyed by whatever this field
+// calls a "key" — an album title, a playlist name, a bare pref name — not
+// always a trackIdentityKey). The newest entry per key wins; a tombstone
+// (value === null) wins exactly like any other value but is left out of
+// the returned map, the same "absent means deleted" shape mergeOverlays'
+// own revert tombstone already uses ----
+export function mergeKeyedLastWriteWins(rows, field){
+  const winners = {};
   for(const row of rows){
-    for(const entry of Object.values(row.lastWrite || {})){
-      const seq = (entry && entry.seq) || 0;
-      if(seq > max) max = seq;
+    const entries = (row.itemWrites && row.itemWrites[field]) || [];
+    for(const e of entries){
+      const prev = winners[e.key];
+      if(!prev || isNewerStamp(e, prev)) winners[e.key] = e;
     }
   }
-  return max;
+  const out = {};
+  Object.keys(winners).forEach(k => {
+    const w = winners[k];
+    if(w.value !== null) out[k] = w.value;
+  });
+  return out;
+}
+
+// ---- RF17: playlist membership as an add-wins set — a (playlist,
+// identityKey) pair is present iff the newest event anywhere for that pair
+// is an add, not a remove (B2's own concurrency concern: hearting track X
+// on one offline device and track Y on another must keep both, which this
+// achieves trivially since they're independent keys; a genuine toggle race
+// on the *same* pair resolves by the same seq/at/deviceId total order
+// every other field uses, so "any order, same answer" still holds). Each
+// row contributes row.playlistMembership, an array of {playlist,
+// identityKey, added: stamp|null, removed: stamp|null} — at most one
+// entry per pair per row, but a row may legitimately have only one side
+// set (it only ever added, or only ever removed, that pair). Returns
+// {playlistName: [identityKey, ...]}, in no particular order — ordering is
+// playlistOrder's job (see backup-doc.js's own compose step) ----
+export function mergePlaylistMembership(rows){
+  const latest = {};   // 'playlist\u0000identityKey' -> {stamp, present}
+  const consider = (ck, stamp, present) => {
+    if(!stamp) return;
+    const prev = latest[ck];
+    if(!prev || isNewerStamp(stamp, prev.stamp)) latest[ck] = { stamp, present };
+  };
+  for(const row of rows){
+    for(const e of row.playlistMembership || []){
+      const ck = e.playlist + '\u0000' + e.identityKey;
+      consider(ck, e.added, true);
+      consider(ck, e.removed, false);
+    }
+  }
+  const out = {};
+  Object.keys(latest).forEach(ck => {
+    if(!latest[ck].present) return;
+    const i = ck.indexOf('\u0000');
+    const playlist = ck.slice(0, i), identityKey = ck.slice(i + 1);
+    (out[playlist] || (out[playlist] = [])).push(identityKey);
+  });
+  return out;
+}
+
+// ---- the highest seq seen anywhere across every stamp of every given row
+// (RF16) — src/sync/backup.js's pull path uses this to bump this device's
+// own S.backupSeq to at least as high as anything it's just seen, so its
+// next edit is guaranteed a higher seq than every stamp it has ever
+// observed, on any device. RF17 widened this beyond row.lastWrite (now
+// just profileName/picture) to row.itemWrites' per-key arrays and
+// row.playlistMembership's added/removed stamps — every place a seq can
+// appear in a doc at all — or a device whose only recent edits were to an
+// album's sort order or a playlist heart would fail to bump its own
+// counter past what it just saw there ----
+function bumpMax(map, entry){
+  const seq = (entry && entry.seq) || 0;
+  if(seq > map.max) map.max = seq;
+}
+export function maxSeqAcross(rows){
+  const acc = { max: 0 };
+  for(const row of rows){
+    for(const entry of Object.values(row.lastWrite || {})) bumpMax(acc, entry);
+    for(const entries of Object.values(row.itemWrites || {})){
+      for(const e of entries || []) bumpMax(acc, e);
+    }
+    for(const e of row.playlistMembership || []){
+      bumpMax(acc, e.added);
+      bumpMax(acc, e.removed);
+    }
+  }
+  return acc.max;
 }
 
 // ---- overlays: last edit wins by timestamp; a revert is a tombstone that
@@ -234,15 +316,26 @@ export function mergeRows(rows){
     sealed: mergeSealed(rows),
     overlays: mergeOverlays(rows),
     covers: mergeCovers(rows),
+    // RF17: everything that used to be a whole-blob lastWriteWins() value
+    // (playlists, albumOrder, albumSort, albumDisplay, trackDisplay,
+    // albumEdge, albumLookPref, prefs) is now merged per item instead —
+    // see mergeKeyedLastWriteWins()/mergePlaylistMembership() above.
+    // profileName/picture are the two fields simple enough to stay as a
+    // single whole-value stamp (there's no meaningful "per item" to split
+    // either into).
+    itemWrites: {
+      albumOrder: mergeKeyedLastWriteWins(rows, 'albumOrder'),
+      albumSort: mergeKeyedLastWriteWins(rows, 'albumSort'),
+      albumDisplay: mergeKeyedLastWriteWins(rows, 'albumDisplay'),
+      trackDisplay: mergeKeyedLastWriteWins(rows, 'trackDisplay'),
+      albumEdge: mergeKeyedLastWriteWins(rows, 'albumEdge'),
+      albumLookPref: mergeKeyedLastWriteWins(rows, 'albumLookPref'),
+      prefs: mergeKeyedLastWriteWins(rows, 'prefs'),
+      playlistDefs: mergeKeyedLastWriteWins(rows, 'playlistDefs'),
+      playlistOrder: mergeKeyedLastWriteWins(rows, 'playlistOrder'),
+    },
+    playlistMembership: mergePlaylistMembership(rows),
     lastWrite: {
-      playlists: lastWriteWins(rows, 'playlists'),
-      albumOrder: lastWriteWins(rows, 'albumOrder'),
-      albumSort: lastWriteWins(rows, 'albumSort'),
-      albumDisplay: lastWriteWins(rows, 'albumDisplay'),
-      trackDisplay: lastWriteWins(rows, 'trackDisplay'),
-      albumEdge: lastWriteWins(rows, 'albumEdge'),
-      albumLookPref: lastWriteWins(rows, 'albumLookPref'),
-      prefs: lastWriteWins(rows, 'prefs'),
       profileName: lastWriteWins(rows, 'profileName'),
       // step 07, B4: the profile picture / public avatar — last write
       // wins per field, the same shape as profileName right above it

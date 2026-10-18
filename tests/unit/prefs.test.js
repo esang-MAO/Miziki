@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { serializePrefs, parsePrefs } from '../../src/storage/prefs.js';
+import { serializePrefs, parsePrefs, rememberUnknownPrefsKeys } from '../../src/storage/prefs.js';
 
 function fakeS(overrides = {}){
   return Object.assign({
@@ -178,6 +178,38 @@ test('unknown fields are dropped', () => {
 test('null and undefined input are handled without throwing', () => {
   assert.deepEqual(parsePrefs(null), {});
   assert.deepEqual(parsePrefs(undefined), {});
+});
+
+// ---- RF17 (docs/12_REFINE.md, point 4): forward compatibility ----
+// An old-version client must round-trip a pref key it doesn't recognize at
+// all, untouched -- not silently drop it the moment it re-saves its own
+// prefs. rememberUnknownPrefsKeys() is what sync/backup.js's
+// applyPrefsPatch() calls on every pull, before parsePrefs() itself ever
+// sees the merged object; serializePrefs() then echoes whatever's unknown
+// back on every subsequent local save, verbatim, until a build that does
+// understand the key changes it for real.
+test('RF17: an old-version client round-trips a new pref untouched', () => {
+  const S = fakeS();
+  // a newer device's own pull brought back a pref key this build has never
+  // heard of (e.g. a future setting) -- applyPrefsPatch() would call this
+  // before ever calling parsePrefs()
+  rememberUnknownPrefsKeys({ mode: 'vinyl', aFutureSetting: { deep: true } });
+  const saved = serializePrefs(S);
+  // every known field is still written normally...
+  assert.equal(saved.mode, S.mode);
+  assert.equal(saved.target, S.target);
+  // ...and the unrecognized key is echoed back verbatim, not dropped
+  assert.deepEqual(saved.aFutureSetting, { deep: true });
+  // parsePrefs (reading it back into *this* build's own S) still drops it,
+  // same as any other field this build doesn't understand -- it's
+  // serializePrefs's echo, not parsePrefs's filtering, that keeps it alive
+  // across a save/reload on an old build
+  const parsed = parsePrefs(saved);
+  assert.equal('aFutureSetting' in parsed, false);
+  assert.equal(parsed.mode, 'vinyl');
+  // reset the module-private cache so later tests in this file aren't
+  // affected by this one's leftover state
+  rememberUnknownPrefsKeys({});
 });
 
 test('pace, librarySort and crateAnchor are truthy-checked only, same as applyPrefs has always done', () => {

@@ -1,4 +1,4 @@
-import { S, touchBackupField } from '../state.js';
+import { S, touchBackupKey } from '../state.js';
 import { $ } from '../util/dom.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
@@ -28,11 +28,25 @@ export function queueSave(){
   saveTimer = setTimeout(saveMeta, 600);
 }
 
-// touchBackupField (step 06, B3) lives in state.js, not here — see its own
-// comment there for why. prefs has no finer-grained merge unit than the
-// whole prefs object (unlike playlists/albumOrder/albumSort, each touched
-// at its own real mutation site instead), so saveMeta() is the one place
-// that field's timestamp is stamped, every time it runs.
+// RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 3): prefs
+// is now merged per *key*, like albumOrder/albumSort/etc — but unlike those,
+// nothing in the app calls touchBackupKey('prefs', key) at each individual
+// setting's own control, since that would mean touching dozens of call
+// sites for one pref apiece. Instead this module (the one place that
+// already serializes the whole prefs blob on every save) diffs the new
+// blob against the last one it actually saved and stamps only the keys
+// that changed — still real per-key granularity, just computed here rather
+// than at each setting's own UI.
+let lastSavedPrefs = null;
+function touchChangedPrefKeys(nextPrefs){
+  const prev = lastSavedPrefs || {};
+  const keys = new Set([...Object.keys(prev), ...Object.keys(nextPrefs)]);
+  keys.forEach(k => {
+    if(JSON.stringify(prev[k]) !== JSON.stringify(nextPrefs[k])) touchBackupKey('prefs', k);
+  });
+  lastSavedPrefs = nextPrefs;
+}
+
 async function saveMeta(){
   if(!storage.available()) return;
   // playlists/albumOrder already hold track ids, not positions (F3 spec,
@@ -42,13 +56,18 @@ async function saveMeta(){
   await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.slice(), system:p.system})));
   await meta.put('albumOrder', S.albumOrder);
   await meta.put('albumSort', S.albumSort);
-  await meta.put('prefs', serializePrefs(S));
-  touchBackupField('prefs');
+  const nextPrefs = serializePrefs(S);
+  await meta.put('prefs', nextPrefs);
+  touchChangedPrefKeys(nextPrefs);
   await meta.put('backupUpdatedAt', S.backupUpdatedAt);
+  // RF17: playlist membership's own per-(playlist,track) add-wins stamps —
+  // persisted alongside backupUpdatedAt/backupSeq, the same "survive a
+  // reload" reasoning.
+  await meta.put('playlistMembershipAt', S.playlistMembershipAt);
   // RF16 (docs/12_REFINE.md): S.backupSeq only ever moves forward (bumped by
-  // touchBackupField() just above, via 'prefs', and by every other field's
-  // own touch site; bumped again on pull by sync/backup.js's own meta.put)
-  // — persisted here too so a plain local edit's bump survives a reload
+  // touchBackupKey()/touchBackupMembership() at every field's own touch
+  // site; bumped again on pull by sync/backup.js's own meta.put) —
+  // persisted here too so a plain local edit's bump survives a reload
   // even before the next sign-in/sync ever runs.
   await meta.put('backupSeq', S.backupSeq);
   scheduleBackupSync();
@@ -65,6 +84,8 @@ export async function restoreMeta(){
   if(bua) Object.assign(S.backupUpdatedAt, bua);
   const bseq = await meta.get('backupSeq');
   if(typeof bseq === 'number') S.backupSeq = bseq;
+  const pma = await meta.get('playlistMembershipAt');
+  if(pma) Object.assign(S.playlistMembershipAt, pma);
   const hca = await meta.get('historyClearedAt');
   if(typeof hca === 'number') S.historyClearedAt = hca;
   // RF4 (docs/12_REFINE.md) — restores the last pull's merged counter
@@ -74,7 +95,13 @@ export async function restoreMeta(){
   const ms = await meta.get('mergedStats');
   if(ms) S.mergedStats = ms;
   const pr = await meta.get('prefs');
-  if(pr) applyPrefs(parsePrefs(pr));
+  if(pr){
+    // RF17: seed the diff cache with what was actually loaded, so the very
+    // next saveMeta() only stamps keys that genuinely change from here —
+    // not every key, which a null cache would otherwise read as "all new".
+    lastSavedPrefs = pr;
+    applyPrefs(parsePrefs(pr));
+  }
 }
 
 function applyPrefs(p){

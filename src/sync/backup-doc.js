@@ -4,7 +4,20 @@
    object and IndexedDB, uploads toDoc()'s output as this device's one row
    (`library_backup`, keyed by user + device), fetches every row for the
    user, and calls fromDocs() to get the merged result to apply back to S.
-   Nothing here is wired into the app yet.
+
+   RF17 (docs/12_REFINE.md, "merge per item, not per blob") rewrote this
+   file's whole doc shape (SCHEMA_VERSION 3): every field that used to be
+   one last-write-wins stamp over a whole map (albumOrder, albumSort,
+   albumDisplay, trackDisplay, albumEdge, albumLookPref, prefs) is now one
+   stamp per key, so a change to one album or one pref key never competes
+   on merge with an unrelated, but later, change to a different key of the
+   same field. Playlists went further still — membership is now an
+   add-wins set with a tombstone per (playlist, identityKey), so hearting
+   different tracks on two offline devices keeps both, while the playlist's
+   own order and its def (name/system) stay one LWW value per playlist
+   name. profileName/picture are simple enough to keep as a single
+   whole-value stamp (see src/sync/merge.js's mergeKeyedLastWriteWins/
+   mergePlaylistMembership/lastWriteWins for the merge rules themselves).
 
    `localState` shape toDoc() expects (a snapshot, not S itself — the
    caller builds this from S/IndexedDB, letting this module stay DOM- and
@@ -25,19 +38,16 @@
        local list this device has ever broken — S doesn't track that today;
        see CLAUDE.md's step-03 note)
      overlaysRaw: [{id, fields, editedAt, reverted, revertedAt, cover}, ...],
-       (today's overlays store has no timestamps at all; the wiring PR
-       needs to start recording editedAt/revertedAt alongside each write.
-       cover, step 07/B4, is either {hash, updatedAt} — a custom cover is
-       set and already re-encoded/hashed — or absent/null if this track
-       has never had one or its cover was reverted along with the rest
-       of the overlay)
-     picture: {hash, updatedAt} | null,  (step 07/B4 — the profile picture,
-       re-encoded/hashed the same way as a cover; doubles as the public
-       account avatar once signed in)
-     updatedAt: {playlists, albumOrder, albumSort, albumDisplay, trackDisplay,
-       albumEdge, albumLookPref, prefs, profileName, picture}  (one
-       last-write timestamp per field — also new local state the wiring
-       PR must add)
+     picture: {hash, updatedAt} | null,  (step 07/B4 — the profile picture)
+     updatedAt: {albumOrder, albumSort, albumDisplay, trackDisplay,
+       albumEdge, albumLookPref, prefs, playlistDefs, playlistOrder: {key:
+       {seq, at}}; profileName, picture: {seq, at}}  (RF17 — per-key maps
+       for the first group, a single stamp for the last two; state.js's
+       S.backupUpdatedAt is exactly this shape)
+     playlistMembershipAt: {'playlistName\u0000localId': {added: {seq,at}|
+       null, removed: {seq,at}|null}}  (RF17 — state.js's
+       S.playlistMembershipAt, local-id-keyed; converted to identityKey
+       here, same as every other local-id list in this module)
 
    Tracks, embedded/custom art, and the social meta key are excluded here
    by construction: toDoc() never reads localState.tracks for anything but
@@ -47,15 +57,18 @@
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
 import { mergeRows } from './merge.js';
 
-// v2 (step 07, B4) added `covers` (per-track custom-cover hash, last write
-// wins by its own timestamp — separate from the overlay's text-field
-// editedAt, since a cover change and a tag change are independent edits)
-// and `lastWrite.picture` (the profile picture / public avatar hash, the
-// same last-write-wins shape as profileName). A v1 doc simply has neither
-// — every reader below already treats a missing field as "no claim" by
-// construction (`row.covers || []`, `row.lastWrite && row.lastWrite[field]`),
-// so an old doc still loads; see tests/unit/backup-merge.test.js.
-export const SCHEMA_VERSION = 2;
+// v3 (RF17, docs/12_REFINE.md) replaced every whole-blob `lastWrite.<field>`
+// entry (except profileName/picture) with per-key `itemWrites.<field>`
+// arrays, and `lastWrite.playlists` with `playlistDefs`/`playlistOrder`
+// (also per-key) plus `playlistMembership` (add-wins per track). A v1/v2
+// remote row has none of this — upconvertToV3() (below) explodes its old
+// whole-blob stamps into the same per-key shape, each key inheriting the
+// one stamp the whole field had, so fromDocs() can merge every row — of
+// any version this build still understands — through the one, current
+// merge path. A row whose schemaVersion is *higher* than this build
+// understands is never upconverted or guessed at — see fromDocs()'s own
+// comment for why it's skipped outright instead.
+export const SCHEMA_VERSION = 3;
 
 function stripArt(rec){
   if(!rec) return rec;
@@ -89,14 +102,97 @@ function idsToKeys(ids, idToKey){
   return (ids || []).map(id => idToKey[id] || id);
 }
 
-function convertPlaylists(playlists, idToKey){
-  return (playlists || []).map(p => ({
-    name: p.name, system: p.system, items: idsToKeys(p.items, idToKey),
-  }));
+// RF17: builds one field's itemWrites array — one entry per key that
+// either has a current value, a recorded stamp, or both. A key with a
+// stamp but no current value (an explicit local removal — e.g. an album
+// that lost its last track, src/library/delete.js) becomes a tombstone
+// (value: null); a key with a value but no recorded stamp at all (data
+// that predates RF17, or a field this build never calls touchBackupKey()
+// for) falls back to {seq:0, at:0} — the same "an untouched/legacy value
+// always loses to any real edit" convention RF16 already established for
+// a stamp with no seq.
+function itemWriteEntries(valueMap, stampMap, deviceId){
+  const keys = new Set([
+    ...Object.keys(valueMap || {}),
+    ...Object.keys(stampMap || {}),
+  ]);
+  const out = [];
+  keys.forEach(k => {
+    const stamp = (stampMap && stampMap[k]) || {};
+    const hasValue = !!valueMap && Object.prototype.hasOwnProperty.call(valueMap, k);
+    out.push({
+      key: k,
+      seq: stamp.seq || 0,
+      at: stamp.at || 0,
+      deviceId: deviceId || null,
+      value: hasValue ? valueMap[k] : null,
+    });
+  });
+  return out;
 }
-function convertAlbumOrder(albumOrder, idToKey){
-  const out = {};
-  Object.keys(albumOrder || {}).forEach(album => { out[album] = idsToKeys(albumOrder[album], idToKey); });
+
+// RF17: the playlist def (name/system) and order (ids -> identity keys)
+// are each their own per-playlist-name itemWrites field — a rename or a
+// reorder on one playlist never competes with another playlist's own
+// last change the way one shared whole-blob stamp used to.
+function buildPlaylistDefsAndOrder(playlists, idToKey, stamps){
+  const defs = {}, order = {};
+  (playlists || []).forEach(p => {
+    defs[p.name] = { system: p.system || null };
+    order[p.name] = idsToKeys(p.items, idToKey);
+  });
+  return {
+    playlistDefs: itemWriteEntries(defs, stamps.playlistDefs, stamps.deviceId),
+    playlistOrder: itemWriteEntries(order, stamps.playlistOrder, stamps.deviceId),
+  };
+}
+
+// RF17: converts local playlist membership into the portable {playlist,
+// identityKey, added, removed} shape mergePlaylistMembership() reads. Two
+// sources, combined:
+//   1. every item currently present in a playlist asserts its own 'added'
+//      claim — the real stamp this device recorded for it in
+//      S.playlistMembershipAt, if touchBackupMembership() was ever called
+//      for that pair, or an implicit, lowest-priority {seq:0, at:0} one
+//      otherwise. The fallback matters: it's what keeps every playlist
+//      membership that predates this PR (or any future touch site this
+//      build doesn't cover yet) from silently vanishing on the first
+//      sync after upgrade — present-but-unstamped still outranks
+//      "no claim at all," and a real stamp from any device still wins a
+//      genuine edit race against it, the same convention
+//      itemWriteEntries() uses for every other field.
+//   2. a pair this device explicitly removed (recorded in
+//      S.playlistMembershipAt, no longer present in playlists) still
+//      needs to broadcast that removal, so another device's own
+//      still-present copy of the same pair loses the merge — the
+//      tombstone every other field here already has.
+// An entry whose local id doesn't resolve to a track present right now is
+// dropped — there's nothing a remote device could ever match it against,
+// and this device still has its own in-memory S.playlists membership
+// regardless of what gets uploaded.
+function convertPlaylistMembership(playlists, membershipAt, idToKey){
+  const out = [];
+  const seenMapKeys = new Set();
+  (playlists || []).forEach(p => {
+    (p.items || []).forEach(localId => {
+      const key = idToKey[localId];
+      if(!key) return;
+      const mapKey = p.name + '\u0000' + localId;
+      seenMapKeys.add(mapKey);
+      const entry = (membershipAt && membershipAt[mapKey]) || {};
+      out.push({ playlist: p.name, identityKey: key, added: entry.added || { seq: 0, at: 0 }, removed: entry.removed || null });
+    });
+  });
+  Object.keys(membershipAt || {}).forEach(mapKey => {
+    if(seenMapKeys.has(mapKey)) return;
+    const sep = mapKey.indexOf('\u0000');
+    if(sep < 0) return;
+    const playlist = mapKey.slice(0, sep), localId = mapKey.slice(sep + 1);
+    const key = idToKey[localId];
+    if(!key) return;
+    const entry = membershipAt[mapKey];
+    out.push({ playlist, identityKey: key, added: entry.added || null, removed: entry.removed || null });
+  });
   return out;
 }
 
@@ -153,6 +249,10 @@ export function toDoc(localState){
   const idToKey = buildIdentityLookup(s.tracks);
   const updatedAt = s.updatedAt || {};
 
+  const playlistParts = buildPlaylistDefsAndOrder(s.playlists, idToKey, {
+    playlistDefs: updatedAt.playlistDefs, playlistOrder: updatedAt.playlistOrder, deviceId: s.deviceId,
+  });
+
   return {
     schemaVersion: SCHEMA_VERSION,
     deviceId: s.deviceId,
@@ -183,15 +283,25 @@ export function toDoc(localState){
 
     sealed: { sealed: s.sealedIds || [], broken: s.brokenSealIds || [] },
 
+    // RF17: one itemWrites array per key-merged field (see
+    // itemWriteEntries()'s own comment above for the tombstone/fallback
+    // rules), plus playlistMembership's own add-wins shape.
+    itemWrites: {
+      albumOrder: itemWriteEntries(
+        Object.fromEntries(Object.entries(s.albumOrder || {}).map(([album, ids]) => [album, idsToKeys(ids, idToKey)])),
+        updatedAt.albumOrder, s.deviceId),
+      albumSort: itemWriteEntries(s.albumSort, updatedAt.albumSort, s.deviceId),
+      albumDisplay: itemWriteEntries(stripArtMap(s.albumDisplay), updatedAt.albumDisplay, s.deviceId),
+      trackDisplay: itemWriteEntries(stripArtMap(s.trackDisplay), updatedAt.trackDisplay, s.deviceId),
+      albumEdge: itemWriteEntries(s.albumEdge, updatedAt.albumEdge, s.deviceId),
+      albumLookPref: itemWriteEntries(s.albumLookPref, updatedAt.albumLookPref, s.deviceId),
+      prefs: itemWriteEntries(s.prefs, updatedAt.prefs, s.deviceId),
+      playlistDefs: playlistParts.playlistDefs,
+      playlistOrder: playlistParts.playlistOrder,
+    },
+    playlistMembership: convertPlaylistMembership(s.playlists, s.playlistMembershipAt, idToKey),
+
     lastWrite: {
-      playlists: lw(updatedAt, 'playlists', convertPlaylists(s.playlists, idToKey), s.deviceId),
-      albumOrder: lw(updatedAt, 'albumOrder', convertAlbumOrder(s.albumOrder, idToKey), s.deviceId),
-      albumSort: lw(updatedAt, 'albumSort', s.albumSort || {}, s.deviceId),
-      albumDisplay: lw(updatedAt, 'albumDisplay', stripArtMap(s.albumDisplay), s.deviceId),
-      trackDisplay: lw(updatedAt, 'trackDisplay', stripArtMap(s.trackDisplay), s.deviceId),
-      albumEdge: lw(updatedAt, 'albumEdge', s.albumEdge || {}, s.deviceId),
-      albumLookPref: lw(updatedAt, 'albumLookPref', s.albumLookPref || {}, s.deviceId),
-      prefs: lw(updatedAt, 'prefs', s.prefs || {}, s.deviceId),
       profileName: lw(updatedAt, 'profileName', s.profileName || '', s.deviceId),
       // step 07, B4
       picture: lw(updatedAt, 'picture', s.picture || null, s.deviceId),
@@ -200,6 +310,58 @@ export function toDoc(localState){
     overlays: convertOverlays(s.overlaysRaw, idToKey),
     covers: convertCovers(s.overlaysRaw, idToKey),
   };
+}
+
+// RF17: a v1/v2 row's old whole-blob lastWrite entries, exploded into this
+// build's current per-key shape — every key in the old value inherits the
+// exact same {seq, at, deviceId} the whole field had, since an old doc
+// never recorded anything finer. playlists' old {name, system, items}
+// array becomes one playlistDefs/playlistOrder entry per playlist (same
+// shared stamp) plus one playlistMembership entry per item (added: that
+// same stamp, removed: null) — the "whole array, one point in time"
+// equivalent of the add-wins set this build expects. A doc already at
+// schemaVersion 3 is returned unchanged.
+function upconvertToV3(doc){
+  if(!doc || (doc.schemaVersion || 0) >= 3) return doc;
+  const old = (doc.lastWrite) || {};
+  const stampOf = field => {
+    const e = old[field];
+    return e ? { seq: e.seq || 0, at: e.at || 0, deviceId: e.deviceId || doc.deviceId || null } : null;
+  };
+  const explode = (field) => {
+    const stamp = stampOf(field);
+    const value = old[field] && old[field].value;
+    if(!stamp) return [];
+    return Object.keys(value || {}).map(k => ({ key: k, seq: stamp.seq, at: stamp.at, deviceId: stamp.deviceId, value: value[k] }));
+  };
+
+  const playlistsEntry = old.playlists;
+  const playlistDefs = [], playlistOrder = [], playlistMembership = [];
+  if(playlistsEntry){
+    const stamp = stampOf('playlists');
+    (playlistsEntry.value || []).forEach(p => {
+      playlistDefs.push({ key: p.name, seq: stamp.seq, at: stamp.at, deviceId: stamp.deviceId, value: { system: p.system || null } });
+      playlistOrder.push({ key: p.name, seq: stamp.seq, at: stamp.at, deviceId: stamp.deviceId, value: (p.items || []).slice() });
+      (p.items || []).forEach(identityKey => {
+        playlistMembership.push({ playlist: p.name, identityKey, added: { seq: stamp.seq, at: stamp.at, deviceId: stamp.deviceId }, removed: null });
+      });
+    });
+  }
+
+  return Object.assign({}, doc, {
+    itemWrites: {
+      albumOrder: explode('albumOrder'),
+      albumSort: explode('albumSort'),
+      albumDisplay: explode('albumDisplay'),
+      trackDisplay: explode('trackDisplay'),
+      albumEdge: explode('albumEdge'),
+      albumLookPref: explode('albumLookPref'),
+      prefs: explode('prefs'),
+      playlistDefs,
+      playlistOrder,
+    },
+    playlistMembership,
+  });
 }
 
 // Merges this device's own current data with every other device's last-
@@ -212,9 +374,10 @@ export function toDoc(localState){
 // devices' counts" cuts both ways: it also must never count this device's
 // own contribution twice).
 //
-// The merged totals/lastWrite/sealed/overlays stay in identity-key space
-// throughout (see the module header) — resolving them back to local ids is
-// deferred to apply time via resolveIdentityKey(), not done here.
+// The merged totals/itemWrites/playlistMembership/sealed/overlays stay in
+// identity-key space throughout (see the module header) — resolving them
+// back to local ids is deferred to apply time via resolveIdentityKey(),
+// not done here.
 //
 // merged.totals.* are the cross-device grand totals, for display only
 // (Top Songs, metal thresholds, Collection progress) — the caller must
@@ -229,6 +392,16 @@ export function toDoc(localState){
 // as its own, so the *next* doc this device uploads doesn't resurrect
 // pre-clear numbers that mergeRows() is, from this call on, already
 // ignoring everywhere else.
+//
+// `newerVersionSeen` (RF17) is true when at least one remote row's own
+// schemaVersion is higher than SCHEMA_VERSION — this build has no idea
+// what that row's newer fields mean, so rather than guess (or, worse,
+// silently misread a shape it doesn't recognize and merge garbage), that
+// row is left out of the merge entirely, same as the forward-compat rule
+// for a single key already gives a field this build has never heard of
+// (it simply never competes, so it's never clobbered either). The caller
+// surfaces this on the Account screen ("Another device has a newer
+// Miziki.") rather than acting on it.
 export function fromDocs(ownLocal, remoteRows){
   const ownDoc = toDoc(ownLocal);
   // One row per device (B1: each device keeps its own row), so a real
@@ -237,8 +410,19 @@ export function fromDocs(ownLocal, remoteRows){
   // silently double-count that device's contribution.
   const byDevice = new Map();
   (remoteRows || []).forEach(r => { if(r && r.deviceId && r.deviceId !== ownDoc.deviceId) byDevice.set(r.deviceId, r); });
-  const merged = mergeRows([ownDoc, ...byDevice.values()]);
-  return Object.assign({ schemaVersion: SCHEMA_VERSION, ownReset: (ownDoc.historyClearedAt || 0) < merged.historyClearedAt }, merged);
+
+  let newerVersionSeen = false;
+  const usable = [];
+  byDevice.forEach(row => {
+    if((row.schemaVersion || 0) > SCHEMA_VERSION){ newerVersionSeen = true; return; }
+    usable.push(upconvertToV3(row));
+  });
+
+  const merged = mergeRows([ownDoc, ...usable]);
+  return Object.assign(
+    { schemaVersion: SCHEMA_VERSION, newerVersionSeen, ownReset: (ownDoc.historyClearedAt || 0) < merged.historyClearedAt },
+    merged,
+  );
 }
 
 // Finds the local track (if any) matching a backup entry's identity key —
