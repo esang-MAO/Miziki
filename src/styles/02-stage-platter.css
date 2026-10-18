@@ -82,10 +82,10 @@
 .tracklist li{content-visibility:auto;contain-intrinsic-size:auto 57px}
 .grouprow{content-visibility:auto;contain-intrinsic-size:auto 67px}
 .tracklist li.picked{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.tracklist li.picked .t-idx::after{content:'✓';color:var(--accent);margin-left:2px}
+.tracklist li.picked .t-idx::after{content:'✓';color:var(--accent-text);margin-left:2px}
 .lib-nav{margin:4px 0 6px}
 .crumb{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.crumb-back{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--accent)}
+.crumb-back{font-family:var(--data);font-size:11px;letter-spacing:.1em;color:var(--accent-text)}
 .crumb-label{font-family:var(--display);font-size:17px;letter-spacing:.06em;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .grouprow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 0;
@@ -100,7 +100,7 @@
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:16px;padding:10px 12px}
 .by{font-size:13px;color:var(--muted);margin-bottom:5px}
 .tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
-.tbtn.mini[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);
+.tbtn.mini[aria-pressed="true"]{color:var(--accent-text);border-color:var(--accent);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .tbtn.mini svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round}
@@ -109,7 +109,7 @@
 .movers{display:flex;gap:2px;flex:0 0 auto}
 .mv{width:28px;height:30px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
   font-size:9px;line-height:1}
-.mv:active{color:var(--accent);border-color:var(--accent)}
+.mv:active{color:var(--accent-text);border-color:var(--accent)}
 /* RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
    Songs" — no hairline (point 2's "remove the hairlines between header
    rows"). The sort label + chevron is itself the clickable button; the

@@ -33,7 +33,7 @@
 .store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
 .store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
-.store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.store-kicker{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
 .store-handle{font-family:var(--display);font-weight:700;font-size:36px;letter-spacing:.01em;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:13px;color:var(--muted)}
 .store-handle-input{font-family:var(--display);font-weight:700;font-size:36px;letter-spacing:.01em;line-height:1;margin:0;width:100%;
@@ -58,7 +58,7 @@
 .store-stat{flex:none;display:flex;flex-direction:column;gap:2px;min-width:0}
 .store-stat b{font-family:var(--display);font-weight:700;font-size:30px;line-height:1}
 .store-stat span{font-family:var(--data);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.store-stat.accent b{color:var(--accent)}
+.store-stat.accent b{color:var(--accent-text)}
 
 /* RF11 (docs/12_REFINE.md, point 1): the one row every storefront state
    links into the new routed Listening screen (top album/song, metals,
@@ -86,7 +86,7 @@
 
 .store-section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 0}
 .store-section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.03em;text-transform:uppercase}
-.store-section-head button{background:none;border:0;font-family:var(--data);font-size:11px;color:var(--accent);
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:11px;color:var(--accent-text);
   letter-spacing:.08em;text-transform:uppercase;padding:12px 0 12px 12px;min-height:44px}
 
 .store-picks-row{display:flex;gap:12px;overflow-x:auto;margin-top:10px;padding-bottom:4px;scrollbar-width:none}
@@ -95,7 +95,7 @@
 .store-pick-cover{width:132px;height:132px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
-  font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent)}
+  font-family:var(--data);font-size:9px;letter-spacing:.06em;color:var(--accent-text)}
 .store-pick-note{transform:rotate(-1deg);background:var(--cream);color:#1A1410;border-radius:4px;padding:8px 10px;
   font-size:12px;line-height:1.35;display:flex;flex-direction:column;gap:4px}
 .store-pick-stars{font-size:13px;letter-spacing:1.5px;color:#B8641A}
@@ -110,7 +110,7 @@
 .store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-dig-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-dig-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
-.store-dig-text small{font-family:var(--data);font-size:10.5px;color:var(--accent)}
+.store-dig-text small{font-family:var(--data);font-size:10.5px;color:var(--accent-text)}
 .store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);background:var(--accent);
   color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
 

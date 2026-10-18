@@ -55,7 +55,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   color:var(--muted);margin-bottom:8px}
 
 .profile-share{width:100%;margin-top:28px;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
-.profile-share.active{color:var(--accent);border-color:var(--accent)}
+.profile-share.active{color:var(--accent-text);border-color:var(--accent)}
 
 /* DA3 (docs/DAY_ARC.md): the universal entry point at the top of every
    profile-home state, and the Settings screen itself. RF11
@@ -144,7 +144,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .slipmat-tile[aria-pressed="true"] > div{border:2px solid var(--accent)}
 .slipmat-tile-label{display:block;margin-top:6px;font-family:var(--data);font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted)}
-.slipmat-tile[aria-pressed="true"] .slipmat-tile-label{color:var(--accent)}
+.slipmat-tile[aria-pressed="true"] .slipmat-tile-label{color:var(--accent-text)}
 .slipmat-felt::after{content:'';position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
   background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);box-shadow:inset 0 0 0 1px var(--line)}
 .slipmat-felt span{position:absolute;inset:0;display:grid;place-content:center;z-index:1;
@@ -159,7 +159,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   place-content:center;justify-items:center;text-align:center;gap:8px;padding:12px;margin-bottom:10px}
 .slipmat-drop.over{border-color:var(--accent)}
 .slipmat-error:empty{display:none}
-.slipmat-error{color:var(--accent)}
+.slipmat-error{color:var(--accent-text)}
 .slipmat-preview{position:relative;width:220px;height:220px;margin:4px auto 14px;border-radius:50%;overflow:hidden;
   touch-action:none;cursor:grab;background:var(--panel);
   box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.12)}

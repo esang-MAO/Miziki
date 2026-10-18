@@ -77,9 +77,17 @@
   }
   .tabbar-btn{padding:12px 6px;border-radius:8px}
   .tabbar-btn span{display:none}
-  .tabbar-btn:hover,.tabbar-btn:focus-visible{color:var(--paper)}
-  .tabbar-btn[aria-selected="true"]:hover,
-  .tabbar-btn[aria-selected="true"]:focus-visible{color:var(--accent)}
+  /* RF12 (docs/12_REFINE.md): 08-shell.css now colors the icon/label
+     separately (see its own updated entry), so these hover/focus
+     overrides retarget the svg directly rather than the button's own
+     `color`, which nothing here reads any more. The 2px top-edge accent
+     bar reads oddly on a vertical icon rail, so it's hidden at this
+     width -- the icon color plus (at 1280px+, below) the row's own
+     --sel background already mark the active tab without it. */
+  .tabbar-btn:hover svg,.tabbar-btn:focus-visible svg{color:var(--paper)}
+  .tabbar-btn[aria-selected="true"]:hover svg,
+  .tabbar-btn[aria-selected="true"]:focus-visible svg{color:var(--accent)}
+  .tabbar-btn[aria-selected="true"]::before{display:none}
 
   /* the playlists list and Sundown card need real width for their own
      text — cut below 1280px rather than crammed into a 76px icon rail,
@@ -134,7 +142,7 @@
     border:1px solid var(--line);border-radius:50%;background:transparent;
     color:var(--paper);font-size:12px;cursor:pointer;
   }
-  .mini-bar-btn:hover,.mini-bar-btn:focus-visible{border-color:var(--accent);color:var(--accent)}
+  .mini-bar-btn:hover,.mini-bar-btn:focus-visible{border-color:var(--accent);color:var(--accent-text)}
 
   .mini-bar-seek{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;max-width:480px}
   .mini-bar-time{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:0 0 auto}
@@ -308,7 +316,7 @@
     background:transparent;color:var(--muted);font-family:var(--display);
     font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
   }
-  .player-side-tab[aria-selected="true"]{border-color:var(--accent);color:var(--accent)}
+  .player-side-tab[aria-selected="true"]{border-color:var(--accent);color:var(--accent-text)}
   .player-side-tab:hover,.player-side-tab:focus-visible{color:var(--paper)}
   .player-side-body{flex:1 1 auto;overflow-y:auto;min-height:0}
 
