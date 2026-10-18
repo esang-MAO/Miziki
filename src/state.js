@@ -185,6 +185,23 @@ S.backupUpdatedAt = {
 // null until the first successful merge, so the one-time "Restored..."
 // summary shows exactly once per account per device
 S.backupRestoredFor = null;
+// RF4 (docs/12_REFINE.md) — "one number for sessions": the cross-device sum
+// src/sync/merge.js's mergeRows() already computes on every pull
+// (merged.totals.counters), set by src/sync/backup.js's applyMerged() and
+// read in place of the matching per-device counter (S.sessionCounts,
+// S.trackPlayCounts, S.metalEligibleSessions, S.trackMetalEligiblePlays,
+// S.phasePlayCounts, S.albumPhaseCounts) by history/achievements.js's
+// topAlbums()/topTracks(), record-art/metals.js's albumMetalFor()/
+// trackMetalFor(), and miziki-social.js's mizikiAdapter — so a session
+// played on one device and a session played on another both count toward
+// the same number and the same metal everywhere, instead of three answers
+// that disagree (CLAUDE.md's "What the audit found," item 4). null until
+// the first pull this session (or ever, signed out) — every reader above
+// falls back to its own local counter whenever this is null, so signed-out
+// behavior is unchanged. Never written back into a per-device counter
+// (CLAUDE.md's backup table already forbids that, same as rareUnlocked/
+// achievements/collection) — it's its own value for exactly that reason.
+S.mergedStats = null;
 
 /* ================= DA5 (docs/DAY_ARC.md) — listening rhythm =================
    Every counted play (checkTrackCompletion -> incrementTrackPlay,

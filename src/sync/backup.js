@@ -500,6 +500,13 @@ async function applyMerged(merged, ownLocal, client, uid){
   Object.keys(merged.totals.maxFields.albumLastPlayed).forEach(k => {
     S.albumLastPlayed[k] = Math.max(S.albumLastPlayed[k] || 0, merged.totals.maxFields.albumLastPlayed[k]);
   });
+  // RF4 (docs/12_REFINE.md): the cross-device counter sums, kept as their
+  // own value rather than folded into the per-device counters above (see
+  // state.js's own S.mergedStats comment for why, and the readers that use
+  // it) — persisted too, so the number a signed-in device shows survives a
+  // reload without needing a fresh pull first.
+  S.mergedStats = merged.totals.counters;
+  await meta.put('mergedStats', S.mergedStats);
   // sealed/broken: union, broken wins (library/sealed.js's own data, kept
   // independent of listening history on purpose — SEALED spec §2)
   merged.sealed.sealed.forEach(id => { if(!merged.sealed.broken.includes(id)) S.sealed.add(id); });

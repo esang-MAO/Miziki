@@ -1072,10 +1072,16 @@
     }
     function describe(id, tracks) {
       const first = tracks[0];
+      // RF4 (docs/12_REFINE.md): the merged cross-device total, when one
+      // exists, in place of this device's own S.sessionCounts — see
+      // state.js's own S.mergedStats comment. env.albumMetalFor() already
+      // does the same for `metal` internally (record-art/metals.js), so no
+      // separate change is needed here for that field.
+      const sessionCounts = S.mergedStats ? S.mergedStats.sessionCounts : S.sessionCounts;
       return {
         id, title: first.tags.album, artist: pickArtist(tracks), tier: majorityTier(tracks),
         addedAt: Math.min(...tracks.map(t => t.addedAt || Date.now())),
-        sessions: S.sessionCounts[id] || 0,
+        sessions: sessionCounts[id] || 0,
         metal: S.rareUnlocked[id] ? 'rare' : (env.albumMetalFor(id) || null),
         lastPlayed: (S.albumLastPlayed && S.albumLastPlayed[id]) || null
       };

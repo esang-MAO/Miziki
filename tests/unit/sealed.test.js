@@ -34,6 +34,11 @@ const {
   isAlbumSealed, breakSeal, restoreSealedAlbums,
 } = await import('../../src/library/sealed.js');
 const { topAlbums, topTracks } = await import('../../src/history/achievements.js');
+// RF4 (docs/12_REFINE.md): record-art/metals.js is a leaf beyond S/$ (and
+// albumMetalFor() itself never calls $) -- safe to import directly here,
+// no extra mocking needed, for the "metal is justified by the count shown"
+// test below.
+const { albumMetalFor, ALBUM_METAL_THRESHOLDS } = await import('../../src/record-art/metals.js');
 const { S } = await import('../../src/state.js');
 
 function resetState(overrides){
@@ -41,6 +46,7 @@ function resetState(overrides){
     sealedRecords: true, sealed: new Set(),
     sessionCounts: {}, albumLastPlayed: {}, albumDisplay: {},
     trackPlayCounts: {}, trackLastPlayed: {}, trackDisplay: {},
+    mergedStats: null, metalEligibleSessions: {},
   }, overrides);
   updateSealedSheetAfterBreakMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
@@ -109,4 +115,69 @@ test('topTracks: orders by play count, ties broken by most recently played', () 
   });
   const top = topTracks(3);
   assert.deepEqual(top.map(t => t.trackKey), ['t2', 't1', 't3']);
+});
+
+// RF4 (docs/12_REFINE.md): "one number for sessions" -- once a pull has
+// merged cross-device totals into S.mergedStats, topAlbums()/topTracks()
+// read it instead of this device's own (possibly lower, possibly stale)
+// local counter, so a device that's only played an album twice itself but
+// synced with one that's played it 5 times shows 5, the same number every
+// other signed-in device and (once a surface for it exists) a friend would
+// see -- never the local-only count.
+test('topAlbums: reads the merged cross-device total when one exists, not the local count', () => {
+  resetState({
+    sessionCounts: { a1: 2 },   // this device's own count -- lower than the real total
+    mergedStats: { sessionCounts: { a1: 5 }, trackPlayCounts: {} },
+    albumLastPlayed: { a1: 100 },
+    albumDisplay: { a1: { name: 'One' } },
+  });
+  const top = topAlbums(1);
+  assert.equal(top[0].albumId, 'a1');
+  assert.equal(top[0].count, 5, 'the merged total, not the local 2');
+});
+
+test('topTracks: reads the merged cross-device total when one exists, not the local count', () => {
+  resetState({
+    trackPlayCounts: { t1: 1 },
+    mergedStats: { sessionCounts: {}, trackPlayCounts: { t1: 9 } },
+    trackDisplay: { t1: { title: 'A' } },
+  });
+  const top = topTracks(1);
+  assert.equal(top[0].trackKey, 't1');
+  assert.equal(top[0].count, 9, 'the merged total, not the local 1');
+});
+
+// RF4, point 4: "add a test that a metal shown on a device is always
+// justified by the counts that device displays." topAlbums() (the number
+// a device shows) and albumMetalFor() (the metal it shows for the same
+// album) must read from the *same* source -- both the merged total once
+// one exists, both the local counter otherwise -- or a device could show
+// a metal its own displayed count doesn't actually earn (e.g. a stale
+// local count justified gold while the merged, displayed count has
+// dropped back under threshold after a history-clear merge). This
+// exercises both functions together, against the same S, for both sources.
+test('a metal shown is always justified by the session count the same device displays (local)', () => {
+  const gold = ALBUM_METAL_THRESHOLDS.find(l => l.name === 'gold').sessions;
+  resetState({
+    sessionCounts: { a1: gold }, metalEligibleSessions: { a1: gold },
+    albumDisplay: { a1: { name: 'One' } },
+  });
+  const shownCount = topAlbums(1)[0].count;
+  assert.equal(shownCount, gold);
+  assert.equal(albumMetalFor('a1'), 'gold');
+  assert.ok(shownCount >= gold, 'the displayed count actually meets the shown tier\'s own threshold');
+});
+test('a metal shown is always justified by the session count the same device displays (merged)', () => {
+  const gold = ALBUM_METAL_THRESHOLDS.find(l => l.name === 'gold').sessions;
+  resetState({
+    // local counters deliberately stale/lower -- a device that hasn't
+    // played this album much itself, but has synced with one that has
+    sessionCounts: { a1: 1 }, metalEligibleSessions: { a1: 1 },
+    mergedStats: { sessionCounts: { a1: gold }, metalEligibleSessions: { a1: gold } },
+    albumDisplay: { a1: { name: 'One' } },
+  });
+  const shownCount = topAlbums(1)[0].count;
+  assert.equal(shownCount, gold, 'topAlbums shows the merged count, not the stale local one');
+  assert.equal(albumMetalFor('a1'), 'gold', 'and the metal shown is earned by that same merged count');
+  assert.ok(shownCount >= gold);
 });

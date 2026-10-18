@@ -64,18 +64,25 @@ export function checkAlbumAchievementAndCollection(t){
 // metric that actually drives it (see PROFILE spec §9)
 export function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
 
+// RF4 (docs/12_REFINE.md): the merged cross-device total, when one exists
+// (signed in, at least one pull done), in place of this device's own
+// counter — see state.js's own S.mergedStats comment. Signed out, or
+// before the first pull, S.mergedStats is null and both fall back to
+// exactly what they read before this PR.
 export function topAlbums(n){
-  return Object.keys(S.sessionCounts)
-    .map(albumId => ({albumId, count:S.sessionCounts[albumId], last:S.albumLastPlayed[albumId] || 0,
+  const counts = S.mergedStats ? S.mergedStats.sessionCounts : S.sessionCounts;
+  return Object.keys(counts)
+    .map(albumId => ({albumId, count:counts[albumId], last:S.albumLastPlayed[albumId] || 0,
       display: S.albumDisplay[albumId] || {name:albumId, artist:'', art:null}}))
     .sort((a,b) => b.count - a.count || b.last - a.last)
     .slice(0, n);
 }
 export function topTracks(n){
-  return Object.keys(S.trackPlayCounts)
+  const counts = S.mergedStats ? S.mergedStats.trackPlayCounts : S.trackPlayCounts;
+  return Object.keys(counts)
     .map(trackKey => {
       const disp = S.trackDisplay[trackKey] || {title:trackKey, artist:'', art:null};
-      return {trackKey, count:S.trackPlayCounts[trackKey], last:S.trackLastPlayed[trackKey] || 0,
+      return {trackKey, count:counts[trackKey], last:S.trackLastPlayed[trackKey] || 0,
         title: disp.title, artist: disp.artist, art: disp.art};
     })
     .sort((a,b) => b.count - a.count || b.last - a.last)

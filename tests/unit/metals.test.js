@@ -22,6 +22,7 @@ const { S } = await import('../../src/state.js');
 function resetState(overrides){
   Object.assign(S, {
     metalEligibleSessions: {}, trackMetalEligiblePlays: {}, rareUnlocked: {}, albumLookPref: {},
+    mergedStats: null,
   }, overrides);
 }
 
@@ -77,6 +78,24 @@ test('trackMetalFor: exactly at gold and platinum earns that tier', () => {
 test('trackMetalFor: just below platinum stays at gold', () => {
   resetState({ trackMetalEligiblePlays: { t1: trackPlatinum - 1 } });
   assert.equal(trackMetalFor('t1'), 'gold');
+});
+
+// RF4 (docs/12_REFINE.md): reads the merged cross-device shadow counter in
+// place of the local one, when one exists -- see state.js's own
+// S.mergedStats comment and src/sync/backup.js's applyMerged().
+test('albumMetalFor: reads the merged cross-device shadow counter when one exists, not the local one', () => {
+  resetState({
+    metalEligibleSessions: { a1: albumBronze - 1 },   // local alone wouldn't earn bronze
+    mergedStats: { metalEligibleSessions: { a1: albumGold }, trackMetalEligiblePlays: {} },
+  });
+  assert.equal(albumMetalFor('a1'), 'gold');
+});
+test('trackMetalFor: reads the merged cross-device shadow counter when one exists, not the local one', () => {
+  resetState({
+    trackMetalEligiblePlays: { t1: trackGold - 1 },
+    mergedStats: { metalEligibleSessions: {}, trackMetalEligiblePlays: { t1: trackPlatinum } },
+  });
+  assert.equal(trackMetalFor('t1'), 'platinum');
 });
 
 function fakeTrack(overrides){

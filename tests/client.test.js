@@ -110,13 +110,26 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const r=await M.syncNow(); assert.equal(r.firstSync,true);
    assert.equal(M.getAlbumSocial('a1').rating,5); assert.ok(M.getPins().length>0,'pins restored');
    assert.equal(q1(`select rating from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 1')`),'5'); });
- await t('milestones only when opted in, monotonic',async()=>{
+ // RF4 (docs/12_REFINE.md): "one number for sessions" -- sync_stats'
+ // full_album_sessions column changed from greatest() to a plain
+ // overwrite (migration 011_authoritative_stats.sql), since the client
+ // now always sends its own already-merged, cross-device total (in the
+ // real app, S.mergedStats-aware; this harness's ALBUMS/listAlbums()
+ // stands in for that number directly), never a single device's own,
+ // possibly-lower count that a later device's greatest() could only ever
+ // ratchet upward. unlocked_variant is untouched by this migration --
+ // still a coalesce, so a later push that says nothing about it (a null
+ // payload value) never clears an already-earned metal.
+ await t('milestones only when opted in; sessions overwrite authoritatively, unlocked_variant stays monotonic',async()=>{
    ALBUMS=ALBUMS.map(a=>a.id==='a1'?{...a,sessions:6,metal:'gold'}:a);
    await M.syncNow(); assert.equal(+q1(`select count(*) from verified_stats where user_id='${UID}'`),0);
    M.setSetting('shareMilestones',true); const r=await M.syncNow(); assert.equal(r.stats,1,JSON.stringify(r));
-   assert.equal(q1(`select full_album_sessions from verified_stats where user_id='${UID}'`),'6');
-   ALBUMS=ALBUMS.map(a=>a.id==='a1'?{...a,sessions:2}:a); await M.syncNow();
-   assert.equal(q1(`select full_album_sessions from verified_stats where user_id='${UID}'`),'6'); });
+   assert.equal(q1(`select full_album_sessions||'|'||unlocked_variant from verified_stats where user_id='${UID}'`),'6|gold');
+   // a later, lower count (and no metal in the payload) is now an
+   // authoritative overwrite for sessions, but the already-earned metal
+   // survives since the payload's own null never clears it.
+   ALBUMS=ALBUMS.map(a=>a.id==='a1'?{...a,sessions:2,metal:null}:a); await M.syncNow();
+   assert.equal(q1(`select full_album_sessions||'|'||unlocked_variant from verified_stats where user_id='${UID}'`),'2|gold'); });
  await t('now spinning off by default',async()=>{ M.nowSpinning('a3','Track X'); await sleep(300); assert.equal(+q1(`select count(*) from now_spinning where user_id='${UID}'`),0); M.setSetting('shareNowSpinning',true); });
  await t('now spinning public + stop clears',async()=>{
    M.nowSpinning('a3','Track X'); await sleep(400);

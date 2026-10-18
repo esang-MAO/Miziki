@@ -57,6 +57,12 @@ export async function restoreMeta(){
   if(bua) Object.assign(S.backupUpdatedAt, bua);
   const hca = await meta.get('historyClearedAt');
   if(typeof hca === 'number') S.historyClearedAt = hca;
+  // RF4 (docs/12_REFINE.md) — restores the last pull's merged counter
+  // totals so a reload doesn't lose them before the next sync; null (never
+  // pulled, or signed out) leaves S.mergedStats at its own default, and
+  // every reader already falls back to its matching local counter then.
+  const ms = await meta.get('mergedStats');
+  if(ms) S.mergedStats = ms;
   const pr = await meta.get('prefs');
   if(pr) applyPrefs(parsePrefs(pr));
 }
