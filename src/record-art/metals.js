@@ -24,15 +24,21 @@ const METAL_FADE_MS = 400;
 
 // reads the tier-1-only shadow counter, not the true lifetime total, so a
 // tier-upgraded album's metal is grandfathered (frozen) rather than
-// continuing to climb thresholds it can no longer earn — see METAL spec §2
+// continuing to climb thresholds it can no longer earn — see METAL spec §2.
+// RF4 (docs/12_REFINE.md): reads the merged cross-device shadow counter
+// (S.mergedStats) in place of this device's own, when one exists, so the
+// same metal shows on every device and in a friend's view — see state.js's
+// own S.mergedStats comment.
 export function albumMetalFor(albumId){
-  const n = S.metalEligibleSessions[albumId] || 0;
+  const counts = S.mergedStats ? S.mergedStats.metalEligibleSessions : S.metalEligibleSessions;
+  const n = counts[albumId] || 0;
   for(const lvl of ALBUM_METAL_THRESHOLDS) if(n >= lvl.sessions) return lvl.name;
   return null;
 }
 // takes a trackIdentityKey(), not a file id — see that function
 export function trackMetalFor(trackKey){
-  const n = S.trackMetalEligiblePlays[trackKey] || 0;
+  const counts = S.mergedStats ? S.mergedStats.trackMetalEligiblePlays : S.trackMetalEligiblePlays;
+  const n = counts[trackKey] || 0;
   for(const lvl of TRACK_METAL_THRESHOLDS) if(n >= lvl.plays) return lvl.name;
   return null;
 }
