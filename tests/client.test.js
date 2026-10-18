@@ -84,7 +84,13 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const crateN=()=>+q1(`select count(*) from crate_items where user_id='${UID}'`);
  const evN=()=>+q1(`select count(*) from feed_events where actor_id='${UID}'`);
  await t('first sync pushes all, quietly (no events)',()=>{ assert.equal(crateN(),20); assert.equal(evN(),0); assert.equal(M.status().sync,'idle'); });
- await t('unchanged library => zero rpc calls',async()=>{ calls=[]; const r=await M.syncNow(); assert.equal(r.pushed,0); assert.equal(calls.length,0,calls.join()); });
+ // RF3 (docs/12_REFINE.md) made this pull -- not zero calls anymore: every
+ // syncNow() now calls my_crate_meta first, via mergeFromServer(), to merge
+ // in whatever another device might have changed since the last sync,
+ // before deciding what (if anything) to push. An unchanged library still
+ // pushes nothing (`pushed:0`, `sync_crate` never called) -- it just isn't
+ // silent on the wire anymore.
+ await t('unchanged library => pulls to merge, but pushes nothing',async()=>{ calls=[]; const r=await M.syncNow(); assert.equal(r.pushed,0); assert.deepEqual(calls,['my_crate_meta'],calls.join()); });
  await t('rating+note+pin produce events and server rows',async()=>{
    M.setRating('a1',5); M.setNote('a1','Perfect side A.\n Put it on at sundown.'); M.pin('a1'); M.pin('a2');
    const r=await M.syncNow(); assert.equal(r.pushed,2,JSON.stringify(r));
@@ -138,6 +144,52 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    ALBUMS=[alb(1),alb(2),{...alb(2),id:'dup2'},{...alb(9),id:'na',artist:''}]; const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
    const s=M.status().skipped; assert.equal(s.collisions,1); assert.equal(s.noArtist,1); });
  await t('rating out of range rejected locally',()=>{ const r=M.setRating('a1',9); assert.ok(!r||r.ok===false||M.getAlbumSocial('a1').rating!==9); });
+ // ---------------------------------------------------------------------
+ // RF3 (docs/12_REFINE.md): editing a note never erases a rating from
+ // another device. Two parts: the server's own contract (sync_crate's null-
+ // means-no-change / sentinel-clears semantics, migration 010_crate_merge.sql),
+ // tested directly against sb.rpc so it holds regardless of what any given
+ // client sends; and the real MizikiSocial client's own merge-before-push
+ // fix (mergeFromServer(), called from every syncNow()), tested by swapping
+ // X.state wholesale to simulate a second device on the same account -- the
+ // exact same trick the "fresh device restores" test above already uses.
+ // ---------------------------------------------------------------------
+ await t('RF3 (server contract): a null payload field is "no change"; only the sentinel clears it',async()=>{
+   const key=M.releaseKey('RF3 Artist','RF3 Direct Album');
+   const base={release_key:key,title:'RF3 Direct Album',artist:'RF3 Artist',year:2020,quality_tier:null,pin_rank:null,visibility:null,added_at:null};
+   const rowSql=`select coalesce(rating::text,'<null>')||'|'||coalesce(sleeve_note,'<null>') from crate_items where user_id='${UID}' and release_id=(select id from releases where release_key='${key}')`;
+   let r=await sb.rpc('sync_crate',{p_items:[{...base,rating:4,sleeve_note:null}]});
+   assert.equal(r.error,null,JSON.stringify(r));
+   assert.equal(q1(rowSql),'4|<null>','device A sets a rating, says nothing about the note');
+   r=await sb.rpc('sync_crate',{p_items:[{...base,rating:null,sleeve_note:'Great B-side.'}]});
+   assert.equal(r.error,null,JSON.stringify(r));
+   assert.equal(q1(rowSql),'4|Great B-side.','device B adds a note, saying nothing about rating -- the 4 must survive');
+   r=await sb.rpc('sync_crate',{p_items:[{...base,rating:0,sleeve_note:null}]});
+   assert.equal(r.error,null,JSON.stringify(r));
+   assert.equal(q1(rowSql),'<null>|Great B-side.','the rating sentinel (0) clears it without touching the untouched note');
+   r=await sb.rpc('sync_crate',{p_items:[{...base,rating:null,sleeve_note:''}]});
+   assert.equal(r.error,null,JSON.stringify(r));
+   assert.equal(q1(rowSql),'<null>|<null>','the sleeve_note sentinel (\'\') clears it too'); });
+ await t('RF3 (client): a fresh "device B" on the same account adds a note without erasing device A\'s rating, and both devices end up seeing both',async()=>{
+   const X=M._internals.X;
+   const stateA=JSON.parse(JSON.stringify(X.state));
+   M.setRating('a2',4);
+   let r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
+   assert.equal(q1(`select rating from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 2')`),'4');
+   // A fresh client state for the same account, never synced before --
+   // buildItems() sends rating:null for a2 here, the exact shape that used
+   // to wipe device A's rating outright before this PR's server fix.
+   X.state={v:1,userId:null,settings:{shareNowSpinning:false,shareMilestones:false,syncEnabled:true,shareListeningRhythm:false},
+     pins:[],items:{},synced:{},statsSynced:{},restoredFor:null};
+   M.setNote('a2','Side B is better.');
+   r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
+   assert.equal(q1(`select rating||'|'||sleeve_note from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 2')`),'4|Side B is better.');
+   assert.equal(M.getAlbumSocial('a2').rating,4,'device B should pick up device A\'s rating via its own merge-on-pull, not just leave the server correct');
+   // Device A, syncing again later, should likewise pick up device B's note.
+   X.state=stateA;
+   r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
+   assert.equal(M.getAlbumSocial('a2').note,'Side B is better.','device A should see device B\'s note after its own next sync');
+   assert.equal(M.getAlbumSocial('a2').rating,4,'and keep seeing its own rating'); });
  await t('own storefront reports a followers count, friend view does not',async()=>{
    // the follows_before_insert trigger forces a fresh row to 'pending' unless
    // the followee is public (amy is 'friends'), so force-accept afterward —

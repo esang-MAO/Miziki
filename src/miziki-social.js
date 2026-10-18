@@ -457,25 +457,69 @@
   }
   function tidy(albumId) {
     const e = X.state.items[albumId];
-    if (e && e.rating == null && e.note == null && e.vis == null) delete X.state.items[albumId];
+    if (e && e.rating == null && e.note == null && e.vis == null && !e.pendingClear && !hasDirty(e)) delete X.state.items[albumId];
   }
+  function hasDirty(e) { return !!(e.dirty && (e.dirty.rating || e.dirty.note || e.dirty.vis)); }
   function touched() { persistSoon(); scheduleSync(); }
 
+  // RF3 (docs/12_REFINE.md): a field this device hasn't itself edited since
+  // its last confirmed push should always defer to whatever the server has
+  // for it -- that's mergeFromServer()'s whole job below. `dirty` is what
+  // tells the two apart, per field: set the moment setRating/setNote/
+  // setVisibility is called, cleared only once pushCrate() confirms that
+  // field's current value actually reached the server. A row-level
+  // "whichever side touched it more recently" timestamp compare was tried
+  // first and rejected -- it fails exactly the scenario this PR exists for
+  // (device A rates an album, device B almost immediately adds a note to
+  // the same one): both edits land within the same instant as far as a
+  // single per-row clock is concerned, so "newer" picks one side's touch
+  // and discards the other side's still-unpushed-but-untouched-by-it field
+  // along with it. A per-field dirty flag needs no clock comparison (and no
+  // new server timestamp) at all: an untouched field is always safe to
+  // adopt from the server, a touched-but-not-yet-pushed one never is.
+  //
+  // A field going to null here is a real, user-driven clear -- it has to
+  // reach the server as the explicit sentinel sync_crate expects, not a
+  // bare `null`, which now means "no change" so a stale device can never
+  // again wipe another device's value by never having set one locally.
+  // `pendingClear` tracks that narrower intent until it's actually been
+  // pushed (see buildItems()/pushCrate() below).
+  function markDirty(albumId, field) {
+    const e = X.state.items[albumId];
+    if (!e) return;
+    e.dirty = e.dirty || {};
+    e.dirty[field] = true;
+  }
+  function markClear(albumId, field, clearing) {
+    const e = X.state.items[albumId];
+    if (!e) return;
+    if (clearing) { e.pendingClear = e.pendingClear || {}; e.pendingClear[field] = true; }
+    else if (e.pendingClear) { delete e.pendingClear[field]; if (!Object.keys(e.pendingClear).length) delete e.pendingClear; }
+  }
   function setRating(albumId, value) {
     if (value != null) {
       value = Math.round(Number(value));
       if (!(value >= 1 && value <= 5)) return false;
     }
-    entry(albumId).rating = value == null ? null : value;
+    const e = entry(albumId);
+    markClear(albumId, 'rating', value == null && e.rating != null);
+    e.rating = value == null ? null : value;
+    markDirty(albumId, 'rating');
     tidy(albumId); touched(); return true;
   }
   function setNote(albumId, text) {
-    entry(albumId).note = cleanNote(text);
+    const e = entry(albumId);
+    const cleaned = cleanNote(text);
+    markClear(albumId, 'note', cleaned == null && e.note != null);
+    e.note = cleaned;
+    markDirty(albumId, 'note');
     tidy(albumId); touched(); return true;
   }
   function setVisibility(albumId, vis) {
     if (vis != null && !['private', 'friends', 'public'].includes(vis)) return false;
-    entry(albumId).vis = vis == null ? null : vis;
+    const e = entry(albumId);
+    e.vis = vis == null ? null : vis;
+    markDirty(albumId, 'vis');
     tidy(albumId); touched(); return true;
   }
   function pin(albumId) {
@@ -531,14 +575,21 @@
       const key = releaseKey(a.artist, a.title);
       if (!key) { skipped.noArtist++; continue; }
       const m = X.state.items[a.id] || {};
+      // A real clear goes out as sync_crate's own sentinel (rating 0 /
+      // sleeve_note '') -- a bare null now means "no change" server-side
+      // (RF3), so "I have nothing to say about this field" (never touched,
+      // or just merged in from the server) and "I want this field cleared"
+      // have to be wire-distinguishable. See markClear()/mergeFromServer().
+      const clearRating = !!(m.pendingClear && m.pendingClear.rating);
+      const clearNote = !!(m.pendingClear && m.pendingClear.note);
       const item = {
         release_key: key,
         title: String(a.title).slice(0, 200),
         artist: String(a.artist).slice(0, 200),
         year: a.year || null,
         quality_tier: a.tier || null,
-        rating: m.rating == null ? null : m.rating,
-        sleeve_note: m.note || null,
+        rating: clearRating ? 0 : (m.rating == null ? null : m.rating),
+        sleeve_note: clearNote ? '' : (m.note || null),
         pin_rank: rankOf.get(a.id) || null,
         visibility: m.vis || null,
         added_at: a.addedAt ? new Date(a.addedAt).toISOString() : null
@@ -568,32 +619,69 @@
     return rest;
   }
 
-  // Fresh device: adopt what the server already has so we never push blanks over it.
-  async function restoreFromServer(albums) {
+  // Pulls every server crate row for this account and merges it, field by
+  // field (rating/note/visibility), into the local X.state.items (RF3,
+  // docs/12_REFINE.md). Runs on every sync now, not just the first one ever
+  // for this account on this device (the old restoreFromServer()'s own
+  // gate, `X.state.restoredFor !== X.userId`) -- otherwise a device that
+  // never happens to touch an album would only ever learn another device's
+  // rating/note/visibility for it once, at first sign-in, and never again.
+  //
+  // Per field, not per row: a field this device has an unpushed local edit
+  // for (tracked by `dirty`, set by setRating/setNote/setVisibility, cleared
+  // by pushCrate() once that edit actually reaches the server) always keeps
+  // its local value here; every other field always adopts whatever the
+  // server currently has, regardless of either side's own timestamp.
+  //
+  // A single row-level `updated_at` compare (crate_items already has one,
+  // via its own pre-existing touch trigger) was tried first and rejected:
+  // it fails exactly the scenario this PR exists for (device A rates an
+  // album, device B almost immediately adds a note to the same one) --
+  // both edits land close enough in wall-clock time that "newer" picks one
+  // side's touch and, with it, discards the other side's still-correct,
+  // untouched-by-it field. Per-field dirty tracking needs no clock compare
+  // (and no new server timestamp) at all: an untouched field is always safe
+  // to adopt, a touched-but-not-yet-confirmed one never is.
+  async function mergeFromServer(albums) {
     const byKey = new Map();
     for (const a of albums) { const k = releaseKey(a.artist, a.title); if (k && !byKey.has(k)) byKey.set(k, a); }
     const serverPins = [];
+    const firstEver = X.state.restoredFor !== X.userId;
     for (let off = 0; ; off += 500) {
       const rows = await rpc('my_crate_meta', { p_offset: off, p_limit: 500 });
       for (const r of rows || []) {
         const a = byKey.get(r.release_key);
         if (!a) continue;
-        if (!X.state.items[a.id]) {
-          if (r.rating != null || r.sleeve_note || r.visibility) {
-            X.state.items[a.id] = { rating: r.rating == null ? null : r.rating, note: r.sleeve_note || null, vis: r.visibility || null };
-          }
+        const local = X.state.items[a.id];
+        const dirty = (local && local.dirty) || {};
+        const serverRating = r.rating == null ? null : r.rating;
+        const serverNote = r.sleeve_note || null;
+        const serverVis = r.visibility || null;
+        const rating = dirty.rating ? (local ? local.rating : null) : serverRating;
+        const note = dirty.note ? (local ? local.note : null) : serverNote;
+        const vis = dirty.vis ? (local ? local.vis : null) : serverVis;
+        if (rating != null || note != null || vis != null || hasDirty(local || {}) || (local && local.pendingClear)) {
+          X.state.items[a.id] = { rating, note, vis };
+          if (local && local.dirty) X.state.items[a.id].dirty = local.dirty;
+          if (local && local.pendingClear) X.state.items[a.id].pendingClear = local.pendingClear;
+        } else if (local) {
+          delete X.state.items[a.id];
         }
         if (r.pin_rank != null) serverPins.push({ rank: r.pin_rank, id: a.id });
       }
       if (!rows || rows.length < 500) break;
     }
-    if (!X.state.pins.length && serverPins.length) {
+    // Pin adoption stays first-sign-in-only, same as before this change:
+    // repeating it every sync would undo a user who deliberately unpinned
+    // everything locally, since "no local pins" can't be told apart from
+    // "never looked" once this runs more than once.
+    if (firstEver && !X.state.pins.length && serverPins.length) {
       X.state.pins = serverPins.sort((a, b) => a.rank - b.rank).map(p => p.id).slice(0, MAX_PINS);
     }
     X.state.restoredFor = X.userId;
   }
 
-  async function pushCrate(items, quiet, toUpsert) {
+  async function pushCrate(items, quiet, toUpsert, idByKey) {
     // Pin changes first, in one tiny batch, so a pin moving between two albums
     // never collides across chunks (each RPC is its own transaction).
     const clearFirst = [];
@@ -607,7 +695,24 @@
     }
     for (const part of chunk(toUpsert, CHUNK)) {
       await rpc('sync_crate', { p_items: part.map(toWire), p_quiet: quiet });
-      for (const it of part) X.state.synced[it.release_key] = { fp: it.fp, pin: it.pin_rank };
+      for (const it of part) {
+        X.state.synced[it.release_key] = { fp: it.fp, pin: it.pin_rank };
+        // Every field this item carried (rating/note/visibility) has now
+        // actually reached the server as a full snapshot -- clear the
+        // dirty flags mergeFromServer() uses to decide what's still a
+        // local-only edit, and the pending-clear sentinel tracking, so a
+        // later pull can freely adopt whatever the server has for this
+        // item again (including another device's own later edit), and
+        // tidy() can drop the entry if there's nothing left in it.
+        const albumId = idByKey && idByKey.get(it.release_key);
+        if (albumId) {
+          const e = X.state.items[albumId];
+          if (e && e.dirty) delete e.dirty;
+          if (it.rating === 0) markClear(albumId, 'rating', false);
+          if (it.sleeve_note === '') markClear(albumId, 'note', false);
+          tidy(albumId);
+        }
+      }
       persistSoon();
     }
   }
@@ -652,8 +757,8 @@
     try {
       const albums = (await X.adapter.listAlbums()) || [];
       let first = X.state.restoredFor !== X.userId;
-      if (first) await restoreFromServer(albums);
-      const { items, skipped } = buildItems(albums);
+      await mergeFromServer(albums);
+      const { items, skipped, idByKey } = buildItems(albums);
 
       const toUpsert = [...items.values()].filter(it => {
         const s = X.state.synced[it.release_key];
@@ -669,7 +774,7 @@
       if ((massRemoval || emptied) && !opts.confirmRemovals) held = toRemove.length;
 
       const quiet = first && X.state.settings.syncEnabled;
-      await pushCrate(items, quiet, toUpsert);
+      await pushCrate(items, quiet, toUpsert, idByKey);
 
       let removed = 0;
       if (!held) {
