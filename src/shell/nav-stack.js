@@ -66,38 +66,64 @@ function clearInert(){
   inertedEls.length = 0;
 }
 
-// Marks `inert` on every sibling along the path from `root` down to
-// `target`, leaving `target` itself -- and every ancestor on the way down
-// to it, including `root` -- untouched. `inert` can't be un-set on a node
-// once an ancestor already carries it (it isn't a CSS cascade a child rule
-// can override), so "the background is inert but the topmost layer's own
-// container is still reachable" can only be done this way: never inerting
-// an ancestor of the one thing that must stay reachable, only that
-// ancestor's *other* children at each level. Nearly every overlay in this
-// app (the full player, the gatefold, every sheet) is a direct sibling of
-// `root`'s other top-level content, so in the common case this only ever
-// inerts one level of siblings -- but a couple of layers (the header's
-// search field, the `+` menu) have containers nested inside the regular
-// library screen, and this walk handles that exactly the same way, with no
-// special case needed. Falls back to inerting `root` wholesale when there
-// is no real path to walk (no container was given for this layer, or it
-// isn't actually inside `root`) -- the one case this can't do better than
-// the old blanket behavior.
-function inertSiblingsOnPathTo(root, target){
+// Marks `inert` on every sibling along the path from `root` down to each of
+// `targets`, leaving every target itself -- and every ancestor on the way
+// down to each of them, including `root` -- untouched. `inert` can't be
+// un-set on a node once an ancestor already carries it (it isn't a CSS
+// cascade a child rule can override), so "the background is inert but the
+// topmost layer's own container is still reachable" can only be done this
+// way: never inerting an ancestor of anything that must stay reachable,
+// only that ancestor's *other* children at each level. Nearly every overlay
+// in this app (the full player, the gatefold, every sheet) is a direct
+// sibling of `root`'s other top-level content, so in the common case this
+// only ever inerts one level of siblings -- but a couple of layers (the
+// header's search field, the `+` menu) have containers nested inside the
+// regular library screen, and this walk handles that exactly the same way,
+// with no special case needed.
+//
+// `targets` can hold more than one element: a layer can be made of several
+// separate top-level siblings rather than one single container with
+// everything else nested inside it (the Sundown sheet's own scrim,
+// src/shell/sundown-sheet.js, is a sibling of the sheet itself, not a
+// parent of it -- CSS gives the scrim `pointer-events:auto` while open so a
+// tap on it closes the sheet, but `inert`'s own UA style overrides that
+// with `!important`, so a scrim marked inert as "just another background
+// sibling" silently loses its own tap-to-dismiss). Every target's own path
+// to `root` is protected the same way a single target's would be. Falls
+// back to inerting `root` wholesale when there is no real path to walk (no
+// container was given for this layer, or none of them are actually inside
+// `root`) -- the one case this can't do better than the old blanket
+// behavior.
+function inertSiblingsOnPathTo(root, targets){
   if(!root) return;
-  if(!target || !root.contains?.(target)){
+  const real = (targets || []).filter(t => t && root.contains?.(t));
+  if(real.length === 0){
     root.setAttribute('inert', '');
     inertedEls.push(root);
     return;
   }
-  let node = target;
-  while(node && node !== root){
-    const parent = node.parentNode;
-    if(!parent || !parent.children) break;
-    for(const sib of parent.children){
-      if(sib !== node){ sib.setAttribute('inert', ''); inertedEls.push(sib); }
+  const protectedSet = new Set();
+  for(const t of real){
+    for(let node = t; node; node = node.parentNode){
+      protectedSet.add(node);
+      if(node === root) break;
     }
-    node = parent;
+  }
+  const touched = new Set();
+  for(const t of real){
+    let node = t;
+    while(node && node !== root){
+      const parent = node.parentNode;
+      if(!parent || !parent.children) break;
+      for(const sib of parent.children){
+        if(sib !== node && !protectedSet.has(sib) && !touched.has(sib)){
+          touched.add(sib);
+          sib.setAttribute('inert', '');
+          inertedEls.push(sib);
+        }
+      }
+      node = parent;
+    }
   }
 }
 
@@ -105,11 +131,11 @@ function applyInert(){
   if(!appRoot) return;
   clearInert();
   // Background becomes inert (unreachable by focus/AT) whenever at least
-  // one layer is open; the topmost layer's own container is never made
-  // inert, since it's the thing that should be reachable.
+  // one layer is open; the topmost layer's own container(s) are never made
+  // inert, since they're the thing that should be reachable.
   if(layers.length === 0) return;
   const top = layers[layers.length - 1];
-  inertSiblingsOnPathTo(appRoot, top.container);
+  inertSiblingsOnPathTo(appRoot, top.containers);
 }
 
 // Registers a newly-opened overlay as the topmost layer: pushes one history
@@ -124,6 +150,13 @@ function applyInert(){
 // animation that would look wrong racing against an unrelated navigation
 // (e.g. switching library tabs out from under an open gatefold).
 //
+// `opts.container` is normally a single element, but can also be an array —
+// for a layer made of more than one top-level sibling that all need to stay
+// reachable together (the Sundown sheet and its own scrim; see
+// inertSiblingsOnPathTo()'s own comment above). Focus still moves into just
+// the first one given, since that's always the layer's own real content
+// (the scrim has nothing worth focusing).
+//
 // Synchronous, no `await` anywhere in this function or its callers' usual
 // path — pushState must happen in the same tick as the user gesture that
 // opened the layer, same as every other DOM mutation in an open handler,
@@ -131,10 +164,13 @@ function applyInert(){
 export function openLayer(id, close, opts = {}){
   if(layers.some(l => l.id === id)) return; // already open, not a re-push
   lastFocused = document.activeElement;
-  layers.push({ id, close, instantClose: opts.instantClose || close, container: opts.container || null });
+  const containers = opts.container
+    ? (Array.isArray(opts.container) ? opts.container.filter(Boolean) : [opts.container])
+    : [];
+  layers.push({ id, close, instantClose: opts.instantClose || close, containers });
   history.pushState({ navLayer: id }, '');
   applyInert();
-  if(opts.container) focusFirstIn(opts.container);
+  if(containers[0]) focusFirstIn(containers[0]);
 }
 
 function finishClose(closing, opts){
@@ -144,7 +180,7 @@ function finishClose(closing, opts){
     lastFocused = null;
   } else if(layers.length > 0){
     const top = layers[layers.length - 1];
-    if(top.container) focusFirstIn(top.container);
+    if(top.containers[0]) focusFirstIn(top.containers[0]);
   }
   if(!opts.viaPopstate && closing.length > 0){
     history.go(-closing.length);

@@ -71,7 +71,14 @@ export function openSundownSheet(view){
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   if(scrim) scrim.classList.add('open');
-  openLayer('sundown-sheet', teardownSundownSheet, { container: sheet });
+  // Both the sheet and its own scrim are top-level siblings here, not one
+  // nested inside the other (unlike every .edit-overlay/.share-overlay in
+  // this app, which is a single element doubling as its own backdrop) --
+  // nav-stack.js's own container list has to protect both, or the scrim
+  // gets marked `inert` as "just another background sibling" and silently
+  // loses the tap-to-dismiss its own `.open{pointer-events:auto}` CSS rule
+  // is there to give it (`inert`'s UA style wins over author CSS).
+  openLayer('sundown-sheet', teardownSundownSheet, { container: scrim ? [sheet, scrim] : sheet });
 }
 
 function wireSundownSheetClose(){
