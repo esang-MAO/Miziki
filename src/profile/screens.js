@@ -76,26 +76,30 @@ export function topTile(label, art, title, subtitle, emptyText, onTap){
 
 // NV4 (docs/11_SMOOTH_NAVIGATION.md): "build once; on later visits, update
 // only the parts whose data changed" for the Profile home screen.
-// profileHomeHosts persists the two sub-sections' own host elements
-// (storefront, rhythm card) across refreshes, so a refresh (pull-to-refresh,
-// or any other "just redraw with current data" call) never wipes the whole
-// #profileBody — only a genuine screen change does (including entering the
-// home screen from somewhere else, since the old hosts are detached once
-// the body is wiped for a different screen anyway). Navigating to a
-// sub-screen (Top Albums, Settings, …) and back still does a full rebuild
-// of the home screen itself the first time it's entered again — this only
-// changes what happens on a *refresh while already looking at it*, per the
-// plan's own "Profile" bullet; avoiding re-creating unchanged <img>
-// elements inside the storefront's own avatar (its header always rebuilds
-// internally once called) is a deeper change to src/profile/storefront.js
-// itself, deliberately left out of this PR's scope — see its PR description.
+// profileHomeHosts persists the storefront's own host element across
+// refreshes, so a refresh (pull-to-refresh, or any other "just redraw with
+// current data" call) never wipes the whole #profileBody — only a genuine
+// screen change does (including entering the home screen from somewhere
+// else, since the old host is detached once the body is wiped for a
+// different screen anyway). Navigating to a sub-screen (Listening,
+// Settings, …) and back still does a full rebuild of the home screen
+// itself the first time it's entered again — this only changes what
+// happens on a *refresh while already looking at it*, per the plan's own
+// "Profile" bullet; avoiding re-creating unchanged <img> elements inside
+// the storefront's own avatar (its header always rebuilds internally once
+// called) is a deeper change to src/profile/storefront.js itself,
+// deliberately left out of this PR's scope — see its PR description.
+// RF11 (docs/12_REFINE.md, "Profile is your crate") moved the rhythm card
+// off this home screen onto the new Listening sub-screen alongside the
+// rest of renderListeningScreen()'s own content, so there's only the one
+// host to track here now.
 let profileHomeHosts = null;
 let lastProfileScreen = null;
 
 export function renderProfile(opts = {}){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy',
+  const labels = {listening:'Listening', topAlbums:'Top Albums', topSongs:'Top Songs', collection:'Collection', socialSettings:'Account', privacy:'Privacy',
     privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use', settings:'Settings'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
@@ -109,7 +113,8 @@ export function renderProfile(opts = {}){
   parkPlaybackSettings();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
   if(!refreshingHome) body.innerHTML = '';
-  if(screen === 'topAlbums') renderTopAlbumsScreen(body);
+  if(screen === 'listening') renderListeningScreen(body);
+  else if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
   else if(screen === 'collection') renderCollectionScreen(body);
   else if(screen === 'settings') renderAppSettingsScreen(body);
@@ -123,12 +128,12 @@ export function renderProfile(opts = {}){
 }
 
 // NV4: refreshes the Profile tab's own home screen in place (re-fetches the
-// storefront/stats/rhythm card), without rebuilding #profileBody — a no-op
-// when a different screen (Top Albums, Settings, …) is currently showing,
-// since there's nothing "home" to refresh there. Never starts a restore,
-// merge, or anything that writes library data — renderStorefrontSection()/
-// renderRhythmCard() only ever read from S and re-fetch the signed-in
-// storefront's own already-read-only profile data.
+// storefront/stats), without rebuilding #profileBody — a no-op when a
+// different screen (Listening, Settings, …) is currently showing, since
+// there's nothing "home" to refresh there. Never starts a restore, merge,
+// or anything that writes library data — renderStorefrontSection() only
+// ever reads from S and re-fetches the signed-in storefront's own
+// already-read-only profile data.
 export function refreshProfileHome(){
   if(S.profileView.screen !== 'home') return;
   renderProfile({ refresh: true });
@@ -137,23 +142,16 @@ export function refreshProfileHome(){
 function renderProfileHome(body, refresh){
   if(!refresh || !profileHomeHosts){
     const storefrontHost = el('div', null);
-    const rhythmHost = el('div', null);
     body.appendChild(storefrontHost);
-    body.appendChild(rhythmHost);
-    profileHomeHosts = { storefrontHost, rhythmHost };
+    profileHomeHosts = { storefrontHost };
     // reachable from Profile regardless of sign-in state — the privacy
     // screen itself shows the calm "sign in to use this" row for the
     // social-only sections when signed out (step 06, B3). Static across
-    // refreshes, so only built the first time, like the two hosts above.
+    // refreshes, so only built the first time, like the host above.
     wirePrivacyLink(body, renderProfile);
   }
   profileHomeHosts.storefrontHost.innerHTML = '';
   renderStorefrontSection(profileHomeHosts.storefrontHost);
-  // DA5 (docs/DAY_ARC.md): local to this device, visible regardless of
-  // sign-in state — the same posture the privacy link just below already
-  // has. The *sharing* switch is the social-only half (Privacy screen,
-  // src/profile/privacy.js) and stays separate.
-  renderRhythmCard(profileHomeHosts.rhythmHost);
 }
 
 // DA3 (docs/DAY_ARC.md, artboard ProfileSettings): the Appearance control
@@ -222,8 +220,23 @@ function renderAppSettingsScreen(body){
     seg.appendChild(b);
   });
   appearance.appendChild(seg);
-  appearance.appendChild(el('p','note',
-    'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. ' + nychthemeronSwitchCaption() + ' Choosing Light or Dark keeps that look regardless of the device.'));
+  // RF11 (docs/12_REFINE.md, point 5): "every helper is one line of
+  // caption text; anything longer sits behind an (i)." Keeps the one
+  // required sentence ("Turns dark at 8:10 PM today.") visible on its own
+  // line; what Auto/Nychthemeron/Light/Dark each actually mean moves
+  // behind the same native <details>/<summary> "(i)" disclosure pattern
+  // src/wiring/character.js's own Sound-view Character card already
+  // established (see src/styles/25-day-arc-v2.css's .sd-info).
+  const note = el('p','note');
+  note.appendChild(document.createTextNode(nychthemeronSwitchCaption() + ' '));
+  const info = document.createElement('details'); info.className = 'sd-info';
+  const summary = document.createElement('summary'); summary.textContent = '(i)';
+  summary.setAttribute('aria-label','More about Appearance');
+  info.appendChild(summary);
+  info.appendChild(document.createTextNode(
+    'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. Choosing Light or Dark keeps that look regardless of the device.'));
+  note.appendChild(info);
+  appearance.appendChild(note);
   body.appendChild(appearance);
 
   // CEREMONY §6: the Slipmat row, part of Appearance. Filled once the saved
@@ -260,23 +273,35 @@ function renderAppSettingsScreen(body){
   body.appendChild(legalLinksRow(renderProfile));
 }
 
-// Top Album/Top Song, Achievements, Collection and Share don't exist
-// anywhere else, so every storefront state (local-only, open-store card,
-// signed-in) appends this directly below its own single identity header —
-// there is deliberately no second avatar/name editor here any more. The
-// avatar/name identity (S.profile.art/.name) is edited exactly once, inline
-// in whichever store-header is already showing (storeAvatarButton()/
-// appendNameEditor(), src/profile/storefront.js), the same one header in
-// every state — local-only, not-yet-signed-in, and signed-in alike —
-// rather than a second "profile view" that only appeared once a user was
-// signed in to a configured social backend. Signing in only adds the
-// extra social elements (staff picks, followers, digging, now spinning)
-// to that same view, per Ken's own framing of this.
-export function renderProfileExtras(){
+// RF11 (docs/12_REFINE.md, "Profile is your crate"): formerly
+// renderProfileExtras(), appended directly below the storefront's own
+// identity header on every profile-home render. Point 1 ("a Listening
+// sub-screen — top album/song, metals, collection, listening rhythm —
+// linked from one row") moved it here instead, its own routed screen,
+// reached from src/profile/storefront.js's storeListeningRow() in every
+// storefront state (local-only, open-store card, signed-in) — the avatar/
+// name identity itself stays exactly where it was, inline in whichever
+// store-header is already showing.
+function renderListeningScreen(body){
   const wrap = el('div','profile-extras');
 
-  const row = el('div','profile-top-row');
   const albums = topAlbums(1), tracks = topTracks(1);
+  const achList = achievementsList();
+  const collList = Object.values(S.collection);
+  // RF11 point 2: "a new profile with no stats shows one card... instead
+  // of several 'nothing yet' boxes." Only for a genuinely fresh profile —
+  // once anything exists, each section still shows its own ordinary state
+  // (including its own, more specific empty copy, e.g. achievements earned
+  // but no collection pressing yet).
+  if(!albums.length && !tracks.length && !achList.length && !collList.length){
+    const empty = el('div','profile-empty profile-empty-first');
+    empty.appendChild(el('p', null, 'Play an album start to finish to earn your first metal.'));
+    wrap.appendChild(empty);
+    body.appendChild(wrap);
+    return;
+  }
+
+  const row = el('div','profile-top-row');
   row.appendChild(topTile('Top Album', albums[0] ? albums[0].display.art : null,
     albums[0] ? albums[0].display.name : null, albums[0] ? albums[0].display.artist : null,
     'nothing in the crate yet', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
@@ -285,10 +310,16 @@ export function renderProfileExtras(){
     'nothing in the sleeve yet', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
   wrap.appendChild(row);
 
+  // DA5 (docs/DAY_ARC.md): local to this device, visible regardless of
+  // sign-in state. The *sharing* switch is the social-only half (Privacy
+  // screen, src/profile/privacy.js) and stays separate.
+  const rhythmHost = el('div', null);
+  wrap.appendChild(rhythmHost);
+  renderRhythmCard(rhythmHost);
+
   const achSection = el('div','profile-section');
   const achHead = el('div','profile-section-head'); achHead.appendChild(el('span', null, 'Achievements'));
   achSection.appendChild(achHead);
-  const achList = achievementsList();
   if(achList.length){
     const grid = el('div','profile-grid');
     achList.forEach(rec => grid.appendChild(metalBadge(rec)));
@@ -299,7 +330,6 @@ export function renderProfileExtras(){
   }
   wrap.appendChild(achSection);
 
-  const collList = Object.values(S.collection);
   const collSection = el('button','profile-section');
   const collHead = el('div','profile-section-head');
   collHead.appendChild(el('span', null, 'Collection'));
@@ -321,7 +351,7 @@ export function renderProfileExtras(){
   shareBtn.addEventListener('click', openShareSheet);
   wrap.appendChild(shareBtn);
 
-  return wrap;
+  body.appendChild(wrap);
 }
 
 function renderTopAlbumsScreen(body){

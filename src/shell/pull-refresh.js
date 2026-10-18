@@ -52,25 +52,29 @@ export function shouldThrottle(lastRefreshAt, now){
   return (now - lastRefreshAt) < REFRESH_THROTTLE_MS;
 }
 
-function buildIndicatorDom(routeEl, refreshLabel){
+// RF11 (docs/12_REFINE.md, point 4): this indicator used to also build its
+// own always-in-the-DOM, absolutely-positioned keyboard "Refresh" button
+// (.pull-refresh-btn) — on Profile that button visually collided with the
+// Settings gear sitting at the same top-right corner of the screen. The
+// accessible trigger is now each caller's own concern (src/wiring/
+// pull-refresh.js builds a real in-flow button for Home, and folds Profile's
+// into its Settings menu via registerProfileRefresh()/triggerProfileRefresh()
+// below) — this indicator is left with only the touch gesture's own visual
+// feedback (the spinner dot) and the aria-live status line, exactly as
+// before.
+function buildIndicatorDom(routeEl){
   const controls = document.createElement('div');
   controls.className = 'pull-refresh';
   const dot = document.createElement('div');
   dot.className = 'pull-refresh-dot';
   dot.setAttribute('aria-hidden', 'true');
   controls.appendChild(dot);
-  const btn = document.createElement('button');
-  btn.className = 'pull-refresh-btn';
-  btn.type = 'button';
-  btn.textContent = refreshLabel || 'Refresh';
-  btn.setAttribute('aria-label', refreshLabel || 'Refresh');
-  controls.appendChild(btn);
   const live = document.createElement('div');
   live.className = 'pull-refresh-live';
   live.setAttribute('aria-live', 'polite');
   controls.appendChild(live);
   routeEl.insertBefore(controls, routeEl.firstChild);
-  return { wrap: controls, dot, btn, live };
+  return { wrap: controls, dot, live };
 }
 
 // Wires pull-to-refresh onto one route's own container. `routeEl` is the
@@ -82,8 +86,8 @@ function buildIndicatorDom(routeEl, refreshLabel){
 // `getStatusLine()`, when it returns a non-empty string, means "nothing to
 // fetch right now" (offline/signed out) — the indicator plays its spring
 // animation and shows that line instead of making a request.
-export function wirePullToRefresh(routeEl, { onRefresh, getStatusLine, refreshLabel }){
-  const indicator = buildIndicatorDom(routeEl, refreshLabel);
+export function wirePullToRefresh(routeEl, { onRefresh, getStatusLine }){
+  const indicator = buildIndicatorDom(routeEl);
   let state = 'idle';
   let startX = 0, startY = 0, startScrollY = 0, startedAt = 0;
   let refreshing = false;
@@ -164,7 +168,23 @@ export function wirePullToRefresh(routeEl, { onRefresh, getStatusLine, refreshLa
   routeEl.addEventListener('touchmove', onTouchMove, { passive: false });
   routeEl.addEventListener('touchend', onTouchEnd);
   routeEl.addEventListener('touchcancel', onTouchEnd);
-  indicator.btn.addEventListener('click', runRefresh);
 
   return { refresh: runRefresh };
+}
+
+// RF11 (docs/12_REFINE.md, point 4): Profile's own keyboard-accessible
+// Refresh trigger is a "Refresh" item inside the Settings gear's popup menu
+// (src/profile/storefront.js's renderStorefrontSection()) rather than a
+// separate floating button — but that menu is rebuilt from scratch on every
+// render (every storefront state redraws itself fresh), so it can't hold a
+// persistent reference to the one `runRefresh` closure wirePullToRefresh()
+// creates once at boot (src/wiring/pull-refresh.js). This tiny registry is
+// the indirection that lets it reach that same closure anyway: wired once,
+// read every time the menu item is actually clicked.
+let profileRefreshFn = null;
+export function registerProfileRefresh(fn){
+  profileRefreshFn = fn;
+}
+export function triggerProfileRefresh(){
+  return profileRefreshFn ? profileRefreshFn() : Promise.resolve();
 }

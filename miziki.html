@@ -281,30 +281,41 @@
     <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
          survive renderProfile()'s innerHTML reset. Parked here, hidden, and
          moved into Profile › Settings by renderAppSettingsScreen(); moved
-         back by renderProfile() before the body is wiped. -->
+         back by renderProfile() before the body is wiped.
+
+         RF11 (docs/12_REFINE.md, point 5): "every helper is one line of
+         caption text; anything longer sits behind an (i)." Each row's own
+         <em> is now one sentence; the rest sits behind the same native
+         <details class="sd-info"> "(i)" disclosure RF9's own Character card
+         already established (src/styles/25-day-arc-v2.css). #bgAudioNote
+         keeps its id and stays a plain <em> — src/player/background.js's
+         bgUpdateUI() overwrites its textContent directly for the
+         unsupported-browser/retry states, which a <details> child would
+         not survive — so its own (i) is a separate, static sibling instead
+         of nested inside it. -->
     <div id="playbackSettingsStash" style="display:none">
       <div id="playbackSettings">
       <div class="row">
-        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
+        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record.</em> <details class="sd-info"><summary aria-label="More about Scratch">(i)</summary>Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</details></div>
         <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
       </div>
 
       <div class="row">
-        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
+        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes.</em> <details class="sd-info"><summary aria-label="More about Sleeve Pull">(i)</summary>Turn off to jump straight into playback.</details></div>
         <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
       </div>
 
       <div class="row">
-        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
+        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens.</em> <details class="sd-info"><summary aria-label="More about Launch intro">(i)</summary>Turn off to go straight to the library.</details></div>
         <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
       </div>
 
       <div class="row">
-        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
+        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen.</em> <details class="sd-info"><summary aria-label="More about Background playback">(i)</summary>Adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</details></div>
         <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
       </div>
 
-      <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
+      <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. <details class="sd-info"><summary aria-label="More about wireless output">(i)</summary>Wired or built-in playback preserves the file's full resolution.</details></p>
       </div>
     </div>
 

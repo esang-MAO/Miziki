@@ -17,7 +17,7 @@ function fakeEl(){
     // outside of badges.js's own narrower needs — harmless no-ops here, since
     // no test in this file ever fires a click.
     addEventListener(){},
-    classList: { add(){}, contains(){ return false; } },
+    classList: { add(){}, contains(){ return false; }, toggle(){}, remove(){} },
   };
   Object.defineProperty(node, 'innerHTML', {
     get(){ return children.length ? '…' : ''; },
@@ -98,9 +98,14 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
+// Mutable per-test so the renderListeningScreen() tests below can exercise
+// both its empty-profile branch (RF11 point 2) and its ordinary one without
+// a second mock.module registration (node:test doesn't support re-mocking
+// mid-file).
+let mockTopAlbums = [], mockTopTracks = [], mockAchievements = [];
 mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
   namedExports: {
-    topAlbums(){ return []; }, topTracks(){ return []; }, achievementsList(){ return []; },
+    topAlbums(){ return mockTopAlbums; }, topTracks(){ return mockTopTracks; }, achievementsList(){ return mockAchievements; },
     crateFilled(){ return false; }, collectionGroups(){ return {}; },
   },
 });
@@ -225,24 +230,28 @@ function resetProfileState(){
   S.profileView.screen = 'home';
 }
 
-test('renderProfile: a plain call on the home screen builds fresh storefront/rhythm hosts', () => {
+// RF11 (docs/12_REFINE.md, "Profile is your crate") moved the rhythm card
+// off the home screen onto the new routed Listening sub-screen (reached
+// from storeListeningRow(), mocked away above as part of renderStorefrontSection) —
+// renderRhythmCard is no longer called from renderProfileHome at all, so
+// rhythmCalls stays empty throughout this suite's home-screen tests; only
+// the storefront host is tracked here now.
+test('renderProfile: a plain call on the home screen builds a fresh storefront host', () => {
   resetProfileState();
   renderProfile();
   assert.equal(storefrontCalls.length, 1);
-  assert.equal(rhythmCalls.length, 1);
-  assert.equal(profileHosts['#profileBody'].children.length, 2, 'storefrontHost + rhythmHost, nothing else');
+  assert.equal(rhythmCalls.length, 0, 'the rhythm card lives on the Listening screen now, not home');
+  assert.equal(profileHosts['#profileBody'].children.length, 1, 'just the storefrontHost');
 });
 
-test('renderProfile({refresh:true}) while already on home never wipes #profileBody -- same hosts, re-painted', () => {
+test('renderProfile({refresh:true}) while already on home never wipes #profileBody -- same host, re-painted', () => {
   resetProfileState();
   renderProfile();
-  const [storefrontHost, rhythmHost] = profileHosts['#profileBody'].children;
+  const [storefrontHost] = profileHosts['#profileBody'].children;
   renderProfile({ refresh: true });
   assert.equal(storefrontCalls.length, 2, 'renderStorefrontSection ran again, to pick up fresh data');
-  assert.equal(rhythmCalls.length, 2);
-  assert.equal(profileHosts['#profileBody'].children.length, 2, 'no new top-level host was appended');
+  assert.equal(profileHosts['#profileBody'].children.length, 1, 'no new top-level host was appended');
   assert.equal(profileHosts['#profileBody'].children[0], storefrontHost, 'same storefront host, not torn down');
-  assert.equal(profileHosts['#profileBody'].children[1], rhythmHost, 'same rhythm host, not torn down');
 });
 
 test('refreshProfileHome: is a no-op when a different screen is showing', () => {
@@ -250,7 +259,6 @@ test('refreshProfileHome: is a no-op when a different screen is showing', () => 
   S.profileView.screen = 'topAlbums';
   refreshProfileHome();
   assert.equal(storefrontCalls.length, 0);
-  assert.equal(rhythmCalls.length, 0);
 });
 
 test('refreshProfileHome: refreshes in place when the home screen is showing', () => {
@@ -258,7 +266,6 @@ test('refreshProfileHome: refreshes in place when the home screen is showing', (
   renderProfile();
   refreshProfileHome();
   assert.equal(storefrontCalls.length, 2);
-  assert.equal(rhythmCalls.length, 2);
 });
 
 test('renderProfile: leaving home for another screen and back rebuilds fresh hosts (not stale ones)', () => {
@@ -271,4 +278,31 @@ test('renderProfile: leaving home for another screen and back rebuilds fresh hos
   renderProfile();
   const [secondStorefrontHost] = profileHosts['#profileBody'].children;
   assert.notEqual(secondStorefrontHost, firstStorefrontHost, 'a genuine screen change always rebuilds fresh, even back on home');
+});
+
+// --- RF11 (docs/12_REFINE.md, "Profile is your crate") point 1/2: the
+// Listening sub-screen (formerly renderProfileExtras(), inlined on the
+// home screen) and its empty-state consolidation --------------------------
+
+test('renderProfile(listening): a wholly new profile shows one consolidated empty card, not several', () => {
+  resetProfileState();
+  mockTopAlbums = []; mockTopTracks = []; mockAchievements = []; S.collection = {};
+  S.profileView.screen = 'listening';
+  renderProfile();
+  assert.equal(rhythmCalls.length, 0, 'nothing is rendered past the one empty card for a brand-new profile');
+  const body = profileHosts['#profileBody'];
+  assert.equal(body.children.length, 1, 'just the one wrap div');
+  const wrap = body.children[0];
+  assert.equal(wrap.childNodes.length, 1, 'exactly one child -- the consolidated empty card');
+  assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
+});
+
+test('renderProfile(listening): once anything exists, the full breakdown (top row, rhythm, achievements, collection, share) renders', () => {
+  resetProfileState();
+  mockTopAlbums = [{display:{name:'A', artist:'B', art:null}}]; mockTopTracks = []; mockAchievements = []; S.collection = {};
+  S.profileView.screen = 'listening';
+  renderProfile();
+  assert.equal(rhythmCalls.length, 1, 'the rhythm card renders once anything is present, not only a brand-new profile');
+  const wrap = profileHosts['#profileBody'].children[0];
+  assert.ok(wrap.childNodes.length > 1, 'more than just the empty card once there is something to show');
 });

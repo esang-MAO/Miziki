@@ -10,8 +10,11 @@
 .store-loading,.store-error{font-size:13px;color:var(--muted);padding:16px 0}
 .store-error button{margin-top:10px}
 
+/* RF11 (docs/12_REFINE.md, point 3): "the awning shrinks to a 12px trim" —
+   was a 22px scalloped band; now a slim accent strip at the top of the
+   crate view. */
 .store-awning{display:flex;margin:0 0 16px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
-.store-awning > div{flex:1;height:22px;border-radius:0 0 22px 22px}
+.store-awning > div{flex:1;height:12px;border-radius:0 0 12px 12px}
 .store-awning > div:nth-child(odd){background:var(--accent)}
 .store-awning > div:nth-child(even){background:var(--cream)}
 
@@ -35,7 +38,10 @@
 .store-displayname{font-size:13px;color:var(--muted)}
 .store-handle-input{font-family:var(--display);font-weight:700;font-size:36px;letter-spacing:.01em;line-height:1;margin:0;width:100%;
   background:none;border:0;color:var(--paper);padding:0}
-.store-handle-input::placeholder{color:var(--muted);opacity:.65}
+/* RF11 (docs/12_REFINE.md, point 3): "the username in --paper even as a
+   placeholder" — was --muted, which read as disabled/greyed-out rather
+   than as an empty field waiting for a name. */
+.store-handle-input::placeholder{color:var(--paper);opacity:.5}
 .store-displayname-btn{display:block;background:none;border:0;padding:4px 0;margin:0;text-align:left;
   font-size:13px;color:var(--muted);min-height:32px}
 .store-displayname-input{display:block;font-size:16px;color:var(--paper);background:none;border:0;
@@ -53,6 +59,14 @@
 .store-stat b{font-family:var(--display);font-weight:700;font-size:30px;line-height:1}
 .store-stat span{font-family:var(--data);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .store-stat.accent b{color:var(--accent)}
+
+/* RF11 (docs/12_REFINE.md, point 1): the one row every storefront state
+   links into the new routed Listening screen (top album/song, metals,
+   collection, the rhythm card — src/profile/screens.js). */
+.store-listening-row{display:flex;align-items:center;justify-content:space-between;width:100%;
+  margin-top:14px;padding:14px 2px;background:none;border:0;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);color:var(--paper);font-size:14px;text-align:left;min-height:44px}
+.store-listening-row .g-chev{color:var(--muted)}
 
 .store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px}
 .store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--cream);color:#1A1410;
