@@ -67,9 +67,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px}
 /* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a 2x2 grid once
    Nychthemeron made this a four-button row — "the grid gives the long
-   word room at 320-390px" rather than needing the narrower desktop
-   sidebar's own letter-spacing tightening (src/styles/23-desktop.css's
-   .sidebar-appearance .seg). Overrides .seg's own display:flex (16-
+   word room at 320-390px." Overrides .seg's own display:flex (16-
    edit-sheet.css) the same way this rule's pre-DA4 width:100% already
    did — later in the cascade, equal specificity. white-space:normal is
    a defensive fallback, not something the four labels are expected to

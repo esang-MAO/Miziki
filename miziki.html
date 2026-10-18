@@ -145,24 +145,20 @@
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>
 
+    <!-- RF8 (docs/12_REFINE.md): one header row — tabs on the left, search/
+         +/overflow on the right. Select and the crate order toggle's old
+         Library-tools copy both moved out of this row (Select into the new
+         overflow below; the crate toggle has one home now, #crateGroupToggleTab,
+         no longer desktop-only — see crate/view.js's updateCrateGroupToggleUI()). -->
     <div class="lib-tabs" id="libNav" style="display:none">
       <div class="lib-tabs-group" id="libNavTabs" style="display:none">
         <button data-view="songs" aria-pressed="true">Songs</button>
         <button data-view="albums" aria-pressed="false">Albums</button>
         <button data-view="artists" aria-pressed="false">Artists</button>
         <button data-view="playlists" aria-pressed="false">Playlists</button>
-        <button class="lib-select-tab" id="selectToggle">Select</button>
       </div>
-      <!-- D5 (docs/DESKTOP_LAYOUT.md): a desktop-only mirror of the A-Z/
-           Genre crate-grouping toggle that's otherwise tucked inside
-           Profile > Library tools — new ids, not a clone of
-           #crateGroupToggle's own, wired to the exact same S.crateGroup
-           state (src/wiring/library-view.js). Starts hidden; src/library/
-           view.js's renderTracks() hides it by default every render, and
-           src/crate/view.js's updateCrateGroupToggleUI() (crate mode's own
-           re-render hook) is what actually shows it, gated on
-           isDesktopShell() — see that function's own comment for why a
-           bare resize isn't separately handled. -->
+      <!-- the A-Z/Genre crate-grouping toggle — one home for this control
+           now (RF8), shown whenever crate mode is active, any platform. -->
       <div class="seg" id="crateGroupToggleTab" style="display:none">
         <button data-group="az" aria-pressed="true">A–Z</button>
         <button data-group="genre" aria-pressed="false" id="crateGenreBtnTab" style="display:none">Genre</button>
@@ -177,7 +173,15 @@
         <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         </button>
+        <button class="hdr-icon-btn" id="hdrOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        </button>
       </div>
+    </div>
+    <div class="overflow-scrim" id="libOverflowScrim"></div>
+    <div class="overflow-menu" id="libOverflowMenu" role="menu">
+      <button class="overflow-menu-row lib-select-tab" id="selectToggle" role="menuitem">Select</button>
+      <button class="overflow-menu-row" id="libOverflowToolsBtn" role="menuitem">Library tools</button>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
@@ -190,6 +194,77 @@
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
+
+    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderTracks()'s own
+         host.innerHTML reset elsewhere in #libBody) so its listeners
+         survive every re-render — see S1 spec §5's original implementation
+         note. RF8 (docs/12_REFINE.md) moved this here from #route-profile,
+         since it's now reached from this route's own overflow menu
+         (#libOverflowToolsBtn) rather than from the profile home screen;
+         refreshed by refreshLibraryTools(). -->
+    <div class="lib-tools" id="libTools" style="display:none">
+      <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
+        <span class="lib-tools-plus">+</span>
+        <span class="lib-tools-label">Library tools</span>
+        <span class="lib-tools-preview" id="libToolsPreview">View · Duplicates · History</span>
+      </button>
+      <div class="lib-tools-panel" id="libToolsPanel">
+        <div id="libToolsBody">
+          <p class="lib-tools-caption">View</p>
+          <div class="lib-tools-row2">
+            <span class="k">Library layout</span>
+            <div class="seg" id="libLayoutToggle">
+              <button data-layout="list" aria-pressed="false">List</button>
+              <button data-layout="crate" aria-pressed="true">Crate</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sidesRow">
+            <span class="k">Sides A / B</span>
+            <div class="seg" id="sidesToggle">
+              <button data-sides="off" aria-pressed="true">Off</button>
+              <button data-sides="on" aria-pressed="false">On</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="sealedRow">
+            <span class="k">Sealed records</span>
+            <div class="seg" id="sealedToggle">
+              <button data-sealed="on" aria-pressed="true">On</button>
+              <button data-sealed="off" aria-pressed="false">Off</button>
+            </div>
+          </div>
+          <div class="lib-tools-row2" id="playFullRow">
+            <span class="k">Play in full player</span>
+            <div class="seg" id="playFullToggle">
+              <button data-playfull="off" aria-pressed="true">Off</button>
+              <button data-playfull="on" aria-pressed="false">On</button>
+            </div>
+          </div>
+
+          <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
+          <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Find duplicates</span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="clearHistoryBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Clear listening history<em>Sessions, top lists. Keeps your library</em></span>
+            <span class="g-chev">›</span>
+          </button>
+          <button class="lib-tools-row2" id="tone2" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
+            <span class="k">Play test tone</span>
+            <span class="g-chev">›</span>
+          </button>
+
+          <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
+          <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
+            <span class="k">Forget library<em>Removes every song from Miziki. Your stats, playlists and settings stay, and reconnect if you add the songs again. Files on your device aren't touched — to reset stats instead, use Clear listening history above.</em></span>
+            <button class="cta forget-btn" id="forget">FORGET</button>
+          </div>
+        </div>
+        <p class="note" id="libToolsFooter"></p>
+        <p class="note" id="storeNote"></p>
+        <p class="note" id="pathNote"></p>
+      </div>
+    </div>
   </section>
 
   <!-- HOME: social feed, hidden via the tab button until social is configured -->
@@ -545,80 +620,6 @@
       </div>
     </div>
 
-    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s
-         innerHTML reset) so its listeners survive every re-render — see
-         S1 spec §5 implementation note. Shown only on the profile home
-         screen; refreshed by refreshLibraryTools(). -->
-    <div class="lib-tools" id="libTools" style="display:none">
-      <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
-        <span class="lib-tools-plus">+</span>
-        <span class="lib-tools-label">Library tools</span>
-        <span class="lib-tools-preview" id="libToolsPreview">View · Duplicates · History</span>
-      </button>
-      <div class="lib-tools-panel" id="libToolsPanel">
-        <div id="libToolsBody">
-          <p class="lib-tools-caption">View</p>
-          <div class="lib-tools-row2">
-            <span class="k">Library layout</span>
-            <div class="seg" id="libLayoutToggle">
-              <button data-layout="list" aria-pressed="false">List</button>
-              <button data-layout="crate" aria-pressed="true">Crate</button>
-            </div>
-          </div>
-          <div class="lib-tools-row2" id="crateGroupRow">
-            <span class="k">Crate grouping</span>
-            <div class="seg" id="crateGroupToggle">
-              <button data-group="az" aria-pressed="true">A–Z</button>
-              <button data-group="genre" aria-pressed="false" id="crateGenreBtn" style="display:none">Genre</button>
-            </div>
-          </div>
-          <div class="lib-tools-row2" id="sidesRow">
-            <span class="k">Sides A / B</span>
-            <div class="seg" id="sidesToggle">
-              <button data-sides="off" aria-pressed="true">Off</button>
-              <button data-sides="on" aria-pressed="false">On</button>
-            </div>
-          </div>
-          <div class="lib-tools-row2" id="sealedRow">
-            <span class="k">Sealed records</span>
-            <div class="seg" id="sealedToggle">
-              <button data-sealed="on" aria-pressed="true">On</button>
-              <button data-sealed="off" aria-pressed="false">Off</button>
-            </div>
-          </div>
-          <div class="lib-tools-row2" id="playFullRow">
-            <span class="k">Play records in full player</span>
-            <div class="seg" id="playFullToggle">
-              <button data-playfull="on" aria-pressed="true">On</button>
-              <button data-playfull="off" aria-pressed="false">Off</button>
-            </div>
-          </div>
-
-          <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
-          <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
-            <span class="k">Scan for duplicates<em>Find tracks that look like the same song</em></span>
-            <span class="g-chev">›</span>
-          </button>
-          <button class="lib-tools-row2" id="clearHistoryBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
-            <span class="k">Clear listening history<em>Sessions, top lists. Keeps your library</em></span>
-            <span class="g-chev">›</span>
-          </button>
-          <button class="lib-tools-row2" id="tone2" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
-            <span class="k">Play test tone</span>
-            <span class="g-chev">›</span>
-          </button>
-
-          <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
-          <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
-            <span class="k">Forget library<em>Removes every song from Miziki. Your stats, playlists and settings stay, and reconnect if you add the songs again. Files on your device aren't touched — to reset stats instead, use Clear listening history above.</em></span>
-            <button class="cta forget-btn" id="forget">FORGET</button>
-          </div>
-        </div>
-        <p class="note" id="libToolsFooter"></p>
-        <p class="note" id="storeNote"></p>
-        <p class="note" id="pathNote"></p>
-      </div>
-    </div>
   </section>
 
 </div>
@@ -640,8 +641,9 @@
       <em id="miniArtist"></em>
     </span>
   </button>
-  <button class="mini-play tbtn heart-btn" id="miniFavBtn" aria-label="Favorite" aria-pressed="false" title="Favorite">♡</button>
-  <!-- D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
+  <!-- RF8 (docs/12_REFINE.md): the mini-player dropped its own favorite
+       button (#miniFavBtn) — the player already has one (#playerFavBtn).
+       D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
        next/seek/mode controls. New ids throughout, driving the exact
        same prevTrack()/nextTrack()/seek()/setMode() the full player's
        own #prev/#next/#scrub/#modePure/#modeVinyl already call
@@ -650,8 +652,8 @@
        these are new elements, not copies of those ids. Each is
        display:none below 1024px (src/styles/08-shell.css), so on a
        phone none of them occupy a flex slot in this strip at all — the
-       existing #miniTap/#miniFavBtn/#miniQueueBtn/#miniPlay stay in
-       their same relative visual order, unchanged. -->
+       existing #miniTap/#miniQueueBtn/#miniPlay stay in their same
+       relative visual order, unchanged. -->
   <button class="mini-bar-btn" id="barPrev" aria-label="Previous track">◀◀</button>
   <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
@@ -734,30 +736,9 @@
     <div class="sidebar-sundown-leg" id="sideLegStart"></div>
     <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
   </div>
-</div>
-<!-- D7: the desktop sidebar's own Auto/Light/Dark(/Nychthemeron, DA4)
-     control, at the foot of the sidebar per the doc's own "where the
-     control lives" instruction. Same data-theme-choice convention
-     Profile › Settings' own four buttons use (src/profile/screens.js;
-     DA3 moved this control off the old Character tab onto that screen —
-     src/wiring/character.js's existing querySelectorAll('[data-
-     theme-choice]') wires this static copy too, with zero code change
-     there), so both call the exact same setTheme() — applyTheme() also
-     already syncs aria-pressed on every [data-theme-choice] button in
-     the DOM, this one included, with no change needed there either.
-     display:none below 1024px (src/styles/23-desktop.css), the same
-     invisible-scaffolding pattern every other desktop-only sidebar
-     addition already uses. DA4 (docs/design/day-arc/README.md,
-     DesktopSidebar artboard): the grid widens to 2x2 for the fourth
-     button, which also gets its own tighter letter-spacing/font-size —
-     the narrow sidebar has less room than Profile › Settings does. -->
-<div class="sidebar-appearance" id="sidebarAppearance">
-  <div class="seg">
-    <button data-theme-choice="auto" aria-pressed="true">Auto</button>
-    <button data-theme-choice="light" aria-pressed="false">Light</button>
-    <button data-theme-choice="dark" aria-pressed="false">Dark</button>
-    <button data-theme-choice="nychthemeron" aria-pressed="false" aria-label="Nychthemeron: follows sunrise and sunset">Nychthemeron</button>
-  </div>
+  <!-- RF8 (docs/12_REFINE.md): the sidebar's own Auto/Light/Dark/
+       Nychthemeron control was removed outright — one home per control;
+       Profile › Settings already has it (src/profile/screens.js). -->
 </div>
 </div>
 
@@ -820,16 +801,27 @@
         <h2 id="trackName">Nothing on the platter</h2>
         <button class="icon-btn" id="trackInfoBtn" aria-label="Credits and notes" style="display:none">ⓘ</button>
         <button class="icon-btn heart-btn" id="playerFavBtn" aria-label="Favorite" aria-pressed="false" style="display:none">♡</button>
+        <!-- RF8 (docs/12_REFINE.md): Edit info/Share/Queue/Sleep timer moved
+             into this one overflow; Look stays put below (not one of the
+             four the doc names), and the mini-player's own queue shortcut
+             (#miniQueueBtn) is untouched. -->
+        <button class="icon-btn" id="playerOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        </button>
       </div>
       <div class="by" id="trackBy"></div>
       <div class="spec" id="trackSpec">Load a file to see its signal path</div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
-        <button class="cta ghost edit-current" id="editCurrentBtn">Edit info</button>
-        <button class="cta ghost" id="playerShareBtn" style="display:none">Share</button>
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
-        <button class="cta ghost" id="queueBtn" style="display:none">Queue</button>
-        <button class="cta ghost" id="sleepTimerBtn" style="display:none">🌙 Sleep Timer</button>
       </div>
+    </div>
+
+    <div class="overflow-scrim" id="playerOverflowScrim"></div>
+    <div class="overflow-menu" id="playerOverflowMenu" role="menu">
+      <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
+      <button class="overflow-menu-row" id="playerShareBtn" style="display:none" role="menuitem">Share</button>
+      <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
+      <button class="overflow-menu-row" id="sleepTimerBtn" style="display:none" role="menuitem">🌙 Sleep Timer</button>
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
@@ -858,7 +850,6 @@
         <span class="mode-toggle-text" id="modeToggleLabel">Vinyl</span>
       </button>
     </div>
-    <p class="mode-note" id="modeNote"></p>
     </div>
   </section>
 

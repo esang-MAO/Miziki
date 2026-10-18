@@ -2,12 +2,11 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { formatBytes, totalLibraryBytes } from '../library/delete.js';
 import { updateSearchChipsVisibility } from '../library/search.js';
-import { isLibraryRouteVisible, isProfileRouteVisible } from './routes.js';
-import { libraryHasGenres } from '../crate/model.js';
+import { isLibraryRouteVisible } from './routes.js';
 import { openLayer } from './nav-stack.js';
 
 /* ================= navigation shell: header actions, search field, add menu =================
-   isLibraryRouteVisible/isProfileRouteVisible, updateHeaderActionsAvailability,
+   isLibraryRouteVisible, updateHeaderActionsAvailability,
    updateLibTabsForLayout, refreshLibraryTools, the header search field
    (openSearchField/closeSearchField/isSearchFieldOpen), the header + menu
    (openAddMenu/closeAddMenu/isAddMenuOpen), and showRoute. These sat under
@@ -36,22 +35,24 @@ export function updateLibTabsForLayout(){
   else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
 }
 
-// Library tools lives in static markup under #route-profile so re-renders
-// of #profileBody never destroy its listeners (S1 §5 implementation note);
-// this just refreshes its visibility, counts and row states
+// RF8 (docs/12_REFINE.md): Library tools lives in static markup under
+// #route-library now (moved there from #route-profile, since it's one of
+// the library header's own overflow menu items — see wireLibraryView()'s
+// own #libOverflowToolsBtn handler), so re-renders of #libBody never
+// destroy its listeners (S1 §5's original implementation note, same
+// reasoning, new route); this just refreshes its visibility, counts and
+// row states.
 export function refreshLibraryTools(){
   const tools = $('#libTools');
   if(!tools) return;
-  const onHome = isProfileRouteVisible() && S.profileView.screen === 'home';
-  tools.style.display = onHome ? 'block' : 'none';
-  if(!onHome) return;
+  const onLibrary = isLibraryRouteVisible();
+  tools.style.display = onLibrary ? 'block' : 'none';
+  if(!onLibrary) return;
   const hasTracks = S.tracks.length > 0;
   $('#libToolsBody').style.display = hasTracks ? '' : 'none';
   $('#libToolsFooter').textContent = hasTracks
     ? (S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks') + ' · ' + formatBytes(totalLibraryBytes()) + ' · stored on this device')
     : '';
-  $('#crateGroupRow').style.display = (S.libraryLayout === 'crate') ? 'flex' : 'none';
-  $('#crateGenreBtn').style.display = (typeof libraryHasGenres === 'function' && libraryHasGenres()) ? '' : 'none';
 }
 
 // header search field: swaps the library tabs row for a full-width search
@@ -99,4 +100,27 @@ export function closeAddMenu(){
 }
 export function isAddMenuOpen(){
   return $('#addMenu').classList.contains('open');
+}
+
+// RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
+// Select and Library tools, both of which used to be their own always-
+// visible controls on the tabs row. Same popover shape as the + menu
+// above, positioned off its own button instead.
+export function openLibOverflowMenu(){
+  const btn = $('#hdrOverflowBtn'), r = btn.getBoundingClientRect();
+  const menu = $('#libOverflowMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#libOverflowScrim').classList.add('open');
+  menu.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  openLayer('lib-overflow-menu', closeLibOverflowMenu, { container: menu });
+}
+export function closeLibOverflowMenu(){
+  $('#libOverflowScrim').classList.remove('open');
+  $('#libOverflowMenu').classList.remove('open');
+  $('#hdrOverflowBtn').setAttribute('aria-expanded', 'false');
+}
+export function isLibOverflowMenuOpen(){
+  return $('#libOverflowMenu').classList.contains('open');
 }

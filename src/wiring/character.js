@@ -75,15 +75,14 @@ export function wireCharacter(){
     });
   });
 
-  // D2: wires the one *static* [data-theme-choice] control left in the
-  // DOM at boot — the desktop sidebar's own segmented control (D7,
-  // #sidebarAppearance). Profile › Settings' own four buttons (DA3
+  // D2: wires any static [data-theme-choice] control present at boot.
+  // RF8 (docs/12_REFINE.md) removed the desktop sidebar's own copy
+  // (#sidebarAppearance) — Profile › Settings' four buttons (DA3
   // relocated Appearance there; DA4 added the fourth, Nychthemeron) are
-  // built fresh on every render instead, so they wire themselves
-  // directly at render time (src/profile/screens.js) rather than through
-  // this boot-time pass — querySelectorAll rather than a fixed id list
-  // here regardless, so a future static control sharing the attribute
-  // would need no change in this file either.
+  // the one home for this control now, built fresh on every render and
+  // wiring themselves directly at render time (src/profile/screens.js).
+  // querySelectorAll rather than a fixed id list here regardless, so a
+  // future static control sharing the attribute would need no change.
   document.querySelectorAll('[data-theme-choice]').forEach(b =>
     b.addEventListener('click', () => setTheme(b.dataset.themeChoice)));
 

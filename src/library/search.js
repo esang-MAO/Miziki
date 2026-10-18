@@ -25,16 +25,22 @@ import { renderTracks, groupRow, songRow } from './view.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
 
-export function librarySortBar(){
+// RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
+// Songs" — where the first part (the sort label + chevron) is the sort
+// button itself, not a separate hamburger-style toggle. count/unit are
+// optional (the album-detail view's own tracklist has no top-level count
+// to show) and, when given, are plain text after the button.
+export function librarySortBar(count, unit){
   const bar = el('div','sortbar');
   const label = LIBRARY_SORTS.find(([k]) => k === S.librarySort);
-  bar.appendChild(el('span', null, 'Sort: ' + (label ? label[1] : '')));
   const toggle = el('button','sort-toggle');
   toggle.setAttribute('aria-label','Sort options');
   toggle.setAttribute('aria-haspopup','true');
-  toggle.appendChild(el('span')); toggle.appendChild(el('span')); toggle.appendChild(el('span'));
+  toggle.appendChild(el('span', null, 'By ' + (label ? label[1] : '')));
+  toggle.appendChild(el('span','sort-chev','▾'));
   toggle.addEventListener('click', openSortMenu);
   bar.appendChild(toggle);
+  if(count != null) bar.appendChild(el('span', null, '· ' + count + ' ' + unit));
   return bar;
 }
 
@@ -428,11 +434,18 @@ function rebuildSearchResults(host, query){
 
 // discoverable field names + smart filters, shown while the search box is
 // focused and empty (CREDITS spec §3)
+// RF8 (docs/12_REFINE.md): hidden until the field has text (not shown on a
+// bare focus any more), then just the three most-used fields plus a "More"
+// that swaps in the rest — not all fourteen+ at once.
+const DEFAULT_SEARCH_CHIPS = ['artist:', 'album:', 'year:'];
+let searchChipsExpanded = false;
+
 export function renderSearchChips(){
   const host = $('#searchChips');
   if(!host) return;
   host.innerHTML = '';
-  const chips = [...SEARCH_FIELD_KEYS].map(k => k + ':').concat(SEARCH_SMART_FILTERS.map(f => 'is:' + f));
+  const allChips = [...SEARCH_FIELD_KEYS].map(k => k + ':').concat(SEARCH_SMART_FILTERS.map(f => 'is:' + f));
+  const chips = searchChipsExpanded ? allChips : DEFAULT_SEARCH_CHIPS;
   chips.forEach(label => {
     const chip = el('button','search-chip', label);
     chip.addEventListener('click', () => {
@@ -443,9 +456,18 @@ export function renderSearchChips(){
     });
     host.appendChild(chip);
   });
+  if(!searchChipsExpanded){
+    const more = el('button','search-chip search-chip-more', 'More');
+    more.addEventListener('click', () => { searchChipsExpanded = true; renderSearchChips(); });
+    host.appendChild(more);
+  }
 }
 export function updateSearchChipsVisibility(){
   const input = $('#librarySearch'), chips = $('#searchChips');
   if(!input || !chips) return;
-  chips.style.display = (document.activeElement === input && !input.value.trim() && S.tracks.length > 0) ? 'flex' : 'none';
+  const hasText = !!input.value.trim();
+  // re-collapse (and redraw) once the field empties out again, so a later
+  // "has text" moment always starts back at the three-chip default
+  if(!hasText && searchChipsExpanded){ searchChipsExpanded = false; renderSearchChips(); }
+  chips.style.display = (hasText && S.tracks.length > 0) ? 'flex' : 'none';
 }

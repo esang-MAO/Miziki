@@ -133,21 +133,20 @@ function renderCrateDetailPanel(item){
 
 function updateCrateGroupToggleUI(){
   const hasGenres = libraryHasGenres();
-  $('#crateGenreBtn').style.display = hasGenres ? '' : 'none';
   if(!hasGenres && S.crateGroup === 'genre'){ S.crateGroup = 'az'; invalidateCrateModel(); queueSave(); }
-  document.querySelectorAll('#crateGroupToggle [data-group]').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));
-  // D5 (docs/DESKTOP_LAYOUT.md): the tab row's own desktop-only mirror —
-  // renderTracks() already hides it by default on every render; this is
-  // the one place (crate mode's own re-render hook) that turns it back on,
-  // gated on isDesktopShell() so it never shows on a phone. A bare window
-  // resize across the breakpoint isn't separately handled here — the next
-  // crate re-render (switching tabs, grouping, etc.) catches it, the same
-  // small, accepted gap as every other breakpoint-only control in this
-  // engagement that isn't wired into the resize listener.
+  // RF8 (docs/12_REFINE.md): one home for this control. It used to have
+  // two — a Profile › Library tools copy (#crateGroupToggle) shown on
+  // every platform, plus this tab-row copy (#crateGroupToggleTab) shown
+  // desktop-only — RF8 removed the first and made this one the only
+  // home, so it now shows on every platform rather than being gated on
+  // isDesktopShell(). renderTracks() already hides it by default on
+  // every render; this is the one place (crate mode's own re-render
+  // hook) that turns it back on. A bare window resize across the old
+  // desktop breakpoint isn't separately handled, but that gating is gone
+  // now anyway.
   const tabToggle = $('#crateGroupToggleTab');
   if(tabToggle){
-    tabToggle.style.display = isDesktopShell() ? 'flex' : 'none';
+    tabToggle.style.display = 'flex';
     $('#crateGenreBtnTab').style.display = hasGenres ? '' : 'none';
     document.querySelectorAll('#crateGroupToggleTab [data-group]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));

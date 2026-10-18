@@ -14,6 +14,7 @@ const elCache = new Map();
 function fakeEl(){
   const classes = new Set();
   const kids = [];
+  const listeners = {};
   return {
     textContent: '', style: {}, innerHTML: '', src: '', alt: '', value: '',
     classList: {
@@ -22,9 +23,10 @@ function fakeEl(){
       contains(c){ return classes.has(c); },
     },
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
-    addEventListener(){}, appendChild(child){ kids.push(child); return child; },
+    addEventListener(type, fn){ (listeners[type] ||= []).push(fn); },
+    appendChild(child){ kids.push(child); return child; },
     querySelector(){ return fakeEl(); },
-    children: kids,
+    children: kids, listeners,
   };
 }
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
@@ -274,21 +276,43 @@ test('renderSearchResults groups song results and calls songRow for each', () =>
   assert.equal(songRowMock.mock.calls.length, 1);
 });
 
-test('renderSearchChips renders a chip per field key and smart filter', () => {
+// RF8 (docs/12_REFINE.md): collapsed to three fields (artist:/album:/year:)
+// plus a "More" chip by default -- not every field key and smart filter at
+// once, the pre-RF8 behavior.
+test('renderSearchChips renders the three-chip default plus a More chip', () => {
   resetState({ tracks: [fakeTrack()] });
   renderSearchChips();
   const host = elCache.get('#searchChips');
-  assert.ok(host.children.length > 0);
+  assert.equal(host.children.length, 4);
 });
 
-test('updateSearchChipsVisibility hides chips once the search box has text', () => {
+test('a chip tapped on the More button reveals the rest of the field keys and smart filters', () => {
+  resetState({ tracks: [fakeTrack()] });
+  renderSearchChips();
+  const host = elCache.get('#searchChips');
+  const more = host.children[host.children.length - 1];
+  more.listeners.click[0]();
+  assert.ok(host.children.length > 4, 'the full set (no trailing More chip once expanded) should be larger');
+});
+
+// RF8 (docs/12_REFINE.md): chips are hidden until the field has text (not
+// shown on a bare empty focus any more), then shown once it does.
+test('updateSearchChipsVisibility shows chips once the search box has text, hides them when empty', () => {
   resetState({ tracks: [fakeTrack()] });
   elCache.set('#librarySearch', fakeEl());
   elCache.set('#searchChips', fakeEl());
   const input = elCache.get('#librarySearch');
   const chips = elCache.get('#searchChips');
+
+  input.value = '';
+  updateSearchChipsVisibility();
+  assert.equal(chips.style.display, 'none');
+
   input.value = 'something';
-  globalThis.document.activeElement = input;
+  updateSearchChipsVisibility();
+  assert.equal(chips.style.display, 'flex');
+
+  input.value = '';
   updateSearchChipsVisibility();
   assert.equal(chips.style.display, 'none');
 });

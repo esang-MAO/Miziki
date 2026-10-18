@@ -161,26 +161,22 @@ function renderProfileHome(body, refresh){
 // reached via the Settings button renderStorefrontSection() now adds at
 // the top of every profile-home state — see storefront.js's own comment
 // for why that needed to move there rather than staying only on the
-// signed-in storefront's own gear button. The desktop sidebar's own
-// Appearance control (D7, #sidebarAppearance) is untouched: static
-// markup, wired once at boot by wireCharacter()'s existing
-// querySelectorAll('[data-theme-choice]') call. This screen's own
-// buttons are built fresh on every render, so — per the same reasoning
-// that call can't reach them — each gets its own click listener right
-// here rather than relying on that boot-time pass; setTheme() still
-// syncs aria-pressed on every [data-theme-choice] button in the document,
-// this screen's included, whenever any one of them (phone or desktop) is
-// actually clicked.
+// signed-in storefront's own gear button. RF8 (docs/12_REFINE.md) removed
+// the desktop sidebar's own second copy of this control (D7,
+// #sidebarAppearance) — this screen is its one home now, phone and
+// desktop alike. This screen's own buttons are built fresh on every
+// render, so each gets its own click listener right here rather than
+// relying on wireCharacter()'s boot-time querySelectorAll pass; setTheme()
+// still syncs aria-pressed on every [data-theme-choice] button in the
+// document whenever any one of them is actually clicked.
 //
 // DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): Nychthemeron is
 // the fourth choice — the mockup's own 2×2 grid (settings-appearance's
 // own CSS, src/styles/17-profile.css) gives the long word room at this
-// screen's 320–390px width without needing the extra letter-spacing
-// tightening the narrower desktop sidebar control needs (D7,
-// #sidebarAppearance, src/styles/23-desktop.css). Only this one button
-// gets an aria-label — the other three's own visible text already says
-// everything their aria-pressed state needs to convey; Nychthemeron's
-// doesn't ("Nychthemeron" alone says nothing about what it does).
+// screen's 320–390px width. Only this one button gets an aria-label — the
+// other three's own visible text already says everything their
+// aria-pressed state needs to convey; Nychthemeron's doesn't
+// ("Nychthemeron" alone says nothing about what it does).
 function nychthemeronSwitchCaption(){
   if(!S.sun.ok) return 'Resolves once your location is known.';
   const fmt = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});

@@ -21,9 +21,6 @@ export function setMode(m){
   if(barToggle) barToggle.setAttribute('aria-checked', String(vinyl));
   if(barLabel) barLabel.textContent = vinyl ? 'Vinyl' : 'Pure';
   $('#modeTag').textContent = m;
-  $('#modeNote').textContent = vinyl
-    ? 'Vinyl adds character on purpose: platter wobble, gentle saturation, a softer top end, a light squeeze. Dial it in under Character.'
-    : 'Pure is the reference: decode straight to the output, nothing added — always at full speed. Sundown\'s slow-down is a Vinyl thing, part of the platter.';
   if(S.source) routeSource(S.source);
   // DA2 (docs/DAY_ARC.md): applyCharacter() now also gates on S.mode (Pure
   // forces drift to 'off' regardless of S.charDrift — see engine.js's own

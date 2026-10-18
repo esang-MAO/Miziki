@@ -18,13 +18,16 @@ import { openSleepSheet } from '../player/sleep-timer.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { touchActiveSession } from '../history/sessions.js';
 import { updateShellAlbum } from '../shell/mini-player.js';
-import { openPlayer, morphInFlight, interruptMorph } from '../shell/player-overlay.js';
+import {
+  openPlayer, morphInFlight, interruptMorph,
+  openPlayerOverflowMenu, isPlayerOverflowMenuOpen,
+} from '../shell/player-overlay.js';
 import { runStartSequence, interruptStartSequence } from '../shell/start-sequence.js';
 import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
-import { closeLayer } from '../shell/nav-stack.js';
+import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -72,7 +75,17 @@ export function wireTransport(){
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
-  $('#miniFavBtn').addEventListener('click', e => { e.stopPropagation(); const t = current(); if(t) toggleFavorite(t.id); });
+
+  // RF8 (docs/12_REFINE.md): the player's own "···" overflow, beside the
+  // title. Edit info/Share/Queue/Sleep timer each keep their own existing
+  // click handler (src/wiring/edit.js/share.js/overlays.js, and
+  // #sleepTimerBtn just above) wherever they're wired — only the menu's
+  // own open/close/position is new here. Every row inside also closes the
+  // menu once clicked, since none of those other handlers know about it.
+  $('#playerOverflowBtn').addEventListener('click', ()=> isPlayerOverflowMenuOpen() ? closeLayer('player-overflow-menu') : openPlayerOverflowMenu());
+  $('#playerOverflowScrim').addEventListener('click', () => closeLayer('player-overflow-menu'));
+  document.querySelectorAll('#playerOverflowMenu button').forEach(b =>
+    b.addEventListener('click', () => forceCloseLayer('player-overflow-menu')));
 
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer

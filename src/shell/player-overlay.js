@@ -113,3 +113,27 @@ export function interruptMorph(){
     ov.setAttribute('aria-hidden','true');
   }, {once:true});
 }
+
+// RF8 (docs/12_REFINE.md): the player's own "···" overflow, beside the
+// title — Edit info, Share, Queue and Sleep timer all moved here off the
+// always-visible row under the title; Look stays where it was (not one of
+// the four the doc names). Same popover shape as the library header's own
+// overflow (src/shell/header.js), positioned off its own button.
+export function openPlayerOverflowMenu(){
+  const btn = $('#playerOverflowBtn'), r = btn.getBoundingClientRect();
+  const menu = $('#playerOverflowMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#playerOverflowScrim').classList.add('open');
+  menu.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  openLayer('player-overflow-menu', closePlayerOverflowMenu, { container: menu });
+}
+export function closePlayerOverflowMenu(){
+  $('#playerOverflowScrim').classList.remove('open');
+  $('#playerOverflowMenu').classList.remove('open');
+  $('#playerOverflowBtn').setAttribute('aria-expanded', 'false');
+}
+export function isPlayerOverflowMenuOpen(){
+  return $('#playerOverflowMenu').classList.contains('open');
+}
