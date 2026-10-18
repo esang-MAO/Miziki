@@ -157,15 +157,52 @@ function remoteRow(deviceId, overrides){
   return { device_id: deviceId, doc };
 }
 
+// RF18 (docs/12_REFINE.md): fetchRemoteRows() now makes two selects — a
+// cheap device_id+updated_at cursor pass, then a .in(...)-filtered
+// device_id+doc+updated_at pass for whichever devices actually changed
+// (see backup.js's own fetchRemoteRows() comment) — and pushBackup() goes
+// through .rpc('put_library_backup', ...) rather than a plain upsert
+// (migration 013_backup_seq.sql). remoteRows here are given the shape
+// fetchRemoteRows() expects off the wire, {device_id, doc}, each with a
+// synthesized updated_at so the cursor pass always reports them changed on
+// a never-before-seen (fresh per test) client/cache.
+// a file-level counter, not reset per call: fetchRemoteRows()'s own row
+// cache (backup.js) is keyed by device_id and lives for the module's whole
+// lifetime, so two different tests' own remote rows must never share an
+// updated_at value, or the second test's pull would wrongly read back the
+// first test's cached doc as "unchanged."
+let nextTestUpdatedAt = 1;
 function makePullClient(remoteRows){
   const upserts = [];
+  const withCursor = remoteRows.map(r => Object.assign({ updated_at: nextTestUpdatedAt++ }, r));
+  const fullFetches = [];
   return {
-    upserts,
+    upserts, withCursor, fullFetches,
+    bumpUpdatedAt(deviceId){
+      const row = withCursor.find(r => r.device_id === deviceId);
+      row.updated_at = nextTestUpdatedAt++;
+    },
     auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'a@b.test' } } }) },
+    rpc(name, args){
+      if(name !== 'put_library_backup') return Promise.resolve({ error: null });
+      upserts.push({ device_id: args.p_device, doc: args.p_doc });
+      return Promise.resolve({ error: null });
+    },
     from(){
       return {
-        select: async () => ({ data: remoteRows, error: null }),
-        upsert: async (row) => { upserts.push(row); return { error: null }; },
+        select(cols){
+          if(cols === 'device_id, updated_at'){
+            return Promise.resolve({ data: withCursor.map(r => ({ device_id: r.device_id, updated_at: r.updated_at })), error: null });
+          }
+          return {
+            in: (_col, ids) => {
+              fullFetches.push([...ids]);
+              return Promise.resolve({
+                data: withCursor.filter(r => ids.includes(r.device_id)), error: null,
+              });
+            },
+          };
+        },
       };
     },
   };
@@ -256,4 +293,42 @@ test('RF1: a play made after the reset counts from zero, not from the pre-clear 
     S.trackPlayCounts.k1 = (S.trackPlayCounts.k1 || 0) + 1;
     assert.equal(S.trackPlayCounts.k1, 1);
   }finally{ unsub(); }
+});
+
+/* ================= RF18 (docs/12_REFINE.md): pushes that can't go backwards =================
+   The row-cache half of point 3 ("unchanged rows aren't re-downloaded").
+   makePullClient()'s own cursor pass always reports every device's
+   updated_at; fetchRemoteRows() (src/sync/backup.js) should only issue a
+   full device_id+doc fetch for a device whose updated_at actually moved
+   since the last pull it cached. */
+
+test('RF18: a pull that finds nothing changed on the remote reuses the cached doc (no full re-fetch)', async () => {
+  freshState();
+  const remote = remoteRow('device-c', { historyClearedAt: 0 });
+  const client = makePullClient([remote]);
+  stubSocial(client);
+
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(client.fullFetches.length, 1, 'the first pull always fetches the full doc at least once');
+
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(client.fullFetches.length, 1, 'device-c did not change between pulls, so the second pull must not re-fetch its doc');
+});
+
+test('RF18: a changed updated_at on a remote device triggers a fresh full fetch on the next pull', async () => {
+  freshState();
+  const remote = remoteRow('device-c', { historyClearedAt: 0 });
+  const client = makePullClient([remote]);
+  stubSocial(client);
+
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(client.fullFetches.length, 1);
+
+  client.bumpUpdatedAt('device-c');
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(client.fullFetches.length, 2, 'device-c changed, so the second pull must fetch its doc again');
 });

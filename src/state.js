@@ -234,6 +234,19 @@ S.deviceLabel = null;
 // that stamp, regardless of either device's wall clock. Restored from meta
 // the same way deviceId is (src/sync/backup.js's ensureDeviceId()).
 S.backupSeq = 0;
+// RF18 (docs/12_REFINE.md, "pushes that can't go backwards") — a separate,
+// much simpler counter from S.backupSeq above: a plain per-device push
+// attempt number, bumped once at the start of every pushBackup() call
+// (src/sync/backup.js) and persisted immediately (not debounced), so a
+// stale, slow-to-land push (a retry after backoff, or two overlapping
+// upload attempts) can never clobber a push this same device already
+// landed more recently — see migration 013_backup_seq.sql's
+// put_library_backup() RPC, which only accepts a row whose doc_seq is
+// strictly higher than what's already stored. Device-only, never backed
+// up, never part of prefs — it's row-ordering bookkeeping for this
+// device's own uploads, not a field-level edit timestamp the way
+// S.backupSeq's stamps are.
+S.backupPushSeq = 0;
 // bumped only by a *full*-scope "Clear listening history" (never the
 // orphaned-only scope) — see history/clear.js and CLAUDE.md's backup table
 S.historyClearedAt = 0;
