@@ -5,7 +5,7 @@
    .store-id in 18-storefront.css) — there is deliberately no second
    .profile-header/.profile-pic editor here any more; one identity, shown
    and edited once, in every state (local, open-store, signed-in). */
-.profile-count{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em;margin:12px 0 0}
+.profile-count{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em;margin:var(--sp-3) 0 0}
 
 /* Top Album/Top Song tiles, and the Achievements/Collection empty states,
    predate the storefront card redesign (PR #109/#110) and the Day Arc v2
@@ -15,24 +15,24 @@
    yet-filled state, matching .store-open-card/.store-pick-empty). These
    were left on an older, flatter 4px-radius/translucent-white look —
    brought in line here so the whole Profile tab reads as one style. */
-.profile-top-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 0}
-.profile-top-tile{border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;background:var(--panel)}
+.profile-top-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin:20px 0 0}
+.profile-top-tile{border:1px solid var(--line);border-radius:14px;padding:var(--sp-3);text-align:left;background:var(--panel)}
 .profile-top-cover{display:block;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:9px;
   background:var(--raised);position:relative}
 .profile-top-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.profile-top-tile b{display:block;font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.profile-top-tile em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted);
+.profile-top-tile b{display:block;font-weight:500;font-size:var(--fs-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-top-tile em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 
 .profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
-  font-size:22px;opacity:.6}
-.profile-empty{border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center;margin-top:14px}
-.profile-empty p{margin:0;font-size:12.5px;color:var(--muted)}
+  font-size:var(--fs-head);opacity:.6}
+.profile-empty{border:1px dashed var(--line);border-radius:8px;padding:var(--sp-4);text-align:center;margin-top:14px}
+.profile-empty p{margin:0;font-size:var(--fs-caption);color:var(--muted)}
 
 .profile-section{width:100%;background:var(--raised);border:1px solid var(--line);border-radius:14px;
-  text-align:left;margin-top:18px;padding:16px}
+  text-align:left;margin-top:18px;padding:var(--sp-4)}
 .profile-section-head{display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   padding-bottom:10px;border-bottom:1px solid var(--line)}
 /* Both the Achievements div and the Collection button share the bordered
    card look above now (one style for the whole tab); this rule is just
@@ -42,17 +42,17 @@
    relies on it (button.profile-section vs div.profile-section) to place
    one in the two-column band and keep the other full width. */
 button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;margin-bottom:2px}
-.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;margin-top:12px}
+.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;margin-top:var(--sp-3)}
 .profile-grid.mini{grid-template-columns:repeat(6,1fr)}
 .profile-badge-cell{display:flex;flex-direction:column;align-items:center;gap:5px}
 .profile-badge{width:100%;aspect-ratio:1;border-radius:50%;position:relative;overflow:hidden;
-  box-shadow:0 4px 10px rgba(0,0,0,.35)}
+  box-shadow:var(--sh-2)}
 .profile-badge img{position:absolute;inset:22%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
-.profile-badge-label{font-family:var(--data);font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+.profile-badge-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;
   color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.collection-group{margin-top:16px}
-.collection-group-name{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:8px}
+.collection-group{margin-top:var(--sp-4)}
+.collection-group-name{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:var(--sp-2)}
 
 .profile-share{width:100%;margin-top:28px;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
 .profile-share.active{color:var(--accent-text);border-color:var(--accent)}
@@ -66,19 +66,19 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
    (src/styles/25-pull-refresh.css) no longer collides with it. */
 .profile-settings-wrap{position:relative;display:flex;margin:0 0 14px auto;width:max-content}
 .profile-settings-btn{display:block;background:none;border:1px solid var(--line);
-  color:var(--muted);font-size:16px;line-height:1;border-radius:4px;
-  padding:7px 12px}
+  color:var(--muted);font-size:var(--fs-row);line-height:1;border-radius:4px;
+  padding:7px var(--sp-3)}
 .profile-settings-btn[aria-expanded="true"]{color:var(--paper);border-color:var(--accent)}
 .profile-settings-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:140px;z-index:5;
-  display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--panel);
-  border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 18px rgba(0,0,0,.35)}
+  display:flex;flex-direction:column;gap:2px;padding:var(--sp-1);background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;box-shadow:var(--sh-3)}
 .profile-settings-menu[hidden]{display:none}
 .profile-settings-menu-item{display:block;width:100%;text-align:left;background:none;border:0;
-  color:var(--paper);font-size:14px;min-height:40px;padding:0 12px;border-radius:6px}
+  color:var(--paper);font-size:var(--fs-body);min-height:40px;padding:0 var(--sp-3);border-radius:6px}
 .profile-settings-menu-item:hover,.profile-settings-menu-item:focus-visible{background:var(--raised)}
 .settings-section{margin-top:22px}
-.settings-section-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.settings-section-head{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:var(--sp-3)}
 /* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a 2x2 grid once
    Nychthemeron made this a four-button row — "the grid gives the long
    word room at 320-390px." Overrides .seg's own display:flex (16-
@@ -91,7 +91,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .settings-appearance{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .settings-appearance button{text-align:center;white-space:normal;line-height:1.3}
 .settings-link-row{display:flex;align-items:center;justify-content:space-between;width:100%;
-  background:none;border:0;border-bottom:1px solid var(--line);color:var(--paper);font-size:14px;
+  background:none;border:0;border-bottom:1px solid var(--line);color:var(--paper);font-size:var(--fs-body);
   padding:14px 2px;text-align:left}
 .settings-link-row:last-child{border-bottom:0}
 .settings-link-row .g-chev{color:var(--muted)}
@@ -104,25 +104,25 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
    border is the one deliberate exception to this screen's own usual "no
    progress bars, no locked slots" rule (PROFILE spec §1) — DA5 asks for
    it explicitly. */
-.rhythm-card{margin-top:22px;border:1px solid var(--line);border-radius:6px;padding:16px}
-.rhythm-card-head{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+.rhythm-card{margin-top:22px;border:1px solid var(--line);border-radius:6px;padding:var(--sp-4)}
+.rhythm-card-head{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .rhythm-locked{border-style:dashed}
-.rhythm-locked .note{margin:0;color:var(--muted);font-size:13px}
+.rhythm-locked .note{margin:0;color:var(--muted);font-size:var(--fs-caption)}
 .rhythm-top{display:flex;align-items:center;gap:18px}
 .rhythm-ring{flex:0 0 auto;width:92px;height:92px;border-radius:50%;position:relative;
   display:grid;place-content:center}
 .rhythm-ring-center{width:62%;height:62%;border-radius:50%;background:var(--panel);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.rhythm-ring-center b{font-family:var(--display);font-size:18px;line-height:1}
-.rhythm-ring-center span{font-family:var(--data);font-size:8.5px;letter-spacing:.06em;
+.rhythm-ring-center b{font-family:var(--display);font-size:var(--fs-title);line-height:1}
+.rhythm-ring-center span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;
   text-transform:uppercase;color:var(--muted)}
 .rhythm-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.rhythm-legend-row{display:flex;align-items:center;gap:7px;font-size:12.5px}
+.rhythm-legend-row{display:flex;align-items:center;gap:7px;font-size:var(--fs-caption)}
 .rhythm-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%}
 .rhythm-legend-label{flex:1;min-width:0;color:var(--paper)}
-.rhythm-legend-pct{font-family:var(--data);font-size:11px;color:var(--muted)}
-.rhythm-verdict{margin:16px 0 0;font-family:var(--display);font-size:20px;text-transform:uppercase;
+.rhythm-legend-pct{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
+.rhythm-verdict{margin:var(--sp-4) 0 0;font-family:var(--display);font-size:var(--fs-title);text-transform:uppercase;
   letter-spacing:.02em;color:var(--paper)}
 .rhythm-records{margin-top:14px;display:flex;flex-direction:column;gap:9px}
 .rhythm-record-row{display:flex;align-items:center;gap:10px}
@@ -130,37 +130,37 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   background:var(--panel);position:relative}
 .rhythm-record-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .rhythm-record-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.rhythm-record-text b{font-family:var(--data);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+.rhythm-record-text b{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted)}
-.rhythm-record-text span{font-size:12.5px;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rhythm-record-text span{font-size:var(--fs-caption);color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 
 /* CEREMONY §6: Settings › Appearance › Slipmat (src/profile/slipmat-editor.js) */
-.settings-sub-head{font-size:13px;font-weight:600;margin:20px 0 10px}
-.slipmat-tiles{display:flex;gap:12px}
+.settings-sub-head{font-size:var(--fs-caption);font-weight:600;margin:20px 0 10px}
+.slipmat-tiles{display:flex;gap:var(--sp-3)}
 .slipmat-tile{width:100px;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:center}
 .slipmat-tile > div{height:100px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
   position:relative;overflow:hidden;box-sizing:border-box}
 .slipmat-tile[aria-pressed="true"] > div{border:2px solid var(--accent)}
-.slipmat-tile-label{display:block;margin-top:6px;font-family:var(--data);font-size:10px;letter-spacing:.1em;
+.slipmat-tile-label{display:block;margin-top:6px;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted)}
 .slipmat-tile[aria-pressed="true"] .slipmat-tile-label{color:var(--accent-text)}
 .slipmat-felt::after{content:'';position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
   background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);box-shadow:inset 0 0 0 1px var(--line)}
 .slipmat-felt span{position:absolute;inset:0;display:grid;place-content:center;z-index:1;
-  font-family:var(--display);font-weight:600;font-size:9px;letter-spacing:.32em;padding-left:.32em;color:var(--muted)}
+  font-family:var(--display);font-weight:600;font-size:var(--fs-micro);letter-spacing:.32em;padding-left:.32em;color:var(--muted)}
 .slipmat-thumb{position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
   background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.slipmat-plus{position:absolute;inset:0;display:grid;place-content:center;font-size:28px;color:var(--muted)}
-.slipmat-actions{margin-top:12px}
+.slipmat-plus{position:absolute;inset:0;display:grid;place-content:center;font-size:var(--fs-hero);color:var(--muted)}
+.slipmat-actions{margin-top:var(--sp-3)}
 .slipmat-editor{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--raised)}
-.slipmat-editor-title{font-size:13px;font-weight:600;margin-bottom:12px}
+.slipmat-editor-title{font-size:var(--fs-caption);font-weight:600;margin-bottom:var(--sp-3)}
 .slipmat-drop{min-height:130px;border:1.5px dashed var(--line);border-radius:12px;display:grid;
-  place-content:center;justify-items:center;text-align:center;gap:8px;padding:12px;margin-bottom:10px}
+  place-content:center;justify-items:center;text-align:center;gap:var(--sp-2);padding:var(--sp-3);margin-bottom:10px}
 .slipmat-drop.over{border-color:var(--accent)}
 .slipmat-error:empty{display:none}
 .slipmat-error{color:var(--accent-text)}
-.slipmat-preview{position:relative;width:220px;height:220px;margin:4px auto 14px;border-radius:50%;overflow:hidden;
+.slipmat-preview{position:relative;width:220px;height:220px;margin:var(--sp-1) auto 14px;border-radius:50%;overflow:hidden;
   touch-action:none;cursor:grab;background:var(--panel);
   box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.12)}
 .slipmat-preview canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -168,8 +168,8 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .slipmat-preview::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
   background:repeating-radial-gradient(circle at 50% 50%,transparent 0 6px,rgba(255,255,255,.05) 6px 7px)}
 .slipmat-mark{position:absolute;left:0;right:0;bottom:17%;z-index:2;text-align:center;font-family:var(--display);
-  font-weight:600;font-size:20px;letter-spacing:.32em;padding-left:.32em;color:#EFE9DF;opacity:.9;
+  font-weight:600;font-size:var(--fs-title);letter-spacing:.32em;padding-left:.32em;color:#EFE9DF;opacity:.9;
   text-shadow:0 1px 6px rgba(0,0,0,.5);pointer-events:none}
 .slipmat-zoom{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.slipmat-zoom-label{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.slipmat-zoom-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .slipmat-zoom input{flex:1}

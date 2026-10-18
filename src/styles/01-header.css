@@ -13,13 +13,13 @@
 .hdr-icon-btn svg{transition:transform .2s}
 /* search field replaces the whole header row while active */
 .hdr-search-row{display:flex;align-items:center;gap:10px}
-.hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+.hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-3);
   border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
-.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:16px;font-family:var(--body)}
+.hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:var(--fs-row);font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
-.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
 mark.hl{background:none;color:var(--accent-text);font-weight:600}
 
 /* + menu popover (S1 §3) */
@@ -27,15 +27,15 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
   background:rgba(6,10,13,.55);z-index:60;display:none}
 .add-scrim.open{display:block}
 .add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:#16242C;
-  border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;z-index:61;
+  border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .add-menu.open{display:flex}
-.add-menu-row{display:flex;align-items:flex-start;gap:12px;padding:12px 10px;border-radius:6px;text-align:left;width:100%}
+.add-menu-row{display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) 10px;border-radius:6px;text-align:left;width:100%}
 .add-menu-row:active{background:rgba(255,255,255,.04)}
 .add-menu-row svg{width:20px;height:20px;color:var(--accent-text);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.add-menu-row b{display:block;font-size:14px;font-weight:500}
-.add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
+.add-menu-row b{display:block;font-size:var(--fs-body);font-weight:500}
+.add-menu-row em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px}
 
 /* RF8 (docs/12_REFINE.md): a generic popover for the new "···" overflow
    menus (library header, player) — same look as .add-menu/.add-menu-row
@@ -45,11 +45,11 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .overflow-scrim{position:fixed;inset:0;background:rgba(6,10,13,.55);z-index:60;display:none}
 .overflow-scrim.open{display:block}
 .overflow-menu{position:absolute;width:220px;border-radius:8px;background:#16242C;
-  border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;z-index:61;
+  border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .overflow-menu.open{display:flex}
-.overflow-menu-row{display:block;width:100%;text-align:left;padding:12px 10px;border-radius:6px;
-  font-size:14px;color:var(--paper)}
+.overflow-menu-row{display:block;width:100%;text-align:left;padding:var(--sp-3) 10px;border-radius:6px;
+  font-size:var(--fs-body);color:var(--paper)}
 .overflow-menu-row:active{background:rgba(255,255,255,.04)}
 
 /* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
@@ -61,28 +61,28 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
    off the left edge of the screen once the Select tab made the row too
    wide to fit on one line. The tab group's own flex-wrap still lets it
    spill onto a second line by itself, while the icons stay pinned right. */
-.lib-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lib-tabs{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
 .lib-tabs-group{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.lib-tabs-group button{font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.lib-tabs-group button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
+  padding:var(--sp-2) 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .lib-tabs-group button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
 .lib-tabs-group .lib-select-tab{color:var(--muted)}
 
 /* Profile > Library tools (S1 §5) */
 .lib-tools{margin-top:28px}
-.lib-tools-row{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:0;text-align:left}
+.lib-tools-row{display:flex;align-items:center;gap:var(--sp-3);width:100%;background:none;border:0;padding:0;text-align:left}
 .lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent-text);
-  display:grid;place-content:center;font-size:15px;flex:0 0 auto;transition:transform .2s}
+  display:grid;place-content:center;font-size:var(--fs-row);flex:0 0 auto;transition:transform .2s}
 .lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
-.lib-tools-label{font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
-.lib-tools-preview{margin-left:auto;font-family:var(--data);font-size:10px;color:var(--muted);letter-spacing:.04em}
+.lib-tools-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase}
+.lib-tools-preview{margin-left:auto;font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.04em}
 .lib-tools-panel{overflow:hidden;max-height:0;transition:max-height .2s ease}
 .lib-tools-panel.open{max-height:1400px}
-.lib-tools-caption{font-family:var(--data);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);margin:22px 0 4px}
+.lib-tools-caption{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:22px 0 var(--sp-1)}
 .lib-tools-row2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
-.lib-tools-row2 .k{font-size:13.5px}
-.lib-tools-row2 .k em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.lib-tools-row2 .k{font-size:var(--fs-body)}
+.lib-tools-row2 .k em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px;line-height:1.4}
 .lib-tools-danger .k{color:#E0705A}
 .lib-tools-danger .k em{color:var(--muted)}
 .forget-btn{border-color:#E0705A;color:#E0705A}

@@ -6,11 +6,11 @@
    logic or the keyframe shapes. */
 .sleeve{position:absolute;inset:0;border-radius:6px;overflow:hidden;display:none;
   background:linear-gradient(155deg,#2A2018,#171310);
-  box-shadow:0 22px 44px rgba(0,0,0,.55);
+  box-shadow:var(--sh-3);
   align-items:center;justify-content:center;text-align:center}
 .sleeve-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
 .sleeve.has-art .sleeve-art{opacity:1}
-.sleeve-mark{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
+.sleeve-mark{font-family:var(--display);font-weight:700;font-size:var(--fs-row);letter-spacing:.18em;color:var(--muted)}
 .sleeve.has-art .sleeve-mark{display:none}
 /* Driven as three separate steps from JS (see runStartSequence), not one
    keyframe spanning the whole pull, because the middle step's length
@@ -79,12 +79,12 @@
 .platter-stage.putaway-out .sleeve{animation:putawaySleeveOut var(--putaway-out-duration,600ms) ease-in forwards}
 
 .now{text-align:center;margin-top:22px}
-.now-title-row{display:flex;align-items:center;justify-content:center;gap:4px}
-.now h2{font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:.03em;margin:0 0 4px;
+.now-title-row{display:flex;align-items:center;justify-content:center;gap:var(--sp-1)}
+.now h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:.03em;margin:0 0 var(--sp-1);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.now .spec{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em}
+.now .spec{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
-  font-size:15px;color:var(--muted);margin-bottom:4px}
+  font-size:var(--fs-row);color:var(--muted);margin-bottom:var(--sp-1)}
 /* RF12 (docs/12_REFINE.md, point 1): a hardcoded literal equal to --amber's
    own dark-mode hex, not a var() reference -- missed by the original
    grep-for-var(--accent) sweep and caught instead by the point-4 contrast
@@ -130,7 +130,7 @@
 }
 .platter-stage.flipping .platter-box{animation:sideFlip 700ms ease-in-out forwards}
 .side-letter{position:absolute;inset:0;display:grid;place-content:center;pointer-events:none;
-  font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.06em;color:var(--paper);
+  font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:.06em;color:var(--paper);
   text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .side-letter:empty{display:none}
 
@@ -139,7 +139,7 @@
 .slipmat-rest{position:absolute;inset:0;border-radius:50%;display:none;place-content:center;
   background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);
   box-shadow:inset 0 0 0 1px var(--line)}
-.slipmat-rest span{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em;color:var(--muted)}
+.slipmat-rest span{font-family:var(--display);font-weight:700;font-size:var(--fs-row);letter-spacing:.18em;color:var(--muted)}
 .rest-hint{display:none}
 /* a primed but empty platter (app start, CEREMONY §2/§5) shows the felt on
    every width; the record covers it once it lands */

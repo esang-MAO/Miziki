@@ -22,13 +22,13 @@
   .edit-sheet{transition:none}
 }
 .edit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.edit-head span{font-family:var(--display);font-size:17px;letter-spacing:.06em}
-.edit-close{width:32px;height:32px;color:var(--muted);font-size:15px}
-.social-close{width:44px;height:44px;margin:-6px -8px -6px 0;color:var(--muted);font-size:15px;
+.edit-head span{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.06em}
+.edit-close{width:32px;height:32px;color:var(--muted);font-size:var(--fs-row)}
+.social-close{width:44px;height:44px;margin:-6px -var(--sp-2) -6px 0;color:var(--muted);font-size:var(--fs-row);
   display:flex;align-items:center;justify-content:center}
 .edit-art-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
 .edit-art-preview{width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--panel);
-  display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:9px}
+  display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em}
 .edit-art-preview img{width:100%;height:100%;object-fit:cover}
 .pl-input[type=text],.pl-input[type=number]{width:100%}
 
@@ -36,49 +36,52 @@
   max-width:488px;margin:0 auto;z-index:60;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:rgba(10,14,18,.95);border:1px solid var(--line);border-radius:6px;padding:10px 14px;
-  font-size:12.5px}
+  font-size:var(--fs-caption)}
 
 /* library row edit affordance + multi-select mode */
-.t-edit{width:26px;height:26px;color:var(--muted);font-size:15px;flex:0 0 auto}
-.select-bar{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.t-edit{width:26px;height:26px;color:var(--muted);font-size:var(--fs-row);flex:0 0 auto}
+.select-bar{display:flex;flex-direction:column;gap:var(--sp-2);padding:10px 0;border-bottom:1px solid var(--line)}
 .select-bar .stack{margin-top:0}
 
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
-.row .k{font-size:13.5px}
-.row .k em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
-.readout{font-family:var(--data);font-size:12px;color:var(--accent-text);white-space:nowrap;transition:color .5s}
+.row .k{font-size:var(--fs-body)}
+.row .k em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px;line-height:1.45}
+.readout{font-family:var(--data);font-size:var(--fs-caption);color:var(--accent-text);white-space:nowrap;transition:color .5s}
 .readout.plain{color:var(--paper)}
 
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{font-family:var(--data);font-size:10.5px;letter-spacing:.08em;padding:7px 10px;
+.seg button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;padding:7px 10px;
   border:1px solid var(--line);border-radius:3px;color:var(--muted)}
 .seg button[aria-pressed="true"]{border-color:var(--accent);color:var(--paper);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 
 .slider-row{padding:13px 0;border-bottom:1px solid var(--line)}
 .slider-row:last-child{border-bottom:0}
 .slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
-.slider-head span{font-family:var(--data);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.slider-head b{font-family:var(--data);font-size:11.5px;font-weight:500;color:var(--paper)}
+.slider-head span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.slider-head b{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;font-weight:500;color:var(--paper)}
 input[type=range]{width:100%;accent-color:var(--accent);height:22px}
 input[type=file]{display:none}
 
 .cta{display:inline-block;border:1px solid var(--accent);color:var(--accent-text);border-radius:3px;
-  padding:11px 16px;font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:color .5s,border-color .5s}
+  padding:11px var(--sp-4);font-family:var(--data);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase;transition:color .5s,border-color .5s}
 .cta.ghost{border-color:var(--line);color:var(--paper)}
-.stack{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.stack{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:14px}
 
 .empty{border:1px dashed var(--line);border-radius:4px;padding:20px;text-align:center}
-.empty p{margin:0 0 4px;font-size:13.5px}
-.empty small{color:var(--muted);font-size:11.5px;line-height:1.5;display:block}
+.empty p{margin:0 0 var(--sp-1);font-size:var(--fs-body)}
+.empty small{color:var(--muted);font-size:var(--fs-label);letter-spacing:.08em;line-height:1.5;display:block}
 
-.tracklist{list-style:none;margin:16px 0 0;padding:0}
-.tracklist li{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.tracklist{list-style:none;margin:var(--sp-4) 0 0;padding:0}
+/* RF13 (docs/12_REFINE.md): "remove per-row hairlines in song and artist
+   lists" -- no border-bottom here any more; .tracklist li:active's own
+   --sel tint (00-base.css) is what marks a row's boundary now. */
+.tracklist li{display:flex;align-items:center;gap:var(--sp-3);padding:11px 0}
 .tracklist .t-name{flex:1;min-width:0}
-.tracklist .t-name b{display:block;font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tracklist .t-name em{font-style:normal;font-family:var(--data);font-size:10px;color:var(--muted)}
-.tracklist .t-idx{font-family:var(--data);font-size:10px;color:var(--muted);width:18px}
+.tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tracklist .t-name em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
+.tracklist .t-idx{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);width:18px}
 .tracklist li[aria-current="true"] .t-idx{color:var(--accent-text)}
-.note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 0 0}
+.note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
 .warn{color:#FFB4A2}
 
