@@ -142,6 +142,15 @@ mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
   namedExports: { refreshLibraryTools(){} },
 });
+// RF26 (docs/12_REFINE.md): the new Settings › Sundown row's own import —
+// the real shell/sundown-sheet.js reaches shell/routes.js, which reaches
+// social/screens/home.js for real, which reaches friend-store.js, which
+// reaches this file's own rhythm-card.js mock above (missing
+// renderSharedRhythmCard, since nothing in this file needs it) — stopped
+// at the door the same way every other wide chain in this suite is.
+mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
+  namedExports: { openSundownSheet(){} },
+});
 
 const { fmtCount, renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
 const { S } = await import('../../src/state.js');

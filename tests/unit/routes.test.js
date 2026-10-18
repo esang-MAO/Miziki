@@ -6,12 +6,11 @@ import assert from 'node:assert/strict';
 // with shell/header.js — each of those reaches a wide chain (profile's
 // own storefront/settings/share chain; the social screens; and, via
 // header.js, nothing back here that matters for this file) for no benefit
-// to what's actually being tested: showRoute()'s own character->sundown
-// redirect and the Day/Sound view-switch state it now owns. Mocked
-// directly, the usual "stop the chain at the door" reasoning every other
-// mock-heavy file in this suite already uses. gatefold/view.js's
-// GF/closeGatefoldInstant are also mocked, same reasoning — GF is read
-// read-only here per refactor rule 7.
+// to what's actually being tested: showRoute()'s own route switching and
+// the Day/Sound view-switch state it now owns. Mocked directly, the usual
+// "stop the chain at the door" reasoning every other mock-heavy file in
+// this suite already uses. gatefold/view.js's GF/closeGatefoldInstant are
+// also mocked, same reasoning — GF is read-only here per refactor rule 7.
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { renderProfile(){} },
 });
@@ -32,21 +31,21 @@ mock.module(new URL('../../src/gatefold/view.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
   namedExports: { forceCloseLayer(){}, recordRoute(){} },
 });
-// PR 5 (DAY_ARC_BRIEF.md §4.4): showRoute() now resets the Sundown
-// dial's own preview state on leaving that tab — dial-gesture.js's real
-// chain reaches dial-view.js -> util/motion.js's REDUCED, which reads
-// window.matchMedia at module load; this test's fake document below has
-// no window at all, so stop the chain here, same reasoning as every
-// other mock in this file.
-mock.module(new URL('../../src/sundown/dial-gesture.js', import.meta.url).href, {
-  namedExports: { resetPreview(){} },
+// RF26 (docs/12_REFINE.md): "sundown"/"character" no longer switch to a
+// .route element at all — showRoute() hands both off to
+// openSundownSheet() instead (src/shell/sundown-sheet.js, a real circular
+// pair with this file — see routes.js's own comment). Mocked here so this
+// file tests only what showRoute() itself does: which argument it hands
+// off with, and that it touches nothing else about the current route.
+let openSundownSheetCalls = [];
+mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
+  namedExports: { openSundownSheet(view){ openSundownSheetCalls.push(view); } },
 });
 
-// A tiny, DOM-free fake document — just enough for showRoute()/
-// selectSundownView() to run without throwing: getElementById for the
-// per-route '.route' sections (keyed by id), querySelectorAll for
-// '.tabbar-btn'/'[data-sundown-view]' (returning the small fixed sets
-// this test itself populates), and $()'s own single-element lookups.
+// A tiny, DOM-free fake document — just enough for showRoute() to run
+// without throwing: getElementById for the per-route '.route' sections
+// (keyed by id, library/home/profile only now — RF26 removed Sundown's),
+// querySelectorAll for '.tabbar-btn', and $()'s own single-element lookups.
 function fakeEl(id){
   const classes = new Set();
   return {
@@ -61,16 +60,15 @@ function fakeEl(id){
   };
 }
 
-const routeEls = { 'route-library': fakeEl('route-library'), 'route-sundown': fakeEl('route-sundown'), 'route-profile': fakeEl('route-profile') };
+const routeEls = { 'route-library': fakeEl('route-library'), 'route-home': fakeEl('route-home'), 'route-profile': fakeEl('route-profile') };
 const appHeader = fakeEl('appHeader');
 const libToolsPanel = fakeEl('libToolsPanel');
 const libToolsToggle = fakeEl('libToolsToggle');
 const tabbarBtns = [
   { dataset: { route: 'library' }, setAttribute(){} },
-  { dataset: { route: 'sundown' }, setAttribute(){} },
+  { dataset: { route: 'home' }, setAttribute(){} },
   { dataset: { route: 'profile' }, setAttribute(){} },
 ];
-let sundownViewBtns = [];
 
 globalThis.localStorage = (() => {
   let store = {};
@@ -87,14 +85,12 @@ globalThis.document = {
   querySelectorAll(sel){
     if(sel === '.tabbar-btn') return tabbarBtns;
     if(sel === '.route') return Object.values(routeEls);
-    if(sel === '[data-sundown-view]') return sundownViewBtns;
     return [];
   },
   querySelector(sel){
     if(sel === '#appHeader') return appHeader;
     if(sel === '#libToolsPanel') return libToolsPanel;
     if(sel === '#libToolsToggle') return libToolsToggle;
-    if(sel === '#sundownDayView' || sel === '#sundownSoundView') return fakeEl(sel.slice(1));
     return null;
   },
 };
@@ -107,28 +103,33 @@ globalThis.window = { scrollY: 0, scrollTo(x, y){ globalThis.window.scrollY = y;
 const { showRoute, selectSundownView, lastSundownView, isLibraryRouteVisible, isProfileRouteVisible } =
   await import('../../src/shell/routes.js');
 
-test('showRoute: a normal route (sundown) just toggles the matching .route element', () => {
-  showRoute('sundown');
-  assert.equal(routeEls['route-sundown'].classList.contains('on'), true);
+test('showRoute: a normal route just toggles the matching .route element', () => {
+  showRoute('library');
+  assert.equal(routeEls['route-library'].classList.contains('on'), true);
+  showRoute('profile');
+  assert.equal(routeEls['route-profile'].classList.contains('on'), true);
   assert.equal(routeEls['route-library'].classList.contains('on'), false);
 });
 
-// DA3 (docs/DAY_ARC.md): the Character tab is gone from the DOM entirely
-// — showRoute('character') must never just silently fail to match any
-// .route element (which is what would happen without the redirect, since
-// there is no "route-character" element any more). It has to land
-// somewhere real: Sundown, with the Sound sub-view selected.
-test('showRoute("character") redirects to sundown and selects the Sound sub-view, never 404s', () => {
-  sundownViewBtns = [
-    { dataset: { sundownView: 'day' }, setAttribute(){} },
-    { dataset: { sundownView: 'sound' }, setAttribute(){} },
-  ];
+// RF26 (docs/12_REFINE.md): Sundown and the old Character tab are both
+// gone as routes — showRoute('sundown')/('character') must never try to
+// match a '.route' element that no longer exists in the DOM at all.
+// Instead they open the sheet, with the view each name maps onto, and
+// leave whatever route was already on screen completely alone.
+test('showRoute("sundown") opens the sheet on Day and leaves the current route untouched', () => {
+  openSundownSheetCalls = [];
+  showRoute('library');
+  showRoute('sundown');
+  assert.deepEqual(openSundownSheetCalls, ['day']);
+  assert.equal(routeEls['route-library'].classList.contains('on'), true, 'library is still the route on screen');
+});
+
+test('showRoute("character") opens the sheet on Sound, never 404s onto a removed route', () => {
+  openSundownSheetCalls = [];
+  showRoute('profile');
   showRoute('character');
-  assert.equal(routeEls['route-sundown'].classList.contains('on'), true, 'should land on the sundown route');
-  // selectSundownView('sound') was called as part of the redirect —
-  // confirmed via its own return-trip through localStorage, the one
-  // externally-observable side effect it has.
-  assert.equal(lastSundownView(), 'sound');
+  assert.deepEqual(openSundownSheetCalls, ['sound']);
+  assert.equal(routeEls['route-profile'].classList.contains('on'), true, 'profile is still the route on screen');
 });
 
 test('selectSundownView: persists the choice (device-only, via localStorage) and restores it as lastSundownView()', () => {
@@ -169,7 +170,7 @@ test('isLibraryRouteVisible/isProfileRouteVisible read the real "on" class off t
 test('showRoute: scrolling down on one tab, then switching away and back, restores that same position', () => {
   showRoute('library');
   globalThis.window.scrollY = 850;
-  showRoute('sundown');
+  showRoute('home');
   assert.equal(globalThis.window.scrollY, 0, 'a tab visited for the first time starts at the top');
   globalThis.window.scrollY = 120;
   showRoute('library');
@@ -183,8 +184,7 @@ test('showRoute: switching to the tab already on screen doesn\'t save over its o
   assert.equal(globalThis.window.scrollY, 300);
 });
 
-test('selectSundownView: Day and Sound each keep their own scroll position, independent of the route level', () => {
-  showRoute('sundown');
+test('selectSundownView: Day and Sound each keep their own scroll position, independent of the route (the sheet floats over whatever route is on screen)', () => {
   selectSundownView('day');
   globalThis.window.scrollY = 400;
   selectSundownView('sound');

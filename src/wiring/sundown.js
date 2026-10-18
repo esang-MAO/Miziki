@@ -20,13 +20,22 @@
    might still carry one; Moment pacing still can) keeps applying with no
    visible control, per that doc's own "no pref is deleted" rule. The
    duplicate "Character now" shortcut link into Sound is gone too --
-   the Day/Sound tabs above are the one way there now. */
+   the Day/Sound tabs above are the one way there now.
+
+   RF26 (docs/12_REFINE.md): this content moved into a sheet
+   (src/shell/sundown-sheet.js) -- the Day/Sound tab click handler below
+   also syncs the sheet's own half/full height to whichever view was just
+   picked, and wireSundown() now wires the sheet's own ways-in (the sun
+   knob, the mini-player's sun button, the sidebar's Sundown card, the
+   sheet's own close button/scrim/drag) at the same boot-time call site
+   this file's own tab/depth wiring already runs from. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { selectSundownView, lastSundownView } from '../shell/routes.js';
 import { wireDialGesture } from '../sundown/dial-gesture.js';
 import { DEPTH_TARGETS, depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+import { syncSundownSheetHeight, wireSundownSheetEntryPoints } from '../shell/sundown-sheet.js';
 
 function paintDepth(){
   const key = depthKeyFor(S.auto, S.target);
@@ -38,7 +47,10 @@ function paintDepth(){
 
 export function wireSundown(){
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
-    b.addEventListener('click', () => selectSundownView(b.dataset.sundownView)));
+    b.addEventListener('click', () => {
+      selectSundownView(b.dataset.sundownView);
+      syncSundownSheetHeight(b.dataset.sundownView);
+    }));
   // restores whichever view this device last had open (default Day) —
   // the one-time call belongs here, not in selectSundownView() itself,
   // since every later call is a real user action, not a boot-time restore.
@@ -59,4 +71,6 @@ export function wireSundown(){
   // way back to live. The old 0..1440 range slider and its "Back to live"
   // button were a second copy of both and are gone.
   wireDialGesture();
+
+  wireSundownSheetEntryPoints();
 }
