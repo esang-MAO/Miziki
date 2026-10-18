@@ -9,12 +9,28 @@ import assert from 'node:assert/strict';
    "stop the chain at the door" reasoning as every other mock-heavy file
    in this suite. Everything else backup.js imports (state.js, storage/
    prefs.js, record-art/tiers.js, library/model.js, backup-doc.js,
-   crate/tiers.js, sync/images.js) is pure/DOM-free at module top level
-   and loaded for real — confirmed directly: `node --input-type=module
-   -e "import('./src/sync/backup.js')"` resolves cleanly with no mocking
-   at all, which is also the real reason this file doesn't need to mock
-   crate/tiers.js or sync/images.js the way every DOM-reaching chain in
-   this suite otherwise would. */
+   crate/tiers.js) is pure/DOM-free at module top level and loaded for
+   real — confirmed directly: `node --input-type=module -e
+   "import('./src/sync/backup.js')"` resolves cleanly with no mocking at
+   all, which is also the real reason this file doesn't need to mock
+   crate/tiers.js the way every DOM-reaching chain in this suite
+   otherwise would.
+
+   sync/images.js is the one exception, mocked below (RF19,
+   docs/12_REFINE.md): its real sha256Hex() goes through
+   crypto.subtle.digest(), which genuinely takes several real event-loop
+   turns to settle (confirmed empirically — not a guess) via Node's
+   threadpool, on a timeline that doesn't scale with how many fake-timer
+   ticks or setImmediate rounds a test fires, making the exact number
+   inherently flaky under load. The push/pull timer tests below only
+   care that the same checksum round-trips through push and verify — not
+   that it's genuinely SHA-256 (tests/unit/images.test.js already covers
+   that) — so a fast, deterministic stand-in removes the flakiness
+   without weakening what these tests actually assert. prepareCoverUpload/
+   prepareAvatarUpload are never reached by anything in this file (the
+   overlays/profile mocks above always resolve empty/null, so
+   flushPendingImages() always short-circuits before either is called) —
+   stubbed only so backup.js's own import of them resolves. */
 const metaStore = new Map(), artworkStore = new Map();
 let profileRecord = null;
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
@@ -35,9 +51,26 @@ mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
     },
   },
 });
+// A fast, deterministic stand-in for sha256Hex — same input always
+// produces the same 64-hex-char-shaped output, resolved on a plain
+// microtask rather than a real threadpool round trip.
+async function fakeSha256Hex(bytes){
+  const str = (bytes instanceof Uint8Array) ? Array.from(bytes).join(',') : String(bytes);
+  let h = 0;
+  for(let i = 0; i < str.length; i++){ h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+  return Math.abs(h).toString(16).padStart(64, '0').slice(0, 64);
+}
+mock.module(new URL('../../src/sync/images.js', import.meta.url).href, {
+  namedExports: {
+    sha256Hex: fakeSha256Hex,
+    prepareCoverUpload: async blob => ({ blob, hash: 'stub' }),
+    prepareAvatarUpload: async blob => ({ blob, hash: 'stub' }),
+  },
+});
 
 const { S } = await import('../../src/state.js');
-const { SCHEMA_VERSION } = await import('../../src/sync/backup-doc.js');
+const { SCHEMA_VERSION, toDoc, canonicalStringify } = await import('../../src/sync/backup-doc.js');
+const sha256Hex = fakeSha256Hex;
 const {
   scheduleBackupSync, flushBackupSync, pullBackupOnForeground, getBackupStatus, collectDownloadData, collectLocalDownloadData,
   orphanedFiles, pushOrClearListeningRhythm,
@@ -99,7 +132,7 @@ function stubSocial(client, extra = {}){
 async function flushMicrotasks(){
   // real setImmediate, not the mocked setTimeout — lets every pending
   // await inside pushBackup()/runPush() actually settle before asserting
-  for(let i = 0; i < 6; i++) await new Promise(r => setImmediate(r));
+  for(let i = 0; i < 10; i++) await new Promise(r => setImmediate(r));
 }
 
 test('scheduleBackupSync: several calls within the debounce window collapse into one push', async () => {
@@ -458,4 +491,118 @@ test('RF18: a pull and a push share one sync lock -- their network calls never o
   flushBackupSync();
   await new Promise(resolve => setTimeout(resolve, 500));
   assert.equal(maxActive, 1, 'the pull and the push must never have an in-flight network call at the same time');
+});
+
+/* ================= RF19 (docs/12_REFINE.md): verify, and keep a way back ================= */
+
+// A richer client for pull tests: the cheap cursor select() (no .in())
+// returns a plain awaited promise, same as makeClient() above; the full-row
+// select (selected columns include 'checksum') is chained with .in(),
+// matching fetchRemoteRows()'s own two-shaped call exactly.
+function makePullClient({ cursorRows = [], fullRows = [] } = {}){
+  const calls = { upsert: 0 };
+  const rpcArgs = [];
+  return {
+    calls, rpcArgs,
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'a@b.test' } } }) },
+    rpc(name, args){
+      if(name !== 'put_library_backup') return Promise.resolve({ error: null });
+      calls.upsert++; rpcArgs.push(args);
+      return Promise.resolve({ error: null });
+    },
+    from(){
+      return {
+        select(cols){
+          if(cols.indexOf('checksum') >= 0) return { in(){ return Promise.resolve({ data: fullRows, error: null }); } };
+          return Promise.resolve({ data: cursorRows, error: null });
+        },
+      };
+    },
+  };
+}
+
+test('RF19: push sends a checksum matching the canonical doc it just uploaded', async () => {
+  freshState();
+  const client = makeClient();
+  stubSocial(client);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    flushBackupSync();
+    await flushMicrotasks();
+    const args = client.rpcArgs[0];
+    assert.equal(typeof args.p_checksum, 'string');
+    assert.match(args.p_checksum, /^[0-9a-f]{64}$/);
+    const expected = await sha256Hex(new TextEncoder().encode(canonicalStringify(args.p_doc)));
+    assert.equal(args.p_checksum, expected);
+  }finally{ mock.timers.reset(); }
+});
+
+test('RF19: a pull accepts a remote row whose checksum matches', async () => {
+  freshState();
+  const remoteDoc = toDoc({
+    deviceId: 'device-b', historyClearedAt: 0, tracks: [],
+    playlists: [], albumOrder: {}, albumSort: {},
+    albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
+    prefs: {}, profileName: '', picture: null,
+    trackPlayCounts: { k1: 5 }, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
+    trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {}, playlistMembershipAt: {},
+  });
+  const checksum = await sha256Hex(new TextEncoder().encode(canonicalStringify(remoteDoc)));
+  const client = makePullClient({
+    cursorRows: [{ device_id: 'device-b', updated_at: 't1' }],
+    fullRows: [{ device_id: 'device-b', doc: remoteDoc, updated_at: 't1', checksum }],
+  });
+  stubSocial(client);
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(S.mergedStats.trackPlayCounts.k1, 5);
+  assert.equal(getBackupStatus().lastError, null);
+});
+
+test('RF19: a pull drops a remote row whose checksum does not match its own doc, and reports it', async () => {
+  freshState();
+  const remoteDoc = toDoc({
+    deviceId: 'device-mismatch', historyClearedAt: 0, tracks: [],
+    playlists: [], albumOrder: {}, albumSort: {},
+    albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
+    prefs: {}, profileName: '', picture: null,
+    trackPlayCounts: { k1: 5 }, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
+    trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {}, playlistMembershipAt: {},
+  });
+  const client = makePullClient({
+    cursorRows: [{ device_id: 'device-mismatch', updated_at: 't2' }],
+    fullRows: [{ device_id: 'device-mismatch', doc: remoteDoc, updated_at: 't2', checksum: 'not-the-real-checksum' }],
+  });
+  stubSocial(client);
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  // device-mismatch's own contribution never reached the merge at all
+  assert.equal(S.mergedStats.trackPlayCounts.k1 || 0, 0);
+  const err = getBackupStatus().lastError;
+  assert.ok(err, 'a checksum mismatch must be reported via lastError');
+  assert.equal(err.deviceId, 'device-mismatch');
+});
+
+test('RF19: a pull accepts a pre-RF19 remote row with no checksum at all (backward compatible)', async () => {
+  freshState();
+  const remoteDoc = toDoc({
+    deviceId: 'device-nochecksum', historyClearedAt: 0, tracks: [],
+    playlists: [], albumOrder: {}, albumSort: {},
+    albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
+    prefs: {}, profileName: '', picture: null,
+    trackPlayCounts: { k1: 7 }, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
+    trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {}, playlistMembershipAt: {},
+  });
+  const client = makePullClient({
+    cursorRows: [{ device_id: 'device-nochecksum', updated_at: 't3' }],
+    fullRows: [{ device_id: 'device-nochecksum', doc: remoteDoc, updated_at: 't3', checksum: null }],
+  });
+  stubSocial(client);
+  pullBackupOnForeground();
+  await flushMicrotasks();
+  assert.equal(S.mergedStats.trackPlayCounts.k1, 7);
+  assert.equal(getBackupStatus().lastError, null);
 });

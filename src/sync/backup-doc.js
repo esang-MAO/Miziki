@@ -415,7 +415,14 @@ export function fromDocs(ownLocal, remoteRows){
   const usable = [];
   byDevice.forEach(row => {
     if((row.schemaVersion || 0) > SCHEMA_VERSION){ newerVersionSeen = true; return; }
-    usable.push(upconvertToV3(row));
+    const upconverted = upconvertToV3(row);
+    // RF19, point 2: a structurally invalid row (corrupted, truncated, or
+    // hand-edited) never gets a vote in the merge — skipped silently, the
+    // same way a too-new schemaVersion already is above, rather than
+    // letting a bad shape throw deep inside mergeRows() or poison another
+    // device's own merged totals.
+    if(!validateDoc(upconverted)) return;
+    usable.push(upconverted);
   });
 
   const merged = mergeRows([ownDoc, ...usable]);
@@ -433,6 +440,114 @@ export function fromDocs(ownLocal, remoteRows){
 // go stale the moment the next file is imported.
 export function resolveIdentityKey(identityKey, tracks){
   return (tracks || []).find(t => trackIdentityKey(t) === identityKey) || null;
+}
+
+// RF19 (docs/12_REFINE.md, "verify, and keep a way back"), point 1: a stable
+// string for a doc regardless of its own object-key insertion order, so a
+// checksum computed from it is reproducible from the same logical content —
+// two builds of the identical doc (e.g. this device's own doc, recomputed
+// for verification after a round trip through JSON) must hash identically
+// even if some JS engine or JSON.parse happened to reorder keys along the
+// way. Arrays keep their own order (order is meaningful there — e.g.
+// itemWrites entries, playlist membership), only object keys are sorted.
+export function canonicalStringify(value){
+  const sort = v => {
+    if(Array.isArray(v)) return v.map(sort);
+    if(v && typeof v === 'object'){
+      const out = {};
+      Object.keys(v).sort().forEach(k => { out[k] = sort(v[k]); });
+      return out;
+    }
+    return v;
+  };
+  return JSON.stringify(sort(value));
+}
+
+// RF19, point 2: a cheap, structural sanity check applied to a *remote* row
+// before it's ever allowed to compete in a merge — not a full schema
+// validator, just enough to catch a corrupted or truncated row (a failed
+// write, a hand-edited row, a future bug) before it can poison every other
+// device's own merged totals (a non-numeric counter breaking sumCounters()'s
+// addition, a non-string id breaking every identity-key lookup, etc.). A row
+// that fails is dropped outright in fromDocs() — never partially merged.
+function isNonNegInt(v){ return typeof v === 'number' && Number.isFinite(v) && v >= 0 && Math.floor(v) === v; }
+function isNonNegNum(v){ return typeof v === 'number' && Number.isFinite(v) && v >= 0; }
+function isStr(v){ return typeof v === 'string'; }
+// seq/deviceId are checked only when present, never required outright: a
+// v1/v2 remote row's lastWrite.profileName/picture (the two fields RF17
+// kept as a single stamp) predates RF16's own seq field entirely, and
+// merge.js's isNewerStamp()/lastWriteWins() already read a missing seq as
+// 0 and a missing deviceId as '' — a stamp with neither is a perfectly
+// ordinary, if maximally low-priority, stamp to both of those, so it must
+// be an ordinary, valid one here too. `at` is the one field RF16 docs
+// always had regardless of version, so it alone is required.
+function isStampLike(v){
+  if(!v || typeof v !== 'object') return false;
+  if(!isNonNegInt(v.at)) return false;
+  if(v.seq !== undefined && !isNonNegInt(v.seq)) return false;
+  if(v.deviceId !== undefined && v.deviceId !== null && !isStr(v.deviceId)) return false;
+  return true;
+}
+function isFlatCounterMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(k => isNonNegInt(v[k]));
+}
+function isFlatMaxMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(k => isNonNegNum(v[k]));
+}
+function isStringArray(v){ return Array.isArray(v) && v.every(isStr); }
+function isItemWritesArray(v){
+  return Array.isArray(v) && v.every(e => e && typeof e === 'object'
+    && isStr(e.key) && isNonNegInt(e.seq) && isNonNegInt(e.at)
+    && (e.deviceId === null || isStr(e.deviceId)));
+}
+
+export function validateDoc(doc){
+  if(!doc || typeof doc !== 'object') return false;
+  if(!isStr(doc.deviceId)) return false;
+  if(!isNonNegInt(doc.historyClearedAt || 0)) return false;
+
+  const counters = doc.counters || {};
+  const flatCounterFields = ['trackPlayCounts', 'sessionCounts', 'metalEligibleSessions', 'trackMetalEligiblePlays', 'phasePlayCounts'];
+  if(!flatCounterFields.every(f => isFlatCounterMap(counters[f] || {}))) return false;
+  const albumPhaseCounts = counters.albumPhaseCounts || {};
+  if(typeof albumPhaseCounts !== 'object' || Array.isArray(albumPhaseCounts)) return false;
+  if(!Object.keys(albumPhaseCounts).every(k => isFlatCounterMap(albumPhaseCounts[k]))) return false;
+
+  const maxFields = doc.maxFields || {};
+  if(!isFlatMaxMap(maxFields.trackLastPlayed || {})) return false;
+  if(!isFlatMaxMap(maxFields.albumLastPlayed || {})) return false;
+
+  const sealed = doc.sealed || {};
+  if(!isStringArray(sealed.sealed || [])) return false;
+  if(!isStringArray(sealed.broken || [])) return false;
+
+  const itemWrites = doc.itemWrites || {};
+  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'prefs', 'playlistDefs', 'playlistOrder'];
+  if(!itemWriteFields.every(f => isItemWritesArray(itemWrites[f] || []))) return false;
+
+  const playlistMembership = doc.playlistMembership || [];
+  if(!Array.isArray(playlistMembership)) return false;
+  if(!playlistMembership.every(e => e && typeof e === 'object'
+    && isStr(e.playlist) && isStr(e.identityKey)
+    && (e.added === null || isStampLike(e.added))
+    && (e.removed === null || isStampLike(e.removed)))) return false;
+
+  const lastWrite = doc.lastWrite || {};
+  if(lastWrite.profileName !== undefined && !isStampLike(lastWrite.profileName)) return false;
+  if(lastWrite.picture !== undefined && !isStampLike(lastWrite.picture)) return false;
+
+  const overlays = doc.overlays || [];
+  if(!Array.isArray(overlays)) return false;
+  if(!overlays.every(e => e && typeof e === 'object' && isStr(e.identityKey) && isNonNegInt(e.at || 0))) return false;
+
+  const covers = doc.covers || [];
+  if(!Array.isArray(covers)) return false;
+  if(!covers.every(e => e && typeof e === 'object' && isStr(e.identityKey) && isNonNegInt(e.at || 0)
+    && (e.hash === null || isStr(e.hash)))) return false;
+
+  return true;
 }
 
 export { albumKey };

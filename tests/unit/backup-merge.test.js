@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION } from '../../src/sync/backup-doc.js';
+import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION, canonicalStringify, validateDoc } from '../../src/sync/backup-doc.js';
 import { mergeRows } from '../../src/sync/merge.js';
 import { trackIdentityKey } from '../../src/record-art/tiers.js';
 
@@ -505,4 +505,99 @@ test('F3: Forget library on one device leaves its stats counting fully in the me
   const b = toDoc(baseLocal('b', { trackPlayCounts: { [key]: 1 } }));
   const merged = fromDocs(afterForget, [b]);
   assert.equal(merged.totals.counters.trackPlayCounts[key], 8);
+});
+
+/* ================= RF19 (docs/12_REFINE.md): verify, and keep a way back ================= */
+
+test('canonicalStringify: key order never changes the output', () => {
+  const a = { b: 1, a: { d: 2, c: 3 } };
+  const b = { a: { c: 3, d: 2 }, b: 1 };
+  assert.equal(canonicalStringify(a), canonicalStringify(b));
+});
+
+test('canonicalStringify: array order is preserved, never sorted', () => {
+  const doc = { list: [3, 1, 2] };
+  assert.equal(canonicalStringify(doc), '{"list":[3,1,2]}');
+});
+
+test('canonicalStringify: the same doc from toDoc() hashes identically regardless of object construction order', () => {
+  const a = toDoc(baseLocal('a', { trackPlayCounts: { k1: 1, k2: 2 } }));
+  // rebuild an equal object with keys inserted in a different order
+  const shuffled = JSON.parse(JSON.stringify(a));
+  assert.equal(canonicalStringify(a), canonicalStringify(shuffled));
+});
+
+test('validateDoc: a real toDoc() output always validates', () => {
+  const t = mkTrack('local-a', 'Title', 'Artist', 'Album');
+  const doc = toDoc(baseLocal('a', {
+    tracks: [t],
+    trackPlayCounts: { [trackIdentityKey(t)]: 3 },
+    playlists: [{ name: 'Favorites', items: ['local-a'], system: 'favorites' }],
+    overlaysRaw: [{ id: 'local-a', fields: { title: 'Edited' }, editedAt: 5 }],
+  }));
+  assert.equal(validateDoc(doc), true);
+});
+
+test('validateDoc: rejects a doc with a negative counter', () => {
+  const doc = toDoc(baseLocal('a', { trackPlayCounts: { k1: -1 } }));
+  assert.equal(validateDoc(doc), false);
+});
+
+test('validateDoc: rejects a doc with a non-integer counter', () => {
+  const doc = toDoc(baseLocal('a', { trackPlayCounts: { k1: 1.5 } }));
+  assert.equal(validateDoc(doc), false);
+});
+
+test('validateDoc: rejects a doc whose deviceId is missing or not a string', () => {
+  const doc = toDoc(baseLocal('a'));
+  assert.equal(validateDoc(Object.assign({}, doc, { deviceId: 42 })), false);
+  assert.equal(validateDoc(Object.assign({}, doc, { deviceId: undefined })), false);
+});
+
+test('validateDoc: rejects a doc whose sealed list holds a non-string entry', () => {
+  const doc = toDoc(baseLocal('a', { sealedIds: ['ok'] }));
+  const bad = Object.assign({}, doc, { sealed: { sealed: [123], broken: [] } });
+  assert.equal(validateDoc(bad), false);
+});
+
+test('validateDoc: rejects a doc whose itemWrites entry is missing a numeric seq', () => {
+  const doc = toDoc(baseLocal('a', { prefs: { x: 1 }, updatedAt: { prefs: { x: { seq: 1, at: 1 } } } }));
+  const bad = Object.assign({}, doc, {
+    itemWrites: Object.assign({}, doc.itemWrites, {
+      prefs: [{ key: 'x', seq: 'not-a-number', at: 1, deviceId: 'a', value: 1 }],
+    }),
+  });
+  assert.equal(validateDoc(bad), false);
+});
+
+test('validateDoc: rejects a doc whose playlistMembership entry has a malformed stamp', () => {
+  const doc = toDoc(baseLocal('a'));
+  const bad = Object.assign({}, doc, {
+    playlistMembership: [{ playlist: 'Favorites', identityKey: 'k1', added: { seq: -1, at: 0 }, removed: null }],
+  });
+  assert.equal(validateDoc(bad), false);
+});
+
+test('validateDoc: accepts a v1 doc upconverted to v3 shape (no throw, structurally valid)', () => {
+  const v1Doc = {
+    schemaVersion: 1, deviceId: 'old-device', historyClearedAt: 0,
+    counters: { trackPlayCounts: { k1: 3 } },
+    maxFields: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    sealed: { sealed: [], broken: [] },
+    lastWrite: { playlists: { at: 1, value: [] }, profileName: { at: 1, value: 'Old Name' } },
+    overlays: [],
+  };
+  const a = baseLocal('a', { trackPlayCounts: { k1: 1 } });
+  assert.doesNotThrow(() => fromDocs(a, [v1Doc]));
+});
+
+test('fromDocs: a structurally invalid remote row is dropped, never merged', () => {
+  const a = baseLocal('a', { trackPlayCounts: { k1: 1 } });
+  const validRemote = toDoc(baseLocal('b', { trackPlayCounts: { k1: 2 } }));
+  const invalidRemote = Object.assign({}, toDoc(baseLocal('c', { trackPlayCounts: { k1: 100 } })), {
+    counters: { trackPlayCounts: { k1: -100 } },
+  });
+  const merged = fromDocs(a, [validRemote, invalidRemote]);
+  // only a (1) + b (2) count -- c's negative counter makes the whole row invalid
+  assert.equal(merged.totals.counters.trackPlayCounts.k1, 3);
 });

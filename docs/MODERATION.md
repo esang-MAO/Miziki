@@ -183,3 +183,43 @@ buckets by hand right after:
 
 Irreversible, same as the in-app version — there's no undo once the
 `auth.users` row is gone.
+
+### Restoring a device's backup from history
+
+`public.library_backup_history` (migration `014_backup_history.sql`, RF19)
+keeps the last 10 rows a device's own `library_backup` row has ever held,
+written by a `before update` trigger right before each overwrite. Nothing in
+the app reads this table — it exists only for a moderator (or Ken himself,
+from the dashboard) to look at or restore from, if a bad push (a client bug,
+a doc that somehow slipped past the client's own `validateDoc()` checks)
+ever leaves a device's row worse off than it was.
+
+See what a device's history looks like:
+
+```sql
+select recorded_at, doc_seq, checksum, updated_at
+from public.library_backup_history
+where user_id = '<user-id>' and device_id = '<device-id>'
+order by recorded_at desc;
+```
+
+Restore the most recent history row back onto the live row (this does
+**not** itself go through `put_library_backup()`'s `doc_seq` guard — running
+it is a deliberate override, so double-check you're restoring the row you
+mean to before running it):
+
+```sql
+update public.library_backup lb
+set doc = h.doc, doc_seq = h.doc_seq, checksum = h.checksum,
+    schema_version = h.schema_version, device_label = h.device_label
+from (
+  select * from public.library_backup_history
+  where user_id = '<user-id>' and device_id = '<device-id>'
+  order by recorded_at desc limit 1
+) h
+where lb.user_id = h.user_id and lb.device_id = h.device_id;
+```
+
+That device picks up the restored doc on its very next pull. The restore
+itself fires the same `before update` trigger, so the row being overwritten
+is captured into history too — nothing is ever lost by restoring.
