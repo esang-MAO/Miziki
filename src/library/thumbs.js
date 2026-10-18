@@ -1,4 +1,4 @@
-import { S, touchBackupField } from '../state.js';
+import { S, touchBackupKey } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
@@ -84,7 +84,16 @@ function averageColorHex(blob){
     img.src = URL.createObjectURL(blob);
   });
 }
-async function persistAlbumEdge(){ await meta.put('albumEdge', S.albumEdge); touchBackupField('albumEdge'); }
+// RF17 (docs/12_REFINE.md): touches only the key(s) that actually changed
+// — present in S.<field> it's a real per-key stamp, absent (a prune/reset
+// wiped it) it becomes a tombstone the next time toDoc() runs (see
+// backup-doc.js's itemWriteEntries() for why the same touch call covers
+// both cases). `keys` is a single key or an array; omitted touches nothing,
+// for a caller with no specific key in scope to report.
+function touchKeys(field, keys){
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey(field, k));
+}
+async function persistAlbumEdge(key){ await meta.put('albumEdge', S.albumEdge); touchKeys('albumEdge', key); }
 
 async function ensureThumb(kind, id, url){
   if(!url) return;                          // this track has no artwork — keep whatever thumbnail already exists
@@ -97,7 +106,7 @@ async function ensureThumb(kind, id, url){
   meta.put('thumb:' + key, blob);
   if(kind === 'album'){
     const hex = await averageColorHex(blob);
-    if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(); }
+    if(hex){ S.albumEdge[id] = hex; persistAlbumEdge(id); }
   }
   applyThumbURLs();
   refreshProfileIfOpen();
@@ -170,14 +179,18 @@ export async function pruneThumbs(){
   }
 }
 
-export async function persistAlbumDisplay(){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); touchBackupField('albumDisplay'); }
-export async function persistTrackDisplay(){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); touchBackupField('trackDisplay'); }
+// RF17 (docs/12_REFINE.md): `keys` is the album id / track key (or keys)
+// that actually changed — a single key, an array, or omitted when a caller
+// has no specific key in scope (a bulk prune/reset that already touched
+// every affected key itself before calling this, e.g. history/clear.js).
+export async function persistAlbumDisplay(keys){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); touchKeys('albumDisplay', keys); }
+export async function persistTrackDisplay(keys){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); touchKeys('trackDisplay', keys); }
 
 export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
   S.albumDisplay[albumId] = {name:t.tags.album, artist:t.tags.albumArtist || t.tags.artist,
     art:thumbURL['album:' + albumId] || null};
-  persistAlbumDisplay();
+  persistAlbumDisplay(albumId);
   ensureThumb('album', albumId, t.art);
 }
 
@@ -186,6 +199,6 @@ export function snapshotAlbumDisplay(t){
 // removed from the library (see LIBRARY spec §1, orphaned stats)
 export function snapshotTrackDisplay(t, key){
   S.trackDisplay[key] = {title:t.tags.title, artist:t.tags.artist, art:thumbURL['track:' + key] || null};
-  persistTrackDisplay();
+  persistTrackDisplay(key);
   ensureThumb('track', key, t.art);
 }

@@ -14,7 +14,7 @@
    session-tracking, and S.sealed is deliberately independent of
    listening history (SEALED spec §2) — it moved, with the rest of that
    cohesive unit, into src/library/sealed.js in step 6b instead. */
-import { S, current, touchBackupField } from '../state.js';
+import { S, current, touchBackupKey } from '../state.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { sessions, meta, achievements, collection, profile } from '../storage/repo.js';
@@ -44,7 +44,12 @@ export async function persistTrackMetalEligiblePlays(){ await meta.put('trackMet
 // sibling of (the same split this module already has for trackPlayCounts).
 export async function persistPhasePlayCounts(){ await meta.put('phasePlayCounts', S.phasePlayCounts); }
 export async function persistAlbumPhaseCounts(){ await meta.put('albumPhaseCounts', S.albumPhaseCounts); }
-export async function persistAlbumLookPref(){ await meta.put('albumLookPref', S.albumLookPref); touchBackupField('albumLookPref'); }
+// RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
+// changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
+export async function persistAlbumLookPref(keys){
+  await meta.put('albumLookPref', S.albumLookPref);
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumLookPref', k));
+}
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
 function startSession(albumId){

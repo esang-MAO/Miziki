@@ -32,7 +32,7 @@
    awaited by playback code. */
 import { S, touchBackupField } from '../state.js';
 import { meta, overlays as overlaysRepo, artwork as artworkRepo, profile as profileRepo } from '../storage/repo.js';
-import { serializePrefs, parsePrefs } from '../storage/prefs.js';
+import { serializePrefs, parsePrefs, rememberUnknownPrefsKeys } from '../storage/prefs.js';
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
 import { idxOf } from '../library/model.js';
 import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION } from './backup-doc.js';
@@ -55,7 +55,7 @@ const SCHEMA_TABLE = 'library_backup';
 
 const B = {
   timer: null, backoffIdx: 0, syncing: false, again: false,
-  status: { backedUp: false, lastSyncedAt: null, waiting: false, lastError: null },
+  status: { backedUp: false, lastSyncedAt: null, waiting: false, lastError: null, newerVersionSeen: false },
   listeners: {},
   // pending cross-device entries this device couldn't resolve to a local
   // track yet (B2's own "doesn't exist locally yet" list, applied) — kept
@@ -193,6 +193,10 @@ function buildLocalState(){
     sealedIds: [...S.sealed],
     brokenSealIds: [...S.sealedBroken],
     overlaysRaw: B.overlaysRawCache || [],
+    // RF17 (docs/12_REFINE.md): add-wins playlist membership, local-id
+    // keyed — converted to identityKey inside toDoc() itself, same as
+    // playlists/albumOrder's own items arrays always have been.
+    playlistMembershipAt: S.playlistMembershipAt,
     // step 07, B4 — null until a picture has been set and re-encoded at
     // least once (uploadedAt isn't a precondition; a hash can be claimed
     // here before its upload actually finishes, same as a cover's own
@@ -519,15 +523,21 @@ async function applyMerged(merged, ownLocal, client, uid){
   const byIdentity = {};
   ownLocal.tracks.forEach(t => { byIdentity[trackIdentityKey(t)] = t; });
 
-  applyLastWriteField('albumSort', merged.lastWrite.albumSort, v => { S.albumSort = v; });
+  // RF17 (docs/12_REFINE.md): merged.itemWrites.<field> is already the
+  // fully-reconstructed {key: value} map (mergeKeyedLastWriteWins already
+  // merged every row's per-key stamps) — assigning it wholesale is correct,
+  // not merged-in-place, since it already contains every key any row
+  // (this device's own current doc included) had a value or a stamp for,
+  // tombstoned keys genuinely absent.
+  S.albumSort = merged.itemWrites.albumSort;
   // art is a runtime-only object URL, stripped before it ever reaches a
   // doc (backup-doc.js's stripArtMap) — reattach each entry's own local
   // art rather than blanking it out when another device's name/artist wins
-  applyLastWriteField('albumDisplay', merged.lastWrite.albumDisplay, v => { S.albumDisplay = reattachArt(v, S.albumDisplay); });
-  applyLastWriteField('trackDisplay', merged.lastWrite.trackDisplay, v => { S.trackDisplay = reattachArt(v, S.trackDisplay); });
-  applyLastWriteField('albumEdge', merged.lastWrite.albumEdge, v => { S.albumEdge = v; });
-  applyLastWriteField('albumLookPref', merged.lastWrite.albumLookPref, v => { S.albumLookPref = v; });
-  applyLastWriteField('prefs', merged.lastWrite.prefs, applyPrefsPatch);
+  S.albumDisplay = reattachArt(merged.itemWrites.albumDisplay, S.albumDisplay);
+  S.trackDisplay = reattachArt(merged.itemWrites.trackDisplay, S.trackDisplay);
+  S.albumEdge = merged.itemWrites.albumEdge;
+  S.albumLookPref = merged.itemWrites.albumLookPref;
+  applyPrefsPatch(merged.itemWrites.prefs);
   applyLastWriteField('profileName', merged.lastWrite.profileName, v => { if(typeof v === 'string') S.profile.name = v; });
   // step 07, B4 — the picture itself is fetched lazily by
   // queueAvatarDownload, not applied as a plain value like the fields
@@ -535,8 +545,8 @@ async function applyMerged(merged, ownLocal, client, uid){
   // and queueAvatarDownload already re-checks that against what's local)
   if(merged.lastWrite.picture !== undefined) queueAvatarDownload(client, uid, merged.lastWrite.picture).catch(() => {});
 
-  applyPlaylists(merged.lastWrite.playlists, byIdentity);
-  applyAlbumOrder(merged.lastWrite.albumOrder, byIdentity);
+  applyPlaylists(composePlaylists(merged), byIdentity);
+  applyAlbumOrder(merged.itemWrites.albumOrder, byIdentity);
   applyOverlays(merged.overlays, byIdentity);
   applyCovers(merged.covers, byIdentity, client, uid);
 
@@ -560,6 +570,34 @@ function applyLastWriteField(name, value, setter){
   if(value === undefined) return;
   setter(value);
 }
+
+// RF17: recombines the three merged playlist pieces (itemWrites.
+// playlistDefs/playlistOrder, each already a full {name: value} map, and
+// playlistMembership, {name: [identityKey...]}) into the same
+// [{name, system, items}] shape applyPlaylists() has always taken —
+// order's own LWW array, filtered against the merged (add-wins)
+// membership, with any member identityKey missing from that array
+// (added on a device whose own order array hasn't caught up yet)
+// appended at the end rather than dropped.
+function composePlaylists(merged){
+  const defs = merged.itemWrites.playlistDefs || {};
+  const order = merged.itemWrites.playlistOrder || {};
+  const membership = merged.playlistMembership || {};
+  const names = new Set([...Object.keys(defs), ...Object.keys(order), ...Object.keys(membership)]);
+  const out = [];
+  names.forEach(name => {
+    const memberSet = new Set(membership[name] || []);
+    if(!memberSet.size && !defs[name]) return;   // a name with no members and no def left is nothing at all
+    const seen = new Set();
+    const items = [];
+    (order[name] || []).forEach(key => {
+      if(memberSet.has(key) && !seen.has(key)){ items.push(key); seen.add(key); }
+    });
+    memberSet.forEach(key => { if(!seen.has(key)){ items.push(key); seen.add(key); } });
+    out.push({ name, system: (defs[name] && defs[name].system) || null, items });
+  });
+  return out;
+}
 function reattachArt(incoming, existingLocal){
   const out = {};
   Object.keys(incoming || {}).forEach(k => {
@@ -569,6 +607,15 @@ function reattachArt(incoming, existingLocal){
   return out;
 }
 function applyPrefsPatch(rawPrefs){
+  // RF17 (docs/12_REFINE.md, point 4): remembered here, not just applied —
+  // a key this build doesn't recognize (a newer device's own setting)
+  // would otherwise quietly disappear the moment this device's own next
+  // serializePrefs(S) is saved locally, since S never held it in memory at
+  // all. rememberUnknownPrefsKeys() keeps it in storage/prefs.js's own
+  // cache so serializePrefs() keeps echoing it back verbatim, both into
+  // this device's local meta/'prefs' store and into its own next uploaded
+  // doc, until a build that does understand it changes it for real.
+  rememberUnknownPrefsKeys(rawPrefs);
   const parsed = parsePrefs(rawPrefs || {});
   // only the plain data fields that have no dedicated UI side effect of
   // their own are adopted here — applying every one of applyPrefs()'s UI
@@ -718,7 +765,10 @@ export function reconcileImportedTrack(t){
 function buildRestoreSummary(merged, ownLocal){
   const totalPlays = Object.values(merged.totals.counters.trackPlayCounts).reduce((a,b) => a+b, 0);
   const metals = Object.keys(merged.totals.achievements).length;
-  const playlists = (merged.lastWrite.playlists || []).length;
+  // RF17: playlists no longer has one lastWrite value — defs' own key
+  // count is the same "how many playlists does the merged account have"
+  // number this summary always meant.
+  const playlists = Object.keys(merged.itemWrites.playlistDefs || {}).length;
   const ownTracks = Object.values(ownLocal.trackPlayCounts || {}).reduce((a,b) => a+b, 0);
   return { totalPlays, newPlays: Math.max(0, totalPlays - ownTracks), metals, playlists };
 }
@@ -749,6 +799,11 @@ async function pullAndMergeBackup(){
     await meta.put('backupSeq', S.backupSeq);
   }
   const merged = fromDocs(ownLocal, remoteRows);
+  // RF17: surfaced on the Account screen ("Another device has a newer
+  // Miziki.") rather than acted on — this build simply leaves that row
+  // out of the merge (fromDocs' own comment) rather than guessing at a
+  // shape it doesn't understand yet.
+  setStatus({ newerVersionSeen: !!merged.newerVersionSeen });
   const firstTime = S.backupRestoredFor !== uid;
   await applyMerged(merged, ownLocal, client, uid);
   if(firstTime){

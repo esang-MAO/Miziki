@@ -39,7 +39,7 @@ export function resolveLook(t){
 
 function setLookPref(albumId, look){
   S.albumLookPref[albumId] = look;
-  persistAlbumLookPref();
+  persistAlbumLookPref(albumId);
   const t = current();
   if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
 }

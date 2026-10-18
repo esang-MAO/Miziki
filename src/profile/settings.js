@@ -242,6 +242,12 @@ function socialSyncStatusLine(status){
 // crate sync specifically, not a privacy control.
 function accountBackupStatusLine(){
   const st = getBackupStatus();
+  // RF17 (docs/12_REFINE.md, point 4): a remote row this build's own
+  // SCHEMA_VERSION doesn't understand yet is left out of the merge
+  // entirely (src/sync/backup-doc.js's fromDocs()), not guessed at — this
+  // is the one thing the user can actually do something about (update
+  // this device), so it's surfaced ahead of the ordinary sync status.
+  if(st.newerVersionSeen) return 'Another device has a newer Miziki.';
   if(st.waiting) return 'Backed up · syncing…';
   if(st.lastSyncedAt) return 'Backed up · ' + timeAgoShort(Date.now() - st.lastSyncedAt) + ' ago';
   return 'Waiting for connection.';
