@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, toneWordAt, skyPaletteNameAt, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
+import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, toneWordAt, skyPaletteNameAt, skyRingStops, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
 
 // src/sundown/arc.js has no DOM/`S`-mutating top level (same precedent as
 // day.test.js/solar.test.js) — no mocking needed.
@@ -247,6 +247,48 @@ test('skyPaletteNameAt: matches §4.2\'s own four palette names, INDIGO covering
   assert.equal(skyPaletteNameAt(new Date(SUN.dusk.getTime() + 3600000), SUN, s), 'INDIGO');
   const preDawn = new Date(SUN.rise.getTime() - RECOVERY_WINDOW_MS / 2);
   assert.equal(skyPaletteNameAt(preDawn, SUN, s), 'INDIGO');
+});
+
+// RF14 (docs/12_REFINE.md, point 3): the ring's own stops now come
+// straight from docs/design/refine/README.md's seven phase anchor colors,
+// "at the clock angles of today's events," in place of the eight hand-
+// picked EMBER/INDIGO/ROSE/AZURE-family hexes the old ring used.
+const minutesOfDay = date => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+
+test('skyRingStops: empty with no usable sun data (polar/no location)', () => {
+  assert.deepEqual(skyRingStops(null), []);
+  assert.deepEqual(skyRingStops({ rise: SUN.rise }), [], 'partial sun object is also treated as no data');
+});
+
+test('skyRingStops: sorted ascending by minute-of-day, closing the ring from 0 to 1440', () => {
+  const stops = skyRingStops(SUN);
+  assert.ok(stops.length > 0);
+  for(let i = 1; i < stops.length; i++) assert.ok(stops[i].min >= stops[i - 1].min);
+  assert.equal(stops[0].min, 0);
+  assert.equal(stops[stops.length - 1].min, 1440);
+});
+
+test('skyRingStops: each named anchor holds flat across its own real span, at the design doc\'s own hex', () => {
+  const stops = skyRingStops(SUN);
+  const colorAt = min => {
+    // conic-gradient semantics: the color in effect just past a stop is
+    // whichever one of a same-position pair comes *second* in list order
+    // (see this function's own header comment on why the stops are
+    // pushed chronologically) — so for a real midpoint between two
+    // stops, nearest-below is exactly what's painted there.
+    let color = stops[0].color;
+    for(const s of stops) if(s.min <= min) color = s.color; else break;
+    return color;
+  };
+  const mid = (a, b) => (a + b) / 2;
+  const dawnMin = minutesOfDay(SUN.dawn), riseMin = minutesOfDay(SUN.rise);
+  const noonMin = minutesOfDay(SUN.noon), setMin = minutesOfDay(SUN.set), duskMin = minutesOfDay(SUN.dusk);
+  assert.equal(colorAt(mid(dawnMin, riseMin)), '#CFA0AD', 'dawn');
+  assert.equal(colorAt(noonMin), '#D8D3C9', 'midday (solar noon always falls inside the midday span)');
+  assert.equal(colorAt(mid(setMin - 30, setMin)), '#E8B67A', 'golden hour, just before sunset');
+  assert.equal(colorAt(mid(setMin, duskMin)), '#D99A5A', 'twilight');
+  assert.equal(colorAt(mid(duskMin, 1440)), '#8578AE', 'the dead of night, well past dusk');
+  assert.equal(colorAt(mid(0, dawnMin)), '#8578AE', 'the pre-dawn tail, also night');
 });
 
 test('effectiveCharAt: never mutates the userChar object passed in', () => {

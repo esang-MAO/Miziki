@@ -15,6 +15,8 @@ let last = performance.now();
 // skip the setProperty call (and the repaint it forces) when nothing's
 // changed since the previous tick.
 let lastSky1 = null, lastSky2 = null;
+// RF14: the same "only write when changed" guard, for --muted/--muted-2.
+let lastMuted = null, lastMuted2 = null;
 // The playback clock: position, played-range tracking (which feeds the 95% rule,
 // sessions and metals) and Sundown's rate. Split out of frame() so it can also run
 // while the page is hidden — the browser stops calling frame() then, but audio can
@@ -188,11 +190,23 @@ export function drawSun(){
   // 00-base.css) — skip the writes entirely once the strings match what
   // was last written, the same "don't touch the DOM for a no-op" shape
   // every other guarded id in this function already uses.
-  const [sky1, sky2] = skyGradientStops(dayPos, effectiveTheme());
+  const theme = effectiveTheme();
+  const [sky1, sky2] = skyGradientStops(dayPos, theme);
   if(sky1 !== lastSky1 || sky2 !== lastSky2){
     lastSky1 = sky1; lastSky2 = sky2;
     document.documentElement.style.setProperty('--sky1', sky1);
     document.documentElement.style.setProperty('--sky2', sky2);
+  }
+
+  // RF14 (docs/12_REFINE.md, point 1): --muted/--muted-2 follow the sky the
+  // same "write an inline style, skip when nothing's changed" way --sky1/
+  // --sky2 just did above -- see mutedGradientStops()'s own header comment
+  // for the warm/cool rule.
+  const [muted, muted2] = mutedGradientStops(dayPos, theme);
+  if(muted !== lastMuted || muted2 !== lastMuted2){
+    lastMuted = muted; lastMuted2 = muted2;
+    document.documentElement.style.setProperty('--muted', muted);
+    document.documentElement.style.setProperty('--muted-2', muted2);
   }
 
   // DA3's own phase block: a big phase name ("Twilight") plus a muted
@@ -369,8 +383,16 @@ const SKY_ANCHORS = {
     morning:   [[28,56,67],[15,31,39]],
     midday:    [[29,47,56],[16,26,32]],
     afternoon: [[35,53,60],[17,25,30]],
-    golden:    [[61,42,31],[26,19,16]],
-    twilight:  [[59,33,48],[26,16,24]],
+    // RF14 (docs/12_REFINE.md, point 2): Golden's and Twilight's own sky1
+    // (the brighter of each pair) cooled slightly toward neutral, at the
+    // same lightness, so amber (--accent) stays the single most saturated
+    // thing on screen instead of competing with these two warm anchors —
+    // docs/design/refine/README.md's own "Sky anchors that change" table:
+    // Golden #3D2A1F -> #352A24 (saturation 0.33 -> 0.19), Twilight
+    // #3B2130 -> #33232E (0.28 -> 0.19). sky2 (the darker stop) is
+    // unchanged for both, per that same table.
+    golden:    [[53,42,36],[26,19,16]],
+    twilight:  [[51,35,46],[26,16,24]],
     dusk:      [[30,24,40],[13,11,19]],
   },
   light: {
@@ -390,21 +412,59 @@ const mixRGB = (a,b,k) => a.map((v,i) => Math.round(v + (b[i]-v)*k));
 const mixPair = (a,b,k) => [mixRGB(a[0],b[0],k), mixRGB(a[1],b[1],k)];
 const toStops = pair => ['rgb('+pair[0].join(',')+')', 'rgb('+pair[1].join(',')+')'];
 
-export function skyGradientStops(dayPos, theme){
-  const T = SKY_ANCHORS[theme === 'light' ? 'light' : 'dark'];
-  if(!dayPos) return toStops(T.midday);
+// blendAnchors(anchors, dayPos) -- the same 8-anchor, phase/phaseProgress-
+// driven smoothstep blend skyGradientStops() has always used, pulled out
+// so RF14 (docs/12_REFINE.md)'s --muted/--muted-2 blend (mutedGradientStops()
+// below) can reuse the exact same phase arithmetic instead of duplicating
+// this switch a second time -- both are "two colors per anchor, blended
+// the same way the sky already is," just a different anchor table.
+function blendAnchors(anchors, dayPos){
+  if(!dayPos) return toStops(anchors.midday);
   const p = clamp(dayPos.phaseProgress || 0, 0, 1);
   switch(dayPos.phase){
-    case 'dawn': return toStops(mixPair(T.night, T.morning, smoothstep(p)));
-    case 'morning': return toStops(p < 0.5 ? T.morning : mixPair(T.morning, T.midday, smoothstep((p - 0.5) / 0.5)));
-    case 'midday': return toStops(T.midday);
-    case 'afternoon': return toStops(mixPair(T.midday, T.golden, smoothstep(p)));
-    case 'golden': return toStops(T.golden);
-    case 'twilight': return toStops(mixPair(T.golden, T.dusk, smoothstep(p)));
+    case 'dawn': return toStops(mixPair(anchors.night, anchors.morning, smoothstep(p)));
+    case 'morning': return toStops(p < 0.5 ? anchors.morning : mixPair(anchors.morning, anchors.midday, smoothstep((p - 0.5) / 0.5)));
+    case 'midday': return toStops(anchors.midday);
+    case 'afternoon': return toStops(mixPair(anchors.midday, anchors.golden, smoothstep(p)));
+    case 'golden': return toStops(anchors.golden);
+    case 'twilight': return toStops(mixPair(anchors.golden, anchors.dusk, smoothstep(p)));
     case 'night': {
       const ramp = clamp(dayPos.duskRampProgress != null ? dayPos.duskRampProgress : 1, 0, 1);
-      return toStops(mixPair(T.dusk, T.night, smoothstep(ramp)));
+      return toStops(mixPair(anchors.dusk, anchors.night, smoothstep(ramp)));
     }
-    default: return toStops(T.midday);
+    default: return toStops(anchors.midday);
   }
+}
+
+export function skyGradientStops(dayPos, theme){
+  return blendAnchors(SKY_ANCHORS[theme === 'light' ? 'light' : 'dark'], dayPos);
+}
+
+// RF14 (docs/12_REFINE.md, point 1): "muted follows the sky" -- --muted/
+// --muted-2 (tertiary text, new) shift warm during Golden and Twilight and
+// cool everywhere else, smoothstep-blended across phase boundaries the
+// same way --sky1/--sky2 already are. docs/design/refine/README.md's own
+// "Colour" section gives the literal cool/warm pairs (measured to clear
+// 4.5:1/3:1 against every anchor already) -- dusk has no third, separate
+// pair of its own (unlike the sky's 8-anchor table, whose Dusk anchor is a
+// real interior waypoint): the rule is a flat warm/cool split by phase, so
+// Dusk takes the cool pair like every other non-Golden/Twilight anchor,
+// and Night's own dusk-ramp (duskRampProgress) blends from that cool Dusk
+// value toward the (also cool) Night value -- effectively flat, since both
+// ends of that ramp are the same pair.
+const MUTED_COOL = [[148,160,166],[122,134,140]];   // --muted #94A0A6 / --muted-2 #7A868C
+const MUTED_WARM = [[169,156,143],[133,122,112]];   // --muted #A99C8F / --muted-2 #857A70
+const MUTED_ANCHORS_DARK = {
+  night: MUTED_COOL, dawn: MUTED_COOL, morning: MUTED_COOL, midday: MUTED_COOL,
+  afternoon: MUTED_COOL, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_COOL,
+};
+// Light "keeps one pair" (the design README's own wording) -- #4F616A/
+// #6E7A80 already clear 4.5:1/3:1 against every light sky anchor,
+// including the warmest one (Golden), so there's no contrast reason for a
+// light-theme warm/cool split, and the design simply doesn't call for one.
+const MUTED_LIGHT = toStops([[79,97,106],[110,122,128]]); // --muted #4F616A / --muted-2 #6E7A80
+
+export function mutedGradientStops(dayPos, theme){
+  if(theme === 'light') return MUTED_LIGHT;
+  return blendAnchors(MUTED_ANCHORS_DARK, dayPos);
 }
