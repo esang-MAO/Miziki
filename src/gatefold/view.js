@@ -274,8 +274,15 @@ function gatefoldPlayTrack(trackIdx, i){
   const startRect = $('#gfSleeveDiscWrap').getBoundingClientRect();
   setQueue(trackIdx, trackIdx.indexOf(i), false);
   if(REDUCED){
-    // no flight — the player opens with the record already seated, then audio
-    forceCloseLayer('gatefold');
+    // no flight — the player opens with the record already seated, then audio.
+    // {skipHistory:true}: forceCloseLayer's own history.go() is asynchronous,
+    // and the openLayer('player', ...) call right below (inside
+    // openPlayerViaSheet, when the player wasn't already open) pushes a new
+    // history entry in this same synchronous tick — without skipHistory, the
+    // still-pending go() would land on that new entry instead of the one it
+    // was meant for, and close the player we just opened (see nav-stack.js's
+    // own comment on finishClose() for the full race).
+    forceCloseLayer('gatefold', { skipHistory: true });
     if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
     else openPlayerViaSheet(current(), S.pendingShellInfo);
     return;
