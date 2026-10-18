@@ -58,6 +58,18 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
   namedExports: { applyTheme(){} },
 });
+// RF9 (docs/12_REFINE.md): applyPrefs()'s own restore-time sync for the
+// new "How deep the night goes"/Tone-today-visibility controls calls
+// src/sundown/dial-view.js's updateToneCurveVisibility() and
+// src/sundown/solar.js's depthKeyFor()/depthCaptionFor(). The latter two
+// are pure (no DOM, no window) so they're loaded for real; dial-view.js's
+// real module-top-level import of util/motion.js's REDUCED reads
+// window.matchMedia, which this file's own fake `document` doesn't
+// provide a `window` for at all -- mocked directly, same "stop the chain
+// at the door" reasoning as every import above.
+mock.module(new URL('../../src/sundown/dial-view.js', import.meta.url).href, {
+  namedExports: { updateToneCurveVisibility(){} },
+});
 globalThis.document = { querySelectorAll(){ return []; } };
 
 const { queueSave, restoreMeta } = await import('../../src/storage/meta.js');

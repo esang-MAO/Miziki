@@ -8,48 +8,50 @@
    itself lives in src/shell/routes.js, not here — see that module's own
    comment for why) and rewrote the preview slider from a sunset-window-
    relative formula to a direct 24h-from-now minute offset, matching the
-   mockup's own <input min="0" max="1440">. */
+   mockup's own <input min="0" max="1440">.
+
+   RF9 (docs/12_REFINE.md): the old Auto/Manual toggle, manual-rate
+   slider, full-night-rate seg and Window/Moment pacing row collapsed
+   onto one "How deep the night goes" control ([data-depth], four
+   buttons). Off is Auto off; Gentle/Medium/Deep set Auto on and S.target
+   to one of the three values the old seg already offered. S.manualRate
+   and S.pace are untouched here -- a saved non-default value for either
+   (there's no UI left to set manualRate away from 1, but an old save
+   might still carry one; Moment pacing still can) keeps applying with no
+   visible control, per that doc's own "no pref is deleted" rule. The
+   duplicate "Character now" shortcut link into Sound is gone too --
+   the Day/Sound tabs above are the one way there now. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { selectSundownView, lastSundownView } from '../shell/routes.js';
 import { wireDialGesture } from '../sundown/dial-gesture.js';
+import { DEPTH_TARGETS, depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+
+function paintDepth(){
+  const key = depthKeyFor(S.auto, S.target);
+  document.querySelectorAll('[data-depth]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.depth === key)));
+  const desc = $('#depthDesc');
+  if(desc) desc.textContent = depthCaptionFor(key, S.target);
+}
 
 export function wireSundown(){
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
     b.addEventListener('click', () => selectSundownView(b.dataset.sundownView)));
-  $('#dayDriftLink').addEventListener('click', () => selectSundownView('sound'));
   // restores whichever view this device last had open (default Day) —
   // the one-time call belongs here, not in selectSundownView() itself,
   // since every later call is a real user action, not a boot-time restore.
   selectSundownView(lastSundownView());
 
-  $('#autoOn').addEventListener('click', ()=>{
-    S.auto = true; $('#autoOn').setAttribute('aria-pressed','true'); $('#autoOff').setAttribute('aria-pressed','false');
-    $('#manualRow').style.display = 'none';
-    $('#autoDesc').textContent = 'The platter eases down across twilight.';
-  });
-  $('#autoOff').addEventListener('click', ()=>{
-    S.auto = false; $('#autoOn').setAttribute('aria-pressed','false'); $('#autoOff').setAttribute('aria-pressed','true');
-    $('#manualRow').style.display = 'block';
-    $('#autoDesc').textContent = 'You are driving the platter yourself.';
-  });
-  $('#manual').addEventListener('input', e=>{
-    S.manualRate = e.target.value/1000;
-    $('#manualOut').textContent = S.manualRate.toFixed(3) + '×';
-  });
-
-  document.querySelectorAll('[data-target]').forEach(b => b.addEventListener('click', ()=>{
-    S.target = parseFloat(b.dataset.target); queueSave();
-    document.querySelectorAll('[data-target]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  document.querySelectorAll('[data-depth]').forEach(b => b.addEventListener('click', ()=>{
+    const key = b.dataset.depth;
+    if(key === 'off') S.auto = false;
+    else { S.auto = true; S.target = DEPTH_TARGETS[key]; }
+    queueSave();
+    paintDepth();
   }));
-  document.querySelectorAll('[data-pace]').forEach(b => b.addEventListener('click', ()=>{
-    S.pace = b.dataset.pace; queueSave();
-    document.querySelectorAll('[data-pace]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    $('#pacingDesc').textContent = S.pace === 'window'
-      ? 'Spread across the whole twilight window.'
-      : 'Held back, then a felt drop near the end.';
-  }));
+  paintDepth();
 
   // "Preview the day" lives only on the dial now (dial-gesture.js): drag
   // or arrow-key it to write S.previewMin through the one shared

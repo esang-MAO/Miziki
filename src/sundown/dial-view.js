@@ -62,10 +62,13 @@ function verticalGradient(stops) {
   return 'linear-gradient(180deg, ' + stops.map((c, i) => c + ' ' + pct[i] + '%').join(', ') + ')';
 }
 
-// PR 6: the Sound view carries its own copy of this same crossfade
-// (#sdSkySoundA/B, miziki.html) — factored to take the layer-id prefix
-// and its own module-private front/lastPhase pair (via `state`, below)
-// rather than duplicating this whole function a second time.
+// PR 6 gave the Sound view its own copy of this same crossfade
+// (#sdSkySoundA/B) — RF9 (docs/12_REFINE.md) removed that view's own dial
+// and sky background outright (Day has the one dial now), leaving a
+// single caller below; kept parameterized by layer-id prefix and its own
+// module-private front/lastPhase pair (via `state`, below) regardless,
+// since that's what made the two independent in the first place and
+// costs nothing with one caller.
 function makeSkyUpdater(idPrefix) {
   const state = { front: 'A', lastPhase: null };
   return function updateSkyBackground(skyPhase, stops) {
@@ -95,7 +98,6 @@ function makeSkyUpdater(idPrefix) {
   };
 }
 const updateSkyBackground = makeSkyUpdater('sdSky');
-const updateSoundSkyBackground = makeSkyUpdater('sdSkySound');
 
 function conicGradientFromRingStops(stops) {
   if (!stops || !stops.length) return null;
@@ -133,18 +135,11 @@ function paintDayView(dial, st) {
   if (sunriseEl) sunriseEl.textContent = 'SUNRISE ' + st.sunriseLabel;
   if (sunsetEl) sunsetEl.textContent = 'SUNSET ' + st.sunsetLabel;
   if (nextEl) nextEl.textContent = st.nextEvent ? st.nextEvent.label + ' ' + st.nextEvent.text : '—';
-
-  const platterEl = $('#sdCardPlatter'), platterSub = $('#sdCardPlatterSub');
-  if (platterEl) platterEl.textContent = st.platterPct + '%';
-  if (platterSub) platterSub.textContent = st.trend;
-
-  const soundEl = $('#sdCardSound'), soundSub = $('#sdCardSoundSub');
-  if (soundEl) soundEl.textContent = st.tone;
-  if (soundSub) soundSub.textContent = 'Vinyl · ' + (S.charDrift === 'full' ? 'Full' : S.charDrift === 'off' ? 'Off' : 'Subtle');
-
-  const skyEl = $('#sdCardSky'), skySub = $('#sdCardSkySub');
-  if (skyEl) skyEl.textContent = st.paletteName;
-  if (skySub) skySub.textContent = st.paletteName.toLowerCase() + ' palette';
+  // RF9 (docs/12_REFINE.md): the three reading cards (Platter/Sound/Sky)
+  // this function used to paint here are gone -- the dial above is
+  // already the one preview. st.platterPct/trend/paletteName stay on
+  // dialStateAt()'s own return (dial.js, still covered by dial.test.js)
+  // even though nothing paints them any more -- "cut is UI only."
 }
 
 const CARD_ID = { wow: 'sdCharWow', sat: 'sdCharSat', soft: 'sdCharSoft', comp: 'sdCharComp' };
@@ -194,49 +189,39 @@ function paintToneCurve(now, st) {
   if (word) word.textContent = st.tone;
 }
 
-function paintSoundView(dial, st, now) {
-  const ring = $('#soundDialRing');
-  if (ring) ring.style.background = conicGradientFromRingStops(st.ringStops) || '';
-
-  updateSoundSkyBackground(st.skyPhase, st.skyStops);
-
-  const tone = $('#soundDialTone'), time = $('#soundDialTime');
-  if (tone) tone.textContent = st.tone;
-  if (time) time.textContent = st.timeBig + ' ' + st.timeAmPm;
-
-  dial.setAttribute('aria-valuenow', String(st.ariaValueNow));
-  dial.setAttribute('aria-valuetext', st.ariaValueText);
-
-  paintMarker($('#soundDialMarker'), dial, st.markerAngleDeg);
-  paintMarker($('#soundDialSunriseTick'), dial, st.sunriseAngleDeg);
-  paintMarker($('#soundDialSunsetTick'), dial, st.sunsetAngleDeg);
-
-  paintCharCards(now);
-  paintToneCurve(now, st);
+// RF9 (docs/12_REFINE.md): "the 'Tone today' chart shows only when drift
+// isn't Off" -- a plain display toggle tied to S.charDrift, not a repaint,
+// so it's called once at boot (wireCharacter()) and again on every drift
+// click/restore (wireCharacter()'s own handler, storage/meta.js's
+// applyPrefs()) rather than from the per-tick renderDialView() below,
+// which has nothing to do with drift intensity.
+export function updateToneCurveVisibility(){
+  const wrap = $('#sdToneCurveWrap');
+  if(wrap) wrap.style.display = S.charDrift === 'off' ? 'none' : '';
 }
 
-// renderDialView() — null-guarded per dial the same way every other
-// optional id in drawSun() already is, since #dayDial/#soundDial only
-// exist in the Sundown route's own markup, not in every test harness
-// that loads player/clock.js. Computes dialStateAt() exactly once per
-// call (both views are painting the same instant) even when only one of
-// the two dials is actually in the DOM.
+// renderDialView() — null-guarded on #dayDial the same way every other
+// optional id in drawSun() already is, since the Sundown route's own
+// markup (and this dial with it) isn't in every test harness that loads
+// player/clock.js. RF9 (docs/12_REFINE.md) removed the Sound view's own
+// second dial — paintCharCards()/paintToneCurve() paint unconditionally
+// now (both already null-guard on their own ids) rather than behind that
+// dial's own existence, since neither one is dial-dependent.
 export function renderDialView() {
-  const dayDial = $('#dayDial'), soundDial = $('#soundDial');
-  if (!dayDial && !soundDial) return;
+  const dayDial = $('#dayDial');
+  if (!dayDial) return;
 
   const settings = { mode: S.mode, auto: S.auto, target: S.target, paceMode: S.pace };
   const now = nowClock();
   const st = dialStateAt(now, S.sun, settings);
 
-  if (dayDial) paintDayView(dayDial, st);
-  if (soundDial) paintSoundView(soundDial, st, now);
+  paintDayView(dayDial, st);
+  paintCharCards(now);
+  paintToneCurve(now, st);
 
-  // Both views' own NOW buttons share one amber-when-previewing rule
-  // (§4.3/§4.4) — by id rather than `.sd-now-btn` querySelectorAll, since
-  // $() (util/dom.js) is the one DOM entry point every test harness in
-  // this suite already stubs.
-  const dayNowBtn = $('#sdNowBtn'), soundNowBtn = $('#sdNowBtnSound');
+  // §4.3/§4.4's own amber-when-previewing rule for the NOW button — by id
+  // rather than `.sd-now-btn` querySelectorAll, since $() (util/dom.js) is
+  // the one DOM entry point every test harness in this suite already stubs.
+  const dayNowBtn = $('#sdNowBtn');
   if (dayNowBtn) dayNowBtn.classList.toggle('previewing', S.previewMin !== 0);
-  if (soundNowBtn) soundNowBtn.classList.toggle('previewing', S.previewMin !== 0);
 }

@@ -345,23 +345,11 @@
         <span id="sdSunset">SUNSET —</span>
       </div>
 
-      <div class="sd-cards">
-        <div class="sd-card">
-          <p class="sd-card-label">Platter</p>
-          <b id="sdCardPlatter">—</b>
-          <span id="sdCardPlatterSub">—</span>
-        </div>
-        <div class="sd-card">
-          <p class="sd-card-label">Sound</p>
-          <b id="sdCardSound">—</b>
-          <span id="sdCardSoundSub">—</span>
-        </div>
-        <div class="sd-card">
-          <p class="sd-card-label">Sky</p>
-          <b id="sdCardSky">—</b>
-          <span id="sdCardSkySub">—</span>
-        </div>
-      </div>
+      <!-- RF9 (docs/12_REFINE.md): the three reading cards (Platter/Sound/
+           Sky, PR 4) are gone outright -- the dial above is already the
+           one preview; a second set of numbers under it just repeated
+           what it already shows. dial-view.js's paintDayView() dropped
+           the matching writes. -->
 
       <!-- §4.2 item 4 (PR 5): the hint row + NOW button. src/sundown/
            dial-gesture.js wires the button (resetPreview()) and toggles
@@ -406,51 +394,26 @@
         </div>
       </div>
 
+      <!-- RF9 (docs/12_REFINE.md): one choice, not four rows -- Auto/
+           Manual, the manual-rate slider, the full-night-rate seg and the
+           Window/Moment pacing row all collapse onto this single segmented
+           control. Off is Auto off (S.auto=false; whatever S.manualRate
+           was already saved -- 1.0 for everyone new -- plays silently,
+           with no slider to see or change it); Gentle/Medium/Deep set
+           S.auto=true and S.target to 0.85/0.80/0.75, the exact three
+           values the old "Full-night rate" seg already offered. Saved
+           pacing (S.pace) other than the default 'window' keeps applying
+           with no visible control -- src/wiring/sundown.js's own handler
+           never touches S.pace at all now. -->
       <h3 class="sd-heading">Sundown</h3>
       <div class="row">
-        <div class="k">Platter speed<em id="autoDesc">The platter eases down across twilight.</em></div>
-        <div class="seg">
-          <button id="autoOn" aria-pressed="true">Auto</button>
-          <button id="autoOff" aria-pressed="false">Manual</button>
+        <div class="k">How deep the night goes<em id="depthDesc">Medium — 0.80× · 3.9 st</em></div>
+        <div class="seg sd-depth-seg" role="group" aria-label="How deep the night goes">
+          <button data-depth="off" aria-pressed="false">Off</button>
+          <button data-depth="gentle" aria-pressed="false">Gentle</button>
+          <button data-depth="medium" aria-pressed="true">Medium</button>
+          <button data-depth="deep" aria-pressed="false">Deep</button>
         </div>
-      </div>
-
-      <div class="slider-row" id="manualRow" style="display:none">
-        <div class="slider-head"><span>Manual rate</span><b id="manualOut">1.000×</b></div>
-        <input id="manual" type="range" min="700" max="1000" value="1000" aria-label="Manual rate">
-      </div>
-
-      <div class="row">
-        <div class="k">Full-night rate<em>How far down the platter settles</em></div>
-        <div class="seg">
-          <button data-target="0.85" aria-pressed="false">0.85 · 2.8 st</button>
-          <button data-target="0.80" aria-pressed="true">0.80 · 3.9 st</button>
-          <button data-target="0.75" aria-pressed="false">0.75 · 5.0 st</button>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="k">Pacing<em id="pacingDesc">Spread across the whole twilight window.</em></div>
-        <div class="seg">
-          <button data-pace="window" aria-pressed="true">Window</button>
-          <button data-pace="moment" aria-pressed="false">Moment</button>
-        </div>
-      </div>
-
-      <h3 class="sd-heading">Sunrise</h3>
-      <div class="row">
-        <div class="k">Rise at dawn<em>The platter eases back up to full speed across dawn, using the same pacing above.</em></div>
-        <div class="readout" id="sunriseNext">—</div>
-      </div>
-
-      <!-- the Day-drift shortcut row: a one-line summary of what Sound's
-           own Day-drift control is doing right now (src/sundown/drift.js's
-           driftSummaryText(), mirrored here the same "reuse, don't
-           recompute" way drawSun() already treats everything else it
-           writes), with a button into Sound for the actual control. -->
-      <div class="row">
-        <div class="k">Character now<em id="dayDriftSummary">Off — your own settings, no drift today.</em></div>
-        <button type="button" class="cta ghost" id="dayDriftLink">Sound ›</button>
       </div>
 
       <p class="note" id="locNote"></p>
@@ -458,45 +421,17 @@
 
     <!-- SOUND (was the Character route) -->
     <div id="sundownSoundView" style="display:none">
-      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4.3), PR 6: the Sound view's own
-           dial + hint row + Vinyl-drift segmented control + four
-           character cards + Tone today curve. src/sundown/dial-view.js's
-           renderDialView() paints all of it, driven by the same
-           dialStateAt()/soundCardsAt()/toneCurveSamples() (src/sundown/
-           dial.js) the Day view already uses for its own dial — the drag
-           gesture (src/sundown/dial-gesture.js) is wired to this dial too,
-           sharing one S.previewMin with the Day view's own (§4.4: "a
-           single previewMinute state, shared by Day and Sound"). -->
-      <div class="sd-sky-bg sd-sky-bg-sound" id="sdSkyBgSound" aria-hidden="true">
-        <div class="sd-sky-layer" id="sdSkySoundA"></div>
-        <div class="sd-sky-layer" id="sdSkySoundB"></div>
-      </div>
-
-      <div class="day-dial-wrap sound-dial-wrap">
-        <div class="day-dial sound-dial" id="soundDial" role="slider" tabindex="0" aria-label="Preview the day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0" aria-valuetext="Live">
-          <div class="day-dial-ring" id="soundDialRing" aria-hidden="true"></div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-bottom" aria-hidden="true">12A</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-left" aria-hidden="true">6A</div>
-          <div class="day-dial-tick" id="soundDialSunriseTick" aria-hidden="true"></div>
-          <div class="day-dial-tick" id="soundDialSunsetTick" aria-hidden="true"></div>
-          <div class="day-dial-marker" id="soundDialMarker" aria-hidden="true"></div>
-          <div class="day-dial-disc" aria-hidden="true">
-            <div class="day-dial-label sound-dial-label">
-              <span class="sound-dial-tone-caption">TONE</span>
-              <b id="soundDialTone">—</b>
-              <span id="soundDialTime">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="sd-hint-row">
-        <span class="sd-hint-icon" aria-hidden="true">↻</span>
-        <span class="sd-hint-text">Spin the record to hear any hour</span>
-        <button type="button" class="sd-now-btn" id="sdNowBtnSound">NOW</button>
-      </div>
+      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4.3), PR 6: the Vinyl-drift
+           segmented control + four character cards + Tone today curve.
+           src/sundown/dial-view.js's renderDialView() paints the cards
+           and curve, driven by the same soundCardsAt()/toneCurveSamples()
+           (src/sundown/dial.js) the Day view's own dial uses. -->
+      <!-- RF9 (docs/12_REFINE.md): the second preview dial is gone --
+           Day already has the dial, and previewing any hour from here
+           too just duplicated that one control under a different face.
+           dial-view.js dropped the matching paint function, and the
+           ambient sky crossfade that only ever painted behind this dial
+           went with it. -->
 
       <p class="sd-section-label">Vinyl drift through the day</p>
       <div class="seg sd-drift-seg" role="group" aria-label="Vinyl drift level">
@@ -505,52 +440,60 @@
         <button data-char-drift="full" aria-pressed="false">Full</button>
       </div>
 
-      <!-- Each card doubles as a disclosure: tapping it reveals a fine-tune
-           slider for that one parameter directly underneath, inside this
-           same grid (wireCharacter(), src/wiring/character.js). Presets
-           stay the fast path; this is for when a preset is close but not
-           quite right. A row's own value overrides whatever a preset last
-           set, same as it always did before the sliders were removed. -->
-      <div class="sd-charcards">
-        <button class="sd-charcard" type="button" data-char-tune="wow" aria-expanded="false" aria-controls="sdCharWowFine">
-          <p class="sd-charcard-label">Wow &amp; flutter</p>
-          <b id="sdCharWowWord">—</b>
-          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharWowFill"></i><i id="sdCharWowTick"></i></div>
-        </button>
-        <div class="sd-charcard-fine" id="sdCharWowFine" data-char-fine="wow" hidden>
-          <input type="range" min="0" max="100" value="30" id="charFineWow" aria-label="Wow and flutter, fine-tune">
-          <span id="charFineWowOut">30%</span>
-        </div>
-        <button class="sd-charcard" type="button" data-char-tune="sat" aria-expanded="false" aria-controls="sdCharSatFine">
-          <p class="sd-charcard-label">Saturation</p>
-          <b id="sdCharSatWord">—</b>
-          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSatFill"></i><i id="sdCharSatTick"></i></div>
-        </button>
-        <div class="sd-charcard-fine" id="sdCharSatFine" data-char-fine="sat" hidden>
-          <input type="range" min="0" max="100" value="35" id="charFineSat" aria-label="Saturation, fine-tune">
-          <span id="charFineSatOut">35%</span>
-        </div>
-        <button class="sd-charcard" type="button" data-char-tune="soft" aria-expanded="false" aria-controls="sdCharSoftFine">
-          <p class="sd-charcard-label">Top end</p>
-          <b id="sdCharSoftWord">—</b>
-          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSoftFill"></i><i id="sdCharSoftTick"></i></div>
-        </button>
-        <div class="sd-charcard-fine" id="sdCharSoftFine" data-char-fine="soft" hidden>
-          <input type="range" min="0" max="100" value="40" id="charFineSoft" aria-label="Top end, fine-tune">
-          <span id="charFineSoftOut">40%</span>
-        </div>
-        <button class="sd-charcard" type="button" data-char-tune="comp" aria-expanded="false" aria-controls="sdCharCompFine">
-          <p class="sd-charcard-label">Bus compression</p>
-          <b id="sdCharCompWord">—</b>
-          <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharCompFill"></i><i id="sdCharCompTick"></i></div>
-        </button>
-        <div class="sd-charcard-fine" id="sdCharCompFine" data-char-fine="comp" hidden>
-          <input type="range" min="0" max="100" value="35" id="charFineComp" aria-label="Bus compression, fine-tune">
-          <span id="charFineCompOut">35%</span>
+      <!-- RF9 (docs/12_REFINE.md): drift + the three presets below are the
+           main controls; the per-value cards and their own fine-tune
+           sliders move behind one shared "Advanced" disclosure instead of
+           sitting always-visible above the presets -- wireCharacter()
+           (src/wiring/character.js) wires #soundAdvancedToggle the same
+           hidden/aria-expanded shape it already uses for each card's own
+           [data-char-tune], just one level up. Nothing inside changes:
+           each card is still its own disclosure once Advanced is open. -->
+      <button type="button" class="cta ghost sd-advanced-toggle" id="soundAdvancedToggle" aria-expanded="false" aria-controls="soundAdvancedBody">Advanced ›</button>
+      <div id="soundAdvancedBody" hidden>
+        <div class="sd-charcards">
+          <button class="sd-charcard" type="button" data-char-tune="wow" aria-expanded="false" aria-controls="sdCharWowFine">
+            <p class="sd-charcard-label">Wow &amp; flutter</p>
+            <b id="sdCharWowWord">—</b>
+            <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharWowFill"></i><i id="sdCharWowTick"></i></div>
+          </button>
+          <div class="sd-charcard-fine" id="sdCharWowFine" data-char-fine="wow" hidden>
+            <input type="range" min="0" max="100" value="30" id="charFineWow" aria-label="Wow and flutter, fine-tune">
+            <span id="charFineWowOut">30%</span>
+          </div>
+          <button class="sd-charcard" type="button" data-char-tune="sat" aria-expanded="false" aria-controls="sdCharSatFine">
+            <p class="sd-charcard-label">Saturation</p>
+            <b id="sdCharSatWord">—</b>
+            <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSatFill"></i><i id="sdCharSatTick"></i></div>
+          </button>
+          <div class="sd-charcard-fine" id="sdCharSatFine" data-char-fine="sat" hidden>
+            <input type="range" min="0" max="100" value="35" id="charFineSat" aria-label="Saturation, fine-tune">
+            <span id="charFineSatOut">35%</span>
+          </div>
+          <button class="sd-charcard" type="button" data-char-tune="soft" aria-expanded="false" aria-controls="sdCharSoftFine">
+            <p class="sd-charcard-label">Top end</p>
+            <b id="sdCharSoftWord">—</b>
+            <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSoftFill"></i><i id="sdCharSoftTick"></i></div>
+          </button>
+          <div class="sd-charcard-fine" id="sdCharSoftFine" data-char-fine="soft" hidden>
+            <input type="range" min="0" max="100" value="40" id="charFineSoft" aria-label="Top end, fine-tune">
+            <span id="charFineSoftOut">40%</span>
+          </div>
+          <button class="sd-charcard" type="button" data-char-tune="comp" aria-expanded="false" aria-controls="sdCharCompFine">
+            <p class="sd-charcard-label">Bus compression</p>
+            <b id="sdCharCompWord">—</b>
+            <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharCompFill"></i><i id="sdCharCompTick"></i></div>
+          </button>
+          <div class="sd-charcard-fine" id="sdCharCompFine" data-char-fine="comp" hidden>
+            <input type="range" min="0" max="100" value="35" id="charFineComp" aria-label="Bus compression, fine-tune">
+            <span id="charFineCompOut">35%</span>
+          </div>
         </div>
       </div>
 
-      <div class="sd-tonecurve">
+      <!-- RF9: the chart only means anything once something is actually
+           drifting -- wireCharacter() shows/hides this by id alongside the
+           drift seg's own aria-pressed writes (updateToneCurveVisibility()). -->
+      <div class="sd-tonecurve" id="sdToneCurveWrap">
         <div class="sd-tonecurve-head">
           <span>Tone today</span>
           <span id="sdToneCurveWord">—</span>
@@ -575,7 +518,7 @@
       </div>
 
       <p class="sd-section-label">Starting point</p>
-      <p class="note" style="margin-top:0">Character runs only in Vinyl, in the order a record makes it: platter wobble, tube-ish saturation, a softer top end, then a gentle squeeze. Pure takes this chain out of the path entirely and always plays at full speed, so Sundown's rate change is Vinyl-only too. Pick a preset; Vinyl drift above moves it through the day.</p>
+      <p class="note" style="margin-top:0">Pick a preset; Vinyl drift above moves it through the day. <details class="sd-info"><summary aria-label="More about Character">(i)</summary>Character runs only in Vinyl, in the order a record makes it: platter wobble, tube-ish saturation, a softer top end, then a gentle squeeze. Pure takes this chain out of the path entirely and always plays at full speed, so Sundown's rate change is Vinyl-only too.</details></p>
 
       <div class="seg sd-preset-seg" role="group" aria-label="Character preset">
         <button data-preset="light" aria-pressed="false">Light dust</button>

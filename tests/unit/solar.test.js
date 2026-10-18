@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarEvent, computeRate } from '../../src/sundown/solar.js';
+import { solarEvent, computeRate, depthKeyFor, depthCaptionFor } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
 // Columbia, MD (39.20, -76.86). Published sunset for Jun 21, 2025 is 8:38 pm
@@ -57,4 +57,34 @@ test('computeRate: Vinyl with auto on still follows Sundown, unchanged', () => {
   // past dusk -> fully settled at the target rate
   S.sun = { lat: 39.20, lon: -76.86, ...pastDusk };
   assert.equal(computeRate(), 0.80);
+});
+
+// RF9 (docs/12_REFINE.md): "Sundown, set once" collapsed Auto/Manual, the
+// full-night-rate seg and Window/Moment pacing onto one "How deep the
+// night goes" choice (Off/Gentle/Medium/Deep) -- depthKeyFor()/
+// depthCaptionFor() are the pure mapping both src/wiring/sundown.js's
+// click handler and src/storage/meta.js's restore-time sync use.
+test('depthKeyFor: auto off is always Off, regardless of target', () => {
+  assert.equal(depthKeyFor(false, 0.80), 'off');
+  assert.equal(depthKeyFor(false, 0.75), 'off');
+});
+
+test('depthKeyFor: the three auto targets map back onto their own button', () => {
+  assert.equal(depthKeyFor(true, 0.85), 'gentle');
+  assert.equal(depthKeyFor(true, 0.80), 'medium');
+  assert.equal(depthKeyFor(true, 0.75), 'deep');
+});
+
+test('depthKeyFor: an unrecognized saved target falls back to Medium, not Off', () => {
+  assert.equal(depthKeyFor(true, 0.9), 'medium');
+});
+
+test('depthCaptionFor: Off names no rate at all', () => {
+  assert.match(depthCaptionFor('off', 0.80), /^Off/);
+});
+
+test('depthCaptionFor: each depth names its own rate and semitones', () => {
+  assert.equal(depthCaptionFor('gentle', 0.85), 'Gentle — 0.85× · 2.8 st');
+  assert.equal(depthCaptionFor('medium', 0.80), 'Medium — 0.80× · 3.9 st');
+  assert.equal(depthCaptionFor('deep', 0.75), 'Deep — 0.75× · 5.0 st');
 });
