@@ -11,7 +11,14 @@
    own "possible follow-ups" note, and Ken's own ask) re-added per-value
    fine-tuning, but tucked behind each Sound card instead of restoring
    the old always-on block — see the `[data-char-tune]`/`[data-char-fine]`
-   wiring below. */
+   wiring below.
+
+   RF9 (docs/12_REFINE.md): drift + the three presets are the Sound
+   view's main controls now -- the whole charcards grid (the four cards'
+   own per-value fine-tune included) moved behind one shared
+   #soundAdvancedToggle disclosure, and the "Tone today" chart
+   (updateToneCurveVisibility(), src/sundown/dial-view.js) only shows
+   once drift isn't Off. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { applyCharacter } from '../audio/engine.js';
@@ -22,6 +29,7 @@ import { toggleSleevePull } from '../sundown/location.js';
 import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
 import { toggleBgAudio, bgUpdateUI, resolveBgOffer } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
+import { updateToneCurveVisibility } from '../sundown/dial-view.js';
 
 export function wireCharacter(){
   const presets = {light:{wow:.12,sat:.18,soft:.22,comp:.2}, classic:{wow:.30,sat:.35,soft:.40,comp:.35}, worn:{wow:.62,sat:.6,soft:.68,comp:.55}};
@@ -97,7 +105,25 @@ export function wireCharacter(){
       x.setAttribute('aria-pressed', String(x.dataset.charDrift === S.charDrift)));
     applyCharacter(2);
     queueSave();
+    updateToneCurveVisibility();
   }));
+  // RF9: the chart's own initial visibility, same shape as bgUpdateUI()'s
+  // one-time call further down -- a restored S.charDrift (storage/meta.js)
+  // is already in place by the time wireCharacter() runs.
+  updateToneCurveVisibility();
+
+  // RF9: one disclosure in front of the whole charcards grid, same
+  // open/close shape as each card's own [data-char-tune] below, just one
+  // level up and with nothing to seed on open (each card seeds its own
+  // fine-tune value when *it's* opened).
+  const advancedToggle = $('#soundAdvancedToggle'), advancedBody = $('#soundAdvancedBody');
+  if(advancedToggle && advancedBody){
+    advancedToggle.addEventListener('click', () => {
+      const opening = advancedBody.hidden;
+      advancedBody.hidden = !opening;
+      advancedToggle.setAttribute('aria-expanded', String(opening));
+    });
+  }
 
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);

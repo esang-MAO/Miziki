@@ -75,13 +75,12 @@ export function resetPreview() {
   if (S.previewMin !== 0) setPreviewMinutes(0);
 }
 
-// PR 6 (DAY_ARC_BRIEF.md §4.3): the Sound view has its own, smaller dial
-// (#soundDial) driving the exact same shared S.previewMin — "a single
-// previewMinute state, shared by Day and Sound" (§4.4). Wiring every
-// `.day-dial` element in one pass, rather than repeating this whole
-// function body per dial, is what makes that sharing automatic: a drag
-// started on either one calls the same setPreviewMinutes(), which repaints
-// both (renderDialView() null-guards on whichever dial actually exists).
+// PR 6 (DAY_ARC_BRIEF.md §4.3) gave the Sound view its own, smaller dial
+// (#soundDial) driving the exact same shared S.previewMin; RF9
+// (docs/12_REFINE.md) removed that second dial outright (Day has the one
+// dial now), leaving `.day-dial`'s own querySelectorAll with a single
+// match -- kept as a selector rather than a fixed id regardless, the
+// same reasoning `.sd-now-btn` just below still has with one button left.
 export function wireDialGesture() {
   const dials = document.querySelectorAll('.day-dial');
   if (!dials.length) return;

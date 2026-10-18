@@ -5,6 +5,8 @@ import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
 import { applyCharacter } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
+import { depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+import { updateToneCurveVisibility } from '../sundown/dial-view.js';
 import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
 import { attachLaunchSettingRow } from '../launch/intro.js';
@@ -144,14 +146,28 @@ function applyPrefs(p){
   if(p.charDrift === 'off' || p.charDrift === 'subtle' || p.charDrift === 'full') S.charDrift = p.charDrift;
   document.querySelectorAll('[data-char-drift]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.charDrift === S.charDrift)));
+  // RF9 (docs/12_REFINE.md): the "Tone today" chart's own restore-time
+  // sync, alongside the drift seg's aria-pressed sync just above.
+  updateToneCurveVisibility();
   // CEREMONY §6: called unconditionally, like applyTheme() above, so the
   // default (felt) is applied too; fire-and-forget, it only touches the DOM
   if(typeof p.slipmatCustom === 'boolean') S.slipmatCustom = p.slipmatCustom;
   if(typeof p.slipmatWordmark === 'boolean') S.slipmatWordmark = p.slipmatWordmark;
   if(typeof p.slipmatDim === 'boolean') S.slipmatDim = p.slipmatDim;
   applySlipmat();
-  document.querySelectorAll('[data-target]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.target) === S.target)));
-  document.querySelectorAll('[data-pace]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pace === S.pace)));
+  // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
+  // one [data-depth] control -- this is the restore-time half of the
+  // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
+  // click handler already does, so a reload reflects a saved Off/Gentle/
+  // Medium/Deep choice. S.pace itself needs no sync call here any more --
+  // there's no [data-pace] control left to point its aria-pressed at.
+  {
+    const depthKey = depthKeyFor(S.auto, S.target);
+    document.querySelectorAll('[data-depth]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.depth === depthKey)));
+    const depthDesc = $('#depthDesc');
+    if(depthDesc) depthDesc.textContent = depthCaptionFor(depthKey, S.target);
+  }
   if(p.mode) setMode(p.mode);
   applyCharacter();
   applyVolume();

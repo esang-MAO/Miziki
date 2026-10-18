@@ -3,7 +3,6 @@ import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock } from '../sundown/solar.js';
-import { driftSummaryText } from '../sundown/drift.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
@@ -213,19 +212,11 @@ export function drawSun(){
 
   updateDayArc(dayPos);
 
-  // DA3's "Rise at dawn" row — the next sunrise time, same source as the
-  // arc's own Sunrise label.
-  const sunriseNext = $('#sunriseNext');
-  if(sunriseNext && S.sun.ok) sunriseNext.textContent = 'Next ' + S.sun.rise.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-
-  // DA3's Day-drift shortcut row ("Character now: a touch warmer
-  // (Subtle)") — reuses the exact intensity Sound's cards drift
-  // by (effectiveChar()'s own S.charDrift read, src/audio/engine.js),
-  // computed fresh every drawSun() tick alongside everything else here
-  // rather than on its own timer.
-  const driftSummary = $('#dayDriftSummary');
-  const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
-  if(driftSummary) driftSummary.textContent = driftSummaryText(dayPos, intensity);
+  // RF9 (docs/12_REFINE.md) removed DA3's own "Rise at dawn" row (#sunriseNext
+  // -- the dial's own event row already carries the next sunrise time) and
+  // the Day-drift shortcut row (#dayDriftSummary -- the Day/Sound tabs are
+  // the one way into Sound now) outright, so this function no longer
+  // writes to either.
 
   // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the new dial + reading cards paint
   // off the exact same tick this whole function already runs on — see

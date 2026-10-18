@@ -114,20 +114,9 @@
 }
 .sd-event-row em{ color:var(--accent-text); font-style:normal; font-weight:600; }
 
-.sd-cards{
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:18px;
-}
-.sd-card{
-  padding:10px 10px 12px; border-radius:12px;
-  background:var(--panel); border:1px solid var(--line);
-  display:flex; flex-direction:column; gap:2px;
-}
-.sd-card-label{
-  margin:0; font-family:var(--data); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--muted);
-}
-.sd-card b{ font-family:var(--display); font-size:19px; color:var(--paper); line-height:1.1; }
-.sd-card span{ font-family:var(--data); font-size:10px; color:var(--muted); }
+/* RF9 (docs/12_REFINE.md) removed the three reading cards (Platter/Sound/
+   Sky, PR 4) that used to sit here outright -- the dial above is already
+   the one preview. */
 
 /* §4.2 item 4 (PR 5): the hint row + NOW button. */
 .sd-hint-row{
@@ -156,25 +145,11 @@
 /* ============== §4.3 (PR 6): the Sound view ============== */
 
 #sundownSoundView{ position:relative; }
-/* Sound's own screen-background crossfade (#sdSkySoundA/B) — the same
-   mechanics as the Day view's #sdSkyA/B (dial-view.js's makeSkyUpdater()),
-   just shorter, since Sound's content above the fold is shorter than
-   Day's (§3.5B names 600px/480px for the two views at the mockup's own
-   390x844 frame size; this app's own phone layout already departs from
-   those exact numbers for the Day view too — see that rule's own
-   comment). */
-.sd-sky-bg-sound{ height:360px; }
-
-.sound-dial-wrap{ margin-top:4px; }
-.sound-dial{ width:220px; height:220px; }
-.sound-dial-label{
-  width:46%; height:46%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
-}
-.sound-dial-tone-caption{
-  font-family:var(--data); font-size:9px; letter-spacing:.1em; color:var(--on-accent); opacity:.75;
-}
-.sound-dial-label b{ font-family:var(--display); font-size:19px; line-height:1.05; text-align:center; }
-.sound-dial-label span{ font-family:var(--data); font-size:9px; letter-spacing:.06em; }
+/* RF9 (docs/12_REFINE.md) removed this view's own second dial outright
+   (Day has the one dial now) -- its sky-background crossfade and the
+   dial-specific rules that used to sit here (.sound-dial-wrap/.sound-dial/
+   .sound-dial-label/.sound-dial-tone-caption, #sdSkySoundA/B's own
+   .sd-sky-bg-sound height) went with it. */
 
 .sd-section-label{
   margin:4px 0 6px;
@@ -213,6 +188,12 @@
 }
 .sd-drift-seg button[aria-pressed="true"],
 .sd-preset-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
+
+/* RF9 (docs/12_REFINE.md): one shared disclosure in front of the whole
+   charcards grid, instead of it sitting always-visible — the presets
+   below it stay the fast path; this is for the rare case a preset is
+   close but not quite right. */
+.sd-advanced-toggle{ margin-bottom:12px; }
 
 /* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
    current (drifted) value; presets below are how they're set. */
@@ -278,9 +259,17 @@
   display:flex; justify-content:space-between; font-family:var(--data); font-size:9.5px; color:var(--muted);
 }
 
-@media (min-width:1024px){
-  .sound-dial{ width:240px; height:240px; }
+/* RF9 (docs/12_REFINE.md): "one line per control... the long Character
+   paragraph becomes one sentence plus an (i)" — a native <details> needs
+   no new JS wiring and is keyboard/VoiceOver-operable for free; `summary`
+   is the one visible "(i)", `display:inline` keeps the whole thing
+   reading as part of the sentence above it rather than its own block. */
+.sd-info{ display:inline; }
+.sd-info summary{
+  display:inline; cursor:pointer; color:var(--accent-text); list-style:none;
 }
+.sd-info summary::-webkit-details-marker{ display:none; }
+.sd-info[open] summary{ margin-right:4px; }
 
 /* Home tab, brought in line with the other three: section heads use the
    same mono label + hairline as Settings/Library tools instead of the

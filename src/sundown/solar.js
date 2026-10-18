@@ -194,3 +194,35 @@ export function computeRate(){
   if(!S.auto) return S.manualRate;
   return rateAt(nowClock(), S.sun, { target: S.target, paceMode: S.pace });
 }
+
+/* RF9 (docs/12_REFINE.md): "Sundown, set once" collapsed Auto/Manual, the
+   full-night-rate seg and the Window/Moment pacing row onto one choice,
+   "How deep the night goes" (Off/Gentle/Medium/Deep). These two pure
+   helpers are the mapping both directions need — src/wiring/sundown.js's
+   click handler (S.auto/S.target -> the pressed button + its caption) and
+   src/storage/meta.js's own restore-time sync (so a reload reflects a
+   saved choice the same way the old [data-target]/[data-pace] sync used
+   to). computeRate() above is untouched -- this PR is UI only. */
+export const DEPTH_TARGETS = { gentle: 0.85, medium: 0.80, deep: 0.75 };
+const DEPTH_LABELS = { gentle: 'Gentle', medium: 'Medium', deep: 'Deep' };
+
+// Off is S.auto === false; among the three auto targets, a value within
+// half a hundredth of 0.85/0.75 is unambiguously Gentle/Deep (every write
+// this UI makes sets one of the three exactly) and anything else
+// (0.80, or an older saved value that doesn't match either edge) reads as
+// Medium — the existing default, and the safest fallback for a value this
+// control was never built to represent.
+export function depthKeyFor(auto, target){
+  if(!auto) return 'off';
+  if(Math.abs(target - DEPTH_TARGETS.gentle) < 0.005) return 'gentle';
+  if(Math.abs(target - DEPTH_TARGETS.deep) < 0.005) return 'deep';
+  return 'medium';
+}
+
+// "the caption names the current one in rate and semitones" (RF9) — the
+// same 12*log2(rate) formula player/clock.js's own #rateOut already uses.
+export function depthCaptionFor(key, target){
+  if(key === 'off') return 'Off — full speed, no change at night.';
+  const semis = Math.abs(12 * Math.log2(target)).toFixed(1);
+  return (DEPTH_LABELS[key] || 'Medium') + ' — ' + target.toFixed(2) + '× · ' + semis + ' st';
+}
