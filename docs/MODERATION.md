@@ -121,6 +121,32 @@ where user_id = '<user-id>' and release_id = '<release-id>';
 (Table Editor → `crate_items` → find the row by `user_id`/`release_id` →
 clear the `sleeve_note` cell works the same way.)
 
+### Rebuild someone's feed events
+
+The feed triggers (`crate_items_emit_events`/`crate_items_after_delete`,
+`supabase/migrations/001_schema.sql`/`005_backup.sql`/`009_feed_privacy.sql`)
+are what's supposed to keep `public.feed_events` in sync with a user's own
+crate/stats visibility — a private record should leave no trace there. If a
+future bug in one of those triggers ever lets a stale or wrongly-visible
+event sit in the feed (the shape of the bug `009_feed_privacy.sql` itself
+fixed — see its own header comment), there's a repair path that doesn't
+need a one-off manual cleanup: `public.rebuild_feed_events(p_user uuid)`
+deletes every `feed_events` row that account is the actor of and
+regenerates it from `crate_items`/`verified_stats` under today's visibility
+rules — exactly what the triggers would have written, had they always had
+today's fix.
+
+It only ever rebuilds the caller's own feed (`p_user = auth.uid()`; it
+raises otherwise), so from the SQL editor — not signed in as anyone — it
+can't be run on someone else's behalf. If you need to fix a specific
+user's feed as a moderator, run it from the **impersonation** feature in
+Supabase's Auth dashboard (sign in as that user, run the RPC in that
+session) or, if that isn't available, give the account the fix via its
+own UI (reinstating the correct visibility setting and letting the client
+re-sync triggers it naturally). For most reports, you won't need this at
+all — it exists for "the trigger itself was wrong for a while," not for
+day-to-day moderation.
+
 ### Delete an account
 
 The in-app "Delete account" button (Account screen → type-your-handle-to-
