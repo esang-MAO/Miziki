@@ -182,7 +182,22 @@ function finishClose(closing, opts){
     const top = layers[layers.length - 1];
     if(top.containers[0]) focusFirstIn(top.containers[0]);
   }
-  if(!opts.viaPopstate && closing.length > 0){
+  // opts.skipHistory: this close is being immediately followed, in the same
+  // synchronous tick, by an openLayer() call for a *different* layer that
+  // replaces this one rather than nesting inside it (the gatefold-to-player
+  // hand-off, src/shell/handoff.js and the REDUCED branch of
+  // gatefoldPlayTrack, src/gatefold/view.js). history.go() is asynchronous
+  // — its popstate only fires on a later task — so a pushState from that
+  // very next openLayer() call moves the browser's current position before
+  // the queued go() actually runs, and go(-n) then counts back from
+  // *that* new position instead of the one it was computed against,
+  // landing on the old layer's own now-stale entry and closing the layer
+  // that just replaced it. Skipping the go() here leaves one harmless,
+  // never-visited extra entry in the browser's real history (Back from the
+  // new layer still closes it correctly, landing one entry early but with
+  // nothing to close there, so a second Back behaves exactly as if this
+  // entry had never existed) rather than racing a real navigation.
+  if(!opts.viaPopstate && !opts.skipHistory && closing.length > 0){
     history.go(-closing.length);
   }
 }

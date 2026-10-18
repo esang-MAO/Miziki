@@ -64,6 +64,28 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
   $('#sleeve').style.display = 'none';
 
+  // Close the gatefold's own nav-stack entry now, before the player's layer
+  // is opened, rather than at the very end of this function (where it used
+  // to run, after the flight/overshoot/settle completed): closeLayer and
+  // forceCloseLayer both close a background layer *and* everything stacked
+  // above it, which is right for an overlay opened on top of the gatefold,
+  // but wrong here — the player replaces the gatefold rather than nesting
+  // inside it, so leaving the old ordering meant forceCloseLayer('gatefold')
+  // later spliced away the player's own, by-then-already-open nav-stack
+  // entry too (it had ended up stacked above 'gatefold' in the layers
+  // array), running the player's instantClose (closePlayer) right as the
+  // hand-off finished and silently closing the player it had just animated
+  // open. {skipHistory:true} avoids a second race this reorder would
+  // otherwise hit — see nav-stack.js's own comment on finishClose(). The
+  // gatefold's exit fade just below still needs #gatefold to keep
+  // rendering for its own ~400ms, so pin display:block inline for exactly
+  // that span — closeGatefoldInstant() only drops the .open class, which
+  // is what governs display via CSS (.gatefold{display:none}).
+  if(isGatefoldOpen()){
+    gf.style.display = 'block';
+    forceCloseLayer('gatefold', { skipHistory: true });
+  }
+
   // player sheet fades up behind the flight rather than sliding up from the
   // bottom — same transform-skip trick runMorphOpen() uses. Prepped hidden
   // now (invisible either way), the fade-to-1 itself is timed below to
@@ -150,7 +172,7 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   discBox.classList.remove('disc-hidden');
   ov.style.transition = ''; ov.style.opacity = '';
   gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  forceCloseLayer('gatefold');
+  gf.style.display = '';   // hand back to CSS (.gatefold without .open => display:none)
   startAudio();
 }
 
@@ -169,6 +191,10 @@ export function interruptGatefoldHandoff(){
   ov.classList.remove('instant'); ov.style.transition = ''; ov.style.opacity = '';
   const gf = $('#gatefold');
   gf.style.transition = ''; gf.style.opacity = ''; gf.style.transform = ''; gf.style.filter = '';
-  if(isGatefoldOpen()) forceCloseLayer('gatefold');
+  gf.style.display = '';
+  // gatefold's own nav-stack entry is already closed by this point (see the
+  // reorder in runGatefoldHandoff above) — kept as a defensive no-op in case
+  // this is ever reached some other way.
+  if(isGatefoldOpen()) forceCloseLayer('gatefold', { skipHistory: true });
   if(!S.playing) play();
 }
