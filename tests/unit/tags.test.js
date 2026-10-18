@@ -102,7 +102,7 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 
-const { findDuplicateTrack, DUP_DURATION_TOLERANCE_SEC } = await import('../../src/library/import.js');
+const { findDuplicateTrack, DUP_DURATION_TOLERANCE_SEC, shouldSealOnImport } = await import('../../src/library/import.js');
 const { S } = await import('../../src/state.js');
 
 // -- byte-fixture builders -----------------------------------------------
@@ -329,4 +329,27 @@ test('findDuplicateTrack matches within the duration tolerance and not outside i
   assert.ok(findDuplicateTrack(sameTags, 180 - DUP_DURATION_TOLERANCE_SEC));
   assert.equal(findDuplicateTrack(sameTags, 180 + DUP_DURATION_TOLERANCE_SEC + 0.5), undefined);
   assert.equal(findDuplicateTrack({title:'Different', artist:'Artist', album:'Album'}, 180), undefined);
+});
+
+// -- tests: RF7 point 3 — no seals on first import --------------------------
+
+test('shouldSealOnImport: a first-run library (isFirstImport) seals nothing', () => {
+  assert.equal(shouldSealOnImport('Some Album', 'aid', true, new Set()), false);
+  // even an album already seen earlier in this same first batch
+  assert.equal(shouldSealOnImport('Some Album', 'aid', true, new Set(['aid'])), false);
+});
+
+test('shouldSealOnImport: a later import seals a genuinely new album, once', () => {
+  const existingAlbumIds = new Set(['old-album']);
+  assert.equal(shouldSealOnImport('New Album', 'new-album', false, existingAlbumIds), true);
+  // a second file from the same new album, same batch, isn't sealed twice —
+  // the caller is expected to add the id after the first true (as addFiles() does)
+  existingAlbumIds.add('new-album');
+  assert.equal(shouldSealOnImport('New Album', 'new-album', false, existingAlbumIds), false);
+  // an album already in the library before this batch is never (re-)sealed
+  assert.equal(shouldSealOnImport('Old Album', 'old-album', false, existingAlbumIds), false);
+});
+
+test('shouldSealOnImport: loose tracks (Unknown Album) are never sealed', () => {
+  assert.equal(shouldSealOnImport('Unknown Album', 'unknown-album', false, new Set()), false);
 });

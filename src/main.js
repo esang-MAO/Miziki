@@ -18,7 +18,7 @@ import { renderTracks } from './library/view.js';
 import {
   runLaunchSequence, resolveLastPlayedAlbum, resolveLastPlayedTrackIndex, markLibraryReady,
 } from './launch/intro.js';
-import { askLocation, fallbackSun, scheduleMidnightRecompute } from './sundown/location.js';
+import { initLocationPrompt, fallbackSun, scheduleMidnightRecompute } from './sundown/location.js';
 import { setMode } from './audio/mode.js';
 import { scheduleDriftRecompute } from './audio/engine.js';
 import { drawSun, frame } from './player/clock.js';
@@ -98,7 +98,7 @@ initScrollRestoration();   // NV3: hands scroll-position restoration entirely to
 setMode('vinyl');
 applyTheme();
 fallbackSun();
-askLocation();
+initLocationPrompt();   // RF7: never prompts for location at boot, only on request
 drawSun();
 scheduleMidnightRecompute();   // DA1: keeps the day model from going stale overnight
 scheduleDriftRecompute();      // DA2: keeps Vinyl's character drift tracking the day
@@ -206,8 +206,10 @@ async function restoreLibrary(){
   onBackup('reset', () => resetLocalHistory());
   initBackupSync();
   MizikiSocial.libraryLoaded();
-  $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';
-  MizikiSocial.on('status', s => { $('#homeTabBtn').style.display = s.enabled ? '' : 'none'; });
+  // RF7 (docs/12_REFINE.md): the Home tab is always present now — signed
+  // out or social off, renderHome() itself shows the one sign-in card
+  // (profile/storefront.js's renderOpenStoreCard) rather than the tab
+  // disappearing, so the tab bar never changes shape.
   if(new URLSearchParams(location.search).get('social') === 'demo'){
     // Dynamic import, not a static one: ?social=demo is dev-only (see
     // CLAUDE.md), so src/social/demo.js — fixture data and ~700 lines of

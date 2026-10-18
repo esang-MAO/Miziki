@@ -64,6 +64,16 @@ export async function filesFromDataTransferItems(items){
   return out;
 }
 
+// RF7 (docs/12_REFINE.md): the one decision addFiles()'s own sealing step
+// actually makes, pulled out pure and exported so it's unit-testable
+// without the real AudioContext.decodeAudioData the rest of addFiles()
+// needs — the same "extract the pure core" shape this codebase already
+// uses wherever the surrounding function can't be tested directly (e.g.
+// scrub.js's angleDelta, gatefold/view.js's gatefoldSideSplits).
+export function shouldSealOnImport(albumName, aid, isFirstImport, existingAlbumIds){
+  return !isFirstImport && albumName !== 'Unknown Album' && !existingAlbumIds.has(aid);
+}
+
 export async function addFiles(list){
   const files = Array.from(list).filter(f => f.size > 0);
   if(!files.length) return;
@@ -72,6 +82,13 @@ export async function addFiles(list){
   // sealed once, regardless of how many of its files land in this same
   // batch (SEALED spec §2); loose tracks have no release identity to seal
   const existingAlbumIds = new Set(S.tracks.map(albumKey));
+  // RF7 (docs/12_REFINE.md): a literally-empty library opens unwrapped —
+  // "new" is supposed to mean "arrived after the library already had
+  // something in it," not "arrived ever," so the very first import seals
+  // nothing. Any later batch (the library has at least one track before
+  // it starts, even if that track came from this same first batch's
+  // earlier files) seals exactly as before.
+  const isFirstImport = S.tracks.length === 0;
   let i = 0;
   for(const f of files){
     i++;
@@ -129,7 +146,7 @@ export async function addFiles(list){
       reconcileImportedTrack(t);
       {
         const aid = albumKey(t);
-        if(tags.album !== 'Unknown Album' && !existingAlbumIds.has(aid)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+        if(shouldSealOnImport(tags.album, aid, isFirstImport, existingAlbumIds)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
       }
       if(await storeTrack(t, fileBlob)){
         t.stored = true;

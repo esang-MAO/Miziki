@@ -688,7 +688,11 @@
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
   </button>
-  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false" style="display:none">
+  <!-- RF7 (docs/12_REFINE.md): always present, signed out or social off
+       included — renderHome() itself shows the one sign-in card then
+       (src/profile/storefront.js's renderOpenStoreCard), so the tab bar
+       never changes shape. -->
+  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
     <span>Home</span>
   </button>
@@ -1114,6 +1118,24 @@
       <button class="cta ghost" id="dupReplace">Replace</button>
       <button class="cta" id="dupSkip">Skip Import</button>
     </div>
+  </div>
+</div>
+
+<!-- BACKGROUND PLAYBACK OFFER (RF7, docs/12_REFINE.md): shown once, on
+     return, only when playback actually stopped while the app was hidden
+     and Background playback is off — docs/design/refine/ReturnCard.dc.html
+     is the design source for this card's wording and shape. -->
+<div class="edit-overlay" id="bgOfferCard" aria-hidden="true">
+  <div class="edit-sheet" id="bgOfferSheetBox" style="max-width:420px">
+    <div class="edit-head">
+      <span id="bgOfferTitle">Music stopped when you left Miziki.</span>
+    </div>
+    <p class="note" style="margin-top:0">Keep it playing in the background, with controls on the lock screen? Audio then goes through the browser's player, which may change the sample rate.</p>
+    <div class="stack">
+      <button class="cta" id="bgOfferTurnOn">Turn on</button>
+      <button class="cta ghost" id="bgOfferNotNow">Not now</button>
+    </div>
+    <p class="note" style="text-align:center">Asked once. Change it any time in Settings › Playback.</p>
   </div>
 </div>
 

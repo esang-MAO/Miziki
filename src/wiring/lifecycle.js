@@ -13,15 +13,19 @@
    time the tab is looked at again; the local-midnight timer
    (src/sundown/location.js's scheduleMidnightRecompute()) is the other
    half of keeping it fresh, for a session that's never backgrounded at
-   all. */
+   all. Since RF7 (docs/12_REFINE.md), also the one place that notices
+   playback actually stopped while hidden (because Background playback was
+   off) and, on return, offers to turn it on — src/player/background.js's
+   own bgNoteHidden()/bgCheckReturnOffer(), the once-only card. */
 import { flushBackupSync, pullBackupOnForeground } from '../sync/backup.js';
 import { computeSun } from '../sundown/solar.js';
 import { drawSun } from '../player/clock.js';
+import { bgNoteHidden, bgCheckReturnOffer } from '../player/background.js';
 
 export function wireLifecycle(){
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'hidden') flushBackupSync();
-    else { pullBackupOnForeground(); computeSun(); drawSun(); }
+    if(document.visibilityState === 'hidden'){ flushBackupSync(); bgNoteHidden(); }
+    else { pullBackupOnForeground(); computeSun(); drawSun(); bgCheckReturnOffer(); }
   });
   // iOS Safari can terminate a backgrounded home-screen app without ever
   // firing visibilitychange — pagehide is the one event reliably fired

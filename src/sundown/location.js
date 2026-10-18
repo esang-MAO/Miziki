@@ -5,10 +5,19 @@ import { drawSun } from '../player/clock.js';
 import { queueSave } from '../storage/meta.js';
 
 /* ================= location & motion ================= */
+// RF7 (docs/12_REFINE.md): the localStorage flag that remembers a real
+// grant, so a returning user's next boot can re-ask silently (the browser
+// already decided, so no OS dialog appears) instead of needing the
+// "Use my location" button again. Try/catch-wrapped like every other
+// localStorage mirror in this app (theme-boot.js's own, the sun-times
+// cache) — never part of prefs/backup, purely a per-device nicety.
+const LOCATION_GRANTED_KEY = 'miziki-location-granted';
+
 export function askLocation(){
   if(!navigator.geolocation){ $('#locNote').textContent = 'This browser has no location access, so Miziki is using a stand-in sunset of 8:10 pm.'; fallbackSun(); return; }
   navigator.geolocation.getCurrentPosition(
     pos => {
+      try{ localStorage.setItem(LOCATION_GRANTED_KEY, '1'); }catch(_e){}
       S.sun.lat = pos.coords.latitude; S.sun.lon = pos.coords.longitude;
       computeSun(); drawSun();
       $('#locNote').textContent = 'Sunset times come from your location and today\'s date, worked out on the device.';
@@ -18,6 +27,22 @@ export function askLocation(){
             const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation); },
     {timeout:8000, maximumAge:600000}
   );
+}
+
+// RF7 (docs/12_REFINE.md): the one boot-time entry point — never prompts
+// for location itself (that's the OS permission dialog fighting a brand-
+// new user before they've even seen the library). A device that granted
+// location before re-asks silently via the real askLocation() (no dialog,
+// since the browser already decided); everyone else just sees the same
+// "Use my location" prompt the denied path already showed, with its
+// button wired to askLocation() — the only place that actually asks.
+export function initLocationPrompt(){
+  let granted = false;
+  try{ granted = localStorage.getItem(LOCATION_GRANTED_KEY) === '1'; }catch(_e){}
+  if(granted){ askLocation(); return; }
+  const note = $('#locNote');
+  if(note) note.innerHTML = 'Location is off, so tonight is a stand-in: sunset 8:10 pm, dusk 8:36 pm. <button class="cta ghost" id="retryLoc" style="margin-top:10px">Use my location</button>';
+  const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation);
 }
 
 // DA1 (docs/DAY_ARC.md): fills all five day-model events, not just
