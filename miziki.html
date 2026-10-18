@@ -541,28 +541,6 @@
         <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
       </div>
 
-      <div class="carmode" id="carmode">
-        <div class="row">
-          <div class="k">Car Mode<em>Compensates for road and cabin noise by raising volume with speed.</em></div>
-          <div class="seg"><button id="motionBtn" aria-pressed="false">Off</button></div>
-        </div>
-        <div id="carModeDetails" style="display:none">
-          <div class="row">
-            <div class="k">Current speed</div>
-            <div class="readout" id="speedOut">—</div>
-          </div>
-          <div class="slider-row">
-            <div class="slider-head"><span>Standstill level</span><b id="floorOut">55%</b></div>
-            <input id="floor" type="range" min="20" max="100" value="55" aria-label="Standstill level">
-          </div>
-          <div class="slider-row">
-            <div class="slider-head"><span>Full compensation at</span><b id="maxSpeedOut">56 mph</b></div>
-            <input id="maxSpeed" type="range" min="5" max="40" value="25" aria-label="Speed for full compensation">
-          </div>
-          <p class="note" id="motionNote">GPS reports about once a second, so Miziki glides between readings instead of stepping. Speed comes from GPS, never from the accelerometer.</p>
-        </div>
-      </div>
-
       <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
       </div>
     </div>

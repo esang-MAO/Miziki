@@ -14,8 +14,7 @@ import { queueSave } from '../storage/meta.js';
    an <audio> element as real media playback, so the OS keeps it running when
    the app is left or the screen locks, and shows lock-screen controls through
    the Media Session API. The Pure/Vinyl chain (Sundown's rate included,
-   in Vinyl) and Car Mode gain all sit in front of that destination, so
-   none of them change.
+   in Vinyl) sits in front of that destination, so none of it changes.
    Trade-offs: the browser's media pipeline may resample to the device's output
    rate, and iOS/Android can still end playback for their own reasons (a call,
    battery saver). If the element cannot start, output falls back to the normal
