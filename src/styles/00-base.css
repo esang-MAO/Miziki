@@ -25,6 +25,44 @@
      src/styles/22-theme.css's light/auto blocks each set this to `light`
      for the same reason "three places" applies to every other token. */
   color-scheme:dark;
+
+  /* RF13 (docs/12_REFINE.md): the type/spacing/elevation scale. See
+     CLAUDE.md's own "CSS token scale (RF13)" entry for the rule this
+     exists to enforce -- no font-size or spacing value outside these
+     tokens without a comment saying why. Each --fs-* pairs with its own
+     --lh-* (unitless line-height); letter-spacing follows the size-based
+     rule (.10em at 10px, .08em at 11px, .02em on Antonio >=24px, 0
+     elsewhere) applied per rule, not bundled into the token, since the
+     same size is shared by both capitalized-label and plain-text uses. */
+  --fs-micro:10px;   --lh-micro:1.3;
+  --fs-label:11px;   --lh-label:1.3;
+  --fs-caption:12px; --lh-caption:1.45;
+  --fs-body:14px;    --lh-body:1.5;
+  --fs-row:16px;     --lh-row:1.35;
+  --fs-title:20px;   --lh-title:1.2;
+  --fs-head:24px;    --lh-head:1.15;
+  --fs-hero:28px;    --lh-hero:1.1;
+  --fs-display:36px; --lh-display:1;
+  --fs-giant:44px;   --lh-giant:1;
+
+  /* Spacing scale. "A heading sits closer to what it heads than to what's
+     above it" -- --sp-6 above a heading, --sp-2 below it. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+
+  /* Radii: 4px controls, 12px cards, circles (unchanged, already 50%
+     throughout -- no new token needed for a value that's already a
+     constant). */
+  --radius-control:4px;
+  --radius-card:12px;
+
+  /* Elevation: a tight contact shadow plus a soft cast shadow, each pair
+     routed through --shadow so light theme (22-theme.css, which redefines
+     --shadow to a lighter value) lifts every one of these at once rather
+     than needing its own light-mode override per use site. */
+  --sh-1:0 1px 2px var(--shadow), 0 4px 10px var(--shadow);
+  --sh-2:0 1px 3px var(--shadow), 0 8px 20px var(--shadow);
+  --sh-3:0 2px 4px var(--shadow), 0 16px 36px var(--shadow);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 /* html needs its own dark background too, not just body's: iOS Safari's

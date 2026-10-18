@@ -188,8 +188,19 @@ function findCandidateRules(css, filename) {
     if (/^(currentcolor|inherit|initial|unset)$/i.test(colorValue.trim())) return;
     let fontSize = null;
     if ('font-size' in decls) {
-      const fm = /^([\d.]+)px$/.exec(decls['font-size'].trim());
-      if (fm) fontSize = parseFloat(fm[1]);
+      const raw = decls['font-size'].trim();
+      const fm = /^([\d.]+)px$/.exec(raw);
+      if (fm) {
+        fontSize = parseFloat(fm[1]);
+      } else {
+        // RF13: font-size is now almost always var(--fs-*) -- resolve it
+        // against the same dark-token map every --fs-* token is defined
+        // in (00-base.css's bare :root), since none of those tokens is
+        // redeclared per theme the way color tokens are.
+        const resolved = resolveValue(raw, darkTokens);
+        const pm = resolved && /^([\d.]+)px$/.exec(resolved);
+        if (pm) fontSize = parseFloat(pm[1]);
+      }
     }
     rules.push({ file: filename, selector, colorValue, fontSize });
   });

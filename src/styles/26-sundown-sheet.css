@@ -38,7 +38,7 @@
 }
 .sun-knob-time{
   position:absolute; bottom:6px; left:0; right:0; text-align:center;
-  font-family:var(--data); font-size:8px; letter-spacing:.05em; color:var(--paper);
+  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.05em; color:var(--paper);
 }
 
 .mini-sun-btn{
@@ -80,20 +80,20 @@
 
 .sundown-sheet-grabber{
   width:36px; height:4px; border-radius:2px; background:var(--muted);
-  opacity:.5; margin:10px auto 4px; flex:0 0 auto; touch-action:none; cursor:grab;
+  opacity:.5; margin:10px auto var(--sp-1); flex:0 0 auto; touch-action:none; cursor:grab;
 }
 .sundown-sheet-head{
-  display:flex; align-items:center; gap:12px; padding:4px 16px 8px; flex:0 0 auto;
+  display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-1) var(--sp-4) var(--sp-2); flex:0 0 auto;
 }
 .sundown-sheet-title{
-  font-family:var(--display); font-size:24px; margin:0; color:var(--paper); flex:1 1 auto;
+  font-family:var(--display); font-size:var(--fs-head);letter-spacing:.02em; margin:0; color:var(--paper); flex:1 1 auto;
 }
 .sundown-sheet-close{
   width:32px; height:32px; display:flex; align-items:center; justify-content:center;
-  background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px;
+  background:none; border:0; color:var(--muted); cursor:pointer; font-size:var(--fs-row);
 }
 .sundown-sheet-body{
-  flex:1 1 auto; overflow-y:auto; padding:0 16px 24px; -webkit-overflow-scrolling:touch;
+  flex:1 1 auto; overflow-y:auto; padding:0 var(--sp-4) var(--sp-5); -webkit-overflow-scrolling:touch;
 }
 
 /* D (docs/DESKTOP_LAYOUT.md) breakpoint: "no sheet on desktop" — the same

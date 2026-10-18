@@ -23,7 +23,7 @@
 }
 #sundownDayView{ position:relative; }
 
-.day-dial-wrap{ display:flex; justify-content:center; margin:8px 0 14px; }
+.day-dial-wrap{ display:flex; justify-content:center; margin:var(--sp-2) 0 14px; }
 .day-dial{
   position:relative; width:300px; height:300px; border-radius:50%;
   flex:none;
@@ -64,8 +64,8 @@
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   color:var(--on-accent); box-shadow:0 0 18px color-mix(in srgb, var(--amber) 55%, transparent);
 }
-.day-dial-label b{ font-family:var(--display); font-size:28px; line-height:1; }
-.day-dial-label span{ font-family:var(--data); font-size:10px; letter-spacing:.08em; margin-top:4px; }
+.day-dial-label b{ font-family:var(--display); font-size:var(--fs-hero);letter-spacing:.02em; line-height:1; }
+.day-dial-label span{ font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.08em; margin-top:var(--sp-1); }
 
 /* RF12 (docs/12_REFINE.md, point 3): these used to sit 2% in from the
    dial's own edge -- squarely on the ring's conic-gradient band, which
@@ -74,7 +74,7 @@
    the 300px disc) at 11px/--paper instead, so they never sit on a
    colored segment regardless of which one is showing. */
 .day-dial-hourlabel{
-  position:absolute; font-family:var(--data); font-size:11px; letter-spacing:.06em;
+  position:absolute; font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em;
   color:var(--paper);
 }
 .day-dial-hourlabel-top{ top:-18px; left:50%; transform:translateX(-50%); }
@@ -115,7 +115,7 @@
 
 .sd-event-row{
   display:flex; align-items:center; justify-content:space-between;
-  font-family:var(--data); font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+  font-family:var(--data); font-size:var(--fs-label); letter-spacing:.04em; text-transform:uppercase;
   color:var(--muted); margin-bottom:14px;
 }
 .sd-event-row em{ color:var(--accent-text); font-style:normal; font-weight:600; }
@@ -126,15 +126,15 @@
 
 /* §4.2 item 4 (PR 5): the hint row + NOW button. */
 .sd-hint-row{
-  display:flex; align-items:center; gap:8px; margin-bottom:16px;
-  font-family:var(--body); font-size:12px; color:var(--muted);
+  display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-4);
+  font-family:var(--body); font-size:var(--fs-caption); color:var(--muted);
 }
-.sd-hint-icon{ font-size:14px; line-height:1; }
+.sd-hint-icon{ font-size:var(--fs-body); line-height:1; }
 .sd-hint-text{ flex:1; }
 .sd-now-btn{
-  flex:none; min-width:44px; min-height:28px; padding:0 12px;
+  flex:none; min-width:44px; min-height:28px; padding:0 var(--sp-3);
   border-radius:999px; border:1px solid var(--line); background:transparent;
-  color:var(--muted); font-family:var(--data); font-size:11px; letter-spacing:.06em;
+  color:var(--muted); font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em;
   touch-action:manipulation;
 }
 /* Filled amber while a preview is active (S.previewMin !== 0) — toggled
@@ -158,7 +158,7 @@
    .sd-sky-bg-sound height) went with it. */
 
 .sd-section-label{
-  margin:4px 0 6px;
+  margin:var(--sp-1) 0 6px;
 }
 
 /* One section-label look for every tab (the design mocks' own ".sec":
@@ -170,7 +170,7 @@
 .sd-section-label,
 .settings-section-head,
 .profile-section-head{
-  font-family:var(--data); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
 /* §4.3 item 3: a full-width three-way segmented control — visually its
@@ -190,7 +190,7 @@
 .sd-drift-seg button,
 .sd-preset-seg button{
   min-height:44px; border:0; background:transparent; color:var(--paper);
-  font-family:var(--body); font-size:13px; font-weight:500; padding:4px 6px;
+  font-family:var(--body); font-size:var(--fs-caption); font-weight:500; padding:var(--sp-1) 6px;
 }
 .sd-drift-seg button[aria-pressed="true"],
 .sd-preset-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
@@ -199,25 +199,25 @@
    charcards grid, instead of it sitting always-visible — the presets
    below it stay the fast path; this is for the rare case a preset is
    close but not quite right. */
-.sd-advanced-toggle{ margin-bottom:12px; }
+.sd-advanced-toggle{ margin-bottom:var(--sp-3); }
 
 /* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
    current (drifted) value; presets below are how they're set. */
 .sd-charcards{
-  display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:18px;
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:var(--sp-2); margin-bottom:18px;
 }
 .sd-charcard{
-  box-sizing:border-box; width:100%; padding:9px 12px 10px; border-radius:14px;
+  box-sizing:border-box; width:100%; padding:9px var(--sp-3) 10px; border-radius:14px;
   background:var(--panel); border:1px solid var(--line);
   display:flex; flex-direction:column; gap:2px; text-align:left;
   font-family:inherit; color:inherit; min-height:44px; cursor:pointer;
 }
 .sd-charcard[aria-expanded="true"]{ border-color:var(--amber); }
 .sd-charcard-label{
-  margin:0; font-family:var(--data); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  margin:0; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted);
 }
-.sd-charcard b{ font-family:var(--display); font-size:21px; line-height:1.1; color:var(--paper); }
+.sd-charcard b{ font-family:var(--display); font-size:var(--fs-title); line-height:1.1; color:var(--paper); }
 .sd-charcard-track{
   position:relative; margin-top:5px; height:4px; border-radius:2px; background:var(--field);
 }
@@ -233,7 +233,7 @@
    than squeezing into one card's own half-width column. */
 .sd-charcard-fine{
   grid-column:1 / -1; box-sizing:border-box; display:flex; align-items:center; gap:10px;
-  margin:-4px 0 4px; padding:8px 12px; border-radius:10px;
+  margin:-var(--sp-1) 0 var(--sp-1); padding:var(--sp-2) var(--sp-3); border-radius:10px;
   background:var(--raised); border:1px solid var(--line);
 }
 /* an author display:flex above would otherwise always beat the UA
@@ -243,26 +243,26 @@
 .sd-charcard-fine[hidden]{ display:none; }
 .sd-charcard-fine input[type="range"]{ flex:1; }
 .sd-charcard-fine span{
-  flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:11px; color:var(--muted);
+  flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--muted);
 }
 
 /* §4.3 item 5: the "Tone today" curve card. */
 .sd-tonecurve{
-  box-sizing:border-box; padding:10px 14px 8px; border-radius:14px;
+  box-sizing:border-box; padding:10px 14px var(--sp-2); border-radius:14px;
   border:1px solid var(--line); background:var(--raised); margin-bottom:18px;
 }
 .sd-tonecurve-head{
-  display:flex; justify-content:space-between; font-family:var(--data); font-size:10px; letter-spacing:.1em;
+  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em;
 }
 .sd-tonecurve-head span:first-child{ color:var(--muted); text-transform:uppercase; }
 .sd-tonecurve-head span:last-child{ color:var(--cool); }
-.sd-tonecurve-svg{ display:block; width:100%; height:auto; margin-top:4px; }
-.sd-tonecurve-axislabel{ font-family:var(--data); font-size:9px; letter-spacing:.05em; fill:var(--muted); }
+.sd-tonecurve-svg{ display:block; width:100%; height:auto; margin-top:var(--sp-1); }
+.sd-tonecurve-axislabel{ font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.05em; fill:var(--muted); }
 #sdToneCurveLine{ stroke:var(--cool); stroke-width:2; stroke-linejoin:round; }
 #sdToneCurveNowLine{ stroke:var(--amber); stroke-width:1.5; stroke-dasharray:2 3; }
 #sdToneCurveNowDot{ fill:var(--amber); stroke:var(--chrome); stroke-width:2; }
 .sd-tonecurve-ticks{
-  display:flex; justify-content:space-between; font-family:var(--data); font-size:9.5px; color:var(--muted);
+  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-micro);letter-spacing:.10em; color:var(--muted);
 }
 
 /* RF9 (docs/12_REFINE.md): "one line per control... the long Character
@@ -275,7 +275,7 @@
   display:inline; cursor:pointer; color:var(--accent-text); list-style:none;
 }
 .sd-info summary::-webkit-details-marker{ display:none; }
-.sd-info[open] summary{ margin-right:4px; }
+.sd-info[open] summary{ margin-right:var(--sp-1); }
 
 /* Home tab, brought in line with the other three: section heads use the
    same mono label + hairline as Settings/Library tools instead of the
@@ -285,13 +285,13 @@
   margin:22px 0 10px; padding-bottom:10px; border-bottom:1px solid var(--line);
 }
 #homeBody .store-section-head h2{
-  font-family:var(--data); font-size:10px; font-weight:400; letter-spacing:.14em; color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-micro); font-weight:400; letter-spacing:.14em; color:var(--muted);
 }
 .home-feed-card{ flex-direction:column; align-items:stretch; cursor:pointer; }
 .home-feed-head{ margin-bottom:6px; }
 .home-feed-more{ color:var(--accent-text); }
 .home-spin-cover{
   display:flex; align-items:center; justify-content:center;
-  font-family:var(--data); font-size:11px; color:var(--accent-text);
+  font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--accent-text);
 }
 .home-spin-tap{ cursor:pointer; }
