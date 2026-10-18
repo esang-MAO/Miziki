@@ -46,6 +46,34 @@ Text tokens checked against them: dark `--paper #EFE9DF`, `--muted #94A0A6`, `--
 
 These are for the dark theme. In light, darken them until each is ≥ 3:1 against the card, and always pair a colour with its text label: never colour alone.
 
+## Moving palette rules (RF14)
+
+RF14 (`docs/12_REFINE.md`) adds four fixed rules the moving sky palette above must obey, so a future change to the anchor table can't silently break legibility or let a cooled/warmed token drift onto the wrong side of the accent color. See `docs/design/refine/README.md`'s own "Colour (RF12, RF14)" section for the literal hex values and measured contrast table these rules are drawn from; this section states the rules themselves, for this file's own day-arc-specific audience.
+
+1. **Muted follows the sky.** Alongside `--sky1`/`--sky2`, `drawSun()` (`src/player/clock.js`) also writes `--muted` (secondary text) and `--muted-2` (tertiary text, new) per anchor — warm in the two warm phases (Golden, Twilight), cool in the other six. Each pair clears **≥4.5:1** (muted) and **≥3:1** (muted-2) against the sky at every sampled minute of a real day, in both themes; light theme keeps one pair regardless of phase (no warm/cool split needed there — see the dark-vs-light table below). The write is skipped when nothing changed, the same "only write when changed" rule `--sky1`/`--sky2` already follow (NV1).
+2. **Accent stays the warmest, most saturated thing on screen.** The dark Golden and Twilight sky anchors were cooled slightly from their DA3-era values (Golden `#3D2A1F` → `#352A24`; Twilight `#3B2130` → `#33232E` — sky2 unchanged for both) so `--accent`/`--accent-text` (`#FF9E2C`) keeps separating from the sky behind it even during the two phases closest to it in hue. Verified by the same per-minute contrast sweep as point 1, plus the existing accent-family contrast test (`tests/unit/contrast.test.js`).
+3. **The dial ring borrows this file's own anchor colors, not a palette of its own.** The Day view's dial ring (`src/sundown/arc.js`'s `skyRingStops()`) used to carry its own eight hand-picked EMBER/INDIGO/ROSE/AZURE-family hexes. It now reads the same seven phase names this file's own "Phase colours" table already names, each resolved to a dedicated, already-desaturated (~15% less saturated than the sky anchors) hex — see the table below — placed "at the clock angles of today's events" (today's own dawn/rise/noon/set/dusk), not at fixed angles. Only the ring changes: the sky background gradient and the Sundown reading-card's own palette name (AZURE/EMBER/ROSE/INDIGO) are untouched.
+4. **Three readable levels, not two.** In dark, `--raised` moved from `.04` to `.07` opacity and `--panel` from `.42` to `.55`, so sky, panel and raised card each read as their own distinct level rather than two of the three blurring together.
+
+**Dial ring colors (point 3), dark theme only — the ring doesn't change by theme:**
+
+| Phase | Colour |
+|---|---|
+| Night | `#8578AE` |
+| Dawn | `#CFA0AD` |
+| Morning | `#98C2CE` |
+| Midday | `#D8D3C9` |
+| Afternoon | `#CBBD9C` |
+| Golden | `#E8B67A` |
+| Twilight | `#D99A5A` |
+
+**Muted/muted-2 pairs (point 1):**
+
+| | Dark cool | Dark warm | Light (one pair) |
+|---|---|---|---|
+| `--muted` | `#94A0A6` | `#A99C8F` | `#4F616A` |
+| `--muted-2` | `#7A868C` | `#857A70` | `#6E7A80` |
+
 ## Components
 
 **Day arc (Sundown tab, DA3).**

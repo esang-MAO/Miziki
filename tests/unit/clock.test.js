@@ -180,7 +180,7 @@ globalThis.document = {
   },
 };
 
-const { tick, drawSun, skyGradientStops, phaseText, dayArcPosition } = await import('../../src/player/clock.js');
+const { tick, drawSun, skyGradientStops, mutedGradientStops, phaseText, dayArcPosition } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -276,7 +276,9 @@ test('skyGradientStops: midday is the exact dark anchor (byte-identical to the o
 // single representative instant, used here as a flat hold across their
 // own whole phase rather than a second, separately-targeted waypoint.
 test('skyGradientStops: golden hour holds its own anchor; twilight ramps toward Dusk, reaching it exactly at the dusk instant', () => {
-  assert.deepEqual(skyGradientStops(pos('golden'), 'dark'), ['rgb(61,42,31)', 'rgb(26,19,16)']);
+  // RF14 (docs/12_REFINE.md, point 2): Golden's own sky1 was cooled from
+  // #3D2A1F (rgb(61,42,31)) to #352A24 (rgb(53,42,36)) — sky2 unchanged.
+  assert.deepEqual(skyGradientStops(pos('golden'), 'dark'), ['rgb(53,42,36)', 'rgb(26,19,16)']);
   assert.deepEqual(skyGradientStops(pos('twilight', 1), 'dark'), ['rgb(30,24,40)', 'rgb(13,11,19)']);
 });
 test('skyGradientStops: night, once settled, is the exact dark anchor (old C triple)', () => {
@@ -369,6 +371,66 @@ test('skyGradientStops: blended values stay >=4.5:1 too, sampled every 10 minute
   }
 });
 
+// RF14 (docs/12_REFINE.md, point 5): "extend the existing per-minute
+// contrast test to cover --muted, --muted-2 and the dial labels." --muted
+// needs >=4.5:1 (same floor as paper/accent-text above); --muted-2 is
+// tertiary text, >=3:1 per the design README's own "Colour" section. The
+// dial's own hour labels (src/styles/25-day-arc-v2.css's
+// .day-dial-hourlabel) sit on --paper outside the ring, not on --muted/
+// --muted-2 against the sky, so this is what actually exercises them: the
+// same floors, just for the new per-anchor-blended token instead of a
+// single static value.
+test('mutedGradientStops: every anchor clears 4.5:1 (muted) / 3:1 (muted-2), both themes', () => {
+  for(const theme of ['dark', 'light']){
+    for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+      const [sky1, sky2] = skyGradientStops(pos(phase, 0, 1), theme);
+      const [muted, muted2] = mutedGradientStops(pos(phase, 0, 1), theme);
+      const mutedRatio = Math.min(contrastRatio(parseRGB(muted), sky1), contrastRatio(parseRGB(muted), sky2));
+      const muted2Ratio = Math.min(contrastRatio(parseRGB(muted2), sky1), contrastRatio(parseRGB(muted2), sky2));
+      assert.ok(mutedRatio >= 4.5, `${theme}/${phase}/muted: contrast ${mutedRatio.toFixed(2)} below 4.5`);
+      assert.ok(muted2Ratio >= 3, `${theme}/${phase}/muted-2: contrast ${muted2Ratio.toFixed(2)} below 3`);
+    }
+  }
+});
+
+test('mutedGradientStops: dark theme is warm during Golden/Twilight, cool everywhere else', () => {
+  const [goldenMuted] = mutedGradientStops(pos('golden'), 'dark');
+  const [twilightMuted] = mutedGradientStops(pos('twilight'), 'dark');
+  const [nightMuted] = mutedGradientStops(pos('night', 0, 1), 'dark');
+  const [middayMuted] = mutedGradientStops(pos('midday'), 'dark');
+  assert.deepEqual(goldenMuted, 'rgb(169,156,143)');   // the warm pair (#A99C8F)
+  assert.deepEqual(twilightMuted, 'rgb(169,156,143)');
+  assert.deepEqual(nightMuted, 'rgb(148,160,166)');    // the cool pair (#94A0A6)
+  assert.deepEqual(middayMuted, 'rgb(148,160,166)');
+});
+
+test('mutedGradientStops: light theme keeps one pair regardless of phase', () => {
+  const golden = mutedGradientStops(pos('golden'), 'light');
+  const night = mutedGradientStops(pos('night', 0, 1), 'light');
+  assert.deepEqual(golden, night);
+  assert.deepEqual(golden, ['rgb(79,97,106)', 'rgb(110,122,128)']);
+});
+
+test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) too, sampled every 10 minutes across a full day', async () => {
+  const { dayEvents, dayPosition } = await import('../../src/sundown/day.js');
+  const COLUMBIA = { lat: 39.20, lon: -76.86 };
+  const date = new Date('2025-06-21T12:00:00Z');
+  const events = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
+  const start = new Date('2025-06-21T04:00:00Z');
+  for(const theme of ['dark', 'light']){
+    for(let m = 0; m < 24 * 60; m += 10){
+      const now = new Date(start.getTime() + m * 60000);
+      const dayPos = dayPosition(now, events);
+      const [sky1, sky2] = skyGradientStops(dayPos, theme);
+      const [muted, muted2] = mutedGradientStops(dayPos, theme);
+      const mutedRatio = Math.min(contrastRatio(parseRGB(muted), sky1), contrastRatio(parseRGB(muted), sky2));
+      const muted2Ratio = Math.min(contrastRatio(parseRGB(muted2), sky1), contrastRatio(parseRGB(muted2), sky2));
+      assert.ok(mutedRatio >= 4.5, `${theme} at +${m}min (${dayPos.phase}) / muted: contrast ${mutedRatio.toFixed(2)} below 4.5`);
+      assert.ok(muted2Ratio >= 3, `${theme} at +${m}min (${dayPos.phase}) / muted-2: contrast ${muted2Ratio.toFixed(2)} below 3`);
+    }
+  }
+});
+
 // phaseText: the new phase line's own wording — separate from #rateWhy's
 // existing, shorter copy (untouched by DA3, still tested via drawSunAt
 // below).
@@ -410,6 +472,15 @@ test('drawSun(): light theme now also sets animated --sky1/--sky2 inline', () =>
   assert.ok(style['--sky1'] && style['--sky1'].startsWith('rgb('));
   assert.ok(style['--sky2'] && style['--sky2'].startsWith('rgb('));
 });
+// RF14 (docs/12_REFINE.md, point 1): --muted/--muted-2 follow --sky1/
+// --sky2 the same way, in both themes.
+test('drawSun(): also sets animated --muted/--muted-2 inline, in both themes', () => {
+  for(const theme of ['dark', 'light']){
+    const style = drawSunAt(theme, false);
+    assert.ok(style['--muted'] && style['--muted'].startsWith('rgb('));
+    assert.ok(style['--muted-2'] && style['--muted-2'].startsWith('rgb('));
+  }
+});
 test('drawSun(): dark and light produce different inline values for the same day position', () => {
   const dark = drawSunAt('dark', false);
   const darkSky1 = dark['--sky1'];
@@ -430,4 +501,7 @@ test('drawSun(): repeating the same day position skips the redundant write', () 
   drawSun(); // identical S.mode/auto/rate/target/sun — identical sky output
   assert.equal(fakeRootStyle['--sky1'], undefined);
   assert.equal(fakeRootStyle['--sky2'], undefined);
+  // RF14: --muted/--muted-2 skip the same way.
+  assert.equal(fakeRootStyle['--muted'], undefined);
+  assert.equal(fakeRootStyle['--muted-2'], undefined);
 });

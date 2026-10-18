@@ -3,10 +3,18 @@
   --paper:#EFE9DF;
   --cream:#EFE9DF;
   --muted:#94A0A6;
+  /* RF14 (docs/12_REFINE.md, point 1): tertiary text, new -- see
+     player/clock.js's mutedGradientStops() for the warm/cool-follows-the-
+     sky rule that overrides this default via inline style while the app
+     is running; this is just the static fallback for first paint. */
+  --muted-2:#7A868C;
   --line:rgba(239,233,223,.14);
-  --panel:rgba(10,14,18,.42);
+  /* RF14 (docs/12_REFINE.md, point 4): "sky, panel and raised read as
+     three levels" -- .42 -> .55. */
+  --panel:rgba(10,14,18,.55);
   --chrome:rgba(10,14,18,.9);
-  --raised:rgba(239,233,223,.04);
+  /* RF14 (docs/12_REFINE.md, point 4): .04 -> .07, for the same reason. */
+  --raised:rgba(239,233,223,.07);
   --field:rgba(239,233,223,.06);
   --sel:rgba(255,158,44,.14);
   --amber:#FF9E2C;

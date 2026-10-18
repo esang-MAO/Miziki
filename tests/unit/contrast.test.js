@@ -251,3 +251,51 @@ test('accent/amber/miziki-orange text clears 4.5:1 against both sky stops, under
 
   assert.deepEqual(failures, [], `contrast failures below 4.5:1:\n${failures.join('\n')}`);
 });
+
+// RF14 (docs/12_REFINE.md, point 5): "extend the existing per-minute
+// contrast test to cover --muted, --muted-2 and the dial labels." --muted/
+// --muted-2 are covered dynamically, per real minute of a real day, by
+// tests/unit/clock.test.js's own mutedGradientStops() sweep (that's where
+// the function lives). The Day view's two label surfaces never actually
+// sit on the moving ring itself, so there's no per-minute sweep to run for
+// either -- but each is still a real, checkable invariant, verified here:
+//   - .day-dial-label (the disc's own time readout, #dayDialTime/
+//     #dayDialAmPm) sits on a solid var(--amber) fill with var(--on-accent)
+//     text -- a fixed pair that doesn't move with the sky in either theme
+//     (CLAUDE.md: "the disc... keep[s] [its] own colors in both themes").
+//   - .day-dial-hourlabel (12P/6P/12A/6A) was moved fully off the ring by
+//     RF12's own fix (negative offsets, clear of the conic-gradient band)
+//     specifically so it reads var(--paper) against the page's sky
+//     background instead -- i.e. it's already covered by the
+//     accent/paper-vs-sky sweep in clock.test.js's "every anchor stays
+//     >=4.5:1 against paper/muted/accent-text" tests. This test is a
+//     regression guard that it stays that way: still var(--paper), still
+//     off the ring, never a color read directly against a ring segment.
+test('dial labels: the disc readout (on-accent/amber) and hour labels (paper, off the ring) stay legible, both themes', () => {
+  const dayArcCss = readFileSync(path.join(STYLES_DIR, '25-day-arc-v2.css'), 'utf8');
+  const clean = stripComments(dayArcCss);
+
+  let labelDecls = null;
+  let hourlabelDecls = null;
+  eachLeafRule(clean, (selector, body) => {
+    if (selector === '.day-dial-label') labelDecls = parseDeclarations(body);
+    if (selector === '.day-dial-hourlabel') hourlabelDecls = parseDeclarations(body);
+  });
+
+  assert.ok(labelDecls, '.day-dial-label rule should exist in 25-day-arc-v2.css');
+  assert.ok(hourlabelDecls, '.day-dial-hourlabel rule should exist in 25-day-arc-v2.css');
+
+  // The hour labels must still read var(--paper) -- if this ever changes
+  // to something read directly against the ring's own moving colors, this
+  // test's "already covered elsewhere" reasoning above stops holding and
+  // the new value needs its own per-minute sweep.
+  assert.equal(hourlabelDecls.color.trim(), 'var(--paper)');
+
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue(labelDecls.color, tokens));
+    const bg = parseColor(resolveValue(labelDecls.background, tokens));
+    assert.ok(fg && bg, `${themeName}: .day-dial-label's color/background should resolve to real colors`);
+    const ratio = contrastRatio(fg, bg);
+    assert.ok(ratio >= 4.5, `${themeName}: .day-dial-label contrast ${ratio.toFixed(2)} below 4.5:1`);
+  }
+});

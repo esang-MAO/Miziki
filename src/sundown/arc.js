@@ -256,24 +256,79 @@ export function skyPaletteNameAt(now, sun, settings = {}) {
 }
 
 const minutesOfDay = date => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
-const wrapMin = m => ((m % 1440) + 1440) % 1440;
+
+// RF14 (docs/12_REFINE.md, point 3): "the dial ring takes its colors from
+// the anchor table, about 15% less saturated, instead of a palette of its
+// own" -- replacing the eight hand-picked EMBER/INDIGO/ROSE/AZURE-family
+// hexes above with the seven already-contrast-checked phase colors from
+// docs/design/refine/README.md's own "Dial ring" row (the desaturation is
+// already baked into these literal hexes, not recomputed here). Only the
+// ring changes -- SKY_STOPS/skyBackgroundStops/skyPaletteNameAt above are
+// untouched, still their own four/five-row palette for the reading card's
+// background and palette name, which RF14 doesn't mention.
+const RING_PHASE_COLOR = {
+  night: '#8578AE', dawn: '#CFA0AD', morning: '#98C2CE', midday: '#D8D3C9',
+  afternoon: '#CBBD9C', golden: '#E8B67A', twilight: '#D99A5A',
+};
+
+// The same MORNING_SPAN_MS/GOLDEN_SPAN_MS-shaped phase-boundary clamping
+// src/sundown/day.js's own dayPosition() uses (3h morning span off
+// sunrise, 1h golden span off sunset, clamped so nothing overlaps or runs
+// backward on a very short day) -- duplicated here in minutes-of-day
+// rather than imported, since this file deliberately keeps its own
+// independent DAWN/DAY/DUSK/NIGHT phase model (phaseAt(), this file's own
+// header comment) apart from day.js's 7-phase dayPosition() model; the
+// ring is the one place Day Arc v2 borrows that *other* model's phase
+// boundaries (for exactly the seven colors above), so this is the same
+// "duplicate the small shared formula rather than wire two independent
+// systems together" call CLAUDE.md documents for sync/images.js's own
+// crop logic and player/clock.js's own PHASE_COLOR duplication.
+const RING_MORNING_SPAN_MIN = 180;
+const RING_GOLDEN_SPAN_MIN = 60;
 
 // skyRingStops(sun) -> [{ min, color }, ...], sorted by minute-of-day
 // (0..1440), for the §3.5A conic ring — "stops defined relative to the
 // solar anchors, not fixed angles." Empty with no usable sun (caller
-// falls back to a plain ring, not this module's concern).
+// falls back to a plain ring, not this module's concern). Needs dawn/
+// dusk too (not just rise/set), since the ring now needs all seven named
+// anchors, not just a day/night split.
 export function skyRingStops(sun) {
-  if (!sun || !sun.rise || !sun.set) return [];
-  const riseMin = minutesOfDay(sun.rise), setMin = minutesOfDay(sun.set);
+  if (!sun || !sun.dawn || !sun.rise || !sun.noon || !sun.set || !sun.dusk) return [];
+  const dawnMin = minutesOfDay(sun.dawn), riseMin = minutesOfDay(sun.rise);
+  const noonMin = minutesOfDay(sun.noon), setMin = minutesOfDay(sun.set), duskMin = minutesOfDay(sun.dusk);
+  const goldenStart = Math.max(setMin - RING_GOLDEN_SPAN_MIN, riseMin);
+  const morningEnd = Math.min(riseMin + RING_MORNING_SPAN_MIN, goldenStart);
+  // Midday/Afternoon boundary: the same "midpoint between solar noon and
+  // sunset, clamped so it never falls before noon or after sunset" rule
+  // src/sundown/day.js's own dayPosition() uses for this exact split --
+  // duplicated per this function's own header comment. Splitting exactly
+  // at noon itself (an earlier version of this code) put solar noon on
+  // the Midday/Afternoon boundary, where a conic-gradient's own same-
+  // position stop-ordering rule (colorAt's header comment above) resolves
+  // to whichever color is listed *second*, i.e. Afternoon -- silently
+  // breaking "solar noon always falls inside the midday span."
+  const noonSetMid = clamp((noonMin + setMin) / 2, noonMin, setMin);
+  const middaySplit = Math.min(Math.max(noonSetMid, morningEnd), goldenStart);
+
+  // Each phase gets two stops of its own flat color (start, end) --
+  // "at the clock angles of today's events," a hard edge at every real
+  // boundary rather than a soft invented blend the design doc doesn't
+  // specify. Pushed in strict chronological order from midnight (0) to
+  // midnight (1440), with Night split into its own pre-dawn and post-dusk
+  // halves at those two endpoints — this is what lets a plain ascending
+  // sort (stable, so ties at a shared boundary keep the "ending phase
+  // first, starting phase second" order this list is already in) close
+  // the ring correctly with no separate wrap-around case to special-case.
+  const seg = (from, to, color) => ([{ min: from, color }, { min: to, color }]);
   const stops = [
-    { min: wrapMin(riseMin + 49), color: '#8ec5e6' },
-    { min: wrapMin(setMin - 52), color: '#8ec5e6' },
-    { min: wrapMin(setMin), color: '#e8744f' },
-    { min: wrapMin(setMin + 60), color: '#7a3d6a' },
-    { min: wrapMin(setMin + 116), color: '#1c2a63' },
-    { min: wrapMin(riseMin - 79), color: '#1c2a63' },
-    { min: wrapMin(riseMin - 23), color: '#b86a82' },
-    { min: wrapMin(riseMin), color: '#f2a38a' },
+    ...seg(0, dawnMin, RING_PHASE_COLOR.night),
+    ...seg(dawnMin, riseMin, RING_PHASE_COLOR.dawn),
+    ...seg(riseMin, morningEnd, RING_PHASE_COLOR.morning),
+    ...seg(morningEnd, middaySplit, RING_PHASE_COLOR.midday),
+    ...seg(middaySplit, goldenStart, RING_PHASE_COLOR.afternoon),
+    ...seg(goldenStart, setMin, RING_PHASE_COLOR.golden),
+    ...seg(setMin, duskMin, RING_PHASE_COLOR.twilight),
+    ...seg(duskMin, 1440, RING_PHASE_COLOR.night),
   ];
   return stops.sort((a, b) => a.min - b.min);
 }
