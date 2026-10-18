@@ -9,5 +9,5 @@
 .social-vis-option b{display:block;font-size:14.5px;font-weight:600}
 .social-vis-option .note{margin:2px 0 0}
 .social-vis-option[aria-pressed="true"]{border-color:var(--accent)}
-.social-vis-option[aria-pressed="true"] b{color:var(--accent)}
+.social-vis-option[aria-pressed="true"] b{color:var(--accent-text)}
 

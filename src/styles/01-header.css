@@ -8,7 +8,7 @@
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 .hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
 .hdr-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent)}
+.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent-text)}
 .hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
 .hdr-icon-btn svg{transition:transform .2s}
 /* search field replaces the whole header row while active */
@@ -19,8 +19,8 @@
 .hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:16px;font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
-.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-mark.hl{background:none;color:var(--accent);font-weight:600}
+.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+mark.hl{background:none;color:var(--accent-text);font-weight:600}
 
 /* + menu popover (S1 §3) */
 .add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
@@ -32,7 +32,7 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 .add-menu.open{display:flex}
 .add-menu-row{display:flex;align-items:flex-start;gap:12px;padding:12px 10px;border-radius:6px;text-align:left;width:100%}
 .add-menu-row:active{background:rgba(255,255,255,.04)}
-.add-menu-row svg{width:20px;height:20px;color:var(--accent);flex:0 0 auto;margin-top:1px;
+.add-menu-row svg{width:20px;height:20px;color:var(--accent-text);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .add-menu-row b{display:block;font-size:14px;font-weight:500}
 .add-menu-row em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -71,7 +71,7 @@ mark.hl{background:none;color:var(--accent);font-weight:600}
 /* Profile > Library tools (S1 §5) */
 .lib-tools{margin-top:28px}
 .lib-tools-row{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:0;text-align:left}
-.lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent);
+.lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent-text);
   display:grid;place-content:center;font-size:15px;flex:0 0 auto;transition:transform .2s}
 .lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
 .lib-tools-label{font-family:var(--data);font-size:11px;letter-spacing:.14em;text-transform:uppercase}

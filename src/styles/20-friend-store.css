@@ -14,7 +14,7 @@
 
 .store-follow-row{display:flex;align-items:center;gap:10px;margin-top:16px}
 .store-follow-btn{min-height:44px;padding:0 22px;border-radius:22px;border:1.5px solid var(--accent);
-  color:var(--accent);background:none;font-size:13px;font-weight:600}
+  color:var(--accent-text);background:none;font-size:13px;font-weight:600}
 .store-follow-btn.following{border-color:var(--line);color:var(--paper)}
 .store-follow-btn.pending{border-color:var(--line);color:var(--muted)}
 .store-share-icon{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--line);
@@ -22,7 +22,7 @@
 
 .store-locked-card{margin-top:26px;background:var(--panel);border:1.5px dashed var(--line);
   border-radius:14px;padding:24px 20px;text-align:center}
-.store-locked-card h3{font-family:var(--display);font-size:17px;letter-spacing:.04em;margin:0 0 8px;color:var(--accent)}
+.store-locked-card h3{font-family:var(--display);font-size:17px;letter-spacing:.04em;margin:0 0 8px;color:var(--accent-text)}
 .store-locked-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
 .store-locked-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
 .store-locked-slot{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--line);background:var(--panel)}
@@ -37,7 +37,7 @@
 .store-fresh-text b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-fresh-text em{font-style:normal;font-size:12.5px;color:var(--muted)}
 .store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);
-  color:var(--accent);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px}
+  color:var(--accent-text);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px}
 .store-fresh-add.added{border-color:var(--line);color:var(--muted)}
 
 .store-spin-ago{font-family:var(--data);font-size:10.5px;color:var(--muted);flex:none}
@@ -60,7 +60,7 @@
 .record-artist{font-size:14px;color:var(--muted);margin:0 0 12px}
 .record-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .record-chip{padding:5px 11px;border-radius:10px;background:var(--panel);font-family:var(--data);
-  font-size:10.5px;letter-spacing:.04em;color:var(--accent)}
+  font-size:10.5px;letter-spacing:.04em;color:var(--accent-text)}
 .record-rating-label{font-family:var(--data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);margin:0 0 6px}
 .record-stars{font-size:16px;letter-spacing:2px;color:#B8641A;margin-bottom:8px}

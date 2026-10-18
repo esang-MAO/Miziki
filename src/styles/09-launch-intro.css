@@ -23,7 +23,7 @@
 .launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
   font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.16em;color:var(--muted);
   opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out}
-.launch-wordmark span{color:var(--accent)}
+.launch-wordmark span{color:var(--accent-text)}
 .launch-wordmark.launch-grown{opacity:1;font-size:44px;letter-spacing:.1em;top:auto;bottom:140px}
 .launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
   opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
@@ -38,6 +38,6 @@
   background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
 .launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
   color:var(--recink);white-space:nowrap;transform:rotate(-35deg);font-size:34px}
-.launch-card-mark span{color:var(--accent)}
+.launch-card-mark span{color:var(--accent-text)}
 @media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
 

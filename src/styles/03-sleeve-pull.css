@@ -85,7 +85,14 @@
 .now .spec{font-family:var(--data);font-size:10.5px;color:var(--muted);letter-spacing:.06em}
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
   font-size:15px;color:var(--muted);margin-bottom:4px}
-.heart-btn[aria-pressed="true"]{color:#FF9E2C}
+/* RF12 (docs/12_REFINE.md, point 1): a hardcoded literal equal to --amber's
+   own dark-mode hex, not a var() reference -- missed by the original
+   grep-for-var(--accent) sweep and caught instead by the point-4 contrast
+   test, since it never adapted for light theme at all (1.83:1 there). This
+   is a filled heart glyph under 24px, the same icon-as-text category
+   .icon-btn's own color:var(--muted) already uses, so it gets the same
+   --accent-text treatment as every other sub-24px text/glyph use. */
+.heart-btn[aria-pressed="true"]{color:var(--accent-text)}
 .heart-btn.pop{animation:heartPop .35s ease}
 @keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
 

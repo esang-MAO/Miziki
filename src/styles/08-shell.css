@@ -40,9 +40,19 @@
   border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
 .tabbar-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:9px 4px 8px;color:var(--muted);font-family:var(--data);font-size:9.5px;
-  letter-spacing:.08em;text-transform:uppercase}
+  padding:9px 4px 8px;font-family:var(--data);font-size:9.5px;
+  letter-spacing:.08em;text-transform:uppercase;position:relative}
 .tabbar-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
-  stroke-linecap:round;stroke-linejoin:round}
-.tabbar-btn[aria-selected="true"]{color:var(--accent)}
+  stroke-linecap:round;stroke-linejoin:round;color:var(--muted);opacity:.8}
+.tabbar-btn span{color:var(--muted)}
+/* RF12 (docs/12_REFINE.md, point 2): the active tab never relies on
+   color alone -- the icon stays --accent (an icon, not text, so RF12's
+   point 1 contrast fix doesn't apply to it), the label switches to
+   --paper at weight 500, and a 2px accent bar marks the cell's own top
+   edge (docs/design/refine/README.md's own "Tab bar" row). */
+.tabbar-btn[aria-selected="true"] svg{color:var(--accent);opacity:1}
+.tabbar-btn[aria-selected="true"] span{color:var(--paper);font-weight:500}
+.tabbar-btn[aria-selected="true"]::before{content:'';position:absolute;top:0;left:50%;
+  transform:translateX(-50%);width:28px;height:2px;border-radius:0 0 2px 2px;
+  background:var(--accent)}
 

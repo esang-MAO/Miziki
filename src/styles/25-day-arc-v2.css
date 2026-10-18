@@ -67,14 +67,20 @@
 .day-dial-label b{ font-family:var(--display); font-size:28px; line-height:1; }
 .day-dial-label span{ font-family:var(--data); font-size:10px; letter-spacing:.08em; margin-top:4px; }
 
+/* RF12 (docs/12_REFINE.md, point 3): these used to sit 2% in from the
+   dial's own edge -- squarely on the ring's conic-gradient band, which
+   on a pink or blue segment left 10px/--muted text failing contrast
+   outright. Moved outside the ring entirely (negative offsets, clear of
+   the 300px disc) at 11px/--paper instead, so they never sit on a
+   colored segment regardless of which one is showing. */
 .day-dial-hourlabel{
-  position:absolute; font-family:var(--data); font-size:10px; letter-spacing:.06em;
-  color:var(--muted);
+  position:absolute; font-family:var(--data); font-size:11px; letter-spacing:.06em;
+  color:var(--paper);
 }
-.day-dial-hourlabel-top{ top:2%; left:50%; transform:translateX(-50%); }
-.day-dial-hourlabel-right{ right:2%; top:50%; transform:translateY(-50%); }
-.day-dial-hourlabel-bottom{ bottom:2%; left:50%; transform:translateX(-50%); }
-.day-dial-hourlabel-left{ left:2%; top:50%; transform:translateY(-50%); }
+.day-dial-hourlabel-top{ top:-18px; left:50%; transform:translateX(-50%); }
+.day-dial-hourlabel-right{ right:-22px; top:50%; transform:translateY(-50%); }
+.day-dial-hourlabel-bottom{ bottom:-18px; left:50%; transform:translateX(-50%); }
+.day-dial-hourlabel-left{ left:-22px; top:50%; transform:translateY(-50%); }
 
 /* The sun-record marker and the sunrise/sunset ticks are all positioned
    the same way: a zero-size anchor at the dial's own center, moved by

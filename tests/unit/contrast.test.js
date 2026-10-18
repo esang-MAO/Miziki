@@ -1,0 +1,242 @@
+// RF12 (docs/12_REFINE.md, point 4): "a small script computes contrast for
+// every `color:` declaration resolved against both themes' backgrounds and
+// fails below 4.5:1 for text under 18px." This checks exactly the family
+// of tokens RF12 itself is about -- --accent, --accent-text, --amber and
+// --miziki-orange (all four names the app has historically used for the
+// one orange color, per RF12 point 1's own wording: "Every text use of
+// --accent, --amber or --miziki-orange becomes --accent-text") -- plus any
+// hardcoded hex literal equal to one of those tokens' own values, since
+// that's exactly the kind of bypass-the-token bug point 1's grep-based
+// sweep could miss (and did: see 03-sleeve-pull.css's .heart-btn fix,
+// found by an early run of this very script).
+//
+// It deliberately does NOT check every arbitrary `color:` declaration in
+// the stylesheets. Two reasons, both load-bearing: (1) --on-accent and
+// --cool are different token families with their own established
+// contrast partner (--on-accent is "text on a solid accent fill" by
+// design -- it's meant to be read against --accent, not the page
+// background) and were never part of RF12's remit; (2) a long list of
+// pre-existing, already-shipped hex literals (sticker/badge/disc-label
+// colors, the star-rating amber, a warning pink, a danger red) each sit on
+// their own opaque card/chip background, not directly on the sky gradient
+// -- checking them against sky produced a wall of false positives on an
+// early run and would make the test meaningless noise instead of a real
+// gate. See docs/design/refine/README.md's own "Colour (RF12, RF14)"
+// section for the "lower of the two sky stops" methodology this reuses,
+// written for exactly this accent/amber/miziki-orange question.
+//
+// Icon/glyph selectors (anything targeting an <svg>, where `color` drives
+// `stroke:currentColor` rather than text) are excluded too -- RF12 point 1
+// is explicitly about *text*, and point 2's own .tabbar-btn svg treatment
+// is a deliberate, documented exception (the active tab's icon stays
+// --accent regardless of size, so the active state is legible even though
+// it's a graphical element, not body text).
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const STYLES_DIR = path.join(__dirname, '..', '..', 'src', 'styles');
+
+const ACCENT_FAMILY_TOKENS = ['--accent', '--accent-text', '--amber', '--miziki-orange'];
+
+function stripComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function parseDeclarations(body) {
+  const out = {};
+  for (const raw of body.split(';')) {
+    const decl = raw.trim();
+    if (!decl) continue;
+    const idx = decl.indexOf(':');
+    if (idx === -1) continue;
+    const prop = decl.slice(0, idx).trim();
+    const value = decl.slice(idx + 1).trim();
+    if (prop) out[prop] = value;
+  }
+  return out;
+}
+
+// A flat, non-nested regex is enough to pull every leaf rule (selector +
+// declaration body) out of a stylesheet regardless of @media nesting --
+// an @media wrapper's own `{` before any leaf rule is just unmatched text
+// to this pattern, so it's skipped rather than mis-parsed.
+function eachLeafRule(css, fn) {
+  const re = /([^{}]*)\{([^{}]*)\}/g;
+  let m;
+  while ((m = re.exec(css))) fn(m[1].trim(), m[2]);
+}
+
+function extractRootTokens(css, selectorPattern) {
+  const tokens = {};
+  eachLeafRule(css, (selector, body) => {
+    if (!selectorPattern.test(selector)) return;
+    const decls = parseDeclarations(body);
+    for (const [prop, value] of Object.entries(decls)) {
+      if (prop.startsWith('--')) tokens[prop] = value;
+    }
+  });
+  return tokens;
+}
+
+const baseCss = readFileSync(path.join(STYLES_DIR, '00-base.css'), 'utf8');
+const themeCss = readFileSync(path.join(STYLES_DIR, '22-theme.css'), 'utf8');
+
+const darkTokens = extractRootTokens(stripComments(baseCss), /^:root$/);
+const lightOverrides = extractRootTokens(
+  stripComments(themeCss),
+  /^:root\[data-theme="light"\]$/
+);
+const lightTokens = { ...darkTokens, ...lightOverrides };
+const THEMES = { dark: darkTokens, light: lightTokens };
+
+function resolveValue(value, tokens, seen = new Set()) {
+  const m = /^var\(\s*(--[\w-]+)\s*(?:,\s*([\s\S]+))?\)$/.exec(value.trim());
+  if (!m) return value.trim();
+  const [, name, fallback] = m;
+  if (seen.has(name)) return null;
+  seen.add(name);
+  if (name in tokens) return resolveValue(tokens[name], tokens, seen);
+  if (fallback !== undefined) return resolveValue(fallback, tokens, seen);
+  return null;
+}
+
+function parseColor(value) {
+  if (!value) return null;
+  const hex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(value);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+      a: 1,
+    };
+  }
+  const rgba = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)$/.exec(value);
+  if (rgba) {
+    return {
+      r: parseFloat(rgba[1]),
+      g: parseFloat(rgba[2]),
+      b: parseFloat(rgba[3]),
+      a: rgba[4] !== undefined ? parseFloat(rgba[4]) : 1,
+    };
+  }
+  return null;
+}
+
+function srgbToLinear(c) {
+  const n = c / 255;
+  return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance({ r, g, b }) {
+  return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
+}
+
+function contrastRatio(c1, c2) {
+  const l1 = relativeLuminance(c1);
+  const l2 = relativeLuminance(c2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// The literal hex each accent-family token resolves to, per theme -- used
+// to also catch a hardcoded hex that bypasses the token entirely (the
+// .heart-btn bug this script found).
+function accentHexesForTheme(tokens) {
+  const hexes = new Set();
+  for (const name of ACCENT_FAMILY_TOKENS) {
+    if (!(name in tokens)) continue;
+    const resolved = resolveValue(`var(${name})`, tokens);
+    if (resolved) hexes.add(resolved.toLowerCase());
+  }
+  return hexes;
+}
+
+function isAccentFamilyDeclaration(colorValue, tokens) {
+  const trimmed = colorValue.trim();
+  const varMatch = /^var\(\s*(--[\w-]+)/.exec(trimmed);
+  if (varMatch && ACCENT_FAMILY_TOKENS.includes(varMatch[1])) return true;
+  if (/^#[0-9a-fA-F]{3,6}$/.test(trimmed)) {
+    return accentHexesForTheme(tokens).has(trimmed.toLowerCase());
+  }
+  return false;
+}
+
+function isIconSelector(selector) {
+  // Matches a bare `svg` tag anywhere in the selector (as its own token,
+  // not part of a class name like `.svg-something`) -- e.g. `.foo svg`,
+  // `svg.bar`, `.foo svg.bar:hover`.
+  return /(^|[\s>+~.#\[:])svg(?=$|[\s.#\[:,])/.test(selector);
+}
+
+function findCandidateRules(css, filename) {
+  const clean = stripComments(css);
+  const rules = [];
+  eachLeafRule(clean, (selector, body) => {
+    if (!selector || selector.startsWith('@') || selector.startsWith(':root')) return;
+    if (isIconSelector(selector)) return;
+    const decls = parseDeclarations(body);
+    if (!('color' in decls)) return;
+    const colorValue = decls.color;
+    if (/^(currentcolor|inherit|initial|unset)$/i.test(colorValue.trim())) return;
+    let fontSize = null;
+    if ('font-size' in decls) {
+      const fm = /^([\d.]+)px$/.exec(decls['font-size'].trim());
+      if (fm) fontSize = parseFloat(fm[1]);
+    }
+    rules.push({ file: filename, selector, colorValue, fontSize });
+  });
+  return rules;
+}
+
+const styleFiles = readdirSync(STYLES_DIR).filter((f) => f.endsWith('.css')).sort();
+
+const allRules = [];
+for (const file of styleFiles) {
+  const css = readFileSync(path.join(STYLES_DIR, file), 'utf8');
+  allRules.push(...findCandidateRules(css, file));
+}
+
+test('style files were actually found and scanned', () => {
+  assert.ok(styleFiles.length > 5, 'expected several stylesheet files');
+  assert.ok(allRules.length > 5, 'expected several text color: rules to check');
+});
+
+test('accent/amber/miziki-orange text clears 4.5:1 against both sky stops, under 18px, in both themes', () => {
+  const failures = [];
+
+  for (const rule of allRules) {
+    const isSmallText = rule.fontSize === null || rule.fontSize < 18;
+    if (!isSmallText) continue;
+
+    for (const [themeName, tokens] of Object.entries(THEMES)) {
+      if (!isAccentFamilyDeclaration(rule.colorValue, tokens)) continue;
+
+      const resolved = resolveValue(rule.colorValue, tokens);
+      const fg = parseColor(resolved);
+      if (!fg || fg.a < 1) continue;
+
+      for (const skyVar of ['--sky1', '--sky2']) {
+        const bg = parseColor(resolveValue(`var(${skyVar})`, tokens));
+        if (!bg) continue;
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < 4.5) {
+          failures.push(
+            `${rule.file} :: ${rule.selector} :: color:${rule.colorValue} ` +
+            `(font-size:${rule.fontSize ?? 'inherited'}) in ${themeName} theme ` +
+            `against ${skyVar} — ratio ${ratio.toFixed(2)}:1`
+          );
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(failures, [], `contrast failures below 4.5:1:\n${failures.join('\n')}`);
+});
