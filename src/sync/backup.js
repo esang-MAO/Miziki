@@ -54,7 +54,7 @@ const BACKOFF = [15000, 30000, 60000, 120000, 300000];
 const SCHEMA_TABLE = 'library_backup';
 
 const B = {
-  timer: null, backoffIdx: 0, syncing: false, again: false,
+  timer: null, backoffIdx: 0, syncing: false, again: false, againPull: false,
   status: { backedUp: false, lastSyncedAt: null, waiting: false, lastError: null, newerVersionSeen: false },
   listeners: {},
   // pending cross-device entries this device couldn't resolve to a local
@@ -66,6 +66,9 @@ const B = {
   // sync cycle once online — keyed 'bucket:hash', persisted to meta so a
   // restart doesn't forget and immediately re-upload everything once
   uploadedHashes: null,
+  // RF18 (docs/12_REFINE.md): this account's other devices' own last-known
+  // {updatedAt, row} per device_id — see fetchRemoteRows()'s own comment.
+  rowCache: null,
 };
 
 function emit(evt, payload){
@@ -149,6 +152,26 @@ async function loadUploadedHashes(){
 }
 function persistUploadedHashes(){ meta.put('uploadedImageHashes', [...B.uploadedHashes]).catch(() => {}); }
 
+// RF18 (docs/12_REFINE.md): S.backupPushSeq is loaded once, like deviceId,
+// then bumped and persisted on every push *attempt* (not only a
+// successful one) — see state.js's own comment for why this is a
+// separate counter from S.backupSeq. Persisting before the network call
+// (not after) means a push that crashes/throws mid-flight still leaves a
+// higher number behind than whatever's already on the server, so a later
+// retry of the same attempt never reuses a seq a different, since-
+// succeeded push already claimed.
+let backupPushSeqLoaded = false;
+async function nextBackupPushSeq(){
+  if(!backupPushSeqLoaded){
+    backupPushSeqLoaded = true;
+    const saved = await meta.get('backupPushSeq');
+    if(typeof saved === 'number') S.backupPushSeq = saved;
+  }
+  S.backupPushSeq += 1;
+  await meta.put('backupPushSeq', S.backupPushSeq);
+  return S.backupPushSeq;
+}
+
 /* ================= building this device's own snapshot ================= */
 function buildLocalState(){
   return {
@@ -216,10 +239,16 @@ async function pushBackup(){
   await ensureDeviceId();
   B.overlaysRawCache = await overlaysRepo.all();
   const doc = toDoc(buildLocalState());
-  const { error } = await client.from(SCHEMA_TABLE).upsert({
-    user_id: uid, device_id: S.deviceId, device_label: S.deviceLabel,
-    schema_version: SCHEMA_VERSION, doc,
-  }, { onConflict: 'user_id,device_id' });
+  // RF18: goes through put_library_backup() (migration 013_backup_seq.sql)
+  // instead of a plain upsert — its own ON CONFLICT only applies when
+  // p_seq is strictly higher than whatever doc_seq is already stored, so
+  // a stale, late-arriving retry (BACKOFF below, or two overlapping push
+  // attempts) can never clobber a newer doc this device already landed.
+  const seq = await nextBackupPushSeq();
+  const { error } = await client.rpc('put_library_backup', {
+    p_device: S.deviceId, p_seq: seq, p_doc: doc,
+    p_device_label: S.deviceLabel, p_schema_version: SCHEMA_VERSION,
+  });
   if(error) throw error;
   await flushPendingImages(client, uid);
   // DA5 (docs/DAY_ARC.md): "updated at most daily" piggybacks this same
@@ -472,10 +501,44 @@ async function queueAvatarDownload(client, uid, picture){
 }
 
 /* ================= pull: fetch every row, merge, apply ================= */
+// RF18 (docs/12_REFINE.md), point 3: a per-device updated_at cursor, kept
+// in meta, so a pull that finds nothing changed on a given device doesn't
+// re-download that device's whole doc — only its own cheap cursor row.
+// B.rowCache is {deviceId: {updatedAt, row}}; loaded once per session the
+// same lazy-on-first-use shape as B.uploadedHashes above.
+let rowCacheLoaded = false;
+async function ensureRowCache(){
+  if(rowCacheLoaded) return;
+  rowCacheLoaded = true;
+  const saved = await meta.get('remoteRowCache');
+  B.rowCache = (saved && typeof saved === 'object') ? saved : {};
+}
+function persistRowCache(){ meta.put('remoteRowCache', B.rowCache).catch(() => {}); }
+
 async function fetchRemoteRows(client){
-  const { data, error } = await client.from(SCHEMA_TABLE).select('device_id, doc');
-  if(error) throw error;
-  return (data || []).map(r => Object.assign({}, r.doc, { deviceId: r.device_id }));
+  await ensureRowCache();
+  // cheap first pass: every device's own cursor, no doc bytes at all
+  const { data: cursorRows, error: cursorError } = await client.from(SCHEMA_TABLE).select('device_id, updated_at');
+  if(cursorError) throw cursorError;
+  const seenIds = new Set();
+  const changedIds = [];
+  (cursorRows || []).forEach(r => {
+    seenIds.add(r.device_id);
+    const cached = B.rowCache[r.device_id];
+    if(!cached || cached.updatedAt !== r.updated_at) changedIds.push(r.device_id);
+  });
+  // a device whose row was deleted (account cascade, or a device this
+  // account never had) has nothing left to merge from — drop its cache
+  // entry rather than keep handing a stale doc to every future merge
+  Object.keys(B.rowCache).forEach(id => { if(!seenIds.has(id)) delete B.rowCache[id]; });
+  if(changedIds.length){
+    const { data: fullRows, error: fullError } = await client.from(SCHEMA_TABLE)
+      .select('device_id, doc, updated_at').in('device_id', changedIds);
+    if(fullError) throw fullError;
+    (fullRows || []).forEach(r => { B.rowCache[r.device_id] = { updatedAt: r.updated_at, row: r.doc }; });
+    persistRowCache();
+  }
+  return seenIds.size ? [...seenIds].map(id => Object.assign({}, B.rowCache[id].row, { deviceId: id })) : [];
 }
 
 // Apply only the fields the B2 design says are safe to adopt directly —
@@ -829,6 +892,17 @@ export function pullBackupOnForeground(){
   runPull();
 }
 
+// RF18 (docs/12_REFINE.md), point 2: runPull now takes the same B.syncing
+// gate runPush already had — pullAndMergeBackup() ends with its own
+// trailing "await pushBackup()" (so a pull always leaves the server with
+// this device's latest doc, not just whatever it had before the pull),
+// and without a shared gate that trailing push could interleave with a
+// separately-debounced runPush() call racing it for the very same row.
+// Each caller queues its own kind of retry (B.again for a push requested
+// mid-sync, B.againPull for a pull) rather than sharing one flag, so a
+// push that arrives while a pull is running doesn't get silently merged
+// into "just re-run whichever one finishes" — each still gets its own
+// next turn once the lock clears.
 async function runPush(){
   if(B.syncing){ B.again = true; return; }
   B.syncing = true;
@@ -848,18 +922,27 @@ async function runPush(){
     B.timer = setTimeout(runPush, wait);
   }finally{
     B.syncing = false;
-    if(B.again){ B.again = false; scheduleBackupSync(250); }
+    releaseSyncQueue();
   }
 }
 async function runPull(){
   const client = getClient();
   if(!client) return;
+  if(B.syncing){ B.againPull = true; return; }
+  B.syncing = true;
   try{
     await pullAndMergeBackup();
     setStatus({ backedUp: true, lastSyncedAt: Date.now(), lastError: null });
   }catch(e){
     setStatus({ lastError: { message: (e && e.message) || String(e) } });
+  }finally{
+    B.syncing = false;
+    releaseSyncQueue();
   }
+}
+function releaseSyncQueue(){
+  if(B.again){ B.again = false; scheduleBackupSync(250); }
+  if(B.againPull){ B.againPull = false; runPull(); }
 }
 
 /* ================= boot ================= */
@@ -874,6 +957,16 @@ export function initBackupSync(){
       }).catch(() => {});
     } else if(s.auth === 'signedOut'){
       initedUserId = null;
+      // RF18: S.deviceId is this browser install's own random id, not
+      // scoped to whichever account is signed in -- a different account
+      // signing in on the same device later reuses the same device_id,
+      // against a completely different set of library_backup rows. The
+      // row cache's own "unchanged since last seen" check only compares
+      // updated_at per device_id, with no account in that key at all, so
+      // it's cleared here rather than risk ever reusing a stale doc across
+      // that boundary.
+      B.rowCache = {}; rowCacheLoaded = false;
+      meta.put('remoteRowCache', {}).catch(() => {});
       setStatus({ backedUp: false, lastSyncedAt: null, waiting: false, lastError: null });
     }
   });

@@ -39,7 +39,7 @@ mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
 const { S } = await import('../../src/state.js');
 const { SCHEMA_VERSION } = await import('../../src/sync/backup-doc.js');
 const {
-  scheduleBackupSync, flushBackupSync, getBackupStatus, collectDownloadData, collectLocalDownloadData,
+  scheduleBackupSync, flushBackupSync, pullBackupOnForeground, getBackupStatus, collectDownloadData, collectLocalDownloadData,
   orphanedFiles, pushOrClearListeningRhythm,
 } = await import('../../src/sync/backup.js');
 
@@ -59,19 +59,29 @@ function freshState(){
 }
 
 // a minimal fake of the one Supabase client shape backup.js's push path
-// actually calls — .auth.getUser() and .from(table).upsert(doc)
+// actually calls — .auth.getUser() and, since RF18 (docs/12_REFINE.md,
+// "pushes that can't go backwards"), .rpc('put_library_backup', ...)
+// rather than a plain .from(table).upsert() — see migration
+// 013_backup_seq.sql's own put_library_backup() for the server half this
+// stands in for. .from(table).select(...) is also stubbed, for the pull
+// path's own cursor/full-row fetches (fetchRemoteRows()) — empty by
+// default, since none of these push-focused tests exercise a pull.
 function makeClient(behavior = {}){
   const calls = { upsert: 0 };
+  const rpcArgs = [];
   return {
-    calls,
+    calls, rpcArgs,
     auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'a@b.test' } } }) },
+    rpc(name, args){
+      if(name !== 'put_library_backup') return Promise.resolve({ error: null });
+      calls.upsert++;
+      rpcArgs.push(args);
+      if(behavior.failUntilCall && calls.upsert <= behavior.failUntilCall) return Promise.resolve({ error: new Error('network down') });
+      return Promise.resolve({ error: null });
+    },
     from(){
       return {
-        upsert: async () => {
-          calls.upsert++;
-          if(behavior.failUntilCall && calls.upsert <= behavior.failUntilCall) throw new Error('network down');
-          return { error: null };
-        },
+        select(){ return Promise.resolve({ data: [], error: null }); },
       };
     },
   };
@@ -382,4 +392,70 @@ test('an ordinary backup push still succeeds against a MizikiSocial build with n
     assert.equal(client.calls.upsert, 1);
     assert.equal(getBackupStatus().backedUp, true, 'the push as a whole must still be reported successful');
   }finally{ mock.timers.reset(); }
+});
+
+/* ================= RF18 (docs/12_REFINE.md): pushes that can't go backwards ================= */
+
+test('RF18: every push attempt carries a strictly higher doc_seq than the one before, surviving a reload', async () => {
+  freshState();
+  const client = makeClient();
+  stubSocial(client);
+  flushBackupSync();
+  await flushMicrotasks();
+  flushBackupSync();
+  await flushMicrotasks();
+  flushBackupSync();
+  await flushMicrotasks();
+  assert.equal(client.rpcArgs.length, 3);
+  const seqs = client.rpcArgs.map(a => a.p_seq);
+  assert.ok(seqs[1] > seqs[0] && seqs[2] > seqs[1], 'each push must carry a strictly higher p_seq than the last');
+  // persisted immediately (not debounced with the rest of the doc), so a
+  // reload picks up where this device's own counter left off rather than
+  // reusing a seq a prior install already sent
+  assert.equal(metaStore.get('backupPushSeq'), seqs[2]);
+});
+
+test('RF18: a failed push attempt still bumped the counter, so its retry never reuses that seq', async () => {
+  freshState();
+  const client = makeClient({ failUntilCall: 1 });   // the first attempt fails, the retry succeeds
+  stubSocial(client);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    scheduleBackupSync(0);
+    mock.timers.tick(0);
+    await flushMicrotasks();
+    mock.timers.tick(15000);   // BACKOFF[0]
+    await flushMicrotasks();
+    assert.equal(client.rpcArgs.length, 2);
+    assert.ok(client.rpcArgs[1].p_seq > client.rpcArgs[0].p_seq, 'the retry must carry a higher seq than the failed first attempt, not reuse it');
+  }finally{ mock.timers.reset(); }
+});
+
+test('RF18: a pull and a push share one sync lock -- their network calls never overlap', async () => {
+  freshState();
+  let active = 0, maxActive = 0;
+  function mark(ms){
+    active++; maxActive = Math.max(maxActive, active);
+    return new Promise(resolve => setTimeout(() => { active--; resolve(); }, ms));
+  }
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'a@b.test' } } }) },
+    async rpc(name){
+      if(name !== 'put_library_backup') return { error: null };
+      await mark(20);
+      return { error: null };
+    },
+    from(){
+      return { async select(){ await mark(20); return { data: [], error: null }; } };
+    },
+  };
+  stubSocial(client);
+  // a pull (which ends with its own trailing push) and a separately
+  // requested push, fired back to back -- without the shared B.syncing
+  // gate RF18 adds, the pull's own trailing push could race the
+  // independently-requested one for the exact same row.
+  pullBackupOnForeground();
+  flushBackupSync();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.equal(maxActive, 1, 'the pull and the push must never have an in-flight network call at the same time');
 });
