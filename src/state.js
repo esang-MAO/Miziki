@@ -110,7 +110,7 @@ export function touchBackupField(name){
 }
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
-S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:''};
+S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:'', awaitingReturnOffer:false};
 // Launch intro (cold start only, on by default) — see the launch sequence section
 S.launchSeq = 0;
 S.launchIntro = true;

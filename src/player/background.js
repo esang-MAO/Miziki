@@ -6,6 +6,7 @@ import { ensureContext } from '../audio/engine.js';
 import { play, pause, seek } from './transport.js';
 import { prevTrack, nextTrack } from './controls.js';
 import { queueSave } from '../storage/meta.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 /* ================= background playback (optional) =================
    Off by default, and when it is off none of this runs: audio goes master ->
@@ -235,4 +236,61 @@ export function toggleBgAudio(){
   applyBgAudioSetting();
   bgUpdateUI();
   queueSave();
+}
+
+// RF7 (docs/12_REFINE.md): the "keep it playing in the background?" offer,
+// shown once on return from backgrounding — never at boot, never more than
+// once total. docs/design/refine/ReturnCard.dc.html is the design source
+// for its wording; its own markup lives in miziki.html as #bgOfferCard.
+const BG_OFFER_ANSWERED_KEY = 'miziki-bg-offer-answered';
+
+function bgOfferAnswered(){
+  try{ return localStorage.getItem(BG_OFFER_ANSWERED_KEY) === '1'; }catch(_e){ return false; }
+}
+function markBgOfferAnswered(){
+  try{ localStorage.setItem(BG_OFFER_ANSWERED_KEY, '1'); }catch(_e){}
+}
+
+// Call on visibilitychange -> hidden. Remembers whether losing playback
+// during this hide would actually mean something — a track was genuinely
+// playing, and Background playback is off, so the OS is free to suspend it
+// — so the matching return check (below) can tell "it stopped because we
+// left" from "it was already paused anyway."
+export function bgNoteHidden(){
+  S.bg.awaitingReturnOffer = S.playing && !bgRouteActive();
+}
+
+// Call on visibilitychange -> visible, after the usual foreground work. If
+// this return matches the scenario bgNoteHidden() flagged, and playback
+// really did stop while hidden, show the one-time offer card — never
+// again once either of its buttons has been tapped.
+export function bgCheckReturnOffer(){
+  const awaiting = S.bg.awaitingReturnOffer;
+  S.bg.awaitingReturnOffer = false;
+  if(!awaiting || !BG_SUPPORTED || bgOfferAnswered()) return;
+  // Without a background route, the OS is free to suspend the whole
+  // AudioContext while hidden — nothing in this app resumes it on its
+  // own, so a suspended context (not just a stale S.playing) is the
+  // reliable sign that this is exactly the silence the offer is for.
+  const stoppedWhileHidden = !S.playing || (S.ctx && S.ctx.state === 'suspended');
+  if(!stoppedWhileHidden) return;
+  const card = $('#bgOfferCard');
+  if(!card) return;
+  card.classList.add('open');
+  card.setAttribute('aria-hidden', 'false');
+  openLayer('bg-offer', closeBgOfferCardInstant, { container: card });
+}
+
+function closeBgOfferCardInstant(){
+  const card = $('#bgOfferCard');
+  if(card){ card.classList.remove('open'); card.setAttribute('aria-hidden', 'true'); }
+}
+
+// What the card's own two buttons call — Back/Escape closing it the same
+// way resolves as "Not now" (answered, not turned on), the same default a
+// dismissed confirm dialog gets everywhere else in this app.
+export function resolveBgOffer(turnOn){
+  markBgOfferAnswered();
+  if(turnOn && !S.bgAudio) toggleBgAudio();
+  closeLayer('bg-offer');
 }

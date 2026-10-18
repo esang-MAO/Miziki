@@ -3,7 +3,8 @@
    presets, Scratch, sleeve pull, launch intro, and background playback.
    Every function called here was already a real export of its owning
    module. RF6 (docs/12_REFINE.md) removed Car Mode's motion toggle and
-   floor/max-speed sliders outright.
+   floor/max-speed sliders outright. RF7 added the background-playback
+   return offer card's own two buttons, alongside the existing toggle.
 
    tabs-design-unify removed the four always-visible character sliders,
    leaving only the three presets; a later follow-up (per that branch's
@@ -19,7 +20,7 @@ import { setMode } from '../audio/mode.js';
 import { toggleScratch } from '../player/scrub.js';
 import { toggleSleevePull } from '../sundown/location.js';
 import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
-import { toggleBgAudio, bgUpdateUI } from '../player/background.js';
+import { toggleBgAudio, bgUpdateUI, resolveBgOffer } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
 
 export function wireCharacter(){
@@ -105,4 +106,9 @@ export function wireCharacter(){
   attachLaunchSettingRow();
   $('#bgAudioBtn').addEventListener('click', toggleBgAudio);
   bgUpdateUI();
+
+  // RF7: the once-only "keep it playing in the background?" card shown on
+  // return from backgrounding (src/wiring/lifecycle.js/player/background.js).
+  $('#bgOfferTurnOn').addEventListener('click', () => resolveBgOffer(true));
+  $('#bgOfferNotNow').addEventListener('click', () => resolveBgOffer(false));
 }

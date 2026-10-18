@@ -1,5 +1,4 @@
 import { S } from '../state.js';
-import { $ } from '../util/dom.js';
 import { DB } from '../storage/idb.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
@@ -208,6 +207,5 @@ export function installSocialDemo(){
   MizikiSocial.nowSpinningPaused = () => {};
   MizikiSocial.stopSpinning = () => {};
 
-  $('#homeTabBtn').style.display = '';
   console.info('[Miziki] social demo mode active — fixture data only, for UI development.');
 }

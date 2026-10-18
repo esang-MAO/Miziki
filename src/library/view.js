@@ -619,7 +619,7 @@ function renderTracksBody(host){
 
   else if(v.mode === 'playlists'){
     if(v.playlist === null){
-      if(!S.playlists.length) host.appendChild(el('p','note','No playlists yet. They live for this session only, since the library itself is rebuilt each time you open Miziki.'));
+      if(!S.playlists.length) host.appendChild(el('p','note','Make your first playlist.'));
       // Favorites (and any other system playlist) pinned first, without
       // reordering S.playlists itself — v.playlist indexes the real array
       const order = S.playlists.map((_, n) => n).sort((a, b) => (S.playlists[a].system?0:1) - (S.playlists[b].system?0:1));
