@@ -100,8 +100,18 @@
   font-size:var(--fs-caption);line-height:1.35;display:flex;flex-direction:column;gap:var(--sp-1)}
 .store-pick-stars{font-size:var(--fs-caption);letter-spacing:1.5px;color:#B8641A}
 .store-pick-name{font-size:var(--fs-caption);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.store-pick-empty{flex:none;width:132px;height:132px;border-radius:7px;border:1.5px dashed var(--line);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);background:var(--panel);font-size:var(--fs-caption)}
+/* RF15 (docs/12_REFINE.md, point 4): the cream bin-divider look, same
+   family as the crate's own A-Z/genre dividers (10-crate.css's
+   .crate-divider-tab/.crate-divider-label) — a small "+" tab, rounded only
+   on top, sitting flush above a cream card reading "Pin a record". */
+.store-pick-empty{flex:none;width:132px;height:132px;display:flex;flex-direction:column}
+.store-pick-empty-tab{height:18px;padding:0 10px;border-radius:5px 5px 0 0;background:var(--cream);
+  color:#1A1410;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+  display:flex;align-items:center;flex:none}
+.store-pick-empty-card{flex:1;width:100%;border-radius:0 7px 7px 7px;background:var(--cream);color:#1A1410;
+  box-shadow:inset 0 -3px 0 rgba(21,35,43,.08),var(--sh-2);
+  display:flex;align-items:flex-end;padding:10px;box-sizing:border-box;
+  font-family:var(--data);font-size:var(--fs-caption);font-weight:500;letter-spacing:.06em}
 
 .store-dig-row{display:flex;align-items:center;gap:var(--sp-3);padding:10px;margin-top:9px;
   border:1px solid var(--line);border-radius:12px;background:var(--raised)}

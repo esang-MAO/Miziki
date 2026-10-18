@@ -36,7 +36,10 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
     el(tag, cls, text){ const e = fakeEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; },
   },
 });
-globalThis.document = { documentElement: { style: { setProperty(){} } } };
+// RF15 (docs/12_REFINE.md): setMode() also toggles a 'mode-pure' class on
+// documentElement (for the platter label's Pure-mode flatten) alongside
+// its existing --accent custom-property write.
+globalThis.document = { documentElement: { style: { setProperty(){} }, classList: { toggle(){} } } };
 
 mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
   namedExports: { invalidateActiveSessionIfAny(){} },

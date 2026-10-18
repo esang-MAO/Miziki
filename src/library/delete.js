@@ -111,6 +111,7 @@ export async function deleteTracks(idsToDelete){
       $('#trackName').textContent = 'Nothing on the platter';
       $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
       $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
+      $('#labelTitle').textContent = '';
       applyDiscVariant(null);
       // closePlayer()'s interrupt unconditionally un-hides the disc (skipping
       // "lands" the record) — order matters here since there's no record to
@@ -186,6 +187,7 @@ export async function forgetLibrary(){
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
+  $('#labelTitle').textContent = '';
   applyDiscVariant(null);
   forceCloseLayer('player');
   // closePlayer()'s interrupt may have just finished putting a record away

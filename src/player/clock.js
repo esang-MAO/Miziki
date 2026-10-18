@@ -119,7 +119,12 @@ export function drawSun(){
     }
   }
   $('#rateOut').textContent = S.rate.toFixed(3) + '× · ' + (semis >= -0.05 ? '0.0' : semis.toFixed(1)) + ' st';
-  $('#rpmText').textContent = (33.333 * S.rate).toFixed(1);
+  // RF15 (docs/12_REFINE.md): the platter label's own mono arc — real RPM
+  // (tracks Sundown's drift, same number the plain readout this replaced
+  // always showed) plus the side/format half transport.js's load() cached
+  // on S.labelSideFormat, since that part doesn't change between loads.
+  const arcText = $('#labelArcText');
+  if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
 
   // Pure means untouched — Sundown only ever reaches the recording in Vinyl.
   // The settings below stay live and usable in Pure anyway, since they

@@ -68,6 +68,10 @@ function recomputeTrack(i){
     const lab = $('#label'), img = $('#labelArt');
     if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
     else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
+    // RF15 (docs/12_REFINE.md): the label's own title (visible only
+    // without art) has to follow a retag the same way #trackName/#trackBy
+    // just above already do.
+    $('#labelTitle').textContent = t.tags.album || t.tags.title;
   }
   // NV3: a single-track edit only ever changes that one row's own content
   // (title/artist/art) — patch it in place instead of rebuilding the whole
