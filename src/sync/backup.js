@@ -36,6 +36,10 @@ import { serializePrefs, parsePrefs } from '../storage/prefs.js';
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
 import { idxOf } from '../library/model.js';
 import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION } from './backup-doc.js';
+// RF16 (docs/12_REFINE.md): maxSeqAcross() is a leaf pure function, the
+// same safe-to-import-directly shape as crate/tiers.js/sundown/rhythm.js
+// below — merge.js itself has no imports at all.
+import { maxSeqAcross } from './merge.js';
 // crate/tiers.js is a leaf (only S, sleep, albumKey, artwork) — safe to
 // import directly, unlike library/view.js or record-art/looks.js (see
 // applyMerged()'s own note below for why those two stay out).
@@ -733,6 +737,17 @@ async function pullAndMergeBackup(){
   B.overlaysRawCache = await overlaysRepo.all();
   const ownLocal = buildLocalState();
   const remoteRows = await fetchRemoteRows(client);
+  // RF16 (docs/12_REFINE.md): bump this device's own Lamport counter to at
+  // least as high as any seq it's just seen, *before* merging — so any edit
+  // made after this pull (including ones applyMerged()/the caller's own
+  // post-pull push might trigger) is guaranteed a strictly higher seq than
+  // every stamp this device has ever observed, on any device, regardless of
+  // either device's wall clock.
+  const seenSeq = maxSeqAcross(remoteRows);
+  if(seenSeq > S.backupSeq){
+    S.backupSeq = seenSeq;
+    await meta.put('backupSeq', S.backupSeq);
+  }
   const merged = fromDocs(ownLocal, remoteRows);
   const firstTime = S.backupRestoredFor !== uid;
   await applyMerged(merged, ownLocal, client, uid);

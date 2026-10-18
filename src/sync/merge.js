@@ -97,17 +97,60 @@ export function mergeSealed(rows){
 
 // ---- playlists/albumOrder/albumSort/albumDisplay/trackDisplay/albumEdge/
 // albumLookPref/prefs/profileName: last write wins, per field (B2 table) —
-// each field in a doc's lastWrite carries its own {at, value}, so one
-// device's newer playlist edit never loses to another device's unrelated,
-// but later, crate-anchor change ----
+// each field in a doc's lastWrite carries its own {seq, at, deviceId, value},
+// so one device's newer playlist edit never loses to another device's
+// unrelated, but later, crate-anchor change.
+//
+// RF16 (docs/12_REFINE.md, "edits that know what they've seen"): compares
+// seq first, not at — a plain wall-clock timestamp alone can't tell two
+// devices' edits apart correctly when one device's clock runs slow. seq is
+// a Lamport counter (S.backupSeq, src/state.js): a device's own edit made
+// after it has seen another device's stamp is guaranteed a strictly higher
+// seq than that stamp, regardless of either device's clock. A stamp with no
+// seq at all (a v2-or-earlier doc, before this field existed) reads as 0,
+// so any real seq beats it outright — an old untouched-by-RF16 row always
+// loses to a newer edit from an RF16-aware device. at is the fallback only
+// for two edits that never observed each other (so neither's seq is higher)
+// — the genuinely concurrent case. deviceId is the final, deterministic
+// tiebreak for two edits with the same seq and the same at (two devices
+// starting from the exact same baseline, editing at the exact same
+// millisecond — vanishingly rare, but mergeRows' own "any order, same
+// answer" invariant requires every tie to resolve the same way regardless
+// of row order, and comparing two numbers alone can't guarantee that on its
+// own without a last, order-independent tiebreak).
 export function lastWriteWins(rows, field){
   let winner = null;
   for(const row of rows){
     const entry = row.lastWrite && row.lastWrite[field];
     if(!entry) continue;
-    if(!winner || (entry.at || 0) > (winner.at || 0)) winner = entry;
+    if(!winner || isNewerStamp(entry, winner)) winner = entry;
   }
   return winner ? winner.value : undefined;
+}
+
+function isNewerStamp(a, b){
+  const aSeq = a.seq || 0, bSeq = b.seq || 0;
+  if(aSeq !== bSeq) return aSeq > bSeq;
+  const aAt = a.at || 0, bAt = b.at || 0;
+  if(aAt !== bAt) return aAt > bAt;
+  const aDev = a.deviceId || '', bDev = b.deviceId || '';
+  return aDev > bDev;
+}
+
+// ---- the highest seq seen anywhere across every lastWrite field of every
+// given row (RF16) — src/sync/backup.js's pull path uses this to bump this
+// device's own S.backupSeq to at least as high as anything it's just seen,
+// so its next edit is guaranteed a higher seq than every stamp it has ever
+// observed, on any device ----
+export function maxSeqAcross(rows){
+  let max = 0;
+  for(const row of rows){
+    for(const entry of Object.values(row.lastWrite || {})){
+      const seq = (entry && entry.seq) || 0;
+      if(seq > max) max = seq;
+    }
+  }
+  return max;
 }
 
 // ---- overlays: last edit wins by timestamp; a revert is a tombstone that

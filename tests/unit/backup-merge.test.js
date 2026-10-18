@@ -144,9 +144,9 @@ test('playlist portability: an item for a track only present on another device s
   const a = toDoc(baseLocal('a', {
     tracks: [x],
     playlists: [{ name: 'Mix', items: ['a-local-id'], system: undefined }],
-    updatedAt: { playlists: 500 },
+    updatedAt: { playlists: { at: 500 } },
   }));
-  const b = baseLocal('b', { tracks: [], playlists: [], updatedAt: { playlists: 100 } }); // older -> A's playlist wins LWW
+  const b = baseLocal('b', { tracks: [], playlists: [], updatedAt: { playlists: { at: 100 } } }); // older -> A's playlist wins LWW
   const merged = fromDocs(b, [a]);
   const items = merged.lastWrite.playlists[0].items;
   assert.deepEqual(items, [keyX]);
@@ -215,13 +215,47 @@ test('sealed: a seal broken on one device stays broken after merging with a devi
 
 test('last write wins: an unrelated, later change to one field never clobbers an earlier change to another field', () => {
   const a = toDoc(baseLocal('a', {
-    albumSort: { 'Album X': 'manual' }, updatedAt: { albumSort: 100, crateAnchor: 1 }, prefs: { crateAnchor: 'a1' },
+    albumSort: { 'Album X': 'manual' }, updatedAt: { albumSort: { at: 100 }, crateAnchor: 1 }, prefs: { crateAnchor: 'a1' },
   }));
-  const b = toDoc(baseLocal('b', { prefs: { crateAnchor: 'b1' }, updatedAt: { prefs: 500 } }));
+  const b = toDoc(baseLocal('b', { prefs: { crateAnchor: 'b1' }, updatedAt: { prefs: { at: 500 } } }));
   const merged = mergeRows([a, b]);
   // B's prefs are newer and win, but A's albumSort (a field B never touched/claims no newer write for) must survive
   assert.deepEqual(merged.lastWrite.prefs, { crateAnchor: 'b1' });
   assert.deepEqual(merged.lastWrite.albumSort, { 'Album X': 'manual' });
+});
+
+// ---- RF16 (docs/12_REFINE.md): seq beats a slow clock, deviceId breaks ties ----
+
+test('RF16: a device with a slow clock still wins after editing something it just pulled', () => {
+  // B edits profileName first, at wall-clock time 1000, with seq 1 (its own
+  // first-ever touch).
+  const b = toDoc(baseLocal('b', { profileName: 'B wrote this', updatedAt: { profileName: { seq: 1, at: 1000 } } }));
+  // A's clock is an hour behind: A pulls B's row (so its own backupSeq is
+  // bumped to at least 1, per sync/backup.js's pullAndMergeBackup), then
+  // makes its own edit "after" that -- seq 2 (one more than what it saw),
+  // but at a wall-clock time *earlier* than B's own stamp.
+  const a = toDoc(baseLocal('a', {
+    profileName: 'A wrote this after seeing B',
+    updatedAt: { profileName: { seq: 2, at: 1000 - 3600000 } },
+  }));
+  const merged = mergeRows([a, b]);
+  // seq beats at: A's edit happened-after B's from A's own point of view,
+  // regardless of whose wall clock reads later.
+  assert.equal(merged.lastWrite.profileName, 'A wrote this after seeing B');
+  // Order independence: the same answer regardless of which row comes first.
+  const mergedReversed = mergeRows([b, a]);
+  assert.equal(mergedReversed.lastWrite.profileName, 'A wrote this after seeing B');
+});
+
+test('RF16: equal seq and equal at give the same winner in every row order, via deviceId', () => {
+  const a = toDoc(baseLocal('a', { profileName: 'From A', updatedAt: { profileName: { seq: 5, at: 1000 } } }));
+  const b = toDoc(baseLocal('b', { profileName: 'From B', updatedAt: { profileName: { seq: 5, at: 1000 } } }));
+  const c = toDoc(baseLocal('c', { profileName: 'From C', updatedAt: { profileName: { seq: 5, at: 1000 } } }));
+  const winners = new Set();
+  [[a, b, c], [b, a, c], [c, b, a], [b, c, a]].forEach(order => {
+    winners.add(mergeRows(order).lastWrite.profileName);
+  });
+  assert.equal(winners.size, 1); // exactly one winner, regardless of row order
 });
 
 // ---- robustness ----
@@ -250,7 +284,7 @@ test('round trip: toDoc -> fromDocs with no other devices reproduces this device
     sessionCounts: { Album: 2 },
     rareUnlocked: { Album: true },
     playlists: [{ name: 'Mix', items: ['local-a'], system: undefined }],
-    updatedAt: { playlists: 1 },
+    updatedAt: { playlists: { at: 1 } },
   });
   const merged = fromDocs(local, []);
   assert.equal(merged.totals.counters.trackPlayCounts[trackIdentityKey(t)], 4);
@@ -304,15 +338,15 @@ test('covers: an unresolvable local id (track not currently present) is skipped,
 // ---- step 07 (B4): profile picture / public avatar, last write wins ----
 
 test('picture: a later profile-picture change on another device wins over an earlier one', () => {
-  const a = toDoc(baseLocal('a', { picture: { hash: 'old', updatedAt: 1 }, updatedAt: { picture: 1 } }));
-  const b = toDoc(baseLocal('b', { picture: { hash: 'new', updatedAt: 2 }, updatedAt: { picture: 2 } }));
+  const a = toDoc(baseLocal('a', { picture: { hash: 'old', updatedAt: 1 }, updatedAt: { picture: { at: 1 } } }));
+  const b = toDoc(baseLocal('b', { picture: { hash: 'new', updatedAt: 2 }, updatedAt: { picture: { at: 2 } } }));
   const merged = mergeRows([a, b]);
   assert.deepEqual(merged.lastWrite.picture, { hash: 'new', updatedAt: 2 });
 });
 
 test('picture: an unrelated, later change to a different field never clobbers an earlier picture change', () => {
-  const a = toDoc(baseLocal('a', { picture: { hash: 'mine', updatedAt: 500 }, updatedAt: { picture: 500 } }));
-  const b = toDoc(baseLocal('b', { prefs: { x: 1 }, updatedAt: { prefs: 9999 } }));
+  const a = toDoc(baseLocal('a', { picture: { hash: 'mine', updatedAt: 500 }, updatedAt: { picture: { at: 500 } } }));
+  const b = toDoc(baseLocal('b', { prefs: { x: 1 }, updatedAt: { prefs: { at: 9999 } } }));
   const merged = mergeRows([a, b]);
   assert.deepEqual(merged.lastWrite.picture, { hash: 'mine', updatedAt: 500 });
 });

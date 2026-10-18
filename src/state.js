@@ -100,11 +100,11 @@ export const S = {
 
 export function current(){ return S.tracks[S.index] || null; }
 
-// one last-write timestamp per backed-up field that's otherwise just a
-// bare value (step 06, B3 — see the matching S.backupUpdatedAt default
-// near the bottom of this file for which fields and why). Lives here, not
-// in storage/meta.js, deliberately: state.js is the one module every one
-// of this function's callers (library/view.js, library/favorites.js,
+// one last-write stamp per backed-up field that's otherwise just a bare
+// value (step 06, B3 — see the matching S.backupUpdatedAt default near the
+// bottom of this file for which fields and why). Lives here, not in
+// storage/meta.js, deliberately: state.js is the one module every one of
+// this function's callers (library/view.js, library/favorites.js,
 // library/delete.js, library/thumbs.js, history/sessions.js,
 // profile/screens.js, storage/meta.js itself) already imports for `S`
 // anyway, so this adds zero new real-module dependencies to any of them —
@@ -113,8 +113,22 @@ export function current(){ return S.tracks[S.index] || null; }
 // meta.js's own much larger chain (audio/mode.js, sundown/location.js,
 // player/controls.js, player/background.js, launch/intro.js,
 // sync/backup.js) just to stamp a timestamp.
+//
+// RF16 (docs/12_REFINE.md, "edits that know what they've seen"): a plain
+// Date.now() stamp alone can't tell two devices' edits apart correctly
+// when one device's clock runs slow — a device that pulls another's newer
+// edit and then makes its own, later, edit could still lose to it on the
+// next merge if its clock reads earlier. S.backupSeq is a Lamport counter
+// fixing that: touchBackupField() always increments it first, so any edit
+// made *after* this device has seen another device's stamp (which bumps
+// backupSeq to at least that stamp's own seq — see sync/backup.js's pull
+// path) is guaranteed a strictly higher seq than what it saw, regardless
+// of either device's wall clock. `at` stays only as the tie-break for two
+// edits that never saw each other (src/sync/merge.js's lastWriteWins).
 export function touchBackupField(name){
-  if(S.backupUpdatedAt) S.backupUpdatedAt[name] = Date.now();
+  if(!S.backupUpdatedAt) return;
+  S.backupSeq = (S.backupSeq || 0) + 1;
+  S.backupUpdatedAt[name] = { seq: S.backupSeq, at: Date.now() };
 }
 // Background playback (optional, off by default) — see the section below
 S.bgAudio = false;
@@ -174,15 +188,27 @@ S.slipmatDim = true;
    this is read unless signed in; see src/sync/backup.js's own header. */
 S.deviceId = null;
 S.deviceLabel = null;
+// RF16 (docs/12_REFINE.md, "edits that know what they've seen") — a Lamport
+// logical clock, device-only like deviceId/deviceLabel (never backed up,
+// never part of prefs). touchBackupField() (this file) always increments it
+// before stamping a field; src/sync/backup.js's pull path bumps it to the
+// max of itself and every seq it sees in a remote row, so an edit made after
+// observing another device's stamp is guaranteed a strictly higher seq than
+// that stamp, regardless of either device's wall clock. Restored from meta
+// the same way deviceId is (src/sync/backup.js's ensureDeviceId()).
+S.backupSeq = 0;
 // bumped only by a *full*-scope "Clear listening history" (never the
 // orphaned-only scope) — see history/clear.js and CLAUDE.md's backup table
 S.historyClearedAt = 0;
 // a durable "ever broken" record per album, independent of S.sealed itself
 // (which only ever records "still sealed") — see library/sealed.js
 S.sealedBroken = new Set();
-// one last-write timestamp per backed-up field that's otherwise just a
-// last-value with no timestamp of its own — see storage/meta.js's
-// touchBackupField() and every call site that calls it
+// one last-write stamp per backed-up field that's otherwise just a
+// last-value with no stamp of its own — see state.js's touchBackupField()
+// and every call site that calls it. Since RF16, each value this function
+// itself writes is {seq, at}, not a bare number — the 0 default here is only
+// ever read by lastWriteWins()'s own "no entry yet" fallback (src/sync/
+// merge.js), which treats a falsy entry as absent regardless of shape.
 S.backupUpdatedAt = {
   playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0,
   albumEdge:0, albumLookPref:0, prefs:0, profileName:0,

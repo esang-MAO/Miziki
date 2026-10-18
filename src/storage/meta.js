@@ -45,6 +45,12 @@ async function saveMeta(){
   await meta.put('prefs', serializePrefs(S));
   touchBackupField('prefs');
   await meta.put('backupUpdatedAt', S.backupUpdatedAt);
+  // RF16 (docs/12_REFINE.md): S.backupSeq only ever moves forward (bumped by
+  // touchBackupField() just above, via 'prefs', and by every other field's
+  // own touch site; bumped again on pull by sync/backup.js's own meta.put)
+  // — persisted here too so a plain local edit's bump survives a reload
+  // even before the next sign-in/sync ever runs.
+  await meta.put('backupSeq', S.backupSeq);
   scheduleBackupSync();
 }
 
@@ -57,6 +63,8 @@ export async function restoreMeta(){
   if(srt) S.albumSort = srt;
   const bua = await meta.get('backupUpdatedAt');
   if(bua) Object.assign(S.backupUpdatedAt, bua);
+  const bseq = await meta.get('backupSeq');
+  if(typeof bseq === 'number') S.backupSeq = bseq;
   const hca = await meta.get('historyClearedAt');
   if(typeof hca === 'number') S.historyClearedAt = hca;
   // RF4 (docs/12_REFINE.md) — restores the last pull's merged counter
