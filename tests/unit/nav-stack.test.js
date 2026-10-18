@@ -335,3 +335,33 @@ test('applyInert: a layer with no container (or one not actually in the tree) fa
   closeLayer('no-container');
   assert.equal(isInert(body), false);
 });
+
+// Regression coverage for the real bug this fixes: the Sundown sheet
+// (src/shell/sundown-sheet.js) is made of two separate top-level siblings
+// — the sheet itself and its own scrim — not one container with the other
+// nested inside it, the way every .edit-overlay/.share-overlay in this app
+// is. Passing only the sheet as `container` used to mark the scrim inert
+// as "just another background sibling," which silently disabled the
+// scrim's own CSS `pointer-events:auto` rule (`inert`'s UA style always
+// wins over author CSS) — so tapping the dimmed backdrop to dismiss the
+// sheet stopped working. `opts.container` must accept an array and protect
+// every element in it.
+test('applyInert: an array container (the Sundown sheet + its own separate scrim sibling) keeps every one of them reachable, not just the first', () => {
+  const sheet = makeTreeEl('sundownSheet');
+  const scrim = makeTreeEl('sundownSheetScrim');
+  const wrap = makeTreeEl('wrap');
+  const miniPlayer = makeTreeEl('miniPlayer');
+  const body = makeTreeEl('body', [wrap, miniPlayer, scrim, sheet]);
+
+  initNavStack(body);
+  openLayer('sundown-sheet', () => {}, { container: [sheet, scrim] });
+
+  assert.equal(isInert(sheet), false, 'the sheet itself must stay reachable');
+  assert.equal(isInert(scrim), false, 'the scrim must stay reachable too, or its own tap-to-dismiss silently breaks');
+  assert.equal(isInert(wrap), true);
+  assert.equal(isInert(miniPlayer), true);
+
+  closeLayer('sundown-sheet');
+  assert.equal(isInert(wrap), false);
+  assert.equal(isInert(miniPlayer), false);
+});
