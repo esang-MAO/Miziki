@@ -160,6 +160,29 @@ test('refreshHome: patches the feed holder in place without rebuilding the shell
   assert.equal(homeBody.children.length, shellCount, 'refreshHome() never adds/removes a top-level section');
 });
 
+// RF2 (docs/12_REFINE.md): hiding a record must also drop it from the
+// cache, so a friend's own next-launch "show the cache immediately" paint
+// never flashes a record the server no longer returns at all. saveFeedCache()
+// is a full overwrite, never a merge (home.js's own refreshHome(), just
+// above) -- this proves that's actually true end to end: a previously
+// cached event the server stops returning is gone from the cache after one
+// refresh, with no code change needed for this item of RF2.
+test('refreshHome: a record the server stops returning disappears from the cache, not just the screen', async () => {
+  resetHome({ social: { homeFeed: async () => ({ ok:true, events:[fakeEvent('a'), fakeEvent('b')] }) } });
+  await renderHome(); // caches events a+b
+  assert.deepEqual(JSON.parse(localStorage.getItem('miziki-home-feed-cache')).events.map(e => e.title),
+    ['Album a', 'Album b']);
+
+  // the record behind event 'b' got hidden server-side (RF2's own fix) --
+  // the next homeFeed() response no longer includes it at all. Swapping the
+  // mock in place (not calling resetHome() again, which would also wipe the
+  // very cache this test is checking) simulates a plain later refresh.
+  globalThis.MizikiSocial.homeFeed = async () => ({ ok:true, events:[fakeEvent('a')] });
+  await renderHome();
+  const cached = JSON.parse(localStorage.getItem('miziki-home-feed-cache')).events;
+  assert.deepEqual(cached.map(e => e.title), ['Album a'], 'the hidden record\'s event was dropped, not kept alongside the new response');
+});
+
 test('clearHomeFeedCache: removes the cache and forces the shell to rebuild on the next renderHome()', async () => {
   resetHome();
   await renderHome();

@@ -568,5 +568,90 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await t('set_now_spinning: exactly one overload exists after the migration, not two',()=>{
    assert.equal(q1(`select count(*) from pg_proc where proname='set_now_spinning' and pronamespace=(select oid from pg_namespace where nspname='public')`), '1'); });
 
+ // RF2 (docs/12_REFINE.md, migration 009_feed_privacy.sql): hiding a record
+ // used to leave its 'added'/'unlock' feed_events rows in place -- only
+ // 'pinned'/'review' were ever deleted when visibility went private. Fresh
+ // fixture users, not UID/UID2 -- by this point in the file UID's own
+ // auth.users row no longer exists (the real deleteAccount() test above
+ // genuinely deletes it), the same reasoning the DA5/DA6 sections above
+ // already state for their own RUID_*/SUID fixture users.
+ const FUID_A='e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1',
+       FUID_B='e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2';
+ psql(`insert into auth.users values ('${FUID_A}'),('${FUID_B}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values
+     ('${FUID_A}','rf2owner','RF2 Owner','friends'),
+     ('${FUID_B}','rf2friend','RF2 Friend','friends')
+   on conflict do nothing;
+   insert into follows(follower_id,followee_id) values ('${FUID_B}','${FUID_A}') on conflict do nothing;
+   update follows set status='accepted' where follower_id='${FUID_B}' and followee_id='${FUID_A}'`);
+
+ await t('RF2: going private removes the added event too, not just pinned/review',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-1','RF2 Album','RF2 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-1'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   assert.equal(asUser(FUID_B, `select count(*) from home_feed_rich() where release_id='${relId}' and type='added'`), '1',
+     'a friend sees the added event while the record is public');
+   asUser(FUID_A, `update crate_items set visibility='private' where user_id='${FUID_A}' and release_id='${relId}'`);
+   assert.equal(asUser(FUID_B, `select count(*) from home_feed_rich() where release_id='${relId}' and type='added'`), '0',
+     'a friend must no longer see it once the record is private');
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
+     'the private item leaves no feed_events row at all, not a hidden one'); });
+
+ await t('RF2: going private also removes a pre-existing unlock event',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-2','RF2 Album 2','RF2 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-2'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   asUser(FUID_A, `insert into verified_stats(user_id,release_id,unlocked_variant) values ('${FUID_A}','${relId}','gold')
+     on conflict (user_id,release_id) do update set unlocked_variant=excluded.unlocked_variant`);
+   assert.equal(asUser(FUID_B, `select count(*) from home_feed_rich() where release_id='${relId}' and type='unlock'`), '1',
+     'a friend sees the unlock event while the record is public');
+   asUser(FUID_A, `update crate_items set visibility='private' where user_id='${FUID_A}' and release_id='${relId}'`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}' and type='unlock'`), '0',
+     'the unlock event is gone too, not just hidden from the friend'); });
+
+ await t('RF2: deleting a crate item entirely removes its added/unlock events (crate_items_after_delete)',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-3','RF2 Album 3','RF2 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-3'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   asUser(FUID_A, `insert into verified_stats(user_id,release_id,unlocked_variant) values ('${FUID_A}','${relId}','silver')
+     on conflict (user_id,release_id) do update set unlocked_variant=excluded.unlocked_variant`);
+   assert.ok(+asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`) >= 2);
+   asUser(FUID_A, `delete from crate_items where user_id='${FUID_A}' and release_id='${relId}'`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
+     'removing the record from the crate removes every one of its feed_events rows, added/unlock included'); });
+
+ await t('rebuild_feed_events: reproduces the same visible feed the triggers would, repairing a stale row a bad trigger left behind',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-4','RF2 Rebuild Public','RF2 Artist') on conflict do nothing`);
+   const relPublic = asUser(FUID_A, `select id from releases where release_key='rf2-rel-4'`);
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-5','RF2 Rebuild Private','RF2 Artist') on conflict do nothing`);
+   const relPrivate = asUser(FUID_A, `select id from releases where release_key='rf2-rel-5'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,pin_rank) values ('${FUID_A}','${relPublic}','public',null)
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relPrivate}','private')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   // simulate the exact damage a bad trigger (pre-009) would have left: a
+   // stale 'added' row for the private item. A plain q1()/psql() call runs
+   // as the superuser the test harness connects as (no "set role"/jwt
+   // claim, unlike asUser()), so this writes the row directly rather than
+   // going through crate_items_emit_events at all -- modeling "the trigger
+   // itself was wrong for a while," not a way around today's fixed one.
+   q1(`insert into feed_events(actor_id,type,release_id,payload) values ('${FUID_A}','added','${relPrivate}','{"count":1}'::jsonb)`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relPrivate}'`), '1',
+     'the stale row is really there before the rebuild');
+   asUser(FUID_A, `select rebuild_feed_events('${FUID_A}')`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relPrivate}'`), '0',
+     'rebuild_feed_events drops the stale private-item row, same as the fixed trigger would have');
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relPublic}' and type='added'`), '1',
+     'the still-public item\'s own added event survives the rebuild'); });
+
+ await t('rebuild_feed_events: can only ever rebuild the callers own feed',()=>{
+   let threw = false;
+   try{ asUser(FUID_B, `select rebuild_feed_events('${FUID_A}')`); }
+   catch(e){ threw = /can only rebuild your own feed/.test(e.message); }
+   assert.ok(threw, 'expected rebuild_feed_events to refuse rebuilding someone elses feed'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
