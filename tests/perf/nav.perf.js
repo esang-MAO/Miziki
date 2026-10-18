@@ -9,6 +9,16 @@
 // docs/perf/BASELINE.md, is NV1's one-time snapshot and isn't meant to be
 // silently overwritten by a later PR's run (pass --out to avoid that).
 //
+// RF5 (docs/12_REFINE.md, point 4) changed every timed measurement below
+// from one sample to REPS (15) repetitions, reporting the median and p95
+// instead — a single run is noisy enough (GC pauses, other processes on
+// the machine) that one sample can make a real regression or improvement
+// look like machine noise, or the reverse. It also added two rows that
+// aren't click-to-frame timings at all: restoreLibrary() wall-clock time
+// at 2,000 tracks (also median/p95 over REPS reloads), and the backup
+// doc's own byte size at the same library size (a single deterministic
+// computation, not a timing sample — see buildBackupDocSizeReport() below).
+//
 // What it measures, each under 4x CPU throttling (an approximation of an
 // iPhone's CPU relative to a dev machine — Chrome DevTools' own "4x
 // slowdown" preset) against a synthetic library of 2,000 tracks / 180
@@ -24,6 +34,14 @@
 //   - frames "dropped" (frame interval > 33ms, i.e. missed 60fps by more
 //     than one frame) over a few seconds on the Sundown tab, where
 //     drawSun() ticks the sky roughly every 220ms
+//   - restoreLibrary() wall-clock time, a full page reload to the library
+//     list actually rendering, at 2,000 tracks
+//   - the backup doc's own byte size at 2,000 tracks / 180 albums, every
+//     track played at least once (a steady-state estimate, not a cold one)
+//
+// Running every timed measurement 15x (instead of once) makes a full run
+// take noticeably longer than NV1's original pass — expected, and still
+// fine for a by-hand, not-in-CI tool.
 //
 // Uses the Chromium build already installed in this environment
 // (PLAYWRIGHT_BROWSERS_PATH) via @playwright/test's chromium launcher,
@@ -35,13 +53,16 @@ import { readdirSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveDist } from './lib/static-server.js';
-import { buildSyntheticLibrary } from './lib/synthetic-library.js';
+import { buildSyntheticLibrary, buildSyntheticLocalState } from './lib/synthetic-library.js';
+import { trackIdentityKey, albumKey } from '../../src/record-art/tiers.js';
+import { toDoc } from '../../src/sync/backup-doc.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
 const CPU_THROTTLE_RATE = 4;
 const TRACK_COUNT = 2000;
 const ALBUM_COUNT = 180;
+const REPS = 15;   // RF5, point 4: 15 repetitions per timed measurement
 
 function findChromiumExecutable(){
   const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
@@ -61,6 +82,22 @@ function parseArgs(argv){
     if(argv[i] === '--out' && argv[i+1]){ out.outPath = path.resolve(argv[i+1]); i++; }
   }
   return out;
+}
+
+// RF5, point 4: median/p95 over a sample, filtering out any null a
+// best-effort measurement can return (e.g. a selector that never resolved).
+function median(sorted){
+  if(!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
+}
+function p95(sorted){
+  if(!sorted.length) return null;
+  return sorted[Math.min(sorted.length - 1, Math.ceil(0.95 * sorted.length) - 1)];
+}
+function stats(samples){
+  const clean = samples.filter(v => v !== null && v !== undefined).sort((a,b) => a-b);
+  return { n: clean.length, median: round2(median(clean)), p95: round2(p95(clean)) };
 }
 
 // Clicks `selector` and resolves once two rAF callbacks have fired after
@@ -122,6 +159,94 @@ async function measureDroppedFrames(page, durationMs = 3000){
   }), durationMs);
 }
 
+// RF5, point 4: runs `measureClickToFrame` for one tab REPS times, clicking
+// away to `otherRoute` and back each rep so every sample is a genuine
+// switch-in, not a no-op re-click of the already-active tab.
+async function measureTabSwitchRepeated(page, route, otherRoute, reps = REPS){
+  const samples = [];
+  for(let i = 0; i < reps; i++){
+    await page.click(`#tabbar [data-route="${otherRoute}"]`).catch(() => {});
+    await page.waitForTimeout(120);
+    samples.push(await measureClickToFrame(page, `#tabbar [data-route="${route}"]`));
+    await page.waitForTimeout(120);
+  }
+  return stats(samples);
+}
+
+// RF5, point 4: the same 5-second scroll window as before, just run REPS
+// times — each of the three scroll metrics (count/total/longest) gets its
+// own median/p95 across those runs.
+async function measureScrollRepeated(page, reps = REPS, durationMs = 5000){
+  const counts = [], totals = [], longests = [];
+  for(let i = 0; i < reps; i++){
+    const r = await measureLongTasksDuringScroll(page, durationMs);
+    counts.push(r.count); totals.push(r.totalMs); longests.push(r.longestMs);
+    await page.waitForTimeout(100);
+  }
+  return { count: stats(counts), totalMs: stats(totals), longestMs: stats(longests) };
+}
+
+// RF5, point 4: opens then closes `openSel`/`closeSel` REPS times in a row,
+// reporting open/close each as their own median/p95 — the generic shape
+// behind the player, queue and gatefold sheet measurements below.
+async function measureOpenCloseRepeated(page, openSel, closeSel, reps = REPS, waitMs = 200){
+  const opens = [], closes = [];
+  for(let i = 0; i < reps; i++){
+    opens.push(await measureClickToFrame(page, openSel));
+    await page.waitForTimeout(waitMs);
+    closes.push(await measureClickToFrame(page, closeSel));
+    await page.waitForTimeout(waitMs);
+  }
+  return { open: stats(opens), close: stats(closes) };
+}
+
+async function measureDroppedFramesRepeated(page, reps = REPS, durationMs = 3000){
+  const frames = [], dropped = [];
+  for(let i = 0; i < reps; i++){
+    const r = await measureDroppedFrames(page, durationMs);
+    frames.push(r.frames); dropped.push(r.dropped);
+  }
+  return { frames: stats(frames), dropped: stats(dropped) };
+}
+
+// RF5, point 4: wall-clock from `page.reload()` to restoreLibrary() actually
+// finishing, REPS times — a coarser, Playwright-side timer than the
+// in-page `performance.now()` measurements above, since the page itself
+// goes away and comes back; still a meaningful, reproducible estimate of
+// restoreLibrary()'s own real-world cost at this library size. Waits on
+// `#storeNote`'s own "N tracks restored from this device" text (src/main.js's
+// restoreLibrary(), written unconditionally once the library has loaded)
+// rather than `.tracklist li` — the gatefold measurement just above this one
+// switches the library into crate layout, which never renders `.tracklist
+// li` rows at all, so that selector alone would hang forever once this runs
+// after it.
+async function measureRestoreLibraryRepeated(page, reps = REPS){
+  const samples = [];
+  for(let i = 0; i < reps; i++){
+    const t0 = Date.now();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(
+      () => (document.querySelector('#storeNote')?.textContent || '').includes('restored from this device'),
+      { timeout: 20000 },
+    );
+    samples.push(Date.now() - t0);
+  }
+  return stats(samples);
+}
+
+// RF5, point 4: not a timing sample — a single, deterministic estimate of
+// library_backup.doc's own byte size (CLAUDE.md's 2MB column cap) at this
+// same synthetic library size, every track played at least once (a
+// steady-state estimate, not a near-empty cold one). Pure computation, no
+// browser involved — src/sync/backup-doc.js's toDoc() needs only the
+// localState snapshot tests/perf/lib/synthetic-library.js's own
+// buildSyntheticLocalState() builds from the same tracks array.
+function buildBackupDocSizeReport(tracks){
+  const localState = buildSyntheticLocalState(tracks, { trackIdentityKey, albumKey });
+  const doc = toDoc(localState);
+  return { bytes: Buffer.byteLength(JSON.stringify(doc), 'utf8') };
+}
+
 async function seedLibrary(page){
   const tracks = buildSyntheticLibrary(TRACK_COUNT, ALBUM_COUNT);
   await page.evaluate((recs) => new Promise((resolve, reject) => {
@@ -171,52 +296,56 @@ async function main(){
     const client = await page.context().newCDPSession(page);
     await client.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE_RATE });
 
-    const results = { trackCount: TRACK_COUNT, albumCount: ALBUM_COUNT, cpuThrottle: CPU_THROTTLE_RATE, tabs: {}, scroll: null, sheets: {}, sundown: null, notes: [] };
+    const results = { trackCount: TRACK_COUNT, albumCount: ALBUM_COUNT, cpuThrottle: CPU_THROTTLE_RATE, reps: REPS,
+      tabs: {}, scroll: null, sheets: {}, sundown: null, restoreLibrary: null, backupDoc: null, notes: [] };
 
-    // --- Tab switch timing ---
+    // --- Backup doc size (RF5, point 4) — pure computation, no page needed ---
+    results.backupDoc = buildBackupDocSizeReport(buildSyntheticLibrary(TRACK_COUNT, ALBUM_COUNT));
+
+    // --- Tab switch timing (REPS reps each) ---
     const tabs = await page.$$eval('#tabbar [data-route]', (els) => els
       .filter(el => el.offsetParent !== null || el.style.display !== 'none')
       .map(el => el.getAttribute('data-route')));
     for(const route of tabs){
-      const ms = await measureClickToFrame(page, `#tabbar [data-route="${route}"]`);
-      if(ms !== null) results.tabs[route] = Math.round(ms * 100) / 100;
-      await page.waitForTimeout(150);
+      const otherRoute = tabs.find(r => r !== route) || 'library';
+      console.log(`Tab switch: ${route} (${REPS} reps) …`);
+      results.tabs[route] = await measureTabSwitchRepeated(page, route, otherRoute);
     }
     // back to Library for the scroll measurement
     await page.click('#tabbar [data-route="library"]').catch(() => {});
     await page.waitForTimeout(200);
 
-    // --- Library scroll long tasks ---
-    console.log('Scrolling the library for 5s …');
-    results.scroll = await measureLongTasksDuringScroll(page, 5000);
+    // --- Library scroll long tasks (REPS reps of a 5s scroll) ---
+    console.log(`Scrolling the library for 5s, ${REPS} reps …`);
+    results.scroll = await measureScrollRepeated(page, REPS, 5000);
 
-    // --- Queue sheet open/close ---
+    // --- Queue sheet / player open-close (REPS reps each) ---
     try{
       await page.waitForSelector('#miniTap', { state: 'visible', timeout: 5000 });
-      const playerOpenMs = await measureClickToFrame(page, '#miniTap');
+      await page.click('#miniTap');   // open once, unmeasured, to check whether the queue button exists
       await page.waitForTimeout(250);
       const queueVisible = await page.$('#queueBtn:visible').catch(() => null);
-      let queueOpenMs = null, queueCloseMs = null;
       if(queueVisible){
-        queueOpenMs = await measureClickToFrame(page, '#queueBtn');
-        await page.waitForTimeout(200);
-        queueCloseMs = await measureClickToFrame(page, '#queueClose');
-        await page.waitForTimeout(150);
+        console.log(`Queue sheet open/close, ${REPS} reps …`);
+        results.sheets.queue = await measureOpenCloseRepeated(page, '#queueBtn', '#queueClose', REPS, 200);
       } else {
         results.notes.push('Queue sheet: #queueBtn was not visible (queue may have had only one track) — skipped.');
       }
-      const playerCloseMs = await measureClickToFrame(page, '#playerDismiss');
-      results.sheets.player = { open: round2(playerOpenMs), close: round2(playerCloseMs) };
-      if(queueOpenMs !== null) results.sheets.queue = { open: round2(queueOpenMs), close: round2(queueCloseMs) };
+      await page.click('#playerDismiss').catch(() => {});
+      await page.waitForTimeout(150);
+
+      console.log(`Player open/close, ${REPS} reps …`);
+      results.sheets.player = await measureOpenCloseRepeated(page, '#miniTap', '#playerDismiss', REPS, 200);
     }catch(e){
       results.notes.push('Player/queue sheet timing failed: ' + e.message);
     }
 
-    // --- Gatefold open/close (best-effort) ---
+    // --- Gatefold open/close (best-effort, REPS reps) ---
     // The library layout toggle (list/crate) lives in the "Library tools"
     // disclosure on the Profile home screen (#libTools — see its own
     // comment in miziki.html), not under the Library tab itself, so this
-    // has to detour through Profile before coming back.
+    // has to detour through Profile before coming back. Switching into
+    // crate layout is a one-time setup step, not part of the measured reps.
     try{
       await page.click('#tabbar [data-route="profile"]');
       await page.waitForSelector('#libToolsToggle', { state: 'visible', timeout: 5000 });
@@ -225,24 +354,32 @@ async function main(){
       await page.click('#libLayoutToggle [data-layout="crate"]');
       await page.click('#tabbar [data-route="library"]');
       await page.waitForSelector('.crate-card', { state: 'visible', timeout: 5000 });
-      const gfOpenMs = await measureClickToFrame(page, '.crate-card.crate-current, .crate-card');
-      await page.waitForTimeout(300);
-      const closeSel = await page.$('.gf-back, [aria-label="Close"]').catch(() => null);
-      let gfCloseMs = null;
-      if(closeSel) gfCloseMs = await measureClickToFrame(page, '.gf-back, [aria-label="Close"]');
-      results.sheets.gatefold = { open: round2(gfOpenMs), close: round2(gfCloseMs) };
+      const closeSel = '.gf-back, [aria-label="Close"]';
+      const openSel = '.crate-card.crate-current, .crate-card';
+      const hasClose = await page.$(closeSel).catch(() => null);
+      if(hasClose){
+        console.log(`Gatefold open/close, ${REPS} reps …`);
+        results.sheets.gatefold = await measureOpenCloseRepeated(page, openSel, closeSel, REPS, 300);
+      } else {
+        results.notes.push('Gatefold timing: close selector never resolved — skipped.');
+      }
     }catch(e){
       results.notes.push('Gatefold timing skipped: ' + e.message.split('\n')[0]);
     }
 
-    // --- Sundown sky dropped frames ---
+    // --- Sundown sky dropped frames (REPS reps of a 3s window) ---
     try{
       await page.click('#tabbar [data-route="sundown"]');
       await page.waitForTimeout(300);
-      results.sundown = await measureDroppedFrames(page, 3000);
+      console.log(`Sundown dropped frames, ${REPS} reps …`);
+      results.sundown = await measureDroppedFramesRepeated(page, REPS, 3000);
     }catch(e){
       results.notes.push('Sundown dropped-frames measurement failed: ' + e.message);
     }
+
+    // --- restoreLibrary() wall-clock time at 2,000 tracks (REPS reloads) ---
+    console.log(`restoreLibrary() reload timing, ${REPS} reps …`);
+    results.restoreLibrary = await measureRestoreLibraryRepeated(page, REPS);
 
     const md = renderMarkdown(results);
     mkdirSync(path.dirname(outPath), { recursive: true });
@@ -257,6 +394,14 @@ async function main(){
 
 function round2(v){ return v === null || v === undefined ? null : Math.round(v * 100) / 100; }
 
+// RF5, point 4: a {n, median, p95} stats object rendered as "median / p95"
+// (or "n/a" when nothing was sampled) — one small helper so every table
+// below renders it the same way.
+function fmtStats(s){
+  if(!s || s.n === 0) return 'n/a';
+  return `${s.median} / ${s.p95}`;
+}
+
 function renderMarkdown(r){
   const lines = [];
   lines.push('# Navigation performance baseline (NV1)');
@@ -264,37 +409,51 @@ function renderMarkdown(r){
   lines.push(`Generated ${new Date().toISOString()} by \`npm run perf\` (tests/perf/nav.perf.js).`);
   lines.push('');
   lines.push(`Synthetic library: **${r.trackCount} tracks / ${r.albumCount} albums**, no real audio. `
-    + `CPU throttled **${r.cpuThrottle}x** (Chrome DevTools' own "4x slowdown" preset, an approximation of an iPhone relative to a dev machine).`);
+    + `CPU throttled **${r.cpuThrottle}x** (Chrome DevTools' own "4x slowdown" preset, an approximation of an iPhone relative to a dev machine). `
+    + `Every timed measurement below is **${r.reps} repetitions**, reported as median / p95 (RF5, \`docs/12_REFINE.md\`, point 4).`);
   lines.push('');
   lines.push('Not run in CI — timings vary by machine. Re-run with `npm run perf` after a later NV PR and add a before/after table to that PR\'s description.');
   lines.push('');
-  lines.push('## Tab switch: click to next painted frame');
+  lines.push('## Tab switch: click to next painted frame (median / p95, ms)');
   lines.push('');
-  lines.push('| Tab | Time (ms) |');
-  lines.push('|---|---|');
-  for(const [route, ms] of Object.entries(r.tabs)) lines.push(`| ${route} | ${ms ?? 'n/a'} |`);
+  lines.push('| Tab | Median / p95 (ms) | n |');
+  lines.push('|---|---|---|');
+  for(const [route, s] of Object.entries(r.tabs)) lines.push(`| ${route} | ${fmtStats(s)} | ${s.n} |`);
   lines.push('');
-  lines.push('## Library scroll (5s, 2,000 rows)');
+  lines.push(`## Library scroll (5s, 2,000 rows, ${r.reps} reps)`);
   lines.push('');
   if(r.scroll){
-    lines.push(`Long tasks (>50ms): **${r.scroll.count}**, total ${r.scroll.totalMs}ms, longest ${r.scroll.longestMs}ms.`);
+    lines.push(`Long tasks (>50ms) per run — count: **${fmtStats(r.scroll.count)}**, `
+      + `total ${fmtStats(r.scroll.totalMs)}ms, longest ${fmtStats(r.scroll.longestMs)}ms (median / p95).`);
   } else {
     lines.push('n/a');
   }
   lines.push('');
-  lines.push('## Sheets: open/close (click to next painted frame)');
+  lines.push('## Sheets: open/close (click to next painted frame, median / p95, ms)');
   lines.push('');
-  lines.push('| Sheet | Open (ms) | Close (ms) |');
+  lines.push('| Sheet | Open | Close |');
   lines.push('|---|---|---|');
-  for(const [name, t] of Object.entries(r.sheets)) lines.push(`| ${name} | ${t.open ?? 'n/a'} | ${t.close ?? 'n/a'} |`);
+  for(const [name, t] of Object.entries(r.sheets)) lines.push(`| ${name} | ${fmtStats(t.open)} | ${fmtStats(t.close)} |`);
   lines.push('');
-  lines.push('## Sundown sky: dropped frames (3s on the Sundown tab)');
+  lines.push(`## Sundown sky: dropped frames (3s on the Sundown tab, ${r.reps} reps)`);
   lines.push('');
   if(r.sundown){
-    lines.push(`${r.sundown.frames} frames observed, **${r.sundown.dropped}** over the 33ms (one-frame-missed) threshold.`);
+    lines.push(`Frames observed: **${fmtStats(r.sundown.frames)}**, dropped (>33ms, one-frame-missed) `
+      + `**${fmtStats(r.sundown.dropped)}** (median / p95).`);
   } else {
     lines.push('n/a');
   }
+  lines.push('');
+  lines.push(`## restoreLibrary(): reload to library rendered (${r.trackCount} tracks, ${r.reps} reps)`);
+  lines.push('');
+  lines.push(r.restoreLibrary ? `**${fmtStats(r.restoreLibrary)}** ms (median / p95).` : 'n/a');
+  lines.push('');
+  lines.push(`## Backup doc size (\`library_backup.doc\`, ${r.trackCount} tracks / ${r.albumCount} albums, every track played at least once)`);
+  lines.push('');
+  lines.push(r.backupDoc
+    ? `**${r.backupDoc.bytes.toLocaleString('en-US')} bytes** (\`JSON.stringify(toDoc(...))\`, UTF-8) — `
+      + `well under the 2MB \`jsonb\` column cap (CLAUDE.md's "Backup: what gets synced"). Not a timing sample, so no median/p95 — a single deterministic computation at this library size.`
+    : 'n/a');
   if(r.notes.length){
     lines.push('');
     lines.push('## Notes');

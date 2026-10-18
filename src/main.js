@@ -116,12 +116,27 @@ async function restoreLibrary(){
   const note = $('#storeNote');
   const ok = await storage.open();
   if(!ok){
-    note.textContent = 'Storage is not available here, so this library lasts only for the session. '
-      + 'Served from your own address and added to the Home Screen, it persists.';
+    // RF5 (docs/12_REFINE.md, point 3): DB.blocked means another tab already
+    // has this same database open at an older version — genuinely
+    // different from storage being unavailable, and saying so here matters:
+    // the old, shared "lasts only for the session... it persists" message
+    // read as an invitation to keep using the app and add songs, which
+    // would fork this device's own library the moment the other tab closes
+    // and the real, persistent database becomes reachable again.
+    note.textContent = DB.blocked
+      ? 'Miziki is open in another tab. Close it there, then reload this one.'
+      : 'Storage is not available here, so this library lasts only for the session. '
+        + 'Served from your own address and added to the Home Screen, it persists.';
     renderTracks();
     markLibraryReady();
     return;
   }
+  // RF5, point 3: if another tab upgrades the database later in this same
+  // session, this connection closes itself (DB.open()'s own onversionchange
+  // handler) rather than leaving every further read/write to quietly no-op
+  // with nothing said — tell the user plainly, since by then they may be
+  // deep in the app with no reason to suspect storage has gone stale.
+  DB.onNotice(kind => { if(kind === 'staleVersion') showStaleVersionBanner(); });
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){}
   const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
@@ -203,3 +218,17 @@ async function restoreLibrary(){
     installSocialDemo();
   }
 }
+
+// RF5 (docs/12_REFINE.md, point 3): shown once, the first time DB's
+// onversionchange fires in a session (another tab is upgrading the
+// database right now) — every DB.* call already quietly no-ops from that
+// point on (DB.ok is false), so nothing here forks data; this is purely
+// telling the user why, and that reloading is what gets them back to a
+// working, persistent library.
+let staleVersionShown = false;
+function showStaleVersionBanner(){
+  if(staleVersionShown) return;
+  staleVersionShown = true;
+  $('#dbStaleBanner').style.display = 'flex';
+}
+$('#dbStaleReload').addEventListener('click', () => location.reload());

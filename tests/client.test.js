@@ -718,5 +718,35 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    catch(e){ threw = /can only rebuild your own feed/.test(e.message); }
    assert.ok(threw, 'expected rebuild_feed_events to refuse rebuilding someone elses feed'); });
 
+ // RF5 (docs/12_REFINE.md, point 1 -- migrations ledger, migration
+ // 012_migrations_log.sql): private.schema_migrations backfilled 1-11 plus
+ // its own version 12, and never reachable through the Data API roles.
+ await t('migrations ledger: versions 1-12 are all present, in private (not public)',()=>{
+   assert.equal(q1(`select nspname from pg_namespace n join pg_class c on c.relnamespace=n.oid where c.relname='schema_migrations'`),'private');
+   assert.equal(q1(`select count(*) from private.schema_migrations where version between 1 and 12`),'12'); });
+ await t('migrations ledger: neither anon nor authenticated can read or write it',()=>{
+   let threw=false;
+   try{ psql(`set role anon; select count(*) from private.schema_migrations`); }
+   catch(e){ threw = /permission denied/.test(e.message); }
+   assert.ok(threw, 'expected anon to be refused select on private.schema_migrations');
+   threw=false;
+   try{ psql(`set role authenticated; select count(*) from private.schema_migrations`); }
+   catch(e){ threw = /permission denied/.test(e.message); }
+   assert.ok(threw, 'expected authenticated to be refused select on private.schema_migrations too');
+   threw=false;
+   try{ psql(`set role authenticated; insert into private.schema_migrations(version) values (999)`); }
+   catch(e){ threw = /permission denied/.test(e.message); }
+   assert.ok(threw, 'expected authenticated to be refused insert on private.schema_migrations'); });
+ await t('migrations ledger: a double-apply of the same version fails loudly (primary key), the backfill pattern does not',()=>{
+   let threw=false;
+   try{ psql(`insert into private.schema_migrations(version) values (12)`); }
+   catch(e){ threw = /duplicate key value violates unique constraint/.test(e.message); }
+   assert.ok(threw, 'expected a bare re-insert of an existing version to violate the primary key');
+   // the bulk-backfill shape 012 itself uses for 1-11 (on conflict do
+   // nothing) stays a safe no-op, confirming later migrations only need
+   // the plain, loud-on-conflict insert for their own single new version
+   assert.doesNotThrow(() => psql(`insert into private.schema_migrations(version) select generate_series(1,12) on conflict (version) do nothing`));
+   assert.equal(q1(`select count(*) from private.schema_migrations where version between 1 and 12`),'12'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

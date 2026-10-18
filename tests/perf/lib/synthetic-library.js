@@ -7,6 +7,11 @@
 // `blob:null` is enough, since restoreLibrary() never reads it back into
 // `t.blob` at boot (decoding only happens once a track is actually played,
 // via ensureBuffer()).
+//
+// RF5 (docs/12_REFINE.md, point 4) added buildSyntheticLocalState() below —
+// a steady-state localState snapshot (src/sync/backup-doc.js's own toDoc()
+// input shape) built from this same synthetic library, for estimating the
+// backup doc's own byte size at 2,000 tracks / 180 albums.
 
 const ARTISTS = ['Harbor Static', 'Low Tide Radio', 'Civic Daylight', 'Paper Weather', 'Slow Signal',
   'North Platform', 'Amber Transit', 'Quiet Freight', 'Glass Commute', 'Marrow Line'];
@@ -66,4 +71,66 @@ export function buildSyntheticLibrary(trackCount = 2000, albumCount = 180){
     }
   }
   return tracks;
+}
+
+// RF5, point 4: a representative steady-state localState — every track has
+// been played at least once (the realistic long-run case: a library this
+// old has a trackDisplay/trackPlayCounts entry for nearly everything in it,
+// not just a handful of tracks), so the resulting doc size is a meaningful
+// upper-bound-ish estimate against library_backup.doc's 2MB column cap
+// (CLAUDE.md's "Backup: what gets synced"), not an optimistic near-empty
+// one. Built from the exact same `tracks` buildSyntheticLibrary() returns,
+// using the app's own trackIdentityKey()/albumKey() so the doc this
+// produces is shaped exactly like toDoc()'s real output, not an
+// approximation of it.
+export function buildSyntheticLocalState(tracks, { trackIdentityKey, albumKey }){
+  const trackPlayCounts = {}, trackLastPlayed = {}, trackDisplay = {}, trackMetalEligiblePlays = {};
+  const sessionCounts = {}, albumLastPlayed = {}, albumDisplay = {}, metalEligibleSessions = {};
+  const overlaysRaw = [];
+  const now = Date.now();
+
+  tracks.forEach((t, i) => {
+    const tk = trackIdentityKey(t);
+    const plays = 1 + (i % 40);
+    trackPlayCounts[tk] = plays;
+    trackMetalEligiblePlays[tk] = plays;
+    trackLastPlayed[tk] = now - (i % 5000) * 60000;
+    trackDisplay[tk] = { title: t.tags.title, artist: t.tags.artist, art: null };
+    // every 40th track has a small text edit on file — a representative
+    // sample of overlays, not every track (most tracks are never edited)
+    if(i % 40 === 0){
+      overlaysRaw.push({ id: t.id, fields: { title: t.tags.title + ' (edit)' }, editedAt: now - i * 1000 });
+    }
+  });
+  tracks.forEach((t) => {
+    const ak = albumKey(t);
+    if(sessionCounts[ak] !== undefined) return;
+    const sessions = 1 + (sessionCounts._seed = (sessionCounts._seed || 0) + 1) % 30;
+    sessionCounts[ak] = sessions;
+    metalEligibleSessions[ak] = sessions;
+    albumLastPlayed[ak] = now - sessions * 86400000;
+    albumDisplay[ak] = { name: t.tags.album, artist: t.tags.artist, art: null };
+  });
+  delete sessionCounts._seed;
+
+  const favoriteIds = tracks.filter((_, i) => i % 25 === 0).map(t => t.id);
+
+  return {
+    deviceId: 'perf-device-1', historyClearedAt: 0,
+    tracks: tracks.map(t => ({ id: t.id, tags: t.tags })),
+    playlists: [{ name: 'Favorites', system: 'favorites', items: favoriteIds }],
+    albumOrder: {}, albumSort: {}, albumEdge: {}, albumLookPref: {},
+    albumDisplay, trackDisplay,
+    prefs: { mode: 'vinyl', theme: 'auto', char: { wow: 0.4, sat: 0.3, soft: 0.2, comp: 0.5 } },
+    profileName: 'Perf Test',
+    trackPlayCounts, sessionCounts, metalEligibleSessions, trackMetalEligiblePlays,
+    phasePlayCounts: { morning: 120, afternoon: 340, 'golden hour': 80, night: 600 },
+    albumPhaseCounts: {},
+    trackLastPlayed, albumLastPlayed,
+    rareUnlocked: {}, achievements: {}, collection: {},
+    sealedIds: [], brokenSealIds: [],
+    overlaysRaw,
+    picture: null,
+    updatedAt: {},
+  };
 }

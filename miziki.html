@@ -956,6 +956,18 @@
   <button class="cta ghost" id="undoBtn">Undo</button>
 </div>
 
+<!-- RF5 (docs/12_REFINE.md, point 3): shown when another tab upgrades the
+     database (IndexedDB onversionchange) while this tab is open — this
+     tab's own connection to it has already been closed by then
+     (src/storage/idb.js), so reloading is the only way back to a working,
+     persistent library here. Same fixed-banner shape as #undoBanner just
+     above, just with no dismiss but Reload — there's nothing to undo and
+     nothing useful left to do here until the page reloads. -->
+<div class="undo-banner" id="dbStaleBanner" style="display:none">
+  <span>Miziki updated in another tab. Reload.</span>
+  <button class="cta ghost" id="dbStaleReload">Reload</button>
+</div>
+
 <!-- ROW MENU: overflow menu for a single library row -->
 <div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
   <div class="edit-sheet" id="rowMenuSheetBox" style="max-width:420px">
