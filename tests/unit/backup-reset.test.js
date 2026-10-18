@@ -73,6 +73,22 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
   namedExports: { realDayPosition(){ return { phase: 'midday' }; } },
 });
+// RF19 (docs/12_REFINE.md): pushBackup() now computes a checksum on every
+// push via sync/images.js's real sha256Hex (crypto.subtle.digest) -- a real,
+// variably-timed async op that this file's own pullBackupOnForeground()
+// calls (pullAndMergeBackup() always ends with its own trailing pushBackup())
+// didn't have before RF19. Left un-mocked, it occasionally outlasted this
+// file's flushMicrotasks() loop and let a stale in-flight push interleave
+// with a second pullBackupOnForeground() call in the same test, flaking the
+// RF18 fullFetches-count assertions -- the exact same flakiness (and the
+// same fix) tests/unit/backup-sync.test.js's own header documents.
+mock.module(new URL('../../src/sync/images.js', import.meta.url).href, {
+  namedExports: {
+    sha256Hex: () => Promise.resolve('0'.repeat(64)),
+    prepareCoverUpload: async () => { throw new Error('not exercised by this test'); },
+    prepareAvatarUpload: async () => { throw new Error('not exercised by this test'); },
+  },
+});
 // profile/screens.js is a real circular-ish dependent of both clear.js
 // (persistTrackLastPlayed/renderProfile) and backup.js's own applyMerged()
 // path (nothing here) — mocked the same way history.test.js does.

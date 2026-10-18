@@ -35,7 +35,7 @@ import { meta, overlays as overlaysRepo, artwork as artworkRepo, profile as prof
 import { serializePrefs, parsePrefs, rememberUnknownPrefsKeys } from '../storage/prefs.js';
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
 import { idxOf } from '../library/model.js';
-import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION } from './backup-doc.js';
+import { toDoc, fromDocs, resolveIdentityKey, SCHEMA_VERSION, canonicalStringify } from './backup-doc.js';
 // RF16 (docs/12_REFINE.md): maxSeqAcross() is a leaf pure function, the
 // same safe-to-import-directly shape as crate/tiers.js/sundown/rhythm.js
 // below — merge.js itself has no imports at all.
@@ -44,7 +44,7 @@ import { maxSeqAcross } from './merge.js';
 // import directly, unlike library/view.js or record-art/looks.js (see
 // applyMerged()'s own note below for why those two stay out).
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
-import { prepareCoverUpload, prepareAvatarUpload } from './images.js';
+import { prepareCoverUpload, prepareAvatarUpload, sha256Hex } from './images.js';
 // sundown/rhythm.js is a leaf (no imports at all) -- the same safe-to-
 // import-directly shape as crate/tiers.js above, for the exact same reason.
 import { RHYTHM_MIN_PLAYS, computeRhythmShares, rhythmVerdictLabel } from '../sundown/rhythm.js';
@@ -239,6 +239,11 @@ async function pushBackup(){
   await ensureDeviceId();
   B.overlaysRawCache = await overlaysRepo.all();
   const doc = toDoc(buildLocalState());
+  // RF19 (docs/12_REFINE.md, "verify, and keep a way back"), point 1: a
+  // checksum of the doc's own canonical (key-order-independent) JSON form,
+  // computed and sent alongside it — see fetchRemoteRows() below for the
+  // matching verify-on-pull half.
+  const checksum = await sha256Hex(new TextEncoder().encode(canonicalStringify(doc)));
   // RF18: goes through put_library_backup() (migration 013_backup_seq.sql)
   // instead of a plain upsert — its own ON CONFLICT only applies when
   // p_seq is strictly higher than whatever doc_seq is already stored, so
@@ -248,6 +253,7 @@ async function pushBackup(){
   const { error } = await client.rpc('put_library_backup', {
     p_device: S.deviceId, p_seq: seq, p_doc: doc,
     p_device_label: S.deviceLabel, p_schema_version: SCHEMA_VERSION,
+    p_checksum: checksum,
   });
   if(error) throw error;
   await flushPendingImages(client, uid);
@@ -515,8 +521,18 @@ async function ensureRowCache(){
 }
 function persistRowCache(){ meta.put('remoteRowCache', B.rowCache).catch(() => {}); }
 
+// RF19, point 1: a checksum mismatch found during the most recent
+// fetchRemoteRows() call — read by runPull() right after
+// pullAndMergeBackup() resolves, so its own unconditional success-path
+// setStatus({lastError:null}) doesn't silently clobber a checksum failure
+// that happened during a pull that otherwise completed without throwing
+// (a dropped row is reported, never an exception — the rest of the merge
+// still has to proceed with every other, verified row).
+let lastChecksumFailure = null;
+
 async function fetchRemoteRows(client){
   await ensureRowCache();
+  lastChecksumFailure = null;
   // cheap first pass: every device's own cursor, no doc bytes at all
   const { data: cursorRows, error: cursorError } = await client.from(SCHEMA_TABLE).select('device_id, updated_at');
   if(cursorError) throw cursorError;
@@ -533,12 +549,29 @@ async function fetchRemoteRows(client){
   Object.keys(B.rowCache).forEach(id => { if(!seenIds.has(id)) delete B.rowCache[id]; });
   if(changedIds.length){
     const { data: fullRows, error: fullError } = await client.from(SCHEMA_TABLE)
-      .select('device_id, doc, updated_at').in('device_id', changedIds);
+      .select('device_id, doc, updated_at, checksum').in('device_id', changedIds);
     if(fullError) throw fullError;
-    (fullRows || []).forEach(r => { B.rowCache[r.device_id] = { updatedAt: r.updated_at, row: r.doc }; });
+    // RF19, point 1: verify each freshly-fetched row's own checksum before
+    // it's ever allowed to sit in the cache (and thus ever reach a merge).
+    // A row with no checksum at all is a pre-RF19 row — accepted without
+    // verification, for backward compatibility, same as every other
+    // forward/backward-compat rule in this file. A row whose checksum
+    // doesn't match its own doc is corrupted in transit or at rest —
+    // dropped (never cached, so it can never be merged) and reported via
+    // the same lastError the Account screen already surfaces.
+    for(const r of (fullRows || [])){
+      if(r.checksum){
+        const expected = await sha256Hex(new TextEncoder().encode(canonicalStringify(r.doc)));
+        if(expected !== r.checksum){
+          lastChecksumFailure = { message: 'A backup row failed verification and was skipped.', deviceId: r.device_id };
+          continue;
+        }
+      }
+      B.rowCache[r.device_id] = { updatedAt: r.updated_at, row: r.doc };
+    }
     persistRowCache();
   }
-  return seenIds.size ? [...seenIds].map(id => Object.assign({}, B.rowCache[id].row, { deviceId: id })) : [];
+  return [...seenIds].map(id => B.rowCache[id] ? Object.assign({}, B.rowCache[id].row, { deviceId: id }) : null).filter(Boolean);
 }
 
 // Apply only the fields the B2 design says are safe to adopt directly —
@@ -932,7 +965,11 @@ async function runPull(){
   B.syncing = true;
   try{
     await pullAndMergeBackup();
-    setStatus({ backedUp: true, lastSyncedAt: Date.now(), lastError: null });
+    // RF19: a checksum failure during this pull is reported, not thrown —
+    // the rest of the merge still proceeds with every other, verified row
+    // — so it must survive this otherwise-unconditional "pull succeeded"
+    // status update rather than being silently cleared by it.
+    setStatus({ backedUp: true, lastSyncedAt: Date.now(), lastError: lastChecksumFailure });
   }catch(e){
     setStatus({ lastError: { message: (e && e.message) || String(e) } });
   }finally{
