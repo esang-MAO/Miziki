@@ -1,10 +1,17 @@
 /* NV4 (docs/11_SMOOTH_NAVIGATION.md): pull-to-refresh's own indicator,
    wired onto #route-home/#route-profile by src/wiring/pull-refresh.js.
    The indicator sits under the header, translated down by the gesture's
-   own resistance-scaled travel (src/shell/pull-refresh.js); the accessible
-   "Refresh" button and the aria-live status line are reachable by keyboard
-   and screen reader regardless of touch support, so neither is
-   aria-hidden -- only the spinning dot is purely decorative. */
+   own resistance-scaled travel (src/shell/pull-refresh.js); the aria-live
+   status line is reachable by keyboard and screen reader regardless of
+   touch support, so it's never aria-hidden -- only the spinning dot is
+   purely decorative. RF11 (docs/12_REFINE.md, point 4): the accessible
+   "Refresh" trigger used to live inside this same overlay too
+   (.pull-refresh-btn, absolutely positioned) -- it collided with the
+   Settings gear on Profile, since both sat at the same top-right corner.
+   It's now a real in-flow element each route builds for itself (Home:
+   .route-refresh-btn below; Profile: a menu item inside the Settings
+   gear's own popup, src/profile/storefront.js), so .pull-refresh itself
+   carries only the dot and the live region now. */
 /* .route itself (07-routes.css) has no position of its own -- scoped here
    rather than widening that shared rule, since only these two routes ever
    get the indicator. */
@@ -45,23 +52,28 @@
 }
 @keyframes pull-refresh-spin{ to{ transform: rotate(360deg); } }
 
-/* The button is the accessible equivalent of the gesture -- visually small
-   and out of the way, but a real, keyboard-reachable control, not merely a
-   screen-reader-only one, since desktop/no-touch never gets the gesture at
-   all (NV4's own "pull is touch-only" + "accessibility and desktop" rule). */
-.pull-refresh-btn{
-  position: absolute;
-  top: 6px; right: 10px;
-  pointer-events: auto;
+/* Home's own in-flow Refresh button (src/wiring/pull-refresh.js) -- the
+   accessible equivalent of the gesture, a real keyboard-reachable control
+   rather than a screen-reader-only one, since desktop/no-touch never gets
+   the gesture at all (NV4's own "pull is touch-only" + "accessibility and
+   desktop" rule). In normal document flow now, not floating over the
+   route's own content -- the RF11 fix for the overlap this used to have
+   with whatever sat at the top of the route. */
+.route-refresh-btn{
+  display: block;
+  margin: 10px 16px 0 auto;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--data);
+  font-size: 11px;
+  letter-spacing: .06em;
+  border-radius: 4px;
+  padding: 7px 12px;
   /* hidden until keyboard focus (still reachable by Tab and screen readers) */
   opacity: 0;
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 12px;
-  padding: 4px 8px;
 }
-.pull-refresh-btn:focus-visible{ opacity: 1; background: var(--panel); border-radius: 8px; }
+.route-refresh-btn:focus-visible{ opacity: 1; }
 .pull-refresh-live{
   position: absolute;
   width: 1px; height: 1px;
@@ -74,5 +86,5 @@
    visible there; touch devices keep only the pull (button stays
    keyboard-focus-only for accessibility). */
 @media (hover: hover) and (pointer: fine){
-  .pull-refresh-btn{ opacity: 1; }
+  .route-refresh-btn{ opacity: 1; }
 }

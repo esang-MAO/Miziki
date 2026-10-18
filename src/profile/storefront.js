@@ -5,8 +5,9 @@ import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { groupBy } from '../library/model.js';
 import { DB } from '../storage/idb.js';
-import { persistProfile, formatDisplayName, renderProfileExtras, renderProfile } from './screens.js';
+import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
+import { triggerProfileRefresh } from '../shell/pull-refresh.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -42,6 +43,20 @@ export function storeStat(label, value, accent){
   s.appendChild(el('b', null, String(value)));
   s.appendChild(el('span', null, label));
   return s;
+}
+
+// RF11 (docs/12_REFINE.md, "Profile is your crate"): the one row every
+// storefront state links into the new Listening sub-screen (top album/song,
+// metals, collection, the rhythm card — src/profile/screens.js's
+// renderListeningScreen()). Appended right after the stats row in all
+// three storefront states, the same "one home for this content" shape the
+// rest of this redesign already uses elsewhere.
+export function storeListeningRow(){
+  const row = el('button','store-listening-row');
+  row.appendChild(el('span', null, 'Listening'));
+  row.appendChild(el('span','g-chev','›'));
+  row.addEventListener('click', ()=>{ S.profileView.screen = 'listening'; renderProfile(); });
+  return row;
 }
 
 export function storeRequestsCard(requests, onChange){
@@ -133,7 +148,6 @@ export function renderOpenStoreCard(host, authState){
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   appendNameEditor(idBox);
   header.appendChild(idBox);
   host.appendChild(header);
@@ -141,6 +155,7 @@ export function renderOpenStoreCard(host, authState){
   const stats = el('div','store-stats');
   stats.appendChild(storeStat('Records', groupBy('album').length));
   host.appendChild(stats);
+  host.appendChild(storeListeningRow());
 
   const card = el('div','store-open-card');
   card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
@@ -227,17 +242,51 @@ export function renderStorefrontSection(body){
   // the old Character tab onto a new screen reached from here)
   // unreachable in either of them. One button at the very top of every
   // state, rather than three separate additions.
-  const settingsBtn = el('button','profile-settings-btn','Settings ›');
-  settingsBtn.setAttribute('aria-label','Settings');
-  settingsBtn.addEventListener('click', ()=>{ S.profileView.screen = 'settings'; renderProfile(); });
-  body.appendChild(settingsBtn);
-  // D7 (docs/DESKTOP_LAYOUT.md): wraps the two existing top-level pieces
-  // (.store-host below, .profile-extras appended further down) so
-  // src/styles/23-desktop.css's own two-column grid can reach into both
-  // of their children at once — display:contents below 1024px, the same
-  // invisible-scaffolding pattern every prior D-step's own wrapper
-  // already uses, so this changes nothing about how either piece renders
-  // on a phone.
+  // RF11 (docs/12_REFINE.md, point 4): the plain "Settings ›" button and
+  // NV4's own separately-floating, absolutely-positioned keyboard Refresh
+  // button (src/shell/pull-refresh.js) used to visually collide, both
+  // sitting at the top of this same screen. One menu button now covers
+  // both: a real popup (role="menu") with Refresh and Settings items. The
+  // pull gesture itself (src/wiring/pull-refresh.js) is unchanged — this
+  // menu's Refresh item calls the exact same debounced/throttled refresh
+  // function via triggerProfileRefresh(), it just doesn't duplicate the
+  // gesture's own separate floating button any more.
+  const menuWrap = el('div','profile-settings-wrap');
+  const menuBtn = el('button','profile-settings-btn','⚙');
+  menuBtn.setAttribute('aria-haspopup','menu');
+  menuBtn.setAttribute('aria-expanded','false');
+  menuBtn.setAttribute('aria-label','Profile menu');
+  const menu = el('div','profile-settings-menu');
+  menu.setAttribute('role','menu');
+  menu.hidden = true;
+  const closeMenu = ()=>{ menu.hidden = true; menuBtn.setAttribute('aria-expanded','false'); };
+  const refreshItem = el('button','profile-settings-menu-item','Refresh');
+  refreshItem.setAttribute('role','menuitem');
+  refreshItem.addEventListener('click', ()=>{ closeMenu(); triggerProfileRefresh(); });
+  const settingsItem = el('button','profile-settings-menu-item','Settings');
+  settingsItem.setAttribute('role','menuitem');
+  settingsItem.addEventListener('click', ()=>{ closeMenu(); S.profileView.screen = 'settings'; renderProfile(); });
+  menu.appendChild(refreshItem);
+  menu.appendChild(settingsItem);
+  menuBtn.addEventListener('click', ()=>{
+    const open = menu.hidden;
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+  });
+  menuWrap.appendChild(menuBtn);
+  menuWrap.appendChild(menu);
+  body.appendChild(menuWrap);
+  // D7 (docs/DESKTOP_LAYOUT.md): wraps .store-host below so
+  // src/styles/23-desktop.css's own desktop grid can reach it —
+  // display:contents below 1024px, the same invisible-scaffolding pattern
+  // every prior D-step's own wrapper already uses, so this changes nothing
+  // about how this renders on a phone. RF11 (docs/12_REFINE.md, "Profile is
+  // your crate") moved the Top Album/Achievements/Collection/Share content
+  // (formerly renderProfileExtras(), appended into this same grid) out to
+  // its own routed Listening screen (src/profile/screens.js), reached by
+  // the storeListeningRow() every one of the three storefront states below
+  // appends right after its own stats row — so this grid now wraps just
+  // the one piece.
   const grid = el('div','profile-desktop-grid');
   body.appendChild(grid);
   const host = el('div','store-host');
@@ -250,11 +299,9 @@ export function renderStorefrontSection(body){
   // configured + signed-in account. This is the WHOLE profile screen, one
   // continuous view in every state — local-only, not-yet-signed-in, and
   // signed-in all share the same single identity header (storeAvatarButton()/
-  // appendNameEditor()) and the same Top Album/Achievements/Collection/Share
-  // block (renderProfileExtras) right below it; signing in only adds the
-  // extra social pieces (staff picks, followers, digging, requests, now
-  // spinning) into that one view, never a second "profile" section of its
-  // own.
+  // appendNameEditor()); signing in only adds the extra social pieces
+  // (staff picks, followers, digging, requests, now spinning) into that
+  // one view, never a second "profile" section of its own.
   if(!soc.enabled){
     renderLocalStorefront(host);
   } else if(soc.auth === 'ready'){
@@ -262,7 +309,6 @@ export function renderStorefrontSection(body){
   } else {
     renderOpenStoreCard(host, soc.auth);
   }
-  grid.appendChild(renderProfileExtras());
 }
 
 // Local albumId -> social metadata, by way of the same pure adapter the
@@ -289,7 +335,6 @@ function renderLocalStorefront(host){
   header.appendChild(storeAvatarButton());
 
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   const userIn = document.createElement('input');
   userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
   userIn.setAttribute('aria-label','Your crate username');
@@ -309,6 +354,7 @@ function renderLocalStorefront(host){
   stats.appendChild(storeStat('Records', groupBy('album').length));
   stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length, true));
   host.appendChild(stats);
+  host.appendChild(storeListeningRow());
 
   host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
   host.appendChild(storeCrateGrid());
@@ -357,17 +403,21 @@ function storeNowSpinningCard(full, _host){
   return card;
 }
 
+// RF11 (docs/12_REFINE.md): "one empty slot and '0 of 8' in its heading;
+// more slots appear as records are pinned" — a brand-new crate shows
+// exactly one empty slot, not seven, and the heading's own count climbs
+// as each pick is added, rather than every tile existing up front.
 function storePicksSection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'Staff picks'));
+  head.appendChild(el('h2', null, 'Staff picks — ' + full.staffPicks.length + ' of 8'));
   section.appendChild(head);
   const row = el('div','store-picks-row');
   full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
-  for(let i = full.staffPicks.length; i < 8; i++){
+  if(full.staffPicks.length < 8){
     const empty = el('div','store-pick-empty');
     empty.appendChild(el('span', null, 'Pin a record'));
-    empty.appendChild(el('span', null, 'Slot ' + (i + 1) + ' of 8'));
+    empty.appendChild(el('span', null, 'Slot ' + (full.staffPicks.length + 1) + ' of 8'));
     row.appendChild(empty);
   }
   section.appendChild(row);
@@ -440,7 +490,6 @@ function renderStorefront(host, full, requests){
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
   const idBox = el('div','store-id');
-  idBox.appendChild(el('div','store-kicker','YOUR PROFILE'));
   idBox.appendChild(el('h2','store-handle', full.profile.handle));
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
@@ -468,6 +517,7 @@ function renderStorefront(host, full, requests){
   stats.appendChild(storeStat('Followers', full.summary.followers || 0, true));
   stats.appendChild(storeStat('Digging', full.diggingCount || 0));
   host.appendChild(stats);
+  host.appendChild(storeListeningRow());
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
   host.appendChild(storeNowSpinningCard(full, host));
   host.appendChild(storePicksSection(full));

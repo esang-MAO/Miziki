@@ -20,7 +20,10 @@ import { openLayer, closeLayer } from '../shell/nav-stack.js';
    rate, and iOS/Android can still end playback for their own reasons (a call,
    battery saver). If the element cannot start, output falls back to the normal
    path rather than going silent. */
-const BG_NOTE = "Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.";
+// RF11 (docs/12_REFINE.md, point 5): one line — the rest of this copy lives
+// in the static (i) disclosure right next to #bgAudioNote in miziki.html,
+// which this function's own note.textContent write never touches.
+const BG_NOTE = "Keeps music playing when you leave the app or lock the screen.";
 const BG_SUPPORTED = (function(){
   try{
     const AC = window.AudioContext || window.webkitAudioContext;
