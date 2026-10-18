@@ -105,6 +105,74 @@ test('storage unavailable: indexedDB undefined makes every call a safe no-op, no
   }
 });
 
+// RF5 (docs/12_REFINE.md, point 3): DB.blocked distinguishes "another tab
+// already has this database open at an older version" (onblocked) from
+// every other reason open() can fail -- it's the one case storage genuinely
+// isn't unavailable, just unreachable from this tab for now.
+test('DB.blocked is true when another connection blocks this open() (onblocked)', async () => {
+  const factory = freshIndexedDB();
+  resetDB();
+  // simulate a second tab: an older-version connection left open
+  const staleConn = await openAtVersion(factory, 'miziki', 3, (d) => {
+    d.createObjectStore('tracks', { keyPath: 'id' });
+  });
+  const ok = await DB.open();
+  assert.equal(ok, false);
+  assert.equal(DB.ok, false);
+  assert.equal(DB.blocked, true);
+  staleConn.close();
+});
+
+test('DB.blocked resets to false on the next, unblocked open()', async () => {
+  const factory = freshIndexedDB();
+  resetDB();
+  const staleConn = await openAtVersion(factory, 'miziki', 3, (d) => {
+    d.createObjectStore('tracks', { keyPath: 'id' });
+  });
+  assert.equal(await DB.open(), false);
+  assert.equal(DB.blocked, true);
+  staleConn.close();
+  assert.equal(await DB.open(), true);
+  assert.equal(DB.blocked, false);
+  DB.db.close();
+});
+
+// RF5, point 3: onversionchange -- another tab upgrading the database while
+// this tab still holds an open connection to the old version. Closing this
+// connection (rather than leaving it open) is what lets that other tab's
+// own open() actually proceed instead of hanging on its own onblocked.
+test('DB.open() installs an onversionchange handler that closes the connection, flags staleVersion, and notifies', async () => {
+  const factory = freshIndexedDB();
+  resetDB();
+  assert.equal(await DB.open(), true);
+  assert.equal(DB.ok, true);
+
+  let notifiedKind = null;
+  const unsubscribe = DB.onNotice(kind => { notifiedKind = kind; });
+
+  // "another tab" starts an upgrade -- this fires this connection's own
+  // onversionchange per the IndexedDB spec, since both opens share one
+  // underlying database (same factory, same name).
+  const newDb = await new Promise((resolve, reject) => {
+    const r = factory.open('miziki', 5);
+    r.onupgradeneeded = () => {};
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.onblocked = () => reject(new Error('unexpected onblocked -- the old connection should have closed itself'));
+  });
+
+  assert.equal(DB.ok, false, 'this connection must stop being usable once another tab is upgrading past it');
+  assert.equal(DB.staleVersion, true);
+  assert.equal(notifiedKind, 'staleVersion');
+
+  // every DB.* method already treats ok:false as a safe no-op -- confirms
+  // nothing here can fork data by writing against the stale connection
+  assert.equal(await DB.put('tracks', { id: 'x' }), false);
+
+  unsubscribe();
+  newDb.close();
+});
+
 test('put/get/all/del/clear round-trip, including storing and reading back a Blob', async () => {
   freshIndexedDB();
   resetDB();

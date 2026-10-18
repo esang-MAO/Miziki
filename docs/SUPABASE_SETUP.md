@@ -8,6 +8,13 @@ a terminal — every step is in the Supabase dashboard.
 **Do this once**, before any of the backup feature's B1–B3 PRs are merged.
 Those PRs assume a working project with sign-in already tested.
 
+Steps 1–7 below are about **this one project** — the real, production
+Supabase project every migration has gone straight at until step RF5. **See
+"8. Staging: a second project to push migrations through first"** at the
+end of this file for the one-time staging setup RF5 (`docs/12_REFINE.md`,
+point 2) adds on top of all of this, and the workflow every migration from
+`013_...` on should follow.
+
 ---
 
 ## 1. Create the project
@@ -334,3 +341,114 @@ needed to finish Part 0 or to start on B1.
    row appeared with your handle.
 
 Once this works, you're ready for B1.
+
+---
+
+## 8. Staging: a second project to push migrations through first
+
+(Step RF5, `docs/12_REFINE.md`, point 2 — "guardrails for a one-person
+team.")
+
+Through migration 012, every migration has gone straight at the one real
+project from steps 1–7 above, with no intermediate check beyond the local
+Postgres harness (`tests/client.test.js`, `tests/supabase_stub.sql`). That
+harness is a close stand-in for Postgres itself (RLS, triggers, functions),
+but it isn't a real Supabase project: no real `auth.users`/Supabase Auth, no
+real Storage buckets, no realtime publication actually pushing to a client,
+and no Supabase CLI migration history to catch a file applied out of order.
+A migration that only looks right against the local stub can still fail, or
+do the wrong thing, against the real service. With one person doing all of
+this, there's no second reviewer to catch that before it reaches real user
+data — so the check has to be a second environment instead.
+
+### One-time setup
+
+1. **Create a second, free Supabase project**, the same way as step 1 above
+   — any name that's clearly not production works, e.g. "Miziki staging."
+   The free tier is enough; staging never needs to hold real user data,
+   only enough to exercise a migration and the app's own calls against it.
+   Its own free-tier pause-after-a-week behavior (step 1's own note) doesn't
+   matter here the way it does for production — staging being asleep
+   between migrations is fine.
+2. **Install the Supabase CLI** (`npm install -g supabase`, or see
+   [Supabase's own CLI docs](https://supabase.com/docs/guides/cli) for the
+   current install method — this changes faster than this file should try
+   to track it). Unlike steps 1–7 above, this part does need a terminal.
+3. **Link the CLI to a project**, from the repo root:
+   ```
+   supabase link --project-ref <project-ref>
+   ```
+   (`supabase link` stores which project a later `db push` targets; re-run
+   it with the other project's ref to switch targets — the CLI doesn't hold
+   both linked at once.) A project's ref is the subdomain in its own
+   `https://<ref>.supabase.co` URL (step 5 above).
+4. The staging project's own ref/URL/keys are **Ken's own credentials,
+   never committed to this repo** — keep them the same way the production
+   publishable key already lives only in `src/state.js` as a public,
+   RLS-protected value, never the secret key, which never belongs in source
+   control for either project.
+5. To exercise the app itself against staging rather than production, point
+   whichever build is testing at its URL/anon key — easiest as a local,
+   uncommitted override of `src/state.js`'s own
+   `SOCIAL_SUPABASE_URL`/`SOCIAL_SUPABASE_ANON_KEY` for that one test,
+   reverted before committing, never a second code path baked into the app
+   (there is exactly one social config, production's, same as today — see
+   CLAUDE.md's "Social config" section).
+
+### The workflow, from migration 013 on
+
+1. Write the migration as a new numbered file in `supabase/migrations/`,
+   same as always (see CLAUDE.md's own rules: apply in numeric order, never
+   edit an already-applied migration, and — since `012_migrations_log.sql`
+   — open with an assertion that the previous ledger version is present and
+   close by inserting its own).
+2. Validate it against the local Postgres harness first, same as every
+   migration before this step (`tests/client.test.js`) — this is the fast,
+   every-day check and stays the first gate, not a replacement for staging.
+3. **Push to staging first:**
+   ```
+   supabase link --project-ref <staging-project-ref>
+   supabase db push
+   ```
+   `db push` applies whichever migrations in `supabase/migrations/` staging
+   doesn't already have, in order, using the CLI's own migration-history
+   tracking (a second, independent check from `private.schema_migrations`
+   above — the CLI's history lives in staging/production's own
+   `supabase_migrations` schema, not in this repo).
+4. **Exercise it for real against staging** — sign in, run the feature the
+   migration supports, watch for anything the local stub couldn't have
+   caught (a Storage policy, a realtime payload, an actual emailed sign-in
+   code) — the same "verify it worked" instinct steps 2's and 2/006's own
+   sections above already ask for, just against a throwaway project instead
+   of production.
+5. **Only once staging looks right, push to production:**
+   ```
+   supabase link --project-ref <production-project-ref>
+   supabase db push
+   ```
+   (Steps 2–7 above didn't use the CLI at all — they were applied by hand
+   through the dashboard's SQL editor, before this workflow existed. That's
+   fine; the CLI's migration-history tracking only needs to know the
+   migrations it's pushed itself, and `db push` against production the
+   first time under this workflow will simply try to (re-)apply everything
+   in `supabase/migrations/` the CLI hasn't recorded yet — reconcile that
+   the first time by hand if it tries to re-run something already applied
+   by hand earlier, rather than assuming it'll skip them correctly.)
+6. If something's wrong on staging, fix it with a *new* numbered migration
+   file (never edit the one that just ran) and repeat from step 2 —
+   staging is disposable; if it ever gets into a state that's easier to
+   throw away than fix forward, drop and recreate the project rather than
+   trying to reconcile it by hand.
+
+### What staging is for, and what it isn't
+
+- It's the place a migration gets exercised against real Supabase semantics
+  before it ever touches an account that matters.
+- It is not a second copy of production data, not a place to keep real
+  users' information, and not something CI touches — this is a manual,
+  Ken-run step between "the migration passes locally" and "the migration is
+  live," the same one-person-team discipline the rest of
+  `docs/12_REFINE.md`'s Phase A is about.
+- A thread continuing this plan that needs to push a migration through this
+  workflow needs Ken's own staging project ref and CLI link — it can't
+  create or access the staging project itself.
