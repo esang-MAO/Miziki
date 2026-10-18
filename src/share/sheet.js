@@ -72,6 +72,10 @@ export async function openShareSheet(){
   document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.format === format)));
   updateShareActionButtons($('#shareShareBtn'), $('#shareSave'), $('#shareCopy'));
+  // RF10: the sheet always opens collapsed -- a prior session's "More
+  // options" tap shouldn't carry over into the next open.
+  $('#shareMoreBody').hidden = true;
+  $('#shareMoreToggle').setAttribute('aria-expanded', 'false');
   const overlay = $('#shareOverlay');
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden','false');
@@ -109,6 +113,9 @@ export async function openPlayerShareSheet(){
   document.querySelectorAll('#playerShareFormatSeg [data-format]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.format === format)));
   updateShareActionButtons($('#playerShareShareBtn'), $('#playerShareSave'), $('#playerShareCopy'));
+  // RF10: same always-collapsed-on-open rule as the crate sheet above.
+  $('#playerShareMoreBody').hidden = true;
+  $('#playerShareMoreToggle').setAttribute('aria-expanded', 'false');
   const overlay = $('#playerShareOverlay');
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');

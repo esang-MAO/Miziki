@@ -105,8 +105,13 @@
 .share-style-swatch.style-paper{background:#EDE6D6}
 .share-primary{display:block;width:100%;box-sizing:border-box;text-align:center;margin-top:14px;
   background:color-mix(in srgb,var(--accent) 14%,transparent)}
-.share-actions-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.share-actions-row .cta{text-align:center;width:100%;box-sizing:border-box}
+/* RF10 (docs/12_REFINE.md): flex, not a fixed-column grid -- Copy and
+   More options each show/hide independently (canCopyImages(), the
+   disclosure's own open state has no bearing on this row at all), so the
+   row needs to divide evenly between whichever of its 2-3 children are
+   actually visible rather than leaving an empty grid track. */
+.share-actions-row{display:flex;gap:8px;margin-top:8px}
+.share-actions-row .cta{flex:1;text-align:center;box-sizing:border-box}
 
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
