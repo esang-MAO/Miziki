@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile, a new crate</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div aria-hidden="true" style="height: 12px; background: radial-gradient(circle at 12px 0, #F2A449 11px, transparent 12px) 0 0 / 48px 12px repeat-x, radial-gradient(circle at 36px 0, #EFE9DF 11px, transparent 12px) 0 0 / 48px 12px repeat-x"></div>
+
+<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 8px 8px 0">
+<button aria-label="Menu: Refresh, Settings" aria-haspopup="menu" style="width: 44px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"></path></svg>
+</button>
+</div>
+
+<div style="display: flex; align-items: center; gap: 16px; padding: 8px 16px 0">
+<span style="width: 64px; height: 64px; border-radius: 32px; flex-shrink: 0; background: repeating-radial-gradient(circle, #15161B 0px, #15161B 2px, #1C1D23 3px); box-shadow: 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center"><span style="width: 22px; height: 22px; border-radius: 11px; background: #FF9E2C; display: block"></span></span>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<h1 class="disp" style="margin: 0; font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: .01em">yourname</h1>
+<button style="align-self: flex-start; padding: 0; min-height: 24px; border: 0; background: transparent; color: #94A0A6; font-family: 'Archivo', sans-serif; font-size: 12px">Add your name ›</button>
+</div>
+</div>
+
+<div style="display: flex; gap: 32px; padding: 24px 16px 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="disp" style="font-size: 28px; font-weight: 700; line-height: 1">24</span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">RECORDS</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="disp" style="font-size: 28px; font-weight: 700; line-height: 1">0</span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">STAFF PICKS</span></div>
+</div>
+
+<section style="padding: 32px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 class="disp" style="margin: 0; font-size: 24px; font-weight: 400; letter-spacing: .02em; text-transform: uppercase; color: #94A0A6">Staff picks</h2>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">0 OF 8</span>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-end">
+<button style="width: 104px; height: 120px; padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: flex-start">
+<span class="mono" style="height: 18px; padding: 0 10px; border-radius: 4px 4px 0 0; background: #EFE9DF; color: #15232B; font-size: 10px; letter-spacing: .10em; display: flex; align-items: center">+</span>
+<span style="flex-grow: 1; width: 100%; border-radius: 0 4px 4px 4px; background: #EFE9DF; color: #15232B; display: flex; align-items: flex-end; padding: 10px; box-sizing: border-box; box-shadow: inset 0 -3px 0 rgba(21,35,43,.08), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35)">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; text-align: left; line-height: 1.3">PIN A RECORD</span>
+</span>
+</button>
+<p style="margin: 0 0 8px; font-size: 12px; line-height: 1.45; color: #94A0A6; max-width: 180px">Pick up to eight that say the most about you. Friends see these first.</p>
+</div>
+</section>
+
+<section style="padding: 32px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 class="disp" style="margin: 0; font-size: 24px; font-weight: 400; letter-spacing: .02em; text-transform: uppercase; color: #94A0A6">In the crate</h2>
+<a href="Library.dc.html" class="mono" style="font-size: 11px; letter-spacing: .08em; text-decoration: none; min-height: 32px; display: flex; align-items: center">ALL 24 ›</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+<span style="aspect-ratio: 1 / 1; border-radius: 4px; background: #4A5A52; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: block"></span>
+<span style="aspect-ratio: 1 / 1; border-radius: 4px; background: #5A4A5E; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: block"></span>
+<span style="aspect-ratio: 1 / 1; border-radius: 4px; background: #3E5566; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: block"></span>
+<span style="aspect-ratio: 1 / 1; border-radius: 4px; background: #665A44; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: block"></span>
+</div>
+</section>
+
+<div style="padding: 24px 16px 0">
+<a href="Profile.dc.html" style="min-height: 64px; border-top: 1px solid rgba(239,233,223,.14); text-decoration: none; color: #EFE9DF; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 600">Listening</span>
+<span style="font-size: 12px; line-height: 1.45; color: #94A0A6">Play an album start to finish to earn your first metal.</span>
+</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A0A6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</a>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Library.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">LIBRARY</span>
+</a>
+<a href="HomeSignedOut.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span>
+</a>
+<a href="SundownDay.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="opacity: .8"><path d="M3 17h18M7 17a5 5 0 0 1 10 0M12 4v3M4.9 8.9l2.1 2.1M19.1 8.9L17 11"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">SUNDOWN</span>
+</a>
+<a href="Profile.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg>
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">PROFILE</span>
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

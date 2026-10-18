@@ -32,6 +32,7 @@ import { isProfileRouteVisible, showRoute } from './shell/routes.js';
 import { initNavStack, onRouteRestore } from './shell/nav-stack.js';
 import { initScrollRestoration } from './shell/scroll-memory.js';
 import { renderProfile } from './profile/screens.js';
+import { resetLocalHistory } from './history/clear.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
 import { applyTheme } from './ui/theme.js';
 
@@ -182,6 +183,12 @@ async function restoreLibrary(){
     // much more frequent, per-thumbnail callers.
     if(isProfileRouteVisible()) renderProfile();
   });
+  // RF1 (docs/12_REFINE.md): sync/backup.js can't import history/clear.js
+  // directly for the same reason it can't import library/view.js (its own
+  // header comment) — clear.js reaches that same hub. applyMerged()'s
+  // 'ownReset' branch awaits this listener's own return value (emitAwait,
+  // not plain emit()) before adopting the remote historyClearedAt stamp.
+  onBackup('reset', () => resetLocalHistory());
   initBackupSync();
   MizikiSocial.libraryLoaded();
   $('#homeTabBtn').style.display = MizikiSocial.status().enabled ? '' : 'none';

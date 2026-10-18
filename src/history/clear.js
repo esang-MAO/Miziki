@@ -28,6 +28,33 @@ function filterKeep(dict, keepSet){
   return out;
 }
 
+// RF1 (docs/12_REFINE.md): the full-scope reset, factored out so it can be
+// called from two places with the exact same effect — this module's own
+// clearListeningHistory() below (a local "Clear listening history" tap),
+// and sync/backup.js's applyMerged() when another device's clear turns out
+// to be newer (the 'ownReset' case). Zeroes *and persists* every field a
+// full clear touches — before this existed, applyMerged() only zeroed four
+// counters in memory and persisted none of it, so a reload read the old
+// counts straight back out of meta and the next push re-uploaded them,
+// undoing the clear on every device. Deliberately leaves `historyClearedAt`
+// itself untouched: a local clear stamps today's date, while adopting
+// another device's clear adopts its stamp instead — see each caller.
+export async function resetLocalHistory(){
+  S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
+  S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
+  S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
+  S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
+  S.phasePlayCounts = {}; S.albumPhaseCounts = {};
+  await achievements.clear(); await collection.clear(); await sessions.clear();
+  await pruneThumbs();
+  await Promise.all([
+    persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
+    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
+    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
+    persistPhasePlayCounts(), persistAlbumPhaseCounts()
+  ]);
+}
+
 export async function clearListeningHistory(orphanedOnly){
   if(orphanedOnly){
     const albumIds = currentAlbumIds(), trackKeys = currentTrackKeys();
@@ -57,13 +84,15 @@ export async function clearListeningHistory(orphanedOnly){
     for(const id of droppedAlbums) await achievements.del(id);
     for(const id of droppedCollection) await collection.del(id);
     for(const id of droppedSessions) await sessions.del(id);
+    await pruneThumbs();
+    await Promise.all([
+      persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
+      persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
+      persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
+      persistPhasePlayCounts(), persistAlbumPhaseCounts()
+    ]);
   } else {
-    S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
-    S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
-    S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
-    S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
-    S.phasePlayCounts = {}; S.albumPhaseCounts = {};
-    await achievements.clear(); await collection.clear(); await sessions.clear();
+    await resetLocalHistory();
     // only a *full*-scope clear counts as "I want my stats reset" for the
     // cross-device merge (B2 table) — orphaned-only just prunes identities
     // no longer in *this* device's library, which forcing onto every other
@@ -71,13 +100,6 @@ export async function clearListeningHistory(orphanedOnly){
     S.historyClearedAt = Date.now();
     await meta.put('historyClearedAt', S.historyClearedAt);
   }
-  await pruneThumbs();
-  await Promise.all([
-    persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
-    persistAlbumLastPlayed(), persistAlbumDisplay(), persistAlbumLookPref(),
-    persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(),
-    persistPhasePlayCounts(), persistAlbumPhaseCounts()
-  ]);
   const t = current();
   if(t) applyDiscVariant(t, true);
   const profileRoute = $('#route-profile');

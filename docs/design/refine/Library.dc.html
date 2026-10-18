@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Library, one header row</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 8px 16px">
+<div role="tablist" aria-label="Library view" style="display: flex; gap: 16px">
+<button role="tab" aria-selected="true" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid #FF9E2C; background: transparent; color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">SONGS</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">CRATE</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">ARTISTS</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">PLAYLISTS</button>
+</div>
+<div style="display: flex">
+<button aria-label="Search" style="width: 40px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+</button>
+<button aria-label="Add music" style="width: 40px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+</button>
+<button aria-label="More: select, library tools" style="width: 40px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+</button>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 16px">
+<button class="mono" aria-label="Sort by artist. Change sort" style="min-height: 36px; padding: 0; border: 0; background: transparent; color: #94A0A6; font-size: 10px; letter-spacing: .10em; display: flex; align-items: center; gap: 4px">BY ARTIST <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">· 240 SONGS</span>
+</div>
+
+<ul style="list-style: none; margin: 0; padding: 0 16px; display: flex; flex-direction: column; flex-grow: 1">
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="8">
+<li style="display: flex; align-items: center; gap: 12px; height: 64px">
+<span style="width: 48px; height: 48px; border-radius: 4px; flex-shrink: 0; display: block; background: {{row.art}}; box-shadow: inset 0 1px 0 rgba(255,255,255,.07)"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{row.title}}</span>
+<span style="font-size: 14px; line-height: 1.4; color: #94A0A6">{{row.sub}}</span>
+</span>
+<span class="mono" style="font-size: 10px; color: #7A868C">{{row.dur}}</span>
+</li>
+</sc-for>
+</ul>
+
+<div style="margin: 0 8px 8px; padding: 8px 8px 8px 8px; border-radius: 12px; background: rgba(10,14,18,.9); box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25); display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; border-radius: 22px; background: repeating-radial-gradient(circle, #15161B 0px, #15161B 2px, #1C1D23 3px); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span style="width: 16px; height: 16px; border-radius: 8px; background: #FF9E2C; display: block"></span></span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1">
+<span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Track title]</span>
+<span style="font-size: 12px; color: #7A868C">[Artist]</span>
+</span>
+<button aria-label="Queue" style="width: 36px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h12M4 12h12M4 17h8M19 14v6M16 17h6"></path></svg>
+</button>
+<button aria-label="Pause" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #EFE9DF; color: #101A20; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"></path></svg>
+</button>
+</div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Library.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg>
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">LIBRARY</span>
+</a>
+<a href="HomeSignedOut.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span>
+</a>
+<a href="SundownDay.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="opacity: .8"><path d="M3 17h18M7 17a5 5 0 0 1 10 0M12 4v3M4.9 8.9l2.1 2.1M19.1 8.9L17 11"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">SUNDOWN</span>
+</a>
+<a href="Profile.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="opacity: .8"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">PROFILE</span>
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const tints = ['#4A5A52', '#5A4A5E', '#3E5566', '#665A44', '#4E4E62', '#5E4A44', '#44605A', '#5A5A48'];
+const rows = [
+['[Track title]', '[Artist] · [Album]', '3:05'],
+['[Track title]', '[Artist] · [Album]', '4:12'],
+['[Track title]', '[Artist] · [Album]', '2:48'],
+['[Track title]', '[Artist] · [Album]', '5:30'],
+['[Track title]', '[Artist] · [Album]', '3:41'],
+['[Track title]', '[Artist] · [Album]', '4:02'],
+['[Track title]', '[Artist] · [Album]', '3:19'],
+['[Track title]', '[Artist] · [Album]', '6:07'],
+['[Track title]', '[Artist] · [Album]', '3:55']
+].map((r, i) => ({ title: r[0], sub: r[1], dur: r[2], art: tints[i % tints.length] }));
+return { rows };
+}
+}
+</script>
+</body>
+</html>
