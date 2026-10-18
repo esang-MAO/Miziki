@@ -15,6 +15,7 @@ import { setTheme, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
+import { openSundownSheet } from '../shell/sundown-sheet.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -246,6 +247,10 @@ function renderAppSettingsScreen(body){
     b.addEventListener('click', onTap);
     links.appendChild(b);
   };
+  // RF26 (docs/12_REFINE.md): "Settings › Sundown, for when nothing has
+  // played yet" — the one way in that doesn't depend on a record being on
+  // the platter (the knob) or loaded in the mini-player (its sun button).
+  row('Sundown', () => openSundownSheet());
   row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
   row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
   // No "Library tools" row here: the panel is only ever shown on the

@@ -212,7 +212,14 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .sidebar-playlists-empty{color:var(--muted)}
-  .sidebar-sundown{padding:0 10px}
+  /* RF26 (docs/12_REFINE.md): #sidebarSundown is a real <button> now (the
+     sheet's own desktop way in, src/shell/sundown-sheet.js) — reset the
+     button defaults so it still reads as the same plain card. */
+  .sidebar-sundown{
+    padding:0 10px;display:block;width:100%;text-align:left;background:none;
+    border:0;font:inherit;cursor:pointer;border-radius:8px;
+  }
+  .sidebar-sundown:hover,.sidebar-sundown:focus-visible{background:var(--raised)}
   /* DA3 (docs/DAY_ARC.md): the phase block's own mirror — see
      src/player/clock.js's drawSun() for what writes into these two. */
   .sidebar-sundown-phase{font-family:var(--display);font-size:18px;text-transform:uppercase;color:var(--paper);margin-bottom:2px}

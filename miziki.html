@@ -83,6 +83,7 @@
 <link rel="stylesheet" href="/src/styles/24-sundown-arc.css">
 <link rel="stylesheet" href="/src/styles/25-day-arc-v2.css">
 <link rel="stylesheet" href="/src/styles/25-pull-refresh.css">
+<link rel="stylesheet" href="/src/styles/26-sundown-sheet.css">
 </head>
 <body>
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -272,26 +273,201 @@
     <div id="homeBody"></div>
   </section>
 
-  <!-- SUNDOWN -->
-  <section class="route" id="route-sundown" role="main">
-    <!-- DA3 (docs/DAY_ARC.md): the Character tab is gone — its content
-         lives here, in a Sound view, beside Sundown's own Day view,
-         behind this one two-tab switch. src/wiring/sundown.js wires
-         these two buttons (and src/shell/routes.js's own
-         selectSundownView(), which this calls) to flip which of the two
-         views below is visible and remember the choice per device. -->
-    <!-- NV5 (docs/11_SMOOTH_NAVIGATION.md): the sliding underline itself --
-         src/shell/routes.js's selectSundownView() sets .sd-tabs' own
-         [data-selected] attribute; src/styles/24-sundown-arc.css's
-         .sd-tabs-indicator slides between the two tabs' own halves off
-         that one attribute, so there's exactly one indicator, not a
-         separately-colored border under each button any more. -->
-    <div class="sd-tabs" role="tablist" aria-label="Sundown view">
-      <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
-      <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
-      <span class="sd-tabs-indicator" aria-hidden="true"></span>
+  <!-- PROFILE -->
+  <section class="route" id="route-profile" role="main">
+    <div class="crumb" id="profileCrumb" style="display:none"></div>
+    <div id="profileBody"></div>
+    <input id="profilePicFile" type="file" accept="image/*">
+    <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
+         survive renderProfile()'s innerHTML reset. Parked here, hidden, and
+         moved into Profile › Settings by renderAppSettingsScreen(); moved
+         back by renderProfile() before the body is wiped. -->
+    <div id="playbackSettingsStash" style="display:none">
+      <div id="playbackSettings">
+      <div class="row">
+        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
+        <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
+        <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
+        <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
+      </div>
+
+      <div class="row">
+        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
+        <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
+      </div>
+
+      <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
+      </div>
     </div>
 
+  </section>
+
+</div>
+
+<!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
+<div class="mini-player" id="miniPlayer" style="display:none">
+  <button class="mini-tap" id="miniTap" aria-label="Open player">
+    <span class="mini-indicator" id="miniIndicator">
+      <span class="mini-square" id="miniSquare">
+        <img class="mini-art" id="miniArt" alt="">
+        <span class="mini-mark">MIZIKI</span>
+      </span>
+      <span class="mini-disc" id="miniDisc" aria-hidden="true">
+        <img class="mini-disc-art" id="miniDiscArt" alt="">
+      </span>
+    </span>
+    <span class="mini-text">
+      <b id="miniTitle"></b>
+      <em id="miniArtist"></em>
+    </span>
+  </button>
+  <!-- RF26 (docs/12_REFINE.md): the sun button -- one of the sheet's own
+       ways in (src/shell/sundown-sheet.js), tinted by the current phase
+       via data-phase (src/player/clock.js's drawSun(), same "write a
+       data attribute, let CSS own the colour" shape the platter knob
+       below uses). Sits between the title and the queue button, exactly
+       where the mockup (SheetLibrary.dc.html) draws it. -->
+  <button type="button" class="icon-btn mini-sun-btn" id="miniSunBtn" aria-label="Sundown">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
+  </button>
+  <!-- RF8 (docs/12_REFINE.md): the mini-player dropped its own favorite
+       button (#miniFavBtn) — the player already has one (#playerFavBtn).
+       D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
+       next/seek/mode controls. New ids throughout, driving the exact
+       same prevTrack()/nextTrack()/seek()/setMode() the full player's
+       own #prev/#next/#scrub/#modePure/#modeVinyl already call
+       (src/wiring/transport.js) — per the doc's own "a desktop player
+       bar must reuse or restyle those [ids], not clone them" rule, so
+       these are new elements, not copies of those ids. Each is
+       display:none below 1024px (src/styles/08-shell.css), so on a
+       phone none of them occupy a flex slot in this strip at all — the
+       existing #miniTap/#miniQueueBtn/#miniPlay stay in their same
+       relative visual order, unchanged. -->
+  <button class="mini-bar-btn" id="barPrev" aria-label="Previous track">◀◀</button>
+  <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
+  <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
+  <button class="mini-bar-btn" id="barNext" aria-label="Next track">▶▶</button>
+  <div class="mini-bar-seek" id="miniBarSeek">
+    <span class="mini-bar-time" id="barElapsed">0:00</span>
+    <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+    <span class="mini-bar-time" id="barTotal">0:00</span>
+  </div>
+  <!-- CEREMONY (docs/CEREMONY.md, §1): the bar mirrors the same single
+       toggle, same rule as every other D4 bar control — a new id driving
+       the exact same setMode(), never a clone of the full player's own
+       #modeToggle. -->
+  <div class="mini-bar-modes" id="miniBarModes">
+    <button class="mini-bar-mode-toggle" id="barModeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
+      <span class="mode-toggle-track mode-toggle-track-sm"><i class="mode-toggle-thumb mode-toggle-thumb-sm"></i></span>
+      <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
+    </button>
+  </div>
+</div>
+
+<!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible
+     scaffolding — the nav below renders exactly as it always has, and
+     #sidebarExtra stays display:none the whole time. At 1024px and
+     wider, src/styles/23-desktop.css turns this into the left sidebar:
+     the same nav buttons (now a vertical column, wireRoutes() unchanged)
+     plus the new playlists list and Sundown summary card the mockup adds,
+     built by src/shell/sidebar.js/drawSun() (src/player/clock.js) rather
+     than duplicating the computation that already exists for the phone's
+     own Playlists tab. RF26 (docs/12_REFINE.md): "Sundown route" above is
+     stale -- Sundown is a sheet now (src/shell/sundown-sheet.js), not a
+     route; the summary card below is this sheet's own desktop way in. -->
+<div class="sidebar" id="sidebar">
+<nav class="tabbar" id="tabbar" role="tablist">
+  <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
+    <span>Library</span>
+  </button>
+  <!-- RF7 (docs/12_REFINE.md): always present, signed out or social off
+       included — renderHome() itself shows the one sign-in card then
+       (src/profile/storefront.js's renderOpenStoreCard), so the tab bar
+       never changes shape. -->
+  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
+    <span>Home</span>
+  </button>
+  <!-- RF26 (docs/12_REFINE.md): the Sundown tab is gone outright, not
+       redirected -- three equal tabs now (Library/Home/Profile). Its
+       content (the Day/Sound views just moved above, DA3/RF9's own) now
+       opens from a sheet instead: the sun knob on the platter, the sun
+       button on the mini-player, the desktop sidebar's own Sundown
+       summary, or Settings -> Sundown (src/shell/sundown-sheet.js).
+       showRoute('sundown')/showRoute('character') both call
+       openSundownSheet() instead of switching the tab bar at all now,
+       so a stale saved tab or an old link still lands somewhere real. -->
+  <!-- D7 (docs/DESKTOP_LAYOUT.md): "Keep the route id, change only the
+       visible label on desktop" — data-route stays "profile" (routing,
+       aria-selected and every other reference go by that attribute, never
+       by this button's text — confirmed via grep of shell/routes.js and
+       wiring/routes.js before making this change), and only which of the
+       two spans is visible flips at 1024px+ (src/styles/23-desktop.css).
+       Phones keep seeing "Profile"; nothing here needs a JS change. -->
+  <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
+    <span class="tabbar-label">Profile</span>
+    <span class="tabbar-label-desktop">Crate</span>
+  </button>
+</nav>
+<div class="sidebar-extra" id="sidebarExtra">
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Playlists</div>
+    <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>
+  </div>
+  <!-- RF26 (docs/12_REFINE.md): a real button now, not a static card --
+       this is the desktop way in to the Sundown sheet (opened as a
+       right-side panel over the player's side panel, per the doc's own
+       "no sheet on desktop" rule; src/shell/sundown-sheet.js). -->
+  <button type="button" class="sidebar-section sidebar-sundown" id="sidebarSundown">
+    <div class="sidebar-heading">Sundown</div>
+    <!-- DA3 (docs/DAY_ARC.md): mirrors the Day view's own phase block —
+         "reuse the readout, don't compute it twice," same as every other
+         mirror drawSun() already writes into this card. -->
+    <div class="sidebar-sundown-phase" id="sidePhaseName"></div>
+    <div class="sidebar-sundown-rate" id="sidePhaseSub"></div>
+    <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
+    <div class="sidebar-sundown-leg" id="sideLegStart"></div>
+    <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
+  </button>
+  <!-- RF8 (docs/12_REFINE.md): the sidebar's own Auto/Light/Dark/
+       Nychthemeron control was removed outright — one home per control;
+       Profile › Settings already has it (src/profile/screens.js). -->
+</div>
+</div>
+
+<!-- RF26 (docs/12_REFINE.md): the Sundown tab is gone outright -- this
+     sheet is the one way to reach its content now, opened from the sun
+     knob on the platter, the sun button on the mini-player, the desktop
+     sidebar's own Sundown summary, or Settings -> Sundown
+     (src/shell/sundown-sheet.js). The Day/Sound content below is RF9's,
+     byte-for-byte unchanged -- same ids, same wiring
+     (src/wiring/sundown.js, src/sundown/dial-gesture.js) -- only lifted
+     out of a tab-bar route into an overlay registered with the NV2
+     layer stack, so Back/Escape/the scrim all close it the same way
+     every other sheet in the app already closes. -->
+<div class="sundown-sheet-scrim" id="sundownSheetScrim" aria-hidden="true"></div>
+<div class="sundown-sheet" id="sundownSheet" aria-hidden="true" role="dialog" aria-label="Sundown">
+  <div class="sundown-sheet-grabber" id="sundownSheetGrabber" aria-hidden="true"></div>
+  <div class="sundown-sheet-head">
+    <h2 class="sundown-sheet-title">Sundown</h2>
+      <div class="sd-tabs" role="tablist" aria-label="Sundown view">
+        <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
+        <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
+        <span class="sd-tabs-indicator" aria-hidden="true"></span>
+      </div>
+    <button type="button" class="icon-btn sundown-sheet-close" id="sundownSheetClose" aria-label="Close Sundown">&#10005;</button>
+  </div>
+  <div class="sundown-sheet-body" id="sundownSheetBody">
     <!-- DAY -->
     <div id="sundownDayView">
       <p class="sd-eyebrow" id="sundownEyebrow">Now</p>
@@ -526,163 +702,7 @@
         <button data-preset="worn" aria-pressed="false">Well-played</button>
       </div>
     </div>
-  </section>
-
-  <!-- PROFILE -->
-  <section class="route" id="route-profile" role="main">
-    <div class="crumb" id="profileCrumb" style="display:none"></div>
-    <div id="profileBody"></div>
-    <input id="profilePicFile" type="file" accept="image/*">
-    <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
-         survive renderProfile()'s innerHTML reset. Parked here, hidden, and
-         moved into Profile › Settings by renderAppSettingsScreen(); moved
-         back by renderProfile() before the body is wiped. -->
-    <div id="playbackSettingsStash" style="display:none">
-      <div id="playbackSettings">
-      <div class="row">
-        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record. Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</em></div>
-        <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
-      </div>
-
-      <div class="row">
-        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes. Turn off to jump straight into playback.</em></div>
-        <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
-      </div>
-
-      <div class="row">
-        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens. Turn off to go straight to the library.</em></div>
-        <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
-      </div>
-
-      <div class="row">
-        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen, and adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</em></div>
-        <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
-      </div>
-
-      <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. Wired or built-in playback preserves the file's full resolution.</p>
-      </div>
-    </div>
-
-  </section>
-
-</div>
-
-<!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
-<div class="mini-player" id="miniPlayer" style="display:none">
-  <button class="mini-tap" id="miniTap" aria-label="Open player">
-    <span class="mini-indicator" id="miniIndicator">
-      <span class="mini-square" id="miniSquare">
-        <img class="mini-art" id="miniArt" alt="">
-        <span class="mini-mark">MIZIKI</span>
-      </span>
-      <span class="mini-disc" id="miniDisc" aria-hidden="true">
-        <img class="mini-disc-art" id="miniDiscArt" alt="">
-      </span>
-    </span>
-    <span class="mini-text">
-      <b id="miniTitle"></b>
-      <em id="miniArtist"></em>
-    </span>
-  </button>
-  <!-- RF8 (docs/12_REFINE.md): the mini-player dropped its own favorite
-       button (#miniFavBtn) — the player already has one (#playerFavBtn).
-       D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
-       next/seek/mode controls. New ids throughout, driving the exact
-       same prevTrack()/nextTrack()/seek()/setMode() the full player's
-       own #prev/#next/#scrub/#modePure/#modeVinyl already call
-       (src/wiring/transport.js) — per the doc's own "a desktop player
-       bar must reuse or restyle those [ids], not clone them" rule, so
-       these are new elements, not copies of those ids. Each is
-       display:none below 1024px (src/styles/08-shell.css), so on a
-       phone none of them occupy a flex slot in this strip at all — the
-       existing #miniTap/#miniQueueBtn/#miniPlay stay in their same
-       relative visual order, unchanged. -->
-  <button class="mini-bar-btn" id="barPrev" aria-label="Previous track">◀◀</button>
-  <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
-  <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
-  <button class="mini-bar-btn" id="barNext" aria-label="Next track">▶▶</button>
-  <div class="mini-bar-seek" id="miniBarSeek">
-    <span class="mini-bar-time" id="barElapsed">0:00</span>
-    <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
-    <span class="mini-bar-time" id="barTotal">0:00</span>
   </div>
-  <!-- CEREMONY (docs/CEREMONY.md, §1): the bar mirrors the same single
-       toggle, same rule as every other D4 bar control — a new id driving
-       the exact same setMode(), never a clone of the full player's own
-       #modeToggle. -->
-  <div class="mini-bar-modes" id="miniBarModes">
-    <button class="mini-bar-mode-toggle" id="barModeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
-      <span class="mode-toggle-track mode-toggle-track-sm"><i class="mode-toggle-thumb mode-toggle-thumb-sm"></i></span>
-      <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
-    </button>
-  </div>
-</div>
-
-<!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible
-     scaffolding — the nav below renders exactly as it always has, and
-     #sidebarExtra stays display:none the whole time. At 1024px and
-     wider, src/styles/23-desktop.css turns this into the left sidebar:
-     the same nav buttons (now a vertical column, wireRoutes() unchanged)
-     plus the new playlists list and Sundown summary card the mockup adds,
-     built by src/shell/sidebar.js/drawSun() (src/player/clock.js) rather
-     than duplicating the computation that already exists for the phone's
-     own Playlists tab and Sundown route. -->
-<div class="sidebar" id="sidebar">
-<nav class="tabbar" id="tabbar" role="tablist">
-  <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
-    <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
-    <span>Library</span>
-  </button>
-  <!-- RF7 (docs/12_REFINE.md): always present, signed out or social off
-       included — renderHome() itself shows the one sign-in card then
-       (src/profile/storefront.js's renderOpenStoreCard), so the tab bar
-       never changes shape. -->
-  <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false">
-    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
-    <span>Home</span>
-  </button>
-  <!-- DA3 (docs/DAY_ARC.md): the Character tab is gone — four equal tabs
-       now (Library/Home/Sundown/Profile). Its content lives in Sundown's
-       own Sound view (data-sundown-view="sound" above); anything that
-       still asks for showRoute('character') lands there too
-       (src/shell/routes.js). -->
-  <button class="tabbar-btn" role="tab" data-route="sundown" aria-selected="false">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
-    <span>Sundown</span>
-  </button>
-  <!-- D7 (docs/DESKTOP_LAYOUT.md): "Keep the route id, change only the
-       visible label on desktop" — data-route stays "profile" (routing,
-       aria-selected and every other reference go by that attribute, never
-       by this button's text — confirmed via grep of shell/routes.js and
-       wiring/routes.js before making this change), and only which of the
-       two spans is visible flips at 1024px+ (src/styles/23-desktop.css).
-       Phones keep seeing "Profile"; nothing here needs a JS change. -->
-  <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
-    <span class="tabbar-label">Profile</span>
-    <span class="tabbar-label-desktop">Crate</span>
-  </button>
-</nav>
-<div class="sidebar-extra" id="sidebarExtra">
-  <div class="sidebar-section">
-    <div class="sidebar-heading">Playlists</div>
-    <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>
-  </div>
-  <div class="sidebar-section sidebar-sundown" id="sidebarSundown">
-    <div class="sidebar-heading">Sundown</div>
-    <!-- DA3 (docs/DAY_ARC.md): mirrors the Day view's own phase block —
-         "reuse the readout, don't compute it twice," same as every other
-         mirror drawSun() already writes into this card. -->
-    <div class="sidebar-sundown-phase" id="sidePhaseName"></div>
-    <div class="sidebar-sundown-rate" id="sidePhaseSub"></div>
-    <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
-    <div class="sidebar-sundown-leg" id="sideLegStart"></div>
-    <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
-  </div>
-  <!-- RF8 (docs/12_REFINE.md): the sidebar's own Auto/Light/Dark/
-       Nychthemeron control was removed outright — one home per control;
-       Profile › Settings already has it (src/profile/screens.js). -->
-</div>
 </div>
 
 <!-- FULL PLAYER: overlay, not a fourth tab -->
@@ -726,6 +746,26 @@
         <img class="sleeve-art" id="sleeveOutArt" alt="">
         <div class="sleeve-mark">MIZIKI</div>
       </div>
+      <!-- RF26 (docs/12_REFINE.md): the sun knob -- "where a turntable's
+           speed knob sits," at the platter's lower right. A sibling of
+           #platterBox/#disc, not a child, so it sits on top of the
+           platter without ever becoming part of #disc's own scratch/
+           spin pointer target (src/player/scrub.js's wireSpinToScrub()
+           binds to #platterStage/#disc directly; this button's own click
+           handler is a separate listener on a separate element, so
+           spinning the record still scratches exactly as it always has
+           — the knob never moves the platter, same as the doc's own
+           "never touches the platter" rule). data-phase is written by
+           drawSun() (src/player/clock.js) the same way the mini-player's
+           sun button's is -- CSS (src/styles/26-sundown-sheet.css) owns
+           the ring colour per phase, not JS. -->
+      <button type="button" class="sun-knob" id="sunKnob" aria-label="Sundown">
+        <svg class="sun-knob-ring" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="29"></circle>
+        </svg>
+        <svg class="sun-knob-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
+        <span class="sun-knob-time" id="sunKnobTime"></span>
+      </button>
     </div>
 
     <div class="stage-info" id="stageInfo">
@@ -754,6 +794,15 @@
       </div>
       <div class="by" id="trackBy"></div>
       <div class="spec" id="trackSpec">Load a file to see its signal path</div>
+      <!-- RF26 (docs/12_REFINE.md): "the format line adds the phase" --
+           a sibling, not a child of #trackSpec, since load()
+           (src/player/transport.js) sets #trackSpec's own textContent
+           wholesale on every track change and would otherwise wipe out
+           anything written here; drawSun() (src/player/clock.js) keeps
+           this one live instead, the same "two small mirrors of the one
+           already-computed value" shape #tElapsed/#barElapsed already
+           use. Empty, and collapsed by CSS, until a track is loaded. -->
+      <div class="spec" id="trackSpecPhase"></div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
       </div>

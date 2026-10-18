@@ -6,7 +6,11 @@ import { updateHeaderActionsAvailability, isSearchFieldOpen, isAddMenuOpen } fro
 import { GF } from '../gatefold/view.js';
 import { forceCloseLayer, recordRoute } from './nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from './scroll-memory.js';
-import { resetPreview } from '../sundown/dial-gesture.js';
+// RF26 (docs/12_REFINE.md): a real circular pair with sundown-sheet.js now
+// — that module imports selectSundownView/lastSundownView back from here,
+// the same peer-import shape as audio/engine.js and player/transport.js
+// (see CLAUDE.md's refactor rule 8).
+import { openSundownSheet } from './sundown-sheet.js';
 
 export function isLibraryRouteVisible(){
   const r = document.getElementById('route-library');
@@ -64,23 +68,21 @@ export function lastSundownView(){
 // saved just before showRoute() switches to a different one.
 let currentRouteName = null;
 export function showRoute(name){
-  // DA3: the Character tab is gone — its content lives in Sundown's own
-  // Sound view now. Anything that still asks for "character" (a stale
-  // saved last-tab value, an old link, a future typo) lands there instead
-  // of 404ing onto a route that no longer exists in the DOM at all.
-  if(name === 'character'){ name = 'sundown'; selectSundownView('sound'); }
+  // RF26 (docs/12_REFINE.md): Sundown and the old Character tab are both
+  // gone as routes — "sundown"/"character" (a stale saved last-tab value,
+  // an old link, a future typo) open the sheet over whatever route is
+  // already on screen instead, rather than switching to a route id that
+  // no longer exists in the DOM at all. The sheet's own teardown
+  // (sundown-sheet.js) handles returning the preview to live time on
+  // close — this function no longer needs to.
+  if(name === 'sundown'){ openSundownSheet('day'); return; }
+  if(name === 'character'){ openSundownSheet('sound'); return; }
   // re-tapping the tab already on screen must never fight the scroll
   // position the user is already at
   const isNewRoute = currentRouteName !== name;
   // NV3: save the leaving route's own scroll position before anything about
   // the DOM changes — window.scrollY here is still wherever the user left it.
   if(currentRouteName && isNewRoute) saveScrollPosition('route:' + currentRouteName);
-  // DAY_ARC_BRIEF.md §4.4: "NOW (and leaving the Sundown tab) returns to
-  // live time. The preview never persists across a tab change, so audio
-  // can never be left in a forgotten preview state." — only on an actual
-  // route *change* away from sundown, never re-tapping the tab already
-  // on screen.
-  if(currentRouteName === 'sundown' && isNewRoute && name !== 'sundown') resetPreview();
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
   // overlay that would otherwise hide whatever route is switched to — an

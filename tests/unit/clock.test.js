@@ -158,9 +158,12 @@ mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
 // a plain classList.toggle stub (recording the last call, not a real
 // Set) and a no-op setAttribute are enough, since no test here reads
 // either back.
+// RF26 (docs/12_REFINE.md): drawSun() now also writes dataset.phase onto
+// the sheet's two ways-in (the sun knob, the mini-player's sun button) —
+// dataset needs a real (if fake) object for that write to land on.
 function fakeEl(){
   return {
-    style: {}, textContent: '', toLocaleTimeString(){ return ''; },
+    style: {}, textContent: '', toLocaleTimeString(){ return ''; }, dataset: {},
     classList: { toggle(){}, add(){}, remove(){} }, setAttribute(){},
   };
 }

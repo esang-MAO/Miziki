@@ -1,0 +1,113 @@
+/* RF26 (docs/12_REFINE.md): the Sundown sheet, its two platter/mini-player
+   ways in, and the phase tint both of those (plus the player's own format
+   line) pick up. Phase colours match docs/design/refine/README.md's own
+   "Dial ring" table (the sheet's own Day dial, src/sundown/dial-view.js,
+   keeps its separate, already-shipped Day Arc v2 palette — this table is
+   only for these new small phase-tinted surfaces). */
+
+.sun-knob, .mini-sun-btn{
+  --phase-color: var(--muted);
+}
+.sun-knob[data-phase="midday"], .mini-sun-btn[data-phase="midday"]{ --phase-color:#D8D3C9 }
+.sun-knob[data-phase="afternoon"], .mini-sun-btn[data-phase="afternoon"]{ --phase-color:#CBBD9C }
+.sun-knob[data-phase="golden"], .mini-sun-btn[data-phase="golden"]{ --phase-color:#E8B67A }
+.sun-knob[data-phase="twilight"], .mini-sun-btn[data-phase="twilight"]{ --phase-color:#D99A5A }
+.sun-knob[data-phase="night"], .mini-sun-btn[data-phase="night"]{ --phase-color:#8578AE }
+.sun-knob[data-phase="dawn"], .mini-sun-btn[data-phase="dawn"]{ --phase-color:#CFA0AD }
+.sun-knob[data-phase="morning"], .mini-sun-btn[data-phase="morning"]{ --phase-color:#98C2CE }
+
+/* the sun knob: "where a turntable's speed knob sits," the platter's
+   lower right. Positioned against .platter-stage, a sibling of
+   #platterBox/#disc — never overlapping the disc's own scratch/spin
+   pointer target (src/player/scrub.js). */
+.sun-knob{
+  position:absolute; right:4%; bottom:6%; width:64px; height:64px;
+  border-radius:50%; background:#14110F; border:0; padding:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; z-index:4;
+  box-shadow: var(--sh-2, 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35));
+}
+.sun-knob-ring{
+  position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+}
+.sun-knob-ring circle{
+  fill:none; stroke:var(--phase-color); stroke-width:2;
+}
+.sun-knob-glyph{
+  width:20px; height:20px; fill:none; stroke:var(--phase-color); stroke-width:1.6;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.sun-knob-time{
+  position:absolute; bottom:6px; left:0; right:0; text-align:center;
+  font-family:var(--data); font-size:8px; letter-spacing:.05em; color:var(--paper);
+}
+
+.mini-sun-btn{
+  width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+  background:none; border:0; cursor:pointer; flex:0 0 auto;
+}
+.mini-sun-btn svg{ width:20px; height:20px; fill:none; stroke:var(--phase-color); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
+
+/* the player's own format line, phase suffix — a sibling of #trackSpec,
+   not a child (see miziki.html's own comment for why), collapsed to
+   nothing until a track is loaded. */
+#trackSpecPhase{
+  margin-top:2px; color:var(--muted-2, var(--muted));
+}
+#trackSpecPhase:empty{ display:none }
+
+/* the sheet itself: a bottom sheet by default, half height on open,
+   .full on a drag-up or picking Sound. */
+.sundown-sheet-scrim{
+  position:fixed; inset:0; background:rgba(7,8,12,.55); z-index:60;
+  opacity:0; pointer-events:none; transition:opacity .25s ease;
+}
+.sundown-sheet-scrim.open{ opacity:1; pointer-events:auto }
+
+.sundown-sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:61;
+  background:#1E1815; border-radius:12px 12px 0 0;
+  box-shadow: var(--sh-3, 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45));
+  display:flex; flex-direction:column;
+  height:min(60vh, 520px);
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.2,.7,.3,1), height .3s ease;
+  visibility:hidden;
+}
+.sundown-sheet.open{ transform:translateY(0); visibility:visible }
+.sundown-sheet.full{ height:92vh }
+.sundown-sheet.dragging{ transition:none }
+.sundown-sheet.dragging.open{ transform:translateY(var(--sundown-drag-dy, 0px)) }
+
+.sundown-sheet-grabber{
+  width:36px; height:4px; border-radius:2px; background:var(--muted);
+  opacity:.5; margin:10px auto 4px; flex:0 0 auto; touch-action:none; cursor:grab;
+}
+.sundown-sheet-head{
+  display:flex; align-items:center; gap:12px; padding:4px 16px 8px; flex:0 0 auto;
+}
+.sundown-sheet-title{
+  font-family:var(--display); font-size:24px; margin:0; color:var(--paper); flex:1 1 auto;
+}
+.sundown-sheet-close{
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px;
+}
+.sundown-sheet-body{
+  flex:1 1 auto; overflow-y:auto; padding:0 16px 24px; -webkit-overflow-scrolling:touch;
+}
+
+/* D (docs/DESKTOP_LAYOUT.md) breakpoint: "no sheet on desktop" — the same
+   content re-anchors as a right-side panel instead, over the player's own
+   side panel (src/shell/player-side-panel.js), per RF26's own rule. No JS
+   change needed: openSundownSheet()/closeLayer('sundown-sheet') toggle the
+   exact same .open/.full classes either way. */
+@media (min-width:1024px){
+  .sundown-sheet-scrim{ display:none }
+  .sundown-sheet{
+    left:auto; right:0; top:0; bottom:0; height:100vh !important;
+    width:360px; border-radius:0; transform:translateX(100%);
+  }
+  .sundown-sheet.open{ transform:translateX(0) }
+  .sundown-sheet.dragging.open{ transform:translateX(0) }
+  .sundown-sheet-grabber{ display:none }
+}
