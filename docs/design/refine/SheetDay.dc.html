@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown sheet, half open, Day</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; position: relative; overflow: hidden">
+
+<div aria-hidden="true" style="position: absolute; left: 45px; top: 92px; width: 300px; height: 300px; border-radius: 150px; background: repeating-radial-gradient(circle at 50% 50%, #15161B 0px, #15161B 2px, #1C1D23 3px, #15161B 4px); box-shadow: 0 24px 48px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center">
+<span style="width: 128px; height: 128px; border-radius: 64px; background: #FF9E2C; display: block"></span>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(13,11,16,.5)"></div>
+
+<section role="dialog" aria-labelledby="sdSheetTitle" style="position: absolute; left: 0; right: 0; bottom: 0; top: 300px; border-radius: 12px 12px 0 0; background: #1E1815; border-top: 1px solid rgba(239,233,223,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 -10px 40px rgba(0,0,0,.45); padding: 8px 16px 28px; display: flex; flex-direction: column; gap: 16px">
+
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.25); display: block"></span>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 id="sdSheetTitle" class="disp" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase">Sundown</h2>
+<div role="tablist" aria-label="Sundown view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 160px; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<a href="SheetDay.dc.html" role="tab" aria-selected="true" class="mono" style="min-height: 36px; display: flex; align-items: center; justify-content: center; text-decoration: none; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">DAY</a>
+<a href="SheetSound.dc.html" role="tab" aria-selected="false" class="mono" style="min-height: 36px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #A99C8F; font-size: 11px; letter-spacing: .08em">SOUND</a>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 20px">
+<div role="img" aria-label="24-hour dial. Now 7:32 PM, golden hour. Spin to preview any hour." style="width: 168px; height: 168px; flex-shrink: 0; border-radius: 84px; position: relative; background: conic-gradient(from 0deg, #D8D3C9 0deg, #CBBD9C 30deg, #CBBD9C 70deg, #E8B67A 84deg, #D99A5A 100deg, #D99A5A 122deg, #8578AE 136deg, #8578AE 268deg, #CFA0AD 278deg, #98C2CE 290deg, #98C2CE 322deg, #D8D3C9 345deg); box-shadow: 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35)">
+<div style="position: absolute; top: 10px; left: 10px; width: 148px; height: 148px; border-radius: 74px; background: repeating-radial-gradient(circle at 50% 50%, #15161B 0px, #15161B 2px, #1C1D23 3px, #15161B 4px); display: flex; align-items: center; justify-content: center">
+<div style="width: 72px; height: 72px; border-radius: 36px; background: #FF9E2C; color: #2A1B38; display: flex; flex-direction: column; align-items: center; justify-content: center">
+<span class="disp" style="font-size: 24px; font-weight: 700; line-height: 1">7:32</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em">PM</span>
+</div>
+</div>
+<span style="position: absolute; left: 151px; top: 109px; width: 12px; height: 12px; border-radius: 6px; background: #EFE9DF; box-shadow: 0 0 0 3px rgba(30,24,21,.95), 0 0 10px rgba(255,184,94,.8); display: block"></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">NOW</span>
+<span class="disp" style="font-size: 24px; font-weight: 700; line-height: 1.05; letter-spacing: .02em; text-transform: uppercase">Golden hour</span>
+<span style="font-size: 14px; line-height: 1.45; color: #A99C8F">Full speed. Sunset <span style="color: #EFE9DF">8:10 PM</span>, in <span style="color: #EFE9DF">38m</span>.</span>
+<span style="font-size: 12px; line-height: 1.45; color: #857A70">Spin the dial to hear any hour.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h3 class="mono" style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #A99C8F">HOW DEEP THE NIGHT GOES</h3>
+<div role="radiogroup" aria-label="How deep the night goes" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.14); border-radius: 4px">
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">OFF</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">GENTLE</button>
+<button role="radio" aria-checked="true" class="mono" style="min-height: 44px; border: 1px solid #FF9E2C; border-radius: 4px; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">MEDIUM</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">DEEP</button>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #A99C8F">Settles at 0.80×, about 4 semitones down, by dusk. Back up at dawn.</p>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #A99C8F">Using a stand-in sunset of 8:10 PM.</p>
+<button class="mono" style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #FF9E2C; font-size: 11px; font-weight: 500; letter-spacing: .08em; white-space: nowrap">USE MY LOCATION</button>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

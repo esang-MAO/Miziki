@@ -67,6 +67,17 @@ const B = {
 function emit(evt, payload){
   (B.listeners[evt] || []).slice().forEach(fn => { try{ fn(payload); }catch(_e){ /* listener bugs must not break sync */ } });
 }
+// Like emit(), but awaits whatever every listener returns before resolving
+// — used only where the caller's own next step depends on a listener's
+// work actually finishing (applyMerged()'s 'reset' branch below, RF1: it
+// must not adopt the remote historyClearedAt stamp until main.js's
+// resetLocalHistory() call has actually zeroed and persisted this
+// device's counters, or a reload in between would read the old ones
+// straight back out of meta).
+async function emitAwait(evt, payload){
+  const fns = (B.listeners[evt] || []).slice();
+  await Promise.all(fns.map(fn => Promise.resolve().then(() => fn(payload)).catch(()=>{ /* listener bugs must not break sync */ })));
+}
 export function onBackup(evt, fn){
   (B.listeners[evt] = B.listeners[evt] || []).push(fn);
   return () => { B.listeners[evt] = (B.listeners[evt] || []).filter(f => f !== fn); };
@@ -466,7 +477,17 @@ async function fetchRemoteRows(client){
 // on the very next upload).
 async function applyMerged(merged, ownLocal, client, uid){
   if(merged.ownReset){
-    S.trackPlayCounts = {}; S.sessionCounts = {}; S.metalEligibleSessions = {}; S.trackMetalEligiblePlays = {};
+    // RF1 (docs/12_REFINE.md): history/clear.js's resetLocalHistory() is
+    // the one place that zeroes *and persists* every field a full clear
+    // touches (not just the four counters this branch used to reset in
+    // memory, with nothing written to meta) — but it reaches library/
+    // view.js's whole import web (see this file's own header comment), so
+    // it can't be imported here directly. 'reset' is emitted the same way
+    // 'applied' already is, for main.js to wire up; emitAwait (unlike
+    // plain emit()) waits for that work to actually finish, since adopting
+    // merged.historyClearedAt before it does would leave the old, not-yet-
+    // reset counters queued up for the very next push.
+    await emitAwait('reset');
     S.historyClearedAt = merged.historyClearedAt;
     await meta.put('historyClearedAt', S.historyClearedAt);
   }

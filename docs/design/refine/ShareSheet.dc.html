@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share sheet, one good default</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #07080C; color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; position: relative; overflow: hidden">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); opacity: .45"></div>
+
+<section role="dialog" aria-labelledby="shareTitle" style="position: absolute; left: 0; right: 0; bottom: 0; top: 48px; border-radius: 12px 12px 0 0; background: #121C22; border-top: 1px solid rgba(239,233,223,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 -10px 40px rgba(0,0,0,.45); padding: 8px 24px 32px; display: flex; flex-direction: column; gap: 16px">
+
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.25); display: block"></span>
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 id="shareTitle" class="disp" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase">Share</h2>
+<button aria-label="Close" style="width: 44px; height: 44px; margin-right: -12px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+
+<div style="display: flex; justify-content: center">
+<div role="img" aria-label="Preview of the Now Playing card, story format" style="width: 216px; height: 384px; border-radius: 12px; background: linear-gradient(180deg, #1A2630 0%, #0B1015 100%); box-shadow: 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); padding: 20px 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 7px; letter-spacing: .14em; color: #94A0A6">NOW SPINNING</span>
+<div style="position: relative; height: 150px">
+<span style="position: absolute; left: 66px; top: 6px; width: 118px; height: 118px; border-radius: 59px; background: repeating-radial-gradient(circle, #15161B 0px, #15161B 1.5px, #1C1D23 2.5px); display: flex; align-items: center; justify-content: center"><span style="width: 40px; height: 40px; border-radius: 20px; background: #FF9E2C; display: block"></span></span>
+<span style="position: absolute; left: 0; top: 0; width: 130px; height: 130px; border-radius: 3px; background: #3E5566; box-shadow: 0 10px 24px rgba(0,0,0,.45); display: block"></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span class="disp" style="font-size: 20px; font-weight: 700; line-height: 1.05">[Track title]</span>
+<span style="font-size: 10px; color: #94A0A6">[Artist] · [Album]</span>
+<div style="display: flex; gap: 4px; margin-top: 6px">
+<span class="mono" style="font-size: 6.5px; letter-spacing: .12em; padding: 3px 5px; border: 1px solid rgba(239,233,223,.25); border-radius: 2px; color: #EFE9DF">FLAC</span>
+<span class="mono" style="font-size: 6.5px; letter-spacing: .12em; padding: 3px 5px; border: 1px solid rgba(255,158,44,.6); border-radius: 2px; color: #FF9E2C">SPUN AT GOLDEN HOUR</span>
+</div>
+</div>
+<span class="disp" style="font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #94A0A6">MIZIKI</span>
+</div>
+</div>
+
+<div role="radiogroup" aria-label="Format" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.14); border-radius: 4px">
+<button role="radio" aria-checked="true" class="mono" style="min-height: 44px; border: 1px solid #FF9E2C; border-radius: 4px; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">STORY</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">SQUARE</button>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button class="mono" style="min-height: 52px; border: 0; border-radius: 4px; background: #FF9E2C; color: #2A1B38; font-size: 11px; font-weight: 500; letter-spacing: .08em">SHARE</button>
+<div style="display: flex; justify-content: space-between">
+<button class="mono" style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">SAVE IMAGE</button>
+<button class="mono" style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">MORE OPTIONS ›</button>
+</div>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown Sound view, presets first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div role="tablist" aria-label="Sundown view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px 16px 0; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<a href="SundownDay.dc.html" role="tab" aria-selected="false" class="mono" style="min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #94A0A6; font-size: 11px; letter-spacing: .08em">DAY</a>
+<a href="Sound.dc.html" role="tab" aria-selected="true" class="mono" style="min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: none; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">SOUND</a>
+</div>
+
+<div style="padding: 24px 16px 0; display: flex; flex-direction: column; gap: 4px">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">VINYL · 6:44 PM</span>
+<h1 class="disp" style="margin: 0; font-size: 36px; font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase">Warming</h1>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #94A0A6">A touch warmer as the evening comes on.</p>
+</div>
+
+<div style="padding: 32px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 class="mono" style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">STARTING POINT</h2>
+<button aria-label="What Vinyl does" style="width: 44px; height: 32px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: flex-end">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>
+</button>
+</div>
+<div role="radiogroup" aria-label="Starting point" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button role="radio" aria-checked="false" style="min-height: 88px; border: 1px solid rgba(239,233,223,.14); border-radius: 12px; background: rgba(239,233,223,.07); color: #EFE9DF; padding: 12px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; text-align: left; box-shadow: inset 0 1px 0 rgba(255,255,255,.07)">
+<span style="font-size: 14px; font-weight: 600; line-height: 1.3">Light dust</span>
+<span style="font-size: 12px; color: #94A0A6">Barely there</span>
+</button>
+<button role="radio" aria-checked="true" style="min-height: 88px; border: 1px solid #FF9E2C; border-radius: 12px; background: rgba(255,158,44,.14); color: #EFE9DF; padding: 12px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; text-align: left">
+<span style="font-size: 14px; font-weight: 600; line-height: 1.3">Classic press</span>
+<span style="font-size: 12px; color: #94A0A6">Warm, steady</span>
+</button>
+<button role="radio" aria-checked="false" style="min-height: 88px; border: 1px solid rgba(239,233,223,.14); border-radius: 12px; background: rgba(239,233,223,.07); color: #EFE9DF; padding: 12px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; text-align: left; box-shadow: inset 0 1px 0 rgba(255,255,255,.07)">
+<span style="font-size: 14px; font-weight: 600; line-height: 1.3">Well-played</span>
+<span style="font-size: 12px; color: #94A0A6">Wobble, grit</span>
+</button>
+</div>
+</div>
+
+<div style="padding: 32px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<h2 class="mono" style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">DRIFT THROUGH THE DAY</h2>
+<div role="radiogroup" aria-label="Drift through the day" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.14); border-radius: 4px">
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">OFF</button>
+<button role="radio" aria-checked="true" class="mono" style="min-height: 44px; border: 1px solid #FF9E2C; border-radius: 4px; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">SUBTLE</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 44px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">FULL</button>
+</div>
+<div style="margin-top: 8px; padding: 16px; border-radius: 12px; background: rgba(10,14,18,.55); border: 1px solid rgba(239,233,223,.14); display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between" class="mono"><span style="font-size: 10px; letter-spacing: .10em; color: #7A868C">BRIGHT</span><span style="font-size: 10px; letter-spacing: .10em; color: #7A868C">TONE TODAY</span></div>
+<svg width="326" height="64" viewBox="0 0 326 64" role="img" aria-label="Tone today: brighter in the morning, warmest at night" style="display: block">
+<path d="M0 50 C 40 52, 60 30, 95 18 S 160 22, 200 30 S 260 52, 290 54 S 320 52, 326 50" fill="none" stroke="#EFE9DF" stroke-width="1.6"></path>
+<circle cx="257" cy="48" r="5" fill="#FF9E2C"></circle>
+</svg>
+<div style="display: flex; justify-content: space-between" class="mono"><span style="font-size: 10px; color: #7A868C">12A</span><span style="font-size: 10px; color: #7A868C">6A</span><span style="font-size: 10px; color: #7A868C">12P</span><span style="font-size: 10px; color: #7A868C">6P</span><span style="font-size: 10px; color: #7A868C">WARM</span></div>
+</div>
+</div>
+
+<div style="padding: 24px 16px 0">
+<button aria-expanded="false" style="width: 100%; min-height: 56px; border: 0; border-top: 1px solid rgba(239,233,223,.14); background: transparent; color: #EFE9DF; padding: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left">
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 600">Advanced</span>
+<span style="font-size: 12px; color: #94A0A6">Wow 30 · saturation 35 · top end 40 · squeeze 35</span>
+</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A0A6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Library.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">LIBRARY</span>
+</a>
+<a href="HomeSignedOut.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span>
+</a>
+<a href="SundownDay.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 17h18M7 17a5 5 0 0 1 10 0M12 4v3M4.9 8.9l2.1 2.1M19.1 8.9L17 11"></path></svg>
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">SUNDOWN</span>
+</a>
+<a href="Profile.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="opacity: .8"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">PROFILE</span>
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

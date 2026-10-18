@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Miziki tokens and rules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.lab{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#94A0A6}
+.mic{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#7A868C}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1280px; height: 1000px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; padding: 48px; display: flex; flex-direction: column; gap: 32px">
+
+<header style="display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lab">Miziki · Refine</span>
+<h1 class="disp" style="margin: 0; font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase">Tokens and rules</h1>
+</div>
+<p style="margin: 0; max-width: 420px; font-size: 14px; line-height: 1.5; color: #94A0A6">Ten type sizes, eight spacing steps, three elevations, one primary per screen. Accent is a fill; text that must be orange uses accent-text.</p>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; flex-grow: 1">
+
+<section style="display: flex; flex-direction: column; gap: 12px; background: rgba(10,14,18,.55); border: 1px solid rgba(239,233,223,.14); border-radius: 12px; padding: 24px">
+<h2 class="lab" style="margin: 0 0 8px">Type scale · RF13</h2>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="disp" style="font-size: 44px; font-weight: 700; line-height: 1">44 Giant</span><span class="mic">name · time</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="disp" style="font-size: 36px; font-weight: 700; line-height: 1">36 Display</span><span class="mic">phase</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="disp" style="font-size: 28px; font-weight: 700; line-height: 1.1">28 Hero</span><span class="mic">player title</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="disp" style="font-size: 24px; font-weight: 400; line-height: 1.15; text-transform: uppercase; letter-spacing: .02em">24 Head</span><span class="mic">section</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="disp" style="font-size: 20px; font-weight: 700; line-height: 1.2">20 Title</span><span class="mic">card value</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-size: 16px; font-weight: 600; line-height: 1.35">16 Row · Archivo 600</span><span class="mic">list title</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-size: 14px; line-height: 1.5">14 Body · Archivo</span><span class="mic">second line</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-size: 12px; line-height: 1.45; color: #94A0A6">12 Caption · helper text</span><span class="mic">help</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase">11 Label · tabs</span><span class="mic">controls</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; text-transform: uppercase; color: #94A0A6">10 Micro · 44.1 kHz</span><span class="mic">notes</span></div>
+<p style="margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: #94A0A6">Replaces 33 sizes. Nothing below 10 px. Antonio at no more than two sizes on one screen.</p>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 24px; background: rgba(10,14,18,.55); border: 1px solid rgba(239,233,223,.14); border-radius: 12px; padding: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0 0 8px">Spacing · RF13</h2>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">4</span><div style="height: 8px; width: 4px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">8</span><div style="height: 8px; width: 8px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">12</span><div style="height: 8px; width: 12px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">16</span><div style="height: 8px; width: 16px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">24</span><div style="height: 8px; width: 24px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">32</span><div style="height: 8px; width: 32px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">48</span><div style="height: 8px; width: 48px; background: #FF9E2C; border-radius: 2px"></div></div>
+<div style="display: flex; align-items: center; gap: 12px"><span class="mic" style="width: 28px">64</span><div style="height: 8px; width: 64px; background: #FF9E2C; border-radius: 2px"></div></div>
+<p style="margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: #94A0A6">A heading sits 32 below what's above it and 8 above what it heads. Radii: 4 for controls, 12 for cards.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0 0 4px">Elevation · RF13</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 8px 0 16px">
+<div style="height: 72px; border-radius: 12px; background: #1E2A30; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25); display: flex; align-items: flex-end; padding: 8px"><span class="mic" style="color: #94A0A6">sh-1</span></div>
+<div style="height: 72px; border-radius: 12px; background: #1E2A30; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35); display: flex; align-items: flex-end; padding: 8px"><span class="mic" style="color: #94A0A6">sh-2</span></div>
+<div style="height: 72px; border-radius: 12px; background: #1E2A30; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); display: flex; align-items: flex-end; padding: 8px"><span class="mic" style="color: #94A0A6">sh-3</span></div>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #94A0A6">Buttons and mini-player · cards and the dial · the current crate card, platter and sheets. A lit top edge on anything raised.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0 0 4px">Buttons · RF13</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button style="min-height: 44px; padding: 0 20px; border: 0; border-radius: 4px; background: #FF9E2C; color: #2A1B38; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase">Create</button>
+<div style="display: flex; border: 1px solid rgba(239,233,223,.14); border-radius: 4px; overflow: hidden">
+<button aria-pressed="false" style="min-height: 44px; padding: 0 14px; border: 0; background: transparent; color: #94A0A6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase">Off</button>
+<button aria-pressed="true" style="min-height: 44px; padding: 0 14px; border: 1px solid #FF9E2C; border-radius: 4px; background: rgba(255,158,44,.14); color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase">Subtle</button>
+<button aria-pressed="false" style="min-height: 44px; padding: 0 14px; border: 0; background: transparent; color: #94A0A6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase">Full</button>
+</div>
+<button role="switch" aria-checked="true" aria-label="Scratch" style="width: 48px; height: 28px; border: 0; border-radius: 14px; background: #FF9E2C; position: relative; padding: 0"><span style="position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 11px; background: #EFE9DF; display: block"></span></button>
+<button style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #94A0A6; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase">Share</button>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #94A0A6">Solid: the one primary. Outline: the selected option. Switch: on/off. Plain text: everything else.</p>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 24px; background: rgba(10,14,18,.55); border: 1px solid rgba(239,233,223,.14); border-radius: 12px; padding: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0 0 4px">Accent is a fill · RF12</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: #ECE5D8; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #FF9E2C">LIBRARY</span>
+<span class="mono" style="font-size: 10px; color: #4F616A">#FF9E2C · 1.65:1</span>
+<span style="font-size: 12px; color: #15232B">Today</span>
+</div>
+<div style="background: #ECE5D8; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #9A4700">LIBRARY</span>
+<span class="mono" style="font-size: 10px; color: #4F616A">#9A4700 · 5.1:1</span>
+<span style="font-size: 12px; color: #15232B">accent-text</span>
+</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0 0 4px">Text tokens · RF14</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12px">
+<span class="mic">Token</span><span class="mic">Dark</span><span class="mic">Light</span>
+<span>paper</span><span class="mono" style="font-size: 11px">#EFE9DF</span><span class="mono" style="font-size: 11px">#15232B</span>
+<span>muted</span><span class="mono" style="font-size: 11px; color: #94A0A6">#94A0A6</span><span class="mono" style="font-size: 11px">#4F616A</span>
+<span>muted-2 · new</span><span class="mono" style="font-size: 11px; color: #7A868C">#7A868C</span><span class="mono" style="font-size: 11px">#6E7A80</span>
+<span>accent-text</span><span class="mono" style="font-size: 11px; color: #FF9E2C">#FF9E2C</span><span class="mono" style="font-size: 11px">#9A4700</span>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #94A0A6">Muted and muted-2 follow the sky: warm at golden hour, cool at night.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0 0 4px">Golden hour keeps amber on top · RF14</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="height: 120px; border-radius: 12px; background: linear-gradient(170deg, #3D2A1F, #1A1310); padding: 16px; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mic" style="color: #94A0A6">Today · #3D2A1F</span>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 18px; background: #FF9E2C; display: block"></span><span style="font-size: 12px; color: #94A0A6">Amber, muted</span></div>
+</div>
+<div style="height: 120px; border-radius: 12px; background: linear-gradient(170deg, #352A24, #1A1310); padding: 16px; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mic" style="color: #A99C8F">Proposed · #352A24</span>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 18px; background: #FF9E2C; display: block"></span><span style="font-size: 12px; color: #A99C8F">Amber, warm grey</span></div>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #94A0A6">Sky saturation 0.33 → 0.19. Twilight #3B2130 → #33232E the same way. The dial ring takes its colors from these anchors.</p>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
