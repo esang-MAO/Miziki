@@ -114,8 +114,18 @@ function convertOverlays(overlaysRaw, idToKey){
   return out;
 }
 
-function lw(updatedAt, field, value){
-  return { at: (updatedAt && updatedAt[field]) || 0, value };
+// RF16 (docs/12_REFINE.md, "edits that know what they've seen"): updatedAt[field]
+// is state.js's touchBackupField() stamp, {seq, at} since RF16 (a bare 0 only
+// ever for a field that's never been touched on this device at all). deviceId
+// is attached here, from the one doc-level value every field in a single
+// toDoc() call shares, rather than stored redundantly inside the stamp itself
+// at touch time (S.deviceId can be null before the first sign-in/sync, long
+// after a field may already have been touched).
+function lw(updatedAt, field, value, deviceId){
+  const stamp = (updatedAt && updatedAt[field]) || 0;
+  const seq = (stamp && stamp.seq) || 0;
+  const at = (stamp && stamp.at) || 0;
+  return { seq, at, deviceId: deviceId || null, value };
 }
 
 // step 07, B4: the per-track cover-image claim, kept apart from
@@ -174,17 +184,17 @@ export function toDoc(localState){
     sealed: { sealed: s.sealedIds || [], broken: s.brokenSealIds || [] },
 
     lastWrite: {
-      playlists: lw(updatedAt, 'playlists', convertPlaylists(s.playlists, idToKey)),
-      albumOrder: lw(updatedAt, 'albumOrder', convertAlbumOrder(s.albumOrder, idToKey)),
-      albumSort: lw(updatedAt, 'albumSort', s.albumSort || {}),
-      albumDisplay: lw(updatedAt, 'albumDisplay', stripArtMap(s.albumDisplay)),
-      trackDisplay: lw(updatedAt, 'trackDisplay', stripArtMap(s.trackDisplay)),
-      albumEdge: lw(updatedAt, 'albumEdge', s.albumEdge || {}),
-      albumLookPref: lw(updatedAt, 'albumLookPref', s.albumLookPref || {}),
-      prefs: lw(updatedAt, 'prefs', s.prefs || {}),
-      profileName: lw(updatedAt, 'profileName', s.profileName || ''),
+      playlists: lw(updatedAt, 'playlists', convertPlaylists(s.playlists, idToKey), s.deviceId),
+      albumOrder: lw(updatedAt, 'albumOrder', convertAlbumOrder(s.albumOrder, idToKey), s.deviceId),
+      albumSort: lw(updatedAt, 'albumSort', s.albumSort || {}, s.deviceId),
+      albumDisplay: lw(updatedAt, 'albumDisplay', stripArtMap(s.albumDisplay), s.deviceId),
+      trackDisplay: lw(updatedAt, 'trackDisplay', stripArtMap(s.trackDisplay), s.deviceId),
+      albumEdge: lw(updatedAt, 'albumEdge', s.albumEdge || {}, s.deviceId),
+      albumLookPref: lw(updatedAt, 'albumLookPref', s.albumLookPref || {}, s.deviceId),
+      prefs: lw(updatedAt, 'prefs', s.prefs || {}, s.deviceId),
+      profileName: lw(updatedAt, 'profileName', s.profileName || '', s.deviceId),
       // step 07, B4
-      picture: lw(updatedAt, 'picture', s.picture || null),
+      picture: lw(updatedAt, 'picture', s.picture || null, s.deviceId),
     },
 
     overlays: convertOverlays(s.overlaysRaw, idToKey),
