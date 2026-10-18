@@ -415,9 +415,19 @@ function storePicksSection(full){
   const row = el('div','store-picks-row');
   full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
   if(full.staffPicks.length < 8){
+    // RF15 (docs/12_REFINE.md, point 4, "empty slots as bin dividers"): the
+    // plain dashed placeholder becomes a cream bin-divider tile — a small
+    // "+" tab plus a card reading "PIN A RECORD" — the same tab-and-card
+    // shape the crate's own A-Z/genre dividers already use (10-crate.css's
+    // .crate-divider-tab/.crate-divider-label), per Profile.dc.html's own
+    // mockup. The slot count already shows in this section's own heading
+    // ("Staff picks — N of 8"), so the tile itself doesn't repeat it.
     const empty = el('div','store-pick-empty');
-    empty.appendChild(el('span', null, 'Pin a record'));
-    empty.appendChild(el('span', null, 'Slot ' + (full.staffPicks.length + 1) + ' of 8'));
+    empty.setAttribute('aria-label', 'Pin a record — slot ' + (full.staffPicks.length + 1) + ' of 8');
+    empty.appendChild(el('span','store-pick-empty-tab','+'));
+    const card = el('div','store-pick-empty-card');
+    card.appendChild(el('span', null, 'Pin a record'));
+    empty.appendChild(card);
     row.appendChild(empty);
   }
   section.appendChild(row);

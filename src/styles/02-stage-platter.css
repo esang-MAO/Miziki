@@ -57,12 +57,37 @@
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);transition:background .5s}
 .label .art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s}
 .label.has-art .art{opacity:1}
-.label.has-art .rpm,.label.has-art .mode-tag{display:none}
+.label.has-art .label-arc,.label.has-art .label-body{display:none}
 /* the mode still has to read at a glance, so it moves to the label rim.
-   This ring is a fixed Miziki orange — unlike --accent it does not follow
-   Pure/Vinyl mode, since it is a brand mark on the format ladder, not a mode indicator. */
+   This ring is a fixed Miziki orange, except in Pure — see the
+   .mode-pure .label.has-art rule below (RF15) for why that one case
+   now overrides it. */
 .label.has-art{box-shadow:inset 0 0 0 3px var(--miziki-orange),inset 0 0 0 5px rgba(0,0,0,.45)}
 .label.rare{box-shadow:none}
+/* RF15 (docs/12_REFINE.md, "the record store in the surfaces"): the
+   art-less label used to show only a plain "33.3" + "vinyl"/"pure" pair —
+   a blank surface where the vinyl idea doesn't reach. The album title now
+   sits on the label the way a real pressing's own label would, with a
+   small mono arc for the speed/side/format underneath it — real data
+   (the RPM keeps tracking Sundown's drift), not a fixed "33⅓". Hidden
+   together whenever art is showing instead (see .label.has-art above). */
+.label-arc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.label-arc text{font-family:var(--data);font-size:7.5px;letter-spacing:.14em;fill:#170D04;opacity:.78}
+.label-body{display:flex;flex-direction:column;align-items:center;gap:var(--sp-1);padding:0 var(--sp-3)}
+.label-title{font-family:var(--display);font-size:var(--fs-caption);font-weight:700;letter-spacing:.03em;
+  text-transform:uppercase;line-height:1.15;max-width:76px;color:#170D04;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.label-spindle{width:6px;height:6px;border-radius:3px;background:#170D04;opacity:.35}
+/* Pure means untouched (CLAUDE.md's own "Audio" rule) — the label's fixed
+   Miziki-orange ring said otherwise even in Pure, so RF15 point 1 flattens
+   it there: a plain hairline, same shape as the art-less label's own
+   default inset shadow above, instead of the brand ring. This is a
+   deliberate override of the step-6b reasoning recorded on the rule just
+   above ("does not follow Pure/Vinyl mode... not a mode indicator") — RF15
+   is a later, intentional design pass that supersedes it for Pure only;
+   Vinyl keeps the ring exactly as before. .mode-pure is set on
+   <html> by setMode() (src/audio/mode.js). */
+.mode-pure .label.has-art{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
 .t-dur{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
 /* NV6 (docs/11_SMOOTH_NAVIGATION.md): a library of thousands of rows costs
@@ -120,6 +145,4 @@
 .sort-toggle{display:flex;align-items:center;gap:var(--sp-1)}
 .sort-toggle span:first-child{color:var(--paper)}
 .sort-chev{font-size:var(--fs-micro);letter-spacing:.10em}
-.label .rpm{font-family:var(--display);font-size:var(--fs-head);font-weight:700;line-height:1;letter-spacing:.04em}
-.label .mode-tag{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.22em;text-transform:uppercase;margin-top:var(--sp-1);opacity:.72}
 

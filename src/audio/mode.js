@@ -6,6 +6,10 @@ export function setMode(m){
   S.mode = m;
   const vinyl = m === 'vinyl';
   document.documentElement.style.setProperty('--accent', vinyl ? 'var(--amber)' : 'var(--cool)');
+  // RF15 (docs/12_REFINE.md): "Pure means untouched" has to show on the
+  // platter's own label too, not just the colour swap above — see
+  // .mode-pure .label.has-art in 02-stage-platter.css.
+  document.documentElement.classList.toggle('mode-pure', !vinyl);
   // CEREMONY (docs/CEREMONY.md, §1): one toggle, not a two-button group —
   // a real switch (role="switch", aria-checked) whose own label text
   // reads the current mode, same as the mockup's "Label reads the
@@ -20,7 +24,6 @@ export function setMode(m){
   const barToggle = $('#barModeToggle'), barLabel = $('#barModeToggleLabel');
   if(barToggle) barToggle.setAttribute('aria-checked', String(vinyl));
   if(barLabel) barLabel.textContent = vinyl ? 'Vinyl' : 'Pure';
-  $('#modeTag').textContent = m;
   if(S.source) routeSource(S.source);
   // DA2 (docs/DAY_ARC.md): applyCharacter() now also gates on S.mode (Pure
   // forces drift to 'off' regardless of S.charDrift — see engine.js's own

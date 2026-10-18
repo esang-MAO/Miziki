@@ -15,6 +15,14 @@ export const SOCIAL_SUPABASE_ANON_KEY = 'sb_publishable_g7Ywv3lxDfwqxuAyCUSojg_w
 export const S = {
   ctx:null, nodes:null, source:null, gen:0,
   tracks:[], index:-1, playing:false, pos:0, rate:1,
+  // RF15 (docs/12_REFINE.md): the platter label's mono arc text is built
+  // from two pieces that change at different rates — the RPM (every
+  // drawSun() tick, src/player/clock.js, since Sundown keeps it moving)
+  // and the side/channel words (fixed per track, set once at load() time,
+  // src/player/transport.js). This is the static half, cached here so
+  // clock.js's tick doesn't need to re-derive it every ~220ms. Runtime
+  // only — never saved, never a prefs field.
+  labelSideFormat:'STEREO',
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
   playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, person:null, personReturn:null,
     crateLooseIdx:null, crateLooseArtist:null, picking:false, editSelecting:false},

@@ -2,6 +2,8 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { albumKey } from '../record-art/tiers.js';
+import { albumTracks } from '../library/model.js';
+import { splitSides } from '../shell/ceremony-timing.js';
 import { routeSource } from '../audio/engine.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
@@ -40,6 +42,21 @@ export function load(i){
   if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
   else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
   const m = t.meta;
+  // RF15 (docs/12_REFINE.md): the art-less label's album title + mono arc
+  // (real RPM/side/format, not a fixed "33⅓" — see Player.dc.html). The
+  // side half reuses splitSides()'s own "which side is this track on"
+  // math (src/shell/ceremony-timing.js, also runout.js's side-flip), so
+  // there's one source of truth for side letters, not a second one here.
+  $('#labelTitle').textContent = t.tags ? (t.tags.album || t.tags.title) : t.name;
+  let sideLabel = '';
+  if(S.albumSides && t.tags && t.tags.album){
+    const splits = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
+    const found = splits && splits.find(s => s.idx.includes(i));
+    if(found) sideLabel = found.label + ' · ';
+  }
+  S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
+  const arcText = $('#labelArcText');
+  if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
   $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
     m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
   setPathNote('');

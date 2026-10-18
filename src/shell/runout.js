@@ -53,6 +53,7 @@ export function clearToRest(){
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
+  $('#labelTitle').textContent = '';
   applyDiscVariant(null);
   if(S.playerOpen && !isDesktopShell()) forceCloseLayer('player');
   $('#platterBox').classList.add('disc-hidden');
