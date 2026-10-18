@@ -20,6 +20,8 @@ import { openEditSheet } from '../library/edit.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { playNext, addToQueue } from '../player/queue.js';
+import { openLibOverflowMenu, isLibOverflowMenuOpen } from '../shell/header.js';
+import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 export function wireLibraryView(){
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', ()=>{
@@ -39,10 +41,10 @@ export function wireLibraryView(){
     queueSave();
     renderTracks();
   }));
-  // D5 (docs/DESKTOP_LAYOUT.md): the tab row's own desktop-only mirror of
-  // this same toggle (#crateGroupToggleTab) drives the exact same state —
-  // one combined selector, one listener body, not a second implementation.
-  document.querySelectorAll('#crateGroupToggle [data-group], #crateGroupToggleTab [data-group]').forEach(b => b.addEventListener('click', ()=>{
+  // RF8 (docs/12_REFINE.md): #crateGroupToggleTab is now the one home for
+  // this control (the old Profile › Library tools copy, #crateGroupToggle,
+  // was removed).
+  document.querySelectorAll('#crateGroupToggleTab [data-group]').forEach(b => b.addEventListener('click', ()=>{
     if(b.style.display === 'none') return;
     S.crateGroup = b.dataset.group;
     invalidateCrateModel();
@@ -72,7 +74,17 @@ export function wireLibraryView(){
     $('#libToolsToggle').setAttribute('aria-expanded', String(open));
   });
 
-  $('#selectToggle').addEventListener('click', enterSelectMode);
+  // RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
+  // Select and Library tools both moved here off the tabs row.
+  $('#hdrOverflowBtn').addEventListener('click', ()=> isLibOverflowMenuOpen() ? closeLayer('lib-overflow-menu') : openLibOverflowMenu());
+  $('#libOverflowScrim').addEventListener('click', () => closeLayer('lib-overflow-menu'));
+  $('#libOverflowToolsBtn').addEventListener('click', ()=>{
+    forceCloseLayer('lib-overflow-menu');
+    if(!$('#libToolsPanel').classList.contains('open')) $('#libToolsToggle').click();
+    $('#libTools').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  $('#selectToggle').addEventListener('click', ()=>{ forceCloseLayer('lib-overflow-menu'); enterSelectMode(); });
   $('#selectCancel').addEventListener('click', exitSelectMode);
   $('#selectEdit').addEventListener('click', ()=>{
     if(S.editSelection.size) openEditSheet(Array.from(S.editSelection));

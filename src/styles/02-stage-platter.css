@@ -110,13 +110,16 @@
 .mv{width:28px;height:30px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
   font-size:9px;line-height:1}
 .mv:active{color:var(--accent);border-color:var(--accent)}
-.sortbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:10px 0;border-bottom:1px solid var(--line)}
+/* RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
+   Songs" — no hairline (point 2's "remove the hairlines between header
+   rows"). The sort label + chevron is itself the clickable button; the
+   count afterward is plain text. */
+.sortbar{display:flex;align-items:center;gap:6px;padding:10px 0}
 .sortbar span{font-family:var(--data);font-size:9.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted)}
-.sort-toggle{width:30px;height:26px;flex:0 0 auto;display:flex;flex-direction:column;
-  justify-content:center;align-items:center;gap:4px}
-.sort-toggle span{display:block;width:18px;height:2px;background:var(--muted);border-radius:1px}
+.sort-toggle{display:flex;align-items:center;gap:4px}
+.sort-toggle span:first-child{color:var(--paper)}
+.sort-chev{font-size:8px}
 .label .rpm{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
 .label .mode-tag{font-family:var(--data);font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-top:4px;opacity:.72}
 

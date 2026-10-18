@@ -36,7 +36,8 @@ export function toggleFavorite(id){
   updateFavoriteButtons();
   const t = current();
   if(!REDUCED && t && t.id === id){
-    [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => { if(!b) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
+    const b = $('#playerFavBtn');
+    if(b){ b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
   }
   // NV3 (docs/11_SMOOTH_NAVIGATION.md): songRow() never shows favorite
   // status at all, so toggling it changes nothing on screen except when
@@ -58,10 +59,10 @@ function libraryShowsFavoriteMembership(){
 export function updateFavoriteButtons(){
   const t = current();
   const fav = t ? isFavorite(t.id) : false;
-  [$('#playerFavBtn'), $('#miniFavBtn')].forEach(b => {
-    if(!b) return;
+  const b = $('#playerFavBtn');
+  if(b){
     b.style.display = t ? '' : 'none';
     b.setAttribute('aria-pressed', String(fav));
     b.textContent = fav ? '♥' : '♡';
-  });
+  }
 }

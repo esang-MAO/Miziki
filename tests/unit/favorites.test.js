@@ -1,8 +1,10 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// favorites.js calls $('#playerFavBtn')/$('#miniFavBtn') (util/dom.js) for
-// the "pop" animation in toggleFavorite, and renderTracks/REDUCED
+// favorites.js calls $('#playerFavBtn') (util/dom.js) for the "pop"
+// animation in toggleFavorite -- #miniFavBtn was dropped (RF8,
+// docs/12_REFINE.md: the mini-player no longer has its own favorite
+// button, since the player already has one) -- and renderTracks/REDUCED
 // (circular, rule 8) from main.js -- both mocked to tiny stubs rather than
 // pulling in a real `document`, same approach as edit.test.js/delete.test.js.
 // Since step 7a, favorites.js's own queueSave import is real (from

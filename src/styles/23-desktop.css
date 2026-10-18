@@ -30,7 +30,6 @@
    the sidebar's own Auto/Light/Dark control, both hidden by default —
    see the two @media blocks below for where each actually shows. */
 .tabbar-label-desktop{display:none}
-.sidebar-appearance{display:none}
 
 @media (min-width:1024px){
   /* D6 (docs/DESKTOP_LAYOUT.md): the sidebar's own current width, named so
@@ -113,13 +112,22 @@
     border-top:1px solid var(--line);border-left:none;border-right:none;
   }
   #miniTap{order:1;flex:0 1 320px}
-  #miniFavBtn{order:2}
   #barPrev{order:3}
   #miniPlay{order:4}
   #barNext{order:5}
   .mini-bar-seek{order:6}
   .mini-bar-modes{order:7}
   #miniQueueBtn{order:8}
+
+  /* RF8 (docs/12_REFINE.md): on the player route the full player already
+     shows transport/seek/mode — the desktop bar underneath it is reduced
+     to just the now-playing cell, not a second copy of those controls. */
+  body:has(#playerOverlay.open) .mini-player #barPrev,
+  body:has(#playerOverlay.open) .mini-player #miniPlay,
+  body:has(#playerOverlay.open) .mini-player #barNext,
+  body:has(#playerOverlay.open) .mini-player .mini-bar-seek,
+  body:has(#playerOverlay.open) .mini-player .mini-bar-modes,
+  body:has(#playerOverlay.open) .mini-player #miniQueueBtn{display:none}
 
   .mini-bar-btn{
     display:grid;place-content:center;width:40px;height:40px;
@@ -210,29 +218,6 @@
   .sidebar-sundown-phase{font-family:var(--display);font-size:18px;text-transform:uppercase;color:var(--paper);margin-bottom:2px}
   .sidebar-sundown-rate{font-size:13px;color:var(--paper);margin-bottom:4px}
   .sidebar-sundown-leg{font-family:var(--data);font-size:11px;color:var(--muted)}
-
-  /* D7: "where the control lives... the three-way segmented control at
-     the bottom of the desktop sidebar" — same tier as the playlists/
-     Sundown content (1280px+ only; the 76px icon rail has no room for
-     three labeled buttons any more than it does for the playlists list),
-     pinned to the sidebar's own foot via margin-top:auto on the flex
-     column .sidebar already is, rather than a fixed position that would
-     ignore how tall the playlists list above it happens to be. */
-  .sidebar-appearance{
-    display:flex;margin-top:auto;padding-top:14px;
-    border-top:1px solid var(--line);
-  }
-  /* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a fourth
-     button (Nychthemeron) needs the 2x2 grid the DesktopSidebar artboard
-     uses, in place of the old 3-across flex row — this control is
-     narrower than Profile > Settings' own copy (182px sidebar vs.
-     320-390px), so Nychthemeron also gets its own tighter letter-
-     spacing/font-size here, matching the artboard's own
-     "letter-spacing: .02em; font-size: 9px" for this one button; the
-     other three keep the row's existing 10px size unchanged. */
-  .sidebar-appearance .seg{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .sidebar-appearance .seg button{text-align:center}
-  .sidebar-appearance .seg button[data-theme-choice="nychthemeron"]{letter-spacing:.02em;font-size:9px}
 
   /* D7: "Keep the route id, change only the visible label on desktop" —
      the generic .tabbar-btn span{display:inline} rule just above would
@@ -435,8 +420,7 @@
   .player-overlay.at-rest #scrub,
   .player-overlay.at-rest .times,
   .player-overlay.at-rest .transport,
-  .player-overlay.at-rest .modes,
-  .player-overlay.at-rest #modeNote{display:none !important}
+  .player-overlay.at-rest .modes{display:none !important}
   .player-overlay.at-rest .slipmat-rest{display:grid}
   .player-overlay.at-rest .rest-hint{display:block;max-width:340px}
   .rest-eyebrow{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}

@@ -466,7 +466,8 @@ function renderTracksBody(host){
   // D5 (docs/DESKTOP_LAYOUT.md): hidden by default every render, same as
   // #crumb just below — the crate branch (renderCrate() -> crate/view.js's
   // own updateCrateGroupToggleUI()) is what turns this back on when
-  // S.view.mode is actually 'crate' and the viewport is desktop-width.
+  // S.view.mode is actually 'crate'. Since RF8 (docs/12_REFINE.md), this is
+  // the one home for crate grouping on every platform, not desktop-only.
   $('#crateGroupToggleTab').style.display = 'none';
   if(!S.tracks.length){ setPathNote(); return; }
 
@@ -555,8 +556,8 @@ function renderTracksBody(host){
   const ul = el('ul','tracklist');
 
   if(v.mode === 'songs'){
-    host.appendChild(librarySortBar());
     const q = allIdx().sort(librarySortComparator('songs'));
+    host.appendChild(librarySortBar(q.length, q.length === 1 ? 'Song' : 'Songs'));
     host.appendChild(ul);
     appendRowsChunked(ul, q, (i, pos) => {
       const row = songRow(i, q, pos);
@@ -577,8 +578,9 @@ function renderTracksBody(host){
 
   else if(v.mode === 'albums'){
     if(v.group === null){
-      host.appendChild(librarySortBar());
-      appendRowsChunked(host, sortAlbumGroups(groupBy('album')), ([album, idx]) => {
+      const groups = sortAlbumGroups(groupBy('album'));
+      host.appendChild(librarySortBar(groups.length, groups.length === 1 ? 'Album' : 'Albums'));
+      appendRowsChunked(host, groups, ([album, idx]) => {
         const artist = S.tracks[idx[0]].tags.albumArtist;
         const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
           idx, ()=>{ v.group = album; renderTracks(); });
