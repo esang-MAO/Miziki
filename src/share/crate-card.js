@@ -7,7 +7,9 @@ import {
   roundRectPath, drawShareWordmark, resolveShareStyle, hexMix, drawDiagonalWordmark, shareChip,
 } from './styles.js';
 import { fmtCount } from '../profile/screens.js';
-import { computeRhythmShares, rhythmVerdictLabel, RHYTHM_MIN_PLAYS } from '../sundown/rhythm.js';
+import {
+  computeRhythmShares, rhythmVerdictLabel, RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, windowedPhaseCounts,
+} from '../sundown/rhythm.js';
 
 /* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
    album, a grid of the next covers, top songs, metals + collection, brand.
@@ -229,19 +231,26 @@ export async function composeShareImage(opts){
     }
   }
 
-  // DA6 (docs/DAY_ARC.md): the rhythm verdict ("Night listener"), shown
-  // only once the DA5 profile card itself would be unlocked (>= 20
-  // counted plays) -- not separately unit-tested, per the same escape
-  // valve tests/unit/share.test.js's own entry already documents for
+  // DA6 (docs/DAY_ARC.md); windowed and reworded RF22 ("words that
+  // invite"): the rhythm verdict, shown only once the profile card itself
+  // would be unlocked (>= 20 plays counted over the same rolling
+  // RHYTHM_WINDOW_DAYS window the card itself now reads, not a lifetime
+  // total -- see sundown/rhythm.js's own header comment) -- not
+  // separately unit-tested, per the same escape valve
+  // tests/unit/share.test.js's own entry already documents for
   // composeShareImage's hero/top-items selection: it's inline in an
   // async canvas-drawing function with no meaningful pure core beyond
   // the already-tested computeRhythmShares/rhythmVerdictLabel/
-  // RHYTHM_MIN_PLAYS this reuses, not a new decision of its own.
+  // RHYTHM_MIN_PLAYS/windowedPhaseCounts this reuses, not a new decision
+  // of its own. No .toUpperCase() any more -- RF22's own "Lately, mostly
+  // after dark" is meant to read as a sentence, not a shouted label like
+  // the old "NIGHT LISTENER" chip text.
   let markY = Math.max(leftY, rightY, Math.round(h*0.02)) + Math.round(h*0.03);
   if(sections.rhythm !== false){
-    const total = Object.values(S.phasePlayCounts || {}).reduce((a,b) => a+b, 0);
+    const windowed = windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS);
+    const total = Object.values(windowed).reduce((a,b) => a+b, 0);
     if(total >= RHYTHM_MIN_PLAYS){
-      const label = rhythmVerdictLabel(computeRhythmShares(S.phasePlayCounts).shares).toUpperCase();
+      const label = rhythmVerdictLabel(computeRhythmShares(windowed).shares);
       ctx.font = '600 22px "IBM Plex Mono", monospace';
       const chipW = ctx.measureText(label).width + 44;
       shareChip(ctx, kit, label, Math.round((w - chipW) / 2), markY, false);

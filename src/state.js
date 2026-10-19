@@ -332,6 +332,19 @@ S.mergedStats = null;
    library (F3) like every other history counter. */
 S.phasePlayCounts = {};
 S.albumPhaseCounts = {};
+// RF22 (docs/12_REFINE.md, "words that invite", point 3): a day-bucketed
+// twin of phasePlayCounts above -- {dayKey: {phase: count}}, dayKey a
+// local-calendar 'YYYY-MM-DD' string (sundown/rhythm.js's dayKeyFor()) --
+// kept so the profile's listening-rhythm card can read "a season" (a
+// rolling RHYTHM_WINDOW_DAYS-day window, sundown/rhythm.js's
+// windowedPhaseCounts()) instead of a lifetime total. Device-only: unlike
+// phasePlayCounts/albumPhaseCounts, this is never in the backup doc and
+// never merged across devices -- a season is "what this device has heard
+// lately," the same posture S.theme/S.rhythmPushedAt already have, not
+// one more per-device counter to sum. Pruned on every write
+// (history/played.js's incrementTrackPlay(), via pruneDayBuckets()) to a
+// generous multiple of the window so it never grows without bound.
+S.phasePlayCountsByDay = {};
 // device-only sync bookkeeping -- the last time this device actually
 // pushed a listening-rhythm snapshot to the account (src/sync/backup.js's
 // pushBackup(), "updated at most daily" per the doc) -- never itself

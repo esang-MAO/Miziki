@@ -136,6 +136,9 @@ mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
 const { addPlayedRange, playedCoverage, checkTrackCompletion, incrementTrackPlay } = await import('../../src/history/played.js');
 const { clearListeningHistory } = await import('../../src/history/clear.js');
 const { S } = await import('../../src/state.js');
+// RF22 (docs/12_REFINE.md): played.js's own real sundown/rhythm.js import
+// (a pure, zero-import leaf -- no mocking needed) is where dayKeyFor lives.
+const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
 
 function resetState(overrides){
   Object.assign(S, {
@@ -144,8 +147,8 @@ function resetState(overrides){
     albumLastPlayed: {}, albumDisplay: {}, albumLookPref: {},
     achievements: {}, collection: {},
     trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {}, trackDisplay: {},
-    // DA5 (docs/DAY_ARC.md)
-    phasePlayCounts: {}, albumPhaseCounts: {}, previewMin: 0,
+    // DA5 (docs/DAY_ARC.md); phasePlayCountsByDay added RF22 (docs/12_REFINE.md)
+    phasePlayCounts: {}, phasePlayCountsByDay: {}, albumPhaseCounts: {}, previewMin: 0,
   }, overrides);
   checkAlbumAchievementAndCollectionMock.mock.resetCalls();
   fakePhase = 'midday';
@@ -285,6 +288,20 @@ test('checkTrackCompletion: the counted phase comes from realDayPosition(), neve
   assert.deepEqual(S.phasePlayCounts, { twilight: 1 });
 });
 
+test('incrementTrackPlay: RF22 — also tallies the same phase into phasePlayCountsByDay, bucketed by today\'s local calendar day', () => {
+  resetState();
+  fakePhase = 'golden';
+  const t = fakeTrack();
+  incrementTrackPlay(t);
+  const today = dayKeyFor(Date.now());
+  assert.deepEqual(Object.keys(S.phasePlayCountsByDay), [today]);
+  assert.deepEqual(S.phasePlayCountsByDay[today], { golden: 1 });
+  incrementTrackPlay(t);
+  assert.deepEqual(S.phasePlayCountsByDay[today], { golden: 2 });
+  // same lifetime counters as before, untouched by the new day-bucketed one
+  assert.deepEqual(S.phasePlayCounts, { golden: 2 });
+});
+
 test('a second track in a different album gets its own albumPhaseCounts entry, phasePlayCounts stays one shared tally', () => {
   resetState();
   fakePhase = 'dawn';
@@ -294,28 +311,34 @@ test('a second track in a different album gets its own albumPhaseCounts entry, p
   assert.deepEqual(S.albumPhaseCounts, { al1: { dawn: 1 }, al2: { dawn: 1 } });
 });
 
-test('clearListeningHistory: full scope resets phasePlayCounts/albumPhaseCounts too', async () => {
+test('clearListeningHistory: full scope resets phasePlayCounts/albumPhaseCounts/phasePlayCountsByDay too', async () => {
   await openFresh();
+  const today = dayKeyFor(Date.now());
   resetState({
     tracks: [fakeTrack({ id:'t1' })],
     phasePlayCounts: { night: 7 }, albumPhaseCounts: { al: { night: 7 } },
+    phasePlayCountsByDay: { [today]: { night: 7 } },
   });
   await clearListeningHistory(false);
   assert.deepEqual(S.phasePlayCounts, {});
   assert.deepEqual(S.albumPhaseCounts, {});
+  assert.deepEqual(S.phasePlayCountsByDay, {});
   DB.db.close();
 });
 
-test('clearListeningHistory: orphaned-only scope prunes albumPhaseCounts by identity, but leaves phasePlayCounts alone (it has no per-identity shape to prune by)', async () => {
+test('clearListeningHistory: orphaned-only scope prunes albumPhaseCounts by identity, but leaves phasePlayCounts/phasePlayCountsByDay alone (neither has a per-identity shape to prune by)', async () => {
   await openFresh();
+  const today = dayKeyFor(Date.now());
   resetState({
     tracks: [fakeTrack({ id:'t1', tags:{title:'T', artist:'A', album:'Al', albumArtist:'A', track:1, disc:0} })],
     // albumKey() is normKey(album) alone -- "al" for the still-present track, "goneAlbum" for one that's gone
     phasePlayCounts: { night: 5, golden: 2 },   // never touched by the orphaned-only scope -- see the doc comment in state.js
+    phasePlayCountsByDay: { [today]: { night: 5, golden: 2 } },   // same reasoning, RF22's own addition
     albumPhaseCounts: { al: { night: 5 }, goneAlbum: { golden: 2 } },
   });
   await clearListeningHistory(true);
   assert.deepEqual(S.phasePlayCounts, { night: 5, golden: 2 });
+  assert.deepEqual(S.phasePlayCountsByDay, { [today]: { night: 5, golden: 2 } });
   assert.ok('al' in S.albumPhaseCounts);
   assert.ok(!('goneAlbum' in S.albumPhaseCounts));
   DB.db.close();

@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 
 // src/profile/rhythm-card.js builds small DOM trees (el()/
 // document.createElement) around the pure src/sundown/rhythm.js helpers,
-// read against S.phasePlayCounts/S.albumPhaseCounts/S.albumDisplay — the
-// same "tiny stub element, no real document" shape tests/unit/profile.test.js
+// read against S.phasePlayCountsByDay (windowed to a rolling season,
+// RF22)/S.albumPhaseCounts (still lifetime)/S.albumDisplay — the same
+// "tiny stub element, no real document" shape tests/unit/profile.test.js
 // already uses for metalBadge/collectionBadge.
 function fakeEl(){
   const children = [];
@@ -24,6 +25,15 @@ globalThis.document = { createElement(){ return fakeEl(); } };
 
 const { S } = await import('../../src/state.js');
 const { renderRhythmCard, renderSharedRhythmCard } = await import('../../src/profile/rhythm-card.js');
+const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
+
+// RF22 (docs/12_REFINE.md, "words that invite", point 3): renderRhythmCard
+// now reads a rolling window over S.phasePlayCountsByDay rather than the
+// lifetime S.phasePlayCounts — every test below seeds "today's" bucket
+// instead, so the windowing itself (already covered on its own in
+// tests/unit/rhythm.test.js) isn't what's under test here.
+const TODAY = dayKeyFor(Date.now());
+function seedToday(counts){ S.phasePlayCountsByDay = { [TODAY]: counts }; }
 
 // find every descendant (DFS) whose className contains `cls`
 function findAll(root, cls){
@@ -40,13 +50,14 @@ function findAll(root, cls){
 
 function reset(){
   S.phasePlayCounts = {};
+  S.phasePlayCountsByDay = {};
   S.albumPhaseCounts = {};
   S.albumDisplay = {};
 }
 
 test('below the 20-play gate renders the locked card, not the ring', () => {
   reset();
-  S.phasePlayCounts = { night: 12 };
+  seedToday({ night: 12 });
   const host = fakeEl();
   renderRhythmCard(host);
   const locked = findAll(host, 'rhythm-locked');
@@ -58,7 +69,7 @@ test('below the 20-play gate renders the locked card, not the ring', () => {
 
 test('exactly at the gate (20) unlocks the full card', () => {
   reset();
-  S.phasePlayCounts = { night: 20 };
+  seedToday({ night: 20 });
   const host = fakeEl();
   renderRhythmCard(host);
   assert.equal(findAll(host, 'rhythm-locked').length, 0);
@@ -67,7 +78,7 @@ test('exactly at the gate (20) unlocks the full card', () => {
 
 test('the legend has one row per phase with a nonzero share, and the ring centre shows the total', () => {
   reset();
-  S.phasePlayCounts = { night: 15, morning: 10 };   // total 25, two nonzero phases
+  seedToday({ night: 15, morning: 10 });   // total 25, two nonzero phases
   const host = fakeEl();
   renderRhythmCard(host);
   assert.equal(findAll(host, 'rhythm-legend-row').length, 2);
@@ -78,17 +89,30 @@ test('the legend has one row per phase with a nonzero share, and the ring centre
   assert.equal(center.childNodes[1].textContent, 'plays');
 });
 
-test('the verdict reflects the dominant phase', () => {
+test('the verdict reflects the dominant phase, in RF22\'s "a season" phrasing', () => {
   reset();
-  S.phasePlayCounts = { golden: 30 };
+  seedToday({ golden: 30 });
   const host = fakeEl();
   renderRhythmCard(host);
-  assert.equal(findAll(host, 'rhythm-verdict')[0].textContent, 'Golden-hour leaning');
+  assert.equal(findAll(host, 'rhythm-verdict')[0].textContent, 'Lately, leaning golden hour');
+});
+
+test('a play outside the 90-day window is not counted -- a stale season reads as locked again', () => {
+  reset();
+  const stale = dayKeyFor(new Date(Date.now() - 200 * 24 * 60 * 60 * 1000));
+  S.phasePlayCountsByDay = { [stale]: { night: 30 } };
+  const host = fakeEl();
+  renderRhythmCard(host);
+  assert.equal(findAll(host, 'rhythm-locked').length, 1);
+  assert.equal(findAll(host, 'rhythm-ring').length, 0);
 });
 
 test('a record row renders only for phases with a resolvable best album, using S.albumDisplay', () => {
   reset();
-  S.phasePlayCounts = { night: 15, dawn: 10 };   // 25 total -- past the gate
+  seedToday({ night: 15, dawn: 10 });   // 25 total -- past the gate
+  // bestAlbumPerPhase() still reads lifetime S.albumPhaseCounts, not the
+  // windowed day buckets -- RF22 only windows the ring/verdict, never the
+  // per-phase "best record" list (it isn't part of the shared payload).
   S.albumPhaseCounts = { alb1: { night: 5 }, alb2: { dawn: 3 } };
   S.albumDisplay = { alb1: { name: 'Night Album', artist: 'Band A', art: null }, alb2: { name: 'Dawn Album', artist: '', art: null } };
   const host = fakeEl();
@@ -101,7 +125,7 @@ test('a record row renders only for phases with a resolvable best album, using S
 
 test('no plays at all for any album is simply no record rows -- not a crash', () => {
   reset();
-  S.phasePlayCounts = { night: 25 };
+  seedToday({ night: 25 });
   // S.albumPhaseCounts left empty
   const host = fakeEl();
   renderRhythmCard(host);
@@ -122,9 +146,9 @@ test('renders the ring, legend and verdict straight from the given payload -- no
   assert.equal(findAll(host, 'rhythm-records').length, 0, 'the shared payload never carries a per-phase record list');
 });
 
-test('never reads S.phasePlayCounts/S.albumPhaseCounts -- it only uses what it was handed', () => {
+test('never reads S.phasePlayCounts/S.phasePlayCountsByDay/S.albumPhaseCounts -- it only uses what it was handed', () => {
   reset();
-  S.phasePlayCounts = { night: 999 };   // this device's own data, irrelevant here
+  seedToday({ night: 999 });   // this device's own data, irrelevant here
   const host = fakeEl();
   renderSharedRhythmCard(host, { verdict: 'Golden-hour leaning', shares: { golden: 1 } });
   assert.equal(findAll(host, 'rhythm-verdict')[0].textContent, 'Golden-hour leaning');

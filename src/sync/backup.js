@@ -47,7 +47,9 @@ import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { prepareCoverUpload, prepareAvatarUpload, sha256Hex } from './images.js';
 // sundown/rhythm.js is a leaf (no imports at all) -- the same safe-to-
 // import-directly shape as crate/tiers.js above, for the exact same reason.
-import { RHYTHM_MIN_PLAYS, computeRhythmShares, rhythmVerdictLabel } from '../sundown/rhythm.js';
+import {
+  RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, rhythmVerdictLabel, windowedPhaseCounts,
+} from '../sundown/rhythm.js';
 
 const BACKUP_DEBOUNCE_MS = 30000;
 const BACKOFF = [15000, 30000, 60000, 120000, 300000];
@@ -291,8 +293,14 @@ function setRhythmPushedAt(at){
 // 20-play gate (DA5 point 2) is the ordinary "just signed up" case, not a
 // failure, so every caller treats it the same way a signed-out/not-
 // configured social layer already is: a quiet no-op, not a surfaced error.
+// RF22 (docs/12_REFINE.md, "words that invite", point 3): "a season," not
+// a lifetime -- windowed to RHYTHM_WINDOW_DAYS the same way the local
+// card/share chip now are, so the 20-play gate is also a lately gate: a
+// published rhythm that's gone stale (nothing played in a season) clears
+// itself on the next push rather than keep advertising an old habit.
+// The published payload's own shape ({verdict, shares}) is unchanged.
 function buildRhythmPayload(){
-  const { total, shares } = computeRhythmShares(S.phasePlayCounts);
+  const { total, shares } = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
   if(total < RHYTHM_MIN_PLAYS) return null;
   return { verdict: rhythmVerdictLabel(shares), shares };
 }
