@@ -438,14 +438,29 @@ const SKY_ANCHORS = {
     dusk:      [[30,24,40],[13,11,19]],
   },
   light: {
-    night:     [[232,227,238],[224,218,232]],
-    dawn:      [[245,229,224],[237,216,209]],
+    // CR8 (docs/13_CRATE.md point 2): "the four phase anchors that lean
+    // into their hue" -- docs/design/crate/README.md's own light-theme
+    // table (Golden #F8E2C2, Dawn #F7E1DE, Night #E4DFEE, Twilight
+    // #F2E2E5). Each is one flat anchor (both "stops" of the pair
+    // identical), replacing the previous near-neutral two-stop pairs for
+    // these four phases only -- morning/midday/afternoon/dusk are
+    // untouched, since the README names only these four.
+    night:     [[228,223,238],[228,223,238]],
+    dawn:      [[247,225,222],[247,225,222]],
     morning:   [[239,244,242],[227,236,234]],
     midday:    [[246,241,231],[236,229,216]],
     afternoon: [[245,239,227],[235,227,211]],
-    golden:    [[247,230,205],[240,217,182]],
-    twilight:  [[243,230,231],[235,221,224]],
-    dusk:      [[236,230,238],[227,221,232]],
+    golden:    [[248,226,194],[248,226,194]],
+    twilight:  [[242,226,229],[242,226,229]],
+    // dusk itself is untouched by CR8 (the README names only Golden/Dawn/
+    // Night/Twilight as leaning into their hue) -- but CR8's own new,
+    // warmer light --muted (#6B6258) lost just enough margin against this
+    // anchor's darker stop to dip under the 4.5:1 floor at the tail end of
+    // twilight (where the sky blends into it) -- found by the project's
+    // own full-day contrast sweep (tests/unit/clock.test.js), not asserted.
+    // A 3-point lift on each channel (imperceptible; the hue is unchanged)
+    // restores the margin without otherwise moving this anchor.
+    dusk:      [[236,230,238],[230,224,235]],
   },
 };
 
@@ -500,11 +515,15 @@ const MUTED_ANCHORS_DARK = {
   night: MUTED_COOL, dawn: MUTED_COOL, morning: MUTED_COOL, midday: MUTED_COOL,
   afternoon: MUTED_COOL, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_COOL,
 };
-// Light "keeps one pair" (the design README's own wording) -- #4F616A/
-// #6E7A80 already clear 4.5:1/3:1 against every light sky anchor,
-// including the warmest one (Golden), so there's no contrast reason for a
-// light-theme warm/cool split, and the design simply doesn't call for one.
-const MUTED_LIGHT = toStops([[79,97,106],[110,122,128]]); // --muted #4F616A / --muted-2 #6E7A80
+// Light "keeps one pair" (the design README's own wording). CR8
+// (docs/13_CRATE.md point 2) moved --muted's own light value from #4F616A
+// to #6B6258 (--muted-2 unchanged) -- this is the one other place that
+// pair is set, since drawSun() writes --muted/--muted-2 inline every tick
+// and would otherwise silently override the CSS token with the stale
+// value. Still a flat pair with no warm/cool split (tests/unit/
+// contrast.test.js's own CR8 check covers the floor this comment used to
+// state here by hand).
+const MUTED_LIGHT = toStops([[107,98,88],[110,122,128]]); // --muted #6B6258 / --muted-2 #6E7A80
 
 export function mutedGradientStops(dayPos, theme){
   if(theme === 'light') return MUTED_LIGHT;
@@ -515,9 +534,13 @@ export function mutedGradientStops(dayPos, theme){
 // profile/rhythm-card.js's own PHASE_COLOR table already uses, duplicated
 // here per that file's own comment on why (see --phase-color's write
 // site above).
+// CR8 (docs/13_CRATE.md point 3): "Golden's phase colour #F2B35C" -- was
+// #FFB85E, close enough to --amber/--accent-text (#FF9E2C) to read as
+// amber's own twin; the README's own replacement warms toward gold
+// instead, so Golden's chip is clearly its own colour, not amber again.
 const PHASE_COLOR = {
   night: '#8E7CC3', dawn: '#E7A7B8', morning: '#9FD8E8', midday: '#EFE9DF',
-  afternoon: '#D9C7A0', golden: '#FFB85E', twilight: '#FF9E2C',
+  afternoon: '#D9C7A0', golden: '#F2B35C', twilight: '#FF9E2C',
 };
 
 // CR1's "sky-lit highlight": a warm-white top edge at Golden hour, cool at

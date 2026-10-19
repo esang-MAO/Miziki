@@ -341,9 +341,12 @@ function contrastRatio(hexOrRgb, rgbStr){
   const lighter = Math.max(L1, L2), darker = Math.min(L1, L2);
   return (lighter + 0.05) / (darker + 0.05);
 }
+// CR8 (docs/13_CRATE.md point 2) moved light theme's --paper (#15232B ->
+// #26202C) and --muted (#4F616A -> #6B6258) -- --muted-2/--accent-text
+// are untouched.
 const TEXT_TOKENS = {
   dark: { paper: [239,233,223], muted: [148,160,166], accentText: [255,158,44] },
-  light: { paper: [21,35,43], muted: [79,97,106], accentText: [154,71,0] },
+  light: { paper: [38,32,44], muted: [107,98,88], accentText: [154,71,0] },
 };
 
 test('skyGradientStops: every anchor stays >=4.5:1 against paper/muted/accent-text, both themes', () => {
@@ -416,7 +419,7 @@ test('mutedGradientStops: light theme keeps one pair regardless of phase', () =>
   const golden = mutedGradientStops(pos('golden'), 'light');
   const night = mutedGradientStops(pos('night', 0, 1), 'light');
   assert.deepEqual(golden, night);
-  assert.deepEqual(golden, ['rgb(79,97,106)', 'rgb(110,122,128)']);
+  assert.deepEqual(golden, ['rgb(107,98,88)', 'rgb(110,122,128)']);
 });
 
 test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) too, sampled every 10 minutes across a full day', async () => {

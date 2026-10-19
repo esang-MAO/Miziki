@@ -97,12 +97,12 @@
   margin-top:calc(var(--crate-card-size) * -0.06);
   border-radius:3px;
 }
-.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,#E6DCC4,#CFC2A3);color:#2A1B38;
+.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,var(--stock-divider-1),var(--stock-divider-2));color:#2A1B38;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #B5A684}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 var(--stock-lip)}
 /* genre grouping's own stock (manila, flat — the README gives it no
    gradient of its own, unlike the cream default above) */
-.crate-divider.crate-divider-genre{background:#E8D9A8}
+.crate-divider.crate-divider-genre{background:var(--stock-manila)}
 /* CR4 (docs/13_CRATE.md): "tinted by the README's era table (20-25% over
    divider stock plus a 6px edge stripe; lettering stays aubergine)" —
    --era-1/--era-2/--era-3 are set inline per decade (crate/view.js,
@@ -116,7 +116,7 @@
 .crate-divider.crate-divider-decade{
   background:
     linear-gradient(180deg, var(--era-1), var(--era-2) 50%, var(--era-3)) left top / 6px 100% no-repeat,
-    linear-gradient(160deg, color-mix(in srgb, var(--era-1) 22%, #E6DCC4), color-mix(in srgb, var(--era-1) 22%, #CFC2A3));
+    linear-gradient(160deg, color-mix(in srgb, var(--era-1) 22%, var(--stock-divider-1)), color-mix(in srgb, var(--era-1) 22%, var(--stock-divider-2)));
 }
 /* "a thin inner rule 14px in" */
 .crate-divider::before{content:'';position:absolute;inset:14px;border:1px solid rgba(42,27,56,.18);
@@ -145,7 +145,12 @@
    bottom of the bin the stack sits in, not a layer on top of it. */
 .crate-lip{position:absolute;left:50%;bottom:0;width:330px;height:118px;margin-left:-165px;z-index:85;
   border-radius:4px 4px 0 0;pointer-events:none;
-  background:linear-gradient(180deg,#3A2B22,#2A1F19 18%,#1E1612);
+  /* CR8 (docs/13_CRATE.md): "the bin is cardboard and walnut, not
+     red-brown" — the previous gradient here (#3A2B22/#2A1F19/#1E1612)
+     leaned too far toward Oxblood/Umber's own red-brown record-body
+     family; --bin-1/2/3 is the README's own walnut/cardboard triplet,
+     chosen so no record body reads as camouflaged against its own bin. */
+  background:linear-gradient(180deg,var(--bin-1),var(--bin-2) 18%,var(--bin-3));
   box-shadow:inset 0 2px 0 var(--crate-light)}
 .crate-lip-tag{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.08em;text-transform:uppercase;color:var(--cream)}
@@ -211,7 +216,7 @@
 /* CR3 point 3: the catalog card replaces the plain .crate-info-row for a
    record (dividers still render straight into .crate-info, untouched) —
    cream stock, a 4px aubergine head rule, --sh-1. */
-.crate-catalog-card{position:relative;background:#EFE6D2;color:#2A1B38;border-radius:2px;
+.crate-catalog-card{position:relative;background:var(--stock-card);color:#2A1B38;border-radius:2px;
   box-shadow:var(--sh-1);padding:10px var(--sp-3) var(--sp-3);overflow:hidden}
 .crate-catalog-rule{position:absolute;top:0;left:0;right:0;height:4px;background:#2A1B38}
 .crate-catalog-body{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-3)}

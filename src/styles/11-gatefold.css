@@ -92,7 +92,11 @@
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-sleeve{opacity:1}
 .gf-sleeve-paper{position:absolute;left:0;right:0;top:40px;bottom:-200px;
-  background:linear-gradient(180deg,#E6DCC4,#CBBE9F);border-radius:3px;
+  /* CR8 (docs/13_CRATE.md): tokenized onto the same --stock-divider-1/2
+     pair 10-crate.css's own divider card uses, reconciling this gradient's
+     previous second stop (#CBBE9F) with the design README's one
+     canonical stock colour (#CFC2A3) instead of carrying a near-duplicate. */
+  background:linear-gradient(180deg,var(--stock-divider-1),var(--stock-divider-2));border-radius:3px;
   box-shadow:0 -10px 24px rgba(0,0,0,.35);
   mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px);
   -webkit-mask:radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px)}

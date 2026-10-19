@@ -299,3 +299,76 @@ test('dial labels: the disc readout (on-accent/amber) and hour labels (paper, of
     assert.ok(ratio >= 4.5, `${themeName}: .day-dial-label contrast ${ratio.toFixed(2)} below 4.5:1`);
   }
 });
+
+// CR8 (docs/13_CRATE.md, "palette additions", point 5): "Extend RF12's
+// contrast test to the new tokens against both themes' backgrounds (muted
+// >= 4.5 everywhere; secondaries >= 3 for paper text; the shade >= 4.5 on
+// --sky2)." --muted already existed (RF14); this is CR8's own light-theme
+// value (#6B6258) plus the dark value, both checked against both sky
+// stops in both themes, since the README's own "paper text on them"
+// numbers for the secondaries were measured against a sky background too
+// (docs/design/crate/README.md's own "Palette additions (CR8)" section).
+test('CR8: --muted clears 4.5:1 against both sky stops, in both themes', () => {
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue('var(--muted)', tokens));
+    assert.ok(fg, `${themeName}: --muted should resolve to a real color`);
+    for (const skyVar of ['--sky1', '--sky2']) {
+      const bg = parseColor(resolveValue(`var(${skyVar})`, tokens));
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < 4.5) {
+        failures.push(`${themeName} --muted vs ${skyVar} — ratio ${ratio.toFixed(2)}:1`);
+      }
+    }
+  }
+  assert.deepEqual(failures, [], `--muted contrast failures:\n${failures.join('\n')}`);
+});
+
+// --amber-shade is meant for "14px+ bold, icons and fills, not small
+// text" (the README's own wording) — the one CR8 token this test checks
+// against the general <18px text floor's own stricter neighbour (4.5:1),
+// per point 5's explicit "the shade >= 4.5 on --sky2" ask, not the lower
+// large-text floor its own intended use would otherwise allow.
+test('CR8: --amber-shade clears 4.5:1 against --sky2, in both themes', () => {
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue('var(--amber-shade)', tokens));
+    const bg = parseColor(resolveValue('var(--sky2)', tokens));
+    assert.ok(fg && bg, `${themeName}: --amber-shade/--sky2 should resolve to real colors`);
+    const ratio = contrastRatio(fg, bg);
+    if (ratio < 4.5) failures.push(`${themeName} --amber-shade vs --sky2 — ratio ${ratio.toFixed(2)}:1`);
+  }
+  assert.deepEqual(failures, [], `--amber-shade contrast failures:\n${failures.join('\n')}`);
+});
+
+// Secondaries are shades meant to sit as a fill with light text on top
+// (the README's own "paper text on them" figures: Prussian 6.3, Verdigris
+// 3.3, Puce 5.2, Olive 4.6, all measured in dark theme, where --paper is
+// the light cream ink). In light theme --paper flips to the dark
+// aubergine ink CR8 point 2 just set, so that pairing would be reading
+// dark text against a mid-tone fill -- exactly backwards from what the
+// README measured. Point 2's own instruction for light theme is "the
+// secondaries with CREAM text," not paper text, so this checks --paper
+// in dark theme (the pairing the README's own numbers describe) and
+// --cream in light theme (the pairing point 2 actually calls for) --
+// both are the light/cream-ish text color each theme would really use on
+// top of one of these fills. Olive's own deep variant isn't separately
+// named in the README's figure list (it's a darker bridge tone, not a
+// fourth fill of its own), so it isn't checked here as a fourth
+// secondary -- it has no "light text on top of it" use site yet either.
+test('CR8: secondaries clear 3:1 for the light text each theme would put on them', () => {
+  const secondaries = ['--prussian', '--verdigris', '--puce', '--olive'];
+  const TEXT_TOKEN = { dark: '--paper', light: '--cream' };
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue(`var(${TEXT_TOKEN[themeName]})`, tokens));
+    assert.ok(fg, `${themeName}: ${TEXT_TOKEN[themeName]} should resolve to a real color`);
+    for (const name of secondaries) {
+      const bg = parseColor(resolveValue(`var(${name})`, tokens));
+      assert.ok(bg, `${themeName}: ${name} should resolve to a real color`);
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < 3) failures.push(`${themeName} ${TEXT_TOKEN[themeName]} on ${name} — ratio ${ratio.toFixed(2)}:1`);
+    }
+  }
+  assert.deepEqual(failures, [], `secondary contrast failures:\n${failures.join('\n')}`);
+});

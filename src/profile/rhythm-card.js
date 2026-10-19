@@ -55,20 +55,64 @@ const PHASE_LABEL = {
 // stays dark-theme-only in both app themes too, since none of
 // src/styles/22-theme.css's light-theme overrides touch phase colors
 // either; the README's own "darken until >=3:1" instruction for light
-// theme is noted here, not acted on, matching that existing precedent.
+// theme was noted here, not acted on, until CR8 below.
+// CR8 (docs/13_CRATE.md point 3): Golden's own #FFB85E -> #F2B35C, the
+// same fix and the same reason as player/clock.js's own duplicate of this
+// table (see that file's comment) -- kept in sync by hand, same as every
+// other value these two tables already share.
 const PHASE_COLOR = {
   night: '#8E7CC3', dawn: '#E7A7B8', morning: '#9FD8E8', midday: '#EFE9DF',
-  afternoon: '#D9C7A0', golden: '#FFB85E', twilight: '#FF9E2C',
+  afternoon: '#D9C7A0', golden: '#F2B35C', twilight: '#FF9E2C',
 };
+
+// CR8 (docs/13_CRATE.md point 2): "light phase chips use the secondaries
+// with cream text, not the dark-mode pastels" -- this is the one surface
+// that comment above says had never acted on the README's own light-
+// theme instruction. The ring segments/legend dots are the "chip" here;
+// each of the seven phases maps onto one of the four secondaries (00-base
+// .css's own --prussian/--verdigris/--puce/--olive(-deep)/--warm-grey),
+// reused rather than given a seventh distinct hue, since the README
+// names only four for this whole family. Hex literals, not var(...) --
+// a CSS custom property can't be read back into a JS string here the way
+// it can be assigned to an element's own style, and these seven values
+// have to go straight into a conic-gradient() string. The adjacent
+// legend label text stays on the page background, not drawn over the
+// dot itself, so "cream text" doesn't carry over to it -- there is no
+// chip-with-text surface in this component for that half of the
+// instruction to land on.
+const PHASE_COLOR_LIGHT = {
+  night: '#2B5586', dawn: '#7E555A', morning: '#2B5586', midday: '#6B6A3A',
+  afternoon: '#6B6A3A', golden: '#7E555A', twilight: '#3E3D22',
+};
+
+function isLightTheme(){
+  // Defensive against a test harness's own minimal document stub (no
+  // documentElement/matchMedia at all) -- the same "no document.documentElement
+  // means no theme, read as dark" default every other document-dependent
+  // check in this codebase already falls back to.
+  try{
+    const pinned = document.documentElement.dataset.theme;
+    if(pinned === 'light') return true;
+    if(pinned === 'dark') return false;
+    // Auto, nothing pinned -- the same device-scheme check 22-theme.css's
+    // own @media (prefers-color-scheme: light) block already keys off.
+    return matchMedia('(prefers-color-scheme: light)').matches;
+  }catch(_e){ return false; }
+}
+
+function phaseColors(){
+  return isLightTheme() ? PHASE_COLOR_LIGHT : PHASE_COLOR;
+}
 
 // A plain conic-gradient built from each phase's own share, in PHASES'
 // fixed order — pure CSS, no SVG/canvas needed for a ring this simple.
 function ringGradient(shares){
+  const colors = phaseColors();
   let acc = 0;
   const stops = PHASES.map(p => {
     const start = acc * 360;
     acc += shares[p] || 0;
-    return `${PHASE_COLOR[p]} ${start}deg ${acc * 360}deg`;
+    return `${colors[p]} ${start}deg ${acc * 360}deg`;
   });
   return `conic-gradient(${stops.join(', ')})`;
 }
@@ -76,7 +120,7 @@ function ringGradient(shares){
 function legendRow(phase, share){
   const row = el('div', 'rhythm-legend-row');
   const dot = el('span', 'rhythm-dot');
-  dot.style.background = PHASE_COLOR[phase];
+  dot.style.background = phaseColors()[phase];
   row.appendChild(dot);
   row.appendChild(el('span', 'rhythm-legend-label', PHASE_LABEL[phase]));
   row.appendChild(el('span', 'rhythm-legend-pct', Math.round(share * 100) + '%'));
