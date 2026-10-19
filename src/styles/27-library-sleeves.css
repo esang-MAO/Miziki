@@ -1,0 +1,77 @@
+/* ================= library sleeves (CR9, docs/13_CRATE.md) =================
+   "The rest of the library" — the Artists/Playlists/Songs surfaces pick up
+   the same sleeve/record language the crate (CR1-CR8) already established,
+   via the markup src/library/view.js builds (artistRow/playlistTile/the
+   artist-page shelf) and the shared src/ui/letter-rail.js tick builder.
+   Exact values from docs/design/crate/README.md's own "The rest of the
+   library (CR9)" section. */
+
+/* ---- Artists: fanned stack in place of groupRow's single disc icon ---- */
+.artist-row{min-height:72px}
+.artist-stack{position:relative;flex:0 0 auto;width:52px;height:44px}
+.artist-stack img,.artist-stack .g-art{position:absolute;top:0;left:4px;width:44px;height:44px;
+  border-radius:2px;object-fit:cover;box-shadow:0 1px 2px var(--shadow)}
+.artist-stack img:nth-child(1),.artist-stack .g-art{transform:rotate(0deg);z-index:3}
+.artist-stack img:nth-child(2){transform:rotate(-3deg);z-index:2}
+.artist-stack img:nth-child(3){transform:rotate(8deg);z-index:1}
+
+/* ---- Artists/Songs: sticky letter heads + the crate's rail, reused ---- */
+.letter-head{position:sticky;top:0;z-index:4;padding:6px var(--sp-2) 4px;
+  font-family:var(--display);font-size:20px;letter-spacing:.02em;color:var(--muted);
+  background:var(--bg,transparent)}
+li.letter-head{list-style:none;padding:6px 0 4px}
+.lib-rail{position:fixed;right:4px;top:96px;bottom:140px;width:22px;z-index:30}
+.letter-rail-item{position:absolute;right:0;background:none;border:none;cursor:pointer;
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;color:var(--muted);
+  padding:1px 2px}
+.letter-rail-item.letter-rail-current{color:var(--accent-text);font-weight:500}
+.letter-rail-item.letter-rail-dim{opacity:.28}
+.letter-rail-item:disabled{pointer-events:none}
+
+/* ---- Artist page: PLAY ALL / SHUFFLE / CREDITS, then the shelf ---- */
+.artist-actions{display:flex;gap:var(--sp-2);padding:var(--sp-3) 0}
+.artist-credits{padding:0 0 var(--sp-3)}
+.artist-shelf-rail{height:10px;border-radius:5px;margin:0 0 -4px;
+  background:linear-gradient(90deg,#8E7A60,#4D3D2F)}
+.artist-shelf{display:flex;gap:var(--sp-3);overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;padding:var(--sp-4) var(--sp-2) var(--sp-5);-webkit-overflow-scrolling:touch}
+.shelf-sleeve{flex:0 0 auto;width:128px;height:128px;border-radius:var(--radius-control);
+  border:none;padding:0;overflow:hidden;background:var(--panel);box-shadow:var(--sh-2);
+  scroll-snap-align:start;transform:rotate(1.5deg)}
+.shelf-sleeve-alt{transform:rotate(-1.5deg)}
+.shelf-sleeve img{width:100%;height:100%;object-fit:cover;display:block}
+.shelf-sleeve .g-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:var(--fs-hero);color:var(--muted)}
+
+/* ---- Playlists: a 2x2 grid of compilation sleeves ---- */
+.playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) 0}
+.playlist-tile{display:flex;flex-direction:column;border:none;padding:0;cursor:pointer;
+  border-radius:var(--radius-card);overflow:hidden;background:var(--panel);box-shadow:var(--sh-2);
+  text-align:left}
+.pl-covers{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;aspect-ratio:1;width:100%}
+.pl-covers img{width:100%;height:100%;object-fit:cover;display:block}
+.pl-covers .g-art{grid-column:1/-1;grid-row:1/-1;display:flex;align-items:center;justify-content:center;
+  font-size:var(--fs-display);color:var(--muted)}
+.pl-strip{display:flex;flex-direction:column;gap:2px;padding:var(--sp-2) var(--sp-3);
+  background:#EFE6D2;color:#2A1B38}
+.pl-strip b{font-family:var(--display);font-size:var(--fs-row);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-strip em{font-style:normal;font-family:var(--data);font-size:8px;letter-spacing:.08em;
+  text-transform:uppercase;color:#2A1B38;opacity:.7}
+.playlist-tile.is-fav .pl-strip b::before{content:'♥ ';color:var(--accent-text)}
+.playlist-tile-empty{grid-column:1/-1}
+.playlist-tile-empty .pl-covers{background:var(--raised);display:flex;align-items:center;
+  justify-content:center;font-size:var(--fs-display);color:var(--muted)}
+.pl-strip-dashed{border-top:1px dashed #2A1B38}
+
+/* ---- Search: album hits already render a cover via groupRow's .g-art
+   (library/search.js) -- this is the one CSS-only touch CR9's "Search
+   results show sleeves for album hits" needed: a hairline lit top edge,
+   the same family as the crate card's own sleeve-anatomy inset shadow
+   (10-crate.css's .crate-card::after), scaled down for a 44px thumbnail
+   rather than copying that rule's own crate-stage-specific values. */
+.g-art{box-shadow:inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.25)}
+
+@media (prefers-reduced-motion: reduce){
+  .shelf-sleeve,.shelf-sleeve-alt{transform:none}
+}

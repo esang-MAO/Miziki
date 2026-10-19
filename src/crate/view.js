@@ -22,6 +22,7 @@ import { isLibraryRouteVisible } from '../shell/routes.js';
 import { openAddMenu } from '../shell/header.js';
 import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
+import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
@@ -631,27 +632,26 @@ export function renderCrate(host){
     info.appendChild(card);
   }
 
+  // CR9 (docs/13_CRATE.md): the tick-building loop itself — spread entries
+  // across the rail's own current measured height, one button per letter
+  // — is now src/ui/letter-rail.js's buildRailTicks(), shared with the
+  // library's own Artists/Songs rail (src/library/view.js). The crate's
+  // own drag-to-scrub pointer handling on `rail` (below, pointerdown/
+  // pointermove/the amber bubble) stays here untouched — it's the crate's
+  // 3D flow-stage scrubbing, not tick building, and CLAUDE.md's refactor
+  // rules (no behavior change) argue against moving it just to make this
+  // extraction look more complete than the spec actually asked for.
   function updateRailUI(position){
-    const entries = model.railEntries;
-    rail.innerHTML = '';
-    if(!entries.length) return;
-    // ticks spread across the rail's own current height (kept in sync with
-    // the dynamic stage by applyCrateMiniInset), not a number tuned to the
-    // old fixed-height stage — otherwise they'd run off the bottom of a
-    // shorter rail instead of spanning it
-    const h = Math.max(0, rail.getBoundingClientRect().height - 20);
-    entries.forEach((e_, k) => {
-      const t = entries.length > 1 ? k / (entries.length - 1) : 0;
-      const tick = el('button','crate-rail-item' + (e_.present ? '' : ' crate-rail-dim'), e_.label);
-      tick.style.top = (t * h) + 'px';
-      tick.disabled = !e_.present;
-      if(e_.present){
+    buildRailTicks(rail, model.railEntries, {
+      itemClass: 'crate-rail-item', dimClass: 'crate-rail-dim', currentClass: 'crate-rail-current',
+      isCurrent: e_ => {
         const target = crateRailJumpTarget(model, e_.key);
-        if(target != null && Math.abs(position - target) < 2) tick.classList.add('crate-rail-current');
-        tick.addEventListener('pointerdown', ev => { ev.stopPropagation(); });
-        tick.addEventListener('click', ev => { ev.stopPropagation(); snapTo(target); });
-      }
-      rail.appendChild(tick);
+        return target != null && Math.abs(position - target) < 2;
+      },
+      onTap: e_ => {
+        const target = crateRailJumpTarget(model, e_.key);
+        if(target != null) snapTo(target);
+      },
     });
   }
 

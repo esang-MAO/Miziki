@@ -148,6 +148,13 @@ mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { isAlbumSealed(){ return false; } },
 });
+// CR9 (docs/13_CRATE.md): view.js's new real import of thumbURL (for the
+// Artists/Playlists fanned-cover rows) would otherwise reach the real
+// library/thumbs.js -> profile/screens.js chain -- the usual "stop the
+// chain at the door" move, same as every other mock above.
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { thumbURL: {} },
+});
 mock.module(new URL('../../src/library/search.js', import.meta.url).href, {
   namedExports: {
     librarySortBar(){ return fakeEl(); }, librarySortComparator(){ return () => 0; },
@@ -251,13 +258,19 @@ test('renderTracks (NV6, docs/11_SMOOTH_NAVIGATION.md): past the chunk threshold
   const host = elCache.get('#libBody');
   const ul = host.children.find(c => c && c.className === 'tracklist');
   assert.ok(ul, 'the <ul> is appended up front, even before every row is in it');
-  assert.equal(ul.children.length, 60, 'only the first screenful renders before renderTracks() returns');
+  // CR9 (docs/13_CRATE.md): every fakeTrack shares the same artist
+  // ('Artist'), so Songs' own new letter-head/rail feature (which kicks
+  // in past 200 tracks, sorted by artist here since there's no explicit
+  // sort override) inserts exactly one <li class="letter-head"> ahead of
+  // the very first row -- one extra node, not a per-chunk one, since the
+  // bucket key never changes across these 450 same-artist tracks.
+  assert.equal(ul.children.length, 61, 'only the first screenful (plus one letter head) renders before renderTracks() returns');
   // Node has no requestIdleCallback -- the module falls back to setTimeout,
   // so flushing pending timers is how the rest of the chunks actually run.
-  for(let guard = 0; guard < 20 && ul.children.length < 450; guard++){
+  for(let guard = 0; guard < 20 && ul.children.length < 451; guard++){
     await new Promise(r => setTimeout(r, 0));
   }
-  assert.equal(ul.children.length, 450, 'every row eventually arrives');
+  assert.equal(ul.children.length, 451, 'every row (plus the one letter head) eventually arrives');
 });
 
 test('renderTracks (NV6): a still-running chunk job stops once a newer render starts, instead of appending into a list nobody is looking at', async () => {
@@ -267,12 +280,12 @@ test('renderTracks (NV6): a still-running chunk job stops once a newer render st
   renderTracks();
   const firstHost = elCache.get('#libBody');
   const firstUl = firstHost.children.find(c => c && c.className === 'tracklist');
-  assert.equal(firstUl.children.length, 60);
+  assert.equal(firstUl.children.length, 61); // CR9: +1 letter head, see the test above
   renderTracks(); // a second render starts before the first one's chunks finished
   const secondUl = firstHost.children.find(c => c && c.className === 'tracklist');
   await new Promise(r => setTimeout(r, 0));
-  assert.equal(firstUl.children.length, 60, 'the old, abandoned <ul> never grows past its first screenful');
-  assert.ok(secondUl.children.length >= 60, 'the new render keeps making progress');
+  assert.equal(firstUl.children.length, 61, 'the old, abandoned <ul> never grows past its first screenful');
+  assert.ok(secondUl.children.length >= 61, 'the new render keeps making progress');
 });
 
 test('renderTracks: crate mode delegates to renderCrate() and skips the songs list', () => {
