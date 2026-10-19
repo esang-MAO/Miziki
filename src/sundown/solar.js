@@ -219,10 +219,34 @@ export function depthKeyFor(auto, target){
   return 'medium';
 }
 
-// "the caption names the current one in rate and semitones" (RF9) — the
-// same 12*log2(rate) formula player/clock.js's own #rateOut already uses.
+// RF27 (docs/12_REFINE.md): "show the number next to the sound" — wherever
+// an actual rate change is shown, it reads as a percentage plus an
+// approximate semitone count in simple quarter-semitone fractions
+// ("-2.4% ~= -1/4 semitone"), never a raw multiplier ("0.80x") or a bare
+// decimal semitone count ("3.9 st"). One helper so every reader (the
+// depth caption just below, player/clock.js's #rateOut and
+// #trackSpecPhase) shows the same number the same way. Only meant for an
+// actual change (rate !== 1) — a caller that also needs a "full speed" or
+// "off" label keeps writing that text itself, since this function only
+// ever describes a difference from full speed.
+const SEMITONE_QUARTER_GLYPH = ['', '¼', '½', '¾']; // '', ¼, ½, ¾
+export function formatRateChange(rate){
+  const pct = (rate - 1) * 100;
+  const semis = Math.abs(12 * Math.log2(rate));
+  const quarters = Math.round(semis * 4);
+  const whole = Math.floor(quarters / 4);
+  const semisText = (whole ? String(whole) : '') + SEMITONE_QUARTER_GLYPH[quarters % 4] || '0';
+  // Singular reads right only up through a whole semitone (¼, ½, ¾, 1) —
+  // "0 semitones" and "1¼ semitones" both want the plural.
+  const noun = (quarters >= 1 && quarters <= 4) ? 'semitone' : 'semitones';
+  const sign = quarters === 0 ? '' : (pct < 0 ? '−' : '+');
+  const pctAbs = Math.abs(pct) < 0.05 ? 0 : Math.abs(pct);
+  return sign + pctAbs.toFixed(1) + '% ≈ ' + sign + semisText + ' ' + noun;
+}
+
+// "the caption names the current one in rate and semitones" (RF9; reworded
+// RF27 to the percentage+semitone format formatRateChange() builds).
 export function depthCaptionFor(key, target){
   if(key === 'off') return 'Off — full speed, no change at night.';
-  const semis = Math.abs(12 * Math.log2(target)).toFixed(1);
-  return (DEPTH_LABELS[key] || 'Medium') + ' — ' + target.toFixed(2) + '× · ' + semis + ' st';
+  return (DEPTH_LABELS[key] || 'Medium') + ' — ' + formatRateChange(target);
 }
