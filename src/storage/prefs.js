@@ -99,7 +99,7 @@ export function parsePrefs(raw){
   if(typeof p.bgAudio === 'boolean') out.bgAudio = p.bgAudio;
   if(typeof p.launchIntro === 'boolean') out.launchIntro = p.launchIntro;
   if(p.libraryLayout === 'crate' || p.libraryLayout === 'list') out.libraryLayout = p.libraryLayout;
-  if(p.crateGroup === 'az' || p.crateGroup === 'genre') out.crateGroup = p.crateGroup;
+  if(p.crateGroup === 'az' || p.crateGroup === 'genre' || p.crateGroup === 'decade') out.crateGroup = p.crateGroup;
   if(p.crateAnchor) out.crateAnchor = p.crateAnchor;
   if(typeof p.albumSides === 'boolean') out.albumSides = p.albumSides;
   if(typeof p.sealedRecords === 'boolean') out.sealedRecords = p.sealedRecords;
