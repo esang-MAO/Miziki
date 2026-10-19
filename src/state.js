@@ -227,6 +227,12 @@ S.slipmatCustom = false;
 S.slipmatWordmark = true;
 S.slipmatDim = true;
 
+// "Decided" (docs/13_CRATE.md, CR7): the platter label on a lossy (tier-1,
+// Jet) record — paper (#EFE9DF, olive ring) when on, amber everywhere
+// else. Off by default. An ordinary playback pref — rides inside `prefs`
+// with no carve-out, unlike `theme`/the slipmat flags above.
+S.paperLabelOnLossy = false;
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist

@@ -1,6 +1,6 @@
 import { el } from '../util/dom.js';
 import { metalBackground } from '../record-art/metals.js';
-import { VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
+import { getVariantDef, variantBackground } from '../record-art/tiers.js';
 
 export function metalBadge(rec){
   const cell = el('div','profile-badge-cell');
@@ -20,7 +20,9 @@ export function metalBadge(rec){
 export function collectionBadge(rec){
   const cell = el('div','profile-badge-cell');
   const badge = el('div','profile-badge');
-  badge.style.background = variantBackground(VARIANT_DEFS[rec.variant]);
+  // rec.variant may be a pre-CR7 id from an older save (docs/13_CRATE.md,
+  // CR7 point 4) — getVariantDef() resolves it through the migration map
+  badge.style.background = variantBackground(getVariantDef(rec.variant));
   cell.appendChild(badge);
   cell.appendChild(el('span','profile-badge-label', rec.name));
   return cell;

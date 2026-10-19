@@ -19,17 +19,35 @@
    #soundAdvancedToggle disclosure, and the "Tone today" chart
    (updateToneCurveVisibility(), src/sundown/dial-view.js) only shows
    once drift isn't Off. */
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } from '../audio/engine.js';
 import { queueSave } from '../storage/meta.js';
 import { setMode } from '../audio/mode.js';
 import { toggleScratch } from '../player/scrub.js';
 import { toggleSleevePull } from '../sundown/location.js';
+import { applyDiscVariant } from '../record-art/looks.js';
 import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
 import { toggleBgAudio, bgUpdateUI, resolveBgOffer } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
 import { updateToneCurveVisibility } from '../sundown/dial-view.js';
+
+// "Decided" (docs/13_CRATE.md, CR7): the paper-label switch in Settings ›
+// Playback. Kept here rather than in record-art/looks.js itself, since
+// looks.js is reached from several lightweight unit tests via its real
+// circular import with history/sessions.js — pulling storage/meta.js's
+// own wide real chain (audio/mode.js, player/background.js, sync/
+// backup.js, …) in through looks.js would break every one of them. This
+// wiring file already imports queueSave for everything else here.
+function togglePaperLabel(){
+  S.paperLabelOnLossy = !S.paperLabelOnLossy;
+  const b = $('#paperLabelBtn');
+  b.textContent = S.paperLabelOnLossy ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.paperLabelOnLossy));
+  queueSave();
+  const t = current();
+  if(t) applyDiscVariant(t, true);
+}
 
 export function wireCharacter(){
   const presets = {light:{wow:.12,sat:.18,soft:.22,comp:.2}, classic:{wow:.30,sat:.35,soft:.40,comp:.35}, worn:{wow:.62,sat:.6,soft:.68,comp:.55}};
@@ -155,6 +173,7 @@ export function wireCharacter(){
 
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
+  $('#paperLabelBtn').addEventListener('click', togglePaperLabel);
   $('#launchIntroBtn').addEventListener('click', toggleLaunchIntro);
   attachLaunchSettingRow();
   $('#bgAudioBtn').addEventListener('click', toggleBgAudio);

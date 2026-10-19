@@ -14,6 +14,7 @@ function fakeS(overrides = {}){
     theme: 'auto',
     charDrift: 'subtle',
     slipmatCustom: false, slipmatWordmark: true, slipmatDim: true,
+    paperLabelOnLossy: false,
   }, overrides);
 }
 
@@ -30,6 +31,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     theme: S.theme,
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
+    paperLabelOnLossy: S.paperLabelOnLossy,
   });
 });
 
@@ -59,6 +61,24 @@ test('old saved data: no slipmat fields (saved before CEREMONY §6) leaves them 
 
 test('bad values are ignored: non-boolean slipmat flags', () => {
   const parsed = parsePrefs({ slipmatCustom: 'yes', slipmatWordmark: 1, slipmatDim: null });
+  assert.deepEqual(parsed, {});
+});
+
+// "Decided" (docs/13_CRATE.md, CR7): the paper-label switch.
+test('round trip: paperLabelOnLossy survives when on', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ paperLabelOnLossy: true })));
+  assert.equal(parsed.paperLabelOnLossy, true);
+});
+
+test('old saved data: no paperLabelOnLossy field (saved before CR7) leaves it out, so amber stays the default', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.paperLabelOnLossy;
+  const parsed = parsePrefs(raw);
+  assert.equal('paperLabelOnLossy' in parsed, false);
+});
+
+test('bad values are ignored: non-boolean paperLabelOnLossy', () => {
+  const parsed = parsePrefs({ paperLabelOnLossy: 'yes' });
   assert.deepEqual(parsed, {});
 });
 

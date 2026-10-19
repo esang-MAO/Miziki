@@ -19,7 +19,26 @@ export const TRACK_METAL_THRESHOLDS = [
   {name:'platinum', plays:250},
   {name:'gold',     plays:125}
 ];
-export const METAL_COLORS = {bronze:'#CE8946', silver:'#797B80', gold:'#FFC30B', platinum:'#BBC2CC'};
+// CR7 (docs/13_CRATE.md): a metal is a finish laid over the pressing, not
+// a flat fill — four values per metal (base/highlight/shadow/underglow),
+// per docs/design/crate/README.md's own table. The label itself inverts
+// for gold/platinum (amber on either is near-unreadable, 1.03:1 for
+// gold) and silver gets its own aubergine ring — see metalLabelKind()
+// below, read by record-art/looks.js when painting the platter label.
+export const METAL_COLORS = {
+  bronze:   {base:'#B07A3C', highlight:'#E3B77A', shadow:'#5A3516', underglow:'#8A3A1E'},
+  silver:   {base:'#A9ADB4', highlight:'#EDEFF2', shadow:'#4D5259', underglow:'#2E3238'},
+  gold:     {base:'#D6AD3F', highlight:'#F7E7A8', shadow:'#7A4E12', underglow:'#8A3A1E'},
+  platinum: {base:'#D3D7DC', highlight:'#F8F9FA', shadow:'#8A9199', underglow:'#B9C4D0'},
+};
+// 'invert': the label flips to an aubergine disc with an amber mark, ringed
+// in the metal's own shadow tone. 'silver-ring': the ordinary amber label,
+// plus a 3px aubergine ring. 'amber': the plain amber label, unchanged.
+export function metalLabelKind(name){
+  if(name === 'gold' || name === 'platinum') return 'invert';
+  if(name === 'silver') return 'silver-ring';
+  return 'amber';
+}
 const METAL_FADE_MS = 400;
 
 // reads the tier-1-only shadow counter, not the true lifetime total, so a
@@ -46,21 +65,23 @@ export function trackMetalFor(trackKey){
 // incrementTrackPlay moved to src/history/played.js (step 5c), alongside
 // checkTrackCompletion, its only caller.
 
-// plated metal, not a flat fill: a conic sheen band (bright arcs near the
-// light-catching angles, a darker arc opposite) over a radial base, so the
-// existing groove/light overlay in .disc::before still reads as reflection
-// catching the surface rather than being painted on top of a solid color
+// brushed metal, not a flat fill: one narrow feathered specular band (the
+// light-catching angle), a broad mid-tone, a deep shadow opposite, fine
+// concentric lines, and a rim ring of the metal's own underglow — CR7's
+// replacement for the old single-base conic wedge. Still baked into the
+// disc's own background (so it rotates with the platter, same limitation
+// the old wedge already had — a screen-fixed highlight would need a
+// separate overlay element, out of scope here).
 export function metalBackground(name){
-  const base = METAL_COLORS[name];
-  // Silver's rung is both darker AND cooler than Bronze on a straight
-  // luminance reading, which can misread as a downgrade rather than a step
-  // up — lean harder on the highlight ("finish") here to keep it polished
-  const hi = name === 'silver' ? 92 : 82, lo = name === 'silver' ? 45 : 35;
-  const bright = 'color-mix(in srgb,' + base + ' ' + (100-hi) + '%, white ' + hi + '%)';
-  const dark = 'color-mix(in srgb,' + base + ' ' + lo + '%, black ' + (100-lo) + '%)';
-  return 'conic-gradient(from 205deg,' + bright + ' 0deg 10deg,' + base + ' 10deg 150deg,'
-      + dark + ' 150deg 195deg,' + base + ' 195deg 340deg,' + bright + ' 340deg 360deg),'
-    + 'radial-gradient(circle at 50% 50%,' + bright + ' 0 27%,' + base + ' 27% 88%,' + dark + ' 88% 100%)';
+  const m = METAL_COLORS[name];
+  if(!m) return '';
+  const { base, highlight, shadow, underglow } = m;
+  const concentric = 'repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.06) 0 1px,transparent 1px 3px)';
+  const conic = 'conic-gradient(from 205deg,' + highlight + ' 0deg 10deg,' + base + ' 10deg 150deg,'
+      + shadow + ' 150deg 195deg,' + base + ' 195deg 350deg,' + highlight + ' 350deg 360deg)';
+  const radial = 'radial-gradient(circle at 50% 50%,' + highlight + ' 0 27%,' + base + ' 27% 85%,'
+      + shadow + ' 85% 97%,' + underglow + ' 97% 100%)';
+  return conic + ',' + concentric + ',' + radial;
 }
 
 // crossfades when asked to (a same-album background change with no sleeve
