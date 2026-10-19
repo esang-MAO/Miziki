@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Desktop crate with a following panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column">
+
+<div style="flex-grow: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<aside style="flex: 1 1 220px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 32px">
+<span class="disp" style="font-size: 24px; font-weight: 700; letter-spacing: .14em; padding: 0 12px">MIZIKI</span>
+<nav aria-label="Main" style="display: flex; flex-direction: column; gap: 4px">
+<a href="DesktopCrate.dc.html" aria-current="page" style="min-height: 44px; padding: 0 12px; border-radius: 4px; background: rgba(255,158,44,.14); display: flex; align-items: center; text-decoration: none; color: #EFE9DF; font-size: 14px; font-weight: 600">Library</a>
+<a href="DesktopCrate.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; text-decoration: none; color: #94A0A6; font-size: 14px">Home</a>
+<a href="DesktopCrate.dc.html" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; text-decoration: none; color: #94A0A6; font-size: 14px">Profile</a>
+</nav>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 12px">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">BINS</span>
+<a href="DesktopCrate.dc.html" style="min-height: 36px; display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: #EFE9DF; font-size: 14px">New arrivals <span class="mono" style="font-size: 10px; color: #7A868C">6</span></a>
+<a href="DesktopCrate.dc.html" style="min-height: 36px; display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: #EFE9DF; font-size: 14px">Staff picks <span class="mono" style="font-size: 10px; color: #7A868C">8</span></a>
+<a href="DesktopCrate.dc.html" style="min-height: 36px; display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: #EFE9DF; font-size: 14px">Sealed <span class="mono" style="font-size: 10px; color: #7A868C">2</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 12px">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">PLAYLISTS</span>
+<a href="DesktopCrate.dc.html" style="min-height: 36px; display: flex; align-items: center; text-decoration: none; color: #EFE9DF; font-size: 14px">Favorites</a>
+<a href="DesktopCrate.dc.html" style="min-height: 36px; display: flex; align-items: center; text-decoration: none; color: #EFE9DF; font-size: 14px">[Playlist name]</a>
+</div>
+<div style="flex-grow: 1"></div>
+<a href="DesktopCrate.dc.html" style="padding: 0 12px; text-decoration: none; display: flex; flex-direction: column; gap: 2px"><span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #EFE9DF">MIDDAY</span><span style="font-size: 12px; color: #94A0A6">Full speed · sunset 8:10 PM</span></a>
+</aside>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; border-left: 1px solid rgba(239,233,223,.10)">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 32px 0">
+<div role="tablist" aria-label="Library view" style="display: flex; gap: 24px">
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">SONGS</button>
+<button role="tab" aria-selected="true" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid #FF9E2C; background: transparent; color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">CRATE</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">ARTISTS</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">PLAYLISTS</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px">
+<div role="radiogroup" aria-label="Crate order" style="display: flex; border: 1px solid rgba(239,233,223,.14); border-radius: 4px">
+<button role="radio" aria-checked="true" class="mono" style="min-height: 36px; padding: 0 12px; border: 1px solid #FF9E2C; border-radius: 4px; background: rgba(255,158,44,.14); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">A–Z</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 36px; padding: 0 12px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">GENRE</button>
+<button role="radio" aria-checked="false" class="mono" style="min-height: 36px; padding: 0 12px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">DECADE</button>
+</div>
+<button aria-label="Search" style="width: 40px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg></button>
+<button aria-label="Add music" style="width: 40px; height: 44px; border: 0; background: transparent; color: #94A0A6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+</div>
+
+<div style="flex-grow: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<section aria-label="Crate" style="flex: 3 1 520px; min-width: 0; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1100px; perspective-origin: 50% 25%; padding: 24px 0">
+<div style="position: relative; width: 460px; height: 620px">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 20px; width: 320px; height: 44px; margin-left: -160px; border-radius: 4px 4px 0 0; background: #BFB5A0; transform: rotateX(62deg); transform-origin: bottom; opacity: .9"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 26px; width: 92px; height: 32px; margin-left: 60px; border-radius: 4px 4px 0 0; background: #E3D8C2; transform: rotateX(40deg); transform-origin: bottom; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px; box-sizing: border-box"><span class="disp" style="font-size: 16px; font-weight: 700; color: #2A1B38">B</span></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 52px; width: 330px; height: 50px; margin-left: -165px; border-radius: 4px 4px 0 0; background: #4E4E62; transform: rotateX(60deg); transform-origin: bottom"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 88px; width: 338px; height: 54px; margin-left: -169px; border-radius: 4px 4px 0 0; background: #5E4A44; transform: rotateX(58deg); transform-origin: bottom"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 128px; width: 344px; height: 58px; margin-left: -172px; border-radius: 4px 4px 0 0; background: #44605A; transform: rotateX(56deg); transform-origin: bottom"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 170px; width: 348px; height: 62px; margin-left: -174px; border-radius: 4px 4px 0 0; background: #5A4A5E; transform: rotateX(54deg); transform-origin: bottom; box-shadow: inset 0 1px 0 rgba(255,255,255,.14)"></div>
+<div style="position: absolute; left: 50%; top: 196px; width: 348px; height: 348px; margin-left: -174px; border-radius: 4px; background: #3E5566; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45)"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; bottom: 0; width: 420px; height: 150px; margin-left: -210px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #8E7A60 0%, #6F5A45 14%, #4D3D2F 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.14), 0 -8px 24px rgba(0,0,0,.35)"><span class="mono" style="position: absolute; left: 50%; top: 18px; transform: translateX(-50%); padding: 5px 12px; border-radius: 2px; background: #E3D8C2; color: #2A1B38; font-size: 10px; letter-spacing: .14em">B · 14 RECORDS</span></div>
+</div>
+<div aria-label="Jump to a letter" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px">
+<span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">NEW</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">PICKS</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6; margin-top: 4px">#</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">A</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #FF9E2C; line-height: 1.6">B</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">C</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">D</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">E</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">F</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">G</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">H</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">J</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">K</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">L</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">M</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">N</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">P</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">R</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">S</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">T</span><span class="mono" style="font-size: 10px; color: #7A868C; line-height: 1.6">W</span>
+</div>
+</section>
+
+<aside aria-label="The record at the front of the crate" style="flex: 2 1 360px; min-width: 0; max-width: 460px; box-sizing: border-box; padding: 24px 32px 24px 24px; border-left: 1px solid rgba(239,233,223,.10); display: flex; flex-direction: column; gap: 20px">
+<div style="padding: 14px 16px; border-radius: 2px; background: #EFE6D2; color: #2A1B38; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25); position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<span aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 4px; background: #2A1B38; display: block"></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span class="disp" style="font-size: 24px; font-weight: 700; line-height: 1.1; letter-spacing: .02em">[Album title]</span>
+<span style="font-size: 14px">[Artist]</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #5A4A52; margin-top: 2px">[LABEL] · [CAT. NO.] · [YEAR] · 10 TRACKS · 41:12</span>
+</div>
+<button aria-label="Play album" style="width: 48px; height: 48px; flex-shrink: 0; border: 0; border-radius: 24px; background: #FF9E2C; color: #2A1B38; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+</div>
+<div style="display: flex; gap: 4px">
+<button class="mono" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">CREDITS</button>
+<button class="mono" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">PIN</button>
+<button class="mono" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">SLEEVE NOTE</button>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C; padding: 4px 0 8px">SIDE A</li>
+<sc-for list="{{a}}" as="t" hint-placeholder-count="5">
+<li style="min-height: 44px; display: flex; align-items: center; gap: 12px"><span class="mono" style="width: 20px; font-size: 10px; color: #7A868C">{{t.n}}</span><span style="flex-grow: 1; font-size: 14px">[Track title]</span><span class="mono" style="font-size: 10px; color: #7A868C">{{t.d}}</span></li>
+</sc-for>
+<li class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C; padding: 12px 0 8px">SIDE B</li>
+<sc-for list="{{b}}" as="t" hint-placeholder-count="5">
+<li style="min-height: 44px; display: flex; align-items: center; gap: 12px"><span class="mono" style="width: 20px; font-size: 10px; color: #7A868C">{{t.n}}</span><span style="flex-grow: 1; font-size: 14px">[Track title]</span><span class="mono" style="font-size: 10px; color: #7A868C">{{t.d}}</span></li>
+</sc-for>
+</ol>
+<p style="margin: auto 0 0; font-size: 12px; line-height: 1.45; color: #7A868C">The panel follows the record at the front of the crate; nothing to tap first. Tapping the record still opens the gatefold.</p>
+</aside>
+
+</div>
+</main>
+</div>
+
+<footer style="min-height: 72px; box-sizing: border-box; padding: 12px 24px; border-top: 1px solid rgba(239,233,223,.10); background: rgba(7,8,12,.6); display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; border-radius: 4px; background: #5A4A5E; display: block; flex-shrink: 0"></span>
+<span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">[Track title]</span><span style="font-size: 12px; color: #7A868C">[Artist]</span></span>
+<span style="flex-grow: 1"></span>
+<button aria-label="Previous" style="width: 44px; height: 44px; border: 0; background: transparent; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"></path></svg></button>
+<button aria-label="Pause" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: #EFE9DF; color: #101A20"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"></path></svg></button>
+<button aria-label="Next" style="width: 44px; height: 44px; border: 0; background: transparent; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"></path></svg></button>
+<span style="flex-grow: 1"></span>
+<a href="DesktopCrate.dc.html" aria-label="Sundown: midday, full speed" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 6v3M5.6 10.6l1.8 1.8M18.4 10.6l-1.8 1.8"></path></svg></a>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const mk = (ds, off) => ds.map((d, i) => ({ n: String(i + 1 + off).padStart(2, '0'), d }));
+return { a: mk(['3:05', '4:12', '2:48', '5:30', '3:41'], 0), b: mk(['4:02', '3:19', '6:07', '3:55', '4:33'], 5) };
+}
+}
+</script>
+</body>
+</html>

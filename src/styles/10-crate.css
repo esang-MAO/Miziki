@@ -14,27 +14,56 @@
    baseline already does on a phone. Default here matches the literal
    this replaces exactly — no visible change at the phone width this
    token was always implicitly fixed at. */
-:root{--crate-card-size:278px}
+:root{--crate-card-size:278px;
+  /* CR1 (docs/13_CRATE.md): the stage's own height, named so a taller bin
+     (this step) and a wider desktop breakpoint (src/styles/23-desktop.css)
+     can each set it without crate/view.js needing to know the number —
+     applyCrateMiniInset() overwrites this inline at runtime per viewport,
+     the same way it always has; this is only the authored fallback for
+     before that first runs. */
+  --crate-stage-h:420px;
+  /* CR1: the lit top/leading edge every sleeve/lip surface below borrows,
+     overwritten by player/clock.js's drawSun() per day-arc phase (warm
+     near Golden hour, cool at Night) the same guarded way --sky1/--muted
+     already are — this is only the pre-first-tick fallback. */
+  --crate-light:rgba(255,235,200,.2);
+}
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
 .crate-group-toggle{margin-bottom:10px}
-.crate-stage{position:relative;height:316px;overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
+/* CR1: a header row above the stage — how many records are in the bin and
+   how it's grouped on the left, the (restyled) now-playing indicator on
+   the right. */
+.crate-header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+  margin-bottom:var(--sp-2)}
+.crate-header-left{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--muted-2)}
+.crate-stage{position:relative;height:var(--crate-stage-h);overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 .crate-card{position:absolute;left:50%;top:0;width:var(--crate-card-size);height:var(--crate-card-size);
   margin-left:calc(var(--crate-card-size) / -2);
-  border-radius:6px;overflow:hidden;
+  border-radius:4px;overflow:hidden;
   box-shadow:var(--sh-2);backface-visibility:hidden}
 .crate-card.crate-moving{will-change:transform}
-.crate-card.crate-current{box-shadow:var(--sh-3),0 0 0 1.5px rgba(255,158,44,.75)}
-/* RF15 (docs/12_REFINE.md, point 3, "the record store in the surfaces"):
-   a 1px lighter top edge plus a slightly darker bottom band — the card
-   reads as a jacket with its own sleeve edges, not a flat photo. An inset
-   box-shadow on the card's own ::after, over the cover image (pseudo-
-   elements paint after an element's children), so it follows the card's
-   border-radius and needs no change to crate-card-face/its <img>. */
+/* CR1: the amber selection ring is gone — the centred card already reads
+   as "current" from its own scale/z-index (flowPose()'s own math, spec
+   §3) and the sleeve-anatomy lit edge below; a second, separate highlight
+   ring on top of that read as a UI chrome element sitting on a record
+   jacket, not part of the jacket itself. */
+.crate-card.crate-current{box-shadow:var(--sh-3)}
+/* RF15 (docs/12_REFINE.md, point 3, "the record store in the surfaces"),
+   rewritten by CR1 for the bin's own sleeve-anatomy table
+   (docs/design/crate/README.md, "The bin (CR1)"): a lit top edge (now
+   --crate-light, the day-arc-tinted token every sleeve/lip surface shares,
+   in place of a fixed white), a spine shadow down the left edge, and the
+   existing bottom-band darkening — the card reads as a jacket with its own
+   sleeve edges, not a flat photo. An inset box-shadow on the card's own
+   ::after, over the cover image (pseudo-elements paint after an element's
+   children), so it follows the card's border-radius and needs no change
+   to crate-card-face/its <img>. */
 .crate-card::after{
   content:''; position:absolute; inset:0; pointer-events:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -10px 16px -10px rgba(0,0,0,.35);
+  box-shadow:inset 0 1px 0 var(--crate-light),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25);
 }
 .crate-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(160deg,#1F5668 0%,#12303B 58%,#0A161C 100%)}
@@ -49,10 +78,23 @@
   line-height:1.05;word-break:break-word}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em}
-.crate-rail{position:absolute;right:2px;top:10px;height:296px;width:26px}
+/* CR1: the bin's own cardboard lip at the stage's bottom edge, the record
+   store's own divider tab for wherever the stack is currently scrolled to
+   (docs/design/crate/README.md, "The bin (CR1)" — 330x118px, a cardboard
+   gradient that answers to the day-arc phase like the sleeve's own lit
+   edge above). Sits below the centred card's own z-index (flowZIndex(0)
+   is 90) but above its receding neighbours, so it reads as the physical
+   bottom of the bin the stack sits in, not a layer on top of it. */
+.crate-lip{position:absolute;left:50%;bottom:0;width:330px;height:118px;margin-left:-165px;z-index:85;
+  border-radius:4px 4px 0 0;pointer-events:none;
+  background:linear-gradient(180deg,#3A2B22,#2A1F19 18%,#1E1612);
+  box-shadow:inset 0 2px 0 var(--crate-light)}
+.crate-lip-tag{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:var(--fs-micro);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--cream)}
+.crate-rail{position:absolute;right:8px;top:10px;height:296px;width:26px}
 .crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;
-  color:var(--muted);opacity:.65;transform:translateY(-50%);white-space:nowrap}
-.crate-rail-item.crate-rail-current{color:var(--accent-text);opacity:1}
+  color:var(--muted-2);transform:translateY(-50%);white-space:nowrap}
+.crate-rail-item.crate-rail-current{color:var(--accent-text);font-weight:500}
 .crate-rail-item.crate-rail-dim{opacity:.28}
 .crate-rail-bubble{position:fixed;width:68px;height:68px;border-radius:50%;background:var(--amber);color:#2A1B38;
   display:grid;place-content:center;font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:.02em;
@@ -65,10 +107,14 @@
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.08em;color:var(--accent-text);border:1px solid var(--accent);border-radius:12px;padding:var(--sp-1) 10px;
   margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
-.crate-topbar{display:none;align-items:center;gap:6px;font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.08em;color:var(--accent-text);border:1px solid var(--accent);border-radius:12px;padding:5px var(--sp-3);
-  margin-bottom:var(--sp-2);background:color-mix(in srgb,var(--accent) 10%,transparent);max-width:100%;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* CR1: "now-playing as text in the phase colour" — no pill, no border; the
+   crate's header row (above) is a plain flex line, so this just needs to
+   be inline text, coloured by the same --phase-color token the day arc
+   writes everywhere else (player/clock.js's drawSun()), not the fixed
+   --accent a bordered chip used. */
+.crate-topbar{display:none;align-items:center;gap:6px;background:none;border:none;padding:0;margin:0;
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--phase-color);
+  max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .crate-topbar.show{display:inline-flex}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2);border-radius:4px;scroll-snap-align:center}
@@ -77,4 +123,14 @@
 .crate-flat-divider{font-family:var(--display);font-weight:700;font-size:var(--fs-row);color:var(--muted);padding:var(--sp-1) 0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
+
+/* CR1: an empty library's crate reads as an empty bin — the same lip, a
+   shorter stage (no records to pose, so no 420px of headroom is needed),
+   and a cream card the same family as a divider's own cardboard-colour
+   sleeve, prompting the one thing that actually fixes "nothing here." */
+.crate-empty .crate-stage{height:138px}
+.crate-empty-card{margin-top:var(--sp-4);border-radius:var(--radius-card);background:var(--cream);color:#2A1B38;
+  padding:var(--sp-5) var(--sp-4);text-align:center;box-shadow:var(--sh-2)}
+.crate-empty-title{font-family:var(--display);font-weight:700;font-size:var(--fs-head);letter-spacing:.02em;margin:0 0 var(--sp-1)}
+.crate-empty-sub{font-size:var(--fs-caption);color:#5A4A38;margin:0 0 var(--sp-4)}
 

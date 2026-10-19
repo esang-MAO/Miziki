@@ -188,7 +188,7 @@ globalThis.document = {
   },
 };
 
-const { tick, drawSun, skyGradientStops, mutedGradientStops, phaseText, dayArcPosition } = await import('../../src/player/clock.js');
+const { tick, drawSun, skyGradientStops, mutedGradientStops, phaseText, dayArcPosition, crateLightColor } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -474,6 +474,15 @@ test('drawSun(): dark theme sets animated --sky1/--sky2 inline', () => {
   const style = drawSunAt('dark', false);
   assert.ok(style['--sky1'] && style['--sky1'].startsWith('rgb('));
   assert.ok(style['--sky2'] && style['--sky2'].startsWith('rgb('));
+  // CR1: --phase-color/--crate-light ride the same guarded-write pattern.
+  // This is the first drawSun() call in the whole file, so the module's own
+  // "skip an unchanged value" cache (same shape as --sky1/--sky2's) hasn't
+  // latched onto a value yet — a later, repeated call at the same day
+  // position (every other drawSunAt() test in this file uses the same
+  // sunOk:false flat-midday fallback) always skips, same as --sky1/--sky2
+  // would; that skip itself is covered by the dedicated test below.
+  assert.ok(style['--phase-color'] && /^#[0-9A-Fa-f]{6}$/.test(style['--phase-color']));
+  assert.ok(style['--crate-light'] && style['--crate-light'].startsWith('rgba('));
 });
 test('drawSun(): light theme now also sets animated --sky1/--sky2 inline', () => {
   const style = drawSunAt('light', false);
@@ -512,4 +521,24 @@ test('drawSun(): repeating the same day position skips the redundant write', () 
   // RF14: --muted/--muted-2 skip the same way.
   assert.equal(fakeRootStyle['--muted'], undefined);
   assert.equal(fakeRootStyle['--muted-2'], undefined);
+  // CR1: --phase-color/--crate-light skip the same way too.
+  assert.equal(fakeRootStyle['--phase-color'], undefined);
+  assert.equal(fakeRootStyle['--crate-light'], undefined);
 });
+
+// CR1 (docs/13_CRATE.md): crateLightColor() is the lit-top-edge tint every
+// sleeve/lip surface in the bin shares (10-crate.css's --crate-light) —
+// warm near Golden hour, cool everywhere else, the same two-anchor shape
+// mutedGradientStops() already uses, just with its own short anchor table
+// rather than a derived one.
+test('crateLightColor: warm during Golden/Twilight, cool everywhere else', () => {
+  const golden = crateLightColor(pos('golden'));
+  const twilight = crateLightColor(pos('twilight'));
+  const night = crateLightColor(pos('night', 0, 1));
+  const midday = crateLightColor(pos('midday'));
+  assert.equal(golden, 'rgba(255,235,200,.2)');
+  assert.equal(twilight, 'rgba(255,235,200,.2)');
+  assert.equal(night, 'rgba(205,214,230,.2)');
+  assert.equal(midday, 'rgba(205,214,230,.2)');
+});
+

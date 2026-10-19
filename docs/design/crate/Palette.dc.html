@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Palette additions and era tints</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.lab{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#94A0A6}
+.cap{font-size:12px;line-height:1.45;color:#94A0A6}
+.chip{height:56px;border-radius:4px;display:flex;align-items:flex-end;padding:6px 8px;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">The amber ramp · one accent, three steps</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div class="chip" style="background: #F8E2C2; color: #2A1B38">tint #F8E2C2</div>
+<div class="chip" style="background: #FF9E2C; color: #2A1B38">amber #FF9E2C</div>
+<div class="chip" style="background: #C47F1E; color: #EFE9DF">shade #C47F1E</div>
+</div>
+<p class="cap" style="margin: 0">Dark mode has had the hue and the pale tint but nothing between. The shade (5.4:1 on the sky) takes pressed states, divider lettering on dark, the awning's deeper stripe and inactive accent glyphs, so amber stops being the only warm note. Light mode's shade stays `#9A4700`.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">Four secondaries, all shades</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div class="chip" style="background: #2B5586; color: #EFE9DF">Prussian #2B5586</div>
+<div class="chip" style="background: #3F8C7E; color: #EFE9DF">Verdigris #3F8C7E</div>
+<div class="chip" style="background: #7E555A; color: #EFE9DF">Puce #7E555A</div>
+<div class="chip" style="background: #6B6A3A; color: #EFE9DF">Olive #6B6A3A</div>
+</div>
+<p class="cap" style="margin: 0">For chips, dividers, rules and the awning: never at full saturation beside amber. The same four are record colours, so the chrome and the pressings share one vocabulary. Olive is the bridge: it sits in both the orange and the purple families, and it is what amber turns into when laid thin over black.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">Three rules</h2>
+<ul style="margin: 0; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 6px">
+<li class="cap">Amber never signals state: not new, not error, not selected fills. Identity only. State uses the sticker kit or the secondaries.</li>
+<li class="cap">No second warm in the chrome. Burnt orange, harvest gold and chrome-yellow gold stay inside era tints and pressings; together they are the 1970s den.</li>
+<li class="cap">No mauve as a neutral, and no amber in a three-colour stripe with white and green or white and blue.</li>
+</ul>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">Stock and bin</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div class="chip" style="background: linear-gradient(160deg, #E6DCC4, #CFC2A3); color: #2A1B38; border-bottom: 2px solid #B5A684">divider stock</div>
+<div class="chip" style="background: #E8D9A8; color: #2A1B38">manila (genre)</div>
+<div class="chip" style="background: #EFE6D2; color: #2A1B38; border-top: 3px solid #2A1B38">catalog card</div>
+<div class="chip" style="background: linear-gradient(180deg, #8E7A60, #6F5A45 40%, #4D3D2F); color: #EFE9DF">bin, grey-brown</div>
+<div class="chip" style="background: #1C1A1F; color: #EFE9DF; border-top: 1px solid #2A272C">plinth, warm black</div>
+<div class="chip" style="background: #F4F1E9; color: #15161B">bone (tear strip)</div>
+</div>
+<p class="cap" style="margin: 0">Paper is a colour you pick, never one you derive by opacity. The bin is cardboard and walnut, not red-brown, so Oxblood and Umber records separate from it. The plinth is darker than any record body so even Jet lifts off it.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">Light theme · three moves</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div class="chip" style="background: #F6F1E7; color: #26202C">ink #26202C</div>
+<div class="chip" style="background: #F6F1E7; color: #6F665C">muted #6F665C</div>
+<div class="chip" style="background: #F6F1E7; color: #9A4700">accent-text #9A4700</div>
+</div>
+<p class="cap" style="margin: 0">Warm the ink from blue-black to aubergine-black (14:1), replace the cool grey with a warm grey that passes 4.5:1 on cream, and let the light phase anchors lean into their hue (Golden `#F8E2C2`, Dawn `#F7E1DE`) instead of all reading as one cream.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="lab" style="margin: 0">Sky anchors, confirmed</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<div class="chip" style="background: #1D2F38; color: #EFE9DF">midday</div>
+<div class="chip" style="background: #352A24; color: #EFE9DF">golden · umber</div>
+<div class="chip" style="background: #33232E; color: #EFE9DF">twilight · puce</div>
+<div class="chip" style="background: #1E1828; color: #EFE9DF">dusk</div>
+</div>
+<p class="cap" style="margin: 0">The cooler Golden and Twilight are raw umber and puce: glazes over the same grey ground rather than different colours. Amber reads at 6.7–7.2:1 across the whole arc. Golden's phase chip warms to `#F2B35C` so it is not amber's twin.</p>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0">Era tints · a decade divider or sticker stripe</h2>
+<p class="cap" style="margin: 0">Applied as a 20–25% tint over divider stock plus a full-strength 6 px edge stripe; lettering stays aubergine. Warm oranges are avoided in every decade so the tint never competes with the accent. The 1970s row leans avocado and tortoise because the app's own chrome is already the decade's gold.</p>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">1950s</span><span class="chip" style="height: 28px; background: #99C5C4"></span><span class="chip" style="height: 28px; background: #BF6464"></span><span class="chip" style="height: 28px; background: #4E6E68"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">1960s</span><span class="chip" style="height: 28px; background: #5A77A8"></span><span class="chip" style="height: 28px; background: #702F3B"></span><span class="chip" style="height: 28px; background: #784384"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">1970s</span><span class="chip" style="height: 28px; background: #676232"></span><span class="chip" style="height: 28px; background: #B68A3A"></span><span class="chip" style="height: 28px; background: #754734"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">1980s</span><span class="chip" style="height: 28px; background: #384883"></span><span class="chip" style="height: 28px; background: #AD5E99"></span><span class="chip" style="height: 28px; background: #798EA4"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">1990s</span><span class="chip" style="height: 28px; background: #807396"></span><span class="chip" style="height: 28px; background: #739072"></span><span class="chip" style="height: 28px; background: #40312F"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">2000s</span><span class="chip" style="height: 28px; background: #9BB7D4"></span><span class="chip" style="height: 28px; background: #5A5B9F"></span><span class="chip" style="height: 28px; background: #9B1B30"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">2010s</span><span class="chip" style="height: 28px; background: #009473"></span><span class="chip" style="height: 28px; background: #955251"></span><span class="chip" style="height: 28px; background: #5F4B8B"></span></div>
+<div style="display: grid; grid-template-columns: 56px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center"><span class="mono" style="font-size: 10px; color: #94A0A6">2020s</span><span class="chip" style="height: 28px; background: #0F4C81"></span><span class="chip" style="height: 28px; background: #6667AB"></span><span class="chip" style="height: 28px; background: #A47864"></span></div>
+</div>
+<p class="cap" style="margin: 4px 0 0">Decades before 1950 share the 1950s row. 2000s onward are extrapolated from the published colours of the year, and are flagged as such in the README.</p>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Artist shelf</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; align-items: center; gap: 4px; padding: 8px 8px 0 4px">
+<a href="Artists.dc.html" aria-label="Back to artists" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #94A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; color: #94A0A6">ARTISTS</span>
+</div>
+
+<div style="padding: 8px 16px 0; display: flex; flex-direction: column; gap: 4px">
+<h1 class="disp" style="margin: 0; font-size: 36px; font-weight: 700; line-height: 1; letter-spacing: .02em">[Artist name]</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">5 RECORDS · 1994–2011 · 58 SONGS</span>
+</div>
+
+<div aria-label="Shelf: this artist's records by year" style="margin-top: 20px; height: 196px; position: relative">
+<div style="position: absolute; left: 0; right: 0; bottom: 14px; height: 10px; background: linear-gradient(180deg, #8E7A60, #6F5A45 40%, #4D3D2F); box-shadow: 0 6px 12px rgba(0,0,0,.45)"></div>
+<div style="position: absolute; left: 16px; right: 0; bottom: 24px; display: flex; gap: 12px; align-items: flex-end; overflow: hidden">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0"><span style="width: 128px; height: 128px; border-radius: 3px; background: #3E5566; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); display: block; transform: rotate(-1.5deg)"></span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #94A0A6">1994</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0"><span style="width: 128px; height: 128px; border-radius: 3px; background: #5A4A5E; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); display: block; transform: rotate(1deg)"></span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #94A0A6">1997</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0"><span style="width: 128px; height: 128px; border-radius: 3px; background: #4A5A52; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); display: block; position: relative"><span class="mono" style="position: absolute; right: 8px; top: 8px; padding: 4px 6px; border-radius: 2px; background: #FFE34D; color: #2A1B38; font-size: 7px; font-weight: 500; letter-spacing: .12em; transform: rotate(-4deg)">24 / 96</span></span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #94A0A6">2003</span></div>
+</div>
+<span class="mono" style="position: absolute; right: 16px; top: 0; font-size: 10px; letter-spacing: .10em; color: #7A868C">SWIPE ›</span>
+</div>
+
+<div style="padding: 20px 16px 0; display: flex; align-items: center; justify-content: space-between">
+<button class="mono" style="min-height: 44px; padding: 0 20px; border: 0; border-radius: 4px; background: #FF9E2C; color: #2A1B38; font-size: 11px; font-weight: 500; letter-spacing: .08em; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25)">PLAY ALL</button>
+<div style="display: flex; gap: 4px">
+<button class="mono" style="min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">SHUFFLE</button>
+<button class="mono" style="min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: #94A0A6; font-size: 11px; letter-spacing: .08em">CREDITS</button>
+</div>
+</div>
+
+<div style="padding: 24px 16px 0; display: flex; flex-direction: column">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6; padding-bottom: 8px">[ALBUM TITLE] · 1994</span>
+<sc-for list="{{tracks}}" as="t" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; height: 48px">
+<span class="mono" style="width: 20px; font-size: 10px; color: #7A868C">{{t.n}}</span>
+<span style="flex-grow: 1; font-size: 16px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Track title]</span>
+<span class="mono" style="font-size: 10px; color: #7A868C">{{t.d}}</span>
+</div>
+</sc-for>
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #94A0A6; padding: 16px 0 8px">[ALBUM TITLE] · 1997</span>
+<div style="display: flex; align-items: center; gap: 12px; height: 48px"><span class="mono" style="width: 20px; font-size: 10px; color: #7A868C">01</span><span style="flex-grow: 1; font-size: 16px; font-weight: 600">[Track title]</span><span class="mono" style="font-size: 10px; color: #7A868C">4:02</span></div>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Main.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg><span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">LIBRARY</span></a>
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span></a>
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #94A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="opacity: .8"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">PROFILE</span></a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const tracks = ['3:05', '4:12', '2:48', '5:30'].map((d, i) => ({ n: String(i + 1).padStart(2, '0'), d }));
+return { tracks };
+}
+}
+</script>
+</body>
+</html>
