@@ -29,6 +29,7 @@ const KNOWN_PREF_KEYS = new Set([
   'shareStyle', 'shareFormat',
   'theme', 'charDrift',
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
+  'paperLabelOnLossy',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -68,6 +69,7 @@ export function serializePrefs(S){
     theme: S.theme,
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
+    paperLabelOnLossy: S.paperLabelOnLossy,
   }, unknownPrefKeys || {});
 }
 
@@ -122,6 +124,10 @@ export function parsePrefs(raw){
   if(typeof p.slipmatCustom === 'boolean') out.slipmatCustom = p.slipmatCustom;
   if(typeof p.slipmatWordmark === 'boolean') out.slipmatWordmark = p.slipmatWordmark;
   if(typeof p.slipmatDim === 'boolean') out.slipmatDim = p.slipmatDim;
+  // "Decided" (docs/13_CRATE.md, CR7): the paper-label switch. A saved
+  // object without this field (every device before CR7) loads as off —
+  // the S default, amber label on every tier-1 record.
+  if(typeof p.paperLabelOnLossy === 'boolean') out.paperLabelOnLossy = p.paperLabelOnLossy;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

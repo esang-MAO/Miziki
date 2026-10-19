@@ -85,3 +85,19 @@ input[type=file]{display:none}
 .note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
 .warn{color:#FFB4A2}
 
+/* CR7 (docs/13_CRATE.md point 6): the look picker reads like a pressing
+   plant's chart -- a family/group eyebrow, the pressing's own name, its
+   collector sub-name where one exists, and the catalogue's own one-
+   sentence note. Still a .cta/.cta.ghost button underneath (silent,
+   immediate selection, METAL spec §5) -- this just lets it hold more than
+   one line of text, stacked and left-aligned instead of centered. */
+.look-option{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  text-align:left;width:100%;white-space:normal;padding:10px var(--sp-4)}
+.look-option-group{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;
+  text-transform:uppercase;opacity:.75}
+.look-option-name{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.02em;text-transform:none}
+.look-option-sub{font-size:var(--fs-caption);opacity:.85;text-transform:none;letter-spacing:normal;font-family:inherit}
+.look-option-note{font-size:var(--fs-caption);color:var(--muted);line-height:1.45;
+  text-transform:none;letter-spacing:normal;font-family:inherit}
+.look-lossy-hint{margin-top:10px}
+

@@ -88,6 +88,28 @@
    Vinyl keeps the ring exactly as before. .mode-pure is set on
    <html> by setMode() (src/audio/mode.js). */
 .mode-pure .label.has-art{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+/* CR7 (docs/13_CRATE.md, "Decided"): Jet's own paper label, behind the
+   Settings switch, off by default — docs/design/crate/README.md's own
+   #EFE9DF/olive-ring pair. */
+.label.paper-label{background:radial-gradient(circle at 38% 32%,#F4EFE4,#DCD3BE)}
+.label.paper-label{box-shadow:inset 0 0 0 1px #3E3D22}
+.label.paper-label.has-art{box-shadow:inset 0 0 0 3px #3E3D22,inset 0 0 0 5px rgba(0,0,0,.45)}
+/* CR7 point 5: gold/platinum invert the label (aubergine disc, amber
+   mark); the ring colour itself is each metal's own shadow stop, set
+   inline per metal via --metal-ring (src/record-art/looks.js), since one
+   class can't carry two different ring colours. Silver keeps the ordinary
+   amber label and only gains a 3px aubergine ring around it. */
+.label.metal-invert{background:#2A1B38;box-shadow:inset 0 0 0 2px var(--metal-ring,#7A4E12)}
+.label.metal-invert.has-art{box-shadow:inset 0 0 0 2px var(--metal-ring,#7A4E12),inset 0 0 0 4px rgba(0,0,0,.45)}
+.label.metal-invert .label-title,.label.metal-invert .label-spindle{color:var(--accent-text)}
+.label.metal-invert .label-arc text{fill:var(--accent-text)}
+.label.metal-silver{box-shadow:inset 0 0 0 3px #2A1B38}
+.label.metal-silver.has-art{box-shadow:inset 0 0 0 3px #2A1B38,inset 0 0 0 5px rgba(0,0,0,.45)}
+/* CR7 point 3: Glow, one of the four rare pressings — "reads brightest in
+   the dark," so dark theme gets a stronger glow than light. Appended onto
+   the disc's own base shadow (line 29 above), never replacing it. */
+.disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(170,240,160,.55)}
+:root[data-theme="dark"] .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 28px rgba(170,240,160,.75)}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
 .t-dur{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
 /* NV6 (docs/11_SMOOTH_NAVIGATION.md): a library of thousands of rows costs

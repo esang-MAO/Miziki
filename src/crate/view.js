@@ -55,7 +55,8 @@ function currentCardSize(){
 // highlight" per the design doc, reusing METAL_COLORS as the one source
 // of truth for which hex means which metal.
 function metalDotBackground(name){
-  const base = METAL_COLORS[name] || '#999';
+  const m = METAL_COLORS[name];
+  const base = m ? m.base : '#999';
   return 'radial-gradient(circle at 35% 30%, rgba(255,255,255,.65) 0%, ' + base + ' 55%, rgba(0,0,0,.35) 100%)';
 }
 

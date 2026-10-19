@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { albumKey, VARIANT_DEFS } from '../record-art/tiers.js';
+import { albumKey, getVariantDef } from '../record-art/tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import { topAlbums, topTracks, achievementsList } from '../history/achievements.js';
 import {
@@ -192,7 +192,8 @@ export async function composeShareImage(opts){
       let cx = rightX + r;
       order.filter(k => counts[k]).forEach(k => {
         ctx.beginPath(); ctx.arc(cx, rightY + r*0.2, r, 0, Math.PI*2);
-        ctx.fillStyle = shareSwatchGradient(ctx, cx, rightY + r*0.2, r, [METAL_COLORS[k] || '#9c8a74', hexMix(METAL_COLORS[k]||'#9c8a74','#000',0.35), hexMix(METAL_COLORS[k]||'#9c8a74','#000',0.6)]);
+        const metalBase = (METAL_COLORS[k] && METAL_COLORS[k].base) || '#9c8a74';
+        ctx.fillStyle = shareSwatchGradient(ctx, cx, rightY + r*0.2, r, [metalBase, hexMix(metalBase,'#000',0.35), hexMix(metalBase,'#000',0.6)]);
         ctx.fill();
         ctx.fillStyle = '#171310'; ctx.font = '700 ' + Math.round(r*0.85) + 'px Archivo, sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -219,7 +220,7 @@ export async function composeShareImage(opts){
       items.forEach((rec, i) => {
         const cx = rightX + r + i*spacing, cy = rightY + r;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, VARIANT_DEFS[rec.variant].colors);
+        ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, getVariantDef(rec.variant).colors);
         ctx.fill();
         ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
       });

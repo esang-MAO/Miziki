@@ -14,6 +14,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 
 const {
   albumMetalFor, trackMetalFor, ALBUM_METAL_THRESHOLDS, TRACK_METAL_THRESHOLDS,
+  METAL_COLORS, metalLabelKind, metalBackground,
 } = await import('../../src/record-art/metals.js');
 const { resolveLook } = await import('../../src/record-art/looks.js');
 const { albumKey } = await import('../../src/record-art/tiers.js');
@@ -140,4 +141,32 @@ test('resolveLook: a saved preference for a look no longer available falls back'
 test('resolveLook: nothing earned on a tier-1 track falls back to the plain variant', () => {
   resetState();
   assert.equal(resolveLook(album), 'variant');
+});
+
+/* ================= CR7: pressings and finishes (docs/13_CRATE.md) ================= */
+
+test('CR7 metalLabelKind: gold and platinum invert, silver gets a ring, bronze stays amber', () => {
+  assert.equal(metalLabelKind('gold'), 'invert');
+  assert.equal(metalLabelKind('platinum'), 'invert');
+  assert.equal(metalLabelKind('silver'), 'silver-ring');
+  assert.equal(metalLabelKind('bronze'), 'amber');
+  assert.equal(metalLabelKind('unknown-metal'), 'amber');
+});
+
+test('CR7: METAL_COLORS carries all four fields per metal, thresholds untouched', () => {
+  for(const name of ['bronze', 'silver', 'gold', 'platinum']){
+    const m = METAL_COLORS[name];
+    assert.ok(m, name + ' missing from METAL_COLORS');
+    for(const k of ['base', 'highlight', 'shadow', 'underglow']) assert.ok(m[k], name + '.' + k + ' missing');
+  }
+  assert.equal(ALBUM_METAL_THRESHOLDS.find(l => l.name === 'bronze').sessions, 8);
+  assert.equal(ALBUM_METAL_THRESHOLDS.find(l => l.name === 'platinum').sessions, 40);
+});
+
+test('CR7: metalBackground() renders a non-empty, layered background for every metal', () => {
+  for(const name of ['bronze', 'silver', 'gold', 'platinum']){
+    const bg = metalBackground(name);
+    assert.ok(typeof bg === 'string' && bg.split(',').length >= 3, name + ' did not render three layers');
+  }
+  assert.equal(metalBackground('not-a-metal'), '');
 });

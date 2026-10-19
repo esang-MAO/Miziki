@@ -190,6 +190,12 @@ function applyPrefs(p){
   if(typeof p.slipmatWordmark === 'boolean') S.slipmatWordmark = p.slipmatWordmark;
   if(typeof p.slipmatDim === 'boolean') S.slipmatDim = p.slipmatDim;
   applySlipmat();
+  // "Decided" (docs/13_CRATE.md, CR7): no dedicated UI side effect of its
+  // own -- applyDiscVariant() already re-runs once a track loads, so this
+  // just syncs the Settings switch's own aria-pressed, the same inline
+  // shape sealedRecords/playInFullPlayer use above.
+  if(typeof p.paperLabelOnLossy === 'boolean') S.paperLabelOnLossy = p.paperLabelOnLossy;
+  { const b = $('#paperLabelBtn'); if(b) b.setAttribute('aria-pressed', String(S.paperLabelOnLossy)); }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
