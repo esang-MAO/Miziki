@@ -164,22 +164,42 @@ delete from auth.users where id = '<user-id>';
 `on delete cascade` foreign keys do the rest, the same cascades
 `delete_my_account()` itself relies on — `profiles`, `follows`, `blocks`,
 `crate_items`, `verified_stats`, `now_spinning`, `digging_list`,
-`feed_events`, `library_backup`, and (per the ordering note above) any
-`reports` row naming this account as the target, all disappear in the same
-transaction.
+`feed_events`, `library_backup`, `library_backup_history`,
+`release_credits`, and (per the ordering note above) any `reports` row
+naming this account as the target, all disappear in the same transaction.
 
-**This never touches Storage** — `covers`/`avatars` objects have no foreign
-key to `auth.users` (the same limitation `006_images.sql`'s own closing
-comment flags: Storage cleanup on account deletion has to happen
-client-side, in `deleteAccount()`'s own `removeStorageFolder()` calls,
-which only run when the *user* deletes their own account through the app).
-A moderator-initiated delete skips that path entirely, so clean up both
-buckets by hand right after:
+**Deletion checklist (RF25, `docs/12_REFINE.md`)** — what a full account
+delete leaves behind, and what doesn't clean itself up:
 
-1. Dashboard → **Storage** → `covers` bucket → browse to `<user-id>/` →
-   select all files → delete.
-2. Dashboard → **Storage** → `avatars` bucket → browse to `<user-id>/` →
-   select all files → delete.
+1. **Backup tombstones across the account's own devices.** `library_backup`
+   has one row per `(user_id, device_id)` — every device this account ever
+   signed into, not just the one doing the deleting. The `user_id` foreign
+   key cascades all of them (and their `library_backup_history` rows,
+   migration `014_backup_history.sql`) in the same transaction as the
+   `auth.users` delete — nothing to do by hand here, this item is only on
+   the checklist so a reviewer doesn't have to re-derive that it's already
+   covered.
+2. **Orphaned Storage files** — `covers`/`avatars` objects have no foreign
+   key to `auth.users` (the same limitation `006_images.sql`'s own closing
+   comment flags: Storage cleanup on account deletion has to happen
+   client-side, in `deleteAccount()`'s own `removeStorageFolder()` calls,
+   which only run when the *user* deletes their own account through the
+   app). **This never touches Storage** when run as a moderator, so clean
+   up both buckets by hand right after:
+   1. Dashboard → **Storage** → `covers` bucket → browse to `<user-id>/` →
+      select all files → delete.
+   2. Dashboard → **Storage** → `avatars` bucket → browse to `<user-id>/` →
+      select all files → delete.
+3. **`feed_events` about the deleted account.** `feed_events.actor_id`
+   references `profiles.id` (itself cascading from `auth.users`), so every
+   row this account ever posted to the feed is removed along with the rest
+   — nothing to do by hand. (RF21's own 45-day expiry sweep would have
+   removed most of these anyway; this just means none linger past that.)
+4. **`release_credits` rows** (RF23, migration `017_credits_across_friends.sql`)
+   — `user_id` cascades the same way, so every credit this account ever
+   synced from its own crate disappears with it. Nothing to do by hand.
+
+Everything cascades except Storage (step 2) — that's the one manual step.
 
 Irreversible, same as the in-app version — there's no undo once the
 `auth.users` row is gone.

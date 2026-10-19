@@ -75,6 +75,7 @@ const sha256Hex = fakeSha256Hex;
 const {
   scheduleBackupSync, flushBackupSync, pullBackupOnForeground, getBackupStatus, collectDownloadData, collectLocalDownloadData,
   orphanedFiles, pushOrClearListeningRhythm,
+  listBackupDevices, dismissStaleDeviceNotice, removeBackupDevice, STALE_DEVICE_MS,
 } = await import('../../src/sync/backup.js');
 
 function freshState(){
@@ -609,4 +610,179 @@ test('RF19: a pull accepts a pre-RF19 remote row with no checksum at all (backwa
   await flushMicrotasks();
   assert.equal(S.mergedStats.trackPlayCounts.k1, 7);
   assert.equal(getBackupStatus().lastError, null);
+});
+
+/* ================= RF25 (docs/12_REFINE.md): stale backup devices ================= */
+// listBackupDevices/dismissStaleDeviceNotice/removeBackupDevice all just
+// read/write the one library_backup table through a plain select/update/
+// delete -- no RPC, so a tiny fake .from(table) chain is all these need.
+function makeDevicesClient(rows, { failDelete = false, failUpdate = false } = {}){
+  const updates = [], deletes = [];
+  return {
+    updates, deletes,
+    from(table){
+      assert.equal(table, 'library_backup');
+      return {
+        select(){ return Promise.resolve({ data: rows, error: null }); },
+        update(patch){
+          return { eq(col, val){
+            updates.push({ patch, col, val });
+            return Promise.resolve({ error: failUpdate ? new Error('nope') : null });
+          } };
+        },
+        delete(){
+          return { eq(col, val){
+            deletes.push({ col, val });
+            return Promise.resolve({ error: failDelete ? new Error('nope') : null });
+          } };
+        },
+      };
+    },
+  };
+}
+
+test('listBackupDevices: no client at all returns an empty list, not a throw', async () => {
+  freshState();
+  globalThis.MizikiSocial = undefined;
+  assert.deepEqual(await listBackupDevices(), []);
+});
+
+test('listBackupDevices: marks a device stale only once it has aged past STALE_DEVICE_MS, never the current device', async () => {
+  freshState();
+  S.deviceId = 'this-device';
+  const now = Date.now();
+  const staleAt = new Date(now - STALE_DEVICE_MS - 1000).toISOString();
+  const freshAt = new Date(now - 1000).toISOString();
+  const client = makeDevicesClient([
+    { device_id: 'this-device', device_label: 'This iPhone', updated_at: staleAt, stale_notice_dismissed_at: null },
+    { device_id: 'old-ipad', device_label: 'Old iPad', updated_at: staleAt, stale_notice_dismissed_at: null },
+    { device_id: 'recent-mac', device_label: 'MacBook', updated_at: freshAt, stale_notice_dismissed_at: null },
+  ]);
+  stubSocial(client);
+  const list = await listBackupDevices();
+  const byId = Object.fromEntries(list.map(d => [d.deviceId, d]));
+  // the current device is never flagged stale even though its own
+  // updated_at is just as old -- it can't be, since fetching this list
+  // only ever runs on a device that's currently online and syncing
+  assert.equal(byId['this-device'].isThisDevice, true);
+  assert.equal(byId['this-device'].isStale, false);
+  assert.equal(byId['old-ipad'].isStale, true);
+  assert.equal(byId['recent-mac'].isStale, false);
+});
+
+test('listBackupDevices: a device the user already dismissed never shows as stale again', async () => {
+  freshState();
+  S.deviceId = 'this-device';
+  const now = Date.now();
+  const staleAt = new Date(now - STALE_DEVICE_MS - 1000).toISOString();
+  const client = makeDevicesClient([
+    { device_id: 'this-device', device_label: 'This iPhone', updated_at: staleAt, stale_notice_dismissed_at: null },
+    { device_id: 'kept-ipad', device_label: 'Kept iPad', updated_at: staleAt, stale_notice_dismissed_at: new Date(now - 500).toISOString() },
+  ]);
+  stubSocial(client);
+  const list = await listBackupDevices();
+  const kept = list.find(d => d.deviceId === 'kept-ipad');
+  assert.equal(kept.isStale, false);
+});
+
+test('dismissStaleDeviceNotice: writes stale_notice_dismissed_at for exactly the given device', async () => {
+  freshState();
+  const client = makeDevicesClient([]);
+  stubSocial(client);
+  const ok = await dismissStaleDeviceNotice('old-ipad');
+  assert.equal(ok, true);
+  assert.equal(client.updates.length, 1);
+  assert.equal(client.updates[0].col, 'device_id');
+  assert.equal(client.updates[0].val, 'old-ipad');
+  assert.ok(client.updates[0].patch.stale_notice_dismissed_at);
+});
+
+test('dismissStaleDeviceNotice: no client returns false, never throws', async () => {
+  freshState();
+  globalThis.MizikiSocial = undefined;
+  assert.equal(await dismissStaleDeviceNotice('old-ipad'), false);
+});
+
+test('dismissStaleDeviceNotice: a failed update reports false', async () => {
+  freshState();
+  const client = makeDevicesClient([], { failUpdate: true });
+  stubSocial(client);
+  assert.equal(await dismissStaleDeviceNotice('old-ipad'), false);
+});
+
+test('removeBackupDevice: deletes exactly the given device row', async () => {
+  freshState();
+  const client = makeDevicesClient([]);
+  stubSocial(client);
+  const ok = await removeBackupDevice('old-ipad');
+  assert.equal(ok, true);
+  assert.equal(client.deletes.length, 1);
+  assert.equal(client.deletes[0].col, 'device_id');
+  assert.equal(client.deletes[0].val, 'old-ipad');
+});
+
+test('removeBackupDevice: no client returns false, never throws', async () => {
+  freshState();
+  globalThis.MizikiSocial = undefined;
+  assert.equal(await removeBackupDevice('old-ipad'), false);
+});
+
+test('removeBackupDevice: a failed delete reports false', async () => {
+  freshState();
+  const client = makeDevicesClient([], { failDelete: true });
+  stubSocial(client);
+  assert.equal(await removeBackupDevice('old-ipad'), false);
+});
+
+/* ================= RF25 point 4: Download my data covers the new columns ================= */
+function makeAccountClient({ nowSpinningRows = [], releaseCreditRows = [] } = {}){
+  return {
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'a@b.test' } } }) },
+    from(table){
+      if(table === 'now_spinning'){
+        return { select(){ return { eq(){ return Promise.resolve({ data: nowSpinningRows, error: null }); } }; } };
+      }
+      if(table === 'release_credits'){
+        return { select(){ return { eq(){ return Promise.resolve({ data: releaseCreditRows, error: null }); } }; } };
+      }
+      // library_backup's own device-list select, inside the same Promise.all
+      return { select(){ return Promise.resolve({ data: [], error: null }); } };
+    },
+  };
+}
+function stubFullSocial(client, overrides = {}){
+  globalThis.MizikiSocial = Object.assign({
+    getClient(){ return client; }, on(){}, status(){ return { auth: 'ready' }; },
+    async getMyProfile(){ return { ok: true, profile: { handle: 'ken', listening_rhythm: { verdict: 'night', shares: { night: 1 } } } }; },
+    async crate(){ return { ok: true, items: [] }; },
+    async listFollowing(){ return { ok: true, following: [] }; },
+    async listDigging(){ return { ok: true, items: [] }; },
+  }, overrides);
+}
+
+test('collectDownloadData: signed in, account section carries now_spinning.phase and release_credits', async () => {
+  freshState();
+  const client = makeAccountClient({
+    nowSpinningRows: [{ track_title: 'A Song', phase: 'goldenHour', started_at: 't1', expires_at: 't2' }],
+    releaseCreditRows: [{ release_id: 'r1', person_name_norm: 'jane doe', role: 'producer' }],
+  });
+  stubFullSocial(client);
+  const out = await collectDownloadData();
+  assert.ok(out.account);
+  assert.equal(out.account.nowSpinning.phase, 'goldenHour');
+  assert.deepEqual(out.account.releaseCredits, [{ release_id: 'r1', person_name_norm: 'jane doe', role: 'producer' }]);
+  // listening_rhythm already rides along inside the profile object (getMyProfile() is select('*'))
+  assert.deepEqual(out.account.profile.listening_rhythm, { verdict: 'night', shares: { night: 1 } });
+  // round-trips cleanly through JSON like the rest of this export
+  const parsed = JSON.parse(JSON.stringify(out));
+  assert.equal(parsed.account.nowSpinning.phase, 'goldenHour');
+});
+
+test('collectDownloadData: signed in with nothing currently spinning gives nowSpinning: null, not a throw', async () => {
+  freshState();
+  const client = makeAccountClient({ nowSpinningRows: [], releaseCreditRows: [] });
+  stubFullSocial(client);
+  const out = await collectDownloadData();
+  assert.equal(out.account.nowSpinning, null);
+  assert.deepEqual(out.account.releaseCredits, []);
 });
