@@ -1,6 +1,38 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
+// CR6 (docs/13_CRATE.md): sealed.js now imports REDUCED (util/motion.js)
+// for runBreakChoreography()'s reduced-motion fade -- REDUCED is read once,
+// at module load, from window.matchMedia, so it's stubbed here the same
+// way shell.test.js/crate-model.test.js already do, before anything
+// imports the real sealed.js.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
+// CR6 (docs/13_CRATE.md): buildSealOverlay() calls el() (util/dom.js) and
+// the bare document.createDocumentFragment() global directly -- both
+// stubbed to a tiny, DOM-free fake rather than pulling in a real document,
+// same shape search.test.js/search-filter.test.js already use. Used only
+// by the "overlay markup carries no accent colour" test below.
+function fakeSealEl(){
+  const classes = new Set();
+  const kids = [];
+  return {
+    textContent: '', style: {},
+    classList: { add(...cs){ cs.forEach(c => classes.add(c)); }, remove(){}, contains(c){ return classes.has(c); } },
+    setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
+    addEventListener(){},
+    appendChild(child){ kids.push(child); return child; },
+    children: kids,
+  };
+}
+mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
+  namedExports: {
+    $(){ return null; },
+    el(tag, cls, text){ const e = fakeSealEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; },
+  },
+});
+globalThis.document = { createDocumentFragment(){ return fakeSealEl(); } };
+
 // Since step 7d, sealed.js's renderTracks import is real (from
 // src/library/view.js) instead of main.js — mocked directly here, since
 // the real view.js would otherwise reach back into library/sealed.js
@@ -31,7 +63,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 });
 
 const {
-  isAlbumSealed, breakSeal, restoreSealedAlbums,
+  isAlbumSealed, breakSeal, restoreSealedAlbums, buildSealOverlay,
 } = await import('../../src/library/sealed.js');
 const { topAlbums, topTracks } = await import('../../src/history/achievements.js');
 // RF4 (docs/12_REFINE.md): record-art/metals.js is a leaf beyond S/$ (and
@@ -180,4 +212,29 @@ test('a metal shown is always justified by the session count the same device dis
   assert.equal(shownCount, gold, 'topAlbums shows the merged count, not the stale local one');
   assert.equal(albumMetalFor('a1'), 'gold', 'and the metal shown is earned by that same merged count');
   assert.ok(shownCount >= gold);
+});
+
+// CR6 (docs/13_CRATE.md), point 6: "add a check that the overlay markup
+// carries no accent colour" -- "the film carries the message; no orange"
+// (docs/design/crate/README.md). buildSealOverlay() only ever sets plain
+// class names (seal-wrap/seal-film/seal-edge/seal-crease/seal-date-tag/
+// seal-strip/seal-strip-text/seal-strip-tab) and text content -- never an
+// inline style or a class name naming --accent/--miziki-orange/accent
+// itself -- so this walks the whole built fragment and asserts none of
+// that appears anywhere, rather than trying to resolve each class's own
+// external stylesheet rule (out of reach for a DOM-free unit test). It
+// also confirms the old orange "NEW dot" class (seal-sticker) is gone.
+function collectClassNames(node, out){
+  if(node.className) out.push(node.className);
+  for(const child of node.children || []) collectClassNames(child, out);
+}
+test('buildSealOverlay: the overlay markup carries no accent colour and no orange "NEW" sticker', () => {
+  const frag = buildSealOverlay(278, 'a1', Date.now());
+  const classNames = [];
+  collectClassNames(frag, classNames);
+  assert.ok(classNames.length > 0, 'sanity: the overlay actually built something');
+  for(const cls of classNames){
+    assert.doesNotMatch(cls, /accent/i, `class "${cls}" must not name an accent colour`);
+    assert.doesNotMatch(cls, /seal-sticker/, `the old orange "NEW" sticker class must be gone, found "${cls}"`);
+  }
 });

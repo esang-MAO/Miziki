@@ -1,6 +1,14 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
+// CR6 (docs/13_CRATE.md): library/sealed.js now imports REDUCED
+// (util/motion.js) -- read once, at module load, from window.matchMedia --
+// for its own reduced-motion break choreography. Stubbed here the same way
+// shell.test.js/crate-model.test.js already do, since this file's real
+// player/queue.js chain reaches sealed.js before any mock of this module
+// would apply.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
 // Since step 5e, queue.js also has the visible-queue functions
 // (queueInsert/playNext/addToQueue, queueRemoveAt, queueMove,
 // renderQueueSheet/openQueueSheet/closeQueueSheet), which call real $/el --

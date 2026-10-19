@@ -477,7 +477,7 @@ export function renderCrate(host){
         const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
       }
       const sealed = isAlbumSealed(item.albumId);
-      if(sealed) card.appendChild(buildSealOverlay(cardSize));
+      if(sealed) card.appendChild(buildSealOverlay(cardSize, item.albumId, item.addedAt));
       else {
         // CR3 point 1: "most sleeves are quiet; the few stickers mean
         // something" — stickerFor() already returns null for most records.
@@ -599,8 +599,10 @@ export function renderCrate(host){
     // stock, an aubergine head rule, title/artist/catalog-number line, a
     // second "PLAYED N TIMES · LAST SPUN TUE" line once the record has
     // actually been played, and a solid accent play disc at the right.
-    // The SEALED text chip is now the cream tag at 60% (seal-tag's own
-    // CSS, 12-sealed-records.css), not a bordered accent chip.
+    // CR6 moved the SEALED·[date] tag onto the film itself (buildSealOverlay,
+    // library/sealed.js, lower-left, on the cover) — this card no longer
+    // carries a text chip of its own for it, just the sr-only note (the
+    // film's own tag is aria-hidden, same as every other seal-wrap child).
     const sealed = isAlbumSealed(item.albumId);
     const card = el('div','crate-catalog-card');
     card.appendChild(el('div','crate-catalog-rule'));
@@ -613,10 +615,7 @@ export function renderCrate(host){
     text.appendChild(el('p','crate-info-meta', catalogLineFor(item)));
     const played = playedLineFor(item);
     if(played) text.appendChild(el('p','crate-info-played', played));
-    if(sealed){
-      text.appendChild(el('span','seal-tag','SEALED'));
-      text.appendChild(el('span','sr-only','Sealed, not played yet'));
-    }
+    if(sealed) text.appendChild(el('span','sr-only','Sealed, not played yet'));
     body.appendChild(text);
     const playBtn = el('button','crate-catalog-play','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
