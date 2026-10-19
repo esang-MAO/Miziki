@@ -130,6 +130,31 @@ function gatefoldCreditLink(name){
   return b;
 }
 
+// RF22 (docs/12_REFINE.md, "words that invite", point 1): the empty
+// sleeve note rotates through one of these four prompts rather than
+// always showing the same generic line — a nudge toward something worth
+// writing, never saved into the note itself (it's the textarea's own
+// `placeholder`, not its `value` — MizikiSocial.setNote() is only ever
+// called from the `change` listener below, which only fires on real
+// input). Picked deterministically from the album's own id (a small
+// string hash, not Math.random()) so the same record shows the same
+// prompt on every repaint of this same session rather than flickering
+// between prompts each time paint() re-runs, and so the gatefold and the
+// desktop crate detail panel (which both call this one builder, per its
+// own doc comment below) show the same prompt for the same record.
+const SLEEVE_NOTE_PROMPTS = [
+  'First heard it…',
+  'Best side and why',
+  'Play it when…',
+  'The sound that hooked me',
+];
+function sleeveNotePromptFor(albumId){
+  const s = String(albumId || '');
+  let h = 0;
+  for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return SLEEVE_NOTE_PROMPTS[Math.abs(h) % SLEEVE_NOTE_PROMPTS.length];
+}
+
 // Rating stars, sleeve note and pin toggle for YOUR OWN copy of this record
 // — local-first (MizikiSocial.setRating/setNote/pin work with no server
 // configured at all), published by the sync engine once signed in. Lives at
@@ -160,7 +185,7 @@ export function gatefoldSocialControlsHTML(item){
 
   const note = document.createElement('textarea');
   note.className = 'gf-note-input'; note.maxLength = 140; note.rows = 2;
-  note.placeholder = 'Tap to add a sleeve note.';
+  note.placeholder = sleeveNotePromptFor(item.albumId);
   note.setAttribute('aria-label', 'Sleeve note');
   note.addEventListener('change', () => MizikiSocial.setNote(item.albumId, note.value));
   wrap.appendChild(note);

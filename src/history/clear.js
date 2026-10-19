@@ -14,6 +14,7 @@ import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
+  persistPhasePlayCountsByDay,
 } from './sessions.js';
 import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
@@ -53,13 +54,16 @@ export async function resetLocalHistory(){
   S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
   S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
   S.phasePlayCounts = {}; S.albumPhaseCounts = {};
+  // RF22 (docs/12_REFINE.md): the day-bucketed twin of phasePlayCounts —
+  // same full-scope-only treatment (see the orphaned-only branch below).
+  S.phasePlayCountsByDay = {};
   await achievements.clear(); await collection.clear(); await sessions.clear();
   await pruneThumbs();
   await Promise.all([
     persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
     persistAlbumLastPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
     persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
-    persistPhasePlayCounts(), persistAlbumPhaseCounts()
+    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay()
   ]);
 }
 
@@ -93,7 +97,10 @@ export async function clearListeningHistory(orphanedOnly){
     // the same way. phasePlayCounts has no per-identity shape at all (it's
     // a pure phase aggregate with nothing to key an orphaned-only prune
     // by), so it's never touched here, the same way a full-scope clear is
-    // the only thing that ever resets it below.
+    // the only thing that ever resets it below. phasePlayCountsByDay
+    // (RF22, docs/12_REFINE.md) is keyed by calendar day, not by any
+    // library identity either, so it's left alone here for the same
+    // reason — a season has no per-album/per-track shape to prune by.
     S.albumPhaseCounts = filterKeep(S.albumPhaseCounts, albumIds);
     for(const id of droppedAlbums) await achievements.del(id);
     for(const id of droppedCollection) await collection.del(id);

@@ -1,15 +1,22 @@
-/* ================= listening rhythm (DA5, docs/DAY_ARC.md) =================
+/* ================= listening rhythm (DA5, docs/DAY_ARC.md; windowed RF22) =================
    Pure functions over a {phase: count} / {albumId: {phase: count}} map —
    no DOM, no network, no S import, the same "testable without a browser"
-   shape as sundown/day.js and sundown/drift.js. S.phasePlayCounts/
-   S.albumPhaseCounts (src/history/played.js, counted from the real clock
-   only — see sundown/solar.js's realDayPosition()) are the only real
-   callers' inputs; src/sync/backup.js's merged.totals.counters.* (the
-   cross-device grand totals) are shaped identically and could be fed in
-   just as well, though nothing does today — the profile card reads this
-   device's own local counts, the same "never written back from a merge"
-   posture every other per-device counter in this app already has (see
-   src/sync/merge.js's own header comment). */
+   shape as sundown/day.js and sundown/drift.js. S.phasePlayCountsByDay
+   (src/history/played.js, counted from the real clock only — see
+   sundown/solar.js's realDayPosition()), summed over the last
+   RHYTHM_WINDOW_DAYS by windowedPhaseCounts() below, is what every real
+   caller now feeds computeRhythmShares() (RF22, "a season" — was
+   S.phasePlayCounts, a lifetime total, before this step). bestAlbumPerPhase
+   still reads lifetime S.albumPhaseCounts — RF22 only asks for the
+   verdict/share ring itself to be windowed, not the per-phase "best
+   record" list, which isn't part of the shared {verdict, shares} payload
+   in the first place. src/sync/backup.js's merged.totals.counters.* (the
+   cross-device grand totals) are shaped identically to the lifetime maps
+   and could still be fed into computeRhythmShares() directly, though
+   nothing does — the profile card and the shared snapshot both read this
+   device's own local, windowed counts, the same "never written back from
+   a merge" posture every other per-device counter in this app already
+   has (see src/sync/merge.js's own header comment). */
 
 // The seven phases named throughout docs/DAY_ARC.md's own day model —
 // the fixed iteration order every function below uses, so a caller never
@@ -40,22 +47,83 @@ export function computeRhythmShares(counts){
   return { total, shares };
 }
 
-// One line from the largest share. docs/DAY_ARC.md names three examples
-// verbatim ("Mostly a night listener", "A morning listener", "Golden-hour
-// leaning") plus the "Around the clock" fallback; the other four phases
-// get a plain, consistent phrasing of the same "Mostly a <phase>
-// listener" shape the doc's own night/midday/afternoon/twilight wording
-// implies without spelling each one out.
+// RF22 (docs/12_REFINE.md, "words that invite", point 3): "listening
+// rhythm as a season" — a rolling window over the day-bucketed counts
+// (S.phasePlayCountsByDay, kept by history/played.js) rather than a
+// lifetime total, so the card/verdict/share reflect lately, not ever.
+// 90 days reads as a season (three-ish months); PRUNE_KEEP_DAYS is kept
+// well past the window so a write never prunes a bucket the window
+// itself still needs to read.
+export const RHYTHM_WINDOW_DAYS = 90;
+export const RHYTHM_PRUNE_KEEP_DAYS = 120;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// A local-calendar 'YYYY-MM-DD' string for `ts` (a Date or epoch ms) —
+// local time, not UTC, the same calendar day a person would name, and
+// consistent with realDayPosition()'s own local-solar-time basis (the
+// phase a play is tallied under already depends on the device's local
+// clock, so the day it's bucketed under should too).
+export function dayKeyFor(ts){
+  const d = ts instanceof Date ? ts : new Date(ts);
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  return y + '-' + String(m).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+}
+
+// Sums every day-bucket within the last `windowDays` of `now` (inclusive
+// of today) into a flat {phase: count} map — the same shape
+// computeRhythmShares() already takes, so a caller just threads this in
+// ahead of it rather than computeRhythmShares() itself needing to know
+// anything about days at all.
+export function windowedPhaseCounts(byDay, now, windowDays){
+  const map = byDay || {};
+  const cutoff = (now instanceof Date ? now.getTime() : now) - windowDays * MS_PER_DAY;
+  const out = {};
+  Object.keys(map).forEach(key => {
+    // dayKeyFor() always produces a key whose own local midnight is a
+    // stable, parseable instant — re-deriving it from the key itself
+    // (rather than trusting insertion order) means this works regardless
+    // of how `byDay` was built or iterated.
+    const parts = key.split('-');
+    const keyMs = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    if(keyMs < cutoff) return;
+    const bucket = map[key] || {};
+    PHASES.forEach(p => { if(bucket[p]) out[p] = (out[p] || 0) + bucket[p]; });
+  });
+  return out;
+}
+
+// Pure — returns a new object, never mutates `byDay`. Drops any bucket
+// older than `keepDays`, so the map a device persists never grows past a
+// bounded size no matter how long the library's been played.
+export function pruneDayBuckets(byDay, now, keepDays){
+  const map = byDay || {};
+  const cutoff = (now instanceof Date ? now.getTime() : now) - keepDays * MS_PER_DAY;
+  const out = {};
+  Object.keys(map).forEach(key => {
+    const parts = key.split('-');
+    const keyMs = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    if(keyMs >= cutoff) out[key] = map[key];
+  });
+  return out;
+}
+
+// One line from the largest share, phrased as something said about a
+// season just passed rather than a label pinned to the person ("NIGHT
+// LISTENER") — RF22's own "Lately, mostly after dark" example. docs/
+// DAY_ARC.md's original three verbatim examples ("Mostly a night
+// listener", "A morning listener", "Golden-hour leaning") are reworded
+// the same way; the other four phases keep a plain, consistent "Lately,
+// mostly <phase>" shape.
 const VERDICT_LABEL = {
-  night: 'Mostly a night listener',
-  dawn: 'Mostly a dawn listener',
-  morning: 'A morning listener',
-  midday: 'Mostly a midday listener',
-  afternoon: 'Mostly an afternoon listener',
-  golden: 'Golden-hour leaning',
-  twilight: 'Mostly a twilight listener',
+  night: 'Lately, mostly after dark',
+  dawn: 'Lately, often up with first light',
+  morning: 'Lately, mostly a morning listener',
+  midday: 'Lately, mostly midday',
+  afternoon: 'Lately, mostly afternoon',
+  golden: 'Lately, leaning golden hour',
+  twilight: 'Lately, mostly at twilight',
 };
-export const RHYTHM_AROUND_LABEL = 'Around the clock';
+export const RHYTHM_AROUND_LABEL = 'Lately, around the clock';
 
 export function rhythmVerdictLabel(shares){
   let best = null, bestShare = 0;

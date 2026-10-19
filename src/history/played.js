@@ -5,13 +5,14 @@
    incrementTrackPlay (out of "metal tiers") — step 5c. */
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
-import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts } from './sessions.js';
+import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay } from './sessions.js';
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
 import { persistTrackLastPlayed } from '../profile/screens.js';
 import { scheduleBackupSync } from '../sync/backup.js';
 import { realDayPosition } from '../sundown/solar.js';
+import { dayKeyFor, pruneDayBuckets, RHYTHM_PRUNE_KEEP_DAYS } from '../sundown/rhythm.js';
 
 export function addPlayedRange(a, b){
   if(b <= a) return;
@@ -49,11 +50,22 @@ export function incrementTrackPlay(t){
   const albumId = albumKey(t);
   const perAlbum = S.albumPhaseCounts[albumId] || (S.albumPhaseCounts[albumId] = {});
   perAlbum[phase] = (perAlbum[phase] || 0) + 1;
+  // RF22 (docs/12_REFINE.md, "words that invite", point 3): the same
+  // count, also bucketed by local calendar day, so the rhythm card can
+  // read "a season" (a rolling window, sundown/rhythm.js's
+  // windowedPhaseCounts()) rather than a lifetime total. Pruned on every
+  // write, not just occasionally, since a write is the one guaranteed
+  // chance to keep this bounded -- there's no other scheduled sweep.
+  const today = dayKeyFor(Date.now());
+  const todayBucket = S.phasePlayCountsByDay[today] || (S.phasePlayCountsByDay[today] = {});
+  todayBucket[phase] = (todayBucket[phase] || 0) + 1;
+  S.phasePlayCountsByDay = pruneDayBuckets(S.phasePlayCountsByDay, Date.now(), RHYTHM_PRUNE_KEEP_DAYS);
   persistTrackPlayCounts();
   persistTrackMetalEligiblePlays();
   persistTrackLastPlayed();
   persistPhasePlayCounts();
   persistAlbumPhaseCounts();
+  persistPhasePlayCountsByDay();
   snapshotAlbumDisplay(t);
   snapshotTrackDisplay(t, key);
   if(current() === t) applyDiscVariant(t, true);

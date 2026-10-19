@@ -70,6 +70,7 @@ mock.module(new URL('../../src/sync/images.js', import.meta.url).href, {
 
 const { S } = await import('../../src/state.js');
 const { SCHEMA_VERSION, toDoc, canonicalStringify } = await import('../../src/sync/backup-doc.js');
+const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
 const sha256Hex = fakeSha256Hex;
 const {
   scheduleBackupSync, flushBackupSync, pullBackupOnForeground, getBackupStatus, collectDownloadData, collectLocalDownloadData,
@@ -86,8 +87,8 @@ function freshState(){
   S.sealed = new Set(); S.sealedBroken = new Set();
   S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0, picture:0 };
   S.historyClearedAt = 0; S.deviceId = null; S.deviceLabel = null; S.backupRestoredFor = null;
-  // DA5 (docs/DAY_ARC.md)
-  S.phasePlayCounts = {}; S.albumPhaseCounts = {}; S.rhythmPushedAt = 0;
+  // DA5 (docs/DAY_ARC.md); phasePlayCountsByDay windowing added RF22
+  S.phasePlayCounts = {}; S.phasePlayCountsByDay = {}; S.albumPhaseCounts = {}; S.rhythmPushedAt = 0;
   metaStore.clear(); artworkStore.clear(); profileRecord = null;
 }
 
@@ -318,8 +319,11 @@ function stubSocialWithRhythm(client, { shareListeningRhythm = false } = {}){
 }
 function setPhasePlays(n){
   // one phase, n plays -- more than enough to clear RHYTHM_MIN_PLAYS (20)
-  // without needing to care which phase actually wins the verdict here
-  S.phasePlayCounts = { night: n };
+  // without needing to care which phase actually wins the verdict here.
+  // RF22 (docs/12_REFINE.md): pushOrClearListeningRhythm's own payload is
+  // now built from the windowed S.phasePlayCountsByDay (today's bucket),
+  // not the lifetime S.phasePlayCounts -- seed "today" directly.
+  S.phasePlayCountsByDay = { [dayKeyFor(Date.now())]: { night: n } };
 }
 
 test('pushOrClearListeningRhythm(true): below the 20-play gate is a quiet skip, nothing pushed', async () => {
@@ -342,7 +346,7 @@ test('pushOrClearListeningRhythm(true): at/above the gate pushes the verdict+sha
   const r = await pushOrClearListeningRhythm(true);
   assert.equal(r.ok, true);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].verdict, 'Mostly a night listener');
+  assert.equal(calls[0].verdict, 'Lately, mostly after dark');
   assert.deepEqual(calls[0].shares, { night: 1, dawn: 0, morning: 0, midday: 0, afternoon: 0, golden: 0, twilight: 0 });
   assert.equal('night' in calls[0], false, 'the raw play count itself must never be part of the payload');
   assert.ok(S.rhythmPushedAt >= before, 'rhythmPushedAt should be stamped to roughly now');

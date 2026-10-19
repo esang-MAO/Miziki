@@ -1,13 +1,16 @@
-/* ================= listening rhythm card (DA5, docs/DAY_ARC.md) =================
+/* ================= listening rhythm card (DA5, docs/DAY_ARC.md; windowed RF22) =================
    renderRhythmCard() is the local half — a read-only stat card on this
-   device's own profile, built entirely from S.phasePlayCounts/
-   S.albumPhaseCounts (counted by the real clock only, src/history/
-   played.js's incrementTrackPlay() via sundown/solar.js's
-   realDayPosition() — see that file's own header comment for why
-   Preview the day can never affect these). Visible to everyone, signed
-   in or not, the same way the rest of the profile's local stats already
-   are — the *sharing* switch (Privacy screen, src/profile/privacy.js) is
-   the social-only half, kept separate.
+   device's own profile, built from a rolling window over
+   S.phasePlayCountsByDay (the ring/verdict, RF22's "a season") plus
+   lifetime S.albumPhaseCounts (the per-phase "best record" list, left
+   unwindowed — see sundown/rhythm.js's own header comment for why).
+   Both are counted by the real clock only, src/history/played.js's
+   incrementTrackPlay() via sundown/solar.js's realDayPosition() — see
+   that file's own header comment for why Preview the day can never
+   affect either. Visible to everyone, signed in or not, the same way the
+   rest of the profile's local stats already are — the *sharing* switch
+   (Privacy screen, src/profile/privacy.js) is the social-only half, kept
+   separate.
 
    renderSharedRhythmCard(), at the bottom of this file, is the other
    half: a friend's own already-shared snapshot (src/social/screens/
@@ -37,7 +40,10 @@
    (non-animated) night moon and DA2's skipped drift sparkline. */
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
-import { PHASES, RHYTHM_MIN_PLAYS, computeRhythmShares, rhythmVerdictLabel, bestAlbumPerPhase } from '../sundown/rhythm.js';
+import {
+  PHASES, RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, rhythmVerdictLabel,
+  bestAlbumPerPhase, windowedPhaseCounts,
+} from '../sundown/rhythm.js';
 
 const PHASE_LABEL = {
   night: 'Night', dawn: 'Dawn', morning: 'Morning', midday: 'Midday',
@@ -131,9 +137,16 @@ function buildCard(verdict, shares, centerLines){
 // the existing storefront section — host is a plain container, cleared
 // and rebuilt on every render the same way every other profile section
 // already is.
+//
+// RF22 (docs/12_REFINE.md, "words that invite", point 3): "listening
+// rhythm as a season" — windowed to the last RHYTHM_WINDOW_DAYS, not a
+// lifetime total, so the 20-play gate below is also a 20-plays-*lately*
+// gate: a device that hasn't played anything in a season reads as
+// "not enough plays yet" again, the same honest "nothing to show"
+// renderLocked() already gives a brand-new profile.
 export function renderRhythmCard(host){
   host.innerHTML = '';
-  const { total, shares } = computeRhythmShares(S.phasePlayCounts);
+  const { total, shares } = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
   if(total < RHYTHM_MIN_PLAYS){ renderLocked(host, total); return; }
 
   const card = buildCard(rhythmVerdictLabel(shares), shares,

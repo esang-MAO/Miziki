@@ -44,6 +44,10 @@ export async function persistTrackMetalEligiblePlays(){ await meta.put('trackMet
 // sibling of (the same split this module already has for trackPlayCounts).
 export async function persistPhasePlayCounts(){ await meta.put('phasePlayCounts', S.phasePlayCounts); }
 export async function persistAlbumPhaseCounts(){ await meta.put('albumPhaseCounts', S.albumPhaseCounts); }
+// RF22 (docs/12_REFINE.md) -- device-only, never in the backup doc (see
+// state.js's own S.phasePlayCountsByDay entry); persisted/restored the
+// same way as every sibling counter in this file regardless.
+export async function persistPhasePlayCountsByDay(){ await meta.put('phasePlayCountsByDay', S.phasePlayCountsByDay); }
 // RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
 // changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
 export async function persistAlbumLookPref(keys){
@@ -188,6 +192,12 @@ export async function restoreSessions(){
   if(phaseCounts) S.phasePlayCounts = phaseCounts;
   const albumPhase = await meta.get('albumPhaseCounts');
   if(albumPhase) S.albumPhaseCounts = albumPhase;
+  // RF22 (docs/12_REFINE.md) -- a device that hasn't written this yet
+  // (every install before this step) just reads an empty season, not a
+  // thrown error; the rhythm card then simply reads as "not enough plays
+  // yet" until new plays repopulate it.
+  const phaseCountsByDay = await meta.get('phasePlayCountsByDay');
+  if(phaseCountsByDay) S.phasePlayCountsByDay = phaseCountsByDay;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
   const albumLast = await meta.get('albumLastPlayed');
