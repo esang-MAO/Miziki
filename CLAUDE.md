@@ -275,6 +275,14 @@ Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.
 
 **RF13's own scope, for later PRs that touch these files:** the font-size mechanical sweep (238 declarations) and the spacing-scale sweep (exact px matches in `margin`/`padding`/`gap` only) cover every style file. The elevation tokens were applied only to the box-shadow declarations that clearly matched one of the three named categories above (crate cards, the launch-intro card stack, the gatefold cover, profile/storefront cards, the sleeve/morph disc, the two header popovers, the profile settings menu) — `--sh-1` (mini-player/buttons) was left for a later pass since neither currently has a shadow to replace, and adding one where none existed is a visible addition, not a mechanical swap. The button-hierarchy and 45%-accent-slider rules are a design review across the whole app rather than a bounded find-and-replace; RF13 states them here as the standing rule for new CSS, but didn't re-audit every existing `.cta`/`.seg`/range input against them.
 
+## Design rules (CR8)
+
+Standing rules for every PR that touches color, recorded here per CR8's own instruction (`docs/13_CRATE.md`, "palette additions"):
+
+- **Amber never signals state.** `--amber`/`--amber-tint`/`--amber-shade` are Miziki's one accent color, not a status color — never pressed/success/error. A pressed or selected state uses a ring, a filled background, or a weight change, never "turns amber" where it wasn't already amber.
+- **No second warm in the chrome.** The app's chrome (panels, chips, cards, dividers) gets exactly one warm color family at a time — amber in dark theme's existing surfaces, the stock/bin/plinth family in the crate. Don't introduce a second, competing warm hue into the same chrome a warm family already occupies.
+- **No mauve neutral, and no amber tricolour.** A neutral surface (text, rules, disabled state) stays on the muted/warm-grey family, never drifts toward a mauve/purple read. And no single screen uses amber for three distinct meanings at once (accent, a phase color, and a status) — where a phase or status needs its own color, it comes from the secondaries (`--prussian`/`--verdigris`/`--puce`/`--olive`/`--olive-deep`), not a second use of amber.
+
 ## Security
 
 - **Miziki makes no third-party requests at runtime, other than the user's own Supabase project, when one is configured.** Everything else the app needs — fonts, the social client library, the app's own code — is bundled or self-hosted; nothing is fetched from a CDN. **Rule: a future change that adds a new external host (a CDN, an API, an embed) needs both a Content Security Policy update (below) and a privacy note here saying what that host receives and when.**

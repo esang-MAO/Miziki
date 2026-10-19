@@ -71,6 +71,52 @@
   --sh-1:0 1px 2px var(--shadow), 0 4px 10px var(--shadow);
   --sh-2:0 1px 3px var(--shadow), 0 8px 20px var(--shadow);
   --sh-3:0 2px 4px var(--shadow), 0 16px 36px var(--shadow);
+
+  /* CR8 (docs/13_CRATE.md, "palette additions"): the record-store palette
+     docs/design/crate/README.md's own "Palette additions (CR8)" section
+     catalogues. Tokens only, per that PR's own "nothing moves" scope —
+     see each one's own use site below for where it actually lands.
+     --amber-tint/--amber-shade stay with --amber here (same token family,
+     same place) rather than off in 10-crate.css with the sticker tokens;
+     --amber-shade's light value (#9A4700) is declared in 22-theme.css,
+     the one place any token actually changes per theme, the same pattern
+     --accent-text already uses. */
+  --amber-tint:#F8E2C2;
+  --amber-shade:#C47F1E;
+  /* Secondaries (shades only, never full saturation beside amber) — the
+     README's own four-colour family plus Olive's own deep variant and a
+     warm grey for rules/disabled text. */
+  --prussian:#2B5586;
+  --verdigris:#3F8C7E;
+  --puce:#7E555A;
+  --olive:#6B6A3A;
+  --olive-deep:#3E3D22;
+  --warm-grey:#8C8279;
+  /* Stock: the crate's own cardboard/paper family. --stock-divider-1/2
+     and --stock-lip/--stock-manila/--stock-card already existed as the
+     exact literal hex values below at their one use site each
+     (10-crate.css/11-gatefold.css, CR1/CR3) — this is where those
+     literals become named tokens, not a new colour. --stock-bone is new
+     (no existing matching literal anywhere in the codebase). */
+  --stock-divider-1:#E6DCC4;
+  --stock-divider-2:#CFC2A3;
+  --stock-lip:#B5A684;
+  --stock-manila:#E8D9A8;
+  --stock-card:#EFE6D2;
+  --stock-bone:#F4F1E9;
+  /* Bin: cardboard and walnut, deliberately not red-brown, so Oxblood and
+     Umber record bodies still separate from the bin behind them (the
+     Palette.dc.html mockup's own line). New — no existing literal
+     matches this triplet; .crate-lip's own pre-CR8 background used a
+     warmer, more reddish brown that this token set replaces. */
+  --bin-1:#8E7A60;
+  --bin-2:#6F5A45;
+  --bin-3:#4D3D2F;
+  /* Platter plinth: warm black, darker than any record body (--disc-c is
+     #0D0E13) so even Jet still lifts off it. New — the platter stage has
+     never had a plinth surface of its own before this PR. */
+  --plinth:#1C1A1F;
+  --plinth-edge:#2A272C;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 /* html needs its own dark background too, not just body's: iOS Safari's
