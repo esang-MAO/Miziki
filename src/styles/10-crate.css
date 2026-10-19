@@ -225,3 +225,21 @@
   background:var(--accent);color:#1A1410;font-size:16px;line-height:1;
   display:grid;place-content:center;cursor:pointer}
 
+
+/* CR5 ("pull a record out"): the hold card — a 450ms dwell on the front
+   record's own catalog card shows Play next / Add to queue / Pin to staff
+   picks / Sleeve note on a small cream card above it (docs/design/crate/
+   README.md, "Gestures (CR5)"). Same scrim/popover shape as the header's
+   own +/overflow menus (01-header.css's .add-scrim/.add-menu), just a
+   fixed, centred position instead of anchored under a header button. */
+.crate-hold-scrim{position:fixed;inset:0;background:rgba(6,10,13,.55);z-index:60}
+.crate-hold-card{position:fixed;left:50%;bottom:calc(var(--sp-7) + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%);z-index:61;width:min(300px,calc(100vw - var(--sp-6)));
+  background:var(--cream);color:#2A1B38;border-radius:var(--radius-card);
+  box-shadow:var(--sh-3);padding:var(--sp-3);display:flex;flex-direction:column;gap:2px}
+.crate-hold-title{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.04em;
+  color:#5A4A52;margin:0 var(--sp-1) var(--sp-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-hold-btn{display:block;width:100%;text-align:left;background:none;border:none;
+  border-radius:var(--radius-control);padding:var(--sp-2) var(--sp-1);margin:0;
+  font-family:var(--data);font-size:var(--fs-row);color:#2A1B38;cursor:pointer}
+.crate-hold-btn:active,.crate-hold-btn:focus-visible{background:rgba(42,27,56,.08)}

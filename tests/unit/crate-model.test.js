@@ -20,6 +20,8 @@ const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres,
   stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  classifyCratePointerTrace, cratePullProgress,
+  CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -298,4 +300,68 @@ test('playedLineFor: empty until the album has at least one qualifying session, 
   S.albumLastPlayed.alb1 = Date.now() - 2 * DAY_MS;
   const line = playedLineFor(record);
   assert.ok(line.startsWith('PLAYED 12 TIMES · LAST SPUN '), line);
+});
+
+// CR5 ("pull a record out"): the pull/flip/hold state machine, as a pure
+// function over a pointer trace, per docs/design/crate/README.md's own
+// thresholds and docs/13_CRATE.md's "Tests" requirement for CR5.
+test('classifyCratePointerTrace: no movement yet, or only the pointerdown sample, is pending', () => {
+  assert.equal(classifyCratePointerTrace([]), 'pending');
+  assert.equal(classifyCratePointerTrace([{dy:0, t:0}]), 'pending');
+  assert.equal(classifyCratePointerTrace([{dy:0, t:0}, {dy:-3, t:20}]), 'pending');
+});
+
+test('classifyCratePointerTrace: sustained upward movement past the threshold, with no reversal, commits to pull', () => {
+  const trace = [{dy:0, t:0}, {dy:-8, t:16}, {dy:-16, t:32}, {dy:-(CRATE_PULL_UP_PX), t:48}];
+  assert.equal(classifyCratePointerTrace(trace), 'pull');
+});
+
+test('classifyCratePointerTrace: a flick up that reverses back down past the threshold is a flip, never a pull', () => {
+  const peakUp = CRATE_PULL_UP_PX - 1; // never actually reaches the pull threshold
+  const trace = [
+    {dy:0, t:0}, {dy:-peakUp, t:30},
+    {dy:-(peakUp - CRATE_PULL_REVERSAL_PX), t:60}, // reversed by exactly the threshold
+  ];
+  assert.equal(classifyCratePointerTrace(trace), 'flip');
+});
+
+test('classifyCratePointerTrace: a flick up near the pull threshold that then drops back commits to flip, not pull', () => {
+  // peaks at one px short of the pull threshold, then falls back by the
+  // reversal threshold -- this must read as flip even though it got close
+  // to a pull, since it never actually crossed 24px up.
+  const peakUp = CRATE_PULL_UP_PX - 1;
+  const trace = [{dy:0, t:0}, {dy:-peakUp, t:20}, {dy:-(peakUp - CRATE_PULL_REVERSAL_PX), t:40}];
+  assert.equal(classifyCratePointerTrace(trace), 'flip');
+});
+
+test('classifyCratePointerTrace: a plain downward drag past the reversal threshold is a flip', () => {
+  const trace = [{dy:0, t:0}, {dy:6, t:20}, {dy:CRATE_PULL_REVERSAL_PX, t:40}];
+  assert.equal(classifyCratePointerTrace(trace), 'flip');
+});
+
+test('classifyCratePointerTrace: small jitter under every threshold stays pending until the hold deadline, then reads as hold', () => {
+  const jitter = [{dy:0, t:0}, {dy:-2, t:100}, {dy:1, t:200}, {dy:-3, t:300}];
+  assert.equal(classifyCratePointerTrace(jitter), 'pending');
+  const held = jitter.concat([{dy:-2, t: CRATE_PULL_HOLD_MS + 1}]);
+  assert.equal(classifyCratePointerTrace(held), 'hold');
+});
+
+test('classifyCratePointerTrace: pull wins the instant the trace crosses 24px up, even if a later sample in the same array moves back down', () => {
+  // classify scans in order and returns as soon as a threshold is crossed,
+  // so a trace that keeps going after the pull commits (as the real one
+  // would, mid-lift) must not retroactively read as a flip.
+  const trace = [
+    {dy:0, t:0}, {dy:-CRATE_PULL_UP_PX, t:40}, {dy:-(CRATE_PULL_UP_PX + 20), t:80}, {dy:-(CRATE_PULL_UP_PX - 5), t:120},
+  ];
+  assert.equal(classifyCratePointerTrace(trace), 'pull');
+});
+
+test('cratePullProgress: 0 with no card height or no lift, 1 once the lift reaches the card\'s own height', () => {
+  assert.equal(cratePullProgress(50, 0), 0);
+  assert.equal(cratePullProgress(0, 278), 0);
+  assert.equal(cratePullProgress(278, 278), 1);
+  assert.equal(cratePullProgress(278 * CRATE_PULL_COMMIT_FRACTION, 278), CRATE_PULL_COMMIT_FRACTION);
+  // never goes negative or past 1 for an out-of-range input
+  assert.equal(cratePullProgress(-10, 278), 0);
+  assert.equal(cratePullProgress(1000, 278), 1);
 });

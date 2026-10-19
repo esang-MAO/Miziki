@@ -105,6 +105,7 @@ module.exports = [
       'src/library/import.js',
       'src/player/transport.js',
       'src/crate/model.js',
+      'src/crate/view.js',
       'src/gatefold/view.js',
       'src/profile/storefront.js',
       'src/profile/settings.js',
