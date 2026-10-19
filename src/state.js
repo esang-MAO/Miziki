@@ -95,7 +95,17 @@ export const S = {
   // first time, before either sheet has ever set a preference
   shareStyle:'night', shareFormat:null,
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
-  sleep:{mode:null, at:null, timer:null, fading:false}
+  sleep:{mode:null, at:null, timer:null, fading:false},
+  // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
+  // session" in the player's own "···" menu. Session-only, like `sleep`
+  // above — never saved to prefs/backup, so it never follows to a new
+  // tab/device and is always off at a fresh launch. While true,
+  // player/transport.js's play() skips the MizikiSocial.nowSpinning() call
+  // outright (no feed event, no "now spinning" row at all, not merely a
+  // hidden one) and shell/runout.js's clearToRest() clears it back to
+  // false once the queue genuinely ends, so it never silently stays on
+  // for a later, different listening session.
+  privateSpin:false
 };
 
 export function current(){ return S.tracks[S.index] || null; }

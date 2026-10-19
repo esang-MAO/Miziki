@@ -136,7 +136,11 @@ export async function play(){
   // currentDayPosition(), since what friends see has to be this
   // listener's own actual phase, never fooled by their own "Preview the
   // day" slider.
-  MizikiSocial.nowSpinning(albumKey(t), t.tags.title, realDayPosition().phase);
+  // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
+  // session" (S.privateSpin, player "···" menu) skips this call outright
+  // -- not a hidden now-spinning row, no row at all, so no feed event is
+  // ever written for this session.
+  if(!S.privateSpin) MizikiSocial.nowSpinning(albumKey(t), t.tags.title, realDayPosition().phase);
 }
 
 export function stop(){

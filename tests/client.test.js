@@ -663,30 +663,46 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
      'the private item leaves no feed_events row at all, not a hidden one'); });
 
- await t('RF2: going private also removes a pre-existing unlock event',()=>{
+ // RF21 (docs/12_REFINE.md, migration 016_quieter_broadcast.sql): a metal
+ // unlock no longer posts to the feed at all -- superseding the RF2-era
+ // test this replaces (which asserted the opposite: that an 'unlock' row
+ // existed while public, and was removed only once private). There is
+ // now no 'unlock' row to remove in either state.
+ await t('RF21: a metal unlock never posts to the feed, public or private',()=>{
    asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-2','RF2 Album 2','RF2 Artist') on conflict do nothing`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-2'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
    asUser(FUID_A, `insert into verified_stats(user_id,release_id,unlocked_variant) values ('${FUID_A}','${relId}','gold')
      on conflict (user_id,release_id) do update set unlocked_variant=excluded.unlocked_variant`);
-   assert.equal(asUser(FUID_B, `select count(*) from home_feed_rich() where release_id='${relId}' and type='unlock'`), '1',
-     'a friend sees the unlock event while the record is public');
-   asUser(FUID_A, `update crate_items set visibility='private' where user_id='${FUID_A}' and release_id='${relId}'`);
+   assert.equal(asUser(FUID_B, `select count(*) from home_feed_rich() where release_id='${relId}' and type='unlock'`), '0',
+     'a friend never sees an unlock event, even while the metal and the record are both public');
    assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}' and type='unlock'`), '0',
-     'the unlock event is gone too, not just hidden from the friend'); });
+     'no unlock row exists at all, not merely a hidden one'); });
 
- await t('RF2: deleting a crate item entirely removes its added/unlock events (crate_items_after_delete)',()=>{
+ await t('RF2/RF21: deleting a crate item entirely removes its added events (crate_items_after_delete)',()=>{
    asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-3','RF2 Album 3','RF2 Artist') on conflict do nothing`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-3'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
    asUser(FUID_A, `insert into verified_stats(user_id,release_id,unlocked_variant) values ('${FUID_A}','${relId}','silver')
      on conflict (user_id,release_id) do update set unlocked_variant=excluded.unlocked_variant`);
-   assert.ok(+asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`) >= 2);
+   // RF21: just the 'added' row now -- the unlock no longer wrote one.
+   assert.ok(+asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`) >= 1);
    asUser(FUID_A, `delete from crate_items where user_id='${FUID_A}' and release_id='${relId}'`);
    assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
-     'removing the record from the crate removes every one of its feed_events rows, added/unlock included'); });
+     'removing the record from the crate removes every one of its feed_events rows'); });
+
+ await t('RF21: home_feed_rich expires a caller\'s own feed_events rows older than 45 days on every read',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf21-expiry','RF21 Expiry','RF21 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf21-expiry'`);
+   q1(`insert into feed_events(actor_id,type,release_id,payload,created_at)
+     values ('${FUID_A}','added','${relId}','{"count":1}'::jsonb, now() - interval '46 days')`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '1',
+     'the stale row is really there before any read');
+   asUser(FUID_A, `select count(*) from home_feed_rich()`);  // the read itself is what triggers the sweep
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
+     'reading the feed expired the caller\'s own stale row'); });
 
  await t('rebuild_feed_events: reproduces the same visible feed the triggers would, repairing a stale row a bad trigger left behind',()=>{
    asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-4','RF2 Rebuild Public','RF2 Artist') on conflict do nothing`);
@@ -717,6 +733,17 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    try{ asUser(FUID_B, `select rebuild_feed_events('${FUID_A}')`); }
    catch(e){ threw = /can only rebuild your own feed/.test(e.message); }
    assert.ok(threw, 'expected rebuild_feed_events to refuse rebuilding someone elses feed'); });
+
+ await t('RF21: rebuild_feed_events never resurrects an unlock row',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf21-rebuild','RF21 Rebuild','RF21 Artist') on conflict do nothing`);
+   const relId = asUser(FUID_A, `select id from releases where release_key='rf21-rebuild'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   asUser(FUID_A, `insert into verified_stats(user_id,release_id,unlocked_variant) values ('${FUID_A}','${relId}','platinum')
+     on conflict (user_id,release_id) do update set unlocked_variant=excluded.unlocked_variant`);
+   asUser(FUID_A, `select rebuild_feed_events('${FUID_A}')`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}' and type='unlock'`), '0',
+     'the repair path must not bring back a kind of row the feed no longer carries'); });
 
  // RF5 (docs/12_REFINE.md, point 1 -- migrations ledger, migration
  // 012_migrations_log.sql): private.schema_migrations backfilled 1-11 plus
