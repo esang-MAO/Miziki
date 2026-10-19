@@ -48,27 +48,33 @@ export function installSocialDemo(){
         {release_id:'june-f2', title:'The Köln Concert', artist:'Keith Jarrett', rating:4, quality_tier:3, in_digging:false}
       ],
       digging: [{release_id:'june-d1', title:'Water from an Ancient Well', artist:'Randy Weston', in_my_digging:false, in_my_crate:false}],
+      // RF20 point 3: "overlap first" demo fixture, for the new You-both-have
+      // section ahead of Staff picks/Fresh.
+      inCommon: [
+        {release_id:'june-c0', title:'A Love Supreme', artist:'John Coltrane', year:1965},
+        {release_id:'june-c1', title:'Kind of Blue', artist:'Miles Davis', year:1959}
+      ],
       nowSpinning: null
     },
     mateo: {
       profile: {id:'mateo', handle:'mateo', display_name:'Mateo', bio:'Vinyl hoarder, no apologies.', visibility:'friends', show_digging_list:true},
-      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+      staffPicks: [], crate: [], fresh: [], inCommon: [], digging: [], nowSpinning: null
     },
     amy: {
       profile: {id:'amy', handle:'amy', display_name:'Amy', bio:'New to collecting, loving it so far.', visibility:'friends', show_digging_list:true},
-      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+      staffPicks: [], crate: [], fresh: [], inCommon: [], digging: [], nowSpinning: null
     },
     nora: {
       // empty state: public (so it's viewable), but nothing in it yet
       profile: {id:'nora', handle:'nora', display_name:'Nora', bio:'', visibility:'public', show_digging_list:true},
-      staffPicks: [], crate: [], fresh: [], digging: [], nowSpinning: null
+      staffPicks: [], crate: [], fresh: [], inCommon: [], digging: [], nowSpinning: null
     },
     theo: {
       // digging list off: section should be absent entirely, not just empty
       profile: {id:'theo', handle:'theo', display_name:'Theo', bio:'Keeps the digging list to myself.', visibility:'public', show_digging_list:false},
       staffPicks: [{release_id:'theo-r0', title:'Moon Rock', artist:'Com Truise', quality_tier:2, rating:4, sleeve_note:null, pin_rank:1}],
       crate: [{release_id:'theo-r0', title:'Moon Rock', artist:'Com Truise', year:2015, quality_tier:2, rating:4, sleeve_note:null, pin_rank:1}],
-      fresh: [], digging: [], nowSpinning: null
+      fresh: [], inCommon: [], digging: [], nowSpinning: null
     }
   };
   function friendByHandle(h){ return FRIENDS[h]; }
@@ -136,6 +142,7 @@ export function installSocialDemo(){
     out.staffPicks = f.staffPicks;
     out.nowSpinning = f.nowSpinning;
     out.fresh = f.fresh;
+    out.inCommon = f.inCommon || [];
     out.diggingShared = f.profile.show_digging_list !== false;
     out.digging = out.diggingShared ? f.digging : [];
     out.diggingCount = out.digging.length;

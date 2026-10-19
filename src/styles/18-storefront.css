@@ -89,6 +89,11 @@
 .store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--accent-text);
   letter-spacing:.08em;text-transform:uppercase;padding:var(--sp-3) 0 var(--sp-3) var(--sp-3);min-height:44px}
 
+/* RF20 point 4: one line under a rule-chosen list (Fresh for you, You both
+   have) naming the rule itself, so it reads as "why this list" rather than
+   just a heading. */
+.store-rule-caption{margin:var(--sp-1) 0 0;font-size:var(--fs-caption);color:var(--muted)}
+
 .store-picks-row{display:flex;gap:var(--sp-3);overflow-x:auto;margin-top:10px;padding-bottom:var(--sp-1);scrollbar-width:none}
 .store-picks-row::-webkit-scrollbar{display:none}
 .store-pick{flex:none;width:132px;display:flex;flex-direction:column;gap:var(--sp-2)}
