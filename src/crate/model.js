@@ -11,6 +11,39 @@ import { albumKey } from '../record-art/tiers.js';
 import { queueSave } from '../storage/meta.js';
 import { CRATE_ALPHABET } from './constants.js';
 
+// CR2 (docs/13_CRATE.md): "New arrivals" is the same 14-day window
+// library/search.js's own `is:new` field filter already uses for a single
+// track's `addedAt` — duplicated here rather than imported, the same
+// "duplicate a small shared formula rather than wire two independent
+// systems together" call CLAUDE.md documents for sync/images.js's own
+// crop logic and player/clock.js's PHASE_COLOR table.
+const NEW_ARRIVAL_WINDOW_MS = 14 * 24 * 3600 * 1000;
+// CR2: "an artist with three or more records" gets its own divider inside
+// a letter.
+const ARTIST_DIVIDER_MIN = 3;
+
+// CR2: staff picks are MizikiSocial's own local pin state (X.state.pins,
+// already in pin-rank order — getPins()'s own doc comment), reached as
+// the real global per the established "never import MizikiSocial, check
+// typeof first" pattern (library/credits.js's appendCreditFriendsLine(),
+// src/sync/backup.js's getSocial()/getClient()) — crate/model.js stays a
+// pure, DOM-free, main.js-free module importable by its own unit tests
+// with nothing to mock for this. Pins work locally (and are available)
+// whether or not the user has ever signed in — see miziki-social.js's own
+// freshState()/pin()/getPins().
+function localStaffPickIds(){
+  if(typeof MizikiSocial === 'undefined' || !MizikiSocial.getPins) return [];
+  // getPins() reads X.state.pins directly with no null guard of its own
+  // (miziki-social.js) -- X.state stays null until init()'s own async
+  // loadState() resolves, and the crate can render (and call this) before
+  // that ever happens, e.g. the very first "switch to crate" tap on a cold
+  // launch. A real bug this PR's own Playwright pass caught; try/catch
+  // rather than a status() check, since pins are deliberately available
+  // whether or not the user has ever signed in (this file's own comment
+  // just above), so there's no "not ready yet" auth state to gate on.
+  try{ return MizikiSocial.getPins(); }catch(_e){ return []; }
+}
+
 function titleCaseGenre(s){
   return s.split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
@@ -76,6 +109,17 @@ function albumYearFor(idx){
   return best;
 }
 
+// CR2: "New arrivals" needs one addedAt per record, same "most recent
+// track wins" rule launch/intro.js's own resolveLastPlayedAlbum() helper
+// (addedByAlbum) already uses for the launch stack's own most-recent-first
+// ordering — a record is "new" from the moment any of its tracks were
+// added, so the latest one decides.
+function albumAddedFor(idx){
+  let best = 0;
+  idx.forEach(i => { const a = S.tracks[i].addedAt || 0; if(a > best) best = a; });
+  return best;
+}
+
 // one crate record per album id; loose ("Unknown Album") tracks collapse
 // into one pseudo-record per artist instead of one per track (CRATE spec §2)
 function buildCrateRecords(){
@@ -103,11 +147,11 @@ function buildCrateRecords(){
     else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
     else artist = tracks[0].tags.artist || 'Unknown Artist';
     records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
-      year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx)});
+      year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx), addedAt: albumAddedFor(idx)});
   });
   looseByArtist.forEach(({artist, idx}) => {
     records.push({type:'rec', kind:'loose', albumId: crateLooseArtistId(artist), idx, artist,
-      album:'Singles & loose tracks', year:0, trackCount: idx.length, genre:''});
+      album:'Singles & loose tracks', year:0, trackCount: idx.length, genre:'', addedAt: albumAddedFor(idx)});
   });
   return records;
 }
@@ -123,12 +167,87 @@ function groupSortedRecords(records, keyFn){
   return groups;
 }
 
+// a divider's own "play the bin/artist/letter in order" idx list (CR2
+// point 4, the catalog card's PLAY ALL button) — the records' own track
+// indices, concatenated in the same order the records themselves appear.
+function flatIdx(recs){ return recs.reduce((acc, r) => acc.concat(r.idx), []); }
+
+// CR2 point 3: "the count and year span on the card" — the divider's own
+// meta line names the earliest/latest dated record among its group (0/no
+// year is excluded, same convention compareCrateYear() already uses for
+// "unknown sorts last" rather than reading as a real year). A single year
+// prints once, not as a redundant "1998–1998" span.
+function yearSpanLabel(recs){
+  const years = recs.map(r => r.year).filter(Boolean);
+  if(!years.length) return '';
+  const lo = Math.min(...years), hi = Math.max(...years);
+  return lo === hi ? String(lo) : lo + '–' + hi;
+}
+
+// CR2: new arrivals (addedAt within NEW_ARRIVAL_WINDOW_MS, newest first)
+// and staff picks (MizikiSocial's own pins, already in pin-rank order) —
+// two virtual bins pushed before the alphabet/genre groups below. Records
+// inside a bin also appear a second time under their own letter/genre
+// (the "double listing" CR2 asks for): this function never touches
+// byAlbumId, only the main az/genre loop below does, so the alphabetical
+// position is always the one callers resolve to by album id, per CR2
+// point 1 ("byAlbumId points at the alphabetical one").
+function buildVirtualBins(records){
+  const bins = [];
+  const now = Date.now();
+  const newArrivals = records.filter(r => now - r.addedAt < NEW_ARRIVAL_WINDOW_MS)
+    .sort((a, b) => b.addedAt - a.addedAt);
+  if(newArrivals.length){
+    bins.push({key:'new', label:'NEW ARRIVALS', panelSub:'New arrivals',
+      meta: newArrivals.length + (newArrivals.length === 1 ? ' ALBUM' : ' ALBUMS'), records: newArrivals});
+  }
+  const byId = new Map(records.map(r => [r.albumId, r]));
+  const staffPicks = localStaffPickIds().map(id => byId.get(id)).filter(Boolean);
+  if(staffPicks.length){
+    bins.push({key:'picks', label:'STAFF PICKS', panelSub:'Staff picks',
+      meta: staffPicks.length + (staffPicks.length === 1 ? ' ALBUM' : ' ALBUMS'), records: staffPicks});
+  }
+  return bins;
+}
+
+// CR2 point 2: "inside a letter, an artist with three or more records
+// gets a type:'div' item with kind:'artist' ahead of their records." The
+// letter group's own records are already sorted by artist name first
+// (compareCrateArtists, in the caller below), so a run of the same artist
+// is always contiguous — no second grouping pass needed, just a walk that
+// notices where one run ends and the next begins.
+function withArtistDividers(letterRecords){
+  const runs = groupSortedRecords(letterRecords, r => r.artist);
+  const out = [];
+  runs.forEach(run => {
+    if(run.records.length >= ARTIST_DIVIDER_MIN){
+      const span = yearSpanLabel(run.records);
+      out.push({type:'div', kind:'artist', label:run.key,
+        meta: run.records.length + ' ALBUMS' + (span ? ' · ' + span : ''), panelSub:'Artist', key:'artist:' + run.key,
+        idx: flatIdx(run.records)});
+    }
+    out.push(...run.records);
+  });
+  return out;
+}
+
 // builds the ordered {type:'div'|'rec', ...} array once, plus lookup maps
 // for jumping by album id or by letter/genre (CRATE spec §2)
 function buildCrateModel(group){
   const records = buildCrateRecords();
   const items = [], byAlbumId = new Map(), jumpIndex = new Map();
   let railEntries = [];
+
+  // CR2 point 1: the two virtual bins come first, every time, regardless
+  // of A-Z/genre grouping — before any other divider/rail entry exists.
+  const binRailEntries = [];
+  buildVirtualBins(records).forEach(bin => {
+    binRailEntries.push({key:bin.key, label: bin.key.toUpperCase(), itemIndex: items.length, present:true});
+    jumpIndex.set('key:' + bin.key, items.length);
+    items.push({type:'div', kind:'bin', label:bin.label, meta:bin.meta, panelSub:bin.panelSub, key:bin.key,
+      idx: flatIdx(bin.records)});
+    bin.records.forEach(r => items.push(r));
+  });
 
   if(group === 'genre'){
     records.forEach(r => { r.genreGroup = r.genre || 'Unsorted'; });
@@ -146,10 +265,12 @@ function buildCrateModel(group){
     groups.forEach(g => {
       if(showDividers){
         const artistCount = new Set(g.records.map(r => r.artist)).size;
+        const span = yearSpanLabel(g.records);
         jumpIndex.set('key:' + g.key, items.length);
         railEntries.push({key:g.key, label: g.key.slice(0,3).toUpperCase(), itemIndex: items.length, present:true});
-        items.push({type:'div', label:g.key, meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS',
-          panelSub:'Genre', key:g.key});
+        items.push({type:'div', kind:'genre', label:g.key,
+          meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS' + (span ? ' · ' + span : ''),
+          panelSub:'Genre', key:g.key, idx: flatIdx(g.records)});
       }
       g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
     });
@@ -161,18 +282,26 @@ function buildCrateModel(group){
     groups.forEach(g => {
       if(showDividers){
         const artistCount = new Set(g.records.map(r => r.artist)).size;
+        const span = yearSpanLabel(g.records);
         jumpIndex.set('key:' + g.key, items.length);
-        items.push({type:'div', label:g.key,
-          meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS',
-          panelSub: g.key === '?' ? 'Unknown artist' : 'Artists beginning with ' + g.key, key:g.key});
+        items.push({type:'div', kind:'letter', label:g.key,
+          meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS' + (span ? ' · ' + span : ''),
+          panelSub: g.key === '?' ? 'Unknown artist' : 'Artists beginning with ' + g.key, key:g.key,
+          idx: flatIdx(g.records)});
       }
-      g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+      // CR2 point 2: artist dividers only ever sit inside a letter group,
+      // never standing in for the letter divider above them.
+      withArtistDividers(g.records).forEach(it => {
+        if(it.type === 'div') items.push(it);
+        else { byAlbumId.set(it.albumId, items.length); items.push(it); }
+      });
     });
     if(showDividers){
       railEntries = CRATE_ALPHABET.concat(present.has('?') ? ['?'] : [])
         .map(letter => ({key:letter, label:letter, itemIndex: jumpIndex.get('key:'+letter), present: present.has(letter)}));
     }
   }
+  railEntries = binRailEntries.concat(railEntries);
   return {items, byAlbumId, jumpIndex, railEntries, group};
 }
 

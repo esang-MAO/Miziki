@@ -411,7 +411,12 @@ export function renderCrate(host){
     const card = document.createElement('div');
     card.className = 'crate-card';
     if(item.type === 'div'){
+      // CR2 point 3: a divider's own card is 12% taller than a sleeve, with
+      // cream stock everywhere except a genre divider (manila) — see
+      // 10-crate.css's own .crate-card-div/.crate-divider-genre comments.
+      card.classList.add('crate-card-div');
       const d = document.createElement('div'); d.className = 'crate-divider';
+      if(item.kind === 'genre') d.classList.add('crate-divider-genre');
       const tab = document.createElement('div'); tab.className = 'crate-divider-tab'; tab.textContent = item.label;
       const label = document.createElement('div'); label.className = 'crate-divider-label'; label.textContent = item.label;
       const meta = document.createElement('div'); meta.className = 'crate-divider-meta'; meta.textContent = item.meta;
@@ -518,9 +523,22 @@ export function renderCrate(host){
     info.innerHTML = '';
     if(!item) return;
     if(item.type === 'div'){
+      // CR2 point 4: the divider catalog card below the stage — title, a
+      // one-line description (the bins get their own sentence; everything
+      // else keeps the existing panelSub), the count/year-span line, and
+      // PLAY ALL (bin/artist/letter/genre — plays the whole group in order).
       info.appendChild(el('h3', null, item.label));
-      info.appendChild(el('p','crate-info-sub', item.panelSub || ''));
+      const desc = item.kind === 'bin' && item.key === 'new' ? 'Added in the last two weeks'
+        : item.kind === 'bin' && item.key === 'picks' ? 'Pinned to staff picks'
+        : (item.panelSub || '');
+      info.appendChild(el('p','crate-info-sub', desc));
       info.appendChild(el('p','crate-info-meta', item.meta));
+      if(item.idx && item.idx.length){
+        const playAllBtn = el('button','crate-divider-playall','PLAY ALL');
+        playAllBtn.setAttribute('aria-label','Play all in ' + item.label);
+        playAllBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
+        info.appendChild(playAllBtn);
+      }
       return;
     }
     const sealed = isAlbumSealed(item.albumId);

@@ -106,3 +106,112 @@ test('persistCrateAnchor: records the album id (or clears it for null) and debou
   persistCrateAnchor(null);
   assert.equal(S.crateAnchor, null);
 });
+
+// CR2 (docs/13_CRATE.md) point 6: "model tests for both bins (membership,
+// order, hidden when empty), artist-divider thresholds, and the
+// double-listing of a new record."
+
+const DAY_MS = 24 * 3600 * 1000;
+
+test('ensureCrateModel: New arrivals bin holds records added within 14 days, newest first, and is absent when nothing qualifies', () => {
+  const now = Date.now();
+  resetState({
+    tracks: [
+      fakeTrack('old1', { addedAt: now - 30 * DAY_MS,
+        tags: { title:'Old1', artist:'Oldie', album:'Old Album', albumArtist:'Oldie', track:1, disc:1 } }),
+      fakeTrack('new1', { addedAt: now - 10 * DAY_MS,
+        tags: { title:'New1', artist:'Newish', album:'Newer Album', albumArtist:'Newish', track:1, disc:1 } }),
+      fakeTrack('new2', { addedAt: now - 1 * DAY_MS,
+        tags: { title:'New2', artist:'Newest', album:'Newest Album', albumArtist:'Newest', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const bin = model.items.find(it => it.type === 'div' && it.kind === 'bin' && it.key === 'new');
+  assert.ok(bin, 'New arrivals bin exists when something qualifies');
+  const binIdx = model.items.indexOf(bin);
+  // the two records right after the bin divider are the qualifying ones,
+  // newest added first
+  assert.equal(model.items[binIdx + 1].album, 'Newest Album');
+  assert.equal(model.items[binIdx + 2].album, 'Newer Album');
+  // the bin sits before every other divider/record in the model
+  assert.equal(binIdx, 0);
+
+  // nothing within the window -> no bin at all
+  resetState({
+    tracks: [fakeTrack('old1', { addedAt: now - 30 * DAY_MS })],
+  });
+  const empty = ensureCrateModel();
+  assert.equal(empty.items.some(it => it.type === 'div' && it.key === 'new'), false);
+});
+
+test('ensureCrateModel: Staff picks bin holds MizikiSocial\'s pins in pin-rank order, and is absent with no pins', () => {
+  resetState({
+    tracks: [
+      fakeTrack('p1', { tags: { title:'P1', artist:'PicksArtist', album:'Picked Second', albumArtist:'PicksArtist', track:1, disc:1 } }),
+      fakeTrack('p2', { tags: { title:'P2', artist:'PicksArtist', album:'Picked First', albumArtist:'PicksArtist', track:1, disc:1 } }),
+      fakeTrack('p3', { tags: { title:'P3', artist:'PicksArtist', album:'Not Picked', albumArtist:'PicksArtist', track:1, disc:1 } }),
+    ],
+  });
+  const firstPass = ensureCrateModel();
+  const pickedSecondId = firstPass.items.find(it => it.type === 'rec' && it.album === 'Picked Second').albumId;
+  const pickedFirstId = firstPass.items.find(it => it.type === 'rec' && it.album === 'Picked First').albumId;
+
+  globalThis.MizikiSocial = { getPins: () => [pickedFirstId, pickedSecondId] };
+  try{
+    invalidateCrateModel();
+    const model = ensureCrateModel();
+    const bin = model.items.find(it => it.type === 'div' && it.kind === 'bin' && it.key === 'picks');
+    assert.ok(bin, 'Staff picks bin exists once there are pins');
+    const binIdx = model.items.indexOf(bin);
+    assert.equal(binIdx, 0, 'Staff picks sits right after New arrivals would, i.e. still at the very front (none qualify here)');
+    assert.equal(model.items[binIdx + 1].album, 'Picked First', 'pin-rank order, not library order');
+    assert.equal(model.items[binIdx + 2].album, 'Picked Second');
+  } finally {
+    delete globalThis.MizikiSocial;
+  }
+
+  invalidateCrateModel();
+  const noPins = ensureCrateModel();
+  assert.equal(noPins.items.some(it => it.type === 'div' && it.key === 'picks'), false, 'hidden with no pins');
+});
+
+test('ensureCrateModel: a record inside a bin is double-listed -- it also appears under its own letter, and byAlbumId resolves there, not inside the bin', () => {
+  const now = Date.now();
+  resetState({
+    tracks: [
+      fakeTrack('n1', { addedAt: now - 1 * DAY_MS,
+        tags: { title:'N1', artist:'Newbie', album:'Fresh Pressing', albumArtist:'Newbie', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const recIndices = model.items
+    .map((it, i) => (it.type === 'rec' && it.album === 'Fresh Pressing') ? i : -1)
+    .filter(i => i >= 0);
+  assert.equal(recIndices.length, 2, 'the same record appears once in the New arrivals bin and once under its letter');
+  const albumId = model.items[recIndices[0]].albumId;
+  const binDividerIdx = model.items.findIndex(it => it.type === 'div' && it.kind === 'bin' && it.key === 'new');
+  const binCopyIdx = binDividerIdx + 1;   // the bin has exactly one record here
+  assert.ok(recIndices.includes(binCopyIdx), 'one copy sits right after the bin divider');
+  const alphabeticalIdx = recIndices.find(i => i !== binCopyIdx);
+  // byAlbumId must resolve to the alphabetical copy, never the bin's own
+  assert.equal(model.byAlbumId.get(albumId), alphabeticalIdx, 'not the bin copy');
+  assert.notEqual(model.byAlbumId.get(albumId), binCopyIdx);
+});
+
+test('ensureCrateModel: artist dividers appear once an artist reaches 3 records (within a letter), not before, and never stand in for the letter divider', () => {
+  resetState({
+    tracks: [
+      fakeTrack('m1', { tags: { title:'M1', artist:'Many Albums', album:'Many A', albumArtist:'Many Albums', track:1, disc:1 } }),
+      fakeTrack('m2', { tags: { title:'M2', artist:'Many Albums', album:'Many B', albumArtist:'Many Albums', track:1, disc:1 } }),
+      fakeTrack('m3', { tags: { title:'M3', artist:'Many Albums', album:'Many C', albumArtist:'Many Albums', track:1, disc:1 } }),
+      fakeTrack('f1', { tags: { title:'F1', artist:'Few Albums', album:'Few A', albumArtist:'Few Albums', track:1, disc:1 } }),
+      fakeTrack('f2', { tags: { title:'F2', artist:'Few Albums', album:'Few B', albumArtist:'Few Albums', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const artistDividers = model.items.filter(it => it.type === 'div' && it.kind === 'artist');
+  assert.equal(artistDividers.length, 1, 'only the 3-album artist gets a divider');
+  assert.equal(artistDividers[0].label, 'Many Albums');
+  assert.equal(artistDividers[0].meta.indexOf('3 ALBUMS'), 0);
+  assert.equal(artistDividers[0].idx.length, 3, 'idx flattens all three records’ own track indices, for PLAY ALL');
+});

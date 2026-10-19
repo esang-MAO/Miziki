@@ -70,14 +70,44 @@
 .crate-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .crate-now-dot{position:absolute;right:8px;top:8px;width:9px;height:9px;border-radius:50%;
   background:var(--amber);box-shadow:0 0 0 2px rgba(0,0,0,.35);z-index:50}
-.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,#E3D8C2,#C9BC9F);color:#2A1B38;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
-.crate-divider-tab{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
-  text-transform:uppercase;opacity:.65}
+/* CR2 point 3 (docs/13_CRATE.md; docs/design/crate/README.md, "Divider
+   geometry"/"Divider stock"): a divider's own card is 12% taller than a
+   sleeve (312 for a 278 card) so it shows above the records on either
+   side of it in the stack — the extra height is split evenly above and
+   below (margin-top: -6% of the card size) so the box stays centred on
+   the same point flowPose() already positions every card's own transform
+   around; flowPose() itself needs no change, since its math never reads
+   an element's box size, only the index distance it's given (CLAUDE.md's
+   crate/view.js entry). Radius 3, per the design doc. */
+.crate-card.crate-card-div{
+  height:calc(var(--crate-card-size) * 1.12);
+  margin-top:calc(var(--crate-card-size) * -0.06);
+  border-radius:3px;
+}
+.crate-divider{position:absolute;inset:0;background:linear-gradient(160deg,#E6DCC4,#CFC2A3);color:#2A1B38;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #B5A684}
+/* genre grouping's own stock (manila, flat — the README gives it no
+   gradient of its own, unlike the cream default above) */
+.crate-divider.crate-divider-genre{background:#E8D9A8}
+/* "a thin inner rule 14px in" */
+.crate-divider::before{content:'';position:absolute;inset:14px;border:1px solid rgba(42,27,56,.18);
+  border-radius:2px;pointer-events:none}
+.crate-divider-tab{position:absolute;left:10px;top:10px;width:54px;height:22px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;background:rgba(42,27,56,.08);
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+  text-transform:uppercase;opacity:.85;overflow:hidden;white-space:nowrap}
 .crate-divider-label{font-family:var(--display);font-weight:700;font-size:var(--fs-giant);letter-spacing:.02em;text-align:center;
   line-height:1.05;word-break:break-word}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em}
+/* CR2 point 4: the divider catalog card's own PLAY ALL button — outlined
+   aubergine on cream, plays the bin/artist/letter/genre in order via the
+   divider item's own flattened idx list (crate/model.js's flatIdx()). */
+.crate-divider-playall{display:inline-block;margin-top:var(--sp-2);
+  padding:var(--sp-1) var(--sp-4);border:1px solid #2A1B38;border-radius:var(--radius-control);
+  background:var(--cream);color:#2A1B38;font-family:var(--data);font-size:var(--fs-label);
+  letter-spacing:.08em;cursor:pointer}
 /* CR1: the bin's own cardboard lip at the stage's bottom edge, the record
    store's own divider tab for wherever the stack is currently scrolled to
    (docs/design/crate/README.md, "The bin (CR1)" — 330x118px, a cardboard
