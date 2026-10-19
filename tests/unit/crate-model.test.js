@@ -19,6 +19,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres,
+  stickerFor, catalogLineFor, playedLineFor,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -214,4 +215,56 @@ test('ensureCrateModel: artist dividers appear once an artist reaches 3 records 
   assert.equal(artistDividers[0].label, 'Many Albums');
   assert.equal(artistDividers[0].meta.indexOf('3 ALBUMS'), 0);
   assert.equal(artistDividers[0].idx.length, 3, 'idx flattens all three records’ own track indices, for PLAY ALL');
+});
+
+// CR3 (docs/13_CRATE.md) point 4: "stickerFor priority (a sealed hi-res new
+// record shows only SEALED; a played hi-res record shows 24/96; a plain
+// lossless record shows nothing); the catalog line's fallback."
+
+const HIRES_META = {lossless:true, bits:24, rate:96000};
+const LOSSLESS_META = {lossless:true, bits:16, rate:44100};
+
+test('stickerFor: a sealed hi-res new record shows only SEALED', () => {
+  resetState({ tracks: [fakeTrack('h1', { meta: HIRES_META })] });
+  const record = {type:'rec', idx:[0], albumId:'alb1', addedAt: Date.now() - 1 * DAY_MS};
+  assert.deepEqual(stickerFor(record, true), {kind:'sealed', addedAt: record.addedAt});
+});
+
+test('stickerFor: a played (not new, not sealed) hi-res record shows 24/96', () => {
+  resetState({ tracks: [fakeTrack('h1', { meta: HIRES_META })] });
+  const record = {type:'rec', idx:[0], albumId:'alb1', addedAt: Date.now() - 60 * DAY_MS};
+  assert.deepEqual(stickerFor(record, false), {kind:'hires', bits:24, rate:96000});
+});
+
+test('stickerFor: a plain lossless record (not new, no metal earned) shows nothing', () => {
+  resetState({ tracks: [fakeTrack('l1', { meta: LOSSLESS_META })], metalEligibleSessions: {} });
+  const record = {type:'rec', idx:[0], albumId:'alb1', addedAt: Date.now() - 60 * DAY_MS};
+  assert.equal(stickerFor(record, false), null);
+});
+
+test('stickerFor: an earned metal shows once nothing higher-priority applies', () => {
+  resetState({ tracks: [fakeTrack('l1', { meta: LOSSLESS_META })],
+    metalEligibleSessions: { alb1: 25 } });   // crosses the gold threshold (25 sessions)
+  const record = {type:'rec', idx:[0], albumId:'alb1', addedAt: Date.now() - 60 * DAY_MS};
+  assert.deepEqual(stickerFor(record, false), {kind:'metal', metal:'gold'});
+});
+
+test('catalogLineFor: label + catalog number present, with the duration', () => {
+  const record = {label:'ABC Records', catalog:'ABC-123', year:1999, trackCount:10, durationSec: 41*60 + 12};
+  assert.equal(catalogLineFor(record), 'ABC RECORDS · ABC-123 · 1999 · 10 TRACKS · 41:12');
+});
+
+test('catalogLineFor: falls back to genre/year/track-count, with no duration, once label and catalog are both empty', () => {
+  const record = {label:'', catalog:'', genre:'Rock', year:1998, trackCount:10, durationSec: 2472};
+  assert.equal(catalogLineFor(record), 'ROCK · 1998 · 10 TRACKS');
+});
+
+test('playedLineFor: empty until the album has at least one qualifying session, then names the count and last-spun day', () => {
+  resetState({ sessionCounts: {}, albumLastPlayed: {} });
+  const record = {albumId:'alb1'};
+  assert.equal(playedLineFor(record), '');
+  S.sessionCounts.alb1 = 12;
+  S.albumLastPlayed.alb1 = Date.now() - 2 * DAY_MS;
+  const line = playedLineFor(record);
+  assert.ok(line.startsWith('PLAYED 12 TIMES · LAST SPUN '), line);
 });

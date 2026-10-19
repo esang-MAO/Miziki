@@ -24,8 +24,13 @@
   box-shadow:0 3px 8px rgba(0,0,0,.4);transform:rotate(9deg);
   display:grid;place-content:center;pointer-events:none}
 .seal-sticker span{font-family:var(--display);font-weight:700;letter-spacing:.08em;color:#2A1604}
-.seal-tag{display:inline-block;border:1px solid var(--accent);color:var(--accent-text);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;border-radius:3px;
+/* CR3 (docs/13_CRATE.md) point 3: "the SEALED text chip is replaced by
+   the cream tag at 60%" — on the crate's own catalog card, the sticker
+   kit's own cream stock (--sticker-cream, 10-crate.css) at 60% opacity,
+   aubergine ink, no border, rather than the bordered accent chip this
+   used to be. */
+.seal-tag{display:inline-block;background:color-mix(in srgb, var(--sticker-cream) 60%, transparent);
+  color:#2A1B38;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;border-radius:3px;
   padding:2px 6px;margin-top:var(--sp-1)}
 .new-tag{display:inline-block;color:var(--accent-text);font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.1em;border:1px solid var(--accent);border-radius:3px;padding:1px var(--sp-1);margin-left:6px;vertical-align:1px}
