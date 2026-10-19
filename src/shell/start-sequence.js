@@ -58,12 +58,16 @@ export function sleeveArtFor(art, hasArt){
 // full return+pull (swap) or pull-only (fresh platter) sequence completes.
 // the seal wrap on the incoming sleeve, shown from the moment it starts
 // arriving so it arrives wrapped (SEALED spec §6)
-function attachSleeveWrap(){
+function attachSleeveWrap(addedAt){
   removeSleeveWrap();
   const wrap = document.createElement('div');
   wrap.id = 'sleeveWrap';
   wrap.setAttribute('aria-hidden','true');
-  wrap.appendChild(buildSealOverlay(278));
+  // No albumId here on purpose -- this overlay already has its own,
+  // self-driven tear/peel (runSealPeel, below) on Play; a second,
+  // independent drag-to-break wouldn't make sense on a sleeve that's
+  // mid-ceremony and about to tear down on its own anyway.
+  wrap.appendChild(buildSealOverlay(278, undefined, addedAt));
   wrap.appendChild(el('div','seal-tear'));
   $('#sleeve').appendChild(wrap);
 }
@@ -140,7 +144,7 @@ export async function runStartSequence(t, info, startAudio){
   sleeveArtFor(t.art, !!t.art);
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';
-  if(sealedForPeel) attachSleeveWrap();
+  if(sealedForPeel) attachSleeveWrap(t.addedAt);
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('sleeve-arriving');
   await waitAnimEnd($('#sleeve'), swapping ? CHANGE_TIMELINE.arriveMs : SLEEVE_ANIM.arriveMs);

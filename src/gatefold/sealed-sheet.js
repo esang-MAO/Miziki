@@ -81,7 +81,10 @@ export function openSealedSheet(item){
   $('#sealSheetTitle').textContent = item.album;
   const coverWrap = $('#sealSheetCoverWrap');
   coverWrap.querySelectorAll('.seal-wrap, .seal-sticker').forEach(n => n.remove());
-  coverWrap.appendChild(buildSealOverlay(96));
+  // CR6 point 5: "the sealed sheet's header cover uses the same film at
+  // 64px" -- matching .seal-sheet-cover's own real 64px box (it was
+  // passing 96 here before, inconsistent with that box's actual size).
+  coverWrap.appendChild(buildSealOverlay(64, item.albumId, item.addedAt));
   const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   if(art) $('#sealSheetCoverArt').src = art;
   getCrateArtURL(item.albumId, 'S').then(url => { if(url && SEALSHEET && SEALSHEET.item === item) $('#sealSheetCoverArt').src = url; });

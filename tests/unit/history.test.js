@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { DB } from '../../src/storage/idb.js';
 
+// CR6 (docs/13_CRATE.md): library/sealed.js now imports REDUCED
+// (util/motion.js) -- read once, at module load, from window.matchMedia --
+// for its own reduced-motion break choreography. Stubbed here the same way
+// shell.test.js/crate-model.test.js already do, since this file's real
+// history/clear.js chain reaches sealed.js (via edit.js) before any mock
+// of this module would apply.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
 // played.js imports from the real src/history/sessions.js (sessionTrackComplete,
 // persistTrackPlayCounts, persistTrackMetalEligiblePlays); played.js and
 // sessions.js's own applyDiscVariant/restoreThumbs/snapshotAlbumDisplay/etc.
