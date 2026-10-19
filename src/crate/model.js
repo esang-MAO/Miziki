@@ -402,9 +402,15 @@ function albumHiResMeta(idx){
 // new edge through crate/model.js for one boolean isn't worth tangling
 // that cycle further when every caller already has the answer in hand
 // (crate/view.js already calls isAlbumSealed() for the seal overlay/the
-// catalog card's own SEALED chip). `friends` has no real data source yet
-// (RF20's own job, named in the design doc itself) — this is a renderer
-// only, so it stays dead until a future record carries friendsCount.
+// catalog card's own SEALED chip). `friends` has no real data source yet:
+// the design doc's own "(RF20 era)" note names the class of feature this
+// belongs to, not a built RPC — RF20/RF23 shipped records_in_common(p_other)
+// and credit_friends(), both scoped to one named friend or one named
+// credit, never "how many of my own friends also have this release,"
+// which a crate card needs aggregated across the whole friends graph with
+// no "other" argument at all. That RPC doesn't exist yet — this is a
+// renderer only, so it stays dead until a future record carries
+// friendsCount.
 export function stickerFor(record, sealed){
   if(!record || record.type !== 'rec') return null;
   if(sealed) return {kind:'sealed', addedAt: record.addedAt};
