@@ -232,7 +232,7 @@
    drops into its own full-width row between the 2x2 grid's pairs rather
    than squeezing into one card's own half-width column. */
 .sd-charcard-fine{
-  grid-column:1 / -1; box-sizing:border-box; display:flex; align-items:center; gap:10px;
+  grid-column:1 / -1; box-sizing:border-box; display:flex; flex-direction:column; gap:var(--sp-2);
   margin:-var(--sp-1) 0 var(--sp-1); padding:var(--sp-2) var(--sp-3); border-radius:10px;
   background:var(--raised); border:1px solid var(--line);
 }
@@ -241,9 +241,25 @@
    origin always wins over UA regardless -- this rule is what actually
    keeps the panel hidden until wireCharacter() clears the attribute. */
 .sd-charcard-fine[hidden]{ display:none; }
-.sd-charcard-fine input[type="range"]{ flex:1; }
-.sd-charcard-fine span{
+.sd-charcard-fine-row{ display:flex; align-items:center; gap:10px; }
+.sd-charcard-fine-row input[type="range"]{ flex:1; }
+.sd-charcard-fine-row span{
   flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--muted);
+}
+
+/* RF28 ("what am I hearing"): press-and-hold audition buttons. aria-pressed
+   is the only state that ever changes here -- src/wiring/character.js sets
+   it true on pointerdown and false on release, same moment the hold itself
+   starts/stops in audio/engine.js. */
+.sd-audition-btn{
+  align-self:flex-start; box-sizing:border-box; padding:6px var(--sp-3); border-radius:var(--radius-control);
+  background:var(--field); border:1px solid var(--line); color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.02em;
+  cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none;
+}
+.sd-audition-btn[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); border-color:var(--amber); }
+.sd-audition-pure{
+  align-self:stretch; width:100%; text-align:center; margin:0 0 18px; padding:10px;
 }
 
 /* §4.3 item 5: the "Tone today" curve card. */

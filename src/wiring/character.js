@@ -21,7 +21,7 @@
    once drift isn't Off. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { applyCharacter } from '../audio/engine.js';
+import { applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } from '../audio/engine.js';
 import { queueSave } from '../storage/meta.js';
 import { setMode } from '../audio/mode.js';
 import { toggleScratch } from '../player/scrub.js';
@@ -82,6 +82,34 @@ export function wireCharacter(){
       presetBtns.forEach(x => x.setAttribute('aria-pressed', 'false'));
     });
   });
+
+  // RF28 ("what am I hearing"): press-and-hold audition. One handler for
+  // both shapes -- each of the four per-stage buttons (inside a
+  // [data-char-tune] card's own fine-tune panel) and the one whole-chain
+  // "Compare with Pure" button below the grid. Release listens on
+  // `window`, not the button itself, so a finger sliding off the button
+  // while still down still ends the hold (the same shape dial-gesture.js's
+  // own drag release already uses) -- a stuck "bypassed forever" audition
+  // would otherwise need a second tap elsewhere to notice, let alone fix.
+  let auditionBtn = null;
+  const endAudition = () => {
+    if(!auditionBtn) return;
+    auditionBtn.setAttribute('aria-pressed', 'false');
+    auditionBtn = null;
+    releaseAudition();
+  };
+  document.querySelectorAll('[data-audition-stage], [data-audition-pure]').forEach(b => {
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      auditionBtn = b;
+      b.setAttribute('aria-pressed', 'true');
+      if(b.hasAttribute('data-audition-pure')) auditionComparePure();
+      else auditionStageAlone(b.dataset.auditionStage);
+    });
+  });
+  window.addEventListener('pointerup', endAudition);
+  window.addEventListener('pointercancel', endAudition);
 
   // D2: wires any static [data-theme-choice] control present at boot.
   // RF8 (docs/12_REFINE.md) removed the desktop sidebar's own copy

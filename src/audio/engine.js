@@ -86,8 +86,66 @@ export function satCurve(amount){
 // about the drift's own slow background movement, not about making a
 // direct user edit laggy.
 let lastAppliedSat = null;
+
+// RF28 ("what am I hearing"): Sound › Advanced's press-and-hold audition
+// controls. `auditioning` is non-null only while a hold is actually in
+// progress — applyCharacter() no-ops while it's set, so neither the ~30s
+// drift recompute (scheduleDriftRecompute(), below) nor a slider dragged
+// with a different finger can quietly undo the bypass mid-hold. Release
+// clears it and calls applyCharacter() once, which is the only "restore"
+// this needs: it reads whatever the sliders/drift/mode say *right now*,
+// never a remembered snapshot, so nothing can go stale while held.
+let auditioning = null;
+const STAGE_KEYS = ['wow', 'sat', 'soft', 'comp'];
+
+function bypassStage(stage, ramp){
+  if(!S.nodes) return;
+  const n = S.nodes, t = S.ctx.currentTime;
+  if(stage === 'wow'){
+    n.wowAmt.gain.setTargetAtTime(0, t, ramp);
+    n.flutAmt.gain.setTargetAtTime(0, t, ramp);
+  } else if(stage === 'sat'){
+    const s = satCurve(0);
+    n.sat.curve = s.curve;
+    n.satTrim.gain.setTargetAtTime(s.trim, t, ramp);
+    lastAppliedSat = 0;
+  } else if(stage === 'soft'){
+    n.tone.gain.setTargetAtTime(0, t, ramp);
+  } else if(stage === 'comp'){
+    n.comp.threshold.setTargetAtTime(0, t, ramp);
+    n.comp.ratio.setTargetAtTime(1, t, ramp);
+    n.makeup.gain.setTargetAtTime(1, t, ramp);
+  }
+}
+
+const AUDITION_RAMP = 0.02;
+
+// Held: every stage except `stage` reads as fully untouched; `stage`
+// itself is left exactly as applyCharacter() last set it.
+export function auditionStageAlone(stage){
+  if(!S.nodes || !STAGE_KEYS.includes(stage)) return;
+  auditioning = stage;
+  for(const k of STAGE_KEYS) if(k !== stage) bypassStage(k, AUDITION_RAMP);
+}
+
+// Held: the whole chain reads as untouched — the per-stage holds above,
+// all four at once. Scoped to coloration only (this is Sound's own
+// "what am I hearing", not Sundown's rate) — Pure's own rate-always-1
+// rule (solar.js's computeRate()) is untouched by this.
+export function auditionComparePure(){
+  if(!S.nodes) return;
+  auditioning = 'pure';
+  for(const k of STAGE_KEYS) bypassStage(k, AUDITION_RAMP);
+}
+
+export function releaseAudition(){
+  if(auditioning === null) return;
+  auditioning = null;
+  applyCharacter(AUDITION_RAMP);
+}
+
 export function applyCharacter(ramp = 0.05){
-  if(!S.nodes || !S.ctx) return;
+  if(!S.nodes || !S.ctx || auditioning !== null) return;
   const n = S.nodes, t = S.ctx.currentTime;
   const intensity = S.mode === 'pure' ? 'off' : S.charDrift;
   const c = effectiveCharAt(S.char, nowClock(), S.sun, intensity);
@@ -135,6 +193,9 @@ export function scheduleDriftRecompute(){
 export async function ensureContext(rate){
   if(S.ctx && (!rate || S.ctx.sampleRate === rate)) { await S.ctx.resume(); return; }
   if(S.ctx){ stop(); try{ await S.ctx.close(); }catch(_e){} }
+  // A fresh context means fresh nodes — any in-progress audition hold
+  // belonged to the old graph and can't mean anything here.
+  auditioning = null;
   S.ctx = makeContext(rate);
   S.nodes = buildGraph(S.ctx);
   applyCharacter();

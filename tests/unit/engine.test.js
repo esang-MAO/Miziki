@@ -41,7 +41,7 @@ mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
 
-const { satCurve, buildGraph, routeSource, applyCharacter } = await import('../../src/audio/engine.js');
+const { satCurve, buildGraph, routeSource, applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } = await import('../../src/audio/engine.js');
 const { S } = await import('../../src/state.js');
 
 test('satCurve(0) is an identity curve with trim 1', () => {
@@ -180,4 +180,85 @@ test('applyCharacter: Vinyl with intensity off matches the user\'s own raw slide
   applyCharacter();
   assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
+});
+
+// RF28 ("what am I hearing"): the press-and-hold audition controls. Each
+// is a parameter change on nodes the graph already has — no reconnect, no
+// new node, no rebuild — so these fixtures just check that the *other*
+// stages read as untouched while one is held, and that release restores
+// exactly whatever applyCharacter() would currently set (never a stale
+// snapshot from the moment the hold began).
+function freshAuditionFixture(){
+  releaseAudition(); // clear any hold a previous test left in progress
+  S.mode = 'vinyl';
+  S.charDrift = 'off'; // no drift, so the "current" value is just S.char itself
+  S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
+  S.ctx = { currentTime: 0 };
+  S.nodes = buildGraph(makeFakeContext());
+  applyCharacter();
+  return S.nodes;
+}
+
+test('auditionStageAlone("wow"): every other stage reads untouched, wow itself is left alone', () => {
+  const n = freshAuditionFixture();
+  auditionStageAlone('wow');
+  assert.equal(n.sat.curve[0], -1, 'sat bypassed to an identity curve');
+  assert.equal(n.satTrim.gain.lastTarget, 1);
+  assert.equal(n.tone.gain.lastTarget, 0, 'top end bypassed to no change');
+  assert.equal(n.comp.threshold.lastTarget, 0, 'squeeze bypassed to no reduction');
+  assert.equal(n.comp.ratio.lastTarget, 1);
+  assert.equal(n.makeup.gain.lastTarget, 1);
+  // wow/flutter's own gains were never touched by the bypass call for
+  // "wow" itself — still whatever applyCharacter() set a moment earlier.
+  assert.equal(n.wowAmt.gain.lastTarget, 0.00050 * 0.30);
+  assert.equal(n.flutAmt.gain.lastTarget, 0.000015 * 0.30);
+});
+
+test('auditionStageAlone("comp"): wow/sat/tone all bypass, squeeze is left alone', () => {
+  const n = freshAuditionFixture();
+  auditionStageAlone('comp');
+  assert.equal(n.wowAmt.gain.lastTarget, 0);
+  assert.equal(n.flutAmt.gain.lastTarget, 0);
+  assert.equal(n.sat.curve[0], -1);
+  assert.equal(n.tone.gain.lastTarget, 0);
+  // squeeze's own params weren't touched by this call — still whatever
+  // applyCharacter() set for comp=0.35 a moment earlier.
+  assert.equal(n.comp.threshold.lastTarget, -6 - 18 * 0.35);
+  assert.equal(n.comp.ratio.lastTarget, 1 + 3 * 0.35);
+  assert.equal(n.makeup.gain.lastTarget, 1 + 0.4 * 0.35);
+});
+
+test('auditionComparePure: every stage bypasses at once', () => {
+  const n = freshAuditionFixture();
+  auditionComparePure();
+  assert.equal(n.wowAmt.gain.lastTarget, 0);
+  assert.equal(n.flutAmt.gain.lastTarget, 0);
+  assert.equal(n.sat.curve[0], -1);
+  assert.equal(n.tone.gain.lastTarget, 0);
+  assert.equal(n.comp.threshold.lastTarget, 0);
+  assert.equal(n.comp.ratio.lastTarget, 1);
+  assert.equal(n.makeup.gain.lastTarget, 1);
+});
+
+test('applyCharacter no-ops while an audition hold is in progress', () => {
+  const n = freshAuditionFixture();
+  auditionStageAlone('wow');
+  S.char.soft = 0.9; // a slider dragged mid-hold
+  applyCharacter(); // e.g. the ~30s drift recompute timer firing mid-hold
+  assert.equal(n.tone.gain.lastTarget, 0, 'still bypassed — applyCharacter() must not have run');
+});
+
+test('releaseAudition: restores every stage from current S.char, not a stale snapshot', () => {
+  const n = freshAuditionFixture();
+  auditionStageAlone('wow');
+  S.char.soft = 0.9; // changed while held
+  releaseAudition();
+  assert.equal(n.tone.gain.lastTarget, -9 * 0.9, 'restored from the current slider value, not the one at hold-start');
+});
+
+test('releaseAudition is a no-op when nothing is being audition-held', () => {
+  const n = freshAuditionFixture();
+  n.tone.gain.lastTarget = 'sentinel';
+  releaseAudition();
+  assert.equal(n.tone.gain.lastTarget, 'sentinel');
 });
