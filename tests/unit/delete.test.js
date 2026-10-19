@@ -74,6 +74,14 @@ mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, songRow(){} },
 });
+// RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
+// openFriendStore (social/screens/friend-store.js) would otherwise reach
+// that module's own real chain (profile/storefront.js and everything past
+// it) via delete.js's own real rebuildPeopleIndex import — stopped at that
+// new edge, the same way tests/unit/credits.test.js does.
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore(){} },
+});
 // Since step 7b, clearSpinDown/closePlayer/renderMiniPlayer (delete.js's own
 // imports), runStartSequence/openPlayerViaSheet/shouldPutAway/putAwayInstant/
 // runPutAwaySequence (setQueue's chain, via player/queue.js) and showRoute

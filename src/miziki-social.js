@@ -594,6 +594,15 @@
         visibility: m.vis || null,
         added_at: a.addedAt ? new Date(a.addedAt).toISOString() : null
       };
+      // RF23 (docs/12_REFINE.md): a `credits` key only when the caller
+      // actually supplied one -- an absent key (a test harness album, or
+      // any future caller that never computes credits) means sync_crate()
+      // leaves that release's release_credits rows untouched, never wipes
+      // them. mizikiAdapter's own describe() always supplies an array
+      // (possibly empty), so this is only ever omitted outside real use.
+      if (Array.isArray(a.credits)) {
+        item.credits = a.credits.slice(0, 300).map(c => ({ name: String(c.name || '').slice(0, 200), role: String(c.role || '').slice(0, 60) }));
+      }
       const prior = items.get(key);
       if (prior) {                               // two local albums collapse to one release
         skipped.collisions++;
@@ -610,7 +619,7 @@
     const pinned = [...items.values()].filter(i => i.pin_rank != null).sort((a, b) => a.pin_rank - b.pin_rank);
     pinned.forEach((i, n) => { i.pin_rank = n + 1; });
     for (const it of items.values()) {
-      it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.rating, it.sleeve_note, it.pin_rank, it.visibility])).slice(0, 12);
+      it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.rating, it.sleeve_note, it.pin_rank, it.visibility, it.credits || null])).slice(0, 12);
     }
     return { items, skipped, idByKey };
   }
@@ -1003,6 +1012,16 @@
   const inCommon = userId => guarded(async () => ({
     ok: true, items: (await rpc('records_in_common', { p_other: userId })) || []
   }));
+  // RF23 (docs/12_REFINE.md, "credits across friends"): everyone this
+  // viewer can see (per release_credits' own RLS, which mirrors the
+  // crate item that supplied each row) with a credit matching this exact
+  // (person, role) pair -- personNameNorm is expected pre-normalized
+  // (normKey(), library/credits.js's albumCreditPairs() shape), since the
+  // caller (renderPersonView, already working from a normalized name) has
+  // no reason to re-derive it here.
+  const creditFriends = (personNameNorm, role) => guarded(async () => ({
+    ok: true, items: (await rpc('credit_friends', { p_person_name_norm: personNameNorm, p_role: role })) || []
+  }));
   const homeFeed = ({ limit = 50, before } = {}) => guarded(async () => ({
     ok: true, events: (await rpc('home_feed_rich', { p_limit: limit, p_before: before || new Date().toISOString() })) || []
   }));
@@ -1089,7 +1108,15 @@
         addedAt: Math.min(...tracks.map(t => t.addedAt || Date.now())),
         sessions: sessionCounts[id] || 0,
         metal: S.rareUnlocked[id] ? 'rare' : (env.albumMetalFor(id) || null),
-        lastPlayed: (S.albumLastPlayed && S.albumLastPlayed[id]) || null
+        lastPlayed: (S.albumLastPlayed && S.albumLastPlayed[id]) || null,
+        // RF23 (docs/12_REFINE.md): the credits this album's own files
+        // carry, straight off library/credits.js's albumCreditRoll() (via
+        // the small env.albumCreditPairs() wrapper) -- always present,
+        // even as an empty array for an album with no embedded credits at
+        // all, since buildItems()/sync_crate() both treat "has a credits
+        // key" (even empty) as "replace whatever's on the server" and a
+        // missing key as "don't touch credits for this one."
+        credits: env.albumCreditPairs ? env.albumCreditPairs(id) : []
       };
     }
     return {
@@ -1143,7 +1170,7 @@
     searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing,
     block, unblock, listBlocked, report,
     // reading
-    loadProfile, crate, inCommon, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
+    loadProfile, crate, inCommon, creditFriends, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
     // helpers (also used by tests / UI)
     releaseKey, labelColor, sha256hex, mizikiAdapter,
     _internals: { X, buildItems, normAlbum, normArtist, cleanNote }

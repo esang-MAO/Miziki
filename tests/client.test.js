@@ -824,5 +824,139 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const relPinned = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
    assert.equal(asUser(FUID_B, `select count(*) from records_in_common(p_other=>'${FUID_A}') where release_id='${relPinned}'`), '1'); });
 
+ // ---------------------------------------------------------------------
+ // RF23 (docs/12_REFINE.md, "credits across friends", migration
+ // 017_credits_across_friends.sql): release_credits, sync_crate()'s own
+ // credits replace-set, and credit_friends(). Fresh fixture users (CF_*)
+ // so nothing here can collide with any test above.
+ // ---------------------------------------------------------------------
+ const CF_A='f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1',
+       CF_B='f2f2f2f2-f2f2-f2f2-f2f2-f2f2f2f2f2f2',
+       CF_STRANGER='f3f3f3f3-f3f3-f3f3-f3f3-f3f3f3f3f3f3',
+       CF_BLOCKED='f4f4f4f4-f4f4-f4f4-f4f4-f4f4f4f4f4f4';
+ // All of CF_A/CF_B/CF_BLOCKED's profiles are 'friends' visibility, so a
+ // 'public' crate item still resolves to effective 'friends' (least() of
+ // profile and item, effective_visibility() above) -- every pair that is
+ // meant to see each other's content needs an *accepted, mutual* follow,
+ // not just one direction, since can_view(owner, item) only ever checks
+ // whether the *viewer* follows the *owner*.
+ psql(`insert into auth.users values ('${CF_A}'),('${CF_B}'),('${CF_STRANGER}'),('${CF_BLOCKED}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values
+     ('${CF_A}','cfowner','CF Owner','friends'),
+     ('${CF_B}','cffriend','CF Friend','friends'),
+     ('${CF_STRANGER}','cfstranger','CF Stranger','friends'),
+     ('${CF_BLOCKED}','cfblocked','CF Blocked','friends')
+   on conflict do nothing;
+   insert into follows(follower_id,followee_id) values
+     ('${CF_A}','${CF_B}'), ('${CF_B}','${CF_A}'),
+     ('${CF_A}','${CF_BLOCKED}'), ('${CF_BLOCKED}','${CF_A}')
+   on conflict do nothing;
+   update follows set status='accepted'
+     where (follower_id='${CF_A}' and followee_id in ('${CF_B}','${CF_BLOCKED}'))
+        or (follower_id in ('${CF_B}','${CF_BLOCKED}') and followee_id='${CF_A}');
+   insert into blocks(blocker_id,blocked_id) values ('${CF_A}','${CF_BLOCKED}') on conflict do nothing`);
+
+ await t('sync_crate: an item carrying a credits key writes release_credits, de-duplicated',()=>{
+   asUser(CF_A, `select sync_crate('[{"release_key":"cf-rel-1","title":"CF Album","artist":"CF Artist","visibility":"public",
+     "credits":[{"name":"jane doe","role":"Producer"},{"name":"jane doe","role":"Producer"},{"name":"john roe","role":"Composer"}]}]'::jsonb, true)`);
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '2',
+     'two distinct (person, role) pairs, the duplicate collapsed'); });
+
+ await t('sync_crate: a later push with no credits key leaves release_credits untouched',()=>{
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   asUser(CF_A, `select sync_crate('[{"release_key":"cf-rel-1","title":"CF Album","artist":"CF Artist","rating":4}]'::jsonb, true)`);
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '2',
+     'a partial, pin/rating-only push must never wipe real credit rows'); });
+
+ await t('sync_crate: an explicit empty credits array clears a release\'s credit rows',()=>{
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   asUser(CF_A, `select sync_crate('[{"release_key":"cf-rel-1","title":"CF Album","artist":"CF Artist","credits":[]}]'::jsonb, true)`);
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '0'); });
+
+ await t('sync_crate: a credits array over 300 entries is capped to none, not rejected',()=>{
+   asUser(CF_A, `select sync_crate(jsonb_build_array(jsonb_build_object(
+     'release_key','cf-rel-2','title','CF Album 2','artist','CF Artist',
+     'credits', (select jsonb_agg(jsonb_build_object('name','person '||g,'role','Performer')) from generate_series(1,301) g)
+   )), true)`);
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-2'`);
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '0'); });
+
+ await t('release_credits RLS: visible wherever the crate item that supplied it is visible',()=>{
+   // cf-rel-1 is public (set above), but CF_A's own profile visibility is
+   // 'friends' -- effective_visibility() takes least(profile, item), so a
+   // public item under a friends-visibility profile is still only
+   // effectively 'friends'. CF_B has an accepted mutual follow with CF_A
+   // and can see it; CF_STRANGER has no follow relationship at all and
+   // must not.
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   asUser(CF_A, `select sync_crate('[{"release_key":"cf-rel-1","title":"CF Album","artist":"CF Artist","credits":[{"name":"jane doe","role":"Producer"}]}]'::jsonb, true)`);
+   assert.equal(asUser(CF_B, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '1');
+   assert.equal(asUser(CF_STRANGER, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '0');
+   // now make the same item private -- it must drop out of sight for
+   // everyone but the owner, exactly like verified_stats/now_spinning do.
+   asUser(CF_A, `update crate_items set visibility='private' where user_id='${CF_A}' and release_id='${relId}'`);
+   assert.equal(asUser(CF_B, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '0');
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '1',
+     'the owner can always see their own');
+   asUser(CF_A, `update crate_items set visibility='public' where user_id='${CF_A}' and release_id='${relId}'`); });
+
+ await t('release_credits RLS: a blocked account never sees it, even with an accepted follow',()=>{
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   assert.equal(asUser(CF_BLOCKED, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '0'); });
+
+ await t('release_credits RLS: a user cannot insert or delete another user\'s credit rows',()=>{
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   let threw=false;
+   try{ asUser(CF_B, `insert into release_credits(user_id,release_id,person_name_norm,role) values ('${CF_A}','${relId}','mallory','Producer')`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected RLS to reject a cross-user insert');
+   asUser(CF_B, `delete from release_credits where user_id='${CF_A}' and release_id='${relId}'`); // matches 0 rows, no throw (USING)
+   assert.equal(asUser(CF_A, `select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`), '1',
+     'the owner\'s row must survive the attacker\'s no-op delete attempt'); });
+
+ await t('release_credits RLS: anon cannot select any rows',()=>{
+   // same table-level posture as every other crate-adjacent table (001_schema.sql's
+   // own "revoke all ... from anon") -- anon has no grant at all here, so this
+   // is a hard permission error, not a filtered-to-zero-rows result.
+   const relId = asUser(CF_A, `select id from releases where release_key='cf-rel-1'`);
+   let threw=false;
+   try{ asAnon(`select count(*) from release_credits where user_id='${CF_A}' and release_id='${relId}'`); }
+   catch(e){ threw=/permission denied/i.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected permission denied for anon select on release_credits'); });
+
+ await t('credit_friends: a friend whose own release_credits match the same (person, role) is returned',()=>{
+   asUser(CF_B, `select sync_crate('[{"release_key":"cf-rel-3","title":"CF Friend Album","artist":"CF Artist","visibility":"public","credits":[{"name":"jane doe","role":"Producer"}]}]'::jsonb, true)`);
+   const rows = asUser(CF_A, `select string_agg(handle, ',') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Producer') q`);
+   assert.equal(rows, 'cffriend'); });
+
+ // The remaining credit_friends cases all expect zero matching rows, which
+ // means an aggregate over an empty set -- a bare NULL. In -At mode that
+ // prints as an empty line, which this file's own psql()/lastLine() helpers
+ // trim away entirely (same gotcha the RF DA5 getListeningRhythm tests above
+ // already work around) -- so every one of these coalesces to the literal
+ // string 'null' rather than asserting against a bare JS null.
+
+ await t('credit_friends: never includes the caller\'s own rows',()=>{
+   const rows = asUser(CF_A, `select coalesce(string_agg(handle, ','), 'null') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Producer') q where handle='cfowner'`);
+   assert.equal(rows, 'null'); });
+
+ await t('credit_friends: a stranger\'s matching credit never surfaces a release they can\'t see',()=>{
+   // give the stranger's own release-with-this-credit a private crate
+   // item -- its release_credits row drops out of RLS for everyone but
+   // the stranger themselves, so it must never appear in CF_A's results.
+   asUser(CF_STRANGER, `select sync_crate('[{"release_key":"cf-rel-4","title":"CF Stranger Album","artist":"CF Artist","visibility":"private","credits":[{"name":"jane doe","role":"Producer"}]}]'::jsonb, true)`);
+   const rows = asUser(CF_A, `select coalesce(string_agg(handle, ','), 'null') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Producer') q where handle='cfstranger'`);
+   assert.equal(rows, 'null'); });
+
+ await t('credit_friends: a blocked account\'s credit never surfaces, even if the release is public',()=>{
+   asUser(CF_BLOCKED, `select sync_crate('[{"release_key":"cf-rel-5","title":"CF Blocked Album","artist":"CF Artist","visibility":"public","credits":[{"name":"jane doe","role":"Producer"}]}]'::jsonb, true)`);
+   const rows = asUser(CF_A, `select coalesce(string_agg(handle, ','), 'null') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Producer') q where handle='cfblocked'`);
+   assert.equal(rows, 'null'); });
+
+ await t('credit_friends: a different role for the same person never matches',()=>{
+   const rows = asUser(CF_A, `select coalesce(string_agg(handle, ','), 'null') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Composer') q where handle='cffriend'`);
+   assert.equal(rows, 'null'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();

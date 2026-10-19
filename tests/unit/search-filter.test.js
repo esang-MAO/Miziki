@@ -139,6 +139,14 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {} },
 });
+// RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
+// openFriendStore (social/screens/friend-store.js) would otherwise reach
+// that module's own real chain (profile/storefront.js and everything past
+// it) via search.js's own real credits.js import — stopped at that new
+// edge, the same way tests/unit/credits.test.js does.
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore(){} },
+});
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, seek(){} },
 });

@@ -99,6 +99,14 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
+// RF23 (docs/12_REFINE.md): library/credits.js's new, one-directional
+// import of openFriendStore (social/screens/friend-store.js) would
+// otherwise reach that module's own real chain (profile/storefront.js and
+// everything past it) through credits.js's real chain described above —
+// stopped at that new edge, the same way tests/unit/credits.test.js does.
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore(){} },
+});
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext(){} },
 });

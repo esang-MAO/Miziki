@@ -1,5 +1,6 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { normKey } from '../../src/util/text.js';
 
 // credits.js calls real $/el (util/dom.js) when building the credits sheet
 // and the person view -- mocked to a capable stub (appendChild,
@@ -15,18 +16,28 @@ import assert from 'node:assert/strict';
 globalThis.document = { createTextNode(text){ return { nodeType: 3, textContent: text }; } };
 
 const elCache = new Map();
+// RF23's own tests need two things the pre-existing bare-bones fakeEl didn't
+// track: real children (to find the appended .credit-friends holder/list)
+// and a real addEventListener (to fire a button's own click handler) --
+// added here as plain, additive capability. Every pre-existing test either
+// doesn't touch these at all or overrides .appendChild itself on its own
+// host, so neither change alters any existing test's behavior.
 function fakeEl(){
   const classes = new Set();
+  const kids = [];
+  const listeners = {};
   return {
-    textContent: '', style: {}, innerHTML: '', src: '', alt: '', value: '',
+    textContent: '', style: {}, innerHTML: '', src: '', alt: '', value: '', hidden: false,
     classList: {
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
       contains(c){ return classes.has(c); },
     },
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
-    addEventListener(){}, appendChild(child){ return child; },
-    get children(){ return []; },
+    addEventListener(type, fn){ listeners[type] = fn; },
+    _click(){ if(listeners.click) listeners.click({}); },
+    appendChild(child){ kids.push(child); return child; },
+    get children(){ return kids; },
   };
 }
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
@@ -63,6 +74,14 @@ mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, 
 });
 mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute: showRouteMock },
+});
+// RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
+// openFriendStore (social/screens/friend-store.js) would otherwise reach
+// that module's own real chain (profile/storefront.js, profile/
+// rhythm-card.js, sundown/spin-wording.js) — stopped here the same way.
+const openFriendStoreMock = mock.fn();
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore: openFriendStoreMock },
 });
 // NV2 (docs/11_SMOOTH_NAVIGATION.md): credits.js's openCreditsSheet/
 // openPersonOrArtist now register with the real history-based nav-stack
@@ -122,7 +141,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 const {
   trackHasCreditsContent, openPersonOrArtist, creditRow,
   openCreditsSheet, closeCreditsSheet, updateCreditsButtonForCurrent,
-  albumLinerNotes, albumCreditRoll, rebuildPeopleIndex, renderPersonView,
+  albumLinerNotes, albumCreditRoll, albumCreditPairs, rebuildPeopleIndex, renderPersonView,
 } = await import('../../src/library/credits.js');
 const { S } = await import('../../src/state.js');
 const { emptyDetails } = await import('../../src/library/tags/index.js');
@@ -145,6 +164,8 @@ function resetState(overrides){
   showRouteMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
   closePlayerMock.mock.resetCalls();
+  openFriendStoreMock.mock.resetCalls();
+  delete globalThis.MizikiSocial;
 }
 
 test('trackHasCreditsContent is false for a track with no details at all', () => {
@@ -272,4 +293,110 @@ test('renderPersonView shows a "no credits found" note for an unknown name', () 
   renderPersonView(host, 'Nobody');
   assert.ok(appended);
   assert.match(appended.textContent, /No credits found/);
+});
+
+// RF23 (docs/12_REFINE.md, "credits across friends")
+test('albumCreditPairs flattens albumCreditRoll into normalized {name, role} pairs', () => {
+  const d1 = emptyDetails(); d1.producers = ['Jane Doe'];
+  const d2 = emptyDetails(); d2.composers = ['John Roe'];
+  resetState({ tracks: [fakeTrack('a', { details: d1 }), fakeTrack('b', { details: d2 })] });
+  const pairs = albumCreditPairs('Album');
+  assert.deepEqual(pairs.sort((a,b) => a.role.localeCompare(b.role)), [
+    { name: normKey('John Roe'), role: 'Composer' },
+    { name: normKey('Jane Doe'), role: 'Producer' },
+  ]);
+});
+
+test('albumCreditPairs returns an empty array for an album with no credits', () => {
+  resetState({ tracks: [fakeTrack('a')] });
+  assert.deepEqual(albumCreditPairs('Album'), []);
+});
+
+test('renderPersonView appends no friends line when signed out / MizikiSocial is absent', async () => {
+  const d = emptyDetails(); d.composers = ['Jane Doe'];
+  resetState({ tracks: [fakeTrack('a', { details: d })] });
+  rebuildPeopleIndex();
+  const host = fakeEl();
+  renderPersonView(host, 'Jane Doe');
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const section = host.children.find(c => c.className === 'credit-section');
+  assert.ok(section);
+  assert.equal(section.children.find(c => c.className === 'credit-friends'), undefined);
+});
+
+test('renderPersonView, signed in: appends a friends-line that lists friends on toggle and opens their store on click', async () => {
+  const d = emptyDetails(); d.composers = ['Jane Doe'];
+  resetState({ tracks: [fakeTrack('a', { details: d })] });
+  rebuildPeopleIndex();
+
+  let resolveCredits;
+  const creditFriendsCall = [];
+  globalThis.MizikiSocial = {
+    status(){ return { auth: 'ready' }; },
+    creditFriends(name, role){
+      creditFriendsCall.push([name, role]);
+      return new Promise(res => { resolveCredits = res; });
+    },
+  };
+
+  const host = fakeEl();
+  renderPersonView(host, 'Jane Doe');
+
+  // the role section's own appendChild should have been called with a
+  // .credit-friends holder div, synchronously, before the RPC resolves.
+  const section = host.children.find(c => c.className === 'credit-section');
+  assert.ok(section);
+
+  resolveCredits({
+    ok: true,
+    items: [
+      { user_id: 'u1', handle: 'alice', display_name: 'Alice', title: 'Album One' },
+      { user_id: 'u1', handle: 'alice', display_name: 'Alice', title: 'Album Two' },
+      { user_id: 'u2', handle: 'bob', display_name: null, title: 'Album Three' },
+    ],
+  });
+  // let the .then() microtask run
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+  assert.deepEqual(creditFriendsCall, [[normKey('Jane Doe'), 'Composer']]);
+
+  const holder = section.children.find(c => c.className === 'credit-friends');
+  assert.ok(holder);
+  const btn = holder.children.find(c => c.className === 'link-btn credit-friends-btn');
+  assert.ok(btn);
+  assert.match(btn.textContent, /^2 friends have records Jane Doe composer$/);
+
+  const list = holder.children.find(c => c.className === 'credit-friends-list');
+  assert.ok(list);
+  assert.equal(list.hidden, true);
+  btn._click();
+  assert.equal(list.hidden, false);
+
+  // Alice (2 releases) sorts before Bob (1 release, falls back to handle
+  // since display_name was null)
+  const liLinks = list.children.map(li => li.children[0]);
+  assert.equal(liLinks[0].textContent, 'Alice (2)');
+  assert.equal(liLinks[1].textContent, 'bob');
+
+  liLinks[1]._click();
+  assert.equal(openFriendStoreMock.mock.calls.length, 1);
+  assert.equal(openFriendStoreMock.mock.calls[0].arguments[0], 'bob');
+});
+
+test('renderPersonView, signed in but no friends: the holder stays empty (no button/list)', async () => {
+  const d = emptyDetails(); d.composers = ['Jane Doe'];
+  resetState({ tracks: [fakeTrack('a', { details: d })] });
+  rebuildPeopleIndex();
+  globalThis.MizikiSocial = {
+    status(){ return { auth: 'ready' }; },
+    creditFriends(){ return Promise.resolve({ ok: true, items: [] }); },
+  };
+  const host = fakeEl();
+  renderPersonView(host, 'Jane Doe');
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const section = host.children.find(c => c.className === 'credit-section');
+  assert.ok(section);
+  const holder = section.children.find(c => c.className === 'credit-friends');
+  assert.ok(holder); // the holder itself is always built, synchronously
+  assert.equal(holder.children.length, 0); // but gets no button/list when there are no friends
 });

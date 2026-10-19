@@ -16,6 +16,7 @@ import { setQueue } from '../player/queue.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks, songRow } from './view.js';
 import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { openFriendStore } from '../social/screens/friend-store.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -223,6 +224,24 @@ export function albumCreditRoll(album){
   return byRole;
 }
 
+// RF23 (docs/12_REFINE.md, "credits across friends") — the flat,
+// normalized-name wire shape src/miziki-social.js's buildItems() sends as
+// a crate item's own `credits` field, straight off albumCreditRoll()'s
+// Map<role, name[]> (the same de-duplication, role labels and name
+// casing renderPersonView()'s own byRole grouping already uses — so a
+// server-side "3 friends have records [person] [role]" match lines up
+// with the exact role section this device would group that same credit
+// under). Normalizing the name here, not server-side, keeps the match
+// rule (normKey()) in the one place the rest of the credits code already
+// trusts it.
+export function albumCreditPairs(album){
+  const pairs = [];
+  albumCreditRoll(album).forEach((names, role) => {
+    names.forEach(name => { const n = normKey(name); if(n) pairs.push({ name: n, role }); });
+  });
+  return pairs;
+}
+
 let peopleIndex = new Map();
 export const PERSON_ROLE_KEYS = CREDIT_ROLE_BUCKETS.map(([k]) => k);
 
@@ -246,6 +265,42 @@ export function rebuildPeopleIndex(){
 // private to this module (search.js is the one other caller, for the
 // "People" result group)
 export function personEntryFor(name){ return peopleIndex.get(normKey(name)); }
+
+// RF23 (docs/12_REFINE.md, "credits across friends") — the person view's
+// own "N friends have records [person] [role]" line, one per role
+// section (the same granularity release_credits/credit_friends() are
+// keyed by), signed in only. Appended into `section` asynchronously —
+// renderPersonView() itself stays synchronous, so this never delays
+// showing the tracklist, and a stale response landing after the person
+// view has moved on just writes into a now-detached node, harmlessly.
+function appendCreditFriendsLine(section, name, role){
+  if(typeof MizikiSocial === 'undefined' || !MizikiSocial.status || MizikiSocial.status().auth !== 'ready') return;
+  const holder = el('div','credit-friends');
+  section.appendChild(holder);
+  MizikiSocial.creditFriends(normKey(name), role).then(res => {
+    if(!res.ok || !res.items.length) return;
+    const byFriend = new Map();
+    res.items.forEach(it => {
+      if(!byFriend.has(it.user_id)) byFriend.set(it.user_id, { handle: it.handle, name: it.display_name || it.handle, releases: [] });
+      byFriend.get(it.user_id).releases.push(it.title);
+    });
+    const friends = [...byFriend.values()];
+    const n = friends.length;
+    const btn = el('button','link-btn credit-friends-btn',
+      n + (n === 1 ? ' friend has' : ' friends have') + ' records ' + name + ' ' + role.toLowerCase());
+    const list = el('ul','credit-friends-list'); list.hidden = true;
+    friends.sort((a,b) => byName(a.name, b.name)).forEach(f => {
+      const li = el('li');
+      const link = el('button','link-btn', f.name + (f.releases.length > 1 ? ' (' + f.releases.length + ')' : ''));
+      link.addEventListener('click', () => openFriendStore(f.handle));
+      li.appendChild(link);
+      list.appendChild(li);
+    });
+    btn.addEventListener('click', () => { list.hidden = !list.hidden; });
+    holder.appendChild(btn);
+    holder.appendChild(list);
+  }).catch(()=>{});
+}
 
 export function renderPersonView(host, name){
   const entry = peopleIndex.get(normKey(name));
@@ -272,5 +327,6 @@ export function renderPersonView(host, name){
       .forEach((i,pos) => ul.appendChild(songRow(i, idxs, pos)));
     section.appendChild(ul);
     host.appendChild(section);
+    appendCreditFriendsLine(section, name, role);
   });
 }
