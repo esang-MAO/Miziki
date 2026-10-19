@@ -76,6 +76,23 @@ export function wireTransport(){
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
 
+  // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
+  // session" -- a menuitemcheckbox in the player's own "···" menu, not a
+  // saved pref (S.privateSpin is session-only, state.js). Turning it on
+  // mid-track also clears whatever "now spinning" row is already live, the
+  // same MizikiSocial.stopSpinning() call Privacy's own shareNowSpinning
+  // switch already makes when switched off (miziki-social.js's
+  // setSetting); turning it back off takes effect from the next play()
+  // call only, same as that switch -- no row is proactively re-published.
+  const privateSpinBtn = $('#privateSpinBtn');
+  if(privateSpinBtn){
+    privateSpinBtn.addEventListener('click', ()=>{
+      S.privateSpin = !S.privateSpin;
+      privateSpinBtn.setAttribute('aria-checked', String(S.privateSpin));
+      if(S.privateSpin) MizikiSocial.stopSpinning();
+    });
+  }
+
   // RF8 (docs/12_REFINE.md): the player's own "···" overflow, beside the
   // title. Edit info/Share/Queue/Sleep timer each keep their own existing
   // click handler (src/wiring/edit.js/share.js/overlays.js, and

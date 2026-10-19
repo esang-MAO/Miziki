@@ -842,6 +842,11 @@
       <button class="overflow-menu-row" id="playerShareBtn" style="display:none" role="menuitem">Share</button>
       <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
       <button class="overflow-menu-row" id="sleepTimerBtn" style="display:none" role="menuitem">🌙 Sleep Timer</button>
+      <!-- RF21 (docs/12_REFINE.md, "a quieter broadcast"): private spin --
+           a menuitemcheckbox, not a settings toggle, since it's scoped to
+           this one listening session only (S.privateSpin, state.js), not
+           a saved pref. src/wiring/transport.js wires the click. -->
+      <button class="overflow-menu-row overflow-menu-row-check" id="privateSpinBtn" role="menuitemcheckbox" aria-checked="false">Don't share this session</button>
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">

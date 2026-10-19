@@ -50,6 +50,12 @@ export function clearToRest(){
   S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null;
   S.outgoingArt = null; S.outgoingHasArt = false;
   if(typeof MizikiSocial !== 'undefined') MizikiSocial.stopSpinning();
+  // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
+  // session" is session-only and turns itself off once the queue genuinely
+  // ends (not a manual skip past the last track -- endOfQueue() only calls
+  // clearToRest() for a real finish), so a listener never has to remember
+  // it was on for a prior, unrelated session.
+  S.privateSpin = false;
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');

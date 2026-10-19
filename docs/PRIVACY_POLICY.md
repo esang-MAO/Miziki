@@ -1,6 +1,6 @@
 # Miziki privacy policy
 
-**Last updated: October 18, 2026**
+**Last updated: October 19, 2026**
 
 This is the canonical source for the Privacy Policy shown inside the app
 (`src/profile/legal.js`'s `renderPrivacyPolicyScreen`). The two must say the
@@ -19,13 +19,21 @@ optional account features (sign-in, backup, social).
   show once signed in.
 - **Social activity you choose to share** — your crate (the records
   you've picked to show), ratings and notes, what you're currently
-  spinning, milestones (hitting a rare pressing), and your listening
-  rhythm (a one-line verdict — "Mostly a night listener" — and the
-  percentage of your plays in each part of the day; never your individual
-  plays or the times you played them). Sharing "now spinning", milestones
-  and listening rhythm is **off by default** — you turn each on yourself
-  in the Privacy screen. Listening rhythm also needs at least 20 counted
-  plays before there's anything to show.
+  spinning, and your listening rhythm (a one-line verdict — "Mostly a
+  night listener" — and the percentage of your plays in each part of the
+  day; never your individual plays or the times you played them). Sharing
+  "now spinning" and listening rhythm is **off by default** — you turn
+  each on yourself in the Privacy screen. Listening rhythm also needs at
+  least 20 counted plays before there's anything to show. A "Don't share
+  this session" switch in the player lets you skip sharing "now spinning"
+  for one listening session without changing the setting itself; it turns
+  itself back off once that session's queue ends.
+- **Milestones** (hitting a rare pressing) show on your own disc and
+  share card, and on your crate for whoever your visibility setting lets
+  see it ("Share milestones" in the Privacy screen, off by default) — but
+  they're never posted to a friend's feed. Anything that *is* posted to
+  the feed (a record added, pinned, or reviewed) is automatically removed
+  after 45 days.
 - **Your private listening backup** — play counts, session counts,
   achievements and Collection progress, sealed/broken-record state, the
   text of any track edits you've made (title/artist/album — never the

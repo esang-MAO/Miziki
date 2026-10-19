@@ -51,6 +51,17 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .overflow-menu-row{display:block;width:100%;text-align:left;padding:var(--sp-3) 10px;border-radius:6px;
   font-size:var(--fs-body);color:var(--paper)}
 .overflow-menu-row:active{background:rgba(255,255,255,.04)}
+/* RF21 (docs/12_REFINE.md): the one menuitemcheckbox row in this menu
+   (player "···" -> "Don't share this session") -- a plain circle that
+   fills with a checkmark on aria-checked, the same attribute-driven
+   on/off look .mode-toggle/.store-switch already use elsewhere, just
+   drawn as a check instead of a sliding track since this is a row in a
+   list, not a standalone switch component. */
+.overflow-menu-row-check{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
+.overflow-menu-row-check::after{content:'';width:18px;height:18px;flex:0 0 auto;border-radius:50%;
+  border:1px solid var(--line)}
+.overflow-menu-row-check[aria-checked="true"]::after{content:'✓';display:grid;place-content:center;
+  font-size:var(--fs-micro);line-height:1;background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 
 /* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
 /* the outer row must never wrap: with only two flex children (the tab
