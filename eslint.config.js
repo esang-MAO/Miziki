@@ -99,6 +99,7 @@ module.exports = [
     files: [
       'src/main.js',
       'src/history/sessions.js',
+      'src/library/credits.js',
       'src/library/delete.js',
       'src/library/edit.js',
       'src/library/import.js',

@@ -19,6 +19,14 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
+// RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
+// openFriendStore (social/screens/friend-store.js) would otherwise reach
+// that module's own real chain (profile/storefront.js and everything past
+// it) via import.js's own real rebuildPeopleIndex import — stopped at that
+// new edge, the same way tests/unit/credits.test.js does.
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore(){} },
+});
 // Since step 7c, import.js's invalidateCrateModel/healCrateArt imports and
 // edit.js's/delete.js's deleteCrateArtTiers/buildCrateTier imports are real
 // ones from src/crate/model.js/tiers.js instead of main.js — mocked

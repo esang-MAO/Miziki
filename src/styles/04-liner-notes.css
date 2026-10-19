@@ -11,6 +11,14 @@
   font:inherit;cursor:pointer;padding:0}
 .credit-note{font-size:var(--fs-caption);line-height:1.55;color:var(--paper);white-space:pre-wrap;margin:0 0 10px}
 .credit-toggle{font-size:var(--fs-caption);color:var(--muted);text-decoration:underline;background:none;border:0;cursor:pointer;padding:0}
+
+/* RF23 (docs/12_REFINE.md): the person view's "N friends have records
+   [person] [role]" line, one per role section. */
+.credit-friends{margin-top:var(--sp-1)}
+.credit-friends-btn{font-size:var(--fs-caption);color:var(--muted)}
+.credit-friends-list{list-style:none;margin:var(--sp-1) 0 0;padding:0 0 0 var(--sp-2)}
+.credit-friends-list li{margin:var(--sp-1) 0}
+.credit-friends-list .link-btn{font-size:var(--fs-caption)}
 .search-chips{display:flex;flex-wrap:wrap;gap:6px;margin:var(--sp-2) 0}
 .search-chip{border:1px solid var(--line);border-radius:12px;padding:var(--sp-1) 10px;font-size:var(--fs-caption);color:var(--muted);
   background:rgba(255,255,255,.03)}

@@ -8,7 +8,7 @@ import { allIdx } from './library/model.js';
 import { setQueue } from './player/queue.js';
 import { restoreSessions } from './history/sessions.js';
 import { loadOverlayFor } from './library/edit.js';
-import { rebuildPeopleIndex } from './library/credits.js';
+import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
 import { renderSearchChips } from './library/search.js';
 import { restoreSealedAlbums } from './library/sealed.js';
 import { healThumbs, healDetails } from './library/thumbs.js';
@@ -182,7 +182,7 @@ async function restoreLibrary(){
     ? await import('@supabase/supabase-js')
     : undefined;
   await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
-    env: { S, DB, albumKey, trackTier, albumMetalFor }, supabaseLib });
+    env: { S, DB, albumKey, trackTier, albumMetalFor, albumCreditPairs }, supabaseLib });
   // sync/backup.js deliberately doesn't import library/view.js itself (see
   // its own applyMerged() comment) — main.js already has renderTracks for
   // the boot sequence, so it's the one place that connects the two.

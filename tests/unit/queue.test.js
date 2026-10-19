@@ -62,6 +62,14 @@ mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href,
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
+// RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
+// openFriendStore (social/screens/friend-store.js) would otherwise reach
+// that module's own real chain (profile/storefront.js and everything past
+// it) through this file's own real credits.js chain described above —
+// stopped at that new edge, the same way tests/unit/credits.test.js does.
+mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
+  namedExports: { openFriendStore(){} },
+});
 // Since step 7c, edit.js's deleteCrateArtTiers/buildCrateTier and thumbs.js's
 // invalidateCrateModel imports are real ones from src/crate/tiers.js/
 // model.js instead of main.js — mocked directly here, same "stop the chain
