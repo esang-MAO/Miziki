@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pressings: the catalogue, metals and your pressing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.lab{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#94A0A6}
+.cap{font-size:12px;line-height:1.45;color:#94A0A6}
+.disc{width:96px;height:96px;border-radius:48px;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 4px 8px rgba(0,0,0,.25),0 14px 28px rgba(0,0,0,.45)}
+.grooves{position:absolute;inset:0;border-radius:48px;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,0) 0 2px,rgba(255,255,255,.045) 2px 3px)}
+.label{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:17px;background:#FF9E2C;display:flex;align-items:center;justify-content:center}
+.label::after{content:'';width:4px;height:4px;border-radius:2px;background:#1A1716}
+.sw{display:flex;flex-direction:column;align-items:center;gap:6px;width:110px}
+.nm{font-family:'Antonio','Arial Narrow',sans-serif;font-size:14px;font-weight:700;letter-spacing:.03em;color:#EFE9DF;text-transform:uppercase;text-align:center;line-height:1.1}
+.hx{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;color:#7A868C;text-align:center;line-height:1.5}
+.fam{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.10em;color:#7A868C;text-transform:uppercase;width:64px;flex-shrink:0;padding-top:34px}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1280px; height: 2260px; box-sizing: border-box; background: linear-gradient(170deg, #1D2F38 0%, #101A20 62%, #07080C 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; padding: 40px; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 class="disp" style="margin: 0; font-size: 36px; font-weight: 700; line-height: 1; letter-spacing: .02em; text-transform: uppercase">Pressings</h1>
+<p class="cap" style="margin: 0; max-width: 680px">A pressing-plant chart: 40 solids in nine families, 32 two-ink effects, four rare. The file decides the shelf you draw from; the collector decides the draw. Ring / body / rim; <span style="color: #EFE9DF">T</span> translucent, <span style="color: #EFE9DF">O</span> opaque.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 420px">
+<div style="padding: 10px 12px; border-radius: 4px; background: rgba(239,233,223,.07); display: flex; flex-direction: column; gap: 2px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">LOSSY</span><span style="font-size: 14px; font-weight: 600">Jet only</span><span class="cap">a black record</span></div>
+<div style="padding: 10px 12px; border-radius: 4px; background: rgba(239,233,223,.07); display: flex; flex-direction: column; gap: 2px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">LOSSLESS</span><span style="font-size: 14px; font-weight: 600">40 solids</span><span class="cap">85% solid, 15% Jet</span></div>
+<div style="padding: 10px 12px; border-radius: 4px; background: rgba(239,233,223,.07); display: flex; flex-direction: column; gap: 2px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #7A868C">HI-RES</span><span style="font-size: 14px; font-weight: 600">32 effects</span><span class="cap">70% effect, 25% solid, 5% Jet</span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2 class="lab" style="margin: 0">Tier 2 · 40 solids, by family</h2>
+<sc-for list="{{families}}" as="f" hint-placeholder-count="9">
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span class="fam">{{f.name}}</span>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<sc-for list="{{f.items}}" as="v" hint-placeholder-count="4">
+<div class="sw"><div class="disc" style="background: {{v.bg}}"><span class="grooves"></span><span class="label"></span></div><span class="nm">{{v.name}}</span><span class="hx">{{v.hex}}</span></div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<h2 class="lab" style="margin: 0">Tier 3 · 32 two-ink effects and four rare</h2>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<sc-for list="{{effects}}" as="e" hint-placeholder-count="16">
+<div class="sw"><div class="disc" style="background: {{e.bg}}"><span class="grooves"></span><span class="label"></span></div><span class="nm">{{e.name}}</span><span class="hx">{{e.hex}}</span></div>
+</sc-for>
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, rgba(244,241,234,.9) 0 27%, rgba(230,226,218,.5) 27% 88%, rgba(169,164,154,.9) 90% 100%), linear-gradient(135deg, #C9A24A, #8E5C8F)"><span class="grooves"></span><span class="label"></span></div><span class="nm">Ultra clear</span><span class="hx">rare · the sleeve shows through</span></div>
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, transparent 0 88%, #1A1716 90% 100%), linear-gradient(135deg, #3E5566, #5A4A5E 60%, #4A5A52)"><span class="grooves" style="opacity: .5"></span><span class="label"></span></div><span class="nm">Picture disc</span><span class="hx">rare · the cover art, printed on</span></div>
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, #D6F2D0 0 27%, #B8E8B0 27% 70%, #CFF4C6 70% 88%, #7FAE78 90% 100%); box-shadow: 0 0 18px rgba(170,240,160,.55), inset 0 1px 0 rgba(255,255,255,.3)"><span class="grooves"></span><span class="label"></span></div><span class="nm">Glow</span><span class="hx">rare · phosphor, lit in the dark</span></div>
+<div class="sw"><div class="disc" style="background: linear-gradient(160deg, transparent 0 38%, rgba(63,140,126,.85) 42%, rgba(91,170,153,.9) 58%, transparent 64%), radial-gradient(circle at 50% 50%, rgba(244,241,234,.9) 0 27%, rgba(230,226,218,.35) 27% 88%, rgba(169,164,154,.9) 90% 100%), linear-gradient(135deg, #C9A24A, #8E5C8F)"><span class="grooves"></span><span class="label"></span></div><span class="nm">Liquid filled</span><span class="hx">rare · a colour that moves inside</span></div>
+</div>
+<p class="cap" style="margin: 0; max-width: 900px"><span style="color: #EFE9DF">Light banding.</span> Inside a tier the album hash picks a band first, then a colour in it: common 60% of draws, uncommon 30%, scarce 10%. Solids: 20 common, 14 uncommon, 6 scarce (about 1 in 60 lossless albums each). Effects: 16 / 11 / 5. Scarce and uncommon are named under each swatch; the same album still presses the same everywhere. Swirls are two or three feathered streaks, never a wheel. Splatters are small, dense, one ink. Marbles carry veins of the second ink. "Ring" pressings are one colour inside another. Rare pressings come from sessions (the existing rare unlock), not from the file. Tier-1 Jet can take a <span style="color: #EFE9DF">paper label</span> (#EFE9DF, olive ring #3E3D22) behind Settings › Playback, off by default.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px">
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0">The same record, the same pressing · everywhere</h2>
+<div style="display: flex; gap: 20px; align-items: center">
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, #3F8C7E 0 27%, #5BAA99 27% 90%, #2A5E54 90% 100%)"><span class="grooves"></span><span class="label"></span></div><span class="nm">You · Verdigris</span></div>
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, #3F8C7E 0 27%, #5BAA99 27% 90%, #2A5E54 90% 100%)"><span class="grooves"></span><span class="label"></span></div><span class="nm">Ken · Verdigris</span></div>
+<div class="sw"><div class="disc" style="background: radial-gradient(circle at 50% 50%, #2B2622 0 27%, #1A1716 27% 90%, #0C0B0A 90% 100%)"><span class="grooves"></span><span class="label"></span></div><span class="nm">Maya · Jet</span><span class="hx">a lossy copy</span></div>
+</div>
+<p class="cap" style="margin: 0">The draw is hashed from the album alone, as today, so a record presses the same in every crate that holds it: you and Ken both have the Verdigris. With 40 solids and 32 effects, two <span style="color: #EFE9DF">different</span> records rarely share a colour. Only the file changes the draw: Maya's lossy copy is Jet, and that says so without a word. Records in common shows the three copies side by side.</p>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="lab" style="margin: 0">The pressing chart · on your profile</h2>
+<div style="padding: 14px 16px; border-radius: 2px; background: #EFE6D2; color: #2A1B38; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25); position: relative; display: flex; flex-direction: column; gap: 10px">
+<span aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 4px; background: #2A1B38; display: block"></span>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="disp" style="font-size: 18px; font-weight: 700; letter-spacing: .02em">Pressings in the crate</span><span class="mono" style="font-size: 9px; letter-spacing: .12em; color: #5A4A52">23 OF 40 · 6 OF 32</span></div>
+<div style="display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 5px">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="40">
+<span style="aspect-ratio: 1 / 1; border-radius: 2px; background: {{c.bg}}; opacity: {{c.op}}; display: block; box-shadow: inset 0 0 0 1px rgba(42,27,56,.12)"></span>
+</sc-for>
+</div>
+<span class="mono" style="font-size: 9px; letter-spacing: .12em; color: #5A4A52">MISSING: COBALT · CELADON · AQUAMARINE · FUCHSIA · POWDER BLUE …</span>
+<span class="mono" style="font-size: 9px; letter-spacing: .12em; color: #5A4A52">● MARKS A SCARCE PRESSING</span>
+</div>
+<p class="cap" style="margin: 0">A paint-chip card of the colours you own, like a pressing plant's sample strip. Your own card shows the counts; a friend's card shows their chips with no numbers, so it's something to look at, not a score. Tapping a chip jumps the crate to that pressing.</p>
+</section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 class="lab" style="margin: 0">Metals · brushed, with an underglow at the rim</h2>
+<div style="display: flex; gap: 16px; align-items: flex-start">
+<div class="sw"><div class="disc" style="background: conic-gradient(from 230deg, #E3B77A 0 6deg, #B07A3C 14deg 160deg, #5A3516 182deg 206deg, #B07A3C 228deg 340deg, #E3B77A 354deg 360deg)"><span style="position: absolute; inset: 0; border-radius: 48px; background: radial-gradient(circle at 50% 50%, transparent 0 90%, #8A3A1E 92% 100%)"></span><span class="grooves"></span><span class="label"></span></div><span class="nm">Bronze</span><span class="hx">#B07A3C · #E3B77A · #5A3516</span></div>
+<div class="sw"><div class="disc" style="background: conic-gradient(from 230deg, #EDEFF2 0 6deg, #A9ADB4 14deg 160deg, #4D5259 182deg 206deg, #A9ADB4 228deg 340deg, #EDEFF2 354deg 360deg)"><span style="position: absolute; inset: 0; border-radius: 48px; background: radial-gradient(circle at 50% 50%, transparent 0 90%, #2E3238 92% 100%)"></span><span class="grooves"></span><span class="label" style="box-shadow: 0 0 0 3px #2A1B38"></span></div><span class="nm">Silver</span><span class="hx">#A9ADB4 · #EDEFF2 · #4D5259</span></div>
+<div class="sw"><div class="disc" style="background: conic-gradient(from 230deg, #F7E7A8 0 6deg, #D6AD3F 14deg 160deg, #7A4E12 182deg 206deg, #D6AD3F 228deg 340deg, #F7E7A8 354deg 360deg)"><span style="position: absolute; inset: 0; border-radius: 48px; background: radial-gradient(circle at 50% 50%, transparent 0 90%, #8A3A1E 92% 100%)"></span><span class="grooves"></span><span style="position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 17px; background: #2A1B38; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #7A4E12"><span style="width: 4px; height: 4px; border-radius: 2px; background: #FF9E2C; display: block"></span></span></div><span class="nm">Gold</span><span class="hx">#D6AD3F · #F7E7A8 · #7A4E12 · label inverts</span></div>
+<div class="sw"><div class="disc" style="background: conic-gradient(from 230deg, #F8F9FA 0 6deg, #D3D7DC 14deg 160deg, #8A9199 182deg 206deg, #D3D7DC 228deg 340deg, #F8F9FA 354deg 360deg)"><span style="position: absolute; inset: 0; border-radius: 48px; background: radial-gradient(circle at 50% 50%, transparent 0 90%, #B9C4D0 92% 100%)"></span><span class="grooves"></span><span style="position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 17px; background: #2A1B38; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #8A9199"><span style="width: 4px; height: 4px; border-radius: 2px; background: #FF9E2C; display: block"></span></span></div><span class="nm">Platinum</span><span class="hx">#D3D7DC · #F8F9FA · #8A9199 · label inverts</span></div>
+<p class="cap" style="max-width: 560px; margin: 0; align-self: center">One narrow specular band fixed to the light while the disc spins, a broad mid-tone, a deep shadow opposite, a 3 px rim of the underglow. A metal is a finish laid over the pressing: a gold Verdigris keeps a verdigris rim. Metals lighter than amber invert the label.</p>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2260}}'>
+class Component extends DCLogic {
+renderVals() {
+const rad = (a, b, c) => 'radial-gradient(circle at 50% 50%, ' + a + ' 0 27%, ' + b + ' 27% 90%, ' + c + ' 90% 100%)';
+const SCARCE = ['Fuchsia', 'Aquamarine', 'Emerald', 'Cobalt', 'Tyrian', 'Caramel', 'Lapis', 'Malachite', 'Rhodonite', 'Ember', 'Sea Smoke'];
+const UNCOMMON = ['Rose', 'Turquoise', 'Viridian', 'Verdigris', 'Umber', 'Bone', 'Celadon', 'Powder blue', 'Heliotrope', 'Mauve', 'Grape', 'Terracotta', 'Pine', 'Smoke', 'Tyrian split', 'Serpentine', 'Jasper', 'Sodalite', 'Heliotrope ring', 'Teal ring', 'Rose Smoke', 'Tobacco Smoke', 'Minium & Vermilion', 'Viridian & Ochre', 'Coral on Teal'];
+const band = (n) => SCARCE.includes(n) ? 'scarce' : UNCOMMON.includes(n) ? 'uncommon' : 'common';
+const tag = (n) => band(n) === 'common' ? '' : ' · ' + band(n);
+const S = (name, a, b, c, t) => ({ name, bg: rad(a, b, c), hex: a + ' · ' + b + ' · ' + c + ' · ' + (t ? 'T' : 'O') + tag(name), body: b, sc: band(name) === 'scarce' });
+const families = [
+{ name: 'Reds', items: [S('Oxblood', '#8A2E2A', '#6B1F1C', '#3E1210'), S('Madder', '#B5433A', '#9A3328', '#5C1A14'), S('Vermilion', '#D94A32', '#C4302B', '#6E1712'), S('Terracotta', '#D3694A', '#C05131', '#7E3119')] },
+{ name: 'Pinks', items: [S('Coral', '#E8806A', '#D4674F', '#8A3A2A'), S('Rose', '#C45C7A', '#D97A96', '#7A2E48', 1), S('Blush', '#F0D0C8', '#E3B8AE', '#B48A80'), S('Fuchsia', '#B03A78', '#9A2B66', '#5E1A3E')] },
+{ name: 'Earths', items: [S('Ochre', '#B8862E', '#9A6E22', '#5E4212'), S('Sienna', '#A0522D', '#8B4426', '#4F2412'), S('Caramel', '#B07A45', '#C99458', '#6B4522', 1), S('Umber', '#6B4A2E', '#8A6238', '#3E2A18', 1), S('Sepia', '#6A4F3A', '#4E3728', '#2A1D14'), S('Puce', '#9C6E72', '#7E555A', '#4F3337')] },
+{ name: 'Whites', items: [S('Isabelline', '#EDE3CF', '#DCCDB0', '#B8A684'), S('Bone', '#F1EDE3', '#DED7C7', '#A9A69B', 1), S('Chalk', '#F4F1EA', '#E6E2DA', '#B9B5AC'), S('Celadon', '#9FB8A4', '#86A28C', '#5D7564')] },
+{ name: 'Greens', items: [S('Olive', '#6E7A3A', '#4A5527', '#2B3115'), S('Pine', '#1E4D3A', '#2A6A4F', '#102A20'), S('Verdigris', '#3F8C7E', '#5BAA99', '#2A5E54', 1), S('Viridian', '#1F6B5A', '#2E8A74', '#133F35', 1), S('Emerald', '#2E8B57', '#3FA873', '#1B5A38', 1)] },
+{ name: 'Teals', items: [S('Teal', '#1F6F73', '#28868B', '#123F42'), S('Turquoise', '#2F9BA8', '#49B8C4', '#1E6670', 1), S('Aquamarine', '#8FD3CF', '#A9E0DC', '#5E9D99', 1), S('Petrol', '#204A52', '#2C5E68', '#13303A')] },
+{ name: 'Blues', items: [S('Prussian', '#1F3F66', '#2B5586', '#122540', 1), S('Cobalt', '#2A4FA0', '#3660BE', '#172B5C', 1), S('Woad', '#2B4A7A', '#3B6192', '#1A2E4A'), S('Ultramarine', '#1E3A8A', '#2949A6', '#101F4A'), S('Indigo', '#2C2F5E', '#3B4080', '#1A1C3A'), S('Powder blue', '#CFE4F2', '#B9D9EB', '#8FB0C4')] },
+{ name: 'Purples', items: [S('Heliotrope', '#8A63A8', '#6C4A8A', '#44305A'), S('Tyrian', '#6E2448', '#5B1A3C', '#3A0F26'), S('Mauve', '#9B6B9E', '#7E5280', '#4E3250'), S('Grape', '#6D4198', '#582C83', '#361A52')] },
+{ name: 'Greys', items: [S('Smoke', '#A9A7A4', '#6E6C69', '#2E2D2C', 1), S("Payne's grey", '#4A5565', '#3C4654', '#232A33'), S('Graphite', '#55585C', '#3F4245', '#222426')] }
+];
+const swirl = (a, b, rim) => 'radial-gradient(circle at 50% 50%, transparent 0 88%, ' + rim + ' 90% 100%), conic-gradient(from 20deg, ' + a + ' 0 40deg, ' + b + ' 70deg 110deg, ' + a + ' 150deg 200deg, ' + b + ' 240deg 280deg, ' + a + ' 320deg 360deg)';
+const split = (a, b, ra, rb) => 'conic-gradient(from 0deg, ' + a + ' 0 178deg, ' + ra + ' 178deg 180deg, ' + b + ' 180deg 358deg, ' + rb + ' 358deg 360deg)';
+const marble = (body, vein, rim) => 'radial-gradient(ellipse at 30% 40%, ' + vein + ' 0 4%, transparent 6%), radial-gradient(ellipse at 70% 65%, ' + vein + ' 0 3%, transparent 5%), radial-gradient(ellipse at 55% 25%, ' + vein + ' 0 2%, transparent 3.5%), radial-gradient(circle at 50% 50%, ' + body + ' 0 88%, ' + rim + ' 90% 100%)';
+const splat = (ink, base, rim) => 'radial-gradient(circle at 28% 30%, ' + ink + ' 0 3.5%, transparent 4.5%), radial-gradient(circle at 66% 22%, ' + ink + ' 0 2.5%, transparent 3.5%), radial-gradient(circle at 72% 70%, ' + ink + ' 0 3%, transparent 4%), radial-gradient(circle at 36% 72%, ' + ink + ' 0 2%, transparent 3%), radial-gradient(circle at 50% 84%, ' + ink + ' 0 1.5%, transparent 2.5%), radial-gradient(circle at 50% 50%, ' + base + ' 0 88%, ' + rim + ' 90% 100%)';
+const smoke = (ring, body, drift, rim) => 'radial-gradient(ellipse at 40% 35%, ' + drift + ' 0 20%, transparent 50%), radial-gradient(circle at 50% 50%, ' + ring + ' 0 27%, ' + body + ' 27% 88%, ' + rim + ' 90% 100%)';
+const ring = (inner, outer, rim) => 'radial-gradient(circle at 50% 50%, ' + inner + ' 0 48%, ' + outer + ' 50% 88%, ' + rim + ' 90% 100%)';
+const effects = [
+{ name: 'Woad & Madder', bg: swirl('#2B4A7A', '#B5433A', '#1A1A22'), hex: 'swirl' },
+{ name: 'Minium & Vermilion', bg: swirl('#E0552A', '#C4302B', '#5C1512'), hex: 'swirl' },
+{ name: 'Prussian & Bone', bg: swirl('#2B5586', '#DED7C7', '#122540'), hex: 'swirl' },
+{ name: 'Viridian & Ochre', bg: swirl('#2E8A74', '#9A6E22', '#133F35'), hex: 'swirl' },
+{ name: 'Oxblood split', bg: split('#6B1F1C', '#DCCDB0', '#3E1210', '#B8A684'), hex: 'split · Isabelline' },
+{ name: 'Tyrian split', bg: split('#5B1A3C', '#DCCDB0', '#3A0F26', '#B8A684'), hex: 'split · Isabelline' },
+{ name: 'Jet & Bone', bg: split('#1A1716', '#DED7C7', '#0C0B0A', '#A9A69B'), hex: 'split' },
+{ name: 'Lapis', bg: marble('#1E3A8A', '#E9E4D6', '#101F4A'), hex: 'marble · calcite veins' },
+{ name: 'Malachite', bg: marble('#2E8A74', '#133F35', '#0E2E27'), hex: 'marble · banded' },
+{ name: 'Serpentine', bg: marble('#4A5527', '#9FB8A4', '#2B3115'), hex: 'marble' },
+{ name: 'Mauve Measles', bg: splat('#9B6B9E', '#DCCDB0', '#B8A684'), hex: 'splatter · on Isabelline' },
+{ name: 'Soot', bg: splat('#1A1716', '#E6E2DA', '#B9B5AC'), hex: 'splatter · on Chalk' },
+{ name: 'Verdigris on Jet', bg: splat('#5BAA99', '#1A1716', '#0C0B0A'), hex: 'splatter' },
+{ name: "Payne's Smoke", bg: smoke('#2E333D', '#5A6372', '#8A93A0', '#1E2229'), hex: 'smoke · T' },
+{ name: 'Tobacco Smoke', bg: smoke('#4E3728', '#8A6238', '#B8862E', '#2A1D14'), hex: 'smoke · T' },
+{ name: 'Heliotrope ring', bg: ring('#6C4A8A', '#9A6E22', '#5E4212'), hex: 'ring · in Ochre' },
+{ name: 'Teal & Coral', bg: swirl('#28868B', '#D4674F', '#123F42'), hex: 'swirl' },
+{ name: 'Grape & Chalk', bg: swirl('#582C83', '#E6E2DA', '#361A52'), hex: 'swirl' },
+{ name: 'Olive & Terracotta', bg: swirl('#4A5527', '#C05131', '#2B3115'), hex: 'swirl' },
+{ name: 'Ultramarine & Verdigris', bg: swirl('#2949A6', '#5BAA99', '#101F4A'), hex: 'swirl' },
+{ name: 'Pine split', bg: split('#2A6A4F', '#DED7C7', '#102A20', '#A9A69B'), hex: 'split · Bone' },
+{ name: 'Rose split', bg: split('#D97A96', '#E6E2DA', '#7A2E48', '#B9B5AC'), hex: 'split · Chalk' },
+{ name: 'Prussian & Ochre', bg: split('#2B5586', '#9A6E22', '#122540', '#5E4212'), hex: 'split' },
+{ name: 'Rhodonite', bg: marble('#D97A96', '#3C4654', '#7A2E48'), hex: 'marble · grey veins' },
+{ name: 'Jasper', bg: marble('#8B4426', '#B8862E', '#4F2412'), hex: 'marble · ochre veins' },
+{ name: 'Sodalite', bg: marble('#3B6192', '#E6E2DA', '#1A2E4A'), hex: 'marble · chalk veins' },
+{ name: 'Coral on Teal', bg: splat('#E8806A', '#28868B', '#123F42'), hex: 'splatter' },
+{ name: 'Ember', bg: splat('#B8862E', '#6B1F1C', '#3E1210'), hex: 'splatter · Ochre on Oxblood' },
+{ name: 'Rose Smoke', bg: smoke('#8A4A60', '#B8678A', '#E3B8AE', '#5A2E40'), hex: 'smoke · T' },
+{ name: 'Sea Smoke', bg: smoke('#1F5A62', '#3A8A94', '#A9E0DC', '#123F42'), hex: 'smoke · T' },
+{ name: 'Teal ring', bg: ring('#28868B', '#D4674F', '#8A3A2A'), hex: 'ring · in Coral' },
+{ name: 'Oxblood ring', bg: ring('#6B1F1C', '#DED7C7', '#A9A69B'), hex: 'ring · in Bone' }
+];
+effects.forEach((e) => { e.hex += tag(e.name); });
+const dot = 'radial-gradient(circle at 78% 22%, #2A1B38 0 14%, transparent 18%), ';
+const chips = families.flatMap((f) => f.items).map((v, i) => ({ bg: (v.sc ? dot : '') + v.body, op: [3, 7, 11, 15, 19, 23, 24, 26, 27, 30, 31, 33, 35, 36, 37, 39, 8].includes(i) ? '.18' : '1' }));
+return { families, effects, chips };
+}
+}
+</script>
+</body>
+</html>

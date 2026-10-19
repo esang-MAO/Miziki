@@ -1,0 +1,143 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-18T03:40:00Z"
+  },
+  "title": "Miziki Crate",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Crate in a bin \u00b7 CR1"
+    },
+    "CrateDividers.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New arrivals bin and an artist divider \u00b7 CR2"
+    },
+    "CrateDetail.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 880,
+      "h": 844,
+      "title": "Sleeve anatomy: edges, stickers, catalog card \u00b7 CR3, CR4"
+    },
+    "CrateGestures.dc.html": {
+      "x": 1900,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Pull up to open \u00b7 CR5"
+    },
+    "Sealed.dc.html": {
+      "x": 0,
+      "y": 1184,
+      "w": 1280,
+      "h": 760,
+      "title": "Sealed records, redesigned \u00b7 CR6"
+    },
+    "Variants.dc.html": {
+      "x": 0,
+      "y": 2264,
+      "w": 1280,
+      "h": 2260,
+      "title": "Pressings: catalogue, metals, pressings between friends \u00b7 CR7, CR11"
+    },
+    "Palette.dc.html": {
+      "x": 0,
+      "y": 4844,
+      "w": 1280,
+      "h": 820,
+      "title": "Palette additions and era tints \u00b7 CR8"
+    },
+    "Artists.dc.html": {
+      "x": 0,
+      "y": 5984,
+      "w": 390,
+      "h": 844,
+      "title": "Artists as fanned stacks \u00b7 CR9"
+    },
+    "ArtistPage.dc.html": {
+      "x": 470,
+      "y": 5984,
+      "w": 390,
+      "h": 844,
+      "title": "Artist shelf \u00b7 CR9"
+    },
+    "Playlists.dc.html": {
+      "x": 940,
+      "y": 5984,
+      "w": 390,
+      "h": 844,
+      "title": "Playlists as compilations \u00b7 CR9"
+    },
+    "DesktopCrate.dc.html": {
+      "x": 0,
+      "y": 7148,
+      "w": 1440,
+      "h": 900,
+      "title": "Desktop crate with a following panel \u00b7 CR10",
+      "expand": "fill"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "CrateDividers.dc.html",
+    "CrateDetail.dc.html",
+    "CrateGestures.dc.html",
+    "Sealed.dc.html",
+    "Variants.dc.html",
+    "Palette.dc.html",
+    "Artists.dc.html",
+    "ArtistPage.dc.html",
+    "Playlists.dc.html",
+    "DesktopCrate.dc.html"
+  ],
+  "notes": {
+    "crate": {
+      "x": 0,
+      "y": -300,
+      "text": "The crate as a bin \u00b7 phone \u00b7 golden hour",
+      "kind": "title1",
+      "maxW": 2290
+    },
+    "sealed": {
+      "x": 0,
+      "y": 884,
+      "text": "Sealed records",
+      "kind": "title1",
+      "maxW": 1280
+    },
+    "pressings": {
+      "x": 0,
+      "y": 1964,
+      "text": "Pressings, metals and palette",
+      "kind": "title1",
+      "maxW": 1280
+    },
+    "library": {
+      "x": 0,
+      "y": 5684,
+      "text": "The rest of the library",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "desktop": {
+      "x": 0,
+      "y": 6848,
+      "text": "Desktop",
+      "kind": "title1",
+      "maxW": 1440
+    }
+  },
+  "designSystems": []
+}

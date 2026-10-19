@@ -17,6 +17,8 @@ let last = performance.now();
 let lastSky1 = null, lastSky2 = null;
 // RF14: the same "only write when changed" guard, for --muted/--muted-2.
 let lastMuted = null, lastMuted2 = null;
+// CR1/CR6: the same guard, for --phase-color/--crate-light.
+let lastPhaseColor = null, lastCrateLight = null;
 // The playback clock: position, played-range tracking (which feeds the 95% rule,
 // sessions and metals) and Sundown's rate. Split out of frame() so it can also run
 // while the page is hidden — the browser stops calling frame() then, but audio can
@@ -215,6 +217,35 @@ export function drawSun(){
     lastMuted = muted; lastMuted2 = muted2;
     document.documentElement.style.setProperty('--muted', muted);
     document.documentElement.style.setProperty('--muted-2', muted2);
+  }
+
+  // CR1/CR6 (docs/13_CRATE.md): a single global --phase-color, the same
+  // "write it once here, read it from CSS wherever it's needed" shape
+  // --sky1/--sky2/--muted/--muted-2 just above already use, so the crate's
+  // own now-playing header text (CR1) and the sealed-record film's tint
+  // (CR6) read one value instead of each keying off [data-phase] the way
+  // the Sundown sheet's entry points (26-sundown-sheet.css) do. The seven
+  // hex values are profile/rhythm-card.js's own PHASE_COLOR table,
+  // duplicated rather than imported — the same "a few color strings
+  // aren't worth a new edge into this already widely-imported render
+  // loop" call this file already makes for the Sundown sheet's own
+  // phase-tinted elements.
+  const phaseColor = PHASE_COLOR[dayPos.phase] || PHASE_COLOR.midday;
+  if(phaseColor !== lastPhaseColor){
+    lastPhaseColor = phaseColor;
+    document.documentElement.style.setProperty('--phase-color', phaseColor);
+  }
+
+  // CR1 (docs/13_CRATE.md): the bin's own sky-lit top edge — warm white at
+  // Golden hour, cool at Night, smoothstep-blended across the same phase
+  // boundaries as --sky1/--sky2/--muted above. Only the crate reads it
+  // (src/styles/10-crate.css's .crate-card::after/.crate-lip), so it's
+  // written with the same change-guard every other per-tick custom
+  // property here already uses.
+  const crateLight = crateLightColor(dayPos);
+  if(crateLight !== lastCrateLight){
+    lastCrateLight = crateLight;
+    document.documentElement.style.setProperty('--crate-light', crateLight);
   }
 
   // DA3's own phase block: a big phase name ("Twilight") plus a muted
@@ -478,4 +509,36 @@ const MUTED_LIGHT = toStops([[79,97,106],[110,122,128]]); // --muted #4F616A / -
 export function mutedGradientStops(dayPos, theme){
   if(theme === 'light') return MUTED_LIGHT;
   return blendAnchors(MUTED_ANCHORS_DARK, dayPos);
+}
+
+// CR1/CR6 (docs/13_CRATE.md): the same seven phase names/hexes
+// profile/rhythm-card.js's own PHASE_COLOR table already uses, duplicated
+// here per that file's own comment on why (see --phase-color's write
+// site above).
+const PHASE_COLOR = {
+  night: '#8E7CC3', dawn: '#E7A7B8', morning: '#9FD8E8', midday: '#EFE9DF',
+  afternoon: '#D9C7A0', golden: '#FFB85E', twilight: '#FF9E2C',
+};
+
+// CR1's "sky-lit highlight": a warm-white top edge at Golden hour, cool at
+// Night, blended the same smoothstep way skyGradientStops()/
+// mutedGradientStops() already are — reusing blendAnchors() with a
+// one-color-per-phase table (both "stops" of each pair identical) rather
+// than teaching that helper a single-color shape of its own. Exported for
+// its own unit test, same precedent as skyGradientStops/mutedGradientStops.
+const CRATE_LIGHT_WARM = [255,235,200];   // warm white, golden hour
+const CRATE_LIGHT_COOL = [205,214,230];  // cool white, night
+const CRATE_LIGHT_ANCHORS = {
+  night: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL], dawn: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL],
+  morning: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL], midday: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL],
+  afternoon: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL], golden: [CRATE_LIGHT_WARM, CRATE_LIGHT_WARM],
+  twilight: [CRATE_LIGHT_WARM, CRATE_LIGHT_WARM], dusk: [CRATE_LIGHT_COOL, CRATE_LIGHT_COOL],
+};
+
+export function crateLightColor(dayPos){
+  const [stop] = blendAnchors(CRATE_LIGHT_ANCHORS, dayPos);
+  // stop is 'rgb(r,g,b)' (toStops()'s own format) — reused as the rgb()
+  // triple inside a fixed-alpha rgba(), rather than teaching toStops()
+  // itself a fourth, alpha argument no other caller needs.
+  return 'rgba(' + stop.slice(4, -1) + ',.2)';
 }

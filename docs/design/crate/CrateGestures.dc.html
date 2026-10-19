@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pull a record up to open it</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #857A70">212 RECORDS · A–Z</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">PULLING…</span>
+</div>
+
+<div aria-label="Crate, a record being pulled up" style="position: relative; height: 560px; margin-top: 8px; perspective: 900px; perspective-origin: 50% 20%">
+
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 190px; width: 272px; height: 44px; margin-left: -136px; border-radius: 4px 4px 0 0; background: #5E4A44; transform: rotateX(58deg); transform-origin: bottom; opacity: .6"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 222px; width: 276px; height: 48px; margin-left: -138px; border-radius: 4px 4px 0 0; background: #44605A; transform: rotateX(56deg); transform-origin: bottom; opacity: .6"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 256px; width: 278px; height: 52px; margin-left: -139px; border-radius: 4px 4px 0 0; background: #5A4A5E; transform: rotateX(54deg); transform-origin: bottom; opacity: .6"></div>
+
+<div style="position: absolute; left: 50%; top: 40px; width: 296px; height: 296px; margin-left: -148px; border-radius: 4px; background: #3E5566; transform: rotate(-2deg); box-shadow: inset 0 1px 0 rgba(255,235,200,.22), inset 0 -3px 0 rgba(0,0,0,.25), 0 8px 16px rgba(0,0,0,.3), 0 40px 80px rgba(0,0,0,.55); overflow: hidden">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,0)); display: block"></span>
+<span aria-hidden="true" style="position: absolute; right: -40px; top: 60px; width: 230px; height: 230px; border-radius: 115px; background: repeating-radial-gradient(circle at 50% 50%, #15161B 0px, #15161B 2px, #1C1D23 3px, #15161B 4px); box-shadow: -6px 0 16px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center"><span style="width: 76px; height: 76px; border-radius: 38px; background: #FF9E2C; display: block"></span></span>
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 50%; bottom: 140px; width: 330px; height: 118px; margin-left: -165px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #3A2B22 0%, #2A1F19 18%, #1E1612 100%); box-shadow: inset 0 2px 0 rgba(255,235,200,.16), 0 -8px 24px rgba(0,0,0,.35)"></div>
+
+<div style="position: absolute; left: 24px; right: 24px; bottom: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: flex-start; gap: 12px"><span class="mono" style="font-size: 10px; color: #FFB85E; width: 36px; flex-shrink: 0">TAP</span><span style="font-size: 12px; line-height: 1.45; color: #A99C8F">Opens the gatefold, as today.</span></div>
+<div style="display: flex; align-items: flex-start; gap: 12px"><span class="mono" style="font-size: 10px; color: #FFB85E; width: 36px; flex-shrink: 0">PULL</span><span style="font-size: 12px; line-height: 1.45; color: #A99C8F">Drag the front record up past 40% of its height: the record slides out of the sleeve as it rises, then the gatefold opens with the disc already out. Let go early and it drops back.</span></div>
+<div style="display: flex; align-items: flex-start; gap: 12px"><span class="mono" style="font-size: 10px; color: #FFB85E; width: 36px; flex-shrink: 0">HOLD</span><span style="font-size: 12px; line-height: 1.45; color: #A99C8F">Long-press: Play next · Add to queue · Pin to staff picks · Sleeve note.</span></div>
+<div style="display: flex; align-items: flex-start; gap: 12px"><span class="mono" style="font-size: 10px; color: #FFB85E; width: 36px; flex-shrink: 0">FLIP</span><span style="font-size: 12px; line-height: 1.45; color: #A99C8F">Vertical swipes flip through, with momentum, as today. The rail jumps by letter.</span></div>
+</div>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: rgba(13,11,16,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Main.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg><span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">LIBRARY</span></a>
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #A99C8F"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" style="opacity: .8"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span></a>
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #A99C8F"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="opacity: .8"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">PROFILE</span></a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

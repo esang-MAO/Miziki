@@ -12,13 +12,14 @@ import { $, el } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
 import { isDesktopShell } from '../util/viewport.js';
-import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR } from './constants.js';
+import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_DEPTH_SPREAD } from './constants.js';
 import { flowPose, flowZIndex } from './geometry.js';
 import { isAlbumSealed, buildSealOverlay } from '../library/sealed.js';
 import { thumbURL } from '../library/thumbs.js';
 import { setQueue } from '../player/queue.js';
 import { queueSave } from '../storage/meta.js';
 import { isLibraryRouteVisible } from '../shell/routes.js';
+import { openAddMenu } from '../shell/header.js';
 import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
@@ -231,17 +232,14 @@ export function applyCrateMiniInset(){
   // pre-existing phone-layout math" ahead of that.
   const tabbarH = (tabbarEl && !isDesktopShell()) ? tabbarEl.getBoundingClientRect().height : 0;
   const infoReserve = info ? info.getBoundingClientRect().height : 84;
-  // the "now playing elsewhere" pill sits in normal flow above the stage
-  // (shown/hidden as the user scrolls past the playing album) and isn't
-  // fixed-height — when shown it has to come out of this same budget, same
-  // as the info panel below, or the stage claims room it doesn't have
-  const topbarEl = document.querySelector('.crate-topbar');
-  const topbarVisible = topbarEl && getComputedStyle(topbarEl).display !== 'none';
-  // include its own margin-bottom too — getBoundingClientRect only covers
-  // the border box, and the margin is exactly what separates it from the
-  // stage below
-  const topbarReserve = topbarVisible
-    ? topbarEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(topbarEl).marginBottom) || 0)
+  // CR1 (docs/13_CRATE.md): the header row (record-count/group label, plus
+  // the now-playing indicator on the same line) always occupies its own
+  // line above the stage now, unlike the old standalone .crate-topbar pill
+  // that only took up space while actually shown — its height has to come
+  // out of this same budget every render, not just conditionally.
+  const headerEl = document.querySelector('.crate-header');
+  const headerReserve = headerEl
+    ? headerEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(headerEl).marginBottom) || 0)
     : 0;
   const wrapTop = wrap.getBoundingClientRect().top;
   // .wrap itself already reserves tabbarH + miniH + 16px as its own
@@ -253,7 +251,7 @@ export function applyCrateMiniInset(){
   // already covers, so after .crate-info's own 12px margin-top cancels
   // part of it, the two reservations land flush with zero net overflow —
   // verified against the actual rendered page height, not just by eye.
-  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - topbarReserve - 28;
+  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - headerReserve - 28;
   // the stage always claims all available room instead of capping and
   // banking the rest as dead space below the info panel — the info panel
   // sits flush just above the mini player, and the crate itself (the thing
@@ -282,7 +280,37 @@ export function applyCrateMiniInset(){
 
 export function renderCrate(host){
   const model = ensureCrateModel();
-  if(!model.items.length){ host.appendChild(el('p','note','No albums to show yet.')); return; }
+  // CR1 (docs/13_CRATE.md): an empty bin reads as a bin with nothing in it
+  // yet, not a bare caption — the same lip the populated bin shows, under
+  // a cream "Fill the crate" card wired straight to the header's own
+  // Add-songs menu (src/shell/header.js's openAddMenu(), the same one
+  // #hdrAddBtn opens — src/wiring/import.js). In today's app this branch
+  // is never actually reached on a genuinely empty library: library/view.
+  // js's renderTracks() shows the shared app-wide #empty screen (its own
+  // "No music loaded yet" + Choose files/folder/test tone card) before it
+  // would ever call renderCrate() at all, and buildCrateRecords() (crate/
+  // model.js) always yields at least one record from a non-empty S.tracks
+  // — so model.items can only be empty alongside an empty library, which
+  // never gets this far. Kept correct anyway, for whenever it is reached
+  // (a future caller, a test) and because it's what the design doc
+  // describes for an empty bin — worth Ken's call on whether a future PR
+  // should route the shared #empty screen through this instead when the
+  // crate layout is the active one, rather than something decided here.
+  if(!model.items.length){
+    const empty = el('div','crate-wrap crate-empty');
+    const stage = el('div','crate-stage');
+    stage.appendChild(el('div','crate-lip'));
+    empty.appendChild(stage);
+    const card = el('div','crate-empty-card');
+    card.appendChild(el('p','crate-empty-title','Fill the crate'));
+    card.appendChild(el('p','crate-empty-sub','No albums to show yet.'));
+    const addBtn = el('button','cta','+ Add songs');
+    addBtn.addEventListener('click', () => openAddMenu());
+    card.appendChild(addBtn);
+    empty.appendChild(card);
+    host.appendChild(empty);
+    return;
+  }
   updateCrateGroupToggleUI();
   if(REDUCED){ renderCrateFlat(host, model); return; }
 
@@ -312,21 +340,47 @@ export function renderCrate(host){
   // re-synced), the same assumption applyCrateMiniInset()'s own measurements
   // already make about .crate-stage's rendered width/height.
   const cardSize = currentCardSize();
-  const cardSpread = cardSize / BASE_CRATE_CARD_SIZE;
+  // CR1 (docs/13_CRATE.md): CRATE_DEPTH_SPREAD is crate-only — folded in
+  // here, after the D5 desktop-card-size ratio, rather than into
+  // flowPose() itself, so the launch intro's own call (which never reads
+  // this constant) is untouched. See constants.js's own comment for why
+  // this value, combined with CRATE_ORIGIN_Y and the taller --crate-stage-h,
+  // is what keeps six receding record tops inside the stage instead of
+  // clipped by its overflow:hidden.
+  const cardSpread = (cardSize / BASE_CRATE_CARD_SIZE) * CRATE_DEPTH_SPREAD;
 
   const wrap = el('div','crate-wrap');
+  // CR1 (docs/13_CRATE.md): a header row rather than the now-playing chip
+  // sitting alone above the stage — a left label naming how many records
+  // are in the bin and how it's grouped, and the (restyled) now-playing
+  // indicator on the right, as plain phase-coloured text rather than a
+  // bordered pill.
+  const header = el('div','crate-header');
+  const recordCount = model.items.filter(it => it.type === 'rec').length;
+  const headerLeft = el('div','crate-header-left',
+    recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS') + ' · ' + (model.group === 'genre' ? 'GENRE' : 'A–Z'));
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
   nowPlayingBtn.addEventListener('click', () => { if(nowPlayingIdx >= 0) snapTo(nowPlayingIdx); });
+  header.appendChild(headerLeft); header.appendChild(nowPlayingBtn);
   const stage = el('div','crate-stage');
   stage.tabIndex = 0;
   stage.setAttribute('role','listbox');
   stage.setAttribute('aria-label','Crate');
   const live = el('div','sr-only'); live.id = 'crateLive'; live.setAttribute('aria-live','polite');
   stage.appendChild(live);
+  // CR1: the bin's own cardboard lip at the stage's bottom edge, tagged
+  // with whichever divider the centred record currently falls under (or,
+  // in an ungrouped bin, the overall record count) — kept in sync from
+  // syncCards() via updateLip() below, the same "recompute on position
+  // change" shape updateRailUI()/updateNowPlayingTopBar() already use.
+  const lip = el('div','crate-lip');
+  const lipTag = el('div','crate-lip-tag');
+  lip.appendChild(lipTag);
+  stage.appendChild(lip);
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
-  wrap.appendChild(nowPlayingBtn); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  wrap.appendChild(header); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
 
   // D5 (docs/DESKTOP_LAYOUT.md): the inline record-detail panel beside the
   // crate — a new sibling of .crate-wrap, not a child of it, so .crate-wrap
@@ -449,14 +503,13 @@ export function renderCrate(host){
     } else {
       nowPlayingBtn.classList.remove('show');
     }
-    // the pill takes up real flow space above the stage, so the stage's
-    // own height budget (applyCrateMiniInset) has to be recomputed
-    // whenever it appears or disappears — but only on that transition, not
-    // every frame, since this runs continuously while scrubbing. This has
-    // to run AFTER the show/hide class above, not before: measuring with
-    // the old (stale) display state meant the stage never actually
-    // reserved room for a pill that was about to pop in a moment later,
-    // pushing the info panel down behind the mini player on that frame.
+    // CR1 (docs/13_CRATE.md): now that this indicator lives inline inside
+    // the always-visible .crate-header row rather than as its own
+    // standalone pill, showing/hiding it no longer changes the header's
+    // own height (headerReserve, applyCrateMiniInset()) — recomputing here
+    // is now a harmless no-op rather than the real fix it used to be, kept
+    // anyway in case a future change (e.g. the text wrapping to a second
+    // line on a narrow screen) makes it matter again.
     if(changed) applyCrateMiniInset();
   }
 
@@ -521,6 +574,29 @@ export function renderCrate(host){
     });
   }
 
+  // CR1: finds the divider item nearest at-or-before the given item index,
+  // walking backward through the already-ordered model.items array (cheap —
+  // a crate's own divider count is small, and this only runs once per
+  // position change via syncCards(), not per frame). Falls back to the
+  // whole-bin count when there's no divider yet (an ungrouped bin, e.g.
+  // fewer than 20 records — crate/model.js's own showDividers gate).
+  function nearestDividerBefore(itemIdx){
+    for(let i = Math.min(itemIdx, model.items.length - 1); i >= 0; i--){
+      if(model.items[i].type === 'div') return model.items[i];
+    }
+    return null;
+  }
+  let lastLipKey = null;
+  function updateLip(position){
+    const idx = Math.round(position);
+    const div = nearestDividerBefore(idx);
+    const key = div ? div.label : '*all*';
+    if(key === lastLipKey) return;
+    lastLipKey = key;
+    if(div){ lipTag.textContent = div.label + ' — ' + div.meta; }
+    else { lipTag.textContent = recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS'); }
+  }
+
   function announceCurrent(){
     const item = itemAt(Math.round(S.crate.pos));
     if(!item) return;
@@ -562,6 +638,7 @@ export function renderCrate(host){
     syncInfoReserve();
     updateRailUI(position);
     updateNowPlayingTopBar(position);
+    updateLip(position);
   }
   function draw(speed){ syncCards(S.crate.pos, speed); }
 
