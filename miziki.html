@@ -644,8 +644,11 @@
             <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharWowFill"></i><i id="sdCharWowTick"></i></div>
           </button>
           <div class="sd-charcard-fine" id="sdCharWowFine" data-char-fine="wow" hidden>
-            <input type="range" min="0" max="100" value="30" id="charFineWow" aria-label="Wow and flutter, fine-tune">
-            <span id="charFineWowOut">30%</span>
+            <div class="sd-charcard-fine-row">
+              <input type="range" min="0" max="100" value="30" id="charFineWow" aria-label="Wow and flutter, fine-tune">
+              <span id="charFineWowOut">30%</span>
+            </div>
+            <button type="button" class="sd-audition-btn" data-audition-stage="wow" aria-pressed="false">Hear it alone</button>
           </div>
           <button class="sd-charcard" type="button" data-char-tune="sat" aria-expanded="false" aria-controls="sdCharSatFine">
             <p class="sd-charcard-label">Saturation</p>
@@ -653,8 +656,11 @@
             <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSatFill"></i><i id="sdCharSatTick"></i></div>
           </button>
           <div class="sd-charcard-fine" id="sdCharSatFine" data-char-fine="sat" hidden>
-            <input type="range" min="0" max="100" value="35" id="charFineSat" aria-label="Saturation, fine-tune">
-            <span id="charFineSatOut">35%</span>
+            <div class="sd-charcard-fine-row">
+              <input type="range" min="0" max="100" value="35" id="charFineSat" aria-label="Saturation, fine-tune">
+              <span id="charFineSatOut">35%</span>
+            </div>
+            <button type="button" class="sd-audition-btn" data-audition-stage="sat" aria-pressed="false">Hear it alone</button>
           </div>
           <button class="sd-charcard" type="button" data-char-tune="soft" aria-expanded="false" aria-controls="sdCharSoftFine">
             <p class="sd-charcard-label">Top end</p>
@@ -662,8 +668,11 @@
             <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharSoftFill"></i><i id="sdCharSoftTick"></i></div>
           </button>
           <div class="sd-charcard-fine" id="sdCharSoftFine" data-char-fine="soft" hidden>
-            <input type="range" min="0" max="100" value="40" id="charFineSoft" aria-label="Top end, fine-tune">
-            <span id="charFineSoftOut">40%</span>
+            <div class="sd-charcard-fine-row">
+              <input type="range" min="0" max="100" value="40" id="charFineSoft" aria-label="Top end, fine-tune">
+              <span id="charFineSoftOut">40%</span>
+            </div>
+            <button type="button" class="sd-audition-btn" data-audition-stage="soft" aria-pressed="false">Hear it alone</button>
           </div>
           <button class="sd-charcard" type="button" data-char-tune="comp" aria-expanded="false" aria-controls="sdCharCompFine">
             <p class="sd-charcard-label">Bus compression</p>
@@ -671,10 +680,21 @@
             <div class="sd-charcard-track" aria-hidden="true"><i id="sdCharCompFill"></i><i id="sdCharCompTick"></i></div>
           </button>
           <div class="sd-charcard-fine" id="sdCharCompFine" data-char-fine="comp" hidden>
-            <input type="range" min="0" max="100" value="35" id="charFineComp" aria-label="Bus compression, fine-tune">
-            <span id="charFineCompOut">35%</span>
+            <div class="sd-charcard-fine-row">
+              <input type="range" min="0" max="100" value="35" id="charFineComp" aria-label="Bus compression, fine-tune">
+              <span id="charFineCompOut">35%</span>
+            </div>
+            <button type="button" class="sd-audition-btn" data-audition-stage="comp" aria-pressed="false">Hear it alone</button>
           </div>
         </div>
+
+        <!-- RF28 ("what am I hearing"): the whole-chain twin of the four
+             per-stage "Hear it alone" buttons above -- held, every stage
+             bypasses at once, so the chain reads exactly as Pure would.
+             src/wiring/character.js wires every [data-audition-stage]/
+             [data-audition-pure] button through the same press-and-hold
+             handler. -->
+        <button type="button" class="sd-audition-btn sd-audition-pure" data-audition-pure aria-pressed="false">Compare with Pure</button>
       </div>
 
       <!-- RF9: the chart only means anything once something is actually
