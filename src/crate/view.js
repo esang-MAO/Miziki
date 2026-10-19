@@ -773,14 +773,23 @@ export function renderCrate(host){
 
   // ---- pointer / touch drag ----
   let dragState = null;
+  // Set true the moment any gesture on this pointerdown actually becomes
+  // something other than a plain tap (a flip drag, a pull, or a long
+  // hold) -- read at pointerup instead of dragState.moved/pullState.phase,
+  // since stage has two separate pointerup listeners (this one and the
+  // older endDrag registration just below) and the first one to run
+  // already nulls dragState/pullState before the second ever sees them;
+  // a flag set live, during the gesture, has no such ordering race.
+  let gestureConsumed = false;
   function beginFlipDrag(e, moved){
     dragState = {startY:e.clientY, lastY:e.clientY, lastT:performance.now(), v:0, moved:!!moved};
+    if(moved) gestureConsumed = true;
   }
   stage.addEventListener('pointermove', e => {
     if(!dragState) return;
     const now = performance.now();
     const dy = e.clientY - dragState.lastY;
-    if(Math.abs(e.clientY - dragState.startY) > 3) dragState.moved = true;
+    if(Math.abs(e.clientY - dragState.startY) > 3){ dragState.moved = true; gestureConsumed = true; }
     const dt = Math.max(1, now - dragState.lastT);
     const deltaPos = -dy / 70;
     S.crate.pos = clamp(S.crate.pos + deltaPos, 0, model.items.length - 1);
@@ -820,13 +829,25 @@ export function renderCrate(host){
   // a pull is a tap" on its own, structurally, with nothing added here.
   let pullState = null;
   let holdTimer = null;
+  // See the pointerdown handler's own comment -- the card index a tap
+  // would open or snap to, resolved before pointer capture can retarget
+  // anything.
+  let tapCandidateIdx = null;
   function clearHoldTimer(){ if(holdTimer != null){ clearTimeout(holdTimer); holdTimer = null; } }
 
-  function frontRecordAt(e){
+  // Shared by frontRecordAt() below and by the tap-candidate lookup at
+  // pointerdown -- both need "which pooled card, if any, is e.target
+  // inside" and nothing more.
+  function cardIdxAt(e){
     const cardEl = e.target.closest('.crate-card');
     if(!cardEl) return null;
     let idx = null;
     pool.forEach((elC, i) => { if(elC === cardEl) idx = i; });
+    return idx;
+  }
+
+  function frontRecordAt(e){
+    const idx = cardIdxAt(e);
     if(idx == null || idx !== Math.round(S.crate.pos)) return null;
     const item = itemAt(idx);
     // a "loose tracks" pseudo-record (no real sleeve/gatefold to pull
@@ -835,7 +856,7 @@ export function renderCrate(host){
     // the pointerdown handler below falls back to the ordinary flip drag
     // for either, same as for any other non-centred card.
     if(!item || item.type !== 'rec' || item.kind === 'loose' || isAlbumSealed(item.albumId)) return null;
-    return {item, cardEl};
+    return {item, cardEl: pool.get(idx)};
   }
 
   function setPullLift(ps, upPx){
@@ -909,6 +930,18 @@ export function renderCrate(host){
   stage.addEventListener('pointerdown', e => {
     if(e.button != null && e.button !== 0) return;
     cancelAnim();
+    // Resolved from this pointerdown's own e.target -- the one event in
+    // this whole gesture whose target setPointerCapture() below hasn't
+    // touched yet (capture only retargets events *after* the call that
+    // sets it). Every later pointer event, and the mouse's own trailing
+    // "click" a tap ends in, gets retargeted to stage itself once capture
+    // is set, which is why the stage's own click handler below can no
+    // longer reliably resolve ".crate-card" from e.target -- see the
+    // pointerup handler further down for the fix that actually opens or
+    // snaps to this card on a plain tap, using this stashed index instead
+    // of waiting on that click event.
+    tapCandidateIdx = cardIdxAt(e);
+    gestureConsumed = false;
     try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
     const front = frontRecordAt(e);
     if(!front){ beginFlipDrag(e, false); return; }
@@ -921,6 +954,7 @@ export function renderCrate(host){
     holdTimer = setTimeout(() => {
       if(pullState && pullState.phase === 'pending'){
         pullState.phase = 'hold';
+        gestureConsumed = true;
         openCrateHoldCard(pullState.item);
         pullState = null;
       }
@@ -933,7 +967,7 @@ export function renderCrate(host){
     e.preventDefault();
     if(pullState.phase === 'pending'){
       const cls = classifyCratePointerTrace(pullState.trace);
-      if(cls === 'pull'){ pullState.phase = 'pull'; clearHoldTimer(); }
+      if(cls === 'pull'){ pullState.phase = 'pull'; gestureConsumed = true; clearHoldTimer(); }
       else if(cls === 'flip'){
         clearHoldTimer();
         pullState.cardEl.style.transform = pullState.baseTransform;
@@ -944,7 +978,26 @@ export function renderCrate(host){
     }
     setPullLift(pullState, Math.max(0, -dy));
   });
-  stage.addEventListener('pointerup', e => { endPullGesture(); endDrag(e); });
+  function openOrSnapIdx(idx){
+    if(idx === Math.round(S.crate.pos)){
+      const item = itemAt(idx);
+      if(item.type === 'rec') openCrateAlbum(item);
+    } else snapTo(idx);
+  }
+  stage.addEventListener('pointerup', e => {
+    // gestureConsumed, not a read of dragState/pullState here -- stage has
+    // two separate pointerup listeners (this one and the older endDrag
+    // registration a few lines up), and that one runs first and already
+    // nulls dragState/pullState before this listener's body ever executes,
+    // which would make a real flip-drag misread as "never moved." The flag
+    // is set live, during the gesture itself, so it has no such race.
+    endPullGesture();
+    endDrag(e);
+    if(!gestureConsumed && tapCandidateIdx != null){
+      openOrSnapIdx(tapCandidateIdx);
+    }
+    tapCandidateIdx = null;
+  });
   stage.addEventListener('pointercancel', () => {
     if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
     endDrag();
@@ -992,16 +1045,15 @@ export function renderCrate(host){
   });
 
   // ---- tap a card: centre one scrolls to it, the centred one opens ----
+  // The actual dispatch now happens from the pointerup handler above
+  // (tapCandidateIdx, resolved at pointerdown before pointer capture can
+  // retarget anything) -- this click listener is kept only as a harmless
+  // fallback for whatever synthetic/non-pointer-capture click might still
+  // reach it with a correctly-targeted e.target.
   stage.addEventListener('click', e => {
-    const cardEl = e.target.closest('.crate-card');
-    if(!cardEl) return;
-    let idx = null;
-    pool.forEach((elC, i) => { if(elC === cardEl) idx = i; });
+    const idx = cardIdxAt(e);
     if(idx == null) return;
-    if(idx === Math.round(S.crate.pos)){
-      const item = itemAt(idx);
-      if(item.type === 'rec') openCrateAlbum(item);
-    } else snapTo(idx);
+    openOrSnapIdx(idx);
   });
 
   // ---- rail drag-to-scrub, with the amber bubble ----
