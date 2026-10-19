@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarEvent, computeRate, depthKeyFor, depthCaptionFor } from '../../src/sundown/solar.js';
+import { solarEvent, computeRate, depthKeyFor, depthCaptionFor, formatRateChange } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
 // Columbia, MD (39.20, -76.86). Published sunset for Jun 21, 2025 is 8:38 pm
@@ -83,8 +83,33 @@ test('depthCaptionFor: Off names no rate at all', () => {
   assert.match(depthCaptionFor('off', 0.80), /^Off/);
 });
 
-test('depthCaptionFor: each depth names its own rate and semitones', () => {
-  assert.equal(depthCaptionFor('gentle', 0.85), 'Gentle — 0.85× · 2.8 st');
-  assert.equal(depthCaptionFor('medium', 0.80), 'Medium — 0.80× · 3.9 st');
-  assert.equal(depthCaptionFor('deep', 0.75), 'Deep — 0.75× · 5.0 st');
+test('depthCaptionFor: each depth names its own rate as a percentage and semitones (RF27)', () => {
+  assert.equal(depthCaptionFor('gentle', 0.85), 'Gentle — −15.0% ≈ −2¾ semitones');
+  assert.equal(depthCaptionFor('medium', 0.80), 'Medium — −20.0% ≈ −3¾ semitones');
+  assert.equal(depthCaptionFor('deep', 0.75), 'Deep — −25.0% ≈ −5 semitones');
+});
+
+// RF27 (docs/12_REFINE.md): "show the number next to the sound" — one pure
+// helper every rate reader (the depth caption above, player/clock.js's
+// #rateOut and #trackSpecPhase) shows a rate change through.
+test('formatRateChange: no change at all reads as a plain, signless zero', () => {
+  assert.equal(formatRateChange(1), '0.0% ≈ 0 semitones');
+});
+
+test('formatRateChange: a quarter semitone down reads as a singular fraction', () => {
+  // 2^(-0.25/12) ~= 0.98566 -- exactly a quarter semitone slower.
+  assert.equal(formatRateChange(Math.pow(2, -0.25 / 12)), '−1.4% ≈ −¼ semitone');
+});
+
+test('formatRateChange: exactly one semitone down stays singular, no fraction glyph', () => {
+  // 2^(-1/12) ~= 0.94387 -- exactly one semitone slower.
+  assert.equal(formatRateChange(Math.pow(2, -1 / 12)), '−5.6% ≈ −1 semitone');
+});
+
+test('formatRateChange: a sped-up rate reads with a plus sign', () => {
+  assert.equal(formatRateChange(1.05), '+5.0% ≈ +¾ semitone');
+});
+
+test('formatRateChange: several whole semitones down pluralizes and drops the fraction', () => {
+  assert.equal(formatRateChange(0.75), '−25.0% ≈ −5 semitones');
 });

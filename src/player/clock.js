@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
-import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock } from '../sundown/solar.js';
+import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
@@ -105,7 +105,6 @@ export function drawTime(){
 
 export function drawSun(){
   const p = sunProgress(), e = easedProgress();
-  const semis = 12 * Math.log2(S.rate);
 
   // DA3's own header eyebrow ("Now · 6:49 PM") — only while live;
   // src/sundown/dial-gesture.js's setPreviewMinutes() owns the
@@ -118,7 +117,11 @@ export function drawSun(){
       eyebrow.classList.remove('sd-previewing');
     }
   }
-  $('#rateOut').textContent = S.rate.toFixed(3) + '× · ' + (semis >= -0.05 ? '0.0' : semis.toFixed(1)) + ' st';
+  // RF27 (docs/12_REFINE.md): "show the number next to the sound" — a
+  // percentage plus an approximate semitone fraction, not a raw
+  // multiplier/decimal semitone count. Full speed (rate === 1) reads as
+  // its own plain label rather than "0.0% ≈ 0 semitones".
+  $('#rateOut').textContent = S.rate >= 0.999 && S.rate <= 1.001 ? 'Full speed' : formatRateChange(S.rate);
   // RF15 (docs/12_REFINE.md): the platter label's own mono arc — real RPM
   // (tracks Sundown's drift, same number the plain readout this replaced
   // always showed) plus the side/format half transport.js's load() cached
@@ -238,7 +241,7 @@ export function drawSun(){
   // avoid a new import edge into this already widely-imported render
   // loop). The knob's own time readout and the player's format line's
   // phase suffix (#trackSpecPhase) are two more small mirrors of this
-  // same already-computed `name`/`semis`, the same shape #sideRateWhy
+  // same already-computed `name`/`S.rate`, the same shape #sideRateWhy
   // just above already uses.
   const knob = $('#sunKnob'), miniSun = $('#miniSunBtn');
   if(knob) knob.dataset.phase = dayPos.phase;
@@ -247,8 +250,11 @@ export function drawSun(){
   if(knobTime) knobTime.textContent = nowClock().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const specPhase = $('#trackSpecPhase');
   if(specPhase){
+    // RF27 (docs/12_REFINE.md): same percentage+semitone format as #rateOut
+    // and the depth caption (solar.js's formatRateChange()), not a bare
+    // "X ST SLOWER" — upper-cased to match this line's own all-caps style.
     specPhase.textContent = current()
-      ? name.toUpperCase() + ' · ' + (S.mode === 'pure' || S.rate >= 0.999 ? 'FULL SPEED' : Math.abs(semis).toFixed(1) + ' ST SLOWER')
+      ? name.toUpperCase() + ' · ' + (S.mode === 'pure' || S.rate >= 0.999 ? 'FULL SPEED' : formatRateChange(S.rate).toUpperCase())
       : '';
   }
 
