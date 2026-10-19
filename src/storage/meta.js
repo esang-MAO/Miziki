@@ -139,7 +139,7 @@ function applyPrefs(p){
     document.querySelectorAll('#libLayoutToggle [data-layout]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.layout === S.libraryLayout)));
   }
-  if(p.crateGroup === 'az' || p.crateGroup === 'genre') S.crateGroup = p.crateGroup;
+  if(p.crateGroup === 'az' || p.crateGroup === 'genre' || p.crateGroup === 'decade') S.crateGroup = p.crateGroup;
   if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
   if(typeof p.albumSides === 'boolean'){
     S.albumSides = p.albumSides;

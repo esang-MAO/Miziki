@@ -33,6 +33,14 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
   });
 });
 
+// CR4 (docs/13_CRATE.md): crateGroup's third valid value, decade — same
+// round-trip coverage as the pre-existing az/genre case above, just for
+// the new one.
+test('round trip: crateGroup "decade" survives (CR4)', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ crateGroup: 'decade' })));
+  assert.equal(parsed.crateGroup, 'decade');
+});
+
 test('round trip: the slipmat flags survive with non-default values (CEREMONY §6)', () => {
   const parsed = parsePrefs(serializePrefs(fakeS({ slipmatCustom: true, slipmatWordmark: false, slipmatDim: false })));
   assert.equal(parsed.slipmatCustom, true);

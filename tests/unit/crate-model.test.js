@@ -19,7 +19,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres,
-  stickerFor, catalogLineFor, playedLineFor,
+  stickerFor, catalogLineFor, playedLineFor, eraTintFor,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -257,6 +257,37 @@ test('catalogLineFor: label + catalog number present, with the duration', () => 
 test('catalogLineFor: falls back to genre/year/track-count, with no duration, once label and catalog are both empty', () => {
   const record = {label:'', catalog:'', genre:'Rock', year:1998, trackCount:10, durationSec: 2472};
   assert.equal(catalogLineFor(record), 'ROCK · 1998 · 10 TRACKS');
+});
+
+// CR4 (docs/13_CRATE.md): "a third crate order, DECADE... sorted by year,
+// with a divider per decade... Pre-1950 shares the 1950s row; undated
+// records sit last under 'Undated'."
+
+test('ensureCrateModel (decade): groups by decade in chronological order, pre-1950 under 1950s, undated last', () => {
+  resetState({
+    crateGroup: 'decade',
+    tracks: [
+      fakeTrack('d1', { tags: { title:'D1', artist:'Nineties Band', album:'Nineties Album', albumArtist:'Nineties Band', track:1, disc:1 }, details: { genre:'', year: 1995 } }),
+      fakeTrack('d2', { tags: { title:'D2', artist:'Old Timer', album:'Old Album', albumArtist:'Old Timer', track:1, disc:1 }, details: { genre:'', year: 1932 } }),
+      fakeTrack('d3', { tags: { title:'D3', artist:'No Year', album:'Mystery Album', albumArtist:'No Year', track:1, disc:1 }, details: { genre:'', year: 0 } }),
+      fakeTrack('d4', { tags: { title:'D4', artist:'Fifties Act', album:'Fifties Album', albumArtist:'Fifties Act', track:1, disc:1 }, details: { genre:'', year: 1955 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const dividers = model.items.filter(it => it.type === 'div' && it.kind === 'decade');
+  assert.deepEqual(dividers.map(d => d.label), ['1950s', '1990s', 'Undated']);
+  // the 1932 and 1955 records share the one 1950s divider, in real-year order
+  const d1950 = dividers[0];
+  const d1950Idx = model.items.indexOf(d1950);
+  assert.equal(model.items[d1950Idx + 1].album, 'Old Album');
+  assert.equal(model.items[d1950Idx + 2].album, 'Fifties Album');
+  assert.equal(model.group, 'decade');
+});
+
+test('eraTintFor: three tints for a decade the README\'s table covers, null for undated or an unlisted decade', () => {
+  assert.deepEqual(eraTintFor('1970s'), ['#676232', '#B68A3A', '#754734']);
+  assert.equal(eraTintFor('undated'), null);
+  assert.equal(eraTintFor('1940s'), null);
 });
 
 test('playedLineFor: empty until the album has at least one qualifying session, then names the count and last-spun day', () => {

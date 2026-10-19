@@ -158,11 +158,16 @@
         <button data-view="artists" aria-pressed="false">Artists</button>
         <button data-view="playlists" aria-pressed="false">Playlists</button>
       </div>
-      <!-- the A-Z/Genre crate-grouping toggle — one home for this control
-           now (RF8), shown whenever crate mode is active, any platform. -->
+      <!-- the A-Z/Genre/Decade crate-grouping toggle — one home for this
+           control now (RF8), shown whenever crate mode is active, any
+           platform. CR4 (docs/13_CRATE.md) adds the third option, Decade —
+           always shown, unlike Genre, which still hides when the library
+           has no genre tags at all (updateCrateGroupToggleUI(), crate/
+           view.js). -->
       <div class="seg" id="crateGroupToggleTab" style="display:none">
         <button data-group="az" aria-pressed="true">A–Z</button>
         <button data-group="genre" aria-pressed="false" id="crateGenreBtnTab" style="display:none">Genre</button>
+        <button data-group="decade" aria-pressed="false">Decade</button>
       </div>
       <!-- search/add used to live in the big wordmark header above; moved
            here so they still show (the add button even with an empty

@@ -137,6 +137,39 @@ function firstNonEmpty(idx, field){
 }
 function albumDurationFor(idx){ return idx.reduce((sum, i) => sum + (S.tracks[i].duration || 0), 0); }
 
+// CR4 (docs/13_CRATE.md): "a divider per decade... pre-1950 shares the
+// 1950s row; undated records sit last under 'Undated'" — 0 (no year) is
+// the same "unknown" sentinel compareCrateYear()/albumYearFor() already
+// use, so 'undated' just needs its own key rather than a new convention.
+function decadeKeyFor(year){
+  if(!year) return 'undated';
+  if(year < 1950) return '1950s';
+  return (Math.floor(year / 10) * 10) + 's';
+}
+// CR4: "the README's era table" (docs/design/crate/README.md, "Era tints")
+// — three tints per decade, 20-25% over divider stock plus a 6px edge
+// stripe. 2000s onward are the README's own "extrapolated, flagged as
+// such" rows; CR4's own instructions in 13_CRATE.md don't ask for that
+// flag to surface in the UI (only the README explains where the colours
+// came from), so it isn't rendered here — a decade with no row at all
+// (hypothetically, anything past the 2020s) just renders untinted, the
+// same plain-cream look 'undated' already has.
+const ERA_TINTS = {
+  '1950s': ['#99C5C4', '#BF6464', '#4E6E68'],
+  '1960s': ['#5A77A8', '#702F3B', '#784384'],
+  '1970s': ['#676232', '#B68A3A', '#754734'],
+  '1980s': ['#384883', '#AD5E99', '#798EA4'],
+  '1990s': ['#807396', '#739072', '#40312F'],
+  '2000s': ['#9BB7D4', '#5A5B9F', '#9B1B30'],
+  '2010s': ['#009473', '#955251', '#5F4B8B'],
+  '2020s': ['#0F4C81', '#6667AB', '#A47864'],
+};
+export function eraTintFor(decadeKey){ return ERA_TINTS[decadeKey] || null; }
+// CR4: the rail's own compact decade label ("50s", not "1950s" — the rail
+// already keeps letter/genre labels short, a single char or a 3-letter
+// abbreviation); Undated gets a dash rather than its own word.
+function decadeRailLabel(key){ return key === 'undated' ? '—' : key.slice(2); }
+
 // CR3: the one place a run time gets formatted for the crate — a plain
 // M:SS, no hours digit (an LP-length record never needs one); duplicated
 // rather than importing fmt() from player/clock.js, which real-chains into
@@ -303,6 +336,23 @@ function buildCrateModel(group){
           meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS' + (span ? ' · ' + span : ''),
           panelSub:'Genre', key:g.key, idx: flatIdx(g.records)});
       }
+      g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+    });
+  } else if(group === 'decade'){
+    // CR4: "records sorted by year" — ascending, oldest first, the same
+    // compareCrateYear() unknown-sorts-last convention az/genre already
+    // use for a missing value; artist/album only ever break a same-year
+    // tie, same ordering spirit as the az branch below.
+    records.sort((a,b) => compareCrateYear(a, b) || compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album));
+    const groups = groupSortedRecords(records, r => decadeKeyFor(r.year));
+    groups.forEach(g => {
+      const artistCount = new Set(g.records.map(r => r.artist)).size;
+      const label = g.key === 'undated' ? 'Undated' : g.key;
+      jumpIndex.set('key:' + g.key, items.length);
+      railEntries.push({key:g.key, label: decadeRailLabel(g.key), itemIndex: items.length, present:true});
+      items.push({type:'div', kind:'decade', label, decadeKey:g.key,
+        meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS', panelSub:'Decade', key:g.key,
+        idx: flatIdx(g.records)});
       g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
     });
   } else {

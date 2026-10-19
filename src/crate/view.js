@@ -24,7 +24,7 @@ import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor,
+  crateRailJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
@@ -387,8 +387,9 @@ export function renderCrate(host){
   // bordered pill.
   const header = el('div','crate-header');
   const recordCount = model.items.filter(it => it.type === 'rec').length;
+  const groupLabel = model.group === 'genre' ? 'GENRE' : model.group === 'decade' ? 'DECADE' : 'A–Z';
   const headerLeft = el('div','crate-header-left',
-    recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS') + ' · ' + (model.group === 'genre' ? 'GENRE' : 'A–Z'));
+    recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS') + ' · ' + groupLabel);
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
   nowPlayingBtn.addEventListener('click', () => { if(nowPlayingIdx >= 0) snapTo(nowPlayingIdx); });
@@ -447,6 +448,19 @@ export function renderCrate(host){
       card.classList.add('crate-card-div');
       const d = document.createElement('div'); d.className = 'crate-divider';
       if(item.kind === 'genre') d.classList.add('crate-divider-genre');
+      // CR4 (docs/13_CRATE.md): "tinted by the README's era table (20-25%
+      // over divider stock plus a 6px edge stripe)" — undated, and any
+      // decade the table has no row for, stay plain cream (no tint class,
+      // no custom properties set) rather than reaching for a default.
+      if(item.kind === 'decade'){
+        const tints = eraTintFor(item.decadeKey);
+        if(tints){
+          d.classList.add('crate-divider-decade');
+          d.style.setProperty('--era-1', tints[0]);
+          d.style.setProperty('--era-2', tints[1]);
+          d.style.setProperty('--era-3', tints[2]);
+        }
+      }
       const tab = document.createElement('div'); tab.className = 'crate-divider-tab'; tab.textContent = item.label;
       const label = document.createElement('div'); label.className = 'crate-divider-label'; label.textContent = item.label;
       const meta = document.createElement('div'); meta.className = 'crate-divider-meta'; meta.textContent = item.meta;

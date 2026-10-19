@@ -103,6 +103,21 @@
 /* genre grouping's own stock (manila, flat — the README gives it no
    gradient of its own, unlike the cream default above) */
 .crate-divider.crate-divider-genre{background:#E8D9A8}
+/* CR4 (docs/13_CRATE.md): "tinted by the README's era table (20-25% over
+   divider stock plus a 6px edge stripe; lettering stays aubergine)" —
+   --era-1/--era-2/--era-3 are set inline per decade (crate/view.js,
+   crate/model.js's own eraTintFor()); lettering is untouched since
+   .crate-divider's own color:#2A1B38 isn't overridden by either layer
+   below. The stripe is the identity read at a glance (all three tints,
+   full strength); the wash keeps the rest of the card reading as the
+   same cream/cardboard stock every other divider uses, just warmed or
+   cooled toward the decade. Undated, and any decade eraTintFor() has no
+   row for, never get this class — they stay the plain cream default. */
+.crate-divider.crate-divider-decade{
+  background:
+    linear-gradient(180deg, var(--era-1), var(--era-2) 50%, var(--era-3)) left top / 6px 100% no-repeat,
+    linear-gradient(160deg, color-mix(in srgb, var(--era-1) 22%, #E6DCC4), color-mix(in srgb, var(--era-1) 22%, #CFC2A3));
+}
 /* "a thin inner rule 14px in" */
 .crate-divider::before{content:'';position:absolute;inset:14px;border:1px solid rgba(42,27,56,.18);
   border-radius:2px;pointer-events:none}
