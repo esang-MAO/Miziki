@@ -7,7 +7,8 @@
    one per track. */
 import { S } from '../state.js';
 import { normKey } from '../util/text.js';
-import { albumKey } from '../record-art/tiers.js';
+import { albumKey, trackTier } from '../record-art/tiers.js';
+import { albumMetalFor } from '../record-art/metals.js';
 import { queueSave } from '../storage/meta.js';
 import { CRATE_ALPHABET } from './constants.js';
 
@@ -120,6 +121,34 @@ function albumAddedFor(idx){
   return best;
 }
 
+// CR3 (docs/13_CRATE.md) point 3: the catalog card's own meta line needs
+// the album's label/catalog number (from library/tags/'s already-parsed
+// details.label/details.catalog) and its total runtime — "most common
+// non-empty value" would overreach for two fields that are supposed to be
+// consistent across an album anyway; the first non-empty one found is
+// enough, same spirit as albumGenreFor()'s own tie-break but simpler since
+// there's no real "most common" question here.
+function firstNonEmpty(idx, field){
+  for(const i of idx){
+    const v = S.tracks[i].details && S.tracks[i].details[field];
+    if(v) return v;
+  }
+  return '';
+}
+function albumDurationFor(idx){ return idx.reduce((sum, i) => sum + (S.tracks[i].duration || 0), 0); }
+
+// CR3: the one place a run time gets formatted for the crate — a plain
+// M:SS, no hours digit (an LP-length record never needs one); duplicated
+// rather than importing fmt() from player/clock.js, which real-chains into
+// sleep-timer.js/solar.js/history/played.js/player/background.js — this
+// file stays the "pure, DOM-free, importable with nothing to mock" module
+// its own header comment and unit tests already rely on.
+function formatDuration(totalSec){
+  const s = Math.max(0, Math.round(totalSec || 0));
+  const m = Math.floor(s / 60), r = s % 60;
+  return m + ':' + String(r).padStart(2, '0');
+}
+
 // one crate record per album id; loose ("Unknown Album") tracks collapse
 // into one pseudo-record per artist instead of one per track (CRATE spec §2)
 function buildCrateRecords(){
@@ -147,11 +176,13 @@ function buildCrateRecords(){
     else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
     else artist = tracks[0].tags.artist || 'Unknown Artist';
     records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
-      year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx), addedAt: albumAddedFor(idx)});
+      year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx), addedAt: albumAddedFor(idx),
+      label: firstNonEmpty(idx, 'label'), catalog: firstNonEmpty(idx, 'catalog'), durationSec: albumDurationFor(idx)});
   });
   looseByArtist.forEach(({artist, idx}) => {
     records.push({type:'rec', kind:'loose', albumId: crateLooseArtistId(artist), idx, artist,
-      album:'Singles & loose tracks', year:0, trackCount: idx.length, genre:'', addedAt: albumAddedFor(idx)});
+      album:'Singles & loose tracks', year:0, trackCount: idx.length, genre:'', addedAt: albumAddedFor(idx),
+      label:'', catalog:'', durationSec: albumDurationFor(idx)});
   });
   return records;
 }
@@ -303,6 +334,93 @@ function buildCrateModel(group){
   }
   railEntries = binRailEntries.concat(railEntries);
   return {items, byAlbumId, jumpIndex, railEntries, group};
+}
+
+// CR3 point 3: "[LABEL] · [CAT. NO.] · [YEAR] · N TRACKS · M:SS", falling
+// back to "[GENRE] · [YEAR] · N TRACKS" (no runtime) once label and
+// catalog are both empty — the design doc's own fallback example drops
+// the duration, not just the two missing fields, so this matches that
+// literally rather than reusing the first branch's bits minus two.
+export function catalogLineFor(record){
+  if(record.label || record.catalog){
+    const bits = [record.label, record.catalog, record.year ? String(record.year) : null,
+      record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS'),
+      formatDuration(record.durationSec)].filter(Boolean);
+    return bits.join(' · ').toUpperCase();
+  }
+  const bits = [record.genre, record.year ? String(record.year) : null,
+    record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS')].filter(Boolean);
+  return bits.join(' · ').toUpperCase();
+}
+
+const WEEKDAY_LABELS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+// "LAST SPUN TUE" within the last week; a bare M/D once it's further back,
+// since "LAST SPUN TUE" said eight days later would misread as "this past
+// Tuesday" rather than the one before it.
+function lastSpunLabel(ts){
+  if(!ts) return '';
+  const diffDays = Math.floor((Date.now() - ts) / (24 * 3600 * 1000));
+  if(diffDays < 7) return WEEKDAY_LABELS[new Date(ts).getDay()];
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+// CR3 point 3: "a second mono line... appears once the record has been
+// played." Reuses the same qualifying-session counter (and its RF4
+// cross-device merged total, when one exists) the metal ladder already
+// tracks — one source of truth for "how many times," rather than a new
+// counter just for this line.
+export function playedLineFor(record){
+  const counts = S.mergedStats ? S.mergedStats.sessionCounts : S.sessionCounts;
+  const n = (counts && counts[record.albumId]) || 0;
+  if(!n) return '';
+  const bits = ['PLAYED ' + n + (n === 1 ? ' TIME' : ' TIMES')];
+  const spun = lastSpunLabel(S.albumLastPlayed[record.albumId]);
+  if(spun) bits.push('LAST SPUN ' + spun);
+  return bits.join(' · ');
+}
+
+// the "best" (highest bit depth/rate) hi-res track among an album's own
+// tracks, or null if none clears trackTier()'s tier-3 threshold — an album
+// is read as hi-res the moment any one of its tracks is, the same
+// "one track's own tag decides" spirit trackTier() itself already has.
+function albumHiResMeta(idx){
+  let best = null;
+  idx.forEach(i => {
+    const t = S.tracks[i];
+    if(trackTier(t) !== 3 || !t.meta) return;
+    if(!best || (t.meta.bits || 0) > (best.bits || 0) || (t.meta.rate || 0) > (best.rate || 0)) best = t.meta;
+  });
+  return best;
+}
+
+// CR3 point 1: "a single stickerFor(record) ... returning at most one of
+// sealed, new, friends, hires, metal, or none, by the README's priority."
+// `sealed` is passed in rather than resolved here with isAlbumSealed()
+// (library/sealed.js) on purpose — that module real-chains into
+// library/view.js, which already imports crate/view.js, and threading a
+// new edge through crate/model.js for one boolean isn't worth tangling
+// that cycle further when every caller already has the answer in hand
+// (crate/view.js already calls isAlbumSealed() for the seal overlay/the
+// catalog card's own SEALED chip). `friends` has no real data source yet:
+// the design doc's own "(RF20 era)" note names the class of feature this
+// belongs to, not a built RPC — RF20/RF23 shipped records_in_common(p_other)
+// and credit_friends(), both scoped to one named friend or one named
+// credit, never "how many of my own friends also have this release,"
+// which a crate card needs aggregated across the whole friends graph with
+// no "other" argument at all. That RPC doesn't exist yet — this is a
+// renderer only, so it stays dead until a future record carries
+// friendsCount.
+export function stickerFor(record, sealed){
+  if(!record || record.type !== 'rec') return null;
+  if(sealed) return {kind:'sealed', addedAt: record.addedAt};
+  if(Date.now() - record.addedAt < NEW_ARRIVAL_WINDOW_MS) return {kind:'new'};
+  if(record.friendsCount) return {kind:'friends', count: record.friendsCount};
+  const hiRes = albumHiResMeta(record.idx);
+  if(hiRes) return {kind:'hires', bits: hiRes.bits, rate: hiRes.rate};
+  const metal = albumMetalFor(record.albumId);
+  if(metal) return {kind:'metal', metal};
+  return null;
 }
 
 export function ensureCrateModel(){

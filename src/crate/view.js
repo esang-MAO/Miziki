@@ -21,9 +21,10 @@ import { queueSave } from '../storage/meta.js';
 import { isLibraryRouteVisible } from '../shell/routes.js';
 import { openAddMenu } from '../shell/header.js';
 import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
+import { METAL_COLORS } from '../record-art/metals.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, libraryHasGenres,
+  crateRailJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
@@ -44,6 +45,35 @@ const BASE_CRATE_CARD_SIZE = 278;
 function currentCardSize(){
   const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--crate-card-size'));
   return (v > 0) ? v : BASE_CRATE_CARD_SIZE;
+}
+
+// CR3 point 1: a small matte dot, not the full plated-finish band
+// metalBackground() draws for the platter itself — "14px, radial
+// highlight" per the design doc, reusing METAL_COLORS as the one source
+// of truth for which hex means which metal.
+function metalDotBackground(name){
+  const base = METAL_COLORS[name] || '#999';
+  return 'radial-gradient(circle at 35% 30%, rgba(255,255,255,.65) 0%, ' + base + ' 55%, rgba(0,0,0,.35) 100%)';
+}
+
+// CR3 point 1/2: one .crate-sticker element for whichever kind
+// stickerFor() returned — never called for 'sealed' (that's still the
+// existing film+chip, CR6's own job to redesign) or null.
+function buildStickerEl(sticker){
+  if(sticker.kind === 'metal'){
+    const dot = document.createElement('div');
+    dot.className = 'crate-sticker crate-sticker-metal';
+    dot.style.background = metalDotBackground(sticker.metal);
+    dot.setAttribute('aria-label', sticker.metal + ' metal');
+    return dot;
+  }
+  const tag = document.createElement('div');
+  tag.className = 'crate-sticker crate-sticker-' + sticker.kind;
+  tag.textContent = sticker.kind === 'new' ? 'NEW'
+    : sticker.kind === 'friends' ? (sticker.count || 1) + (sticker.count === 1 ? ' FRIEND' : ' FRIENDS')
+    : sticker.kind === 'hires' ? (sticker.bits || '') + '/' + Math.round((sticker.rate || 0) / 1000)
+    : '';
+  return tag;
 }
 
 function openCrateAlbum(item){
@@ -429,7 +459,14 @@ export function renderCrate(host){
       if(isNowPlayingAlbum(item)){
         const dot = document.createElement('div'); dot.className = 'crate-now-dot'; card.appendChild(dot);
       }
-      if(isAlbumSealed(item.albumId)) card.appendChild(buildSealOverlay(cardSize));
+      const sealed = isAlbumSealed(item.albumId);
+      if(sealed) card.appendChild(buildSealOverlay(cardSize));
+      else {
+        // CR3 point 1: "most sleeves are quiet; the few stickers mean
+        // something" — stickerFor() already returns null for most records.
+        const sticker = stickerFor(item, false);
+        if(sticker) card.appendChild(buildStickerEl(sticker));
+      }
     }
     return card;
   }
@@ -541,22 +578,30 @@ export function renderCrate(host){
       }
       return;
     }
+    // CR3 point 3: the catalog card replaces the plain info row — cream
+    // stock, an aubergine head rule, title/artist/catalog-number line, a
+    // second "PLAYED N TIMES · LAST SPUN TUE" line once the record has
+    // actually been played, and a solid accent play disc at the right.
+    // The SEALED text chip is now the cream tag at 60% (seal-tag's own
+    // CSS, 12-sealed-records.css), not a bordered accent chip.
     const sealed = isAlbumSealed(item.albumId);
-    const row = el('div','crate-info-row');
+    const card = el('div','crate-catalog-card');
+    card.appendChild(el('div','crate-catalog-rule'));
+    const body = el('div','crate-catalog-body');
     const text = el('div');
     const h3 = el('h3', null, item.album);
     if(isNowPlayingAlbum(item)) h3.appendChild(el('span','crate-now-chip','● Now playing'));
     text.appendChild(h3);
     text.appendChild(el('p','crate-info-sub', item.artist));
-    const metaBits = [item.genre || null, item.year || null,
-      item.trackCount + (item.trackCount === 1 ? ' track' : ' tracks')].filter(Boolean);
-    text.appendChild(el('p','crate-info-meta', metaBits.join(' · ').toUpperCase()));
+    text.appendChild(el('p','crate-info-meta', catalogLineFor(item)));
+    const played = playedLineFor(item);
+    if(played) text.appendChild(el('p','crate-info-played', played));
     if(sealed){
       text.appendChild(el('span','seal-tag','SEALED'));
       text.appendChild(el('span','sr-only','Sealed, not played yet'));
     }
-    row.appendChild(text);
-    const playBtn = el('button','tbtn play','▶');
+    body.appendChild(text);
+    const playBtn = el('button','crate-catalog-play','▶');
     playBtn.setAttribute('aria-label','Play ' + item.album);
     // a sealed album plays quietly from track 1, same first-play rules as
     // the sealed sheet — no sheet/overlay opens from here either (§5)
@@ -564,8 +609,9 @@ export function renderCrate(host){
       e.stopPropagation();
       if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
     });
-    row.appendChild(playBtn);
-    info.appendChild(row);
+    body.appendChild(playBtn);
+    card.appendChild(body);
+    info.appendChild(card);
   }
 
   function updateRailUI(position){
