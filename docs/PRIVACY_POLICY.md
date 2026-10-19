@@ -1,6 +1,6 @@
 # Miziki privacy policy
 
-**Last updated: October 19, 2026**
+**Last updated: October 20, 2026**
 
 This is the canonical source for the Privacy Policy shown inside the app
 (`src/profile/legal.js`'s `renderPrivacyPolicyScreen`). The two must say the
@@ -27,7 +27,12 @@ optional account features (sign-in, backup, social).
   least 20 counted plays before there's anything to show. A "Don't share
   this session" switch in the player lets you skip sharing "now spinning"
   for one listening session without changing the setting itself; it turns
-  itself back off once that session's queue ends.
+  itself back off once that session's queue ends. A shared "now spinning"
+  tag like "at golden hour" says roughly what time of day it is where you
+  are, which implies an approximate time zone; a shared listening rhythm
+  says which part of the day you tend to listen in, which implies
+  something about your daily routine. Neither ever reveals exact times, a
+  location, or individual plays.
 - **Milestones** (hitting a rare pressing) show on your own disc and
   share card, and on your crate for whoever your visibility setting lets
   see it ("Share milestones" in the Privacy screen, off by default) — but

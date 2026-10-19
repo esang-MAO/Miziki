@@ -5,7 +5,7 @@ import { renderProfile } from './screens.js';
 import { renderHome, clearHomeFeedCache } from '../social/screens/home.js';
 import { wirePrivacyLink } from './privacy.js';
 import { legalLinksRow } from './legal.js';
-import { getBackupStatus, listBackupDevices } from '../sync/backup.js';
+import { getBackupStatus, listBackupDevices, removeBackupDevice, dismissStaleDeviceNotice } from '../sync/backup.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 let socialAuth = null;
@@ -253,6 +253,30 @@ function accountBackupStatusLine(){
   return 'Waiting for connection.';
 }
 
+// RF25 point 3 (docs/12_REFINE.md): "[Device] hasn't synced since [date].
+// Remove it?" — a device untouched for 12 months, with a way to keep it.
+function renderStaleDeviceNotice(body, d, onResolved){
+  const notice = el('div','social-setting-row stale-device-notice');
+  const since = new Date(d.updatedAt).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  notice.appendChild(el('p','note', d.label + ' hasn’t synced since ' + since + '. Remove it?'));
+  const actions = el('div','stack');
+  const removeBtn = el('button','cta ghost','Remove');
+  const keepBtn = el('button','cta ghost','Keep');
+  removeBtn.addEventListener('click', async ()=>{
+    removeBtn.disabled = true; keepBtn.disabled = true;
+    const ok = await removeBackupDevice(d.deviceId);
+    if(ok) onResolved(); else { removeBtn.disabled = false; keepBtn.disabled = false; }
+  });
+  keepBtn.addEventListener('click', async ()=>{
+    removeBtn.disabled = true; keepBtn.disabled = true;
+    const ok = await dismissStaleDeviceNotice(d.deviceId);
+    if(ok) onResolved(); else { removeBtn.disabled = false; keepBtn.disabled = false; }
+  });
+  actions.appendChild(removeBtn); actions.appendChild(keepBtn);
+  notice.appendChild(actions);
+  body.appendChild(notice);
+}
+
 function renderDeviceList(body){
   const section = el('div','social-setting-row');
   section.appendChild(el('h2', null, 'Devices'));
@@ -263,6 +287,7 @@ function renderDeviceList(body){
     list.remove();
     if(!devices.length){ body.appendChild(el('p','note','No devices yet.')); return; }
     devices.forEach(d => {
+      if(d.isStale){ renderStaleDeviceNotice(body, d, () => renderSocialSettingsScreen(body)); return; }
       const row = el('div','social-setting-row');
       row.appendChild(el('span', null, d.label + (d.isThisDevice ? ' (this device)' : '')));
       row.appendChild(el('em', null, d.updatedAt ? 'Synced ' + timeAgoShort(Date.now() - d.updatedAt) + ' ago' : 'Never synced'));

@@ -1026,17 +1026,56 @@ export function initBackupSync(){
 
 export function getBackupStatus(){ return { ...B.status, deviceId: S.deviceId }; }
 
+// RF25 point 3 (docs/12_REFINE.md): a device untouched for this long gets
+// a "hasn't synced since... Remove it?" notice on the Account screen
+// (src/profile/settings.js) rather than a silent server-side sweep.
+export const STALE_DEVICE_MS = 365 * 24 * 60 * 60 * 1000;
+
 export async function listBackupDevices(){
   const client = getClient();
   if(!client) return [];
   await ensureDeviceId();
-  const { data, error } = await client.from(SCHEMA_TABLE).select('device_id, device_label, updated_at');
+  const { data, error } = await client.from(SCHEMA_TABLE)
+    .select('device_id, device_label, updated_at, stale_notice_dismissed_at');
   if(error || !data) return [];
-  return data.map(r => ({
-    deviceId: r.device_id, label: r.device_label || 'Unnamed device',
-    updatedAt: r.updated_at ? new Date(r.updated_at).getTime() : null,
-    isThisDevice: r.device_id === S.deviceId,
-  })).sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return data.map(r => {
+    const updatedAt = r.updated_at ? new Date(r.updated_at).getTime() : null;
+    const isThisDevice = r.device_id === S.deviceId;
+    const dismissedAt = r.stale_notice_dismissed_at ? new Date(r.stale_notice_dismissed_at).getTime() : null;
+    return {
+      deviceId: r.device_id, label: r.device_label || 'Unnamed device',
+      updatedAt, isThisDevice,
+      // Never the current device — it just synced to produce this very
+      // list — and never once the user has already said "keep" for it.
+      isStale: !isThisDevice && !dismissedAt && updatedAt != null && (Date.now() - updatedAt) > STALE_DEVICE_MS,
+    };
+  }).sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+// The user tapped "Keep" on a stale-device notice — remember that choice
+// so the notice doesn't ask again about this same device. A plain column
+// update, not the put_library_backup() RPC (that RPC always replaces the
+// whole doc/doc_seq for the *current* device's own row; this writes one
+// column on a row that may well belong to a different, offline device,
+// which library_backup_update's existing `user_id = auth.uid()` policy
+// already allows with no new RPC needed).
+export async function dismissStaleDeviceNotice(deviceId){
+  const client = getClient();
+  if(!client) return false;
+  const { error } = await client.from(SCHEMA_TABLE)
+    .update({ stale_notice_dismissed_at: new Date().toISOString() })
+    .eq('device_id', deviceId);
+  return !error;
+}
+
+// The user tapped "Remove" on a stale-device notice. Deletes that one
+// device's whole library_backup row outright (never the current device's
+// own row — src/profile/settings.js never offers this for isThisDevice).
+export async function removeBackupDevice(deviceId){
+  const client = getClient();
+  if(!client) return false;
+  const { error } = await client.from(SCHEMA_TABLE).delete().eq('device_id', deviceId);
+  return !error;
 }
 
 /* ================= download my data ================= */
@@ -1083,12 +1122,21 @@ export async function collectDownloadData(){
   const uid = userData && userData.user && userData.user.id;
   if(!uid) return out;
   const soc = getSocial();
-  const [profileRes, cratePage, followingRes, diggingRes, backupRows] = await Promise.all([
+  const [profileRes, cratePage, followingRes, diggingRes, backupRows, spinningRows, creditRows] = await Promise.all([
     soc.getMyProfile(),
     soc.crate(uid, { limit: 500 }),
     soc.listFollowing(),
     soc.listDigging(),
     client.from(SCHEMA_TABLE).select('device_id, device_label, schema_version, updated_at'),
+    // RF25 point 4 (docs/12_REFINE.md): every server column added since
+    // step 08 -- profileRes.profile already carries listening_rhythm
+    // (getMyProfile() is a plain select('*') on this account's own row),
+    // so these two are the only columns Download my data was missing.
+    // RLS (spinning_select) only ever returns a non-expired row, same as
+    // any other reader -- usually nothing, which is the honest answer
+    // for "what's in now_spinning right now."
+    client.from('now_spinning').select('track_title, phase, started_at, expires_at').eq('user_id', uid),
+    client.from('release_credits').select('release_id, person_name_norm, role').eq('user_id', uid),
   ]);
   out.account = {
     email: userData.user.email || null,
@@ -1097,6 +1145,8 @@ export async function collectDownloadData(){
     following: followingRes.ok ? followingRes.following : [],
     diggingList: diggingRes.ok ? diggingRes.items : [],
     backupDevices: (backupRows && backupRows.data) || [],
+    nowSpinning: (spinningRows && spinningRows.data && spinningRows.data[0]) || null,
+    releaseCredits: (creditRows && creditRows.data) || [],
   };
   return out;
 }

@@ -286,6 +286,22 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    asUser(UID4, `update library_backup set doc='{"x":1}'::jsonb where user_id='${UID3}' and device_id='${DEV1}'`);
    assert.equal(asUser(UID3, `select doc->>'a' from library_backup where user_id='${UID3}' and device_id='${DEV1}'`), '2'); });
 
+ // RF25 point 3 (docs/12_REFINE.md, migration 018_stale_backup_devices.sql):
+ // the stale-device notice's "Keep" button writes this one column via a
+ // plain client update, no new RPC -- same library_backup_update policy
+ // every other write to this table already goes through.
+ await t('library_backup: a user can dismiss a stale-device notice on their own row',()=>{
+   asUser(UID3, `update library_backup set stale_notice_dismissed_at=now() where user_id='${UID3}' and device_id='${DEV1}'`);
+   assert.equal(asUser(UID3, `select stale_notice_dismissed_at is not null from library_backup where user_id='${UID3}' and device_id='${DEV1}'`), 't'); });
+
+ await t('library_backup: a user cannot dismiss another user\'s stale-device notice',()=>{
+   asUser(UID4, `update library_backup set stale_notice_dismissed_at=now() where user_id='${UID3}' and device_id='${DEV2}'`);
+   assert.equal(asUser(UID3, `select stale_notice_dismissed_at is null from library_backup where user_id='${UID3}' and device_id='${DEV2}'`), 't'); });
+
+ await t('library_backup: a user can delete their own stale device row',()=>{
+   asUser(UID3, `delete from library_backup where user_id='${UID3}' and device_id='${DEV2}'`);
+   assert.equal(asUser(UID3, `select count(*) from library_backup where user_id='${UID3}'`), '1'); });
+
  await t('library_backup: the size check rejects an oversized doc',()=>{
    const DEV3='cccccccc-cccc-cccc-cccc-cccccccccccc';
    let threw=false;
