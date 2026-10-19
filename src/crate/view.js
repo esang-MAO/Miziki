@@ -25,12 +25,15 @@ import { METAL_COLORS } from '../record-art/metals.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  classifyCratePointerTrace, cratePullProgress, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
 import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices, gatefoldSocialControlsHTML } from '../gatefold/view.js';
 import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
 import { openCreditsSheet } from '../library/credits.js';
+import { playNext, addToQueue } from '../player/queue.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 // D5 (docs/DESKTOP_LAYOUT.md): flowPose()'s own pixel offsets (170, 34, 70…)
 // were tuned against this exact card edge length — reading the live
@@ -771,12 +774,9 @@ export function renderCrate(host){
 
   // ---- pointer / touch drag ----
   let dragState = null;
-  stage.addEventListener('pointerdown', e => {
-    if(e.button != null && e.button !== 0) return;
-    cancelAnim();
-    try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
-    dragState = {startY:e.clientY, lastY:e.clientY, lastT:performance.now(), v:0, moved:false};
-  });
+  function beginFlipDrag(e, moved){
+    dragState = {startY:e.clientY, lastY:e.clientY, lastT:performance.now(), v:0, moved:!!moved};
+  }
   stage.addEventListener('pointermove', e => {
     if(!dragState) return;
     const now = performance.now();
@@ -801,6 +801,167 @@ export function renderCrate(host){
   }
   stage.addEventListener('pointerup', endDrag);
   stage.addEventListener('pointercancel', endDrag);
+
+  // ---- pull-to-remove and hold-for-actions on the front record (CR5) ----
+  // A small state machine layered in front of the flip drag above: a
+  // pointerdown that lands on the currently-centred record is held as a
+  // "pull candidate" (not yet a flip drag at all) until classifyCratePointer
+  // Trace() (crate/model.js, the pure, unit-tested half of this gesture)
+  // says which of pull/flip/hold it has become. Until then S.crate.pos is
+  // left untouched — flip and pull would otherwise fight over the same
+  // vertical drag for their first ~24px, per the README's own "the pull
+  // never fights the vertical flip" rule.
+  //
+  // No REDUCED-motion branch is needed here at all: renderCrate() (above)
+  // already bails into renderCrateFlat() — a plain scrollable list whose
+  // own row click handlers open the gatefold directly, no gesture of any
+  // kind — whenever REDUCED is true, so none of this pointer-handling code
+  // (this whole block included) is ever attached in the first place. That
+  // pre-existing fallback is what satisfies the spec's own "Reduced motion:
+  // a pull is a tap" on its own, structurally, with nothing added here.
+  let pullState = null;
+  let holdTimer = null;
+  function clearHoldTimer(){ if(holdTimer != null){ clearTimeout(holdTimer); holdTimer = null; } }
+
+  function frontRecordAt(e){
+    const cardEl = e.target.closest('.crate-card');
+    if(!cardEl) return null;
+    let idx = null;
+    pool.forEach((elC, i) => { if(elC === cardEl) idx = i; });
+    if(idx == null || idx !== Math.round(S.crate.pos)) return null;
+    const item = itemAt(idx);
+    // a "loose tracks" pseudo-record (no real sleeve/gatefold to pull
+    // open) and a sealed record (SEALED spec §1 — no "inside" to reveal
+    // until the first play) are both pull/hold candidates in name only;
+    // the pointerdown handler below falls back to the ordinary flip drag
+    // for either, same as for any other non-centred card.
+    if(!item || item.type !== 'rec' || item.kind === 'loose' || isAlbumSealed(item.albumId)) return null;
+    return {item, cardEl};
+  }
+
+  function setPullLift(ps, upPx){
+    ps.lastUpPx = upPx;
+    ps.cardEl.style.transform = ps.baseTransform + ' translateY(' + (-upPx).toFixed(1) + 'px)';
+  }
+
+  function commitPull(ps){
+    ps.cardEl.style.transform = ps.baseTransform;
+    // The README's "the gatefold opens with the disc already out" entrance
+    // choreography doesn't exist yet — openGatefold() has no hook for
+    // "start with the disc already pulled" today. Opening it the plain way
+    // (same call a tap already makes) is the honest scope call for this PR;
+    // the hand-off polish is a follow-up, flagged in the PR body.
+    openCrateAlbum(ps.item);
+  }
+
+  function springBackPull(ps){
+    const el = ps.cardEl, base = ps.baseTransform, from = ps.lastUpPx || 0;
+    const start = performance.now(), dur = 220;
+    function step(now){
+      const p = clamp((now - start) / dur, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.style.transform = base + ' translateY(' + (-(from * (1 - eased))).toFixed(1) + 'px)';
+      if(p < 1) requestAnimationFrame(step);
+      else el.style.transform = base;
+    }
+    requestAnimationFrame(step);
+  }
+
+  function endPullGesture(){
+    if(!pullState) return;
+    clearHoldTimer();
+    const ps = pullState;
+    pullState = null;
+    if(ps.phase !== 'pull') return;   // 'pending'/'hold' have nothing left to release
+    const progress = cratePullProgress(ps.lastUpPx || 0, currentCardSize());
+    if(progress >= CRATE_PULL_COMMIT_FRACTION) commitPull(ps);
+    else springBackPull(ps);
+  }
+
+  function openCrateHoldCard(item){
+    const scrim = el('div', 'crate-hold-scrim');
+    const card = el('div', 'crate-hold-card');
+    card.setAttribute('role', 'menu');
+    card.appendChild(el('p', 'crate-hold-title', item.artist + ' — ' + item.album));
+    function teardown(){ scrim.remove(); card.remove(); }
+    function action(label, fn){
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'crate-hold-btn'; b.setAttribute('role', 'menuitem');
+      b.textContent = label;
+      b.addEventListener('click', () => { closeLayer('crate-hold'); fn(); });
+      card.appendChild(b);
+    }
+    action('Play next', () => { item.idx.slice().reverse().forEach(i => playNext(i)); });
+    action('Add to queue', () => { item.idx.forEach(i => addToQueue(i)); });
+    // local-first, same as the gatefold's own pin button (gatefold/view.js's
+    // gatefoldSocialControlsHTML) — works with no server configured at all.
+    const pinned = MizikiSocial.getAlbumSocial(item.albumId).pinRank != null;
+    action(pinned ? 'Unpin from staff picks' : 'Pin to staff picks', () => {
+      if(pinned) MizikiSocial.unpin(item.albumId);
+      else MizikiSocial.pin(item.albumId);
+    });
+    action('Sleeve note', () => openCrateAlbum(item));
+    document.body.appendChild(scrim);
+    document.body.appendChild(card);
+    scrim.addEventListener('click', () => closeLayer('crate-hold'));
+    openLayer('crate-hold', teardown, {container: [scrim, card]});
+  }
+
+  stage.addEventListener('pointerdown', e => {
+    if(e.button != null && e.button !== 0) return;
+    cancelAnim();
+    try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
+    const front = frontRecordAt(e);
+    if(!front){ beginFlipDrag(e, false); return; }
+    pullState = {
+      startY: e.clientY, startT: performance.now(),
+      trace: [{dy:0, t:0}], phase: 'pending',
+      item: front.item, cardEl: front.cardEl, baseTransform: front.cardEl.style.transform,
+      lastUpPx: 0,
+    };
+    holdTimer = setTimeout(() => {
+      if(pullState && pullState.phase === 'pending'){
+        pullState.phase = 'hold';
+        openCrateHoldCard(pullState.item);
+        pullState = null;
+      }
+    }, CRATE_PULL_HOLD_MS + 20);
+  });
+  stage.addEventListener('pointermove', e => {
+    if(!pullState) return;
+    const dy = e.clientY - pullState.startY;
+    pullState.trace.push({dy, t: performance.now() - pullState.startT});
+    e.preventDefault();
+    if(pullState.phase === 'pending'){
+      const cls = classifyCratePointerTrace(pullState.trace);
+      if(cls === 'pull'){ pullState.phase = 'pull'; clearHoldTimer(); }
+      else if(cls === 'flip'){
+        clearHoldTimer();
+        pullState.cardEl.style.transform = pullState.baseTransform;
+        pullState = null;
+        beginFlipDrag(e, true);
+        return;
+      } else return;   // still pending — no visual change until it commits
+    }
+    setPullLift(pullState, Math.max(0, -dy));
+  });
+  stage.addEventListener('pointerup', e => { endPullGesture(); endDrag(e); });
+  stage.addEventListener('pointercancel', () => {
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    endDrag();
+  });
+
+  // CR5 point 4, "Desktop: ... hold becomes right-click/context" — a mouse's
+  // own context-menu gesture on the front record opens the exact same hold
+  // card a 450ms touch/mouse dwell does, instead of (or on top of) the
+  // browser's native context menu.
+  stage.addEventListener('contextmenu', e => {
+    const front = frontRecordAt(e);
+    if(!front) return;
+    e.preventDefault();
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    openCrateHoldCard(front.item);
+  });
 
   // ---- wheel / trackpad ----
   let wheelSnapTimer = null;

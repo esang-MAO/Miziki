@@ -7,6 +7,7 @@
    one per track. */
 import { S } from '../state.js';
 import { normKey } from '../util/text.js';
+import { clamp } from '../util/math.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { queueSave } from '../storage/meta.js';
@@ -504,4 +505,53 @@ export function crateRailJumpTarget(model, key){
   if(di == null) return null;
   const next = di + 1;
   return (next < model.items.length && model.items[next].type === 'rec') ? next : di;
+}
+
+// CR5 ("pull a record out"): the pull/flip/hold state machine, as a pure
+// function over a pointer trace, per the README's own thresholds
+// (docs/design/crate/README.md, "Gestures (CR5)") and the plan's own
+// "Tests" requirement (docs/13_CRATE.md). crate/view.js's existing flip
+// drag is purely vertical (e.clientY only, no horizontal tracking), so
+// "moves up 24px before it moves 12px in either flip direction" reads as:
+// sustained upward displacement from the pointerdown point commits to a
+// pull once it reaches CRATE_PULL_UP_PX, provided it hasn't first fallen
+// back by CRATE_PULL_REVERSAL_PX from its own peak -- which commits to an
+// ordinary flip instead (the same read a flick-up-then-back-down, or a
+// plain downward drag, already gets today).
+export const CRATE_PULL_UP_PX = 24;
+export const CRATE_PULL_REVERSAL_PX = 12;
+export const CRATE_PULL_HOLD_MS = 450;
+export const CRATE_PULL_COMMIT_FRACTION = 0.4;
+
+// trace: an array of samples `{dy, t}` in order, dy = displacement in CSS
+// px from the pointerdown point (positive = down, negative = up), t = ms
+// elapsed since pointerdown; the first sample is always {dy:0, t:0}. Pure
+// and DOM-free -- the real pointer handlers in crate/view.js feed it their
+// own accumulated trace on every pointermove, and a hold timer feeds it
+// a synthetic trailing sample purely to carry elapsed time forward.
+//
+// Returns 'pull', 'flip', 'hold' once committed, or 'pending' while still
+// undecided (neither threshold crossed, and the hold deadline hasn't
+// passed yet).
+export function classifyCratePointerTrace(trace){
+  if(!trace || trace.length < 2) return 'pending';
+  let peakUp = 0;
+  for(let i = 1; i < trace.length; i++){
+    const curUp = -trace[i].dy;
+    if(curUp > peakUp) peakUp = curUp;
+    if(peakUp >= CRATE_PULL_UP_PX) return 'pull';
+    if((peakUp - curUp) >= CRATE_PULL_REVERSAL_PX) return 'flip';
+  }
+  const elapsed = trace[trace.length - 1].t;
+  if(elapsed >= CRATE_PULL_HOLD_MS) return 'hold';
+  return 'pending';
+}
+
+// How far (0..1) a committed pull has travelled toward release, given the
+// total upward displacement from the pointerdown point and the record's
+// own height in px -- >= CRATE_PULL_COMMIT_FRACTION commits the pull on
+// release; below it springs back.
+export function cratePullProgress(upPx, cardHeightPx){
+  if(!cardHeightPx) return 0;
+  return clamp(upPx / cardHeightPx, 0, 1);
 }
