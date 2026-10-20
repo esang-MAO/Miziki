@@ -1,5 +1,6 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
+import { ensureCrateModel } from '../crate/model.js';
 
 /* ================= desktop shell: sidebar content (step D3,
    docs/DESKTOP_LAYOUT.md) =================
@@ -36,4 +37,37 @@ export function renderSidebarPlaylists(){
   for(const n of order){
     host.appendChild(el('li', 'sidebar-playlist-row', S.playlists[n].name));
   }
+}
+
+/* CR10 (docs/13_CRATE.md point 3): "a BINS list (New arrivals, Staff
+   picks, Sealed, with counts) above PLAYLISTS; each jumps the crate."
+   Built straight from the crate's own virtual-bin dividers (crate/model.js's
+   buildVirtualBins(), already computed as part of ensureCrateModel() for
+   the crate view itself) rather than a second count computed here --
+   "reuse the readout, don't compute it twice," the same call this file's
+   own renderSidebarPlaylists() and drawSun()'s sidebar mirrors already
+   make. Each row is a plain button carrying the bin's own key in
+   data-bin; the click -> jump-the-crate wiring lives in
+   src/wiring/library-view.js (the module that already owns switching the
+   library's own view mode), not here, so this stays a pure render like
+   renderSidebarPlaylists() above. */
+export function renderSidebarBins(){
+  const host = $('#sidebarBins');
+  if(!host) return;
+  host.innerHTML = '';
+  const model = ensureCrateModel();
+  const bins = model.items.filter(it => it.type === 'div' && it.kind === 'bin');
+  if(!bins.length){
+    host.appendChild(el('li', 'sidebar-bins-empty', 'No bins yet'));
+    return;
+  }
+  bins.forEach(bin => {
+    const li = el('li');
+    const btn = el('button', 'sidebar-bin-row');
+    btn.dataset.bin = bin.key;
+    btn.appendChild(el('span', 'sidebar-bin-label', bin.label));
+    btn.appendChild(el('span', 'sidebar-bin-count', bin.meta));
+    li.appendChild(btn);
+    host.appendChild(li);
+  });
 }
