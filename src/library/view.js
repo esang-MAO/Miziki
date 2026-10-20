@@ -16,12 +16,13 @@ import { setQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
 import { queueSave } from '../storage/meta.js';
-import { byName, groupBy, allIdx, albumTracks, idOf, idxOf } from './model.js';
+import { byName, groupBy, allIdx, albumTracks, idOf, idxOf, trackSort } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
 import { applyEdit, showUndoBanner } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './delete.js';
 import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
+import { thumbURL } from './thumbs.js';
 import { renderSidebarPlaylists } from '../shell/sidebar.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
@@ -29,6 +30,7 @@ import {
 import { centerEmptyState, renderCrate } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
+import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
 
 // NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
 // on a single screen (~400+), the first screenful renders synchronously —
@@ -47,6 +49,14 @@ const CHUNK_FIRST = 60;
 const CHUNK_SIZE = 120;
 let viewRenderGen = 0;
 
+// CR9 (docs/13_CRATE.md): the thresholds past which Songs/Artists grow a
+// sticky letter head + rail — Songs' own 200 is the plan's exact number;
+// Artists reuses the crate's own "letter dividers show from 20 records"
+// threshold (CR2) for the same reason — a shelf of a handful of artists
+// doesn't need a rail to feel navigable.
+const SONGS_RAIL_THRESHOLD = 200;
+const ARTISTS_RAIL_THRESHOLD = 20;
+
 function scheduleIdle(fn){
   if(typeof requestIdleCallback === 'function') requestIdleCallback(fn, {timeout: 200});
   else setTimeout(fn, 0);
@@ -59,22 +69,64 @@ function scheduleIdle(fn){
 // — so the screen the user is actually looking at is complete the instant
 // renderTracks() returns — and the rest render CHUNK_SIZE at a time on
 // later idle turns.
-function appendRowsChunked(host, items, makeRow){
+// CR9 (docs/13_CRATE.md): `opts.labelFor`/`opts.headFor` add an optional
+// sticky letter head in front of the first row of each new letter bucket
+// — kept inside this same chunked-append loop (rather than a second pass
+// over the list) so a huge library's idle-time chunks still only touch
+// each row once, and so a header's position in the DOM is always exactly
+// where the chunking loop actually is, never computed separately from it.
+function appendRowsChunked(host, items, makeRow, opts){
+  const labelFor = opts && opts.labelFor;
+  const headFor = opts && opts.headFor;
+  let lastKey = null;
+  function appendOne(item, pos){
+    if(labelFor){
+      const key = letterKeyFor(labelFor(item));
+      if(key !== lastKey){ lastKey = key; if(headFor) host.appendChild(headFor(key)); }
+    }
+    host.appendChild(makeRow(item, pos));
+  }
   if(items.length <= CHUNK_THRESHOLD){
-    items.forEach((item, pos) => host.appendChild(makeRow(item, pos)));
+    items.forEach((item, pos) => appendOne(item, pos));
     return;
   }
   const gen = viewRenderGen;
   let at = 0;
   const firstEnd = Math.min(CHUNK_FIRST, items.length);
-  for(; at < firstEnd; at++) host.appendChild(makeRow(items[at], at));
+  for(; at < firstEnd; at++) appendOne(items[at], at);
   function next(){
     if(gen !== viewRenderGen) return; // the view moved on — stop appending
     const end = Math.min(at + CHUNK_SIZE, items.length);
-    for(; at < end; at++) host.appendChild(makeRow(items[at], at));
+    for(; at < end; at++) appendOne(items[at], at);
     if(at < items.length) scheduleIdle(next);
   }
   if(at < items.length) scheduleIdle(next);
+}
+
+// A div-based (non-sticky-within-ul) letter head, for the Artists list,
+// which renders its rows straight into `host` rather than into a `<ul>`.
+function letterHead(key){
+  const h = el('div','letter-head', key);
+  h.dataset.letterKey = key;
+  return h;
+}
+
+// Builds the floating A–Z rail itself (CR9's "the crate's rail reused")
+// and wires each tick to scroll the matching letter head into view. A
+// no-op when there's nothing to group (fewer than one bucket) so callers
+// can call this unconditionally once they've already decided the list is
+// long enough to want one.
+function attachLetterRail(host, groups){
+  if(groups.length < 2) return;
+  const rail = el('div','lib-rail');
+  host.appendChild(rail);
+  buildRailTicks(rail, groups, {
+    itemClass: 'letter-rail-item', dimClass: 'letter-rail-dim', currentClass: 'letter-rail-current',
+    onTap: e_ => {
+      const head = host.querySelector('[data-letter-key="' + e_.key + '"]');
+      if(head) head.scrollIntoView({block: 'start', behavior: 'smooth'});
+    },
+  });
 }
 
 function artFor(indices){
@@ -278,6 +330,67 @@ export function groupRow(label, sub, indices, onTap){
   box.appendChild(el('em', null, sub));
   b.appendChild(box);
   b.appendChild(el('span','g-chev','›'));
+  b.addEventListener('click', onTap);
+  return b;
+}
+
+// CR9 (docs/13_CRATE.md): the Artists tab's own row — a fanned stack of
+// up to three covers (reusing thumbURL, the already-generated/cropped
+// tier, the same source crate/view.js's own sleeves read) in place of
+// groupRow's single disc icon, since an artist is several records, not
+// one. `idx` is every track by this artist.
+export function artistRow(artist, idx, onTap){
+  const b = el('button','grouprow artist-row');
+  const albumAt = new Map(); // one representative track index per album, first-seen order
+  idx.forEach(i => { const alb = S.tracks[i].tags.album; if(!albumAt.has(alb)) albumAt.set(alb, i); });
+  const stack = el('span','artist-stack');
+  const covers = [...albumAt.values()].slice(0, 3)
+    .map(i => thumbURL['album:' + albumKey(S.tracks[i])] || S.tracks[i].art)
+    .filter(Boolean);
+  if(covers.length){
+    covers.forEach(src => {
+      const im = el('img', null); im.src = src; im.alt = '';
+      im.loading = 'lazy'; im.decoding = 'async'; im.width = 40; im.height = 40;
+      stack.appendChild(im);
+    });
+  } else stack.appendChild(el('span','g-art','◍'));
+  b.appendChild(stack);
+  const years = idx.map(i => S.tracks[i].tags.year).filter(Boolean);
+  const yearRange = years.length
+    ? (Math.min(...years) === Math.max(...years) ? String(Math.min(...years)) : Math.min(...years) + '–' + Math.max(...years))
+    : '';
+  const box = el('span','g-text');
+  box.appendChild(el('b', null, artist));
+  box.appendChild(el('em', null, albumAt.size + (albumAt.size === 1 ? ' record' : ' records') + (yearRange ? ' · ' + yearRange : '')));
+  b.appendChild(box);
+  b.appendChild(el('span','g-chev','›'));
+  b.addEventListener('click', onTap);
+  return b;
+}
+
+// CR9 (docs/13_CRATE.md): a playlist's own "compilation sleeve" tile for
+// the 2x2 grid — up to four covers in their own mini-grid under a cream
+// title strip, in place of the plain groupRow list every other tab still
+// uses (an album or an artist is a single sleeve; a playlist of several
+// different albums reads better as a compilation's own cover collage).
+function playlistTile(pl, present, onTap){
+  const b = el('button','playlist-tile' + (pl.system === 'favorites' ? ' is-fav' : ''));
+  const covers = el('span','pl-covers');
+  const srcs = present.slice(0, 4)
+    .map(i => thumbURL['album:' + albumKey(S.tracks[i])] || S.tracks[i].art)
+    .filter(Boolean);
+  if(srcs.length){
+    srcs.forEach(src => {
+      const im = el('img', null); im.src = src; im.alt = '';
+      im.loading = 'lazy'; im.decoding = 'async';
+      covers.appendChild(im);
+    });
+  } else covers.appendChild(el('span','g-art','◍'));
+  b.appendChild(covers);
+  const strip = el('span','pl-strip');
+  strip.appendChild(el('b', null, pl.name));
+  strip.appendChild(el('em', null, present.length + (present.length === 1 ? ' track' : ' tracks')));
+  b.appendChild(strip);
   b.addEventListener('click', onTap);
   return b;
 }
@@ -564,11 +677,19 @@ function renderTracksBody(host){
     const q = allIdx().sort(librarySortComparator('songs'));
     host.appendChild(librarySortBar(q.length, q.length === 1 ? 'Song' : 'Songs'));
     host.appendChild(ul);
+    // CR9 (docs/13_CRATE.md): sticky letter heads + rail above 200 tracks
+    // — only while the current sort is actually alphabetical (artist or
+    // album; "added"/"played"/"sessions" aren't, and a letter head over a
+    // list that jumps around by recency would read as broken, not helpful).
+    const sortKey = S.librarySort;
+    const songLabelFor = sortKey === 'album' ? i => S.tracks[i].tags.album : (!sortKey || sortKey === 'artist') ? i => S.tracks[i].tags.artist : null;
+    const showSongsRail = songLabelFor && q.length > SONGS_RAIL_THRESHOLD;
     appendRowsChunked(ul, q, (i, pos) => {
       const row = songRow(i, q, pos);
       if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
       return row;
-    });
+    }, showSongsRail ? { labelFor: songLabelFor, headFor: key => { const h = el('li','letter-head', key); h.dataset.letterKey = key; return h; } } : null);
+    if(showSongsRail) attachLetterRail(host, buildLetterGroups(q, songLabelFor));
   }
 
   else if(v.mode === 'person'){
@@ -599,15 +720,16 @@ function renderTracksBody(host){
 
   else if(v.mode === 'artists'){
     if(v.group === null){
-      appendRowsChunked(host, groupBy('artist'), ([artist, idx]) => {
-        const albums = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-        return groupRow(artist, albums + (albums===1?' album · ':' albums · ') + idx.length
-          + (idx.length===1?' track':' tracks'), idx, ()=>{ v.group = artist; renderTracks(); });
-      });
+      const artistGroups = groupBy('artist');
+      const showArtistsRail = artistGroups.length > ARTISTS_RAIL_THRESHOLD;
+      appendRowsChunked(host, artistGroups, ([artist, idx]) => artistRow(artist, idx, ()=>{ v.group = artist; renderTracks(); }),
+        showArtistsRail ? { labelFor: ([artist]) => artist, headFor: letterHead } : null);
+      if(showArtistsRail) attachLetterRail(host, buildLetterGroups(artistGroups, ([artist]) => artist));
     } else if(v.artistAlbum === null){
-      // an artist with multiple albums lands here first — pick an album
-      // before seeing its tracks, same as the top-level Albums view, rather
-      // than dumping every song from every album in one flat list
+      // an artist with multiple albums lands here first — a shelf to pick
+      // an album from, same as the top-level Albums view, rather than
+      // dumping every song from every album in one flat list (CR9's own
+      // "Artist page" shelf, docs/13_CRATE.md)
       const idx = allIdx().filter(i => S.tracks[i].tags.artist === v.group);
       const albums = new Map();
       idx.forEach(i => {
@@ -615,10 +737,58 @@ function renderTracksBody(host){
         if(!albums.has(album)) albums.set(album, []);
         albums.get(album).push(i);
       });
-      [...albums.entries()].sort((a,b) => byName(a[0], b[0])).forEach(([album, aidx]) => {
-        host.appendChild(groupRow(album, aidx.length + (aidx.length===1?' track':' tracks'),
-          aidx, ()=>{ v.artistAlbum = album; renderTracks(); }));
+      const entries = [...albums.entries()].sort((a,b) => byName(a[0], b[0]));
+      const flat = entries.flatMap(([, aidx]) => aidx.slice().sort(trackSort));
+
+      const actions = el('div','artist-actions');
+      const playAll = el('button','cta','Play all');
+      playAll.addEventListener('click', ()=> setQueue(flat, 0, true));
+      const shuffleBtn = el('button','cta ghost','Shuffle');
+      shuffleBtn.addEventListener('click', ()=>{
+        const shuffled = flat.slice();
+        for(let k = shuffled.length - 1; k > 0; k--){
+          const j = Math.floor(Math.random() * (k + 1));
+          [shuffled[k], shuffled[j]] = [shuffled[j], shuffled[k]];
+        }
+        setQueue(shuffled, 0, true);
       });
+      const creditsBtn = el('button','cta ghost','Credits');
+      creditsBtn.setAttribute('aria-expanded','false');
+      const creditsBody = el('div','artist-credits');
+      creditsBody.hidden = true;
+      creditsBtn.addEventListener('click', ()=>{
+        const open = creditsBody.hidden;
+        creditsBody.hidden = !open;
+        creditsBtn.setAttribute('aria-expanded', String(open));
+        if(open && !creditsBody.childNodes.length){
+          const roll = new Map();
+          entries.forEach(([album]) => albumCreditRoll(album).forEach((names, label) => {
+            if(!roll.has(label)) roll.set(label, []);
+            names.forEach(n => { if(!roll.get(label).includes(n)) roll.get(label).push(n); });
+          }));
+          if(!roll.size) creditsBody.appendChild(el('p','note','No credits in these files.'));
+          else roll.forEach((names, label) => creditsBody.appendChild(creditRow(label, names)));
+        }
+      });
+      actions.appendChild(playAll); actions.appendChild(shuffleBtn); actions.appendChild(creditsBtn);
+      host.appendChild(actions);
+      host.appendChild(creditsBody);
+
+      host.appendChild(el('div','artist-shelf-rail'));
+      const shelf = el('div','artist-shelf');
+      entries.forEach(([album, aidx], k) => {
+        const btn = el('button','shelf-sleeve' + (k % 2 ? ' shelf-sleeve-alt' : ''));
+        const src = thumbURL['album:' + albumKey(S.tracks[aidx[0]])] || S.tracks[aidx[0]].art;
+        if(src){
+          const im = el('img', null); im.src = src; im.alt = album;
+          im.loading = 'lazy'; im.decoding = 'async';
+          btn.appendChild(im);
+        } else btn.appendChild(el('span','g-art','◍'));
+        btn.title = album;
+        btn.addEventListener('click', ()=>{ v.artistAlbum = album; renderTracks(); });
+        shelf.appendChild(btn);
+      });
+      host.appendChild(shelf);
     } else {
       renderAlbumDetail(host, ul, v.artistAlbum);
     }
@@ -626,19 +796,31 @@ function renderTracksBody(host){
 
   else if(v.mode === 'playlists'){
     if(v.playlist === null){
-      if(!S.playlists.length) host.appendChild(el('p','note','Make your first playlist.'));
-      // Favorites (and any other system playlist) pinned first, without
-      // reordering S.playlists itself — v.playlist indexes the real array
-      const order = S.playlists.map((_, n) => n).sort((a, b) => (S.playlists[a].system?0:1) - (S.playlists[b].system?0:1));
-      order.forEach(n => {
-        const pl = S.playlists[n];
-        // playlist items are track ids (F3 spec) — the count/art shown
-        // here is of the tracks currently reconnected; a forgotten track
-        // stays in the playlist but isn't counted until it comes back
-        const present = pl.items.map(idxOf).filter(i => i >= 0);
-        host.appendChild(groupRow(pl.name, present.length + (present.length===1?' track':' tracks'),
-          present, ()=>{ v.playlist = n; renderTracks(); }));
-      });
+      // CR9 (docs/13_CRATE.md): a 2x2 grid of compilation sleeves in place
+      // of the plain groupRow list — Favorites first with its heart, an
+      // empty library shown as one dashed sleeve rather than a bare note.
+      if(!S.playlists.length){
+        const empty = el('div','playlist-tile playlist-tile-empty');
+        empty.appendChild(el('span','pl-covers'));
+        const strip = el('span','pl-strip pl-strip-dashed');
+        strip.appendChild(el('b', null, 'Make your first playlist.'));
+        empty.appendChild(strip);
+        host.appendChild(empty);
+      } else {
+        // Favorites (and any other system playlist) pinned first, without
+        // reordering S.playlists itself — v.playlist indexes the real array
+        const order = S.playlists.map((_, n) => n).sort((a, b) => (S.playlists[a].system?0:1) - (S.playlists[b].system?0:1));
+        const grid = el('div','playlist-grid');
+        order.forEach(n => {
+          const pl = S.playlists[n];
+          // playlist items are track ids (F3 spec) — the count/art shown
+          // here is of the tracks currently reconnected; a forgotten track
+          // stays in the playlist but isn't counted until it comes back
+          const present = pl.items.map(idxOf).filter(i => i >= 0);
+          grid.appendChild(playlistTile(pl, present, ()=>{ v.playlist = n; renderTracks(); }));
+        });
+        host.appendChild(grid);
+      }
       const add = el('div','stack');
       const nameIn = el('input','pl-input'); nameIn.placeholder = 'New playlist name'; nameIn.id = 'plName';
       const mk = el('button','cta','Create');
