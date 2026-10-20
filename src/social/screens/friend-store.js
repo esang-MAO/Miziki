@@ -1,8 +1,12 @@
 import { $, el } from '../../util/dom.js';
 import {
   storeAwning, storeStat, storePickTile, localAlbumArt, timeAgoShort,
-  renderStoreError, STORE_TIER_LABEL,
+  renderStoreError, STORE_TIER_LABEL, renderPressingCard,
 } from '../../profile/storefront.js';
+// CR11 point 1-2: the pressing is derived locally from the shared album
+// key (selectVariantForAlbum), never a new server column — see that
+// function's own comment in tiers.js for why a title+tier pair is enough.
+import { selectVariantForAlbum, getVariantDef } from '../../record-art/tiers.js';
 // Real circular import with ./home.js (the same shape as engine.js/
 // transport.js and the other established peer pairs): feedEventText is
 // home.js's own, but friendActivitySection below (the "recently at the
@@ -179,6 +183,22 @@ function storeRuleCaption(text){
   return el('p','store-rule-caption', text);
 }
 
+// CR11 point 1: "Both Verdigris", or "Yours: Verdigris · Ken's: Jet" — the
+// friend's own tier comes straight off crate_items.quality_tier (migration
+// 019_pressings_in_common.sql widened records_in_common to carry both
+// sides' tiers); null/undefined on an old, unmigrated row just means no
+// line shows rather than a wrong one. Exported for its own unit test, same
+// precedent as angleDelta in scrub.js/gatefoldSideSplits in gatefold/view.js.
+export function pressingLineFor(item, friendHandle){
+  const myTier = item.my_quality_tier, theirTier = item.their_quality_tier;
+  if(myTier == null || theirTier == null) return null;
+  const mine = getVariantDef(selectVariantForAlbum(item.title, myTier).variant);
+  const theirs = getVariantDef(selectVariantForAlbum(item.title, theirTier).variant);
+  if(!mine || !theirs) return null;
+  if(mine.name === theirs.name) return 'Both ' + mine.name;
+  return 'Yours: ' + mine.name + ' · ' + friendHandle + '’s: ' + theirs.name;
+}
+
 // RF20 point 3: "a friend's crate opens on what you have in common... then
 // Fresh, then everything" — this section renders first, ahead of Staff
 // picks/Fresh/the crate grid. records_in_common (already fetched into
@@ -200,6 +220,8 @@ function friendInCommonSection(full){
     cell.appendChild(cover);
     cell.appendChild(el('div','store-crate-name', item.title));
     cell.appendChild(el('div','store-crate-artist', item.artist));
+    const pressing = pressingLineFor(item, full.profile.handle);
+    if(pressing) cell.appendChild(el('div','store-crate-pressing', pressing));
     cell.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · IN COMMON'));
     grid.appendChild(cell);
   });
@@ -325,6 +347,32 @@ function friendCrateSection(full){
   return section;
 }
 
+// CR11 point 3-4: a friend's own pressing chart — chips only, no numbers,
+// no tap (showNumbers:false, see renderPressingCard's own comment) since
+// nothing here compares two people. Fetches the friend's whole crate once
+// (bounded, same cap friendCrateSection's own "Browse all" ceiling uses)
+// purely to derive each item's pressing locally — no new RPC needed.
+function friendPressingSection(full){
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Pressings'));
+  section.appendChild(head);
+  const holder = el('div');
+  holder.appendChild(el('p','store-loading','Loading…'));
+  section.appendChild(holder);
+  MizikiSocial.crate(full.profile.id, {offset: 0, limit: Math.min(full.summary.records, 200)}).then(r => {
+    holder.innerHTML = '';
+    if(!r.ok || !r.items.length) return;
+    const owned = new Set();
+    r.items.forEach(item => {
+      if(item.quality_tier == null) return;
+      const {variant} = selectVariantForAlbum(item.title, item.quality_tier);
+      if(variant !== 'jet') owned.add(variant);
+    });
+    holder.appendChild(renderPressingCard(owned, {showNumbers: false}));
+  });
+  return section;
+}
+
 function friendActivitySection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Recently at the counter'));
@@ -385,6 +433,7 @@ function renderFriendStoreContent(body, full){
   if(full.fresh && full.fresh.length) body.appendChild(friendFreshSection(full));
   if(full.diggingShared && full.digging.length) body.appendChild(friendDiggingPreview(full));
   body.appendChild(friendCrateSection(full));
+  body.appendChild(friendPressingSection(full));
   body.appendChild(friendActivitySection(full));
 }
 
@@ -410,10 +459,24 @@ function renderRecordSheetBody(full, item){
   body.appendChild(cover);
   body.appendChild(el('h3','record-title', item.title));
   body.appendChild(el('p','record-artist', [item.artist, item.year].filter(Boolean).join(' · ')));
-  if(item.quality_tier){
+  const theirTier = item.quality_tier != null ? item.quality_tier : item.their_quality_tier;
+  if(theirTier){
     const chips = el('div','record-chips');
-    chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[item.quality_tier] || ''));
+    chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[theirTier] || ''));
     body.appendChild(chips);
+  }
+  // CR11 point 2: name the pressing and its note, and — for an in-common
+  // record whose two quality_tiers differ — one extra line saying so.
+  const theirPressing = theirTier ? getVariantDef(selectVariantForAlbum(item.title, theirTier).variant) : null;
+  if(theirPressing){
+    body.appendChild(el('div','record-pressing-name', theirPressing.name));
+    if(theirPressing.note) body.appendChild(el('p','record-pressing-note', theirPressing.note));
+    if(item.my_quality_tier != null && item.my_quality_tier !== theirTier){
+      const minePressing = getVariantDef(selectVariantForAlbum(item.title, item.my_quality_tier).variant);
+      if(minePressing && minePressing.name !== theirPressing.name){
+        body.appendChild(el('p','record-pressing-diff', 'Your own copy is ' + minePressing.name + '.'));
+      }
+    }
   }
   if(item.rating){
     body.appendChild(el('div','record-rating-label', full.profile.handle + '’s rating'));
