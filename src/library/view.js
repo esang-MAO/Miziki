@@ -23,7 +23,7 @@ import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './dele
 import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
 import { thumbURL } from './thumbs.js';
-import { renderSidebarPlaylists } from '../shell/sidebar.js';
+import { renderSidebarPlaylists, renderSidebarBins } from '../shell/sidebar.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
 } from './search.js';
@@ -572,6 +572,10 @@ function renderTracksBody(host){
   // to be kept in sync from, rather than adding a second call site at
   // each of S.playlists' own mutation points.
   renderSidebarPlaylists();
+  // CR10 (docs/13_CRATE.md point 3): same reasoning — any render here is
+  // also the one place the sidebar's BINS list (New arrivals/Staff
+  // picks/Sealed counts) needs to stay in sync from.
+  renderSidebarBins();
   const v = S.view;
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();

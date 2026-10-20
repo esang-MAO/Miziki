@@ -442,6 +442,17 @@
   </button>
 </nav>
 <div class="sidebar-extra" id="sidebarExtra">
+  <!-- CR10 (docs/13_CRATE.md point 3): "a BINS list (New arrivals, Staff
+       picks, Sealed, with counts) above PLAYLISTS; each jumps the crate."
+       Mirrors the crate's own virtual bins (src/crate/model.js's
+       buildVirtualBins()), built by src/shell/sidebar.js's
+       renderSidebarBins() the same way #sidebarPlaylists already mirrors
+       S.playlists; wired in src/wiring/library-view.js (the module that
+       already owns "switch to the crate view"), not here. -->
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Bins</div>
+    <ul class="sidebar-bins" id="sidebarBins"></ul>
+  </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">Playlists</div>
     <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>

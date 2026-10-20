@@ -272,6 +272,19 @@ function buildVirtualBins(records){
     bins.push({key:'picks', label:'STAFF PICKS', panelSub:'Staff picks',
       meta: staffPicks.length + (staffPicks.length === 1 ? ' ALBUM' : ' ALBUMS'), records: staffPicks});
   }
+  // CR10 point 3: a third virtual bin, Sealed, for the desktop sidebar's
+  // BINS list. Reads S.sealed/S.sealedRecords directly rather than calling
+  // isAlbumSealed() (library/sealed.js) -- same "every caller already has
+  // the answer, don't widen the import surface" reasoning stickerFor()'s
+  // own comment above gives, but here there's nothing to widen at all: the
+  // two fields isAlbumSealed() itself reads are plain S state, not
+  // anything that module computes, so reading them here needs no import
+  // of library/sealed.js, circular or otherwise.
+  const sealed = S.sealedRecords ? records.filter(r => S.sealed.has(r.albumId)) : [];
+  if(sealed.length){
+    bins.push({key:'sealed', label:'SEALED', panelSub:'Sealed',
+      meta: sealed.length + (sealed.length === 1 ? ' ALBUM' : ' ALBUMS'), records: sealed});
+  }
   return bins;
 }
 

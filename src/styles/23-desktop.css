@@ -189,13 +189,41 @@
     margin-top:10px;padding-left:var(--sp-5);border-left:1px solid var(--line);
     max-height:calc(100vh - 160px);overflow-y:auto;
   }
-  .crate-detail-art{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-bottom:var(--sp-3)}
-  /* design-layout polish pass: Play album moved from a lone .tbtn.play to
-     a .cta pill (see crate/view.js's own comment) alongside a new Credits
-     button, both inside a .stack row — align-self here keeps that row
-     from stretching to the panel's full width the way a flex-column child
-     does by default, the same job .crate-detail-play alone used to do. */
-  .crate-detail-actions{align-self:flex-start;margin-bottom:14px}
+  /* CR10 (docs/13_CRATE.md) point 1: the panel follows the front record on
+     its own (crate/view.js's onSettled()) — no placeholder, no album art
+     of its own (docs/design/crate/DesktopCrate.dc.html shows none), and
+     the below-stage .crate-info row (including its own play button) is
+     redundant with this panel's own catalog card, so it's hidden outright
+     rather than kept as a second, duplicate play affordance under the
+     stack. Hiding it also feeds point 2's "full height" for free —
+     applyCrateMiniInset() (src/crate/view.js) reads its measured height as
+     one of the stage's own height-budget reserves, and a display:none
+     element measures 0. */
+  .crate-info{display:none}
+  /* CR10 point 2: "a 150 px lip" — literal values from the mockup
+     (DesktopCrate.dc.html), proportioned to this breakpoint's own
+     340px card (close to the mockup's own ~348px front-card width). */
+  .crate-lip{width:420px;height:150px;margin-left:-210px}
+  /* CR10 point 2: "the rail docked 16 px from the stage edge" — the
+     mockup's own right:16px, vertically centred rather than pinned 10px
+     from the top, so it still reads centred against the taller stage
+     .crate-info{display:none} just freed up. The rail's own drag-to-scrub
+     pointer handling (crate/view.js) reads its live bounding rect, so a
+     CSS-only reposition changes nothing about that behavior. */
+  .crate-rail{right:16px;top:50%;transform:translateY(-50%)}
+  /* CR10 point 1: the lean CREDITS/PIN/SLEEVE NOTE text-action row and the
+     side-split tracklist, replacing the old Play-album/Credits .cta pill
+     pair and the album-art <img> this panel no longer builds. */
+  .crate-detail-textactions{display:flex;gap:2px;margin:2px 0 var(--sp-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .crate-detail-textbtn{flex:1 1 auto;min-height:40px;padding:0 10px;border:0;background:transparent;
+    font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);cursor:pointer}
+  .crate-detail-textbtn:hover,.crate-detail-textbtn:focus-visible{color:var(--paper)}
+  .crate-detail-textbtn[aria-pressed="true"]{color:var(--accent-text)}
+  .crate-detail-note{margin:0 0 var(--sp-3)}
+  .crate-detail-note[hidden]{display:none}
+  .crate-detail-tracklist{margin-top:var(--sp-2)}
+  .crate-detail-footnote{font-size:var(--fs-caption);color:var(--muted);margin:var(--sp-3) 0 0}
+  .crate-detail-playall{align-self:flex-start;margin-top:var(--sp-2)}
 }
 
 @media (min-width:1280px){
@@ -220,6 +248,19 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .sidebar-playlists-empty{color:var(--muted)}
+  /* CR10 (docs/13_CRATE.md point 3): the BINS list above Playlists —
+     same list/row shape as .sidebar-playlists just above, except each
+     row is a real button ("each jumps the crate") so it needs the usual
+     button-reset plus a hover/focus state and a right-aligned count. */
+  .sidebar-bins{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .sidebar-bin-row{
+    display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+    width:100%;font:inherit;font-size:var(--fs-caption);padding:7px 10px;border-radius:6px;
+    color:var(--paper);background:none;border:0;cursor:pointer;text-align:left;
+  }
+  .sidebar-bin-row:hover,.sidebar-bin-row:focus-visible{background:var(--raised)}
+  .sidebar-bin-count{color:var(--muted);flex:0 0 auto}
+  .sidebar-bins-empty{font-size:var(--fs-caption);padding:7px 10px;color:var(--muted)}
   /* RF26 (docs/12_REFINE.md): #sidebarSundown is a real <button> now (the
      sheet's own desktop way in, src/shell/sundown-sheet.js) — reset the
      button defaults so it still reads as the same plain card. */

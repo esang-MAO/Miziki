@@ -51,6 +51,26 @@ export function wireLibraryView(){
     queueSave();
     renderTracks();
   }));
+  // CR10 (docs/13_CRATE.md point 3): the desktop sidebar's BINS list —
+  // "each jumps the crate." #sidebarBins itself is static markup (never
+  // torn down); its [data-bin] rows are rebuilt on every renderTracks()
+  // call (shell/sidebar.js's renderSidebarBins(), the same shape as the
+  // playlists list right next to it), so this wires one delegated
+  // listener on the static container rather than re-binding rows that
+  // get thrown away and rebuilt on every render. Switches the library
+  // view to the crate the same way a plain [data-view] tab click above
+  // does, then sets the pending jump key renderCrate() (src/crate/
+  // view.js) consumes on its very next render in place of the usual
+  // cold-start/anchor position.
+  const sidebarBins = document.getElementById('sidebarBins');
+  if(sidebarBins) sidebarBins.addEventListener('click', e => {
+    const b = e.target.closest('[data-bin]');
+    if(!b) return;
+    S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+    S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+    S.crate.pendingJumpKey = b.dataset.bin;
+    renderTracks();
+  });
   document.querySelectorAll('#sidesToggle [data-sides]').forEach(b => b.addEventListener('click', ()=>{
     S.albumSides = b.dataset.sides === 'on';
     document.querySelectorAll('#sidesToggle [data-sides]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));

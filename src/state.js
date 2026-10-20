@@ -203,8 +203,13 @@ S.sealedRecords = true;
 // gatefold track tap entirely in the mini player, no flight, no sheet
 S.playInFullPlayer = true;
 // pos stays null until first resolved — see renderCrate()'s cold-start
-// anchor logic (last-played album wins once, crateAnchor from then on)
-S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false};
+// anchor logic (last-played album wins once, crateAnchor from then on).
+// pendingJumpKey (CR10, docs/13_CRATE.md point 3): a bin/letter/genre/decade
+// key set just before switching to the crate view, so renderCrate() jumps
+// straight there on mount instead of resolving the usual cold-start/anchor
+// position — set by the desktop sidebar's BINS list (src/shell/sidebar.js),
+// consumed and cleared by renderCrate() itself on its very next render.
+S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null};
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
 // fight the user's own input value (step 3c — was a top-level let in main.js)
 S.scrubbing = false;

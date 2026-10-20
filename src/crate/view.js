@@ -30,7 +30,7 @@ import {
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
-import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices, gatefoldSocialControlsHTML } from '../gatefold/view.js';
+import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices } from '../gatefold/view.js';
 import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { playNext, addToQueue } from '../player/queue.js';
@@ -91,80 +91,174 @@ function openCrateAlbum(item){
   }
   // a sealed record can't be opened — the gatefold and its left panel only
   // unlock after the first play (SEALED spec §1, §5). Unchanged on desktop
-  // too, per the doc's own instruction — a sealed record still opens the
-  // sealed sheet there, same as on a phone.
+  // too — a sealed record still opens the sealed sheet there, same as on
+  // a phone.
   if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
-  // D5 (docs/DESKTOP_LAYOUT.md): on desktop, tapping a record shows its
-  // tracklist in the panel beside the crate instead of opening the
-  // gatefold overlay — the gatefold stays the phone's own way in,
-  // untouched just below. The panel only exists alongside the real 3D
-  // crate stage (renderCrate()'s own layout build); prefers-reduced-motion
-  // falls back to renderCrateFlat(), which never builds it (a real,
-  // pre-existing gap found during a design-layout review pass, not touched
-  // by D5 itself) — checking for the panel here, rather than assuming
-  // isDesktopShell() alone is enough, keeps a reduced-motion desktop user
-  // from a silent no-op tap and falls back to the one other way in that
-  // already works everywhere: the gatefold.
-  if(isDesktopShell() && $('#crateDetailPanel')){ renderCrateDetailPanel(item); return; }
-  // the gatefold is an overlay on top of the still-rendered crate (GATEFOLD
-  // spec §A1) — nothing about S.view/S.crate changes, so closing it needs no
-  // navigation back, it's simply still there
+  // CR10 (docs/13_CRATE.md) point 1: "Tap still opens the gatefold" — the
+  // D5-era desktop branch that showed the tracklist in the side panel
+  // instead, on tap, is gone. The panel now follows the front record on
+  // its own (onSettled(), below) with nothing to tap first, so a tap's
+  // only job left is what it's always been on a phone: open the gatefold.
   openGatefold(item);
 }
 
-// D5 (docs/DESKTOP_LAYOUT.md): the right-hand panel's own two states —
-// nothing opened yet, and a record's own tracklist, reusing
-// buildGatefoldTracklist()/gatefoldTrackIndices() (gatefold/view.js) so
-// the row styling, side-splitting and now-playing marker are identical to
-// the phone's own gatefold rather than a second implementation. D5's own
-// "first cut" trimmed this down to just the art/Play/tracklist, deferring
-// Credits and the gatefold's own rating/sleeve-note controls for later —
-// a design-layout review pass (reading the original Oct 13 mockup, which
-// shows both) added them back here the same way: a Credits button that
-// opens the existing overlay sheet (openCreditsSheet(), library/credits.js)
-// for this album rather than whatever's currently playing, and the
-// gatefold's own gatefoldSocialControlsHTML() (now exported) appended
-// after the tracklist, unchanged — same function, new container. Liner
-// notes still aren't reproduced here; the mockup's own panel doesn't show
-// them either, only a sleeve note.
-function renderCrateDetailPlaceholder(panel){
-  panel.innerHTML = '';
-  panel.appendChild(el('p','note','Tap a record to see its track list.'));
+// CR2 point 4 / CR10 point 1: the one-line description a divider's own
+// catalog card shows — the bins get their own sentence, everything else
+// keeps the existing panelSub. Shared by the below-stage info panel
+// (updateInfoPanel, inside renderCrate()) and the desktop side panel
+// (renderCrateDetailPanel, below) so the two can never drift apart on
+// what a divider's own blurb says.
+function dividerDescFor(item){
+  return item.kind === 'bin' && item.key === 'new' ? 'Added in the last two weeks'
+    : item.kind === 'bin' && item.key === 'picks' ? 'Pinned to staff picks'
+    : (item.panelSub || '');
 }
 
+// CR3 point 3 / CR10 point 1: the catalog card — cream stock, an aubergine
+// head rule, title/artist/catalog-number line, a second "PLAYED N TIMES ·
+// LAST SPUN TUE" line once the record has actually been played, and a
+// solid accent play disc at the right. Shared by the below-stage info
+// panel and the desktop side panel. CR6 moved the SEALED·[date] tag onto
+// the film itself (buildSealOverlay, library/sealed.js, lower-left, on
+// the cover) — this card carries no text chip of its own for it, just
+// the sr-only note (the film's own tag is aria-hidden, same as every
+// other seal-wrap child).
+function buildCrateCatalogCard(item, sealed){
+  const card = el('div','crate-catalog-card');
+  card.appendChild(el('div','crate-catalog-rule'));
+  const body = el('div','crate-catalog-body');
+  const text = el('div');
+  const h3 = el('h3', null, item.album);
+  if(isNowPlayingAlbum(item)) h3.appendChild(el('span','crate-now-chip','● Now playing'));
+  text.appendChild(h3);
+  text.appendChild(el('p','crate-info-sub', item.artist));
+  text.appendChild(el('p','crate-info-meta', catalogLineFor(item)));
+  const played = playedLineFor(item);
+  if(played) text.appendChild(el('p','crate-info-played', played));
+  if(sealed) text.appendChild(el('span','sr-only','Sealed, not played yet'));
+  body.appendChild(text);
+  const playBtn = el('button','crate-catalog-play','▶');
+  playBtn.setAttribute('aria-label','Play ' + item.album);
+  // a sealed album plays quietly from track 1, same first-play rules as
+  // the sealed sheet — no sheet/overlay opens from here either (§5)
+  playBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
+  });
+  body.appendChild(playBtn);
+  card.appendChild(body);
+  return card;
+}
+
+// MizikiSocial.getAlbumSocial() reads X.state.items directly with no null
+// guard of its own (miziki-social.js) -- X.state stays null until init()'s
+// own async loadState() resolves, and the desktop panel can render (and
+// call this) well before that, since onSettled() below calls it on every
+// crate render rather than only once a user taps something. The same race
+// crate/model.js's localStaffPickIds() already found and fixed this same
+// way (try/catch rather than a status() check, since pin/note state is
+// deliberately available whether or not the user has ever signed in).
+function safeAlbumSocial(albumId){
+  try{ return MizikiSocial.getAlbumSocial(albumId); }catch(_e){ return {}; }
+}
+
+// D5 (docs/DESKTOP_LAYOUT.md); rewritten CR10 (docs/13_CRATE.md) point 1,
+// "the panel follows the front record" — renderCrateDetailPanel() is no
+// longer tap-only. onSettled() (below) calls it for whatever item is at
+// the front after every snap/momentum settle, and renderCrate() calls it
+// once more at mount, so there's nothing to tap first and no placeholder
+// state left to render (docs/design/crate/DesktopCrate.dc.html's own
+// "nothing to tap first" caption). A divider at the front (a bin/letter/
+// genre/decade/artist divider) gets its own short description-plus-
+// Play-all body, the same text updateInfoPanel()'s own divider branch
+// already shows below the stage on a phone, since the right half of the
+// screen is never meant to go empty here either (CR10's own "Preview
+// focus"). A sealed record has nothing to show yet (SEALED spec §1, §5)
+// beyond its own catalog card. Buttons/tracklist reuse buildCrateCatalog
+// Card()/buildGatefoldTracklist()/gatefoldTrackIndices() (this file/
+// gatefold/view.js) rather than a second implementation of either.
 function renderCrateDetailPanel(item){
   const panel = $('#crateDetailPanel');
-  if(!panel) return;
+  if(!panel || !item) return;
   panel.innerHTML = '';
-  const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
-  if(art){
-    const im = document.createElement('img');
-    im.className = 'crate-detail-art';
-    im.src = art; im.alt = '';
-    panel.appendChild(im);
+  if(item.type !== 'rec'){
+    panel.appendChild(el('h3', null, item.label));
+    panel.appendChild(el('p','crate-info-sub', dividerDescFor(item)));
+    panel.appendChild(el('p','crate-info-meta', item.meta));
+    if(item.idx && item.idx.length){
+      const playAllBtn = el('button','cta crate-detail-playall','▶ Play all');
+      playAllBtn.setAttribute('aria-label','Play all in ' + item.label);
+      playAllBtn.addEventListener('click', () => setQueue(item.idx, 0, true));
+      panel.appendChild(playAllBtn);
+    }
+    return;
   }
-  // .cta/.cta.ghost (src/styles/16-edit-sheet.css) rather than .tbtn —
-  // .tbtn is the transport row's own 44px circular button, never meant to
-  // hold a multi-word label; "▶ Play album" inside one wrapped onto two
-  // lines (found during a design-layout review pass against the original
-  // mockup, which shows a normal pill button here, the same shape the
-  // player's own "Edit info"/"Share" row already uses).
-  const actions = el('div','stack crate-detail-actions');
-  const playBtn = el('button','cta crate-detail-play','▶ Play album');
-  playBtn.setAttribute('aria-label','Play ' + item.album);
-  playBtn.addEventListener('click', () => setQueue(item.idx, 0, true));
-  actions.appendChild(playBtn);
-  const creditsBtn = el('button','cta ghost','Credits');
+  const sealed = isAlbumSealed(item.albumId);
+  panel.appendChild(buildCrateCatalogCard(item, sealed));
+  if(sealed){
+    panel.appendChild(el('p','crate-detail-footnote','Sealed — play it to break the seal.'));
+    return;
+  }
+  // CR10 point 1: "CREDITS · PIN · SLEEVE NOTE as text buttons" — the
+  // mockup's own three plain mono text buttons, replacing both the old
+  // Credits .cta.ghost pill and gatefoldSocialControlsHTML()'s full
+  // rating-stars/always-open-textarea block (still the gatefold's own
+  // shape, untouched there — this panel is a deliberately leaner second
+  // surface onto the same local-first MizikiSocial rating/note/pin state,
+  // not a second implementation of it). No star rating here at all, per
+  // the mockup; Sleeve note opens the same gf-note-input textarea style
+  // (11-gatefold.css's own selectors already cover .crate-detail-panel)
+  // in a small disclosure rather than always showing it open.
+  const actions = el('div','crate-detail-textactions');
+  const creditsBtn = el('button','crate-detail-textbtn','CREDITS');
   creditsBtn.setAttribute('aria-label','Credits for ' + item.album);
   creditsBtn.addEventListener('click', () => { const t = S.tracks[item.idx[0]]; if(t) openCreditsSheet(t); });
   actions.appendChild(creditsBtn);
+  const pinBtn = el('button','crate-detail-textbtn','PIN');
+  function paintPin(){
+    const pinned = safeAlbumSocial(item.albumId).pinRank != null;
+    pinBtn.setAttribute('aria-pressed', String(pinned));
+    pinBtn.textContent = pinned ? 'PINNED' : 'PIN';
+  }
+  pinBtn.addEventListener('click', () => {
+    const pinned = safeAlbumSocial(item.albumId).pinRank != null;
+    try{
+      if(pinned) MizikiSocial.unpin(item.albumId);
+      else if(!MizikiSocial.pin(item.albumId)){ pinBtn.textContent = 'FULL'; setTimeout(paintPin, 1800); return; }
+    }catch(_e){ /* MizikiSocial.init() hasn't resolved yet -- see safeAlbumSocial() */ }
+    paintPin();
+  });
+  paintPin();
+  actions.appendChild(pinBtn);
+  const noteWrap = el('div','crate-detail-note');
+  noteWrap.hidden = true;
+  const noteInput = document.createElement('textarea');
+  noteInput.className = 'gf-note-input'; noteInput.maxLength = 140; noteInput.rows = 2;
+  noteInput.placeholder = 'Sleeve note';
+  noteInput.setAttribute('aria-label','Sleeve note for ' + item.album);
+  noteInput.value = safeAlbumSocial(item.albumId).note || '';
+  noteInput.addEventListener('change', () => {
+    try{ MizikiSocial.setNote(item.albumId, noteInput.value); }catch(_e){ /* see safeAlbumSocial() */ }
+  });
+  noteWrap.appendChild(noteInput);
+  const noteBtn = el('button','crate-detail-textbtn','SLEEVE NOTE');
+  noteBtn.setAttribute('aria-expanded','false');
+  noteBtn.addEventListener('click', () => {
+    const show = noteWrap.hidden;
+    noteWrap.hidden = !show;
+    noteBtn.setAttribute('aria-expanded', String(show));
+    if(show) noteInput.focus();
+  });
+  actions.appendChild(noteBtn);
   panel.appendChild(actions);
+  panel.appendChild(noteWrap);
   const trackIdx = gatefoldTrackIndices(item);
   const list = el('div','crate-detail-tracklist');
   list.setAttribute('role','list');
   list.appendChild(buildGatefoldTracklist(item, trackIdx, (idx, i) => setQueue(idx, idx.indexOf(i), true)));
   panel.appendChild(list);
-  panel.appendChild(gatefoldSocialControlsHTML(item));
+  panel.appendChild(el('p','crate-detail-footnote',
+    'The panel follows the record at the front of the crate. Tapping the record still opens the gatefold.'));
 }
 
 function updateCrateGroupToggleUI(){
@@ -350,6 +444,15 @@ export function renderCrate(host){
   if(REDUCED){ renderCrateFlat(host, model); return; }
 
   let startPos = S.crate.pos;
+  // CR10 point 3: the desktop sidebar's BINS list sets pendingJumpKey right
+  // before switching to this view, so the jump wins over whatever the
+  // cold-start/anchor logic below would otherwise land on — consumed once,
+  // same shape as S.crate.coldStartDone just below.
+  if(S.crate.pendingJumpKey){
+    const jumpTarget = crateRailJumpTarget(model, S.crate.pendingJumpKey);
+    S.crate.pendingJumpKey = null;
+    if(jumpTarget != null) startPos = jumpTarget;
+  }
   if(startPos == null || isNaN(startPos) || startPos < 0 || startPos >= model.items.length){
     // cold start: the last-played album wins, falling back to the saved
     // anchor, then the first record. After this first resolution, the
@@ -429,7 +532,6 @@ export function renderCrate(host){
   const layout = el('div','crate-layout');
   const detailPanel = el('div','crate-detail-panel');
   detailPanel.id = 'crateDetailPanel';
-  renderCrateDetailPlaceholder(detailPanel);
   layout.appendChild(wrap);
   layout.appendChild(detailPanel);
   host.appendChild(layout);
@@ -580,14 +682,10 @@ export function renderCrate(host){
     if(!item) return;
     if(item.type === 'div'){
       // CR2 point 4: the divider catalog card below the stage — title, a
-      // one-line description (the bins get their own sentence; everything
-      // else keeps the existing panelSub), the count/year-span line, and
-      // PLAY ALL (bin/artist/letter/genre — plays the whole group in order).
+      // one-line description, the count/year-span line, and PLAY ALL
+      // (bin/artist/letter/genre — plays the whole group in order).
       info.appendChild(el('h3', null, item.label));
-      const desc = item.kind === 'bin' && item.key === 'new' ? 'Added in the last two weeks'
-        : item.kind === 'bin' && item.key === 'picks' ? 'Pinned to staff picks'
-        : (item.panelSub || '');
-      info.appendChild(el('p','crate-info-sub', desc));
+      info.appendChild(el('p','crate-info-sub', dividerDescFor(item)));
       info.appendChild(el('p','crate-info-meta', item.meta));
       if(item.idx && item.idx.length){
         const playAllBtn = el('button','crate-divider-playall','PLAY ALL');
@@ -597,39 +695,8 @@ export function renderCrate(host){
       }
       return;
     }
-    // CR3 point 3: the catalog card replaces the plain info row — cream
-    // stock, an aubergine head rule, title/artist/catalog-number line, a
-    // second "PLAYED N TIMES · LAST SPUN TUE" line once the record has
-    // actually been played, and a solid accent play disc at the right.
-    // CR6 moved the SEALED·[date] tag onto the film itself (buildSealOverlay,
-    // library/sealed.js, lower-left, on the cover) — this card no longer
-    // carries a text chip of its own for it, just the sr-only note (the
-    // film's own tag is aria-hidden, same as every other seal-wrap child).
     const sealed = isAlbumSealed(item.albumId);
-    const card = el('div','crate-catalog-card');
-    card.appendChild(el('div','crate-catalog-rule'));
-    const body = el('div','crate-catalog-body');
-    const text = el('div');
-    const h3 = el('h3', null, item.album);
-    if(isNowPlayingAlbum(item)) h3.appendChild(el('span','crate-now-chip','● Now playing'));
-    text.appendChild(h3);
-    text.appendChild(el('p','crate-info-sub', item.artist));
-    text.appendChild(el('p','crate-info-meta', catalogLineFor(item)));
-    const played = playedLineFor(item);
-    if(played) text.appendChild(el('p','crate-info-played', played));
-    if(sealed) text.appendChild(el('span','sr-only','Sealed, not played yet'));
-    body.appendChild(text);
-    const playBtn = el('button','crate-catalog-play','▶');
-    playBtn.setAttribute('aria-label','Play ' + item.album);
-    // a sealed album plays quietly from track 1, same first-play rules as
-    // the sealed sheet — no sheet/overlay opens from here either (§5)
-    playBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      if(sealed){ sealedQuietPlay(item.idx, item.idx[0]); } else setQueue(item.idx, 0, true);
-    });
-    body.appendChild(playBtn);
-    card.appendChild(body);
-    info.appendChild(card);
+    info.appendChild(buildCrateCatalogCard(item, sealed));
   }
 
   // CR9 (docs/13_CRATE.md): the tick-building loop itself — spread entries
@@ -726,6 +793,12 @@ export function renderCrate(host){
   function onSettled(){
     const item = itemAt(Math.round(S.crate.pos));
     if(item && item.type === 'rec') persistCrateAnchor(item);
+    // CR10 point 1: the desktop side panel follows whatever's at the front
+    // once it comes to rest — not every animation frame, since the panel's
+    // own content (the catalog card, text actions, side-split tracklist)
+    // is heavier than the below-stage info row updateInfoPanel repaints on
+    // every frame regardless of platform.
+    if(isDesktopShell()) renderCrateDetailPanel(item);
     announceCurrent();
     scheduleLargeSwap();
   }
@@ -1109,6 +1182,7 @@ export function renderCrate(host){
   // using all available space (rather than banking a safety margin of dead
   // space) let the info panel's true height push past the mini player.
   applyCrateMiniInset();
+  if(isDesktopShell()) renderCrateDetailPanel(itemAt(Math.round(S.crate.pos)));
   announceCurrent();
   scheduleLargeSwap();
   prewarmCrateAnchorL().catch(() => {});
