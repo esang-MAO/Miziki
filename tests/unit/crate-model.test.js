@@ -18,7 +18,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 
 const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
-  persistCrateAnchor, crateRailJumpTarget, libraryHasGenres,
+  persistCrateAnchor, crateRailJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS,
   stickerFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress,
   CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
@@ -364,4 +364,21 @@ test('cratePullProgress: 0 with no card height or no lift, 1 once the lift reach
   // never goes negative or past 1 for an out-of-range input
   assert.equal(cratePullProgress(-10, 278), 0);
   assert.equal(cratePullProgress(1000, 278), 1);
+});
+
+test('nextCrateGroup cycles A–Z → Genre → Decade → A–Z when genres exist', () => {
+  assert.equal(nextCrateGroup('az', true), 'genre');
+  assert.equal(nextCrateGroup('genre', true), 'decade');
+  assert.equal(nextCrateGroup('decade', true), 'az');
+});
+
+test('nextCrateGroup skips Genre when the library has no genre tags', () => {
+  assert.equal(nextCrateGroup('az', false), 'decade');
+  assert.equal(nextCrateGroup('decade', false), 'az');
+  // a stale 'genre' (tags since removed) steps back to the start
+  assert.equal(nextCrateGroup('genre', false), 'az');
+});
+
+test('CRATE_GROUP_LABELS covers every crate grouping', () => {
+  assert.deepEqual(Object.keys(CRATE_GROUP_LABELS).sort(), ['az', 'decade', 'genre']);
 });

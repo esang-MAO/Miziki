@@ -79,6 +79,16 @@ function compareCrateYear(a, b){
 }
 export function libraryHasGenres(){ return S.tracks.some(t => t.details && firstGenreValue(t.details.genre)); }
 
+// Crate-order chip (#crateGroupToggleTab): the order a tap steps through,
+// and the label each option shows. Genre is skipped when the library has
+// no genre tags — pass hasGenres explicitly from tests.
+export const CRATE_GROUP_LABELS = { az: 'A–Z', genre: 'Genre', decade: 'Decade' };
+export function nextCrateGroup(current, hasGenres = libraryHasGenres()){
+  const order = hasGenres ? ['az', 'genre', 'decade'] : ['az', 'decade'];
+  const i = order.indexOf(current);
+  return order[(i + 1) % order.length];
+}
+
 function albumGenreFor(idx){
   const counts = new Map();
   idx.forEach((i, pos) => {

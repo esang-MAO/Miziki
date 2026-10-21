@@ -25,7 +25,7 @@ import { METAL_COLORS } from '../record-art/metals.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
@@ -276,10 +276,11 @@ function updateCrateGroupToggleUI(){
   // now anyway.
   const tabToggle = $('#crateGroupToggleTab');
   if(tabToggle){
-    tabToggle.style.display = 'flex';
-    $('#crateGenreBtnTab').style.display = hasGenres ? '' : 'none';
-    document.querySelectorAll('#crateGroupToggleTab [data-group]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.group === S.crateGroup)));
+    tabToggle.style.display = 'inline-flex';
+    const label = CRATE_GROUP_LABELS[S.crateGroup] || CRATE_GROUP_LABELS.az;
+    $('#crateGroupCycleLabel').textContent = label;
+    const next = CRATE_GROUP_LABELS[nextCrateGroup(S.crateGroup, hasGenres)];
+    tabToggle.setAttribute('aria-label', `Crate order: ${label}. Tap for ${next}.`);
   }
 }
 
