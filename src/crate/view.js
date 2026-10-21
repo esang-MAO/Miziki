@@ -510,7 +510,6 @@ export function renderCrate(host){
   if(!model.items.length){
     const empty = el('div','crate-wrap crate-empty');
     const stage = el('div','crate-stage');
-    stage.appendChild(el('div','crate-lip'));
     empty.appendChild(stage);
     const card = el('div','crate-empty-card');
     card.appendChild(el('p','crate-empty-title','Fill the crate'));
@@ -636,15 +635,6 @@ export function renderCrate(host){
   const peekPrev = el('div','crate-peek crate-peek-prev');
   const peekNext = el('div','crate-peek crate-peek-next');
   stage.appendChild(peekPrev); stage.appendChild(peekNext);
-  // CR1: the bin's own cardboard lip at the stage's bottom edge, tagged
-  // with whichever divider the centred record currently falls under (or,
-  // in an ungrouped bin, the overall record count) — kept in sync from
-  // syncCards() via updateLip() below, the same "recompute on position
-  // change" shape updateRailUI()/updateNowPlayingTopBar() already use.
-  const lip = el('div','crate-lip');
-  const lipTag = el('div','crate-lip-tag');
-  lip.appendChild(lipTag);
-  stage.appendChild(lip);
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
   wrap.appendChild(header); wrap.appendChild(sectionHeaderSlot); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
@@ -878,37 +868,6 @@ export function renderCrate(host){
     });
   }
 
-  // CR1: finds the divider item nearest at-or-before the given item index,
-  // walking backward through the already-ordered model.items array (cheap —
-  // a crate's own divider count is small, and this only runs once per
-  // position change via syncCards(), not per frame). Falls back to the
-  // whole-bin count when there's no divider yet (an ungrouped bin, e.g.
-  // fewer than 20 records — crate/model.js's own showDividers gate).
-  // CR14: bounded to the active section's own start — a position near the
-  // front of a bin/genre/decade section must never walk back into the
-  // previous section's own trailing divider.
-  function nearestDividerBefore(itemIdx){
-    const lo = curSection().start;
-    for(let i = Math.min(itemIdx, model.items.length - 1); i >= lo; i--){
-      if(model.items[i].type === 'div') return model.items[i];
-    }
-    return null;
-  }
-  let lastLipKey = null;
-  function updateLip(position){
-    const idx = Math.round(position);
-    const div = nearestDividerBefore(idx);
-    const key = div ? div.label : '*all*';
-    if(key === lastLipKey) return;
-    lastLipKey = key;
-    if(div){ lipTag.textContent = div.label + ' — ' + div.meta; }
-    else {
-      const section = curSection();
-      const n = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
-      lipTag.textContent = n + (n === 1 ? ' RECORD' : ' RECORDS');
-    }
-  }
-
   function announceCurrent(){
     const item = itemAt(Math.round(S.crate.pos));
     if(!item) return;
@@ -957,7 +916,6 @@ export function renderCrate(host){
     syncInfoReserve();
     updateRailUI(position);
     updateNowPlayingTopBar(position);
-    updateLip(position);
   }
   function draw(speed){ syncCards(S.crate.pos, speed); }
 
@@ -1074,7 +1032,6 @@ export function renderCrate(host){
       pool.forEach(c => c.remove()); pool.clear();
       S.crate.pos = sectionRestorePos(section);
       hDragX = 0;
-      lastLipKey = null;
       refreshSectionHeaderUI();
       rebuildPeeks();
       updateHeaderLeft();

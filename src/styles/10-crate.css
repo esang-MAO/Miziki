@@ -42,6 +42,19 @@
   --sticker-ink:#2A1B38;
 }
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+/* Ken, 2026-10-21: "the only thing that scrolls there should be the
+   records (horizontally and vertically)" — the crate stage already moves
+   entirely through its own pointer gesture (crate/view.js), never a native
+   scroll, so the page's own scroll (body is the app's one scroller,
+   00-base.css) only ever fought that gesture rather than helping it.
+   :has() scopes the lock to exactly "Library route showing Crate" — gone
+   the instant the DOM it matches against is (a tab switch re-renders
+   #tracksBody with no .crate-wrap in it; leaving the route drops
+   #route-library's own .on class) — same pattern as 23-desktop.css's
+   existing body:has(#playerOverlay.open) rules, no JS state to keep in
+   sync. The reduced-motion flat list (.crate-flat-wrap, a real native
+   overflow-y:auto list) is a different element and never matches this. */
+body:has(#route-library.on .crate-wrap){overflow:hidden}
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
 .crate-group-toggle{margin-bottom:10px}
 /* CR1: a header row above the stage — how many records are in the bin and
@@ -167,24 +180,6 @@
   padding:var(--sp-1) var(--sp-4);border:1px solid #2A1B38;border-radius:var(--radius-control);
   background:var(--cream);color:#2A1B38;font-family:var(--data);font-size:var(--fs-label);
   letter-spacing:.08em;cursor:pointer}
-/* CR1: the bin's own cardboard lip at the stage's bottom edge, the record
-   store's own divider tab for wherever the stack is currently scrolled to
-   (docs/design/crate/README.md, "The bin (CR1)" — 330x118px, a cardboard
-   gradient that answers to the day-arc phase like the sleeve's own lit
-   edge above). Sits below the centred card's own z-index (flowZIndex(0)
-   is 90) but above its receding neighbours, so it reads as the physical
-   bottom of the bin the stack sits in, not a layer on top of it. */
-.crate-lip{position:absolute;left:50%;bottom:0;width:330px;height:118px;margin-left:-165px;z-index:85;
-  border-radius:4px 4px 0 0;pointer-events:none;
-  /* CR8 (docs/13_CRATE.md): "the bin is cardboard and walnut, not
-     red-brown" — the previous gradient here (#3A2B22/#2A1F19/#1E1612)
-     leaned too far toward Oxblood/Umber's own red-brown record-body
-     family; --bin-1/2/3 is the README's own walnut/cardboard triplet,
-     chosen so no record body reads as camouflaged against its own bin. */
-  background:linear-gradient(180deg,var(--bin-1),var(--bin-2) 18%,var(--bin-3));
-  box-shadow:inset 0 2px 0 var(--crate-light)}
-.crate-lip-tag{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.08em;text-transform:uppercase;color:var(--cream)}
 /* CR14 (docs/14_CRATE_SECTIONS.md PR 2, "the letter rail moves to the left
    edge"): the rail is left-aligned now — plain letters, no box/border/
    pill chrome of their own (the rail-item rule below resets any default
@@ -234,10 +229,12 @@
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.crate-rail-bubble{transition:none}}
 
-/* CR1: an empty library's crate reads as an empty bin — the same lip, a
-   shorter stage (no records to pose, so no 420px of headroom is needed),
-   and a cream card the same family as a divider's own cardboard-colour
-   sleeve, prompting the one thing that actually fixes "nothing here." */
+/* CR1: an empty library's crate reads as an empty bin — a shorter stage
+   (no records to pose, so no 420px of headroom is needed) and a cream card
+   the same family as a divider's own cardboard-colour sleeve, prompting
+   the one thing that actually fixes "nothing here." (The bin's own
+   cardboard lip this comment used to describe was removed — Ken's own
+   call, 2026-10-21: "no longer needed in crate view.") */
 .crate-empty .crate-stage{height:138px}
 .crate-empty-card{margin-top:var(--sp-4);border-radius:var(--radius-card);background:var(--cream);color:#2A1B38;
   padding:var(--sp-5) var(--sp-4);text-align:center;box-shadow:var(--sh-2)}
