@@ -104,14 +104,6 @@
   --stock-manila:#E8D9A8;
   --stock-card:#EFE6D2;
   --stock-bone:#F4F1E9;
-  /* Bin: cardboard and walnut, deliberately not red-brown, so Oxblood and
-     Umber record bodies still separate from the bin behind them (the
-     Palette.dc.html mockup's own line). New — no existing literal
-     matches this triplet; .crate-lip's own pre-CR8 background used a
-     warmer, more reddish brown that this token set replaces. */
-  --bin-1:#8E7A60;
-  --bin-2:#6F5A45;
-  --bin-3:#4D3D2F;
   /* Platter plinth: warm black, darker than any record body (--disc-c is
      #0D0E13) so even Jet still lifts off it. New — the platter stage has
      never had a plinth surface of its own before this PR. */

@@ -201,10 +201,6 @@
      one of the stage's own height-budget reserves, and a display:none
      element measures 0. */
   .crate-info{display:none}
-  /* CR10 point 2: "a 150 px lip" — literal values from the mockup
-     (DesktopCrate.dc.html), proportioned to this breakpoint's own
-     340px card (close to the mockup's own ~348px front-card width). */
-  .crate-lip{width:420px;height:150px;margin-left:-210px}
   /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): "the wider stage simply shows
      more of each peek" — a wider sliver to match the bigger 340px card,
      same ratio as the phone's own 46px/278px. */

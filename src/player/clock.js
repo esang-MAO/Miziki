@@ -236,12 +236,13 @@ export function drawSun(){
     document.documentElement.style.setProperty('--phase-color', phaseColor);
   }
 
-  // CR1 (docs/13_CRATE.md): the bin's own sky-lit top edge — warm white at
-  // Golden hour, cool at Night, smoothstep-blended across the same phase
-  // boundaries as --sky1/--sky2/--muted above. Only the crate reads it
-  // (src/styles/10-crate.css's .crate-card::after/.crate-lip), so it's
-  // written with the same change-guard every other per-tick custom
-  // property here already uses.
+  // CR1 (docs/13_CRATE.md): the sleeve's own sky-lit top edge — warm white
+  // at Golden hour, cool at Night, smoothstep-blended across the same
+  // phase boundaries as --sky1/--sky2/--muted above. Only the crate card
+  // reads it (src/styles/10-crate.css's .crate-card lit-edge box-shadow —
+  // the bin's own cardboard lip this comment used to also mention was
+  // removed, 2026-10-21), so it's written with the same change-guard every
+  // other per-tick custom property here already uses.
   const crateLight = crateLightColor(dayPos);
   if(crateLight !== lastCrateLight){
     lastCrateLight = crateLight;
