@@ -22,6 +22,9 @@ const {
   stickerFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress,
   CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
+  sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
+  CRATE_HORIZONTAL_MIN_PX, CRATE_HORIZONTAL_RATIO,
+  CRATE_SECTION_COMMIT_PX, CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -36,7 +39,8 @@ function fakeTrack(id, overrides){
 function resetState(overrides){
   Object.assign(S, {
     tracks: [], index: -1,
-    crate: {pos: null, model: null, modelGroup: null, modelDirty: true, coldStartDone: false},
+    crate: {pos: null, model: null, modelGroup: null, modelDirty: true, coldStartDone: false,
+      pendingJumpKey: null, pendingJumpVariant: null, sectionPos: {}},
     crateGroup: 'az', crateAnchor: null,
   }, overrides);
 }
@@ -136,8 +140,14 @@ test('ensureCrateModel: New arrivals bin holds records added within 14 days, new
   // newest added first
   assert.equal(model.items[binIdx + 1].album, 'Newest Album');
   assert.equal(model.items[binIdx + 2].album, 'Newer Album');
-  // the bin sits before every other divider/record in the model
-  assert.equal(binIdx, 0);
+  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the bin is its own trailing
+  // section, after the whole az letter run -- not at the very front any more.
+  const azSection = model.sections.find(s => s.key === 'az');
+  assert.ok(azSection, 'az section exists');
+  assert.equal(binIdx, azSection.end, 'the bin sits right after the az letter run ends');
+  const binSection = model.sections.find(s => s.key === 'new');
+  assert.ok(binSection, 'the bin has its own section');
+  assert.equal(binSection.start, binIdx);
 
   // nothing within the window -> no bin at all
   resetState({
@@ -166,7 +176,13 @@ test('ensureCrateModel: Staff picks bin holds MizikiSocial\'s pins in pin-rank o
     const bin = model.items.find(it => it.type === 'div' && it.kind === 'bin' && it.key === 'picks');
     assert.ok(bin, 'Staff picks bin exists once there are pins');
     const binIdx = model.items.indexOf(bin);
-    assert.equal(binIdx, 0, 'Staff picks sits right after New arrivals would, i.e. still at the very front (none qualify here)');
+    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): bins are their own trailing
+    // sections after the az letter run, in order new/sealed/picks -- none of
+    // the earlier bins qualify here, so Staff picks is the first bin section,
+    // right after az ends.
+    const azSection = model.sections.find(s => s.key === 'az');
+    assert.ok(azSection, 'az section exists');
+    assert.equal(binIdx, azSection.end, 'Staff picks sits right after the az letter run ends (no earlier bins qualify)');
     assert.equal(model.items[binIdx + 1].album, 'Picked First', 'pin-rank order, not library order');
     assert.equal(model.items[binIdx + 2].album, 'Picked Second');
   } finally {
@@ -381,4 +397,148 @@ test('nextCrateGroup skips Genre when the library has no genre tags', () => {
 
 test('CRATE_GROUP_LABELS covers every crate grouping', () => {
   assert.deepEqual(Object.keys(CRATE_GROUP_LABELS).sort(), ['az', 'decade', 'genre']);
+});
+
+// CR14 (docs/14_CRATE_SECTIONS.md PR 2): `model.sections` -- one side-by-side
+// crate per span over `items`, covering every item exactly once with no gaps.
+
+function assertSectionsCoverEveryItem(model){
+  assert.ok(model.sections.length > 0, 'at least one section');
+  assert.equal(model.sections[0].start, 0, 'the first section starts at item 0');
+  assert.equal(model.sections[model.sections.length - 1].end, model.items.length,
+    'the last section ends exactly at the end of items');
+  for(let i = 1; i < model.sections.length; i++){
+    assert.equal(model.sections[i].start, model.sections[i - 1].end,
+      'section ' + i + ' starts exactly where the previous one ends -- no gap, no overlap');
+  }
+}
+
+test('ensureCrateModel: sections cover every item exactly once with no gaps, in A-Z with bins', () => {
+  const now = Date.now();
+  resetState({
+    tracks: [
+      fakeTrack('old1', { addedAt: now - 30 * DAY_MS,
+        tags: { title:'Old1', artist:'Oldie', album:'Old Album', albumArtist:'Oldie', track:1, disc:1 } }),
+      fakeTrack('new1', { addedAt: now - 1 * DAY_MS,
+        tags: { title:'New1', artist:'Newish', album:'Newer Album', albumArtist:'Newish', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  assertSectionsCoverEveryItem(model);
+  // az section, then the one qualifying bin -- two sections total
+  assert.deepEqual(model.sections.map(s => s.key), ['az', 'new']);
+});
+
+test('ensureCrateModel: genre sort has one section per genre group, no bin sections at all', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'Jazz', year:0} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'Rock', year:0} }),
+    ],
+    crateGroup: 'genre',
+  });
+  const model = ensureCrateModel();
+  assertSectionsCoverEveryItem(model);
+  assert.ok(model.sections.every(s => s.key.startsWith('genre:')), 'every section is a genre group');
+  assert.equal(model.sections.some(s => s.key === 'new' || s.key === 'sealed' || s.key === 'picks'), false,
+    'no virtual-bin sections in genre sort');
+});
+
+test('ensureCrateModel: decade sort has one section per decade group, no bin sections at all', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'', year:1975} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'', year:2001} }),
+    ],
+    crateGroup: 'decade',
+  });
+  const model = ensureCrateModel();
+  assertSectionsCoverEveryItem(model);
+  assert.ok(model.sections.every(s => s.key.startsWith('decade:')), 'every section is a decade group');
+  assert.equal(model.sections.some(s => s.key === 'new' || s.key === 'sealed' || s.key === 'picks'), false,
+    'no virtual-bin sections in decade sort');
+});
+
+test('ensureCrateModel: a single-genre library still gets exactly one section, with no divider inside it', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'Jazz', year:0} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'Jazz', year:0} }),
+    ],
+    crateGroup: 'genre',
+  });
+  const model = ensureCrateModel();
+  assertSectionsCoverEveryItem(model);
+  assert.equal(model.sections.length, 1, 'one section for one genre');
+  assert.equal(model.items.some(it => it.type === 'div'), false, 'no divider needed with only one group');
+});
+
+test('ensureCrateModel: jumpIndex still resolves key:new to the New arrivals bin divider under the new placement', () => {
+  const now = Date.now();
+  resetState({
+    tracks: [
+      fakeTrack('old1', { addedAt: now - 30 * DAY_MS,
+        tags: { title:'Old1', artist:'Oldie', album:'Old Album', albumArtist:'Oldie', track:1, disc:1 } }),
+      fakeTrack('new1', { addedAt: now - 1 * DAY_MS,
+        tags: { title:'New1', artist:'Newish', album:'Newer Album', albumArtist:'Newish', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const idx = model.jumpIndex.get('key:new');
+  assert.ok(idx !== undefined, 'key:new resolves');
+  assert.equal(model.items[idx].type, 'div');
+  assert.equal(model.items[idx].kind, 'bin');
+  assert.equal(model.items[idx].key, 'new');
+});
+
+// CR14 pure helpers: sectionIndexAt, clampToSection, isHorizontalCrateDrag,
+// crateSectionDragCommits.
+
+test('sectionIndexAt: finds the last section whose start <= pos, clamped to the model\'s own bounds', () => {
+  const sections = [
+    {key:'az', start:0, end:10},
+    {key:'new', start:10, end:13},
+    {key:'picks', start:13, end:15},
+  ];
+  assert.equal(sectionIndexAt(sections, 0), 0);
+  assert.equal(sectionIndexAt(sections, 9), 0);
+  assert.equal(sectionIndexAt(sections, 10), 1);
+  assert.equal(sectionIndexAt(sections, 12), 1);
+  assert.equal(sectionIndexAt(sections, 13), 2);
+  assert.equal(sectionIndexAt(sections, 14), 2);
+  // out of range in either direction clamps into bounds rather than -1
+  assert.equal(sectionIndexAt(sections, -5), 0);
+  assert.equal(sectionIndexAt(sections, 999), 2);
+  assert.equal(sectionIndexAt([], 0), -1, 'no sections at all');
+});
+
+test('clampToSection: clamps a position to the given section\'s own [start, end) span', () => {
+  const section = {key:'new', start:10, end:13};
+  assert.equal(clampToSection(section, 10), 10);
+  assert.equal(clampToSection(section, 11), 11);
+  assert.equal(clampToSection(section, 12), 12);
+  assert.equal(clampToSection(section, 9), 10, 'clamps up to the section start');
+  assert.equal(clampToSection(section, 13), 12, 'clamps down to the section\'s last valid index (end is exclusive)');
+  assert.equal(clampToSection(null, 42), 42, 'no section at all is a pass-through');
+});
+
+test('isHorizontalCrateDrag: true once dx clears the minimum and dominates dy by the given ratio', () => {
+  assert.equal(isHorizontalCrateDrag(5, 0), false, 'under the minimum');
+  assert.equal(isHorizontalCrateDrag(CRATE_HORIZONTAL_MIN_PX, 0), false, 'exactly at the minimum does not clear it');
+  assert.equal(isHorizontalCrateDrag(CRATE_HORIZONTAL_MIN_PX + 1, 0), true);
+  // dx dominates dy by the ratio
+  assert.equal(isHorizontalCrateDrag(20, 20 / CRATE_HORIZONTAL_RATIO), false, 'exactly at the ratio does not clear it');
+  assert.equal(isHorizontalCrateDrag(20, 5), true, 'dx clearly dominates dy');
+  assert.equal(isHorizontalCrateDrag(20, 18), false, 'dy too close to dx -- a vertical-leaning drag');
+  // sign-independent
+  assert.equal(isHorizontalCrateDrag(-20, -5), true);
+});
+
+test('crateSectionDragCommits: commits past the distance threshold, or sooner on a fast flick', () => {
+  assert.equal(crateSectionDragCommits(CRATE_SECTION_COMMIT_PX, 10000), true, 'distance alone commits, however slow');
+  assert.equal(crateSectionDragCommits(CRATE_SECTION_COMMIT_PX - 1, 10000), false, 'short of the distance and not a flick');
+  assert.equal(crateSectionDragCommits(CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS), true, 'a flick commits sooner');
+  assert.equal(crateSectionDragCommits(CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS + 1), false, 'too slow to count as a flick');
+  assert.equal(crateSectionDragCommits(CRATE_SECTION_FLICK_PX - 1, 10), false, 'too short even though it\'s fast');
+  assert.equal(crateSectionDragCommits(-CRATE_SECTION_COMMIT_PX, 10000), true, 'sign-independent');
 });

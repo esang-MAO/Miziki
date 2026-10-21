@@ -27,6 +27,7 @@ import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
+  sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
@@ -284,15 +285,68 @@ function updateCrateGroupToggleUI(){
   }
 }
 
+// CR14 (docs/14_CRATE_SECTIONS.md PR 2): the section header shared by both
+// the 3D stage (renderCrate(), below) and the reduced-motion flat list
+// (renderCrateFlat(), just below) — previous arrow · name + one dot per
+// section · next arrow. `onNav(dir)` gets -1/+1; the caller decides what
+// "switch section" means for its own rendering (an animated slide on the
+// stage, an instant list swap here).
+function buildSectionHeader(sections, activeIdx, onNav){
+  const header = el('div','crate-section-header');
+  if(sections.length <= 1) return header;   // "a sort with only one section shows no arrows and no dots"
+  const prevBtn = el('button','crate-section-arrow','‹');
+  prevBtn.setAttribute('aria-label','Previous section');
+  prevBtn.disabled = activeIdx <= 0;
+  prevBtn.addEventListener('click', () => onNav(-1));
+  const mid = el('div','crate-section-mid');
+  mid.appendChild(el('span','crate-section-name', sections[activeIdx].label));
+  const dots = el('div','crate-section-dots');
+  sections.forEach((s, i) => {
+    const dot = el('span', 'crate-section-dot' + (i === activeIdx ? ' current' : ''));
+    dots.appendChild(dot);
+  });
+  mid.appendChild(dots);
+  const nextBtn = el('button','crate-section-arrow','›');
+  nextBtn.setAttribute('aria-label','Next section');
+  nextBtn.disabled = activeIdx >= sections.length - 1;
+  nextBtn.addEventListener('click', () => onNav(1));
+  header.appendChild(prevBtn); header.appendChild(mid); header.appendChild(nextBtn);
+  return header;
+}
+
 // flat, non-3D fallback for prefers-reduced-motion: a plain scrollable list,
 // snap-scroll instead of momentum, cross-fade instead of the pull-to-camera
-// (CRATE spec §6)
+// (CRATE spec §6). CR14: "no sliding. Show the section header with arrows;
+// arrows swap the flat list to that section instantly" — the list itself
+// is sliced to the active section's own [start,end) span.
 function renderCrateFlat(host, model){
   updateCrateGroupToggleUI();
+  let activeIdx = Math.max(0, sectionIndexAt(model.sections, S.crate.pos || 0));
+  const wrap = el('div','crate-flat-wrap');
+  const headerSlot = el('div');
+  wrap.appendChild(headerSlot);
+  const listSlot = el('div');
+  wrap.appendChild(listSlot);
+  host.appendChild(wrap);
+
+  function renderList(){
+    headerSlot.innerHTML = '';
+    headerSlot.appendChild(buildSectionHeader(model.sections, activeIdx, dir => {
+      activeIdx = clamp(activeIdx + dir, 0, model.sections.length - 1);
+      S.crate.pos = model.sections[activeIdx].start;
+      renderList();
+    }));
+    listSlot.innerHTML = '';
+    renderFlatList(listSlot, model, model.sections[activeIdx]);
+  }
+  renderList();
+}
+
+function renderFlatList(host, model, section){
   const list = el('div','crate-flat-list');
   list.setAttribute('role','listbox');
   list.setAttribute('aria-label','Crate');
-  model.items.forEach(item => {
+  model.items.slice(section.start, section.end).forEach(item => {
     if(item.type === 'div'){
       list.appendChild(el('div','crate-flat-divider', item.label + ' — ' + item.meta));
       return;
@@ -371,6 +425,16 @@ export function applyCrateMiniInset(){
   const headerReserve = headerEl
     ? headerEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(headerEl).marginBottom) || 0)
     : 0;
+  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the new section header (prev
+  // arrow · name + dots · next arrow) sits above .crate-stage too, same
+  // "its height has to come out of this same budget every render" reasoning
+  // as .crate-header just above — it renders empty (no arrows/dots at all)
+  // for a sort with only one section, so its own real height already
+  // collapses to ~0 there with no extra branch needed here.
+  const sectionHeaderEl = document.querySelector('.crate-section-header');
+  const sectionHeaderReserve = sectionHeaderEl
+    ? sectionHeaderEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(sectionHeaderEl).marginBottom) || 0)
+    : 0;
   const wrapTop = wrap.getBoundingClientRect().top;
   // .wrap itself already reserves tabbarH + miniH + 16px as its own
   // bottom padding (--chrome-inset, set by updateChromeInset() for every
@@ -381,7 +445,7 @@ export function applyCrateMiniInset(){
   // already covers, so after .crate-info's own 12px margin-top cancels
   // part of it, the two reservations land flush with zero net overflow —
   // verified against the actual rendered page height, not just by eye.
-  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - headerReserve - 28;
+  const available = window.innerHeight - wrapTop - miniH - tabbarH - infoReserve - headerReserve - sectionHeaderReserve - 28;
   // the stage always claims all available room instead of capping and
   // banking the rest as dead space below the info panel — the info panel
   // sits flush just above the mini player, and the crate itself (the thing
@@ -405,7 +469,24 @@ export function applyCrateMiniInset(){
   // scrollable height even once the stage/info math above was correct.
   // Keep it inset the same 10px top and bottom as the stage always has.
   const railEl = document.querySelector('.crate-rail');
-  if(railEl) railEl.style.height = Math.max(0, stageHeight - 20) + 'px';
+  if(railEl){
+    railEl.style.height = Math.max(0, stageHeight - 20) + 'px';
+    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): a real bug found during this
+    // PR's own device-checklist pass, not present before it — the rail's
+    // CSS top:10px is a fixed offset against .crate-wrap, authored back
+    // when .crate-header was the only thing ever sitting above .crate-stage
+    // in the wrap. This PR's own .crate-section-header can now also sit
+    // there (any sort with more than one section), pushing the stage
+    // further down than that fixed 10px accounts for, so the rail — still
+    // anchored near the wrap's own top — overlapped the section header row
+    // instead of lining up with the stage, at every width, worst on a
+    // narrow phone where the two rows are tallest relative to the screen.
+    // Setting the rail's own top to the stage's *actual* offset within the
+    // wrap (plus the same 10px inset the stage always keeps) makes it track
+    // whatever's above it — zero, one, or (on a future header addition)
+    // more rows — instead of a number authored for exactly one case.
+    railEl.style.top = (stage.offsetTop + 10) + 'px';
+  }
 }
 
 export function renderCrate(host){
@@ -475,6 +556,13 @@ export function renderCrate(host){
     S.crate.coldStartDone = true;
   }
   S.crate.pos = startPos;
+  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): which side-by-side section
+  // startPos actually falls in — a bin/letter jump already lands inside
+  // its own section (crateRailJumpTarget()/crateVariantJumpTarget() never
+  // cross a section boundary), so resolving this from the final startPos,
+  // once, after every jump/cold-start branch above has had its say, is
+  // "switch straight to that section" with no special-casing needed.
+  let activeSectionIdx = Math.max(0, sectionIndexAt(model.sections, startPos));
 
   // resolved once per render — the playing album can't change while the
   // user is actively scrubbing the stage, so this doesn't need to be
@@ -503,20 +591,51 @@ export function renderCrate(host){
   // indicator on the right, as plain phase-coloured text rather than a
   // bordered pill.
   const header = el('div','crate-header');
-  const recordCount = model.items.filter(it => it.type === 'rec').length;
   const groupLabel = model.group === 'genre' ? 'GENRE' : model.group === 'decade' ? 'DECADE' : 'A–Z';
-  const headerLeft = el('div','crate-header-left',
-    recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS') + ' · ' + groupLabel);
+  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the count is the active
+  // section's own record count, not the whole crate's — updateHeaderLeft()
+  // recomputes it on every section switch.
+  const headerLeft = el('div','crate-header-left');
+  function updateHeaderLeft(){
+    const section = curSection();
+    const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
+    headerLeft.textContent = count + (count === 1 ? ' RECORD' : ' RECORDS') + ' · ' + groupLabel;
+  }
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
-  nowPlayingBtn.addEventListener('click', () => { if(nowPlayingIdx >= 0) snapTo(nowPlayingIdx); });
+  // CR14: the playing album may sit in a different section than the one
+  // currently centred (another genre/decade, or outside the A–Z section
+  // entirely for a bin-only distance) — switch straight to its section
+  // first, same as a sidebar BINS jump, then snap within it.
+  nowPlayingBtn.addEventListener('click', () => {
+    if(nowPlayingIdx < 0) return;
+    const targetSectionIdx = sectionIndexAt(model.sections, nowPlayingIdx);
+    if(targetSectionIdx >= 0 && targetSectionIdx !== activeSectionIdx) switchToSectionIndex(targetSectionIdx);
+    snapTo(nowPlayingIdx);
+  });
   header.appendChild(headerLeft); header.appendChild(nowPlayingBtn);
+  // CR14: previous/next section arrows, section name, one dot per section
+  // — above the stage, kept in sync (which arrows are enabled, which dot
+  // is current) by refreshSectionHeaderUI() on every section switch.
+  const sectionHeaderSlot = el('div');
+  function refreshSectionHeaderUI(){
+    sectionHeaderSlot.innerHTML = '';
+    sectionHeaderSlot.appendChild(buildSectionHeader(model.sections, activeSectionIdx, dir => switchToSection(dir)));
+  }
   const stage = el('div','crate-stage');
   stage.tabIndex = 0;
   stage.setAttribute('role','listbox');
   stage.setAttribute('aria-label','Crate');
   const live = el('div','sr-only'); live.id = 'crateLive'; live.setAttribute('aria-live','polite');
   stage.appendChild(live);
+  // CR14: the two side-by-side neighbour crates, a clipped sliver at each
+  // edge of the stage (the spec's own "accepted" ~30px peek) — static,
+  // rebuilt only on a section switch, not animated frame-by-frame during a
+  // drag; the sliding stack itself (via hDragX below) is what conveys
+  // motion during the gesture.
+  const peekPrev = el('div','crate-peek crate-peek-prev');
+  const peekNext = el('div','crate-peek crate-peek-next');
+  stage.appendChild(peekPrev); stage.appendChild(peekNext);
   // CR1: the bin's own cardboard lip at the stage's bottom edge, tagged
   // with whichever divider the centred record currently falls under (or,
   // in an ungrouped bin, the overall record count) — kept in sync from
@@ -528,7 +647,7 @@ export function renderCrate(host){
   stage.appendChild(lip);
   const rail = el('div','crate-rail');
   const info = el('div','crate-info');
-  wrap.appendChild(header); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  wrap.appendChild(header); wrap.appendChild(sectionHeaderSlot); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
 
   // D5 (docs/DESKTOP_LAYOUT.md): the inline record-detail panel beside the
   // crate — a new sibling of .crate-wrap, not a child of it, so .crate-wrap
@@ -552,6 +671,27 @@ export function renderCrate(host){
   const cancelAnim = () => { animToken++; if(rafHandle){ cancelAnimationFrame(rafHandle); rafHandle = null; } };
 
   function itemAt(i){ return model.items[i]; }
+
+  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the active side-by-side section
+  // — model.items/pos/snapTo/etc. all stay index-based exactly as before
+  // this PR, just clamped to curSection()'s own [start, end) span instead
+  // of the whole model, via clampToSection() (crate/model.js).
+  function curSection(){ return model.sections[activeSectionIdx]; }
+  function sectionDefaultPos(section){
+    for(let i = section.start; i < section.end; i++) if(model.items[i].type === 'rec') return i;
+    return section.start;
+  }
+  // "first visit: the A–Z section uses today's cold-start/anchor logic;
+  // any other section starts on its first record" — the A–Z half of that
+  // is already satisfied by the existing cold-start block above (it runs
+  // before activeSectionIdx is even resolved); this is the general rule
+  // for every later switch, back into a section already visited this
+  // session (S.crate.sectionPos) or into one that hasn't been yet.
+  function sectionRestorePos(section){
+    const saved = S.crate.sectionPos[section.key];
+    if(saved != null && saved >= section.start && saved < section.end) return saved;
+    return sectionDefaultPos(section);
+  }
 
   function makeCardEl(i){
     const item = itemAt(i);
@@ -717,7 +857,14 @@ export function renderCrate(host){
   // 3D flow-stage scrubbing, not tick building, and CLAUDE.md's refactor
   // rules (no behavior change) argue against moving it just to make this
   // extraction look more complete than the spec actually asked for.
+  // CR14: the rail only exists in the A–Z section (docs/14_CRATE_SECTIONS.md
+  // PR 2, "The letter rail moves to the left edge") — genre/decade sections,
+  // and any A–Z-only bin, have no rail at all. CSS (.crate-rail-hidden)
+  // fades it out and drops pointer-events, rather than removing/rebuilding
+  // the element on every section switch.
   function updateRailUI(position){
+    if(curSection().key !== 'az'){ rail.classList.add('crate-rail-hidden'); rail.innerHTML = ''; return; }
+    rail.classList.remove('crate-rail-hidden');
     buildRailTicks(rail, model.railEntries, {
       itemClass: 'crate-rail-item', dimClass: 'crate-rail-dim', currentClass: 'crate-rail-current',
       isCurrent: e_ => {
@@ -737,8 +884,12 @@ export function renderCrate(host){
   // position change via syncCards(), not per frame). Falls back to the
   // whole-bin count when there's no divider yet (an ungrouped bin, e.g.
   // fewer than 20 records — crate/model.js's own showDividers gate).
+  // CR14: bounded to the active section's own start — a position near the
+  // front of a bin/genre/decade section must never walk back into the
+  // previous section's own trailing divider.
   function nearestDividerBefore(itemIdx){
-    for(let i = Math.min(itemIdx, model.items.length - 1); i >= 0; i--){
+    const lo = curSection().start;
+    for(let i = Math.min(itemIdx, model.items.length - 1); i >= lo; i--){
       if(model.items[i].type === 'div') return model.items[i];
     }
     return null;
@@ -751,7 +902,11 @@ export function renderCrate(host){
     if(key === lastLipKey) return;
     lastLipKey = key;
     if(div){ lipTag.textContent = div.label + ' — ' + div.meta; }
-    else { lipTag.textContent = recordCount + (recordCount === 1 ? ' RECORD' : ' RECORDS'); }
+    else {
+      const section = curSection();
+      const n = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
+      lipTag.textContent = n + (n === 1 ? ' RECORD' : ' RECORDS');
+    }
   }
 
   function announceCurrent(){
@@ -774,7 +929,11 @@ export function renderCrate(host){
   }
 
   function syncCards(position, speed){
-    const lo = Math.max(0, Math.floor(position) - CRATE_VISIBLE_A), hi = Math.min(model.items.length - 1, Math.ceil(position) + CRATE_VISIBLE_A);
+    // CR14: the visible pool window never crosses into a neighbouring
+    // section — cards from the next/prev crate must never show in this
+    // one's own stack.
+    const section = curSection();
+    const lo = Math.max(section.start, Math.floor(position) - CRATE_VISIBLE_A), hi = Math.min(section.end - 1, Math.ceil(position) + CRATE_VISIBLE_A);
     for(const i of Array.from(pool.keys())) if(i < lo || i > hi){ pool.get(i).remove(); pool.delete(i); }
     for(let i = lo; i <= hi; i++) if(!pool.has(i)){ const c = makeCardEl(i); stage.appendChild(c); pool.set(i, c); }
     pool.forEach((card, i) => {
@@ -782,7 +941,10 @@ export function renderCrate(host){
       const pose = flowPose(a, d, speed, {originY: CRATE_ORIGIN_Y, spread: cardSpread});
       // integer device pixels so edges don't smear at rest (spec §B4)
       const y = Math.round(pose.y * CRATE_DPR) / CRATE_DPR;
-      card.style.transform = 'translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
+      // CR14: hDragX is the in-progress horizontal section-swipe offset
+      // (0 outside a horizontal drag/slide) — folded into the same
+      // transform string so the whole stack slides as one rigid body.
+      card.style.transform = 'translateX(' + hDragX.toFixed(1) + 'px) translateY(' + y.toFixed(2) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
         + 'rotateX(' + pose.rotX.toFixed(2) + 'deg) scale(' + pose.scale.toFixed(3) + ')';
       card.style.opacity = pose.opacity;
       card.style.zIndex = flowZIndex(a);
@@ -821,7 +983,7 @@ export function renderCrate(host){
   function snapTo(target, ms){
     cancelAnim();
     const token = ++animToken;
-    target = clamp(Math.round(target), 0, model.items.length - 1);
+    target = clampToSection(curSection(), Math.round(target));
     const start = S.crate.pos, startTime = performance.now(), dur = ms || 250;
     function step(now){
       if(token !== animToken) return;
@@ -845,13 +1007,104 @@ export function renderCrate(host){
       if(pausedNow()){ snapTo(Math.round(S.crate.pos)); return; }
       const dt = Math.min(48, now - last); last = now;
       v *= Math.exp(-0.0022 * dt);
-      let pos = clamp(S.crate.pos + v * dt, 0, model.items.length - 1);
+      const section = curSection();
+      let pos = clampToSection(section, S.crate.pos + v * dt);
       S.crate.pos = pos;
       draw(clamp(Math.abs(v) * 40, 0, 1));
-      if(Math.abs(v) > 0.00025 && pos > 0 && pos < model.items.length - 1){ rafHandle = requestAnimationFrame(step); }
+      if(Math.abs(v) > 0.00025 && pos > section.start && pos < section.end - 1){ rafHandle = requestAnimationFrame(step); }
       else snapTo(Math.round(pos));
     }
     rafHandle = requestAnimationFrame(step);
+  }
+
+  // ---- CR14 (docs/14_CRATE_SECTIONS.md PR 2): horizontal section swipe ----
+  // A pointerdown's axis isn't known until the first few pixels of
+  // movement — hStartX/hStartY/hGestureT0 are stashed at every pointerdown
+  // below (front-record or not), and the first pointermove on either the
+  // flip-drag or the pull/hold path (whichever one this pointerdown landed
+  // on) checks isHorizontalCrateDrag() before doing anything of its own;
+  // once hActive flips true, that path's own vertical/pull state is torn
+  // down and every further move/up on this pointer is routed here instead.
+  let hStartX = null, hStartY = null, hGestureT0 = 0, hActive = false, hDragX = 0;
+  function rubberBandX(dx){
+    if(dx > 0 && activeSectionIdx === 0) return dx * 0.35;
+    if(dx < 0 && activeSectionIdx === model.sections.length - 1) return dx * 0.35;
+    return dx;
+  }
+  // Takes over for *either* gesture path the instant a move is classified
+  // horizontal — returns true once it has (so the caller can bail out of
+  // its own vertical logic for this and every later move on this pointer).
+  function maybeTakeOverHorizontal(e){
+    if(hActive || model.sections.length <= 1) return hActive;
+    const dx = e.clientX - hStartX, dy = e.clientY - hStartY;
+    if(!isHorizontalCrateDrag(dx, dy)) return false;
+    hActive = true; gestureConsumed = true;
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    dragState = null;
+    return true;
+  }
+  function handleHorizontalMove(e){
+    hDragX = rubberBandX(e.clientX - hStartX);
+    draw(0);
+  }
+  function rebuildPeeks(){
+    [[peekPrev, -1], [peekNext, 1]].forEach(([container, dir]) => {
+      container.innerHTML = '';
+      const targetIdx = activeSectionIdx + dir;
+      if(targetIdx < 0 || targetIdx >= model.sections.length) return;
+      const pos = Math.round(sectionRestorePos(model.sections[targetIdx]));
+      const card = makeCardEl(pos);
+      card.classList.remove('crate-moving');
+      container.appendChild(card);
+    });
+  }
+  // The actual section switch, once a horizontal gesture (or an arrow/dot
+  // tap, or the now-playing/sidebar-jump shortcuts below) commits:
+  // snapshot this section's own position, animate the whole stack off
+  // toward the edge, then swap the active section's bounds and resolve its
+  // own remembered (or default) position before drawing it back in.
+  function switchToSectionIndex(toIdx, animate){
+    const fromSection = curSection();
+    toIdx = clamp(toIdx, 0, model.sections.length - 1);
+    if(toIdx === activeSectionIdx){ springBackHorizontal(); return; }
+    S.crate.sectionPos[fromSection.key] = S.crate.pos;
+    const settle = () => {
+      activeSectionIdx = toIdx;
+      const section = curSection();
+      pool.forEach(c => c.remove()); pool.clear();
+      S.crate.pos = sectionRestorePos(section);
+      hDragX = 0;
+      lastLipKey = null;
+      refreshSectionHeaderUI();
+      rebuildPeeks();
+      updateHeaderLeft();
+      draw(0);
+      onSettled();
+    };
+    if(!animate){ settle(); return; }
+    const dir = toIdx > activeSectionIdx ? -1 : 1;
+    const width = stage.getBoundingClientRect().width || 300;
+    animateHDrag(hDragX, dir * width, 170, settle);
+  }
+  function switchToSection(delta){ switchToSectionIndex(activeSectionIdx + delta, true); }
+  function springBackHorizontal(){ animateHDrag(hDragX, 0, 160, () => { hDragX = 0; draw(0); }); }
+  function animateHDrag(from, to, ms, cb){
+    const start = performance.now();
+    function step(now){
+      const p = clamp((now - start) / ms, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      hDragX = from + (to - from) * eased;
+      draw(0.3);
+      if(p < 1) requestAnimationFrame(step);
+      else { hDragX = to; cb && cb(); }
+    }
+    requestAnimationFrame(step);
+  }
+  function endHorizontalDrag(){
+    const dx = hDragX, elapsedMs = performance.now() - hGestureT0;
+    hActive = false;
+    if(!crateSectionDragCommits(dx, elapsedMs)){ springBackHorizontal(); return; }
+    switchToSectionIndex(activeSectionIdx + (dx < 0 ? 1 : -1), true);
   }
 
   // ---- pointer / touch drag ----
@@ -869,13 +1122,15 @@ export function renderCrate(host){
     if(moved) gestureConsumed = true;
   }
   stage.addEventListener('pointermove', e => {
+    if(hActive){ handleHorizontalMove(e); e.preventDefault(); return; }
     if(!dragState) return;
+    if(maybeTakeOverHorizontal(e)){ handleHorizontalMove(e); e.preventDefault(); return; }
     const now = performance.now();
     const dy = e.clientY - dragState.lastY;
     if(Math.abs(e.clientY - dragState.startY) > 3){ dragState.moved = true; gestureConsumed = true; }
     const dt = Math.max(1, now - dragState.lastT);
     const deltaPos = -dy / 70;
-    S.crate.pos = clamp(S.crate.pos + deltaPos, 0, model.items.length - 1);
+    S.crate.pos = clampToSection(curSection(), S.crate.pos + deltaPos);
     const instV = deltaPos / dt;
     dragState.v = dragState.v * 0.7 + instV * 0.3;
     dragState.lastY = e.clientY; dragState.lastT = now;
@@ -883,6 +1138,12 @@ export function renderCrate(host){
     e.preventDefault();
   });
   function endDrag(){
+    // CR14: the horizontal gesture's own pointerup/pointercancel listeners
+    // (further down) decide commit vs. spring-back directly — this older,
+    // separately-registered listener (stage.addEventListener('pointerup',
+    // endDrag) just below) must stay a no-op while hActive, not make its
+    // own second commit decision.
+    if(hActive) return;
     if(!dragState) return;
     const v = dragState.v, moved = dragState.moved;
     dragState = null;
@@ -1025,6 +1286,10 @@ export function renderCrate(host){
     // of waiting on that click event.
     tapCandidateIdx = cardIdxAt(e);
     gestureConsumed = false;
+    // CR14: stashed on every pointerdown, front-record or not, so whichever
+    // path's pointermove runs first can classify the gesture's axis before
+    // committing to a vertical flip/pull.
+    hStartX = e.clientX; hStartY = e.clientY; hGestureT0 = performance.now();
     try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
     const front = frontRecordAt(e);
     if(!front){ beginFlipDrag(e, false); return; }
@@ -1044,7 +1309,9 @@ export function renderCrate(host){
     }, CRATE_PULL_HOLD_MS + 20);
   });
   stage.addEventListener('pointermove', e => {
+    if(hActive){ handleHorizontalMove(e); e.preventDefault(); return; }
     if(!pullState) return;
+    if(pullState.phase === 'pending' && maybeTakeOverHorizontal(e)){ handleHorizontalMove(e); e.preventDefault(); return; }
     const dy = e.clientY - pullState.startY;
     pullState.trace.push({dy, t: performance.now() - pullState.startT});
     e.preventDefault();
@@ -1074,6 +1341,7 @@ export function renderCrate(host){
     // nulls dragState/pullState before this listener's body ever executes,
     // which would make a real flip-drag misread as "never moved." The flag
     // is set live, during the gesture itself, so it has no such race.
+    if(hActive){ endHorizontalDrag(); tapCandidateIdx = null; return; }
     endPullGesture();
     endDrag(e);
     if(!gestureConsumed && tapCandidateIdx != null){
@@ -1082,6 +1350,7 @@ export function renderCrate(host){
     tapCandidateIdx = null;
   });
   stage.addEventListener('pointercancel', () => {
+    if(hActive){ springBackHorizontal(); hActive = false; return; }
     if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
     endDrag();
   });
@@ -1100,11 +1369,23 @@ export function renderCrate(host){
 
   // ---- wheel / trackpad ----
   let wheelSnapTimer = null;
+  // CR14: a trackpad's horizontal delta steps one section per notch
+  // (debounced like the vertical one below, so a long two-finger swipe
+  // doesn't fire a dozen section switches); whichever axis is larger wins
+  // for a single wheel event, same "classify, then commit to one axis"
+  // shape the pointer gestures use.
+  let wheelHSnapTimer = null;
   stage.addEventListener('wheel', e => {
     e.preventDefault();
     cancelAnim();
+    if(Math.abs(e.deltaX) > Math.abs(e.deltaY) && model.sections.length > 1){
+      clearTimeout(wheelHSnapTimer);
+      wheelHSnapTimer = setTimeout(() => { switchToSection(e.deltaX > 0 ? 1 : -1); }, 60);
+      return;
+    }
+    const section = curSection();
     const deltaPos = e.deltaY / 70;
-    S.crate.pos = clamp(S.crate.pos + deltaPos, 0, model.items.length - 1);
+    S.crate.pos = clampToSection(section, S.crate.pos + deltaPos);
     draw(clamp(Math.abs(deltaPos) * 3, 0, 1));
     clearTimeout(wheelSnapTimer);
     wheelSnapTimer = setTimeout(() => snapTo(Math.round(S.crate.pos)), 120);
@@ -1113,15 +1394,18 @@ export function renderCrate(host){
   // ---- keyboard ----
   stage.addEventListener('keydown', e => {
     const cur = Math.round(S.crate.pos);
+    const section = curSection();
     if(e.key === 'ArrowDown'){ snapTo(cur + 1); e.preventDefault(); }
     else if(e.key === 'ArrowUp'){ snapTo(cur - 1); e.preventDefault(); }
     else if(e.key === 'PageDown'){ snapTo(cur + 5); e.preventDefault(); }
     else if(e.key === 'PageUp'){ snapTo(cur - 5); e.preventDefault(); }
-    else if(e.key === 'Home'){ snapTo(0); e.preventDefault(); }
-    else if(e.key === 'End'){ snapTo(model.items.length - 1); e.preventDefault(); }
+    else if(e.key === 'Home'){ snapTo(section.start); e.preventDefault(); }
+    else if(e.key === 'End'){ snapTo(section.end - 1); e.preventDefault(); }
     else if(e.key === 'Enter'){ const item = itemAt(cur); if(item && item.type === 'rec') openCrateAlbum(item); e.preventDefault(); }
     else if(e.key === ' '){ const item = itemAt(cur); if(item && item.type === 'rec') setQueue(item.idx, 0, true); e.preventDefault(); }
-    else if(model.group === 'az' && /^[a-zA-Z]$/.test(e.key)){
+    else if(e.key === 'ArrowLeft'){ switchToSection(-1); e.preventDefault(); }
+    else if(e.key === 'ArrowRight'){ switchToSection(1); e.preventDefault(); }
+    else if(section.key === 'az' && /^[a-zA-Z]$/.test(e.key)){
       const target = crateRailJumpTarget(model, e.key.toUpperCase());
       if(target != null){ snapTo(target); e.preventDefault(); }
     }
@@ -1166,9 +1450,13 @@ export function renderCrate(host){
     const entry = railEntryAtClientY(e.clientY);
     if(!entry) return;
     bubbleEl.textContent = entry.label;
-    bubbleEl.style.left = (e.clientX - 34 - 60) + 'px';
+    // CR14 (docs/14_CRATE_SECTIONS.md PR 2, "the rail moves to the left
+    // edge"): the bubble opens to the right of the finger now, so it never
+    // sits off the left edge of the screen — mirrored from the old
+    // "60px to the left, centred" formula.
+    bubbleEl.style.left = (e.clientX + 60 - 34) + 'px';
     bubbleEl.style.top = (e.clientY - 34) + 'px';
-    if(entry.present && entry.itemIndex != null){ S.crate.pos = clamp(entry.itemIndex, 0, model.items.length - 1); draw(0.9); }
+    if(entry.present && entry.itemIndex != null){ S.crate.pos = clampToSection(curSection(), entry.itemIndex); draw(0.9); }
     scrubMove.lastEntry = entry;
   }
   rail.addEventListener('pointermove', e => { if(scrubbing){ scrubMove(e); e.preventDefault(); } });
@@ -1182,6 +1470,9 @@ export function renderCrate(host){
   rail.addEventListener('pointerup', endScrub);
   rail.addEventListener('pointercancel', endScrub);
 
+  updateHeaderLeft();
+  refreshSectionHeaderUI();
+  rebuildPeeks();
   draw(0);
   // info started out empty when applyCrateMiniInset() first ran above, so
   // its height was measured at the CSS min-height floor rather than its

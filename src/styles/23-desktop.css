@@ -205,13 +205,20 @@
      (DesktopCrate.dc.html), proportioned to this breakpoint's own
      340px card (close to the mockup's own ~348px front-card width). */
   .crate-lip{width:420px;height:150px;margin-left:-210px}
+  /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): "the wider stage simply shows
+     more of each peek" — a wider sliver to match the bigger 340px card,
+     same ratio as the phone's own 46px/278px. */
+  .crate-peek{width:70px;height:calc(var(--crate-card-size) * .78)}
   /* CR10 point 2: "the rail docked 16 px from the stage edge" — the
      mockup's own right:16px, vertically centred rather than pinned 10px
      from the top, so it still reads centred against the taller stage
      .crate-info{display:none} just freed up. The rail's own drag-to-scrub
      pointer handling (crate/view.js) reads its live bounding rect, so a
-     CSS-only reposition changes nothing about that behavior. */
-  .crate-rail{right:16px;top:50%;transform:translateY(-50%)}
+     CSS-only reposition changes nothing about that behavior.
+     CR14 (docs/14_CRATE_SECTIONS.md PR 2) moved it to the left edge, to
+     match the phone layout (10-crate.css) — the right edge is where a
+     side-by-side section's own peek sits now. */
+  .crate-rail{left:16px;right:auto;top:50%;transform:translateY(-50%)}
   /* CR10 point 1: the lean CREDITS/PIN/SLEEVE NOTE text-action row and the
      side-split tracklist, replacing the old Play-album/Credits .cta pill
      pair and the album-art <img> this panel no longer builds. */

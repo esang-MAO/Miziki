@@ -50,8 +50,39 @@
 .crate-header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
   margin-bottom:var(--sp-2)}
 .crate-header-left{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--muted-2)}
+/* CR14 (docs/14_CRATE_SECTIONS.md PR 2): previous/next arrows, the active
+   section's name, one dot per section — above the stage. Empty (no
+   markup at all) whenever there's only one section, so it costs nothing
+   on a single-genre/no-bins library. */
+.crate-section-header{display:flex;align-items:center;justify-content:center;gap:var(--sp-3);
+  margin-bottom:var(--sp-2)}
+.crate-section-arrow{background:none;border:none;padding:4px 8px;margin:0;cursor:pointer;
+  font-family:var(--display);font-size:var(--fs-title);line-height:1;color:var(--muted-2)}
+.crate-section-arrow:disabled{opacity:.25;cursor:default}
+.crate-section-mid{display:flex;flex-direction:column;align-items:center;gap:4px}
+.crate-section-name{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+.crate-section-dots{display:flex;align-items:center;gap:5px}
+.crate-section-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-2);opacity:.4}
+.crate-section-dot.current{background:var(--accent-text);opacity:1}
 .crate-stage{position:relative;height:var(--crate-stage-h);overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
+/* CR14: the neighbouring section's own front card, clipped to a thin
+   sliver at the stage's edge (the spec's own "accepted ~30px sliver —
+   enough to show another crate is there"). Static, rebuilt only on a
+   section switch (rebuildPeeks(), crate/view.js) — the sliding stack
+   itself (translateX(hDragX) in syncCards()) is what conveys motion
+   during the gesture, not the peeks themselves. */
+.crate-peek{position:absolute;top:50%;width:46px;height:calc(var(--crate-card-size) * .78);
+  transform:translateY(-50%);overflow:hidden;border-radius:4px;opacity:.55;
+  pointer-events:none;z-index:40}
+.crate-peek-prev{left:0}
+.crate-peek-next{right:0}
+.crate-peek .crate-card{position:absolute;top:0;margin:0;left:auto;right:auto;
+  width:var(--crate-card-size);height:var(--crate-card-size);
+  transform:scale(.84) !important}
+.crate-peek-prev .crate-card{right:0}
+.crate-peek-next .crate-card{left:0}
 .crate-card{position:absolute;left:50%;top:0;width:var(--crate-card-size);height:var(--crate-card-size);
   margin-left:calc(var(--crate-card-size) / -2);
   border-radius:4px;overflow:hidden;
@@ -154,9 +185,24 @@
   box-shadow:inset 0 2px 0 var(--crate-light)}
 .crate-lip-tag{position:absolute;left:14px;top:10px;font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.08em;text-transform:uppercase;color:var(--cream)}
-.crate-rail{position:absolute;right:8px;top:10px;height:296px;width:26px}
-.crate-rail-item{position:absolute;right:0;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;
-  color:var(--muted-2);transform:translateY(-50%);white-space:nowrap}
+/* CR14 (docs/14_CRATE_SECTIONS.md PR 2, "the letter rail moves to the left
+   edge"): the rail is left-aligned now — plain letters, no box/border/
+   pill chrome of their own (the rail-item rule below resets any default
+   button styling). Only the A–Z section has a rail at all; .crate-
+   rail-hidden fades it out (and drops pointer-events) while any other
+   section is centred, rather than removing/rebuilding the element. */
+/* top/height are both overwritten at runtime by applyCrateMiniInset()
+   (crate/view.js) — top:10px here is only the pre-first-tick fallback,
+   the same convention this file's own --crate-stage-h token comment
+   already documents, since the real offset has to track whatever header
+   rows (.crate-header, and since CR14 PR 2, .crate-section-header) sit
+   above .crate-stage on a given render. */
+.crate-rail{position:absolute;left:8px;top:10px;height:296px;width:26px;
+  transition:opacity .2s;z-index:70}
+.crate-rail.crate-rail-hidden{opacity:0;pointer-events:none}
+.crate-rail-item{position:absolute;left:0;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;
+  color:var(--muted-2);transform:translateY(-50%);white-space:nowrap;
+  background:none;border:none;padding:0;margin:0;cursor:pointer}
 .crate-rail-item.crate-rail-current{color:var(--accent-text);font-weight:500}
 .crate-rail-item.crate-rail-dim{opacity:.28}
 .crate-rail-bubble{position:fixed;width:68px;height:68px;border-radius:50%;background:var(--amber);color:#2A1B38;
@@ -179,6 +225,7 @@
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--phase-color);
   max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .crate-topbar.show{display:inline-flex}
+.crate-flat-wrap{margin-top:10px}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2);border-radius:4px;scroll-snap-align:center}
 .crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}

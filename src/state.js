@@ -215,7 +215,13 @@ S.playInFullPlayer = true;
 // separate crateVariantJumpTarget() scan (crate/model.js) since a
 // pressing isn't one of the model's own divider jump targets. Set by the
 // profile's pressing chart (src/profile/screens.js).
-S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null};
+// sectionPos (CR14, docs/14_CRATE_SECTIONS.md PR 2): the position left off
+// on inside each side-by-side section, keyed by that section's own `key`
+// (model.sections[].key) — session-only, like `pos` itself, rebuilt from
+// scratch every time the model is. Restored on returning to a section;
+// the A–Z section's own first visit still uses the cold-start/anchor logic
+// above instead of this map (nothing to restore there yet).
+S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null, sectionPos:{}};
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
 // fight the user's own input value (step 3c — was a top-level let in main.js)
 S.scrubbing = false;

@@ -261,12 +261,16 @@ function yearSpanLabel(recs){
 
 // CR2: new arrivals (addedAt within NEW_ARRIVAL_WINDOW_MS, newest first)
 // and staff picks (MizikiSocial's own pins, already in pin-rank order) —
-// two virtual bins pushed before the alphabet/genre groups below. Records
+// virtual bins, one per crate section. CR14 (docs/14_CRATE_SECTIONS.md
+// PR 2) moved these from "pushed first, every sort" to "only in A–Z,
+// after the letter run, in the order new/sealed/picks (always last)" —
+// see buildCrateModel() below for where they're actually placed; this
+// function only decides which bins exist and in what order. Records
 // inside a bin also appear a second time under their own letter/genre
 // (the "double listing" CR2 asks for): this function never touches
-// byAlbumId, only the main az/genre loop below does, so the alphabetical
-// position is always the one callers resolve to by album id, per CR2
-// point 1 ("byAlbumId points at the alphabetical one").
+// byAlbumId, only the main az/genre loop in buildCrateModel() does, so the
+// alphabetical position is always the one callers resolve to by album id,
+// per CR2 point 1 ("byAlbumId points at the alphabetical one").
 function buildVirtualBins(records){
   const bins = [];
   const now = Date.now();
@@ -275,12 +279,6 @@ function buildVirtualBins(records){
   if(newArrivals.length){
     bins.push({key:'new', label:'NEW ARRIVALS', panelSub:'New arrivals',
       meta: newArrivals.length + (newArrivals.length === 1 ? ' ALBUM' : ' ALBUMS'), records: newArrivals});
-  }
-  const byId = new Map(records.map(r => [r.albumId, r]));
-  const staffPicks = localStaffPickIds().map(id => byId.get(id)).filter(Boolean);
-  if(staffPicks.length){
-    bins.push({key:'picks', label:'STAFF PICKS', panelSub:'Staff picks',
-      meta: staffPicks.length + (staffPicks.length === 1 ? ' ALBUM' : ' ALBUMS'), records: staffPicks});
   }
   // CR10 point 3: a third virtual bin, Sealed, for the desktop sidebar's
   // BINS list. Reads S.sealed/S.sealedRecords directly rather than calling
@@ -294,6 +292,13 @@ function buildVirtualBins(records){
   if(sealed.length){
     bins.push({key:'sealed', label:'SEALED', panelSub:'Sealed',
       meta: sealed.length + (sealed.length === 1 ? ' ALBUM' : ' ALBUMS'), records: sealed});
+  }
+  const byId = new Map(records.map(r => [r.albumId, r]));
+  const staffPicks = localStaffPickIds().map(id => byId.get(id)).filter(Boolean);
+  if(staffPicks.length){
+    // CR14: Staff picks is always last, whatever else is present.
+    bins.push({key:'picks', label:'STAFF PICKS', panelSub:'Staff picks',
+      meta: staffPicks.length + (staffPicks.length === 1 ? ' ALBUM' : ' ALBUMS'), records: staffPicks});
   }
   return bins;
 }
@@ -320,22 +325,19 @@ function withArtistDividers(letterRecords){
 }
 
 // builds the ordered {type:'div'|'rec', ...} array once, plus lookup maps
-// for jumping by album id or by letter/genre (CRATE spec §2)
+// for jumping by album id or by letter/genre (CRATE spec §2), plus (CR14,
+// docs/14_CRATE_SECTIONS.md PR 2) a `sections` array: one side-by-side
+// crate per {key, label, start, end} span over `items` (end exclusive).
+// In A–Z, the whole letter run is one section, followed by one section per
+// present virtual bin (new/sealed/picks, always last) — genre/decade have
+// no bins at all; each genre/decade group is its own section instead, so
+// switching sort there now means swiping between sections, not scrolling a
+// single dividered list.
 function buildCrateModel(group){
   const records = buildCrateRecords();
   const items = [], byAlbumId = new Map(), jumpIndex = new Map();
+  const sections = [];
   let railEntries = [];
-
-  // CR2 point 1: the two virtual bins come first, every time, regardless
-  // of A-Z/genre grouping — before any other divider/rail entry exists.
-  const binRailEntries = [];
-  buildVirtualBins(records).forEach(bin => {
-    binRailEntries.push({key:bin.key, label: bin.key.toUpperCase(), itemIndex: items.length, present:true});
-    jumpIndex.set('key:' + bin.key, items.length);
-    items.push({type:'div', kind:'bin', label:bin.label, meta:bin.meta, panelSub:bin.panelSub, key:bin.key,
-      idx: flatIdx(bin.records)});
-    bin.records.forEach(r => items.push(r));
-  });
 
   if(group === 'genre'){
     records.forEach(r => { r.genreGroup = r.genre || 'Unsorted'; });
@@ -349,8 +351,12 @@ function buildCrateModel(group){
         || compareCrateYear(a, b) || crateCompareNames(a.album, b.album);
     });
     const groups = groupSortedRecords(records, r => r.genreGroup);
+    // CR14: a single-genre library (or a library with "no genre dividers
+    // today" per CR2) still gets exactly one section — just with no
+    // divider item inside it, the same as before this PR.
     const showDividers = groups.length >= 2;
     groups.forEach(g => {
+      const secStart = items.length;
       if(showDividers){
         const artistCount = new Set(g.records.map(r => r.artist)).size;
         const span = yearSpanLabel(g.records);
@@ -361,6 +367,7 @@ function buildCrateModel(group){
           panelSub:'Genre', key:g.key, idx: flatIdx(g.records)});
       }
       g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+      sections.push({key:'genre:' + g.key, label:g.key, start:secStart, end: items.length});
     });
   } else if(group === 'decade'){
     // CR4: "records sorted by year" — ascending, oldest first, the same
@@ -370,6 +377,7 @@ function buildCrateModel(group){
     records.sort((a,b) => compareCrateYear(a, b) || compareCrateArtists(a.artist, b.artist) || crateCompareNames(a.album, b.album));
     const groups = groupSortedRecords(records, r => decadeKeyFor(r.year));
     groups.forEach(g => {
+      const secStart = items.length;
       const artistCount = new Set(g.records.map(r => r.artist)).size;
       const label = g.key === 'undated' ? 'Undated' : g.key;
       jumpIndex.set('key:' + g.key, items.length);
@@ -378,8 +386,10 @@ function buildCrateModel(group){
         meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS', panelSub:'Decade', key:g.key,
         idx: flatIdx(g.records)});
       g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
+      sections.push({key:'decade:' + g.key, label, start:secStart, end: items.length});
     });
   } else {
+    const azStart = items.length;
     records.sort((a,b) => compareCrateArtists(a.artist, b.artist) || compareCrateYear(a, b) || crateCompareNames(a.album, b.album));
     const groups = groupSortedRecords(records, r => crateLetterFor(r.artist));
     const showDividers = records.length >= 20;
@@ -405,9 +415,49 @@ function buildCrateModel(group){
       railEntries = CRATE_ALPHABET.concat(present.has('?') ? ['?'] : [])
         .map(letter => ({key:letter, label:letter, itemIndex: jumpIndex.get('key:'+letter), present: present.has(letter)}));
     }
+    sections.push({key:'az', label:'A–Z', start:azStart, end: items.length});
+
+    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the virtual bins move here —
+    // az-only, after the whole letter run, each its own trailing section,
+    // in the order new/sealed/picks (buildVirtualBins() itself enforces
+    // that order; picks is always last). They used to be pushed first, in
+    // every sort — see buildVirtualBins()'s own comment above.
+    buildVirtualBins(records).forEach(bin => {
+      const secStart = items.length;
+      jumpIndex.set('key:' + bin.key, items.length);
+      items.push({type:'div', kind:'bin', label:bin.label, meta:bin.meta, panelSub:bin.panelSub, key:bin.key,
+        idx: flatIdx(bin.records)});
+      bin.records.forEach(r => items.push(r));
+      sections.push({key:bin.key, label:bin.label, start:secStart, end: items.length});
+    });
   }
-  railEntries = binRailEntries.concat(railEntries);
-  return {items, byAlbumId, jumpIndex, railEntries, group};
+  return {items, byAlbumId, jumpIndex, railEntries, group, sections};
+}
+
+// CR14 (docs/14_CRATE_SECTIONS.md PR 2): which section a given position
+// falls in — the last section whose start is <= pos, clamped to the model's
+// own bounds so an out-of-range pos (e.g. a stale S.crate.pos from before a
+// resort) still resolves to a real section rather than returning -1.
+export function sectionIndexAt(sections, pos){
+  if(!sections || !sections.length) return -1;
+  let lo = 0, hi = sections.length - 1, ans = 0;
+  const p = clamp(pos, sections[0].start, sections[sections.length - 1].end - 1);
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if(sections[mid].start <= p){ ans = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return ans;
+}
+
+// Clamps an item index (and, when given, a float position) to the given
+// section's own [start, end) span — the one helper every flip/scroll/drag
+// clamp in crate/view.js routes through instead of clamping to the whole
+// model, so a vertical gesture can never run past its own section's edge
+// into the next one.
+export function clampToSection(section, value){
+  if(!section) return value;
+  return clamp(value, section.start, section.end - 1);
 }
 
 // CR3 point 3: "[LABEL] · [CAT. NO.] · [YEAR] · N TRACKS · M:SS", falling
@@ -597,4 +647,34 @@ export function classifyCratePointerTrace(trace){
 export function cratePullProgress(upPx, cardHeightPx){
   if(!cardHeightPx) return 0;
   return clamp(upPx / cardHeightPx, 0, 1);
+}
+
+// CR14 (docs/14_CRATE_SECTIONS.md PR 2): "classify a drag as horizontal
+// once |dx| > 12 and |dx| > 1.2·|dy|" — a plain, point-in-time read of the
+// drag's own accumulated displacement from the pointerdown point, not a
+// trace walk like classifyCratePointerTrace() above (the horizontal/
+// vertical read only has to flip once per gesture — crate/view.js calls
+// this on every pointermove and, once it answers true for a pointer, holds
+// that answer for the rest of the gesture, the same "decide once, don't
+// re-litigate mid-drag" shape the pull/flip/hold state machine already has
+// for its own commit thresholds).
+export const CRATE_HORIZONTAL_MIN_PX = 12;
+export const CRATE_HORIZONTAL_RATIO = 1.2;
+export function isHorizontalCrateDrag(dx, dy){
+  const adx = Math.abs(dx), ady = Math.abs(dy);
+  return adx > CRATE_HORIZONTAL_MIN_PX && adx > CRATE_HORIZONTAL_RATIO * ady;
+}
+
+// A horizontal drag commits to the next/previous section at release once
+// it's travelled CRATE_SECTION_COMMIT_PX, or sooner on a fast flick
+// (CRATE_SECTION_FLICK_PX in under CRATE_SECTION_FLICK_MS) — "a fast flick"
+// per the spec, mirrored here as a velocity threshold rather than a second
+// distance one, since a flick is a speed judgment, not a distance one.
+export const CRATE_SECTION_COMMIT_PX = 50;
+export const CRATE_SECTION_FLICK_PX = 18;
+export const CRATE_SECTION_FLICK_MS = 150;
+export function crateSectionDragCommits(dx, elapsedMs){
+  const adx = Math.abs(dx);
+  if(adx >= CRATE_SECTION_COMMIT_PX) return true;
+  return adx >= CRATE_SECTION_FLICK_PX && elapsedMs <= CRATE_SECTION_FLICK_MS;
 }
