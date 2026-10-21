@@ -31,6 +31,7 @@ import { centerEmptyState, renderCrate } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
 import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
+import { openLayer } from '../shell/nav-stack.js';
 
 // NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
 // on a single screen (~400+), the first screenful renders synchronously —
@@ -270,6 +271,12 @@ function openRowMenu(t){
   $('#rowMenuFav').textContent = isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites';
   $('#rowMenuOverlay').classList.add('open');
   $('#rowMenuOverlay').setAttribute('aria-hidden','false');
+  // Was a plain classList toggle with no Back/Escape/tap-outside support at
+  // all — an accepted gap under NV2 (src/wiring/overlays.js's own comment),
+  // closed now per Ken's "easily close any menu" request. The close-button
+  // wiring (src/wiring/library-view.js) routes through closeLayer/
+  // forceCloseLayer instead of calling closeRowMenu() directly now.
+  openLayer('row-menu', closeRowMenu, { container: $('#rowMenuOverlay') });
 }
 export function closeRowMenu(){
   rowMenuTrackId = null;

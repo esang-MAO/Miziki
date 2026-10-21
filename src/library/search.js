@@ -22,6 +22,7 @@ import { isFavorite } from './favorites.js';
 import { openPersonOrArtist, personEntryFor, PERSON_ROLE_KEYS } from './credits.js';
 import { queueSave } from '../storage/meta.js';
 import { renderTracks, groupRow, songRow } from './view.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
 
@@ -52,12 +53,16 @@ function openSortMenu(){
     b.className = 'cta' + (k === S.librarySort ? '' : ' ghost');
     b.textContent = label;
     b.addEventListener('click', () => {
-      S.librarySort = k; queueSave(); renderTracks(); closeSortMenu();
+      S.librarySort = k; queueSave(); renderTracks(); closeLayer('sort-menu');
     });
     host.appendChild(b);
   });
   $('#sortMenuOverlay').classList.add('open');
   $('#sortMenuOverlay').setAttribute('aria-hidden','false');
+  // Was a plain classList toggle with no Back/Escape/tap-outside support —
+  // an accepted NV2 gap (src/wiring/overlays.js's own comment), closed now
+  // per Ken's "easily close any menu" request.
+  openLayer('sort-menu', closeSortMenu, { container: $('#sortMenuOverlay') });
 }
 export function closeSortMenu(){
   $('#sortMenuOverlay').classList.remove('open');
