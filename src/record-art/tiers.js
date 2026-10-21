@@ -186,8 +186,14 @@ export function resolveVariantId(id){
 }
 export function getVariantDef(id){ return VARIANT_DEFS[resolveVariantId(id)]; }
 
-const SOLID_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family !== 'effects' && VARIANT_DEFS[id].family !== 'rare' && id !== 'jet');
-const EFFECT_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'effects');
+// Exported (CR11, docs/13_CRATE.md point 3) so the profile's pressing
+// chart can lay out its paint-chip strip "in family order" without a
+// second copy of this filter — catalogue literal order already groups
+// the 40 solids by pigment family (reds, pinks, earths, …) and the 32
+// effects by their own neighbouring pattern, since VARIANT_DEFS itself
+// is written in that order.
+export const SOLID_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family !== 'effects' && VARIANT_DEFS[id].family !== 'rare' && id !== 'jet');
+export const EFFECT_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'effects');
 const RARE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'rare');
 
 const BAND_NAMES = ['common', 'uncommon', 'scarce'];
@@ -217,9 +223,15 @@ function drawFromCatalogue(key, byBand){
 // Tier mixes (README): lossy = Jet only; lossless = 85% solid / 15% Jet;
 // hi-res = 70% effect / 25% solid / 5% Jet. A third, independent hash
 // slice decides the mix so it never correlates with the band/colour draw.
-export function selectVariant(t){
-  const tier = trackTier(t);
-  const key = variantHashKey(t);
+//
+// Split out of selectVariant() (CR11, docs/13_CRATE.md point 1) so a
+// pressing can be drawn from a bare tier + identity key, not just from a
+// real track object — exactly what's needed to show a *friend's* own
+// copy of a shared album: the server knows their quality_tier
+// (crate_items.quality_tier, already synced), but there's no file to
+// call trackTier()/variantHashKey() on. selectVariant(t) below is now a
+// thin wrapper that keeps its exact prior behavior byte-for-byte.
+function selectVariantForTierKey(tier, key){
   if(tier === 1) return {tier, variant: 'jet'};
   const mixFrac = frac32(key, '\u0000');
   if(tier === 2){
@@ -230,6 +242,20 @@ export function selectVariant(t){
   if(mixFrac < 0.05) return {tier, variant: 'jet'};
   if(mixFrac < 0.30) return {tier, variant: drawFromCatalogue(key, SOLID_BY_BAND)};
   return {tier, variant: drawFromCatalogue(key, EFFECT_BY_BAND)};
+}
+export function selectVariant(t){
+  return selectVariantForTierKey(trackTier(t), variantHashKey(t));
+}
+// CR11 point 1: "the pressing is derived locally from the shared album
+// key, so no new column" — albumTitle is the same string both sides'
+// clients already agree on (what sync_crate stores as releases.title,
+// itself a local track's own t.tags.album), normalized the same way
+// albumKey()/variantHashKey() always have been, so a friend's own copy
+// of an album a viewer also owns draws from the identical pool their own
+// local selectVariant() would, differing only when the two quality_tier
+// values actually differ.
+export function selectVariantForAlbum(albumTitle, tier){
+  return selectVariantForTierKey(tier, normKey(albumTitle));
 }
 
 // Rare pressings draw among the four session-unlock-only kinds, same

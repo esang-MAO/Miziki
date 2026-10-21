@@ -1,13 +1,19 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { normKey } from '../util/text.js';
-import { albumKey, trackTier } from '../record-art/tiers.js';
+import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { groupBy } from '../library/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
 import { triggerProfileRefresh } from '../shell/pull-refresh.js';
+// CR11 point 3: "tapping a chip jumps the crate to the first record in
+// that pressing" — a real, one-directional import each (neither imports
+// anything back from this file), widening the already-circular
+// screens.js pair above rather than creating a new one.
+import { showRoute } from '../shell/routes.js';
+import { renderTracks } from '../library/view.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -533,4 +539,58 @@ function renderStorefront(host, full, requests){
   host.appendChild(storePicksSection(full));
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
   host.appendChild(storeCrateGrid());
+}
+
+// CR11 point 3: how many of a family's own ids an owned-set actually holds —
+// used only for the "N OF 40 · M OF 32" count line, never shown on a
+// friend's card (point 4: counts are first-person only).
+function countOwned(ownedIds, ids){
+  let n = 0;
+  for(const id of ids) if(ownedIds.has(id)) n++;
+  return n;
+}
+
+// CR11 point 3: a cream catalog card with a paint-chip strip, in family
+// order (SOLID_IDS/EFFECT_IDS are already in that order — see their own
+// export comment in record-art/tiers.js). Shared between the profile's own
+// chart (opts.showNumbers true: a real count, missing names, tap-to-jump)
+// and a friend's (opts.showNumbers false: chips only, no numbers, no tap —
+// point 4, nothing here compares two people).
+export function renderPressingCard(ownedIds, opts = {}){
+  const showNumbers = !!opts.showNumbers;
+  const card = el('div','pressing-card');
+  card.appendChild(el('h3','pressing-card-head','Pressings'));
+  if(showNumbers){
+    const solidN = countOwned(ownedIds, SOLID_IDS), effectN = countOwned(ownedIds, EFFECT_IDS);
+    card.appendChild(el('div','pressing-card-count', solidN + ' OF ' + SOLID_IDS.length + ' · ' + effectN + ' OF ' + EFFECT_IDS.length));
+  }
+  const strip = el('div','pressing-chip-strip');
+  const allIds = [...SOLID_IDS, ...EFFECT_IDS];
+  const missingNames = [];
+  allIds.forEach(id => {
+    const def = VARIANT_DEFS[id];
+    const owned = ownedIds.has(id);
+    if(!owned) missingNames.push(def.name);
+    const clickable = showNumbers && owned;
+    const chip = el(clickable ? 'button' : 'div', 'pressing-chip' + (owned ? ' owned' : ' missing'));
+    chip.style.background = variantBackground(def);
+    chip.setAttribute('aria-label', def.name + (owned ? '' : ' (not yet in your crate)'));
+    if(def.band === 'scarce') chip.appendChild(el('span','pressing-chip-dot'));
+    if(clickable){
+      chip.addEventListener('click', ()=>{
+        S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+        S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+        S.crate.pendingJumpVariant = id;
+        showRoute('library');
+        renderTracks();
+      });
+    }
+    strip.appendChild(chip);
+  });
+  card.appendChild(strip);
+  if(showNumbers && missingNames.length){
+    const shown = missingNames.slice(0, 4).join(', ') + (missingNames.length > 4 ? ', ...' : '');
+    card.appendChild(el('p','pressing-card-missing','Missing: ' + shown));
+  }
+  return card;
 }

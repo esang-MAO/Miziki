@@ -209,7 +209,13 @@ S.playInFullPlayer = true;
 // straight there on mount instead of resolving the usual cold-start/anchor
 // position — set by the desktop sidebar's BINS list (src/shell/sidebar.js),
 // consumed and cleared by renderCrate() itself on its very next render.
-S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null};
+// pendingJumpVariant (CR11, docs/13_CRATE.md point 3): the same one-shot
+// shape, for "tapping a chip jumps the crate to the first record in that
+// pressing" — a VARIANT_DEFS id rather than a divider key, resolved by a
+// separate crateVariantJumpTarget() scan (crate/model.js) since a
+// pressing isn't one of the model's own divider jump targets. Set by the
+// profile's pressing chart (src/profile/screens.js).
+S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null};
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
 // fight the user's own input value (step 3c — was a top-level let in main.js)
 S.scrubbing = false;

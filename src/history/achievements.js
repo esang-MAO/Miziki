@@ -64,6 +64,26 @@ export function checkAlbumAchievementAndCollection(t){
 // metric that actually drives it (see PROFILE spec §9)
 export function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
 
+// CR11 point 3: the pressing chart's "owned" set — every solid/effect id
+// any album currently in the library draws, one representative track per
+// album (the same S.tracks[idx[0]]-first-occurrence convention every
+// crate card/sticker already reads its variant from). Jet and the four
+// session-unlock rares are left out on purpose: Jet isn't a catalogue
+// pressing to collect, and rares already have their own Collection
+// surface (upsertCollectionEntry, above) — this is about what the file-
+// driven catalogue (CR7) looks like across the whole crate, not rares.
+export function ownedPressingIds(){
+  const seen = new Set(), owned = new Set();
+  for(const t of S.tracks){
+    const id = albumKey(t);
+    if(seen.has(id)) continue;
+    seen.add(id);
+    const {variant} = selectVariant(t);
+    if(variant !== 'jet') owned.add(variant);
+  }
+  return owned;
+}
+
 // RF4 (docs/12_REFINE.md): the merged cross-device total, when one exists
 // (signed in, at least one pull done), in place of this device's own
 // counter — see state.js's own S.mergedStats comment. Signed out, or
