@@ -42,19 +42,18 @@
   --sticker-ink:#2A1B38;
 }
 .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-/* Ken, 2026-10-21: "the only thing that scrolls there should be the
-   records (horizontally and vertically)" — the crate stage already moves
-   entirely through its own pointer gesture (crate/view.js), never a native
-   scroll, so the page's own scroll (body is the app's one scroller,
-   00-base.css) only ever fought that gesture rather than helping it.
-   :has() scopes the lock to exactly "Library route showing Crate" — gone
-   the instant the DOM it matches against is (a tab switch re-renders
-   #tracksBody with no .crate-wrap in it; leaving the route drops
-   #route-library's own .on class) — same pattern as 23-desktop.css's
-   existing body:has(#playerOverlay.open) rules, no JS state to keep in
-   sync. The reduced-motion flat list (.crate-flat-wrap, a real native
-   overflow-y:auto list) is a different element and never matches this. */
-body:has(#route-library.on .crate-wrap){overflow:hidden}
+/* Post-CR14 revert (Ken, 2026-10-21): a body-level overflow:hidden scoped
+   to Crate view (tried right after the lip removal above, same commit)
+   turned out to block things it was never meant to touch — leaving the
+   Library route's own tools disclosure unreachable, and leaving the whole
+   app unable to scroll on other tabs after visiting Crate. The crate
+   stage itself was never relying on page scroll in the first place — it
+   already moves entirely through its own pointer gesture (crate/view.js)
+   and fits the viewport via applyCrateMiniInset()'s own height budget, and
+   html,body's existing overscroll-behavior-y:none (00-base.css) already
+   kills the elastic bounce that reads as "scrolling like a webpage." So
+   there's nothing left for a page-level lock to actually fix — removed
+   outright rather than re-scoped. */
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
 .crate-group-toggle{margin-bottom:10px}
 /* CR1: a header row above the stage — how many records are in the bin and
