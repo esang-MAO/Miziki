@@ -3,14 +3,22 @@
    time; the sun-record marker follows the finger; the 24h circle wraps
    continuously with no end stops, multiple turns are fine, 1-minute
    resolution; a light haptic at sunrise/sunset; the NOW button returns to
-   live time; leaving the Sundown tab always resets to live (handled from
-   shell/routes.js, not here — see resetPreview()'s own call site there).
+   live time. §4.4's own "leaving Sundown always resets to live" no longer
+   holds now that Sundown is a sheet rather than a tab — see this file's
+   own 2026-10-21 note on setPreviewMinutes()'s entry below.
    Keyboard/VoiceOver: arrows +/-15 min, PageUp/PageDown +/-1h.
 
    setPreviewMinutes() is the one place S.previewMin is ever written from
    this view, and the dial is now the only control for it (the old
    #preview range slider and its "Back to live" button were removed), so
    everything writes through here instead of setting S.previewMin directly.
+
+   Ken, 2026-10-21: closing the Sundown sheet (src/shell/sundown-sheet.js)
+   no longer calls resetPreview() — a preview now survives the sheet being
+   dismissed, by design, superseding the "leaving Sundown always resets
+   to live" rule DAY_ARC_BRIEF.md §4.4 stated for the old tab-based
+   Sundown. resetPreview() itself is unchanged — the NOW button still
+   calls it directly, so that's still an explicit way back to live time.
 
    Mirrors player/scrub.js's own wireSpinToScrub() shape (pointerAngle +
    an angleDelta-style helper, pointerdown/pointermove/pointerup on

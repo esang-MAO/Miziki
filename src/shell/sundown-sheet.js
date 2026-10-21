@@ -25,7 +25,6 @@
 import { $ } from '../util/dom.js';
 import { openLayer, closeLayer } from './nav-stack.js';
 import { selectSundownView, lastSundownView } from './routes.js';
-import { resetPreview } from '../sundown/dial-gesture.js';
 
 const DRAG_OPEN_THRESHOLD = 60;   // px dragged up past half-height to snap to full
 const DRAG_CLOSE_THRESHOLD = 120; // px dragged down past half-height to dismiss
@@ -56,10 +55,15 @@ function teardownSundownSheet(){
   }
   const scrim = $('#sundownSheetScrim');
   if(scrim) scrim.classList.remove('open');
-  // DAY_ARC_BRIEF.md §4.4: leaving Sundown always returns to live time —
-  // the preview never persists past the sheet closing, so audio can never
-  // be left in a forgotten preview state.
-  resetPreview();
+  // Ken, 2026-10-21: closing the sheet used to always snap the preview
+  // back to live time (DAY_ARC_BRIEF.md §4.4's own rule, written when
+  // Sundown was still a tab you could "leave"). He asked for the opposite
+  // now that it's a sheet you open and close over whatever else you're
+  // doing — previewing the night, then dismissing the sheet to go do
+  // something else, should leave the preview running rather than quietly
+  // cancel it. So this is deliberately a no-op now: S.previewMin simply
+  // carries over to the sheet's next open, exactly the way it would if
+  // the sheet had never closed at all.
 }
 
 export function openSundownSheet(view){
@@ -88,12 +92,16 @@ function wireSundownSheetClose(){
 }
 
 // A plain pointer drag on the grabber: up past the threshold snaps to
-// full height, down past it from half-height dismisses the sheet (the
-// doc's own "a downward swipe... closes it"), otherwise it snaps back to
-// whichever height it started at. --sundown-drag-dy tracks the live
-// finger position only while dragging (src/styles/26-sundown-sheet.css);
-// the snapped end state is always one of the two fixed heights, never a
-// value frozen mid-drag.
+// full height; down past the close threshold dismisses the sheet outright
+// — from either height, not just half (Ken, 2026-10-21: dragging down
+// from full used to only step back to half, needing a second separate
+// drag to actually close; now one continuous pull all the way down
+// closes it from full too, the same "all the way up or down" shape a
+// drag from half already had). Short of that, it snaps back to whichever
+// height it started at. --sundown-drag-dy tracks the live finger position
+// only while dragging (src/styles/26-sundown-sheet.css); the snapped end
+// state is always one of the two fixed heights or closed, never a value
+// frozen mid-drag.
 function wireSundownSheetDrag(){
   const sheet = $('#sundownSheet'), grabber = $('#sundownSheetGrabber');
   if(!sheet || !grabber) return;
@@ -113,7 +121,7 @@ function wireSundownSheetDrag(){
     sheet.classList.remove('dragging');
     sheet.style.removeProperty('--sundown-drag-dy');
     const dy = ev.clientY - startY;
-    if(!startFull && dy > DRAG_CLOSE_THRESHOLD){ closeLayer('sundown-sheet'); return; }
+    if(dy > DRAG_CLOSE_THRESHOLD){ closeLayer('sundown-sheet'); return; }
     if(!startFull && dy < -DRAG_OPEN_THRESHOLD) sheet.classList.add('full');
     else if(startFull && dy > DRAG_OPEN_THRESHOLD) sheet.classList.remove('full');
   }
