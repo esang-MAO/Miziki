@@ -138,3 +138,26 @@
 .store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px var(--sp-1)}
 .store-requests-list .store-dig-row:last-child{border-bottom:0}
 
+/* CR11 point 3: the pressing chart — "a cream catalog card with a
+   paint-chip strip in family order." Shared by the profile's own card
+   (numbers, tap-to-jump — profile/storefront.js's renderPressingCard) and
+   a friend's (chips only — social/screens/friend-store.js). */
+.pressing-card{margin-top:14px;background:var(--cream);color:#1A1410;border-radius:var(--radius-card);padding:13px 15px}
+.pressing-card-head{margin:0;font-family:var(--display);font-size:var(--fs-row);font-weight:600;letter-spacing:.02em}
+.pressing-card-count{margin-top:2px;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;opacity:.65}
+.pressing-chip-strip{display:flex;flex-wrap:wrap;gap:5px;margin-top:var(--sp-3)}
+.pressing-chip{width:20px;height:20px;border-radius:var(--radius-control);border:0;padding:0;position:relative;flex:none}
+.pressing-chip.owned{opacity:1}
+.pressing-chip.missing{opacity:.18}
+button.pressing-chip.owned{cursor:pointer}
+.pressing-chip-dot{position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#1A1410}
+.pressing-card-missing{margin:var(--sp-2) 0 0;font-size:var(--fs-caption);opacity:.7}
+
+/* CR11 point 1-2: the in-common pressing line and the record sheet's own
+   pressing name/note/diff. */
+.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--accent-text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.record-pressing-name{margin-top:var(--sp-2);font-weight:600;font-size:var(--fs-body)}
+.record-pressing-note{margin:2px 0 0;font-size:var(--fs-caption);color:var(--muted)}
+.record-pressing-diff{margin:var(--sp-1) 0 0;font-size:var(--fs-caption);color:var(--muted)}
+

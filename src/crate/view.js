@@ -25,7 +25,7 @@ import { METAL_COLORS } from '../record-art/metals.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
@@ -453,6 +453,14 @@ export function renderCrate(host){
     const jumpTarget = crateRailJumpTarget(model, S.crate.pendingJumpKey);
     S.crate.pendingJumpKey = null;
     if(jumpTarget != null) startPos = jumpTarget;
+  }
+  // CR11 point 3: the pressing chart's chips set pendingJumpVariant the
+  // same one-shot way — "tapping a chip jumps the crate to the first
+  // record in that pressing."
+  if(S.crate.pendingJumpVariant){
+    const variantTarget = crateVariantJumpTarget(model, S.crate.pendingJumpVariant);
+    S.crate.pendingJumpVariant = null;
+    if(variantTarget != null) startPos = variantTarget;
   }
   if(startPos == null || isNaN(startPos) || startPos < 0 || startPos >= model.items.length){
     // cold start: the last-played album wins, falling back to the saved

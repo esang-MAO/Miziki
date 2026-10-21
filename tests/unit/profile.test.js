@@ -76,6 +76,12 @@ mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
     renderStorefrontSection(host){ storefrontCalls.push(host); host.appendChild(el('span','storefront-marker')); },
     STORE_TIER_LABEL: {}, localAlbumArt(){ return null; }, renderStoreError(){},
     storeSwitch(){}, timeAgoShort(){ return ''; },
+    // CR11 point 3: renderPressingCard itself has its own test coverage
+    // (tests/unit/pressings.test.js) — mocked here the same "stop the
+    // chain at the door" way as every other storefront.js export this
+    // file doesn't exercise. Returns a real element each call so the
+    // wholly-new-profile test below can tell it apart from the empty card.
+    renderPressingCard(){ return el('div','pressing-card-marker'); },
   },
 });
 mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, {
@@ -102,11 +108,18 @@ mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
 // both its empty-profile branch (RF11 point 2) and its ordinary one without
 // a second mock.module registration (node:test doesn't support re-mocking
 // mid-file).
-let mockTopAlbums = [], mockTopTracks = [], mockAchievements = [];
+let mockTopAlbums = [], mockTopTracks = [], mockAchievements = [], mockOwnedPressingIds = new Set();
 mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
   namedExports: {
     topAlbums(){ return mockTopAlbums; }, topTracks(){ return mockTopTracks; }, achievementsList(){ return mockAchievements; },
     crateFilled(){ return false; }, collectionGroups(){ return {}; },
+    // CR11 point 3: ownedPressingIds() has its own coverage in
+    // tests/unit/pressings.test.js — mocked here since this file's own
+    // renderListeningScreen() tests only care that the card gets built,
+    // not what set it was built from. Mutable so the wholly-new-profile
+    // test below can exercise the one case where a pressing chart shows
+    // even though every play-driven stat is empty.
+    ownedPressingIds(){ return mockOwnedPressingIds; },
   },
 });
 // DA3 (docs/DAY_ARC.md): screens.js's new setTheme import (for the new
@@ -295,6 +308,22 @@ test('renderProfile(listening): a wholly new profile shows one consolidated empt
   const wrap = body.children[0];
   assert.equal(wrap.childNodes.length, 1, 'exactly one child -- the consolidated empty card');
   assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
+});
+
+// CR11 point 3: a pressing is drawn from the library alone (no play
+// needed), so it still shows on an otherwise wholly-new profile — the one
+// case RF11's "one consolidated empty card" rule above doesn't cover,
+// since this isn't a play-driven stat at all.
+test('renderProfile(listening): a pressing chart still shows on a wholly new profile when the library has owned pressings', () => {
+  resetProfileState();
+  mockTopAlbums = []; mockTopTracks = []; mockAchievements = []; S.collection = {};
+  mockOwnedPressingIds = new Set(['oxblood']);
+  S.profileView.screen = 'listening';
+  renderProfile();
+  const wrap = profileHosts['#profileBody'].children[0];
+  assert.equal(wrap.childNodes.length, 2, 'the empty card, plus the pressing chart');
+  assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
+  mockOwnedPressingIds = new Set();
 });
 
 test('renderProfile(listening): once anything exists, the full breakdown (top row, rhythm, achievements, collection, share) renders', () => {

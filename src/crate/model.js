@@ -8,7 +8,7 @@
 import { S } from '../state.js';
 import { normKey } from '../util/text.js';
 import { clamp } from '../util/math.js';
-import { albumKey, trackTier } from '../record-art/tiers.js';
+import { albumKey, trackTier, selectVariant } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { queueSave } from '../storage/meta.js';
 import { CRATE_ALPHABET } from './constants.js';
@@ -528,6 +528,26 @@ export function crateRailJumpTarget(model, key){
   if(di == null) return null;
   const next = di + 1;
   return (next < model.items.length && model.items[next].type === 'rec') ? next : di;
+}
+
+// CR11 point 3: "tapping a chip jumps the crate to the first record in
+// that pressing" — a pressing isn't a divider the model's own jumpIndex
+// already tracks (letter/genre/decade/bin), so this walks the model
+// directly, reading each album record's own deterministic draw the exact
+// same way every crate card's sticker/sleeve already does (one
+// representative track, S.tracks[item.idx[0]], the convention
+// crate/view.js's stickerFor() callers already use). Loose-track pseudo-
+// records are skipped: they aren't backed by a single album identity key,
+// so they never draw a pressing of their own.
+export function crateVariantJumpTarget(model, variantId){
+  for(let i = 0; i < model.items.length; i++){
+    const it = model.items[i];
+    if(it.type !== 'rec' || it.kind !== 'album' || !it.idx.length) continue;
+    const t = S.tracks[it.idx[0]];
+    if(!t) continue;
+    if(selectVariant(t).variant === variantId) return i;
+  }
+  return null;
 }
 
 // CR5 ("pull a record out"): the pull/flip/hold state machine, as a pure

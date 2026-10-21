@@ -1,9 +1,13 @@
 import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, crateFilled, collectionGroups } from '../history/achievements.js';
+import { topAlbums, topTracks, achievementsList, crateFilled, collectionGroups, ownedPressingIds } from '../history/achievements.js';
 import { metalBadge, collectionBadge } from './badges.js';
-import { renderStorefrontSection } from './storefront.js';
+// CR11 point 3: renderPressingCard lives in storefront.js, not here —
+// it's shared with a friend's own pressing chart (social/screens/
+// friend-store.js), the same "card primitives live in storefront.js"
+// rule this file's own renderStorefrontSection import already follows.
+import { renderStorefrontSection, renderPressingCard } from './storefront.js';
 import { renderRhythmCard } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
@@ -288,6 +292,11 @@ function renderListeningScreen(body){
   const albums = topAlbums(1), tracks = topTracks(1);
   const achList = achievementsList();
   const collList = Object.values(S.collection);
+  // CR11 point 3: a pressing is drawn the moment a file is in the
+  // library, independent of any play — so it's a real thing to show even
+  // on a profile with zero plays yet, unlike every stat this branch below
+  // is actually about. Computed once up front for both paths.
+  const owned = ownedPressingIds();
   // RF11 point 2: "a new profile with no stats shows one card... instead
   // of several 'nothing yet' boxes." Only for a genuinely fresh profile —
   // once anything exists, each section still shows its own ordinary state
@@ -297,6 +306,7 @@ function renderListeningScreen(body){
     const empty = el('div','profile-empty profile-empty-first');
     empty.appendChild(el('p', null, 'Play an album start to finish to earn your first metal.'));
     wrap.appendChild(empty);
+    if(owned.size) wrap.appendChild(renderPressingCard(owned, {showNumbers: true}));
     body.appendChild(wrap);
     return;
   }
@@ -345,6 +355,11 @@ function renderListeningScreen(body){
   }
   collSection.addEventListener('click', ()=>{ S.profileView.screen = 'collection'; renderProfile(); });
   wrap.appendChild(collSection);
+
+  // CR11 point 3: the pressing chart — the first-person-only tally
+  // (RF11's rule, point 4) of the whole CR7 catalogue, never a score
+  // against anyone else's crate.
+  wrap.appendChild(renderPressingCard(owned, {showNumbers: true}));
 
   const shareBtn = el('button','cta ghost profile-share','Share');
   shareBtn.classList.toggle('active', crateFilled());
