@@ -159,32 +159,42 @@
         <button data-view="artists" aria-pressed="false">Artists</button>
         <button data-view="playlists" aria-pressed="false">Playlists</button>
       </div>
-      <!-- the A-Z/Genre/Decade crate-grouping toggle — one home for this
-           control now (RF8), shown whenever crate mode is active, any
-           platform. CR4 (docs/13_CRATE.md) adds the third option, Decade —
-           always offered, unlike Genre, which is skipped when the library
-           has no genre tags at all (updateCrateGroupToggleUI(), crate/
-           view.js). Was a three-pill .seg row; now one quiet chip that
-           cycles A–Z → Genre → Decade on each tap, so the header row stays
-           a single line next to the tabs. -->
-      <button class="crate-group-cycle" id="crateGroupToggleTab" type="button" style="display:none"
-              aria-label="Crate order: A–Z. Tap to change.">
-        <span class="crate-group-cycle-k">Sort</span>
-        <span class="crate-group-cycle-v" id="crateGroupCycleLabel">A–Z</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
-      </button>
-      <!-- search/add used to live in the big wordmark header above; moved
-           here so they still show (the add button even with an empty
-           library) without needing their own separate header row -->
-      <div class="hdr-actions" id="hdrActions">
-        <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
-          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
-        </button>
-        <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
-          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="hdr-icon-btn" id="hdrOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
-          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      <!-- CR14 (docs/14_CRATE_SECTIONS.md, PR 1): the search/add/overflow
+           icons and the crate-order chip now share one right-hand column
+           (search/add/overflow on top, the chip right-aligned under them,
+           only while the Crate tab is active) instead of both floating on
+           the tabs' own baseline — that's what let the tab row and the
+           icon row collide at narrow widths. The tab group itself scrolls
+           sideways rather than wrapping under the icons on the narrowest
+           phones (see .lib-tabs-group in 01-header.css). -->
+      <div class="lib-tabs-right">
+        <!-- search/add used to live in the big wordmark header above; moved
+             here so they still show (the add button even with an empty
+             library) without needing their own separate header row -->
+        <div class="hdr-actions" id="hdrActions">
+          <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+          </button>
+          <button class="hdr-icon-btn" id="hdrAddBtn" aria-label="Add music" aria-haspopup="menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="hdr-icon-btn" id="hdrOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+          </button>
+        </div>
+        <!-- the A-Z/Genre/Decade crate-grouping toggle — one home for this
+             control now (RF8), shown whenever crate mode is active, any
+             platform. CR4 (docs/13_CRATE.md) adds the third option, Decade —
+             always offered, unlike Genre, which is skipped when the library
+             has no genre tags at all (updateCrateGroupToggleUI(), crate/
+             view.js). Was a three-pill .seg row; now one quiet chip that
+             cycles A–Z → Genre → Decade on each tap, so the header row stays
+             a single line next to the tabs. -->
+        <button class="crate-group-cycle" id="crateGroupToggleTab" type="button" style="display:none"
+                aria-label="Crate order: A–Z. Tap to change.">
+          <span class="crate-group-cycle-k">Sort</span>
+          <span class="crate-group-cycle-v" id="crateGroupCycleLabel">A–Z</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
         </button>
       </div>
     </div>

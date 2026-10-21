@@ -12,8 +12,9 @@
    mini-player hide below, which does need it (see its own comment).
    The header's search field and + menu ("main header row," per the doc)
    need no new markup or rule here at all: #libNav already lays its
-   view-mode tabs and #hdrActions out with justify-content:space-between
-   (src/styles/01-header.css) specifically so the icon group stays
+   view-mode tabs and the right-hand icon/sort-chip column
+   (.lib-tabs-right, src/styles/01-header.css, CR14) out with
+   justify-content:space-between specifically so that column stays
    pinned to the right edge of whatever width .wrap actually is — once
    the 520px cap below is dropped, that existing row simply widens into
    the proper top header-row bar the mockup shows, with the icons

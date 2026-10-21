@@ -6,8 +6,8 @@
 .top.no-border{border-bottom:none;padding-bottom:6px}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
-.hdr-icon-btn{width:40px;height:40px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
-.hdr-icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hdr-icon-btn{width:32px;height:32px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
+.hdr-icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent-text)}
 .hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
 .hdr-icon-btn svg{transition:transform .2s}
@@ -72,16 +72,27 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
    off the left edge of the screen once the Select tab made the row too
    wide to fit on one line. The tab group's own flex-wrap still lets it
    spill onto a second line by itself, while the icons stay pinned right. */
-.lib-tabs{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
-.lib-tabs-group{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.lib-tabs-group button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
-  padding:var(--sp-2) 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.lib-tabs{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-3)}
+/* CR14 (docs/14_CRATE_SECTIONS.md, PR 1): the tab column ends where the
+   icons begin — it no longer wraps under them, it scrolls sideways instead,
+   so the narrowest phones (iPhone SE, 320px) never collide the two rows. */
+.lib-tabs-group{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0;min-height:32px;
+  overflow-x:auto;scrollbar-width:none}
+.lib-tabs-group::-webkit-scrollbar{display:none}
+.lib-tabs-group button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;
+  padding:var(--sp-2) 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;flex:0 0 auto}
 .lib-tabs-group button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
 .lib-tabs-group .lib-select-tab{color:var(--muted)}
+/* CR14: search/add/overflow and the crate-order chip now share one
+   right-hand column — flex, not a grid, so an empty library (no tabs at
+   all, #libNavTabs hidden) doesn't pull the icons into a column that no
+   longer has a sibling to share with. */
+.lib-tabs-right{display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-2);flex:0 0 auto;margin-left:auto}
 /* crate-order chip: replaces the A–Z/Genre/Decade pill row with one
-   tap-to-cycle control, set in the same voice as the tabs beside it */
-.crate-group-cycle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-right:auto;
-  margin-left:var(--sp-3);padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:none;
+   tap-to-cycle control, set in the same voice as the tabs beside it. The
+   right-hand column above now places it, so it needs no margin of its own. */
+.crate-group-cycle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+  padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:none;
   font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
   color:var(--paper);touch-action:manipulation;white-space:nowrap}
 .crate-group-cycle:active{background:var(--sel)}
