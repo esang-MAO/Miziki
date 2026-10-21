@@ -90,7 +90,12 @@ export function openAddMenu(){
   menu.classList.add('open');
   btn.classList.add('add-open');
   btn.setAttribute('aria-expanded', 'true');
-  openLayer('add-menu', closeAddMenu, { container: menu });
+  // Both the menu and its own scrim are top-level siblings here, not one
+  // nested inside the other -- container has to protect both, or the
+  // scrim gets marked inert as "just another background sibling" and
+  // silently loses the tap-to-dismiss its own CSS gives it (see the
+  // Sundown sheet's own identical fix, src/shell/sundown-sheet.js).
+  openLayer('add-menu', closeAddMenu, { container: [menu, $('#addScrim')] });
 }
 export function closeAddMenu(){
   $('#addScrim').classList.remove('open');
@@ -114,7 +119,9 @@ export function openLibOverflowMenu(){
   $('#libOverflowScrim').classList.add('open');
   menu.classList.add('open');
   btn.setAttribute('aria-expanded', 'true');
-  openLayer('lib-overflow-menu', closeLibOverflowMenu, { container: menu });
+  // See openAddMenu()'s own comment above -- the scrim is a separate
+  // sibling, not nested inside the menu, so it has to be in container too.
+  openLayer('lib-overflow-menu', closeLibOverflowMenu, { container: [menu, $('#libOverflowScrim')] });
 }
 export function closeLibOverflowMenu(){
   $('#libOverflowScrim').classList.remove('open');

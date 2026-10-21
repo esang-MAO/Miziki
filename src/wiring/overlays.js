@@ -9,14 +9,15 @@
    nav-stack layer stack (openQueueSheet() does the registering, in
    player/queue.js), so its close button goes through closeLayer() instead
    of calling closeQueueSheet() directly — the same single entry point
-   Back/Escape use. The look picker and the library sort menu are small,
-   already-dismiss-anywhere popovers the plan's own layer list doesn't name
-   (docs/11_SMOOTH_NAVIGATION.md's NV2 section) — left as direct opens/
-   closes, an accepted, documented gap rather than scope creep. */
+   Back/Escape use. The look picker and the library sort menu used to be
+   small, direct-open/close popovers with no Back/Escape/tap-outside
+   support at all — an accepted, documented gap under NV2's own plan.
+   Closed now (openLookPicker/openSortMenu register themselves with
+   nav-stack too, same as every other sheet), so their close buttons go
+   through closeLayer() the same way the queue sheet's does. */
 import { $ } from '../util/dom.js';
 import { openQueueSheet } from '../player/queue.js';
-import { openLookPicker, closeLookPicker } from '../record-art/looks.js';
-import { closeSortMenu } from '../library/search.js';
+import { openLookPicker } from '../record-art/looks.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireOverlays(){
@@ -24,6 +25,6 @@ export function wireOverlays(){
   $('#queueBtn').addEventListener('click', openQueueSheet);
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
   $('#queueClose').addEventListener('click', () => closeLayer('queue'));
-  $('#lookClose').addEventListener('click', closeLookPicker);
-  $('#sortMenuClose').addEventListener('click', closeSortMenu);
+  $('#lookClose').addEventListener('click', () => closeLayer('look'));
+  $('#sortMenuClose').addEventListener('click', () => closeLayer('sort-menu'));
 }

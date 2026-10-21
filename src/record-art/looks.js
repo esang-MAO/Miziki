@@ -6,6 +6,7 @@ import {
 } from './tiers.js';
 import { albumMetalFor, trackMetalFor, metalBackground, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
 import { persistAlbumLookPref } from '../history/sessions.js';
+import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 /* ================= look switching =================
    Once an album has more than one available "look" — the rare variant, an
@@ -89,7 +90,7 @@ export function openLookPicker(){
     if(content.sub) b.appendChild(el('span', 'look-option-sub', content.sub));
     if(content.note) b.appendChild(el('span', 'look-option-note', content.note));
     // silent and immediate — no confirmation, no animation (see METAL spec §5)
-    b.addEventListener('click', () => { setLookPref(albumId, kind); closeLookPicker(); });
+    b.addEventListener('click', () => { setLookPref(albumId, kind); closeLayer('look'); });
     host.appendChild(b);
   });
   // CR7 point 6: a lossy record only ever presses Jet — say so once, every
@@ -99,6 +100,10 @@ export function openLookPicker(){
   }
   $('#lookOverlay').classList.add('open');
   $('#lookOverlay').setAttribute('aria-hidden', 'false');
+  // Was a plain classList toggle with no Back/Escape/tap-outside support —
+  // an accepted NV2 gap (src/wiring/overlays.js's own comment), closed now
+  // per Ken's "easily close any menu" request.
+  openLayer('look', closeLookPicker, { container: $('#lookOverlay') });
 }
 export function closeLookPicker(){
   $('#lookOverlay').classList.remove('open');

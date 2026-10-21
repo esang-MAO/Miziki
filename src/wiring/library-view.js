@@ -11,7 +11,7 @@ import { idxOf } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel, nextCrateGroup } from '../crate/model.js';
 import {
-  renderTracks, enterSelectMode, exitSelectMode, closeRowMenu,
+  renderTracks, enterSelectMode, exitSelectMode,
   openConfirmDelete, closeConfirmDelete, rowMenuTrackId, confirmDeleteAction,
   applyTrackNumbersInOrder,
 } from '../library/view.js';
@@ -121,30 +121,35 @@ export function wireLibraryView(){
     openConfirmDelete('batch', ids.length, null, async () => { await deleteTracks(ids); exitSelectMode(); });
   });
 
-  $('#rowMenuClose').addEventListener('click', closeRowMenu);
+  $('#rowMenuClose').addEventListener('click', () => closeLayer('row-menu'));
   $('#rowMenuEdit').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    // row-menu's close is immediately followed, in the same tick, by
+    // opening a different layer ('edit') that replaces it — plain
+    // closeLayer() would queue a history.go() that races the new layer's
+    // own pushState (nav-stack.js's own documented skipHistory rule, the
+    // same fix shell/handoff.js uses for the gatefold-to-player handoff).
+    const id = rowMenuTrackId; forceCloseLayer('row-menu', {skipHistory: true});
     if(id) openEditSheet([id]);
   });
   $('#rowMenuCredits').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    const id = rowMenuTrackId; forceCloseLayer('row-menu', {skipHistory: true});
     const t = S.tracks[idxOf(id)]; if(t) openCreditsSheet(t);
   });
   $('#rowMenuFav').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    const id = rowMenuTrackId; closeLayer('row-menu');
     if(id) toggleFavorite(id);
   });
   $('#rowMenuRemove').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    const id = rowMenuTrackId; closeLayer('row-menu');
     const t = S.tracks[idxOf(id)]; if(!t) return;
     openConfirmDelete('song', 1, t.tags.title, async () => { await deleteTracks([id]); });
   });
   $('#rowMenuPlayNext').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    const id = rowMenuTrackId; closeLayer('row-menu');
     const i = idxOf(id); if(i >= 0) playNext(i);
   });
   $('#rowMenuAddQueue').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeRowMenu();
+    const id = rowMenuTrackId; closeLayer('row-menu');
     const i = idxOf(id); if(i >= 0) addToQueue(i);
   });
 

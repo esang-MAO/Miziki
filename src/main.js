@@ -52,6 +52,7 @@ import { wireRoutes } from './wiring/routes.js';
 import { wireLifecycle } from './wiring/lifecycle.js';
 import { wirePullRefresh } from './wiring/pull-refresh.js';
 import { wireSwipeClose } from './wiring/swipe-close.js';
+import { wireBackdropClose } from './wiring/backdrop-close.js';
 
 /* Everything that used to live here — the audio graph, the library, the
    gatefold and sealed-record sheet, the crate, the launch intro, the
@@ -84,6 +85,7 @@ wireRoutes();
 wireLifecycle();
 wirePullRefresh();
 wireSwipeClose();
+wireBackdropClose();
 
 // NV2 (docs/11_SMOOTH_NAVIGATION.md): establishes the one clean history
 // entry every later pushState/replaceState builds on, before anything else

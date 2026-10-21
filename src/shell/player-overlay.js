@@ -127,7 +127,10 @@ export function openPlayerOverflowMenu(){
   $('#playerOverflowScrim').classList.add('open');
   menu.classList.add('open');
   btn.setAttribute('aria-expanded', 'true');
-  openLayer('player-overflow-menu', closePlayerOverflowMenu, { container: menu });
+  // The scrim is a separate sibling, not nested inside the menu, so it has
+  // to be in container too or it's marked inert and loses its own
+  // tap-to-dismiss (same fix as src/shell/header.js's two menus).
+  openLayer('player-overflow-menu', closePlayerOverflowMenu, { container: [menu, $('#playerOverflowScrim')] });
 }
 export function closePlayerOverflowMenu(){
   $('#playerOverflowScrim').classList.remove('open');
