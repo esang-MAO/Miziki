@@ -162,14 +162,17 @@
       <!-- the A-Z/Genre/Decade crate-grouping toggle — one home for this
            control now (RF8), shown whenever crate mode is active, any
            platform. CR4 (docs/13_CRATE.md) adds the third option, Decade —
-           always shown, unlike Genre, which still hides when the library
+           always offered, unlike Genre, which is skipped when the library
            has no genre tags at all (updateCrateGroupToggleUI(), crate/
-           view.js). -->
-      <div class="seg" id="crateGroupToggleTab" style="display:none">
-        <button data-group="az" aria-pressed="true">A–Z</button>
-        <button data-group="genre" aria-pressed="false" id="crateGenreBtnTab" style="display:none">Genre</button>
-        <button data-group="decade" aria-pressed="false">Decade</button>
-      </div>
+           view.js). Was a three-pill .seg row; now one quiet chip that
+           cycles A–Z → Genre → Decade on each tap, so the header row stays
+           a single line next to the tabs. -->
+      <button class="crate-group-cycle" id="crateGroupToggleTab" type="button" style="display:none"
+              aria-label="Crate order: A–Z. Tap to change.">
+        <span class="crate-group-cycle-k">Sort</span>
+        <span class="crate-group-cycle-v" id="crateGroupCycleLabel">A–Z</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
+      </button>
       <!-- search/add used to live in the big wordmark header above; moved
            here so they still show (the add button even with an empty
            library) without needing their own separate header row -->

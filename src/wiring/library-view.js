@@ -9,7 +9,7 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { idxOf } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
-import { invalidateCrateModel } from '../crate/model.js';
+import { invalidateCrateModel, nextCrateGroup } from '../crate/model.js';
 import {
   renderTracks, enterSelectMode, exitSelectMode, closeRowMenu,
   openConfirmDelete, closeConfirmDelete, rowMenuTrackId, confirmDeleteAction,
@@ -44,13 +44,16 @@ export function wireLibraryView(){
   // RF8 (docs/12_REFINE.md): #crateGroupToggleTab is now the one home for
   // this control (the old Profile › Library tools copy, #crateGroupToggle,
   // was removed).
-  document.querySelectorAll('#crateGroupToggleTab [data-group]').forEach(b => b.addEventListener('click', ()=>{
-    if(b.style.display === 'none') return;
-    S.crateGroup = b.dataset.group;
+  // Crate-order chip: one tap steps A–Z → Genre → Decade → A–Z. Genre is
+  // skipped when the library has no genre tags (the same rule
+  // updateCrateGroupToggleUI() applies), via nextCrateGroup().
+  const groupChip = document.getElementById('crateGroupToggleTab');
+  if(groupChip) groupChip.addEventListener('click', ()=>{
+    S.crateGroup = nextCrateGroup(S.crateGroup);
     invalidateCrateModel();
     queueSave();
     renderTracks();
-  }));
+  });
   // CR10 (docs/13_CRATE.md point 3): the desktop sidebar's BINS list —
   // "each jumps the crate." #sidebarBins itself is static markup (never
   // torn down); its [data-bin] rows are rebuilt on every renderTracks()
