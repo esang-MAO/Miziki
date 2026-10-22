@@ -3,7 +3,7 @@ import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { isDesktopShell } from '../util/viewport.js';
-import { albumKey } from '../record-art/tiers.js';
+import { albumKey, trackTier } from '../record-art/tiers.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { albumTracks } from '../library/model.js';
 import { renderTracks } from '../library/view.js';
@@ -11,6 +11,7 @@ import { load, play, pause } from '../player/transport.js';
 import { drawTime } from '../player/clock.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { startRunout } from '../audio/runout.js';
+import { releaseSeed, noiseFloorScale, surfaceNoiseActive, startRunoutNoise, playNeedleLift } from '../audio/surface-noise.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { GROOVE, FLIP, splitSides, sideTurn } from './ceremony-timing.js';
 import { renderMiniPlayer } from './mini-player.js';
@@ -28,13 +29,36 @@ import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown } from
    token check the pull and put-away use, so a tap or a new pull cancels it. */
 
 let groove = null;
+// docs/15_SURFACE_NOISE.md §1: the Surface Noise hiss/tick layer that rides
+// alongside the CEREMONY groove's own thump, started and stopped in
+// lockstep with it — see startNoiseLayer()/stopNoiseLayer() below.
+let noiseLayer = null;
 
 function stopGroove(fadeMs){ if(groove){ groove.stop(fadeMs); groove = null; } }
+function stopNoiseLayer(fadeMs){ if(noiseLayer){ noiseLayer.stop(fadeMs); noiseLayer = null; } }
+
+// The side letter the current track is on, for seeding the run-out noise
+// the same way player/transport.js seeds the lead-in — '' when sides are
+// off (one seed per album rather than per side).
+function currentSideLetter(t){
+  if(!S.albumSides || !t || !t.tags || !t.tags.album) return '';
+  const splits = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
+  const found = splits && splits.find(s => s.idx.includes(S.index));
+  return found ? found.label.replace('SIDE ', '') : '';
+}
+
+function startNoiseLayer(t, durSec){
+  if(!surfaceNoiseActive()) return;
+  const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
+  if(scale <= 0) return;
+  noiseLayer = startRunoutNoise(durSec, releaseSeed(albumKey(t), currentSideLetter(t)), scale, 0.55 * S.rate);
+}
 
 // Drops whatever run-out/flip is in flight without landing it anywhere.
 // Safe to call any time, any number of times.
 export function cancelRunout(){
   stopGroove(0);
+  stopNoiseLayer(0);
   S.runout = null;
   const stage = $('#platterStage');
   if(stage) stage.classList.remove('runout', 'flipping');
@@ -98,9 +122,12 @@ export async function endOfQueue(auto){
   S.runout = {kind:'end', turning:true};
   stage.classList.add('runout');
   groove = startRunout((GROOVE.ms + GROOVE.spinDownMs) / 1000);
+  startNoiseLayer(t, (GROOVE.ms + GROOVE.spinDownMs) / 1000);
   await sleep(GROOVE.ms);
   if(cancelled()) return;
   stopGroove(GROOVE.spinDownMs);
+  stopNoiseLayer(GROOVE.spinDownMs);
+  playNeedleLift();
   S.runout.turning = false;
   startSpinDown(GROOVE.spinDownMs);
   stage.classList.remove('runout');
@@ -138,9 +165,12 @@ async function runSideFlip(n, turn){
   S.runout = {kind:'flip', turning:true, n, to:turn.to};
   stage.classList.add('runout');
   groove = startRunout(FLIP.grooveMs / 1000);
+  startNoiseLayer(current(), FLIP.grooveMs / 1000);
   await sleep(FLIP.grooveMs);
   if(cancelled()) return;
   stopGroove(150);
+  stopNoiseLayer(150);
+  playNeedleLift();
   S.runout.turning = false;
   startSpinDown(FLIP.liftMs);
   stage.classList.remove('runout');

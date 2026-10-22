@@ -30,6 +30,7 @@ const KNOWN_PREF_KEYS = new Set([
   'theme', 'charDrift',
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
+  'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -70,6 +71,7 @@ export function serializePrefs(S){
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
     paperLabelOnLossy: S.paperLabelOnLossy,
+    surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
   }, unknownPrefKeys || {});
 }
 
@@ -128,6 +130,13 @@ export function parsePrefs(raw){
   // object without this field (every device before CR7) loads as off —
   // the S default, amber label on every tier-1 record.
   if(typeof p.paperLabelOnLossy === 'boolean') out.paperLabelOnLossy = p.paperLabelOnLossy;
+  // docs/15_SURFACE_NOISE.md §1: a saved object without these (every
+  // device before this feature) loads as the stated defaults — Subtle,
+  // Normal, and the under-the-music bed off — the same "missing means the
+  // default" shape charDrift's own DA2 addition already established.
+  if(p.surfaceNoise === 'off' || p.surfaceNoise === 'subtle' || p.surfaceNoise === 'well-loved') out.surfaceNoise = p.surfaceNoise;
+  if(p.runoutLength === 'short' || p.runoutLength === 'normal' || p.runoutLength === 'until-lift') out.runoutLength = p.runoutLength;
+  if(typeof p.surfaceNoiseUnderMusic === 'boolean') out.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

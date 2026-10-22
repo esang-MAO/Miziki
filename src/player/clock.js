@@ -35,6 +35,13 @@ export function tick(now, maxDt){
 
   const t = current();
   if(S.playing && t){
+    // Surface Noise's lead-in (docs/15_SURFACE_NOISE.md §1): the needle
+    // drop + lead-in noise is already playing, scheduled on the audio
+    // clock, but the track's own audio hasn't started yet — hold the
+    // scrub position at 0 (and don't credit any played range yet) until
+    // S.openUntil's wall-clock deadline passes.
+    if(S.openUntil && now < S.openUntil){ return dt; }
+    if(S.openUntil) S.openUntil = 0;
     const prevPos = S.pos;
     S.pos += dt * S.rate;
     if(S.pos >= t.duration){ S.pos = t.duration; }
