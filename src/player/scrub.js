@@ -155,7 +155,21 @@ export function angleDelta(a, b){
 
 export function wireSpinToScrub(){
   const disc = $('#disc');
-  disc.addEventListener('pointerdown', e => {
+  // RF26 put the sun knob (#sunKnob) at the platter's lower right, a sibling
+  // of #disc, not a child -- but that's exactly where a hand naturally rests
+  // to spin/scratch a record, so a touch starting there never used to reach
+  // this gesture at all (it isn't inside #disc, so pointerdown never bubbled
+  // to a listener bound there). Binding to #platterStage instead -- the
+  // common ancestor of both #disc and #sunKnob -- lets a touch that starts
+  // on the knob still be considered for the gesture: a plain tap (under the
+  // claim threshold below) is never claimed, so the knob's own click still
+  // opens Sundown exactly as before; a touch that turns into real rotation
+  // is claimed the same way a touch starting on the bare disc always was.
+  // All angle math below still measures against #disc's own rect, since
+  // #disc/#platterBox/#platterStage share the same box (inset:0 all the way
+  // down) -- the knob never moves or visually reacts to this.
+  const stage = $('#platterStage');
+  stage.addEventListener('pointerdown', e => {
     if(!current()) return;
     // resume while still inside the tap, before any await — iOS only allows
     // this from a real user gesture, the same reason play()'s bgPrime() runs
@@ -190,7 +204,14 @@ export function wireSpinToScrub(){
     const d = angleDelta(ang, scrubGesture.lastAngle);
     scrubGesture.lastAngle = ang;
     S.angle = (S.angle + d + 360) % 360;    // the disc visually turns 1:1 with the finger
-    const secPerRotation = scrubGesture.scratching ? SCRATCH_SEC_PER_ROTATION : SCRUB_SEC_PER_ROTATION;
+    // Sundown can already slow the normal, un-scratched turntable at night
+    // (S.rate, computeRate() in sundown/solar.js) -- scaling the scratch
+    // ratio by the same live multiplier makes a hand-scratch track that same
+    // slowdown, so a record scratched at 2am sounds pitched down exactly the
+    // way the same record played straight through would. S.rate is always
+    // exactly 1 in Pure (F1), and real scratch audio only ever starts in
+    // Vinyl + Scratch-on to begin with, so this never touches Pure at all.
+    const secPerRotation = scrubGesture.scratching ? SCRATCH_SEC_PER_ROTATION * S.rate : SCRUB_SEC_PER_ROTATION;
     S.pos = clamp(S.pos + d * (secPerRotation/360), 0, t.duration || 0);
     drawTime();
     if(scrubGesture.scratching) updateScratchTarget(t);
