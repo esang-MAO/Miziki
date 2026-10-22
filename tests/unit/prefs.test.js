@@ -16,6 +16,7 @@ function fakeS(overrides = {}){
     slipmatCustom: false, slipmatWordmark: true, slipmatDim: true,
     paperLabelOnLossy: false,
     surfaceNoise: 'subtle', runoutLength: 'normal', surfaceNoiseUnderMusic: false,
+    autoFlip: true,
   }, overrides);
 }
 
@@ -34,6 +35,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
+    autoFlip: S.autoFlip,
   });
 });
 
@@ -277,4 +279,27 @@ test('bad values are ignored: an unlisted surfaceNoise/runoutLength value, a non
   assert.equal('surfaceNoise' in parsed, false);
   assert.equal('runoutLength' in parsed, false);
   assert.equal('surfaceNoiseUnderMusic' in parsed, false);
+});
+
+// docs/15_SURFACE_NOISE.md §4: a saved object without this field (every
+// device before this PR) loads as On -- the stated default and today's
+// behavior -- the same "missing means the default" shape every setting
+// above already follows.
+test('round trip: autoFlip survives both On and Off', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ autoFlip: true })));
+  assert.equal(p1.autoFlip, true);
+  const p2 = parsePrefs(serializePrefs(fakeS({ autoFlip: false })));
+  assert.equal(p2.autoFlip, false);
+});
+
+test('old saved data: no autoFlip field at all leaves it out, so the default (On) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.autoFlip;
+  const parsed = parsePrefs(raw);
+  assert.equal('autoFlip' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean autoFlip', () => {
+  const parsed = parsePrefs({ autoFlip: 'on' });
+  assert.equal('autoFlip' in parsed, false);
 });

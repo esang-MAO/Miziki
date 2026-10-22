@@ -28,6 +28,7 @@ import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
   playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC
 } from '../audio/surface-noise.js';
+import { performPendingFlip } from '../shell/runout.js';
 
 // docs/15_SURFACE_NOISE.md §1: "the lead-in plays only at the start of a
 // side: playing from stopped, or after a flip" — true when i is the first
@@ -176,6 +177,14 @@ export function startSource(offset, leadInSec = 0){
 }
 
 export async function play(){
+  // docs/15_SURFACE_NOISE.md §4: a record waiting in the run-out for a
+  // flip (Auto-flip Off) has nothing of its own to resume -- any Play (the
+  // in-app button, a lock-screen tap, a headphone/car button, all of which
+  // call this same function) performs the flip instead. performPendingFlip()
+  // loads and plays side B itself; that nested play() call still runs
+  // bgPrime() as its own first line, synchronously within this same call
+  // stack and still inside the original tap, so rule 9 holds.
+  if(S.runout && S.runout.kind === 'wait'){ performPendingFlip(); return; }
   bgPrime();   // before any await, while this is still inside the tap that asked for playback
   const t = current();
   if(!t){ showRoute('library'); return; }

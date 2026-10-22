@@ -54,6 +54,10 @@ export const S = {
   // sits under playback. Defaults per that doc's own settings table —
   // Subtle for new users, Normal run-out, under-the-music off.
   surfaceNoise:'subtle', runoutLength:'normal', surfaceNoiseUnderMusic:false,
+  // docs/15_SURFACE_NOISE.md §4: On (default) keeps today's behavior --
+  // the record flips itself at the end of side A. Off leaves it waiting in
+  // the run-out for the user to flip it (see shell/runout.js's runSideWait()).
+  autoFlip:true,
   // runtime only, never saved: whether the track load() just landed on is
   // the first track of its side (so play() knows to run the needle-drop +
   // lead-in), and the wall-clock deadline (performance.now()-based) the

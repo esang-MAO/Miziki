@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHANGE_TIMELINE, GROOVE, FLIP, changeLandsAt, grooveThumpTimes, splitSides, sideTurn,
+  WAIT_TIMEOUT_MS, runoutWaitMs,
 } from '../../src/shell/ceremony-timing.js';
 
 test('the change timeline: new sleeve arrives at 1200 ms over 700 ms, landing at 1900 ms', () => {
@@ -75,4 +76,18 @@ test('sideTurn: B to C on a three-disc album', () => {
   const t = [1,1,2,2,3,3].map(d => ({tags:{disc:d}}));
   const s = splitSides([0,1,2,3,4,5], t, true);
   assert.deepEqual(sideTurn(s, 3, 4), {from:'B', to:'C'});
+});
+
+// docs/15_SURFACE_NOISE.md §4, Auto-flip Off: how long the record waits
+// before the needle lifts on its own.
+test('runoutWaitMs: short and normal are finite, until-lift waits forever', () => {
+  assert.equal(runoutWaitMs('short'), WAIT_TIMEOUT_MS.short);
+  assert.equal(runoutWaitMs('normal'), WAIT_TIMEOUT_MS.normal);
+  assert.equal(runoutWaitMs('until-lift'), null);
+  assert.ok(WAIT_TIMEOUT_MS.short < WAIT_TIMEOUT_MS.normal);
+});
+
+test('runoutWaitMs: an unrecognized value falls back to normal, the same default S.runoutLength has', () => {
+  assert.equal(runoutWaitMs('bogus'), WAIT_TIMEOUT_MS.normal);
+  assert.equal(runoutWaitMs(undefined), WAIT_TIMEOUT_MS.normal);
 });

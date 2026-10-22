@@ -23,6 +23,17 @@ export const GROOVE = { ms: 2500, fadeInMs: 150, thumpEverySec: 1.8, spinDownMs:
 // §3, side flip: a shorter groove, then about 700 ms of lift and turn.
 export const FLIP = { grooveMs: 2000, liftMs: 350, turnMs: 350 };
 
+// docs/15_SURFACE_NOISE.md §4, Auto-flip Off: how long the record waits in
+// the run-out, needle still down, before it lifts on its own. "Until I lift
+// it" has no timeout at all (null) -- the record waits forever, same as the
+// doc's own third bullet ("run-out continues until flip, lift, or pull").
+export const WAIT_TIMEOUT_MS = { short: 8000, normal: 20000, 'until-lift': null };
+
+export function runoutWaitMs(runoutLength){
+  return Object.prototype.hasOwnProperty.call(WAIT_TIMEOUT_MS, runoutLength)
+    ? WAIT_TIMEOUT_MS[runoutLength] : WAIT_TIMEOUT_MS.normal;
+}
+
 // When the new sleeve lands, measured from the start of the change.
 export function changeLandsAt(t = CHANGE_TIMELINE){ return t.arriveStart + t.arriveMs; }
 

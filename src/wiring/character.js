@@ -195,6 +195,15 @@ export function wireCharacter(){
     b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic));
     queueSave();
   });
+  // docs/15_SURFACE_NOISE.md §4: read fresh by maybeSideFlip() (shell/
+  // runout.js) at the next side turn -- same inline shape as the three
+  // settings just above.
+  document.querySelectorAll('[data-auto-flip]').forEach(b => b.addEventListener('click', () => {
+    S.autoFlip = b.dataset.autoFlip === 'on';
+    document.querySelectorAll('[data-auto-flip]').forEach(x =>
+      x.setAttribute('aria-pressed', String((x.dataset.autoFlip === 'on') === S.autoFlip)));
+    queueSave();
+  }));
 
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);

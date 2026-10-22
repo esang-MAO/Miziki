@@ -13,7 +13,7 @@ import { stopSleepState } from '../player/sleep-timer.js';
 import { startRunout } from '../audio/runout.js';
 import { releaseSeed, noiseFloorScale, surfaceNoiseActive, startRunoutNoise, playNeedleLift } from '../audio/surface-noise.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
-import { GROOVE, FLIP, splitSides, sideTurn } from './ceremony-timing.js';
+import { GROOVE, FLIP, splitSides, sideTurn, runoutWaitMs } from './ceremony-timing.js';
 import { renderMiniPlayer } from './mini-player.js';
 import { renderPlayerSidePanel } from './player-side-panel.js';
 import { forceCloseLayer } from './nav-stack.js';
@@ -23,8 +23,11 @@ import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown } from
    §2: the last record of the queue ends, the needle rides the run-out groove
    for a moment, the record goes back in its sleeve, and the player clears to
    an empty slipmat. §3: the last track of side A ends with side B still to
-   come, so the record is lifted and turned over before side B plays.
-   S.runout is the in-flight state ({kind:'end'|'flip', turning, n, to}),
+   come, so the record is lifted and turned over before side B plays, unless
+   Auto-flip is off (docs/15_SURFACE_NOISE.md §4), in which case it waits in
+   the run-out for a flip instead -- see runSideWait()/performPendingFlip()
+   further down.
+   S.runout is the in-flight state ({kind:'end'|'flip'|'wait', turning, n, to}),
    runtime only, never saved. Every await is followed by the same S.sleeveSeq
    token check the pull and put-away use, so a tap or a new pull cancels it. */
 
@@ -59,11 +62,17 @@ function startNoiseLayer(t, durSec){
 export function cancelRunout(){
   stopGroove(0);
   stopNoiseLayer(0);
+  const wasWaiting = S.runout && S.runout.kind === 'wait';
   S.runout = null;
   const stage = $('#platterStage');
   if(stage) stage.classList.remove('runout', 'flipping');
   const letter = $('#sideLetter');
   if(letter) letter.textContent = '';
+  // docs/15_SURFACE_NOISE.md §4: whatever ended the wait (a flip, a new
+  // pull cancelling it from start-sequence.js) also clears its own status
+  // line and buttons -- S.runout is already null above, so both read the
+  // "nothing waiting" state.
+  if(wasWaiting){ setFlipWaitStatus(false); updateWaitUI(); }
 }
 
 // The rest state: nothing loaded, the platter empty. Same clear-out order
@@ -149,7 +158,9 @@ export function maybeSideFlip(n){
   if(!cur || !next || albumKey(cur) !== albumKey(next)) return false;
   const turn = sideTurn(splitSides(albumTracks(cur.tags.album), S.tracks, S.albumSides), S.index, S.queue[n]);
   if(!turn) return false;
-  runSideFlip(n, turn);
+  // docs/15_SURFACE_NOISE.md §4: On (the default) keeps the record flipping
+  // itself, same as always; Off leaves it waiting in the run-out instead.
+  if(S.autoFlip) runSideFlip(n, turn); else runSideWait(n, turn);
   return true;
 }
 
@@ -190,11 +201,148 @@ async function runSideFlip(n, turn){
   play();
 }
 
+// docs/15_SURFACE_NOISE.md §4, Auto-flip Off: the record stays on the
+// platter, spinning in the run-out, until the user flips it, the run-out
+// times out (the needle lifts on its own), or a different record is pulled
+// (start-sequence.js's own cancelRunout() call). S.runout.kind === 'wait'.
+// One bounded chunk of groove/noise at a time (WAIT_LOOP_SEC) rather than
+// one unbounded buffer, since audio/runout.js's startRunout() allocates a
+// single fixed-duration buffer and "Until I lift it" has no duration at
+// all -- the loop just re-arms itself until the deadline (or forever).
+const WAIT_LOOP_SEC = 20;
+
+// Saved so the "Side A finished - Flip to continue" status can be put back
+// once the wait ends, the same save-once/restore-once shape as any other
+// transient status overlay in this codebase.
+let savedTrackSpec = null;
+function setFlipWaitStatus(on, fromLetter){
+  const el = $('#trackSpec');
+  if(!el) return;
+  if(on){
+    if(savedTrackSpec === null) savedTrackSpec = el.textContent;
+    el.textContent = 'Side ' + fromLetter + ' finished · Flip to continue.';
+  } else if(savedTrackSpec !== null){
+    el.textContent = savedTrackSpec;
+    savedTrackSpec = null;
+  }
+}
+
+// Shows/hides the player's own "Flip to Side B"/"Lift needle" buttons
+// (miziki.html's #flipPrompt/#liftNeedleBtn, inside #nowActions). Lift
+// needle only makes sense for "Until I lift it" -- short/normal already
+// lift on their own once the timeout passes -- and only before that's
+// already happened.
+function updateWaitUI(){
+  const r = S.runout;
+  const waiting = !!(r && r.kind === 'wait');
+  const flipBtn = $('#flipPrompt'), liftBtn = $('#liftNeedleBtn');
+  if(flipBtn) flipBtn.style.display = waiting ? '' : 'none';
+  if(liftBtn) liftBtn.style.display = (waiting && !r.lifted && S.runoutLength === 'until-lift') ? '' : 'none';
+}
+
+// The needle comes up on its own (a timed-out wait) or because the user
+// asked it to ("Lift needle", shown only for "Until I lift it"). The
+// record keeps waiting either way -- this never clears S.runout, only
+// stops the groove/noise and the platter's own spin.
+export function liftNeedleNow(){
+  const r = S.runout;
+  if(!r || r.kind !== 'wait' || r.lifted) return false;
+  stopGroove(150);
+  stopNoiseLayer(150);
+  playNeedleLift();
+  r.turning = false;
+  r.lifted = true;
+  startSpinDown(GROOVE.spinDownMs);
+  const stage = $('#platterStage');
+  if(stage) stage.classList.remove('runout');
+  updateWaitUI();
+  return true;
+}
+
+async function runSideWait(n, turn){
+  const stage = $('#platterStage');
+  pause();
+  const t = current();
+  const token = ++S.sleeveSeq;
+  const cancelled = () => {
+    if(token === S.sleeveSeq) return false;
+    if(S.runout && S.runout.kind === 'wait') cancelRunout();
+    return true;
+  };
+  S.runout = {kind:'wait', turning:true, n, from:turn.from, to:turn.to, lifted:false};
+  stage.classList.add('runout');
+  // #sideLetter is a brief, giant overlay meant only for the ~700 ms flip
+  // animation itself (runSideFlip, above) -- a wait can run for seconds or
+  // (Until I lift it) indefinitely, so it stays empty/hidden here (its own
+  // CSS, :empty{display:none}) and the status line below is the one
+  // on-screen "waiting" indicator.
+  setFlipWaitStatus(true, turn.from);
+  updateWaitUI();
+
+  const timeoutMs = runoutWaitMs(S.runoutLength);
+  const deadline = timeoutMs == null ? null : Date.now() + timeoutMs;
+  for(;;){
+    const remainMs = deadline == null ? WAIT_LOOP_SEC * 1000 : Math.min(WAIT_LOOP_SEC * 1000, deadline - Date.now());
+    if(remainMs <= 0) break;
+    stopGroove(0);
+    stopNoiseLayer(0);
+    groove = startRunout(remainMs / 1000);
+    startNoiseLayer(t, remainMs / 1000);
+    await sleep(remainMs);
+    if(cancelled()) return;
+  }
+  if(cancelled()) return;
+  // the timeout passed with nobody flipping it: the needle lifts on its
+  // own and the platter spins down (§4's second bullet) -- the record
+  // keeps waiting, just silently now, until a flip or a new pull.
+  liftNeedleNow();
+}
+
+// The flip itself, whether it comes from the player's own "Flip to Side B"
+// button or a lock-screen/headphone/car Next or Play (player/controls.js's
+// nextTrack(), player/transport.js's play()) -- all three routes end up
+// here. No lift/turn animation of its own: the same snap-straight-to-side-B
+// shape interruptRunout() used for the old always-on flip, since this is a
+// discrete action, not a continuous ceremony, and two of its three callers
+// (the lock screen, headphones) have no screen to animate on.
+//
+// Deliberately NOT reached from a generic tap anywhere on the open player
+// (interruptRunout(), below) the way the old always-on flip animation was --
+// see that function's own comment for why a "wait" has to stay off that path.
+export function performPendingFlip(){
+  const r = S.runout;
+  if(!r || r.kind !== 'wait') return false;
+  const n = r.n;
+  cancelRunout();
+  S.sleeveSeq++;
+  $('#platterBox').classList.remove('disc-hidden');
+  S.qpos = n;
+  load(S.queue[n]);
+  play();
+  return true;
+}
+
 // A tap on the player while the groove or a flip is running snaps to where
 // it was heading: the empty slipmat, or side B playing. True if it did.
+//
+// docs/15_SURFACE_NOISE.md §4: a 'wait' is deliberately excluded. Unlike
+// 'end'/'flip' -- a brief, ~2.5s/~700ms animation genuinely in flight, where
+// "any tap on the player skips to where it was heading" is a reasonable
+// shortcut -- a wait can last indefinitely, and this is reached from the
+// player overlay's own generic pointerdown handler (wiring/transport.js),
+// which fires on every tap anywhere in the overlay, including the player's
+// own "Flip to Side B"/"Lift needle" buttons themselves: pointerdown always
+// precedes a button's own click, so without this guard, tapping either
+// button (or the scrub bar, or anything else on the open player) would
+// perform the flip right here, out from under the button's own handler,
+// before that handler ever runs. A wait only ever ends through
+// performPendingFlip() (the Flip button, or a lock-screen/headphone Next
+// or Play), liftNeedleNow() (the Lift needle button), or a new pull
+// (runStartSequence()'s own unconditional cancelRunout() call) -- never a
+// stray tap.
 export function interruptRunout(){
   const r = S.runout;
-  if(!r) return false;
+  if(!r || r.kind === 'wait') return false;
   cancelRunout();
   S.sleeveSeq++;
   if(r.kind === 'end'){

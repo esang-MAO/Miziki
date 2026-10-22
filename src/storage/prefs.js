@@ -31,6 +31,7 @@ const KNOWN_PREF_KEYS = new Set([
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
   'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
+  'autoFlip',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -72,6 +73,7 @@ export function serializePrefs(S){
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
+    autoFlip: S.autoFlip,
   }, unknownPrefKeys || {});
 }
 
@@ -137,6 +139,9 @@ export function parsePrefs(raw){
   if(p.surfaceNoise === 'off' || p.surfaceNoise === 'subtle' || p.surfaceNoise === 'well-loved') out.surfaceNoise = p.surfaceNoise;
   if(p.runoutLength === 'short' || p.runoutLength === 'normal' || p.runoutLength === 'until-lift') out.runoutLength = p.runoutLength;
   if(typeof p.surfaceNoiseUnderMusic === 'boolean') out.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
+  // docs/15_SURFACE_NOISE.md §4: a saved object without this (every device
+  // before this PR) loads as On, the stated default and today's behavior.
+  if(typeof p.autoFlip === 'boolean') out.autoFlip = p.autoFlip;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

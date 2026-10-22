@@ -207,6 +207,10 @@ function applyPrefs(p){
     b.setAttribute('aria-pressed', String(b.dataset.runoutLength === S.runoutLength)));
   if(typeof p.surfaceNoiseUnderMusic === 'boolean') S.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
   { const b = $('#surfaceNoiseUnderMusicBtn'); if(b){ b.textContent = S.surfaceNoiseUnderMusic ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic)); } }
+  // docs/15_SURFACE_NOISE.md §4: same inline sync shape as the three above.
+  if(typeof p.autoFlip === 'boolean') S.autoFlip = p.autoFlip;
+  document.querySelectorAll('[data-auto-flip]').forEach(b =>
+    b.setAttribute('aria-pressed', String((b.dataset.autoFlip === 'on') === S.autoFlip)));
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's

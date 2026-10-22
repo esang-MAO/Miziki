@@ -798,6 +798,18 @@
         <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
         <div class="seg"><button id="surfaceNoiseUnderMusicBtn" aria-pressed="false">Off</button></div>
       </div>
+
+      <!-- docs/15_SURFACE_NOISE.md §4: On keeps today's behavior (the
+           record flips itself); Off leaves it waiting in the run-out for
+           the player's own flip gesture (tapping the open player, the
+           lock-screen Next control, or Play) -- see shell/runout.js. -->
+      <div class="row" style="margin-top:12px">
+        <div class="k">Auto-flip sides<em>Off waits for you to flip side A over.</em></div>
+        <div class="seg" role="group" aria-label="Auto-flip sides">
+          <button data-auto-flip="on" aria-pressed="true">On</button>
+          <button data-auto-flip="off" aria-pressed="false">Off</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -919,6 +931,15 @@
       <div class="spec" id="trackSpecPhase"></div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
+        <!-- docs/15_SURFACE_NOISE.md §4 (Auto-flip Off): shown only while
+             the record is waiting in the run-out for the user to flip it
+             (shell/runout.js's own S.runout.kind === 'wait'). Flip performs
+             the real flip to side B at any point in the wait, whether the
+             run-out is still playing or has already timed out; Lift needle
+             only ever shows for "Until I lift it," and only before that
+             timeout, since past it the needle's already up. -->
+        <button class="cta" id="flipPrompt" style="display:none">Flip to Side B</button>
+        <button class="cta ghost" id="liftNeedleBtn" style="display:none">Lift needle</button>
       </div>
     </div>
 
