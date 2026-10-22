@@ -216,7 +216,20 @@ function buildCrateRecords(){
     const artistSet = new Set(tracks.map(t => t.tags.artist));
     const albumArtistSet = new Set(tracks.map(t => t.tags.albumArtist));
     let artist;
-    if(albumArtistSet.size === 1) artist = [...albumArtistSet][0];
+    // Ken, 2026-10-22: albumArtistSet.size === 1 used to be trusted on its
+    // own, but when no track in the album carries an albumArtist tag at
+    // all (a common real-world case -- it's an optional tag many rippers
+    // never write), every track's tags.albumArtist is the same `undefined`,
+    // so the set still has size 1 and this branch picked [undefined][0] as
+    // the record's own artist. That undefined then reached
+    // buildGatefoldTracklist()'s `item.artist.toUpperCase()` (via the
+    // desktop crate detail panel, gatefold/view.js) and threw -- during
+    // boot, synchronously inside restoreLibrary()'s renderTracks() call, so
+    // everything after it (markLibraryReady(), healing, queue restore,
+    // social init) silently never ran. Guard: only trust the set's one
+    // value when it's a real, non-empty tag.
+    const [onlyAlbumArtist] = albumArtistSet;
+    if(albumArtistSet.size === 1 && onlyAlbumArtist) artist = onlyAlbumArtist;
     else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
     else artist = tracks[0].tags.artist || 'Unknown Artist';
     records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
