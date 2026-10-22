@@ -112,22 +112,29 @@ test('buildGraph wires wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup 
   assert.ok(n.master.connections.includes(ctx.destination));
 });
 
-test('routeSource connects to master in Pure mode', () => {
+// docs/15_SURFACE_NOISE.md §3 (needle-lift skipping): src now passes
+// through a dedicated trackGain node first, not directly to wobble/master
+// -- see engine.js's own routeSource()/buildGraph() entries for why (a
+// skip needs to duck just the music, never the Surface Noise sounds that
+// join the chain at wobble itself).
+test('routeSource connects to master (via trackGain) in Pure mode', () => {
   S.mode = 'pure';
-  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble') };
+  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble'), trackGain: new FakeNode('trackGain') };
   const src = new FakeNode('source');
   routeSource(src);
-  assert.ok(src.connections.includes(S.nodes.master));
-  assert.ok(!src.connections.includes(S.nodes.wobble));
+  assert.ok(src.connections.includes(S.nodes.trackGain));
+  assert.ok(S.nodes.trackGain.connections.includes(S.nodes.master));
+  assert.ok(!S.nodes.trackGain.connections.includes(S.nodes.wobble));
 });
 
-test('routeSource connects to wobble in Vinyl mode', () => {
+test('routeSource connects to wobble (via trackGain) in Vinyl mode', () => {
   S.mode = 'vinyl';
-  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble') };
+  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble'), trackGain: new FakeNode('trackGain') };
   const src = new FakeNode('source');
   routeSource(src);
-  assert.ok(src.connections.includes(S.nodes.wobble));
-  assert.ok(!src.connections.includes(S.nodes.master));
+  assert.ok(src.connections.includes(S.nodes.trackGain));
+  assert.ok(S.nodes.trackGain.connections.includes(S.nodes.wobble));
+  assert.ok(!S.nodes.trackGain.connections.includes(S.nodes.master));
 });
 
 // Day Arc v2 (DAY_ARC_BRIEF.md, PR 3): applyCharacter() now sources its

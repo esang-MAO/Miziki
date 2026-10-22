@@ -9,7 +9,10 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // findDuplicateTrack and DUP_DURATION_TOLERANCE_SEC don't touch any of
 // that — they only read S.tracks — but loading import.js at all means
 // stopping the chain at the door, the same approach as
-// engine.test.js/queue.test.js.
+// engine.test.js/queue.test.js. queue.js's own real chain now reaches
+// skipWithLift(), which imports REDUCED from util/motion.js -- read once,
+// at module load, from window.matchMedia.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
 // Since step 7d, import.js's own renderTracks import, edit.js's
 // exitSelectMode import (reached via import.js's real loadOverlayFor
 // import, step 5d) and credits.js's songRow import (reached via
@@ -95,7 +98,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, play(){}, pause(){}, seek(){}, stop(){} },
+  namedExports: { load(){}, play(){}, pause(){}, seek(){}, stop(){}, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },

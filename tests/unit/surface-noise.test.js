@@ -6,6 +6,8 @@ import {
   rotationWobble, leadInSamples, runoutNoiseSamples, underMusicSamples,
   needleDropSamples, needleLiftSamples,
   startLeadIn, startRunoutNoise, startUnderMusicBed, playNeedleDrop, playNeedleLift,
+  skipDropHissSamples, playSkipDrop, fadeMusicTo,
+  SKIP_DROP_HISS_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
 } from '../../src/audio/surface-noise.js';
 import { S } from '../../src/state.js';
 
@@ -108,4 +110,64 @@ test('every runtime starter is a safe no-op without an audio graph, or in Pure/O
 test('startUnderMusicBed is a no-op when the setting itself is off, even with a scale', () => {
   S.surfaceNoiseUnderMusic = false;
   assert.doesNotThrow(() => startUnderMusicBed(7, 1).stop());
+});
+
+/* ================= docs/15_SURFACE_NOISE.md §3: needle-lift skipping ================= */
+
+test('skipDropHissSamples is the §3-specified ~400ms, silent at scale 0, deterministic by seed', () => {
+  assert.equal(SKIP_DROP_HISS_SEC, 0.4);
+  const silent = skipDropHissSamples(SR, 7, 0);
+  assert.equal(silent.length, Math.floor(SR * SKIP_DROP_HISS_SEC));
+  assert.ok(silent.every(x => x === 0));
+  const a = skipDropHissSamples(SR, 7, 1), b = skipDropHissSamples(SR, 7, 1), c = skipDropHissSamples(SR, 9, 1);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+  const peak = s => Math.max(...Array.from(s, Math.abs));
+  assert.ok(peak(a) > 0);
+});
+
+test('§3 timing constants match the spec\'s own "total <= ~900ms" sequence', () => {
+  assert.equal(SKIP_LIFT_MS, 120);
+  assert.equal(SKIP_AIR_MS, 250);
+  assert.equal(SKIP_FADE_MS, 80);
+  assert.ok(SKIP_LIFT_MS + SKIP_AIR_MS + SKIP_FADE_MS * 2 <= 900);
+});
+
+test('playSkipDrop plays the pop regardless of scale, but the hiss layer only when scale > 0', () => {
+  S.ctx = null; S.nodes = null;
+  assert.doesNotThrow(() => playSkipDrop(7, 0));   // no audio graph -- must not throw
+  S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
+  assert.doesNotThrow(() => playSkipDrop(7, 0));    // scale 0: pop only, no hiss buffer to start
+  assert.doesNotThrow(() => playSkipDrop(7, 1));    // scale > 0: pop + hiss
+  S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
+});
+
+test('playSkipDrop is a no-op in Off/Pure, same as every other Surface Noise sound', () => {
+  S.ctx = {}; S.nodes = { wobble: {} };
+  S.mode = 'pure'; S.surfaceNoise = 'subtle';
+  assert.doesNotThrow(() => playSkipDrop(7, 1));
+  S.mode = 'vinyl'; S.surfaceNoise = 'off';
+  assert.doesNotThrow(() => playSkipDrop(7, 1));
+  S.ctx = null; S.nodes = null; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
+});
+
+test('fadeMusicTo is a safe no-op without a trackGain node, and ramps it when one exists', () => {
+  S.ctx = null; S.nodes = null;
+  assert.doesNotThrow(() => fadeMusicTo(0, 80));
+
+  const sets = [];
+  S.ctx = { currentTime: 10 };
+  S.nodes = {
+    trackGain: {
+      gain: {
+        value: 1,
+        cancelScheduledValues(t){ sets.push(['cancel', t]); },
+        setValueAtTime(v, t){ sets.push(['set', v, t]); },
+        linearRampToValueAtTime(v, t){ sets.push(['ramp', v, t]); },
+      },
+    },
+  };
+  fadeMusicTo(0, 80);
+  assert.deepEqual(sets, [['cancel', 10], ['set', 1, 10], ['ramp', 0, 10.08]]);
+  S.ctx = null; S.nodes = null;
 });

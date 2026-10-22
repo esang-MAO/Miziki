@@ -16,6 +16,12 @@ import assert from 'node:assert/strict';
 // its own real imports (record-art/looks.js, library/thumbs.js) reach
 // library/edit.js and, through that, library/sealed.js/credits.js, each
 // still circularly importing main.js.
+// Since this step, controls.js's real nextTrack/prevTrack route through
+// queue.js's skipWithLift(), which imports REDUCED from util/motion.js --
+// read once, at module load, from window.matchMedia (same stub shape as
+// queue.test.js's own window stub).
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
 const elCache = new Map();
 function fakeEl(){
   const classes = new Set();
@@ -70,7 +76,7 @@ const playMock = mock.fn();
 const pauseMock = mock.fn();
 const seekMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, play: playMock, pause: pauseMock, seek: seekMock, stop(){} },
+  namedExports: { load(){}, play: playMock, pause: pauseMock, seek: seekMock, stop(){}, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){}, drawSun(){} },
@@ -142,14 +148,21 @@ test('toggleShuffle back off also leaves playback untouched', () => {
   assert.equal(pauseMock.mock.calls.length, 0);
 });
 
+// docs/15_SURFACE_NOISE.md §3: src now routes through a dedicated
+// trackGain node first (engine.js's routeSource()), not straight to
+// wobble/master — see that file's own entry for why.
 test('setMode switches routing: pure connects to master, vinyl connects to wobble', () => {
   resetState();
   const masterConnect = mock.fn(), wobbleConnect = mock.fn();
-  S.nodes = { master: { connect: masterConnect }, wobble: { connect: wobbleConnect } };
-  S.source = { disconnect: mock.fn(), connect(target){
-    if(target === S.nodes.master) masterConnect();
-    else if(target === S.nodes.wobble) wobbleConnect();
-  } };
+  S.nodes = {
+    master: { connect: masterConnect },
+    wobble: { connect: wobbleConnect },
+    trackGain: { disconnect: mock.fn(), connect(target){
+      if(target === S.nodes.master) masterConnect();
+      else if(target === S.nodes.wobble) wobbleConnect();
+    } },
+  };
+  S.source = { disconnect: mock.fn(), connect(){ return S.nodes.trackGain; } };
   setMode('pure');
   assert.equal(S.mode, 'pure');
   assert.equal(masterConnect.mock.calls.length, 1);

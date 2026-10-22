@@ -47,8 +47,10 @@ function isSideStart(t, i){
 
 // The side letter the given index falls on, for seeding the lead-in/
 // run-out noise the same way regardless of where it's started from — ''
-// when sides are off (one seed per album rather than per side).
-function sideLetterFor(t, i){
+// when sides are off (one seed per album rather than per side). Exported
+// since docs/15_SURFACE_NOISE.md §3's needle-lift skip (src/player/queue.js)
+// seeds its own drop hiss the same way, for the same release+side.
+export function sideLetterFor(t, i){
   if(!S.albumSides || !t || !t.tags || !t.tags.album) return '';
   const splits = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
   const found = splits && splits.find(s => s.idx.includes(i));

@@ -25,6 +25,8 @@ function fakeEl(){
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
       contains(c){ return classes.has(c); },
+      // §3's own setPlatterLift() toggles a class on #platterBox
+      toggle(c, on){ if(on === undefined) on = !classes.has(c); if(on) classes.add(c); else classes.delete(c); return on; },
     },
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
     addEventListener(){}, appendChild(child){ return child; },
@@ -145,7 +147,7 @@ const playMock = mock.fn();
 const pauseMock = mock.fn();
 const seekMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock },
+  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
@@ -162,8 +164,35 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 
+// docs/15_SURFACE_NOISE.md §3: skipWithLift()'s own needle-lift/drop timing
+// reads SKIP_LIFT_MS/SKIP_AIR_MS/SKIP_FADE_MS and calls into
+// src/audio/surface-noise.js's generators directly -- mocked here with tiny
+// millisecond constants (so tests don't need to wait anywhere near the real
+// ~370ms) and mock.fn() spies for the calls themselves, which is what the
+// tests below actually assert on. The real DSP generators
+// (skipDropHissSamples, needleLiftSamples, etc.) are covered by their own
+// tests/unit/surface-noise.test.js -- not re-tested here.
+let fakeActive = true;
+let fakeScale = 1;
+const playNeedleLiftMock = mock.fn();
+const playSkipDropMock = mock.fn();
+const fadeMusicToMock = mock.fn();
+mock.module(new URL('../../src/audio/surface-noise.js', import.meta.url).href, {
+  namedExports: {
+    releaseSeed(){ return 7; },
+    noiseFloorScale(){ return fakeScale; },
+    surfaceNoiseActive(){ return fakeActive; },
+    playNeedleLift: playNeedleLiftMock,
+    playSkipDrop: playSkipDropMock,
+    fadeMusicTo: fadeMusicToMock,
+    SKIP_LIFT_MS: 5,
+    SKIP_AIR_MS: 5,
+    SKIP_FADE_MS: 2,
+  },
+});
+
 const {
-  buildOrder, reorderQueue, advance,
+  buildOrder, reorderQueue, advance, skipWithLift,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
@@ -178,8 +207,13 @@ function resetState(overrides){
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); seekMock.mock.resetCalls();
+  playNeedleLiftMock.mock.resetCalls(); playSkipDropMock.mock.resetCalls();
+  fadeMusicToMock.mock.resetCalls();
+  fakeActive = true; fakeScale = 1;
   elCache.clear();
 }
+
+function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 function fakeTrackWithTags(title, artist){
   return { tags: { title, artist }, meta: {} };
@@ -336,4 +370,66 @@ test('openQueueSheet/closeQueueSheet toggle the overlay open state', () => {
   assert.ok(overlay.classList.contains('open'));
   closeQueueSheet();
   assert.ok(!overlay.classList.contains('open'));
+});
+
+/* ================= docs/15_SURFACE_NOISE.md §3: skipWithLift() ================= */
+
+test('skipWithLift: with Surface Noise active, fades the music out immediately, then lifts/drops/advances after the lift+air span', async () => {
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 0, index: 0, repeat: 'off' });
+  skipWithLift(1);
+  // the fade-out and the lift sound happen synchronously, before the drop --
+  // the queue position hasn't moved yet
+  assert.deepEqual(fadeMusicToMock.mock.calls[0].arguments, [0, 2]);
+  assert.equal(playNeedleLiftMock.mock.calls.length, 1);
+  assert.equal(S.qpos, 0);
+  assert.equal(playSkipDropMock.mock.calls.length, 0);
+
+  await wait(30);   // past SKIP_LIFT_MS(5)+SKIP_AIR_MS(5) in this file's mock
+  assert.equal(playSkipDropMock.mock.calls.length, 1);
+  assert.equal(S.qpos, 1);   // advanced, same as a plain skip
+  assert.deepEqual(fadeMusicToMock.mock.calls[1].arguments, [1, 2]);   // faded back in
+});
+
+test('skipWithLift: rapid repeated taps collapse into one lift, landing on only the final direction', async () => {
+  resetState({ tracks: [fakeTrack(), fakeTrack(), fakeTrack()], queue: [0,1,2], qpos: 1, index: 1, repeat: 'off' });
+  skipWithLift(1);    // would land on qpos 2
+  skipWithLift(-1);   // retargets mid-lift, before the drop fires
+  assert.equal(playNeedleLiftMock.mock.calls.length, 1);   // only one lift, not two
+  assert.equal(fadeMusicToMock.mock.calls.length, 1);      // only one fade-out
+
+  await wait(30);
+  assert.equal(playSkipDropMock.mock.calls.length, 1);     // only one drop
+  assert.equal(S.qpos, 0);   // the *last* tap's direction wins, applied from the original qpos
+});
+
+test('skipWithLift: Surface Noise Off/Pure is a plain fade, no lift/drop sounds', async () => {
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 0, index: 0, repeat: 'off' });
+  fakeActive = false;
+  skipWithLift(1);
+  assert.deepEqual(fadeMusicToMock.mock.calls[0].arguments, [0, 2]);   // still fades music
+  assert.equal(playNeedleLiftMock.mock.calls.length, 0);               // no lift sound
+
+  await wait(20);
+  assert.equal(playSkipDropMock.mock.calls.length, 0);   // no drop sound
+  assert.equal(S.qpos, 1);
+  assert.deepEqual(fadeMusicToMock.mock.calls[1].arguments, [1, 0]);   // instant fade back in, no ramp
+});
+
+test('skipWithLift(0): restarts the current track (Previous past a few seconds in) rather than advancing', async () => {
+  resetState({ tracks: [fakeTrack()], queue: [0], qpos: 0, index: 0, repeat: 'off' });
+  skipWithLift(0);
+  await wait(30);
+  assert.deepEqual(seekMock.mock.calls[0].arguments, [0]);
+  assert.equal(S.qpos, 0);   // a restart, not a queue move
+});
+
+test('skipWithLift: nothing to skip to past the end of the queue falls straight through to the plain advance() path, no lift', () => {
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 1, index: 1, repeat: 'off' });
+  skipWithLift(1);
+  // §3's own scope note: Auto-flip/run-out is PR3's territory -- for now this
+  // defers straight to advance()'s existing un-lifted end-of-queue handling
+  assert.equal(pauseMock.mock.calls.length, 1);
+  assert.equal(fadeMusicToMock.mock.calls.length, 0);
+  assert.equal(playNeedleLiftMock.mock.calls.length, 0);
+  assert.equal(S.qpos, 1);   // unchanged, same as advance()'s own end-of-queue test above
 });

@@ -128,7 +128,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 // needed too since step 6b's transitive chain (see above) reaches the
 // real player/queue.js, which imports it alongside play/pause/seek.
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, pause(){}, play(){}, seek(){} },
+  namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; } },
 });
 // clock.js's top-level setInterval (the hidden-page fallback clock) is a
 // real OS timer once clock.js is imported directly here — unlike in the
