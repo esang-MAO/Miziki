@@ -378,13 +378,17 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.equal(q1(`select count(*) from library_backup where user_id='${UID5}'`), '0');
    assert.equal(q1(`select count(*) from crate_items where user_id='${UID5}'`), '0');
    assert.equal(q1(`select count(*) from profiles where id='${UID3}'`), '1');
-   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '2'); });
+   // RF25's own "a user can delete their own stale device row" test above
+   // (migration 018) already dropped UID3's DEV2 row, leaving DEV1 as the
+   // one remaining row -- this expectation was never updated to match and
+   // has been stale (failing) since that test was added.
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '1'); });
 
  await t('delete_my_account can only ever remove the caller\'s own account',()=>{
    asUser(UID4, `select delete_my_account()`); // deletes UID4, and only UID4
    assert.equal(q1(`select count(*) from auth.users where id='${UID4}'`), '0');
    assert.equal(q1(`select count(*) from profiles where id='${UID3}'`), '1');
-   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '2'); });
+   assert.equal(q1(`select count(*) from library_backup where user_id='${UID3}'`), '1'); });
 
  // ---------------------------------------------------------------------
  // B3 (step 06): two real devices, sharing one account, syncing their
@@ -708,6 +712,32 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    asUser(FUID_A, `delete from crate_items where user_id='${FUID_A}' and release_id='${relId}'`);
    assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and release_id='${relId}'`), '0',
      'removing the record from the crate removes every one of its feed_events rows'); });
+
+ // Migration 020: the bug the test just above this one was (silently)
+ // guarding against before the fix -- a burst-collapsed 'added' row must
+ // re-point its release_id at whichever item was most recently added,
+ // not stay stuck on the item that first created the row.
+ await t('migration 020: a burst-collapsed added event follows the latest item, not the first',()=>{
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('m20-rel-1','M20 Album 1','M20 Artist') on conflict do nothing`);
+   const rel1 = asUser(FUID_A, `select id from releases where release_key='m20-rel-1'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${rel1}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   assert.equal(asUser(FUID_A, `select release_id from feed_events where actor_id='${FUID_A}' and type='added'`), rel1,
+     'a fresh burst starts pointed at the first item');
+
+   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('m20-rel-2','M20 Album 2','M20 Artist') on conflict do nothing`);
+   const rel2 = asUser(FUID_A, `select id from releases where release_key='m20-rel-2'`);
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${rel2}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   assert.equal(asUser(FUID_A, `select count(*) from feed_events where actor_id='${FUID_A}' and type='added'`), '1',
+     'still one row -- the second insert collapsed into it, within the 15-minute window');
+   assert.equal(asUser(FUID_A, `select release_id from feed_events where actor_id='${FUID_A}' and type='added'`), rel2,
+     'the collapsed row re-points at the second (latest) item, not the first');
+   assert.equal(asUser(FUID_A, `select payload->>'count' from feed_events where actor_id='${FUID_A}' and type='added'`), '2',
+     'the count still accumulates across the burst');
+
+   // clean up so later tests in this file see a clean slate for FUID_A
+   asUser(FUID_A, `delete from crate_items where user_id='${FUID_A}' and release_id in ('${rel1}','${rel2}')`); });
 
  await t('RF21: home_feed_rich expires a caller\'s own feed_events rows older than 45 days on every read',()=>{
    asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf21-expiry','RF21 Expiry','RF21 Artist') on conflict do nothing`);
