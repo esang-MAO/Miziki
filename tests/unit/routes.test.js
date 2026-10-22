@@ -41,6 +41,16 @@ let openSundownSheetCalls = [];
 mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
   namedExports: { openSundownSheet(view){ openSundownSheetCalls.push(view); } },
 });
+// Ken, 2026-10-22: the Library scroll lock -- showRoute() now calls
+// updateLibBodyInset() (src/library/view.js) once the Library route is
+// confirmed on screen. library/view.js is this suite's own biggest real-
+// import hub (seven circular pairs, per CLAUDE.md's refactor rule 8) --
+// mocked here for the usual "stop the chain at the door" reasoning,
+// same as every other module in this file.
+let updateLibBodyInsetCalls = 0;
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { updateLibBodyInset(){ updateLibBodyInsetCalls++; } },
+});
 
 // A tiny, DOM-free fake document — just enough for showRoute() to run
 // without throwing: getElementById for the per-route '.route' sections
@@ -80,7 +90,9 @@ globalThis.localStorage = (() => {
   };
 })();
 
+const bodyEl = fakeEl('body');
 globalThis.document = {
+  body: bodyEl,
   getElementById(id){ return routeEls[id] || null; },
   querySelectorAll(sel){
     if(sel === '.tabbar-btn') return tabbarBtns;
@@ -193,4 +205,45 @@ test('selectSundownView: Day and Sound each keep their own scroll position, inde
   assert.equal(globalThis.window.scrollY, 400, 'Day\'s own remembered position comes back');
   selectSundownView('sound');
   assert.equal(globalThis.window.scrollY, 77, 'Sound\'s own remembered position comes back');
+});
+
+// --- Ken, 2026-10-22: the Library scroll lock ----------------------------
+// "go back to the lock of the library tab... make sure lock doesn't leak
+// to other tabs." A prior attempt (PR #164, reverted as #165) toggled this
+// via a reactive body:has(...) selector; this time the class is only ever
+// set/cleared from inside showRoute() itself, so these tests are really
+// checking the one property that matters: it is never on for any route
+// but Library, under any sequence of calls.
+
+test('showRoute("library"): locks body scroll and recomputes #libBody\'s own inset', () => {
+  updateLibBodyInsetCalls = 0;
+  showRoute('home');
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+  assert.ok(updateLibBodyInsetCalls > 0, 'updateLibBodyInset() is called once Library is confirmed on screen');
+});
+
+test('showRoute: the lock never leaks to another tab, whichever tab it switches to', () => {
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+  showRoute('home');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), false, 'leaving Library for Home always lifts the lock');
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+  showRoute('profile');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), false, 'leaving Library for Profile always lifts the lock');
+});
+
+test('showRoute: re-tapping the Library tab already on screen keeps the lock on, not a flicker off and back on', () => {
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+});
+
+test('showRoute: opening the Sundown sheet over Library never touches the lock either way', () => {
+  showRoute('library');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true);
+  showRoute('sundown');
+  assert.equal(bodyEl.classList.contains('lib-scroll-lock'), true, 'the sheet opens over Library, which is still the route on screen');
 });

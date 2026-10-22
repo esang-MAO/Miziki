@@ -115,6 +115,7 @@ export function renderProfile(opts = {}){
   }
   const body = $('#profileBody');
   parkPlaybackSettings();
+  parkLibraryTools();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
   if(!refreshingHome) body.innerHTML = '';
   if(screen === 'listening') renderListeningScreen(body);
@@ -211,6 +212,14 @@ function parkPlaybackSettings(){
   const panel = $('#playbackSettings'), stash = $('#playbackSettingsStash');
   if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
 }
+// Ken, 2026-10-22: the same parking shape as parkPlaybackSettings() above,
+// for #libTools — moved back out of #route-library (RF8's placement) into
+// Profile › Settings. Parked here, hidden, in #libToolsStash
+// (miziki.html); renderAppSettingsScreen() borrows it below.
+function parkLibraryTools(){
+  const panel = $('#libTools'), stash = $('#libToolsStash');
+  if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
+}
 function renderAppSettingsScreen(body){
   const appearance = el('div','settings-section');
   appearance.appendChild(el('div','settings-section-head', 'Appearance'));
@@ -249,6 +258,16 @@ function renderAppSettingsScreen(body){
   appearance.appendChild(slipmat);
   renderSlipmatRow(slipmat, () => { if(S.profileView.screen === 'settings') renderProfile(); });
 
+  // Ken, 2026-10-22: Library tools (layout/sides/sealed/play-in-full-player,
+  // find duplicates, clear history, test tone, forget library) moved here
+  // from the Library route's own overflow menu (RF8's placement) — see
+  // parkLibraryTools()/#libToolsStash above.
+  const library = el('div','settings-section');
+  library.appendChild(el('div','settings-section-head', 'Library'));
+  const libPanel = $('#libTools');
+  if(libPanel) library.appendChild(libPanel);
+  body.appendChild(library);
+
   const playback = el('div','settings-section');
   playback.appendChild(el('div','settings-section-head', 'Playback & behavior'));
   const panel = $('#playbackSettings');
@@ -270,9 +289,6 @@ function renderAppSettingsScreen(body){
   row('Sundown', () => openSundownSheet());
   row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
   row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
-  // No "Library tools" row here: the panel is only ever shown on the
-  // profile home (refreshLibraryTools), where its own toggle row already
-  // sits, so a second entry on this screen opened a panel that was hidden.
   body.appendChild(links);
   body.appendChild(legalLinksRow(renderProfile));
 }

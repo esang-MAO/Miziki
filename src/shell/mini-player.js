@@ -6,6 +6,7 @@ import { bgSync } from '../player/background.js';
 import { isLibraryRouteVisible } from './routes.js';
 import { applyCrateMiniInset, centerEmptyState } from '../crate/view.js';
 import { isDesktopShell } from '../util/viewport.js';
+import { updateLibBodyInset } from '../library/view.js';
 
 /* ================= navigation shell: mini-player, full-player overlay, sleeve pull =================
    Library is the landing route; Sundown and Character are peer routes reached
@@ -102,6 +103,12 @@ export function updateChromeInset(){
     document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
     if(typeof applyCrateMiniInset === 'function') applyCrateMiniInset();
     if(typeof centerEmptyState === 'function' && !S.tracks.length && isLibraryRouteVisible()) centerEmptyState();
+    // Ken, 2026-10-22: #libBody's own internal-scroll height (the Library
+    // scroll lock, shell/routes.js's showRoute()) depends on --chrome-inset,
+    // just written above -- recompute it here too so a resize (or the mini
+    // player showing/hiding) keeps it accurate, not just the one-time call
+    // showRoute() itself makes on a route switch.
+    updateLibBodyInset();
   });
 }
 

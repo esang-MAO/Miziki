@@ -6,6 +6,7 @@ import { updateHeaderActionsAvailability, isSearchFieldOpen, isAddMenuOpen } fro
 import { GF } from '../gatefold/view.js';
 import { forceCloseLayer, recordRoute } from './nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from './scroll-memory.js';
+import { updateLibBodyInset } from '../library/view.js';
 // RF26 (docs/12_REFINE.md): a real circular pair with sundown-sheet.js now
 // — that module imports selectSundownView/lastSundownView back from here,
 // the same peer-import shape as audio/engine.js and player/transport.js
@@ -83,6 +84,19 @@ export function showRoute(name){
   // NV3: save the leaving route's own scroll position before anything about
   // the DOM changes — window.scrollY here is still wherever the user left it.
   if(currentRouteName && isNewRoute) saveScrollPosition('route:' + currentRouteName);
+  // Ken, 2026-10-22: "go back to the lock of the library tab... make sure
+  // lock doesn't leak to other tabs." The earlier attempt (PR #164, reverted
+  // as #165) toggled body overflow:hidden via a reactive body:has(...)
+  // selector and broke on real iOS Safari — toggling overflow:hidden on a
+  // body that's mid-scroll is a known engine quirk, and the reactive
+  // selector gave no single place to guarantee the lock actually lifts.
+  // This time the class is set/cleared only here, tied 1:1 to the one
+  // function that already switches which .route is on, so it can never
+  // outlive the route it belongs to: always removed before anything else
+  // about the route changes, and only re-added once the Library route is
+  // confirmed on screen and its own scroll position (always 0 — see below)
+  // has already settled.
+  if(isNewRoute) document.body.classList.remove('lib-scroll-lock');
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
   // overlay that would otherwise hide whatever route is switched to — an
@@ -110,4 +124,18 @@ export function showRoute(name){
   // NV3: restore the entering route's own remembered position (top, on a
   // first visit) — after its content is actually on screen, not before.
   if(isNewRoute) restoreScrollPosition('route:' + name);
+  // The Library route is never actually a saved-position candidate once
+  // locked (window.scrollY can't move away from 0 while the class above is
+  // set, so 'route:library' only ever remembers 0) — restoreScrollPosition
+  // just landed it there, so it's always safe to lock here, applied last so
+  // nothing above this line ever runs against an already-locked body.
+  // updateLibBodyInset() gives #libBody its own internal scroll within
+  // whatever room is left under the header/tabs and above the mini
+  // player/tab bar, since body itself can no longer scroll to reveal a
+  // longer Songs/Artists/Playlists list — Crate view already sizes its own
+  // stage to fit (applyCrateMiniInset()) and needs no scrolling at all.
+  if(name === 'library'){
+    document.body.classList.add('lib-scroll-lock');
+    updateLibBodyInset();
+  }
 }

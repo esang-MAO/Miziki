@@ -554,6 +554,34 @@ function restoreScrollAnchor(host, anchor){
   }
 }
 
+// Ken, 2026-10-22: the body-level scroll lock (shell/routes.js's own
+// showRoute()) means #libBody can no longer rely on page scroll to reveal a
+// longer Songs/Artists/Playlists/search-results list -- this gives it its
+// own internal scroll region instead, sized to whatever room is actually
+// left under the header/tabs and above the mini player/tab bar, the same
+// getBoundingClientRect()+--chrome-inset approach crate/view.js's own
+// applyCrateMiniInset() already uses for the same "how much room is left"
+// question. Crate view is deliberately exempt -- it already fits itself to
+// the viewport via applyCrateMiniInset() and never relied on page scroll at
+// all (see the CR14-era revert's own documented reasoning), so giving it a
+// second, competing scroll container here would only fight that.
+export function updateLibBodyInset(){
+  const route = document.getElementById('route-library');
+  const host = $('#libBody');
+  if(!route || !host || !route.classList.contains('on')) return;
+  const searching = !!$('#librarySearch').value.trim();
+  if(S.view.mode === 'crate' && !searching){
+    host.style.maxHeight = '';
+    host.style.overflowY = '';
+    return;
+  }
+  const top = host.getBoundingClientRect().top;
+  const chromeInset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--chrome-inset')) || 0;
+  const maxH = Math.max(120, window.innerHeight - top - chromeInset);
+  host.style.maxHeight = maxH + 'px';
+  host.style.overflowY = 'auto';
+}
+
 export function renderTracks(){
   const host = $('#libBody');
   // NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather
@@ -592,6 +620,7 @@ function renderTracksBody(host){
   updateHeaderActionsAvailability();
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
   refreshLibraryTools();
+  updateLibBodyInset();
   // D5 (docs/DESKTOP_LAYOUT.md): hidden by default every render, same as
   // #crumb just below — the crate branch (renderCrate() -> crate/view.js's
   // own updateCrateGroupToggleUI()) is what turns this back on when
