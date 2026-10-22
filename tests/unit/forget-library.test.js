@@ -12,6 +12,11 @@ import { DB } from '../../src/storage/idb.js';
 // import) directly, so the thumbs.js mock gains the two persist* exports
 // clear.js needs, and profile/screens.js is mocked too (clear.js's own
 // real import, step 6e).
+// queue.js's own real chain now reaches skipWithLift(), which imports
+// REDUCED from util/motion.js -- read once, at module load, from
+// window.matchMedia.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
 function fakeEl(){
   const classes = new Set();
   return {
@@ -94,7 +99,7 @@ mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){} },
+  namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },

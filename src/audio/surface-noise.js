@@ -207,6 +207,25 @@ export function needleLiftSamples(sampleRate, seed = 11){
   return out;
 }
 
+// §3 (needle-lift skipping), the drop's own "~400 ms of band hiss" —
+// hiss only, no crackle (that belongs to the lead-in's own groove wear,
+// not a mid-side re-drop), scaled and seeded the same way every other
+// noise layer is so it matches the lead-in/run-out this same side already
+// used. Deliberately a separate function from underMusicSamples even
+// though both are plain hiss: that one loops forever at a fixed floor,
+// this one is a single short, faded-in-and-out burst timed to the drop.
+export const SKIP_DROP_HISS_SEC = 0.4;
+export function skipDropHissSamples(sampleRate, seed, scale, rateHz = 0.55){
+  const n = Math.max(0, Math.floor(sampleRate * SKIP_DROP_HISS_SEC));
+  const out = new Float32Array(n);
+  if(scale > 0){
+    const hiss = hissSamples(sampleRate, SKIP_DROP_HISS_SEC, seed + 7, -46);
+    for(let i = 0; i < n; i++) out[i] = hiss[i] * scale;
+    applyWobble(out, sampleRate, rateHz);
+  }
+  return fadeInPlace(out, 0.02, 0.15, sampleRate);
+}
+
 /* ================= runtime: play the above through the audio graph ================= */
 
 // Generic stoppable buffer source, same shape as runout.js's startRunout:
@@ -285,4 +304,36 @@ export function playNeedleDrop(){
 export function playNeedleLift(){
   if(!surfaceNoiseActive()) return;
   startBuffer(sr => needleLiftSamples(sr));
+}
+
+// One-shot skip drop: the same soft pop as playNeedleDrop() (and its own
+// haptic tick), plus the ~400ms band hiss tail §3 calls for — two sources
+// started together rather than one mixed buffer, since the pop is a fixed
+// physical sound (not seeded/scaled) and the hiss is this side's own
+// seeded, scale-gated noise, same as every other layer here.
+export function playSkipDrop(seed, scale, rateHz = 0.55){
+  if(!surfaceNoiseActive()) return;
+  playNeedleDrop();
+  if(scale > 0) startBuffer(sr => skipDropHissSamples(sr, seed, scale, rateHz));
+}
+
+/* ================= §3: needle-lift skipping's own music-only fade =================
+   Every Surface Noise sound above joins at S.nodes.wobble; the track's own
+   source passes through S.nodes.trackGain first (audio/engine.js's
+   routeSource()) so a skip can duck *just the music* over SKIP_FADE_MS
+   without also ducking the scuff/pop/hiss playing alongside it. */
+
+export const SKIP_LIFT_MS = 120;
+export const SKIP_AIR_MS = 250;
+export const SKIP_FADE_MS = 80;
+
+export function fadeMusicTo(value, ms){
+  const g = S.nodes && S.nodes.trackGain, ctx = S.ctx;
+  if(!g || !ctx) return;
+  const now = ctx.currentTime, end = now + Math.max(0, ms) / 1000;
+  try{
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.linearRampToValueAtTime(value, end);
+  }catch(_e){}
 }

@@ -10,6 +10,11 @@ import { DB } from '../../src/storage/idb.js';
 // own chains need more of main.js's DOM-dependent top level -- all of it
 // mocked directly, the same "stop the chain at the door" approach as
 // queue.test.js/tags.test.js.
+// queue.js's own real chain now reaches skipWithLift(), which imports
+// REDUCED from util/motion.js -- read once, at module load, from
+// window.matchMedia.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
+
 function fakeEl(){
   const classes = new Set();
   return {
@@ -121,7 +126,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){} },
+  namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },

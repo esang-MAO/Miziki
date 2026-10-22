@@ -14,6 +14,10 @@ import { normKey } from '../../src/util/text.js';
 // ') call (not through util/dom.js) -- stubbed globally since there's no real
 // `document` in this test environment.
 globalThis.document = { createTextNode(text){ return { nodeType: 3, textContent: text }; } };
+// setQueue's own real chain now reaches queue.js's skipWithLift(), which
+// imports REDUCED from util/motion.js -- read once, at module load, from
+// window.matchMedia.
+globalThis.window = { matchMedia(){ return { matches: false }; } };
 
 const elCache = new Map();
 // RF23's own tests need two things the pre-existing bare-bones fakeEl didn't
@@ -116,7 +120,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, play(){}, pause(){}, seek(){} },
+  namedExports: { load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },

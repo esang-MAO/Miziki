@@ -5,9 +5,9 @@
    queueMove, the queue-sheet UI) moved in here too, in step 5e. */
 import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { albumKey } from '../record-art/tiers.js';
+import { albumKey, trackTier } from '../record-art/tiers.js';
 import { sleepStopPlayback } from './sleep-timer.js';
-import { load, play, pause, seek } from './transport.js';
+import { load, play, pause, seek, sideLetterFor } from './transport.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
@@ -15,6 +15,12 @@ import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { endOfQueue, maybeSideFlip } from '../shell/runout.js';
 import { openLayer } from '../shell/nav-stack.js';
+import { REDUCED } from '../util/motion.js';
+import {
+  releaseSeed, noiseFloorScale, surfaceNoiseActive,
+  playNeedleLift, playSkipDrop, fadeMusicTo,
+  SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS
+} from '../audio/surface-noise.js';
 
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
@@ -116,6 +122,94 @@ export function advance(dir, auto){
   // With the player closed there's nothing to see, so audio just starts.
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();
+}
+
+/* ================= §3 (docs/15_SURFACE_NOISE.md): needle-lift skipping =================
+   A manual skip -- Next, Previous, or the "restart the current track"
+   case Previous falls back to past a few seconds in (src/player/
+   controls.js) -- lifts and re-drops the needle instead of cutting
+   silently. Natural track-end advances (auto===true, above) are
+   completely untouched: no lift there, by §3's own "natural transitions
+   are unchanged" rule -- this is a second entry point into the queue, not
+   a change to advance() itself. Lock-screen/headphone/car Next/Previous
+   go through the exact same function (they call src/player/controls.js's
+   nextTrack()/prevTrack(), same as a tap) -- §3 only asks for those to be
+   *shorter*, which naturally falls out of there being no Surface Noise
+   bed (Off/Pure) or, with it on, no screen to show the platter dip on
+   either way, so the one real difference is already covered without a
+   separate "from the lock screen" branch.
+
+   Scope note: §3's own "skipping past the last track of a side behaves
+   like the side ending" rule needs the Auto-flip/run-out-wait state
+   machine docs/15_SURFACE_NOISE.md §4 describes -- that's PR3's own
+   territory per the spec's build order ("3. depends on 1's run-out and
+   timeout"). For now, landing past the end of the queue (nothing for a
+   lift to resolve onto) just falls straight through to the existing,
+   un-lifted advance()/endOfQueue() path, same as every skip always has.
+
+   Why setTimeout and not the Web Audio-clock pre-scheduling PR1's own
+   lead-in uses: by the time a skip can happen, playback (and so S.ctx)
+   is already running -- nothing here resumes a suspended context or
+   starts an <audio> element for the first time, the two things iOS
+   actually gates on a live user gesture (refactor rule 9). advance()'s
+   own natural-end path already calls play() from a non-gesture context
+   today (src.onended, startSource() above) with no special handling, so
+   deferring the "drop" half of a skip past the original tap the same way
+   is nothing new. What rule 9 still protects here untouched: no await
+   was added before play()'s own first bgPrime() call, and S.gen/onended
+   are read, never written, by anything in this section. */
+let pendingSkip = null;   // {dir} while a lift is in flight -- see skipWithLift()
+
+// Mirrors advance(dir, false)'s own index math with no state mutation, so
+// a repeated tap mid-lift can ask "where would this land right now"
+// without moving S.qpos until the drop actually fires. null means "past
+// the end with nothing to wrap to" -- the one case this function defers
+// to the plain, un-lifted advance() path (see the scope note above).
+function resolveSkipTarget(dir){
+  if(!S.queue.length) return null;
+  let n = S.qpos + dir;
+  if(n >= S.queue.length) return S.repeat === 'all' ? 0 : null;
+  if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
+  return n;
+}
+
+// §3's own "visual nudge... otherwise the platter dips slightly" (there's
+// no separate stylus/tonearm indicator in this app to lift instead). A
+// plain class toggle, same "CSS does the animation, JS just flips a
+// class" shape as every sleeve/platter state elsewhere in shell/ --
+// skipped outright under Reduce Motion, per this doc's own principle
+// ("sounds and haptics remain" but animations don't run).
+function setPlatterLift(on){
+  const box = $('#platterBox');
+  if(box) box.classList.toggle('skip-lift', on);
+}
+
+// dir: 1 (next), -1 (previous track), or 0 (restart the current track --
+// Previous past the first few seconds, src/player/controls.js). Every
+// call invalidates any in-progress qualifying session immediately, the
+// same "manual skip" rule reorderQueue/queueRemoveAt/etc. already follow
+// below, rather than waiting for the drop to actually land.
+export function skipWithLift(dir){
+  invalidateActiveSessionIfAny();
+  if(pendingSkip){ pendingSkip.dir = dir; return; }   // §3 "rapid skips collapse"
+  if(dir !== 0 && resolveSkipTarget(dir) === null){ advance(dir, false); return; }
+  const t = current();
+  const scale = t ? noiseFloorScale(S.surfaceNoise, trackTier(t)) : 0;
+  const active = surfaceNoiseActive() && scale > 0;
+  const seed = t ? releaseSeed(albumKey(t), sideLetterFor(t, S.index)) : 0;
+  const rateHz = 0.55 * S.rate;
+  pendingSkip = { dir };
+  fadeMusicTo(0, SKIP_FADE_MS);
+  if(active){ playNeedleLift(); if(!REDUCED) setPlatterLift(true); }
+  const liftMs = active ? (SKIP_LIFT_MS + SKIP_AIR_MS) : SKIP_FADE_MS;
+  setTimeout(() => {
+    const d = pendingSkip ? pendingSkip.dir : dir;
+    pendingSkip = null;
+    if(active) playSkipDrop(seed, scale, rateHz);
+    setPlatterLift(false);
+    if(d === 0) seek(0); else advance(d, false);
+    fadeMusicTo(1, active ? SKIP_FADE_MS : 0);
+  }, liftMs);
 }
 
 /* ================= visible queue: reorder, remove, play next / add =================

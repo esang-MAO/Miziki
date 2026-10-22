@@ -21,6 +21,16 @@
    no platter or spindle to occupy that space instead (see PRESENTATION
    spec, Disc Visibility). */
 .platter-box.disc-hidden{opacity:0;pointer-events:none}
+/* docs/15_SURFACE_NOISE.md §3 (needle-lift skipping): "a visual nudge:
+   the stylus/tonearm indicator, if shown, lifts; otherwise the platter
+   dips slightly" -- this app has no separate stylus/tonearm indicator, so
+   the platter (this wrapper, not .disc itself -- its own per-frame
+   rotation transform, player/clock.js, is untouched, since CSS transforms
+   on a parent and child compose) nudges down for the lift+air span of a
+   manual skip. Toggled by src/player/queue.js's setPlatterLift(), which
+   skips it outright under Reduce Motion -- "sounds and haptics remain,"
+   not this. */
+.platter-box.skip-lift{transition:transform .12s ease-out;transform:translateY(3px) scale(.985)}
 .disc{
   position:absolute;inset:0;border-radius:50%;
   /* variant color/pattern layer — set inline per track by applyDiscVariant();

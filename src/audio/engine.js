@@ -34,6 +34,14 @@ export function buildGraph(ctx){
   n.comp.knee.value = 12; n.comp.attack.value = 0.012; n.comp.release.value = 0.26;
   n.makeup = ctx.createGain();
   n.master = ctx.createGain(); n.master.gain.value = 1;
+  // docs/15_SURFACE_NOISE.md §3 (needle-lift skipping): a single
+  // always-present gain node the current track's source alone passes
+  // through, upstream of wobble/master, so a skip can fade *just the
+  // music* over 80ms without touching the Surface Noise sounds that join
+  // the chain at n.wobble (src/audio/surface-noise.js's startBuffer()) --
+  // those keep playing at full volume through the lift. routeSource()
+  // below is the only thing that (re)connects it.
+  n.trackGain = ctx.createGain(); n.trackGain.gain.value = 1;
 
   n.wobble.connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
   n.master.connect(ctx.destination);
@@ -170,7 +178,9 @@ export function applyCharacter(ramp = 0.05){
 
 export function routeSource(src){
   src.disconnect();
-  src.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
+  src.connect(S.nodes.trackGain);
+  S.nodes.trackGain.disconnect();
+  S.nodes.trackGain.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
 }
 
 // DA2 (docs/DAY_ARC.md): "recompute about every 30s" — called once from
