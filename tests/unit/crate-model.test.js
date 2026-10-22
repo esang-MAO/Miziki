@@ -20,8 +20,8 @@ const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS,
   stickerFor, catalogLineFor, playedLineFor, eraTintFor,
-  classifyCratePointerTrace, cratePullProgress,
-  CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
+  classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved,
+  CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION, CRATE_PENDING_RELEASE_MOVE_PX,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
   CRATE_HORIZONTAL_MIN_PX, CRATE_HORIZONTAL_RATIO,
   CRATE_SECTION_COMMIT_PX, CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS,
@@ -370,6 +370,24 @@ test('classifyCratePointerTrace: pull wins the instant the trace crosses 24px up
     {dy:0, t:0}, {dy:-CRATE_PULL_UP_PX, t:40}, {dy:-(CRATE_PULL_UP_PX + 20), t:80}, {dy:-(CRATE_PULL_UP_PX - 5), t:120},
   ];
   assert.equal(classifyCratePointerTrace(trace), 'pull');
+});
+
+test('cratePendingTraceMoved: a steadily-rising drag under every threshold (the "pops open the record" bug) reads as real movement', () => {
+  // The exact shape that used to fall through to a tap-opens-the-record
+  // read: a quick, modest upward flick that never reaches CRATE_PULL_UP_PX
+  // and never reverses, so classifyCratePointerTrace() is still (correctly)
+  // 'pending' when the pointer lets go.
+  const trace = [{dy:0, t:0}, {dy:-8, t:20}, {dy:-16, t:40}];
+  assert.equal(classifyCratePointerTrace(trace), 'pending');
+  assert.equal(cratePendingTraceMoved(trace), true);
+});
+
+test('cratePendingTraceMoved: a plain tap (no movement, or movement at/under the threshold) reads as no real movement', () => {
+  assert.equal(cratePendingTraceMoved([]), false);
+  assert.equal(cratePendingTraceMoved([{dy:0, t:0}]), false);
+  assert.equal(cratePendingTraceMoved([{dy:0, t:0}, {dy:CRATE_PENDING_RELEASE_MOVE_PX, t:50}]), false);
+  assert.equal(cratePendingTraceMoved([{dy:0, t:0}, {dy:-CRATE_PENDING_RELEASE_MOVE_PX, t:50}]), false);
+  assert.equal(cratePendingTraceMoved([{dy:0, t:0}, {dy:CRATE_PENDING_RELEASE_MOVE_PX + 1, t:50}]), true);
 });
 
 test('cratePullProgress: 0 with no card height or no lift, 1 once the lift reaches the card\'s own height', () => {

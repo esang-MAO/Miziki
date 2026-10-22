@@ -629,6 +629,34 @@ export const CRATE_PULL_REVERSAL_PX = 12;
 export const CRATE_PULL_HOLD_MS = 450;
 export const CRATE_PULL_COMMIT_FRACTION = 0.4;
 
+// Gesture-classification gap found 2026-10-22 ("the record view pops open
+// while I'm just scrolling the crate"): a steadily-rising drag that never
+// crosses CRATE_PULL_UP_PX and never reverses by CRATE_PULL_REVERSAL_PX --
+// e.g. a quick, modest scroll flick of a few px to maybe 15-20px up --
+// has no way to resolve to 'pull' or 'flip' inside classifyCratePointer
+// Trace() above: neither threshold is met, and classifyCratePointerTrace()
+// correctly keeps waiting (it has to, so a genuine slow pull still has its
+// whole 0-24px window to commit). If the pointer is released before
+// CRATE_PULL_HOLD_MS, the trace is left at 'pending' forever, which used to
+// read, at release, as a plain tap -- opening the record the user was only
+// ever trying to scroll past. CRATE_PENDING_RELEASE_MOVE_PX matches the
+// ordinary (non-front-record) flip drag's own "moved" threshold (3px, see
+// crate/view.js's dragState.moved check) so the two gestures agree on what
+// counts as "the user was dragging, not tapping."
+export const CRATE_PENDING_RELEASE_MOVE_PX = 3;
+
+// Pure: given the trace as it stood at pointerup, was there real movement
+// that classifyCratePointerTrace() never got the chance to classify (still
+// 'pending')? crate/view.js's endPullGesture() uses this to decide whether
+// a 'pending' release should be treated as an aborted drag -- resolve the
+// net displacement the same way a flip drag would, never open the record
+// -- rather than a tap.
+export function cratePendingTraceMoved(trace){
+  if(!trace || trace.length < 2) return false;
+  const net = trace[trace.length - 1].dy;
+  return Math.abs(net) > CRATE_PENDING_RELEASE_MOVE_PX;
+}
+
 // trace: an array of samples `{dy, t}` in order, dy = displacement in CSS
 // px from the pointerdown point (positive = down, negative = up), t = ms
 // elapsed since pointerdown; the first sample is always {dy:0, t:0}. Pure
