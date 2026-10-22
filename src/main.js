@@ -218,8 +218,9 @@ async function restoreLibrary(){
   MizikiSocial.libraryLoaded();
   // RF7 (docs/12_REFINE.md): the Home tab is always present now — signed
   // out or social off, renderHome() itself shows the one sign-in card
-  // (profile/storefront.js's renderOpenStoreCard) rather than the tab
-  // disappearing, so the tab bar never changes shape.
+  // (social/screens/home.js's own renderHomeSignInCard — not Profile's
+  // identity-editing card, see that function's own comment) rather than
+  // the tab disappearing, so the tab bar never changes shape.
   if(new URLSearchParams(location.search).get('social') === 'demo'){
     // Dynamic import, not a static one: ?social=demo is dev-only (see
     // CLAUDE.md), so src/social/demo.js — fixture data and ~700 lines of

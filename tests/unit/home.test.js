@@ -13,12 +13,19 @@ mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url)
 });
 mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
   namedExports: {
-    renderOpenStoreCard(host){ host.appendChild(el('p', 'open-store-card', 'open store card')); },
+    storeAwning(){ return el('div', 'store-awning', 'awning'); },
     storeRequestsCard(){ return el('div', 'requests-card', 'requests'); },
   },
 });
 mock.module(new URL('../../src/sundown/spin-wording.js', import.meta.url).href, {
   namedExports: { spinPhaseWording(){ return null; } },
+});
+// home.js's own real circular pair with profile/settings.js (settings.js
+// already imports renderHome/clearHomeFeedCache back from here) -- mocked
+// the same "stop the chain at the door" way, since the real settings.js
+// reaches the whole profile/storefront.js/screens.js cluster.
+mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
+  namedExports: { beginSocialSignIn(){} },
 });
 
 // A small but real fake DOM: appendChild tracks real parent-child
@@ -103,11 +110,25 @@ function resetHome(opts = {}){
   }, opts.social);
 }
 
-test('renderHome: signed out shows the calm card, never builds the shell', async () => {
+test('renderHome: signed out shows its own sign-in card, never builds the shell, never Profile\'s identity editor', async () => {
   resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
   await renderHome();
-  assert.equal(homeBody.children.length, 1);
-  assert.equal(homeBody.children[0].className, 'open-store-card');
+  assert.equal(homeBody.children.length, 2);
+  assert.equal(homeBody.children[0].className, 'store-awning');
+  assert.equal(homeBody.children[1].className, 'store-open-card');
+  // Home's own card, not a reuse of Profile's -- no avatar/name editor and
+  // no crate grid of this device's own records, just what the feed is for.
+  const heading = homeBody.children[1].children.find(c => c.tagName === 'H3');
+  assert.ok(heading, 'has its own heading');
+  assert.match(heading.textContent, /friends/i);
+});
+
+test('renderHome: needsProfile shows "Finish setup" instead of "Sign in"', async () => {
+  resetHome({ social: { status(){ return { auth: 'needsProfile' }; } } });
+  await renderHome();
+  const card = homeBody.children[1];
+  const btn = card.children.find(c => c.tagName === 'BUTTON');
+  assert.equal(btn.textContent, 'Finish setup');
 });
 
 test('renderHome: builds the shell once -- a second call never rebuilds it', async () => {

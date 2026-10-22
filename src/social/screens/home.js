@@ -1,5 +1,5 @@
 import { $, el } from '../../util/dom.js';
-import { renderOpenStoreCard, storeRequestsCard } from '../../profile/storefront.js';
+import { storeAwning, storeRequestsCard } from '../../profile/storefront.js';
 // Real circular import with ./friend-store.js (the same shape as engine.js/
 // transport.js and the other established peer pairs): openFriendStore is
 // friend-store.js's own, needed here for every tap-through to a friend's
@@ -8,6 +8,34 @@ import { renderOpenStoreCard, storeRequestsCard } from '../../profile/storefront
 // store's own "recently at the counter" activity rows.
 import { openFriendStore } from './friend-store.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
+// Real circular import with profile/settings.js (the same shape as
+// engine.js/transport.js) -- settings.js already imports renderHome/
+// clearHomeFeedCache back from this file. Used only inside a click
+// handler below, never at module top level.
+import { beginSocialSignIn } from '../../profile/settings.js';
+
+// Ken, 2026-10-22: Home used to reuse profile/storefront.js's own
+// renderOpenStoreCard() wholesale when signed out -- the exact same card
+// Profile shows, avatar/name editor, this device's own Records count and
+// crate grid included. That made the two tabs look identical signed out,
+// which was never the intent: RF7 (docs/12_REFINE.md) only asked for "one
+// card (what friends' crates are, and a sign-in button)," not a second
+// copy of the Profile screen's own identity editor. This is Home's own
+// card -- no avatar, no username, no crate grid of this device's own
+// records, just what the feed is for and a way in.
+function renderHomeSignInCard(host, authState){
+  host.innerHTML = '';
+  host.appendChild(storeAwning());
+  const card = el('div','store-open-card');
+  card.appendChild(el('h3', null, 'See what friends are spinning'));
+  card.appendChild(el('p', null, authState === 'needsProfile'
+    ? 'Finish setting up your crate to follow friends and see what they’re playing here.'
+    : 'Sign in to follow friends, see what they’re playing, and share your own crate.'));
+  const btn = el('button','cta', authState === 'needsProfile' ? 'Finish setup' : 'Sign in');
+  btn.addEventListener('click', beginSocialSignIn);
+  card.appendChild(btn);
+  host.appendChild(card);
+}
 
 /* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
 export function feedEventText(e){
@@ -244,7 +272,7 @@ export async function renderHome(){
   if(status.auth !== 'ready'){
     container.innerHTML = '';
     homeShellBuilt = false;
-    renderOpenStoreCard(container, status.auth);
+    renderHomeSignInCard(container, status.auth);
     return;
   }
   if(!homeShellBuilt){
