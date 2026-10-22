@@ -175,3 +175,30 @@ export function dayPosition(now, events){
   // header comment above.
   return { phase: 'night', phaseProgress: 0, nightness: 1, rateProgress: 1, duskRampProgress: clamp((t - duskT) / DUSK_RAMP_MS, 0, 1) };
 }
+
+// The stand-in day used before (or without) a real location fix: today's
+// real sunrise/sunset from the device-only sun-times cache when it was
+// written today (solar.js's persistSunTimesCache(), the same cache
+// theme-boot.js reads), otherwise the fixed stand-ins sundown/location.js
+// has always used (dawn 6:20, sunrise 6:50, noon 1:00 pm, sunset 8:10 pm,
+// dusk 8:36 pm). Dawn/dusk keep the stand-ins' own 30/26-minute gaps from
+// sunrise/sunset, and noon sits midway. Without this, every launch drew
+// its first frames — the launch intro's whole sky included — on the fixed
+// times even when the real ones were sitting in the cache. Pure; `cache`
+// is the parsed {date, rise, set} object, or null.
+export function standInEvents(now, cache){
+  const at = (h, m) => { const x = new Date(now); x.setHours(h, m, 0, 0); return x; };
+  let rise = null, set = null;
+  if(cache && cache.date === now.toDateString()){
+    const r = new Date(cache.rise), s = new Date(cache.set);
+    if(!isNaN(r) && !isNaN(s) && r < s){ rise = r; set = s; }
+  }
+  if(!rise){
+    return { dawn: at(6, 20), rise: at(6, 50), noon: at(13, 0), set: at(20, 10), dusk: at(20, 36) };
+  }
+  return {
+    dawn: new Date(rise.getTime() - 30*60000), rise,
+    noon: new Date((rise.getTime() + set.getTime()) / 2),
+    set, dusk: new Date(set.getTime() + 26*60000),
+  };
+}

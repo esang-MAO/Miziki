@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { computeSun, persistSunTimesCache } from './solar.js';
+import { computeSun, persistSunTimesCache, SUN_TIMES_STORAGE_KEY } from './solar.js';
+import { standInEvents } from './day.js';
 import { drawSun } from '../player/clock.js';
 import { queueSave } from '../storage/meta.js';
 
@@ -60,11 +61,18 @@ export function initLocationPrompt(){
 // to equal these same two numbers anyway, so this call is a belt-and-
 // suspenders freshness stamp more than a behavior change for that one
 // device, not a correctness fix on its own.
+//
+// Since the launch-intro rework: today's real sunrise/sunset, when the
+// sun-times cache already has them from an earlier fix today, replace the
+// fixed stand-ins (day.js's standInEvents()), so the first frames — the
+// launch intro's sky among them — follow the real time of day instead of
+// assuming an 8:10 pm sunset until location answers.
 export function fallbackSun(){
-  const d = new Date();
-  const at = (h, m) => { const x = new Date(d); x.setHours(h, m, 0, 0); return x; };
-  S.sun.dawn = at(6, 20); S.sun.rise = at(6, 50); S.sun.noon = at(13, 0);
-  S.sun.set = at(20, 10); S.sun.dusk = at(20, 36);
+  let cache = null;
+  try{ cache = JSON.parse(localStorage.getItem(SUN_TIMES_STORAGE_KEY) || 'null'); }catch(_e){}
+  const ev = standInEvents(new Date(), cache);
+  S.sun.dawn = ev.dawn; S.sun.rise = ev.rise; S.sun.noon = ev.noon;
+  S.sun.set = ev.set; S.sun.dusk = ev.dusk;
   S.sun.altitudeAtNoon = null;
   S.sun.ok = true;
   persistSunTimesCache(S.sun.rise, S.sun.set);

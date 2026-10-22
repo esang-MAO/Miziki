@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch intro, pull to camera</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.slab{position:absolute;left:50%;border-radius:4px 4px 0 0;transform-origin:bottom;box-shadow:inset 0 1px 0 rgba(255,235,200,.18)}
+.sleeve{position:absolute;border-radius:4px;overflow:hidden}
+.sleeve::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,235,200,.22),inset 6px 0 10px -6px rgba(0,0,0,.28),inset 0 -3px 0 rgba(0,0,0,.25)}
+.grooves{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.10) 2px 3px)}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); perspective: 1000px; perspective-origin: 50% 30%">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; opacity: .14">
+<div class="slab" style="top: 60px; width: 264px; height: 40px; margin-left: -132px; background: #4E4E62; transform: rotateX(60deg)"></div>
+<div class="slab" style="top: 104px; width: 270px; height: 44px; margin-left: -135px; background: #1A1716; transform: rotateX(58deg)"></div>
+<div class="slab" style="top: 150px; width: 274px; height: 48px; margin-left: -137px; background: #44605A; transform: rotateX(56deg)"></div>
+</div>
+
+<div role="img" aria-label="The record sliding out of the top of its sleeve, pressed in translucent Verdigris" style="position: absolute; left: 45px; top: 180px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, #FF9E2C 0 15%, #3F8C7E 15% 18%, #5BAA99 18% 90%, #2A5E54 90% 100%); box-shadow: 0 8px 20px rgba(0,0,0,.45)">
+<span class="grooves" style="display: block"></span>
+<span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(120deg, rgba(255,255,255,.18), rgba(255,255,255,0) 40%); display: block"></span>
+</div>
+
+<div class="sleeve" role="img" aria-label="The last-played album's cover, face on" style="left: 35px; top: 250px; width: 320px; height: 320px; background: #3E5566; box-shadow: inset 0 1px 0 rgba(255,235,200,.3), 0 2px 4px rgba(0,0,0,.45), 0 24px 48px rgba(0,0,0,.5)"></div>
+
+<div class="disp" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 640px; text-align: center; font-size: 44px; font-weight: 700; letter-spacing: .1em; color: #EFE9DF">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

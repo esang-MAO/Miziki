@@ -110,6 +110,46 @@ export function closeLookPicker(){
   $('#lookOverlay').setAttribute('aria-hidden', 'true');
 }
 
+// The disc's resolved surface for a track, with no DOM side effects: the
+// same look precedence (rare > metal > file variant, unless a saved look
+// preference says otherwise) the platter uses. Shared by applyDiscVariant()
+// below and record-art/peek.js, so the record that peeks out of a sleeve
+// (launch intro, crate pull) is always the same pressing the platter shows.
+export function discLook(t){
+  const look = resolveLook(t);
+  const rare = look === 'rare';
+  if(rare){
+    // CR7: four rare pressings now, not one — Ultra clear/Picture disc keep
+    // the original "continuous material, no paper seam" art-backed render
+    // (the same artwork the label shows extends across the whole disc);
+    // Glow/Liquid filled are patterns, same as any solid/effect, since
+    // neither needs the track's own art to render.
+    const rareId = selectRareVariant(t);
+    let bg;
+    if(rareId === 'ultra-clear' || rareId === 'picture-disc'){
+      bg = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
+        + 'url("' + t.art + '") center/cover';
+    } else {
+      bg = variantBackground(getVariantDef(rareId));
+    }
+    return { look, rare: true, rareId, tier: null, variant: null, metal: null, bg, labelKind: 'amber', paperLabel: false };
+  }
+  const {tier, variant} = selectVariant(t);
+  // track wins over album — see METAL spec §4. Grandfathered metals are
+  // no longer gated to tier===1 here: a metal earned pre-upgrade stays
+  // selectable regardless of the track's current tier, since it's the
+  // resolveLook() call above (via availableLooks()) that decides whether
+  // 'metal' is even a candidate in the first place.
+  const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
+  if(metal){
+    return { look, rare: false, rareId: null, tier, variant, metal, bg: metalBackground(metal), labelKind: metalLabelKind(metal), paperLabel: false };
+  }
+  // "Decided" (docs/13_CRATE.md, CR7): tier-1 Jet gets the paper label
+  // behind a Settings switch, off by default — amber everywhere else.
+  return { look, rare: false, rareId: null, tier, variant, metal: null,
+    bg: variantBackground(getVariantDef(variant)), labelKind: 'amber', paperLabel: tier === 1 && S.paperLabelOnLossy };
+}
+
 // Outside the full player the artwork travels as a plain circular label; the disc's
 // tier-derived surface is scoped to this renderer only (see spec §1).
 // `crossfade` should be true only for a same-album change with no sleeve
@@ -124,51 +164,21 @@ export function applyDiscVariant(t, crossfade){
     return;
   }
   $('#lookBtn').style.display = availableLooks(t).length > 1 ? '' : 'none';
-  const look = resolveLook(t);
-  const rare = look === 'rare';
-  disc.classList.toggle('rare', rare);
-  label.classList.toggle('rare', rare);
-  let bg;
-  let paperLabel = false, labelKind = 'amber';
-  if(rare){
-    // CR7: four rare pressings now, not one — Ultra clear/Picture disc keep
-    // the original "continuous material, no paper seam" art-backed render
-    // (the same artwork the label shows extends across the whole disc);
-    // Glow/Liquid filled are patterns, same as any solid/effect, since
-    // neither needs the track's own art to render.
-    const rareId = selectRareVariant(t);
-    disc.dataset.variant = rareId;
+  const d = discLook(t);
+  disc.classList.toggle('rare', d.rare);
+  label.classList.toggle('rare', d.rare);
+  if(d.rare){
+    disc.dataset.variant = d.rareId;
     delete disc.dataset.tier;
-    if(rareId === 'ultra-clear' || rareId === 'picture-disc'){
-      bg = 'radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%),'
-        + 'url("' + t.art + '") center/cover';
-    } else {
-      bg = variantBackground(getVariantDef(rareId));
-    }
   } else {
-    const {tier, variant} = selectVariant(t);
-    // track wins over album — see METAL spec §4. Grandfathered metals are
-    // no longer gated to tier===1 here: a metal earned pre-upgrade stays
-    // selectable regardless of the track's current tier, since it's the
-    // resolveLook() call above (via availableLooks()) that decides whether
-    // 'metal' is even a candidate in the first place.
-    const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
-    disc.dataset.tier = tier;
-    disc.dataset.variant = metal ? 'metal-' + metal : variant;
-    if(metal){
-      bg = metalBackground(metal);
-      labelKind = metalLabelKind(metal);
-      // gold/platinum each invert to the same aubergine disc/amber mark,
-      // but with their own ring colour (the metal's own shadow stop) —
-      // one class can't carry two different colours, so it rides inline.
-      if(labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[metal].shadow);
-    } else {
-      bg = variantBackground(getVariantDef(variant));
-      // "Decided" (docs/13_CRATE.md, CR7): tier-1 Jet gets the paper label
-      // behind a Settings switch, off by default — amber everywhere else.
-      paperLabel = tier === 1 && S.paperLabelOnLossy;
-    }
+    disc.dataset.tier = d.tier;
+    disc.dataset.variant = d.metal ? 'metal-' + d.metal : d.variant;
+    // gold/platinum each invert to the same aubergine disc/amber mark,
+    // but with their own ring colour (the metal's own shadow stop) —
+    // one class can't carry two different colours, so it rides inline.
+    if(d.metal && d.labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[d.metal].shadow);
   }
+  const bg = d.bg, paperLabel = d.paperLabel, labelKind = d.labelKind;
   label.classList.toggle('paper-label', paperLabel);
   label.classList.toggle('metal-invert', labelKind === 'invert');
   label.classList.toggle('metal-silver', labelKind === 'silver-ring');

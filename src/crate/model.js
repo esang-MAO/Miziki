@@ -690,6 +690,19 @@ export function cratePullProgress(upPx, cardHeightPx){
   return clamp(upPx / cardHeightPx, 0, 1);
 }
 
+// The pressing peek's own rise (record-art/peek.js): how much further the
+// record travels than its sleeve for a pull of upPx, so it slides out of
+// the top as the sleeve lifts. Grows with the pull and stops at about a
+// quarter of the card, so the record never comes all the way out before
+// the pull commits (the gatefold is still what opens). Pure, shared with
+// the launch intro's pull to camera for the same proportion.
+export const CRATE_PEEK_RISE_RATE = 0.6;
+export const CRATE_PEEK_MAX_FRACTION = 0.26;
+export function cratePeekRise(upPx, cardSizePx){
+  if(!(upPx > 0) || !(cardSizePx > 0)) return 0;
+  return Math.min(upPx * CRATE_PEEK_RISE_RATE, cardSizePx * CRATE_PEEK_MAX_FRACTION);
+}
+
 // CR14 (docs/14_CRATE_SECTIONS.md PR 2): "classify a drag as horizontal
 // once |dx| > 12 and |dx| > 1.2·|dy|" — a plain, point-in-time read of the
 // drag's own accumulated displacement from the pointerdown point, not a

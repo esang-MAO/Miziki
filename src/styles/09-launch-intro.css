@@ -1,17 +1,18 @@
-/* ---------- launch intro: plain records to the Miziki sleeve (CEREMONY §5) ----------
+/* ---------- launch intro: a dig through your crate ----------
    Cold start only (see runLaunchSequence). A fixed 390x740 design stage,
    scaled uniformly to fit the viewport rather than redrawn per size.
    Cover Flow turned on its side: one scalar `position` drives every visible
    card's 3D transform (see launchCardPose()); cards are created/removed as
-   they enter/leave the +-8 visible window rather than existing all at once. */
-:root{--rec1:#22252B;--rec2:#07080A;--recink:#EFE9DF;--recline:rgba(255,255,255,.06)}
-/* record colour follows the resolved theme (same selectors as 22-theme.css,
-   so theme-boot.js's pre-paint data-theme already picks the right one) */
-:root[data-theme="light"]{--rec1:#FBF8F1;--rec2:#D9D0BD;--recink:#15232B;--recline:rgba(21,35,43,.10)}
+   they enter/leave the +-8 visible window rather than existing all at once.
+   The Miziki cover's sleeve follows the resolved theme: warm Jet in dark
+   (CR7's tier-1 Jet), bone in light — same selectors as 22-theme.css, so
+   theme-boot.js's pre-paint data-theme already picks the right one. */
+:root{--rec1:#2B2622;--rec2:#1A1716;--recink:#EFE9DF}
+:root[data-theme="light"]{--rec1:#F4F1E9;--rec2:#DED7C7;--recink:#26202C}
 @media (prefers-color-scheme: light){
-  :root:not([data-theme]){--rec1:#FBF8F1;--rec2:#D9D0BD;--recink:#15232B;--recline:rgba(21,35,43,.10)}
+  :root:not([data-theme]){--rec1:#F4F1E9;--rec2:#DED7C7;--recink:#26202C}
 }
-:root[data-theme="dark"]{--rec1:#22252B;--rec2:#07080A;--recink:#EFE9DF;--recline:rgba(255,255,255,.06)}
+:root[data-theme="dark"]{--rec1:#2B2622;--rec2:#1A1716;--recink:#EFE9DF}
 .launch-overlay{position:fixed;inset:0;z-index:500;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%);
   display:flex;align-items:center;justify-content:center;
@@ -28,16 +29,31 @@
 .launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
   opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
 .launch-stack.launch-settled{opacity:1}
+/* A clean sleeve: CR3's anatomy (4px radius, lit top edge from the same
+   --crate-light the crate uses, spine shadow, bottom band) and nothing
+   else — no wear. Overflow stays visible on the card itself so the
+   pressing peek (record-art/peek.js) can slide out of the top; the face
+   clips its own art. */
 .launch-card{position:absolute;left:56px;top:128px;width:278px;height:278px;
-  border-radius:6px;overflow:hidden;will-change:transform,opacity;
+  border-radius:4px;will-change:transform,opacity;
   box-shadow:var(--sh-2);backface-visibility:hidden}
-.launch-card.launch-target{box-shadow:var(--sh-3),0 0 0 2px var(--accent)}
-.launch-card-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(165deg,var(--rec1),var(--rec2));box-shadow:inset 0 0 0 1px var(--recline)}
-.launch-card-face::before{content:'';position:absolute;left:0;top:0;bottom:0;width:10px;
-  background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
+/* CR1/CR8: no amber selection ring — the catch is a lift, not a highlight */
+.launch-card.launch-target{box-shadow:var(--sh-3)}
+.launch-card-face{position:absolute;inset:0;z-index:1;border-radius:4px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;background:var(--rec2)}
+.launch-card-face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.launch-card-face::after{content:'';position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 1px 0 var(--crate-light,rgba(255,235,200,.22)),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25)}
+.launch-lifted .launch-card-face::after{
+  box-shadow:inset 0 1px 0 rgba(255,235,200,.42),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25)}
+.launch-card-miziki{background:linear-gradient(165deg,var(--rec1),var(--rec2))}
 .launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
   color:var(--recink);white-space:nowrap;transform:rotate(-35deg);font-size:var(--fs-display)}
 .launch-card-mark span{color:var(--accent-text)}
+/* the record sliding out of the top of the caught sleeve (see .peek-disc,
+   10-crate.css, for its surface); starts fully behind the face */
+.launch-peek{left:4%;top:4%;width:92%;height:92%;z-index:0}
 @media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
 

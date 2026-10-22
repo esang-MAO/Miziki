@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayEvents, dayPosition } from '../../src/sundown/day.js';
+import { dayEvents, dayPosition, standInEvents } from '../../src/sundown/day.js';
 import { sunProgress, easedProgress, computeRate } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
@@ -271,4 +271,35 @@ test('easedProgress: twilight (dusk) pacing is unchanged from before DA1', () =>
   assert.ok(Math.abs(p - 0.5) < 0.01);
   const e = easedProgress();
   assert.ok(Math.abs(e - 0.5) < 0.01); // smoothstep(0.5) = 0.5
+});
+
+test('standInEvents: with no cache, the fixed stand-ins (sunset 8:10 pm, dusk 8:36 pm)', () => {
+  const now = new Date(2026, 9, 21, 9, 0);
+  const ev = standInEvents(now, null);
+  assert.equal(ev.rise.getHours() * 60 + ev.rise.getMinutes(), 6*60 + 50);
+  assert.equal(ev.set.getHours() * 60 + ev.set.getMinutes(), 20*60 + 10);
+  assert.equal(ev.dusk.getHours() * 60 + ev.dusk.getMinutes(), 20*60 + 36);
+});
+
+test("standInEvents: today's cached sunrise/sunset replace the stand-ins, with dawn/dusk/noon derived around them", () => {
+  const now = new Date(2026, 9, 21, 9, 0);
+  const rise = new Date(2026, 9, 21, 7, 20), set = new Date(2026, 9, 21, 18, 20);
+  const ev = standInEvents(now, { date: now.toDateString(), rise: rise.toISOString(), set: set.toISOString() });
+  assert.equal(ev.rise.getTime(), rise.getTime());
+  assert.equal(ev.set.getTime(), set.getTime());
+  assert.equal(ev.dawn.getTime(), rise.getTime() - 30*60000);
+  assert.equal(ev.dusk.getTime(), set.getTime() + 26*60000);
+  assert.equal(ev.noon.getTime(), (rise.getTime() + set.getTime()) / 2);
+  // and the day model reads it: 6:40 pm is past this cached sunset, not still daylight
+  const evening = dayPosition(new Date(2026, 9, 21, 18, 40), ev);
+  assert.notEqual(evening.phase, 'afternoon');
+});
+
+test("standInEvents: a cache from another day, or a malformed one, falls back to the stand-ins", () => {
+  const now = new Date(2026, 9, 21, 9, 0);
+  const y = new Date(2026, 9, 20);
+  const stale = standInEvents(now, { date: y.toDateString(), rise: y.toISOString(), set: y.toISOString() });
+  assert.equal(stale.set.getHours(), 20);
+  const bad = standInEvents(now, { date: now.toDateString(), rise: 'nope', set: 'nope' });
+  assert.equal(bad.set.getHours(), 20);
 });

@@ -1,0 +1,24 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-21T23:40:00Z" },
+  "title": "Miziki Launch Intro",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1 · Settle, 0–250 ms: the stack fades up under today's sky" },
+    "Flick.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2 · Flick, 250–2500 ms: your covers, Miziki covers fill the gaps" },
+    "Catch.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3 · Catch, 2500–2800 ms: last-played lifts out (haptic tick in the app build)" },
+    "Pull.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4 · Pull, 2800–3400 ms: to camera, its pressing peeks out" },
+    "Handoff.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "5 · Hand-off, 3400–4000 ms: crossfade, same album in the mini-player" },
+    "Today.dc.html": { "x": 0, "y": 1184, "w": 390, "h": 844, "title": "Today, for comparison: plain stack, amber outline" },
+    "CatchLight.dc.html": { "x": 470, "y": 1184, "w": 390, "h": 844, "title": "3 · Catch, empty library, light theme" },
+    "LibraryStates.dc.html": { "x": 940, "y": 1184, "w": 1330, "h": 844, "title": "What the stack holds: empty, small and full libraries, and the peek per pressing" },
+    "CratePull.dc.html": { "x": 2350, "y": 1184, "w": 390, "h": 844, "title": "Crate view: the same peek on the existing pull-up" }
+  },
+  "order": ["Main.dc.html", "Flick.dc.html", "Catch.dc.html", "Pull.dc.html", "Handoff.dc.html", "Today.dc.html", "CatchLight.dc.html", "LibraryStates.dc.html", "CratePull.dc.html"],
+  "notes": {
+    "rowNew": { "x": 0, "y": -260, "text": "Launch intro: a dig through your crate", "kind": "title1", "maxW": 2270 },
+    "rowRef": { "x": 0, "y": 924, "text": "Before, light theme, library states, crate pull", "kind": "title1", "maxW": 2740 }
+  },
+  "designSystems": []
+}

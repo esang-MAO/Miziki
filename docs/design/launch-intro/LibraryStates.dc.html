@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch intro library states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.mini{position:relative;width:56px;height:56px;border-radius:3px;overflow:hidden;flex:0 0 auto;box-shadow:0 1px 3px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.mini::after{content:'';position:absolute;inset:0;box-shadow:inset 0 1px 0 rgba(255,235,200,.22),inset 0 -2px 0 rgba(0,0,0,.25)}
+.mz{background:linear-gradient(165deg,#2B2622,#1A1716)}
+.mzt{font-family:'Antonio','Arial Narrow',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;color:#EFE9DF;transform:rotate(-35deg);white-space:nowrap}
+.peekbox{position:relative;width:160px;height:200px}
+.disc{position:absolute;left:14px;top:0;width:132px;height:132px;border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,.45)}
+.disc::after{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.10) 2px 3px)}
+.psl{position:absolute;left:5px;top:44px;width:150px;height:150px;border-radius:4px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.45),0 12px 28px rgba(0,0,0,.45)}
+.psl::after{content:'';position:absolute;inset:0;box-shadow:inset 0 1px 0 rgba(255,235,200,.22),inset 6px 0 10px -6px rgba(0,0,0,.28),inset 0 -3px 0 rgba(0,0,0,.25)}
+.cap{display:flex;flex-direction:column;gap:4px}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1330px; height: 844px; box-sizing: border-box; padding: 48px; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="disp" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .02em">Eighteen sleeves, filled from your crate</h2>
+<p style="margin: 0; font-size: 14px; color: #A99C8F">Covers already in memory go first; the Miziki cover fills every gap. The stack never waits for art.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+
+<div class="cap">
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz" style="outline: 2px solid #EFE9DF; outline-offset: 2px"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; margin-top: 8px">EMPTY LIBRARY</span>
+<span style="font-size: 14px; color: #A99C8F">All Miziki covers. Lands on one; the mini-player stays empty.</span>
+</div>
+
+<div class="cap">
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<div class="mini" style="background: #5A4A5E"></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini" style="background: #44605A"></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini mz"><span class="mzt">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+<div class="mini" style="background: #3E5566; outline: 2px solid #EFE9DF; outline-offset: 2px"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; margin-top: 8px">SMALL LIBRARY</span>
+<span style="font-size: 14px; color: #A99C8F">Your covers spread through the stack, Miziki covers between. Lands on last-played.</span>
+</div>
+
+<div class="cap">
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<div class="mini" style="background: #5A4A5E"></div>
+<div class="mini" style="background: #5E4A44"></div>
+<div class="mini" style="background: #44605A"></div>
+<div class="mini" style="background: #4E4E62"></div>
+<div class="mini" style="background: #6A5A3E"></div>
+<div class="mini" style="background: #3E5566; outline: 2px solid #EFE9DF; outline-offset: 2px"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; margin-top: 8px">FULL LIBRARY</span>
+<span style="font-size: 14px; color: #A99C8F">All your covers. Lands on last-played, already waiting in the mini-player.</span>
+</div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="disp" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .02em">The pressing peek</h2>
+<p style="margin: 0; font-size: 14px; color: #A99C8F">On the pull, the record slides an inch out of the top in its own pressing. Same drawing in the intro and the crate.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px">
+
+<div class="cap">
+<div class="peekbox" role="img" aria-label="Jet record peeking from a Miziki sleeve">
+<div class="disc" style="background: radial-gradient(circle, #FF9E2C 0 15%, #2B2622 15% 18%, #1A1716 18% 90%, #0C0B0A 90% 100%)"></div>
+<div class="psl mz" style="display: flex; align-items: center; justify-content: center"><span class="disp" style="font-size: 20px; font-weight: 700; letter-spacing: .1em; color: #EFE9DF; transform: rotate(-35deg); white-space: nowrap">Mi<span style="color: #FF9E2C">zi</span>ki</span></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">MIZIKI SLEEVE</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">JET, EMPTY LIBRARY</span>
+</div>
+
+<div class="cap">
+<div class="peekbox" role="img" aria-label="Jet record peeking from an album sleeve">
+<div class="disc" style="background: radial-gradient(circle, #FF9E2C 0 15%, #2B2622 15% 18%, #1A1716 18% 90%, #0C0B0A 90% 100%)"></div>
+<div class="psl" style="background: #5A4A5E"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">JET</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">LOSSY FILE</span>
+</div>
+
+<div class="cap">
+<div class="peekbox" role="img" aria-label="Translucent Verdigris record peeking from an album sleeve">
+<div class="disc" style="background: radial-gradient(circle, #FF9E2C 0 15%, #3F8C7E 15% 18%, #5BAA99 18% 90%, #2A5E54 90% 100%)"></div>
+<div class="psl" style="background: #3E5566"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">VERDIGRIS</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">LOSSLESS SOLID</span>
+</div>
+
+<div class="cap">
+<div class="peekbox" role="img" aria-label="Woad and Madder swirl record peeking from an album sleeve">
+<div class="disc" style="background: radial-gradient(circle, #FF9E2C 0 15%, transparent 15% 90%, #1A1A22 90% 100%), linear-gradient(115deg, #2B4A7A 0%, #2B4A7A 30%, #B5433A 46%, #2B4A7A 60%, #B5433A 78%, #2B4A7A 100%)"></div>
+<div class="psl" style="background: #44605A"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">WOAD &amp; MADDER</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">HI-RES EFFECT</span>
+</div>
+
+<div class="cap">
+<div class="peekbox" role="img" aria-label="Gold metal record peeking from an album sleeve">
+<div class="disc" style="background: radial-gradient(circle, #2A1B38 0 15%, #7A4E12 15% 17%, transparent 17% 92%, #8A3A1E 92% 100%), linear-gradient(130deg, #7A4E12 0%, #D6AD3F 38%, #F7E7A8 46%, #D6AD3F 54%, #7A4E12 100%)"></div>
+<div class="psl" style="background: #5E4A44"></div>
+</div>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em">GOLD</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">EARNED METAL</span>
+</div>
+
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1330,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

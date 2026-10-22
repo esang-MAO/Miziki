@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch intro, catch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.slab{position:absolute;left:50%;border-radius:4px 4px 0 0;transform-origin:bottom;box-shadow:inset 0 1px 0 rgba(255,235,200,.18)}
+.sleeve{position:absolute;left:56px;width:278px;height:278px;border-radius:4px;overflow:hidden}
+.sleeve::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,235,200,.22),inset 6px 0 10px -6px rgba(0,0,0,.28),inset 0 -3px 0 rgba(0,0,0,.25)}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); perspective: 1000px; perspective-origin: 50% 30%">
+
+<div class="disp" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 116px; text-align: center; font-size: 20px; font-weight: 700; letter-spacing: .16em; color: #A99C8F; opacity: .7">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+
+<div aria-hidden="true" style="position: absolute; inset: 0">
+<div class="slab" style="top: 150px; width: 264px; height: 40px; margin-left: -132px; background: #4E4E62; transform: rotateX(60deg)"></div>
+<div class="slab" style="top: 182px; width: 270px; height: 44px; margin-left: -135px; background: #1A1716; transform: rotateX(58deg)"></div>
+<div class="slab" style="top: 214px; width: 274px; height: 48px; margin-left: -137px; background: #44605A; transform: rotateX(56deg)"></div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 70px; top: 520px; width: 250px; height: 18px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.45), transparent)"></div>
+
+<div class="sleeve" role="img" aria-label="The last-played album's cover, lifted out of the stack" style="top: 222px; background: #3E5566; box-shadow: inset 0 1px 0 rgba(255,235,200,.42), 0 2px 4px rgba(0,0,0,.45), 0 16px 36px rgba(0,0,0,.45)"></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
