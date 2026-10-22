@@ -774,6 +774,30 @@
         <button data-preset="classic" aria-pressed="false">Classic press</button>
         <button data-preset="worn" aria-pressed="false">Well-played</button>
       </div>
+
+      <!-- docs/15_SURFACE_NOISE.md §1: needle drop, lead-in and run-out
+           noise, synthesised, never samples -- settings live here per that
+           doc's own "Settings live in: Sundown sheet -> Sound view". -->
+      <p class="sd-section-label">Surface noise</p>
+
+      <p class="note" style="margin-top:0">Surface Noise</p>
+      <div class="seg sd-surface-noise-seg" role="group" aria-label="Surface Noise" style="margin-bottom:12px">
+        <button data-surface-noise="off" aria-pressed="false">Off</button>
+        <button data-surface-noise="subtle" aria-pressed="true">Subtle</button>
+        <button data-surface-noise="well-loved" aria-pressed="false">Well-loved</button>
+      </div>
+
+      <p class="note">Run-out length</p>
+      <div class="seg sd-runout-length-seg" role="group" aria-label="Run-out length">
+        <button data-runout-length="short" aria-pressed="false">Short</button>
+        <button data-runout-length="normal" aria-pressed="true">Normal</button>
+        <button data-runout-length="until-lift" aria-pressed="false">Until I lift it</button>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
+        <div class="seg"><button id="surfaceNoiseUnderMusicBtn" aria-pressed="false">Off</button></div>
+      </div>
     </div>
   </div>
 </div>

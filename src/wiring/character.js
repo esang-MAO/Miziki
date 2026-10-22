@@ -171,6 +171,31 @@ export function wireCharacter(){
     });
   }
 
+  // docs/15_SURFACE_NOISE.md §1: no dedicated apply function of its own —
+  // these three settings are read fresh by whatever plays the next sound
+  // (player/transport.js, shell/runout.js), so a click just updates S,
+  // the pressed state and saves, the same inline shape data-char-drift
+  // uses just above.
+  document.querySelectorAll('[data-surface-noise]').forEach(b => b.addEventListener('click', () => {
+    S.surfaceNoise = b.dataset.surfaceNoise;
+    document.querySelectorAll('[data-surface-noise]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.surfaceNoise === S.surfaceNoise)));
+    queueSave();
+  }));
+  document.querySelectorAll('[data-runout-length]').forEach(b => b.addEventListener('click', () => {
+    S.runoutLength = b.dataset.runoutLength;
+    document.querySelectorAll('[data-runout-length]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.runoutLength === S.runoutLength)));
+    queueSave();
+  }));
+  $('#surfaceNoiseUnderMusicBtn').addEventListener('click', () => {
+    S.surfaceNoiseUnderMusic = !S.surfaceNoiseUnderMusic;
+    const b = $('#surfaceNoiseUnderMusicBtn');
+    b.textContent = S.surfaceNoiseUnderMusic ? 'On' : 'Off';
+    b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic));
+    queueSave();
+  });
+
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#paperLabelBtn').addEventListener('click', togglePaperLabel);

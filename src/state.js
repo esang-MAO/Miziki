@@ -49,6 +49,17 @@ export const S = {
   // default here is what back-fills prefs saved before this field existed
   char:{wow:0.30,sat:0.35,soft:0.40,comp:0.35,scratch:true},
   angle:0,
+  // Surface Noise & Vinyl Ritual (docs/15_SURFACE_NOISE.md §1): the lead-in/
+  // run-out noise floor, the run-out's own length, and whether a faint bed
+  // sits under playback. Defaults per that doc's own settings table —
+  // Subtle for new users, Normal run-out, under-the-music off.
+  surfaceNoise:'subtle', runoutLength:'normal', surfaceNoiseUnderMusic:false,
+  // runtime only, never saved: whether the track load() just landed on is
+  // the first track of its side (so play() knows to run the needle-drop +
+  // lead-in), and the wall-clock deadline (performance.now()-based) the
+  // playback clock holds S.pos at 0 until, while that lead-in is still
+  // playing and the track's own audio hasn't actually started yet.
+  pendingSideStart:false, openUntil:0,
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,

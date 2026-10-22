@@ -196,6 +196,17 @@ function applyPrefs(p){
   // shape sealedRecords/playInFullPlayer use above.
   if(typeof p.paperLabelOnLossy === 'boolean') S.paperLabelOnLossy = p.paperLabelOnLossy;
   { const b = $('#paperLabelBtn'); if(b) b.setAttribute('aria-pressed', String(S.paperLabelOnLossy)); }
+  // docs/15_SURFACE_NOISE.md §1: no dedicated UI side effect of their own —
+  // just sync each seg/switch's own aria-pressed, the same inline shape
+  // charDrift/paperLabelOnLossy already use above.
+  if(p.surfaceNoise === 'off' || p.surfaceNoise === 'subtle' || p.surfaceNoise === 'well-loved') S.surfaceNoise = p.surfaceNoise;
+  document.querySelectorAll('[data-surface-noise]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.surfaceNoise === S.surfaceNoise)));
+  if(p.runoutLength === 'short' || p.runoutLength === 'normal' || p.runoutLength === 'until-lift') S.runoutLength = p.runoutLength;
+  document.querySelectorAll('[data-runout-length]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.runoutLength === S.runoutLength)));
+  if(typeof p.surfaceNoiseUnderMusic === 'boolean') S.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
+  { const b = $('#surfaceNoiseUnderMusicBtn'); if(b){ b.textContent = S.surfaceNoiseUnderMusic ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic)); } }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
