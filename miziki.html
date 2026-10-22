@@ -429,10 +429,12 @@
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
   </button>
-  <!-- RF7 (docs/12_REFINE.md): always present, signed out or social off
-       included — renderHome() itself shows the one sign-in card then
-       (src/profile/storefront.js's renderOpenStoreCard), so the tab bar
-       never changes shape. -->
+  <!-- Ken, 2026-10-22: superseding RF7's (docs/12_REFINE.md) own "always
+       present" rule — hidden outright (style.display, set by JS) while
+       signed out or social off, shown again the instant sign-in completes.
+       src/social/screens/home.js's updateHomeTabVisibility() is the one
+       place that toggles it, wired to MizikiSocial's own 'status' event —
+       no id/attribute here needs to change for that. -->
   <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
     <span>Home</span>

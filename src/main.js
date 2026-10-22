@@ -29,6 +29,7 @@ import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
 import { putAwayInstant } from './shell/put-away.js';
 import { isProfileRouteVisible, showRoute } from './shell/routes.js';
+import { updateHomeTabVisibility } from './social/screens/home.js';
 import { initNavStack, onRouteRestore } from './shell/nav-stack.js';
 import { initScrollRestoration } from './shell/scroll-memory.js';
 import { renderProfile } from './profile/screens.js';
@@ -98,6 +99,16 @@ onRouteRestore(showRoute);
 initScrollRestoration();   // NV3: hands scroll-position restoration entirely to the app
 
 setMode('vinyl');
+// Ken, 2026-10-22: the Home tab itself is hidden outright while signed
+// out/social off, shown again the instant sign-in completes -- status()
+// already has a real answer this early (it starts at auth:'signedOut'
+// regardless of whether social is even configured, well before
+// MizikiSocial.init() ever runs inside restoreLibrary() below), so there's
+// no reason to wait for that. Wired here, not inside home.js itself, so
+// tests (and any other early-loading module) can stub MizikiSocial first —
+// see updateHomeTabVisibility()'s own comment.
+updateHomeTabVisibility();
+MizikiSocial.on('status', updateHomeTabVisibility);
 applyTheme();
 fallbackSun();
 initLocationPrompt();   // RF7: never prompts for location at boot, only on request
@@ -216,11 +227,12 @@ async function restoreLibrary(){
   onBackup('reset', () => resetLocalHistory());
   initBackupSync();
   MizikiSocial.libraryLoaded();
-  // RF7 (docs/12_REFINE.md): the Home tab is always present now — signed
-  // out or social off, renderHome() itself shows the one sign-in card
-  // (social/screens/home.js's own renderHomeSignInCard — not Profile's
-  // identity-editing card, see that function's own comment) rather than
-  // the tab disappearing, so the tab bar never changes shape.
+  // Ken, 2026-10-22: superseding RF7's own "the tab bar never changes
+  // shape" rule — the Home tab itself is hidden outright while signed out
+  // or social off, and reappears the instant sign-in completes. See
+  // social/screens/home.js's updateHomeTabVisibility() for the actual
+  // show/hide logic (wired to MizikiSocial's own 'status' event, so no
+  // separate call is needed here).
   if(new URLSearchParams(location.search).get('social') === 'demo'){
     // Dynamic import, not a static one: ?social=demo is dev-only (see
     // CLAUDE.md), so src/social/demo.js — fixture data and ~700 lines of

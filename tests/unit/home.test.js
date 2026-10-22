@@ -27,6 +27,14 @@ mock.module(new URL('../../src/sundown/spin-wording.js', import.meta.url).href, 
 mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
   namedExports: { beginSocialSignIn(){} },
 });
+// Ken, 2026-10-22: home.js's own real circular pair with shell/routes.js
+// (routes.js already imports renderHome back from here) -- mocked the
+// same "stop the chain at the door" way, since the real routes.js reaches
+// profile/screens.js and the gatefold/nav-stack chain.
+let lastShowRouteCall = null;
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(name){ lastShowRouteCall = name; } },
+});
 
 // A small but real fake DOM: appendChild tracks real parent-child
 // structure and innerHTML='' really clears children (same convention as
@@ -66,9 +74,25 @@ function el(tag, cls, text){
   return e;
 }
 const homeBody = fakeEl('div');
+// A real (if tiny) attribute store, unlike fakeEl()'s no-op getAttribute --
+// updateHomeTabVisibility()'s own "was this tab the one selected" check
+// needs to read back what it (or showRoute()) actually set.
+function fakeTabBtn(){
+  const attrs = { 'aria-selected': 'false' };
+  return {
+    style: {},
+    setAttribute(k, v){ attrs[k] = String(v); },
+    getAttribute(k){ return k in attrs ? attrs[k] : null; },
+  };
+}
+const homeTabBtn = fakeTabBtn();
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: {
-    $(sel){ return sel === '#homeBody' ? homeBody : null; },
+    $(sel){
+      if(sel === '#homeBody') return homeBody;
+      if(sel === '#homeTabBtn') return homeTabBtn;
+      return null;
+    },
     el,
   },
 });
@@ -83,7 +107,7 @@ globalThis.localStorage = (() => {
   };
 })();
 
-const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, feedEventText, _resetHomeStateForTests } =
+const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, feedEventText, updateHomeTabVisibility, _resetHomeStateForTests } =
   await import('../../src/social/screens/home.js');
 
 function fakeEvent(id, overrides){
@@ -98,6 +122,9 @@ function resetHome(opts = {}){
   // _debugLayers().
   _resetHomeStateForTests();
   homeBody.children.length = 0;
+  homeTabBtn.style.display = '';
+  homeTabBtn.setAttribute('aria-selected', 'false');
+  lastShowRouteCall = null;
   localStorage._reset();
   globalThis.MizikiSocial = Object.assign({
     status(){ return { auth: 'ready' }; },
@@ -109,6 +136,45 @@ function resetHome(opts = {}){
     labelColor(){ return '#000'; },
   }, opts.social);
 }
+
+// --- updateHomeTabVisibility: the tab itself, not just its content -----
+
+test('updateHomeTabVisibility: hides the tab signed out, shows it once ready', () => {
+  resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
+  updateHomeTabVisibility();
+  assert.equal(homeTabBtn.style.display, 'none');
+
+  resetHome({ social: { status(){ return { auth: 'ready' }; } } });
+  updateHomeTabVisibility();
+  assert.equal(homeTabBtn.style.display, '');
+});
+
+test('updateHomeTabVisibility: needsProfile stays hidden, same as signedOut', () => {
+  resetHome({ social: { status(){ return { auth: 'needsProfile' }; } } });
+  updateHomeTabVisibility();
+  assert.equal(homeTabBtn.style.display, 'none');
+});
+
+test('updateHomeTabVisibility: signing out while Home was the selected tab lands back on Library', () => {
+  resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
+  homeTabBtn.setAttribute('aria-selected', 'true');
+  updateHomeTabVisibility();
+  assert.equal(lastShowRouteCall, 'library');
+});
+
+test('updateHomeTabVisibility: signing out while Home was NOT selected never redirects', () => {
+  resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
+  homeTabBtn.setAttribute('aria-selected', 'false');
+  updateHomeTabVisibility();
+  assert.equal(lastShowRouteCall, null);
+});
+
+test('updateHomeTabVisibility: staying signed in and selected never redirects', () => {
+  resetHome({ social: { status(){ return { auth: 'ready' }; } } });
+  homeTabBtn.setAttribute('aria-selected', 'true');
+  updateHomeTabVisibility();
+  assert.equal(lastShowRouteCall, null);
+});
 
 test('renderHome: signed out shows its own sign-in card, never builds the shell, never Profile\'s identity editor', async () => {
   resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
