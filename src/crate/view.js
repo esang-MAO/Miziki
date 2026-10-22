@@ -26,7 +26,7 @@ import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
-  classifyCratePointerTrace, cratePullProgress, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
+  classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
@@ -1193,10 +1193,27 @@ export function renderCrate(host){
     clearHoldTimer();
     const ps = pullState;
     pullState = null;
-    if(ps.phase !== 'pull') return;   // 'pending'/'hold' have nothing left to release
-    const progress = cratePullProgress(ps.lastUpPx || 0, currentCardSize());
-    if(progress >= CRATE_PULL_COMMIT_FRACTION) commitPull(ps);
-    else springBackPull(ps);
+    if(ps.phase === 'pull'){
+      const progress = cratePullProgress(ps.lastUpPx || 0, currentCardSize());
+      if(progress >= CRATE_PULL_COMMIT_FRACTION) commitPull(ps);
+      else springBackPull(ps);
+      return;
+    }
+    if(ps.phase === 'hold') return;   // already handled by the hold timer
+    // phase === 'pending': the gesture never crossed the pull or flip
+    // threshold, and never held long enough either -- classifyCratePointer
+    // Trace() (model.js) correctly keeps a steadily-rising sub-threshold
+    // drag 'pending' right up to release, so it can't resolve this itself.
+    // A trace with real movement here is an aborted drag, not a tap -- mark
+    // it consumed and resolve the net displacement the same way the
+    // ordinary flip drag would, rather than letting the stage's pointerup
+    // handler fall through to opening the record.
+    if(cratePendingTraceMoved(ps.trace)){
+      gestureConsumed = true;
+      const netDy = ps.trace[ps.trace.length - 1].dy;
+      S.crate.pos = clampToSection(curSection(), S.crate.pos - netDy / 70);
+      snapTo(Math.round(S.crate.pos));
+    }
   }
 
   function openCrateHoldCard(item){
