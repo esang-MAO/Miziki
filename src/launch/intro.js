@@ -1,12 +1,22 @@
-/* ================= launch intro: plain records to the Miziki sleeve =================
-   CEREMONY §5 replaced the real-art riffle and title screen with a fixed
-   stack of plain records; a "Miziki" sleeve is caught, pulled to camera and
-   cross-faded into the app, which is already sitting on the empty slipmat.
-   Moved out of main.js (step 7c). Cold start only — see runLaunchSequence().
-   Fully independent of the sleeve pull/put-away: its own token
-   (S.launchSeq), its own overlay, removed from the DOM once it finishes or
-   is skipped. Never delays the app — restoreLibrary() (main.js) runs
-   underneath it from the first paint. */
+/* ================= launch intro: a dig through your crate =================
+   CEREMONY §5 replaced the original real-art riffle with a fixed stack of
+   plain records caught on a "Miziki" sleeve; this pass (Ken, Oct 21 2026)
+   brings it in line with the crate's own look and makes the catch mean
+   something. Eighteen clean sleeves flick past: your own covers wherever
+   their art is already in memory, the Miziki cover in every gap, so an
+   empty library is all Miziki sleeves and a full one is all yours. The
+   stack lands on the last-played album (the one main.js has already
+   primed in the mini-player), which lifts out of the stack (no amber
+   outline: CR1/CR8, amber never signals state) with a haptic tick where
+   the platform allows one, then comes to camera with its record sliding
+   out of the top in its own pressing (record-art/peek.js, the same peek
+   the crate's pull-up draws) before cross-fading into the app.
+   Never delays the app: restoreLibrary() (main.js) runs underneath it from
+   the first paint, and no card ever waits for art — anything not already
+   in memory gets the Miziki cover instead. Cold start only — see
+   runLaunchSequence(). Fully independent of the sleeve pull/put-away: its
+   own token (S.launchSeq), its own overlay, removed from the DOM once it
+   finishes or is skipped. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
@@ -15,6 +25,11 @@ import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { flowPose, flowZIndex } from '../crate/geometry.js';
+import { crateArtCache, getCrateArtURL } from '../crate/tiers.js';
+import { CRATE_PEEK_MAX_FRACTION } from '../crate/model.js';
+import { thumbURL } from '../library/thumbs.js';
+import { buildPeekDisc } from '../record-art/peek.js';
+import { hapticTick } from '../ui/haptic.js';
 
 // resolved by restoreLibrary() (main.js) once S.tracks/sessions/thumbnails
 // are in place — the launch intro races this against a timeout rather than
@@ -26,6 +41,7 @@ export function markLibraryReady(){ libraryReadyResolve(); }
 const LAUNCH_ANIM = {
   fadeMs: 250, accelMs: 650, cruiseMs: 800, decelMs: 800,
   catchMs: 300, pullMs: 600, crossfadeMs: 600,
+  liftPx: 28,
   skipMs: 150, readyWaitMs: 700,
   stackCount: 18,
   // distance share of the scroll each phase covers, by construction summing
@@ -74,10 +90,58 @@ export function resolveLastPlayedTrackIndex(albumId){
   return best;
 }
 
-// A fixed stack of plain records, the same on every launch (CEREMONY §5):
-// no album art is read, so nothing waits on thumbnails or crate tiers. The
-// "Miziki" sleeve is caught four from the end.
+// Eighteen sleeves, the last-played album caught four from the end. The
+// count and target position never change with library size — only what's
+// printed on each sleeve does (planLaunchStack()).
 const LAUNCH_STACK = { count: LAUNCH_ANIM.stackCount, targetIndex: LAUNCH_ANIM.stackCount - 4 };
+
+// Which album goes on each of the stack's sleeves: the target album at
+// targetIndex, and the other candidates (already ordered, best first)
+// spread evenly through the remaining slots, so a small library reads as
+// your covers with Miziki sleeves between rather than all at the front.
+// null means the Miziki cover. Pure; exported for its unit test.
+export function planLaunchStack(candidateIds, targetId, count, targetIndex){
+  const plan = new Array(count).fill(null);
+  if(targetId != null && targetIndex >= 0 && targetIndex < count) plan[targetIndex] = targetId;
+  const others = [];
+  for(let i = 0; i < count; i++) if(i !== targetIndex) others.push(i);
+  const ids = candidateIds.filter(id => id != null && id !== targetId).slice(0, others.length);
+  const k = ids.length;
+  for(let j = 0; j < k; j++){
+    plan[others[Math.floor(j * others.length / k)]] = ids[j];
+  }
+  return plan;
+}
+
+// An album's cover, but only if it's already sitting in memory right now —
+// the crate's small tier, the persisted thumbnail, or the track's own
+// embedded art. Never awaits anything: no art means the Miziki cover.
+function launchArtNow(albumId){
+  if(albumId == null) return null;
+  const cached = crateArtCache.S.get(albumId);
+  if(cached) return cached;
+  if(thumbURL['album:' + albumId]) return thumbURL['album:' + albumId];
+  const t = S.tracks.find(x => albumKey(x) === albumId);
+  return (t && t.art) || null;
+}
+
+// The albums worth printing on the stack, best first: most recently
+// played, then most recently added, and only ones with art in memory —
+// an album with no cover to show adds nothing a Miziki sleeve doesn't.
+function launchCandidates(){
+  const seen = new Map();
+  S.tracks.forEach(t => {
+    const id = albumKey(t);
+    const added = t.addedAt || 0;
+    const prev = seen.get(id);
+    if(!prev || added > prev.added) seen.set(id, {id, added});
+  });
+  const played = S.albumLastPlayed || {};
+  return Array.from(seen.values())
+    .filter(a => launchArtNow(a.id))
+    .sort((a, b) => ((played[b.id] || 0) - (played[a.id] || 0)) || (b.added - a.added))
+    .map(a => a.id);
+}
 
 // one scalar drives the whole flick: ease-in over accelMs, linear cruise,
 // ease-out over decelMs, landing exactly on `target` (see LAUNCH spec §3).
@@ -117,30 +181,45 @@ function launchCardPose(d, speed, spread){
   return { offset: p.y, tilt: p.rotX, scale: p.scale, depth: p.z, opacity: p.opacity,
     z: flowZIndex(a) };
 }
-function applyLaunchCardPose(el, pose, extraScale){
+function applyLaunchCardPose(el, pose, extraScale, liftPx){
   const scale = pose.scale * (extraScale == null ? 1 : extraScale);
-  el.style.transform = 'translateY(' + pose.offset.toFixed(1) + 'px) translateZ(' + pose.depth.toFixed(1) + 'px) '
+  const y = pose.offset - (liftPx || 0);
+  el.style.transform = 'translateY(' + y.toFixed(1) + 'px) translateZ(' + pose.depth.toFixed(1) + 'px) '
     + 'rotateX(' + pose.tilt.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')';
   el.style.opacity = pose.opacity;
   el.style.zIndex = pose.z;
 }
 
-// One card's DOM: a plain record, or the Miziki sleeve for the caught one.
-// Colour comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off
-// the resolved data-theme, so it matches the app before first paint. Only
-// built for indices inside the visible window, never all at once.
-function makeLaunchCard(index){
+// The Miziki cover: the wordmark set diagonally on a plain sleeve. Colour
+// comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off the
+// resolved data-theme, so it matches the app before first paint.
+function launchMizikiMark(){
+  const mark = document.createElement('div');
+  mark.className = 'launch-card-mark';
+  mark.innerHTML = 'Mi<span>zi</span>ki';
+  return mark;
+}
+
+// One card's DOM: a clean sleeve showing either an album's cover or the
+// Miziki cover. Only built for indices inside the visible window, never
+// all at once.
+function makeLaunchCard(index, plan){
   const el = document.createElement('div');
   el.className = 'launch-card';
   const face = document.createElement('div');
   face.className = 'launch-card-face';
-  if(index === LAUNCH_STACK.targetIndex){
-    el.classList.add('launch-target');
-    const mark = document.createElement('div');
-    mark.className = 'launch-card-mark';
-    mark.innerHTML = 'Mi<span>zi</span>ki';
-    face.appendChild(mark);
+  const art = launchArtNow(plan[index]);
+  if(art){
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.src = art;
+    face.appendChild(img);
+  } else {
+    face.classList.add('launch-card-miziki');
+    face.appendChild(launchMizikiMark());
   }
+  if(index === LAUNCH_STACK.targetIndex) el.classList.add('launch-target');
   el.appendChild(face);
   return el;
 }
@@ -161,15 +240,40 @@ export async function runLaunchSequence(){
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
 
+  // What's printed on each sleeve, decided once, from whatever the library
+  // has restored by now (the same ready race above — never waited on
+  // further). The target is the album main.js primes in the mini-player.
+  const targetId = resolveLastPlayedAlbum();
+  const plan = planLaunchStack(launchCandidates(), targetId, stack.count, stack.targetIndex);
+
   const stackEl = $('#launchStack');
   const cards = new Map();   // index -> element, only for the currently-visible window
   function syncCards(position, speed, spread){
     const lo = Math.max(0, Math.floor(position) - 8), hi = Math.min(stack.count - 1, Math.ceil(position) + 8);
     for(const i of Array.from(cards.keys())) if(i < lo || i > hi){ cards.get(i).remove(); cards.delete(i); }
-    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(i); stackEl.appendChild(el); cards.set(i, el); }
+    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(i, plan); stackEl.appendChild(el); cards.set(i, el); }
     cards.forEach((el, i) => applyLaunchCardPose(el, launchCardPose(i - position, speed, spread)));
   }
   syncCards(0, 0, 1);
+
+  // The one sleeve worth asking for: if the last-played album's cover isn't
+  // in memory yet, build its crate tier in the background. It nearly always
+  // arrives during the ~2.25s flick; if it doesn't, the catch simply shows
+  // the Miziki cover. Nothing ever waits on this.
+  if(targetId != null && !launchArtNow(targetId)){
+    getCrateArtURL(targetId, 'S').then(url => {
+      if(!url || cancelled()) return;
+      const card = cards.get(stack.targetIndex);
+      const face = card && card.querySelector('.launch-card-miziki');
+      if(face){
+        face.classList.remove('launch-card-miziki');
+        face.textContent = '';
+        const img = document.createElement('img');
+        img.alt = ''; img.decoding = 'async'; img.src = url;
+        face.appendChild(img);
+      }
+    }).catch(() => {});
+  }
 
   // swallow the first tap anywhere on the overlay: snap to the end instantly
   // rather than letting it also press whatever is underneath
@@ -215,23 +319,46 @@ export async function runLaunchSequence(){
     syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual speed-stretch
   }
 
-  // CATCH: amber outline (already on the target card's class), small settle
+  // CATCH: the last-played sleeve lifts out of the stack (CR5's pull, the
+  // crate's own way of taking a record out) and a haptic tick lands it
+  // where the platform allows one (ui/haptic.js — silent on iOS Safari,
+  // so the lift is what carries the moment there).
   const targetCard = cards.get(stack.targetIndex);
   if(targetCard){
-    targetCard.style.transition = 'transform ' + LAUNCH_ANIM.catchMs + 'ms ease-out';
-    void targetCard.offsetWidth;
-    targetCard.style.transform += ' scale(1.015)';
-    await sleep(LAUNCH_ANIM.catchMs / 2);
-    if(cancelled()) return;
-    applyLaunchCardPose(targetCard, launchCardPose(0, 0, 1));
+    hapticTick();
+    targetCard.classList.add('launch-lifted');
+    const liftStart = performance.now();
+    await new Promise(resolve => {
+      function step(now){
+        if(cancelled()){ resolve(); return; }
+        const p = clamp((now - liftStart) / LAUNCH_ANIM.catchMs, 0, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        applyLaunchCardPose(targetCard, launchCardPose(0, 0, 1), 1, LAUNCH_ANIM.liftPx * eased);
+        if(p >= 1){ resolve(); return; }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  } else {
+    await sleep(LAUNCH_ANIM.catchMs);
   }
-  await sleep(LAUNCH_ANIM.catchMs / 2);
   if(cancelled()) return;
 
-  // PULL TO CAMERA: the sleeve scales up to face-on; neighbours spread apart,
-  // dim and fade (opacity only, no blur); the wordmark grows
+  // PULL TO CAMERA: the sleeve scales up to face-on while its record
+  // slides out of the top in its own pressing (record-art/peek.js — the
+  // same drawing as the crate's pull-up, rising to the same quarter of the
+  // card); neighbours spread apart, dim and fade (opacity only, no blur);
+  // the wordmark grows
   const wordmarkEl = $('#launchWordmark');
   wordmarkEl.classList.add('launch-grown');
+  let peekEl = null;
+  if(targetCard){
+    const targetTrack = targetId != null ? (S.tracks.find(t => albumKey(t) === targetId) || null) : null;
+    peekEl = buildPeekDisc(targetTrack);
+    peekEl.classList.add('launch-peek');
+    targetCard.insertBefore(peekEl, targetCard.firstChild);
+  }
+  const cardSize = targetCard ? (targetCard.offsetHeight || 278) : 278;
   const pullStart = performance.now();
   await new Promise(resolve => {
     function step(now){
@@ -240,11 +367,12 @@ export async function runLaunchSequence(){
       const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
       const spread = 1 + 1.2*eased;   // neighbours spread ~1.7x-2.2x by the end
       cards.forEach((el, i) => {
-        if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased); return; }
+        if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased, LAUNCH_ANIM.liftPx); return; }
         const pose = launchCardPose(i - stack.targetIndex, 0, spread);
         pose.opacity = Math.max(0, pose.opacity) * (1 - 0.9*eased);
         applyLaunchCardPose(el, pose);
       });
+      if(peekEl) peekEl.style.transform = 'translateY(' + (-(cardSize * CRATE_PEEK_MAX_FRACTION * eased)).toFixed(1) + 'px)';
       if(p >= 1){ resolve(); return; }
       requestAnimationFrame(step);
     }

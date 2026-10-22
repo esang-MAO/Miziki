@@ -25,6 +25,7 @@ const {
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
   CRATE_HORIZONTAL_MIN_PX, CRATE_HORIZONTAL_RATIO,
   CRATE_SECTION_COMMIT_PX, CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS,
+  cratePeekRise, CRATE_PEEK_RISE_RATE, CRATE_PEEK_MAX_FRACTION,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -559,4 +560,18 @@ test('crateSectionDragCommits: commits past the distance threshold, or sooner on
   assert.equal(crateSectionDragCommits(CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS + 1), false, 'too slow to count as a flick');
   assert.equal(crateSectionDragCommits(CRATE_SECTION_FLICK_PX - 1, 10), false, 'too short even though it\'s fast');
   assert.equal(crateSectionDragCommits(-CRATE_SECTION_COMMIT_PX, 10000), true, 'sign-independent');
+});
+
+test('cratePeekRise: nothing at rest or for a downward drag, then grows with the pull', () => {
+  assert.equal(cratePeekRise(0, 278), 0);
+  assert.equal(cratePeekRise(-20, 278), 0);
+  assert.equal(cratePeekRise(50, 278), 50 * CRATE_PEEK_RISE_RATE);
+  assert.ok(cratePeekRise(80, 278) > cratePeekRise(40, 278));
+});
+
+test('cratePeekRise: stops at a quarter of the card, so the record never fully leaves before the pull commits', () => {
+  const cap = 278 * CRATE_PEEK_MAX_FRACTION;
+  assert.equal(cratePeekRise(1000, 278), cap);
+  // still capped well before the commit threshold's own travel (40% of the card)
+  assert.equal(cratePeekRise(278 * 0.4, 278), Math.min(278 * 0.4 * CRATE_PEEK_RISE_RATE, cap));
 });

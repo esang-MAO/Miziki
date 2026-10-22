@@ -12,10 +12,30 @@ globalThis.document = {
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
 });
+// The intro's art lookup, the peek disc and the haptic tick are all
+// browser-only (object URLs, the crate tiers' IndexedDB reads, the
+// pressing look chain through record-art/looks.js) and none of them are
+// what this file tests — stopped at the door, the same way every other
+// mock-heavy file in this suite does.
+mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
+  namedExports: { crateArtCache: { S: new Map(), L: new Map() }, async getCrateArtURL(){ return null; } },
+});
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { CRATE_PEEK_MAX_FRACTION: 0.26 },
+});
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { thumbURL: {} },
+});
+mock.module(new URL('../../src/record-art/peek.js', import.meta.url).href, {
+  namedExports: { buildPeekDisc(){ return {}; } },
+});
+mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
+  namedExports: { hapticTick(){} },
+});
 
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,
-  computeFlickPosition, flickSpeed,
+  computeFlickPosition, flickSpeed, planLaunchStack,
 } = await import('../../src/launch/intro.js');
 const { S } = await import('../../src/state.js');
 
@@ -108,8 +128,43 @@ test('flickSpeed: ramps up through accel, holds at 1 through cruise, ramps down 
   assert.equal(flickSpeed(2250, timing), 0);
 });
 
-test('computeFlickPosition: the fixed 18-record stack lands exactly on the Miziki sleeve, four from the end', () => {
+test('computeFlickPosition: the fixed 18-record stack lands exactly on the caught sleeve, four from the end', () => {
   const timing = { accelMs: 650, cruiseMs: 800, decelMs: 800 };
   assert.equal(computeFlickPosition(0, 14, timing), 0);
   assert.ok(Math.abs(computeFlickPosition(2250, 14, timing) - 14) < 1e-9);
+});
+
+test('planLaunchStack: an empty library is all Miziki covers', () => {
+  const plan = planLaunchStack([], null, 18, 14);
+  assert.equal(plan.length, 18);
+  assert.ok(plan.every(id => id === null));
+});
+
+test('planLaunchStack: the last-played album always sits at the target index', () => {
+  const plan = planLaunchStack(['b', 'c'], 'a', 18, 14);
+  assert.equal(plan[14], 'a');
+});
+
+test('planLaunchStack: a small library spreads its covers through the stack, Miziki covers between', () => {
+  const plan = planLaunchStack(['b', 'c', 'd'], 'a', 18, 14);
+  const covers = plan.map((id, i) => [id, i]).filter(([id, i]) => id && i !== 14);
+  assert.deepEqual(covers.map(([id]) => id), ['b', 'c', 'd']);
+  // not bunched at the front: the three land roughly a third of the way apart
+  const slots = covers.map(([, i]) => i);
+  assert.ok(slots[1] - slots[0] >= 4 && slots[2] - slots[1] >= 4);
+  assert.equal(plan.filter(id => id === null).length, 18 - 4);
+});
+
+test('planLaunchStack: a full library fills every sleeve, and never repeats the target elsewhere', () => {
+  const ids = Array.from({length: 40}, (_, i) => 'x' + i);
+  const plan = planLaunchStack(['a'].concat(ids), 'a', 18, 14);
+  assert.ok(plan.every(id => id !== null));
+  assert.equal(plan.filter(id => id === 'a').length, 1);
+  assert.deepEqual(plan.filter((_, i) => i !== 14), ids.slice(0, 17));
+});
+
+test('planLaunchStack: no target (an empty play history in an empty library) leaves the catch on a Miziki cover', () => {
+  const plan = planLaunchStack(['b'], null, 18, 14);
+  assert.equal(plan[14], null);
+  assert.equal(plan.filter(Boolean).length, 1);
 });

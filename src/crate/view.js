@@ -22,11 +22,12 @@ import { isLibraryRouteVisible } from '../shell/routes.js';
 import { openAddMenu } from '../shell/header.js';
 import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
+import { buildPeekDisc } from '../record-art/peek.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
-  classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
+  classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, cratePeekRise, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
 } from './model.js';
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
@@ -997,7 +998,7 @@ export function renderCrate(host){
     const dx = e.clientX - hStartX, dy = e.clientY - hStartY;
     if(!isHorizontalCrateDrag(dx, dy)) return false;
     hActive = true; gestureConsumed = true;
-    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; dropPullPeek(pullState); pullState = null; }
     dragState = null;
     return true;
   }
@@ -1163,10 +1164,39 @@ export function renderCrate(host){
   function setPullLift(ps, upPx){
     ps.lastUpPx = upPx;
     ps.cardEl.style.transform = ps.baseTransform + ' translateY(' + (-upPx).toFixed(1) + 'px)';
+    setPullPeek(ps, upPx);
+  }
+
+  // The pressing peek (record-art/peek.js): as the front sleeve rises, its
+  // record rises faster and slides out of the top in the album's own
+  // pressing — the "record slides out of the sleeve as it rises" half of
+  // CR5's pull that the lift alone never drew. Built lazily on the first
+  // real pull frame, a sibling just behind the card (never a child: the
+  // card clips its own overflow), and dropped on every way a pull ends.
+  function setPullPeek(ps, upPx){
+    const size = currentCardSize();
+    if(!ps.peekEl){
+      const t = S.tracks[ps.item.idx && ps.item.idx[0]] || null;
+      const discSize = Math.round(size * 0.92);
+      const disc = buildPeekDisc(t);
+      disc.style.width = disc.style.height = discSize + 'px';
+      disc.style.left = '50%';
+      disc.style.marginLeft = (-discSize / 2) + 'px';
+      disc.style.top = ((size - discSize) / 2) + 'px';
+      disc.style.zIndex = String((parseInt(ps.cardEl.style.zIndex, 10) || 90) - 1);
+      ps.cardEl.parentNode.insertBefore(disc, ps.cardEl);
+      ps.peekEl = disc;
+    }
+    const extra = cratePeekRise(upPx, size);
+    ps.peekEl.style.transform = ps.baseTransform + ' translateY(' + (-(upPx + extra)).toFixed(1) + 'px)';
+  }
+  function dropPullPeek(ps){
+    if(ps && ps.peekEl){ ps.peekEl.remove(); ps.peekEl = null; }
   }
 
   function commitPull(ps){
     ps.cardEl.style.transform = ps.baseTransform;
+    dropPullPeek(ps);
     // The README's "the gatefold opens with the disc already out" entrance
     // choreography doesn't exist yet — openGatefold() has no hook for
     // "start with the disc already pulled" today. Opening it the plain way
@@ -1181,9 +1211,11 @@ export function renderCrate(host){
     function step(now){
       const p = clamp((now - start) / dur, 0, 1);
       const eased = 1 - Math.pow(1 - p, 3);
-      el.style.transform = base + ' translateY(' + (-(from * (1 - eased))).toFixed(1) + 'px)';
+      const up = from * (1 - eased);
+      el.style.transform = base + ' translateY(' + (-up).toFixed(1) + 'px)';
+      if(ps.peekEl) ps.peekEl.style.transform = base + ' translateY(' + (-(up + cratePeekRise(up, currentCardSize()))).toFixed(1) + 'px)';
       if(p < 1) requestAnimationFrame(step);
-      else el.style.transform = base;
+      else { el.style.transform = base; dropPullPeek(ps); }
     }
     requestAnimationFrame(step);
   }
@@ -1294,7 +1326,7 @@ export function renderCrate(host){
       if(cls === 'pull'){ pullState.phase = 'pull'; gestureConsumed = true; clearHoldTimer(); }
       else if(cls === 'flip'){
         clearHoldTimer();
-        pullState.cardEl.style.transform = pullState.baseTransform;
+        pullState.cardEl.style.transform = pullState.baseTransform; dropPullPeek(pullState);
         pullState = null;
         beginFlipDrag(e, true);
         return;
@@ -1325,7 +1357,7 @@ export function renderCrate(host){
   });
   stage.addEventListener('pointercancel', () => {
     if(hActive){ springBackHorizontal(); hActive = false; return; }
-    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; dropPullPeek(pullState); pullState = null; }
     endDrag();
   });
 
@@ -1337,7 +1369,7 @@ export function renderCrate(host){
     const front = frontRecordAt(e);
     if(!front) return;
     e.preventDefault();
-    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; pullState = null; }
+    if(pullState){ clearHoldTimer(); pullState.cardEl.style.transform = pullState.baseTransform; dropPullPeek(pullState); pullState = null; }
     openCrateHoldCard(front.item);
   });
 
