@@ -28,6 +28,7 @@ import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
 import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { performPendingFlip, liftNeedleNow } from '../shell/runout.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -75,6 +76,13 @@ export function wireTransport(){
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
+
+  // docs/15_SURFACE_NOISE.md §4: the player's own discoverable way to flip
+  // a waiting record (#flipPrompt) or, for "Until I lift it" only, lift
+  // the needle without flipping (#liftNeedleBtn) -- both only ever shown
+  // while S.runout.kind === 'wait' (shell/runout.js's own updateWaitUI()).
+  $('#flipPrompt').addEventListener('click', performPendingFlip);
+  $('#liftNeedleBtn').addEventListener('click', liftNeedleNow);
 
   // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
   // session" -- a menuitemcheckbox in the player's own "···" menu, not a

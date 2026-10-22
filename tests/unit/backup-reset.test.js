@@ -58,7 +58,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
   namedExports: { runStartSequence(){} },
 });
 mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
-  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){} },
+  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){}, performPendingFlip(){ return false; } },
 });
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },

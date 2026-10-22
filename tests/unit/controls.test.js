@@ -31,6 +31,7 @@ function fakeEl(){
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
       contains(c){ return classes.has(c); },
+      toggle(c, on){ if(on === undefined ? !classes.has(c) : on) classes.add(c); else classes.delete(c); },
     },
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
     addEventListener(){}, appendChild(child){ return child; },
@@ -66,8 +67,14 @@ mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, 
 });
 // CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
 // shell/runout.js, whose real chain reaches library/view.js — stop it here.
+// docs/15_SURFACE_NOISE.md §4: nextTrack()/prevTrack() now import
+// performPendingFlip too, for the Auto-flip-Off waiting case.
+const performPendingFlipMock = mock.fn();
 mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
-  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){} },
+  namedExports: {
+    endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; },
+    clearToRest(){}, performPendingFlip: performPendingFlipMock,
+  },
 });
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
@@ -100,7 +107,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
 });
 
-const { toggleShuffle, cycleRepeat } = await import('../../src/player/controls.js');
+const { nextTrack, prevTrack, toggleShuffle, cycleRepeat } = await import('../../src/player/controls.js');
 const { setMode } = await import('../../src/audio/mode.js');
 const { computeRate } = await import('../../src/sundown/solar.js');
 const { S } = await import('../../src/state.js');
@@ -111,8 +118,10 @@ function resetState(overrides){
     index: 0, playing: false, pos: 0,
     baseQueue: [0], queue: [0], qpos: 0, shuffle: false, repeat: 'off',
     mode: 'vinyl', source: null, nodes: null, auto: false, target: 1,
+    runout: null,
   }, overrides);
   playMock.mock.resetCalls(); pauseMock.mock.resetCalls(); seekMock.mock.resetCalls();
+  performPendingFlipMock.mock.resetCalls();
   elCache.clear();
 }
 
@@ -170,6 +179,33 @@ test('setMode switches routing: pure connects to master, vinyl connects to wobbl
   setMode('vinyl');
   assert.equal(S.mode, 'vinyl');
   assert.equal(wobbleConnect.mock.calls.length, 1);
+});
+
+// docs/15_SURFACE_NOISE.md §4: with the record waiting in the run-out for a
+// flip (Auto-flip Off), Next/Previous (including the lock-screen/
+// headphone/car controls, which call these same two functions) perform the
+// flip instead of skipping — there's no "next"/"previous" track to lift to
+// yet, since side B hasn't loaded.
+test('nextTrack performs the pending flip instead of skipping, while the record is waiting', () => {
+  resetState({ runout: { kind: 'wait', n: 1, to: 'B' } });
+  nextTrack();
+  assert.equal(performPendingFlipMock.mock.calls.length, 1);
+  assert.equal(playMock.mock.calls.length, 0);
+  assert.equal(pauseMock.mock.calls.length, 0);
+});
+
+test('prevTrack performs the same pending flip while waiting', () => {
+  resetState({ runout: { kind: 'wait', n: 1, to: 'B' }, pos: 10 });
+  prevTrack();
+  assert.equal(performPendingFlipMock.mock.calls.length, 1);
+});
+
+test('nextTrack/prevTrack never touch performPendingFlip once nothing is waiting', () => {
+  resetState({ runout: null });
+  nextTrack();
+  resetState({ runout: {kind:'end'} });
+  prevTrack();
+  assert.equal(performPendingFlipMock.mock.calls.length, 0);
 });
 
 test('setMode leaves the F1 Pure-rate rule intact: computeRate() is always 1 in Pure', () => {
