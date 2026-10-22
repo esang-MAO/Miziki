@@ -98,14 +98,13 @@ export function wireLibraryView(){
   });
 
   // RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
-  // Select and Library tools both moved here off the tabs row.
+  // Select moved here off the tabs row. Ken, 2026-10-22: Library tools
+  // itself moved out again, to Profile › Settings — this menu's own
+  // #libOverflowToolsBtn row went with it (see shell/header.js's
+  // openLibOverflowMenu()/closeLibOverflowMenu() and profile/screens.js's
+  // renderAppSettingsScreen()).
   $('#hdrOverflowBtn').addEventListener('click', ()=> isLibOverflowMenuOpen() ? closeLayer('lib-overflow-menu') : openLibOverflowMenu());
   $('#libOverflowScrim').addEventListener('click', () => closeLayer('lib-overflow-menu'));
-  $('#libOverflowToolsBtn').addEventListener('click', ()=>{
-    forceCloseLayer('lib-overflow-menu');
-    if(!$('#libToolsPanel').classList.contains('open')) $('#libToolsToggle').click();
-    $('#libTools').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
 
   $('#selectToggle').addEventListener('click', ()=>{ forceCloseLayer('lib-overflow-menu'); enterSelectMode(); });
   $('#selectCancel').addEventListener('click', exitSelectMode);

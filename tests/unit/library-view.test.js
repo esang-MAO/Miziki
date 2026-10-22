@@ -104,11 +104,25 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
     },
   },
 });
-globalThis.document = { querySelectorAll(){ return []; }, activeElement: null };
+// Ken, 2026-10-22: the Library scroll lock -- renderTracks() now also calls
+// updateLibBodyInset() (this same module), which reads
+// document.getElementById('#route-library') to confirm the Library route
+// is actually on screen before touching #libBody's own style. Not "on" by
+// default, the same "not the active route" default every other test here
+// already assumes, so updateLibBodyInset() is a no-op unless a test
+// explicitly marks the route as on.
+const routeLibraryEl = fakeEl('route-library');
+globalThis.document = {
+  querySelectorAll(){ return []; },
+  activeElement: null,
+  documentElement: fakeEl('html'),
+  getElementById(id){ return id === 'route-library' ? routeLibraryEl : null; },
+};
+globalThis.getComputedStyle = () => ({ getPropertyValue(){ return ''; } });
 // NV3: captureScrollAnchor()/restoreScrollAnchor() (library/view.js) read
 // window.scrollBy -- a mock.fn so a test can assert on it.
 const scrollByMock = mock.fn();
-globalThis.window = { scrollBy: scrollByMock, scrollTo(){} };
+globalThis.window = { scrollBy: scrollByMock, scrollTo(){}, innerHeight: 800 };
 
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { fmt(s){ return String(s); } },
@@ -184,6 +198,7 @@ const view = await import('../../src/library/view.js');
 const {
   songRow, groupRow, enterSelectMode, exitSelectMode, closeRowMenu,
   openConfirmDelete, closeConfirmDelete, renderTracks, updateTrackRow,
+  updateLibBodyInset,
 } = view;
 const { S } = await import('../../src/state.js');
 
@@ -292,6 +307,53 @@ test('renderTracks: crate mode delegates to renderCrate() and skips the songs li
   resetState({ tracks: [fakeTrack('a')], view: { mode: 'crate', group: null, playlist: null } });
   renderTracks();
   assert.equal(renderCrateMock.mock.callCount(), 1);
+});
+
+// Ken, 2026-10-22: the Library scroll lock (shell/routes.js's showRoute())
+// means #libBody can no longer rely on page scroll -- updateLibBodyInset()
+// is what gives it its own internal scroll region instead.
+test('updateLibBodyInset: a no-op when Library isn\'t the route on screen', () => {
+  resetState({ tracks: [fakeTrack('a')] });
+  routeLibraryEl.classList.remove('on');
+  const host = elCache.get('#libBody') || (() => { const h = fakeEl(); elCache.set('#libBody', h); return h; })();
+  host.style.maxHeight = 'untouched';
+  updateLibBodyInset();
+  assert.equal(host.style.maxHeight, 'untouched');
+});
+
+test('updateLibBodyInset: gives #libBody a scrollable max-height in Songs/Artists/Playlists view', () => {
+  resetState({ tracks: [fakeTrack('a')], view: { mode: 'songs', group: null, playlist: null } });
+  routeLibraryEl.classList.add('on');
+  updateLibBodyInset();
+  const host = elCache.get('#libBody');
+  assert.ok(host.style.maxHeight.endsWith('px'));
+  assert.equal(host.style.overflowY, 'auto');
+  routeLibraryEl.classList.remove('on');
+});
+
+test('updateLibBodyInset: Crate view is exempt -- it already fits itself to the viewport (applyCrateMiniInset) and never relied on page scroll', () => {
+  resetState({ tracks: [fakeTrack('a')], view: { mode: 'crate', group: null, playlist: null } });
+  routeLibraryEl.classList.add('on');
+  const host = elCache.get('#libBody') || (() => { const h = fakeEl(); elCache.set('#libBody', h); return h; })();
+  host.style.maxHeight = '400px';
+  host.style.overflowY = 'auto';
+  updateLibBodyInset();
+  assert.equal(host.style.maxHeight, '');
+  assert.equal(host.style.overflowY, '');
+  routeLibraryEl.classList.remove('on');
+});
+
+test('updateLibBodyInset: a live search over Crate still needs its own scroll, since search results render into #libBody regardless of view mode', () => {
+  resetState({ tracks: [fakeTrack('a')], view: { mode: 'crate', group: null, playlist: null } });
+  routeLibraryEl.classList.add('on');
+  const search = elCache.get('#librarySearch') || (() => { const h = fakeEl(); elCache.set('#librarySearch', h); return h; })();
+  search.value = 'a';
+  updateLibBodyInset();
+  const host = elCache.get('#libBody');
+  assert.ok(host.style.maxHeight.endsWith('px'));
+  assert.equal(host.style.overflowY, 'auto');
+  routeLibraryEl.classList.remove('on');
+  search.value = '';
 });
 
 test('songRow: clicking a row calls setQueue with its own queue/position', () => {

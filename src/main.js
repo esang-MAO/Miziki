@@ -106,6 +106,14 @@ scheduleMidnightRecompute();   // DA1: keeps the day model from going stale over
 scheduleDriftRecompute();      // DA2: keeps Vinyl's character drift tracking the day
 updateChromeInset();
 window.addEventListener('resize', updateChromeInset);
+// Ken, 2026-10-22: the Library route's own lock/inset (shell/routes.js's
+// showRoute()) is only ever applied inside showRoute() itself -- the
+// default .route.on state is static HTML with no matching JS call, so
+// without this the lock/inset would never actually take effect on a fresh
+// load, only once the user later switched away from and back to Library.
+// Called after updateChromeInset() above so --chrome-inset is already set
+// by the time updateLibBodyInset() reads it.
+showRoute('library');
 requestAnimationFrame(frame);
 restoreLibrary();   // runs underneath the launch intro below; never waits on it
 // REDUCED and document.hidden are known synchronously; S.launchIntro's

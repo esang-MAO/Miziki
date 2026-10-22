@@ -35,19 +35,18 @@ export function updateLibTabsForLayout(){
   else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
 }
 
-// RF8 (docs/12_REFINE.md): Library tools lives in static markup under
-// #route-library now (moved there from #route-profile, since it's one of
-// the library header's own overflow menu items — see wireLibraryView()'s
-// own #libOverflowToolsBtn handler), so re-renders of #libBody never
-// destroy its listeners (S1 §5's original implementation note, same
-// reasoning, new route); this just refreshes its visibility, counts and
-// row states.
+// Ken, 2026-10-22: Library tools moved out of #route-library's own overflow
+// menu (RF8's placement) back to Profile › Settings, parked in
+// #libToolsStash the rest of the time (profile/screens.js's own
+// parkLibraryTools()/renderAppSettingsScreen(), the same stash shape
+// #playbackSettings already uses). Its visibility is governed entirely by
+// which DOM parent currently holds it, not by which route is active, so
+// this only refreshes its counts/row states, never a display toggle of its
+// own — the stash itself, and renderAppSettingsScreen()'s own "Playback &
+// behavior"-style section it's appended into, are what show or hide it.
 export function refreshLibraryTools(){
   const tools = $('#libTools');
   if(!tools) return;
-  const onLibrary = isLibraryRouteVisible();
-  tools.style.display = onLibrary ? 'block' : 'none';
-  if(!onLibrary) return;
   const hasTracks = S.tracks.length > 0;
   $('#libToolsBody').style.display = hasTracks ? '' : 'none';
   $('#libToolsFooter').textContent = hasTracks

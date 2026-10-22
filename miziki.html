@@ -201,7 +201,6 @@
     <div class="overflow-scrim" id="libOverflowScrim"></div>
     <div class="overflow-menu" id="libOverflowMenu" role="menu">
       <button class="overflow-menu-row lib-select-tab" id="selectToggle" role="menuitem">Select</button>
-      <button class="overflow-menu-row" id="libOverflowToolsBtn" role="menuitem">Library tools</button>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
@@ -214,15 +213,32 @@
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
     <div id="libBody"></div>
+  </section>
 
-    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderTracks()'s own
-         host.innerHTML reset elsewhere in #libBody) so its listeners
-         survive every re-render — see S1 spec §5's original implementation
-         note. RF8 (docs/12_REFINE.md) moved this here from #route-profile,
-         since it's now reached from this route's own overflow menu
-         (#libOverflowToolsBtn) rather than from the profile home screen;
-         refreshed by refreshLibraryTools(). -->
-    <div class="lib-tools" id="libTools" style="display:none">
+  <!-- HOME: social feed, hidden via the tab button until social is configured -->
+  <section class="route" id="route-home" role="main">
+    <div id="homeBody"></div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="route" id="route-profile" role="main">
+    <div class="crumb" id="profileCrumb" style="display:none"></div>
+    <div id="profileBody"></div>
+    <input id="profilePicFile" type="file" accept="image/*">
+    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s own
+         innerHTML reset elsewhere, or by renderTracks() back when this
+         lived in #route-library) so its listeners survive every re-render
+         — see S1 spec §5's original implementation note. RF8 (docs/
+         12_REFINE.md) had moved this into #route-library's own overflow
+         menu; Ken, 2026-10-22, asked to move it back out, this time to
+         Profile › Settings rather than the old pre-RF8 profile home
+         screen — parked here, hidden, like #playbackSettingsStash right
+         below, and moved into Profile › Settings by
+         renderAppSettingsScreen(); moved back by renderProfile() (via
+         parkLibraryTools()) before the body is wiped on any screen
+         change. Refreshed by refreshLibraryTools(). -->
+    <div id="libToolsStash" style="display:none">
+    <div class="lib-tools" id="libTools">
       <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
         <span class="lib-tools-plus">+</span>
         <span class="lib-tools-label">Library tools</span>
@@ -285,18 +301,7 @@
         <p class="note" id="pathNote"></p>
       </div>
     </div>
-  </section>
-
-  <!-- HOME: social feed, hidden via the tab button until social is configured -->
-  <section class="route" id="route-home" role="main">
-    <div id="homeBody"></div>
-  </section>
-
-  <!-- PROFILE -->
-  <section class="route" id="route-profile" role="main">
-    <div class="crumb" id="profileCrumb" style="display:none"></div>
-    <div id="profileBody"></div>
-    <input id="profilePicFile" type="file" accept="image/*">
+    </div>
     <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
          survive renderProfile()'s innerHTML reset. Parked here, hidden, and
          moved into Profile › Settings by renderAppSettingsScreen(); moved
