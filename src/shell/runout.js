@@ -5,6 +5,7 @@ import { REDUCED } from '../util/motion.js';
 import { isDesktopShell } from '../util/viewport.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { applyDiscVariant } from '../record-art/looks.js';
+import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import { albumTracks } from '../library/model.js';
 import { renderTracks } from '../library/view.js';
 import { load, play, pause } from '../player/transport.js';
@@ -93,6 +94,7 @@ export function clearToRest(){
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   $('#labelTitle').textContent = '';
+  applyDeadWaxEtching(null, '');
   applyDiscVariant(null);
   if(S.playerOpen && !isDesktopShell()) forceCloseLayer('player');
   $('#platterBox').classList.add('disc-hidden');

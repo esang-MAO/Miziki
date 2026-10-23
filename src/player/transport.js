@@ -24,6 +24,7 @@ import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { realDayPosition } from '../sundown/solar.js';
 import { trackTier } from '../record-art/tiers.js';
+import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
   playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC
@@ -110,6 +111,9 @@ export function load(i){
   S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
   const arcText = $('#labelArcText');
   if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  // SURFACE_NOISE §5: the dead-wax etching, same as every other
+  // written-at-load platter readout just above it.
+  applyDeadWaxEtching(t, sideLetterFor(t, i));
   $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
     m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
   setPathNote('');

@@ -838,6 +838,20 @@
       <div class="platter-box disc-hidden" id="platterBox">
         <div class="disc" id="disc">
           <div class="disc-fade" id="discFade" aria-hidden="true"></div>
+          <!-- SURFACE_NOISE §5: the dead-wax etching -- a matrix line plus a
+               short mark, scratched into the ungrooved band between the
+               groove and the label. Faded up purely by the existing
+               .platter-stage.runout class (src/shell/runout.js already
+               toggles it for every run-out moment -- no change needed
+               there), magnified via a long-press loupe (src/player/scrub.js).
+               Generated client-side, seeded from the release id, and
+               written at track load (player/transport.js) -- see
+               src/record-art/etchings.js. -->
+          <svg class="dead-wax" id="deadWax" viewBox="0 0 200 200" aria-hidden="true">
+            <defs><path id="deadWaxPath" d="M 50 100 A 50 50 0 1 1 150 100"></path></defs>
+            <text><textPath href="#deadWaxPath" startOffset="18%" id="deadWaxMatrixText"></textPath></text>
+            <text><textPath href="#deadWaxPath" startOffset="60%" id="deadWaxMessageText"></textPath></text>
+          </svg>
           <!-- RF15 (docs/12_REFINE.md, "the record store in the surfaces"):
                the label carries the record -- album title, plus a small mono
                arc of real data (current RPM, side, stereo/mono), the way an

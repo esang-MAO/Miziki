@@ -4,6 +4,7 @@ import { clamp } from '../util/math.js';
 import { drawTime } from './clock.js';
 import { pause, play, seek } from './transport.js';
 import { queueSave } from '../storage/meta.js';
+import { setDeadWaxMagnified } from '../record-art/etchings.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
 // alongside the sliders (not its own top-level S field) since it's saved
@@ -37,6 +38,16 @@ export const SCRUB_SEC_PER_ROTATION = 30;
 export const SCRATCH_SEC_PER_ROTATION = 1.8;
 const SCRUB_CLAIM_THRESHOLD_DEG = 8;
 let scrubGesture = null;
+
+// SURFACE_NOISE §5: long-press the disc to bring up a loupe over the
+// dead-wax etching. A plain timer, not part of scrubGesture's own state --
+// cleared the moment a touch is claimed as a real scrub/scratch (so holding
+// still then rotating never also magnifies) and on release either way.
+const DEAD_WAX_LONG_PRESS_MS = 500;
+let longPressTimer = null;
+function clearLongPressTimer(){
+  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+}
 
 /* ---- F2: the scratch worklet ----
    A decoded track is tens of MB, and GitHub Pages can't send the headers
@@ -179,6 +190,8 @@ export function wireSpinToScrub(){
     const ang = pointerAngle(e.clientX, e.clientY, rect);
     scrubGesture = {pointerId:e.pointerId, startAngle:ang, lastAngle:ang, claimed:false,
       wasPlaying:S.playing, hapticAccum:0, scratching:false};
+    clearLongPressTimer();
+    longPressTimer = setTimeout(() => { longPressTimer = null; setDeadWaxMagnified(true); }, DEAD_WAX_LONG_PRESS_MS);
   });
   window.addEventListener('pointermove', e => {
     if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
@@ -191,6 +204,7 @@ export function wireSpinToScrub(){
       // ordinary drag/scroll can still win if this wasn't really a spin
       if(Math.abs(angleDelta(ang, scrubGesture.startAngle)) < SCRUB_CLAIM_THRESHOLD_DEG) return;
       scrubGesture.claimed = true;
+      clearLongPressTimer();
       try{ disc.setPointerCapture(e.pointerId); }catch(_err){}
       if(S.playing) pause();               // silence the normal transport during a scrub...
       // ...replaced by real scratch audio if Vinyl + Scratch are both on.
@@ -226,6 +240,8 @@ export function wireSpinToScrub(){
     if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
     const {claimed, wasPlaying, scratching} = scrubGesture;
     scrubGesture = null;
+    clearLongPressTimer();
+    setDeadWaxMagnified(false);
     if(scratching) stopScratch();
     if(claimed){ seek(S.pos); if(wasPlaying) play(); }
   };

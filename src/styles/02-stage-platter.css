@@ -120,6 +120,24 @@
    the disc's own base shadow (line 29 above), never replacing it. */
 .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(170,240,160,.55)}
 :root[data-theme="dark"] .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 28px rgba(170,240,160,.75)}
+
+/* SURFACE_NOISE §5: dead-wax etchings -- hidden at rest (the .runout fade-up
+   is in 03-sleeve-pull.css, alongside the label-glow run-out rule it rides
+   with), never via a JS display toggle. Default ink is light, for the
+   ordinary dark-pressing disc; ultra-clear/picture-disc (CR7's two
+   art-backed rares -- record-art/looks.js's discLook()) are light/clear
+   pressings and get dark ink instead, per the spec's own "lighter on dark
+   pressings, darker on clear/light pressings" rule. Long-press magnifies via
+   .magnified (src/player/scrub.js's long-press timer), independent of
+   .runout so the loupe also works outside a run-out moment. */
+.dead-wax{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
+  opacity:0;transform-origin:50% 50%;
+  transition:opacity .9s ease-in-out,transform .25s ease-out}
+.dead-wax.magnified{opacity:1;transform:scale(1.9)}
+.dead-wax text{font-family:var(--data);font-size:5.5px;letter-spacing:.08em;fill:rgba(255,255,255,.4)}
+.dead-wax #deadWaxMessageText{font-size:5px}
+.disc[data-variant="ultra-clear"] .dead-wax text,
+.disc[data-variant="picture-disc"] .dead-wax text{fill:rgba(0,0,0,.4)}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
 .t-dur{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
 /* NV6 (docs/11_SMOOTH_NAVIGATION.md): a library of thousands of rows costs
