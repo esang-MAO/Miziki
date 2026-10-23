@@ -89,7 +89,7 @@ The film carries the message; no orange.
 | milk | `rgba(255,255,255,.04)` over the whole cover (film lowers contrast) |
 | specular band | `linear-gradient(118deg, …)` with `#DDEBF2` at 14% peak, a second band at 9%; tinted 30% with the current phase colour |
 | film edge | 1 px `rgba(255,255,255,.18)` inset border, plus one crease line `rgba(255,255,255,.22)` at −0.6° near the top |
-| tear strip | bottom 22 px, bone `rgba(244,241,233,.92)`, a dashed perforation above it `rgba(42,27,56,.45)`, `PULL TO OPEN ▸ ▸ ▸` in 8 px aubergine mono, a 44 × 30 pull tab at the right |
+| tear strip | **top** 22 px (moved from the bottom edge, Ken, 2026-10-23 — the opening edge, matching the shrink-wrap's own tear tab), bone `rgba(244,241,233,.92)`, a dashed perforation below it `rgba(42,27,56,.45)`, `PULL TO OPEN ▸ ▸ ▸` in 8 px aubergine mono, a 44 × 30 pull tab at the right |
 | tag | the SEALED · [date] sticker, lower left, on the film |
 
 **Breaking the seal**: rest → tear (the strip peels leftward along the perforation, 380 ms, film staggered 60 ms behind) → lift (film slides up and off, 420 ms; contrast returns; the tag goes with it) → opened (full-contrast art, butter NEW tag for 14 days). Reduced motion: film fades out in 150 ms. The sealed sheet's header cover uses the same film at 64 px; its footer reads "Still sealed. Play breaks the seal." `sealedQuietPlay` and the play-breaks-seal rule are unchanged.

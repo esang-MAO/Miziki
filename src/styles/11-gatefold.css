@@ -4,7 +4,18 @@
    tracklist panel and swings open on its left hinge to reveal it, landing
    its back face — the inside-left panel — where the hinge rotation puts it
    (GATEFOLD spec §A2). Above the library, below the mini player/tab bar. */
-.gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;background:#0A0E12}
+/* Ken, 2026-10-23: this backdrop was a flat #0A0E12 (literally --panel's
+   dark rgb at a different alpha), so opening the gatefold always went
+   near-black regardless of the selected theme/Nychthemeron. Fixed to the
+   same sky gradient .player-overlay (13-player-overlay.css) already uses,
+   so it follows the theme the same way every other full-screen overlay
+   does. The cover/tracklist panels themselves (.gf-right/.gf-face-front/
+   .gf-face-back/.gf-flat-tracks, below) keep their own fixed deep-purple
+   "sleeve interior" color in both themes on purpose -- the same rule
+   CLAUDE.md states for the disc/sleeve art/metal tiers -- only this
+   backdrop, which is chrome rather than sleeve art, needed to change. */
+.gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;
+  background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%)}
 .gatefold.open{display:block}
 .gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
   font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--paper);opacity:0;
