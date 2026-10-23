@@ -78,7 +78,20 @@
 .seal-sheet.open{display:block}
 .seal-sheet-box{position:absolute;left:20px;right:20px;bottom:0;top:12%;
   background:#1C1226;border-radius:10px 10px 0 0;display:flex;flex-direction:column;
-  transform:translateY(100%);transition:transform .25s ease-out}
+  transform:translateY(100%);transition:transform .25s ease-out;
+  /* Ken, 2026-10-23: this box's own #1C1226 is deliberately the gatefold's
+     own .gf-face sleeve-interior color (11-gatefold.css) -- this sheet IS
+     the gatefold's tracklist panel reused, per this section's own header
+     comment ("no swing, no camera, no left panel, no inner sleeve"), so it
+     keeps the same fixed dark look on purpose. But its text/close-button/
+     accent inside (.seal-sheet-text/-artist/-close/-foot/-open-btn, below)
+     read the ordinary theme-reactive --paper/--muted/--accent-text, which
+     in Light theme resolve to dark ink meant for a light page -- the exact
+     dark-on-dark bug the gatefold panels had before this same date's fix.
+     Locked here the same way: back to their own dark-theme literal values
+     (00-base.css's bare :root), scoped to this one box so every descendant
+     inherits it with no per-rule hardcoding needed. */
+  --paper:#EFE9DF; --muted:#94A0A6; --accent-text:#FF9E2C}
 .seal-sheet.show .seal-sheet-box{transform:translateY(0)}
 @media (prefers-reduced-motion:reduce){ .seal-sheet-box{transition:opacity .15s;transform:none;opacity:0}
   .seal-sheet.show .seal-sheet-box{opacity:1} }

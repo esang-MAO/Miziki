@@ -26,12 +26,21 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
   background:rgba(6,10,13,.55);z-index:60;display:none}
 .add-scrim.open{display:block}
-.add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:#16242C;
+/* Ken, 2026-10-23: this and .overflow-menu below were a hardcoded navy
+   hex regardless of theme -- the same bug the gatefold backdrop had,
+   just on a popover instead of a full-screen overlay. Fixed to --chrome,
+   the token that's already the near-opaque "solid chrome surface" used
+   elsewhere (the tab bar/mini-player), so these popovers read as a crisp
+   card over the scrim and pick up Light/Dark/Auto/Nychthemeron the same
+   way every other piece of chrome does. The row text/icon colors were
+   already theme-reactive tokens (--paper/--muted/--accent-text) with
+   nothing to fix there. */
+.add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:var(--chrome);
   border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .add-menu.open{display:flex}
 .add-menu-row{display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) 10px;border-radius:6px;text-align:left;width:100%}
-.add-menu-row:active{background:rgba(255,255,255,.04)}
+.add-menu-row:active{background:var(--sel)}
 .add-menu-row svg{width:20px;height:20px;color:var(--accent-text);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .add-menu-row b{display:block;font-size:var(--fs-body);font-weight:500}
@@ -44,13 +53,13 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
    has) and single-line rows, since these actions need no description. */
 .overflow-scrim{position:fixed;inset:0;background:rgba(6,10,13,.55);z-index:60;display:none}
 .overflow-scrim.open{display:block}
-.overflow-menu{position:absolute;width:220px;border-radius:8px;background:#16242C;
+.overflow-menu{position:absolute;width:220px;border-radius:8px;background:var(--chrome);
   border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .overflow-menu.open{display:flex}
 .overflow-menu-row{display:block;width:100%;text-align:left;padding:var(--sp-3) 10px;border-radius:6px;
   font-size:var(--fs-body);color:var(--paper)}
-.overflow-menu-row:active{background:rgba(255,255,255,.04)}
+.overflow-menu-row:active{background:var(--sel)}
 /* RF21 (docs/12_REFINE.md): the one menuitemcheckbox row in this menu
    (player "···" -> "Don't share this session") -- a plain circle that
    fills with a checkmark on aria-checked, the same attribute-driven
