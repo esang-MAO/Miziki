@@ -16,7 +16,7 @@ import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
-import { buildSealOverlay } from '../library/sealed.js';
+import { buildSealOverlay, runBreakChoreography } from '../library/sealed.js';
 import { setQueue } from '../player/queue.js';
 import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
@@ -90,6 +90,14 @@ export function openSealedSheet(item){
   getCrateArtURL(item.albumId, 'S').then(url => { if(url && SEALSHEET && SEALSHEET.item === item) $('#sealSheetCoverArt').src = url; });
   $('#sealSheetBody').innerHTML = '';
   $('#sealSheetBody').appendChild(buildGatefoldTracklist(item, trackIdx, sealedHandoffPlay));
+  // Accessibility (docs/15_SURFACE_NOISE.md §2): an "Open" action that
+  // peels this cover's own tear-strip without the drag, reusing exactly
+  // the commit animation wireTearDrag() runs on a completed drag.
+  const openBtn = $('#sealSheetOpenBtn');
+  openBtn.onclick = () => {
+    const wrap = coverWrap.querySelector('.seal-wrap'), strip = coverWrap.querySelector('.seal-strip');
+    if(wrap && strip) runBreakChoreography(wrap, strip, item.albumId);
+  };
 
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden','false');

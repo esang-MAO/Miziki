@@ -8,6 +8,7 @@ import {
   startLeadIn, startRunoutNoise, startUnderMusicBed, playNeedleDrop, playNeedleLift,
   skipDropHissSamples, playSkipDrop, fadeMusicTo,
   SKIP_DROP_HISS_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
+  crinkleBurstSamples, playCrinkleBurst,
 } from '../../src/audio/surface-noise.js';
 import { S } from '../../src/state.js';
 
@@ -170,4 +171,41 @@ test('fadeMusicTo is a safe no-op without a trackGain node, and ramps it when on
   fadeMusicTo(0, 80);
   assert.deepEqual(sets, [['cancel', 10], ['set', 1, 10], ['ramp', 0, 10.08]]);
   S.ctx = null; S.nodes = null;
+});
+
+/* ================= docs/15_SURFACE_NOISE.md §2: shrink-wrap peel ================= */
+
+test('crinkleBurstSamples is short, deterministic by seed, and louder/longer/denser at higher intensity', () => {
+  const low = crinkleBurstSamples(SR, 7, 0);
+  const high = crinkleBurstSamples(SR, 7, 1);
+  assert.ok(low.length > 0 && high.length > 0);
+  // intensity scales duration (0.08s..0.13s -- see the function's own constants)
+  assert.ok(high.length > low.length);
+  assert.ok(low.length >= Math.floor(SR * 0.08) - 1);
+  assert.ok(high.length <= Math.floor(SR * 0.13) + 1);
+
+  // same seed+intensity is deterministic; a different seed isn't
+  const a = crinkleBurstSamples(SR, 7, 0.5), b = crinkleBurstSamples(SR, 7, 0.5), c = crinkleBurstSamples(SR, 9, 0.5);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+
+  // a higher intensity is louder (levelDb scales from -32 to -23)
+  const peak = s => Math.max(...Array.from(s, Math.abs));
+  assert.ok(peak(crinkleBurstSamples(SR, 7, 1)) > peak(crinkleBurstSamples(SR, 7, 0)));
+
+  // intensity is clamped to [0,1] -- an out-of-range value behaves like its clamped edge
+  assert.deepEqual(crinkleBurstSamples(SR, 7, -5), crinkleBurstSamples(SR, 7, 0));
+  assert.deepEqual(crinkleBurstSamples(SR, 7, 5), crinkleBurstSamples(SR, 7, 1));
+});
+
+test('playCrinkleBurst is a safe no-op without an audio graph, and a no-op in Pure', () => {
+  S.ctx = null; S.nodes = null;
+  assert.doesNotThrow(() => playCrinkleBurst(7, 0.5));
+
+  S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'pure'; S.surfaceNoise = 'subtle';
+  assert.doesNotThrow(() => playCrinkleBurst(7, 0.5));
+
+  S.mode = 'vinyl';
+  assert.doesNotThrow(() => playCrinkleBurst(7, 0.5));
+  S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
 });

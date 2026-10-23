@@ -58,7 +58,12 @@ function sealedDateLabel(addedAt){
 // real (a sealed card re-renders as a plain one, picking up the butter
 // "NEW" tag on its own, same as it always has for a freshly-unsealed
 // album -- see stickerFor()/buildStickerEl(), crate/view.js).
-async function runBreakChoreography(wrap, strip, albumId){
+// exported for gatefold/sealed-sheet.js's own "Open" action
+// (docs/15_SURFACE_NOISE.md §2, "Accessibility: ...an Open action in the
+// record menu, to peel without the drag") — the same commit animation a
+// drag past the tear-strip's own threshold already runs, triggered without
+// requiring the drag itself.
+export async function runBreakChoreography(wrap, strip, albumId){
   if(REDUCED){
     wrap.classList.add('seal-fading');
     await sleep(150);

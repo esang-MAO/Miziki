@@ -317,6 +317,29 @@ export function playSkipDrop(seed, scale, rateHz = 0.55){
   if(scale > 0) startBuffer(sr => skipDropHissSamples(sr, seed, scale, rateHz));
 }
 
+/* ================= §2: shrink-wrap peel's own crinkle =================
+   A short, high-passed noise burst with no tonal body at all -- reuses
+   crackleSamples() (already exactly that shape: raw random impulses, no
+   lowpass stage) rather than a new generator. Not gated by the Surface
+   Noise setting -- the shrink-wrap crinkle is its own, separate ceremony
+   moment (§2), not "surface noise" itself -- only by Pure mode, per the
+   doc's own shared principle for all five features ("Pure mode turns all
+   of it off. Pure means untouched."). `intensity` (0..1, driven by the
+   caller's own drag velocity) scales how busy and how loud a given burst
+   sounds, so a fast tear crinkles more than a slow one. */
+export function crinkleBurstSamples(sampleRate, seed, intensity = 0.5){
+  const clamped = Math.max(0, Math.min(1, intensity));
+  const durSec = 0.08 + 0.05 * clamped;
+  const perSecond = 55 + 150 * clamped;
+  const levelDb = -32 + 9 * clamped;
+  return crackleSamples(sampleRate, durSec, seed, levelDb, perSecond);
+}
+
+export function playCrinkleBurst(seed, intensity = 0.5){
+  if(S.mode === 'pure') return;
+  startBuffer(sr => crinkleBurstSamples(sr, seed, intensity));
+}
+
 /* ================= §3: needle-lift skipping's own music-only fade =================
    Every Surface Noise sound above joins at S.nodes.wobble; the track's own
    source passes through S.nodes.trackGain first (audio/engine.js's

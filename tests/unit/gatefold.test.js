@@ -44,13 +44,14 @@ mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, 
 mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
   namedExports: { runGatefoldHandoff(){} },
 });
-// sealed-sheet.js's own buildSealOverlay import reaches the real
-// library/sealed.js, which in turn reaches the real library/view.js — the
-// step 7d hub module with seven real circular pairs — just to satisfy
-// one name this file never exercises (isSealedSheetOpen only touches the
-// module-private SEALSHEET). Mocked directly to stop that chain at the door.
+// sealed-sheet.js's own buildSealOverlay/runBreakChoreography imports reach
+// the real library/sealed.js, which in turn reaches the real
+// library/view.js — the step 7d hub module with seven real circular pairs —
+// just to satisfy two names this file never exercises (isSealedSheetOpen
+// only touches the module-private SEALSHEET). Mocked directly to stop that
+// chain at the door.
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
-  namedExports: { buildSealOverlay(){ return { }; } },
+  namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {} },
 });
 
 const { gatefoldSideSplits, isGatefoldOpen } = await import('../../src/gatefold/view.js');
