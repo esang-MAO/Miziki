@@ -17,6 +17,24 @@
 .gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%)}
 .gatefold.open{display:block}
+/* Ken, 2026-10-23 (follow-up): the sleeve-interior panels' fixed dark
+   background is fine to keep, but every rule below reads its text/border/
+   input colors off the ordinary theme-reactive tokens (--paper/--muted/
+   --line/--panel/--accent-text) -- which, in Light theme, resolve to dark
+   ink meant to sit on a light page, not light-on-dark sleeve interior. The
+   result was unreadable (dark-on-dark) liner notes, credits, track rows
+   and the note-input field whenever anything but Dark/Auto-at-night was
+   selected. Fixed by locking just these tokens back to their own
+   dark-theme literal values (00-base.css's bare :root), scoped to the
+   three panels that actually keep the fixed dark background -- .gf-face
+   covers both .gf-face-front and .gf-face-back in one selector. --accent
+   itself needs no override: CLAUDE.md already keeps it theme-invariant
+   everywhere, so --accent-text (the only other accent-derived token this
+   file reads) is the only accent-family one that varies by theme at all. */
+.gf-right, .gf-face, .gf-flat-tracks{
+  --paper:#EFE9DF; --muted:#94A0A6; --line:rgba(239,233,223,.14);
+  --panel:rgba(10,14,18,.55); --accent-text:#FF9E2C;
+}
 .gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
   font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--paper);opacity:0;
   transition:opacity .15s;padding:6px var(--sp-1)}
