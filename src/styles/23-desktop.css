@@ -462,11 +462,15 @@
      (src/social/screens/friend-store.js), which benefits from the same
      wider grid on desktop */
   .store-crate-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  /* the profile's Records preview: all ten in one row */
+  .records-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .records-grid.preview{grid-template-columns:repeat(10,minmax(0,1fr))}
 }
 
 @media (min-width:1280px){
   .profile-grid{grid-template-columns:repeat(8,1fr)}
   .store-crate-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .records-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
 
 /* CEREMONY §2 (docs/CEREMONY.md): with nothing loaded, the desktop player

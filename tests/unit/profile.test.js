@@ -84,6 +84,15 @@ mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
     renderPressingCard(){ return el('div','pressing-card-marker'); },
   },
 });
+// The Records section/screen (records.js) has its own coverage in
+// tests/unit/records.test.js — stopped at the door here like storefront.js.
+const recordsCalls = [];
+mock.module(new URL('../../src/profile/records.js', import.meta.url).href, {
+  namedExports: {
+    renderRecordsScreen(host){ recordsCalls.push({host, filter: S.profileView.recordsFilter}); },
+    storeRecordsSection(){ return el('div','records-marker'); },
+  },
+});
 mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, {
   namedExports: {
     renderRhythmCard(host){ rhythmCalls.push(host); },
@@ -310,20 +319,39 @@ test('renderProfile(listening): a wholly new profile shows one consolidated empt
   assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
 });
 
-// CR11 point 3: a pressing is drawn from the library alone (no play
-// needed), so it still shows on an otherwise wholly-new profile — the one
-// case RF11's "one consolidated empty card" rule above doesn't cover,
-// since this isn't a play-driven stat at all.
-test('renderProfile(listening): a pressing chart still shows on a wholly new profile when the library has owned pressings', () => {
+// The pressing chart and Collection moved off Listening onto the Records
+// screen (records.js), so a wholly new profile's Listening screen is just
+// the one consolidated card even when the library has owned pressings.
+test('renderProfile(listening): the pressing chart no longer shows on Listening', () => {
   resetProfileState();
   mockTopAlbums = []; mockTopTracks = []; mockAchievements = []; S.collection = {};
   mockOwnedPressingIds = new Set(['oxblood']);
   S.profileView.screen = 'listening';
   renderProfile();
   const wrap = profileHosts['#profileBody'].children[0];
-  assert.equal(wrap.childNodes.length, 2, 'the empty card, plus the pressing chart');
-  assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
+  assert.equal(wrap.childNodes.length, 1, 'just the consolidated empty card');
   mockOwnedPressingIds = new Set();
+});
+
+test('renderProfile(collection): the old Collection route opens Records on its Pressings tab', () => {
+  resetProfileState();
+  recordsCalls.length = 0;
+  S.profileView.screen = 'collection';
+  S.profileView.recordsFilter = 'all';
+  renderProfile();
+  assert.equal(recordsCalls.length, 1);
+  assert.equal(recordsCalls[0].filter, 'pressings');
+  assert.equal(S.profileView.screen, 'records');
+  S.profileView.screen = 'home';
+});
+
+test('renderProfile(records): renders the Records screen', () => {
+  resetProfileState();
+  recordsCalls.length = 0;
+  S.profileView.screen = 'records';
+  renderProfile();
+  assert.equal(recordsCalls.length, 1);
+  S.profileView.screen = 'home';
 });
 
 test('renderProfile(listening): once anything exists, the full breakdown (top row, rhythm, achievements, collection, share) renders', () => {
