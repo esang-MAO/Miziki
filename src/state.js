@@ -98,7 +98,7 @@ export const S = {
   // DA6 (docs/DAY_ARC.md): `rhythm` is the My Crate card's own Include
   // toggle for the listening-rhythm verdict line -- same session-only
   // shape (never saved to prefs/backup) as its four siblings here.
-  profileView:{screen:'home'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true, rhythm:true},
+  profileView:{screen:'home', recordsFilter:'all'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true, rhythm:true},
   // DA6: the Now Playing card's own one Include toggle ("Time of day" ->
   // the "Spun at dusk" line) -- a separate object from shareSelection
   // above since the two sheets' own section lists are otherwise

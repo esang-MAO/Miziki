@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Records, pressings filter</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.cell{position:relative;padding-top:34px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.art{position:relative}
+.slv{position:relative;z-index:1;width:100%;aspect-ratio:1/1;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 18px rgba(0,0,0,.35)}
+.slv::after{content:'';position:absolute;inset:0;border-radius:4px;box-shadow:inset 0 1px 0 rgba(255,235,200,.22),inset 0 -3px 0 rgba(0,0,0,.25)}
+.pk{position:absolute;left:8%;top:-34px;width:84%;aspect-ratio:1/1;border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.pk::after{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.10) 2px 3px)}
+.verd{background:radial-gradient(circle,#FF9E2C 0 15%,#3F8C7E 15% 18%,#5BAA99 18% 90%,#2A5E54 90% 100%)}
+.ox{background:radial-gradient(circle,#FF9E2C 0 15%,#7A3A26 15% 18%,#A4523A 18% 90%,#5E2C1E 90% 100%)}
+.bone{background:radial-gradient(circle,#FF9E2C 0 15%,#CFC6B2 15% 18%,#E8E1D2 18% 90%,#B8AE98 90% 100%)}
+.swirl{background:radial-gradient(circle,#FF9E2C 0 15%,transparent 15% 90%,#1A1A22 90% 100%),linear-gradient(115deg,#2B4A7A 0%,#2B4A7A 30%,#B5433A 46%,#2B4A7A 60%,#B5433A 78%,#2B4A7A 100%)}
+.split{background:radial-gradient(circle,#FF9E2C 0 15%,transparent 15% 92%,#1A1A22 92% 100%),linear-gradient(90deg,#C9A24A 50%,#3E5566 50%)}
+.splat{background:radial-gradient(circle,#FF9E2C 0 15%,transparent 15%),radial-gradient(circle at 30% 30%,#EFE9DF 0 5%,transparent 6%),radial-gradient(circle at 72% 62%,#EFE9DF 0 4%,transparent 5%),radial-gradient(circle at 58% 24%,#B5433A 0 4%,transparent 5%),radial-gradient(circle at 26% 70%,#B5433A 0 3%,transparent 4%),#2B2622}
+.gold{background:radial-gradient(circle,#2A1B38 0 15%,#7A4E12 15% 17%,transparent 17% 92%,#8A3A1E 92% 100%),linear-gradient(130deg,#7A4E12 0%,#D6AD3F 38%,#F7E7A8 46%,#D6AD3F 54%,#7A4E12 100%)}
+.silver{background:radial-gradient(circle,#2A1B38 0 15%,#5E6268 15% 17%,transparent 17% 92%,#3A3D42 92% 100%),linear-gradient(130deg,#5E6268 0%,#B8BCC2 38%,#F0F2F4 46%,#B8BCC2 54%,#5E6268 100%)}
+.bronze{background:radial-gradient(circle,#2A1B38 0 15%,#5A3418 15% 17%,transparent 17% 92%,#3E2210 92% 100%),linear-gradient(130deg,#5A3418 0%,#B0743E 38%,#E8B98A 46%,#B0743E 54%,#5A3418 100%)}
+.nm{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.10em}
+.al{font-size:12px;color:#A99C8F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gh{display:flex;align-items:baseline;justify-content:space-between;padding-top:24px}
+.chip{flex:1 1 0;height:14px}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 1120px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 8px 16px 12px; border-bottom: 1px solid rgba(239,233,223,.12)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button class="mono" style="min-height: 44px; padding: 0; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">‹ PROFILE</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 class="disp" style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: .02em">Records</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">[212] RECORDS · [9] PRESSINGS · [3] METALS</span>
+</div>
+<div role="tablist" aria-label="Show" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.18); border-radius: 4px; overflow: hidden">
+<button role="tab" aria-selected="false" class="mono" style="min-height: 40px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">ALL · [212]</button>
+<button role="tab" aria-selected="true" class="mono" style="min-height: 40px; border: 0; border-left: 1px solid rgba(239,233,223,.18); background: rgba(239,233,223,.12); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">PRESSINGS · [12]</button>
+</div>
+</div>
+
+<div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 16px 16px 0">
+
+<button style="width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #EFE3CC; color: #1A1410; display: flex; flex-direction: column; gap: 8px; text-align: left; box-shadow: inset 0 0 0 1px rgba(26,20,16,.12), 0 6px 14px rgba(0,0,0,.35)">
+<span style="display: flex; justify-content: space-between; width: 100%">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; font-weight: 500">PRESSING CHART</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em">COLORS [4] OF 40 · EFFECTS [5] OF 32 ›</span>
+</span>
+<span style="display: flex; gap: 2px; width: 100%" aria-hidden="true">
+<span class="chip" style="background: #3F8C7E"></span><span class="chip" style="background: #A4523A"></span><span class="chip" style="background: #E8E1D2; box-shadow: inset 0 0 0 1px rgba(26,20,16,.2)"></span><span class="chip" style="background: #2B4A7A"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span><span class="chip" style="background: #C9A24A"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span><span class="chip" style="background: #B5433A"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span><span class="chip" style="background: rgba(26,20,16,.12)"></span>
+</span>
+</button>
+
+<div class="gh"><span class="disp" style="font-size: 20px; font-weight: 700; letter-spacing: .02em">Colors</span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">[4]</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="cell"><div class="art"><span class="pk verd" aria-hidden="true"></span><div class="slv" style="background: #3E5566"></div></div><span class="nm">VERDIGRIS</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk ox" aria-hidden="true"></span><div class="slv" style="background: #5E4A44"></div></div><span class="nm">OXBLOOD</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk bone" aria-hidden="true"></span><div class="slv" style="background: #4E4E62"></div></div><span class="nm">BONE</span><span class="al">[Album]</span></div>
+</div>
+
+<div class="gh"><span class="disp" style="font-size: 20px; font-weight: 700; letter-spacing: .02em">Effects</span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">[5]</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="cell"><div class="art"><span class="pk swirl" aria-hidden="true"></span><div class="slv" style="background: #44605A"></div></div><span class="nm">WOAD &amp; MADDER</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk split" aria-hidden="true"></span><div class="slv" style="background: #52444E"></div></div><span class="nm">SPLIT</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk splat" aria-hidden="true"></span><div class="slv" style="background: #5A4A5E"></div></div><span class="nm">SPLATTER</span><span class="al">[Album]</span></div>
+</div>
+
+<div class="gh"><span class="disp" style="font-size: 20px; font-weight: 700; letter-spacing: .02em">Metals</span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">[3]</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="cell"><div class="art"><span class="pk gold" aria-hidden="true"></span><div class="slv" style="background: #6A5A3E"></div></div><span class="nm">GOLD</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk silver" aria-hidden="true"></span><div class="slv" style="background: #3E4E44"></div></div><span class="nm">SILVER</span><span class="al">[Album]</span></div>
+<div class="cell"><div class="art"><span class="pk bronze" aria-hidden="true"></span><div class="slv" style="background: #5E5244"></div></div><span class="nm">BRONZE</span><span class="al">[Album]</span></div>
+</div>
+
+</div>
+
+<nav aria-label="Main" style="display: flex; justify-content: space-around; padding: 6px 0 22px; background: rgba(10,14,18,.9); border-top: 1px solid rgba(239,233,223,.14)">
+<button class="mono" style="min-width: 88px; min-height: 44px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">LIBRARY</button>
+<button class="mono" style="min-width: 88px; min-height: 44px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">HOME</button>
+<button class="mono" aria-current="page" style="min-width: 88px; min-height: 44px; border: 0; background: transparent; color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">PROFILE</button>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1129,3 +1129,13 @@ Everything else that looked like a candidate (the crate's own stock/cream "catal
 
 - **Verified**: `npm run lint` 0 errors/0 warnings; `npm run test:unit` 848/848 (pure CSS, no new tests); both production builds. Checked by rendering each affected markup fragment (`.add-menu`/`.overflow-menu`, `.sundown-sheet`, `.seal-sheet-box`) against the real built CSS under `data-theme="dark"`, `"light"` and Auto (`prefers-color-scheme: light` emulated, no attribute set), confirming the two popovers/the Sundown sheet's background and text both flip correctly between themes, and the sealed sheet's background and text both stay byte-identical (locked to their dark-theme values) across all three — screenshotted to confirm visually.
 - No migration — entirely client-side CSS.
+
+### Profile records + pressings (Oct 23, 2026)
+
+The profile's "All records" grid and the Listening screen's Collection are now one **Records** section. Design frames: `docs/design/profile-records/`.
+
+- **Profile home**: the storefront's 60-cover grid became `src/profile/records.js`'s `storeRecordsSection()` — ten records (A–Z), a count line ("212 records · 9 pressings · 3 metals"), "See all ›", "Show all N records ▾" when there are more than ten, and a "Pressings & metals" row. A record with an unlocked pressing or an earned metal has its disc peeking out of the top of its sleeve, in that pressing (the same `.peek-disc` drawing as the crate pull and the launch intro); metal first, matching the platter's rare > metal > pressing precedence.
+- **Records screen** (new `'records'` profile screen): an All / Pressings toggle. All lists every record under letter heads, with the pressing or metal name under any record that has one. Pressings shows the pressing chart (moved from Listening), then unlocked Colors, Effects and Metals.
+- **Listening** lost its Collection section and pressing chart (both now under Records); Achievements stays. The old `'collection'` route opens Records on Pressings, and `renderCollectionScreen` is gone.
+- **Verified**: new `tests/unit/records.test.js` (13 tests); `tests/unit/profile.test.js` updated (Listening no longer draws the chart; `'collection'` redirects; `'records'` renders); eslint clean on every changed file. Rendered the profile home, All and Pressings in both themes at phone width with a seeded 14-album library. Ken runs the full `npm run lint`/`npm run test:unit`/build before merging (this session can't reach the npm registry, so the `fake-indexeddb` suites and the build weren't run here).
+- No migration, no new saved setting (`recordsFilter` is session-only).

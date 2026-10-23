@@ -8,6 +8,9 @@ import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
 import { triggerProfileRefresh } from '../shell/pull-refresh.js';
+// The Records section (records + unlocked pressings/metals) — part of this
+// file's circular cluster with screens.js; see records.js's own header.
+import { storeRecordsSection } from './records.js';
 // CR11 point 3: "tapping a chip jumps the crate to the first record in
 // that pressing" — a real, one-directional import each (neither imports
 // anything back from this file), widening the already-circular
@@ -173,7 +176,7 @@ export function renderOpenStoreCard(host, authState){
   card.appendChild(btn);
   host.appendChild(card);
 
-  host.appendChild(storeCrateGrid());
+  host.appendChild(storeRecordsSection());
 }
 
 // The one avatar button, reused by every storefront state (local-only,
@@ -363,7 +366,7 @@ function renderLocalStorefront(host){
   host.appendChild(storeListeningRow());
 
   host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
-  host.appendChild(storeCrateGrid());
+  host.appendChild(storeRecordsSection());
 
   host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
 }
@@ -442,7 +445,7 @@ function storePicksSection(full){
 
 function storeDiggingSection(full, host){
   // D7: the one modifier class this step adds, since store-section alone
-  // (shared with storePicksSection/storeCrateGrid below) gives
+  // (shared with storePicksSection/storeRecordsSection) gives
   // src/styles/23-desktop.css's own two-column grid no way to place this
   // one section differently from its siblings — "digging list" goes in
   // the left column, per the mockup's own mapping; the other two stay
@@ -472,31 +475,6 @@ function storeDiggingSection(full, host){
     row.appendChild(rm);
     section.appendChild(row);
   });
-  return section;
-}
-
-function storeCrateGrid(){
-  const section = el('div','store-section');
-  const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'All records'));
-  section.appendChild(head);
-  const albums = groupBy('album');
-  if(!albums.length){
-    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
-    return section;
-  }
-  const grid = el('div','store-crate-grid');
-  albums.slice(0, 60).forEach(([name, idxs]) => {
-    const t = S.tracks[idxs[0]];
-    const cell = el('div');
-    const cover = el('div','store-crate-cover');
-    if(t && t.art){ const im = document.createElement('img'); im.src = t.art; im.alt = ''; cover.appendChild(im); }
-    cell.appendChild(cover);
-    cell.appendChild(el('div','store-crate-name', name));
-    cell.appendChild(el('div','store-crate-artist', t ? (t.tags.albumArtist || t.tags.artist || '') : ''));
-    grid.appendChild(cell);
-  });
-  section.appendChild(grid);
   return section;
 }
 
@@ -538,7 +516,7 @@ function renderStorefront(host, full, requests){
   host.appendChild(storeNowSpinningCard(full, host));
   host.appendChild(storePicksSection(full));
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
-  host.appendChild(storeCrateGrid());
+  host.appendChild(storeRecordsSection());
 }
 
 // CR11 point 3: how many of a family's own ids an owned-set actually holds —
