@@ -20,6 +20,7 @@ import { drawTime } from '../player/clock.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { rebuildPeopleIndex } from './credits.js';
 import { applyDiscVariant } from '../record-art/looks.js';
+import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { clearSpinDown } from '../shell/put-away.js';
@@ -123,6 +124,7 @@ export async function deleteTracks(idsToDelete){
       $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
       $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
       $('#labelTitle').textContent = '';
+      applyDeadWaxEtching(null, '');
       applyDiscVariant(null);
       // closePlayer()'s interrupt unconditionally un-hides the disc (skipping
       // "lands" the record) — order matters here since there's no record to
@@ -199,6 +201,7 @@ export async function forgetLibrary(){
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   $('#labelTitle').textContent = '';
+  applyDeadWaxEtching(null, '');
   applyDiscVariant(null);
   forceCloseLayer('player');
   // closePlayer()'s interrupt may have just finished putting a record away
