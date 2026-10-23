@@ -72,7 +72,7 @@ mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
   namedExports: { easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }, REDUCED: false },
 });
 mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
-  namedExports: { runStartSequence(){} },
+  namedExports: { runStartSequence(){}, isShrinkWrapTarget(){ return false; } },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
   namedExports: { openPlayerViaSheet(){}, closePlayer(){} },

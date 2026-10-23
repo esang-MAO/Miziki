@@ -22,7 +22,7 @@ import {
   openPlayer, morphInFlight, interruptMorph,
   openPlayerOverflowMenu, isPlayerOverflowMenuOpen,
 } from '../shell/player-overlay.js';
-import { runStartSequence, interruptStartSequence } from '../shell/start-sequence.js';
+import { runStartSequence, interruptStartSequence, isShrinkWrapTarget } from '../shell/start-sequence.js';
 import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js';
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
@@ -147,7 +147,15 @@ export function wireTransport(){
   };
   $('#restOpenCrate').addEventListener('click', () => openLibraryAt(S.libraryLayout === 'crate' ? 'crate' : 'albums'));
   $('#restOpenLibrary').addEventListener('click', () => openLibraryAt(null));
-  $('#playerOverlay').addEventListener('pointerdown', ()=>{
+  $('#playerOverlay').addEventListener('pointerdown', (e)=>{
+    // docs/15_SURFACE_NOISE.md §2: a pointerdown starting the shrink-wrap's
+    // own drag-to-tear/long-press gesture must not also count as "tap
+    // anywhere on the open player interrupts the ceremony" — same class of
+    // bug PR3 (shell/runout.js) found for the auto-flip Flip/Lift-needle
+    // buttons (this capture-phase listener runs before the gesture's own
+    // pointerdown listener on the tab/wrap ever sees the event, so
+    // stopPropagation there can't help — only excluding by target can).
+    if(isShrinkWrapTarget(e.target)) return;
     interruptStartSequence();            // pull/return-to-sleeve: snap to end state
     if(morphInFlight()) interruptMorph(); // morph: reverse cleanly instead
     if(gfHandoffInFlight()) interruptGatefoldHandoff();   // hand-off flight: land instantly

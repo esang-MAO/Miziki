@@ -4,7 +4,9 @@ import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { albumKey } from '../record-art/tiers.js';
 import { ensureBuffer } from '../player/buffers.js';
-import { isAlbumSealed, buildSealOverlay, breakSeal } from '../library/sealed.js';
+import { isAlbumSealed, breakSeal } from '../library/sealed.js';
+import { releaseSeed, playCrinkleBurst } from '../audio/surface-noise.js';
+import { hapticTick } from '../ui/haptic.js';
 import { SLEEVE_ANIM, renderMiniPlayer } from './mini-player.js';
 import { play } from '../player/transport.js';
 import { clearSpinDown, startSpinDown } from './put-away.js';
@@ -56,36 +58,189 @@ export function sleeveArtFor(art, hasArt){
 // there's no ceremony to run at all (untagged/shuffled/same-album, the
 // toggle is off, or reduced motion) — otherwise it runs only after the
 // full return+pull (swap) or pull-only (fresh platter) sequence completes.
-// the seal wrap on the incoming sleeve, shown from the moment it starts
-// arriving so it arrives wrapped (SEALED spec §6)
-function attachSleeveWrap(addedAt){
+
+// ================= shrink-wrap peel (docs/15_SURFACE_NOISE.md §2) =================
+// The sleeve of a Sealed record arrives wrapped — a sheen+wrinkle layer
+// with a hype sticker riding on top, torn by dragging a tab at the
+// opening (top) edge. Past SHRINK_COMMIT_PROGRESS the whole shrink
+// detaches and falls away, sticker included, the same way every trigger
+// below ends up at the same detach animation regardless of how it got
+// there (a completed drag, a long-press anywhere on the sleeve, the
+// no-engagement timeout, or the "Open" accessibility action elsewhere).
+const SHRINK_COMMIT_PROGRESS = 0.6;
+const SHRINK_AUTO_PEEL_MS = 2200;     // no engagement this long -- finish on its own, never blocks play
+const SHRINK_LONG_PRESS_MS = 500;     // matches player/scrub.js's dead-wax loupe timing
+
+function hypeStickerText(t){
+  const year = t && t.tags && t.tags.year;
+  return year ? ('NEW · ' + year) : 'NEW';
+}
+
+// the sealed wrap on the incoming sleeve, shown from the moment it starts
+// arriving so it arrives wrapped
+function attachSleeveWrap(t){
   removeSleeveWrap();
   const wrap = document.createElement('div');
   wrap.id = 'sleeveWrap';
   wrap.setAttribute('aria-hidden','true');
-  // No albumId here on purpose -- this overlay already has its own,
-  // self-driven tear/peel (runSealPeel, below) on Play; a second,
-  // independent drag-to-break wouldn't make sense on a sleeve that's
-  // mid-ceremony and about to tear down on its own anyway.
-  wrap.appendChild(buildSealOverlay(278, undefined, addedAt));
-  wrap.appendChild(el('div','seal-tear'));
+  const inner = el('div','shrink-wrap-inner');
+  inner.appendChild(el('div','shrink-sheen'));
+  inner.appendChild(el('div','shrink-wrinkle'));
+  inner.appendChild(el('div','shrink-tear-line'));
+  inner.appendChild(el('div','seal-sticker', hypeStickerText(t)));
+  wrap.appendChild(inner);
+  const tab = el('div','shrink-tear-tab');
+  tab.setAttribute('aria-hidden','true');
+  wrap.appendChild(tab);
   $('#sleeve').appendChild(wrap);
 }
-function removeSleeveWrap(){ const w = $('#sleeveWrap'); if(w) w.remove(); }
+// activeShrinkPeel is the one live gesture (if any) a runShrinkWrapPeel()
+// call currently has listening — removeSleeveWrap() is the single choke
+// point every teardown path (a normal finish, an interrupt mid-peel) goes
+// through, so it's also the one place that has to resolve/cancel it, or an
+// interrupted drag would leave its own window/tab listeners, and the
+// runStartSequence() await that's still waiting on it, hanging forever.
+let activeShrinkPeel = null;
+function removeSleeveWrap(){
+  if(activeShrinkPeel){ const p = activeShrinkPeel; activeShrinkPeel = null; p.finish(); }
+  const w = $('#sleeveWrap'); if(w) w.remove();
+}
 
-// tear (~300ms) then slide-off (~400ms); each step is checked against the
-// same cancellation token as the rest of the ceremony (SEALED spec §6)
-async function runSealPeel(cancelled){
+// true while a pointerdown on the shrink-wrap itself (the tear tab, or a
+// long-press anywhere on the sleeve) is the live gesture — wiring/
+// transport.js's "tap anywhere on the open player interrupts the ceremony"
+// listener checks this by target (not by calling this directly: it runs in
+// the capture phase, before the shrink-wrap's own pointerdown listener
+// below ever sees the event) so starting the drag/long-press doesn't also
+// snap the ceremony to its end state out from under the user's own finger
+// — the same class of bug PR3 found for the auto-flip Flip/Lift buttons.
+export function isShrinkWrapTarget(target){
+  return !!(target && target.closest && target.closest('#sleeveWrap'));
+}
+
+// drives --tear-progress live from a drag on the tab (same leftward-only,
+// absolute-from-start-X shape as library/sealed.js's own wireTearDrag, just
+// a different threshold/edge) — a crinkle burst + haptic tick on real
+// forward progress, scaled by how much progress each tick covers. Commits
+// once progress reaches SHRINK_COMMIT_PROGRESS; released short of it snaps
+// back to 0 and the tab is simply ready to be dragged again.
+function wireShrinkDrag(wrap, tab, seed, onCommit){
+  let hostWidth = 0, startX = 0, dragging = false, cancelled = false;
+  let lastProgress = 0, lastCrinkleT = 0;
+  tab.style.touchAction = 'none';
+  function setProgress(p){
+    const c = Math.max(0, Math.min(1, p));
+    wrap.style.setProperty('--tear-progress', c.toFixed(3));
+    return c;
+  }
+  function onDown(e){
+    if(cancelled || (e.button != null && e.button !== 0)) return;
+    dragging = true;
+    startX = e.clientX;
+    hostWidth = wrap.getBoundingClientRect().width || 1;
+    lastCrinkleT = performance.now();
+    try{ tab.setPointerCapture(e.pointerId); }catch(_err){}
+  }
+  function onMove(e){
+    if(!dragging || cancelled) return;
+    e.preventDefault();
+    const left = Math.min(0, e.clientX - startX);
+    const progress = setProgress(-left / hostWidth);
+    const now = performance.now();
+    if(progress > lastProgress + 0.01 && now - lastCrinkleT > 50){
+      lastCrinkleT = now;
+      playCrinkleBurst(seed, Math.min(1, (progress - lastProgress) * 6));
+      hapticTick();
+    }
+    lastProgress = progress;
+    if(progress >= SHRINK_COMMIT_PROGRESS){ dragging = false; onCommit(); }
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    setProgress(0); lastProgress = 0;
+  }
+  tab.addEventListener('pointerdown', onDown);
+  tab.addEventListener('pointermove', onMove);
+  tab.addEventListener('pointerup', onUp);
+  tab.addEventListener('pointercancel', onUp);
+  return { cancel(){
+    cancelled = true; dragging = false;
+    tab.removeEventListener('pointerdown', onDown);
+    tab.removeEventListener('pointermove', onMove);
+    tab.removeEventListener('pointerup', onUp);
+    tab.removeEventListener('pointercancel', onUp);
+  } };
+}
+
+// "long-press the sleeve... to peel without the drag" (§2, "Rules") — any
+// pointer held on the shrink (not already dragging the tab, which has its
+// own gesture) for SHRINK_LONG_PRESS_MS commits immediately.
+function wireShrinkLongPress(wrap, onCommit){
+  let timer = null, cancelled = false;
+  function onDown(){
+    if(cancelled) return;
+    timer = setTimeout(() => { if(!cancelled) onCommit(); }, SHRINK_LONG_PRESS_MS);
+  }
+  function clear(){ if(timer){ clearTimeout(timer); timer = null; } }
+  wrap.addEventListener('pointerdown', onDown);
+  wrap.addEventListener('pointerup', clear);
+  wrap.addEventListener('pointercancel', clear);
+  wrap.addEventListener('pointermove', clear);
+  return { cancel(){
+    cancelled = true; clear();
+    wrap.removeEventListener('pointerdown', onDown);
+    wrap.removeEventListener('pointerup', clear);
+    wrap.removeEventListener('pointercancel', clear);
+    wrap.removeEventListener('pointermove', clear);
+  } };
+}
+
+// the one terminal animation every trigger (drag-commit, long-press,
+// auto-timeout, the accessible "Open" action) ends at — detach and fall
+// (~400ms, reusing SLEEVE_ANIM.peelOffMs), or Reduced Motion's plain fade.
+async function finishShrinkPeel(cancelled){
+  if(cancelled()) return;
   const wrap = $('#sleeveWrap');
   if(!wrap) return;
+  if(REDUCED){
+    wrap.classList.add('shrink-fading');
+    await sleep(150);
+    if(cancelled()) return;
+    removeSleeveWrap();
+    return;
+  }
   void wrap.offsetWidth;
-  wrap.classList.add('peel-tear');
-  await sleep(SLEEVE_ANIM.peelTearMs);
-  if(cancelled()) return;
-  wrap.classList.add('peel-off');
+  wrap.classList.add('shrink-detached');
   await sleep(SLEEVE_ANIM.peelOffMs);
   if(cancelled()) return;
   removeSleeveWrap();
+}
+
+// Races the drag, the long-press and the no-engagement timeout against each
+// other; whichever fires first tears everything else down and runs the one
+// shared finish. Never blocks play (§2, "Rules") — the timeout is the hard
+// backstop regardless of whether the user ever touches the sleeve at all.
+function runShrinkWrapPeel(cancelled, seed){
+  return new Promise(resolve => {
+    const wrap = $('#sleeveWrap');
+    if(!wrap || REDUCED){ finishShrinkPeel(cancelled).then(resolve); return; }
+    const tab = wrap.querySelector('.shrink-tear-tab');
+    if(!tab){ finishShrinkPeel(cancelled).then(resolve); return; }
+    let done = false;
+    let drag, longPress, timer;
+    const finish = () => {
+      if(done) return;
+      done = true;
+      drag.cancel(); longPress.cancel(); clearTimeout(timer);
+      activeShrinkPeel = null;
+      finishShrinkPeel(cancelled).then(resolve);
+    };
+    activeShrinkPeel = { finish };
+    drag = wireShrinkDrag(wrap, tab, seed, finish);
+    longPress = wireShrinkLongPress(wrap, finish);
+    timer = setTimeout(finish, SHRINK_AUTO_PEEL_MS);
+  });
 }
 
 export async function runStartSequence(t, info, startAudio){
@@ -106,7 +261,12 @@ export async function runStartSequence(t, info, startAudio){
 
   if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
     // no ceremony to carry it — play() itself breaks a sealed album's seal
-    // silently the instant it actually starts (SEALED spec §6)
+    // silently the instant it actually starts (SEALED spec §6). Nothing of
+    // the sleeve is shown here, so the shrink-wrap peel has nothing to
+    // animate — just the crinkle, "or a crinkle sound only in the
+    // background" (docs/15_SURFACE_NOISE.md §2, "Rules" — it never blocks
+    // play, from a track list/search/lock-screen tap same as anywhere else).
+    if(t && isAlbumSealed(albumKey(t))) playCrinkleBurst(releaseSeed(albumKey(t)), 0.4);
     $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
     startAudio();
     return;
@@ -144,7 +304,7 @@ export async function runStartSequence(t, info, startAudio){
   sleeveArtFor(t.art, !!t.art);
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';
-  if(sealedForPeel) attachSleeveWrap(t.addedAt);
+  if(sealedForPeel) attachSleeveWrap(t);
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('sleeve-arriving');
   await waitAnimEnd($('#sleeve'), swapping ? CHANGE_TIMELINE.arriveMs : SLEEVE_ANIM.arriveMs);
@@ -153,7 +313,7 @@ export async function runStartSequence(t, info, startAudio){
   if(swapping) hideOutgoingSleeve();
 
   if(sealedForPeel){
-    await runSealPeel(cancelled);
+    await runShrinkWrapPeel(cancelled, releaseSeed(albumKey(t)));
     if(cancelled()) return;
     breakSeal(albumKey(t));
   }

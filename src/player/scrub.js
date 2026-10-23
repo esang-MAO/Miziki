@@ -5,6 +5,7 @@ import { drawTime } from './clock.js';
 import { pause, play, seek } from './transport.js';
 import { queueSave } from '../storage/meta.js';
 import { setDeadWaxMagnified } from '../record-art/etchings.js';
+import { isShrinkWrapTarget } from '../shell/start-sequence.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
 // alongside the sliders (not its own top-level S field) since it's saved
@@ -181,6 +182,15 @@ export function wireSpinToScrub(){
   // down) -- the knob never moves or visually reacts to this.
   const stage = $('#platterStage');
   stage.addEventListener('pointerdown', e => {
+    // docs/15_SURFACE_NOISE.md §2: #sleeve (and the shrink-wrap tab
+    // appended inside it) shares #platterStage with #disc, so a pointerdown
+    // starting the shrink-wrap's own drag-to-tear gesture bubbles here too
+    // -- without this exclusion, crossing SCRUB_CLAIM_THRESHOLD_DEG below
+    // would call disc.setPointerCapture() and steal the pointer away from
+    // the tab's own capture mid-drag (the same class of bug the
+    // #playerOverlay capture-phase listener, src/wiring/transport.js,
+    // already excludes isShrinkWrapTarget for).
+    if(isShrinkWrapTarget(e.target)) return;
     if(!current()) return;
     // resume while still inside the tap, before any await — iOS only allows
     // this from a real user gesture, the same reason play()'s bgPrime() runs
