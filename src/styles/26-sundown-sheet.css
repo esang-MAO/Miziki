@@ -80,8 +80,13 @@
 .sundown-sheet-scrim.open{ opacity:1; pointer-events:auto }
 
 .sundown-sheet{
+  /* Ken, 2026-10-23: was a hardcoded dark hex regardless of theme --
+     the same bug the gatefold backdrop had. This sheet is plain chrome
+     (Day/Sound settings, not sleeve/vinyl art), and every color inside it
+     already reads theme-reactive tokens (--paper/--muted), so following
+     .edit-sheet/.share-sheet's own --sky2 convention is all it needs. */
   position:fixed; left:0; right:0; bottom:0; z-index:161;
-  background:#1E1815; border-radius:12px 12px 0 0;
+  background:var(--sky2); border-radius:12px 12px 0 0;
   box-shadow: var(--sh-3, 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45));
   display:flex; flex-direction:column;
   height:min(60vh, 520px);
