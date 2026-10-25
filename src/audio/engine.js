@@ -1,24 +1,58 @@
 import { S } from '../state.js';
 import { applyVolume } from '../sundown/location.js';
-import { stop } from '../player/transport.js';
 import { applyOutputRoute } from '../player/background.js';
 import { nowClock } from '../sundown/solar.js';
 import { effectiveCharAt } from '../sundown/arc.js';
+import { makeupGainFor } from './level-match.js';
 
-/* ================= audio graph ================= */
-export function makeContext(sampleRate){
-  const AC = window.AudioContext || window.webkitAudioContext;
-  let ctx;
-  try { ctx = sampleRate ? new AC({sampleRate, latencyHint:'playback'}) : new AC(); }
-  catch(_e){ ctx = new AC(); }
-  return ctx;
+// AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
+// 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
+// player/transport.js's own arc-text line already uses.
+const RPM_33 = 33.333;
+const wowHzFor = rate => (RPM_33 / 60) * (rate || 1);
+
+// AU3 §2.3: "a -3dB pad in front of the Vinyl chain, made up after the
+// compressor" — a fixed linear gain, never touched by applyCharacter().
+const PAD_DB = -3;
+const PAD_GAIN = Math.pow(10, PAD_DB / 20);
+
+const LIMITER_WORKLET_URL = new URL('./limiter-processor.js', import.meta.url);
+let limiterModuleLoadedCtx = null;
+
+async function ensureLimiterModule(ctx){
+  if(limiterModuleLoadedCtx === ctx) return true;
+  if(!ctx.audioWorklet) return false;
+  try{
+    await ctx.audioWorklet.addModule(LIMITER_WORKLET_URL);
+    limiterModuleLoadedCtx = ctx;
+    return true;
+  }catch(err){
+    console.warn('Limiter worklet unavailable; output stage falls back to an unlimited passthrough.', err);
+    return false;
+  }
 }
 
-export function buildGraph(ctx){
+/* ================= audio graph ================= */
+// AU3 (docs/16_AUDIO.md §2.3): "create the AudioContext once, at the
+// device's own rate (no sampleRate option), and never rebuild it for a
+// track" — decodeAudioData resamples to the context's own rate regardless,
+// so there's nothing to gain by matching a file's own rate at creation.
+export function makeContext(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  return new AC();
+}
+
+// AU3 §1: the output stage ends `master -> limiter -> out`. norm/preamp/EQ
+// bands/mono-balance/volume (also §1) are each a later PR's own node,
+// inserted between master and limiter once they exist — n.out is the one
+// stable attachment point applyOutputRoute() needs, so none of those
+// future insertions will ever require retargeting background routing
+// again. Async because loading the limiter's AudioWorklet module is.
+export async function buildGraph(ctx){
   const n = {};
   // mechanical: platter wobble as modulated delay -> real pitch variation
   n.wobble = ctx.createDelay(0.05); n.wobble.delayTime.value = 0.012;
-  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = 0.55;
+  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.rate);
   n.wowAmt = ctx.createGain();
   n.flutOsc = ctx.createOscillator(); n.flutOsc.frequency.value = 6.3;
   n.flutAmt = ctx.createGain();
@@ -43,8 +77,28 @@ export function buildGraph(ctx){
   // below is the only thing that (re)connects it.
   n.trackGain = ctx.createGain(); n.trackGain.gain.value = 1;
 
+  // AU3 §2.3: a -3dB pad in front of the Vinyl chain, permanently wired
+  // ahead of wobble the same way every other Vinyl-chain node already is
+  // — routeSource() below is the only thing that connects trackGain to it
+  // (Vinyl) or straight to master (Pure).
+  n.pad = ctx.createGain(); n.pad.gain.value = PAD_GAIN;
+  n.pad.connect(n.wobble);
+
   n.wobble.connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
-  n.master.connect(ctx.destination);
+
+  n.limiter = null;
+  if(await ensureLimiterModule(ctx)){
+    try{
+      n.limiter = new AudioWorkletNode(ctx, 'limiter-processor', {numberOfInputs:1, numberOfOutputs:1, outputChannelCount:[2]});
+    }catch(err){
+      console.warn('Limiter node unavailable; output stage falls back to an unlimited passthrough.', err);
+      n.limiter = null;
+    }
+  }
+  n.out = ctx.createGain(); n.out.gain.value = 1;
+  if(n.limiter) n.master.connect(n.limiter).connect(n.out);
+  else n.master.connect(n.out);
+  n.out.connect(ctx.destination);
   return n;
 }
 
@@ -173,14 +227,28 @@ export function applyCharacter(ramp = 0.05){
   n.tone.gain.setTargetAtTime(-9 * c.soft, t, ramp);
   n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, ramp);
   n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, ramp);
-  n.makeup.gain.setTargetAtTime(1 + 0.4*c.comp, t, ramp);
+  // AU3 §2.3 (finding 4): the old `1 + 0.4*c.comp` here, on top of
+  // DynamicsCompressorNode's own automatic makeup gain and the pad's own
+  // -3dB, is why Vinyl played louder than Pure. makeupGainFor() is the
+  // offline-derived table (scripts/derive-makeup-table.mjs) that instead
+  // lands Vinyl within 0.5dB of Pure's own integrated loudness at every
+  // Character setting — it already accounts for the pad, so nothing here
+  // needs to compensate for PAD_GAIN separately.
+  n.makeup.gain.setTargetAtTime(makeupGainFor(c), t, ramp);
 }
 
 export function routeSource(src){
   src.disconnect();
   src.connect(S.nodes.trackGain);
   S.nodes.trackGain.disconnect();
-  S.nodes.trackGain.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.wobble);
+  S.nodes.trackGain.connect(S.mode === 'pure' ? S.nodes.master : S.nodes.pad);
+}
+
+// AU3 §2.3: "updated wherever S.rate changes" — player/clock.js's tick()
+// is the one place S.rate is ever reassigned.
+export function applyWobbleRate(rate){
+  if(!S.nodes || !S.ctx) return;
+  S.nodes.wowOsc.frequency.setTargetAtTime(wowHzFor(rate), S.ctx.currentTime, 0.08);
 }
 
 // DA2 (docs/DAY_ARC.md): "recompute about every 30s" — called once from
@@ -197,17 +265,18 @@ export function scheduleDriftRecompute(){
   setInterval(() => applyCharacter(2), 30000);
 }
 
-// from the "file loading" section in main.js — rebuilds the context when
-// a file's sample rate differs, then re-applies character, volume and
-// output route
-export async function ensureContext(rate){
-  if(S.ctx && (!rate || S.ctx.sampleRate === rate)) { await S.ctx.resume(); return; }
-  if(S.ctx){ stop(); try{ await S.ctx.close(); }catch(_e){} }
+// AU3 §2.3: "create the AudioContext once... and never rebuild it for a
+// track" — this used to close and recreate S.ctx whenever a file's own
+// rate differed from the context's (finding 2: a gap, a possible click,
+// and every node reset). Now it only ever builds once, lazily, the first
+// time anything needs a context, and resumes it every other time.
+export async function ensureContext(){
+  if(S.ctx){ await S.ctx.resume(); return; }
   // A fresh context means fresh nodes — any in-progress audition hold
   // belonged to the old graph and can't mean anything here.
   auditioning = null;
-  S.ctx = makeContext(rate);
-  S.nodes = buildGraph(S.ctx);
+  S.ctx = makeContext();
+  S.nodes = await buildGraph(S.ctx);
   applyCharacter();
   applyVolume();
   applyOutputRoute();

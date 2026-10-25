@@ -6,6 +6,7 @@ import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, 
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
+import { applyWobbleRate } from '../audio/engine.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
@@ -32,6 +33,9 @@ export function tick(now, maxDt){
   if(Math.abs(r - S.rate) > 0.0001){
     S.rate = r;
     if(S.source) S.source.playbackRate.setTargetAtTime(r, S.ctx.currentTime, 0.08);
+    // AU3 (docs/16_AUDIO.md §2.3): "updated wherever S.rate changes" —
+    // this is the one place it ever is.
+    applyWobbleRate(r);
   }
 
   const t = current();

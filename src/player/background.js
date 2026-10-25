@@ -96,16 +96,19 @@ function bgSwapGuard(){
   setTimeout(() => { S.bg.swapping = false; }, 400);
 }
 
+// AU3 (docs/16_AUDIO.md §1): the output stage now ends at n.out (master ->
+// limiter -> out), not n.master -- applyOutputRoute() moves to n.out;
+// everything else about background routing is unchanged.
 export function applyOutputRoute(){
   if(!S.ctx || !S.nodes) return;
   const n = S.nodes, want = bgRouteActive();
   if(want && !n.bgDest){
     try{
       n.bgDest = S.ctx.createMediaStreamDestination();
-      n.master.disconnect();
-      n.master.connect(n.bgDest);
+      n.out.disconnect();
+      n.out.connect(n.bgDest);
     }catch(_e){
-      try{ n.master.connect(S.ctx.destination); }catch(_){}
+      try{ n.out.connect(S.ctx.destination); }catch(_){}
       n.bgDest = null;
       bgFallback();
       return;
@@ -116,8 +119,8 @@ export function applyOutputRoute(){
     el.srcObject = n.bgDest.stream;
     if(S.playing) bgStartEl();
   } else if(!want && n.bgDest){
-    try{ n.master.disconnect(); }catch(_e){}
-    n.master.connect(S.ctx.destination);
+    try{ n.out.disconnect(); }catch(_e){}
+    n.out.connect(S.ctx.destination);
     try{ n.bgDest.disconnect(); }catch(_e){}
     n.bgDest = null;
     bgTeardown();
@@ -175,7 +178,7 @@ function mediaSessionSync(){
 function bgInstallHandlers(){
   const ms = navigator.mediaSession;
   const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(_e){} };
-  set('play', async () => { if(!S.ctx) await ensureContext(null); if(!S.playing) play(); });
+  set('play', async () => { if(!S.ctx) await ensureContext(); if(!S.playing) play(); });
   set('pause', () => { if(S.playing) pause(); });
   set('stop', () => { if(S.playing) pause(); });
   set('previoustrack', prevTrack);

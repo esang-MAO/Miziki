@@ -170,15 +170,18 @@ test('toggleShuffle back off also leaves playback untouched', () => {
 // `!S.ctx` guard (audio/engine.js) and fadeMusicTo()'s matching guard
 // (audio/surface-noise.js) both no-op harmlessly with no real context, so
 // these tests can stay focused on the routing itself.
-test('setMode switches routing: pure connects to master, vinyl connects to wobble', () => {
+test('setMode switches routing: pure connects to master, vinyl connects to pad', () => {
   resetState();
-  const masterConnect = mock.fn(), wobbleConnect = mock.fn();
+  // AU3 (docs/16_AUDIO.md §2.3): the Vinyl path now enters through a
+  // -3dB pad in front of wobble — routeSource() connects trackGain to
+  // S.nodes.pad for Vinyl, not straight to S.nodes.wobble.
+  const masterConnect = mock.fn(), padConnect = mock.fn();
   S.nodes = {
     master: { connect: masterConnect },
-    wobble: { connect: wobbleConnect },
+    pad: { connect: padConnect },
     trackGain: { disconnect: mock.fn(), connect(target){
       if(target === S.nodes.master) masterConnect();
-      else if(target === S.nodes.wobble) wobbleConnect();
+      else if(target === S.nodes.pad) padConnect();
     } },
   };
   S.source = { disconnect: mock.fn(), connect(){ return S.nodes.trackGain; } };
@@ -188,11 +191,11 @@ test('setMode switches routing: pure connects to master, vinyl connects to wobbl
     assert.equal(S.mode, 'pure');
     mock.timers.tick(15);
     assert.equal(masterConnect.mock.calls.length, 1);
-    assert.equal(wobbleConnect.mock.calls.length, 0);
+    assert.equal(padConnect.mock.calls.length, 0);
     setMode('vinyl');
     assert.equal(S.mode, 'vinyl');
     mock.timers.tick(15);
-    assert.equal(wobbleConnect.mock.calls.length, 1);
+    assert.equal(padConnect.mock.calls.length, 1);
   }finally{ mock.timers.reset(); }
 });
 
@@ -201,19 +204,19 @@ test('setMode switches routing: pure connects to master, vinyl connects to wobbl
 // should wait on a timer just to reflect the saved/default mode.
 test('setMode with nothing playing routes immediately, no dip', () => {
   resetState({ mode: 'pure' });
-  const wobbleConnect = mock.fn();
+  const padConnect = mock.fn();
   S.nodes = {
     master: { connect: mock.fn() },
-    wobble: { connect: wobbleConnect },
+    pad: { connect: padConnect },
     trackGain: { disconnect: mock.fn(), connect(target){
-      if(target === S.nodes.wobble) wobbleConnect();
+      if(target === S.nodes.pad) padConnect();
     } },
   };
   S.source = null;
   setMode('vinyl');
   assert.equal(S.mode, 'vinyl');
   // nothing to route (no S.source) -- routeSource() is never called, dip or not
-  assert.equal(wobbleConnect.mock.calls.length, 0);
+  assert.equal(padConnect.mock.calls.length, 0);
 });
 
 // docs/15_SURFACE_NOISE.md §4: with the record waiting in the run-out for a
