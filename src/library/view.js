@@ -253,11 +253,45 @@ export function exitSelectMode(){
   S.editSelection.clear();
   renderTracks();
 }
+
+// every track id currently rendered as a row in #libBody, in display order
+// — the same "read the DOM in its current order" shape
+// applyTrackNumbersInOrder() already uses just below. Whatever's on screen
+// (the flat Songs list, a drilled-into album/artist/playlist, a crateLoose
+// page, or a live search) is what "select all" means here, since select
+// mode itself works the same way across every one of those views.
+function visibleTrackIds(){
+  const ids = [];
+  const host = $('#libBody');
+  if(host) host.querySelectorAll('li[data-id]').forEach(li => ids.push(li.dataset.id));
+  return ids;
+}
+
+// toggles between selecting every currently-visible track and clearing the
+// selection entirely — a second tap undoes the first, the same shape a
+// single row's own tap already has
+export function selectAllVisible(){
+  const ids = visibleTrackIds();
+  if(!ids.length) return;
+  const allPicked = ids.every(id => S.editSelection.has(id));
+  if(allPicked) ids.forEach(id => S.editSelection.delete(id));
+  else ids.forEach(id => S.editSelection.add(id));
+  renderTracks();
+  updateSelectBar();
+}
+
 function updateSelectBar(){
   $('#selectCount').textContent = S.editSelection.size + ' selected';
   $('#selectEdit').disabled = S.editSelection.size === 0;
   $('#selectNumber').disabled = S.editSelection.size === 0;
   $('#selectDelete').disabled = S.editSelection.size === 0;
+  const ids = visibleTrackIds();
+  const allPicked = ids.length > 0 && ids.every(id => S.editSelection.has(id));
+  const allBtn = $('#selectAll');
+  if(allBtn){
+    allBtn.disabled = ids.length === 0;
+    allBtn.textContent = allPicked ? 'Select none' : 'Select all';
+  }
 }
 
 /* ---- deletion UI: row overflow menu + shared confirm dialog ----

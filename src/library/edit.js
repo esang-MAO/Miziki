@@ -19,11 +19,34 @@ import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { renderTracks, updateTrackRow, exitSelectMode } from './view.js';
 import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
+import { emptyDetails } from './tags/index.js';
+
+// Which of an overlay's sparse `fields` land on t.tags (title/artist/
+// album/...) versus t.details (genre/year — CREDITS spec's own liner-
+// notes/credits object, read by search.js's genre:/year: field matchers,
+// not by anything that reads t.tags). The overlay row itself stays one flat
+// `fields` object regardless — splitting only matters at apply time, so the
+// cross-device overlay merge (sync/merge.js's mergeOverlays, sync/
+// backup-doc.js's convertOverlays) needs no change for this to sync.
+const DETAIL_FIELD_KEYS = new Set(['genre', 'year']);
+function splitFields(fields){
+  const tagFields = {}, detailFields = {};
+  Object.keys(fields || {}).forEach(k => {
+    if(DETAIL_FIELD_KEYS.has(k)) detailFields[k] = fields[k];
+    else tagFields[k] = fields[k];
+  });
+  return {tagFields, detailFields};
+}
 
 function applyOverlay(t, rec, artBlob){
   t.embeddedTags = Object.assign({}, t.tags);
+  t.embeddedDetails = Object.assign({}, t.details || emptyDetails());
   t.embeddedArt = t.art;
-  if(rec && rec.fields) Object.keys(rec.fields).forEach(k => { t.tags[k] = rec.fields[k]; });
+  if(rec && rec.fields){
+    const {tagFields, detailFields} = splitFields(rec.fields);
+    Object.assign(t.tags, tagFields);
+    if(Object.keys(detailFields).length) t.details = Object.assign({}, t.details || emptyDetails(), detailFields);
+  }
   if(artBlob){ t.overlayArtBlob = artBlob; t.art = URL.createObjectURL(artBlob); }
 }
 
@@ -88,6 +111,7 @@ function recomputeTrack(i){
 export async function applyEdit(trackIds, fields, artBlob){
   const touchedAlbumIds = new Set();
   let sealedChanged = false;
+  const {tagFields, detailFields} = splitFields(fields);
   for(const id of trackIds){
     const i = idxOf(id); if(i < 0) continue;
     const t = S.tracks[i];
@@ -99,7 +123,8 @@ export async function applyEdit(trackIds, fields, artBlob){
     // overlay row carries no other identity than this track's file id, so
     // this is the only place that timestamp can be recorded.
     await overlays.put({id, fields: merged, editedAt: Date.now()});
-    Object.assign(t.tags, fields);
+    Object.assign(t.tags, tagFields);
+    if(Object.keys(detailFields).length) t.details = Object.assign({}, t.details || emptyDetails(), detailFields);
     // the album id is recomputed from the (possibly just-edited) album
     // title — carry the seal state over so a retag never seals or unseals
     // an album as a side effect (SEALED spec §2)
@@ -151,6 +176,7 @@ export async function revertTrack(id){
   await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now(), cover: null});
   await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
+  t.details = Object.assign({}, t.embeddedDetails);
   if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
   t.overlayArtBlob = null;
   t.art = t.embeddedArt;
@@ -190,7 +216,9 @@ export async function undoLastEdit(){
     if(prevRec) await overlays.put(prevRec);
     else await overlays.put({id, fields: null, reverted: true, revertedAt: Date.now(), cover: null});
     if(prevArtRec) await artwork.put(prevArtRec); else await artwork.del(id);
-    t.tags = Object.assign({}, t.embeddedTags, prevRec ? prevRec.fields : {});
+    const {tagFields: prevTagFields, detailFields: prevDetailFields} = splitFields(prevRec ? prevRec.fields : null);
+    t.tags = Object.assign({}, t.embeddedTags, prevTagFields);
+    t.details = Object.assign({}, t.embeddedDetails, prevDetailFields);
     if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
     if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
     else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
@@ -238,10 +266,13 @@ export function openEditSheet(trackIds){
   $('#editAlbumArtist').value = batch ? '' : (first.tags.albumArtist || '');
   $('#editTrackRow').style.display = batch ? 'none' : '';
   $('#editTrackNum').value = batch ? '' : (first.tags.track || '');
+  const firstDetails = first.details || emptyDetails();
+  $('#editGenre').value = batch ? '' : (firstDetails.genre || '');
+  $('#editYear').value = batch ? '' : (firstDetails.year || '');
   $('#editRevert').style.display = batch ? 'none' : '';
   $('#editBatchNote').style.display = batch ? 'block' : 'none';
-  if(batch) $('#editBatchNote').textContent = 'Artist, album, and cover apply to all ' + trackIds.length
-    + ' selected tracks. Titles are left as they are.';
+  if(batch) $('#editBatchNote').textContent = 'Artist, album, album artist, genre, year, and cover apply to all '
+    + trackIds.length + ' selected tracks. Titles are left as they are.';
   renderEditArtPreview(batch ? null : first.art);
   // single-track fields start pre-filled with the current values (so the
   // user can see them), which means only what actually changed from these
@@ -249,7 +280,8 @@ export function openEditSheet(trackIds){
   // freeze untouched fields (like a fallback title) into the overlay forever
   S.editOriginal = batch ? null : {
     title: first.tags.title || '', artist: first.tags.artist || '', album: first.tags.album || '',
-    albumArtist: first.tags.albumArtist || '', track: String(first.tags.track || '')
+    albumArtist: first.tags.albumArtist || '', track: String(first.tags.track || ''),
+    genre: firstDetails.genre || '', year: String(firstDetails.year || '')
   };
   const overlay = $('#editOverlay');
   overlay.classList.add('open');
@@ -272,6 +304,8 @@ export async function saveEditSheet(){
     const artist = $('#editArtist').value.trim(); if(artist) fields.artist = artist;
     const album = $('#editAlbum').value.trim(); if(album) fields.album = album;
     const albumArtist = $('#editAlbumArtist').value.trim(); if(albumArtist) fields.albumArtist = albumArtist;
+    const genre = $('#editGenre').value.trim(); if(genre) fields.genre = genre;
+    const yearStr = $('#editYear').value; if(yearStr !== '') fields.year = parseInt(yearStr, 10) || 0;
   } else {
     // single-track fields start pre-filled with current values, so only
     // what differs from that starting point counts as an actual edit
@@ -283,6 +317,9 @@ export async function saveEditSheet(){
     if(albumArtist && albumArtist !== orig.albumArtist) fields.albumArtist = albumArtist;
     const trackNum = $('#editTrackNum').value;
     if(trackNum !== '' && trackNum !== orig.track) fields.track = parseInt(trackNum, 10) || 0;
+    const genre = $('#editGenre').value.trim(); if(genre !== orig.genre) fields.genre = genre;
+    const yearStr = $('#editYear').value;
+    if(yearStr !== orig.year) fields.year = yearStr === '' ? 0 : (parseInt(yearStr, 10) || 0);
   }
 
   if(!Object.keys(fields).length && !S.editArtBlob){ closeLayer('edit'); return; }

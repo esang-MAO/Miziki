@@ -205,6 +205,7 @@
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>
       <div class="stack">
+        <button class="cta ghost" id="selectAll">Select all</button>
         <button class="cta ghost" id="selectNumber">Number in order</button>
         <button class="cta" id="selectEdit">Edit</button>
         <button class="cta ghost" id="selectDelete">Remove</button>
@@ -1059,6 +1060,14 @@
     <div class="slider-row" id="editTrackRow">
       <div class="slider-head"><span>Track number</span></div>
       <input class="pl-input" id="editTrackNum" type="number" min="0">
+    </div>
+    <div class="slider-row">
+      <div class="slider-head"><span>Genre</span></div>
+      <input class="pl-input" id="editGenre" type="text">
+    </div>
+    <div class="slider-row">
+      <div class="slider-head"><span>Year</span></div>
+      <input class="pl-input" id="editYear" type="number" min="0" max="2100">
     </div>
 
     <p class="note" id="editBatchNote" style="display:none"></p>
