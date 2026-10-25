@@ -160,6 +160,16 @@ test('toggleShuffle back off also leaves playback untouched', () => {
 // docs/15_SURFACE_NOISE.md §3: src now routes through a dedicated
 // trackGain node first (engine.js's routeSource()), not straight to
 // wobble/master — see that file's own entry for why.
+//
+// AU2 (docs/16_AUDIO.md §2.2): a real mode switch with something playing
+// is now a dip, not an instant reconnect — fade out, reroute, fade in —
+// so the actual routeSource() call lands MODE_DIP_MS later on a setTimeout,
+// not synchronously inside setMode() itself. mock.timers (the same API
+// tests/unit/backup-sync.test.js already uses) flushes exactly that delay.
+// S.ctx stays unset throughout, same as before AU2: applyCharacter()'s own
+// `!S.ctx` guard (audio/engine.js) and fadeMusicTo()'s matching guard
+// (audio/surface-noise.js) both no-op harmlessly with no real context, so
+// these tests can stay focused on the routing itself.
 test('setMode switches routing: pure connects to master, vinyl connects to wobble', () => {
   resetState();
   const masterConnect = mock.fn(), wobbleConnect = mock.fn();
@@ -172,13 +182,38 @@ test('setMode switches routing: pure connects to master, vinyl connects to wobbl
     } },
   };
   S.source = { disconnect: mock.fn(), connect(){ return S.nodes.trackGain; } };
-  setMode('pure');
-  assert.equal(S.mode, 'pure');
-  assert.equal(masterConnect.mock.calls.length, 1);
-  assert.equal(wobbleConnect.mock.calls.length, 0);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try{
+    setMode('pure');
+    assert.equal(S.mode, 'pure');
+    mock.timers.tick(15);
+    assert.equal(masterConnect.mock.calls.length, 1);
+    assert.equal(wobbleConnect.mock.calls.length, 0);
+    setMode('vinyl');
+    assert.equal(S.mode, 'vinyl');
+    mock.timers.tick(15);
+    assert.equal(wobbleConnect.mock.calls.length, 1);
+  }finally{ mock.timers.reset(); }
+});
+
+// The very first mode set at boot (nothing playing yet, S.source null)
+// still routes immediately — there's no live source to dip, and nothing
+// should wait on a timer just to reflect the saved/default mode.
+test('setMode with nothing playing routes immediately, no dip', () => {
+  resetState({ mode: 'pure' });
+  const wobbleConnect = mock.fn();
+  S.nodes = {
+    master: { connect: mock.fn() },
+    wobble: { connect: wobbleConnect },
+    trackGain: { disconnect: mock.fn(), connect(target){
+      if(target === S.nodes.wobble) wobbleConnect();
+    } },
+  };
+  S.source = null;
   setMode('vinyl');
   assert.equal(S.mode, 'vinyl');
-  assert.equal(wobbleConnect.mock.calls.length, 1);
+  // nothing to route (no S.source) -- routeSource() is never called, dip or not
+  assert.equal(wobbleConnect.mock.calls.length, 0);
 });
 
 // docs/15_SURFACE_NOISE.md §4: with the record waiting in the run-out for a
