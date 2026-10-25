@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, Playback</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.grp{border-radius:12px;background:rgba(13,11,16,.55);border:1px solid rgba(239,233,223,.10);display:flex;flex-direction:column}
+.row{min-height:56px;padding:0 14px;display:flex;align-items:center;gap:12px}
+.sep{border-top:1px solid rgba(239,233,223,.10)}
+.lab{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0}
+.t{font-size:15px;color:#EFE9DF}
+.h{font-size:12px;line-height:1.4;color:#A99C8F}
+.cap{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.10em;color:#A99C8F;padding:0 4px}
+.seg{min-height:40px;border:0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em}
+.sw{width:52px;height:32px;flex:0 0 auto;border:0;border-radius:16px;position:relative;padding:0}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="padding: 8px 16px 0; display: flex; flex-direction: column; gap: 4px">
+<button class="mono" style="align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">‹ SETTINGS</button>
+<h1 class="disp" style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: .02em">Playback</h1>
+</div>
+
+<div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 18px">
+
+<div class="grp">
+<button class="row" style="border: 0; background: transparent; text-align: left; width: 100%; color: inherit">
+<span class="lab"><span class="t">EQ</span><span class="h">Applies in Pure and Vinyl</span></span>
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; color: #FFB85E">CUSTOM · ON</span>
+<span class="mono" style="font-size: 14px; color: #A99C8F" aria-hidden="true">›</span>
+</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span id="lvl" class="cap">VOLUME LEVELING</span>
+<div class="grp" style="padding: 12px; gap: 10px">
+<div role="radiogroup" aria-labelledby="lvl" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.18); border-radius: 8px; overflow: hidden">
+<button role="radio" aria-checked="true" class="seg" style="background: rgba(255,158,44,.16); color: #FFB85E; font-weight: 500">AUTO</button>
+<button role="radio" aria-checked="false" class="seg" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">ALBUM</button>
+<button role="radio" aria-checked="false" class="seg" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">TRACK</button>
+<button role="radio" aria-checked="false" class="seg" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">OFF</button>
+</div>
+<span class="h">Records play at an even level. A record in order keeps its own quiet and loud moments; shuffle evens out each song.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">LISTENING</span>
+<div class="grp">
+<div class="row">
+<span class="lab"><span id="monoL" class="t">Mono</span><span class="h">Both sides get the full mix, for one earbud</span></span>
+<button role="switch" aria-checked="false" aria-labelledby="monoL" class="sw" style="background: rgba(239,233,223,.18)"><span aria-hidden="true" style="position: absolute; left: 3px; top: 3px; width: 26px; height: 26px; border-radius: 13px; background: #EFE9DF; display: block"></span></button>
+</div>
+<div class="sep" style="padding: 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span class="t">Balance</span><span class="mono" style="font-size: 11px; letter-spacing: .08em; color: #EFE9DF">CENTER</span></div>
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="mono" style="font-size: 11px; color: #A99C8F">L</span>
+<div aria-hidden="true" style="flex: 1 1 auto; position: relative; height: 4px; border-radius: 2px; background: rgba(239,233,223,.14)"><span style="position: absolute; left: 50%; top: -6px; width: 2px; height: 16px; margin-left: -1px; background: rgba(239,233,223,.35); display: block"></span><span style="position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 11px; background: #EFE9DF; box-shadow: 0 2px 4px rgba(0,0,0,.45); display: block"></span></div>
+<span class="mono" style="font-size: 11px; color: #A99C8F">R</span>
+</div>
+</div>
+<div class="row sep">
+<span class="lab"><span id="bgL" class="t">Background playback</span><span class="h">Keep playing with the screen locked</span></span>
+<button role="switch" aria-checked="true" aria-labelledby="bgL" class="sw" style="background: #FF9E2C"><span aria-hidden="true" style="position: absolute; right: 3px; top: 3px; width: 26px; height: 26px; border-radius: 13px; background: #1E1714; display: block"></span></button>
+</div>
+</div>
+</div>
+
+<span class="h" style="padding: 0 4px">On a computer, a volume slider also appears in the player bar. On a phone, use the phone’s own volume.</span>
+
+</div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: rgba(13,11,16,.9); border-top: 1px solid rgba(239,233,223,.14); padding-bottom: 20px">
+<a href="Playback.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #A99C8F"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="5" height="14" rx="1"></rect><rect x="10" y="5" width="5" height="14" rx="1"></rect><path d="M17 6l3.5 12.5"></path></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">LIBRARY</span></a>
+<a href="Playback.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid transparent; margin-top: -1px; text-decoration: none; color: #A99C8F"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg><span class="mono" style="font-size: 11px; letter-spacing: .08em">HOME</span></a>
+<a href="Playback.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border-top: 2px solid #FF9E2C; margin-top: -1px; text-decoration: none; color: #EFE9DF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9E2C" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2.5"></circle></svg><span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em">PROFILE</span></a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

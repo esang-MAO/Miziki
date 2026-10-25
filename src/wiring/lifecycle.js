@@ -21,16 +21,21 @@ import { flushBackupSync, pullBackupOnForeground } from '../sync/backup.js';
 import { computeSun } from '../sundown/solar.js';
 import { drawSun } from '../player/clock.js';
 import { bgNoteHidden, bgCheckReturnOffer } from '../player/background.js';
+import { saveResumeNow } from '../player/resume.js';
 
 export function wireLifecycle(){
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'hidden'){ flushBackupSync(); bgNoteHidden(); }
+    // AU1 (docs/16_AUDIO.md §2.1): "immediately on... visibilitychange
+    // (hidden)" — the same backgrounding moment flushBackupSync() already
+    // treats as "about to lose this," now also saving the queue/position.
+    if(document.visibilityState === 'hidden'){ flushBackupSync(); bgNoteHidden(); saveResumeNow(); }
     else { pullBackupOnForeground(); computeSun(); drawSun(); bgCheckReturnOffer(); }
   });
   // iOS Safari can terminate a backgrounded home-screen app without ever
   // firing visibilitychange — pagehide is the one event reliably fired
   // first in that case too, so background-flush listens to it as well,
   // not instead of visibilitychange (which pagehide doesn't cover intra-
-  // session, e.g. switching tabs/apps and coming straight back).
-  window.addEventListener('pagehide', flushBackupSync);
+  // session, e.g. switching tabs/apps and coming straight back). AU1's
+  // own "immediately on... pagehide" rule rides along for the same reason.
+  window.addEventListener('pagehide', () => { flushBackupSync(); saveResumeNow(); });
 }

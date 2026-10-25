@@ -355,6 +355,11 @@
 
 <!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
 <div class="mini-player" id="miniPlayer" style="display:none">
+  <!-- AU1 (docs/16_AUDIO.md §2.1): "a progress hairline across its top
+       edge" -- shown only while S.resumePending (shell/mini-player.js's
+       renderMiniPlayer()), the same "picking up where you left off"
+       moment the paused-at subtitle below replaces the artist line for. -->
+  <span class="mini-progress" id="miniProgress" aria-hidden="true"><span id="miniProgressBar"></span></span>
   <button class="mini-tap" id="miniTap" aria-label="Open player">
     <span class="mini-indicator" id="miniIndicator">
       <span class="mini-square" id="miniSquare">

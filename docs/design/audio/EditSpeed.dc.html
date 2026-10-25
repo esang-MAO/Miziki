@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit sheet, speed override</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.10em;color:#A99C8F}
+.inp{min-height:44px;box-sizing:border-box;width:100%;padding:0 12px;border:1px solid rgba(239,233,223,.16);border-radius:8px;background:rgba(255,255,255,.04);color:#EFE9DF;font-family:'Archivo',sans-serif;font-size:15px}
+.seg{min-height:44px;border:0;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; overflow: hidden">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,6,8,.62)"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 70px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; background: #1C1A20; opacity: .35"></div>
+
+<div role="dialog" aria-labelledby="editTitle" style="position: absolute; left: 0; right: 0; bottom: 0; top: 196px; border-radius: 16px 16px 0 0; background: #1E1714; box-shadow: 0 -12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,235,200,.08); display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 28px">
+
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.25); display: block"></span>
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button class="mono" style="min-height: 44px; padding: 0; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">CANCEL</button>
+<h2 id="editTitle" class="disp" style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .04em">Edit record</h2>
+<button class="mono" style="min-height: 44px; padding: 0; border: 0; background: transparent; color: #FF9E2C; font-size: 11px; font-weight: 500; letter-spacing: .08em">SAVE</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="fTitle" class="lbl">TITLE</label>
+<input id="fTitle" class="inp" value="[Single title]">
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="fArtist" class="lbl">ARTIST</label><input id="fArtist" class="inp" value="[Artist]"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="fYear" class="lbl">YEAR</label><input id="fYear" class="inp" value="[Year]"></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(239,233,223,.10)">
+<span id="speedLbl" class="lbl">SPEED</span>
+<div role="radiogroup" aria-labelledby="speedLbl" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.18); border-radius: 8px; overflow: hidden">
+<button role="radio" aria-checked="true" class="seg" style="background: rgba(255,158,44,.16); color: #FFB85E; font-weight: 500">AUTO</button>
+<button role="radio" aria-checked="false" class="seg" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">33⅓</button>
+<button role="radio" aria-checked="false" class="seg" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">45</button>
+</div>
+
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,.04)">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 auto; border-radius: 50%; background: repeating-radial-gradient(circle, #121216 0px, #121216 1px, #1C1D23 1px, #1C1D23 2.4px); display: flex; align-items: center; justify-content: center"><span style="width: 40px; height: 40px; border-radius: 50%; background: #23242B; display: flex; align-items: center; justify-content: center"><span style="width: 28px; height: 28px; border-radius: 50%; background: #FF9E2C; display: flex; align-items: center; justify-content: center"><span style="width: 12px; height: 12px; border-radius: 50%; background: #0D0B10; display: block"></span></span></span></div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span class="mono" style="font-size: 11px; font-weight: 500; letter-spacing: .08em; color: #EFE9DF">7″ SINGLE · 45 RPM</span>
+<span style="font-size: 13px; line-height: 1.4; color: #A99C8F">One track, 4:12. A single side, no flip.</span>
+</div>
+</div>
+
+<span style="font-size: 13px; line-height: 1.45; color: #A99C8F">Auto picks the speed from the side lengths, so it matches for everyone. A choice here is yours only; friends still see Auto.</span>
+</div>
+
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

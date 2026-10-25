@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Speed change storyboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.mat{position:relative;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle, #24212A 0 60%, #1C1A20 60% 99%, #121014 99% 100%);box-shadow:0 2px 4px rgba(0,0,0,.4),0 16px 32px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.seven{position:relative;width:106px;height:106px;border-radius:50%;background:repeating-radial-gradient(circle, #121216 0px, #121216 1px, #1C1D23 1px, #1C1D23 2.4px);box-shadow:0 2px 6px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+.wax{width:78px;height:78px;border-radius:50%;background:#22232A;display:flex;align-items:center;justify-content:center}
+.lab{width:53px;height:53px;border-radius:50%;background:#FF9E2C;display:flex;align-items:center;justify-content:center}
+.hole{width:22px;height:22px;border-radius:50%;background:#0D0B10;display:flex;align-items:center;justify-content:center}
+.btns{display:flex;border:1px solid rgba(239,233,223,.18);border-radius:4px;overflow:hidden}
+.sb{min-width:56px;min-height:32px;border:0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1280px; height: 560px; box-sizing: border-box; padding: 40px 56px; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 28px; overflow: hidden">
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px">
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 14px">
+<div class="mat" role="img" aria-label="A 7-inch record at rest on the platter">
+<div class="seven"><div class="wax"><div class="lab"><span class="hole"><svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#C9C2B4" stroke-width="3"></circle><path d="M20 20 L20 3 M20 20 L34.7 28.5 M20 20 L5.3 28.5" stroke="#C9C2B4" stroke-width="5" stroke-linecap="round"></path></svg></span></div></div></div>
+</div>
+<div class="btns" aria-label="Platter speed"><button class="sb" aria-pressed="true" style="background: rgba(239,233,223,.14); color: #EFE9DF">33⅓</button><button class="sb" aria-pressed="false" style="background: transparent; color: #A99C8F; border-left: 1px solid rgba(239,233,223,.18)">45</button></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">1 · 0 MS</span>
+<span style="font-size: 13px; line-height: 1.4; color: #EFE9DF">The LP goes back in its sleeve; the 7″ lands on the platter, still at 33⅓.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 14px">
+<div class="mat" role="img" aria-label="The same record at rest while the speed button clicks">
+<div class="seven"><div class="wax"><div class="lab"><span class="hole"><svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#C9C2B4" stroke-width="3"></circle><path d="M20 20 L20 3 M20 20 L34.7 28.5 M20 20 L5.3 28.5" stroke="#C9C2B4" stroke-width="5" stroke-linecap="round"></path></svg></span></div></div></div>
+</div>
+<div class="btns" aria-label="Platter speed"><button class="sb" aria-pressed="false" style="background: transparent; color: #A99C8F">33⅓</button><button class="sb" aria-pressed="true" style="background: #FF9E2C; color: #170D04; font-weight: 500; border-left: 1px solid rgba(239,233,223,.18); box-shadow: inset 0 2px 3px rgba(0,0,0,.35)">45</button></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">2 · 0 MS · CLICK + HAPTIC</span>
+<span style="font-size: 13px; line-height: 1.4; color: #EFE9DF">The 45 button clicks in, with a short mechanical tick and one haptic.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 14px">
+<div class="mat" role="img" aria-label="The record spinning up, with motion arcs">
+<svg width="180" height="180" viewBox="0 0 180 180" aria-hidden="true" style="position: absolute; inset: 0"><path d="M 30 70 A 64 64 0 0 1 70 30" fill="none" stroke="rgba(255,184,94,.6)" stroke-width="2" stroke-linecap="round"></path><path d="M 150 110 A 64 64 0 0 1 110 150" fill="none" stroke="rgba(255,184,94,.6)" stroke-width="2" stroke-linecap="round"></path><path d="M 22 92 A 70 70 0 0 1 32 58" fill="none" stroke="rgba(255,184,94,.3)" stroke-width="2" stroke-linecap="round"></path><path d="M 158 88 A 70 70 0 0 1 148 122" fill="none" stroke="rgba(255,184,94,.3)" stroke-width="2" stroke-linecap="round"></path></svg>
+<div class="seven" style="transform: rotate(40deg)"><div class="wax"><div class="lab"><span class="hole"><svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#C9C2B4" stroke-width="3"></circle><path d="M20 20 L20 3 M20 20 L34.7 28.5 M20 20 L5.3 28.5" stroke="#C9C2B4" stroke-width="5" stroke-linecap="round"></path></svg></span></div></div></div>
+</div>
+<span class="mono" style="min-height: 34px; display: flex; align-items: center; font-size: 13px; letter-spacing: .06em; color: #EFE9DF">0 → <span style="color: #FFB85E; padding-left: 6px">45.0 RPM</span></span>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">3 · 0–600 MS · SPIN-UP</span>
+<span style="font-size: 13px; line-height: 1.4; color: #EFE9DF">The platter eases up to 45, scaled by Sundown like everything else.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 14px">
+<div class="mat" role="img" aria-label="Needle drop on the spinning 7-inch">
+<div class="seven" style="transform: rotate(160deg)"><div class="wax"><div class="lab"><span class="hole"><svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#C9C2B4" stroke-width="3"></circle><path d="M20 20 L20 3 M20 20 L34.7 28.5 M20 20 L5.3 28.5" stroke="#C9C2B4" stroke-width="5" stroke-linecap="round"></path></svg></span></div></div></div>
+<span aria-hidden="true" style="position: absolute; left: 132px; top: 46px; width: 10px; height: 10px; border-radius: 5px; background: #FFB85E; box-shadow: 0 0 0 6px rgba(255,184,94,.18); display: block"></span>
+</div>
+<span class="mono" style="min-height: 34px; display: flex; align-items: center; font-size: 13px; letter-spacing: .06em; color: #EFE9DF">LEAD-IN · 2 S</span>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">4 · 600 MS · NEEDLE DROP</span>
+<span style="font-size: 13px; line-height: 1.4; color: #EFE9DF">Then the usual needle drop and lead-in, shorter on a 7″.</span>
+</div>
+</div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div aria-hidden="true" style="display: flex; height: 10px; border-radius: 2px; overflow: hidden">
+<span style="width: 20%; background: #FF9E2C; display: block"></span>
+<span style="width: 1%; background: #EFE9DF; display: block"></span>
+<span style="width: 50%; background: rgba(239,230,210,.55); display: block"></span>
+<span style="width: 29%; background: rgba(239,233,223,.14); display: block"></span>
+</div>
+<div class="mono" style="display: flex; font-size: 10px; letter-spacing: .08em; color: #A99C8F">
+<span style="width: 20%">0 · CLICK, SPIN-UP</span><span style="width: 51%">600 MS · NEEDLE DROP, LEAD-IN</span><span style="width: 29%">2.6 S · MUSIC</span>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding-top: 16px; border-top: 1px solid rgba(239,233,223,.14)">
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">PURE</span><span style="font-size: 13px; color: #EFE9DF">Instant: no click, no spin-up, no lead-in.</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">REDUCE MOTION</span><span style="font-size: 13px; color: #EFE9DF">The click and haptic stay; the platter cuts straight to 45.</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">PLAYER CLOSED</span><span style="font-size: 13px; color: #EFE9DF">Nothing to see, so the record just starts.</span></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":560}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

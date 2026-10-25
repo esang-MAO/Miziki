@@ -4,6 +4,7 @@ import { clamp } from '../util/math.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
+import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
@@ -48,6 +49,10 @@ export function tick(now, maxDt){
     addPlayedRange(prevPos, S.pos);
     checkTrackCompletion(t);
   }
+  // AU1 (docs/16_AUDIO.md §2.1): "save the position about every 5s while
+  // playing" — a plain throttle inside the already-ticking render loop,
+  // not a separate timer of its own.
+  autosaveResumeTick(now);
   return dt;
 }
 

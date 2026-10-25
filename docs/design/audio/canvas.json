@@ -1,0 +1,35 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-25T13:40:00Z"},
+  "title": "Miziki Audio",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "A 7″ single at 45 on the platter · AU10"},
+    "Formats.dc.html": {"x": 470, "y": 0, "w": 1280, "h": 844, "title": "Three formats, dead wax shows the length · AU9, AU10"},
+    "SpeedChange.dc.html": {"x": 0, "y": 1184, "w": 1280, "h": 560, "title": "The speed change, 33⅓ to 45 · AU10"},
+    "Crate45.dc.html": {"x": 0, "y": 2084, "w": 390, "h": 844, "title": "The 45s section in the crate · AU10"},
+    "LinerNotes.dc.html": {"x": 470, "y": 2084, "w": 390, "h": 844, "title": "Liner notes: format, sides, dynamics · AU5, AU9"},
+    "EditSpeed.dc.html": {"x": 940, "y": 2084, "w": 390, "h": 844, "title": "Speed override in the edit sheet · AU9"},
+    "HoldPreview.dc.html": {"x": 1410, "y": 2084, "w": 390, "h": 844, "title": "Hook preview from the hold card · AU12"},
+    "EQGraphic.dc.html": {"x": 0, "y": 3268, "w": 390, "h": 844, "title": "EQ: tilt, 10 bands, the true curve · AU6"},
+    "EQParametric.dc.html": {"x": 470, "y": 3268, "w": 390, "h": 844, "title": "EQ: parametric bands · AU6"},
+    "Playback.dc.html": {"x": 940, "y": 3268, "w": 390, "h": 844, "title": "Settings › Playback · AU5, AU7"},
+    "Queue.dc.html": {"x": 0, "y": 4452, "w": 390, "h": 844, "title": "Queue: history, drag, save, clear · AU8"},
+    "Resume.dc.html": {"x": 470, "y": 4452, "w": 390, "h": 844, "title": "Picking up where you left off · AU1"}
+  },
+  "order": [
+    "Main.dc.html", "Formats.dc.html", "SpeedChange.dc.html",
+    "Crate45.dc.html", "LinerNotes.dc.html", "EditSpeed.dc.html", "HoldPreview.dc.html",
+    "EQGraphic.dc.html", "EQParametric.dc.html", "Playback.dc.html",
+    "Queue.dc.html", "Resume.dc.html"
+  ],
+  "notes": {
+    "fortyfive": {"x": 0, "y": -300, "text": "45 RPM records", "kind": "title1", "maxW": 1750},
+    "speed": {"x": 0, "y": 884, "text": "Changing speed", "kind": "title1", "maxW": 1280},
+    "crate": {"x": 0, "y": 1784, "text": "In the crate and on the sleeve", "kind": "title1", "maxW": 1800},
+    "eq": {"x": 0, "y": 2968, "text": "EQ and playback (Pure and Vinyl)", "kind": "title1", "maxW": 1330},
+    "queue": {"x": 0, "y": 4152, "text": "Queue and resume", "kind": "title1", "maxW": 860}
+  },
+  "designSystems": []
+}

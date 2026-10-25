@@ -64,6 +64,12 @@ export const S = {
   // playback clock holds S.pos at 0 until, while that lead-in is still
   // playing and the track's own audio hasn't actually started yet.
   pendingSideStart:false, openUntil:0,
+  // AU1 (docs/16_AUDIO.md §2.1): true from the moment restoreResume()
+  // (src/player/resume.js) lands a paused record on launch until Play is
+  // first pressed (player/transport.js's play() clears it) — the one
+  // flag the mini player reads to show "PAUSED AT m:ss OF m:ss" instead
+  // of the artist line. Runtime only, never saved.
+  resumePending:false,
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,

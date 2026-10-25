@@ -30,6 +30,7 @@ import {
   playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC
 } from '../audio/surface-noise.js';
 import { performPendingFlip } from '../shell/runout.js';
+import { saveResumeNow } from './resume.js';
 
 // docs/15_SURFACE_NOISE.md §1: "the lead-in plays only at the start of a
 // side: playing from stopped, or after a flip" — true when i is the first
@@ -197,6 +198,10 @@ export async function play(){
   await S.ctx.resume();
   if(S.playing) return;
   S.playing = true;
+  // AU1 (docs/16_AUDIO.md §2.1): whatever restoreResume() landed paused
+  // on the platter is no longer "pending" the moment Play actually runs —
+  // from here on the mini player shows the ordinary artist line again
+  S.resumePending = false;
   // the single point every playback path funnels through, ceremony or not —
   // "played" means this, with no minimum duration (SEALED spec §2)
   breakSeal(albumKey(t));
@@ -251,7 +256,9 @@ export function pause(){ S.playing = false; cancelPendingOpening(); stopUnderMus
   if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(_e){} S.source=null; }
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
   MizikiSocial.nowSpinningPaused();
-  if(bgRouteActive()) bgIdleNow(); }
+  if(bgRouteActive()) bgIdleNow();
+  saveResumeNow();   // AU1: "immediately on pause" (docs/16_AUDIO.md §2.1)
+}
 
 export function seek(sec){
   const t = current(); if(!t) return;

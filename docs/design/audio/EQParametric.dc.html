@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EQ, parametric view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.band{min-height:48px;width:100%;padding:0 12px;border:0;border-top:1px solid rgba(239,233,223,.10);background:transparent;color:#EFE9DF;display:flex;align-items:center;gap:12px;text-align:left}
+.n{width:22px;height:22px;flex:0 0 auto;border-radius:11px;border:1.5px solid rgba(239,233,223,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ty{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:#A99C8F;width:84px;flex:0 0 auto}
+.val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#EFE9DF}
+.sl{display:grid;grid-template-columns:52px minmax(0,1fr) 70px;align-items:center;gap:10px}
+.tr{position:relative;height:4px;border-radius:2px;background:rgba(239,233,223,.14)}
+.tt{min-height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#A99C8F;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;white-space:nowrap}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1E1714; color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 14px; padding: 8px 16px 24px; overflow: hidden">
+
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.25); display: block"></span>
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: .04em">EQ</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">PURE AND VINYL</span>
+</div>
+<button role="switch" aria-checked="true" aria-label="EQ on" style="width: 52px; height: 32px; border: 0; border-radius: 16px; background: #FF9E2C; position: relative; padding: 0"><span aria-hidden="true" style="position: absolute; right: 3px; top: 3px; width: 26px; height: 26px; border-radius: 13px; background: #1E1714; display: block"></span></button>
+</div>
+
+<div role="tablist" aria-label="EQ view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.18); border-radius: 4px; overflow: hidden">
+<button role="tab" aria-selected="false" class="mono" style="min-height: 40px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">GRAPHIC</button>
+<button role="tab" aria-selected="true" class="mono" style="min-height: 40px; border: 0; border-left: 1px solid rgba(239,233,223,.18); background: rgba(239,233,223,.12); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">PARAMETRIC</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="img" aria-label="Parametric curve: a gentle low shelf cut, a dip at 250 Hz, a small lift around 3 kHz and a high cut at 18 kHz, with four numbered band handles" style="position: relative; width: 358px; height: 170px; border-radius: 8px; background: #15100E; box-shadow: inset 0 0 0 1px rgba(239,233,223,.08); overflow: hidden">
+<svg width="358" height="170" viewBox="0 0 358 170" aria-hidden="true" style="position: absolute; inset: 0">
+<g stroke="rgba(239,233,223,.08)" stroke-width="1">
+<line x1="0" y1="13" x2="358" y2="13"></line><line x1="0" y1="49" x2="358" y2="49"></line><line x1="0" y1="121" x2="358" y2="121"></line><line x1="0" y1="157" x2="358" y2="157"></line>
+<line x1="94.9" y1="0" x2="94.9" y2="170"></line><line x1="202.7" y1="0" x2="202.7" y2="170"></line><line x1="310.5" y1="0" x2="310.5" y2="170"></line>
+</g>
+<line x1="0" y1="85" x2="358" y2="85" stroke="rgba(239,233,223,.25)" stroke-width="1"></line>
+<path d="M130.9,85 C120,85 118,103 130.9,103 S142,85 130.9,85" fill="none"></path>
+<path d="M90,85 C110,85 115,103 130.9,103 S152,85 172,85 Z" fill="rgba(255,158,44,.22)"></path>
+<path d="M0,97 C30,97 50,96 71.6,92 S100,86 110,88 S125,103 130.9,103 S150,96 175,86 S230,76 259.7,76 S300,82 320,84 S345,95 358,125" fill="none" stroke="#FF9E2C" stroke-width="2.5" stroke-linecap="round"></path>
+</svg>
+<span class="n" style="position: absolute; left: 60.6px; top: 81px; background: #1E1714; color: #EFE9DF">1</span>
+<span class="n" style="position: absolute; left: 117.9px; top: 92px; width: 28px; height: 28px; border-radius: 14px; border-color: #FF9E2C; background: #FF9E2C; color: #170D04; font-weight: 500; box-shadow: 0 0 0 6px rgba(255,158,44,.2)">2</span>
+<span class="n" style="position: absolute; left: 248.7px; top: 65px; background: #1E1714; color: #EFE9DF">3</span>
+<span class="n" style="position: absolute; left: 330px; top: 92px; background: #1E1714; color: #EFE9DF">4</span>
+<span class="mono" style="position: absolute; left: 8px; top: 4px; font-size: 9px; color: #857A70">+12</span>
+<span class="mono" style="position: absolute; left: 8px; bottom: 4px; font-size: 9px; color: #857A70">−12</span>
+<span class="mono" style="position: absolute; right: 8px; top: 4px; font-size: 9px; color: #857A70">TRUE CURVE</span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #A99C8F">PREAMP <span style="color: #EFE9DF">−1.5 DB</span></span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">AUTO ✓</span>
+</div>
+</div>
+
+<div style="border-radius: 12px; background: rgba(255,255,255,.04); overflow: hidden">
+<button class="band"><span class="n">1</span><span class="ty">LOW SHELF</span><span class="val" style="flex: 1 1 auto">80 HZ</span><span class="val">−2.0 DB</span></button>
+
+<div style="border-top: 1px solid rgba(239,233,223,.10); background: rgba(255,158,44,.07); padding: 0 12px 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="n" style="border-color: #FF9E2C; background: #FF9E2C; color: #170D04; font-weight: 500">2</span><span class="ty" style="color: #FFB85E">PEAK</span><span class="val" style="flex: 1 1 auto">250 HZ</span><span class="val">−3.0 DB</span></div>
+<div role="radiogroup" aria-label="Band type" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: rgba(0,0,0,.25)">
+<button role="radio" aria-checked="false" class="tt">LOW CUT</button>
+<button role="radio" aria-checked="false" class="tt">LOW SHELF</button>
+<button role="radio" aria-checked="true" class="tt" style="background: rgba(239,233,223,.14); color: #EFE9DF">PEAK</button>
+<button role="radio" aria-checked="false" class="tt">HIGH SHELF</button>
+<button role="radio" aria-checked="false" class="tt">HIGH CUT</button>
+</div>
+<div class="sl"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">FREQ</span><div class="tr" aria-hidden="true"><span style="position: absolute; left: 37%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 10px; background: #EFE9DF; display: block"></span></div><span class="val" style="text-align: right">250 HZ</span></div>
+<div class="sl"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">GAIN</span><div class="tr" aria-hidden="true"><span style="position: absolute; left: 37.5%; top: 0; bottom: 0; width: 12.5%; background: #FF9E2C; display: block"></span><span style="position: absolute; left: 37.5%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 10px; background: #EFE9DF; display: block"></span></div><span class="val" style="text-align: right">−3.0 DB</span></div>
+<div class="sl"><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">WIDTH</span><div class="tr" aria-hidden="true"><span style="position: absolute; left: 44%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 10px; background: #EFE9DF; display: block"></span></div><span class="val" style="text-align: right">Q 1.4</span></div>
+</div>
+
+<button class="band"><span class="n">3</span><span class="ty">PEAK</span><span class="val" style="flex: 1 1 auto">3.0 KHZ</span><span class="val">+1.5 DB</span></button>
+<button class="band"><span class="n">4</span><span class="ty">HIGH CUT</span><span class="val" style="flex: 1 1 auto">18 KHZ</span><span class="val">12 DB/OCT</span></button>
+</div>
+
+<button class="mono" style="min-height: 44px; border: 1px dashed rgba(239,233,223,.25); border-radius: 12px; background: transparent; color: #EFE9DF; font-size: 11px; letter-spacing: .08em">+ ADD BAND · 4 OF 6</button>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

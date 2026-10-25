@@ -17,7 +17,7 @@
    runLaunchSequence(). Fully independent of the sleeve pull/put-away: its
    own token (S.launchSeq), its own overlay, removed from the DOM once it
    finishes or is skipped. */
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
@@ -64,8 +64,19 @@ function updateLaunchScale(){
 }
 
 // the key in S.albumLastPlayed with the largest timestamp; a library that
-// has never been played falls back to the most recently added album
+// has never been played falls back to the most recently added album.
+// AU1 (docs/16_AUDIO.md §2.1): by the time either of this function's two
+// callers (crate/view.js's cold-start anchor, and this file's own launch
+// stack target below) run, main.js's restoreResume() has already loaded
+// whatever record this device was paused on — "the launch intro and the
+// crate already land on the last-played album; they should land on this
+// same record." A resumed track may not have a qualifying S.albumLastPlayed
+// entry at all (it was only ever loaded, never played to completion), so
+// checking current() first is what keeps the two in step rather than
+// recomputing a possibly different answer.
 export function resolveLastPlayedAlbum(){
+  const cur = current();
+  if(cur) return albumKey(cur);
   const played = Object.keys(S.albumLastPlayed).filter(id => S.tracks.some(t => albumKey(t) === id));
   if(played.length) return played.reduce((best,id) => S.albumLastPlayed[id] > S.albumLastPlayed[best] ? id : best, played[0]);
   const addedByAlbum = {};
