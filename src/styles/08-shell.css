@@ -9,6 +9,20 @@
   display:flex;align-items:center;gap:10px;padding:var(--sp-2) 10px;
   background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-left:1px solid var(--line);border-right:1px solid var(--line)}
+/* AU1 (docs/16_AUDIO.md §2.1, docs/design/audio/README.md "Queue and
+   resume"): the resume-after-relaunch state only -- a 2px progress
+   hairline across the strip's own top edge, and the play button reads
+   orange the same way the design's "Play from 2:14" button does. Hidden
+   until shell/mini-player.js's renderMiniPlayer() adds the class (shown
+   only while S.resumePending), so an ordinary playing/paused mini-player
+   is completely unaffected. */
+.mini-progress{display:none}
+.mini-player.resuming .mini-progress{display:block;position:absolute;left:0;right:0;top:0;
+  height:2px;background:rgba(239,233,223,.12)}
+.mini-progress>span{display:block;height:100%;background:var(--accent)}
+.mini-player.resuming{position:relative}
+.mini-player.resuming .mini-play.tbtn#miniPlay{background:var(--accent);color:var(--on-accent);
+  border-radius:50%}
 .mini-tap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
 .mini-indicator{position:relative;width:38px;height:38px;flex:0 0 auto}
 .mini-square,.mini-disc{position:absolute;inset:0;transition:opacity .15s linear}

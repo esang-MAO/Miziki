@@ -1,6 +1,8 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
+import { clamp } from '../util/math.js';
 import { albumKey } from '../record-art/tiers.js';
+import { fmt } from '../player/clock.js';
 import { REDUCED } from '../util/motion.js';
 import { bgSync } from '../player/background.js';
 import { isLibraryRouteVisible } from './routes.js';
@@ -55,7 +57,21 @@ export function renderMiniPlayer(){
   if(!t){ mini.style.display = 'none'; updateChromeInset(); return; }
   mini.style.display = 'flex';
   $('#miniTitle').textContent = t.tags ? t.tags.title : t.name;
-  $('#miniArtist').textContent = t.tags ? t.tags.artist : '';
+  // AU1 (docs/16_AUDIO.md §2.1): "the mini player shows a progress
+  // hairline... PAUSED AT 2:14 OF 4:31" -- only for the record
+  // restoreResume() (src/player/resume.js) just paused on launch, and
+  // only until Play actually runs (S.resumePending's own clearing point,
+  // player/transport.js's play()). An ordinary pause later in the
+  // session never sets S.resumePending, so this never fires then.
+  const resuming = S.resumePending && !S.playing;
+  mini.classList.toggle('resuming', resuming);
+  if(resuming && t.duration){
+    $('#miniArtist').textContent = 'PAUSED AT ' + fmt(S.pos) + ' OF ' + fmt(t.duration);
+    const bar = $('#miniProgressBar');
+    if(bar) bar.style.width = clamp(S.pos / t.duration, 0, 1) * 100 + '%';
+  } else {
+    $('#miniArtist').textContent = t.tags ? t.tags.artist : '';
+  }
   $('#miniSquare').classList.toggle('has-art', !!t.art);
   const art = $('#miniArt');
   if(t.art) art.src = t.art; else art.removeAttribute('src');

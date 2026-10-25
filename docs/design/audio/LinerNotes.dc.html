@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Liner notes with format and dynamics</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.row{display:flex;align-items:baseline;gap:10px;font-size:14px;line-height:1.3}
+.num{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6A5A60;width:16px;flex:0 0 auto}
+.t{flex:1 1 auto;min-width:0}
+.d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5A4A52}
+a{color:#B5433A}a:hover{color:#8A3A1E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(170deg, #352A24 0%, #1A1310 62%, #0D0B10 100%); color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 0 12px">
+<button class="mono" style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">‹ CRATE</button>
+<button aria-label="More" style="width: 44px; height: 44px; border: 0; background: transparent; color: #A99C8F; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button>
+</div>
+
+<div style="display: flex; gap: 14px; align-items: center; padding: 4px 16px 16px">
+<div role="img" aria-label="[EP] sleeve" style="width: 88px; height: 88px; flex: 0 0 auto; border-radius: 3px; background: #44605A; box-shadow: inset 0 1px 0 rgba(255,235,200,.22), 0 8px 18px rgba(0,0,0,.4)"></div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: .02em; line-height: 1.1">[EP title]</h1>
+<span style="font-size: 14px; color: #A99C8F">[Artist]</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #FFB85E">12″ EP · 45 RPM</span>
+</div>
+</div>
+
+<div style="margin: 0 16px; padding: 16px; border-radius: 2px; background: #EFE6D2; color: #2A1B38; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 18px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .12em">LINER NOTES</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #5A4A52">[LABEL] · [CAT. NO.] · [YEAR]</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; padding-bottom: 4px; border-bottom: 1px solid rgba(42,27,56,.18)"><span class="disp" style="font-size: 16px; font-weight: 700; letter-spacing: .06em">SIDE A</span><span class="mono" style="font-size: 11px; color: #5A4A52">11:20</span></div>
+<div class="row"><span class="num">1</span><span class="t">[Track title]</span><span class="d">4:10</span></div>
+<div class="row"><span class="num">2</span><span class="t">[Track title]</span><span class="d">3:50</span></div>
+<div class="row"><span class="num">3</span><span class="t">[Track title]</span><span class="d">3:20</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; padding-bottom: 4px; border-bottom: 1px solid rgba(42,27,56,.18)"><span class="disp" style="font-size: 16px; font-weight: 700; letter-spacing: .06em">SIDE B</span><span class="mono" style="font-size: 11px; color: #5A4A52">10:05</span></div>
+<div class="row"><span class="num">4</span><span class="t">[Track title]</span><span class="d">5:00</span></div>
+<div class="row"><span class="num">5</span><span class="t">[Track title]</span><span class="d">5:05</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px dashed rgba(42,27,56,.3)">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .12em">THE MASTER</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #5A4A52">ALBUM GAIN −4.2 DB</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="disp" style="font-size: 18px; font-weight: 700; letter-spacing: .02em">Dynamic</span>
+<span aria-hidden="true" style="flex: 1 1 auto; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #B5433A 0 20%, #C9A24A 20% 45%, #44605A 45% 100%); position: relative; display: block; opacity: .85"><span style="position: absolute; left: 72%; top: -4px; width: 2px; height: 14px; background: #2A1B38; display: block"></span></span>
+</div>
+<span style="font-size: 13px; line-height: 1.4; color: #3E2E48">Plenty of room between the quiet and loud parts. No clipping found.</span>
+</div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 16px 0">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">OTHER MASTERS READ</span>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4">
+<span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #C9A24A">COMPRESSED · </span>Loud throughout, with less room between soft and loud.</span>
+<span><span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #E07A6E">CLIPPED MASTER · </span>Peaks were cut flat in mastering; it can sound harsh turned up.</span>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

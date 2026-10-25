@@ -25,6 +25,7 @@ import { drawSun, frame } from './player/clock.js';
 import { DB } from './storage/idb.js';
 import { storage, tracks } from './storage/repo.js';
 import { restoreMeta } from './storage/meta.js';
+import { restoreResume } from './player/resume.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
 import { putAwayInstant } from './shell/put-away.js';
@@ -183,11 +184,18 @@ async function restoreLibrary(){
   healCrateArt().catch(() => {});
   markLibraryReady();   // from here on the launch intro knows S.launchIntro
   if(S.tracks.length){
-    // prime the last-played album into the mini player, silently, but leave
-    // the platter empty: Play pulls the record (CEREMONY §2, §5)
-    const lastAlbum = resolveLastPlayedAlbum();
-    const lastIdx = lastAlbum !== null ? resolveLastPlayedTrackIndex(lastAlbum) : -1;
-    setQueue(allIdx(), lastIdx >= 0 ? lastIdx : 0, false);
+    // AU1 (docs/16_AUDIO.md §2.1): try the saved queue/position first — it
+    // falls back to false (not restored at all, or nothing left of it
+    // after missing tracks were dropped) when there's nothing to restore,
+    // same as every device before this step. Either way the platter stays
+    // empty: Play pulls the record (CEREMONY §2, §5).
+    const resumed = await restoreResume();
+    if(!resumed){
+      // prime the last-played album into the mini player, silently
+      const lastAlbum = resolveLastPlayedAlbum();
+      const lastIdx = lastAlbum !== null ? resolveLastPlayedTrackIndex(lastAlbum) : -1;
+      setQueue(allIdx(), lastIdx >= 0 ? lastIdx : 0, false);
+    }
     putAwayInstant();
     note.textContent = S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks')
       + ' restored from this device. Tracks are decoded as you play them, so opening Miziki stays quick.';

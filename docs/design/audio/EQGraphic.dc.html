@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EQ, graphic view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&amp;family=Archivo:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.disp{font-family:'Antonio','Arial Narrow',sans-serif}
+.chip{min-height:36px;padding:0 12px;border:1px solid rgba(239,233,223,.18);border-radius:18px;background:transparent;color:#A99C8F;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.10em;white-space:nowrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px}
+.trk{position:relative;width:4px;height:124px;border-radius:2px;background:rgba(239,233,223,.14)}
+.mid{position:absolute;left:-5px;right:-5px;top:61px;height:2px;background:rgba(239,233,223,.25)}
+.th{position:absolute;left:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:10px;background:#EFE9DF;box-shadow:0 2px 4px rgba(0,0,0,.45)}
+.v{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#EFE9DF}
+.f{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#A99C8F}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #1E1714; color: #EFE9DF; font-family: 'Archivo', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 14px; padding: 8px 16px 24px; overflow: hidden">
+
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.25); display: block"></span>
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 class="disp" style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: .04em">EQ</h1>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">PURE AND VINYL</span>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px">
+<span class="mono" style="font-size: 11px; letter-spacing: .08em; color: #EFE9DF">ON</span>
+<button role="switch" aria-checked="true" aria-label="EQ on" style="width: 52px; height: 32px; border: 0; border-radius: 16px; background: #FF9E2C; position: relative; padding: 0"><span aria-hidden="true" style="position: absolute; right: 3px; top: 3px; width: 26px; height: 26px; border-radius: 13px; background: #1E1714; display: block"></span></button>
+</label>
+</div>
+
+<div role="tablist" aria-label="EQ view" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(239,233,223,.18); border-radius: 4px; overflow: hidden">
+<button role="tab" aria-selected="true" class="mono" style="min-height: 40px; border: 0; background: rgba(239,233,223,.12); color: #EFE9DF; font-size: 11px; font-weight: 500; letter-spacing: .08em">GRAPHIC</button>
+<button role="tab" aria-selected="false" class="mono" style="min-height: 40px; border: 0; border-left: 1px solid rgba(239,233,223,.18); background: transparent; color: #A99C8F; font-size: 11px; letter-spacing: .08em">PARAMETRIC</button>
+</div>
+
+<div style="display: flex; gap: 8px; overflow: hidden">
+<button class="chip">FLAT</button>
+<button class="chip" aria-pressed="true" style="border-color: rgba(255,158,44,.5); background: rgba(255,158,44,.12); color: #FFB85E">CUSTOM</button>
+<button class="chip">WARM</button>
+<button class="chip">BRIGHT</button>
+<button class="chip">VOCALS</button>
+<button class="chip">LESS BASS</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="img" aria-label="The combined EQ curve: a peak of plus 4.6 dB near 62 Hz, a dip of minus 2.4 dB near 1 kHz, and a gentle lift in the treble" style="position: relative; width: 358px; height: 170px; border-radius: 8px; background: #15100E; box-shadow: inset 0 0 0 1px rgba(239,233,223,.08); overflow: hidden">
+<svg width="358" height="170" viewBox="0 0 358 170" aria-hidden="true" style="position: absolute; inset: 0">
+<g stroke="rgba(239,233,223,.08)" stroke-width="1">
+<line x1="0" y1="13" x2="358" y2="13"></line><line x1="0" y1="49" x2="358" y2="49"></line><line x1="0" y1="121" x2="358" y2="121"></line><line x1="0" y1="157" x2="358" y2="157"></line>
+<line x1="94.9" y1="0" x2="94.9" y2="170"></line><line x1="202.7" y1="0" x2="202.7" y2="170"></line><line x1="310.5" y1="0" x2="310.5" y2="170"></line>
+</g>
+<line x1="0" y1="85" x2="358" y2="85" stroke="rgba(239,233,223,.25)" stroke-width="1"></line>
+<path d="M0,69.4 C11,66 15,63.4 22.7,63.4 S45,57.4 58.6,57.4 S82,64 94.9,69.4 S118,82 130.9,83.8 S152,90 166.8,92.8 S190,99.4 202.7,99.4 S226,95 238.7,92.2 S262,82 274.6,79.6 S298,74 310.5,73 S334,71.8 346.4,71.8 S355,73 358,74.2 L358,85 L0,85 Z" fill="rgba(255,158,44,.14)"></path>
+<path d="M0,69.4 C11,66 15,63.4 22.7,63.4 S45,57.4 58.6,57.4 S82,64 94.9,69.4 S118,82 130.9,83.8 S152,90 166.8,92.8 S190,99.4 202.7,99.4 S226,95 238.7,92.2 S262,82 274.6,79.6 S298,74 310.5,73 S334,71.8 346.4,71.8 S355,73 358,74.2" fill="none" stroke="#FF9E2C" stroke-width="2.5" stroke-linecap="round"></path>
+<g fill="#1E1714" stroke="rgba(239,233,223,.7)" stroke-width="1.5">
+<circle cx="22.7" cy="67" r="3.5"></circle><circle cx="58.6" cy="61" r="3.5"></circle><circle cx="94.9" cy="73" r="3.5"></circle><circle cx="130.9" cy="85" r="3.5"></circle><circle cx="166.8" cy="91" r="3.5"></circle><circle cx="202.7" cy="97" r="3.5"></circle><circle cx="238.7" cy="91" r="3.5"></circle><circle cx="274.6" cy="79" r="3.5"></circle><circle cx="310.5" cy="73" r="3.5"></circle><circle cx="346.4" cy="73" r="3.5"></circle>
+</g>
+<line x1="58.6" y1="57.4" x2="58.6" y2="40" stroke="#FFB85E" stroke-width="1" stroke-dasharray="2 2"></line>
+</svg>
+<span class="mono" style="position: absolute; left: 66px; top: 26px; font-size: 9px; letter-spacing: .06em; color: #FFB85E">+4.6 DB</span>
+<span class="mono" style="position: absolute; left: 8px; top: 4px; font-size: 9px; color: #857A70">+12</span>
+<span class="mono" style="position: absolute; left: 8px; bottom: 4px; font-size: 9px; color: #857A70">−12</span>
+<span class="mono" style="position: absolute; right: 8px; top: 4px; font-size: 9px; color: #857A70">TRUE CURVE</span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #A99C8F">PREAMP <span style="color: #EFE9DF">−4.6 DB</span></span>
+<button class="mono" style="min-height: 32px; padding: 0 10px; border: 1px solid rgba(239,233,223,.18); border-radius: 16px; background: rgba(239,233,223,.08); color: #EFE9DF; font-size: 10px; letter-spacing: .10em">AUTO ✓</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between">
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">WARM</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #EFE9DF">TILT · NEUTRAL</span>
+<span class="mono" style="font-size: 10px; letter-spacing: .10em; color: #A99C8F">BRIGHT</span>
+</div>
+<div aria-hidden="true" style="position: relative; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #B5433A, rgba(239,233,223,.2) 50%, #C9C2B4)">
+<span style="position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 11px; background: #EFE9DF; box-shadow: 0 2px 4px rgba(0,0,0,.45); display: block"></span>
+</div>
+</div>
+
+<div aria-label="Ten graphic bands" style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); padding-top: 8px">
+<div class="col"><span class="v">+3</span><div class="trk"><span class="mid"></span><span class="th" style="top: 46.5px"></span></div><span class="f">31</span></div>
+<div class="col"><span class="v">+4</span><div class="trk"><span class="mid"></span><span class="th" style="top: 41.5px"></span></div><span class="f">62</span></div>
+<div class="col"><span class="v">+2</span><div class="trk"><span class="mid"></span><span class="th" style="top: 51.5px"></span></div><span class="f">125</span></div>
+<div class="col"><span class="v">0</span><div class="trk"><span class="mid"></span><span class="th" style="top: 61.5px"></span></div><span class="f">250</span></div>
+<div class="col"><span class="v">−1</span><div class="trk"><span class="mid"></span><span class="th" style="top: 66.5px"></span></div><span class="f">500</span></div>
+<div class="col"><span class="v">−2</span><div class="trk"><span class="mid"></span><span class="th" style="top: 71.5px"></span></div><span class="f">1K</span></div>
+<div class="col"><span class="v">−1</span><div class="trk"><span class="mid"></span><span class="th" style="top: 66.5px"></span></div><span class="f">2K</span></div>
+<div class="col"><span class="v">+1</span><div class="trk"><span class="mid"></span><span class="th" style="top: 56.5px"></span></div><span class="f">4K</span></div>
+<div class="col"><span class="v">+2</span><div class="trk"><span class="mid"></span><span class="th" style="top: 51.5px"></span></div><span class="f">8K</span></div>
+<div class="col"><span class="v">+2</span><div class="trk"><span class="mid"></span><span class="th" style="top: 51.5px"></span></div><span class="f">16K</span></div>
+</div>
+
+<div style="flex-grow: 1"></div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button class="mono" style="min-height: 48px; border: 1px solid rgba(239,233,223,.18); border-radius: 12px; background: rgba(255,255,255,.04); color: #EFE9DF; font-size: 11px; letter-spacing: .08em">HOLD TO HEAR FLAT</button>
+<button class="mono" style="min-height: 48px; border: 0; border-radius: 12px; background: #FF9E2C; color: #170D04; font-size: 11px; font-weight: 500; letter-spacing: .08em">SAVE PRESET</button>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
