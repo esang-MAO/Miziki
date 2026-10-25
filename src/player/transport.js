@@ -8,7 +8,7 @@ import { routeSource } from '../audio/engine.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
-import { advance, preloadNextTrack } from './queue.js';
+import { advance, preloadNextTrack, peekNextIndex } from './queue.js';
 import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
@@ -30,7 +30,7 @@ import {
   playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC,
   fadeMusicTo
 } from '../audio/surface-noise.js';
-import { performPendingFlip } from '../shell/runout.js';
+import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
 
 // AU2 (docs/16_AUDIO.md §2.2): every ordinary edge -- pause, stop, seek --
@@ -87,6 +87,108 @@ function stopUnderMusicBed(fadeMs = 150){
   if(underMusicBed){ underMusicBed.stop(fadeMs); underMusicBed = null; }
 }
 
+// AU4 (docs/16_AUDIO.md §2.4): a next source, already created and
+// scheduled to start() at the exact context time the current one is
+// computed to end -- armed by maybeScheduleGaplessNext() (called every
+// clock tick, src/player/clock.js) and adopted by play() instead of
+// starting a fresh source, so a within-side track boundary never waits
+// on ensureBuffer()/ctx.resume()/startSource()'s own async dance. Module-
+// private, like pendingOpening/underMusicBed above. Never carries its own
+// onended until adoption -- see armGaplessNext()'s own comment for why
+// that's safe.
+let pendingGapless = null;   // { nextIdx, src }
+
+// Tears down a pre-armed-but-not-yet-adopted source outright, so it can
+// never reach the speakers unmanaged -- called by every edit the doc
+// names (pause, seek, skip, stop, queue edits) plus deliberately *not*
+// called by load()'s own ordinary stop() when load() is itself the thing
+// about to adopt this exact source (see load()'s own "continuing" branch
+// below) -- that's the one case this function must never run for, or
+// every gapless hand-off would tear down the very source it just armed.
+export function cancelPendingGapless(){
+  if(!pendingGapless) return;
+  const { src } = pendingGapless;
+  src.onended = null;
+  try{ src.stop(); }catch(_e){}
+  pendingGapless = null;
+}
+
+// How close to the current source's own computed end (in real,
+// rate-adjusted seconds) maybeScheduleGaplessNext() waits before arming
+// the next one. Close enough that S.rate -- which only ever moves
+// gradually, via clock.js's own ~0.08s setTargetAtTime ramp toward
+// Sundown's computed rate -- is effectively frozen for the rest of this
+// window; arming any earlier would risk the eventual real end time
+// drifting away from what was scheduled.
+const GAPLESS_ARM_LEAD_SEC = 0.25;
+
+// Shared onended logic for every AudioBufferSourceNode this file ever
+// starts -- startSource()'s own fresh source and, since AU4, a pre-armed
+// gapless source once play() adopts it and gives it a real gen. Exactly
+// the pre-AU4 inline behavior, pulled out so both call sites share one
+// copy: mark the node as genuinely finished (stopSourceCleanly()'s own
+// guard reads this) and, unless something stale-guarded or paused this
+// generation since, advance to the next track.
+function wireSourceOnEnded(src, gen){
+  src._mzEnded = true;
+  if(gen === S.gen && S.playing){
+    if(document.hidden) settleTrackEnd();   // no frames ran, so credit the tail of the track here
+    advance(1, true);
+  }
+}
+
+// AU4 (docs/16_AUDIO.md §2.4): called every clock tick (player/clock.js's
+// tick()) while something is playing. Arms the natural next track's own
+// source to start() at the exact moment the current one is computed to
+// end, once that moment is close enough (GAPLESS_ARM_LEAD_SEC) and the
+// next buffer is already decoded (preloadNextTrack() already saw to
+// that). "Ceremonies keep their place" (the doc's own words): a side
+// flip or a different-album record change still runs exactly as before,
+// so neither is ever pre-scheduled here -- advance()'s own existing
+// maybeSideFlip()/album-change paths are left completely untouched, and
+// this function simply declines to arm anything in either case, falling
+// back to today's onended-triggered start.
+export function maybeScheduleGaplessNext(){
+  if(!S.playing || !S.source || !S.ctx) return;
+  const t = current();
+  if(!t || !t.buffer) return;
+  const nextIdx = peekNextIndex();
+  if(nextIdx === null || nextIdx === undefined) return;
+  if(nextIdx === S.index) return;   // repeat-one restarts via seek(0), never a new source
+  if(pendingGapless && pendingGapless.nextIdx === nextIdx) return;   // already armed for this exact next track
+  if(pendingGapless) cancelPendingGapless();   // armed for a now-stale next (a queue edit, say) -- rearm
+  const n = S.qpos + 1 >= S.queue.length ? (S.repeat === 'all' ? 0 : null) : S.qpos + 1;
+  if(n !== null && sideFlipTurnAt(n)) return;   // the flip ceremony is about to run -- it owns this transition
+  const next = S.tracks[nextIdx];
+  if(!next || !next.buffer) return;   // not decoded yet -- the plain onended fallback below handles it
+  if(albumKey(next) !== albumKey(t)) return;   // a record change between albums keeps its own ceremony
+  // Remaining real time on the current source, at its live playback
+  // rate -- an estimate (S.rate could still drift a little before the
+  // boundary actually arrives), good enough this close to it per
+  // GAPLESS_ARM_LEAD_SEC's own comment above.
+  const remainingRealSec = (t.duration - S.pos) / (S.rate || 1);
+  if(remainingRealSec > GAPLESS_ARM_LEAD_SEC || remainingRealSec <= 0) return;
+  armGaplessNext(nextIdx, next, remainingRealSec);
+}
+
+function armGaplessNext(nextIdx, next, remainingRealSec){
+  const src = S.ctx.createBufferSource();
+  src.buffer = next.buffer;
+  src.playbackRate.value = S.rate;
+  routeSource(src);
+  const when = S.ctx.currentTime + remainingRealSec;
+  src.start(when, next.gaplessDelaySec || 0, next.duration);
+  pendingGapless = { nextIdx, src };
+  // No onended wired yet -- the old, still-finishing source's own onended
+  // (wireSourceOnEnded, above) is what actually drives advance()/load()/
+  // play() at the real boundary; play()'s adoption branch is what gives
+  // *this* source a real onended, once it's confirmed to be the one
+  // that's actually continuing. A source that's never adopted (because
+  // something cancelled it first) only ever reaches this far torn down
+  // by cancelPendingGapless() -- never left to run on its own with
+  // nothing listening for its end.
+}
+
 // AU2 (docs/16_AUDIO.md §2.2): pause/stop/seek's own clean edge -- fades
 // S.nodes.trackGain to 0 over EDGE_FADE_MS and schedules the source's own
 // stop right at the end of that ramp, entirely on the Web Audio clock
@@ -122,7 +224,21 @@ export function load(i){
   // captured before S.index moves, so the row that's losing the now-playing
   // marker can be found by its own (still-current) id, below
   const prevTrack = current();
-  stop();
+  // AU4 (docs/16_AUDIO.md §2.4): when a pre-armed source is already
+  // running for exactly this track, this load() is the natural-advance
+  // call that's about to have play() adopt it -- an ordinary stop() here
+  // would tear that source down (cancelPendingGapless() runs inside it)
+  // and defeat the whole point. The old, already-finished source still
+  // needs discarding (no fade -- nothing's left to click on), but the
+  // pre-armed one must be left completely alone.
+  if(pendingGapless && pendingGapless.nextIdx === i){
+    cancelPendingOpening(0);
+    stopUnderMusicBed(0);
+    S.source = null;
+    S.playing = false;
+  } else {
+    stop();
+  }
   S.index = i; S.pos = 0;
   S.curPlayed = []; S.curTrackDone = false;
   const t = S.tracks[i];
@@ -213,16 +329,7 @@ export function startSource(offset, leadInSec = 0, opts = {}){
   src.playbackRate.value = S.rate;
   routeSource(src);
   const gen = ++S.gen;
-  src.onended = () => {
-    // AU2 (docs/16_AUDIO.md §2.2): marks this node as genuinely finished
-    // -- stopSourceCleanly()'s own guard reads it so a natural, gapless
-    // track end never gets an artificial fade-out layered on top of it.
-    src._mzEnded = true;
-    if(gen === S.gen && S.playing){
-      if(document.hidden) settleTrackEnd();   // no frames ran, so credit the tail of the track here
-      advance(1, true);
-    }
-  };
+  src.onended = () => wireSourceOnEnded(src, gen);
   // t.duration is already the trimmed (encoder delay/padding excluded)
   // length; the delay offset shifts where playback actually starts reading
   // from the buffer, and the explicit duration arg stops it before running
@@ -254,9 +361,19 @@ export async function play(){
   bgPrime();   // before any await, while this is still inside the tap that asked for playback
   const t = current();
   if(!t){ showRoute('library'); return; }
-  if(!await ensureBuffer(S.index)) return;
-  if(!S.ctx) return;
-  await S.ctx.resume();
+  // AU4 (docs/16_AUDIO.md §2.4): a source already pre-armed and running
+  // for exactly this track -- maybeScheduleGaplessNext() scheduled its
+  // own start() at the exact context time the previous source was
+  // computed to end, well before this call. Adopting it skips every
+  // async step below (ensureBuffer/ctx.resume): the hand-off already
+  // happened, sample-accurately, on the Web Audio clock.
+  const adopted = (pendingGapless && pendingGapless.nextIdx === S.index) ? pendingGapless.src : null;
+  if(adopted) pendingGapless = null;
+  if(!adopted){
+    if(!await ensureBuffer(S.index)) return;
+    if(!S.ctx) return;
+    await S.ctx.resume();
+  }
   if(S.playing) return;
   S.playing = true;
   // AU1 (docs/16_AUDIO.md §2.1): whatever restoreResume() landed paused
@@ -272,6 +389,10 @@ export async function play(){
   // stopped/after a flip — resuming from pause never sets S.pendingSideStart
   // again (load() isn't called), and S.pos === 0 rules out a scrub back to
   // 0:00 on an already-loaded track that never went through load() either.
+  // A gapless-adopted track is never a side start either way (isSideStart()
+  // already says so, since a side flip keeps its own ceremony and is never
+  // pre-armed — see maybeScheduleGaplessNext()), so this naturally no-ops
+  // on the adopted path with no extra branch needed.
   let leadInSec = 0;
   if(S.pos === 0 && S.pendingSideStart && surfaceNoiseActive()){
     const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
@@ -283,7 +404,14 @@ export async function play(){
     }
   }
   S.pendingSideStart = false;
-  startSource(S.pos, leadInSec);
+  if(adopted){
+    S.source = adopted;
+    const gen = ++S.gen;
+    adopted.onended = () => wireSourceOnEnded(adopted, gen);
+    preloadNextTrack();
+  } else {
+    startSource(S.pos, leadInSec);
+  }
   stopUnderMusicBed(0);
   if(S.surfaceNoiseUnderMusic && surfaceNoiseActive()){
     const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
@@ -305,6 +433,7 @@ export async function play(){
 
 export function stop(){
   S.gen++;
+  cancelPendingGapless();   // AU4: stop() invalidates whatever was pre-armed (see load()'s own "continuing" branch, which bypasses this call entirely instead)
   cancelPendingOpening();
   stopUnderMusicBed(0);
   stopSourceCleanly();   // AU2: 15ms fade-out before the source actually stops
@@ -313,7 +442,7 @@ export function stop(){
   renderMiniPlayer();
 }
 
-export function pause(){ S.playing = false; cancelPendingOpening(); stopUnderMusicBed();
+export function pause(){ S.playing = false; cancelPendingGapless(); cancelPendingOpening(); stopUnderMusicBed();
   stopSourceCleanly();   // AU2: 15ms fade-out before the source actually stops
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
   MizikiSocial.nowSpinningPaused();
@@ -323,6 +452,7 @@ export function pause(){ S.playing = false; cancelPendingOpening(); stopUnderMus
 
 export function seek(sec){
   const t = current(); if(!t) return;
+  cancelPendingGapless();   // AU4: a seek invalidates whatever end-of-track time was pre-armed against
   cancelPendingOpening();
   S.pos = clamp(sec, 0, t.duration || 0);
   if(S.playing){

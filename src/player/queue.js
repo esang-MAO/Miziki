@@ -7,7 +7,7 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { albumKey, trackTier } from '../record-art/tiers.js';
 import { sleepStopPlayback } from './sleep-timer.js';
-import { load, play, pause, seek, sideLetterFor } from './transport.js';
+import { load, play, pause, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
@@ -55,6 +55,7 @@ export function setQueue(indices, startPos, autoplay){
 }
 
 export function reorderQueue(){
+  cancelPendingGapless();   // AU4 (docs/16_AUDIO.md §2.4): a queue edit invalidates whatever was pre-armed
   const cur = S.index;
   if(!S.baseQueue.length) return;
   if(S.shuffle) buildOrder(cur >= 0 ? cur : undefined);
@@ -65,7 +66,9 @@ export function reorderQueue(){
 // Mirrors advance(1, true)'s own index math (natural end-of-track,
 // repeat-all wraparound) without mutating any state — used to know what to
 // preload before it's actually time to play it (see PLAYBACK spec §1).
-function peekNextIndex(){
+// Exported since AU4 (docs/16_AUDIO.md §2.4) needs the exact same "what
+// would advance(1, true) move to" answer to decide what to pre-schedule.
+export function peekNextIndex(){
   if(!S.queue.length) return null;
   if(S.repeat === 'one') return S.queue[S.qpos];
   let n = S.qpos + 1;
@@ -191,6 +194,7 @@ function setPlatterLift(on){
 // below, rather than waiting for the drop to actually land.
 export function skipWithLift(dir){
   invalidateActiveSessionIfAny();
+  cancelPendingGapless();   // AU4: a manual skip invalidates whatever was pre-armed for the natural next track
   if(pendingSkip){ pendingSkip.dir = dir; return; }   // §3 "rapid skips collapse"
   if(dir !== 0 && resolveSkipTarget(dir) === null){ advance(dir, false); return; }
   const t = current();
@@ -220,6 +224,7 @@ export function skipWithLift(dir){
 function queueInsert(idx, mode){
   if(idx === S.index) return;   // already playing; nothing to insert
   invalidateActiveSessionIfAny();
+  cancelPendingGapless();   // AU4: a queue edit invalidates whatever was pre-armed
   if(!S.baseQueue.includes(idx)) S.baseQueue.push(idx);
   const existing = S.queue.indexOf(idx, S.qpos + 1);
   if(existing !== -1) S.queue.splice(existing, 1);
@@ -237,6 +242,7 @@ function queueRemoveAt(pos){
   const queueIdx = S.qpos + 1 + pos;
   if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
   invalidateActiveSessionIfAny();
+  cancelPendingGapless();   // AU4: a queue edit invalidates whatever was pre-armed
   S.queue.splice(queueIdx, 1);
   renderQueueSheet(queueSheetHost);
 }
@@ -245,6 +251,7 @@ function queueMove(pos, dir){
   const n = queueIdx + dir;
   if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
   invalidateActiveSessionIfAny();
+  cancelPendingGapless();   // AU4: a queue edit invalidates whatever was pre-armed
   const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
   renderQueueSheet(queueSheetHost);
 }

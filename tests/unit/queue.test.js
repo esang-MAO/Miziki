@@ -147,7 +147,7 @@ const playMock = mock.fn();
 const pauseMock = mock.fn();
 const seekMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock, sideLetterFor(){ return ''; } },
+  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
