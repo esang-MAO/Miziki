@@ -164,6 +164,14 @@ mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
 mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
   namedExports: { phaseAt(){ return 'day'; } },
 });
+// AU6 (docs/16_AUDIO.md §3): screens.js's new EQ-settings-row import,
+// src/player/eq-sheet.js, is real -- and its own real audio/engine.js
+// import would otherwise reach sundown/location.js's real computeSun/
+// drawSun chain, right back into the same wide web this file already
+// stops at the door above. Mocked directly, same reasoning.
+mock.module(new URL('../../src/player/eq-sheet.js', import.meta.url).href, {
+  namedExports: { openEqSheet(){}, eqStateLabel(){ return 'OFF'; } },
+});
 // Since step 7b, screens.js's refreshLibraryTools import is a real one from
 // src/shell/header.js instead of main.js — mocked there directly instead.
 mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {

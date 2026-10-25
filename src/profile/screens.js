@@ -19,6 +19,7 @@ import { renderSlipmatRow } from './slipmat-editor.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
+import { openEqSheet, eqStateLabel } from '../player/eq-sheet.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -273,6 +274,18 @@ function renderAppSettingsScreen(body){
   playback.appendChild(el('div','settings-section-head', 'Playback & behavior'));
   const panel = $('#playbackSettings');
   if(panel) playback.appendChild(panel);
+  // AU6 (docs/16_AUDIO.md §3): "an EQ row in Settings › Playback that
+  // shows the current preset and state (CUSTOM · ON)" — a tappable row,
+  // same shape as the Account & privacy rows below, just with a second
+  // value span for that state text.
+  const eqRow = el('button','settings-link-row');
+  eqRow.appendChild(el('span', null, 'EQ'));
+  const eqRowRight = el('span','settings-link-right');
+  eqRowRight.appendChild(el('span','settings-link-value', eqStateLabel()));
+  eqRowRight.appendChild(el('span','g-chev','›'));
+  eqRow.appendChild(eqRowRight);
+  eqRow.addEventListener('click', () => openEqSheet());
+  playback.appendChild(eqRow);
   body.appendChild(playback);
 
   const links = el('div','settings-section');

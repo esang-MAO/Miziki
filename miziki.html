@@ -84,6 +84,7 @@
 <link rel="stylesheet" href="/src/styles/25-day-arc-v2.css">
 <link rel="stylesheet" href="/src/styles/25-pull-refresh.css">
 <link rel="stylesheet" href="/src/styles/26-sundown-sheet.css">
+<link rel="stylesheet" href="/src/styles/27-eq.css">
 <link rel="stylesheet" href="/src/styles/27-library-sleeves.css">
 </head>
 <body>
@@ -981,6 +982,12 @@
       <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
       <button class="overflow-menu-row" id="playerShareBtn" style="display:none" role="menuitem">Share</button>
       <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
+      <!-- AU6 (docs/16_AUDIO.md §3): EQ -- beside Queue in spirit (both
+           live in this same overflow menu, RF8's one home for the player's
+           secondary controls). Not gated behind a loaded track the way
+           #queueBtn/#sleepTimerBtn are -- EQ settings and the sheet itself
+           are meaningful with nothing playing. -->
+      <button class="overflow-menu-row" id="eqBtn" role="menuitem">EQ</button>
       <button class="overflow-menu-row" id="sleepTimerBtn" style="display:none" role="menuitem">🌙 Sleep Timer</button>
       <!-- RF21 (docs/12_REFINE.md, "a quieter broadcast"): private spin --
            a menuitemcheckbox, not a settings toggle, since it's scoped to
@@ -1190,6 +1197,19 @@
       <button class="edit-close" id="sleepClose" aria-label="Close">✕</button>
     </div>
     <div class="stack" id="sleepOptions" style="flex-direction:column"></div>
+  </div>
+</div>
+
+<!-- AU6 (docs/16_AUDIO.md §3): EQ sheet. Same .edit-overlay/.edit-sheet
+     shape as #sleepOverlay above -- JS (src/player/eq-sheet.js) renders
+     #eqSheetBody fresh on every open/structural change. -->
+<div class="edit-overlay" id="eqOverlay" aria-hidden="true">
+  <div class="edit-sheet eq-sheet-box" id="eqSheetBox">
+    <div class="edit-head">
+      <span>EQ</span>
+      <button class="edit-close" id="eqClose" aria-label="Close">✕</button>
+    </div>
+    <div id="eqSheetBody"></div>
   </div>
 </div>
 

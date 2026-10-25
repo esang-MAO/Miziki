@@ -95,6 +95,11 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   padding:14px 2px;text-align:left}
 .settings-link-row:last-child{border-bottom:0}
 .settings-link-row .g-chev{color:var(--muted)}
+/* AU6 (docs/16_AUDIO.md §3): the EQ row's own state text ("CUSTOM · ON"),
+   grouped with the chevron so a 3rd flex child doesn't get spaced evenly
+   across .settings-link-row's own justify-content:space-between. */
+.settings-link-right{display:flex;align-items:center;gap:8px}
+.settings-link-value{font-size:var(--fs-caption);color:var(--muted)}
 
 /* DA5 (docs/DAY_ARC.md, docs/design/day-arc/README.md "Listening
    rhythm"): the profile-home card — a 7-wedge phase ring (a plain CSS

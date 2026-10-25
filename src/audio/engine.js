@@ -6,6 +6,12 @@ import { effectiveCharAt } from '../sundown/arc.js';
 import { makeupGainFor } from './level-match.js';
 import { albumKey } from '../record-art/tiers.js';
 import { trackGainDb, albumGainDb, clampGainDbForPeak, dbToLinear } from './loudness.js';
+import {
+  GRAPHIC_BANDS_HZ, GRAPHIC_BAND_Q, TILT_PIVOT_HZ, MAX_PARAMETRIC_BANDS,
+  PARAMETRIC_GAIN_TYPES, autoPreampDbFromPeak, combineDbCurve,
+  sampleFrequenciesLog, clampTiltDb, clampGraphicBandDb, clampPreampDb,
+  defaultEqState,
+} from './eq.js';
 
 // AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
 // 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
@@ -17,6 +23,11 @@ const wowHzFor = rate => (RPM_33 / 60) * (rate || 1);
 // compressor" — a fixed linear gain, never touched by applyCharacter().
 const PAD_DB = -3;
 const PAD_GAIN = Math.pow(10, PAD_DB / 20);
+
+// AU6 (docs/16_AUDIO.md §3): 'lowcut'/'highcut' are this app's own names
+// for a biquad highpass/lowpass -- the two parametric band types whose
+// own `gain` AudioParam is simply ignored by the Web Audio spec.
+const BIQUAD_TYPE_FOR = { peak: 'peaking', lowshelf: 'lowshelf', highshelf: 'highshelf', lowcut: 'highpass', highcut: 'lowpass' };
 
 const LIMITER_WORKLET_URL = new URL('./limiter-processor.js', import.meta.url);
 let limiterModuleLoadedCtx = null;
@@ -97,6 +108,49 @@ export async function buildGraph(ctx){
   // applyLoudnessNorm() is what actually sets its gain.
   n.norm = ctx.createGain(); n.norm.gain.value = 1;
 
+  // AU6 (docs/16_AUDIO.md §3): "master -> norm -> preamp -> EQ bands ->
+  // mono/balance -> limiter -> volume -> out" — the preamp + EQ-band slot
+  // AU5's own norm comment said a later PR would fill. Every gain-bearing
+  // node here defaults to a flat response (shelf/peaking gain 0, or a
+  // biquad 'allpass' type for an unused parametric slot, whose magnitude
+  // response is unity at every frequency regardless of its own frequency/Q)
+  // so the chain is inert the moment it's built — applyEQ() is what
+  // actually makes it do anything, exactly like applyCharacter() for the
+  // Vinyl chain above.
+  n.eqPreamp = ctx.createGain(); n.eqPreamp.gain.value = 1;
+  n.eqTiltLow = ctx.createBiquadFilter(); n.eqTiltLow.type = 'lowshelf'; n.eqTiltLow.frequency.value = TILT_PIVOT_HZ; n.eqTiltLow.gain.value = 0;
+  n.eqTiltHigh = ctx.createBiquadFilter(); n.eqTiltHigh.type = 'highshelf'; n.eqTiltHigh.frequency.value = TILT_PIVOT_HZ; n.eqTiltHigh.gain.value = 0;
+  n.eqGraphic = GRAPHIC_BANDS_HZ.map(hz => {
+    const f = ctx.createBiquadFilter(); f.type = 'peaking'; f.frequency.value = hz; f.Q.value = GRAPHIC_BAND_Q; f.gain.value = 0;
+    return f;
+  });
+  n.eqParametric = [];
+  for(let i = 0; i < MAX_PARAMETRIC_BANDS; i++){
+    const f = ctx.createBiquadFilter(); f.type = 'allpass'; f.frequency.value = 1000; f.Q.value = 0.7; f.gain.value = 0;
+    n.eqParametric.push(f);
+  }
+  n.eqPreamp.connect(n.eqTiltLow).connect(n.eqTiltHigh);
+  n.eqTail = n.eqTiltHigh;
+  for(const f of [...n.eqGraphic, ...n.eqParametric]){ n.eqTail.connect(f); n.eqTail = f; }
+
+  // A second, never-connected bank of the same filter shapes, used only to
+  // measure the curve a *configuration* would produce (computeEqCurveDb(),
+  // below) — kept separate from the live nodes above so drawing the curve,
+  // or computing the auto-preamp offset, never has to touch (or glitch)
+  // whatever is actually playing right now.
+  n.eqScratch = {
+    tiltLow: ctx.createBiquadFilter(), tiltHigh: ctx.createBiquadFilter(),
+    graphic: GRAPHIC_BANDS_HZ.map(() => ctx.createBiquadFilter()),
+    parametric: [],
+  };
+  n.eqScratch.tiltLow.type = 'lowshelf'; n.eqScratch.tiltLow.frequency.value = TILT_PIVOT_HZ;
+  n.eqScratch.tiltHigh.type = 'highshelf'; n.eqScratch.tiltHigh.frequency.value = TILT_PIVOT_HZ;
+  n.eqScratch.graphic.forEach((f, i) => { f.type = 'peaking'; f.frequency.value = GRAPHIC_BANDS_HZ[i]; f.Q.value = GRAPHIC_BAND_Q; });
+  for(let i = 0; i < MAX_PARAMETRIC_BANDS; i++){
+    const f = ctx.createBiquadFilter(); f.type = 'allpass'; f.frequency.value = 1000; f.Q.value = 0.7;
+    n.eqScratch.parametric.push(f);
+  }
+
   n.limiter = null;
   if(await ensureLimiterModule(ctx)){
     try{
@@ -108,8 +162,9 @@ export async function buildGraph(ctx){
   }
   n.out = ctx.createGain(); n.out.gain.value = 1;
   n.master.connect(n.norm);
-  if(n.limiter) n.norm.connect(n.limiter).connect(n.out);
-  else n.norm.connect(n.out);
+  n.norm.connect(n.eqPreamp);
+  if(n.limiter) n.eqTail.connect(n.limiter).connect(n.out);
+  else n.eqTail.connect(n.out);
   n.out.connect(ctx.destination);
   return n;
 }
@@ -299,6 +354,118 @@ export function applyLoudnessNorm(ramp = 0.05){
   S.nodes.norm.gain.setTargetAtTime(dbToLinear(gainDb), S.ctx.currentTime, ramp);
 }
 
+// AU6 (docs/16_AUDIO.md §3): "HOLD TO HEAR FLAT bypasses the bands only
+// while held... keeps the auto-preamp offset." Same press-and-hold shape
+// as RF28's auditionStageAlone()/releaseAudition() above, but a separate
+// flag — the Character audition and the EQ audition are independent
+// holds, each scoped to its own stage of the chain (nothing stops a user
+// from, in principle, holding both at once).
+let eqAuditioningFlat = false;
+
+// Sets the scratch (never-connected) filter bank from a *configured* EQ
+// state — mode-dependent active bands only, deliberately ignoring
+// `enabled`/any audition hold, since this is "what would this curve be if
+// applied," used both for drawing the curve and for the auto-preamp calc
+// that has to keep working even while the EQ reads as flat on the wire.
+function setScratchFromState(n, eq){
+  const mode = eq.mode === 'parametric' ? 'parametric' : 'graphic';
+  if(mode === 'graphic'){
+    const tiltDb = clampTiltDb(eq.tilt || 0);
+    n.eqScratch.tiltLow.gain.value = -tiltDb;
+    n.eqScratch.tiltHigh.gain.value = tiltDb;
+    const bands = eq.graphicBands || [];
+    n.eqScratch.graphic.forEach((f, i) => { f.gain.value = clampGraphicBandDb(bands[i] || 0); });
+    n.eqScratch.parametric.forEach(f => { f.type = 'allpass'; });
+  } else {
+    n.eqScratch.tiltLow.gain.value = 0;
+    n.eqScratch.tiltHigh.gain.value = 0;
+    n.eqScratch.graphic.forEach(f => { f.gain.value = 0; });
+    const bands = (eq.parametricBands || []).slice(0, MAX_PARAMETRIC_BANDS);
+    n.eqScratch.parametric.forEach((f, i) => {
+      const b = bands[i];
+      if(!b){ f.type = 'allpass'; return; }
+      f.type = BIQUAD_TYPE_FOR[b.type];
+      f.frequency.value = b.freq;
+      f.Q.value = b.q;
+      f.gain.value = PARAMETRIC_GAIN_TYPES.includes(b.type) ? b.gainDb : 0;
+    });
+  }
+}
+
+// §3's own rule: "Compute the real curve with BiquadFilterNode.
+// getFrequencyResponse() across every active band plus preamp, and draw
+// that line behind the sliders" — the preamp itself is a flat gain (every
+// frequency shifts by the same dB), so it isn't one of the filters sampled
+// here; callers that want the preamp folded in just add preampDb to every
+// point of the returned curve. `freqs` is a plain array of Hz; returns one
+// dB value per frequency, summed across every active filter in series
+// (combineDbCurve() — product of magnitudes in series is sum of dB).
+export function computeEqCurveDb(eq, freqs){
+  if(!S.nodes || !S.nodes.eqScratch || !freqs || !freqs.length) return (freqs || []).map(() => 0);
+  setScratchFromState(S.nodes, eq);
+  const freqArray = Float32Array.from(freqs);
+  const mag = new Float32Array(freqs.length), phase = new Float32Array(freqs.length);
+  const dbArrays = [];
+  const sc = S.nodes.eqScratch;
+  for(const node of [sc.tiltLow, sc.tiltHigh, ...sc.graphic, ...sc.parametric]){
+    node.getFrequencyResponse(freqArray, mag, phase);
+    dbArrays.push(Array.from(mag, m => 20 * Math.log10(Math.max(m, 1e-8))));
+  }
+  return combineDbCurve(dbArrays);
+}
+
+// AU6 §3: sets every real node from S.eq. The preamp always reflects the
+// *configured* curve (computed above) regardless of `enabled`/an audition
+// hold — "Both keep the auto-preamp offset, so the comparison is about
+// tone, not volume." Only the bands themselves go flat when bypassed.
+export function applyEQ(ramp = 0.05){
+  if(!S.nodes || !S.ctx) return;
+  const eq = S.eq || defaultEqState();
+  const n = S.nodes, t = S.ctx.currentTime;
+
+  const curve = computeEqCurveDb(eq, sampleFrequenciesLog());
+  const peakDb = curve.length ? Math.max(...curve) : 0;
+  const preampDb = eq.autoPreamp !== false ? autoPreampDbFromPeak(peakDb) : clampPreampDb(eq.preampDb || 0);
+  n.eqPreamp.gain.setTargetAtTime(dbToLinear(preampDb), t, ramp);
+
+  const bypass = !eq.enabled || eqAuditioningFlat;
+  const mode = eq.mode === 'parametric' ? 'parametric' : 'graphic';
+
+  const tiltDb = (!bypass && mode === 'graphic') ? clampTiltDb(eq.tilt || 0) : 0;
+  n.eqTiltLow.gain.setTargetAtTime(-tiltDb, t, ramp);
+  n.eqTiltHigh.gain.setTargetAtTime(tiltDb, t, ramp);
+
+  const bands = (!bypass && mode === 'graphic') ? (eq.graphicBands || []) : [];
+  n.eqGraphic.forEach((f, i) => f.gain.setTargetAtTime(clampGraphicBandDb(bands[i] || 0), t, ramp));
+
+  const pBands = (!bypass && mode === 'parametric') ? (eq.parametricBands || []).slice(0, MAX_PARAMETRIC_BANDS) : [];
+  n.eqParametric.forEach((f, i) => {
+    const b = pBands[i];
+    if(!b){
+      f.type = 'allpass';
+      f.gain.setTargetAtTime(0, t, ramp);
+      return;
+    }
+    f.type = BIQUAD_TYPE_FOR[b.type];
+    f.frequency.setTargetAtTime(b.freq, t, ramp);
+    f.Q.setTargetAtTime(b.q, t, ramp);
+    f.gain.setTargetAtTime(PARAMETRIC_GAIN_TYPES.includes(b.type) ? b.gainDb : 0, t, ramp);
+  });
+}
+
+// HOLD TO HEAR FLAT (§3) — same press-and-hold shape as
+// auditionStageAlone()/releaseAudition() above, scoped to the EQ bands only.
+export function auditionEqFlat(){
+  if(!S.nodes) return;
+  eqAuditioningFlat = true;
+  applyEQ(AUDITION_RAMP);
+}
+export function releaseEqAudition(){
+  if(!eqAuditioningFlat) return;
+  eqAuditioningFlat = false;
+  applyEQ(AUDITION_RAMP);
+}
+
 export function routeSource(src){
   src.disconnect();
   src.connect(S.nodes.trackGain);
@@ -337,11 +504,13 @@ export async function ensureContext(){
   // A fresh context means fresh nodes — any in-progress audition hold
   // belonged to the old graph and can't mean anything here.
   auditioning = null;
+  eqAuditioningFlat = false;
   S.ctx = makeContext();
   S.nodes = await buildGraph(S.ctx);
   applyCharacter();
   applyVolume();
   applyLoudnessNorm();
+  applyEQ();
   applyOutputRoute();
   await S.ctx.resume();
 }
