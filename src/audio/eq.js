@@ -83,7 +83,19 @@ export const EQ_PRESET_KEYS = Object.keys(EQ_PRESETS);
 
    A small, recognizable set, not an attempt at a real headphone
    database -- open-back/closed-back/ANC/studio/budget, one each, so most
-   listeners can find something in their own neighborhood. */
+   listeners can find something in their own neighborhood.
+
+   Wired vs. wireless (follow-on ask): checked AutoEQ's own data before
+   adding anything -- none of the five headphones above actually have a
+   published wired-vs-Bluetooth split. Three (HD 650, ATH-M50x, DT 770
+   Pro) are wired-only products with no wireless mode to measure at all;
+   the WH-1000XM4 and AirPods Max were each measured by oratory1990 in
+   only one, unspecified connection mode. Rather than invent a split for
+   a headphone AutoEQ never measured that way, these two new presets are
+   a *different* headphone AutoEQ genuinely measured in both modes --
+   Beyerdynamic Amiron Wireless, oratory1990's own "(wired)" and
+   "(Bluetooth)" results for the exact same physical unit -- so the pair
+   is real data, not an approximation standing in for the original ask. */
 export const HEADPHONE_PRESETS = {
   sonyWh1000xm4: {
     label: 'Sony WH-1000XM4',
@@ -138,6 +150,31 @@ export const HEADPHONE_PRESETS = {
       { type: 'peak', freq: 139, gainDb: -3.9, q: 4.92 },
       { type: 'peak', freq: 213, gainDb: 3.5, q: 2.46 },
       { type: 'peak', freq: 93, gainDb: 3.5, q: 3.00 },
+    ],
+  },
+  // A genuinely wired-vs-Bluetooth pair -- same headphone, two connection
+  // modes, both measured by oratory1990 (unlike the five above, none of
+  // which have a real split -- see the header comment).
+  beyerdynamicAmironWirelessWired: {
+    label: 'Beyerdynamic Amiron Wireless (Wired)',
+    bands: [
+      { type: 'peak', freq: 135, gainDb: -6.0, q: 0.90 },
+      { type: 'peak', freq: 2274, gainDb: 5.3, q: 1.26 },
+      { type: 'highshelf', freq: 10000, gainDb: 3.2, q: 0.70 },
+      { type: 'peak', freq: 3464, gainDb: 3.0, q: 6.00 },
+      { type: 'peak', freq: 45, gainDb: 1.7, q: 4.91 },
+      { type: 'peak', freq: 64, gainDb: 1.5, q: 3.94 },
+    ],
+  },
+  beyerdynamicAmironWirelessBluetooth: {
+    label: 'Beyerdynamic Amiron Wireless (Bluetooth)',
+    bands: [
+      { type: 'peak', freq: 137, gainDb: -5.8, q: 0.93 },
+      { type: 'highshelf', freq: 10000, gainDb: 4.9, q: 0.70 },
+      { type: 'peak', freq: 2174, gainDb: 4.4, q: 1.57 },
+      { type: 'peak', freq: 3417, gainDb: 3.0, q: 5.79 },
+      { type: 'peak', freq: 61, gainDb: 2.2, q: 4.14 },
+      { type: 'peak', freq: 45, gainDb: 1.4, q: 6.00 },
     ],
   },
 };

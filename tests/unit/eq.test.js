@@ -199,3 +199,15 @@ test('HEADPHONE_PRESETS: every preset round-trips through sanitizeParametricBand
     assert.deepEqual(cleaned, HEADPHONE_PRESETS[key].bands);
   }
 });
+
+// Wired/Bluetooth follow-on: a real same-headphone pair, not a fabricated
+// split of a headphone AutoEQ only ever measured once.
+test('HEADPHONE_PRESETS: the Amiron Wireless wired/Bluetooth pair are both present and genuinely distinct', () => {
+  assert.ok('beyerdynamicAmironWirelessWired' in HEADPHONE_PRESETS);
+  assert.ok('beyerdynamicAmironWirelessBluetooth' in HEADPHONE_PRESETS);
+  const wired = HEADPHONE_PRESETS.beyerdynamicAmironWirelessWired;
+  const bt = HEADPHONE_PRESETS.beyerdynamicAmironWirelessBluetooth;
+  assert.notEqual(matchHeadphonePreset(wired.bands), matchHeadphonePreset(bt.bands));
+  assert.ok(/wired/i.test(wired.label));
+  assert.ok(/bluetooth/i.test(bt.label));
+});
