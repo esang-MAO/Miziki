@@ -19,7 +19,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS,
-  stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  stickerFor, catalogLineFor, playedLineFor, eraTintFor, crate45ChipFor,
   classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved,
   CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION, CRATE_PENDING_RELEASE_MOVE_PX,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
@@ -574,4 +574,57 @@ test('cratePeekRise: stops at a quarter of the card, so the record never fully l
   assert.equal(cratePeekRise(1000, 278), cap);
   // still capped well before the commit threshold's own travel (40% of the card)
   assert.equal(cratePeekRise(278 * 0.4, 278), Math.min(278 * 0.4 * CRATE_PEEK_RISE_RATE, cap));
+});
+
+// AU10 (docs/16_AUDIO.md §5): "a 45s section (7″ and 12″ 45s) joins the
+// A–Z section list, before Staff picks." fakeTrack() sets no `duration` at
+// all (reads 0) -- every test above this one relies on that NOT reading as
+// a 45 (see hasKnownFormat() in crate/model.js), so these tests are the
+// ones that actually give a track a real, nonzero duration.
+test('ensureCrateModel: a short album (reads 7" @45) gets its own 45s bin section, before picks', () => {
+  resetState({
+    tracks: [
+      fakeTrack('short1', { duration: 180,
+        tags: { title:'Short1', artist:'Mono', album:'Short Album', albumArtist:'Mono', track:1, disc:1 } }),
+      fakeTrack('long1', { duration: 2000,
+        tags: { title:'Long1', artist:'Stereo', album:'Long Album', albumArtist:'Stereo', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  assertSectionsCoverEveryItem(model);
+  assert.deepEqual(model.sections.map(s => s.key), ['az', '45s']);
+  const bin = model.sections.find(s => s.key === '45s');
+  const binRecords = model.items.slice(bin.start, bin.end).filter(it => it.type === 'rec');
+  assert.equal(binRecords.length, 1);
+  assert.equal(binRecords[0].album, 'Short Album');
+});
+
+test('ensureCrateModel: an album with no measured duration never reads as a 45', () => {
+  resetState({ tracks: [fakeTrack('a1')] }); // fakeTrack's own default -- duration 0, i.e. unknown
+  const model = ensureCrateModel();
+  assert.equal(model.sections.some(s => s.key === '45s'), false);
+});
+
+test('crate45ChipFor: "size · 45" for a 45, null for a 33⅓ LP or an unknown-duration record', () => {
+  resetState({ tracks: [fakeTrack('t1', { duration: 180 })] });
+  assert.equal(crate45ChipFor({idx:[0], albumId:'alb1'}), '7" · 45');
+  resetState({ tracks: [fakeTrack('t1', { duration: 2000 })] });
+  assert.equal(crate45ChipFor({idx:[0], albumId:'alb1'}), null);
+  resetState({ tracks: [fakeTrack('t1')] });
+  assert.equal(crate45ChipFor({idx:[0], albumId:'alb1'}), null, 'unknown duration never claims 45');
+  assert.equal(crate45ChipFor({idx:[], albumId:'alb1'}), null, 'no idx at all is also unknown');
+});
+
+test('catalogLineFor: names the format up front only for a 45', () => {
+  resetState({ tracks: [fakeTrack('t1', { duration: 180 })] });
+  const record45 = {idx:[0], albumId:'alb1', label:'', catalog:'', genre:'Rock', year:1998, trackCount:1, durationSec: 180};
+  assert.equal(catalogLineFor(record45), '7″ SINGLE · ROCK · 1998 · 1 TRACK');
+  resetState({ tracks: [fakeTrack('t1', { duration: 2000 })] });
+  const recordLp = {idx:[0], albumId:'alb1', label:'', catalog:'', genre:'Rock', year:1998, trackCount:1, durationSec: 2000};
+  assert.equal(catalogLineFor(recordLp), 'ROCK · 1998 · 1 TRACK', 'a 33⅓ LP stays unlabeled, the unremarkable default');
+});
+
+test('catalogLineFor: a synthetic record with no idx at all (existing fixtures above) is unaffected by the format prefix', () => {
+  const record = {label:'ABC Records', catalog:'ABC-123', year:1999, trackCount:10, durationSec: 41*60 + 12};
+  assert.equal(catalogLineFor(record), 'ABC RECORDS · ABC-123 · 1999 · 10 TRACKS · 41:12');
 });

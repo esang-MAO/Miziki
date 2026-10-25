@@ -12,6 +12,24 @@ import { albumKey, trackTier, selectVariant } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { queueSave } from '../storage/meta.js';
 import { CRATE_ALPHABET } from './constants.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { RPM_45, formatRecordName, formatChipText } from '../record-art/format.js';
+
+// AU10 (docs/16_AUDIO.md §5): the one place a crate record's own format is
+// resolved -- the personal override (S.albumFormat) first, same as every
+// other reader of it (player/transport.js's load(), library/edit.js's
+// setAlbumFormatOverride()).
+function formatOf(record){
+  return albumFormatFor(record.idx, S.tracks, (S.albumFormat && S.albumFormat[record.albumId]) || 'auto');
+}
+
+// A record with no measured duration at all (every track reads 0) has
+// nothing real for the format table to size itself from -- treated as
+// "unknown," never shown as a 45, rather than reading formatForLongestSide's
+// own shortest-cell default (0 seconds -> 7" @45) as if it meant something.
+function hasKnownFormat(record){
+  return !!(record.idx && record.idx.length && record.idx.some(i => (S.tracks[i] && S.tracks[i].duration) > 0));
+}
 
 // CR2 (docs/13_CRATE.md): "New arrivals" is the same 14-day window
 // library/search.js's own `is:new` field filter already uses for a single
@@ -306,6 +324,16 @@ function buildVirtualBins(records){
     bins.push({key:'sealed', label:'SEALED', panelSub:'Sealed',
       meta: sealed.length + (sealed.length === 1 ? ' ALBUM' : ' ALBUMS'), records: sealed});
   }
+  // AU10 (docs/16_AUDIO.md §5): "a 45s section (7″ and 12″ 45s) joins the
+  // A–Z section list, before Staff picks." Same priority slot as Sealed
+  // above it — always present once any 45 exists, az sort only (the
+  // caller below never asks for virtual bins outside az, same as every
+  // other bin here).
+  const fortyFives = records.filter(r => hasKnownFormat(r) && formatOf(r).speed === RPM_45);
+  if(fortyFives.length){
+    bins.push({key:'45s', label:'45s · 7″ & 12″', panelSub:'45s',
+      meta: fortyFives.length + ' RECORDS · 45 RPM', records: fortyFives});
+  }
   const byId = new Map(records.map(r => [r.albumId, r]));
   const staffPicks = localStaffPickIds().map(id => byId.get(id)).filter(Boolean);
   if(staffPicks.length){
@@ -478,16 +506,36 @@ export function clampToSection(section, value){
 // catalog are both empty — the design doc's own fallback example drops
 // the duration, not just the two missing fields, so this matches that
 // literally rather than reusing the first branch's bits minus two.
+// AU10 (docs/16_AUDIO.md §5): "7″ SINGLE · 2 TRACKS" — the catalog card
+// names the format up front only for a 45 (a 33⅓ LP is the unremarkable
+// default, so it stays unlabeled, the same restraint stickerFor()/the
+// crate's own format chip already apply).
+function catalogFormatPrefix(record){
+  if(!hasKnownFormat(record)) return [];
+  const f = formatOf(record);
+  return f.speed === RPM_45 ? [formatRecordName(f)] : [];
+}
+
 export function catalogLineFor(record){
   if(record.label || record.catalog){
-    const bits = [record.label, record.catalog, record.year ? String(record.year) : null,
+    const bits = [...catalogFormatPrefix(record), record.label, record.catalog, record.year ? String(record.year) : null,
       record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS'),
       formatDuration(record.durationSec)].filter(Boolean);
     return bits.join(' · ').toUpperCase();
   }
-  const bits = [record.genre, record.year ? String(record.year) : null,
+  const bits = [...catalogFormatPrefix(record), record.genre, record.year ? String(record.year) : null,
     record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS')].filter(Boolean);
   return bits.join(' · ').toUpperCase();
+}
+
+// AU10: the small "7″ · 45" / "12″ · 45" sticker on a crate sleeve —
+// independent of stickerFor()'s own achievement-priority slot (sealed/new/
+// friends/hires/metal), since a format chip says what the record *is*,
+// not something earned. null for a 33⅓ LP, the unremarkable default.
+export function crate45ChipFor(record){
+  if(!hasKnownFormat(record)) return null;
+  const f = formatOf(record);
+  return f.speed === RPM_45 ? formatChipText(f) : null;
 }
 
 const WEEKDAY_LABELS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];

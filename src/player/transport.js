@@ -5,7 +5,9 @@ import { albumKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
-import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
+import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText } from '../record-art/format.js';
+import { hapticTick } from '../ui/haptic.js';
+import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -69,6 +71,30 @@ export function sideLetterFor(t, i){
   const splits = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
   const found = splits && splits.find(s => s.idx.includes(i));
   return found ? found.label.replace('SIDE ', '') : '';
+}
+
+// AU10 (docs/16_AUDIO.md §5): the dead-wax etching's own radius needs this
+// side's real length in seconds, independent of whether S.albumSides is on
+// (the format table already reads sideLengthsFor() the same "whether or
+// not Sides itself is on" way — see albumFormatFor()'s own header above).
+// Forces splitSides()'s own enabled flag to true so a single-track album
+// still resolves to its one side rather than null.
+function sideLengthOf(albumTrackIdx, i){
+  const splits = splitSides(albumTrackIdx, S.tracks, true);
+  const group = splits ? splits.find(s => s.idx.includes(i)) : {idx: albumTrackIdx};
+  if(!group) return 0;
+  return group.idx.reduce((sum, idx) => sum + ((S.tracks[idx] && S.tracks[idx].duration) || 0), 0);
+}
+
+// AU10: the platter's own "33⅓ | 45" speed indicator — a plain
+// active-class pair (never tappable), painted whenever a record loads
+// (speed-change or not), so it's never left showing the previous record's
+// speed.
+function paintSpeedToggle(speed){
+  const seg = $('#speedToggle'); if(!seg) return;
+  seg.querySelectorAll('[data-speed]').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.speed) === speed);
+  });
 }
 
 // The lead-in/run-out noise still has to be reachable from outside play()
@@ -274,17 +300,45 @@ export function load(i){
   // the Sides setting is on — albumFormatFor() never reads S.albumSides.
   // Cached once per load so the audio graph (audio/engine.js) and the
   // surface-noise/run-out code all read the one same value.
+  const prevFormat = S.recordFormat;
   S.recordFormat = albumTrackIdx
     ? albumFormatFor(albumTrackIdx, S.tracks, (S.albumFormat && S.albumFormat[albumKey(t)]) || 'auto')
     : { size:'12"', speed: RPM_33 };
+  // AU10 (docs/16_AUDIO.md §5, "the speed change"): when the player is open
+  // and the new record's own speed differs from the last one, the platter
+  // eases to it over 600ms with a tick + one haptic, rather than snapping —
+  // Pure and Reduce Motion both cut straight to the new speed (Pure: "no
+  // click, spin-up or lead-in"; Reduce Motion: "the click and haptic stay;
+  // the platter cuts straight to the new speed" — so no ease either way,
+  // just the one-time tick/haptic under Reduce Motion).
+  const playerOpen = !!($('#playerOverlay') && $('#playerOverlay').classList.contains('open'));
+  const speedChanged = prevFormat && prevFormat.speed !== S.recordFormat.speed;
+  paintSpeedToggle(S.recordFormat.speed);
+  if(speedChanged && playerOpen && S.mode !== 'pure'){
+    hapticTick();
+    if(!REDUCED){
+      S.rpmEase = { from: prevFormat.speed, to: S.recordFormat.speed, start: performance.now(), ms: 600 };
+    }
+  } else {
+    S.rpmEase = null;
+  }
   applyWobbleRate(S.rate);
   applyCharacter();
   S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
   const arcText = $('#labelArcText');
-  if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  if(arcText) arcText.textContent = (S.recordFormat.speed * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  // AU10: the 7″ disc + three-spoke 45 adapter, shown only for a 7″ record
+  // — a plain class toggle, CSS (02-stage-platter.css) owns the sizing.
+  const platterStage = $('#platterStage');
+  if(platterStage) platterStage.classList.toggle('format-7in', S.recordFormat.size === '7"');
+  // AU10: the "7″ · 45" chip before the spec line.
+  const fmtChip = $('#trackSpecFormat');
+  if(fmtChip) fmtChip.textContent = S.recordFormat.speed === RPM_45 ? formatChipText(S.recordFormat) : '';
   // SURFACE_NOISE §5: the dead-wax etching, same as every other
-  // written-at-load platter readout just above it.
-  applyDeadWaxEtching(t, sideLetterFor(t, i));
+  // written-at-load platter readout just above it. AU10: the band's own
+  // radius now follows this side's fullness (record-art/format.js).
+  const sideLen = albumTrackIdx ? sideLengthOf(albumTrackIdx, i) : 0;
+  applyDeadWaxEtching(t, sideLetterFor(t, i), sideFullness(sideLen, S.recordFormat));
   $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
     m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
   setPathNote('');

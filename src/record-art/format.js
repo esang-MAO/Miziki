@@ -93,3 +93,51 @@ export function albumRecordFormat(sideLengths, override){
 export function rotationHz(rpm, rate){
   return ((rpm || RPM_33) / 60) * (rate || 1);
 }
+
+/* ================= AU10 (docs/16_AUDIO.md §5, "how it looks"/"how it
+   sounds"): text and the dead-wax radius, both derived from the same
+   format table above -- kept in this leaf so the player chip, the liner
+   notes, the crate stickers, the catalog card and the edit sheet's own
+   result line all read the one same mapping, never a second copy of it. */
+
+// "7″ single" / "12″ single / EP" / "12″ LP" from the table, shortened to
+// one name per cell the way the liner-notes example already shows it
+// ("12″ EP · 45 RPM").
+export function formatRecordName(format){
+  if(!format) return '';
+  if(format.size === '7"') return '7″ SINGLE';
+  if(format.speed === RPM_45) return '12″ EP';
+  return '12″ LP';
+}
+
+// The small "7″ · 45"-style chip text used before the spec line, on crate
+// stickers and on the catalog card.
+export function formatChipText(format){
+  if(!format) return '';
+  return format.size + ' · ' + formatSpeedText(format.speed);
+}
+
+export function formatSpeedText(speed){
+  return speed === RPM_45 ? '45' : '33⅓';
+}
+
+// Side capacity in seconds, per the doc's own three numbers ("about 7 min
+// for a 7″ at 45, 15 min for a 12″ at 45, 22 min for an LP"). Used only to
+// scale the dead-wax band's own radius -- never the format decision
+// itself, which stays recordFormat()'s job alone.
+export function sideCapacitySec(format){
+  if(!format) return TWELVE_SINGLE_MAX_SEC;
+  if(format.size === '7"') return SEVEN_INCH_MAX_SEC;
+  if(format.speed === RPM_45) return TWELVE_SINGLE_MAX_SEC;
+  return 22 * 60;
+}
+
+// How full a side is, 0..1 -- a short side (little of the groove actually
+// used) reads near 0, a side that fills its format's whole capacity reads
+// 1. Clamped so an over-long side (already a different format, by the
+// table above) never reads past full.
+export function sideFullness(sideLengthSec, format){
+  const cap = sideCapacitySec(format);
+  if(!(cap > 0)) return 1;
+  return Math.max(0, Math.min(1, (sideLengthSec || 0) / cap));
+}

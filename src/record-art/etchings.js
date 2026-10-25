@@ -85,6 +85,24 @@ export function glyphJitter(seed, index){
   return { dy, rotate };
 }
 
+// AU10 (docs/16_AUDIO.md §5): "the groove band ends at a radius set by how
+// full the side is... short sides leave a wide band of smooth dead wax
+// near the label, where the etchings already live." A full side's groove
+// runs close to the label (a small radius for this arc); an empty/short
+// side leaves a wide band, so the arc sits further out, nearer the disc's
+// own edge. Plain units of the 200×200 #deadWax viewBox the path already
+// uses (center 100,100) -- MAX_RADIUS kept well inside the groove area,
+// MIN_RADIUS well outside the label.
+const DEAD_WAX_MAX_RADIUS = 62; // fullness 0 (short side -- wide dead-wax band)
+const DEAD_WAX_MIN_RADIUS = 38; // fullness 1 (full side -- narrow band, close to the groove's end)
+export function deadWaxEtchRadius(fullness){
+  const f = Math.max(0, Math.min(1, fullness == null ? 1 : fullness));
+  return DEAD_WAX_MAX_RADIUS - f * (DEAD_WAX_MAX_RADIUS - DEAD_WAX_MIN_RADIUS);
+}
+export function deadWaxArcPath(radius){
+  return 'M ' + (100 - radius) + ' 100 A ' + radius + ' ' + radius + ' 0 1 1 ' + (100 + radius) + ' 100';
+}
+
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 // Writes `str` into `textPathEl` as one <tspan> per character, each nudged
@@ -105,9 +123,15 @@ function writeEtchingGlyphs(textPathEl, str, seed){
 // Called from player/transport.js's load() right alongside the existing
 // #labelTitle/#labelArcText writes. `t` may be null (nothing loaded, or the
 // library just emptied) — clears both lines the same way those two do.
-export function applyDeadWaxEtching(t, side){
+// `fullness` (AU10, docs/16_AUDIO.md §5) is this side's 0..1 fullness —
+// see sideFullness() in record-art/format.js — and sets the arc's own
+// radius; omitted (undefined) reads as fully used, the fixed radius this
+// path always had before AU10.
+export function applyDeadWaxEtching(t, side, fullness){
   const matrixEl = $('#deadWaxMatrixText');
   const messageEl = $('#deadWaxMessageText');
+  const pathEl = $('#deadWaxPath');
+  if(pathEl) pathEl.setAttribute('d', deadWaxArcPath(deadWaxEtchRadius(fullness)));
   if(!matrixEl || !messageEl) return;
   if(!t){
     writeEtchingGlyphs(matrixEl, '', 1);

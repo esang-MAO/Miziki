@@ -66,8 +66,15 @@ mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
   namedExports: { persistAlbumFormat: persistAlbumFormatMock },
 });
 mock.module(new URL('../../src/shell/ceremony-timing.js', import.meta.url).href, {
-  namedExports: { albumFormatFor(){ return { size:'12"', speed: 33.333 }; } },
+  namedExports: {
+    albumFormatFor(){ return { size:'12"', speed: 33.333 }; },
+    sideLengthsFor(){ return [250]; },
+  },
 });
+// AU10: edit.js also reads the pure record-art/format.js leaf directly for
+// the edit-sheet's own result text -- real module, no mock needed (it has
+// no imports of its own, the same leaf shape as every other pure module in
+// this suite), but noted here since it's a new import this step added.
 
 const {
   applyEdit, revertTrack, applyEditWithUndo, undoLastEdit, setAlbumFormatOverride,

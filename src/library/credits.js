@@ -18,6 +18,8 @@ import { renderTracks, songRow } from './view.js';
 import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { openFriendStore } from '../social/screens/friend-store.js';
 import { classifyDynamics, albumGainDb, formatGainDb } from '../audio/loudness.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -200,8 +202,24 @@ export function albumLinerNotes(album){
 // falsy album (reachable before anything has ever played) gets the exact
 // same "no notes" copy the gatefold's own minimal-note fallback uses, for
 // the same reason: no notes and no album are both "nothing to show here."
+// AU10 (docs/16_AUDIO.md §5): "the format under the title in the liner
+// notes (12″ EP · 45 RPM)" -- only ever shown for a 45 (a 33⅓ LP is the
+// unremarkable default, the same restraint crate/model.js's own
+// catalogLineFor()/crate45ChipFor() already apply). S.albumFormat is keyed
+// by albumKey() (normKey(tags.album)), not the raw album title this
+// function's own `album` param already is everywhere else in this file.
+function albumFormatLine(album){
+  const idx = albumTracks(album);
+  if(!idx.length) return '';
+  const override = (S.albumFormat && S.albumFormat[normKey(album)]) || 'auto';
+  const format = albumFormatFor(idx, S.tracks, override);
+  return format.speed === RPM_45 ? (formatRecordName(format) + ' · ' + formatSpeedText(format.speed) + ' RPM') : '';
+}
+
 export function renderLinerNotes(host, album){
   host.innerHTML = '';
+  const fmtLine = album ? albumFormatLine(album) : '';
+  if(fmtLine) host.appendChild(el('p','credit-format-line', fmtLine));
   const text = album ? albumLinerNotes(album) : '';
   host.appendChild(text ? el('p','credit-note', text) : el('p','note','No liner notes in these files.'));
   const note = album ? albumDynamicsNote(album) : null;

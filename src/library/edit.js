@@ -21,8 +21,9 @@ import { renderTracks, updateTrackRow, exitSelectMode } from './view.js';
 import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { emptyDetails } from './tags/index.js';
-import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { albumFormatFor, sideLengthsFor } from '../shell/ceremony-timing.js';
 import { applyWobbleRate, applyCharacter } from '../audio/engine.js';
+import { formatRecordName, formatSpeedText } from '../record-art/format.js';
 
 // Which of an overlay's sparse `fields` land on t.tags (title/artist/
 // album/...) versus t.details (genre/year — CREDITS spec's own liner-
@@ -266,6 +267,8 @@ export function setAlbumFormatOverride(albumId, override){
     applyWobbleRate(S.rate);
     applyCharacter();
   }
+  const first = S.tracks[idxOf(S.editTarget && S.editTarget.trackIds[0])];
+  if(first && albumKey(first) === albumId) paintEditFormatResult(first, override);
 }
 
 function paintEditFormatSeg(override){
@@ -273,6 +276,27 @@ function paintEditFormatSeg(override){
   seg.querySelectorAll('button').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.formatOverride === override));
   });
+}
+
+function fmtMinSec(sec){
+  sec = Math.max(0, Math.round(sec || 0));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+// AU10 (docs/16_AUDIO.md §5, png/06-EditSpeed.png): "a small disc, 7″
+// SINGLE · 45 RPM, and one line" -- resolves the album's own format
+// (auto or the given override) and writes the summary + a plain
+// side-count/length description, the same call site as the seg's own
+// aria-pressed paint above.
+function paintEditFormatResult(track, override){
+  const summary = $('#editFormatSummary'); const note = $('#editFormatNote');
+  if(!summary || !note) return;
+  const idx = albumTracks(track.tags.album);
+  const format = albumFormatFor(idx, S.tracks, override);
+  summary.textContent = formatRecordName(format) + ' · ' + formatSpeedText(format.speed) + ' RPM';
+  const lengths = sideLengthsFor(idx, S.tracks);
+  note.textContent = (lengths.length === 1 ? 'One side, no flip' : lengths.length + ' sides')
+    + ' — longest ' + fmtMinSec(Math.max(...lengths)) + '.';
 }
 
 /* ---- edit sheet: same form for a single track or a batch selection ---- */
@@ -307,7 +331,11 @@ export function openEditSheet(trackIds){
   // album id for the override to apply to.
   const showFormat = !batch && !!first.tags.album;
   $('#editFormatRow').style.display = showFormat ? '' : 'none';
-  if(showFormat) paintEditFormatSeg(S.albumFormat[albumKey(first)] || 'auto');
+  if(showFormat){
+    const override = S.albumFormat[albumKey(first)] || 'auto';
+    paintEditFormatSeg(override);
+    paintEditFormatResult(first, override);
+  }
   if(batch) $('#editBatchNote').textContent = 'Artist, album, album artist, genre, year, and cover apply to all '
     + trackIds.length + ' selected tracks. Titles are left as they are.';
   renderEditArtPreview(batch ? null : first.art);
