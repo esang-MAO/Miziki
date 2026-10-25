@@ -7,6 +7,7 @@ import {
   RPM_33, RPM_45, SEVEN_INCH_MAX_SEC, TWELVE_SINGLE_MAX_SEC,
   bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
+  formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
 } from '../../src/record-art/format.js';
 
 test('bestSideCut: fewer than two durations has no meaningful cut', () => {
@@ -82,4 +83,39 @@ test('rotationHz: 33⅓ and 45, at full speed and a Sundown rate', () => {
 test('rotationHz: falls back to 33⅓ for a falsy rpm, and rate 1 for a falsy rate', () => {
   assert.equal(rotationHz(0, 1), rotationHz(RPM_33, 1));
   assert.equal(rotationHz(RPM_45, 0), rotationHz(RPM_45, 1));
+});
+
+// AU10 (docs/16_AUDIO.md §5): text and the dead-wax radius, both derived
+// from the same table above.
+test('formatRecordName: one name per cell, "unremarkable" 33⅓ reads LP', () => {
+  assert.equal(formatRecordName({size:'7"', speed:RPM_45}), '7″ SINGLE');
+  assert.equal(formatRecordName({size:'12"', speed:RPM_45}), '12″ EP');
+  assert.equal(formatRecordName({size:'12"', speed:RPM_33}), '12″ LP');
+  assert.equal(formatRecordName(null), '');
+});
+
+test('formatSpeedText: 45 or 33⅓, nothing else', () => {
+  assert.equal(formatSpeedText(RPM_45), '45');
+  assert.equal(formatSpeedText(RPM_33), '33⅓');
+});
+
+test('formatChipText: "size · speed", empty for no format', () => {
+  assert.equal(formatChipText({size:'7"', speed:RPM_45}), '7" · 45');
+  assert.equal(formatChipText({size:'12"', speed:RPM_33}), '12" · 33⅓');
+  assert.equal(formatChipText(null), '');
+});
+
+test('sideCapacitySec: the table\'s own three capacities, falling back to an LP\'s own 22 minutes', () => {
+  assert.equal(sideCapacitySec({size:'7"', speed:RPM_45}), SEVEN_INCH_MAX_SEC);
+  assert.equal(sideCapacitySec({size:'12"', speed:RPM_45}), TWELVE_SINGLE_MAX_SEC);
+  assert.equal(sideCapacitySec({size:'12"', speed:RPM_33}), 22 * 60);
+  assert.equal(sideCapacitySec(null), TWELVE_SINGLE_MAX_SEC);
+});
+
+test('sideFullness: 0..1, clamped, matching the format\'s own capacity', () => {
+  const lp = {size:'12"', speed:RPM_33};
+  assert.equal(sideFullness(0, lp), 0);
+  assert.equal(sideFullness(22 * 60, lp), 1);
+  assert.equal(sideFullness(44 * 60, lp), 1); // clamped, never past full
+  assert.ok(Math.abs(sideFullness(11 * 60, lp) - 0.5) < 0.001);
 });

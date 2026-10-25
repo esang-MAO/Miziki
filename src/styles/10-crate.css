@@ -256,6 +256,15 @@
    doc's own "none" ink column for that row */
 .crate-sticker-metal{width:14px;height:14px;padding:0;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 
+/* AU10 (docs/16_AUDIO.md §5): the format sticker -- "7″ · 45"/"12″ · 45" --
+   own slot, bottom left, independent of .crate-sticker's achievement slot
+   (top right) above, since a card can carry both at once. */
+.crate-format-chip{position:absolute;left:8px;bottom:8px;z-index:60;
+  font-family:var(--data);font-weight:500;font-size:8px;letter-spacing:.08em;
+  text-transform:uppercase;background:var(--cream);color:#1A1410;
+  box-shadow:0 1px 2px rgba(0,0,0,.35);padding:3px 6px;border-radius:2px;
+  pointer-events:none;white-space:nowrap}
+
 /* CR3 point 3: the catalog card replaces the plain .crate-info-row for a
    record (dividers still render straight into .crate-info, untouched) —
    cream stock, a 4px aubergine head rule, --sh-1. */

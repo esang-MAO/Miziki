@@ -32,6 +32,12 @@ export const S = {
   // recomputing it. Runtime only -- never saved, never a prefs field,
   // the same shape as labelSideFormat just above.
   recordFormat:{size:'12"', speed:33.333},
+  // AU10 (docs/16_AUDIO.md §5): "from 0 to 600ms the platter eases up to
+  // the new speed" -- set by player/transport.js's load() only when the
+  // player is open and the speed actually changed; null means "no ease in
+  // progress, just render S.recordFormat.speed" (player/clock.js's frame()
+  // reads it). Runtime only -- never saved, never a prefs field.
+  rpmEase:null,
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
   playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, person:null, personReturn:null,
     crateLooseIdx:null, crateLooseArtist:null, picking:false, editSelecting:false},

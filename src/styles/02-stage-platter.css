@@ -121,6 +121,38 @@
 .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(170,240,160,.55)}
 :root[data-theme="dark"] .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 28px rgba(170,240,160,.75)}
 
+/* AU10 (docs/16_AUDIO.md §5): "a 7″ disc on the platter, with the slipmat
+   showing around it" -- this felt mat sits behind the shrunk .platter-box,
+   only shown under .format-7in (player/transport.js's load() toggles the
+   class), reusing .slipmat-rest's own felt look rather than a second set
+   of tokens. Below .platter-box in DOM order, so no z-index needed. */
+.platter-mat{position:absolute;inset:0;border-radius:50%;display:none;
+  background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%)}
+.platter-stage.format-7in .platter-mat{display:block}
+/* "about 58% of the 12″ diameter" -- inset 21% on each side leaves a 58%
+   wide disc centered in the stage. */
+.platter-stage.format-7in .platter-box{inset:21%}
+/* "the label fills about half the disc" on a 7″ -- .label's own ordinary
+   inset:29% (above) is relative to the now-smaller .platter-box, so it
+   already reads as roughly half the 7″ disc with no separate override. */
+/* AU10: the three-spoke 45 adapter -- a big center hole holds it, and it
+   turns with the record since it's a child of #disc. Hidden by default;
+   dark like the label's own spindle dot. */
+.disc45-adapter{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none}
+.platter-stage.format-7in .disc45-adapter{display:block}
+.disc45-adapter circle,.disc45-adapter path{fill:#170D04;opacity:.82}
+
+/* AU10 (docs/16_AUDIO.md §5, "the speed change"): "a 33⅓ | 45 switch clicks
+   over" -- a passive indicator, never tappable itself (the format comes
+   from the record or the edit sheet's own override), mirroring the sun
+   knob's own plinth-fill look on the platter's opposite corner. */
+.speed-toggle{position:absolute;left:4%;bottom:6%;z-index:4;display:flex;
+  background:var(--plinth);border-radius:10px;padding:2px;gap:1px;
+  box-shadow:inset 0 1px 0 var(--plinth-edge)}
+.speed-toggle span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;
+  color:var(--muted);padding:3px 6px;border-radius:8px;transition:color .2s,background .2s}
+.speed-toggle span.active{color:var(--accent-text);background:rgba(255,255,255,.08)}
+
 /* SURFACE_NOISE §5: dead-wax etchings -- hidden at rest (the .runout fade-up
    is in 03-sleeve-pull.css, alongside the label-glow run-out rule it rides
    with), never via a JS display toggle. Default ink is light, for the

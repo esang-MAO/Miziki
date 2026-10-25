@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEAD_WAX_MESSAGES, matrixTail, matrixLineFor, messageFor, etchingFor, glyphJitter,
+  deadWaxEtchRadius, deadWaxArcPath,
 } from '../../src/record-art/etchings.js';
 
 test('matrixTail is the same for the same release id, different for a different one', () => {
@@ -60,4 +61,26 @@ test('glyphJitter is deterministic per seed+index, and small enough to read as h
 
 test('glyphJitter differs by seed too, so two different releases never jitter identically', () => {
   assert.notDeepEqual(glyphJitter(1, 0), glyphJitter(2, 0));
+});
+
+// AU10 (docs/16_AUDIO.md §5): "the groove band ends at a radius set by how
+// full the side is -- short sides leave a wide band of smooth dead wax."
+test('deadWaxEtchRadius: a full side (1) reads a narrower radius than an empty one (0)', () => {
+  const full = deadWaxEtchRadius(1);
+  const empty = deadWaxEtchRadius(0);
+  assert.ok(full < empty);
+});
+
+test('deadWaxEtchRadius: omitted fullness reads as fully used (the fixed pre-AU10 radius)', () => {
+  assert.equal(deadWaxEtchRadius(undefined), deadWaxEtchRadius(1));
+});
+
+test('deadWaxEtchRadius: clamps to 0..1', () => {
+  assert.equal(deadWaxEtchRadius(-5), deadWaxEtchRadius(0));
+  assert.equal(deadWaxEtchRadius(5), deadWaxEtchRadius(1));
+});
+
+test('deadWaxArcPath: an SVG arc centered on the 200×200 viewBox, radius reflected in the path', () => {
+  const p = deadWaxArcPath(50);
+  assert.match(p, /^M 50 100 A 50 50 0 1 1 150 100$/);
 });

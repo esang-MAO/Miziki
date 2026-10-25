@@ -11,6 +11,23 @@ import { maybeScheduleGaplessNext } from './transport.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
+import { RPM_33 } from '../record-art/format.js';
+
+// AU10 (docs/16_AUDIO.md §5, "the speed change"): the platter's own base
+// RPM, eased over S.rpmEase.ms when one's in flight (player/transport.js's
+// load() arms it only with the player open and a real speed change — Pure
+// and Reduce Motion both leave it null, so this falls straight through to
+// the new record's own speed with no ease). Used by both frame()'s own
+// visual rotation and drawSun()'s labelArcText write, so the two numbers
+// never disagree mid-ease.
+function currentBaseRpm(){
+  const target = (S.recordFormat && S.recordFormat.speed) || RPM_33;
+  const ease = S.rpmEase;
+  if(!ease) return target;
+  const p = clamp((performance.now() - ease.start) / ease.ms, 0, 1);
+  if(p >= 1){ S.rpmEase = null; return target; }
+  return ease.from + (ease.to - ease.from) * easeOutCubic(p);
+}
 
 /* ================= render loop ================= */
 let last = performance.now();
@@ -87,7 +104,8 @@ export function frame(now){
       spin = S.spinDown.from * (1 - easeOutCubic(p));
       if(p >= 1) S.spinDown = null;
     } else spin = 0;
-    S.angle = (S.angle + dt * spin * 200) % 360;              // 33⅓ rpm = 200°/s
+    // AU10 (docs/16_AUDIO.md §5): rpm × 6°/s -- 200°/s at 33⅓, 270°/s at 45.
+    S.angle = (S.angle + dt * spin * currentBaseRpm() * 6) % 360;
     $('#disc').style.transform = 'rotate(' + S.angle + 'deg)';
   }
 
@@ -150,8 +168,11 @@ export function drawSun(){
   // (tracks Sundown's drift, same number the plain readout this replaced
   // always showed) plus the side/format half transport.js's load() cached
   // on S.labelSideFormat, since that part doesn't change between loads.
+  // AU10 (docs/16_AUDIO.md §5): the base RPM itself now follows the loaded
+  // record's own format (S.recordFormat.speed), not a fixed 33.333, so a
+  // 45 reads "45.0 RPM..." the same way a 33⅓ record already did.
   const arcText = $('#labelArcText');
-  if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  if(arcText) arcText.textContent = (currentBaseRpm() * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
 
   // Pure means untouched — Sundown only ever reaches the recording in Vinyl.
   // The settings below stay live and usable in Pure anyway, since they

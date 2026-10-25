@@ -26,7 +26,7 @@ import { buildPeekDisc } from '../record-art/peek.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, catalogLineFor, playedLineFor, eraTintFor,
+  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, cratePeekRise, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
 } from './model.js';
@@ -727,6 +727,16 @@ export function renderCrate(host){
         // something" — stickerFor() already returns null for most records.
         const sticker = stickerFor(item, false);
         if(sticker) card.appendChild(buildStickerEl(sticker));
+        // AU10 (docs/16_AUDIO.md §5): "stickers on sleeves in the crate
+        // (7″ · 45, 12″ · 45)" — independent of the achievement sticker
+        // just above, since a record can carry both (a 45 that's also new).
+        const fmtChip = crate45ChipFor(item);
+        if(fmtChip){
+          const chip = document.createElement('div');
+          chip.className = 'crate-format-chip';
+          chip.textContent = fmtChip;
+          card.appendChild(chip);
+        }
       }
     }
     return card;
