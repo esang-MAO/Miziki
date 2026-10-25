@@ -17,6 +17,7 @@ function fakeS(overrides = {}){
     paperLabelOnLossy: false,
     surfaceNoise: 'subtle', runoutLength: 'normal', surfaceNoiseUnderMusic: false,
     autoFlip: true,
+    loudnessMode: 'auto',
   }, overrides);
 }
 
@@ -36,6 +37,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    loudnessMode: S.loudnessMode,
   });
 });
 
@@ -302,4 +304,26 @@ test('old saved data: no autoFlip field at all leaves it out, so the default (On
 test('bad values are ignored: a non-boolean autoFlip', () => {
   const parsed = parsePrefs({ autoFlip: 'on' });
   assert.equal('autoFlip' in parsed, false);
+});
+
+// AU5 (docs/16_AUDIO.md §4): a saved object without this field (every
+// device before this PR) loads as Auto -- the stated default -- the same
+// "missing means the default" shape every setting above already follows.
+test('round trip: loudnessMode survives all four values', () => {
+  for(const mode of ['off', 'track', 'album', 'auto']){
+    const parsed = parsePrefs(serializePrefs(fakeS({ loudnessMode: mode })));
+    assert.equal(parsed.loudnessMode, mode);
+  }
+});
+
+test('old saved data: no loudnessMode field at all leaves it out, so the default (Auto) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.loudnessMode;
+  const parsed = parsePrefs(raw);
+  assert.equal('loudnessMode' in parsed, false);
+});
+
+test('bad values are ignored: an unrecognized loudnessMode', () => {
+  const parsed = parsePrefs({ loudnessMode: 'max' });
+  assert.equal('loudnessMode' in parsed, false);
 });

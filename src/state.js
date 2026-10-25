@@ -44,6 +44,9 @@ export const S = {
   // such field, and a missing value means Subtle, the same "missing means
   // the stated default" shape S.char.scratch (F2) already established.
   charDrift:'subtle',
+  // AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto — a missing saved value
+  // means Auto, the doc's own stated default.
+  loudnessMode:'auto',
   // scratch: true means spin-to-scrub plays real audio while spinning the
   // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the
   // default here is what back-fills prefs saved before this field existed

@@ -4,7 +4,7 @@ import { clamp } from '../util/math.js';
 import { albumKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { splitSides } from '../shell/ceremony-timing.js';
-import { routeSource } from '../audio/engine.js';
+import { routeSource, applyLoudnessNorm } from '../audio/engine.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -292,6 +292,11 @@ export function load(i){
   updateCreditsButtonForCurrent();
   updateFavoriteButtons();
   updateSleepUI();
+  // AU5 (docs/16_AUDIO.md §4): recomputed on every track change — a new
+  // track can carry a different tagged/measured gain, and Auto mode's own
+  // "is this still the same album, in order" check depends on which track
+  // is now current.
+  applyLoudnessNorm();
   // D6 (docs/DESKTOP_LAYOUT.md): keeps the desktop side panel's active
   // tab (Up next / Liner notes / Credits) in step with whichever track
   // just loaded — the same choke point every other "must track current()"

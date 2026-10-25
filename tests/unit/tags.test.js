@@ -143,6 +143,16 @@ function id3Frame(id, encoding, text){
   const payload = concatBytes([new Uint8Array([encoding]), textBytes]);
   return concatBytes([asciiBytes(id), u32beBytes(payload.length), new Uint8Array([0,0]), payload]);
 }
+function txxxFrame(description, value, encoding=0){
+  const descBytes = encoding === 1
+    ? concatBytes([new Uint8Array([0xFF,0xFE]), new Uint8Array(new Uint16Array([...description].map(c=>c.charCodeAt(0))).buffer), new Uint8Array([0,0])])
+    : concatBytes([asciiBytes(description), new Uint8Array([0])]);
+  const valueBytes = encoding === 1
+    ? concatBytes([new Uint8Array([0xFF,0xFE]), new Uint8Array(new Uint16Array([...value].map(c=>c.charCodeAt(0))).buffer)])
+    : asciiBytes(value);
+  const payload = concatBytes([new Uint8Array([encoding]), descBytes, valueBytes]);
+  return concatBytes([asciiBytes('TXXX'), u32beBytes(payload.length), new Uint8Array([0,0]), payload]);
+}
 function apicFrame(mime, data, {encoding=0, description=''}={}){
   // the description's own null terminator width depends on `encoding` —
   // 1 byte for Latin-1/UTF-8 (0/3), 2 bytes for UTF-16 (1/2)
@@ -276,6 +286,58 @@ test('FLAC: a different rate/bit-depth combination still parses correctly (CD qu
   const meta = readHeader(buf);
   assert.equal(meta.rate, 44100);
   assert.equal(meta.bits, 16);
+});
+
+// -- tests: ReplayGain (AU5, docs/16_AUDIO.md §4) ---------------------------
+// FLAC (Vorbis comment) and ID3 (TXXX) round trips -- MP4 freeform atoms
+// have no existing fixture builder in this file at all (not even for
+// title/artist), so building one from scratch for just this one field is
+// out of scope here; mp4Details()'s own real parsing of REPLAYGAIN_*
+// freeform atoms is covered by code review and the device checklist,
+// same as every other MP4-specific path this file doesn't fixture-test.
+
+test('FLAC: REPLAYGAIN_* Vorbis comments parse into details.replayGain', () => {
+  const buf = buildFlacFile({
+    comments: ['REPLAYGAIN_TRACK_GAIN=-3.20 dB', 'REPLAYGAIN_TRACK_PEAK=0.987654', 'REPLAYGAIN_ALBUM_GAIN=-4.50 dB', 'REPLAYGAIN_ALBUM_PEAK=0.998765'],
+  });
+  const details = readDetails(buf);
+  assert.equal(details.replayGain.trackGain, -3.2);
+  assert.equal(details.replayGain.trackPeak, 0.987654);
+  assert.equal(details.replayGain.albumGain, -4.5);
+  assert.equal(details.replayGain.albumPeak, 0.998765);
+});
+
+test('FLAC: no ReplayGain comments at all leaves every field null', () => {
+  const buf = buildFlacFile({comments: ['TITLE=No Gain Tags']});
+  const details = readDetails(buf);
+  assert.equal(details.replayGain.trackGain, null);
+  assert.equal(details.replayGain.trackPeak, null);
+  assert.equal(details.replayGain.albumGain, null);
+  assert.equal(details.replayGain.albumPeak, null);
+});
+
+test('ID3v2: REPLAYGAIN_* TXXX frames parse into details.replayGain', () => {
+  const buf = buildID3File([
+    txxxFrame('REPLAYGAIN_TRACK_GAIN', '-6.00 dB'),
+    txxxFrame('REPLAYGAIN_TRACK_PEAK', '0.5'),
+    txxxFrame('replaygain_album_gain', '+1.25 dB'),
+    txxxFrame('REPLAYGAIN_ALBUM_PEAK', '1.0'),
+  ]);
+  const details = readDetails(buf);
+  assert.equal(details.replayGain.trackGain, -6.0);
+  assert.equal(details.replayGain.trackPeak, 0.5);
+  assert.equal(details.replayGain.albumGain, 1.25);
+  assert.equal(details.replayGain.albumPeak, 1.0);
+});
+
+test('ID3v2: a garbage or negative peak value is rejected (peak can never be negative)', () => {
+  const buf = buildID3File([
+    txxxFrame('REPLAYGAIN_TRACK_GAIN', 'not a number'),
+    txxxFrame('REPLAYGAIN_TRACK_PEAK', '-0.5'),
+  ]);
+  const details = readDetails(buf);
+  assert.equal(details.replayGain.trackGain, null);
+  assert.equal(details.replayGain.trackPeak, null);
 });
 
 // -- tests: artwork ----------------------------------------------------------

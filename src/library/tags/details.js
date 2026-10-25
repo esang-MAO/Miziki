@@ -11,8 +11,33 @@ export function emptyDetails(){
     composers: [], lyricists: [], producers: [], conductors: [], arrangers: [],
     engineers: [], mixers: [], remixers: [], performers: [],
     genre: '', year: 0, label: '', catalog: '', isrc: '',
-    comment: '', hasLyrics: false
+    comment: '', hasLyrics: false,
+    // AU5 (docs/16_AUDIO.md §4): a tagged ReplayGain pair, read at import —
+    // null until a format reader actually finds the matching tag (Vorbis
+    // comment, ID3 TXXX, or an MP4 freeform atom; see flac.js/id3.js/mp4.js).
+    // `loudness` (this app's own BS.1770 measurement, written by
+    // library/import.js right after decode, never by a tag reader) is a
+    // sibling field added the same way but intentionally left out of this
+    // default object — see library/thumbs.js's healLoudness() for how an
+    // already-imported track without it gets measured after the fact.
+    replayGain: {trackGain: null, trackPeak: null, albumGain: null, albumPeak: null}
   };
+}
+// REPLAYGAIN_TRACK_GAIN/REPLAYGAIN_ALBUM_GAIN come as "-6.32 dB" (or "-6.32db",
+// or no unit at all) — strip any trailing letters, keep the signed number.
+export function parseReplayGainDb(str){
+  if(str == null) return null;
+  const m = /-?\d+(\.\d+)?/.exec(String(str));
+  if(!m) return null;
+  const n = parseFloat(m[0]);
+  return isFinite(n) ? n : null;
+}
+// REPLAYGAIN_TRACK_PEAK/REPLAYGAIN_ALBUM_PEAK are a plain linear peak
+// (0..~1, occasionally a hair over 1 for a peak found between samples).
+export function parseReplayGainPeak(str){
+  if(str == null) return null;
+  const n = parseFloat(String(str));
+  return isFinite(n) && n >= 0 ? n : null;
 }
 // null/`;`/` / ` only — never `,` or `&`, so "Earth, Wind & Fire" survives whole
 export function splitNames(str){

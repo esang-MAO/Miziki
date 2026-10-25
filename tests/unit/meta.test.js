@@ -23,7 +23,7 @@ mock.module(new URL('../../src/audio/mode.js', import.meta.url).href, {
   namedExports: { setMode(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { applyCharacter(){}, ensureContext(){} },
+  namedExports: { applyCharacter(){}, applyLoudnessNorm(){}, ensureContext(){} },
 });
 mock.module(new URL('../../src/sundown/location.js', import.meta.url).href, {
   namedExports: { applyVolume(){} },

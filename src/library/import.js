@@ -6,7 +6,11 @@
    not "how to read one." The import loop's behavior is unchanged: one
    file at a time, the "Importing N of M" note, a failed file skipped
    (not aborting the batch), and new albums sealed once per batch
-   (SEALED spec §2). */
+   (SEALED spec §2). Since AU5 (docs/16_AUDIO.md §4), the import loop also
+   runs the BS.1770 loudness measurement right after decodeAudioData (see
+   that call site's own comment for why there's no literal Worker, despite
+   the doc's "in a worker" suggestion) — src/audio/loudness.js is a pure,
+   DOM-free leaf, imported directly. */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -26,6 +30,7 @@ import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
+import { measureTrack } from '../audio/loudness.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -118,6 +123,20 @@ export async function addFiles(list){
       const gaplessDelaySec = meta.gapless ? meta.gapless.delay / gaplessRate : 0;
       const gaplessPaddingSec = meta.gapless ? meta.gapless.padding / gaplessRate : 0;
       const trimmedDuration = Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec);
+      // AU5 (docs/16_AUDIO.md §4): "Import already decodes every file,
+      // so compute BS.1770 integrated loudness and true peak there." Done
+      // as a plain async step in this same loop rather than a literal
+      // Worker — the measurement is a few biquad passes over one decoded
+      // track (tens to low hundreds of ms of JS time), and this codebase
+      // has no existing precedent of reaching for a Worker for comparable
+      // on-device work (crate tiers/thumbnails are plain async main-thread
+      // functions too) — not worth the message-protocol/lifecycle plumbing
+      // a Worker needs for a one-shot, already-background (await-based)
+      // computation that already yields the main thread between files via
+      // the loop's own await points.
+      const channels = [];
+      for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+      details.loudness = measureTrack(channels, buffer.sampleRate);
       const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
       if(dup){
         const choice = await askDuplicateResolution(dup, f.name);

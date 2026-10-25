@@ -3,9 +3,10 @@ import { $ } from '../util/dom.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
-import { applyCharacter } from '../audio/engine.js';
+import { applyCharacter, applyLoudnessNorm } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
 import { depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+import { loudnessCaptionFor } from '../audio/loudness.js';
 import { updateToneCurveVisibility } from '../sundown/dial-view.js';
 import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
@@ -211,6 +212,12 @@ function applyPrefs(p){
   if(typeof p.autoFlip === 'boolean') S.autoFlip = p.autoFlip;
   document.querySelectorAll('[data-auto-flip]').forEach(b =>
     b.setAttribute('aria-pressed', String((b.dataset.autoFlip === 'on') === S.autoFlip)));
+  // AU5 (docs/16_AUDIO.md §4): same inline [data-*] sync shape as the
+  // controls above — no dedicated UI side effect beyond aria-pressed.
+  if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') S.loudnessMode = p.loudnessMode;
+  document.querySelectorAll('[data-loudness]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.loudness === S.loudnessMode)));
+  { const d = $('#loudnessDesc'); if(d) d.textContent = loudnessCaptionFor(S.loudnessMode); }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
@@ -227,4 +234,5 @@ function applyPrefs(p){
   if(p.mode) setMode(p.mode);
   applyCharacter();
   applyVolume();
+  applyLoudnessNorm();
 }

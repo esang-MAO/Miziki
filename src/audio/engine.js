@@ -1,9 +1,11 @@
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { applyVolume } from '../sundown/location.js';
 import { applyOutputRoute } from '../player/background.js';
 import { nowClock } from '../sundown/solar.js';
 import { effectiveCharAt } from '../sundown/arc.js';
 import { makeupGainFor } from './level-match.js';
+import { albumKey } from '../record-art/tiers.js';
+import { trackGainDb, albumGainDb, clampGainDbForPeak, dbToLinear } from './loudness.js';
 
 // AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
 // 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
@@ -86,6 +88,15 @@ export async function buildGraph(ctx){
 
   n.wobble.connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
 
+  // AU5 (docs/16_AUDIO.md §4): "norm" — the one loudness-normalization gain
+  // node, inserted between master and limiter exactly where AU3's own
+  // comment above said a later PR's node would go. Applies in both modes
+  // (§4: "Applies in both modes at norm in §1") — it's a level change
+  // downstream of the Pure/Vinyl recording itself, the same category as the
+  // sleep-timer fade/user volume, never a change to the recording.
+  // applyLoudnessNorm() is what actually sets its gain.
+  n.norm = ctx.createGain(); n.norm.gain.value = 1;
+
   n.limiter = null;
   if(await ensureLimiterModule(ctx)){
     try{
@@ -96,8 +107,9 @@ export async function buildGraph(ctx){
     }
   }
   n.out = ctx.createGain(); n.out.gain.value = 1;
-  if(n.limiter) n.master.connect(n.limiter).connect(n.out);
-  else n.master.connect(n.out);
+  n.master.connect(n.norm);
+  if(n.limiter) n.norm.connect(n.limiter).connect(n.out);
+  else n.norm.connect(n.out);
   n.out.connect(ctx.destination);
   return n;
 }
@@ -237,6 +249,56 @@ export function applyCharacter(ramp = 0.05){
   n.makeup.gain.setTargetAtTime(makeupGainFor(c), t, ramp);
 }
 
+// AU5 (docs/16_AUDIO.md §4): "Auto (default): album gain when playing an
+// album in order, track gain on shuffle or a mixed queue." A practical
+// heuristic for "in order" — every queued index belongs to the same album
+// as the current track, with shuffle off — rather than also checking exact
+// track-number sequence; a manually reordered album still reads as "the
+// same album, playing through" for this purpose, which is the behavior a
+// listener would expect from Auto.
+function isPlayingAlbumInOrder(t){
+  if(S.shuffle || !S.queue || !S.queue.length) return false;
+  const key = albumKey(t);
+  return S.queue.every(idx => albumKey(S.tracks[idx]) === key);
+}
+
+// §4's gain clamp: "never push into clipping... peak × gain ≤ −1 dBFS."
+// Applies whichever gain was actually used to its own peak — a track gain
+// clamps against that track's own peak, an album gain against the loudest
+// peak among the album's own tracks (the one the album gain is shared
+// across), falling back to the limiter alone when no peak is known at all.
+export function applyLoudnessNorm(ramp = 0.05){
+  if(!S.nodes || !S.ctx) return;
+  const mode = S.loudnessMode || 'auto';
+  const t = current();
+  let gainDb = 0;
+  if(mode !== 'off' && t && t.details){
+    const key = albumKey(t);
+    const useAlbum = mode === 'album' || (mode === 'auto' && isPlayingAlbumInOrder(t));
+    if(useAlbum){
+      const entries = S.tracks.filter(x => albumKey(x) === key)
+        .map(x => ({details: x.details, duration: x.duration}));
+      const g = albumGainDb(entries);
+      if(g != null){
+        const peaks = entries.map(e => e.details && e.details.replayGain && e.details.replayGain.albumPeak)
+          .concat(entries.map(e => e.details && e.details.loudness && e.details.loudness.truePeakDb != null ? Math.pow(10, e.details.loudness.truePeakDb/20) : null))
+          .filter(p => typeof p === 'number' && isFinite(p));
+        const peakLinear = peaks.length ? Math.max(...peaks) : null;
+        gainDb = clampGainDbForPeak(g, peakLinear);
+      }
+    } else {
+      const g = trackGainDb(t.details);
+      if(g != null){
+        const rg = t.details.replayGain;
+        const peakLinear = (rg && typeof rg.trackPeak === 'number') ? rg.trackPeak :
+          (t.details.loudness && isFinite(t.details.loudness.truePeakDb) ? Math.pow(10, t.details.loudness.truePeakDb/20) : null);
+        gainDb = clampGainDbForPeak(g, peakLinear);
+      }
+    }
+  }
+  S.nodes.norm.gain.setTargetAtTime(dbToLinear(gainDb), S.ctx.currentTime, ramp);
+}
+
 export function routeSource(src){
   src.disconnect();
   src.connect(S.nodes.trackGain);
@@ -279,6 +341,7 @@ export async function ensureContext(){
   S.nodes = await buildGraph(S.ctx);
   applyCharacter();
   applyVolume();
+  applyLoudnessNorm();
   applyOutputRoute();
   await S.ctx.resume();
 }

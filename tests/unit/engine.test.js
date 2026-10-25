@@ -111,13 +111,17 @@ test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> 
   assert.ok(n.tone.connections.includes(n.comp));
   assert.ok(n.comp.connections.includes(n.makeup));
   assert.ok(n.makeup.connections.includes(n.master));
+  // AU5 (docs/16_AUDIO.md §4): master now feeds a norm gain node (the
+  // loudness-normalization insertion point AU3's own comment pre-planted)
+  // before reaching the limiter/out.
+  assert.ok(n.master.connections.includes(n.norm));
   // No AudioWorklet on the fake context (no audioWorklet property), so
-  // the limiter never loads and master connects straight to out — see
+  // the limiter never loads and norm connects straight to out — see
   // AU3's own "a worklet that fails to load falls back to an unlimited
   // passthrough" fallback, the same shape scratch-processor.js's own
   // addModule() failure already has.
   assert.equal(n.limiter, null);
-  assert.ok(n.master.connections.includes(n.out));
+  assert.ok(n.norm.connections.includes(n.out));
   assert.ok(n.out.connections.includes(ctx.destination));
 });
 

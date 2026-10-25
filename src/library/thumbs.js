@@ -8,6 +8,8 @@ import { readDetails, emptyDetails } from './tags/index.js';
 import { rebuildPeopleIndex, updateCreditsButtonForCurrent } from './credits.js';
 import { renderProfile } from '../profile/screens.js';
 import { invalidateCrateModel } from '../crate/model.js';
+import { ensureContext } from '../audio/engine.js';
+import { measureTrack } from '../audio/loudness.js';
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -165,6 +167,39 @@ export async function healDetails(){
   if(typeof rebuildPeopleIndex === 'function') rebuildPeopleIndex();
   if(typeof invalidateCrateModel === 'function') invalidateCrateModel();
   if(typeof updateCreditsButtonForCurrent === 'function') updateCreditsButtonForCurrent();
+}
+
+// AU5 (docs/16_AUDIO.md §4): "Run an idle-time pass over the existing
+// library once" — a library imported before this feature existed has
+// details.loudness still unset; this measures it the same batched,
+// yielding, resumable way healDetails() already backfills a missing
+// details object entirely. Decoding a whole track just to measure it is
+// the one genuinely expensive step in this file, so it yields after every
+// single track (not just every 5th) and still respects the same
+// "pause while something is playing" rule healDetails()/healThumbs() use.
+export async function healLoudness(){
+  if(!storage.available()) return;
+  const targets = S.tracks.filter(t => t.stored && t.details && !(t.details.loudness && t.details.loudness.measured));
+  for(let i = 0; i < targets.length; i++){
+    while(S.playing) await sleep(500);
+    const t = targets[i];
+    if(!S.tracks.includes(t)) continue;   // deleted while we waited
+    try{
+      const rec = await tracks.get(t.id);
+      if(rec && rec.blob){
+        const raw = await rec.blob.arrayBuffer();
+        await ensureContext();
+        const buffer = await S.ctx.decodeAudioData(raw);
+        const channels = [];
+        for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+        t.details.loudness = measureTrack(channels, buffer.sampleRate);
+        rec.details = t.details;
+        await tracks.put(rec);
+      }
+    }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
+    await sleep(0);
+    await sleep(30);
+  }
 }
 
 // drops thumbnails whose records are gone (after clearing listening history)

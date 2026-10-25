@@ -32,6 +32,7 @@ const KNOWN_PREF_KEYS = new Set([
   'paperLabelOnLossy',
   'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
   'autoFlip',
+  'loudnessMode',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -74,6 +75,7 @@ export function serializePrefs(S){
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    loudnessMode: S.loudnessMode,
   }, unknownPrefKeys || {});
 }
 
@@ -142,6 +144,9 @@ export function parsePrefs(raw){
   // docs/15_SURFACE_NOISE.md §4: a saved object without this (every device
   // before this PR) loads as On, the stated default and today's behavior.
   if(typeof p.autoFlip === 'boolean') out.autoFlip = p.autoFlip;
+  // AU5 (docs/16_AUDIO.md §4): a saved object without this (every device
+  // before this PR) loads as Auto, the stated default.
+  if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') out.loudnessMode = p.loudnessMode;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime
