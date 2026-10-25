@@ -21,7 +21,10 @@
    once drift isn't Off. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
-import { applyCharacter, applyLoudnessNorm, auditionStageAlone, auditionComparePure, releaseAudition } from '../audio/engine.js';
+import {
+  applyCharacter, applyLoudnessNorm, auditionStageAlone, auditionComparePure, releaseAudition,
+  applyMonoBalance, balanceCaptionFor,
+} from '../audio/engine.js';
 import { loudnessCaptionFor } from '../audio/loudness.js';
 import { queueSave } from '../storage/meta.js';
 import { setMode } from '../audio/mode.js';
@@ -222,6 +225,27 @@ export function wireCharacter(){
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#paperLabelBtn').addEventListener('click', togglePaperLabel);
+
+  // AU7 (docs/16_AUDIO.md §6): same inline On/Off .seg shape as Scratch/
+  // Sleeve Pull above. The slider mutates S.balance directly on 'input'
+  // and redraws only its own caption — the same "no full re-render
+  // mid-drag" shape the EQ sheet's own sliders already established
+  // (player/eq-sheet.js), so a native <input type=range> never loses its
+  // own pointer capture mid-drag.
+  $('#monoBtn').addEventListener('click', () => {
+    S.mono = !S.mono;
+    const b = $('#monoBtn');
+    b.textContent = S.mono ? 'On' : 'Off';
+    b.setAttribute('aria-pressed', String(S.mono));
+    applyMonoBalance();
+    queueSave();
+  });
+  $('#balanceSlider').addEventListener('input', e => {
+    S.balance = parseFloat(e.target.value) || 0;
+    const d = $('#balanceDesc'); if(d) d.textContent = balanceCaptionFor(S.balance);
+    applyMonoBalance();
+  });
+  $('#balanceSlider').addEventListener('change', queueSave);
   $('#launchIntroBtn').addEventListener('click', toggleLaunchIntro);
   attachLaunchSettingRow();
   $('#bgAudioBtn').addEventListener('click', toggleBgAudio);

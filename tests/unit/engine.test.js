@@ -97,6 +97,10 @@ function makeFakeContext() {
       n.threshold = new FakeParam(0); n.ratio = new FakeParam(0);
       return n;
     },
+    // AU7 (docs/16_AUDIO.md §6): mono/balance's own node shapes.
+    createStereoPanner() { const n = new FakeNode('panner'); n.pan = new FakeParam(0); return n; },
+    createChannelSplitter() { return new FakeNode('splitter'); },
+    createChannelMerger() { return new FakeNode('merger'); },
   };
 }
 
@@ -126,13 +130,31 @@ test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> 
   assert.ok(n.eqGraphic[n.eqGraphic.length - 1].connections.includes(n.eqParametric[0]));
   for(let i = 0; i < n.eqParametric.length - 1; i++) assert.ok(n.eqParametric[i].connections.includes(n.eqParametric[i+1]));
   assert.equal(n.eqTail, n.eqParametric[n.eqParametric.length - 1]);
+  // AU7 (docs/16_AUDIO.md §6): the EQ tail now feeds the mono/balance
+  // crossfade — a StereoPannerNode for balance, then a splitter into four
+  // always-wired gains (two "direct" passthrough, two "sum"/mono mix) back
+  // into a merger, the same "flat when inactive" shape AU6's own EQ bypass
+  // already established.
+  assert.ok(n.eqTail.connections.includes(n.balance));
+  assert.ok(n.balance.connections.includes(n.monoSplit));
+  assert.ok(n.monoSplit.connections.includes(n.monoDirL));
+  assert.ok(n.monoSplit.connections.includes(n.monoSumL));
+  assert.ok(n.monoSplit.connections.includes(n.monoDirR));
+  assert.ok(n.monoSplit.connections.includes(n.monoSumR));
+  assert.ok(n.monoDirL.connections.includes(n.monoMerge));
+  assert.ok(n.monoDirR.connections.includes(n.monoMerge));
+  assert.ok(n.monoSumL.connections.includes(n.monoMerge));
+  assert.ok(n.monoSumR.connections.includes(n.monoMerge));
   // No AudioWorklet on the fake context (no audioWorklet property), so
-  // the limiter never loads and the EQ tail connects straight to out — see
-  // AU3's own "a worklet that fails to load falls back to an unlimited
-  // passthrough" fallback, the same shape scratch-processor.js's own
-  // addModule() failure already has.
+  // the limiter never loads and the mono merge connects straight to
+  // deviceVolume — see AU3's own "a worklet that fails to load falls back
+  // to an unlimited passthrough" fallback, the same shape scratch-
+  // processor.js's own addModule() failure already has.
   assert.equal(n.limiter, null);
-  assert.ok(n.eqTail.connections.includes(n.out));
+  // AU7 §6: "Volume slider on desktop only, after the limiter" — the one
+  // new node past where the limiter would have sat.
+  assert.ok(n.monoMerge.connections.includes(n.deviceVolume));
+  assert.ok(n.deviceVolume.connections.includes(n.out));
   assert.ok(n.out.connections.includes(ctx.destination));
 });
 

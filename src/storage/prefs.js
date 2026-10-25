@@ -39,6 +39,7 @@ const KNOWN_PREF_KEYS = new Set([
   'autoFlip',
   'loudnessMode',
   'eq',
+  'mono', 'balance', 'deviceVolume',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -83,6 +84,7 @@ export function serializePrefs(S){
     autoFlip: S.autoFlip,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
+    mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
   }, unknownPrefKeys || {});
 }
 
@@ -192,6 +194,17 @@ export function parsePrefs(raw){
     }
     if(Object.keys(eq).length) out.eq = eq;
   }
+  // AU7 (docs/16_AUDIO.md §6): a saved object without these (every device
+  // before this PR) loads off and centered, the same "missing means the
+  // stated default" shape eq's own addition just above established.
+  // balance/deviceVolume are clamped the same defensive way audio/
+  // engine.js's own applyMonoBalance()/applyDeviceVolume() clamp them —
+  // duplicated rather than imported, since engine.js real-chains into
+  // player/background.js/sundown/location.js and this module stays a
+  // leaf on purpose (storage/prefs.js's own header comment).
+  if(typeof p.mono === 'boolean') out.mono = p.mono;
+  if(typeof p.balance === 'number') out.balance = Math.max(-1, Math.min(1, p.balance));
+  if(typeof p.deviceVolume === 'number') out.deviceVolume = Math.max(0, Math.min(1, p.deviceVolume));
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

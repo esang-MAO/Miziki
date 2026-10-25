@@ -107,14 +107,11 @@
      player's own ids. No change to display here at all — renderMini
      Player() still toggles the same inline style.display it always has
      (flex while a track is loaded, none while the platter is empty);
-     only the layout changes, via order, below. Volume is the mockup's
-     one listed zone this PR leaves out on purpose: nothing in the app
-     has ever exposed master-gain to the user (CLAUDE.md's own "output
-     is unity gain, so loudness tracks the device's own volume" note,
-     src/sundown/location.js) — adding a real slider here would be a new
-     audio-behavior feature, not "wired to the existing playback
-     functions," so it's left for a dedicated feature PR instead of
-     invented here. */
+     only the layout changes, via order, below. AU7 (docs/16_AUDIO.md §6)
+     fills in the one zone this PR originally left out: #barVolume, a
+     real slider wired to audio/engine.js's own n.deviceVolume node
+     (applyDeviceVolume()), after the limiter — never a stand-in for
+     master gain, which stays at unity exactly as before. */
   .mini-player{
     position:fixed;left:0;right:0;bottom:0;z-index:40;height:88px;
     max-width:none;margin:0;padding:0 var(--sp-5);gap:var(--sp-4);
@@ -127,16 +124,22 @@
   .mini-bar-seek{order:6}
   .mini-bar-modes{order:7}
   #miniQueueBtn{order:8}
+  .mini-bar-volume{order:9}
 
   /* RF8 (docs/12_REFINE.md): on the player route the full player already
      shows transport/seek/mode — the desktop bar underneath it is reduced
-     to just the now-playing cell, not a second copy of those controls. */
+     to just the now-playing cell, not a second copy of those controls.
+     AU7 (docs/16_AUDIO.md §6): volume isn't part of that transport row
+     (it's a device-level setting, not a per-track control), so it stays
+     visible even while the full player is open. */
   body:has(#playerOverlay.open) .mini-player #barPrev,
   body:has(#playerOverlay.open) .mini-player #miniPlay,
   body:has(#playerOverlay.open) .mini-player #barNext,
   body:has(#playerOverlay.open) .mini-player .mini-bar-seek,
   body:has(#playerOverlay.open) .mini-player .mini-bar-modes,
   body:has(#playerOverlay.open) .mini-player #miniQueueBtn{display:none}
+
+  .mini-bar-volume{display:block;flex:0 0 90px;width:90px;margin:0;accent-color:var(--accent)}
 
   .mini-bar-btn{
     display:grid;place-content:center;width:40px;height:40px;

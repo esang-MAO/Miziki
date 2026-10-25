@@ -52,7 +52,7 @@
    own extra content (src/styles/23-desktop.css's .sidebar-extra).
    Un-hidden and laid out there, not here, since this file is the phone
    cascade's own section. */
-.mini-bar-btn,.mini-bar-seek,.mini-bar-modes{display:none}
+.mini-bar-btn,.mini-bar-seek,.mini-bar-modes,.mini-bar-volume{display:none}
 
 .tabbar{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:40;
   display:flex;background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);

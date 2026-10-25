@@ -23,7 +23,10 @@ mock.module(new URL('../../src/audio/mode.js', import.meta.url).href, {
   namedExports: { setMode(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { applyCharacter(){}, applyLoudnessNorm(){}, applyEQ(){}, ensureContext(){} },
+  namedExports: {
+    applyCharacter(){}, applyLoudnessNorm(){}, applyEQ(){}, ensureContext(){},
+    applyMonoBalance(){}, applyDeviceVolume(){}, balanceCaptionFor(){ return 'Center'; },
+  },
 });
 mock.module(new URL('../../src/sundown/location.js', import.meta.url).href, {
   namedExports: { applyVolume(){} },
