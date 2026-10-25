@@ -301,6 +301,26 @@
   font-family:var(--data);font-size:var(--fs-row);color:#2A1B38;cursor:pointer}
 .crate-hold-btn:active,.crate-hold-btn:focus-visible{background:rgba(42,27,56,.08)}
 
+/* AU12 (docs/16_AUDIO.md §7): the Preview button at the top of the hold
+   card, and its "Previewing the hook" state (label, progress bar, level
+   meter, stop button) — src/audio/hook-preview.js drives the audio,
+   crate/view.js's openCrateHoldCard() drives this markup. */
+.crate-hold-preview{margin:0 var(--sp-1) var(--sp-2)}
+.crate-hold-preview-btn{display:block;width:100%;text-align:center;background:#2A1B38;
+  border:none;border-radius:var(--radius-control);padding:var(--sp-2) var(--sp-1);
+  font-family:var(--data);font-size:var(--fs-row);font-weight:600;color:var(--cream);cursor:pointer}
+.crate-hold-preview-btn:active,.crate-hold-preview-btn:focus-visible{background:#44314F}
+.crate-hold-preview-status{display:flex;flex-direction:column;gap:4px;padding:var(--sp-2) var(--sp-1)}
+.crate-hold-preview-label{margin:0;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.02em;
+  color:#5A4A52;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-hold-preview-bar{height:3px;border-radius:2px;background:rgba(42,27,56,.12);overflow:hidden}
+.crate-hold-preview-bar-fill{height:100%;width:0;background:#2A1B38;transition:width .1s linear}
+.crate-hold-preview-meter{height:2px;border-radius:1px;background:rgba(42,27,56,.08);overflow:hidden}
+.crate-hold-preview-meter-fill{height:100%;width:0;background:#5A4A52}
+.crate-hold-preview-stop{align-self:flex-end;width:28px;height:28px;border-radius:50%;border:none;
+  background:rgba(42,27,56,.08);color:#2A1B38;font-size:11px;line-height:28px;text-align:center;cursor:pointer;padding:0}
+.crate-hold-preview-stop:active,.crate-hold-preview-stop:focus-visible{background:rgba(42,27,56,.18)}
+
 /* The pressing peek (record-art/peek.js): the record sliding out of the top
    of its sleeve in the album's own pressing, shared by the crate's pull-up
    and the launch intro's pull to camera. Positioned/sized by its caller;

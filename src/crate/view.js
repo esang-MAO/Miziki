@@ -37,6 +37,11 @@ import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { playNext, addToQueue } from '../player/queue.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
+import { trackIdentityKey } from '../record-art/tiers.js';
+import { fmt } from '../player/clock.js';
+import {
+  playHookPreview, stopHookPreview, hookPreviewInfo, hookPreviewElapsedSec, hookPreviewAnalyser,
+} from '../audio/hook-preview.js';
 
 // D5 (docs/DESKTOP_LAYOUT.md): flowPose()'s own pixel offsets (170, 34, 70…)
 // were tuned against this exact card edge length — reading the live
@@ -1258,12 +1263,97 @@ export function renderCrate(host){
     }
   }
 
+  // AU12 (docs/16_AUDIO.md §7): "from its most-played track or track 1
+  // if none has been played" — the same S.trackPlayCounts[trackIdentityKey
+  // (t)] lookup history/achievements.js/library/search.js's own
+  // played/unplayed checks already use, just picking a max instead of a
+  // boolean.
+  function hookPreviewTrackIdx(item){
+    let best = item.idx[0], bestCount = -1;
+    for(const i of item.idx){
+      const t = S.tracks[i];
+      if(!t) continue;
+      const c = S.trackPlayCounts[trackIdentityKey(t)] || 0;
+      if(c > bestCount){ bestCount = c; best = i; }
+    }
+    return best;
+  }
+
   function openCrateHoldCard(item){
     const scrim = el('div', 'crate-hold-scrim');
     const card = el('div', 'crate-hold-card');
     card.setAttribute('role', 'menu');
+
+    // AU12 (docs/16_AUDIO.md §7): "a Preview button at the top of the
+    // crate's hold card plays the album's hook... It fades in and out,
+    // goes through the output stage, and stops when the card closes. It
+    // never counts as a play or a session." playHookPreview()/
+    // stopHookPreview() (audio/hook-preview.js) are a parallel, isolated
+    // playback path — nothing here touches S.source/the real transport.
+    const previewRow = el('div', 'crate-hold-preview');
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button'; previewBtn.className = 'crate-hold-preview-btn';
+    previewBtn.textContent = 'Preview';
+    const previewStatus = el('div', 'crate-hold-preview-status');
+    previewStatus.hidden = true;
+    const previewLabel = el('p', 'crate-hold-preview-label');
+    const previewBar = el('div', 'crate-hold-preview-bar');
+    const previewBarFill = el('div', 'crate-hold-preview-bar-fill');
+    previewBar.appendChild(previewBarFill);
+    const previewMeter = el('div', 'crate-hold-preview-meter');
+    const previewMeterFill = el('div', 'crate-hold-preview-meter-fill');
+    previewMeter.appendChild(previewMeterFill);
+    const previewStopBtn = document.createElement('button');
+    previewStopBtn.type = 'button'; previewStopBtn.className = 'crate-hold-preview-stop';
+    previewStopBtn.setAttribute('aria-label', 'Stop preview'); previewStopBtn.textContent = '■';
+    previewStatus.appendChild(previewLabel);
+    previewStatus.appendChild(previewBar);
+    previewStatus.appendChild(previewMeter);
+    previewStatus.appendChild(previewStopBtn);
+    previewRow.appendChild(previewBtn);
+    previewRow.appendChild(previewStatus);
+    card.appendChild(previewRow);
+
+    let previewRAF = null;
+    function stopPreviewUI(){
+      if(previewRAF != null) cancelAnimationFrame(previewRAF);
+      previewRAF = null;
+      previewStatus.hidden = true;
+      previewBtn.hidden = false;
+    }
+    function tickPreviewUI(){
+      const info = hookPreviewInfo();
+      if(!info){ stopPreviewUI(); return; }
+      const elapsed = hookPreviewElapsedSec();
+      previewBarFill.style.width = (clamp(elapsed / info.span, 0, 1) * 100) + '%';
+      const an = hookPreviewAnalyser();
+      if(an){
+        const buf = new Uint8Array(an.fftSize);
+        an.getByteTimeDomainData(buf);
+        let sum = 0;
+        for(let i = 0; i < buf.length; i++){ const v = (buf[i] - 128) / 128; sum += v * v; }
+        const rms = Math.sqrt(sum / buf.length);
+        previewMeterFill.style.width = (clamp(rms * 3, 0, 1) * 100) + '%';
+      }
+      previewRAF = requestAnimationFrame(tickPreviewUI);
+    }
+    previewBtn.addEventListener('click', async () => {
+      const idx = hookPreviewTrackIdx(item);
+      const t = S.tracks[idx];
+      if(!t) return;
+      previewBtn.hidden = true;
+      previewStatus.hidden = false;
+      previewLabel.textContent = 'Previewing the hook';
+      const res = await playHookPreview(idx, stopPreviewUI);
+      if(!res){ stopPreviewUI(); return; }
+      previewLabel.textContent = 'Previewing the hook — FROM ' + (t.tags.title || 'Track').toUpperCase() +
+        ' · ' + fmt(res.hookStart) + '–' + fmt(res.hookEnd);
+      tickPreviewUI();
+    });
+    previewStopBtn.addEventListener('click', () => { stopHookPreview(); stopPreviewUI(); });
+
     card.appendChild(el('p', 'crate-hold-title', item.artist + ' — ' + item.album));
-    function teardown(){ scrim.remove(); card.remove(); }
+    function teardown(){ stopHookPreview(); stopPreviewUI(); scrim.remove(); card.remove(); }
     function action(label, fn){
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'crate-hold-btn'; b.setAttribute('role', 'menuitem');

@@ -31,6 +31,7 @@ import { healCrateArt } from '../crate/tiers.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
 import { measureTrack } from '../audio/loudness.js';
+import { detectHook } from '../audio/hook.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -137,6 +138,16 @@ export async function addFiles(list){
       const channels = [];
       for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
       details.loudness = measureTrack(channels, buffer.sampleRate);
+      // AU12 (docs/16_AUDIO.md §7): "At import (and in the same idle pass
+      // as §4), find each track's most-repeated section." Same channel
+      // data already decoded for the loudness measurement just above, so
+      // this is one more pass over it rather than a second decode.
+      // detectHook() returns null for anything too short for a meaningful
+      // 8-30s repeat (or with no clear one at all) — hookStart/hookEnd are
+      // simply left unset on details, the same "absent means unknown"
+      // posture every other optional details field already has.
+      const hook = detectHook(channels, buffer.sampleRate);
+      if(hook){ details.hookStart = hook.hookStart; details.hookEnd = hook.hookEnd; }
       const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
       if(dup){
         const choice = await askDuplicateResolution(dup, f.name);
