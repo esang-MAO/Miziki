@@ -8,8 +8,8 @@
      split ("keep track order and pick the cut point that best balances
      the two sides") that superseded the old track-count midpoint split.
    - formatForLongestSide()/recordFormat()/albumRecordFormat(): the
-     "format from the longest side" table (7" @45 / 12" EP @45 / 12" LP
-     @33⅓), plus the personal Auto/33⅓/45 override.
+     "format from the longest side" table (7" @45 / 10" EP @45 / 12" EP
+     @45 / 12" LP @33⅓), plus the personal Auto/33⅓/45 override.
    - rotationHz(): "the platter turns at rpm × 6°/s × S.rate... add one
      helper, rotationHz() = (rpm / 60) × S.rate, and use it for the wobble
      oscillator and for every surface-noise call that passes 0.55 * S.rate
@@ -21,8 +21,16 @@
 export const RPM_33 = 33.333;
 export const RPM_45 = 45;
 
-// §5's table boundaries, in seconds.
+// §5's table boundaries, in seconds. TEN_INCH_MAX_SEC is a judgment call,
+// not from a published spec (no size/speed scheme for a 10" was given) --
+// a 10" EP sits between a 7" single and a 12" single/EP, so it gets the
+// band directly above the 7" boundary: 7:00-12:00 is 10" @45, 12:00-15:00
+// stays 12" @45 (the old single/EP band, just narrowed), over 15:00 is
+// still the 12" LP @33⅓. Pick: real 10"/45 EPs typically run shorter per
+// side than a 12"/45 single, so this band is deliberately narrower than
+// the 12" one it sits next to.
 export const SEVEN_INCH_MAX_SEC = 7 * 60;
+export const TEN_INCH_MAX_SEC = 12 * 60;
 export const TWELVE_SINGLE_MAX_SEC = 15 * 60;
 
 // The cut point (an index into durations, 1..n-1) that best balances the
@@ -58,22 +66,28 @@ export function sideLengthsFromDurations(durations){
   return [a, b];
 }
 
-// The table itself: "up to 7:00: 7″ single, 45. 7:00 to 15:00: 12″
-// single/EP, 45. Over 15:00: 12″ LP, 33⅓." The same for every copy of the
-// record, since it's computed from the record's own track lengths, never
-// chosen by the listener.
+// The table itself: "up to 7:00: 7″ single, 45. 7:00 to 12:00: 10″ EP,
+// 45. 12:00 to 15:00: 12″ single/EP, 45. Over 15:00: 12″ LP, 33⅓." The
+// same for every copy of the record, since it's computed from the
+// record's own track lengths, never chosen by the listener.
 export function formatForLongestSide(longestSec){
-  if((longestSec || 0) <= SEVEN_INCH_MAX_SEC) return { size: '7"', speed: RPM_45 };
-  if(longestSec <= TWELVE_SINGLE_MAX_SEC) return { size: '12"', speed: RPM_45 };
+  const sec = longestSec || 0;
+  if(sec <= SEVEN_INCH_MAX_SEC) return { size: '7"', speed: RPM_45 };
+  if(sec <= TEN_INCH_MAX_SEC) return { size: '10"', speed: RPM_45 };
+  if(sec <= TWELVE_SINGLE_MAX_SEC) return { size: '12"', speed: RPM_45 };
   return { size: '12"', speed: RPM_33 };
 }
 
 // override: 'auto' (default/falsy) | '33' | '45' -- a personal choice that
 // skips the table's own speed decision: 33⅓ is always a 12", and 45 still
-// sizes itself from the table (7″ if the longest side fits, else 12″).
+// sizes itself from the table (7″/10″ if the longest side fits, else 12″).
 export function recordFormat(longestSec, override){
   if(override === '33') return { size: '12"', speed: RPM_33 };
-  if(override === '45') return { size: (longestSec || 0) <= SEVEN_INCH_MAX_SEC ? '7"' : '12"', speed: RPM_45 };
+  if(override === '45'){
+    const sec = longestSec || 0;
+    const size = sec <= SEVEN_INCH_MAX_SEC ? '7"' : sec <= TEN_INCH_MAX_SEC ? '10"' : '12"';
+    return { size, speed: RPM_45 };
+  }
   return formatForLongestSide(longestSec);
 }
 
@@ -100,12 +114,13 @@ export function rotationHz(rpm, rate){
    notes, the crate stickers, the catalog card and the edit sheet's own
    result line all read the one same mapping, never a second copy of it. */
 
-// "7″ single" / "12″ single / EP" / "12″ LP" from the table, shortened to
-// one name per cell the way the liner-notes example already shows it
-// ("12″ EP · 45 RPM").
+// "7″ single" / "10″ EP" / "12″ single / EP" / "12″ LP" from the table,
+// shortened to one name per cell the way the liner-notes example already
+// shows it ("12″ EP · 45 RPM").
 export function formatRecordName(format){
   if(!format) return '';
   if(format.size === '7"') return '7″ SINGLE';
+  if(format.size === '10"') return '10″ EP';
   if(format.speed === RPM_45) return '12″ EP';
   return '12″ LP';
 }
@@ -128,6 +143,7 @@ export function formatSpeedText(speed){
 export function sideCapacitySec(format){
   if(!format) return TWELVE_SINGLE_MAX_SEC;
   if(format.size === '7"') return SEVEN_INCH_MAX_SEC;
+  if(format.size === '10"') return TEN_INCH_MAX_SEC;
   if(format.speed === RPM_45) return TWELVE_SINGLE_MAX_SEC;
   return 22 * 60;
 }
@@ -153,12 +169,14 @@ export function sideFullness(sideLengthSec, format){
 export function formatWireCode(format){
   if(!format) return null;
   if(format.size === '7"') return '7-45';
+  if(format.size === '10"') return '10-45';
   if(format.speed === RPM_45) return '12-45';
   return '12-33';
 }
 
 export function formatFromWireCode(code){
   if(code === '7-45') return { size: '7"', speed: RPM_45 };
+  if(code === '10-45') return { size: '10"', speed: RPM_45 };
   if(code === '12-45') return { size: '12"', speed: RPM_45 };
   if(code === '12-33') return { size: '12"', speed: RPM_33 };
   return null;

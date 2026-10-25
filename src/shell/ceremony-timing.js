@@ -11,7 +11,14 @@
    whether Album sides itself is on ("the format... is computed whether or
    not the Sides setting is on. With Sides off, there are simply no
    flips."), so this file keeps its one real import from that still-pure
-   leaf module rather than duplicating the split math a second time. */
+   leaf module rather than duplicating the split math a second time.
+
+   Later follow-up (Ken, "double albums as four sides (A-D) instead of
+   one side per disc"): splitSides()/sideLengthsFor() used to give a
+   multi-disc album exactly one side per disc, however long that disc
+   ran -- a double album read as just Side A/Side B. Both now apply the
+   same per-disc time-balance a single disc already got, so a two-disc
+   album with at least two tracks per disc reads as four sides, A-D. */
 import { bestSideCut, sideLengthsFromDurations, albumRecordFormat } from '../record-art/format.js';
 
 // §4, change records. Milliseconds from the moment the next record is asked
@@ -56,36 +63,58 @@ export function grooveThumpTimes(durSec, period = GROOVE.thumpEverySec){
   return out;
 }
 
-// The album's sides, as the gatefold shows them: one per disc when the
-// album has several (today's own kept-as-is behavior), otherwise the two
-// sides bestSideCut() balances by time -- "one track: a single side, no
-// flip. Two tracks: A and B. Three or more: balanced by time." Null when
+// The album's sides, as the gatefold shows them. A double (or triple, ...)
+// album is no longer one side per disc -- each disc gets the same
+// time-balanced two-side split a single disc already gets ("one track: a
+// single side, no flip. Two tracks: A and B. Three or more: balanced by
+// time."), so a two-disc album with at least two tracks per disc reads as
+// four sides, A-D, not two. A disc with fewer than two tracks of its own
+// still can't be split (there's nothing to balance), so it stays one
+// whole side on its own -- bestSideCut() can't be asked to split it
+// (fewer than 2 durations returns the array's own length, "no cut," which
+// would otherwise produce one correct whole-disc group plus a second,
+// spurious empty one if not guarded against here explicitly). Null when
 // sides are turned off or there's only one track to show.
 // trackIdx: the album's track indices in play order; tracks: S.tracks.
 export function splitSides(trackIdx, tracks, enabled){
   if(!enabled || !trackIdx || trackIdx.length < 2) return null;
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
-  const discs = [...new Set(trackIdx.map(discOf))];
-  if(discs.length > 1){
-    return discs.map((d, k) => ({label:'SIDE ' + String.fromCharCode(65 + k),
-      idx: trackIdx.filter(i => discOf(i) === d)}));
-  }
   const durOf = i => (tracks[i] && tracks[i].duration) || 0;
-  const cut = bestSideCut(trackIdx.map(durOf));
-  return [{label:'SIDE A', idx: trackIdx.slice(0, cut)}, {label:'SIDE B', idx: trackIdx.slice(cut)}];
+  const discs = [...new Set(trackIdx.map(discOf))];
+  let groups;
+  if(discs.length > 1){
+    groups = [];
+    for(const d of discs){
+      const discIdx = trackIdx.filter(i => discOf(i) === d);
+      if(discIdx.length < 2){ groups.push(discIdx); continue; }
+      const cut = bestSideCut(discIdx.map(durOf));
+      groups.push(discIdx.slice(0, cut), discIdx.slice(cut));
+    }
+  } else {
+    const cut = bestSideCut(trackIdx.map(durOf));
+    groups = [trackIdx.slice(0, cut), trackIdx.slice(cut)];
+  }
+  return groups.map((idx, k) => ({label: 'SIDE ' + String.fromCharCode(65 + k), idx}));
 }
 
 // The record's own side lengths (seconds), independent of S.albumSides --
-// one per disc for a multi-disc album (today's kept-as-is rule), otherwise
-// sideLengthsFromDurations()'s time-balanced split. The one input
-// albumFormatFor() needs to find "the longest side" from.
+// the same per-disc time-balanced split splitSides() now uses (one disc
+// with fewer than two tracks stays one length of its own; every other
+// disc gets sideLengthsFromDurations()'s own two-side balance), flattened
+// into one array across every disc. The one input albumFormatFor() needs
+// to find "the longest side" from.
 export function sideLengthsFor(trackIdx, tracks){
   if(!trackIdx || !trackIdx.length) return [0];
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
-  const discs = [...new Set(trackIdx.map(discOf))];
   const durOf = i => (tracks[i] && tracks[i].duration) || 0;
+  const discs = [...new Set(trackIdx.map(discOf))];
   if(discs.length > 1){
-    return discs.map(d => trackIdx.filter(i => discOf(i) === d).reduce((s, i) => s + durOf(i), 0));
+    const out = [];
+    for(const d of discs){
+      const discIdx = trackIdx.filter(i => discOf(i) === d);
+      for(const len of sideLengthsFromDurations(discIdx.map(durOf))) out.push(len);
+    }
+    return out;
   }
   return sideLengthsFromDurations(trackIdx.map(durOf));
 }

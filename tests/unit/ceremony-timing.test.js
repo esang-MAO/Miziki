@@ -81,11 +81,31 @@ test('splitSides: an exact tie keeps the earlier cut, deterministically', () => 
   assert.deepEqual(s[1].idx, [2,3,4]);
 });
 
-test('splitSides: several discs give one side per disc', () => {
-  const t = [1,1,2,2,3].map(d => ({tags:{disc:d}}));
-  const s = splitSides([0,1,2,3,4], t, true);
+// Followup (Ken, "double albums as four sides (A-D) instead of one side
+// per disc"): each disc now gets the same time-balanced split a single
+// disc already gets, flattened into one continuous A/B/C/... sequence --
+// a double album with at least two tracks per disc reads as four sides.
+test('splitSides: a double album (2 discs, 2 tracks each) reads as four sides, A-D', () => {
+  const t = [1,1,2,2].map(d => ({tags:{disc:d}}));
+  const s = splitSides([0,1,2,3], t, true);
+  assert.deepEqual(s.map(x => x.label), ['SIDE A', 'SIDE B', 'SIDE C', 'SIDE D']);
+  assert.deepEqual(s[0].idx, [0]);
+  assert.deepEqual(s[1].idx, [1]);
+  assert.deepEqual(s[2].idx, [2]);
+  assert.deepEqual(s[3].idx, [3]);
+});
+
+test('splitSides: a disc with fewer than two tracks of its own stays one side, not split', () => {
+  // disc 1 has three tracks (balances by time), disc 2 has just one --
+  // can't be split, so it's its own whole side rather than producing a
+  // spurious extra empty group.
+  const t = [...[100,100,300].map(d => ({tags:{disc:1}, duration:d})),
+    {tags:{disc:2}, duration: 200}];
+  const s = splitSides([0,1,2,3], t, true);
   assert.deepEqual(s.map(x => x.label), ['SIDE A', 'SIDE B', 'SIDE C']);
-  assert.deepEqual(s[2].idx, [4]);
+  assert.deepEqual(s[0].idx, [0,1]);
+  assert.deepEqual(s[1].idx, [2]);
+  assert.deepEqual(s[2].idx, [3]);
 });
 
 test('sideTurn: only the last track of a side onto the first of the next', () => {
@@ -97,10 +117,15 @@ test('sideTurn: only the last track of a side onto the first of the next', () =>
   assert.equal(sideTurn(null, 1, 2), null);
 });
 
-test('sideTurn: B to C on a three-disc album', () => {
+// Followup: a three-disc album with two equal (here: unmeasured, so tied)
+// tracks per disc now reads as six sides (A-F), not three -- the turn
+// from the last track of disc 2's own second side (D) onto the first
+// track of disc 3's own first side (E) is a real side-flip.
+test('sideTurn: D to E on a three-disc album, each disc split into two sides', () => {
   const t = [1,1,2,2,3,3].map(d => ({tags:{disc:d}}));
   const s = splitSides([0,1,2,3,4,5], t, true);
-  assert.deepEqual(sideTurn(s, 3, 4), {from:'B', to:'C'});
+  assert.deepEqual(s.map(x => x.label), ['SIDE A','SIDE B','SIDE C','SIDE D','SIDE E','SIDE F']);
+  assert.deepEqual(sideTurn(s, 3, 4), {from:'D', to:'E'});
 });
 
 // AU9 (docs/16_AUDIO.md §5): the format table applies "whether or not the
@@ -110,9 +135,11 @@ test('sideLengthsFor: a single track is one side, no split', () => {
   assert.deepEqual(sideLengthsFor([0], durTracks([200])), [200]);
 });
 
-test('sideLengthsFor: several discs give one side length per disc', () => {
+test('sideLengthsFor: a double album gives four side lengths, two time-balanced per disc', () => {
+  // disc 1: [100,200] -> only cut is k=1, lengths [100,200]
+  // disc 2: a single track (duration 50) can't be split -- one length
   const t = [1,1,2].map((d, i) => ({tags:{disc:d}, duration: [100,200,50][i]}));
-  assert.deepEqual(sideLengthsFor([0,1,2], t), [300, 50]);
+  assert.deepEqual(sideLengthsFor([0,1,2], t), [100, 200, 50]);
 });
 
 test('sideLengthsFor: a single disc balances by time', () => {
