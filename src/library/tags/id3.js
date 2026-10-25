@@ -130,13 +130,19 @@ export function id3Apic(b, offset){
     const size = major >= 4 ? synch(b,i+4) : u32be(b,i+4);
     if(!size || size < 0) break;
     if(id === 'APIC'){
+      const enc = b[i + 10];                   // description's own text encoding
       let p = i + 10 + 1;                      // skip text encoding byte
       let mime = '';
       while(b[p] !== 0 && p < b.length){ mime += String.fromCharCode(b[p]); p++; }
       p += 2;                                  // null terminator + picture type
-      while(b[p] !== 0 && p < b.length) p++;   // description
-      p++;
-      return artURL(b, p, i + 10 + size - p, mime);
+      // the description is null-terminated per its own encoding byte, not
+      // always a single byte — a UTF-16 description (encoding 1 or 2) ends
+      // in a 2-byte null, and finding only the first zero byte of that pair
+      // shifts the whole picture by one byte, corrupting it
+      const descEnd = i + 10 + size;
+      const nullIdx = id3FindNull(b.subarray(p, descEnd), enc, 0);
+      p = nullIdx < 0 ? descEnd : p + nullIdx + id3NullWidth(enc);
+      return artURL(b, p, descEnd - p, mime);
     }
     i += 10 + size;
   }
