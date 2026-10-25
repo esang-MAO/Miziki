@@ -3,6 +3,8 @@ import { S, current, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './sta
 import { $ } from './util/dom.js';
 import { trackTier, albumKey } from './record-art/tiers.js';
 import { albumMetalFor } from './record-art/metals.js';
+import { formatWireCode } from './record-art/format.js';
+import { albumFormatFor as computeAlbumFormat } from './shell/ceremony-timing.js';
 import { applyDiscVariant } from './record-art/looks.js';
 import { allIdx } from './library/model.js';
 import { setQueue } from './player/queue.js';
@@ -212,7 +214,19 @@ async function restoreLibrary(){
     ? await import('@supabase/supabase-js')
     : undefined;
   await MizikiSocial.init({ url: SOCIAL_SUPABASE_URL, anonKey: SOCIAL_SUPABASE_ANON_KEY,
-    env: { S, DB, albumKey, trackTier, albumMetalFor, albumCreditPairs }, supabaseLib });
+    env: { S, DB, albumKey, trackTier, albumMetalFor, albumCreditPairs,
+      // AU11 (docs/16_AUDIO.md §5): the record's own *automatic* format
+      // (never S.albumFormat's personal override -- "friends see the
+      // automatic format"), as the short wire code sync_crate() stores.
+      // A record with no measured duration at all (every track reads 0)
+      // has nothing real for the table to size itself from -- read as
+      // unknown (null), the same guard crate/model.js's own
+      // hasKnownFormat() already applies locally, rather than silently
+      // publishing formatForLongestSide's own shortest-cell default.
+      albumFormatFor: tracks => (tracks.some(t => (t.duration || 0) > 0)
+        ? formatWireCode(computeAlbumFormat(tracks.map((_, i) => i), tracks))
+        : null)
+    }, supabaseLib });
   // sync/backup.js deliberately doesn't import library/view.js itself (see
   // its own applyMerged() comment) — main.js already has renderTracks for
   // the boot sequence, so it's the one place that connects the two.

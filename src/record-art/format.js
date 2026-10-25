@@ -141,3 +141,25 @@ export function sideFullness(sideLengthSec, format){
   if(!(cap > 0)) return 1;
   return Math.max(0, Math.min(1, (sideLengthSec || 0) / cap));
 }
+
+/* ================= AU11 (docs/16_AUDIO.md §5, "friends see the format"):
+   the short text code a record's own *automatic* format is published as
+   (never the personal override, which stays local/backed-up only --
+   state.js's S.albumFormat) -- one code per table cell, decoded back
+   into the same {size, speed} shape everything else in this file reads.
+   The server (supabase/migrations/021_friends_see_format.sql) only ever
+   stores and compares this string -- it never interprets it. */
+
+export function formatWireCode(format){
+  if(!format) return null;
+  if(format.size === '7"') return '7-45';
+  if(format.speed === RPM_45) return '12-45';
+  return '12-33';
+}
+
+export function formatFromWireCode(code){
+  if(code === '7-45') return { size: '7"', speed: RPM_45 };
+  if(code === '12-45') return { size: '12"', speed: RPM_45 };
+  if(code === '12-33') return { size: '12"', speed: RPM_33 };
+  return null;
+}

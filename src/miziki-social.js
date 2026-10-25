@@ -588,6 +588,11 @@
         artist: String(a.artist).slice(0, 200),
         year: a.year || null,
         quality_tier: a.tier || null,
+        // AU11 (docs/16_AUDIO.md §5): always present, null when unknown --
+        // a plain overwrite column server-side (sync_crate(), migration
+        // 021), with no "clear it"/"don't touch" distinction of its own
+        // the way rating/sleeve_note or credits need.
+        record_format: a.format || null,
         rating: clearRating ? 0 : (m.rating == null ? null : m.rating),
         sleeve_note: clearNote ? '' : (m.note || null),
         pin_rank: rankOf.get(a.id) || null,
@@ -619,7 +624,7 @@
     const pinned = [...items.values()].filter(i => i.pin_rank != null).sort((a, b) => a.pin_rank - b.pin_rank);
     pinned.forEach((i, n) => { i.pin_rank = n + 1; });
     for (const it of items.values()) {
-      it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.rating, it.sleeve_note, it.pin_rank, it.visibility, it.credits || null])).slice(0, 12);
+      it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.record_format, it.rating, it.sleeve_note, it.pin_rank, it.visibility, it.credits || null])).slice(0, 12);
     }
     return { items, skipped, idByKey };
   }
@@ -1116,7 +1121,13 @@
         // all, since buildItems()/sync_crate() both treat "has a credits
         // key" (even empty) as "replace whatever's on the server" and a
         // missing key as "don't touch credits for this one."
-        credits: env.albumCreditPairs ? env.albumCreditPairs(id) : []
+        credits: env.albumCreditPairs ? env.albumCreditPairs(id) : [],
+        // AU11 (docs/16_AUDIO.md §5): this album's own automatic format
+        // (never the personal Auto/33⅓/45 override), as the short wire
+        // code the env.albumFormatFor() wrapper already encodes it to --
+        // this module stays import-free by design, so it never touches
+        // record-art/format.js's own {size, speed} shape directly.
+        format: env.albumFormatFor ? env.albumFormatFor(tracks) : null
       };
     }
     return {

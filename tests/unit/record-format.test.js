@@ -8,6 +8,7 @@ import {
   bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
   formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
+  formatWireCode, formatFromWireCode,
 } from '../../src/record-art/format.js';
 
 test('bestSideCut: fewer than two durations has no meaningful cut', () => {
@@ -118,4 +119,34 @@ test('sideFullness: 0..1, clamped, matching the format\'s own capacity', () => {
   assert.equal(sideFullness(22 * 60, lp), 1);
   assert.equal(sideFullness(44 * 60, lp), 1); // clamped, never past full
   assert.ok(Math.abs(sideFullness(11 * 60, lp) - 0.5) < 0.001);
+});
+
+// AU11 (docs/16_AUDIO.md §5): the short wire code a record's own
+// automatic format is published as -- one code per table cell, round-
+// tripping through formatFromWireCode() back to the same {size, speed}
+// shape every other reader in this file already uses.
+test('formatWireCode: one code per table cell', () => {
+  assert.equal(formatWireCode({size:'7"', speed:RPM_45}), '7-45');
+  assert.equal(formatWireCode({size:'12"', speed:RPM_45}), '12-45');
+  assert.equal(formatWireCode({size:'12"', speed:RPM_33}), '12-33');
+  assert.equal(formatWireCode(null), null);
+});
+
+test('formatFromWireCode: decodes each known code back to its format', () => {
+  assert.deepEqual(formatFromWireCode('7-45'), {size:'7"', speed:RPM_45});
+  assert.deepEqual(formatFromWireCode('12-45'), {size:'12"', speed:RPM_45});
+  assert.deepEqual(formatFromWireCode('12-33'), {size:'12"', speed:RPM_33});
+});
+
+test('formatFromWireCode: an unrecognized or missing code reads as unknown, not a guess', () => {
+  assert.equal(formatFromWireCode('garbage'), null);
+  assert.equal(formatFromWireCode(null), null);
+  assert.equal(formatFromWireCode(undefined), null);
+});
+
+test('formatWireCode/formatFromWireCode: round-trips every value formatForLongestSide can produce', () => {
+  for(const longest of [0, 60, SEVEN_INCH_MAX_SEC, SEVEN_INCH_MAX_SEC + 1, TWELVE_SINGLE_MAX_SEC, TWELVE_SINGLE_MAX_SEC + 1]){
+    const f = formatForLongestSide(longest);
+    assert.deepEqual(formatFromWireCode(formatWireCode(f)), f);
+  }
 });
