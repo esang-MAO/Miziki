@@ -143,12 +143,17 @@ function id3Frame(id, encoding, text){
   const payload = concatBytes([new Uint8Array([encoding]), textBytes]);
   return concatBytes([asciiBytes(id), u32beBytes(payload.length), new Uint8Array([0,0]), payload]);
 }
-function apicFrame(mime, data){
+function apicFrame(mime, data, {encoding=0, description=''}={}){
+  // the description's own null terminator width depends on `encoding` —
+  // 1 byte for Latin-1/UTF-8 (0/3), 2 bytes for UTF-16 (1/2)
+  const descBytes = encoding === 1
+    ? concatBytes([new Uint8Array([0xFF,0xFE]), new Uint8Array(new Uint16Array([...description].map(c=>c.charCodeAt(0))).buffer), new Uint8Array([0,0])])
+    : concatBytes([asciiBytes(description), new Uint8Array([0])]);
   const payload = concatBytes([
-    new Uint8Array([0]),          // text encoding
-    asciiBytes(mime), new Uint8Array([0]),  // mime + null
+    new Uint8Array([encoding]),   // text encoding
+    asciiBytes(mime), new Uint8Array([0]),  // mime + null (always Latin-1, per spec)
     new Uint8Array([3]),          // picture type (3 = front cover)
-    new Uint8Array([0]),          // description + null (empty)
+    descBytes,
     data,
   ]);
   return concatBytes([asciiBytes('APIC'), u32beBytes(payload.length), new Uint8Array([0,0]), payload]);
@@ -297,6 +302,23 @@ test('ID3 APIC frame returns artwork; a file with none returns null', async () =
 
   const withoutArt = buildID3File([id3Frame('TIT2', 0, 'No Art')]);
   assert.equal(findArtworkBlob(withoutArt), null);
+});
+
+test('ID3 APIC frame with a UTF-16 description (empty or not) still returns intact artwork', async () => {
+  // regression: a UTF-16 description ends in a 2-byte null, not 1 — reading
+  // only a single zero byte shifted every byte of the picture data by one
+  const data = new Uint8Array([9,8,7,6,5,4,3,2,1]);
+  const emptyDesc = buildID3File([apicFrame('image/png', data, {encoding: 1, description: ''})]);
+  let blob = findArtworkBlob(emptyDesc);
+  assert.ok(blob instanceof Blob);
+  assert.equal(blob.size, data.length);
+  assert.deepEqual(new Uint8Array(await blob.arrayBuffer()), data);
+
+  const realDesc = buildID3File([apicFrame('image/jpeg', data, {encoding: 1, description: 'Cover'})]);
+  blob = findArtworkBlob(realDesc);
+  assert.ok(blob instanceof Blob);
+  assert.equal(blob.size, data.length);
+  assert.deepEqual(new Uint8Array(await blob.arrayBuffer()), data);
 });
 
 // -- tests: never throw on bad input ----------------------------------------
