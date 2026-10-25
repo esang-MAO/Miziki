@@ -21,7 +21,8 @@
    once drift isn't Off. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
-import { applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } from '../audio/engine.js';
+import { applyCharacter, applyLoudnessNorm, auditionStageAlone, auditionComparePure, releaseAudition } from '../audio/engine.js';
+import { loudnessCaptionFor } from '../audio/loudness.js';
 import { queueSave } from '../storage/meta.js';
 import { setMode } from '../audio/mode.js';
 import { toggleScratch } from '../player/scrub.js';
@@ -203,6 +204,19 @@ export function wireCharacter(){
     document.querySelectorAll('[data-auto-flip]').forEach(x =>
       x.setAttribute('aria-pressed', String((x.dataset.autoFlip === 'on') === S.autoFlip)));
     queueSave();
+  }));
+  // AU5 (docs/16_AUDIO.md §4): same inline [data-*] seg + caption shape
+  // as [data-depth] (sundown.js) — queueSave() persists it, and
+  // applyLoudnessNorm() recomputes the gain for whatever's current right
+  // away rather than waiting for the next track load.
+  document.querySelectorAll('[data-loudness]').forEach(b => b.addEventListener('click', () => {
+    S.loudnessMode = b.dataset.loudness;
+    document.querySelectorAll('[data-loudness]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.loudness === S.loudnessMode)));
+    const desc = $('#loudnessDesc');
+    if(desc) desc.textContent = loudnessCaptionFor(S.loudnessMode);
+    queueSave();
+    applyLoudnessNorm();
   }));
 
   $('#scratchBtn').addEventListener('click', toggleScratch);

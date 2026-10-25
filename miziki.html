@@ -345,6 +345,19 @@
         <div class="seg"><button id="paperLabelBtn" aria-pressed="false">Off</button></div>
       </div>
 
+      <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto, the same
+           4-value [data-*] seg + caption shape [data-depth] already
+           established for Sundown's own "How deep the night goes" row. -->
+      <div class="row">
+        <div class="k">Loudness normalization<em id="loudnessDesc">Auto: album gain for an album played in order, track gain otherwise.</em> <details class="sd-info"><summary aria-label="More about loudness normalization">(i)</summary>Evens out volume between quietly and loudly mastered records, using a file's own ReplayGain tag when it has one, or Miziki's own measurement otherwise. Never pushes a track into clipping — the safety limiter still catches anything left.</details></div>
+        <div class="seg">
+          <button data-loudness="off" aria-pressed="false">Off</button>
+          <button data-loudness="track" aria-pressed="false">Track</button>
+          <button data-loudness="album" aria-pressed="false">Album</button>
+          <button data-loudness="auto" aria-pressed="true">Auto</button>
+        </div>
+      </div>
+
       <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. <details class="sd-info"><summary aria-label="More about wireless output">(i)</summary>Wired or built-in playback preserves the file's full resolution.</details></p>
       </div>
     </div>

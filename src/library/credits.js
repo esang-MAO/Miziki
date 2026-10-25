@@ -17,6 +17,7 @@ import { showRoute } from '../shell/routes.js';
 import { renderTracks, songRow } from './view.js';
 import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { openFriendStore } from '../social/screens/friend-store.js';
+import { classifyDynamics, albumGainDb, formatGainDb } from '../audio/loudness.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -203,6 +204,46 @@ export function renderLinerNotes(host, album){
   host.innerHTML = '';
   const text = album ? albumLinerNotes(album) : '';
   host.appendChild(text ? el('p','credit-note', text) : el('p','note','No liner notes in these files.'));
+  const note = album ? albumDynamicsNote(album) : null;
+  if(note) host.appendChild(buildDynamicsNoteEl(note));
+}
+
+// AU5 (docs/16_AUDIO.md §4, "Dynamics note"): the album's own worst finding
+// across its tracks — clipping anywhere on the record wins outright
+// (it's the worst thing a mastering pass can do, regardless of how the
+// rest of the album measures), otherwise the lowest (most compressed)
+// peak-to-loudness ratio among its tracks. null when nothing on the album
+// has been measured yet (a library imported before AU5, not yet healed —
+// see library/thumbs.js's healLoudness()) — renderLinerNotes() shows
+// nothing rather than a guess. Informational only: this never ranks,
+// sorts or changes a pressing tier (CREDITS/SEALED's own tiers stay
+// exactly what they always were).
+export function albumDynamicsNote(album){
+  const entries = albumTracks(album).map(i => S.tracks[i]).filter(t => t && t.details);
+  const measured = entries.filter(t => t.details.loudness && t.details.loudness.measured);
+  if(!measured.length) return null;
+  const clipRuns = measured.reduce((sum, t) => sum + (t.details.loudness.clipRuns || 0), 0);
+  const plrs = measured.map(t => t.details.loudness.plr).filter(p => typeof p === 'number' && isFinite(p));
+  const plr = plrs.length ? Math.min(...plrs) : null;
+  const dyn = classifyDynamics({clipRuns, plr});
+  const gainDb = albumGainDb(entries.map(t => ({details: t.details, duration: t.duration})));
+  return {label: dyn.label, sentence: dyn.sentence, gainText: formatGainDb('album gain', gainDb)};
+}
+
+const DYNAMICS_METER_PCT = {'Dynamic': 100, 'Compressed': 55, 'Clipped master': 25};
+function buildDynamicsNoteEl(note){
+  const wrap = el('div', 'dynamics-note');
+  const head = el('div', 'dynamics-head');
+  head.appendChild(el('span', 'dynamics-label', note.label));
+  if(note.gainText) head.appendChild(el('span', 'dynamics-gain', note.gainText));
+  wrap.appendChild(head);
+  const meter = el('div', 'dynamics-meter');
+  const fill = el('span', '', '');
+  fill.style.width = (DYNAMICS_METER_PCT[note.label] || 0) + '%';
+  meter.appendChild(fill);
+  wrap.appendChild(meter);
+  wrap.appendChild(el('p', 'dynamics-sentence', note.sentence));
+  return wrap;
 }
 
 // de-duplicated by role + normKey(name) across every track on the album

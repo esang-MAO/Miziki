@@ -1,7 +1,7 @@
 /* ================= tag readers: FLAC =================
    Moved out of main.js's "file loading" section (step 5b), unchanged. */
 import { txt, u32be, artURL } from './bytes.js';
-import { emptyDetails, splitNames, parsePerformerEntry, parseYear } from './details.js';
+import { emptyDetails, splitNames, parsePerformerEntry, parseYear, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 
 export function flacVorbisMap(b){
   const map = {}, dv = new DataView(b.buffer, b.byteOffset);
@@ -59,6 +59,13 @@ export function flacDetails(b){
   d.isrc = last('ISRC');
   d.comment = all('COMMENT').concat(all('DESCRIPTION')).join('\n\n');
   d.hasLyrics = !!(all('LYRICS').length || all('UNSYNCEDLYRICS').length);
+  // AU5 (docs/16_AUDIO.md §4): REPLAYGAIN_* as plain Vorbis comments.
+  d.replayGain = {
+    trackGain: parseReplayGainDb(last('REPLAYGAIN_TRACK_GAIN')),
+    trackPeak: parseReplayGainPeak(last('REPLAYGAIN_TRACK_PEAK')),
+    albumGain: parseReplayGainDb(last('REPLAYGAIN_ALBUM_GAIN')),
+    albumPeak: parseReplayGainPeak(last('REPLAYGAIN_ALBUM_PEAK'))
+  };
   return d;
 }
 

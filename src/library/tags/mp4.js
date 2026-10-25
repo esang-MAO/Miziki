@@ -1,7 +1,7 @@
 /* ================= tag readers: MP4 / ALAC / AAC =================
    Moved out of main.js's "file loading" section (step 5b), unchanged. */
 import { txt, u32be, clean, artURL } from './bytes.js';
-import { emptyDetails, splitNames, parseYear } from './details.js';
+import { emptyDetails, splitNames, parseYear, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 
 // Walks the MP4 box tree looking for moov > udta > meta > ilst > ---- with
 // mean "com.apple.iTunes" and name "iTunSMPB" — the de facto standard
@@ -54,6 +54,35 @@ export function mp4GaplessInfo(b){
     }
   }catch(_e){ return null; }
   return null;
+}
+
+// AU5 (docs/16_AUDIO.md §4): the same moov > udta > meta > ilst > ---- walk
+// mp4GaplessInfo() already does for one specific name ('iTunSMPB') — this
+// version is generic, returning every mean="com.apple.iTunes" freeform
+// atom found as {UPPERCASE_NAME: valueString}, so a single pass answers
+// REPLAYGAIN_TRACK_GAIN/_PEAK/_ALBUM_GAIN/_ALBUM_PEAK (and anything else a
+// tagger wrote the same way) without re-walking the box tree per name.
+export function mp4FreeformAtoms(b){
+  const out = {};
+  try{
+    const top = mp4BoxChildren(b, 0, b.length, 0);
+    const moov = top.find(x => x.type === 'moov'); if(!moov) return out;
+    const udta = mp4BoxChildren(b, moov.start, moov.end).find(x => x.type === 'udta'); if(!udta) return out;
+    const meta = mp4BoxChildren(b, udta.start, udta.end).find(x => x.type === 'meta'); if(!meta) return out;
+    const ilst = mp4BoxChildren(b, meta.start, meta.end, 4).find(x => x.type === 'ilst'); if(!ilst) return out;
+    for(const item of mp4BoxChildren(b, ilst.start, ilst.end)){
+      if(item.type !== '----') continue;
+      const kids = mp4BoxChildren(b, item.start, item.end);
+      const meanBox = kids.find(x => x.type === 'mean'), nameBox = kids.find(x => x.type === 'name'), dataBox = kids.find(x => x.type === 'data');
+      if(!meanBox || !nameBox || !dataBox) continue;
+      const meanStr = txt(b, meanBox.start + 4, meanBox.end - meanBox.start - 4);
+      if(meanStr !== 'com.apple.iTunes') continue;
+      const nameStr = txt(b, nameBox.start + 4, nameBox.end - nameBox.start - 4);
+      const valStr = txt(b, dataBox.start + 8, dataBox.end - dataBox.start - 8).trim();
+      out[nameStr.toUpperCase()] = valStr;
+    }
+  }catch(_e){ /* leave whatever was found before the failure */ }
+  return out;
 }
 
 export function mp4Info(b){
@@ -118,6 +147,14 @@ export function mp4Details(b){
   d.year = parseYear(text('\xA9day'));
   d.comment = text('\xA9cmt');
   d.hasLyrics = !!atoms['\xA9lyr'];
+  // AU5 (docs/16_AUDIO.md §4): REPLAYGAIN_* as freeform ---- atoms.
+  const free = mp4FreeformAtoms(b);
+  d.replayGain = {
+    trackGain: parseReplayGainDb(free.REPLAYGAIN_TRACK_GAIN),
+    trackPeak: parseReplayGainPeak(free.REPLAYGAIN_TRACK_PEAK),
+    albumGain: parseReplayGainDb(free.REPLAYGAIN_ALBUM_GAIN),
+    albumPeak: parseReplayGainPeak(free.REPLAYGAIN_ALBUM_PEAK)
+  };
   return d;
 }
 

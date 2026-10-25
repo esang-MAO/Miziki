@@ -2,7 +2,7 @@
    bolted-on ID3 chunk) =================
    Moved out of main.js's "file loading" section (step 5b), unchanged. */
 import { txt, u32be, synch, decodeText, clean, artURL } from './bytes.js';
-import { emptyDetails, splitNames, parseYear, creditRoleBucket } from './details.js';
+import { emptyDetails, splitNames, parseYear, creditRoleBucket, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 
 export function id3Tags(b, offset){
   const o = offset || 0, out = {};
@@ -78,6 +78,11 @@ export function id3Details(b, offset){
           const split = id3SplitFirstNull(payload.slice(1), enc);
           const val = clean(decodeText(split.rest, enc));
           if(/^CATALOGNUMBER$/i.test(split.first)) d.catalog = val;
+          // AU5 (docs/16_AUDIO.md §4): REPLAYGAIN_* as ID3 TXXX frames.
+          else if(/^REPLAYGAIN_TRACK_GAIN$/i.test(split.first)) d.replayGain.trackGain = parseReplayGainDb(val);
+          else if(/^REPLAYGAIN_TRACK_PEAK$/i.test(split.first)) d.replayGain.trackPeak = parseReplayGainPeak(val);
+          else if(/^REPLAYGAIN_ALBUM_GAIN$/i.test(split.first)) d.replayGain.albumGain = parseReplayGainDb(val);
+          else if(/^REPLAYGAIN_ALBUM_PEAK$/i.test(split.first)) d.replayGain.albumPeak = parseReplayGainPeak(val);
         } else if(id === 'TIPL' || id === 'IPLS'){
           const parts = id3SplitAllNulls(payload.slice(1), enc).map(clean);
           for(let k = 0; k + 1 < parts.length; k += 2){
