@@ -16,7 +16,7 @@
    nav-stack too, same as every other sheet), so their close buttons go
    through closeLayer() the same way the queue sheet's does. */
 import { $ } from '../util/dom.js';
-import { openQueueSheet } from '../player/queue.js';
+import { openQueueSheet, saveQueueAsPlaylist, undoQueueChange } from '../player/queue.js';
 import { openLookPicker } from '../record-art/looks.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
@@ -25,6 +25,11 @@ export function wireOverlays(){
   $('#queueBtn').addEventListener('click', openQueueSheet);
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
   $('#queueClose').addEventListener('click', () => closeLayer('queue'));
+  // AU8 (docs/16_AUDIO.md §6): the queue sheet's own header action and its
+  // shared undo toast — Clear Upcoming's own button is rendered fresh by
+  // renderQueueSheet() each repaint, wired inline there instead.
+  $('#queueSaveBtn').addEventListener('click', saveQueueAsPlaylist);
+  $('#queueUndoBtn').addEventListener('click', undoQueueChange);
   $('#lookClose').addEventListener('click', () => closeLayer('look'));
   $('#sortMenuClose').addEventListener('click', () => closeLayer('sort-menu'));
 }

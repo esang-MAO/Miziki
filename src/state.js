@@ -126,6 +126,13 @@ export const S = {
   runout:null,   // CEREMONY §2/§3: the run-out groove or side flip in flight (shell/runout.js) — runtime only, never saved
   // metadata editing (see spec)
   editTarget:null, editArtBlob:null, editOriginal:null, lastUndo:null, undoTimer:null,
+  // AU8 (docs/16_AUDIO.md §6): a single snapshot of {baseQueue, queue,
+  // qpos} taken right before "Clear upcoming" or removing one queue row,
+  // so Undo can restore it verbatim -- runtime-only, never saved, same
+  // class of state as lastUndo/undoTimer just above (a second, parallel
+  // undo slot rather than reusing lastUndo's own {trackIds, prevOverlays,
+  // prevArt} shape, which is specific to track-edit undo).
+  queueUndo:null, queueUndoTimer:null,
   // profile tab (see spec)
   // pictureHash: step 07 (B4) — the re-encoded hash this device last
   // uploaded for the profile picture / public avatar; null until the
