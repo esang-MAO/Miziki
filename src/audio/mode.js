@@ -1,8 +1,17 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { routeSource, applyCharacter } from './engine.js';
+import { fadeMusicTo } from './surface-noise.js';
+
+// AU2 (docs/16_AUDIO.md §2.2): the same 15ms edge player/transport.js's
+// own EDGE_FADE_MS names for pause/stop/seek -- duplicated, not imported,
+// the same "a small shared number is cheaper to repeat than to wire a new
+// edge for" call CLAUDE.md already documents for player/clock.js's own
+// PHASE_COLOR duplication (and sync/images.js's crop logic before it).
+const MODE_DIP_MS = 15;
 
 export function setMode(m){
+  const prevMode = S.mode, prevSource = S.source;
   S.mode = m;
   const vinyl = m === 'vinyl';
   document.documentElement.style.setProperty('--accent', vinyl ? 'var(--amber)' : 'var(--cool)');
@@ -24,7 +33,35 @@ export function setMode(m){
   const barToggle = $('#barModeToggle'), barLabel = $('#barModeToggleLabel');
   if(barToggle) barToggle.setAttribute('aria-checked', String(vinyl));
   if(barLabel) barLabel.textContent = vinyl ? 'Vinyl' : 'Pure';
-  if(S.source) routeSource(S.source);
+  // AU2 (docs/16_AUDIO.md §2.2): the Pure/Vinyl toggle is a dip, never a
+  // crossfade -- fade out, reroute, fade in -- rather than an instant
+  // reconnect. The Vinyl path runs ~12ms behind Pure (n.wobble's own
+  // delay, audio/engine.js's buildGraph()), and that delay node keeps
+  // draining whatever it already had buffered for ~12ms after trackGain
+  // disconnects from it -- so an instant switch either sums that drain
+  // tail against the new, undelayed path (Vinyl -> Pure: a delayed copy
+  // of the same signal at similar level, a comb filter, McCarthy 4.2.1.3)
+  // or leaves ~12ms of silence before the newly-rerouted chain's first
+  // sample actually arrives (Pure -> Vinyl). The dip's own 15ms of near-
+  // silence comfortably covers either case, so there's nothing left to
+  // comb-filter against, and nothing audible as a gap, by the time either
+  // path is actually carrying the new routing. Only a real transition
+  // (prevMode !== m) with something actually playing gets the dip --
+  // every restore-from-prefs/boot-time call (storage/meta.js's
+  // applyPrefs(), main.js's own setMode('vinyl')) either repeats the
+  // already-current mode or has no live source yet, so routeSource() just
+  // runs immediately there, same as before this step. The same rule
+  // applies to any future path change (this file's own CLAUDE.md entry).
+  if(prevSource && prevMode !== m){
+    fadeMusicTo(0, MODE_DIP_MS);
+    setTimeout(() => {
+      if(S.source !== prevSource) return;   // interrupted mid-dip (paused/stopped/track changed)
+      routeSource(prevSource);
+      fadeMusicTo(1, MODE_DIP_MS);
+    }, MODE_DIP_MS);
+  } else if(S.source){
+    routeSource(S.source);
+  }
   // DA2 (docs/DAY_ARC.md): applyCharacter() now also gates on S.mode (Pure
   // forces drift to 'off' regardless of S.charDrift — see engine.js's own
   // comment), so every one of this function's own callers needs the Vinyl

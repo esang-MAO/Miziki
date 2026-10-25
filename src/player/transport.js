@@ -27,10 +27,20 @@ import { trackTier } from '../record-art/tiers.js';
 import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
-  playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC
+  playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC,
+  fadeMusicTo
 } from '../audio/surface-noise.js';
 import { performPendingFlip } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
+
+// AU2 (docs/16_AUDIO.md §2.2): every ordinary edge -- pause, stop, seek --
+// fades S.nodes.trackGain by this many ms before the source actually
+// stops, and every ordinary source start fades the same node back in by
+// this many ms, so neither side of the edit lands mid-waveform as an
+// audible click. 15/10, not one shared number -- the doc's own two rules
+// each name their own figure.
+const EDGE_FADE_MS = 15;
+const START_FADE_MS = 10;
 
 // docs/15_SURFACE_NOISE.md §1: "the lead-in plays only at the start of a
 // side: playing from stopped, or after a flip" — true when i is the first
@@ -75,6 +85,36 @@ function cancelPendingOpening(fadeMs = 150){
 let underMusicBed = null;
 function stopUnderMusicBed(fadeMs = 150){
   if(underMusicBed){ underMusicBed.stop(fadeMs); underMusicBed = null; }
+}
+
+// AU2 (docs/16_AUDIO.md §2.2): pause/stop/seek's own clean edge -- fades
+// S.nodes.trackGain to 0 over EDGE_FADE_MS and schedules the source's own
+// stop right at the end of that ramp, entirely on the Web Audio clock
+// (ctx.currentTime + EDGE_FADE_MS/1000) rather than a setTimeout, so there
+// is nothing here for refactor rule 9 to catch -- no timer, no await,
+// nothing reordered. A null/already-cleared S.source is a quiet no-op.
+// This never touches the needle-lift skip's own fade (SKIP_FADE_MS,
+// player/queue.js's skipWithLift()) -- that path never goes through
+// transport.js's stop()/pause()/seek() at all, and docs/16_AUDIO.md §2.2
+// says explicitly to leave it alone.
+//
+// A source whose own `_mzEnded` flag is already set (startSource()'s
+// onended, below) has already finished playing on its own -- advance()'s
+// natural, gapless track-end path calls load(), which calls stop(), on
+// exactly this source, and it must stay untouched here: AU4 (docs/16_AUDIO.md
+// §2.4) owns that seamless-track-change path, and fading a node that's
+// already silent would only inject an audible dip where none exists --
+// it's nothing left to click on, so there's nothing to fade.
+function stopSourceCleanly(){
+  const src = S.source;
+  if(!src) return;
+  src.onended = null;
+  if(!src._mzEnded){
+    fadeMusicTo(0, EDGE_FADE_MS);
+    const when = S.ctx ? S.ctx.currentTime + EDGE_FADE_MS / 1000 : 0;
+    try{ src.stop(when); }catch(_e){}
+  }
+  S.source = null;
 }
 
 export function load(i){
@@ -155,7 +195,17 @@ export function load(i){
 // delay of the audio file itself (its own internal timing is untouched;
 // only the moment it's told to start moves). Every other caller passes 0,
 // which is exactly today's "now" behavior.
-export function startSource(offset, leadInSec = 0){
+//
+// opts.startAt/opts.skipFadeIn (AU2, docs/16_AUDIO.md §2.2): seek()'s own
+// "replace the live source" case needs the outgoing source's 15ms
+// fade-out and this source's 10ms fade-in scheduled as one continuous
+// trackGain ramp (down, then back up) rather than two separate
+// fadeMusicTo() calls on the same node in the same tick, which would each
+// cancel whatever the other just scheduled — see seek()'s own comment.
+// opts.startAt, when given, is that already-computed ctx.currentTime to
+// start at in place of leadInSec's own math; opts.skipFadeIn skips this
+// function's ordinary fade-in since the caller already scheduled one.
+export function startSource(offset, leadInSec = 0, opts = {}){
   const t = current();
   if(!t || !t.buffer || !S.ctx) return;
   const src = S.ctx.createBufferSource();
@@ -164,6 +214,10 @@ export function startSource(offset, leadInSec = 0){
   routeSource(src);
   const gen = ++S.gen;
   src.onended = () => {
+    // AU2 (docs/16_AUDIO.md §2.2): marks this node as genuinely finished
+    // -- stopSourceCleanly()'s own guard reads it so a natural, gapless
+    // track end never gets an artificial fade-out layered on top of it.
+    src._mzEnded = true;
     if(gen === S.gen && S.playing){
       if(document.hidden) settleTrackEnd();   // no frames ran, so credit the tail of the track here
       advance(1, true);
@@ -175,9 +229,16 @@ export function startSource(offset, leadInSec = 0){
   // into the padding region rather than relying on the buffer's own end —
   // see PLAYBACK spec §1, encoder delay/padding.
   const playOffset = clamp(offset, 0, t.duration - 0.02);
-  const when = leadInSec > 0 ? S.ctx.currentTime + leadInSec : 0;
+  const when = opts.startAt != null ? opts.startAt : (leadInSec > 0 ? S.ctx.currentTime + leadInSec : 0);
   src.start(when, playOffset + (t.gaplessDelaySec || 0), t.duration - playOffset);
   S.source = src;
+  // AU2 (docs/16_AUDIO.md §2.2): every ordinary start fades trackGain in
+  // over START_FADE_MS, scheduled at the exact same `when` the source
+  // itself starts at -- except a lead-in/needle drop (leadInSec > 0),
+  // which already has its own envelope (the needle-drop/lead-in noise
+  // itself ramps up on a separate path, surface-noise.js's startBuffer(),
+  // that never touches trackGain at all -- see that file's §3 comment).
+  if(leadInSec <= 0 && !opts.skipFadeIn) fadeMusicTo(1, START_FADE_MS);
   preloadNextTrack();
 }
 
@@ -246,14 +307,14 @@ export function stop(){
   S.gen++;
   cancelPendingOpening();
   stopUnderMusicBed(0);
-  if(S.source){ try{ S.source.onended = null; S.source.stop(); }catch(_e){} S.source = null; }
+  stopSourceCleanly();   // AU2: 15ms fade-out before the source actually stops
   S.playing = false;
   const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
   renderMiniPlayer();
 }
 
 export function pause(){ S.playing = false; cancelPendingOpening(); stopUnderMusicBed();
-  if(S.source){ try{ S.source.onended=null; S.source.stop(); }catch(_e){} S.source=null; }
+  stopSourceCleanly();   // AU2: 15ms fade-out before the source actually stops
   $('#play').textContent='▶'; $('#play').setAttribute('aria-label','Play'); touchActiveSession(); renderMiniPlayer();
   MizikiSocial.nowSpinningPaused();
   if(bgRouteActive()) bgIdleNow();
@@ -264,7 +325,36 @@ export function seek(sec){
   const t = current(); if(!t) return;
   cancelPendingOpening();
   S.pos = clamp(sec, 0, t.duration || 0);
-  if(S.playing){ if(S.source){ try{S.source.onended=null;S.source.stop();}catch(_e){} } startSource(S.pos); }
+  if(S.playing){
+    if(S.source){
+      // AU2 (docs/16_AUDIO.md §2.2): a seek while playing replaces the
+      // live source outright -- the outgoing source's 15ms fade-out and
+      // the incoming one's 10ms fade-in share S.nodes.trackGain, so
+      // they're scheduled here as one continuous ramp (down to 0, then
+      // back up to 1) instead of two separate fadeMusicTo() calls, which
+      // would each cancel whatever the other just scheduled on the same
+      // node in this same tick. The new source starts exactly when the
+      // ramp reaches 0, via startSource()'s opts.startAt/opts.skipFadeIn.
+      const old = S.source; old.onended = null;
+      const ctx = S.ctx, g = S.nodes && S.nodes.trackGain;
+      let dipEnd = ctx ? ctx.currentTime : 0;
+      if(g && ctx){
+        try{
+          const now = ctx.currentTime;
+          dipEnd = now + EDGE_FADE_MS / 1000;
+          g.gain.cancelScheduledValues(now);
+          g.gain.setValueAtTime(g.gain.value, now);
+          g.gain.linearRampToValueAtTime(0, dipEnd);
+          g.gain.linearRampToValueAtTime(1, dipEnd + START_FADE_MS / 1000);
+        }catch(_e){}
+      }
+      try{ old.stop(dipEnd); }catch(_e){}
+      S.source = null;
+      startSource(S.pos, 0, { startAt: dipEnd, skipFadeIn: true });
+    } else {
+      startSource(S.pos);
+    }
+  }
   drawTime();
   bgPosition();
 }
