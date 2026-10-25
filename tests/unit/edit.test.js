@@ -209,3 +209,78 @@ test('undoLastEdit: a second call with no pending undo is a no-op', async () => 
   await undoLastEdit(); // S.lastUndo is null -- should return immediately, not throw
   DB.db.close();
 });
+
+// select-all bulk metadata editing: genre/year land on t.details (the
+// liner-notes/credits object search.js's genre:/year: field matchers and
+// the credits sheet read), not t.tags -- splitFields() (edit.js, module-
+// private) routes them there while keeping the overlay row itself one flat
+// `fields` object, so the cross-device overlay merge needs no change.
+test('applyEdit: genre/year land on t.details, not t.tags, for a batch of tracks', async () => {
+  await openFresh();
+  const t1 = fakeTrack({ id: 't1', details: { genre: '', year: 0 } });
+  const t2 = fakeTrack({ id: 't2', details: { genre: '', year: 0 } });
+  resetState({ tracks: [t1, t2] });
+
+  await applyEdit(['t1', 't2'], { artist: 'New Artist', genre: 'Jazz', year: 1977 }, null);
+
+  assert.equal(t1.tags.artist, 'New Artist');
+  assert.equal(t1.details.genre, 'Jazz');
+  assert.equal(t1.details.year, 1977);
+  assert.equal(t2.details.genre, 'Jazz');
+  assert.equal(t2.details.year, 1977);
+  assert.equal(t1.tags.genre, undefined); // never written onto tags
+  const { overlays } = await import('../../src/storage/repo.js');
+  const rec = await overlays.get('t1');
+  // the overlay row itself still carries every field together, unsplit
+  assert.deepEqual(rec.fields, { artist: 'New Artist', genre: 'Jazz', year: 1977 });
+  DB.db.close();
+});
+
+test('applyEdit: a track with no details object yet still gets genre/year applied', async () => {
+  await openFresh();
+  const t = fakeTrack({ details: null });
+  resetState({ tracks: [t] });
+
+  await applyEdit(['t1'], { genre: 'Rock' }, null);
+
+  assert.equal(t.details.genre, 'Rock');
+  DB.db.close();
+});
+
+test('revertTrack: also restores t.details to the embedded details', async () => {
+  await openFresh();
+  const t = fakeTrack({
+    details: { genre: 'Edited Genre', year: 1999 },
+    embeddedDetails: { genre: 'Original Genre', year: 1980 },
+  });
+  resetState({ tracks: [t] });
+  const { overlays } = await import('../../src/storage/repo.js');
+  await overlays.put({ id: 't1', fields: { genre: 'Edited Genre', year: 1999 } });
+
+  await revertTrack('t1');
+
+  assert.equal(t.details.genre, 'Original Genre');
+  assert.equal(t.details.year, 1980);
+  DB.db.close();
+});
+
+test('applyEditWithUndo + undoLastEdit: undo restores the prior genre/year', async () => {
+  await openFresh();
+  const t = fakeTrack({
+    details: { genre: 'First Genre', year: 1990 },
+    embeddedDetails: { genre: '', year: 0 },
+  });
+  resetState({ tracks: [t] });
+  const { overlays } = await import('../../src/storage/repo.js');
+  await overlays.put({ id: 't1', fields: { genre: 'First Genre', year: 1990 } });
+
+  await applyEditWithUndo(['t1'], { genre: 'Second Genre', year: 2000 }, null);
+  assert.equal(t.details.genre, 'Second Genre');
+  assert.equal(t.details.year, 2000);
+
+  await undoLastEdit();
+
+  assert.equal(t.details.genre, 'First Genre');
+  assert.equal(t.details.year, 1990);
+  DB.db.close();
+});

@@ -198,9 +198,10 @@ const view = await import('../../src/library/view.js');
 const {
   songRow, groupRow, enterSelectMode, exitSelectMode, closeRowMenu,
   openConfirmDelete, closeConfirmDelete, renderTracks, updateTrackRow,
-  updateLibBodyInset,
+  updateLibBodyInset, selectAllVisible,
 } = view;
 const { S } = await import('../../src/state.js');
+const { $ } = await import('../../src/util/dom.js'); // the mocked, cached-by-selector stub above
 
 function fakeTrack(id, overrides){
   return Object.assign({
@@ -232,6 +233,39 @@ test('enterSelectMode/exitSelectMode toggle S.view.editSelecting and clear the s
   S.editSelection.add('a');
   exitSelectMode();
   assert.equal(S.view.editSelecting, false);
+  assert.equal(S.editSelection.size, 0);
+});
+
+test('selectAllVisible: selects every currently-rendered track, then clears on a second tap', () => {
+  resetState({ tracks: [fakeTrack('a'), fakeTrack('b'), fakeTrack('c')] });
+  enterSelectMode();
+  renderTracks(); // Songs mode renders one row per track into #libBody
+
+  selectAllVisible();
+  assert.deepEqual([...S.editSelection].sort(), ['a', 'b', 'c']);
+  assert.equal($('#selectAll').textContent, 'Select none');
+
+  selectAllVisible();
+  assert.equal(S.editSelection.size, 0);
+  assert.equal($('#selectAll').textContent, 'Select all');
+});
+
+test('selectAllVisible: a partial selection is completed to "every visible", not cleared', () => {
+  resetState({ tracks: [fakeTrack('a'), fakeTrack('b')] });
+  enterSelectMode();
+  renderTracks();
+  S.editSelection.add('a');
+
+  selectAllVisible();
+
+  assert.deepEqual([...S.editSelection].sort(), ['a', 'b']);
+});
+
+test('selectAllVisible: an empty library is a no-op', () => {
+  resetState({ tracks: [] });
+  enterSelectMode();
+  renderTracks();
+  selectAllVisible();
   assert.equal(S.editSelection.size, 0);
 });
 

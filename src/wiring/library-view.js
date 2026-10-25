@@ -11,7 +11,7 @@ import { idxOf } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel, nextCrateGroup } from '../crate/model.js';
 import {
-  renderTracks, enterSelectMode, exitSelectMode,
+  renderTracks, enterSelectMode, exitSelectMode, selectAllVisible,
   openConfirmDelete, closeConfirmDelete, rowMenuTrackId, confirmDeleteAction,
   applyTrackNumbersInOrder,
 } from '../library/view.js';
@@ -108,6 +108,7 @@ export function wireLibraryView(){
 
   $('#selectToggle').addEventListener('click', ()=>{ forceCloseLayer('lib-overflow-menu'); enterSelectMode(); });
   $('#selectCancel').addEventListener('click', exitSelectMode);
+  $('#selectAll').addEventListener('click', selectAllVisible);
   $('#selectEdit').addEventListener('click', ()=>{
     if(S.editSelection.size) openEditSheet(Array.from(S.editSelection));
   });
