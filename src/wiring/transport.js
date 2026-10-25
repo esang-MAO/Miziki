@@ -15,6 +15,7 @@ import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
 import { openSleepSheet } from '../player/sleep-timer.js';
+import { openEqSheet } from '../player/eq-sheet.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { touchActiveSession } from '../history/sessions.js';
 import { updateShellAlbum } from '../shell/mini-player.js';
@@ -74,6 +75,11 @@ export function wireTransport(){
 
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
+
+  // AU6 (docs/16_AUDIO.md §3): the EQ sheet, same overflow-menu entry
+  // point as Sleep timer just above.
+  $('#eqBtn').addEventListener('click', openEqSheet);
+  $('#eqClose').addEventListener('click', () => closeLayer('eq'));
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
 

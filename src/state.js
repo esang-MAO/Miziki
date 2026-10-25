@@ -47,6 +47,22 @@ export const S = {
   // AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto — a missing saved value
   // means Auto, the doc's own stated default.
   loudnessMode:'auto',
+  // AU6 (docs/16_AUDIO.md §3): the EQ sheet's whole saved state — off by
+  // default (flat, tilt 0, every graphic/parametric band at 0 dB), auto
+  // preamp on. state.js stays import-free (it's the foundation every
+  // other module imports from, never the reverse), so this literal is a
+  // plain duplicate of src/audio/eq.js's own defaultEqState() rather than
+  // an import of it — kept in sync by hand, the same "duplicate rather
+  // than add an edge" call sync/images.js/player/clock.js already make
+  // elsewhere in this codebase. A saved object missing the field entirely
+  // (every device before this PR) loads with the EQ off and flat, same
+  // "missing means the stated default" shape loudnessMode/charDrift/
+  // autoFlip already established.
+  eq: {
+    enabled: false, mode: 'graphic', tilt: 0,
+    graphicBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {},
+  },
   // scratch: true means spin-to-scrub plays real audio while spinning the
   // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the
   // default here is what back-fills prefs saved before this field existed

@@ -18,6 +18,7 @@ function fakeS(overrides = {}){
     surfaceNoise: 'subtle', runoutLength: 'normal', surfaceNoiseUnderMusic: false,
     autoFlip: true,
     loudnessMode: 'auto',
+    eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
   }, overrides);
 }
 
@@ -38,6 +39,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     loudnessMode: S.loudnessMode,
+    eq: S.eq,
   });
 });
 
@@ -326,4 +328,55 @@ test('old saved data: no loudnessMode field at all leaves it out, so the default
 test('bad values are ignored: an unrecognized loudnessMode', () => {
   const parsed = parsePrefs({ loudnessMode: 'max' });
   assert.equal('loudnessMode' in parsed, false);
+});
+
+// AU6 (docs/16_AUDIO.md §3): a saved object without this field (every
+// device before this PR) loads off and flat -- the stated default.
+test('round trip: eq survives with every field intact', () => {
+  const eq = {
+    enabled: true, mode: 'parametric', tilt: 3,
+    graphicBands: [1,2,3,4,5,6,7,8,9,10],
+    parametricBands: [{ type: 'peak', freq: 500, gainDb: 4, q: 0.9 }],
+    autoPreamp: false, preampDb: -2,
+    savedPresets: { 'my preset': { mode: 'graphic', tilt: 1, graphicBands: [0,0,0,0,0,0,0,0,0,1], parametricBands: [] } },
+  };
+  const parsed = parsePrefs(serializePrefs(fakeS({ eq })));
+  assert.deepEqual(parsed.eq, eq);
+});
+
+test('old saved data: no eq field at all leaves it out, so the default (off, flat) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.eq;
+  const parsed = parsePrefs(raw);
+  assert.equal('eq' in parsed, false);
+});
+
+test('bad values in eq are clamped or dropped, never left to throw or escape their own range', () => {
+  const parsed = parsePrefs({
+    eq: {
+      enabled: 'yes', mode: 'bogus', tilt: 999,
+      graphicBands: [999, -999, 'nope'],
+      parametricBands: [{ type: 'peak', freq: 50, gainDb: 999, q: 0.7 }, { type: 'nope' }],
+      autoPreamp: 1, preampDb: 999,
+      savedPresets: { ok: { tilt: 999, graphicBands: [999] }, bad: 'nope' },
+    },
+  });
+  // enabled/mode/autoPreamp all fail their own type/enum check, so none of
+  // them appear in the cleaned object at all.
+  assert.equal('enabled' in parsed.eq, false);
+  assert.equal('mode' in parsed.eq, false);
+  assert.equal('autoPreamp' in parsed.eq, false);
+  assert.equal(parsed.eq.tilt, 6);
+  assert.deepEqual(parsed.eq.graphicBands, [12, -12, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.equal(parsed.eq.parametricBands.length, 1);
+  assert.equal(parsed.eq.parametricBands[0].gainDb, 12);
+  assert.equal(parsed.eq.preampDb, 12);
+  assert.equal(parsed.eq.savedPresets.ok.tilt, 6);
+  assert.deepEqual(parsed.eq.savedPresets.ok.graphicBands, [12,0,0,0,0,0,0,0,0,0]);
+  assert.equal('bad' in parsed.eq.savedPresets, false);
+});
+
+test('an eq value that is not an object at all is simply left out', () => {
+  const parsed = parsePrefs({ eq: 'nope' });
+  assert.equal('eq' in parsed, false);
 });

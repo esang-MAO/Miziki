@@ -15,6 +15,11 @@
    gets a test here that an old saved object without it still loads with
    that default in place. */
 
+import {
+  GRAPHIC_BANDS_HZ, MAX_PARAMETRIC_BANDS, sanitizeParametricBands,
+  clampTiltDb, clampGraphicBandDb, clampPreampDb,
+} from '../audio/eq.js';
+
 // every key serializePrefs itself writes below — the whitelist
 // rememberUnknownPrefsKeys() (RF17, docs/12_REFINE.md) checks a remote
 // prefs object's own keys against, so only genuinely-unrecognized keys
@@ -33,6 +38,7 @@ const KNOWN_PREF_KEYS = new Set([
   'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
   'autoFlip',
   'loudnessMode',
+  'eq',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -76,6 +82,7 @@ export function serializePrefs(S){
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     loudnessMode: S.loudnessMode,
+    eq: S.eq,
   }, unknownPrefKeys || {});
 }
 
@@ -147,6 +154,44 @@ export function parsePrefs(raw){
   // AU5 (docs/16_AUDIO.md §4): a saved object without this (every device
   // before this PR) loads as Auto, the stated default.
   if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') out.loudnessMode = p.loudnessMode;
+  // AU6 (docs/16_AUDIO.md §3): a saved object without this (every device
+  // before this PR) loads with the EQ off and flat, the stated default.
+  // Every field is independently type-checked/clamped rather than trusted
+  // whole — the same defensive shape p.char gets above — so a malformed
+  // or out-of-range saved value (a hand-edited backup doc, a future
+  // build's wider range) can never read back as something exceeding
+  // eq.js's own clamp constants.
+  if(p.eq && typeof p.eq === 'object'){
+    const eq = {};
+    if(typeof p.eq.enabled === 'boolean') eq.enabled = p.eq.enabled;
+    if(p.eq.mode === 'graphic' || p.eq.mode === 'parametric') eq.mode = p.eq.mode;
+    if(typeof p.eq.tilt === 'number') eq.tilt = clampTiltDb(p.eq.tilt);
+    if(Array.isArray(p.eq.graphicBands)){
+      eq.graphicBands = GRAPHIC_BANDS_HZ.map((_, i) =>
+        typeof p.eq.graphicBands[i] === 'number' ? clampGraphicBandDb(p.eq.graphicBands[i]) : 0);
+    }
+    if(Array.isArray(p.eq.parametricBands)) eq.parametricBands = sanitizeParametricBands(p.eq.parametricBands);
+    if(typeof p.eq.autoPreamp === 'boolean') eq.autoPreamp = p.eq.autoPreamp;
+    if(typeof p.eq.preampDb === 'number') eq.preampDb = clampPreampDb(p.eq.preampDb);
+    if(p.eq.savedPresets && typeof p.eq.savedPresets === 'object'){
+      const saved = {};
+      for(const name of Object.keys(p.eq.savedPresets).slice(0, MAX_PARAMETRIC_BANDS * 4)){
+        const preset = p.eq.savedPresets[name];
+        if(!preset || typeof preset !== 'object') continue;
+        const cleanPreset = {};
+        if(preset.mode === 'graphic' || preset.mode === 'parametric') cleanPreset.mode = preset.mode;
+        if(typeof preset.tilt === 'number') cleanPreset.tilt = clampTiltDb(preset.tilt);
+        if(Array.isArray(preset.graphicBands)){
+          cleanPreset.graphicBands = GRAPHIC_BANDS_HZ.map((_, i) =>
+            typeof preset.graphicBands[i] === 'number' ? clampGraphicBandDb(preset.graphicBands[i]) : 0);
+        }
+        if(Array.isArray(preset.parametricBands)) cleanPreset.parametricBands = sanitizeParametricBands(preset.parametricBands);
+        if(typeof name === 'string' && name.length && name.length <= 40) saved[name] = cleanPreset;
+      }
+      eq.savedPresets = saved;
+    }
+    if(Object.keys(eq).length) out.eq = eq;
+  }
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

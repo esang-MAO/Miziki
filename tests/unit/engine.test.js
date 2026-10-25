@@ -115,13 +115,24 @@ test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> 
   // loudness-normalization insertion point AU3's own comment pre-planted)
   // before reaching the limiter/out.
   assert.ok(n.master.connections.includes(n.norm));
+  // AU6 (docs/16_AUDIO.md §3): norm now feeds the EQ chain — preamp, the
+  // two tilt shelves, the 10 graphic bands, then the 6 parametric slots —
+  // before whatever used to come straight after norm.
+  assert.ok(n.norm.connections.includes(n.eqPreamp));
+  assert.ok(n.eqPreamp.connections.includes(n.eqTiltLow));
+  assert.ok(n.eqTiltLow.connections.includes(n.eqTiltHigh));
+  assert.ok(n.eqTiltHigh.connections.includes(n.eqGraphic[0]));
+  for(let i = 0; i < n.eqGraphic.length - 1; i++) assert.ok(n.eqGraphic[i].connections.includes(n.eqGraphic[i+1]));
+  assert.ok(n.eqGraphic[n.eqGraphic.length - 1].connections.includes(n.eqParametric[0]));
+  for(let i = 0; i < n.eqParametric.length - 1; i++) assert.ok(n.eqParametric[i].connections.includes(n.eqParametric[i+1]));
+  assert.equal(n.eqTail, n.eqParametric[n.eqParametric.length - 1]);
   // No AudioWorklet on the fake context (no audioWorklet property), so
-  // the limiter never loads and norm connects straight to out — see
+  // the limiter never loads and the EQ tail connects straight to out — see
   // AU3's own "a worklet that fails to load falls back to an unlimited
   // passthrough" fallback, the same shape scratch-processor.js's own
   // addModule() failure already has.
   assert.equal(n.limiter, null);
-  assert.ok(n.norm.connections.includes(n.out));
+  assert.ok(n.eqTail.connections.includes(n.out));
   assert.ok(n.out.connections.includes(ctx.destination));
 });
 

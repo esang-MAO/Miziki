@@ -3,7 +3,7 @@ import { $ } from '../util/dom.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
-import { applyCharacter, applyLoudnessNorm } from '../audio/engine.js';
+import { applyCharacter, applyLoudnessNorm, applyEQ } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
 import { depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
 import { loudnessCaptionFor } from '../audio/loudness.js';
@@ -218,6 +218,15 @@ function applyPrefs(p){
   document.querySelectorAll('[data-loudness]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.loudness === S.loudnessMode)));
   { const d = $('#loudnessDesc'); if(d) d.textContent = loudnessCaptionFor(S.loudnessMode); }
+  // AU6 (docs/16_AUDIO.md §3): merge onto the existing S.eq object (same
+  // "assign the fields that were actually saved" shape p.char gets above)
+  // rather than replacing it wholesale — a key parsePrefs() left out
+  // (missing from an older save, or one that failed its own check) keeps
+  // whatever default/previous value S.eq already held. The EQ sheet
+  // itself (src/player/eq-sheet.js) rebuilds its DOM fresh every time it's
+  // opened, straight from S.eq, so there's no [data-*] aria-pressed sync
+  // to do here the way loudnessMode's own simple button row needs.
+  if(p.eq && typeof p.eq === 'object') Object.assign(S.eq, p.eq);
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
@@ -235,4 +244,5 @@ function applyPrefs(p){
   applyCharacter();
   applyVolume();
   applyLoudnessNorm();
+  applyEQ();
 }
