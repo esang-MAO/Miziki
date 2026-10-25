@@ -10,6 +10,7 @@ import { renderProfile } from '../profile/screens.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { ensureContext } from '../audio/engine.js';
 import { measureTrack } from '../audio/loudness.js';
+import { detectHook } from '../audio/hook.js';
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -195,6 +196,44 @@ export async function healLoudness(){
         t.details.loudness = measureTrack(channels, buffer.sampleRate);
         rec.details = t.details;
         await tracks.put(rec);
+      }
+    }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
+    await sleep(0);
+    await sleep(30);
+  }
+}
+
+// AU12 (docs/16_AUDIO.md §7): the same "idle pass... for a library imported
+// before this feature existed" shape healLoudness() just above already
+// established — a track's details object is the gate (hookStart is simply
+// absent on anything detectHook() couldn't find a repeat in, so there's
+// nothing to distinguish "measured, no clear hook" from "not measured
+// yet" here; a track with details but no hookStart gets re-checked every
+// heal pass until the library is reloaded with it set, the same harmless
+// re-check healLoudness() itself accepts for a track whose measurement
+// keeps failing).
+export async function healHooks(){
+  if(!storage.available()) return;
+  const targets = S.tracks.filter(t => t.stored && t.details && typeof t.details.hookStart !== 'number');
+  for(let i = 0; i < targets.length; i++){
+    while(S.playing) await sleep(500);
+    const t = targets[i];
+    if(!S.tracks.includes(t)) continue;   // deleted while we waited
+    try{
+      const rec = await tracks.get(t.id);
+      if(rec && rec.blob){
+        const raw = await rec.blob.arrayBuffer();
+        await ensureContext();
+        const buffer = await S.ctx.decodeAudioData(raw);
+        const channels = [];
+        for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+        const hook = detectHook(channels, buffer.sampleRate);
+        if(hook){
+          t.details.hookStart = hook.hookStart;
+          t.details.hookEnd = hook.hookEnd;
+          rec.details = t.details;
+          await tracks.put(rec);
+        }
       }
     }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
     await sleep(0);
