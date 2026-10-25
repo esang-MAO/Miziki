@@ -16,6 +16,10 @@ import { feedEventText } from './home.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 import { openLayer, closeLayer } from '../../shell/nav-stack.js';
+// AU11 (docs/16_AUDIO.md §5): the record's own automatic format, same
+// "decode what the server published, never a second guess of it" shape
+// pressingLineFor() below already uses for a friend's quality_tier.
+import { formatFromWireCode, formatChipText } from '../../record-art/format.js';
 
 /* ================= Social Step D: friend store, locked state, record sheet, home feed ================= */
 
@@ -460,9 +464,15 @@ function renderRecordSheetBody(full, item){
   body.appendChild(el('h3','record-title', item.title));
   body.appendChild(el('p','record-artist', [item.artist, item.year].filter(Boolean).join(' · ')));
   const theirTier = item.quality_tier != null ? item.quality_tier : item.their_quality_tier;
-  if(theirTier){
+  // AU11 (docs/16_AUDIO.md §5): "friends see the same format" -- crate_page()
+  // publishes it as the short wire code migration 021 added to crate_items;
+  // null (an old row, or a record whose durations were never measured)
+  // shows nothing, the same quiet omission theirTier's own null already has.
+  const theirFormat = item.record_format ? formatFromWireCode(item.record_format) : null;
+  if(theirTier || theirFormat){
     const chips = el('div','record-chips');
-    chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[theirTier] || ''));
+    if(theirTier) chips.appendChild(el('span','record-chip', STORE_TIER_LABEL[theirTier] || ''));
+    if(theirFormat) chips.appendChild(el('span','record-chip', formatChipText(theirFormat)));
     body.appendChild(chips);
   }
   // CR11 point 2: name the pressing and its note, and — for an in-common

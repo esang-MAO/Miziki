@@ -1004,5 +1004,36 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const rows = asUser(CF_A, `select coalesce(string_agg(handle, ','), 'null') from credit_friends(p_person_name_norm=>'jane doe', p_role=>'Composer') q where handle='cffriend'`);
    assert.equal(rows, 'null'); });
 
+ // AU11 (docs/16_AUDIO.md §5): "friends see the format" -- the record's
+ // own automatic format, published alongside the rest of a crate item
+ // (migration 021_friends_see_format.sql), never the personal override
+ // (that part never reaches the server at all -- it's not even a field
+ // sync_crate() accepts).
+ await t('sync_crate: record_format writes on a brand-new row',()=>{
+   asUser(CF_A, `select sync_crate('[{"release_key":"au11-rel-1","title":"AU11 Album","artist":"AU11 Artist","record_format":"7-45"}]'::jsonb, true)`);
+   const relId = asUser(CF_A, `select id from releases where release_key='au11-rel-1'`);
+   assert.equal(asUser(CF_A, `select record_format from crate_items where user_id='${CF_A}' and release_id='${relId}'`), '7-45'); });
+
+ await t('sync_crate: record_format gets a plain overwrite on an existing row, never the RF3 sentinel treatment',()=>{
+   const relId = asUser(CF_A, `select id from releases where release_key='au11-rel-1'`);
+   asUser(CF_A, `select sync_crate('[{"release_key":"au11-rel-1","title":"AU11 Album","artist":"AU11 Artist","record_format":"12-33"}]'::jsonb, true)`);
+   assert.equal(asUser(CF_A, `select record_format from crate_items where user_id='${CF_A}' and release_id='${relId}'`), '12-33');
+   // a later push with no record_format key at all clears it to null --
+   // unlike rating/sleeve_note, there is no "no change" meaning for a
+   // missing key here, since a format has no sentinel of its own.
+   asUser(CF_A, `select sync_crate('[{"release_key":"au11-rel-1","title":"AU11 Album","artist":"AU11 Artist"}]'::jsonb, true)`);
+   assert.equal(asUser(CF_A, `select coalesce(record_format,'null') from crate_items where user_id='${CF_A}' and release_id='${relId}'`), 'null'); });
+
+ await t('sync_crate: an unrecognized record_format is rejected by the check constraint, not silently stored',()=>{
+   let threw=false;
+   try{ asUser(CF_A, `select sync_crate('[{"release_key":"au11-rel-2","title":"AU11 Album 2","artist":"AU11 Artist","record_format":"garbage"}]'::jsonb, true)`); }
+   catch(_e){ threw=true; }
+   assert.ok(threw, 'expected the check constraint to reject an unrecognized record_format'); });
+
+ await t('crate_page: publishes record_format for a record a friend can see',()=>{
+   asUser(CF_A, `select sync_crate('[{"release_key":"au11-rel-1","title":"AU11 Album","artist":"AU11 Artist","visibility":"public","record_format":"12-45"}]'::jsonb, true)`);
+   const rows = asUser(CF_B, `select record_format from crate_page(p_user=>'${CF_A}'::uuid) q where title='AU11 Album'`);
+   assert.equal(rows, '12-45'); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
