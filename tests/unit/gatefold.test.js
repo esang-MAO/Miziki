@@ -84,13 +84,18 @@ test('gatefoldSideSplits: a single disc of equal-length tracks balances by time'
   assert.deepEqual(sides[1], {label:'SIDE B', idx:[2,3,4]});
 });
 
-test('gatefoldSideSplits: multiple discs split by disc, not by duration balance', () => {
+// Followup (Ken, "double albums as four sides (A-D) instead of one side
+// per disc"): each disc now gets its own time-balanced split -- this
+// two-disc, 2-and-3-track album reads as four sides, A-D, not two.
+test('gatefoldSideSplits: each disc splits into its own time-balanced sides', () => {
   S.albumSides = true;
   S.tracks = [fakeTrack(1, 600), fakeTrack(1, 600), fakeTrack(2, 600), fakeTrack(2, 600), fakeTrack(2, 600)];
   const sides = gatefoldSideSplits([0, 1, 2, 3, 4]);
-  assert.equal(sides.length, 2);
-  assert.deepEqual(sides[0], {label:'SIDE A', idx:[0,1]});
-  assert.deepEqual(sides[1], {label:'SIDE B', idx:[2,3,4]});
+  assert.equal(sides.length, 4);
+  assert.deepEqual(sides[0], {label:'SIDE A', idx:[0]});
+  assert.deepEqual(sides[1], {label:'SIDE B', idx:[1]});
+  assert.deepEqual(sides[2], {label:'SIDE C', idx:[2]});
+  assert.deepEqual(sides[3], {label:'SIDE D', idx:[3,4]});
 });
 
 test('isGatefoldOpen reads the module-private GF state (null when closed)', () => {

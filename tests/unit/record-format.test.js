@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  RPM_33, RPM_45, SEVEN_INCH_MAX_SEC, TWELVE_SINGLE_MAX_SEC,
+  RPM_33, RPM_45, SEVEN_INCH_MAX_SEC, TEN_INCH_MAX_SEC, TWELVE_SINGLE_MAX_SEC,
   bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
   formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
@@ -47,10 +47,12 @@ test('sideLengthsFromDurations: empty, one, two and several tracks', () => {
   assert.deepEqual(sideLengthsFromDurations([100, 100, 300]), [200, 300]);
 });
 
-test('formatForLongestSide: the table\'s three boundaries', () => {
+test('formatForLongestSide: the table\'s four boundaries', () => {
   assert.deepEqual(formatForLongestSide(0), { size: '7"', speed: RPM_45 });
   assert.deepEqual(formatForLongestSide(SEVEN_INCH_MAX_SEC), { size: '7"', speed: RPM_45 });
-  assert.deepEqual(formatForLongestSide(SEVEN_INCH_MAX_SEC + 1), { size: '12"', speed: RPM_45 });
+  assert.deepEqual(formatForLongestSide(SEVEN_INCH_MAX_SEC + 1), { size: '10"', speed: RPM_45 });
+  assert.deepEqual(formatForLongestSide(TEN_INCH_MAX_SEC), { size: '10"', speed: RPM_45 });
+  assert.deepEqual(formatForLongestSide(TEN_INCH_MAX_SEC + 1), { size: '12"', speed: RPM_45 });
   assert.deepEqual(formatForLongestSide(TWELVE_SINGLE_MAX_SEC), { size: '12"', speed: RPM_45 });
   assert.deepEqual(formatForLongestSide(TWELVE_SINGLE_MAX_SEC + 1), { size: '12"', speed: RPM_33 });
 });
@@ -65,8 +67,10 @@ test('recordFormat: 33 is always a 12", skipping the table\'s own speed', () => 
   assert.deepEqual(recordFormat(1000, '33'), { size: '12"', speed: RPM_33 });
 });
 
-test('recordFormat: 45 still sizes itself from the table', () => {
+test('recordFormat: 45 still sizes itself from the table, including the 10" band', () => {
   assert.deepEqual(recordFormat(100, '45'), { size: '7"', speed: RPM_45 });
+  assert.deepEqual(recordFormat(SEVEN_INCH_MAX_SEC + 1, '45'), { size: '10"', speed: RPM_45 });
+  assert.deepEqual(recordFormat(TEN_INCH_MAX_SEC, '45'), { size: '10"', speed: RPM_45 });
   assert.deepEqual(recordFormat(1000, '45'), { size: '12"', speed: RPM_45 });
 });
 
@@ -90,6 +94,7 @@ test('rotationHz: falls back to 33⅓ for a falsy rpm, and rate 1 for a falsy ra
 // from the same table above.
 test('formatRecordName: one name per cell, "unremarkable" 33⅓ reads LP', () => {
   assert.equal(formatRecordName({size:'7"', speed:RPM_45}), '7″ SINGLE');
+  assert.equal(formatRecordName({size:'10"', speed:RPM_45}), '10″ EP');
   assert.equal(formatRecordName({size:'12"', speed:RPM_45}), '12″ EP');
   assert.equal(formatRecordName({size:'12"', speed:RPM_33}), '12″ LP');
   assert.equal(formatRecordName(null), '');
@@ -106,8 +111,9 @@ test('formatChipText: "size · speed", empty for no format', () => {
   assert.equal(formatChipText(null), '');
 });
 
-test('sideCapacitySec: the table\'s own three capacities, falling back to an LP\'s own 22 minutes', () => {
+test('sideCapacitySec: the table\'s own four capacities, falling back to an LP\'s own 22 minutes', () => {
   assert.equal(sideCapacitySec({size:'7"', speed:RPM_45}), SEVEN_INCH_MAX_SEC);
+  assert.equal(sideCapacitySec({size:'10"', speed:RPM_45}), TEN_INCH_MAX_SEC);
   assert.equal(sideCapacitySec({size:'12"', speed:RPM_45}), TWELVE_SINGLE_MAX_SEC);
   assert.equal(sideCapacitySec({size:'12"', speed:RPM_33}), 22 * 60);
   assert.equal(sideCapacitySec(null), TWELVE_SINGLE_MAX_SEC);
@@ -127,6 +133,7 @@ test('sideFullness: 0..1, clamped, matching the format\'s own capacity', () => {
 // shape every other reader in this file already uses.
 test('formatWireCode: one code per table cell', () => {
   assert.equal(formatWireCode({size:'7"', speed:RPM_45}), '7-45');
+  assert.equal(formatWireCode({size:'10"', speed:RPM_45}), '10-45');
   assert.equal(formatWireCode({size:'12"', speed:RPM_45}), '12-45');
   assert.equal(formatWireCode({size:'12"', speed:RPM_33}), '12-33');
   assert.equal(formatWireCode(null), null);
@@ -134,6 +141,7 @@ test('formatWireCode: one code per table cell', () => {
 
 test('formatFromWireCode: decodes each known code back to its format', () => {
   assert.deepEqual(formatFromWireCode('7-45'), {size:'7"', speed:RPM_45});
+  assert.deepEqual(formatFromWireCode('10-45'), {size:'10"', speed:RPM_45});
   assert.deepEqual(formatFromWireCode('12-45'), {size:'12"', speed:RPM_45});
   assert.deepEqual(formatFromWireCode('12-33'), {size:'12"', speed:RPM_33});
 });
@@ -145,7 +153,8 @@ test('formatFromWireCode: an unrecognized or missing code reads as unknown, not 
 });
 
 test('formatWireCode/formatFromWireCode: round-trips every value formatForLongestSide can produce', () => {
-  for(const longest of [0, 60, SEVEN_INCH_MAX_SEC, SEVEN_INCH_MAX_SEC + 1, TWELVE_SINGLE_MAX_SEC, TWELVE_SINGLE_MAX_SEC + 1]){
+  for(const longest of [0, 60, SEVEN_INCH_MAX_SEC, SEVEN_INCH_MAX_SEC + 1, TEN_INCH_MAX_SEC,
+    TEN_INCH_MAX_SEC + 1, TWELVE_SINGLE_MAX_SEC, TWELVE_SINGLE_MAX_SEC + 1]){
     const f = formatForLongestSide(longest);
     assert.deepEqual(formatFromWireCode(formatWireCode(f)), f);
   }
