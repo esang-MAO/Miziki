@@ -295,6 +295,12 @@ export function toDoc(localState){
       trackDisplay: itemWriteEntries(stripArtMap(s.trackDisplay), updatedAt.trackDisplay, s.deviceId),
       albumEdge: itemWriteEntries(s.albumEdge, updatedAt.albumEdge, s.deviceId),
       albumLookPref: itemWriteEntries(s.albumLookPref, updatedAt.albumLookPref, s.deviceId),
+      // AU9 (docs/16_AUDIO.md §5): the personal per-album format override
+      // (Auto/33⅓/45) — keyed by albumKey() the same way albumLookPref is,
+      // same per-key last-write-wins shape. "The override is personal: it
+      // syncs in your backup" — friends seeing the automatic format is
+      // AU11's own territory, not this field.
+      albumFormat: itemWriteEntries(s.albumFormat, updatedAt.albumFormat, s.deviceId),
       prefs: itemWriteEntries(s.prefs, updatedAt.prefs, s.deviceId),
       playlistDefs: playlistParts.playlistDefs,
       playlistOrder: playlistParts.playlistOrder,
@@ -524,7 +530,7 @@ export function validateDoc(doc){
   if(!isStringArray(sealed.broken || [])) return false;
 
   const itemWrites = doc.itemWrites || {};
-  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'prefs', 'playlistDefs', 'playlistOrder'];
+  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'prefs', 'playlistDefs', 'playlistOrder'];
   if(!itemWriteFields.every(f => isItemWritesArray(itemWrites[f] || []))) return false;
 
   const playlistMembership = doc.playlistMembership || [];

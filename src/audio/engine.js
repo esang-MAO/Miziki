@@ -12,12 +12,16 @@ import {
   sampleFrequenciesLog, clampTiltDb, clampGraphicBandDb, clampPreampDb,
   defaultEqState,
 } from './eq.js';
+import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 
 // AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
 // 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
-// player/transport.js's own arc-text line already uses.
-const RPM_33 = 33.333;
-const wowHzFor = rate => (RPM_33 / 60) * (rate || 1);
+// player/transport.js's own arc-text line already uses. AU9 (§5) widened
+// this from a fixed 33⅓ to whichever record is actually loaded —
+// S.recordFormat.speed, set once per track by transport.js's load() from
+// the record's own format (§5's table, or a personal override) — falling
+// back to 33⅓ for the moment before any track has ever loaded.
+const wowHzFor = rate => rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, rate);
 
 // AU7 (docs/16_AUDIO.md §6): balance is a plain -1..1 (full left .. full
 // right); deviceVolume is a plain 0..1 — both clamped the same defensive
@@ -360,18 +364,25 @@ export function applyCharacter(ramp = 0.05){
   const c = effectiveCharAt(S.char, nowClock(), S.sun, intensity);
   n.wowAmt.gain.setTargetAtTime(0.00050 * c.wow, t, ramp);
   n.flutAmt.gain.setTargetAtTime(0.000015 * c.wow, t, ramp);
+  // AU9 (§5): "real 45s get more groove speed and more room on the disc...
+  // scale softening ×0.7, saturation ×0.8 and the surface-noise floor
+  // ×0.8." Only the sat/soft terms here — comp (bus compression) and wow
+  // are untouched, and this is Vinyl-only by construction (c itself is
+  // already 'off'-intensity, i.e. the user's own sliders, in Pure).
+  const is45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);
+  const effSat = is45 ? c.sat * 0.8 : c.sat;
   // satCurve() builds a brand-new Float32Array every call — only worth it
   // once the effective value has actually moved enough to matter, per the
   // doc's own "only rebuild when the effective sat moves by more than
   // 0.005" instruction; satTrim's own gain still glides every call either
   // way, since that's a cheap setTargetAtTime, not a curve rebuild.
-  if(lastAppliedSat === null || Math.abs(c.sat - lastAppliedSat) > 0.005){
-    const s = satCurve(c.sat);
+  if(lastAppliedSat === null || Math.abs(effSat - lastAppliedSat) > 0.005){
+    const s = satCurve(effSat);
     n.sat.curve = s.curve;
     n.satTrim.gain.setTargetAtTime(s.trim, t, ramp);
-    lastAppliedSat = c.sat;
+    lastAppliedSat = effSat;
   }
-  n.tone.gain.setTargetAtTime(-9 * c.soft, t, ramp);
+  n.tone.gain.setTargetAtTime(-9 * c.soft * (is45 ? 0.7 : 1), t, ramp);
   n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, ramp);
   n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, ramp);
   // AU3 §2.3 (finding 4): the old `1 + 0.4*c.comp` here, on top of
@@ -554,7 +565,9 @@ export function routeSource(src){
 }
 
 // AU3 §2.3: "updated wherever S.rate changes" — player/clock.js's tick()
-// is the one place S.rate is ever reassigned.
+// is the one place S.rate is ever reassigned. AU9 (§5) added the other
+// place this needs rerunning: player/transport.js's load(), whenever
+// S.recordFormat.speed itself changes (a new record, not a new rate).
 export function applyWobbleRate(rate){
   if(!S.nodes || !S.ctx) return;
   S.nodes.wowOsc.frequency.setTargetAtTime(wowHzFor(rate), S.ctx.currentTime, 0.08);

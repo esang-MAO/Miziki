@@ -330,6 +330,9 @@ export function mergeRows(rows){
       trackDisplay: mergeKeyedLastWriteWins(rows, 'trackDisplay'),
       albumEdge: mergeKeyedLastWriteWins(rows, 'albumEdge'),
       albumLookPref: mergeKeyedLastWriteWins(rows, 'albumLookPref'),
+      // AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
+      // same per-key last-write-wins shape as albumLookPref above.
+      albumFormat: mergeKeyedLastWriteWins(rows, 'albumFormat'),
       prefs: mergeKeyedLastWriteWins(rows, 'prefs'),
       playlistDefs: mergeKeyedLastWriteWins(rows, 'playlistDefs'),
       playlistOrder: mergeKeyedLastWriteWins(rows, 'playlistOrder'),

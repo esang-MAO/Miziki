@@ -3,8 +3,9 @@ import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { albumKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
-import { splitSides } from '../shell/ceremony-timing.js';
-import { routeSource, applyLoudnessNorm } from '../audio/engine.js';
+import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
+import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
+import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -27,8 +28,8 @@ import { trackTier } from '../record-art/tiers.js';
 import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
-  playNeedleDrop, startLeadIn, startUnderMusicBed, LEAD_IN_SEC,
-  fadeMusicTo
+  playNeedleDrop, startLeadIn, startUnderMusicBed,
+  leadInSecFor, fadeMusicTo
 } from '../audio/surface-noise.js';
 import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
@@ -260,11 +261,24 @@ export function load(i){
   // there's one source of truth for side letters, not a second one here.
   $('#labelTitle').textContent = t.tags ? (t.tags.album || t.tags.title) : t.name;
   let sideLabel = '';
-  if(S.albumSides && t.tags && t.tags.album){
-    const splits = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
-    const found = splits && splits.find(s => s.idx.includes(i));
-    if(found) sideLabel = found.label + ' · ';
+  let albumTrackIdx = null;
+  if(t.tags && t.tags.album){
+    albumTrackIdx = albumTracks(t.tags.album);
+    if(S.albumSides){
+      const splits = splitSides(albumTrackIdx, S.tracks, S.albumSides);
+      const found = splits && splits.find(s => s.idx.includes(i));
+      if(found) sideLabel = found.label + ' · ';
+    }
   }
+  // AU9 (docs/16_AUDIO.md §5): the format table applies whether or not
+  // the Sides setting is on — albumFormatFor() never reads S.albumSides.
+  // Cached once per load so the audio graph (audio/engine.js) and the
+  // surface-noise/run-out code all read the one same value.
+  S.recordFormat = albumTrackIdx
+    ? albumFormatFor(albumTrackIdx, S.tracks, (S.albumFormat && S.albumFormat[albumKey(t)]) || 'auto')
+    : { size:'12"', speed: RPM_33 };
+  applyWobbleRate(S.rate);
+  applyCharacter();
   S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
   const arcText = $('#labelArcText');
   if(arcText) arcText.textContent = (33.333 * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
@@ -398,13 +412,22 @@ export async function play(){
   // already says so, since a side flip keeps its own ceremony and is never
   // pre-armed — see maybeScheduleGaplessNext()), so this naturally no-ops
   // on the adopted path with no extra branch needed.
+  // AU9 (docs/16_AUDIO.md §5): rotationHz() in place of the old fixed
+  // 0.55 * S.rate (33⅓'s own rate, hardcoded) — the record's own rpm,
+  // cached onto S.recordFormat by load() just above, drives every one of
+  // these generators now, and a 45 gets the shorter lead-in and the
+  // quieter noise floor that section's own "cleaner in Vinyl for 45s"
+  // rule asks for.
+  const rpm45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);
+  const rotHz = rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, S.rate);
+  const leadInDurSec = leadInSecFor(S.recordFormat && S.recordFormat.size);
   let leadInSec = 0;
   if(S.pos === 0 && S.pendingSideStart && surfaceNoiseActive()){
-    const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
+    const scale = noiseFloorScale(S.surfaceNoise, trackTier(t), undefined, rpm45);
     if(scale > 0){
       playNeedleDrop();
-      pendingOpening = startLeadIn(LEAD_IN_SEC, releaseSeed(albumKey(t), sideLetterFor(t, S.index)), scale, 0.55 * S.rate);
-      leadInSec = LEAD_IN_SEC;
+      pendingOpening = startLeadIn(leadInDurSec, releaseSeed(albumKey(t), sideLetterFor(t, S.index)), scale, rotHz);
+      leadInSec = leadInDurSec;
       S.openUntil = performance.now() + leadInSec * 1000;
     }
   }
@@ -419,8 +442,8 @@ export async function play(){
   }
   stopUnderMusicBed(0);
   if(S.surfaceNoiseUnderMusic && surfaceNoiseActive()){
-    const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
-    if(scale > 0) underMusicBed = startUnderMusicBed(releaseSeed(albumKey(t), sideLetterFor(t, S.index)), scale, 0.55 * S.rate);
+    const scale = noiseFloorScale(S.surfaceNoise, trackTier(t), undefined, rpm45);
+    if(scale > 0) underMusicBed = startUnderMusicBed(releaseSeed(albumKey(t), sideLetterFor(t, S.index)), scale, rotHz);
   }
   $('#play').textContent = '❚❚'; $('#play').setAttribute('aria-label','Pause');
   renderMiniPlayer();

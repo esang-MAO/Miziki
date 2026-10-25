@@ -1121,6 +1121,21 @@
       <input class="pl-input" id="editYear" type="number" min="0" max="2100">
     </div>
 
+    <!-- AU9 (docs/16_AUDIO.md §5): the personal per-album speed override.
+         Single-track edits of an album-tagged file only -- shown/hidden by
+         src/library/edit.js's openEditSheet(). Auto reads the format table
+         (7" if the longest side fits, otherwise 12"); 33 is always a 12" at
+         33 1/3; 45 keeps the table's own size. Personal: syncs in your
+         backup, but friends see the automatic format (AU11's territory). -->
+    <div class="slider-row" id="editFormatRow" style="display:none">
+      <div class="slider-head"><span>Speed</span></div>
+      <div class="seg" id="editFormatSeg" role="group" aria-label="Personal speed override">
+        <button data-format-override="auto" aria-pressed="true">Auto</button>
+        <button data-format-override="33">33⅓</button>
+        <button data-format-override="45">45</button>
+      </div>
+    </div>
+
     <p class="note" id="editBatchNote" style="display:none"></p>
 
     <div class="stack">

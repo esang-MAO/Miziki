@@ -23,6 +23,15 @@ export const S = {
   // clock.js's tick doesn't need to re-derive it every ~220ms. Runtime
   // only — never saved, never a prefs field.
   labelSideFormat:'STEREO',
+  // AU9 (docs/16_AUDIO.md §5): the currently-loaded record's own physical
+  // format, computed by record-art/format.js's albumFormatFor() and cached
+  // here once per track load (player/transport.js's load()) so the audio
+  // graph (audio/engine.js's wowHzFor()/applyCharacter()) and the surface-
+  // noise/run-out code (audio/surface-noise.js, shell/runout.js,
+  // player/queue.js) all read the one same value rather than each
+  // recomputing it. Runtime only -- never saved, never a prefs field,
+  // the same shape as labelSideFormat just above.
+  recordFormat:{size:'12"', speed:33.333},
   baseQueue:[], queue:[], qpos:0, shuffle:false, repeat:'off',
   playlists:[], view:{mode:'songs', group:null, artistAlbum:null, playlist:null, person:null, personReturn:null,
     crateLooseIdx:null, crateLooseArtist:null, picking:false, editSelecting:false},
@@ -116,6 +125,13 @@ export const S = {
   // per-album choice among whatever looks are currently available (rare /
   // metal / format variant) — see METAL spec §5, variant switching
   albumLookPref:{},
+  // AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
+  // 'auto' (the default, read the format table), '33' (always a 12" at
+  // 33⅓) or '45' (45, sized by the table). Backed up/synced per-key, the
+  // same last-write-wins shape as albumSort/albumLookPref just above —
+  // "the override is personal: it syncs in your backup, but friends see
+  // the automatic format" (AU11's own territory, not this field).
+  albumFormat:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -362,7 +378,7 @@ S.sealedBroken = new Set();
 // different shape again — see touchBackupMembership()'s own comment).
 S.backupUpdatedAt = {
   albumOrder:{}, albumSort:{}, albumDisplay:{}, trackDisplay:{},
-  albumEdge:{}, albumLookPref:{}, prefs:{},
+  albumEdge:{}, albumLookPref:{}, albumFormat:{}, prefs:{},
   playlistDefs:{}, playlistOrder:{},
   profileName:0,
   picture:0,   // step 07, B4 — the profile picture / public avatar

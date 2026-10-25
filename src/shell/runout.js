@@ -13,6 +13,7 @@ import { drawTime } from '../player/clock.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { startRunout } from '../audio/runout.js';
 import { releaseSeed, noiseFloorScale, surfaceNoiseActive, startRunoutNoise, playNeedleLift } from '../audio/surface-noise.js';
+import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
 import { GROOVE, FLIP, splitSides, sideTurn, runoutWaitMs } from './ceremony-timing.js';
 import { renderMiniPlayer } from './mini-player.js';
@@ -53,9 +54,11 @@ function currentSideLetter(t){
 
 function startNoiseLayer(t, durSec){
   if(!surfaceNoiseActive()) return;
-  const scale = noiseFloorScale(S.surfaceNoise, trackTier(t));
+  const rpm45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);
+  const scale = noiseFloorScale(S.surfaceNoise, trackTier(t), undefined, rpm45);
   if(scale <= 0) return;
-  noiseLayer = startRunoutNoise(durSec, releaseSeed(albumKey(t), currentSideLetter(t)), scale, 0.55 * S.rate);
+  noiseLayer = startRunoutNoise(durSec, releaseSeed(albumKey(t), currentSideLetter(t)), scale,
+    rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, S.rate));
 }
 
 // Drops whatever run-out/flip is in flight without landing it anywhere.

@@ -7,8 +7,9 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import {
   cropSquareImage, revertTrack, undoLastEdit, openEditSheet,
-  saveEditSheet, renderEditArtPreview,
+  saveEditSheet, renderEditArtPreview, setAlbumFormatOverride,
 } from '../library/edit.js';
+import { albumKey } from '../record-art/tiers.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
@@ -37,4 +38,17 @@ export function wireEdit(){
     }catch(_err){ /* bad image — leave whatever preview was already showing */ }
   });
   $('#undoBtn').addEventListener('click', undoLastEdit);
+
+  // AU9 (docs/16_AUDIO.md §5): the personal per-album speed override --
+  // applied immediately on tap, not deferred to the Save button (see
+  // setAlbumFormatOverride()'s own header comment for why).
+  $('#editFormatSeg').addEventListener('click', e => {
+    const b = e.target.closest('button[data-format-override]'); if(!b) return;
+    const target = S.editTarget;
+    if(!target || target.batch) return;
+    const t = S.tracks.find(tr => tr.id === target.trackIds[0]);
+    if(!t || !t.tags.album) return;
+    setAlbumFormatOverride(albumKey(t), b.dataset.formatOverride);
+    $('#editFormatSeg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
 }

@@ -111,7 +111,7 @@ mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext(){} },
+  namedExports: { ensureContext(){}, applyCharacter(){}, applyWobbleRate(){}, applyLoudnessNorm(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },

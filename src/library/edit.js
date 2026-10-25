@@ -7,19 +7,22 @@
    enters S.tracks, so the rest of the app just reads t.tags/t.art as
    always; no caller needs to know an overlay exists. t.embeddedTags/
    t.embeddedArt are kept aside so a track can always revert. */
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { idxOf } from './model.js';
+import { idxOf, albumTracks } from './model.js';
 import { albumKey } from '../record-art/tiers.js';
 import { storage, overlays, artwork } from '../storage/repo.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { persistSealedAlbums } from './sealed.js';
+import { persistAlbumFormat } from '../history/sessions.js';
 import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers, buildCrateTier } from '../crate/tiers.js';
 import { renderTracks, updateTrackRow, exitSelectMode } from './view.js';
 import { scheduleBackupSync, queueCoverUpload } from '../sync/backup.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { emptyDetails } from './tags/index.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { applyWobbleRate, applyCharacter } from '../audio/engine.js';
 
 // Which of an overlay's sparse `fields` land on t.tags (title/artist/
 // album/...) versus t.details (genre/year — CREDITS spec's own liner-
@@ -244,6 +247,34 @@ export function hideUndoBanner(){
   S.lastUndo = null;
 }
 
+// AU9 (docs/16_AUDIO.md §5): the personal per-album speed override, applied
+// immediately on tap rather than deferred to Save -- a format override is
+// a property of the album, not a sparse per-track overlay field like the
+// rest of this sheet, so there's nothing for Save/Revert to collect or
+// undo here. Live-recomputes S.recordFormat/the Vinyl chain when the
+// edited album is the one currently on the platter, the same "re-apply
+// right after the thing it depends on changes" shape applyEdit() above
+// already uses for a retagged now-playing track.
+export function setAlbumFormatOverride(albumId, override){
+  if(override === 'auto') delete S.albumFormat[albumId];
+  else S.albumFormat[albumId] = override;
+  persistAlbumFormat(albumId);
+  const t = current();
+  if(t && albumKey(t) === albumId){
+    const idx = albumTracks(t.tags.album);
+    S.recordFormat = albumFormatFor(idx, S.tracks, override);
+    applyWobbleRate(S.rate);
+    applyCharacter();
+  }
+}
+
+function paintEditFormatSeg(override){
+  const seg = $('#editFormatSeg'); if(!seg) return;
+  seg.querySelectorAll('button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.formatOverride === override));
+  });
+}
+
 /* ---- edit sheet: same form for a single track or a batch selection ---- */
 export function renderEditArtPreview(url){
   const box = $('#editArtPreview'); box.innerHTML = '';
@@ -271,6 +302,12 @@ export function openEditSheet(trackIds){
   $('#editYear').value = batch ? '' : (firstDetails.year || '');
   $('#editRevert').style.display = batch ? 'none' : '';
   $('#editBatchNote').style.display = batch ? 'block' : 'none';
+  // AU9 (docs/16_AUDIO.md §5): single-track, album-tagged edits only --
+  // a batch selection can span more than one album, so there's no one
+  // album id for the override to apply to.
+  const showFormat = !batch && !!first.tags.album;
+  $('#editFormatRow').style.display = showFormat ? '' : 'none';
+  if(showFormat) paintEditFormatSeg(S.albumFormat[albumKey(first)] || 'auto');
   if(batch) $('#editBatchNote').textContent = 'Artist, album, album artist, genre, year, and cover apply to all '
     + trackIds.length + ' selected tracks. Titles are left as they are.';
   renderEditArtPreview(batch ? null : first.art);

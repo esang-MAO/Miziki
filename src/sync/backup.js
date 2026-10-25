@@ -187,6 +187,11 @@ function buildLocalState(){
     trackDisplay: S.trackDisplay,
     albumEdge: S.albumEdge,
     albumLookPref: S.albumLookPref,
+    // AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
+    // backed up/synced the same per-key last-write-wins shape as
+    // albumLookPref just above ("syncs in your backup" — friends seeing the
+    // automatic format is AU11's own territory).
+    albumFormat: S.albumFormat,
     // D2 (docs/DESKTOP_LAYOUT.md): theme is device-only by that doc's own
     // default -- stripped here, not in serializePrefs itself, since it's
     // still a perfectly normal local pref (saveMeta()'s own
@@ -646,6 +651,8 @@ async function applyMerged(merged, ownLocal, client, uid){
   S.trackDisplay = reattachArt(merged.itemWrites.trackDisplay, S.trackDisplay);
   S.albumEdge = merged.itemWrites.albumEdge;
   S.albumLookPref = merged.itemWrites.albumLookPref;
+  // AU9 (docs/16_AUDIO.md §5)
+  S.albumFormat = merged.itemWrites.albumFormat;
   applyPrefsPatch(merged.itemWrites.prefs);
   applyLastWriteField('profileName', merged.lastWrite.profileName, v => { if(typeof v === 'string') S.profile.name = v; });
   // step 07, B4 — the picture itself is fetched lazily by
@@ -1097,6 +1104,7 @@ export function collectLocalDownloadData(){
       albumOrder: local.albumOrder,
       albumSort: local.albumSort,
       albumLookPref: local.albumLookPref,
+      albumFormat: local.albumFormat,   // AU9 (docs/16_AUDIO.md §5)
       prefs: local.prefs,
       profileName: local.profileName,
       trackPlayCounts: local.trackPlayCounts,

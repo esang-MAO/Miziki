@@ -23,6 +23,7 @@ import {
   playNeedleLift, playSkipDrop, fadeMusicTo,
   SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS
 } from '../audio/surface-noise.js';
+import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
@@ -200,10 +201,14 @@ export function skipWithLift(dir){
   if(pendingSkip){ pendingSkip.dir = dir; return; }   // §3 "rapid skips collapse"
   if(dir !== 0 && resolveSkipTarget(dir) === null){ advance(dir, false); return; }
   const t = current();
-  const scale = t ? noiseFloorScale(S.surfaceNoise, trackTier(t)) : 0;
+  // AU9 (docs/16_AUDIO.md §5): the currently-playing record's own rpm,
+  // cached onto S.recordFormat by transport.js's load() — rotationHz() in
+  // place of the old fixed 0.55 * S.rate.
+  const rpm45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);
+  const scale = t ? noiseFloorScale(S.surfaceNoise, trackTier(t), undefined, rpm45) : 0;
   const active = surfaceNoiseActive() && scale > 0;
   const seed = t ? releaseSeed(albumKey(t), sideLetterFor(t, S.index)) : 0;
-  const rateHz = 0.55 * S.rate;
+  const rateHz = rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, S.rate);
   pendingSkip = { dir };
   fadeMusicTo(0, SKIP_FADE_MS);
   if(active){ playNeedleLift(); if(!REDUCED) setPlatterLift(true); }
