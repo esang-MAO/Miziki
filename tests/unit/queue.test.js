@@ -158,7 +158,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 // buffers.js's own real imports — mocked the same way for the same reason
 // (engine.js has a real, non-circular import of main.js/transport.js too).
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext(){} },
+  namedExports: { ensureContext(){}, applyCharacter(){}, applyWobbleRate(){}, applyLoudnessNorm(){}, routeSource(){} },
 });
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
@@ -520,6 +520,22 @@ test('skipWithLift: with Surface Noise active, fades the music out immediately, 
   assert.equal(playSkipDropMock.mock.calls.length, 1);
   assert.equal(S.qpos, 1);   // advanced, same as a plain skip
   assert.deepEqual(fadeMusicToMock.mock.calls[1].arguments, [1, 2]);   // faded back in
+});
+
+// AU9 (docs/16_AUDIO.md §5): rotationHz() in place of the old fixed
+// 0.55 * S.rate -- skipWithLift() reads the currently-playing record's
+// own rpm off S.recordFormat.
+test('skipWithLift: the skip-drop sound follows the record\'s own rpm, not a fixed rate', async () => {
+  const { rotationHz, RPM_33, RPM_45 } = await import('../../src/record-art/format.js');
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 0, index: 0, repeat: 'off', rate: 1, recordFormat: { size: '12"', speed: RPM_33 } });
+  skipWithLift(1);
+  await wait(30);
+  assert.ok(Math.abs(playSkipDropMock.mock.calls[0].arguments[2] - rotationHz(RPM_33, 1)) < 1e-9);
+
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 0, index: 0, repeat: 'off', rate: 1, recordFormat: { size: '7"', speed: RPM_45 } });
+  skipWithLift(1);
+  await wait(30);
+  assert.ok(Math.abs(playSkipDropMock.mock.calls[0].arguments[2] - rotationHz(RPM_45, 1)) < 1e-9);
 });
 
 test('skipWithLift: rapid repeated taps collapse into one lift, landing on only the final direction', async () => {

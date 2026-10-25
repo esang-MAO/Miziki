@@ -58,31 +58,35 @@ const { gatefoldSideSplits, isGatefoldOpen } = await import('../../src/gatefold/
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');
 const { S } = await import('../../src/state.js');
 
-function fakeTrack(disc){ return { tags: { disc } }; }
+function fakeTrack(disc, duration){ return { tags: { disc }, duration }; }
 
-test('gatefoldSideSplits: fewer than 4 tracks never splits', () => {
+// AU9 (docs/16_AUDIO.md §5): splitSides() (shell/ceremony-timing.js) is now
+// time-balanced, not a plain midpoint cut — "one track: a single side, no
+// flip; two tracks: A and B; three or more: balanced by time."
+test('gatefoldSideSplits: a single track never splits', () => {
   S.albumSides = true;
-  assert.equal(gatefoldSideSplits([0, 1, 2]), null);
+  S.tracks = [fakeTrack(1, 300)];
+  assert.equal(gatefoldSideSplits([0]), null);
 });
 
 test('gatefoldSideSplits: S.albumSides off never splits regardless of track count', () => {
   S.albumSides = false;
-  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1));
+  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 600));
   assert.equal(gatefoldSideSplits([0, 1, 2, 3, 4]), null);
 });
 
-test('gatefoldSideSplits: a single disc of 4+ tracks splits at the midpoint', () => {
+test('gatefoldSideSplits: a single disc of equal-length tracks balances by time', () => {
   S.albumSides = true;
-  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1));
+  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 600));
   const sides = gatefoldSideSplits([0, 1, 2, 3, 4]);
   assert.equal(sides.length, 2);
-  assert.deepEqual(sides[0], {label:'SIDE A', idx:[0,1,2]});
-  assert.deepEqual(sides[1], {label:'SIDE B', idx:[3,4]});
+  assert.deepEqual(sides[0], {label:'SIDE A', idx:[0,1]});
+  assert.deepEqual(sides[1], {label:'SIDE B', idx:[2,3,4]});
 });
 
-test('gatefoldSideSplits: multiple discs split by disc, not by midpoint', () => {
+test('gatefoldSideSplits: multiple discs split by disc, not by duration balance', () => {
   S.albumSides = true;
-  S.tracks = [fakeTrack(1), fakeTrack(1), fakeTrack(2), fakeTrack(2), fakeTrack(2)];
+  S.tracks = [fakeTrack(1, 600), fakeTrack(1, 600), fakeTrack(2, 600), fakeTrack(2, 600), fakeTrack(2, 600)];
   const sides = gatefoldSideSplits([0, 1, 2, 3, 4]);
   assert.equal(sides.length, 2);
   assert.deepEqual(sides[0], {label:'SIDE A', idx:[0,1]});

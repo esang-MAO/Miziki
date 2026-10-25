@@ -27,6 +27,9 @@ function rng(seed){
 export const WEAR_LEVEL = 0;
 
 export const LEAD_IN_SEC = 3.0;
+// AU9 (docs/16_AUDIO.md §5): "shorten the lead-in on a 7″ to about 2 s."
+export const SEVEN_INCH_LEAD_IN_SEC = 2.0;
+export function leadInSecFor(size){ return size === '7"' ? SEVEN_INCH_LEAD_IN_SEC : LEAD_IN_SEC; }
 
 function db(x){ return Math.pow(10, x / 20); }
 
@@ -45,12 +48,14 @@ export function releaseSeed(releaseId, side){
 // Well-loved is the louder of the two "on" settings; a cleaner pressing
 // (a higher trackTier(), record-art/tiers.js) gets a quieter floor, never
 // a louder one. wearLevel scales it back up a little once the wear system
-// exists to drive it (currently always 0, so this term is inert).
-export function noiseFloorScale(setting, tier, wearLevel = WEAR_LEVEL){
+// exists to drive it (currently always 0, so this term is inert). AU9
+// (docs/16_AUDIO.md §5): rpm45 scales the floor ×0.8 for a real 45 —
+// "more room on the disc," so less surface noise either way.
+export function noiseFloorScale(setting, tier, wearLevel = WEAR_LEVEL, rpm45 = false){
   if(setting !== 'subtle' && setting !== 'well-loved') return 0;
   const base = setting === 'well-loved' ? 1 : 0.55;
   const tierScale = tier >= 3 ? 0.55 : tier === 2 ? 0.75 : 1;
-  return base * tierScale * (1 + wearLevel * 0.6);
+  return base * tierScale * (1 + wearLevel * 0.6) * (rpm45 ? 0.8 : 1);
 }
 
 export function surfaceNoiseActive(){

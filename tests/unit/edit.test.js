@@ -50,9 +50,27 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
   namedExports: { renderMiniPlayer(){} },
 });
+// AU9 (docs/16_AUDIO.md §5): edit.js's new setAlbumFormatOverride() reaches
+// audio/engine.js (applyWobbleRate/applyCharacter — real engine.js reaches
+// player/background.js -> player/transport.js -> shell/put-away.js, which
+// needs more from shell/mini-player.js than the mock above provides),
+// history/sessions.js (persistAlbumFormat — real sessions.js reaches
+// record-art/looks.js/library/thumbs.js's own wide chains) and
+// shell/ceremony-timing.js (albumFormatFor) -- all three mocked directly,
+// the same "stop the chain at the door" reasoning as every mock above.
+mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
+  namedExports: { applyWobbleRate(){}, applyCharacter(){} },
+});
+const persistAlbumFormatMock = mock.fn();
+mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
+  namedExports: { persistAlbumFormat: persistAlbumFormatMock },
+});
+mock.module(new URL('../../src/shell/ceremony-timing.js', import.meta.url).href, {
+  namedExports: { albumFormatFor(){ return { size:'12"', speed: 33.333 }; } },
+});
 
 const {
-  applyEdit, revertTrack, applyEditWithUndo, undoLastEdit,
+  applyEdit, revertTrack, applyEditWithUndo, undoLastEdit, setAlbumFormatOverride,
 } = await import('../../src/library/edit.js');
 const { S } = await import('../../src/state.js');
 
@@ -283,4 +301,38 @@ test('applyEditWithUndo + undoLastEdit: undo restores the prior genre/year', asy
   assert.equal(t.details.genre, 'First Genre');
   assert.equal(t.details.year, 1990);
   DB.db.close();
+});
+
+// AU9 (docs/16_AUDIO.md §5): the personal per-album speed override, applied
+// immediately on tap rather than deferred to Save.
+test('setAlbumFormatOverride: 33/45 set S.albumFormat[albumId], auto deletes it, and the write is persisted', async () => {
+  resetState({ tracks: [], index: -1, albumFormat: {} });
+  persistAlbumFormatMock.mock.resetCalls();
+
+  setAlbumFormatOverride('Al', '45');
+  assert.equal(S.albumFormat.Al, '45');
+  assert.equal(persistAlbumFormatMock.mock.calls[0].arguments[0], 'Al');
+
+  setAlbumFormatOverride('Al', '33');
+  assert.equal(S.albumFormat.Al, '33');
+
+  setAlbumFormatOverride('Al', 'auto');
+  assert.ok(!('Al' in S.albumFormat));
+});
+
+test('setAlbumFormatOverride: recomputes S.recordFormat live when the edited album is the one currently playing', async () => {
+  const { albumKey } = await import('../../src/record-art/tiers.js');
+  const t = fakeTrack({ id: 't1', tags: { title: 'T', artist: 'A', album: 'Al', albumArtist: 'A', track: 1 } });
+  resetState({ tracks: [t], index: 0, albumFormat: {}, rate: 1, recordFormat: { size:'7"', speed: 45 } });
+
+  setAlbumFormatOverride(albumKey(t), 'auto');
+  assert.deepEqual(S.recordFormat, { size:'12"', speed: 33.333 });   // the mocked albumFormatFor()'s own return
+});
+
+test('setAlbumFormatOverride: leaves S.recordFormat untouched when the edited album is not currently playing', async () => {
+  const t = fakeTrack({ id: 't1', tags: { title: 'T', artist: 'A', album: 'Other Album', albumArtist: 'A', track: 1 } });
+  resetState({ tracks: [t], index: 0, albumFormat: {}, rate: 1, recordFormat: { size:'7"', speed: 45 } });
+
+  setAlbumFormatOverride('al', '45');
+  assert.deepEqual(S.recordFormat, { size:'7"', speed: 45 });
 });

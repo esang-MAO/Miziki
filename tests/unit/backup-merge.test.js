@@ -239,6 +239,29 @@ test('RF17: an unrelated, later change to one field never clobbers an earlier ch
   assert.deepEqual(merged.itemWrites.albumSort, { 'Album X': 'manual' });
 });
 
+// AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
+// same per-key last-write-wins shape as albumLookPref/albumSort, just a
+// brand-new field (never existed pre-RF17, so no upconvertToV3 case).
+test('AU9: albumFormat merges per album key, last write wins, same shape as albumLookPref', () => {
+  const a = toDoc(baseLocal('a', {
+    albumFormat: { 'Album X': '45' },
+    updatedAt: { albumFormat: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumFormat: { 'Album X': '33', 'Album Y': 'auto' },
+    updatedAt: { albumFormat: { 'Album X': { seq: 2, at: 500 }, 'Album Y': { seq: 1, at: 100 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.albumFormat, { 'Album X': '33', 'Album Y': 'auto' });
+});
+
+test('AU9: a doc with no albumFormat field at all (pre-AU9) merges as an empty map, not a throw', () => {
+  const a = toDoc(baseLocal('a'));
+  delete a.itemWrites.albumFormat;
+  const merged = mergeRows([a]);
+  assert.deepEqual(merged.itemWrites.albumFormat, {});
+});
+
 test('RF17: a later change to one key of a map field never clobbers an earlier change to a different key of the same field', () => {
   const a = toDoc(baseLocal('a', {
     albumSort: { 'Album X': 'manual' },

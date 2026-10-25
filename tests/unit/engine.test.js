@@ -41,9 +41,10 @@ mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
 
-const { satCurve, buildGraph, routeSource, applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } = await import('../../src/audio/engine.js');
+const { satCurve, buildGraph, routeSource, applyCharacter, applyWobbleRate, auditionStageAlone, auditionComparePure, releaseAudition } = await import('../../src/audio/engine.js');
 const { S } = await import('../../src/state.js');
 const { makeupGainFor } = await import('../../src/audio/level-match.js');
+const { rotationHz, RPM_33, RPM_45 } = await import('../../src/record-art/format.js');
 
 test('satCurve(0) is an identity curve with trim 1', () => {
   const { curve, trim } = satCurve(0);
@@ -241,6 +242,58 @@ test('applyCharacter: Vinyl with intensity off matches the user\'s own raw slide
   assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
   assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }));
+});
+
+// AU9 (docs/16_AUDIO.md §5): "real 45s get more groove speed and more
+// room on the disc... scale softening ×0.7, saturation ×0.8" — Vinyl
+// only, and only sat/soft (comp/wow untouched).
+test('applyCharacter: a 45 scales softening and saturation down from a 33⅓', async () => {
+  S.mode = 'vinyl';
+  S.charDrift = 'off';
+  S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
+  S.ctx = { currentTime: 0 };
+  S.recordFormat = { size: '12"', speed: RPM_33 };
+  S.nodes = await buildGraph(makeFakeContext());
+  applyCharacter();
+  const toneAt33 = S.nodes.tone.gain.lastTarget;
+  const trimAt33 = S.nodes.satTrim.gain.lastTarget;
+  assert.equal(toneAt33, -9 * 0.40);
+
+  S.recordFormat = { size: '7"', speed: RPM_45 };
+  applyCharacter();
+  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.40 * 0.7)) < EPS, 'softening scaled ×0.7');
+  assert.notEqual(S.nodes.satTrim.gain.lastTarget, trimAt33, 'a different effective sat rebuilds the curve/trim');
+  // comp/wow are untouched by the 45 scale
+  assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
+  assert.equal(S.nodes.wowAmt.gain.lastTarget, 0.00050 * 0.30);
+  S.recordFormat = { size: '12"', speed: RPM_33 }; // leave state as every other test expects it
+});
+
+// AU9: the wow/flutter oscillator's own rotation frequency follows the
+// record's rpm, via the shared rotationHz() helper — not a fixed 0.55.
+test('buildGraph seeds the wow oscillator at the record\'s own rotation frequency', async () => {
+  S.recordFormat = { size: '12"', speed: RPM_33 };
+  S.rate = 1;
+  S.nodes = await buildGraph(makeFakeContext());
+  assert.ok(Math.abs(S.nodes.wowOsc.frequency.value - rotationHz(RPM_33, 1)) < 1e-9);
+
+  S.recordFormat = { size: '7"', speed: RPM_45 };
+  S.nodes = await buildGraph(makeFakeContext());
+  assert.ok(Math.abs(S.nodes.wowOsc.frequency.value - rotationHz(RPM_45, 1)) < 1e-9);
+  S.recordFormat = { size: '12"', speed: RPM_33 };
+});
+
+test('applyWobbleRate: follows the record\'s own rpm at a Sundown rate, within 1%', async () => {
+  S.ctx = { currentTime: 0 };
+  S.nodes = await buildGraph(makeFakeContext());
+  S.recordFormat = { size: '12"', speed: RPM_33 };
+  applyWobbleRate(0.8);
+  assert.ok(Math.abs(S.nodes.wowOsc.frequency.lastTarget - rotationHz(RPM_33, 0.8)) / rotationHz(RPM_33, 0.8) < 0.01);
+
+  S.recordFormat = { size: '7"', speed: RPM_45 };
+  applyWobbleRate(0.8);
+  assert.ok(Math.abs(S.nodes.wowOsc.frequency.lastTarget - rotationHz(RPM_45, 0.8)) / rotationHz(RPM_45, 0.8) < 0.01);
+  S.recordFormat = { size: '12"', speed: RPM_33 };
 });
 
 // RF28 ("what am I hearing"): the press-and-hold audition controls. Each

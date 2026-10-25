@@ -1,8 +1,18 @@
 /* ================= ceremony timing (docs/CEREMONY.md §2-§4) =================
    The numbers and small decisions behind the run-out groove, the side flip
-   and the overlapped record change, kept pure (no DOM, no S, no imports) so
-   they can be unit-tested without a browser. The orchestration that uses
-   them lives in shell/runout.js and shell/start-sequence.js. */
+   and the overlapped record change, kept pure (no DOM, no S) so they can
+   be unit-tested without a browser. The orchestration that uses them lives
+   in shell/runout.js and shell/start-sequence.js.
+
+   AU9 (docs/16_AUDIO.md §5) replaced splitSides()'s old track-count
+   midpoint split with the time-balanced one record-art/format.js's
+   bestSideCut() computes, and added sideLengthsFor()/albumFormatFor() --
+   the record's own side lengths and format are computed independent of
+   whether Album sides itself is on ("the format... is computed whether or
+   not the Sides setting is on. With Sides off, there are simply no
+   flips."), so this file keeps its one real import from that still-pure
+   leaf module rather than duplicating the split math a second time. */
+import { bestSideCut, sideLengthsFromDurations, albumRecordFormat } from '../record-art/format.js';
 
 // §4, change records. Milliseconds from the moment the next record is asked
 // for. The outgoing sleeve's own exit and the incoming sleeve's arrival
@@ -46,20 +56,45 @@ export function grooveThumpTimes(durSec, period = GROOVE.thumpEverySec){
   return out;
 }
 
-// The album's sides, as the gatefold shows them: one per disc when the album
-// has several, otherwise the track list split at its midpoint. Null when
-// sides are turned off or the album is too short to have two.
+// The album's sides, as the gatefold shows them: one per disc when the
+// album has several (today's own kept-as-is behavior), otherwise the two
+// sides bestSideCut() balances by time -- "one track: a single side, no
+// flip. Two tracks: A and B. Three or more: balanced by time." Null when
+// sides are turned off or there's only one track to show.
 // trackIdx: the album's track indices in play order; tracks: S.tracks.
 export function splitSides(trackIdx, tracks, enabled){
-  if(!enabled || !trackIdx || trackIdx.length < 4) return null;
+  if(!enabled || !trackIdx || trackIdx.length < 2) return null;
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
   const discs = [...new Set(trackIdx.map(discOf))];
   if(discs.length > 1){
     return discs.map((d, k) => ({label:'SIDE ' + String.fromCharCode(65 + k),
       idx: trackIdx.filter(i => discOf(i) === d)}));
   }
-  const mid = Math.ceil(trackIdx.length / 2);
-  return [{label:'SIDE A', idx: trackIdx.slice(0, mid)}, {label:'SIDE B', idx: trackIdx.slice(mid)}];
+  const durOf = i => (tracks[i] && tracks[i].duration) || 0;
+  const cut = bestSideCut(trackIdx.map(durOf));
+  return [{label:'SIDE A', idx: trackIdx.slice(0, cut)}, {label:'SIDE B', idx: trackIdx.slice(cut)}];
+}
+
+// The record's own side lengths (seconds), independent of S.albumSides --
+// one per disc for a multi-disc album (today's kept-as-is rule), otherwise
+// sideLengthsFromDurations()'s time-balanced split. The one input
+// albumFormatFor() needs to find "the longest side" from.
+export function sideLengthsFor(trackIdx, tracks){
+  if(!trackIdx || !trackIdx.length) return [0];
+  const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
+  const discs = [...new Set(trackIdx.map(discOf))];
+  const durOf = i => (tracks[i] && tracks[i].duration) || 0;
+  if(discs.length > 1){
+    return discs.map(d => trackIdx.filter(i => discOf(i) === d).reduce((s, i) => s + durOf(i), 0));
+  }
+  return sideLengthsFromDurations(trackIdx.map(durOf));
+}
+
+// The record's own format (size/speed) -- §5's table applied to the
+// longest of sideLengthsFor()'s own side lengths, or the personal
+// Auto/33⅓/45 override when one's set for this album.
+export function albumFormatFor(trackIdx, tracks, override){
+  return albumRecordFormat(sideLengthsFor(trackIdx, tracks), override);
 }
 
 // A flip happens only when the record moves from the last track of one side

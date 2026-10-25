@@ -9,6 +9,7 @@ import {
   skipDropHissSamples, playSkipDrop, fadeMusicTo,
   SKIP_DROP_HISS_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
   crinkleBurstSamples, playCrinkleBurst,
+  LEAD_IN_SEC, SEVEN_INCH_LEAD_IN_SEC, leadInSecFor,
 } from '../../src/audio/surface-noise.js';
 import { S } from '../../src/state.js';
 
@@ -26,6 +27,22 @@ test('noiseFloorScale: Off is always silent; Well-loved is louder than Subtle; a
   assert.ok(noiseFloorScale('well-loved', 1) > noiseFloorScale('subtle', 1));
   assert.ok(noiseFloorScale('subtle', 3) < noiseFloorScale('subtle', 1));
   assert.ok(noiseFloorScale('well-loved', 3) <= noiseFloorScale('well-loved', 1));
+});
+
+// AU9 (docs/16_AUDIO.md §5): "cleaner in Vinyl for 45s" -- the surface-noise
+// floor scales ×0.8, and the lead-in is shorter.
+test('noiseFloorScale: a 45 is quieter than a 33⅓ by exactly ×0.8, default unchanged', () => {
+  const at33 = noiseFloorScale('subtle', 1);
+  const at45 = noiseFloorScale('subtle', 1, undefined, true);
+  assert.ok(Math.abs(at45 - at33 * 0.8) < 1e-9);
+  assert.equal(noiseFloorScale('subtle', 1, undefined, false), at33, 'false is the same as omitting the argument');
+  assert.equal(noiseFloorScale('off', 1, undefined, true), 0, 'still silent when Off, regardless of rpm');
+});
+
+test('leadInSecFor: a 7" gets the shorter lead-in, a 12" keeps the original', () => {
+  assert.equal(leadInSecFor('7"'), SEVEN_INCH_LEAD_IN_SEC);
+  assert.equal(leadInSecFor('12"'), LEAD_IN_SEC);
+  assert.ok(SEVEN_INCH_LEAD_IN_SEC < LEAD_IN_SEC);
 });
 
 test('hiss/crackle/pop samples are as long as asked, and silent for zero duration', () => {

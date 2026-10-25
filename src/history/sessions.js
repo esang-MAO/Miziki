@@ -54,6 +54,12 @@ export async function persistAlbumLookPref(keys){
   await meta.put('albumLookPref', S.albumLookPref);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumLookPref', k));
 }
+// AU9 (docs/16_AUDIO.md §5): the personal per-album format override
+// (Auto/33⅓/45) — same per-key-stamp shape as persistAlbumLookPref above.
+export async function persistAlbumFormat(keys){
+  await meta.put('albumFormat', S.albumFormat);
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumFormat', k));
+}
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 
 function startSession(albumId){
@@ -200,6 +206,9 @@ export async function restoreSessions(){
   if(phaseCountsByDay) S.phasePlayCountsByDay = phaseCountsByDay;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
+  // AU9 (docs/16_AUDIO.md §5)
+  const albumFormatPref = await meta.get('albumFormat');
+  if(albumFormatPref) S.albumFormat = albumFormatPref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
   const trackLast = await meta.get('trackLastPlayed');

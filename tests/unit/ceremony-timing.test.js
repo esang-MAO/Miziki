@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHANGE_TIMELINE, GROOVE, FLIP, changeLandsAt, grooveThumpTimes, splitSides, sideTurn,
-  WAIT_TIMEOUT_MS, runoutWaitMs,
+  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor,
 } from '../../src/shell/ceremony-timing.js';
 
 test('the change timeline: new sleeve arrives at 1200 ms over 700 ms, landing at 1900 ms', () => {
@@ -42,18 +42,43 @@ test('grooveThumpTimes: one per revolution, starting half a revolution in', () =
 });
 
 const tracks = n => Array.from({length:n}, () => ({tags:{}}));
+const durTracks = durs => durs.map(d => ({tags:{}, duration:d}));
 
-test('splitSides: off, or fewer than 4 tracks, means no sides', () => {
+// AU9 (docs/16_AUDIO.md §5): "one track: a single side, no flip. Two
+// tracks: A and B. Three or more: balanced by time."
+test('splitSides: off, or a single track, means no sides', () => {
   assert.equal(splitSides([0,1,2,3], tracks(4), false), null);
-  assert.equal(splitSides([0,1,2], tracks(3), true), null);
+  assert.equal(splitSides([0], tracks(1), true), null);
   assert.equal(splitSides(null, tracks(0), true), null);
 });
 
-test('splitSides: one disc splits at the midpoint, the extra track on side A', () => {
-  const s = splitSides([0,1,2,3,4], tracks(5), true);
+test('splitSides: two tracks are always A and B, regardless of length', () => {
+  const s = splitSides([0,1], durTracks([600, 60]), true);
   assert.deepEqual(s.map(x => x.label), ['SIDE A', 'SIDE B']);
-  assert.deepEqual(s[0].idx, [0,1,2]);
-  assert.deepEqual(s[1].idx, [3,4]);
+  assert.deepEqual(s[0].idx, [0]);
+  assert.deepEqual(s[1].idx, [1]);
+});
+
+test('splitSides: three or more tracks balance by time, keeping order', () => {
+  // k=1: |100-400|=300; k=2: |200-300|=100 -- best cut at k=2
+  const s = splitSides([0,1,2], durTracks([100, 100, 300]), true);
+  assert.deepEqual(s[0].idx, [0,1]);
+  assert.deepEqual(s[1].idx, [2]);
+});
+
+test('splitSides: a very uneven track still finds the closest balance', () => {
+  // k=1:|10-520|=510; k=2:|510-20|=490; k=3:|520-10|=510 -- best at k=2
+  const s = splitSides([0,1,2,3], durTracks([10, 500, 10, 10]), true);
+  assert.deepEqual(s[0].idx, [0,1]);
+  assert.deepEqual(s[1].idx, [2,3]);
+});
+
+test('splitSides: an exact tie keeps the earlier cut, deterministically', () => {
+  // five equal-length tracks: k=2 and k=3 both give a diff of 1 unit --
+  // the first one found (k=2) wins.
+  const s = splitSides([0,1,2,3,4], durTracks([600,600,600,600,600]), true);
+  assert.deepEqual(s[0].idx, [0,1]);
+  assert.deepEqual(s[1].idx, [2,3,4]);
 });
 
 test('splitSides: several discs give one side per disc', () => {
@@ -64,7 +89,7 @@ test('splitSides: several discs give one side per disc', () => {
 });
 
 test('sideTurn: only the last track of a side onto the first of the next', () => {
-  const s = splitSides([0,1,2,3], tracks(4), true);
+  const s = splitSides([0,1,2,3], durTracks([600,600,600,600]), true);
   assert.deepEqual(sideTurn(s, 1, 2), {from:'A', to:'B'});
   assert.equal(sideTurn(s, 0, 1), null);
   assert.equal(sideTurn(s, 1, 3), null);
@@ -76,6 +101,33 @@ test('sideTurn: B to C on a three-disc album', () => {
   const t = [1,1,2,2,3,3].map(d => ({tags:{disc:d}}));
   const s = splitSides([0,1,2,3,4,5], t, true);
   assert.deepEqual(sideTurn(s, 3, 4), {from:'B', to:'C'});
+});
+
+// AU9 (docs/16_AUDIO.md §5): the format table applies "whether or not the
+// Sides setting is on" -- sideLengthsFor()/albumFormatFor() never take an
+// enabled flag at all.
+test('sideLengthsFor: a single track is one side, no split', () => {
+  assert.deepEqual(sideLengthsFor([0], durTracks([200])), [200]);
+});
+
+test('sideLengthsFor: several discs give one side length per disc', () => {
+  const t = [1,1,2].map((d, i) => ({tags:{disc:d}, duration: [100,200,50][i]}));
+  assert.deepEqual(sideLengthsFor([0,1,2], t), [300, 50]);
+});
+
+test('sideLengthsFor: a single disc balances by time', () => {
+  assert.deepEqual(sideLengthsFor([0,1,2], durTracks([100,100,300])), [200, 300]);
+});
+
+test('albumFormatFor: a 7-minute single side reads as a 7" at 45', () => {
+  assert.deepEqual(albumFormatFor([0], durTracks([400]), 'auto'), { size: '7"', speed: 45 });
+});
+
+test('albumFormatFor: a long LP side reads as a 12" at 33⅓, override skips that', () => {
+  const trackIdx = [0], t = durTracks([20 * 60]);
+  assert.deepEqual(albumFormatFor(trackIdx, t, 'auto').speed, 33.333);
+  assert.deepEqual(albumFormatFor(trackIdx, t, '45'), { size: '12"', speed: 45 });
+  assert.deepEqual(albumFormatFor(trackIdx, t, '33'), { size: '12"', speed: 33.333 });
 });
 
 // docs/15_SURFACE_NOISE.md §4, Auto-flip Off: how long the record waits
