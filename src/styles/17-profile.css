@@ -101,6 +101,15 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .settings-link-right{display:flex;align-items:center;gap:8px}
 .settings-link-value{font-size:var(--fs-caption);color:var(--muted)}
 
+/* AU7 (docs/16_AUDIO.md §6): the Balance row's own slider + live readout,
+   inside a #playbackSettings .row -- a fixed-width sibling to .k so a
+   full-width <input type=range> (16-edit-sheet.css's own generic rule)
+   doesn't blow out the row the way it would as a bare flex child. */
+.settings-slider{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 160px;max-width:160px}
+.settings-slider input[type=range]{flex:1 1 auto;width:auto}
+.settings-slider-val{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
+  color:var(--muted);flex:0 0 auto;min-width:50px;text-align:right}
+
 /* DA5 (docs/DAY_ARC.md, docs/design/day-arc/README.md "Listening
    rhythm"): the profile-home card — a 7-wedge phase ring (a plain CSS
    conic-gradient, see src/profile/rhythm-card.js's own comment on why

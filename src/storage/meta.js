@@ -3,7 +3,7 @@ import { $ } from '../util/dom.js';
 import { storage, meta } from './repo.js';
 import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
-import { applyCharacter, applyLoudnessNorm, applyEQ } from '../audio/engine.js';
+import { applyCharacter, applyLoudnessNorm, applyEQ, applyMonoBalance, applyDeviceVolume, balanceCaptionFor } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
 import { depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
 import { loudnessCaptionFor } from '../audio/loudness.js';
@@ -227,6 +227,16 @@ function applyPrefs(p){
   // opened, straight from S.eq, so there's no [data-*] aria-pressed sync
   // to do here the way loudnessMode's own simple button row needs.
   if(p.eq && typeof p.eq === 'object') Object.assign(S.eq, p.eq);
+  // AU7 (docs/16_AUDIO.md §6): same inline [data-*]/slider-value sync shape
+  // as loudnessMode above — no dedicated UI side effect beyond reflecting
+  // the restored value onto whichever control is currently in the DOM.
+  if(typeof p.mono === 'boolean') S.mono = p.mono;
+  { const b = $('#monoBtn'); if(b){ b.textContent = S.mono ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.mono)); } }
+  if(typeof p.balance === 'number') S.balance = p.balance;
+  { const s = $('#balanceSlider'); if(s) s.value = String(S.balance);
+    const d = $('#balanceDesc'); if(d) d.textContent = balanceCaptionFor(S.balance); }
+  if(typeof p.deviceVolume === 'number') S.deviceVolume = p.deviceVolume;
+  { const s = $('#barVolume'); if(s) s.value = String(S.deviceVolume); }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
@@ -245,4 +255,6 @@ function applyPrefs(p){
   applyVolume();
   applyLoudnessNorm();
   applyEQ();
+  applyMonoBalance();
+  applyDeviceVolume();
 }

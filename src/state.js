@@ -63,6 +63,19 @@ export const S = {
     graphicBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {},
   },
+  // AU7 (docs/16_AUDIO.md §6): "a Mono switch that sends (L+R)/2 to both
+  // sides, and a constant-power L/R balance" — both apply in the shared
+  // output stage (audio/engine.js's applyMonoBalance()), after the EQ
+  // bands and before the limiter, regardless of Pure or Vinyl. A missing
+  // saved value means off/centered, the same "missing means the stated
+  // default" shape loudnessMode/eq already established.
+  mono: false, balance: 0,
+  // AU7 §6: "Volume slider on desktop only, after the limiter, saved per
+  // device. Phones keep the system volume." Device-only like S.theme
+  // (stripped from the uploaded copy of prefs, sync/backup.js's own
+  // buildLocalState()) — a desktop volume choice has no reason to follow
+  // the account to a phone, which never shows the control at all.
+  deviceVolume: 1,
   // scratch: true means spin-to-scrub plays real audio while spinning the
   // disc by hand in Vinyl (F2) — a missing saved value must mean On, so the
   // default here is what back-fills prefs saved before this field existed

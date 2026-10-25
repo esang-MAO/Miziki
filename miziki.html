@@ -359,6 +359,25 @@
         </div>
       </div>
 
+      <!-- AU7 (docs/16_AUDIO.md §6): "a Mono switch that sends (L+R)/2 to
+           both sides, and a constant-power L/R balance" — applies in the
+           shared output stage in both Pure and Vinyl (audio/engine.js's
+           applyMonoBalance()). Same On/Off .seg shape as Scratch/Sleeve
+           Pull above; the slider mutates S.balance directly on 'input',
+           the same "no full re-render mid-drag" shape the EQ sheet's own
+           sliders already use (see src/wiring/character.js). -->
+      <div class="row">
+        <div class="k">Mono<em>Sends the same mix to both speakers or earbuds.</em> <details class="sd-info"><summary aria-label="More about Mono">(i)</summary>Helps one-earbud listening and hearing in one ear — a record mixed in stereo only sounds complete to a centered listener anyway.</details></div>
+        <div class="seg"><button id="monoBtn" aria-pressed="false">Off</button></div>
+      </div>
+      <div class="row">
+        <div class="k">Balance<em>Left/right, with a center tick.</em></div>
+        <div class="settings-slider">
+          <input type="range" id="balanceSlider" min="-1" max="1" step="0.05" value="0" aria-label="Left/right balance">
+          <span class="settings-slider-val" id="balanceDesc">Center</span>
+        </div>
+      </div>
+
       <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. <details class="sd-info"><summary aria-label="More about wireless output">(i)</summary>Wired or built-in playback preserves the file's full resolution.</details></p>
       </div>
     </div>
@@ -430,6 +449,13 @@
       <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
     </button>
   </div>
+  <!-- AU7 (docs/16_AUDIO.md §6): "Volume slider on desktop only, after
+       the limiter, saved per device. Phones keep the system volume." A
+       new id, same rule as every other D4 bar control above — wired to
+       the real audio/engine.js node (applyDeviceVolume()), not a clone
+       of anything. display:none below 1024px (src/styles/08-shell.css),
+       same as .mini-bar-btn/.mini-bar-seek/.mini-bar-modes. -->
+  <input class="mini-bar-volume" id="barVolume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
 </div>
 
 <!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible

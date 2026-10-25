@@ -8,7 +8,7 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { bgPrime } from '../player/background.js';
-import { ensureContext } from '../audio/engine.js';
+import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
 import { pause, play, seek } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { setMode } from '../audio/mode.js';
@@ -72,6 +72,17 @@ export function wireTransport(){
     const t = current(); if(t) seek((t.duration || 0) * e.target.value/1000);
   });
   $('#barModeToggle').addEventListener('click', ()=>{ setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
+
+  // AU7 (docs/16_AUDIO.md §6): "Volume slider on desktop only, after the
+  // limiter, saved per device." Mutates S.deviceVolume directly on
+  // 'input' the same "no full re-render mid-drag" shape #balanceSlider
+  // (wiring/character.js) and the EQ sheet's own sliders already use.
+  $('#barVolume').addEventListener('input', e => {
+    S.deviceVolume = parseFloat(e.target.value);
+    if(Number.isNaN(S.deviceVolume)) S.deviceVolume = 1;
+    applyDeviceVolume();
+  });
+  $('#barVolume').addEventListener('change', queueSave);
 
   $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));

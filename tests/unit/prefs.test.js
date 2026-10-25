@@ -19,6 +19,7 @@ function fakeS(overrides = {}){
     autoFlip: true,
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
+    mono: false, balance: 0, deviceVolume: 1,
   }, overrides);
 }
 
@@ -40,6 +41,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     autoFlip: S.autoFlip,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
+    mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
   });
 });
 
@@ -379,4 +381,34 @@ test('bad values in eq are clamped or dropped, never left to throw or escape the
 test('an eq value that is not an object at all is simply left out', () => {
   const parsed = parsePrefs({ eq: 'nope' });
   assert.equal('eq' in parsed, false);
+});
+
+// AU7 (docs/16_AUDIO.md §6): mono/balance/deviceVolume round-trip, old-data
+// default and bad-value coverage, the same three-test shape loudnessMode's
+// own entries above already establish.
+test('round trip: mono/balance/deviceVolume survive non-default values', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ mono: true, balance: -0.6, deviceVolume: 0.4 })));
+  assert.equal(parsed.mono, true);
+  assert.equal(parsed.balance, -0.6);
+  assert.equal(parsed.deviceVolume, 0.4);
+});
+
+test('old saved data: no mono/balance/deviceVolume fields at all leave them out, so the defaults (off, centered, full) stay in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.mono; delete raw.balance; delete raw.deviceVolume;
+  const parsed = parsePrefs(raw);
+  assert.equal('mono' in parsed, false);
+  assert.equal('balance' in parsed, false);
+  assert.equal('deviceVolume' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean mono, an out-of-range balance/deviceVolume', () => {
+  const parsed = parsePrefs({ mono: 'yes', balance: 5, deviceVolume: -2 });
+  assert.equal('mono' in parsed, false);
+  // balance/deviceVolume are clamped rather than dropped, the same
+  // defensive posture engine.js's own clampBalance/clampDeviceVolume use —
+  // a malformed-but-numeric saved value can never read back as something
+  // the UI itself could never reach.
+  assert.equal(parsed.balance, 1);
+  assert.equal(parsed.deviceVolume, 0);
 });

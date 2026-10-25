@@ -19,6 +19,26 @@ import {
 const RPM_33 = 33.333;
 const wowHzFor = rate => (RPM_33 / 60) * (rate || 1);
 
+// AU7 (docs/16_AUDIO.md §6): balance is a plain -1..1 (full left .. full
+// right); deviceVolume is a plain 0..1 — both clamped the same defensive
+// way every other saved numeric setting in this file's own chain is
+// (clampTiltDb/clampPreampDb, eq.js), so a malformed or out-of-range saved
+// value can never read back as something the UI itself could never reach.
+const clampBalance = v => Math.max(-1, Math.min(1, typeof v === 'number' ? v : 0));
+const clampDeviceVolume = v => Math.max(0, Math.min(1, typeof v === 'number' ? v : 1));
+
+// The one caption both the Settings → Playback slider's own 'input'
+// handler (src/wiring/character.js) and this module's restore-time sync
+// (src/storage/meta.js's applyPrefs()) read, the same "one pure mapping,
+// two callers" shape sundown/solar.js's depthCaptionFor already
+// established for Sundown's own depth seg.
+export function balanceCaptionFor(balance){
+  const b = clampBalance(balance);
+  if(Math.abs(b) < 0.02) return 'Center';
+  const pct = Math.round(Math.abs(b) * 100);
+  return (b < 0 ? 'L ' : 'R ') + pct + '%';
+}
+
 // AU3 §2.3: "a -3dB pad in front of the Vinyl chain, made up after the
 // compressor" — a fixed linear gain, never touched by applyCharacter().
 const PAD_DB = -3;
@@ -60,7 +80,8 @@ export function makeContext(){
 // inserted between master and limiter once they exist — n.out is the one
 // stable attachment point applyOutputRoute() needs, so none of those
 // future insertions will ever require retargeting background routing
-// again. Async because loading the limiter's AudioWorklet module is.
+// again (AU7 fills in the last two: mono-balance and volume). Async
+// because loading the limiter's AudioWorklet module is.
 export async function buildGraph(ctx){
   const n = {};
   // mechanical: platter wobble as modulated delay -> real pitch variation
@@ -151,6 +172,39 @@ export async function buildGraph(ctx){
     n.eqScratch.parametric.push(f);
   }
 
+  // AU7 (docs/16_AUDIO.md §6): "master -> norm -> preamp -> EQ bands ->
+  // mono/balance -> limiter -> volume -> out" — the mono-balance slot §1
+  // left for this PR. StereoPannerNode already does constant-power L/R
+  // balance on a stereo signal natively, so there's nothing to build for
+  // that half. Mono is a crossfade between two always-wired paths — a
+  // "direct" pair (each channel straight to its own output) and a "sum"
+  // pair (each channel split 50/50 into both outputs, i.e. (L+R)/2) —
+  // rather than a dynamic reconnect, the same "flat when inactive" shape
+  // AU6's own EQ bands already established: mono off leaves the direct
+  // gains at 1 and the sum gains at 0, which is a plain, inert passthrough.
+  n.balance = ctx.createStereoPanner(); n.balance.pan.value = 0;
+  n.monoSplit = ctx.createChannelSplitter(2);
+  n.monoMerge = ctx.createChannelMerger(2);
+  n.monoDirL = ctx.createGain(); n.monoDirL.gain.value = 1;
+  n.monoDirR = ctx.createGain(); n.monoDirR.gain.value = 1;
+  n.monoSumL = ctx.createGain(); n.monoSumL.gain.value = 0;
+  n.monoSumR = ctx.createGain(); n.monoSumR.gain.value = 0;
+  n.monoSplit.connect(n.monoDirL, 0);
+  n.monoSplit.connect(n.monoSumL, 0);
+  n.monoSplit.connect(n.monoDirR, 1);
+  n.monoSplit.connect(n.monoSumR, 1);
+  n.monoDirL.connect(n.monoMerge, 0, 0);
+  n.monoDirR.connect(n.monoMerge, 0, 1);
+  n.monoSumL.connect(n.monoMerge, 0, 0);
+  n.monoSumL.connect(n.monoMerge, 0, 1);
+  n.monoSumR.connect(n.monoMerge, 0, 0);
+  n.monoSumR.connect(n.monoMerge, 0, 1);
+
+  // AU7 §6: "Volume slider on desktop only, after the limiter... Phones
+  // keep the system volume." One plain gain node, always wired — the
+  // phone simply never shows a control that would ever move it off 1.
+  n.deviceVolume = ctx.createGain(); n.deviceVolume.gain.value = 1;
+
   n.limiter = null;
   if(await ensureLimiterModule(ctx)){
     try{
@@ -163,10 +217,36 @@ export async function buildGraph(ctx){
   n.out = ctx.createGain(); n.out.gain.value = 1;
   n.master.connect(n.norm);
   n.norm.connect(n.eqPreamp);
-  if(n.limiter) n.eqTail.connect(n.limiter).connect(n.out);
-  else n.eqTail.connect(n.out);
+  n.eqTail.connect(n.balance);
+  n.balance.connect(n.monoSplit);
+  if(n.limiter) n.monoMerge.connect(n.limiter).connect(n.deviceVolume).connect(n.out);
+  else n.monoMerge.connect(n.deviceVolume).connect(n.out);
   n.out.connect(ctx.destination);
   return n;
+}
+
+// AU7 (docs/16_AUDIO.md §6): the one function that ever writes
+// n.balance/n.monoDirL/n.monoDirR/n.monoSumL/n.monoSumR, exactly the same
+// "ramp, never a bare .value=" convention applyCharacter()/applyLoudness
+// Norm()/applyEQ() already use.
+export function applyMonoBalance(ramp = 0.05){
+  if(!S.nodes) return;
+  const n = S.nodes, now = S.ctx.currentTime;
+  n.balance.pan.setTargetAtTime(clampBalance(S.balance), now, ramp);
+  const mono = !!S.mono;
+  n.monoDirL.gain.setTargetAtTime(mono ? 0 : 1, now, ramp);
+  n.monoDirR.gain.setTargetAtTime(mono ? 0 : 1, now, ramp);
+  n.monoSumL.gain.setTargetAtTime(mono ? 0.5 : 0, now, ramp);
+  n.monoSumR.gain.setTargetAtTime(mono ? 0.5 : 0, now, ramp);
+}
+
+// AU7 §6: the desktop-only volume slider's own setter — after the
+// limiter, so turning it down never changes how hard the limiter works
+// (§1). A phone never shows the control that would move S.deviceVolume
+// off its default (1), so this needs no platform check of its own.
+export function applyDeviceVolume(ramp = 0.05){
+  if(!S.nodes) return;
+  S.nodes.deviceVolume.gain.setTargetAtTime(clampDeviceVolume(S.deviceVolume), S.ctx.currentTime, ramp);
 }
 
 export function satCurve(amount){
@@ -511,6 +591,8 @@ export async function ensureContext(){
   applyVolume();
   applyLoudnessNorm();
   applyEQ();
+  applyMonoBalance();
+  applyDeviceVolume();
   applyOutputRoute();
   await S.ctx.resume();
 }

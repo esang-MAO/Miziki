@@ -196,9 +196,14 @@ function buildLocalState(){
     // existing last-write-wins sync.
     // CEREMONY §6: the slipmat flags are device-only too, since the image
     // they point at never leaves this device.
+    // AU7 (docs/16_AUDIO.md §6): deviceVolume is device-only too — a
+    // desktop volume choice has no reason to follow the account to a
+    // phone, which never shows the control at all. mono/balance are
+    // ordinary, synced prefs (not stripped here).
     prefs: (() => {
       const p = serializePrefs(S);
       delete p.theme; delete p.slipmatCustom; delete p.slipmatWordmark; delete p.slipmatDim;
+      delete p.deviceVolume;
       return p;
     })(),
     profileName: S.profile.name || '',
