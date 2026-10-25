@@ -3,9 +3,10 @@
    section's advance()/preloadNextTrack() — see CLAUDE.md. The rest of the
    "visible queue" section (queueInsert/playNext/addToQueue, queueRemoveAt,
    queueMove, the queue-sheet UI) moved in here too, in step 5e. */
-import { S, current } from '../state.js';
+import { S, current, touchBackupKey } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { albumKey, trackTier } from '../record-art/tiers.js';
+import { albumKey, trackTier, trackIdentityKey } from '../record-art/tiers.js';
+import { idOf } from '../library/model.js';
 import { sleepStopPlayback } from './sleep-timer.js';
 import { load, play, pause, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
 import { drawTime } from './clock.js';
@@ -16,6 +17,7 @@ import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { endOfQueue, maybeSideFlip } from '../shell/runout.js';
 import { openLayer } from '../shell/nav-stack.js';
 import { REDUCED } from '../util/motion.js';
+import { queueSave } from '../storage/meta.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
   playNeedleLift, playSkipDrop, fadeMusicTo,
@@ -216,6 +218,93 @@ export function skipWithLift(dir){
   }, liftMs);
 }
 
+/* ================= AU8 (docs/16_AUDIO.md §6): queue undo =================
+   One snapshot slot, taken right before "Clear upcoming" or removing a
+   single row, so Undo can restore {baseQueue, queue, qpos} verbatim.
+   Neither operation ever touches an index <= S.qpos, so restoring the
+   snapshot never needs to reload() the current track -- the one playing
+   stays exactly as it was throughout. A session invalidated by the
+   removal (invalidateActiveSessionIfAny(), called at the same point
+   queueRemoveAt/clearUpcoming already did before this step) stays
+   invalidated even after Undo -- same documented asymmetry as RF1's own
+   "offline plays after a remote clear" gap: undoing the *queue* arrangement
+   is a convenience, not a time machine for session tracking. */
+function queueUndoSnapshot(){
+  S.queueUndo = { baseQueue: S.baseQueue.slice(), queue: S.queue.slice(), qpos: S.qpos };
+}
+function showQueueUndo(message){
+  const toast = $('#queueUndoToast'); if(!toast) return;
+  $('#queueUndoText').textContent = message;
+  toast.style.display = 'flex';
+  clearTimeout(S.queueUndoTimer);
+  S.queueUndoTimer = setTimeout(hideQueueUndo, 8000);
+}
+function hideQueueUndo(){
+  const toast = $('#queueUndoToast'); if(toast) toast.style.display = 'none';
+  S.queueUndo = null;
+}
+export function undoQueueChange(){
+  const snap = S.queueUndo; if(!snap) return;
+  S.baseQueue = snap.baseQueue; S.queue = snap.queue; S.qpos = snap.qpos;
+  hideQueueUndo();
+  renderQueueSheet(queueSheetHost);
+}
+
+// a small, local relative-time formatter rather than importing
+// profile/storefront.js's own timeAgoShort() -- that module sits inside a
+// wide, already-circular profile/social import cluster, and this file is
+// imported far too widely (transport.js, controls.js, main.js's own boot
+// sequence) to be worth adding an edge into it for one string formatter.
+// Same "duplicate rather than add an edge" call CLAUDE.md documents for
+// sync/images.js's own cropSquareStepped().
+function queueRelativeTime(ms){
+  const s = Math.max(0, Math.round(ms / 1000));
+  if(s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if(m < 60) return m + ' min' + (m === 1 ? '' : 's') + ' ago';
+  const h = Math.round(m / 60);
+  if(h < 24) return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+  const d = Math.round(h / 24);
+  return d + ' day' + (d === 1 ? '' : 's') + ' ago';
+}
+
+// §6: "Save queue as playlist" -- the whole current queue (already-played
+// portion included), in its current (possibly shuffled) order, deduplicated
+// by id the same way a playlist's own items array always is. window.prompt()
+// is an established pattern in this codebase (player/eq-sheet.js's own
+// "Save preset"), not a new one introduced here.
+export function saveQueueAsPlaylist(){
+  if(!S.queue.length) return;
+  const nm = (window.prompt('Name this playlist') || '').trim();
+  if(!nm) return;
+  const seen = new Set();
+  const items = [];
+  S.queue.forEach(idx => {
+    const id = idOf(idx); if(id === null || seen.has(id)) return;
+    seen.add(id); items.push(id);
+  });
+  S.playlists.push({ name: nm, items });
+  queueSave();
+  touchBackupKey('playlistDefs', nm);
+  touchBackupKey('playlistOrder', nm);
+}
+
+// §6: "Clear upcoming" -- truncates both the visible S.queue and the
+// shuffle-source S.baseQueue to just what's already played plus the
+// current track, so a later shuffle toggle can't resurrect what was just
+// cleared. Mirrors queueRemoveAt's own invalidate/cancel-gapless pair.
+export function clearUpcoming(){
+  if(S.qpos >= S.queue.length - 1) return;   // nothing upcoming to clear
+  invalidateActiveSessionIfAny();
+  cancelPendingGapless();
+  queueUndoSnapshot();
+  const removed = new Set(S.queue.slice(S.qpos + 1));
+  S.queue = S.queue.slice(0, S.qpos + 1);
+  S.baseQueue = S.baseQueue.filter(idx => !removed.has(idx));
+  showQueueUndo(removed.size === 1 ? '1 track removed from the queue.' : removed.size + ' tracks removed from the queue.');
+  renderQueueSheet(queueSheetHost);
+}
+
 /* ================= visible queue: reorder, remove, play next / add =================
    Shows the current track plus everything after it. Reordering or removing
    is manual queue manipulation, same as shuffle/skip, so it silently
@@ -237,24 +326,42 @@ export function addToQueue(idx){ queueInsert(idx, 'end'); }
 
 // pos is an offset into the "upcoming" portion (0 = the track right after
 // current) — the current track itself is shown but never removable here,
-// that's what skip is for
-function queueRemoveAt(pos){
+// that's what skip is for. AU8: also drops the index from S.baseQueue (not
+// just S.queue), the same "a later shuffle toggle can't resurrect it" fix
+// clearUpcoming() needs for the same reason — and snapshots for Undo,
+// same shared toast clearUpcoming() uses.
+// exported for its own unit test, same precedent as angleDelta in scrub.js --
+// the real UI only ever reaches this through the ✕ button renderQueueSheet()
+// wires per row.
+export function queueRemoveAt(pos){
   const queueIdx = S.qpos + 1 + pos;
   if(queueIdx <= S.qpos || queueIdx >= S.queue.length) return;
   invalidateActiveSessionIfAny();
   cancelPendingGapless();   // AU4: a queue edit invalidates whatever was pre-armed
+  queueUndoSnapshot();
+  const removedIdx = S.queue[queueIdx];
+  const removedTitle = (S.tracks[removedIdx] && S.tracks[removedIdx].tags.title) || 'Track';
   S.queue.splice(queueIdx, 1);
+  S.baseQueue = S.baseQueue.filter(idx => idx !== removedIdx);
+  showQueueUndo('Removed "' + removedTitle + '" from the queue.');
   renderQueueSheet(queueSheetHost);
 }
-function queueMove(pos, dir){
-  const queueIdx = S.qpos + 1 + pos;
-  const n = queueIdx + dir;
-  if(queueIdx <= S.qpos || queueIdx >= S.queue.length || n <= S.qpos || n >= S.queue.length) return;
+// AU8: generalizes the old adjacent-swap queueMove() so a drag can jump
+// more than one slot at once — queueMove(pos, dir) is kept as the ▲▼
+// VoiceOver-action entry point, now a thin wrapper over this. Exported for
+// its own unit test, same precedent as queueRemoveAt just above.
+export function queueReorderTo(fromPos, toPos){
+  const fromIdx = S.qpos + 1 + fromPos;
+  if(fromIdx <= S.qpos || fromIdx >= S.queue.length) return;
+  const toIdx = Math.max(S.qpos + 1, Math.min(S.queue.length - 1, S.qpos + 1 + toPos));
+  if(toIdx === fromIdx) return;
   invalidateActiveSessionIfAny();
   cancelPendingGapless();   // AU4: a queue edit invalidates whatever was pre-armed
-  const tmp = S.queue[queueIdx]; S.queue[queueIdx] = S.queue[n]; S.queue[n] = tmp;
+  const [item] = S.queue.splice(fromIdx, 1);
+  S.queue.splice(toIdx, 0, item);
   renderQueueSheet(queueSheetHost);
 }
+function queueMove(pos, dir){ queueReorderTo(pos, pos + dir); }
 
 // D6 (docs/DESKTOP_LAYOUT.md): tracks whichever host renderQueueSheet()
 // was last asked to paint into — the phone overlay's own #queueBody (the
@@ -263,6 +370,72 @@ function queueMove(pos, dir){
 // made *inside* whichever one is actually visible repaints that same one,
 // not whichever happens to be the hardcoded default.
 let queueSheetHost = null;
+
+// AU8: artist, plus the side letter when S.albumSides is on — the same
+// sideLetterFor(t, idx) PLAYBACK/Surface Noise already use for seeding
+// lead-in/run-out noise by side. The "7″ · 45" format chip the doc's own
+// mockup also shows is AU9/AU10 territory (sides-by-time/45 RPM haven't
+// landed yet) — left out here rather than guessed at.
+function queueRowSubtitle(t, idx){
+  const side = sideLetterFor(t, idx);
+  return side ? t.tags.artist + ' · SIDE ' + side : t.tags.artist;
+}
+function queueRowArt(t, li){
+  if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
+  else li.appendChild(el('span','t-art'));
+}
+
+/* ---- AU8: drag-to-reorder, with a handle ----
+   Pointer-based, not the HTML5 drag-and-drop API — iOS Safari doesn't
+   fire native dragstart/dragover from a touch gesture at all. The ▲▼
+   movers stay as real, focusable buttons (just visually hidden via the
+   existing .sr-only utility, record-art/view.js's own precedent) so
+   VoiceOver can still reorder a row without the pointer gesture. */
+let dragState = null;
+function endQueueDrag(){
+  if(!dragState) return;
+  const { pos, targetPos, li, rows } = dragState;
+  rows.forEach(r => r.el.classList.remove('queue-drop-before','queue-drop-after'));
+  li.classList.remove('dragging');
+  li.style.transform = '';
+  dragState = null;
+  if(targetPos !== pos) queueReorderTo(pos, targetPos);
+}
+function onQueueDragMove(e){
+  if(!dragState || e.pointerId !== dragState.pointerId) return;
+  const dy = e.clientY - dragState.startY;
+  dragState.li.style.transform = 'translateY(' + dy + 'px) rotate(1.5deg)';
+  const dragged = dragState.rows.find(r => r.pos === dragState.pos);
+  const draggedCenter = dragged.top + dragged.height / 2 + dy;
+  let best = dragState.pos, bestDist = Infinity;
+  dragState.rows.forEach(r => {
+    const dist = Math.abs((r.top + r.height / 2) - draggedCenter);
+    if(dist < bestDist){ bestDist = dist; best = r.pos; }
+  });
+  if(best !== dragState.targetPos){
+    dragState.rows.forEach(r => r.el.classList.remove('queue-drop-before','queue-drop-after'));
+    if(best !== dragState.pos){
+      dragState.rows.find(r => r.pos === best).el
+        .classList.add(best < dragState.pos ? 'queue-drop-before' : 'queue-drop-after');
+    }
+    dragState.targetPos = best;
+  }
+}
+function wireQueueDragHandle(handle, li, pos, listEl){
+  handle.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    const rows = Array.from(listEl.querySelectorAll('li[data-pos]')).map(r => ({
+      pos: Number(r.dataset.pos), el: r, top: r.offsetTop, height: r.offsetHeight,
+    }));
+    dragState = { pointerId: e.pointerId, startY: e.clientY, pos, targetPos: pos, li, rows };
+    li.classList.add('dragging');
+  });
+  handle.addEventListener('pointermove', onQueueDragMove);
+  handle.addEventListener('pointerup', endQueueDrag);
+  handle.addEventListener('pointercancel', endQueueDrag);
+}
 
 // exported (previously module-private) since step D6 lets the desktop side
 // panel's "Up next" tab target this at #playerSideBody instead of the
@@ -275,29 +448,66 @@ export function renderQueueSheet(host){
     dest.appendChild(el('p','note','Play something and what follows shows up here.'));
     return;
   }
+
+  // AU8: "Recently played" — everything already played earlier in this
+  // same queue, i.e. S.queue before S.qpos. There's no separate play-event
+  // log to read (history/sessions.js only tracks per-album session
+  // progress, not an ordered list of individual plays) — the queue itself
+  // already is this listening session's own history. Relative times come
+  // from S.trackLastPlayed, written at 95% completion (history/played.js),
+  // close enough to "when it finished" for a dimmed, secondary row.
+  const played = S.queue.slice(0, S.qpos);
+  if(played.length){
+    dest.appendChild(el('p','queue-section-label','RECENTLY PLAYED'));
+    const rul = el('ul','tracklist queue-recent');
+    played.slice(-5).reverse().forEach(idx => {
+      const t = S.tracks[idx]; if(!t) return;
+      const li = el('li');
+      queueRowArt(t, li);
+      const name = el('span','t-name');
+      name.appendChild(el('b', null, t.tags.title));
+      const key = trackIdentityKey(t);
+      const when = S.trackLastPlayed[key];
+      name.appendChild(el('em', null, when ? queueRelativeTime(Date.now() - when) : t.tags.artist));
+      li.appendChild(name);
+      rul.appendChild(li);
+    });
+    dest.appendChild(rul);
+  }
+
   const ul = el('ul','tracklist');
-  const curT = S.tracks[S.queue[S.qpos]];
+  const curIdx = S.queue[S.qpos];
+  const curT = S.tracks[curIdx];
   if(curT){
     const li = el('li'); li.setAttribute('aria-current','true');
-    if(curT.art){ const im = el('img','t-art'); im.src = curT.art; im.alt=''; li.appendChild(im); }
-    else li.appendChild(el('span','t-art'));
+    queueRowArt(curT, li);
     const name = el('span','t-name');
     name.appendChild(el('b', null, curT.tags.title));
-    name.appendChild(el('em', null, 'Now playing · ' + curT.tags.artist));
+    name.appendChild(el('em', null, 'Now playing · ' + queueRowSubtitle(curT, curIdx)));
     li.appendChild(name);
     ul.appendChild(li);
   }
   const upcoming = S.queue.slice(S.qpos + 1);
+  if(upcoming.length){
+    const head = el('div','queue-section-head');
+    head.appendChild(el('span', null, 'UP NEXT · ' + upcoming.length));
+    const clear = el('button','cta ghost small','Clear Upcoming');
+    clear.addEventListener('click', clearUpcoming);
+    head.appendChild(clear);
+    dest.appendChild(head);
+  }
   upcoming.forEach((idx, pos) => {
     const t = S.tracks[idx]; if(!t) return;
-    const li = el('li');
-    if(t.art){ const im = el('img','t-art'); im.src = t.art; im.alt=''; li.appendChild(im); }
-    else li.appendChild(el('span','t-art'));
+    const li = el('li'); li.dataset.pos = String(pos);
+    const handle = el('button','drag-handle','⠿');
+    handle.setAttribute('aria-hidden','true'); handle.tabIndex = -1;
+    li.appendChild(handle);
+    queueRowArt(t, li);
     const name = el('span','t-name');
     name.appendChild(el('b', null, t.tags.title));
-    name.appendChild(el('em', null, t.tags.artist));
+    name.appendChild(el('em', null, queueRowSubtitle(t, idx)));
     li.appendChild(name);
-    const movers = el('span','movers');
+    const movers = el('span','movers sr-only');
     [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
       const b = el('button','mv',glyph);
       b.setAttribute('aria-label', dir < 0 ? 'Move up' : 'Move down');
@@ -310,6 +520,7 @@ export function renderQueueSheet(host){
     rm.addEventListener('click', e => { e.stopPropagation(); queueRemoveAt(pos); });
     li.appendChild(rm);
     ul.appendChild(li);
+    wireQueueDragHandle(handle, li, pos, ul);
   });
   dest.appendChild(ul);
 }

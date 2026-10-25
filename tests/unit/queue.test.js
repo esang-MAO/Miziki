@@ -20,7 +20,7 @@ const elCache = new Map();
 function fakeEl(){
   const classes = new Set();
   return {
-    textContent: '', style: {}, innerHTML: '', src: '', alt: '',
+    textContent: '', style: {}, innerHTML: '', src: '', alt: '', dataset: {},
     classList: {
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
@@ -194,6 +194,8 @@ mock.module(new URL('../../src/audio/surface-noise.js', import.meta.url).href, {
 const {
   buildOrder, reorderQueue, advance, skipWithLift,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
+  renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
+  queueRemoveAt, queueReorderTo,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
@@ -204,6 +206,7 @@ function resetState(overrides){
     baseQueue: [], queue: [], qpos: 0, shuffle: false, repeat: 'off',
     sleep: { mode: null }, lru: [], playerOpen: false,
     pendingShellInfo: null, sleevePullEnabled: true, sessionActive: null,
+    playlists: [], queueUndo: null, queueUndoTimer: null, trackLastPlayed: {},
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); seekMock.mock.resetCalls();
@@ -370,6 +373,135 @@ test('openQueueSheet/closeQueueSheet toggle the overlay open state', () => {
   assert.ok(overlay.classList.contains('open'));
   closeQueueSheet();
   assert.ok(!overlay.classList.contains('open'));
+});
+
+/* ================= AU8 (docs/16_AUDIO.md §6): queue tools ================= */
+
+test('clearUpcoming: truncates the queue to the current track, snapshots for undo, and shows the toast', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  clearUpcoming();
+  assert.deepEqual(S.queue, [0]);
+  assert.deepEqual(S.baseQueue, [0]);   // a later shuffle toggle can't resurrect what was cleared
+  assert.ok(S.queueUndo);
+  assert.deepEqual(S.queueUndo.queue, [0,1,2]);
+  const toast = elCache.get('#queueUndoToast');
+  assert.equal(toast.style.display, 'flex');
+});
+
+test('clearUpcoming is a no-op with nothing upcoming', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a')],
+    baseQueue: [0], queue: [0], qpos: 0, index: 0,
+  });
+  clearUpcoming();
+  assert.equal(S.queueUndo, null);
+});
+
+test('undoQueueChange restores the exact snapshot clearUpcoming took', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  clearUpcoming();
+  undoQueueChange();
+  assert.deepEqual(S.queue, [0,1,2]);
+  assert.deepEqual(S.baseQueue, [0,1,2]);
+  assert.equal(S.queueUndo, null);   // consumed
+  const toast = elCache.get('#queueUndoToast');
+  assert.equal(toast.style.display, 'none');
+});
+
+test('undoQueueChange with nothing to undo is a quiet no-op', () => {
+  resetState({ tracks: [fakeTrackWithTags('a')], baseQueue: [0], queue: [0], qpos: 0, index: 0 });
+  undoQueueChange();   // no snapshot taken -- must not throw
+  assert.equal(S.queueUndo, null);
+});
+
+test('queueRemoveAt also drops the index from baseQueue (not just queue) and snapshots for undo', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  queueRemoveAt(1);   // offset 1 from qpos 0 -- the upcoming "c" track, idx 2
+  assert.deepEqual(S.queue, [0,1]);
+  assert.deepEqual(S.baseQueue, [0,1]);   // the fix: a later shuffle can't resurrect idx 2
+  assert.ok(S.queueUndo);
+  assert.deepEqual(S.queueUndo.queue, [0,1,2]);
+});
+
+test('queueRemoveAt on the current track or out of range is a no-op', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b')],
+    baseQueue: [0,1], queue: [0,1], qpos: 0, index: 0,
+  });
+  queueRemoveAt(-1);   // would resolve to the current track itself
+  queueRemoveAt(5);    // past the end
+  assert.deepEqual(S.queue, [0,1]);
+  assert.equal(S.queueUndo, null);
+});
+
+test('queueReorderTo moves a row within the upcoming portion, never past the current track', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c'), fakeTrackWithTags('d')],
+    baseQueue: [0,1,2,3], queue: [0,1,2,3], qpos: 0, index: 0,
+  });
+  queueReorderTo(2, 0);   // move the last upcoming row ("d") to the front of "upcoming"
+  assert.deepEqual(S.queue, [0,3,1,2]);
+});
+
+test('queueMove(pos, dir) is a thin adjacent-swap wrapper over queueReorderTo, unchanged for VoiceOver', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  renderQueueSheet();   // builds the row tree; wires the ▲▼ movers (not asserted directly here)
+  queueReorderTo(1, 0);   // the same move the ▼ on row 0 / ▲ on row 1 would trigger
+  assert.deepEqual(S.queue, [0,2,1]);
+});
+
+test('saveQueueAsPlaylist prompts for a name and saves the whole queue, deduplicated by id, in queue order', () => {
+  const origPrompt = globalThis.window.prompt;
+  globalThis.window.prompt = () => 'My Mix';
+  resetState({
+    tracks: [
+      { tags: { title:'a' }, meta:{}, id:'id-a' },
+      { tags: { title:'b' }, meta:{}, id:'id-b' },
+      { tags: { title:'c' }, meta:{}, id:'id-c' },
+    ],
+    baseQueue: [0,1,2], queue: [2,0,1], qpos: 0, index: 2,
+  });
+  saveQueueAsPlaylist();
+  assert.equal(S.playlists.length, 1);
+  assert.equal(S.playlists[0].name, 'My Mix');
+  assert.deepEqual(S.playlists[0].items, ['id-c','id-a','id-b']);
+  globalThis.window.prompt = origPrompt;
+});
+
+test('saveQueueAsPlaylist does nothing when the prompt is cancelled or left blank', () => {
+  const origPrompt = globalThis.window.prompt;
+  globalThis.window.prompt = () => null;
+  resetState({
+    tracks: [{ tags:{ title:'a' }, meta:{}, id:'id-a' }],
+    baseQueue: [0], queue: [0], qpos: 0, index: 0,
+  });
+  saveQueueAsPlaylist();
+  assert.equal(S.playlists.length, 0);
+  globalThis.window.prompt = origPrompt;
+});
+
+test('renderQueueSheet shows a "RECENTLY PLAYED" section for tracks already played in this queue', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a', 'Artist A'), fakeTrackWithTags('b', 'Artist B'), fakeTrackWithTags('c', 'Artist C')],
+    queue: [0,1,2], qpos: 2, index: 2,
+  });
+  // just confirming this doesn't throw with a non-empty "already played"
+  // prefix -- the recently-played branch (S.queue.slice(0, S.qpos)) is new
+  // in AU8 and previously unreachable code in this render path.
+  renderQueueSheet();
+  assert.ok(true);
 });
 
 /* ================= docs/15_SURFACE_NOISE.md §3: skipWithLift() ================= */

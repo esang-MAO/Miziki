@@ -1272,9 +1272,20 @@
   <div class="edit-sheet" id="queueSheetBox">
     <div class="edit-head">
       <span>Queue</span>
-      <button class="edit-close" id="queueClose" aria-label="Close">✕</button>
+      <span class="queue-head-actions">
+        <!-- AU8 (docs/16_AUDIO.md §6): "Save queue as playlist" -->
+        <button class="cta ghost small" id="queueSaveBtn">Save as Playlist</button>
+        <button class="edit-close" id="queueClose" aria-label="Close">✕</button>
+      </span>
     </div>
     <div id="queueBody"></div>
+    <!-- AU8: shared toast for "Clear upcoming" and removing a single row --
+         cream, per the design doc, distinct from the dark #undoBanner used
+         for track-edit undo elsewhere in the app. -->
+    <div class="queue-undo-toast" id="queueUndoToast" style="display:none">
+      <span id="queueUndoText"></span>
+      <button class="cta ghost" id="queueUndoBtn">Undo</button>
+    </div>
   </div>
 </div>
 
