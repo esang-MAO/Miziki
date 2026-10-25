@@ -7,6 +7,7 @@ import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
 import { applyWobbleRate } from '../audio/engine.js';
+import { maybeScheduleGaplessNext } from './transport.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
@@ -52,6 +53,11 @@ export function tick(now, maxDt){
     if(S.pos >= t.duration){ S.pos = t.duration; }
     addPlayedRange(prevPos, S.pos);
     checkTrackCompletion(t);
+    // AU4 (docs/16_AUDIO.md §2.4): arms the next track's own source to
+    // start() at the exact moment this one is computed to end, once
+    // that's close enough and the buffer's ready — the one place this
+    // needs checking every tick while something's actually playing.
+    maybeScheduleGaplessNext();
   }
   // AU1 (docs/16_AUDIO.md §2.1): "save the position about every 5s while
   // playing" — a plain throttle inside the already-ticking render loop,

@@ -150,15 +150,24 @@ export async function endOfQueue(auto){
   clearToRest();
 }
 
+// Pure: would moving from the current track to queue index n trigger the
+// side-flip ceremony right now -- every one of maybeSideFlip()'s own
+// conditions, with no side effect. AU4 (docs/16_AUDIO.md §2.4) calls this
+// before pre-scheduling a gapless next source, so a side flip "still runs
+// exactly as now" instead of being raced by a seamless hand-off.
+export function sideFlipTurnAt(n){
+  if(S.mode === 'pure' || !S.albumSides || !S.playerOpen || document.hidden || REDUCED) return null;
+  if(!S.sleevePullEnabled || S.shuffle) return null;
+  const cur = current(), next = S.tracks[S.queue[n]];
+  if(!cur || !next || albumKey(cur) !== albumKey(next)) return null;
+  return sideTurn(splitSides(albumTracks(cur.tags.album), S.tracks, S.albumSides), S.index, S.queue[n]);
+}
+
 // §3: true (and the flip started) when an automatic advance moves from the
 // last track of one side straight onto the first of the next, in Vinyl,
 // with the player open and visible. advance() then does nothing more.
 export function maybeSideFlip(n){
-  if(S.mode === 'pure' || !S.albumSides || !S.playerOpen || document.hidden || REDUCED) return false;
-  if(!S.sleevePullEnabled || S.shuffle) return false;
-  const cur = current(), next = S.tracks[S.queue[n]];
-  if(!cur || !next || albumKey(cur) !== albumKey(next)) return false;
-  const turn = sideTurn(splitSides(albumTracks(cur.tags.album), S.tracks, S.albumSides), S.index, S.queue[n]);
+  const turn = sideFlipTurnAt(n);
   if(!turn) return false;
   // docs/15_SURFACE_NOISE.md §4: On (the default) keeps the record flipping
   // itself, same as always; Off leaves it waiting in the run-out instead.
