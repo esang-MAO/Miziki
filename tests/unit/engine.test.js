@@ -43,6 +43,7 @@ global.window = { AudioContext: function(){}, webkitAudioContext: function(){} }
 
 const { satCurve, buildGraph, routeSource, applyCharacter, auditionStageAlone, auditionComparePure, releaseAudition } = await import('../../src/audio/engine.js');
 const { S } = await import('../../src/state.js');
+const { makeupGainFor } = await import('../../src/audio/level-match.js');
 
 test('satCurve(0) is an identity curve with trim 1', () => {
   const { curve, trim } = satCurve(0);
@@ -99,9 +100,10 @@ function makeFakeContext() {
   };
 }
 
-test('buildGraph wires wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup -> master, in that order', () => {
+test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup -> master -> out -> destination, in that order', async () => {
   const ctx = makeFakeContext();
-  const n = buildGraph(ctx);
+  const n = await buildGraph(ctx);
+  assert.ok(n.pad.connections.includes(n.wobble));
   assert.ok(n.wobble.connections.includes(n.sat));
   assert.ok(n.sat.connections.includes(n.satTrim));
   assert.ok(n.satTrim.connections.includes(n.dc));
@@ -109,7 +111,14 @@ test('buildGraph wires wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup 
   assert.ok(n.tone.connections.includes(n.comp));
   assert.ok(n.comp.connections.includes(n.makeup));
   assert.ok(n.makeup.connections.includes(n.master));
-  assert.ok(n.master.connections.includes(ctx.destination));
+  // No AudioWorklet on the fake context (no audioWorklet property), so
+  // the limiter never loads and master connects straight to out — see
+  // AU3's own "a worklet that fails to load falls back to an unlimited
+  // passthrough" fallback, the same shape scratch-processor.js's own
+  // addModule() failure already has.
+  assert.equal(n.limiter, null);
+  assert.ok(n.master.connections.includes(n.out));
+  assert.ok(n.out.connections.includes(ctx.destination));
 });
 
 // docs/15_SURFACE_NOISE.md §3 (needle-lift skipping): src now passes
@@ -119,21 +128,23 @@ test('buildGraph wires wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup 
 // join the chain at wobble itself).
 test('routeSource connects to master (via trackGain) in Pure mode', () => {
   S.mode = 'pure';
-  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble'), trackGain: new FakeNode('trackGain') };
+  S.nodes = { master: new FakeNode('master'), pad: new FakeNode('pad'), trackGain: new FakeNode('trackGain') };
   const src = new FakeNode('source');
   routeSource(src);
   assert.ok(src.connections.includes(S.nodes.trackGain));
   assert.ok(S.nodes.trackGain.connections.includes(S.nodes.master));
-  assert.ok(!S.nodes.trackGain.connections.includes(S.nodes.wobble));
+  assert.ok(!S.nodes.trackGain.connections.includes(S.nodes.pad));
 });
 
-test('routeSource connects to wobble (via trackGain) in Vinyl mode', () => {
+// AU3 §2.3: the -3dB pad now sits in front of wobble in the Vinyl path —
+// routeSource() connects trackGain to it, not straight to wobble.
+test('routeSource connects to pad (via trackGain) in Vinyl mode', () => {
   S.mode = 'vinyl';
-  S.nodes = { master: new FakeNode('master'), wobble: new FakeNode('wobble'), trackGain: new FakeNode('trackGain') };
+  S.nodes = { master: new FakeNode('master'), pad: new FakeNode('pad'), trackGain: new FakeNode('trackGain') };
   const src = new FakeNode('source');
   routeSource(src);
   assert.ok(src.connections.includes(S.nodes.trackGain));
-  assert.ok(S.nodes.trackGain.connections.includes(S.nodes.wobble));
+  assert.ok(S.nodes.trackGain.connections.includes(S.nodes.pad));
   assert.ok(!S.nodes.trackGain.connections.includes(S.nodes.master));
 });
 
@@ -148,12 +159,12 @@ test('routeSource connects to wobble (via trackGain) in Vinyl mode', () => {
 const now = Date.now();
 S.sun = { lat: 39.20, lon: -76.86, noon: new Date(now - 12 * 3600000), ok: true };
 
-test('applyCharacter: Pure never applies drift, even at Full intensity and solar midnight (max warmth)', () => {
+test('applyCharacter: Pure never applies drift, even at Full intensity and solar midnight (max warmth)', async () => {
   S.mode = 'pure';
   S.charDrift = 'full';
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
-  S.nodes = buildGraph(makeFakeContext());
+  S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
   // undrifted: soft 0.40 -> tone gain -9*0.40; drifted (warmth=1, Full)
   // would instead be soft 0.67 -> -6.03 (§3.4: soft +0.27 at Full), so this
@@ -161,14 +172,18 @@ test('applyCharacter: Pure never applies drift, even at Full intensity and solar
   // threw.
   assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
+  // AU3 §2.3: makeup now comes from the derived level-match table, keyed
+  // on comp alone (bus compression never drifts, so this is unaffected
+  // by Pure vs. Vinyl or by drift intensity) — not the old `1+0.4*comp`.
+  assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }));
 });
 
-test('applyCharacter: Vinyl applies the warmth-based drift at Full intensity', () => {
+test('applyCharacter: Vinyl applies the warmth-based drift at Full intensity', async () => {
   S.mode = 'vinyl';
   S.charDrift = 'full';
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
-  S.nodes = buildGraph(makeFakeContext());
+  S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
   // warmth=1, Full (§3.4's own table): soft +0.27, comp +0 ("unchanged" —
   // deliberately not drifted, unlike DA2's old anchor table) — an
@@ -176,17 +191,19 @@ test('applyCharacter: Vinyl applies the warmth-based drift at Full intensity', (
   // same float-ULP reason as before.
   assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.67)) < EPS);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35, 'bus compression never drifts (§3.4)');
+  assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }), 'makeup follows comp alone, which never drifts');
 });
 
-test('applyCharacter: Vinyl with intensity off matches the user\'s own raw sliders, same as Pure', () => {
+test('applyCharacter: Vinyl with intensity off matches the user\'s own raw sliders, same as Pure', async () => {
   S.mode = 'vinyl';
   S.charDrift = 'off';
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
-  S.nodes = buildGraph(makeFakeContext());
+  S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
   assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
+  assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }));
 });
 
 // RF28 ("what am I hearing"): the press-and-hold audition controls. Each
@@ -195,19 +212,19 @@ test('applyCharacter: Vinyl with intensity off matches the user\'s own raw slide
 // stages read as untouched while one is held, and that release restores
 // exactly whatever applyCharacter() would currently set (never a stale
 // snapshot from the moment the hold began).
-function freshAuditionFixture(){
+async function freshAuditionFixture(){
   releaseAudition(); // clear any hold a previous test left in progress
   S.mode = 'vinyl';
   S.charDrift = 'off'; // no drift, so the "current" value is just S.char itself
   S.char = { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: true };
   S.ctx = { currentTime: 0 };
-  S.nodes = buildGraph(makeFakeContext());
+  S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
   return S.nodes;
 }
 
-test('auditionStageAlone("wow"): every other stage reads untouched, wow itself is left alone', () => {
-  const n = freshAuditionFixture();
+test('auditionStageAlone("wow"): every other stage reads untouched, wow itself is left alone', async () => {
+  const n = await freshAuditionFixture();
   auditionStageAlone('wow');
   assert.equal(n.sat.curve[0], -1, 'sat bypassed to an identity curve');
   assert.equal(n.satTrim.gain.lastTarget, 1);
@@ -221,8 +238,8 @@ test('auditionStageAlone("wow"): every other stage reads untouched, wow itself i
   assert.equal(n.flutAmt.gain.lastTarget, 0.000015 * 0.30);
 });
 
-test('auditionStageAlone("comp"): wow/sat/tone all bypass, squeeze is left alone', () => {
-  const n = freshAuditionFixture();
+test('auditionStageAlone("comp"): wow/sat/tone all bypass, squeeze is left alone', async () => {
+  const n = await freshAuditionFixture();
   auditionStageAlone('comp');
   assert.equal(n.wowAmt.gain.lastTarget, 0);
   assert.equal(n.flutAmt.gain.lastTarget, 0);
@@ -232,11 +249,11 @@ test('auditionStageAlone("comp"): wow/sat/tone all bypass, squeeze is left alone
   // applyCharacter() set for comp=0.35 a moment earlier.
   assert.equal(n.comp.threshold.lastTarget, -6 - 18 * 0.35);
   assert.equal(n.comp.ratio.lastTarget, 1 + 3 * 0.35);
-  assert.equal(n.makeup.gain.lastTarget, 1 + 0.4 * 0.35);
+  assert.equal(n.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }));
 });
 
-test('auditionComparePure: every stage bypasses at once', () => {
-  const n = freshAuditionFixture();
+test('auditionComparePure: every stage bypasses at once', async () => {
+  const n = await freshAuditionFixture();
   auditionComparePure();
   assert.equal(n.wowAmt.gain.lastTarget, 0);
   assert.equal(n.flutAmt.gain.lastTarget, 0);
@@ -247,24 +264,24 @@ test('auditionComparePure: every stage bypasses at once', () => {
   assert.equal(n.makeup.gain.lastTarget, 1);
 });
 
-test('applyCharacter no-ops while an audition hold is in progress', () => {
-  const n = freshAuditionFixture();
+test('applyCharacter no-ops while an audition hold is in progress', async () => {
+  const n = await freshAuditionFixture();
   auditionStageAlone('wow');
   S.char.soft = 0.9; // a slider dragged mid-hold
   applyCharacter(); // e.g. the ~30s drift recompute timer firing mid-hold
   assert.equal(n.tone.gain.lastTarget, 0, 'still bypassed — applyCharacter() must not have run');
 });
 
-test('releaseAudition: restores every stage from current S.char, not a stale snapshot', () => {
-  const n = freshAuditionFixture();
+test('releaseAudition: restores every stage from current S.char, not a stale snapshot', async () => {
+  const n = await freshAuditionFixture();
   auditionStageAlone('wow');
   S.char.soft = 0.9; // changed while held
   releaseAudition();
   assert.equal(n.tone.gain.lastTarget, -9 * 0.9, 'restored from the current slider value, not the one at hold-start');
 });
 
-test('releaseAudition is a no-op when nothing is being audition-held', () => {
-  const n = freshAuditionFixture();
+test('releaseAudition is a no-op when nothing is being audition-held', async () => {
+  const n = await freshAuditionFixture();
   n.tone.gain.lastTarget = 'sentinel';
   releaseAudition();
   assert.equal(n.tone.gain.lastTarget, 'sentinel');

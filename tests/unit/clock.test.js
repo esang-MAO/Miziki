@@ -108,7 +108,7 @@ mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url)
   namedExports: { openFriendStore(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext(){} },
+  namedExports: { ensureContext(){}, applyWobbleRate(){} },
 });
 // Since step 7a, clock.js's own real player/background.js import (for
 // bgPosition, step 6c) reaches background.js's own real queueSave import,

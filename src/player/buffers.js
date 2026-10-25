@@ -24,7 +24,9 @@ export async function ensureBuffer(i){
   try{
     setPathNote('Decoding ' + t.tags.title + '…');
     const raw = await blob.arrayBuffer();
-    await ensureContext(t.meta.rate || null);
+    // AU3 (docs/16_AUDIO.md §2.3): one fixed-rate context, never rebuilt
+    // per track — decodeAudioData resamples to it regardless.
+    await ensureContext();
     t.buffer = await S.ctx.decodeAudioData(raw);
     // don't clobber the already-trimmed duration (encoder delay/padding
     // excluded) with the raw buffer's — see PLAYBACK spec §1

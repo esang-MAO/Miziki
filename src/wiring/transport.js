@@ -33,7 +33,7 @@ import { performPendingFlip, liftNeedleNow } from '../shell/runout.js';
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
     if(!S.playing) bgPrime();
-    if(!S.ctx) await ensureContext(null);
+    if(!S.ctx) await ensureContext();
     if(S.playing) pause();
     // the sleeve is covering an empty platter — bring the disc back out
     // before playing, same ceremony as picking a track from the library
@@ -121,7 +121,7 @@ export function wireTransport(){
   $('#miniTap').addEventListener('click', openPlayer);
   $('#miniPlay').addEventListener('click', async ()=>{
     if(!S.playing) bgPrime();
-    if(!S.ctx) await ensureContext(null);
+    if(!S.ctx) await ensureContext();
     if(S.playing) pause();
     else if(S.platterEmpty && S.playerOpen) runStartSequence(current(), updateShellAlbum(current()), play);
     else if(S.platterEmpty){

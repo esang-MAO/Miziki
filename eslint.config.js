@@ -53,7 +53,7 @@ module.exports = [
   // each one is a plain script rather than a module).
   {
     files: ['src/**/*.js'],
-    ignores: ['src/audio/scratch-processor.js', 'src/miziki-social.js', 'src/theme-boot.js'],
+    ignores: ['src/audio/scratch-processor.js', 'src/audio/limiter-processor.js', 'src/miziki-social.js', 'src/theme-boot.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -78,12 +78,13 @@ module.exports = [
     rules: SAFETY_NET_RULES,
   },
 
-  // src/audio/scratch-processor.js — runs in AudioWorkletGlobalScope, not
-  // a browser window (no DOM, no fetch — globals.browser doesn't apply),
-  // and deliberately has no import/export either; see the file's own
-  // header comment and CLAUDE.md's F2 changelog entry for why.
+  // src/audio/scratch-processor.js, src/audio/limiter-processor.js — both
+  // run in AudioWorkletGlobalScope, not a browser window (no DOM, no
+  // fetch — globals.browser doesn't apply), and deliberately have no
+  // import/export either; see each file's own header comment and
+  // CLAUDE.md's F2/AU3 changelog entries for why.
   {
-    files: ['src/audio/scratch-processor.js'],
+    files: ['src/audio/scratch-processor.js', 'src/audio/limiter-processor.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'script',
@@ -158,6 +159,21 @@ module.exports = [
       ecmaVersion: 'latest',
       sourceType: 'commonjs',
       globals: { ...globals.node },
+    },
+    rules: SAFETY_NET_RULES,
+  },
+
+  // scripts/**/*.mjs (AU3) — plain Node scripts (ESM) that also contain an
+  // inline page.evaluate() closure run inside a real Chromium page, the
+  // same shape as tests/perf/**/*.js above: both Node's and the browser's
+  // (here, Web Audio's OfflineAudioContext/AudioContext) globals are in
+  // play in the same file.
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser },
     },
     rules: SAFETY_NET_RULES,
   },

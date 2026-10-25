@@ -104,8 +104,10 @@ export async function addFiles(list){
       const details = readDetails(raw);
       const artBlob = findArtworkBlob(raw);
       const fileBlob = new Blob([raw], {type: f.type || 'application/octet-stream'});
-      // Decode at the file's own rate so the OS is not resampling underneath us.
-      await ensureContext(meta.rate || null);
+      // AU3 (docs/16_AUDIO.md §2.3): the context is created once, at the
+      // device's own fixed rate — decodeAudioData resamples to it
+      // regardless of the file's own rate, so there's no rate to pass here.
+      await ensureContext();
       const buffer = await S.ctx.decodeAudioData(raw);
       // Encoder delay/padding sample counts are expressed at the file's own
       // native rate — converting to seconds here keeps everything else
@@ -198,7 +200,7 @@ function makeTestTone(){
 
 export async function addTestTone(){
   if(S.tracks.some(t=>t.id==='miziki:testtone')) return;
-  await ensureContext(48000);
+  await ensureContext();
   const buf = makeTestTone();
   S.tracks.push({id:'miziki:testtone', addedAt:Date.now(), name:'Test tone — Dm9 pad',
     buffer:buf, duration:buf.duration, art:null, artBlob:null, blob:null, stored:false,
