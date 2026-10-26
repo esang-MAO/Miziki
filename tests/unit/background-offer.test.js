@@ -43,7 +43,7 @@ mock.module(new URL('../../src/player/controls.js', import.meta.url).href, {
   namedExports: { prevTrack(){}, nextTrack(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext: async () => {} },
+  namedExports: { ensureContext: async () => {}, decodeAudioFile: async () => {} },
 });
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },

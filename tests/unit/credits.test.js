@@ -129,7 +129,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext(){} },
+  namedExports: { ensureContext(){}, decodeAudioFile: async () => {} },
 });
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },

@@ -138,7 +138,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 // audio/engine.js) needs these stopped at the door too, same as
 // tags.test.js/queue.test.js.
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext: async () => {} },
+  namedExports: { ensureContext: async () => {}, decodeAudioFile: async () => {} },
 });
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
