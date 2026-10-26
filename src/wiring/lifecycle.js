@@ -20,7 +20,7 @@
 import { flushBackupSync, pullBackupOnForeground } from '../sync/backup.js';
 import { computeSun } from '../sundown/solar.js';
 import { drawSun } from '../player/clock.js';
-import { bgNoteHidden, bgCheckReturnOffer } from '../player/background.js';
+import { bgNoteHidden, bgCheckReturnOffer, bgSync } from '../player/background.js';
 import { saveResumeNow } from '../player/resume.js';
 
 export function wireLifecycle(){
@@ -29,7 +29,13 @@ export function wireLifecycle(){
     // (hidden)" — the same backgrounding moment flushBackupSync() already
     // treats as "about to lose this," now also saving the queue/position.
     if(document.visibilityState === 'hidden'){ flushBackupSync(); bgNoteHidden(); saveResumeNow(); }
-    else { pullBackupOnForeground(); computeSun(); drawSun(); bgCheckReturnOffer(); }
+    // bgSync() re-asserts Media Session metadata/handlers/position on
+    // return (found 2026-10-26, player/background.js's own comment): an
+    // extended background/lock spell is a known class of iOS bug where
+    // the system can silently clear a page's own Now Playing
+    // registration until it's foregrounded again, and nothing else in
+    // this app ever re-syncs it on its own.
+    else { pullBackupOnForeground(); computeSun(); drawSun(); bgCheckReturnOffer(); bgSync(); }
   });
   // iOS Safari can terminate a backgrounded home-screen app without ever
   // firing visibilitychange — pagehide is the one event reliably fired
