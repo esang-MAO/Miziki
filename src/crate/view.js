@@ -92,7 +92,7 @@ function buildStickerEl(sticker){
   return tag;
 }
 
-function openCrateAlbum(item){
+function openCrateAlbum(item, opts){
   const v = S.view;
   if(item.kind === 'loose'){
     v.mode = 'crateLoose'; v.crateLooseArtist = item.artist; v.crateLooseIdx = item.idx.slice();
@@ -114,7 +114,7 @@ function openCrateAlbum(item){
   // instead, on tap, is gone. The panel now follows the front record on
   // its own (onSettled(), below) with nothing to tap first, so a tap's
   // only job left is what it's always been on a phone: open the gatefold.
-  openGatefold(item);
+  openGatefold(item, opts);
 }
 
 // CR2 point 4 / CR10 point 1: the one-line description a divider's own
@@ -1221,11 +1221,11 @@ export function renderCrate(host){
     ps.cardEl.style.transform = ps.baseTransform;
     dropPullPeek(ps);
     // The README's "the gatefold opens with the disc already out" entrance
-    // choreography doesn't exist yet — openGatefold() has no hook for
-    // "start with the disc already pulled" today. Opening it the plain way
-    // (same call a tap already makes) is the honest scope call for this PR;
-    // the hand-off polish is a follow-up, flagged in the PR body.
-    openCrateAlbum(ps.item);
+    // choreography: the gatefold's own sleeve-disc icon starts in its
+    // pulled-out position (gatefoldSleeveFlourish's shape, reused via the
+    // discAlreadyOut hook) so the hand-off continues straight from this
+    // gesture's own peek-disc reveal rather than resetting to rest first.
+    openCrateAlbum(ps.item, {discAlreadyOut: true});
   }
 
   function springBackPull(ps){
