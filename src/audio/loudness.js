@@ -162,10 +162,17 @@ export function measureTrack(channels, sampleRate){
   return { lufs, truePeakDb, clipRuns, plr, measured: true };
 }
 
-// §4's reference level: the same -18 LUFS target ReplayGain 2.0/EBU R128
-// use, so a tagged gain (computed by whatever tool wrote it) and a gain
-// this app derives from its own measurement land on the same loudness.
-export const REFERENCE_LUFS = -18;
+// §4's reference level. ReplayGain 2.0/EBU R128 use -18 LUFS, but that's
+// far quieter than how most commercial music is actually mastered (a loud
+// rock/pop master commonly sits around -9 to -11 LUFS) — at -18, Auto mode
+// was cutting typical tracks by 4-9dB by default, which read as "the app
+// got quiet" rather than "levels got evened out." -14 LUFS matches what
+// Spotify/Apple Music/YouTube Music already normalize to, so most tracks
+// move far less, while still bringing outliers (a much louder or much
+// quieter master) into line with the rest of the library. A tagged gain
+// (computed by whatever tool wrote it) still wins over this fallback
+// whenever one exists — this only changes what we derive ourselves.
+export const REFERENCE_LUFS = -14;
 
 // Per-track gain, preferring a tag's own value (another tool's own,
 // possibly more careful, measurement) over this app's — null when neither
