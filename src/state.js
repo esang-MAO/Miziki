@@ -128,7 +128,7 @@ export const S = {
   // zoetropeDayProgress is {albumId: [dayKey, ...]}, the distinct local-
   // calendar days (sundown/rhythm.js's dayKeyFor()) a full, in-order,
   // every-side play-through has completed on for that album — earns the
-  // zoetrope once 3 different days are recorded (ZOETROPE_DAYS_TO_EARN,
+  // zoetrope once ZOETROPE_DAYS_TO_EARN different days are recorded (10,
   // history/sessions.js). Also backed up (§8: "store earned zoetropes and
   // day-progress with the account backup") so progress isn't stranded on
   // one device.

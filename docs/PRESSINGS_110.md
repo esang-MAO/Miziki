@@ -153,15 +153,24 @@ Friends' cards show chips without numbers (unchanged).
 
 ### Zoetrope milestone (defaults — keep the numbers in one config block so they're easy to tune)
 
+**Ken, 2026-10-26: raised from 3 to 10 different days** ("I want the zoetrope to be a bit more
+challenging to earn than the metals... I like the idea of having to listen to it on different
+days from start to finish" — keeping the mechanic, just raising the bar, since the top metal
+(platinum) needs 40 qualifying sessions with no day-spread at all and could in principle be
+cleared in one binge sitting; a zoetrope's day-gate can't be rushed that way regardless of the
+exact number, since each calendar day only ever contributes one credit no matter how many
+play-throughs happen on it — the number below is the already-raised one, not the original spec
+value.
+
 - **Per album, per user.** An album earns its zoetrope when you've played **every side start to
-  finish, on 3 different days**. "Start to finish" = needle-drop to run-out with no skips or
+  finish, on 10 different days**. "Start to finish" = needle-drop to run-out with no skips or
   scrubs past a track; pausing is fine. Shuffle and single-track plays don't count.
 - **Which zoetrope** comes from the album hash, so everyone who earns it on that album gets the same
   motif (same rule as pressings). Only *whether* you've earned it is per user.
 - **Format:** a 45 uses the 45 art; a one-track single (no flip) counts its one side.
 - **Progress** is quiet: a small frame-tick on the record's sleeve or detail sheet
-  (e.g. three ticks, filled as days are completed). No pop-ups mid-listen.
-- **The reveal:** when the third day completes at run-out, the record is put away and the next
+  (ticks filled as days are completed). No pop-ups mid-listen.
+- **The reveal:** when the tenth day completes at run-out, the record is put away and the next
   pull shows the zoetrope via the existing pressing peek. Optional soft haptic on the catch.
 - **Precedence:** an earned zoetrope replaces that album's pressing everywhere for that user. If the
   album also has a rare unlock, the zoetrope wins on display; the rare stays counted in the chart.
@@ -174,7 +183,7 @@ Friends' cards show chips without numbers (unchanged).
 - [ ] 110 pressings in the table; counts by tier 40 / 54 / 8 / 8; all old names still present
 - [ ] Same album → same pressing on two different accounts
 - [ ] Version-1 hi-res pressings recompute once on first launch (`chartVersion: 2`)
-- [ ] Zoetrope earned after every side played start to finish on 3 different days; progress ticks show; reveal via pressing peek
+- [ ] Zoetrope earned after every side played start to finish on 10 different days; progress ticks show; reveal via pressing peek
 - [ ] Each new technique matches its frame in `frames/03_effects.png`
 - [ ] Translucent pressings show the sky through the disc
 - [ ] Zoetrope replaces artwork on the platter; figures animate in place at full speed

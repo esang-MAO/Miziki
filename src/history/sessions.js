@@ -24,7 +24,7 @@ import { sessions, meta, achievements, collection, profile } from '../storage/re
 // non-circular import (step 6b) — thumbs.js doesn't depend on this module.
 import { applyDiscVariant } from '../record-art/looks.js';
 import { restoreThumbs, persistable } from '../library/thumbs.js';
-// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): "3 different calendar days" —
+// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): distinct calendar days —
 // dayKeyFor() is the already-established local-calendar-day-key helper
 // (RF22's own S.phasePlayCountsByDay bucketing), reused here rather than
 // a second date-keying scheme.
@@ -34,8 +34,17 @@ const FOUR_HOURS = 4 * 3600 * 1000;
 
 // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): kept in its own named
 // constant, per the spec's own "keep the numbers in one config block so
-// they're easy to tune" instruction.
-export const ZOETROPE_DAYS_TO_EARN = 3;
+// they're easy to tune" instruction. Raised from the spec's original 3 to
+// 10 at Ken's request (2026-10-26): "I want the zoetrope to be a bit more
+// challenging to earn than the metals" — the top metal (platinum) needs
+// 40 qualifying sessions with no day-spread at all, so a determined
+// binge-listener could clear it in a single sitting; a zoetrope can
+// never be rushed that way regardless of this number, since each day
+// only ever contributes one credit no matter how many full play-throughs
+// happen on it. 10 keeps that "lived with it over time" shape (Ken's own
+// stated preference for the different-days mechanic) while making the
+// zoetrope clearly the harder, slower-to-earn of the two.
+export const ZOETROPE_DAYS_TO_EARN = 10;
 
 export function albumExpectedOrder(albumId){
   const sample = S.tracks.find(t => albumKey(t) === albumId);

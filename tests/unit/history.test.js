@@ -164,6 +164,7 @@ const { S } = await import('../../src/state.js');
 // RF22 (docs/12_REFINE.md): played.js's own real sundown/rhythm.js import
 // (a pure, zero-import leaf -- no mocking needed) is where dayKeyFor lives.
 const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
+const { ZOETROPE_DAYS_TO_EARN } = await import('../../src/history/sessions.js');
 
 function resetState(overrides){
   Object.assign(S, {
@@ -310,32 +311,21 @@ test('zoetrope day-progress: a full in-order session records today once, not onc
   assert.equal(S.zoetropeUnlocked.al, undefined);
 });
 
-test('zoetrope unlock: 3 distinct calendar days, not 3 sessions', () => {
+test('zoetrope unlock: ZOETROPE_DAYS_TO_EARN distinct calendar days, not that many sessions', () => {
   resetState();
   const t = fakeTrack();
   mock.timers.enable({ apis: ['Date'] });
   try {
-    completeAlbumSession(t, 'al');
-    addPlayedRange(0, 95);
-    checkTrackCompletion(t);
-    assert.equal(S.zoetropeDayProgress.al.length, 1);
-    assert.equal(S.zoetropeUnlocked.al, undefined);
-
-    mock.timers.tick(24 * 3600 * 1000); // day 2
-    S.curTrackDone = false; S.curPlayed = [];
-    completeAlbumSession(t, 'al');
-    addPlayedRange(0, 95);
-    checkTrackCompletion(t);
-    assert.equal(S.zoetropeDayProgress.al.length, 2);
-    assert.equal(S.zoetropeUnlocked.al, undefined);
-
-    mock.timers.tick(24 * 3600 * 1000); // day 3 -- the earning threshold
-    S.curTrackDone = false; S.curPlayed = [];
-    completeAlbumSession(t, 'al');
-    addPlayedRange(0, 95);
-    checkTrackCompletion(t);
-    assert.equal(S.zoetropeDayProgress.al.length, 3);
-    assert.equal(S.zoetropeUnlocked.al, true);
+    for(let day = 1; day <= ZOETROPE_DAYS_TO_EARN; day++){
+      if(day > 1) mock.timers.tick(24 * 3600 * 1000);
+      S.curTrackDone = false; S.curPlayed = [];
+      completeAlbumSession(t, 'al');
+      addPlayedRange(0, 95);
+      checkTrackCompletion(t);
+      assert.equal(S.zoetropeDayProgress.al.length, day);
+      // only the final day should flip the unlock
+      assert.equal(S.zoetropeUnlocked.al, day === ZOETROPE_DAYS_TO_EARN ? true : undefined);
+    }
   } finally {
     mock.timers.reset();
   }
