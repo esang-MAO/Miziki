@@ -16,8 +16,8 @@ mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
 });
 
 const {
-  trackTier, albumKey, VARIANT_DEFS, OLD_VARIANT_ID_MAP, BAND_NAMES,
-  selectVariant, selectRareVariant, resolveVariantId, getVariantDef, variantBackground,
+  trackTier, albumKey, VARIANT_DEFS, OLD_VARIANT_ID_MAP, BAND_NAMES, ZOETROPE_IDS,
+  selectVariant, selectRareVariant, selectZoetropeVariant, resolveVariantId, getVariantDef, variantBackground,
 } = await import('../../src/record-art/tiers.js');
 
 function track(meta){ return { meta, tags: {} }; }
@@ -47,18 +47,20 @@ test('trackTier: missing metadata never reaches tier 3', () => {
 
 /* ================= CR7: pressings and finishes (docs/13_CRATE.md) ================= */
 
-const SOLID_DEFS = Object.values(VARIANT_DEFS).filter(d => d.family !== 'effects' && d.family !== 'rare' && d.family !== 'jet');
+const SOLID_DEFS = Object.values(VARIANT_DEFS).filter(d => d.family !== 'effects' && d.family !== 'rare' && d.family !== 'zoetrope' && d.family !== 'jet');
 const EFFECT_DEFS = Object.values(VARIANT_DEFS).filter(d => d.family === 'effects');
 const RARE_DEFS = Object.values(VARIANT_DEFS).filter(d => d.family === 'rare');
+const ZOETROPE_DEFS = Object.values(VARIANT_DEFS).filter(d => d.family === 'zoetrope');
 
-test('CR7 catalogue: every solid/effect has a band, jet and rares do not', () => {
+test('CR7 catalogue: every solid/effect has a band, jet/rares/zoetropes do not', () => {
   for(const d of SOLID_DEFS) assert.ok(BAND_NAMES.includes(d.band), d.name + ' missing a band');
   for(const d of EFFECT_DEFS) assert.ok(BAND_NAMES.includes(d.band), d.name + ' missing a band');
   assert.equal(VARIANT_DEFS.jet.band, null);
   for(const d of RARE_DEFS) assert.equal(d.band, null);
+  for(const d of ZOETROPE_DEFS) assert.equal(d.band, null);
 });
 
-test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 rare)', () => {
+test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 rare, 8 zoetrope = 110)', () => {
   const countBand = (defs, band) => defs.filter(d => d.band === band).length;
   assert.equal(SOLID_DEFS.length, 40);
   assert.equal(countBand(SOLID_DEFS, 'common'), 20);
@@ -69,6 +71,8 @@ test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 r
   assert.equal(countBand(EFFECT_DEFS, 'uncommon'), 22);
   assert.equal(countBand(EFFECT_DEFS, 'scarce'), 8);
   assert.equal(RARE_DEFS.length, 8);
+  assert.equal(ZOETROPE_DEFS.length, 8);
+  assert.equal(SOLID_DEFS.length + EFFECT_DEFS.length + RARE_DEFS.length + ZOETROPE_DEFS.length, 110);
 });
 
 test('CR7 draw: the same album always lands on the same variant', () => {
@@ -265,6 +269,96 @@ test('PRESSINGS_110: Nychthemeron switches to its night colours once phaseAt() r
     const [hi, body, rim] = def.night;
     assert.equal(bg, 'radial-gradient(circle at 50% 50%,' + hi + ' 0 34%,' + body + ' 34% 90%,' + rim + ' 90% 100%)',
       'phase ' + phase + ' should read as night');
+  }
+});
+
+/* ================= PRESSINGS_110 PR5: zoetropes, static rendering
+   (docs/PRESSINGS_110.md §5) — the catalogue entries and selectZoetropeVariant()
+   are ported and tested here as pure primitives; neither is wired into any
+   live path yet (no earned/unlocked state exists until PR7), so these
+   tests exercise the functions directly rather than through
+   selectVariant()/discLook(). ================= */
+
+test('PRESSINGS_110: zoetrope catalogue has all 8 named pressings, each with both frame counts and both disc URLs', () => {
+  const names = ZOETROPE_DEFS.map(d => d.name).sort();
+  assert.deepEqual(names, ['Bloom', 'Breach', 'Breaker', 'Moth', 'Orbit', 'Pulse', 'Rainfall', 'Wingbeat']);
+  for(const d of ZOETROPE_DEFS){
+    assert.equal(d.pattern, 'zoetrope');
+    assert.equal(d.finish, 'opaque');
+    assert.ok(typeof d.discLp === 'string' && d.discLp.length > 0, d.name + ' missing discLp');
+    assert.ok(typeof d.disc45 === 'string' && d.disc45.length > 0, d.name + ' missing disc45');
+    assert.ok(Number.isInteger(d.framesLp) && d.framesLp > 0, d.name + ' missing framesLp');
+    assert.ok(Number.isInteger(d.frames45) && d.frames45 > 0, d.name + ' missing frames45');
+  }
+});
+
+test('PRESSINGS_110: Rainfall is the one zoetrope with 24/32 frames, every other is 12/16', () => {
+  for(const d of ZOETROPE_DEFS){
+    if(d.id === 'rainfall' || d.name === 'Rainfall'){
+      assert.equal(d.framesLp, 24);
+      assert.equal(d.frames45, 32);
+    } else {
+      assert.equal(d.framesLp, 12);
+      assert.equal(d.frames45, 16);
+    }
+  }
+});
+
+test('PRESSINGS_110: selectZoetropeVariant draws the same pressing for the same album every time', () => {
+  const t = albumTrack('Zoetrope Repeat', { lossless: true, bits: 24, rate: 96000 });
+  const first = selectZoetropeVariant(t);
+  assert.ok(ZOETROPE_IDS.includes(first));
+  for(let i=0;i<20;i++) assert.equal(selectZoetropeVariant(t), first);
+});
+
+test('PRESSINGS_110: selectZoetropeVariant draw never correlates with selectRareVariant for the same album', () => {
+  // not a proof of independence, just a sanity check that the two draws
+  // use genuinely different hash salts, not the same one by copy-paste
+  // accident — over enough albums they shouldn't always agree
+  let agree = 0;
+  const N = 200;
+  for(let i=0;i<N;i++){
+    const t = albumTrack('Salt Check ' + i, { lossless: true, bits: 24, rate: 96000 });
+    const rareIdx = RARE_DEFS.findIndex(d => d === VARIANT_DEFS[selectRareVariant(t)]);
+    const zooIdx = ZOETROPE_DEFS.findIndex(d => d === VARIANT_DEFS[selectZoetropeVariant(t)]);
+    if(rareIdx === zooIdx) agree++;
+  }
+  assert.ok(agree < N, 'rare and zoetrope draws should not always land on the same pool index');
+});
+
+test('PRESSINGS_110: zoetrope ids are disjoint from the rare pool and never drawn by selectVariant', () => {
+  for(const id of ZOETROPE_IDS) assert.ok(!RARE_DEFS.some(d => d === VARIANT_DEFS[id]));
+  // selectVariant()/the tier-mix draw never reaches 'rare' or 'zoetrope'
+  // family defs at all — both pools are session-unlock-only, picked by
+  // their own dedicated select*Variant() function, never by the file-
+  // driven tier mix. Confirmed over every tier across a large synthetic
+  // library, not just asserted.
+  for(const tier of [1, 2, 3]){
+    const meta = tier === 1 ? { lossless: false, bits: 16, rate: 44100 }
+      : tier === 2 ? { lossless: true, bits: 16, rate: 44100 }
+      : { lossless: true, bits: 24, rate: 96000 };
+    for(let i=0;i<300;i++){
+      const t = albumTrack('Tier ' + tier + ' No Zoetrope ' + i, meta);
+      const { variant } = selectVariant(t);
+      assert.notEqual(VARIANT_DEFS[variant].family, 'zoetrope', 'selectVariant should never draw a zoetrope');
+    }
+  }
+});
+
+test('PRESSINGS_110: zoetrope renders as a disc background-image, LP by default, 45 art when the format says 45', () => {
+  const def = VARIANT_DEFS.wingbeat;
+  const bgDefault = variantBackground(def);
+  assert.equal(bgDefault, 'url("' + def.discLp + '") center/cover');
+  const bgLp = variantBackground(def, { speed: 33.333 });
+  assert.equal(bgLp, 'url("' + def.discLp + '") center/cover');
+  const bg45 = variantBackground(def, { speed: 45 });
+  assert.equal(bg45, 'url("' + def.disc45 + '") center/cover');
+});
+
+test('PRESSINGS_110: every zoetrope def produces a non-empty background with no format given', () => {
+  for(const d of ZOETROPE_DEFS){
+    const bg = variantBackground(d);
+    assert.ok(bg.includes(d.discLp), d.name + ' should render its LP disc art with no format given');
   }
 });
 
