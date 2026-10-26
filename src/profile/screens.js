@@ -383,9 +383,18 @@ function renderListeningScreen(body){
   const rhythm = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
   if(rhythm.total >= RHYTHM_MIN_PLAYS){
     const shareSeasonBtn = el('button','cta ghost profile-share','Share season');
-    shareSeasonBtn.addEventListener('click', () => openShareSheet({ card:'season', data:{
-      verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
-    } }));
+    shareSeasonBtn.addEventListener('click', () => {
+      // SH6 (docs/18_SHARE.md) item 1: metals = per-tier counts from
+      // achievementsList(), playedThrough = that same list's own length
+      // (every earned tier counts once toward "played through").
+      const achList = achievementsList();
+      const metals = {};
+      achList.forEach(a => { metals[a.tier] = (metals[a.tier] || 0) + 1; });
+      openShareSheet({ card:'season', data:{
+        verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
+        metals, playedThrough: achList.length, ownerName: S.profile.name || null,
+      } });
+    });
     shareStack.appendChild(shareSeasonBtn);
   }
   wrap.appendChild(shareStack);

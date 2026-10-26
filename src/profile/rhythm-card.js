@@ -60,7 +60,13 @@ const PHASE_LABEL = {
 // same fix and the same reason as player/clock.js's own duplicate of this
 // table (see that file's comment) -- kept in sync by hand, same as every
 // other value these two tables already share.
-const PHASE_COLOR = {
+// Exported (SH6, docs/18_SHARE.md): the season share card's own ring
+// reuses this exact table rather than a second copy — "a seven-wedge
+// conic ring in PHASE_COLOR order from rhythm-card.js (export the
+// table)." Dark-theme values only, same as every other reader of this
+// table (see the comment above) — a share card has no light/dark theme
+// of its own to react to.
+export const PHASE_COLOR = {
   night: '#8E7CC3', dawn: '#E7A7B8', morning: '#9FD8E8', midday: '#EFE9DF',
   afternoon: '#D9C7A0', golden: '#F2B35C', twilight: '#FF9E2C',
 };
