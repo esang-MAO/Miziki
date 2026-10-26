@@ -9,7 +9,7 @@ import { applyDiscVariant } from './record-art/looks.js';
 import { allIdx } from './library/model.js';
 import { setQueue } from './player/queue.js';
 import { restoreSessions } from './history/sessions.js';
-import { loadOverlayFor } from './library/edit.js';
+import { loadOverlaysBatch } from './library/edit.js';
 import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
 import { renderSearchChips } from './library/search.js';
 import { restoreSealedAlbums } from './library/sealed.js';
@@ -164,17 +164,20 @@ async function restoreLibrary(){
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){}
   const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
-  for(const r of recs){
-    const t = {
-      id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:Object.assign({}, r.tags), details: r.details || null, meta:r.meta,
-      duration:r.duration, buffer:null, blob:null, stored:true, artBlob:null,
-      gaplessDelaySec:r.gaplessDelaySec || 0, gaplessPaddingSec:r.gaplessPaddingSec || 0,
-      sizeBytes:r.sizeBytes || 0,
-      art: r.art ? URL.createObjectURL(r.art) : null
-    };
-    await loadOverlayFor(t);
-    S.tracks.push(t);
-  }
+  // Perf fix: build every track record first, then resolve every overlay/
+  // custom-cover claim in one pass (loadOverlaysBatch(), src/library/edit.js)
+  // instead of once per track -- see that function's own comment for why
+  // this turns 2*N sequential IndexedDB transactions into a small constant
+  // number of them.
+  const newTracks = recs.map(r => ({
+    id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:Object.assign({}, r.tags), details: r.details || null, meta:r.meta,
+    duration:r.duration, buffer:null, blob:null, stored:true, artBlob:null,
+    gaplessDelaySec:r.gaplessDelaySec || 0, gaplessPaddingSec:r.gaplessPaddingSec || 0,
+    sizeBytes:r.sizeBytes || 0,
+    art: r.art ? URL.createObjectURL(r.art) : null
+  }));
+  await loadOverlaysBatch(newTracks);
+  for(const t of newTracks) S.tracks.push(t);
   await restoreMeta();
   await restoreSessions();
   await restoreSealedAlbums();

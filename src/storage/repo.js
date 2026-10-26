@@ -95,6 +95,10 @@ export const artwork = {
   put(rec){ return DB.put('artwork', rec); },
   del(id){ return DB.del('artwork', id); },
   clear(){ return DB.clear('artwork'); },
+  // main.js's restoreLibrary() boot path (src/library/edit.js's
+  // loadOverlaysBatch()): the one place anything reads every custom-cover
+  // row at once, rather than by track id — mirrors overlays.all() above.
+  all(){ return DB.all('artwork'); },
 };
 
 export const profile = {
