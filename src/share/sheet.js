@@ -161,6 +161,13 @@ export async function openShareSheet(opts){
     b.setAttribute('aria-pressed', String(b.dataset.format === format)));
   buildIncludeToggles(currentCard);
   updateShareActionButtons($('#shareShareBtn'), $('#shareSave'), $('#shareCopy'));
+  // SH4 item 6: an empty Pressings card has nothing worth exporting --
+  // disable every action button rather than let the sheet produce a
+  // blank image. The Records screen's own Share button is already hidden
+  // in this same case (src/profile/records.js), so this is belt-and-
+  // suspenders for any other way the sheet could end up open on it.
+  const nothingToShare = currentCard === 'pressings' && !(data && data.records && data.records.length);
+  [$('#shareShareBtn'), $('#shareSave'), $('#shareCopy')].forEach(b => { b.disabled = nothingToShare; });
   // RF10: the sheet always opens collapsed -- a prior session's "More
   // options" tap shouldn't carry over into the next open.
   $('#shareMoreBody').hidden = true;
