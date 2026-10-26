@@ -25,7 +25,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   // reaches record-art/looks.js, which reaches history/sessions.js for
   // restoreThumbs — mocked here too, same "stop the chain at the door"
   // reasoning as every other name in this list.
-  namedExports: { thumbURL: {}, restoreThumbs: async () => {} },
+  namedExports: { thumbURL: {}, restoreThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
   namedExports: { getCrateArtURL: async () => null },

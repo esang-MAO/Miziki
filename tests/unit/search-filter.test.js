@@ -137,7 +137,7 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 // RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
 // openFriendStore (social/screens/friend-store.js) would otherwise reach

@@ -43,16 +43,16 @@ test('CR7 catalogue: every solid/effect has a band, jet and rares do not', () =>
   for(const d of RARE_DEFS) assert.equal(d.band, null);
 });
 
-test('CR7 catalogue: README counts hold (20/14/6 solids, 16/11/5 effects)', () => {
+test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects)', () => {
   const countBand = (defs, band) => defs.filter(d => d.band === band).length;
   assert.equal(SOLID_DEFS.length, 40);
   assert.equal(countBand(SOLID_DEFS, 'common'), 20);
   assert.equal(countBand(SOLID_DEFS, 'uncommon'), 14);
   assert.equal(countBand(SOLID_DEFS, 'scarce'), 6);
-  assert.equal(EFFECT_DEFS.length, 32);
-  assert.equal(countBand(EFFECT_DEFS, 'common'), 16);
-  assert.equal(countBand(EFFECT_DEFS, 'uncommon'), 11);
-  assert.equal(countBand(EFFECT_DEFS, 'scarce'), 5);
+  assert.equal(EFFECT_DEFS.length, 54);
+  assert.equal(countBand(EFFECT_DEFS, 'common'), 24);
+  assert.equal(countBand(EFFECT_DEFS, 'uncommon'), 22);
+  assert.equal(countBand(EFFECT_DEFS, 'scarce'), 8);
   assert.equal(RARE_DEFS.length, 4);
 });
 

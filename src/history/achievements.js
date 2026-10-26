@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant } from '../record-art/tiers.js';
+import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, CHART_VERSION } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { albumExpectedOrder } from './sessions.js';
 import { idxOf } from '../library/model.js';
@@ -27,8 +27,12 @@ async function upsertAchievement(albumId, tier){
 async function upsertCollectionEntry(albumId, tier, variant, pattern){
   if(S.collection[albumId]) return;   // discovered once, stays discovered
   const disp = S.albumDisplay[albumId] || {};
+  // chartVersion: PRESSINGS_110 §8 point 1 -- stamps which catalogue
+  // shelf size this draw was made against, so a later shelf growth (see
+  // tiers.js's own CHART_VERSION entry) can tell a stale tier-3 draw apart
+  // from a fresh one and re-draw only the stale ones, once.
   const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
-    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now()};
+    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now(), chartVersion:CHART_VERSION};
   S.collection[albumId] = rec;
   await collection.put(persistable(rec));
 }
