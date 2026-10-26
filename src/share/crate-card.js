@@ -1,21 +1,32 @@
 import { S } from '../state.js';
-import { albumKey, getVariantDef } from '../record-art/tiers.js';
-import { METAL_COLORS } from '../record-art/metals.js';
-import { topAlbums, topTracks, achievementsList } from '../history/achievements.js';
+import { albumKey } from '../record-art/tiers.js';
+import { topAlbums, topTracks } from '../history/achievements.js';
 import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, resolveShareStyle, hexMix, drawDiagonalWordmark, shareChip,
+  roundRectPath, drawShareWordmark, resolveShareStyle, drawDiagonalWordmark,
 } from './styles.js';
 import { fmtCount } from '../profile/screens.js';
-import {
-  computeRhythmShares, rhythmVerdictLabel, RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, windowedPhaseCounts,
-} from '../sundown/rhythm.js';
+
+// SH5 (docs/18_SHARE.md): the wordmark moved off-centre (bottom-right), so
+// its own width has to be measured ahead of drawShareWordmark's call
+// (which always centres on whatever x it's given) -- same font string,
+// measured and discarded before the real draw.
+function wordmarkWidth(ctx, fontPx){
+  ctx.save();
+  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
+  const total = ['Mi','zi','ki'].reduce((s, txt) => s + ctx.measureText(txt).width, 0);
+  ctx.restore();
+  return total;
+}
 
 /* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
-   album, a grid of the next covers, top songs, metals + collection, brand.
-   `opts`: {style, format, sections}. Pure: no DOM reads, only the same
+   record, a grid of the next covers, top songs, brand wordmark. SH5
+   (docs/18_SHARE.md) dropped the metals/collection/rhythm sections this
+   card used to also carry -- that's the profile's own Listening screen
+   and share/season-card.js's job now, not every crate share. `opts`:
+   {style, format, sections}. Pure: no DOM reads, only the same
    state-reading anchors the original drew from (topAlbums/topTracks/
-   achievementsList/S.collection/S.profile/S.tracks). ---- */
+   S.profile/S.tracks). ---- */
 export async function composeShareImage(opts){
   const style = opts.style || 'night', format = opts.format || 'square';
   const sections = opts.sections || {};
@@ -59,7 +70,9 @@ export async function composeShareImage(opts){
   ctx.restore();
 
   const showName = sections.name !== false && !!S.profile.name;
-  const albumCount = new Set(S.tracks.map(t => albumKey(t))).size;
+  // SH5 item 1: "records", not "albums" -- matching the crate's own
+  // header line (CR1), since this card is a picture of that same crate.
+  const recordCount = new Set(S.tracks.map(t => albumKey(t))).size;
   const trackCount = S.tracks.length;
   const textX = avX + avSize + Math.round(w*0.025);
   const headName = showName ? S.profile.name.toUpperCase() + "'S CRATE" : 'MY CRATE';
@@ -68,7 +81,7 @@ export async function composeShareImage(opts){
   ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.42);
   ctx.font = '500 ' + Math.round(w*0.02) + 'px "IBM Plex Mono", monospace';
   ctx.fillStyle = kit.sub;
-  ctx.fillText(albumCount + ' ALBUMS · ' + trackCount + ' TRACKS', textX, avY + avSize*0.42 + Math.round(w*0.03));
+  ctx.fillText(recordCount + ' RECORDS · ' + trackCount + ' TRACKS', textX, avY + avSize*0.42 + Math.round(w*0.03));
 
   let y = avY + avSize + Math.round(h*0.04);
   const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.56);
@@ -140,34 +153,51 @@ export async function composeShareImage(opts){
   ctx.fillText(shareFitText(ctx, subLine, w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
   y += Math.round(h*0.05);
 
-  // two columns (portrait/square): songs left, metals+collection stacked
-  // right. Single column (story): all three stack in the one column, so
-  // rightY is kept in sync with leftY between sections rather than starting
-  // fresh — otherwise metals/collection would overlap songs instead of
-  // continuing below it (spec §2, "Story is a single column").
-  const colSplitX = twoCol ? Math.round(w/2) : null;
-  let leftY = y, rightY = y;
-  const leftX = pad, rightX = colSplitX != null ? colSplitX + Math.round(w*0.02) : pad;
-  const colW = (colSplitX != null ? colSplitX - leftX - Math.round(w*0.03) : w - pad*2);
+  // SH5 item 4/5: metals, collection and the rhythm chip are gone -- TOP
+  // SONGS is now the one thing below the album block, full width, so it
+  // can run all the way down to the bottom padding (item 5's own reason
+  // the wordmark moved off-centre).
+  const leftX = pad, colW = w - pad*2;
+  let leftY = y;
 
   if(sections.songs !== false){
     ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
     ctx.fillStyle = kit.accent;
     ctx.fillText('TOP SONGS', leftX, leftY);
     leftY += Math.round(w*0.036);
-    const list = topTracks(5);
-    const rows = twoCol ? list.slice(0, 4) : list.slice(0, 4);
-    if(rows.length){
-      rows.forEach((t, i) => {
-        ctx.font = '600 ' + Math.round(w*0.027) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
-        const rankStr = String(i+1).padStart(2,'0') + '  ';
+    // SH5 item 3: three rows in Square (and portrait, which has no board
+    // of its own), five in Story -- matching the design README's own
+    // "Three rows in Square, five in Story" line for this section.
+    const songRows = format === 'story' ? 5 : 3;
+    const list = topTracks(songRows);
+    if(list.length){
+      list.forEach((t, i) => {
+        // rank in the accent colour, mono -- its own font/colour, never
+        // the title's, which the pre-SH5 code drew both in together
+        ctx.font = '600 ' + Math.round(w*0.016) + 'px "IBM Plex Mono", monospace';
+        ctx.fillStyle = kit.accent;
+        const rankStr = String(i+1).padStart(2,'0');
         ctx.fillText(rankStr, leftX, leftY);
-        const rankW = ctx.measureText(rankStr).width;
-        const titleW = ctx.measureText(t.title).width;
-        ctx.fillText(shareFitText(ctx, t.title, colW - rankW), leftX + rankW, leftY);
+        const rankW = ctx.measureText(rankStr).width + Math.round(w*0.014);
+
+        // the artist sub never wraps and never grows past 40% of the row
+        // (README: "max 40% of the row, never wrapping") -- reserved
+        // first so the title's own available width already accounts for it
+        const subMaxW = colW * 0.4;
+        ctx.font = '400 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
+        const subText = '· ' + t.artist;
+
+        ctx.font = '600 ' + Math.round(w*0.027) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
+        const titleAvailW = Math.max(20, colW - rankW - subMaxW - Math.round(w*0.012));
+        const titleText = shareFitText(ctx, t.title, titleAvailW);
+        ctx.fillText(titleText, leftX + rankW, leftY);
+        const titleW = ctx.measureText(titleText).width;
+
         ctx.font = '400 ' + Math.round(w*0.02) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
-        const subX = leftX + rankW + Math.min(titleW, colW - rankW) + 8;
-        ctx.fillText(shareFitText(ctx, '· ' + t.artist, Math.max(10, leftX + colW - subX)), subX, leftY);
+        const subX = leftX + rankW + titleW + Math.round(w*0.012);
+        const subAvailW = Math.min(subMaxW, Math.max(10, leftX + colW - subX));
+        ctx.fillText(shareFitText(ctx, subText, subAvailW), subX, leftY);
+
         leftY += Math.round(w*0.042);
       });
     } else {
@@ -177,92 +207,13 @@ export async function composeShareImage(opts){
     }
   }
 
-  if(!twoCol) rightY = leftY;
-  if(sections.metals !== false){
-    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
-    ctx.fillStyle = kit.accent;
-    ctx.fillText('METALS', rightX, rightY);
-    rightY += Math.round(w*0.036);
-    const list = achievementsList();
-    if(list.length){
-      const counts = {};
-      list.forEach(a => { counts[a.tier] = (counts[a.tier] || 0) + 1; });
-      const order = ['rare','platinum','gold','silver','bronze'];
-      const r = Math.round(w*0.026);
-      let cx = rightX + r;
-      order.filter(k => counts[k]).forEach(k => {
-        ctx.beginPath(); ctx.arc(cx, rightY + r*0.2, r, 0, Math.PI*2);
-        // PRESSINGS_110 PR4: `mid` is this swatch's equivalent of the old `base`.
-        const metalBase = (METAL_COLORS[k] && METAL_COLORS[k].mid) || '#9c8a74';
-        ctx.fillStyle = shareSwatchGradient(ctx, cx, rightY + r*0.2, r, [metalBase, hexMix(metalBase,'#000',0.35), hexMix(metalBase,'#000',0.6)]);
-        ctx.fill();
-        ctx.fillStyle = '#171310'; ctx.font = '700 ' + Math.round(r*0.85) + 'px Archivo, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(String(counts[k]), cx, rightY + r*0.2 + 1);
-        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-        cx += r*2 + Math.round(w*0.016);
-      });
-      rightY += r*2 + Math.round(w*0.03);
-    } else {
-      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
-      ctx.fillText('Nothing earned yet.', rightX, rightY);
-      rightY += Math.round(w*0.04);
-    }
-  }
-
-  if(sections.collection !== false){
-    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
-    ctx.fillStyle = kit.accent;
-    ctx.fillText('COLLECTION', rightX, rightY);
-    rightY += Math.round(w*0.036);
-    const items = Object.values(S.collection).slice(0, 6);
-    if(items.length){
-      const r = Math.round(w*0.024), spacing = r*2 + Math.round(w*0.012);
-      items.forEach((rec, i) => {
-        const cx = rightX + r + i*spacing, cy = rightY + r;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, getVariantDef(rec.variant).colors);
-        ctx.fill();
-        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
-      });
-      rightY += r*2 + Math.round(w*0.03);
-    } else {
-      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
-      ctx.fillText('Nothing collected yet.', rightX, rightY);
-      rightY += Math.round(w*0.04);
-    }
-  }
-
-  // DA6 (docs/DAY_ARC.md); windowed and reworded RF22 ("words that
-  // invite"): the rhythm verdict, shown only once the profile card itself
-  // would be unlocked (>= 20 plays counted over the same rolling
-  // RHYTHM_WINDOW_DAYS window the card itself now reads, not a lifetime
-  // total -- see sundown/rhythm.js's own header comment) -- not
-  // separately unit-tested, per the same escape valve
-  // tests/unit/share.test.js's own entry already documents for
-  // composeShareImage's hero/top-items selection: it's inline in an
-  // async canvas-drawing function with no meaningful pure core beyond
-  // the already-tested computeRhythmShares/rhythmVerdictLabel/
-  // RHYTHM_MIN_PLAYS/windowedPhaseCounts this reuses, not a new decision
-  // of its own. No .toUpperCase() any more -- RF22's own "Lately, mostly
-  // after dark" is meant to read as a sentence, not a shouted label like
-  // the old "NIGHT LISTENER" chip text.
-  let markY = Math.max(leftY, rightY, Math.round(h*0.02)) + Math.round(h*0.03);
-  if(sections.rhythm !== false){
-    const windowed = windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS);
-    const total = Object.values(windowed).reduce((a,b) => a+b, 0);
-    if(total >= RHYTHM_MIN_PLAYS){
-      const label = rhythmVerdictLabel(computeRhythmShares(windowed).shares);
-      ctx.font = '600 22px "IBM Plex Mono", monospace';
-      const chipW = ctx.measureText(label).width + 44;
-      shareChip(ctx, kit, label, Math.round((w - chipW) / 2), markY, false);
-      markY += 46 + Math.round(h*0.03);
-    }
-  }
-
-  ctx.textAlign = 'center';
-  drawShareWordmark(ctx, w/2, Math.min(markY, bottomY), Math.round(w*0.034), kit.ink, kit.accent);
-  ctx.textAlign = 'left';
+  // SH5 item 5: bottom-right, not centred -- measured ahead so the mark
+  // itself (which always centres on whatever x it's given) lands flush
+  // against the right-hand padding.
+  const wmFontPx = Math.round(w*0.034);
+  const wmWidth = wordmarkWidth(ctx, wmFontPx);
+  const markY = Math.min(Math.max(leftY, Math.round(h*0.02)) + Math.round(h*0.03), bottomY);
+  drawShareWordmark(ctx, w - pad - wmWidth/2, markY, wmFontPx, kit.ink, kit.accent);
 
   return canvas;
 }
