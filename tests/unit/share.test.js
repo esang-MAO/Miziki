@@ -295,6 +295,50 @@ test('layoutChips: an empty chip list lays out to nothing', () => {
   assert.equal(height, 0);
 });
 
+/* ===================== SH6 (docs/18_SHARE.md) =====================
+   The Season card (src/share/season-card.js) -- item 7's own "legend
+   order, zero-tier omission, the lock threshold shared with rhythm.js."
+   The lock threshold itself is already covered by RHYTHM_MIN_PLAYS's own
+   existing use throughout this app (sundown/rhythm.js, exercised by
+   other test files) -- SH1 item 4 keeps the entry point hidden below it,
+   and the composer is never called locked at all, so there's nothing
+   season-card.js itself needs to test for that half. season-card.js's
+   own imports (state.js, sundown/rhythm.js, profile/rhythm-card.js,
+   record-art/metals.js, styles.js) are all the same "no DOM at the top
+   level" leaves every other composer here already relies on, so this
+   needs no mocking to load for real either -- and it has to happen
+   before the SH1 block below mocks season-card.js wholesale (for
+   sheet.js's own tests), for the same reason record-card.js/
+   pressings-card.js's real imports above do. */
+const { legendOrder, metalTierOrder } = await import('../../src/share/season-card.js');
+
+test('legendOrder: sorted by share descending', () => {
+  const shares = { night: 0.1, dawn: 0, morning: 0.5, midday: 0.4, afternoon: 0, golden: 0, twilight: 0 };
+  assert.deepEqual(legendOrder(shares), ['morning', 'midday', 'night']);
+});
+
+test('legendOrder: a phase with no share at all is left out, not shown at 0%', () => {
+  assert.deepEqual(legendOrder({ night: 1 }), ['night']);
+  assert.deepEqual(legendOrder({}), []);
+  assert.deepEqual(legendOrder(null), []);
+});
+
+test('legendOrder: a tie breaks by the fixed PHASES order, deterministically', () => {
+  // night (index 0) outranks golden (index 5) in PHASES' own fixed order
+  assert.deepEqual(legendOrder({ golden: 0.5, night: 0.5 }), ['night', 'golden']);
+});
+
+test('metalTierOrder: rare outranks the metal ladder, platinum down to bronze', () => {
+  assert.deepEqual(metalTierOrder({ bronze: 1, gold: 2, rare: 1, silver: 1, platinum: 1 }),
+    ['rare', 'platinum', 'gold', 'silver', 'bronze']);
+});
+
+test('metalTierOrder: a tier with 0 (or missing) is omitted', () => {
+  assert.deepEqual(metalTierOrder({ gold: 3, silver: 0, bronze: 1 }), ['gold', 'bronze']);
+  assert.deepEqual(metalTierOrder({}), []);
+  assert.deepEqual(metalTierOrder(null), [], 'no metals at all means an empty order, not a thrown error');
+});
+
 /* ===================== SH1 (docs/18_SHARE.md) =====================
    "One share sheet, five entry points" -- src/share/sheet.js is now the
    one place that opens any of five cards (nowPlaying/record/pressings/
