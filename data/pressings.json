@@ -1,0 +1,1706 @@
+{
+ "version": 1,
+ "counts": {
+  "solids": 40,
+  "effects": 54,
+  "rare": 8,
+  "zoetropes": 8,
+  "total": 110
+ },
+ "jet": {
+  "id": "jet",
+  "name": "Jet",
+  "body": "#1C1A1E",
+  "rim": "#0A090B",
+  "ring": "#2A272C",
+  "paper_label": {
+   "paper": "#EFE9DF",
+   "ring": "#3E3D22",
+   "default": false
+  }
+ },
+ "draw": {
+  "lossy": {
+   "jet": 1.0
+  },
+  "lossless": {
+   "solid": 0.85,
+   "jet": 0.15
+  },
+  "hires": {
+   "effect": 0.7,
+   "solid": 0.25,
+   "jet": 0.05
+  },
+  "band": {
+   "common": 0.6,
+   "uncommon": 0.3,
+   "scarce": 0.1
+  }
+ },
+ "solids": [
+  {
+   "id": "oxblood",
+   "name": "Oxblood",
+   "tier": 2,
+   "family": "reds",
+   "ring": "#8A2E2A",
+   "body": "#6B1F1C",
+   "rim": "#3E1210",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "madder",
+   "name": "Madder",
+   "tier": 2,
+   "family": "reds",
+   "ring": "#B5433A",
+   "body": "#9A3328",
+   "rim": "#5C1A14",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "vermilion",
+   "name": "Vermilion",
+   "tier": 2,
+   "family": "reds",
+   "ring": "#D94A32",
+   "body": "#C4302B",
+   "rim": "#6E1712",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "terracotta",
+   "name": "Terracotta",
+   "tier": 2,
+   "family": "reds",
+   "ring": "#D3694A",
+   "body": "#C05131",
+   "rim": "#7E3119",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "coral",
+   "name": "Coral",
+   "tier": 2,
+   "family": "pinks",
+   "ring": "#E8806A",
+   "body": "#D4674F",
+   "rim": "#8A3A2A",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "rose",
+   "name": "Rose",
+   "tier": 2,
+   "family": "pinks",
+   "ring": "#C45C7A",
+   "body": "#D97A96",
+   "rim": "#7A2E48",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "blush",
+   "name": "Blush",
+   "tier": 2,
+   "family": "pinks",
+   "ring": "#F0D0C8",
+   "body": "#E3B8AE",
+   "rim": "#B48A80",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "fuchsia",
+   "name": "Fuchsia",
+   "tier": 2,
+   "family": "pinks",
+   "ring": "#B03A78",
+   "body": "#9A2B66",
+   "rim": "#5E1A3E",
+   "translucent": false,
+   "rarity": "scarce"
+  },
+  {
+   "id": "ochre",
+   "name": "Ochre",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#B8862E",
+   "body": "#9A6E22",
+   "rim": "#5E4212",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "sienna",
+   "name": "Sienna",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#A0522D",
+   "body": "#8B4426",
+   "rim": "#4F2412",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "caramel",
+   "name": "Caramel",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#B07A45",
+   "body": "#C99458",
+   "rim": "#6B4522",
+   "translucent": true,
+   "rarity": "scarce"
+  },
+  {
+   "id": "umber",
+   "name": "Umber",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#6B4A2E",
+   "body": "#8A6238",
+   "rim": "#3E2A18",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "sepia",
+   "name": "Sepia",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#6A4F3A",
+   "body": "#4E3728",
+   "rim": "#2A1D14",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "puce",
+   "name": "Puce",
+   "tier": 2,
+   "family": "earths",
+   "ring": "#9C6E72",
+   "body": "#7E555A",
+   "rim": "#4F3337",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "isabelline",
+   "name": "Isabelline",
+   "tier": 2,
+   "family": "whites",
+   "ring": "#EDE3CF",
+   "body": "#DCCDB0",
+   "rim": "#B8A684",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "bone",
+   "name": "Bone",
+   "tier": 2,
+   "family": "whites",
+   "ring": "#F1EDE3",
+   "body": "#DED7C7",
+   "rim": "#A9A69B",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "chalk",
+   "name": "Chalk",
+   "tier": 2,
+   "family": "whites",
+   "ring": "#F4F1EA",
+   "body": "#E6E2DA",
+   "rim": "#B9B5AC",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "celadon",
+   "name": "Celadon",
+   "tier": 2,
+   "family": "whites",
+   "ring": "#9FB8A4",
+   "body": "#86A28C",
+   "rim": "#5D7564",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "olive",
+   "name": "Olive",
+   "tier": 2,
+   "family": "greens",
+   "ring": "#6E7A3A",
+   "body": "#4A5527",
+   "rim": "#2B3115",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "pine",
+   "name": "Pine",
+   "tier": 2,
+   "family": "greens",
+   "ring": "#1E4D3A",
+   "body": "#2A6A4F",
+   "rim": "#102A20",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "verdigris",
+   "name": "Verdigris",
+   "tier": 2,
+   "family": "greens",
+   "ring": "#3F8C7E",
+   "body": "#5BAA99",
+   "rim": "#2A5E54",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "viridian",
+   "name": "Viridian",
+   "tier": 2,
+   "family": "greens",
+   "ring": "#1F6B5A",
+   "body": "#2E8A74",
+   "rim": "#133F35",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "emerald",
+   "name": "Emerald",
+   "tier": 2,
+   "family": "greens",
+   "ring": "#2E8B57",
+   "body": "#3FA873",
+   "rim": "#1B5A38",
+   "translucent": true,
+   "rarity": "scarce"
+  },
+  {
+   "id": "teal",
+   "name": "Teal",
+   "tier": 2,
+   "family": "teals",
+   "ring": "#1F6F73",
+   "body": "#28868B",
+   "rim": "#123F42",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "turquoise",
+   "name": "Turquoise",
+   "tier": 2,
+   "family": "teals",
+   "ring": "#2F9BA8",
+   "body": "#49B8C4",
+   "rim": "#1E6670",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "aquamarine",
+   "name": "Aquamarine",
+   "tier": 2,
+   "family": "teals",
+   "ring": "#8FD3CF",
+   "body": "#A9E0DC",
+   "rim": "#5E9D99",
+   "translucent": true,
+   "rarity": "scarce"
+  },
+  {
+   "id": "petrol",
+   "name": "Petrol",
+   "tier": 2,
+   "family": "teals",
+   "ring": "#204A52",
+   "body": "#2C5E68",
+   "rim": "#13303A",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "prussian",
+   "name": "Prussian",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#1F3F66",
+   "body": "#2B5586",
+   "rim": "#122540",
+   "translucent": true,
+   "rarity": "common"
+  },
+  {
+   "id": "cobalt",
+   "name": "Cobalt",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#2A4FA0",
+   "body": "#3660BE",
+   "rim": "#172B5C",
+   "translucent": true,
+   "rarity": "scarce"
+  },
+  {
+   "id": "woad",
+   "name": "Woad",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#2B4A7A",
+   "body": "#3B6192",
+   "rim": "#1A2E4A",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "ultramarine",
+   "name": "Ultramarine",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#1E3A8A",
+   "body": "#2949A6",
+   "rim": "#101F4A",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "indigo",
+   "name": "Indigo",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#2C2F5E",
+   "body": "#3B4080",
+   "rim": "#1A1C3A",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "powder-blue",
+   "name": "Powder Blue",
+   "tier": 2,
+   "family": "blues",
+   "ring": "#CFE4F2",
+   "body": "#B9D9EB",
+   "rim": "#8FB0C4",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "heliotrope",
+   "name": "Heliotrope",
+   "tier": 2,
+   "family": "purples",
+   "ring": "#8A63A8",
+   "body": "#6C4A8A",
+   "rim": "#44305A",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "tyrian",
+   "name": "Tyrian",
+   "tier": 2,
+   "family": "purples",
+   "ring": "#6E2448",
+   "body": "#5B1A3C",
+   "rim": "#3A0F26",
+   "translucent": false,
+   "rarity": "scarce"
+  },
+  {
+   "id": "mauve",
+   "name": "Mauve",
+   "tier": 2,
+   "family": "purples",
+   "ring": "#9B6B9E",
+   "body": "#7E5280",
+   "rim": "#4E3250",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "grape",
+   "name": "Grape",
+   "tier": 2,
+   "family": "purples",
+   "ring": "#6D419B",
+   "body": "#582C83",
+   "rim": "#361A52",
+   "translucent": false,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "smoke",
+   "name": "Smoke",
+   "tier": 2,
+   "family": "greys",
+   "ring": "#A9A7A4",
+   "body": "#6E6C69",
+   "rim": "#2E2D2C",
+   "translucent": true,
+   "rarity": "uncommon"
+  },
+  {
+   "id": "paynes-grey",
+   "name": "Payne's Grey",
+   "tier": 2,
+   "family": "greys",
+   "ring": "#4A5565",
+   "body": "#3C4654",
+   "rim": "#232A33",
+   "translucent": false,
+   "rarity": "common"
+  },
+  {
+   "id": "graphite",
+   "name": "Graphite",
+   "tier": 2,
+   "family": "greys",
+   "ring": "#55585C",
+   "body": "#3F4245",
+   "rim": "#222426",
+   "translucent": false,
+   "rarity": "common"
+  }
+ ],
+ "effects": [
+  {
+   "id": "woad-madder",
+   "name": "Woad & Madder",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Woad \u00b7 Madder",
+   "rarity": "common",
+   "body": "#3B6192",
+   "rim": "#1A2E4A",
+   "ring": "#2B4A7A",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#3B6192 0 22%,#9A3328 22% 38%,#3B6192 38% 58%,#9A3328 58% 76%,#3B6192 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "minium-vermilion",
+   "name": "Minium & Vermilion",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Minium \u00b7 Vermilion",
+   "rarity": "uncommon",
+   "body": "#E86A3A",
+   "rim": "#8A3718",
+   "ring": "#F08A52",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#E86A3A 0 22%,#C4302B 22% 38%,#E86A3A 38% 58%,#C4302B 58% 76%,#E86A3A 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "prussian-bone",
+   "name": "Prussian & Bone",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Prussian \u00b7 Bone",
+   "rarity": "common",
+   "body": "#2B5586",
+   "rim": "#122540",
+   "ring": "#1F3F66",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#2B5586 0 22%,#DED7C7 22% 38%,#2B5586 38% 58%,#DED7C7 58% 76%,#2B5586 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "viridian-ochre",
+   "name": "Viridian & Ochre",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Viridian \u00b7 Ochre",
+   "rarity": "uncommon",
+   "body": "#2E8A74",
+   "rim": "#133F35",
+   "ring": "#1F6B5A",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#2E8A74 0 22%,#9A6E22 22% 38%,#2E8A74 38% 58%,#9A6E22 58% 76%,#2E8A74 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "teal-coral",
+   "name": "Teal & Coral",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Teal \u00b7 Coral",
+   "rarity": "common",
+   "body": "#28868B",
+   "rim": "#123F42",
+   "ring": "#1F6F73",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#28868B 0 22%,#D4674F 22% 38%,#28868B 38% 58%,#D4674F 58% 76%,#28868B 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "grape-chalk",
+   "name": "Grape & Chalk",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Grape \u00b7 Chalk",
+   "rarity": "common",
+   "body": "#582C83",
+   "rim": "#361A52",
+   "ring": "#6D419B",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#582C83 0 22%,#E6E2DA 22% 38%,#582C83 38% 58%,#E6E2DA 58% 76%,#582C83 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "olive-terracotta",
+   "name": "Olive & Terracotta",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Olive \u00b7 Terracotta",
+   "rarity": "common",
+   "body": "#4A5527",
+   "rim": "#2B3115",
+   "ring": "#6E7A3A",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#4A5527 0 22%,#C05131 22% 38%,#4A5527 38% 58%,#C05131 58% 76%,#4A5527 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "ultramarine-verdigris",
+   "name": "Ultramarine & Verdigris",
+   "tier": 3,
+   "technique": "swirl",
+   "detail": "swirl",
+   "inks": "Ultramarine \u00b7 Verdigris",
+   "rarity": "common",
+   "body": "#2949A6",
+   "rim": "#101F4A",
+   "ring": "#1E3A8A",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from 20deg,#2949A6 0 22%,#5BAA99 22% 38%,#2949A6 38% 58%,#5BAA99 58% 76%,#2949A6 76% 100%);filter:blur(7px)"
+   ]
+  },
+  {
+   "id": "oxblood-split",
+   "name": "Oxblood Split",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Isabelline \u00b7 Oxblood",
+   "rarity": "common",
+   "body": "#6B1F1C",
+   "rim": "#3E1210",
+   "ring": "#8A2E2A",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#DCCDB0 50%,#6B1F1C 50%)"
+   ]
+  },
+  {
+   "id": "tyrian-split",
+   "name": "Tyrian Split",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Isabelline \u00b7 Tyrian",
+   "rarity": "uncommon",
+   "body": "#5B1A3C",
+   "rim": "#3A0F26",
+   "ring": "#6E2448",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#DCCDB0 50%,#5B1A3C 50%)"
+   ]
+  },
+  {
+   "id": "jet-bone",
+   "name": "Jet & Bone",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Bone \u00b7 Jet",
+   "rarity": "common",
+   "body": "#1C1A1E",
+   "rim": "#0A090B",
+   "ring": "#2A272C",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#DED7C7 50%,#1C1A1E 50%)"
+   ]
+  },
+  {
+   "id": "pine-split",
+   "name": "Pine Split",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Bone \u00b7 Pine",
+   "rarity": "common",
+   "body": "#2A6A4F",
+   "rim": "#102A20",
+   "ring": "#1E4D3A",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#DED7C7 50%,#2A6A4F 50%)"
+   ]
+  },
+  {
+   "id": "rose-split",
+   "name": "Rose Split",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Chalk \u00b7 Rose",
+   "rarity": "common",
+   "body": "#D97A96",
+   "rim": "#7A2E48",
+   "ring": "#C45C7A",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#E6E2DA 50%,#D97A96 50%)"
+   ]
+  },
+  {
+   "id": "prussian-ochre",
+   "name": "Prussian & Ochre",
+   "tier": 3,
+   "technique": "split",
+   "detail": "split",
+   "inks": "Ochre \u00b7 Prussian",
+   "rarity": "common",
+   "body": "#2B5586",
+   "rim": "#122540",
+   "ring": "#1F3F66",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#9A6E22 50%,#2B5586 50%)"
+   ]
+  },
+  {
+   "id": "vermilion-chalk-pine",
+   "name": "Vermilion Chalk Pine",
+   "tier": 3,
+   "technique": "tri-split",
+   "detail": "tri-split",
+   "inks": "Vermilion \u00b7 Chalk \u00b7 Pine",
+   "rarity": "uncommon",
+   "body": "#E6E2DA",
+   "rim": "#B9B5AC",
+   "ring": "#F4F1EA",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#C4302B 33.4%,#E6E2DA 33.4% 66.7%,#2A6A4F 66.7%)"
+   ]
+  },
+  {
+   "id": "cobalt-bone-madder",
+   "name": "Cobalt Bone Madder",
+   "tier": 3,
+   "technique": "tri-split",
+   "detail": "tri-split",
+   "inks": "Cobalt \u00b7 Bone \u00b7 Madder",
+   "rarity": "uncommon",
+   "body": "#DED7C7",
+   "rim": "#A9A69B",
+   "ring": "#F1EDE3",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#3660BE 33.4%,#DED7C7 33.4% 66.7%,#9A3328 66.7%)"
+   ]
+  },
+  {
+   "id": "ochre-jet-terracotta",
+   "name": "Ochre Jet Terracotta",
+   "tier": 3,
+   "technique": "tri-split",
+   "detail": "tri-split",
+   "inks": "Ochre \u00b7 Jet \u00b7 Terracotta",
+   "rarity": "common",
+   "body": "#1C1A1E",
+   "rim": "#0A090B",
+   "ring": "#2A272C",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(90deg,#9A6E22 33.4%,#1C1A1E 33.4% 66.7%,#C05131 66.7%)"
+   ]
+  },
+  {
+   "id": "madder-pinwheel",
+   "name": "Madder Pinwheel",
+   "tier": 3,
+   "technique": "pinwheel",
+   "detail": "pinwheel \u00b7 six wedges",
+   "inks": "Madder \u00b7 Isabelline",
+   "rarity": "common",
+   "body": "#9A3328",
+   "rim": "#5C1A14",
+   "ring": "#B5433A",
+   "translucent": false,
+   "css_layers": [
+    "background:conic-gradient(from 12deg,#9A3328 0 60deg,#DCCDB0 60deg 120deg,#9A3328 120deg 180deg,#DCCDB0 180deg 240deg,#9A3328 240deg 300deg,#DCCDB0 300deg)"
+   ]
+  },
+  {
+   "id": "teal-pinwheel",
+   "name": "Teal Pinwheel",
+   "tier": 3,
+   "technique": "pinwheel",
+   "detail": "pinwheel \u00b7 six wedges",
+   "inks": "Teal \u00b7 Chalk",
+   "rarity": "common",
+   "body": "#28868B",
+   "rim": "#123F42",
+   "ring": "#1F6F73",
+   "translucent": false,
+   "css_layers": [
+    "background:conic-gradient(from 12deg,#28868B 0 60deg,#E6E2DA 60deg 120deg,#28868B 120deg 180deg,#E6E2DA 180deg 240deg,#28868B 240deg 300deg,#E6E2DA 300deg)"
+   ]
+  },
+  {
+   "id": "grape-pinwheel",
+   "name": "Grape Pinwheel",
+   "tier": 3,
+   "technique": "pinwheel",
+   "detail": "pinwheel \u00b7 six wedges",
+   "inks": "Grape \u00b7 Bone",
+   "rarity": "uncommon",
+   "body": "#582C83",
+   "rim": "#361A52",
+   "ring": "#6D419B",
+   "translucent": false,
+   "css_layers": [
+    "background:conic-gradient(from 12deg,#582C83 0 60deg,#DED7C7 60deg 120deg,#582C83 120deg 180deg,#DED7C7 180deg 240deg,#582C83 240deg 300deg,#DED7C7 300deg)"
+   ]
+  },
+  {
+   "id": "sienna-pinwheel",
+   "name": "Sienna Pinwheel",
+   "tier": 3,
+   "technique": "pinwheel",
+   "detail": "pinwheel \u00b7 six wedges",
+   "inks": "Sienna \u00b7 Isabelline",
+   "rarity": "common",
+   "body": "#8B4426",
+   "rim": "#4F2412",
+   "ring": "#A0522D",
+   "translucent": false,
+   "css_layers": [
+    "background:conic-gradient(from 12deg,#8B4426 0 60deg,#DCCDB0 60deg 120deg,#8B4426 120deg 180deg,#DCCDB0 180deg 240deg,#8B4426 240deg 300deg,#DCCDB0 300deg)"
+   ]
+  },
+  {
+   "id": "lapis",
+   "name": "Lapis",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble \u00b7 calcite veins",
+   "inks": "Prussian \u00b7 Chalk",
+   "rarity": "scarce",
+   "body": "#2B5586",
+   "rim": "#122540",
+   "ring": "#1F3F66",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#E6E2DA 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#E6E2DA 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)"
+   ]
+  },
+  {
+   "id": "malachite",
+   "name": "Malachite",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble \u00b7 banded",
+   "inks": "Viridian \u00b7 Pine",
+   "rarity": "scarce",
+   "body": "#2E8A74",
+   "rim": "#133F35",
+   "ring": "#1F6B5A",
+   "translucent": false,
+   "css_layers": [
+    "background:repeating-linear-gradient(118deg,transparent 0 9px,#2A6A4F 9px 11px,transparent 11px 20px,#2A6A4F 20px 26px);filter:blur(0.6px);opacity:.85"
+   ]
+  },
+  {
+   "id": "serpentine",
+   "name": "Serpentine",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble",
+   "inks": "Olive \u00b7 Celadon",
+   "rarity": "uncommon",
+   "body": "#4A5527",
+   "rim": "#2B3115",
+   "ring": "#6E7A3A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#86A28C 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#86A28C 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#86A28C 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#86A28C 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)"
+   ]
+  },
+  {
+   "id": "rhodonite",
+   "name": "Rhodonite",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble \u00b7 grey veins",
+   "inks": "Rose \u00b7 Graphite",
+   "rarity": "scarce",
+   "body": "#D97A96",
+   "rim": "#7A2E48",
+   "ring": "#C45C7A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#3F4245 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#3F4245 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#3F4245 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#3F4245 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)"
+   ]
+  },
+  {
+   "id": "jasper",
+   "name": "Jasper",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble \u00b7 ochre veins",
+   "inks": "Sienna \u00b7 Ochre",
+   "rarity": "uncommon",
+   "body": "#8B4426",
+   "rim": "#4F2412",
+   "ring": "#A0522D",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#9A6E22 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#9A6E22 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#9A6E22 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#9A6E22 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)"
+   ]
+  },
+  {
+   "id": "sodalite",
+   "name": "Sodalite",
+   "tier": 3,
+   "technique": "marble",
+   "detail": "marble \u00b7 chalk veins",
+   "inks": "Woad \u00b7 Chalk",
+   "rarity": "uncommon",
+   "body": "#3B6192",
+   "rim": "#1A2E4A",
+   "ring": "#2B4A7A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#E6E2DA 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#E6E2DA 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)"
+   ]
+  },
+  {
+   "id": "mauve-measles",
+   "name": "Mauve Measles",
+   "tier": 3,
+   "technique": "splatter",
+   "detail": "splatter",
+   "inks": "Mauve on Isabelline",
+   "rarity": "common",
+   "body": "#DCCDB0",
+   "rim": "#B8A684",
+   "ring": "#EDE3CF",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 30% 30%,#7E5280 0 5.0%,transparent 6.0%),radial-gradient(circle at 72% 62%,#7E5280 0 4.0%,transparent 5.0%),radial-gradient(circle at 58% 22%,#7E5280 0 4.0%,transparent 5.0%),radial-gradient(circle at 26% 70%,#7E5280 0 3.0%,transparent 4.0%),radial-gradient(circle at 80% 34%,#7E5280 0 3.0%,transparent 4.0%),radial-gradient(circle at 46% 84%,#7E5280 0 3.0%,transparent 4.0%),radial-gradient(circle at 68% 80%,#7E5280 0 2.0%,transparent 3.0%),radial-gradient(circle at 22% 50%,#7E5280 0 2.0%,transparent 3.0%),radial-gradient(circle at 86% 52%,#7E5280 0 2.0%,transparent 3.0%),radial-gradient(circle at 40% 52%,#7E5280 0 2.0%,transparent 3.0%)"
+   ]
+  },
+  {
+   "id": "soot",
+   "name": "Soot",
+   "tier": 3,
+   "technique": "splatter",
+   "detail": "splatter",
+   "inks": "Jet on Chalk",
+   "rarity": "common",
+   "body": "#E6E2DA",
+   "rim": "#B9B5AC",
+   "ring": "#F4F1EA",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 30% 30%,#1C1A1E 0 5.0%,transparent 6.0%),radial-gradient(circle at 72% 62%,#1C1A1E 0 4.0%,transparent 5.0%),radial-gradient(circle at 58% 22%,#1C1A1E 0 4.0%,transparent 5.0%),radial-gradient(circle at 26% 70%,#1C1A1E 0 3.0%,transparent 4.0%),radial-gradient(circle at 80% 34%,#1C1A1E 0 3.0%,transparent 4.0%),radial-gradient(circle at 46% 84%,#1C1A1E 0 3.0%,transparent 4.0%),radial-gradient(circle at 68% 80%,#1C1A1E 0 2.0%,transparent 3.0%),radial-gradient(circle at 22% 50%,#1C1A1E 0 2.0%,transparent 3.0%),radial-gradient(circle at 86% 52%,#1C1A1E 0 2.0%,transparent 3.0%),radial-gradient(circle at 40% 52%,#1C1A1E 0 2.0%,transparent 3.0%)"
+   ]
+  },
+  {
+   "id": "verdigris-on-jet",
+   "name": "Verdigris on Jet",
+   "tier": 3,
+   "technique": "splatter",
+   "detail": "splatter",
+   "inks": "Verdigris on Jet",
+   "rarity": "common",
+   "body": "#1C1A1E",
+   "rim": "#0A090B",
+   "ring": "#2A272C",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 30% 30%,#5BAA99 0 5.0%,transparent 6.0%),radial-gradient(circle at 72% 62%,#5BAA99 0 4.0%,transparent 5.0%),radial-gradient(circle at 58% 22%,#5BAA99 0 4.0%,transparent 5.0%),radial-gradient(circle at 26% 70%,#5BAA99 0 3.0%,transparent 4.0%),radial-gradient(circle at 80% 34%,#5BAA99 0 3.0%,transparent 4.0%),radial-gradient(circle at 46% 84%,#5BAA99 0 3.0%,transparent 4.0%),radial-gradient(circle at 68% 80%,#5BAA99 0 2.0%,transparent 3.0%),radial-gradient(circle at 22% 50%,#5BAA99 0 2.0%,transparent 3.0%),radial-gradient(circle at 86% 52%,#5BAA99 0 2.0%,transparent 3.0%),radial-gradient(circle at 40% 52%,#5BAA99 0 2.0%,transparent 3.0%)"
+   ]
+  },
+  {
+   "id": "coral-on-teal",
+   "name": "Coral on Teal",
+   "tier": 3,
+   "technique": "splatter",
+   "detail": "splatter",
+   "inks": "Coral on Teal",
+   "rarity": "common",
+   "body": "#28868B",
+   "rim": "#123F42",
+   "ring": "#1F6F73",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 30% 30%,#D4674F 0 5.0%,transparent 6.0%),radial-gradient(circle at 72% 62%,#D4674F 0 4.0%,transparent 5.0%),radial-gradient(circle at 58% 22%,#D4674F 0 4.0%,transparent 5.0%),radial-gradient(circle at 26% 70%,#D4674F 0 3.0%,transparent 4.0%),radial-gradient(circle at 80% 34%,#D4674F 0 3.0%,transparent 4.0%),radial-gradient(circle at 46% 84%,#D4674F 0 3.0%,transparent 4.0%),radial-gradient(circle at 68% 80%,#D4674F 0 2.0%,transparent 3.0%),radial-gradient(circle at 22% 50%,#D4674F 0 2.0%,transparent 3.0%),radial-gradient(circle at 86% 52%,#D4674F 0 2.0%,transparent 3.0%),radial-gradient(circle at 40% 52%,#D4674F 0 2.0%,transparent 3.0%)"
+   ]
+  },
+  {
+   "id": "ember",
+   "name": "Ember",
+   "tier": 3,
+   "technique": "splatter",
+   "detail": "splatter",
+   "inks": "Ochre on Oxblood",
+   "rarity": "scarce",
+   "body": "#6B1F1C",
+   "rim": "#3E1210",
+   "ring": "#8A2E2A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 30% 30%,#9A6E22 0 5.0%,transparent 6.0%),radial-gradient(circle at 72% 62%,#9A6E22 0 4.0%,transparent 5.0%),radial-gradient(circle at 58% 22%,#9A6E22 0 4.0%,transparent 5.0%),radial-gradient(circle at 26% 70%,#9A6E22 0 3.0%,transparent 4.0%),radial-gradient(circle at 80% 34%,#9A6E22 0 3.0%,transparent 4.0%),radial-gradient(circle at 46% 84%,#9A6E22 0 3.0%,transparent 4.0%),radial-gradient(circle at 68% 80%,#9A6E22 0 2.0%,transparent 3.0%),radial-gradient(circle at 22% 50%,#9A6E22 0 2.0%,transparent 3.0%),radial-gradient(circle at 86% 52%,#9A6E22 0 2.0%,transparent 3.0%),radial-gradient(circle at 40% 52%,#9A6E22 0 2.0%,transparent 3.0%)"
+   ]
+  },
+  {
+   "id": "paynes-smoke",
+   "name": "Payne's Smoke",
+   "tier": 3,
+   "technique": "smoke",
+   "detail": "smoke \u00b7 T",
+   "inks": "Payne's Grey \u00b7 Smoke",
+   "rarity": "common",
+   "body": "#3C4654",
+   "rim": "#232A33",
+   "ring": "#4A5565",
+   "translucent": true,
+   "css_layers": [
+    "inset:-10%;background:radial-gradient(circle at 36% 36%,#6E6C69 0 22%,transparent 60%),radial-gradient(circle at 70% 68%,#6E6C69 0 16%,transparent 52%);filter:blur(9px);opacity:.9"
+   ]
+  },
+  {
+   "id": "tobacco-smoke",
+   "name": "Tobacco Smoke",
+   "tier": 3,
+   "technique": "smoke",
+   "detail": "smoke \u00b7 T",
+   "inks": "Ochre \u00b7 Umber",
+   "rarity": "uncommon",
+   "body": "#9A6E22",
+   "rim": "#5E4212",
+   "ring": "#B8862E",
+   "translucent": true,
+   "css_layers": [
+    "inset:-10%;background:radial-gradient(circle at 36% 36%,#8A6238 0 22%,transparent 60%),radial-gradient(circle at 70% 68%,#8A6238 0 16%,transparent 52%);filter:blur(9px);opacity:.9"
+   ]
+  },
+  {
+   "id": "rose-smoke",
+   "name": "Rose Smoke",
+   "tier": 3,
+   "technique": "smoke",
+   "detail": "smoke \u00b7 T",
+   "inks": "Blush \u00b7 Rose",
+   "rarity": "uncommon",
+   "body": "#E3B8AE",
+   "rim": "#B48A80",
+   "ring": "#F0D0C8",
+   "translucent": true,
+   "css_layers": [
+    "inset:-10%;background:radial-gradient(circle at 36% 36%,#D97A96 0 22%,transparent 60%),radial-gradient(circle at 70% 68%,#D97A96 0 16%,transparent 52%);filter:blur(9px);opacity:.9"
+   ]
+  },
+  {
+   "id": "sea-smoke",
+   "name": "Sea Smoke",
+   "tier": 3,
+   "technique": "smoke",
+   "detail": "smoke \u00b7 T",
+   "inks": "Aquamarine \u00b7 Teal",
+   "rarity": "scarce",
+   "body": "#A9E0DC",
+   "rim": "#5E9D99",
+   "ring": "#8FD3CF",
+   "translucent": true,
+   "css_layers": [
+    "inset:-10%;background:radial-gradient(circle at 36% 36%,#28868B 0 22%,transparent 60%),radial-gradient(circle at 70% 68%,#28868B 0 16%,transparent 52%);filter:blur(9px);opacity:.9"
+   ]
+  },
+  {
+   "id": "heliotrope-ring",
+   "name": "Heliotrope Ring",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "ring",
+   "inks": "Heliotrope in Ochre",
+   "rarity": "uncommon",
+   "body": "#9A6E22",
+   "rim": "#5E4212",
+   "ring": "#B8862E",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,transparent 0 50%,#6C4A8A 50% 60%,transparent 60%)"
+   ]
+  },
+  {
+   "id": "teal-ring",
+   "name": "Teal Ring",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "ring",
+   "inks": "Teal in Coral",
+   "rarity": "uncommon",
+   "body": "#D4674F",
+   "rim": "#8A3A2A",
+   "ring": "#E8806A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,transparent 0 50%,#28868B 50% 60%,transparent 60%)"
+   ]
+  },
+  {
+   "id": "oxblood-ring",
+   "name": "Oxblood Ring",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "ring",
+   "inks": "Oxblood in Bone",
+   "rarity": "common",
+   "body": "#DED7C7",
+   "rim": "#A9A69B",
+   "ring": "#F1EDE3",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,transparent 0 50%,#6B1F1C 50% 60%,transparent 60%)"
+   ]
+  },
+  {
+   "id": "tyrian-target",
+   "name": "Tyrian Target",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "target \u00b7 three bands \u2014 new",
+   "inks": "Tyrian on Isabelline",
+   "rarity": "uncommon",
+   "body": "#DCCDB0",
+   "rim": "#B8A684",
+   "ring": "#EDE3CF",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,transparent 0 36%,#5B1A3C 36% 42%,transparent 42% 54%,#5B1A3C 54% 60%,transparent 60% 72%,#5B1A3C 72% 78%,transparent 78%)"
+   ]
+  },
+  {
+   "id": "ochre-in-jet",
+   "name": "Ochre in Jet",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "core & rim \u2014 new",
+   "inks": "Ochre core \u00b7 Jet rim",
+   "rarity": "common",
+   "body": "#9A6E22",
+   "rim": "#5E4212",
+   "ring": "#B8862E",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,#9A6E22 0 58%,#1C1A1E 58%)"
+   ]
+  },
+  {
+   "id": "coral-in-prussian",
+   "name": "Coral in Prussian",
+   "tier": 3,
+   "technique": "ring & core",
+   "detail": "core & rim \u2014 new",
+   "inks": "Coral core \u00b7 Prussian rim",
+   "rarity": "uncommon",
+   "body": "#D4674F",
+   "rim": "#8A3A2A",
+   "ring": "#E8806A",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle,#D4674F 0 58%,#2B5586 58%)"
+   ]
+  },
+  {
+   "id": "petrol-galaxy",
+   "name": "Petrol Galaxy",
+   "tier": 3,
+   "technique": "galaxy",
+   "detail": "galaxy \u00b7 swirl + specks",
+   "inks": "Petrol \u00b7 Teal \u00b7 Chalk",
+   "rarity": "uncommon",
+   "body": "#2C5E68",
+   "rim": "#13303A",
+   "ring": "#204A52",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from -40deg,#2C5E68 0 22%,#28868B 22% 38%,#2C5E68 38% 58%,#28868B 58% 76%,#2C5E68 76% 100%);filter:blur(6px)",
+    "background:radial-gradient(circle at 30% 30%,#E6E2DA 0 2.1%,transparent 2.9%),radial-gradient(circle at 72% 62%,#E6E2DA 0 1.7%,transparent 2.5%),radial-gradient(circle at 58% 22%,#E6E2DA 0 1.7%,transparent 2.5%),radial-gradient(circle at 26% 70%,#E6E2DA 0 1.3%,transparent 2.1%),radial-gradient(circle at 80% 34%,#E6E2DA 0 1.3%,transparent 2.1%),radial-gradient(circle at 46% 84%,#E6E2DA 0 1.3%,transparent 2.1%),radial-gradient(circle at 68% 80%,#E6E2DA 0 1.2%,transparent 2.0%)"
+   ]
+  },
+  {
+   "id": "oxblood-galaxy",
+   "name": "Oxblood Galaxy",
+   "tier": 3,
+   "technique": "galaxy",
+   "detail": "galaxy \u00b7 swirl + specks",
+   "inks": "Oxblood \u00b7 Madder \u00b7 Bone",
+   "rarity": "uncommon",
+   "body": "#6B1F1C",
+   "rim": "#3E1210",
+   "ring": "#8A2E2A",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from -40deg,#6B1F1C 0 22%,#9A3328 22% 38%,#6B1F1C 38% 58%,#9A3328 58% 76%,#6B1F1C 76% 100%);filter:blur(6px)",
+    "background:radial-gradient(circle at 30% 30%,#DED7C7 0 2.1%,transparent 2.9%),radial-gradient(circle at 72% 62%,#DED7C7 0 1.7%,transparent 2.5%),radial-gradient(circle at 58% 22%,#DED7C7 0 1.7%,transparent 2.5%),radial-gradient(circle at 26% 70%,#DED7C7 0 1.3%,transparent 2.1%),radial-gradient(circle at 80% 34%,#DED7C7 0 1.3%,transparent 2.1%),radial-gradient(circle at 46% 84%,#DED7C7 0 1.3%,transparent 2.1%),radial-gradient(circle at 68% 80%,#DED7C7 0 1.2%,transparent 2.0%)"
+   ]
+  },
+  {
+   "id": "indigo-galaxy",
+   "name": "Indigo Galaxy",
+   "tier": 3,
+   "technique": "galaxy",
+   "detail": "galaxy \u00b7 swirl + specks",
+   "inks": "Indigo \u00b7 Ultramarine \u00b7 Powder Blue",
+   "rarity": "scarce",
+   "body": "#3B4080",
+   "rim": "#1A1C3A",
+   "ring": "#2C2F5E",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from -40deg,#3B4080 0 22%,#2949A6 22% 38%,#3B4080 38% 58%,#2949A6 58% 76%,#3B4080 76% 100%);filter:blur(6px)",
+    "background:radial-gradient(circle at 30% 30%,#B9D9EB 0 2.1%,transparent 2.9%),radial-gradient(circle at 72% 62%,#B9D9EB 0 1.7%,transparent 2.5%),radial-gradient(circle at 58% 22%,#B9D9EB 0 1.7%,transparent 2.5%),radial-gradient(circle at 26% 70%,#B9D9EB 0 1.3%,transparent 2.1%),radial-gradient(circle at 80% 34%,#B9D9EB 0 1.3%,transparent 2.1%),radial-gradient(circle at 46% 84%,#B9D9EB 0 1.3%,transparent 2.1%),radial-gradient(circle at 68% 80%,#B9D9EB 0 1.2%,transparent 2.0%)"
+   ]
+  },
+  {
+   "id": "jet-galaxy",
+   "name": "Jet Galaxy",
+   "tier": 3,
+   "technique": "galaxy",
+   "detail": "galaxy \u00b7 swirl + specks",
+   "inks": "Jet \u00b7 Payne's Grey \u00b7 Chalk \u00b7 Coral",
+   "rarity": "scarce",
+   "body": "#1C1A1E",
+   "rim": "#0A090B",
+   "ring": "#2A272C",
+   "translucent": false,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from -40deg,#1C1A1E 0 22%,#3C4654 22% 38%,#1C1A1E 38% 58%,#3C4654 58% 76%,#1C1A1E 76% 100%);filter:blur(6px)",
+    "background:radial-gradient(circle at 30% 30%,#E6E2DA 0 2.1%,transparent 2.9%),radial-gradient(circle at 72% 62%,#D4674F 0 1.7%,transparent 2.5%),radial-gradient(circle at 58% 22%,#E6E2DA 0 1.7%,transparent 2.5%),radial-gradient(circle at 26% 70%,#D4674F 0 1.3%,transparent 2.1%),radial-gradient(circle at 80% 34%,#E6E2DA 0 1.3%,transparent 2.1%),radial-gradient(circle at 46% 84%,#D4674F 0 1.3%,transparent 2.1%),radial-gradient(circle at 68% 80%,#E6E2DA 0 1.2%,transparent 2.0%)"
+   ]
+  },
+  {
+   "id": "vermilion-burst",
+   "name": "Vermilion Burst",
+   "tier": 3,
+   "technique": "burst",
+   "detail": "starburst",
+   "inks": "Vermilion on Chalk",
+   "rarity": "uncommon",
+   "body": "#E6E2DA",
+   "rim": "#B9B5AC",
+   "ring": "#F4F1EA",
+   "translucent": false,
+   "css_layers": [
+    "background:repeating-conic-gradient(from 3deg,#C4302B 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%);mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%)"
+   ]
+  },
+  {
+   "id": "cobalt-burst",
+   "name": "Cobalt Burst",
+   "tier": 3,
+   "technique": "burst",
+   "detail": "starburst",
+   "inks": "Cobalt on Bone",
+   "rarity": "uncommon",
+   "body": "#DED7C7",
+   "rim": "#A9A69B",
+   "ring": "#F1EDE3",
+   "translucent": false,
+   "css_layers": [
+    "background:repeating-conic-gradient(from 3deg,#3660BE 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%);mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%)"
+   ]
+  },
+  {
+   "id": "emerald-burst",
+   "name": "Emerald Burst",
+   "tier": 3,
+   "technique": "burst",
+   "detail": "starburst",
+   "inks": "Emerald on Isabelline",
+   "rarity": "scarce",
+   "body": "#DCCDB0",
+   "rim": "#B8A684",
+   "ring": "#EDE3CF",
+   "translucent": false,
+   "css_layers": [
+    "background:repeating-conic-gradient(from 3deg,#3FA873 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%);mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%)"
+   ]
+  },
+  {
+   "id": "tyrian-burst",
+   "name": "Tyrian Burst",
+   "tier": 3,
+   "technique": "burst",
+   "detail": "starburst",
+   "inks": "Tyrian on Blush",
+   "rarity": "uncommon",
+   "body": "#E3B8AE",
+   "rim": "#B48A80",
+   "ring": "#F0D0C8",
+   "translucent": false,
+   "css_layers": [
+    "background:repeating-conic-gradient(from 3deg,#5B1A3C 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%);mask:radial-gradient(circle,#000 0 24%,rgba(0,0,0,.65) 50%,transparent 86%)"
+   ]
+  },
+  {
+   "id": "chalk-cloud",
+   "name": "Chalk Cloud",
+   "tier": 3,
+   "technique": "cloud",
+   "detail": "cloud \u00b7 T",
+   "inks": "Chalk in Petrol",
+   "rarity": "common",
+   "body": "#2C5E68",
+   "rim": "#13303A",
+   "ring": "#204A52",
+   "translucent": true,
+   "css_layers": [
+    "inset:-8%;background:radial-gradient(circle at 30% 34%,#E6E2DA 0 14%,transparent 30%),radial-gradient(circle at 70% 40%,#E6E2DA 0 10%,transparent 24%),radial-gradient(circle at 52% 74%,#E6E2DA 0 12%,transparent 27%),radial-gradient(circle at 24% 66%,#E6E2DA 0 7%,transparent 18%);filter:blur(4px);opacity:.92"
+   ]
+  },
+  {
+   "id": "blush-cloud",
+   "name": "Blush Cloud",
+   "tier": 3,
+   "technique": "cloud",
+   "detail": "cloud \u00b7 T",
+   "inks": "Blush in Smoke",
+   "rarity": "uncommon",
+   "body": "#6E6C69",
+   "rim": "#2E2D2C",
+   "ring": "#A9A7A4",
+   "translucent": true,
+   "css_layers": [
+    "inset:-8%;background:radial-gradient(circle at 30% 34%,#E3B8AE 0 14%,transparent 30%),radial-gradient(circle at 70% 40%,#E3B8AE 0 10%,transparent 24%),radial-gradient(circle at 52% 74%,#E3B8AE 0 12%,transparent 27%),radial-gradient(circle at 24% 66%,#E3B8AE 0 7%,transparent 18%);filter:blur(4px);opacity:.92"
+   ]
+  },
+  {
+   "id": "olive-cloud",
+   "name": "Olive Cloud",
+   "tier": 3,
+   "technique": "cloud",
+   "detail": "cloud \u00b7 T",
+   "inks": "Olive in Aquamarine",
+   "rarity": "uncommon",
+   "body": "#A9E0DC",
+   "rim": "#5E9D99",
+   "ring": "#8FD3CF",
+   "translucent": true,
+   "css_layers": [
+    "inset:-8%;background:radial-gradient(circle at 30% 34%,#4A5527 0 14%,transparent 30%),radial-gradient(circle at 70% 40%,#4A5527 0 10%,transparent 24%),radial-gradient(circle at 52% 74%,#4A5527 0 12%,transparent 27%),radial-gradient(circle at 24% 66%,#4A5527 0 7%,transparent 18%);filter:blur(4px);opacity:.92"
+   ]
+  },
+  {
+   "id": "powder-cloud",
+   "name": "Powder Cloud",
+   "tier": 3,
+   "technique": "cloud",
+   "detail": "cloud \u00b7 T",
+   "inks": "Powder Blue in Prussian",
+   "rarity": "common",
+   "body": "#2B5586",
+   "rim": "#122540",
+   "ring": "#1F3F66",
+   "translucent": true,
+   "css_layers": [
+    "inset:-8%;background:radial-gradient(circle at 30% 34%,#B9D9EB 0 14%,transparent 30%),radial-gradient(circle at 70% 40%,#B9D9EB 0 10%,transparent 24%),radial-gradient(circle at 52% 74%,#B9D9EB 0 12%,transparent 27%),radial-gradient(circle at 24% 66%,#B9D9EB 0 7%,transparent 18%);filter:blur(4px);opacity:.92"
+   ]
+  }
+ ],
+ "rare": [
+  {
+   "id": "ultra-clear",
+   "name": "Ultra Clear",
+   "tier": 4,
+   "detail": "rare \u00b7 the sleeve shows through",
+   "inks": "no ink",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "rgba(236,240,244,.10)",
+   "rim": "rgba(255,255,255,.35)",
+   "ring": "rgba(255,255,255,.55)",
+   "translucent": true,
+   "css_layers": [
+    "background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),radial-gradient(circle at 72% 78%,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)"
+   ]
+  },
+  {
+   "id": "picture-disc",
+   "name": "Picture Disc",
+   "tier": 4,
+   "detail": "rare \u00b7 the cover art, printed on",
+   "inks": "artwork",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "#4A4458",
+   "rim": "#2A2634",
+   "ring": "#6E6680",
+   "translucent": false,
+   "css_layers": [
+    "background:linear-gradient(135deg,#2E6B7A 0 34%,#C9A24A 34% 52%,#A4523A 52% 71%,#EDE3CF 71%);opacity:.9",
+    "background:radial-gradient(circle at 36% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 50%)"
+   ]
+  },
+  {
+   "id": "glow",
+   "name": "Glow",
+   "tier": 4,
+   "detail": "rare \u00b7 phosphor, lit in the dark",
+   "inks": "Celadon phosphor",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "#BFE3B8",
+   "rim": "#7BA276",
+   "ring": "#D9F0D2",
+   "translucent": false,
+   "css_layers": [
+    "background:radial-gradient(circle at 50% 50%,rgba(190,255,200,.55) 0 30%,rgba(190,255,200,.15) 60%,transparent 75%);filter:blur(3px)"
+   ]
+  },
+  {
+   "id": "liquid-filled",
+   "name": "Liquid Filled",
+   "tier": 4,
+   "detail": "rare \u00b7 a colour that moves inside",
+   "inks": "Heliotrope in Caramel",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "#C99458",
+   "rim": "#6B4522",
+   "ring": "#B07A45",
+   "translucent": true,
+   "css_layers": [
+    "inset:-10%;background:radial-gradient(ellipse 70% 40% at 40% 60%,rgba(108,74,138,0.9) 0 40%,transparent 70%),radial-gradient(ellipse 40% 30% at 70% 30%,rgba(91,170,153,0.8) 0 40%,transparent 70%);filter:blur(5px)"
+   ]
+  },
+  {
+   "id": "moonstone",
+   "name": "Moonstone",
+   "tier": 4,
+   "detail": "clear marble \u2014 new",
+   "inks": "Chalk veins in clear",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "rgba(236,240,244,.10)",
+   "rim": "rgba(255,255,255,.35)",
+   "ring": "#F4F1EA",
+   "translucent": true,
+   "css_layers": [
+    "background:radial-gradient(ellipse 60% 7% at 30% 35%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-28deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 52% 6% at 66% 62%,#E6E2DA 0 45%,transparent 72%);transform:rotate(22deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 44% 5% at 42% 78%,#E6E2DA 0 45%,transparent 72%);transform:rotate(-60deg);filter:blur(0.6px)",
+    "background:radial-gradient(ellipse 36% 5% at 74% 26%,#E6E2DA 0 45%,transparent 72%);transform:rotate(48deg);filter:blur(0.6px)",
+    "background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),radial-gradient(circle at 72% 78%,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)"
+   ]
+  },
+  {
+   "id": "aurora",
+   "name": "Aurora",
+   "tier": 4,
+   "detail": "clear galaxy \u2014 new",
+   "inks": "Aquamarine \u00b7 Heliotrope in clear",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "rgba(236,240,244,.10)",
+   "rim": "rgba(255,255,255,.35)",
+   "ring": "#8FD3CF",
+   "translucent": true,
+   "css_layers": [
+    "inset:-16%;background:conic-gradient(from -30deg,transparent 0 18%,rgba(169,224,220,0.75) 18% 34%,transparent 34% 56%,rgba(108,74,138,0.75) 56% 72%,transparent 72%);filter:blur(7px)",
+    "background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),radial-gradient(circle at 72% 78%,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)"
+   ]
+  },
+  {
+   "id": "black-ice",
+   "name": "Black Ice",
+   "tier": 4,
+   "detail": "clear rim over Jet core \u2014 new",
+   "inks": "Jet \u00b7 clear",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "rgba(236,240,244,.10)",
+   "rim": "rgba(255,255,255,.35)",
+   "ring": "#2A272C",
+   "translucent": true,
+   "css_layers": [
+    "background:radial-gradient(circle,#1C1A1E 0 56%,transparent 56%)",
+    "background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),radial-gradient(circle at 72% 78%,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)"
+   ]
+  },
+  {
+   "id": "nychthemeron",
+   "name": "Nychthemeron",
+   "tier": 4,
+   "detail": "shifts with the sky \u2014 new",
+   "inks": "Powder Blue by day \u00b7 Indigo by night",
+   "rarity": "rare",
+   "earned": "session",
+   "body": "#B9D9EB",
+   "rim": "#8FB0C4",
+   "ring": "#CFE4F2",
+   "translucent": true,
+   "css_layers": [
+    "background:linear-gradient(90deg,transparent 50%,#3B4080 50%)",
+    "background:linear-gradient(90deg,transparent 50%,rgba(255,255,255,0) 50%);-webkit-mask:linear-gradient(90deg,transparent 50%,#000 50%);mask:linear-gradient(90deg,transparent 50%,#000 50%)"
+   ]
+  }
+ ],
+ "zoetropes": [
+  {
+   "id": "wingbeat",
+   "name": "Wingbeat",
+   "tier": 5,
+   "earned": "session",
+   "motif": "wing",
+   "body": "Prussian",
+   "ink": "Chalk",
+   "accent": "Coral",
+   "body_hex": "#2B5586",
+   "ink_hex": "#E6E2DA",
+   "accent_hex": "#D4674F",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Chalk bird, Coral beak, on Prussian \u00b7 a second bird trails out of phase",
+   "sprite_lp": "zoetropes/wingbeat_lp_12f.svg",
+   "sprite_45": "zoetropes/wingbeat_45_16f.svg",
+   "disc_lp": "zoetropes/wingbeat_disc_lp.svg",
+   "disc_45": "zoetropes/wingbeat_disc_45.svg"
+  },
+  {
+   "id": "breaker",
+   "name": "Breaker",
+   "tier": 5,
+   "earned": "session",
+   "motif": "wave",
+   "body": "Petrol",
+   "ink": "Aquamarine",
+   "accent": "Chalk",
+   "body_hex": "#2C5E68",
+   "ink_hex": "#A9E0DC",
+   "accent_hex": "#E6E2DA",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Aquamarine swell, Chalk foam, on Petrol \u00b7 a back wave runs slower",
+   "sprite_lp": "zoetropes/breaker_lp_12f.svg",
+   "sprite_45": "zoetropes/breaker_45_16f.svg",
+   "disc_lp": "zoetropes/breaker_disc_lp.svg",
+   "disc_45": "zoetropes/breaker_disc_45.svg"
+  },
+  {
+   "id": "bloom",
+   "name": "Bloom",
+   "tier": 5,
+   "earned": "session",
+   "motif": "bloom",
+   "body": "Isabelline",
+   "ink": "Rose",
+   "accent": "Ochre",
+   "body_hex": "#DCCDB0",
+   "ink_hex": "#D97A96",
+   "accent_hex": "#9A6E22",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Rose petals, Ochre heart, on Isabelline \u00b7 stem and leaves, bud to full",
+   "sprite_lp": "zoetropes/bloom_lp_12f.svg",
+   "sprite_45": "zoetropes/bloom_45_16f.svg",
+   "disc_lp": "zoetropes/bloom_disc_lp.svg",
+   "disc_45": "zoetropes/bloom_disc_45.svg"
+  },
+  {
+   "id": "orbit",
+   "name": "Orbit",
+   "tier": 5,
+   "earned": "session",
+   "motif": "orbit",
+   "body": "Indigo",
+   "ink": "Bone",
+   "accent": "Chalk",
+   "body_hex": "#3B4080",
+   "ink_hex": "#DED7C7",
+   "accent_hex": "#E6E2DA",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Bone moon, Chalk stars, on Indigo \u00b7 one full lunation with maria",
+   "sprite_lp": "zoetropes/orbit_lp_12f.svg",
+   "sprite_45": "zoetropes/orbit_45_16f.svg",
+   "disc_lp": "zoetropes/orbit_disc_lp.svg",
+   "disc_45": "zoetropes/orbit_disc_45.svg"
+  },
+  {
+   "id": "breach",
+   "name": "Breach",
+   "tier": 5,
+   "earned": "session",
+   "motif": "breach",
+   "body": "Ochre",
+   "ink": "Jet",
+   "accent": "Oxblood",
+   "body_hex": "#9A6E22",
+   "ink_hex": "#1C1A1E",
+   "accent_hex": "#6B1F1C",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Jet fish, Oxblood fins, on Ochre \u00b7 rises, clears the water in an arc, re-enters with a splash",
+   "sprite_lp": "zoetropes/breach_lp_12f.svg",
+   "sprite_45": "zoetropes/breach_45_16f.svg",
+   "disc_lp": "zoetropes/breach_disc_lp.svg",
+   "disc_45": "zoetropes/breach_disc_45.svg"
+  },
+  {
+   "id": "pulse",
+   "name": "Pulse",
+   "tier": 5,
+   "earned": "session",
+   "motif": "pulse",
+   "body": "Chalk",
+   "ink": "Vermilion",
+   "accent": "Prussian",
+   "body_hex": "#E6E2DA",
+   "ink_hex": "#C4302B",
+   "accent_hex": "#2B5586",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Vermilion rings, Prussian drop, on Chalk \u00b7 a drop falls, three rings run out",
+   "sprite_lp": "zoetropes/pulse_lp_12f.svg",
+   "sprite_45": "zoetropes/pulse_45_16f.svg",
+   "disc_lp": "zoetropes/pulse_disc_lp.svg",
+   "disc_45": "zoetropes/pulse_disc_45.svg"
+  },
+  {
+   "id": "rainfall",
+   "name": "Rainfall",
+   "tier": 5,
+   "earned": "session",
+   "motif": "rain",
+   "body": "Graphite",
+   "ink": "Powder Blue",
+   "accent": "Chalk",
+   "body_hex": "#3F4245",
+   "ink_hex": "#B9D9EB",
+   "accent_hex": "#E6E2DA",
+   "frames_lp": 24,
+   "frames_45": 32,
+   "caption": "Powder Blue drops, Chalk cloud, on Graphite \u00b7 four drops, each splashes on the line",
+   "sprite_lp": "zoetropes/rainfall_lp_24f.svg",
+   "sprite_45": "zoetropes/rainfall_45_32f.svg",
+   "disc_lp": "zoetropes/rainfall_disc_lp.svg",
+   "disc_45": "zoetropes/rainfall_disc_45.svg"
+  },
+  {
+   "id": "moth",
+   "name": "Moth",
+   "tier": 5,
+   "earned": "session",
+   "motif": "moth",
+   "body": "Tyrian",
+   "ink": "Caramel",
+   "accent": "Ochre",
+   "body_hex": "#5B1A3C",
+   "ink_hex": "#C99458",
+   "accent_hex": "#9A6E22",
+   "frames_lp": 12,
+   "frames_45": 16,
+   "caption": "Caramel moth, Ochre eyespots, on Tyrian \u00b7 drifts toward a lamp",
+   "sprite_lp": "zoetropes/moth_lp_12f.svg",
+   "sprite_45": "zoetropes/moth_45_16f.svg",
+   "disc_lp": "zoetropes/moth_disc_lp.svg",
+   "disc_45": "zoetropes/moth_disc_45.svg"
+  }
+ ],
+ "metals": [
+  {
+   "id": "bronze",
+   "name": "Bronze",
+   "shadow": "#5A3516",
+   "mid": "#B27A3C",
+   "highlight": "#E3B77A",
+   "label_inverts": false,
+   "earned": "session"
+  },
+  {
+   "id": "silver",
+   "name": "Silver",
+   "shadow": "#4D5259",
+   "mid": "#A9A9B4",
+   "highlight": "#E8EFF2",
+   "label_inverts": false,
+   "earned": "session"
+  },
+  {
+   "id": "gold",
+   "name": "Gold",
+   "shadow": "#7A4E12",
+   "mid": "#D6A83F",
+   "highlight": "#F7E7A8",
+   "label_inverts": true,
+   "earned": "session"
+  },
+  {
+   "id": "platinum",
+   "name": "Platinum",
+   "shadow": "#8A9199",
+   "mid": "#D3D7DC",
+   "highlight": "#F8F9FA",
+   "label_inverts": true,
+   "earned": "session"
+  }
+ ]
+}

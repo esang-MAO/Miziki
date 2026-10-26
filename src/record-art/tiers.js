@@ -8,6 +8,37 @@ import { normKey } from '../util/text.js';
 import { S } from '../state.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
+import { RPM_45 } from './format.js';
+// PRESSINGS_110 PR5 (docs/PRESSINGS_110.md §5): the zoetrope's own disc
+// art, format-aware (LP vs 45) — RPM_45 is the same constant
+// record-art/format.js already exports for every other RPM check in the
+// app, and that module is a pure, zero-import leaf, so importing it here
+// adds no circularity. `new URL('./x', import.meta.url)` is the same
+// asset-reference shape audio/engine.js's LIMITER_WORKLET_URL and
+// player/scrub.js's SCRATCH_WORKLET_URL already use — Vite statically
+// detects it and bundles/hashes the file as a real, same-origin asset
+// under either MIZIKI_BASE build target (no path logic of its own needed,
+// and it satisfies the existing CSP's `img-src 'self'` with no policy
+// change) — and, unlike the `?url` import-suffix form, it's plain ESM
+// that plain Node (tests/unit/tiers.test.js's own node:test runner, no
+// Vite involved) can evaluate with no special loader, so these stay
+// .href strings rather than module imports.
+const wingbeatDiscLp = new URL('./zoetropes/wingbeat_disc_lp.svg', import.meta.url).href;
+const wingbeatDisc45 = new URL('./zoetropes/wingbeat_disc_45.svg', import.meta.url).href;
+const breakerDiscLp = new URL('./zoetropes/breaker_disc_lp.svg', import.meta.url).href;
+const breakerDisc45 = new URL('./zoetropes/breaker_disc_45.svg', import.meta.url).href;
+const bloomDiscLp = new URL('./zoetropes/bloom_disc_lp.svg', import.meta.url).href;
+const bloomDisc45 = new URL('./zoetropes/bloom_disc_45.svg', import.meta.url).href;
+const orbitDiscLp = new URL('./zoetropes/orbit_disc_lp.svg', import.meta.url).href;
+const orbitDisc45 = new URL('./zoetropes/orbit_disc_45.svg', import.meta.url).href;
+const breachDiscLp = new URL('./zoetropes/breach_disc_lp.svg', import.meta.url).href;
+const breachDisc45 = new URL('./zoetropes/breach_disc_45.svg', import.meta.url).href;
+const pulseDiscLp = new URL('./zoetropes/pulse_disc_lp.svg', import.meta.url).href;
+const pulseDisc45 = new URL('./zoetropes/pulse_disc_45.svg', import.meta.url).href;
+const rainfallDiscLp = new URL('./zoetropes/rainfall_disc_lp.svg', import.meta.url).href;
+const rainfallDisc45 = new URL('./zoetropes/rainfall_disc_45.svg', import.meta.url).href;
+const mothDiscLp = new URL('./zoetropes/moth_disc_lp.svg', import.meta.url).href;
+const mothDisc45 = new URL('./zoetropes/moth_disc_45.svg', import.meta.url).href;
 
 /* ================= record art: quality tiers + variant selection =================
    Tier read from the decoder's own bit depth / sample rate, never file extension.
@@ -232,6 +263,58 @@ export const VARIANT_DEFS = {
     colors:F('#CFE4F2','#B9D9EB','#8FB0C4'),
     night:['#5862C4','#3B4080','#1A1C3A'],
     name:'Nychthemeron', sub:null, note:"Powder blue by day, indigo after sundown — it follows wherever the sun actually is, not a session clock."},
+
+  // ---- PRESSINGS_110 PR5 (docs/PRESSINGS_110.md §5): tier 5, zoetropes —
+  // session-earned only, same as rare (PR7 is what actually earns one;
+  // this PR only ports the catalogue and renders the disc at rest, see
+  // this file's own "static rendering" header comment below). `colors`
+  // still carries the F() 3-tuple (body/ink/accent, read positionally by
+  // every generic consumer — chip swatches, shareSwatchGradient — the
+  // same compatibility reason every other family keeps it), even though
+  // the disc's own real art is the two `disc_lp`/`disc_45` imports above,
+  // not a CSS gradient built from these three colours. `frames_lp`/
+  // `frames_45` and the `sprite_lp`/`sprite_45` ids (data/pressings.json's
+  // own field names) are carried for PR6's strobe animation, unused here. ----
+  wingbeat: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#E6E2DA','#2B5586','#D4674F'),
+    discLp:wingbeatDiscLp, disc45:wingbeatDisc45, framesLp:12, frames45:16,
+    motif:'wing', spriteLp:'zoetropes/wingbeat_lp_12f.svg', sprite45:'zoetropes/wingbeat_45_16f.svg',
+    name:'Wingbeat', sub:null, note:'Chalk bird, Coral beak, on Prussian — a second bird trails out of phase.'},
+  breaker: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#A9E0DC','#2C5E68','#E6E2DA'),
+    discLp:breakerDiscLp, disc45:breakerDisc45, framesLp:12, frames45:16,
+    motif:'wave', spriteLp:'zoetropes/breaker_lp_12f.svg', sprite45:'zoetropes/breaker_45_16f.svg',
+    name:'Breaker', sub:null, note:'Aquamarine swell, Chalk foam, on Petrol — a back wave runs slower.'},
+  bloom: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#D97A96','#DCCDB0','#9A6E22'),
+    discLp:bloomDiscLp, disc45:bloomDisc45, framesLp:12, frames45:16,
+    motif:'bloom', spriteLp:'zoetropes/bloom_lp_12f.svg', sprite45:'zoetropes/bloom_45_16f.svg',
+    name:'Bloom', sub:null, note:'Rose petals, Ochre heart, on Isabelline — stem and leaves, bud to full.'},
+  orbit: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#DED7C7','#3B4080','#E6E2DA'),
+    discLp:orbitDiscLp, disc45:orbitDisc45, framesLp:12, frames45:16,
+    motif:'orbit', spriteLp:'zoetropes/orbit_lp_12f.svg', sprite45:'zoetropes/orbit_45_16f.svg',
+    name:'Orbit', sub:null, note:'Bone moon, Chalk stars, on Indigo — one full lunation with maria.'},
+  breach: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#1C1A1E','#9A6E22','#6B1F1C'),
+    discLp:breachDiscLp, disc45:breachDisc45, framesLp:12, frames45:16,
+    motif:'breach', spriteLp:'zoetropes/breach_lp_12f.svg', sprite45:'zoetropes/breach_45_16f.svg',
+    name:'Breach', sub:null, note:'Jet fish, Oxblood fins, on Ochre — rises, clears the water in an arc, re-enters with a splash.'},
+  pulse: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#C4302B','#E6E2DA','#2B5586'),
+    discLp:pulseDiscLp, disc45:pulseDisc45, framesLp:12, frames45:16,
+    motif:'pulse', spriteLp:'zoetropes/pulse_lp_12f.svg', sprite45:'zoetropes/pulse_45_16f.svg',
+    name:'Pulse', sub:null, note:'Vermilion rings, Prussian drop, on Chalk — a drop falls, three rings run out.'},
+  rainfall: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#B9D9EB','#3F4245','#E6E2DA'),
+    discLp:rainfallDiscLp, disc45:rainfallDisc45, framesLp:24, frames45:32,
+    motif:'rain', spriteLp:'zoetropes/rainfall_lp_24f.svg', sprite45:'zoetropes/rainfall_45_32f.svg',
+    name:'Rainfall', sub:null, note:'Powder Blue drops, Chalk cloud, on Graphite — four drops, each splashes on the line.'},
+  moth: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#C99458','#5B1A3C','#9A6E22'),
+    discLp:mothDiscLp, disc45:mothDisc45, framesLp:12, frames45:16,
+    motif:'moth', spriteLp:'zoetropes/moth_lp_12f.svg', sprite45:'zoetropes/moth_45_16f.svg',
+    name:'Moth', sub:null, note:'Caramel moth, Ochre eyespots, on Tyrian — drifts toward a lamp.'},
 };
 
 // Old ids (pre-CR7) mapped onto the new catalogue, so a saved Collection
@@ -279,9 +362,19 @@ export function getVariantDef(id){ return VARIANT_DEFS[resolveVariantId(id)]; }
 // the 40 solids by pigment family (reds, pinks, earths, …) and the 32
 // effects by their own neighbouring pattern, since VARIANT_DEFS itself
 // is written in that order.
-export const SOLID_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family !== 'effects' && VARIANT_DEFS[id].family !== 'rare' && id !== 'jet');
+export const SOLID_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family !== 'effects' && VARIANT_DEFS[id].family !== 'rare' && VARIANT_DEFS[id].family !== 'zoetrope' && id !== 'jet');
 export const EFFECT_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'effects');
 const RARE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'rare');
+// PRESSINGS_110 PR5: the zoetrope pool — same "never cached, re-picked
+// fresh from the id list every time" shape as RARE_IDS/selectRareVariant
+// above. Not yet wired into looks.js's live rendering (discLook()/
+// availableLooks()) in this PR — there's no earned/unlocked state to gate
+// it on until PR7, so wiring it now would make a zoetrope appear from the
+// album hash alone, with no session earned, which the spec's own "session,
+// never the file" rule forbids. selectZoetropeVariant() exists and is
+// tested as a pure primitive; PR7 is what actually calls it from a live
+// path once S.zoetropeUnlocked (or equivalent) exists to gate it.
+export const ZOETROPE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'zoetrope');
 
 const BAND_NAMES = ['common', 'uncommon', 'scarce'];
 function poolByBand(ids, band){ return ids.filter(id => VARIANT_DEFS[id].band === band); }
@@ -353,10 +446,40 @@ export function selectRareVariant(t){
   return pickFromPool(RARE_IDS, frac32(variantHashKey(t), '\u0003'));
 }
 
-export function variantBackground(def){
+// PRESSINGS_110 PR5: same deterministic-per-album draw as the rare pool
+// above, its own unused hash-salt byte ('\u0004') so neither draw ever
+// correlates with the other or with the tier-mix/band/colour draws. "A
+// record presses the same zoetrope in every crate that holds it" per the
+// README's own rule, carried over to this fifth tier. Not called from any
+// live path yet — see ZOETROPE_IDS' own comment above.
+export function selectZoetropeVariant(t){
+  return pickFromPool(ZOETROPE_IDS, frac32(variantHashKey(t), '\u0004'));
+}
+
+// PRESSINGS_110 PR5: `format` is new, optional and additive — every
+// existing call site (profile/storefront.js, profile/badges.js,
+// profile/records.js, record-art/peek.js, record-art/looks.js, plus every
+// test call site) passes none at all and is unaffected; it exists solely
+// so the one new 'zoetrope' case below can pick disc_45 over disc_lp for
+// a 45. `format.speed === 45` matches record-art/format.js's own
+// {size, speed} shape (the same check S.recordFormat.speed === RPM_45
+// already uses elsewhere) — anything else, including no format at all,
+// reads as the LP art, the format table's own unremarkable default.
+export function variantBackground(def, format){
   if(!def) return '';
   const [a, b, c] = def.colors;
   switch(def.pattern){
+    case 'zoetrope': {
+      // the disc SVG is the complete, pre-assembled zoetrope disc at rest
+      // — body, grooves and every frame of the ring already drawn in
+      // place (see docs/PRESSINGS_110.md §5's own "at rest" description)
+      // — so this is a background-image, not a built gradient; no
+      // animation logic belongs here (PR6's own job, a DOM-level rotation
+      // of a separate ring layer, not a different value this function
+      // returns).
+      const url = (format && format.speed === RPM_45) ? def.disc45 : def.discLp;
+      return 'url("' + url + '") center/cover';
+    }
     case 'split': {
       const [i1, i2] = def.inks || [a, b];
       const rim = def.rim || c;
