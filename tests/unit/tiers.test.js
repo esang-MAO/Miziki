@@ -121,6 +121,81 @@ test('CR7 render: every catalogue def produces a non-empty background string', (
   }
 });
 
+/* ================= PRESSINGS_110 PR2: the seven new effect techniques
+   (docs/PRESSINGS_110.md §3) — each gets a real variantBackground() case
+   now, in place of the 'solid' fallback PR1 shipped them with. These
+   check the real shape of the generated CSS, not just that something
+   non-empty came out. ================= */
+
+test('PRESSINGS_110: tri-split renders the three inks as three vertical bands, in order', () => {
+  const def = VARIANT_DEFS['ochre-jet-terracotta'];
+  const bg = variantBackground(def);
+  assert.ok(bg.startsWith('linear-gradient(90deg,'));
+  const [i1, i2, i3] = def.inks;
+  assert.ok(bg.includes(i1 + ' 0 33.4%'));
+  assert.ok(bg.includes(i2 + ' 33.4% 66.7%'));
+  assert.ok(bg.includes(i3 + ' 66.7% 100%'));
+});
+
+test('PRESSINGS_110: pinwheel renders six alternating 60deg wedges', () => {
+  const def = VARIANT_DEFS['madder-pinwheel'];
+  const bg = variantBackground(def);
+  const [i1, i2] = def.inks;
+  assert.ok(bg.startsWith('conic-gradient(from 12deg,'));
+  // six wedges means the first ink should appear three times, the second three times
+  assert.equal(bg.split(i1).length - 1, 3);
+  assert.equal(bg.split(i2).length - 1, 3);
+});
+
+test('PRESSINGS_110: target renders three concentric ink bands over the base, no smooth ring', () => {
+  const def = VARIANT_DEFS['tyrian-target'];
+  const bg = variantBackground(def);
+  assert.equal(bg.split(def.ink).length - 1, 3, 'three concentric bands of the one ink');
+  assert.ok(bg.includes(def.base));
+  assert.ok(bg.includes(def.rim));
+});
+
+test('PRESSINGS_110: core renders a clean two-stop split with no blend', () => {
+  const def = VARIANT_DEFS['ochre-in-jet'];
+  const bg = variantBackground(def);
+  assert.equal(bg, 'radial-gradient(circle at 50% 50%,' + def.inner + ' 0 58%,' + def.outer + ' 58% 100%)');
+});
+
+test('PRESSINGS_110: galaxy renders a two-tone swirl plus seven specks of the given colour', () => {
+  const def = VARIANT_DEFS['petrol-galaxy'];
+  const bg = variantBackground(def);
+  const [t1, t2] = def.tones;
+  assert.ok(bg.includes(t1) && bg.includes(t2));
+  assert.equal(bg.split(def.specks).length - 1, 7, 'one speck colour used at all seven points');
+  assert.ok(bg.includes(def.rim));
+});
+
+test('PRESSINGS_110: galaxy with two speck colours alternates them across the seven points', () => {
+  const def = VARIANT_DEFS['jet-galaxy'];
+  const bg = variantBackground(def);
+  const [s1, s2] = def.specks;
+  // four of the seven points land on the first colour, three on the second
+  // (index % 2 === 0 for indices 0,2,4,6)
+  assert.equal(bg.split(s1).length - 1, 4);
+  assert.equal(bg.split(s2).length - 1, 3);
+});
+
+test('PRESSINGS_110: burst renders repeating rays over a faded base/rim', () => {
+  const def = VARIANT_DEFS['vermilion-burst'];
+  const bg = variantBackground(def);
+  assert.ok(bg.includes('repeating-conic-gradient(from 3deg,' + def.ink));
+  assert.ok(bg.includes(def.base));
+  assert.ok(bg.includes(def.rim));
+});
+
+test('PRESSINGS_110: cloud renders four soft islands of the ink over the base, fading to the rim', () => {
+  const def = VARIANT_DEFS['chalk-cloud'];
+  const bg = variantBackground(def);
+  assert.equal(bg.split(def.ink).length - 1, 4, 'four cloud islands');
+  assert.ok(bg.includes(def.base));
+  assert.ok(bg.includes(def.rim));
+});
+
 function luminance(hex){
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
   if(!m) return null;
