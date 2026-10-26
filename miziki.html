@@ -3,6 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Without these two, a home-screen install never actually runs fullscreen
+     on iOS -- the status bar sits as native OS chrome entirely outside our
+     viewport (env(safe-area-inset-top) always reads 0 as a result), and a
+     Home Screen web app without apple-mobile-web-app-capable also reserves
+     a bit more height above the webview than the status bar alone, on top
+     of .top's own ~24px spacer (01-header.css) -- reported by Ken as an
+     oversized gap above the tab row. black-translucent lets our own
+     background (.sky-bg) show straight through the status bar instead of
+     a second, opaque bar sitting above it; every route's own top padding
+     now reads env(safe-area-inset-top) (.top, .add-menu, .social-nav-head)
+     so nothing ends up drawn under the notch/Dynamic Island once the
+     webview extends under it. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- D2 (docs/DESKTOP_LAYOUT.md): avoids a flash of the wrong theme for a
      pinned Light or Dark choice. The real saved choice (S.theme) lives in
      IndexedDB, only readable after first paint — this tiny external

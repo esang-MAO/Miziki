@@ -5,7 +5,12 @@
    edit-overlay default */
 #recordSheetOverlay{z-index:128}
 .social-nav-overlay.open{display:flex}
-.social-nav-head{display:flex;align-items:center;gap:var(--sp-1);padding:6px var(--sp-2);border-bottom:1px solid var(--line);flex:none}
+/* .social-nav-overlay is position:fixed;inset:0 with its head flush at
+   the overlay's own top edge -- needs the same env(safe-area-inset-top)
+   addition .top (01-header.css) picked up, or the back button/title sit
+   under the status bar/notch now that the app runs fullscreen there (see
+   miziki.html's apple-mobile-web-app meta tags). */
+.social-nav-head{display:flex;align-items:center;gap:var(--sp-1);padding:calc(6px + env(safe-area-inset-top)) var(--sp-2) 6px;border-bottom:1px solid var(--line);flex:none}
 .social-nav-back{width:44px;height:44px;color:var(--paper);font-size:var(--fs-head);flex:none;
   display:flex;align-items:center;justify-content:center;background:none;border:0}
 .social-nav-title{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;

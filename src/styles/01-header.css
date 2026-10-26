@@ -1,8 +1,12 @@
 /* ---------- header ---------- */
 /* with the wordmark gone this is just a slim spacer below the status bar,
    present (mostly empty) on every route — except on the library route,
-   where the search field can swap into it */
-.top{padding:14px 0 10px;border-bottom:1px solid var(--line)}
+   where the search field can swap into it. Now that the home-screen app
+   runs fullscreen under the status bar (miziki.html's apple-mobile-web-app
+   meta tags), the webview extends to the true top of the screen, so this
+   spacer's own padding has to add env(safe-area-inset-top) itself or
+   everything inside .top would sit under the status bar/notch. */
+.top{padding:calc(14px + env(safe-area-inset-top)) 0 10px;border-bottom:1px solid var(--line)}
 .top.no-border{border-bottom:none;padding-bottom:6px}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
@@ -35,7 +39,12 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
    way every other piece of chrome does. The row text/icon colors were
    already theme-reactive tokens (--paper/--muted/--accent-text) with
    nothing to fix there. */
-.add-menu{position:absolute;right:20px;top:64px;width:246px;border-radius:8px;background:var(--chrome);
+/* position:absolute with no positioned ancestor between it and .wrap
+   (static) resolves against the true viewport top, not .top's own box --
+   needs the same env(safe-area-inset-top) addition .top just picked up,
+   or this now sits partly under the status bar/notch once the app runs
+   fullscreen there (see miziki.html's apple-mobile-web-app meta tags). */
+.add-menu{position:absolute;right:20px;top:calc(64px + env(safe-area-inset-top));width:246px;border-radius:8px;background:var(--chrome);
   border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .add-menu.open{display:flex}
