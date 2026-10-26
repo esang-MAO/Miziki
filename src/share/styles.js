@@ -10,6 +10,21 @@
    colours and chip styling — and formats resolve to pixel dimensions and a
    safe-zone band, kept in one table each rather than per-card magic
    numbers. Composers below take it from there. ---- */
+
+// SH3 (docs/18_SHARE.md): the two constant colour tables fillShareDisc()
+// needs below — METAL_COLORS (metal-tier gradients) and getVariantDef
+// (the id-to-pattern-def lookup, already falling back to 'jet' for an
+// unrecognized/missing id). Neither module touches the DOM at its own
+// top level (just `S`/`$` imports that don't execute on load), so this
+// doesn't cost styles.js the "safe to import directly in Node, no
+// mocking" property tests/unit/share.test.js's own SHARE_FORMATS/
+// resolveShareStyle tests rely on — only the two card composers that
+// actually resolve a track's look (now-playing-card.js, via
+// record-art/looks.js's own resolveLook()) still need the rest of
+// tiers.js/metals.js's own machinery.
+import { getVariantDef } from '../record-art/tiers.js';
+import { METAL_COLORS } from '../record-art/metals.js';
+
 export const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
 
 export const SHARE_FORMATS = {
@@ -84,6 +99,89 @@ export function drawCover(ctx, img, x, y, w, h){
     src = half; srcW = half.width; srcH = half.height;
   }
   ctx.drawImage(src, cropX, cropY, cropW, cropH, x, y, w, h);
+}
+
+// SH3 (docs/18_SHARE.md): moved here from now-playing-card.js so the
+// Record card can reuse it too — fills the full disc circle with
+// whatever look is resolved for a track, same precedence
+// applyDiscVariant() uses on the real platter, so a share image never
+// falls back to a generic disc. `info` is `{art, look, variant, metal}`,
+// already resolved by the caller (now-playing-card.js reads a live
+// track; record-card.js's own `data` already carries all four
+// pre-resolved by the gatefold) — this function itself does no
+// track/album lookups of its own, which is what keeps it safe to import
+// at this module's own top level (see the file-header comment above).
+// `half` is true for the normal composition, where only the left
+// semicircle ends up visible once the art square is drawn on top:
+// asymmetric patterns need to orient themselves so both their colors
+// land in that visible half instead of reading as one flat color (see
+// LIBRARY spec §2, disc rendering).
+export async function fillShareDisc(ctx, info, cx, cy, r, half){
+  const { art, look, variant, metal } = info;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  if(look === 'rare'){
+    try{
+      const img = await loadImageEl(art);
+      drawCover(ctx, img, cx - r, cy - r, r*2, r*2);
+      const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
+      ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    }catch(_e){}
+  } else if(look === 'metal'){
+    const base = ((METAL_COLORS[metal] || METAL_COLORS.bronze)).mid;
+    const colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
+    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
+    ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  } else {
+    const def = getVariantDef(variant);
+    const [a, b, c] = def.colors;
+    if(def.pattern === 'split' && half){
+      // a left/right split would read as one flat color once the right
+      // half is occluded by the art panel — a top/bottom split instead
+      // guarantees both colors land within the visible left arc
+      ctx.fillStyle = a; ctx.fillRect(cx - r, cy - r, r*2, r);
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy, r*2, r);
+    } else if(def.pattern === 'split'){
+      ctx.fillStyle = a; ctx.fillRect(cx, cy - r, r, r*2);
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r, r*2);
+    } else if(def.pattern === 'swirl'){
+      const g = ctx.createConicGradient(0, cx, cy);
+      [a, b, c, a, b, c, a].forEach((col, i) => g.addColorStop(i/6, col));
+      ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    } else if(def.pattern === 'splatter'){
+      // random enough that either half works, so no orientation care needed
+      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+      const spots = [[30,25],[70,20],[50,50],[20,65],[80,60],[40,80],[65,40],[15,40]];
+      spots.forEach(([px, py], i) => {
+        const sx = cx - r + (px/100)*r*2, sy = cy - r + (py/100)*r*2;
+        ctx.beginPath(); ctx.arc(sx, sy, r*0.06, 0, Math.PI*2);
+        ctx.fillStyle = i % 2 ? b : a; ctx.fill();
+      });
+    } else {
+      ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, def.colors);
+      ctx.fillRect(cx - r, cy - r, r*2, r*2);
+    }
+  }
+  // groove rings so it still reads as a record, not a flat swatch
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  for(let rr = r*0.4; rr < r*0.97; rr += r*0.085){
+    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+  // label
+  const lr = r * 0.32;
+  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
+  ctx.fillStyle = '#3A2007'; ctx.fill();
+  if(look === 'rare'){
+    try{
+      const limg = await loadImageEl(art);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
+      drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
+      ctx.restore();
+    }catch(_e){}
+  }
 }
 
 export function roundRectPath(ctx, x, y, w, h, r){

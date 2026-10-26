@@ -1,11 +1,15 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// src/share/styles.js has no imports of its own (pure DOM/canvas-free at
-// the top level — document/Image are only ever touched inside a function
-// body, and only once that function is actually called) — no mocking
-// needed to load it directly, same as library/model.js or record-art/
-// tiers.js.
+// src/share/styles.js is pure DOM/canvas-free at the top level —
+// document/Image are only ever touched inside a function body, and only
+// once that function is actually called — no mocking needed to load it
+// directly, same as library/model.js. Since SH3 (docs/18_SHARE.md), it
+// also imports record-art/tiers.js's getVariantDef and record-art/
+// metals.js's METAL_COLORS (for the fillShareDisc() it now exports, see
+// below) — neither of those touches the DOM at its own top level either,
+// so this doesn't cost styles.js its own "safe to import directly, no
+// mocking" property.
 const { SHARE_FORMATS, resolveShareStyle } = await import('../../src/share/styles.js');
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this
@@ -74,6 +78,61 @@ test('resolveShareStyle: Paper and Night each resolve to their own named kit; Co
   assert.equal((await resolveShareStyle('cover', null)).name, 'night');
   // an unrecognized style name is treated the same as no style at all
   assert.equal((await resolveShareStyle('not-a-real-style', null)).name, 'night');
+});
+
+/* ===================== SH3 (docs/18_SHARE.md) =====================
+   The Record card (src/share/record-card.js). Canvas drawing itself
+   can't run in Node, so this sticks to item 7's own three pieces of real
+   decision logic, each a plain exported pure function the real composer
+   calls: tick count from rating, note omission, and friends-sticker
+   gating. record-card.js has no import that would need mocking to load
+   it directly -- record-art/tiers.js's getVariantDef and styles.js are
+   both the same "safe to import directly, no DOM at the top level" leaves
+   the SHARE_FORMATS/resolveShareStyle tests above already rely on. This
+   import has to happen before the SH1 block below mocks record-card.js
+   wholesale (for sheet.js's own tests) -- node:test's mock.module()
+   replaces the module in the registry for every subsequent import, real
+   or not, so the real module has to be loaded first. */
+const { ratingTickCount, friendsStickerText, recordNoteText } = await import('../../src/share/record-card.js');
+
+test('ratingTickCount: the filled count tracks the rating 1:1', () => {
+  assert.equal(ratingTickCount(3), 3);
+  assert.equal(ratingTickCount(1), 1);
+  assert.equal(ratingTickCount(5), 5);
+});
+
+test('ratingTickCount: an unrated record draws no ticks at all, not five empty ones', () => {
+  assert.equal(ratingTickCount(0), 0);
+  assert.equal(ratingTickCount(null), 0);
+  assert.equal(ratingTickCount(undefined), 0);
+});
+
+test('ratingTickCount: clamps to the five-tick row regardless of a stray out-of-range value', () => {
+  assert.equal(ratingTickCount(7), 5);
+  assert.equal(ratingTickCount(-2), 0);
+});
+
+test('friendsStickerText: no friends (0, null, undefined) means no sticker at all', () => {
+  assert.equal(friendsStickerText(0), null);
+  assert.equal(friendsStickerText(null), null);
+  assert.equal(friendsStickerText(undefined), null);
+  assert.equal(friendsStickerText(-1), null);
+});
+
+test('friendsStickerText: singular and plural read grammatically, not just "IN N FRIENDS\' CRATES" verbatim', () => {
+  assert.equal(friendsStickerText(1), "IN 1 FRIEND'S CRATE");
+  assert.equal(friendsStickerText(3), "IN 3 FRIENDS' CRATES");
+});
+
+test('recordNoteText: an empty or whitespace-only note is treated the same as no note', () => {
+  assert.equal(recordNoteText(''), null);
+  assert.equal(recordNoteText('   '), null);
+  assert.equal(recordNoteText(null), null);
+  assert.equal(recordNoteText(undefined), null);
+});
+
+test('recordNoteText: a real note survives, trimmed', () => {
+  assert.equal(recordNoteText('  Sounds better on a rainy day.  '), 'Sounds better on a rainy day.');
 });
 
 /* ===================== SH1 (docs/18_SHARE.md) =====================
