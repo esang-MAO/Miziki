@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, CHART_VERSION } from '../record-art/tiers.js';
+import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, selectRareVariant, selectZoetropeVariant, CHART_VERSION } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { albumExpectedOrder } from './sessions.js';
 import { idxOf } from '../library/model.js';
@@ -84,6 +84,35 @@ export function ownedPressingIds(){
     seen.add(id);
     const {variant} = selectVariant(t);
     if(variant !== 'jet') owned.add(variant);
+  }
+  return owned;
+}
+
+// PRESSINGS_110 PR8 (§7): the chart's own RARE/ZOETROPES columns —
+// same one-representative-track-per-album shape as ownedPressingIds()
+// above, gated on the actual earned flag (S.rareUnlocked/S.zoetropeUnlocked)
+// rather than drawn unconditionally the way a solid/effect variant always
+// is, since rare and zoetrope pressings are session-earned, never
+// file-drawn. zoetropesEnabled off (the Settings toggle) hides an earned
+// zoetrope from this count too, the same "pretend the feature doesn't
+// exist" posture record-art/looks.js's availableLooks() already applies.
+export function ownedRarePressingIds(){
+  const seen = new Set(), owned = new Set();
+  for(const t of S.tracks){
+    const id = albumKey(t);
+    if(seen.has(id)) continue;
+    seen.add(id);
+    if(S.rareUnlocked[id]) owned.add(selectRareVariant(t));
+  }
+  return owned;
+}
+export function ownedZoetropePressingIds(){
+  const seen = new Set(), owned = new Set();
+  for(const t of S.tracks){
+    const id = albumKey(t);
+    if(seen.has(id)) continue;
+    seen.add(id);
+    if(S.zoetropesEnabled && S.zoetropeUnlocked[id]) owned.add(selectZoetropeVariant(t));
   }
   return owned;
 }

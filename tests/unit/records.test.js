@@ -34,6 +34,8 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
   namedExports: {
     achievementsList(){ return mockAchievements; },
     ownedPressingIds(){ return new Set(); },
+    ownedRarePressingIds(){ return new Set(); },
+    ownedZoetropePressingIds(){ return new Set(); },
   },
 });
 const thumbURL = {};

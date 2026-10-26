@@ -95,9 +95,10 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
 });
 const { pressingLineFor } = await import('../../src/social/screens/friend-store.js');
 const {
-  selectVariant, selectVariantForAlbum, getVariantDef, SOLID_IDS, EFFECT_IDS, VARIANT_DEFS,
+  albumKey, selectVariant, selectVariantForAlbum, selectRareVariant, selectZoetropeVariant, getVariantDef,
+  SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS,
 } = await import('../../src/record-art/tiers.js');
-const { ownedPressingIds } = await import('../../src/history/achievements.js');
+const { ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } = await import('../../src/history/achievements.js');
 const { S } = await import('../../src/state.js');
 
 function albumTrack(name, meta){ return { meta, tags: { album: name } }; }
@@ -134,17 +135,46 @@ test('CR11: ownedPressingIds() is empty for an all-lossy library (every track is
   assert.deepEqual(ownedPressingIds(), new Set());
 });
 
+/* ---- PRESSINGS_110 PR8 (§7): ownedRarePressingIds()/ownedZoetropePressingIds(),
+   the chart's own RARE/ZOETROPES columns, gated on the earned flag rather
+   than drawn unconditionally ---- */
+
+test('PRESSINGS_110 PR8: ownedRarePressingIds() is empty with nothing unlocked, and draws the real variant once unlocked', () => {
+  S.tracks = [albumTrack('Rare Album', { lossless: true, bits: 24, rate: 96000 })];
+  S.rareUnlocked = {};
+  assert.deepEqual(ownedRarePressingIds(), new Set());
+  const id = albumKey(S.tracks[0]);
+  S.rareUnlocked = { [id]: true };
+  const expected = new Set([selectRareVariant(S.tracks[0])]);
+  assert.deepEqual(ownedRarePressingIds(), expected);
+});
+
+test('PRESSINGS_110 PR8: ownedZoetropePressingIds() needs both the per-album unlock and the Settings toggle on', () => {
+  S.tracks = [albumTrack('Zoetrope Album', { lossless: true, bits: 24, rate: 96000 })];
+  const id = albumKey(S.tracks[0]);
+  S.zoetropeUnlocked = { [id]: true };
+  S.zoetropesEnabled = false;
+  assert.deepEqual(ownedZoetropePressingIds(), new Set(), 'hidden while the Settings toggle is off, even though it was earned');
+  S.zoetropesEnabled = true;
+  const expected = new Set([selectZoetropeVariant(S.tracks[0])]);
+  assert.deepEqual(ownedZoetropePressingIds(), expected);
+});
+
 /* ---- renderPressingCard: numbers/tap-to-jump vs. chips-only ---- */
 
-test('CR11: renderPressingCard with showNumbers shows the N OF 40 / M OF 32 count and a clickable owned chip', () => {
+test('PRESSINGS_110 PR8: renderPressingCard with showNumbers shows all four COLORS/EFFECTS/RARE/ZOETROPES counts and a clickable owned chip', () => {
   const soloId = SOLID_IDS[0];
   const owned = new Set([soloId]);
   const card = renderPressingCard(owned, { showNumbers: true });
   const countEl = card.kids.find(k => k.className === 'pressing-card-count');
   assert.ok(countEl, 'count line is shown when showNumbers is true');
-  assert.equal(countEl.textContent, '1 OF ' + SOLID_IDS.length + ' · 0 OF ' + EFFECT_IDS.length);
+  assert.equal(countEl.textContent,
+    'COLORS 1 OF ' + SOLID_IDS.length
+    + ' · EFFECTS 0 OF ' + EFFECT_IDS.length
+    + ' · RARE 0 OF ' + RARE_IDS.length
+    + ' · ZOETROPES 0 OF ' + ZOETROPE_IDS.length);
   const strip = card.kids.find(k => k.className === 'pressing-chip-strip');
-  assert.equal(strip.kids.length, SOLID_IDS.length + EFFECT_IDS.length);
+  assert.equal(strip.kids.length, SOLID_IDS.length + EFFECT_IDS.length + RARE_IDS.length + ZOETROPE_IDS.length);
   const ownedChip = strip.kids[SOLID_IDS.indexOf(soloId)];
   assert.equal(ownedChip.tag, 'button', 'an owned chip is a real button when numbers/tap are shown');
   assert.ok(ownedChip.className.includes('owned'));
@@ -183,10 +213,10 @@ test('CR11 point 4: a friend\'s pressing card (showNumbers false) renders chips 
 });
 
 test('CR11 point 3: a scarce-band chip carries the dot marker', () => {
-  const scarceId = Object.keys(VARIANT_DEFS).find(id => VARIANT_DEFS[id].band === 'scarce');
+  const allIds = [...SOLID_IDS, ...EFFECT_IDS, ...RARE_IDS, ...ZOETROPE_IDS];
+  const scarceId = allIds.find(id => VARIANT_DEFS[id].band === 'scarce');
   const card = renderPressingCard(new Set(), { showNumbers: false });
   const strip = card.kids.find(k => k.className === 'pressing-chip-strip');
-  const allIds = [...SOLID_IDS, ...EFFECT_IDS];
   const chip = strip.kids[allIds.indexOf(scarceId)];
   assert.ok(chip.kids.some(k => k.className === 'pressing-chip-dot'));
 });

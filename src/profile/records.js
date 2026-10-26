@@ -5,7 +5,7 @@ import { albumKey, getVariantDef, variantBackground } from '../record-art/tiers.
 import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
-import { achievementsList, ownedPressingIds } from '../history/achievements.js';
+import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } from '../history/achievements.js';
 // Part of the profile's own circular cluster (storefront.js/screens.js,
 // see CLAUDE.md's src/profile/ entry): storefront.js imports
 // storeRecordsSection() from here, screens.js imports renderRecordsScreen(),
@@ -272,7 +272,11 @@ function pressingsGroup(wrap, title, items){
 }
 
 function renderPressings(wrap){
-  wrap.appendChild(renderPressingCard(ownedPressingIds(), {showNumbers: true}));
+  // PRESSINGS_110 PR8 (§7): the chart card's own owned set grew from
+  // solid/effect alone to all four families — merge the three counters
+  // that each own one family rather than teaching any of them the others.
+  const owned = new Set([...ownedPressingIds(), ...ownedRarePressingIds(), ...ownedZoetropePressingIds()]);
+  wrap.appendChild(renderPressingCard(owned, {showNumbers: true}));
   const coll = Object.values(S.collection).sort((a, b) => pressingName(a).localeCompare(pressingName(b)));
   const asItem = rec => ({name: rec.name, artist: rec.artist, art: albumArt(rec.albumId, rec.art),
     disc: pressingDisc(rec), label: pressingName(rec)});
