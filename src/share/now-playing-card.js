@@ -4,9 +4,19 @@ import { fmt } from '../player/clock.js';
 import {
   SHARE_FORMATS, shareFitText, shareFitLines, loadImageEl, drawCover,
   roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark,
-  fillShareDisc,
+  fillShareDisc, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP,
 } from './styles.js';
 import { spinChipText } from '../sundown/spin-wording.js';
+
+// SH2 (docs/18_SHARE.md): fixed spacing constants, doubled from the
+// design README's own half-scale Now Playing board values — replacing
+// the h*/titleSize* fractions the card used to space itself with, none
+// of which tracked what was actually drawn.
+const TITLE_CLEARANCE_GAP = 20; // README "gap 10" under the title band
+const PROGRESS_GAP = { story: 80, square: 64, portrait: 72 }; // README "40 (story) / 32 (square)"; portrait has no board of its own
+const CLOCK_GAP = 20; // README "10 below the bar"
+const CHIPS_GAP = 60; // README "30 below the clock"
+const FOOTER_CLEARANCE = 0.05; // the footer's own fixed distance above safeBottom, as a fraction of h — unchanged from before SH2, just now a fixed position rather than one content could push further down
 
 // SH3 (docs/18_SHARE.md): the track-specific lookups fillShareDisc() itself
 // used to do are now this card's own job — the moved function (styles.js)
@@ -80,43 +90,11 @@ export async function composePlayerShareImage(opts){
   }
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 ' + Math.round(w*0.024) + 'px "IBM Plex Mono", monospace';
-  ctx.fillStyle = kit.accent;
-  ctx.fillText('NOW PLAYING', w/2, y);
-  y += Math.round(w*0.05);
 
   const titleMax = w - pad*2;
   const title = t.tags ? t.tags.title : (t.name || '');
-  const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Archivo, sans-serif');
-  ctx.font = '700 ' + titleSize + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
-  titleLines.forEach(line => { y += Math.round(titleSize*1.08); ctx.fillText(line, w/2, y); });
-  // clearance scaled to the title's own (auto-shrunk) size, not a fixed
-  // fraction of canvas height — otherwise a large title in a short format
-  // leaves too little room before the descender meets the artist line
-  y += Math.round(titleSize*0.85);
-
-  ctx.font = '400 ' + Math.round(w*0.032) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
-  ctx.fillText(shareFitText(ctx, t.tags ? t.tags.artist : '', titleMax), w/2, y);
-  y += Math.round(w*0.045);
-
-  const albumYear = [t.tags ? t.tags.album : '', data.year || null].filter(Boolean).join(' · ');
-  ctx.font = '600 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
-  ctx.fillText(shareFitText(ctx, albumYear.toUpperCase(), titleMax), w/2, y);
-  y += Math.round(h*0.055);
-
-  if(typeof data.elapsed === 'number' && data.duration > 0){
-    const barW = w - pad*2, barY = y, barH = 6;
-    const frac = Math.max(0, Math.min(1, data.elapsed / data.duration));
-    ctx.fillStyle = kit.chipBg; roundRectPath(ctx, pad, barY, barW, barH, barH/2); ctx.fill();
-    ctx.fillStyle = kit.accent; roundRectPath(ctx, pad, barY, Math.max(barH, barW*frac), barH, barH/2); ctx.fill();
-    ctx.beginPath(); ctx.arc(pad + barW*frac, barY + barH/2, barH*1.5, 0, Math.PI*2); ctx.fillStyle = kit.accent; ctx.fill();
-    y += Math.round(h*0.03);
-    ctx.font = '500 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
-    ctx.textAlign = 'left'; ctx.fillText(fmt(data.elapsed), pad, y);
-    ctx.textAlign = 'right'; ctx.fillText(fmt(data.duration), w - pad, y);
-    ctx.textAlign = 'center';
-    y += Math.round(h*0.05);
-  }
+  const artist = t.tags ? t.tags.artist : '';
+  const albumYearText = [t.tags ? t.tags.album : '', data.year || null].filter(Boolean).join(' · ').toUpperCase();
 
   // spec chips: FLAC/sample-rate/bit-depth, plus the current mode — each
   // omitted outright when its data is missing (spec §2)
@@ -130,22 +108,102 @@ export async function composePlayerShareImage(opts){
   // Include toggle (data.includePhase, default on).
   const spinText = spinChipText(data.phase, data.includePhase);
   if(spinText) chips.push({text: spinText, filled:false});
-  if(chips.length){
-    ctx.font = '600 22px "IBM Plex Mono", monospace';
-    const gap = Math.round(w*0.018);
-    const widths = chips.map(c => ctx.measureText(c.text).width + 44);
-    const totalW = widths.reduce((s,x) => s+x, 0) + gap*(chips.length-1);
-    let cx = w/2 - totalW/2;
-    chips.forEach(c => { const cw = shareChip(ctx, kit, c.text, cx, y, c.filled); cx += cw + gap; });
-    y += 46 + Math.round(h*0.045);
+
+  const footerTopY = bottomY - Math.round(h*FOOTER_CLEARANCE);
+
+  // SH2 item 1/2/3: the title band and progress line are laid out once,
+  // measurement-only (draw=false, no canvas side effects — fillText/fill/
+  // stroke all stay inside `if(draw)`), to find where the content would
+  // actually end up before a single pixel is painted. Item 4's own
+  // "content never grows into the footer" rule needs to know that final
+  // position *before* deciding whether to draw the chips/album·year line
+  // at all, which a single draw-as-you-go pass (the pre-SH2 shape) can't
+  // provide — there's nothing to "undo" once something is already drawn.
+  const startY = y;
+  function layoutBody(includeAlbumYear, includeChips, draw){
+    let yy = startY;
+    ctx.font = '700 ' + Math.round(w*0.024) + 'px "IBM Plex Mono", monospace';
+    if(draw){ ctx.fillStyle = kit.accent; ctx.fillText('NOW PLAYING', w/2, yy); }
+    yy += Math.round(w*0.05);
+
+    const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Archivo, sans-serif');
+    ctx.font = '700 ' + titleSize + 'px Archivo, sans-serif';
+    titleLines.forEach(line => {
+      yy += Math.round(titleSize*1.08);
+      if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(line, w/2, yy); }
+    });
+    // SH2 item 1: measured title height plus one fixed gap, never h*0.055
+    // (or any other fraction of canvas height disconnected from the title
+    // actually drawn above it).
+    const lastTitleLine = titleLines[titleLines.length-1] || '';
+    const titleMetrics = ctx.measureText(lastTitleLine);
+    const titleDescent = titleMetrics.actualBoundingBoxDescent || Math.round(titleSize*0.22);
+    yy += titleDescent + TITLE_CLEARANCE_GAP;
+
+    ctx.font = '400 ' + Math.round(w*0.032) + 'px Archivo, sans-serif';
+    const artistText = shareFitText(ctx, artist, titleMax);
+    if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(artistText, w/2, yy); }
+    yy += Math.round(w*0.045);
+
+    if(includeAlbumYear && albumYearText){
+      ctx.font = '600 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace';
+      const albumText = shareFitText(ctx, albumYearText, titleMax);
+      if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(albumText, w/2, yy); }
+    }
+    // SH2 item 2: the progress line always sits a fixed distance below
+    // the band, whether or not album·year is the line that ends it.
+    yy += PROGRESS_GAP[format] || PROGRESS_GAP.story;
+
+    if(typeof data.elapsed === 'number' && data.duration > 0){
+      const barW = w - pad*2, barY = yy, barH = 6;
+      const frac = Math.max(0, Math.min(1, data.elapsed / data.duration));
+      if(draw){
+        ctx.fillStyle = kit.chipBg; roundRectPath(ctx, pad, barY, barW, barH, barH/2); ctx.fill();
+        ctx.fillStyle = kit.accent; roundRectPath(ctx, pad, barY, Math.max(barH, barW*frac), barH, barH/2); ctx.fill();
+        ctx.beginPath(); ctx.arc(pad + barW*frac, barY + barH/2, barH*1.5, 0, Math.PI*2); ctx.fillStyle = kit.accent; ctx.fill();
+      }
+      // SH2 item 2: the clock sits under the line, not inside the chip row.
+      yy += CLOCK_GAP;
+      ctx.font = '500 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace';
+      if(draw){
+        ctx.fillStyle = kit.sub;
+        ctx.textAlign = 'left'; ctx.fillText(fmt(data.elapsed), pad, yy);
+        ctx.textAlign = 'right'; ctx.fillText(fmt(data.duration), w - pad, yy);
+        ctx.textAlign = 'center';
+      }
+      yy += CHIPS_GAP;
+    }
+
+    if(includeChips && chips.length){
+      ctx.font = CHIP_FONT;
+      const layout = layoutChips(ctx, chips, w - pad*2);
+      if(draw){
+        layout.rows.forEach((row, ri) => {
+          const rowY = yy + ri*(CHIP_HEIGHT + CHIP_ROW_GAP);
+          row.forEach(c => shareChip(ctx, kit, c.text, w/2 + c.x, rowY, c.filled));
+        });
+      }
+      yy += layout.height;
+    }
+
+    return yy;
   }
 
+  // SH2 item 4: the footer never moves to make room — content does. Chips
+  // are dropped first, then ALBUM · YEAR, each only if the content would
+  // otherwise overlap the footer's own fixed position.
+  let includeAlbumYear = true, includeChips = true;
+  if(layoutBody(true, true, false) > footerTopY){
+    includeChips = false;
+    if(layoutBody(true, false, false) > footerTopY) includeAlbumYear = false;
+  }
+  layoutBody(includeAlbumYear, includeChips, true);
+
   ctx.textAlign = 'center';
-  const markY = Math.max(y, bottomY - Math.round(h*0.05));
-  drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
+  drawShareWordmark(ctx, w/2, footerTopY, Math.round(w*0.03), kit.ink, kit.accent);
   ctx.font = '600 ' + Math.round(w*0.0165) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
   const lossless = !(t.meta && t.meta.lossless === false);
-  ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, markY + Math.round(h*0.026));
+  ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, footerTopY + Math.round(h*0.026));
 
   return canvas;
 }

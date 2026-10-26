@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 // below) — neither of those touches the DOM at its own top level either,
 // so this doesn't cost styles.js its own "safe to import directly, no
 // mocking" property.
-const { SHARE_FORMATS, resolveShareStyle } = await import('../../src/share/styles.js');
+const { SHARE_FORMATS, resolveShareStyle, shareFitLines, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP } = await import('../../src/share/styles.js');
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this
 // file sticks to the two genuinely pure parts of the share-image code:
@@ -204,6 +204,95 @@ test('familyCountsLine: a family with no catalogue entries at all is left out, n
 test('familyCountsLine: no counts at all is an empty line, not a thrown error', () => {
   assert.equal(familyCountsLine(null), '');
   assert.equal(familyCountsLine(undefined), '');
+});
+
+/* ===================== SH2 (docs/18_SHARE.md) =====================
+   "Now Playing, re-spaced" -- layoutChips(ctx, chips, maxW) is the one
+   piece of the re-layout that's genuinely pure (no canvas drawing, only
+   ctx.measureText), pulled out of now-playing-card.js's own
+   composePlayerShareImage into styles.js specifically so it's directly
+   testable here with a fake, measurement-only canvas context -- no
+   mocking of any module needed, same as shareFitLines/resolveShareStyle
+   above. shareFitLines itself is also exercised directly (the "long
+   title" case SH2 item 5 asks for), confirming the exact per-line/
+   font-size result composePlayerShareImage's own title-clearance
+   calculation depends on. */
+
+// a minimal canvas 2D context stand-in: measureText's width is a plain
+// function of string length and whatever px size the current ctx.font
+// string carries -- deterministic and font-size-sensitive, which is all
+// shareFitLines'/layoutChips' own wrapping math actually needs.
+function makeFakeCtx(){
+  const ctx = {
+    font: '16px sans-serif',
+    save(){}, restore(){},
+    measureText(text){
+      const m = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
+      const size = m ? parseFloat(m[1]) : 16;
+      return { width: String(text).length * size * 0.55, actualBoundingBoxDescent: size * 0.22 };
+    },
+  };
+  return ctx;
+}
+
+test('shareFitLines: a very long title shrinks to the font-size floor, then truncates only the last line', () => {
+  const ctx = makeFakeCtx();
+  // a single unsplittable word wide enough to overflow maxWidth on its
+  // own at every size down to the floor, landing as the kept 2nd line
+  // once wrap() is sliced to maxLines -- plus enough filler words after
+  // it that the produced line count stays above maxLines at every size
+  // tried, so the loop genuinely exhausts to the floor rather than
+  // returning early on a line count that happens to already fit.
+  const longWord = 'X'.repeat(80);
+  const longTitle = ['Hi', longWord, 'more', 'words', 'after', 'that', 'keep', 'going', 'well', 'past', 'two', 'lines'].join(' ');
+  const { lines, fontSize } = shareFitLines(ctx, longTitle, 200, 2, 60, '700', 'Archivo, sans-serif');
+  assert.equal(fontSize, Math.round(60*0.55), 'exhausts every shrink step before truncating');
+  assert.equal(lines.length, 2, 'never exceeds maxLines regardless of how long the text is');
+  assert.equal(lines[0], 'Hi');
+  assert.ok(lines[1].endsWith('…'), 'the last line is truncated only once shrinking alone cannot fit it');
+});
+
+test('shareFitLines: a short title never shrinks or truncates', () => {
+  const ctx = makeFakeCtx();
+  const { lines, fontSize } = shareFitLines(ctx, 'Short Title', 1000, 2, 60, '700', 'Archivo, sans-serif');
+  assert.equal(fontSize, 60);
+  assert.deepEqual(lines, ['Short Title']);
+});
+
+test('layoutChips: chips that fit stay on one row, centered around 0', () => {
+  const ctx = makeFakeCtx();
+  const chips = [{text:'A', filled:false}, {text:'B', filled:true}];
+  const { rows, height } = layoutChips(ctx, chips, 1000);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].length, 2);
+  assert.equal(height, CHIP_HEIGHT);
+  const first = rows[0][0], last = rows[0][rows[0].length-1];
+  assert.ok(first.x < 0, 'the row starts left of center');
+  assert.ok(Math.abs((last.x + last.width) - (-first.x)) < 1, 'the row is symmetric around 0');
+});
+
+test('layoutChips: three chips that cannot all share one row wrap to a second, dropping none (SH2 item 3)', () => {
+  const ctx = makeFakeCtx();
+  const chips = [
+    {text:'FLAC · 44.1 KHZ · 16-BIT', filled:false},
+    {text:'VINYL', filled:true},
+    {text:'SPUN AT DUSK', filled:false},
+  ];
+  ctx.font = CHIP_FONT;
+  const widths = chips.map(c => Math.round(ctx.measureText(c.text).width) + 44);
+  // room for exactly the first two side by side, not all three
+  const narrowMaxW = widths[0] + 16 + widths[1] + 10;
+  const { rows, height } = layoutChips(ctx, chips, narrowMaxW);
+  assert.equal(rows.length, 2, 'three chips that do not fit one row wrap to a second');
+  assert.equal(rows[0].length + rows[1].length, 3, 'every chip is kept, just wrapped');
+  assert.equal(height, CHIP_HEIGHT*2 + CHIP_ROW_GAP, 'stacked height accounts for the row gap');
+});
+
+test('layoutChips: an empty chip list lays out to nothing', () => {
+  const ctx = makeFakeCtx();
+  const { rows, height } = layoutChips(ctx, [], 1000);
+  assert.deepEqual(rows, []);
+  assert.equal(height, 0);
 });
 
 /* ===================== SH1 (docs/18_SHARE.md) =====================
