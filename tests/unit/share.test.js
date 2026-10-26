@@ -135,6 +135,77 @@ test('recordNoteText: a real note survives, trimmed', () => {
   assert.equal(recordNoteText('  Sounds better on a rainy day.  '), 'Sounds better on a rainy day.');
 });
 
+/* ===================== SH4 (docs/18_SHARE.md) =====================
+   The Pressings card (src/share/pressings-card.js). Same reasoning as
+   SH3's own Record-card tests below: canvas drawing itself can't run in
+   Node, so this sticks to item 7's own pure decision logic -- the newest-
+   first sort, the per-format tile count, the "+N more" line, and the
+   family-counts header line. record-art/tiers.js's getVariantDef and
+   styles.js are both the same "safe to import directly, no DOM at the
+   top level" leaves the SHARE_FORMATS/resolveShareStyle tests above
+   already rely on, so pressings-card.js needs no mocking to load for
+   real either. This import has to happen before the SH1 block below
+   mocks pressings-card.js wholesale (for sheet.js's own tests) --
+   node:test's mock.module() replaces the module in the registry for
+   every subsequent import, real or not, so the real module has to be
+   loaded first. */
+const { sortPressingsNewestFirst, tileCountFor, moreCountText, familyCountsLine } = await import('../../src/share/pressings-card.js');
+
+test('sortPressingsNewestFirst: newest discoveredAt first, regardless of input order', () => {
+  const a = { albumId: 'a', discoveredAt: 100 };
+  const b = { albumId: 'b', discoveredAt: 300 };
+  const c = { albumId: 'c', discoveredAt: 200 };
+  assert.deepEqual(sortPressingsNewestFirst([a, b, c]).map(r => r.albumId), ['b', 'c', 'a']);
+  assert.deepEqual(sortPressingsNewestFirst([b, a, c]).map(r => r.albumId), ['b', 'c', 'a']);
+});
+
+test('sortPressingsNewestFirst: a missing discoveredAt sorts as the oldest, and the input array is never mutated', () => {
+  const input = [{ albumId: 'a', discoveredAt: 100 }, { albumId: 'b' }];
+  const sorted = sortPressingsNewestFirst(input);
+  assert.deepEqual(sorted.map(r => r.albumId), ['a', 'b']);
+  assert.deepEqual(input.map(r => r.albumId), ['a', 'b'], 'the original array order is untouched');
+});
+
+test('tileCountFor: 3x4 (12 tiles) for Story, 3x2 (6 tiles) for Square', () => {
+  assert.equal(tileCountFor('story'), 12);
+  assert.equal(tileCountFor('square'), 6);
+});
+
+test('tileCountFor: an unrecognized format falls back to Square\'s own tile count', () => {
+  assert.equal(tileCountFor('not-a-real-format'), 6);
+});
+
+test('moreCountText: nothing shown once the collection fits the grid', () => {
+  const sixRecords = Array.from({length: 6}, (_, i) => ({ albumId: String(i) }));
+  assert.equal(moreCountText(sixRecords, 'square'), null);
+  assert.equal(moreCountText(sixRecords, 'story'), null);
+  assert.equal(moreCountText([], 'square'), null);
+});
+
+test('moreCountText: counts exactly how many are left off, newest-first framing', () => {
+  const eightRecords = Array.from({length: 8}, (_, i) => ({ albumId: String(i) }));
+  assert.equal(moreCountText(eightRecords, 'square'), '+ 2 MORE · NEWEST FIRST');
+  assert.equal(moreCountText(eightRecords, 'story'), null);
+});
+
+test('familyCountsLine: one clause per family, in solid/effects/rare/zoetrope order', () => {
+  const counts = {
+    solid: {owned: 14, total: 20}, effects: {owned: 3, total: 54},
+    rare: {owned: 1, total: 4}, zoetrope: {owned: 0, total: 6},
+  };
+  assert.equal(familyCountsLine(counts), 'COLORS 14 OF 20 · EFFECTS 3 OF 54 · RARE 1 OF 4 · ZOETROPES 0 OF 6');
+});
+
+test('familyCountsLine: a family with no catalogue entries at all is left out, not shown as "0 of 0"', () => {
+  const counts = { solid: {owned: 2, total: 5}, effects: {owned: 0, total: 0}, rare: null, zoetrope: {owned: 0, total: 6} };
+  assert.equal(familyCountsLine(counts), 'COLORS 2 OF 5 · ZOETROPES 0 OF 6');
+});
+
+test('familyCountsLine: no counts at all is an empty line, not a thrown error', () => {
+  assert.equal(familyCountsLine(null), '');
+  assert.equal(familyCountsLine(undefined), '');
+});
+
 /* ===================== SH2 (docs/18_SHARE.md) =====================
    "Now Playing, re-spaced" -- layoutChips(ctx, chips, maxW) is the one
    piece of the re-layout that's genuinely pure (no canvas drawing, only

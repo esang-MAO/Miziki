@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { groupBy } from '../library/model.js';
-import { albumKey, getVariantDef, variantBackground } from '../record-art/tiers.js';
+import { albumKey, getVariantDef, variantBackground, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS } from '../record-art/tiers.js';
 import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
@@ -13,6 +13,7 @@ import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetrope
 import { renderPressingCard } from './storefront.js';
 import { renderProfile } from './screens.js';
 import { openShareSheet } from '../share/sheet.js';
+import { sortPressingsNewestFirst } from '../share/pressings-card.js';
 
 /* ================= profile records + pressings =================
    One section for the crate and what it has earned. The profile home shows
@@ -100,6 +101,36 @@ export function recordsCountLine(nRecords, counts){
 export function recordLetter(name){
   const c = String(name || '').normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase();
   return /^[A-Z]$/.test(c) ? c : '#';
+}
+
+// SH4 (docs/18_SHARE.md): the Pressings share card's own data — gathered
+// here (the Records screen), same "the calling screen hands the composer
+// pre-resolved data" shape SH3's Record card already established. The
+// per-family {owned, total} counts reuse the exact COLORS/EFFECTS/RARE/
+// ZOETROPES arithmetic storefront.js's own renderPressingCard() already
+// does inline against SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS -- kept
+// as its own small loop here rather than a shared export, the same
+// "duplicate the small shared formula rather than wire two independent
+// systems together" call CLAUDE.md documents for sync/images.js/
+// player/clock.js's own PHASE_COLOR duplication.
+function countFamily(ownedIds, ids){
+  let n = 0;
+  for(const id of ids) if(ownedIds.has(id)) n++;
+  return n;
+}
+function pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope){
+  return {
+    records: sortPressingsNewestFirst(Object.values(S.collection)),
+    counts: {
+      solid:    { owned: countFamily(ownedSolidEffect, SOLID_IDS),  total: SOLID_IDS.length },
+      effects:  { owned: countFamily(ownedSolidEffect, EFFECT_IDS), total: EFFECT_IDS.length },
+      rare:     { owned: countFamily(ownedRare, RARE_IDS),          total: RARE_IDS.length },
+      zoetrope: { owned: countFamily(ownedZoetrope, ZOETROPE_IDS),  total: ZOETROPE_IDS.length },
+    },
+    total: owned.size,
+    chartSize: SOLID_IDS.length + EFFECT_IDS.length + RARE_IDS.length + ZOETROPE_IDS.length,
+    ownerName: S.profile && S.profile.name,
+  };
 }
 
 function openRecords(filter){
@@ -240,11 +271,17 @@ export function renderRecordsScreen(body){
   // button in the screen header." Only on the Pressings tab -- All
   // records has no card of its own to share.
   if(filter === 'pressings'){
-    const owned = new Set([...ownedPressingIds(), ...ownedRarePressingIds(), ...ownedZoetropePressingIds()]);
-    const shareBtn = el('button','cta ghost store-records-share','Share');
-    shareBtn.type = 'button';
-    shareBtn.addEventListener('click', () => openShareSheet({ card:'pressings', data:{ total: owned.size } }));
-    wrap.appendChild(shareBtn);
+    const ownedSolidEffect = ownedPressingIds(), ownedRare = ownedRarePressingIds(), ownedZoetrope = ownedZoetropePressingIds();
+    const owned = new Set([...ownedSolidEffect, ...ownedRare, ...ownedZoetrope]);
+    // SH4 item 6: hidden, not just disabled, until the first pressing is
+    // discovered -- nothing to share yet.
+    if(owned.size){
+      const shareBtn = el('button','cta ghost store-records-share','Share');
+      shareBtn.type = 'button';
+      shareBtn.addEventListener('click', () => openShareSheet({ card:'pressings',
+        data: pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope) }));
+      wrap.appendChild(shareBtn);
+    }
   }
 
   if(filter === 'all') renderAllRecords(wrap, records);
