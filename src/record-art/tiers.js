@@ -1,4 +1,13 @@
 import { normKey } from '../util/text.js';
+// PRESSINGS_110 PR3: Nychthemeron (the one rare pressing that isn't a
+// fixed draw — it shifts Powder Blue/Indigo with the day arc) reuses the
+// exact same clock ui/theme.js's effectiveTheme() already reads for the
+// Nychthemeron *appearance* choice, so the sky and this one pressing are
+// never out of sync with each other. `S` and arc.js/solar.js are both
+// safe, acyclic imports here — neither imports anything from this file.
+import { S } from '../state.js';
+import { nowClock } from '../sundown/solar.js';
+import { phaseAt } from '../sundown/arc.js';
 
 /* ================= record art: quality tiers + variant selection =================
    Tier read from the decoder's own bit depth / sample rate, never file extension.
@@ -52,11 +61,14 @@ function variantHashKey(t){ return albumKey(t); }
    that doc's own "chartVersion: 2" decision, implemented in
    history/sessions.js's restoreSessions(), for the one-time re-draw this
    growth triggers for hi-res albums' already-discovered Collection entries.
-   New `pattern` keys (tri-split/pinwheel/target/core/galaxy/burst/cloud)
-   fall through to variantBackground()'s 'solid' default until the PR that
-   adds real rendering for each — a deliberate, reviewed intermediate state,
-   not a bug: every new def still carries a full ring/body/rim colors
-   3-tuple, so the default radial gradient already renders something sane. */
+   variantBackground() below has real rendering for every one of the seven
+   new effect `pattern` keys (PR2) — see that function's own entry. The rare
+   pool growing from 4 to 8 (PR3, below) needs no equivalent migration at
+   all: unlike a Collection record's stamped solid/effect draw, a rare
+   pressing is never cached — selectRareVariant() re-picks fresh from
+   RARE_IDS every time looks.js reads it, so a bigger pool is already
+   "the next draw," the same mechanism a pool-size change has always used
+   here, no special-casing needed. */
 
 const F = (ring, body, rim) => [ring, body, rim];
 
@@ -201,6 +213,25 @@ export const VARIANT_DEFS = {
     colors:F('rgba(244,241,234,.9)','rgba(91,170,153,.9)','rgba(169,164,154,.9)'),
     drift:['rgba(63,140,126,.85)','rgba(91,170,153,.9)'],
     name:'Liquid filled', sub:null, note:'A band of green liquid that slides as the disc spins.'},
+
+  // ---- PRESSINGS_110 PR3: four new rares, all clear- or sky-driven
+  // (docs/PRESSINGS_110.md §4) — same session-unlock-only pool as the
+  // original four above, just four entries bigger. ----
+  moonstone: {family:'rare', finish:'translucent', band:null, pattern:'marble',
+    body:'rgba(236,240,244,.10)', veins:'#E6E2DA', rim:'rgba(255,255,255,.35)',
+    colors:F('rgba(236,240,244,.10)','#E6E2DA','rgba(255,255,255,.35)'),
+    name:'Moonstone', sub:null, note:'Chalk marble veins adrift in a clear body.'},
+  aurora: {family:'rare', finish:'translucent', band:null, pattern:'aurora',
+    colors:F('rgba(169,224,220,.75)','rgba(108,74,138,.75)','rgba(255,255,255,.35)'),
+    name:'Aurora', sub:null, note:'Aquamarine and heliotrope swirling through a clear body.'},
+  'black-ice': {family:'rare', finish:'translucent', band:null, pattern:'black-ice',
+    colors:F('rgba(236,240,244,.10)','rgba(230,226,218,.55)','rgba(169,164,154,.9)'),
+    jet:'#1C1A1E',
+    name:'Black ice', sub:null, note:'A Jet core under a clear outer band.'},
+  nychthemeron: {family:'rare', finish:'translucent', band:null, pattern:'nychthemeron',
+    colors:F('#CFE4F2','#B9D9EB','#8FB0C4'),
+    night:['#5862C4','#3B4080','#1A1C3A'],
+    name:'Nychthemeron', sub:null, note:"Powder blue by day, indigo after sundown — it follows wherever the sun actually is, not a session clock."},
 };
 
 // Old ids (pre-CR7) mapped onto the new catalogue, so a saved Collection
@@ -455,6 +486,38 @@ export function variantBackground(def){
         + 'radial-gradient(circle at 52% 74%,' + ink + ' 0 9%,transparent 23%),'
         + 'radial-gradient(circle at 24% 66%,' + ink + ' 0 5%,transparent 15%),'
         + 'radial-gradient(circle at 50% 50%,' + base + ' 0 90%,' + rim + ' 92% 100%)';
+    }
+    // ---- PRESSINGS_110 PR3: the four new rares. Moonstone reuses the
+    // existing 'marble' case outright (its def sets body/veins/rim
+    // directly) — chalk veins in a clear body is exactly that case's own
+    // shape, just translucent, so it needs no case of its own. ----
+    case 'aurora': {
+      // a swirl of two translucent inks adrift in a clear body, with
+      // transparent gaps between them rather than a full conic wheel —
+      // the gaps are what let the clear body actually read as clear
+      const [t1, t2, rim] = def.colors;
+      return 'conic-gradient(from -30deg,transparent 0deg 64.8deg,' + t1 + ' 64.8deg 122.4deg,'
+        + 'transparent 122.4deg 201.6deg,' + t2 + ' 201.6deg 259.2deg,transparent 259.2deg 360deg),'
+        + 'radial-gradient(circle at 50% 50%,transparent 0 88%,' + rim + ' 94% 100%)';
+    }
+    case 'black-ice': {
+      // a Jet core under a clear outer band — the core is a hard-edged
+      // opaque circle, not a soft radial fade, since there's no blend
+      // between "the record" and "the clear band around it"
+      const jet = def.jet || '#1C1A1E';
+      return 'radial-gradient(circle at 50% 50%,' + jet + ' 0 56%,transparent 56% 100%),'
+        + 'radial-gradient(circle at 34% 28%,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),'
+        + 'radial-gradient(circle at 72% 78%,rgba(255,255,255,.14),rgba(255,255,255,0) 36%)';
+    }
+    case 'nychthemeron': {
+      // the one rare that isn't a fixed draw: Powder Blue by day, Indigo
+      // after sundown, read off the exact same day-arc phase
+      // ui/theme.js's effectiveTheme() uses for the Nychthemeron
+      // *appearance* choice (arc.js's 4-phase DAWN/DAY/DUSK/NIGHT model),
+      // so the sky and this one pressing never disagree about which it is
+      const day = phaseAt(nowClock(), S.sun) === 'day';
+      const [hi, body, rim] = day ? def.colors : (def.night || def.colors);
+      return 'radial-gradient(circle at 50% 50%,' + hi + ' 0 34%,' + body + ' 34% 90%,' + rim + ' 90% 100%)';
     }
     default: // 'solid'
       return 'radial-gradient(circle at 50% 50%,' + a + ' 0 27%,' + b + ' 27% 90%,' + c + ' 90% 100%)';

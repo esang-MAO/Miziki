@@ -146,7 +146,11 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 // to say when the suite runs.
 let fakePhase = 'midday';
 mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
-  namedExports: { realDayPosition(){ return { phase: fakePhase }; } },
+  // PRESSINGS_110 PR3: record-art/tiers.js's Nychthemeron pattern now
+  // imports nowClock from this same module too, reached transitively
+  // through this file's own import chain -- stubbed here even though
+  // nothing in this test ever exercises Nychthemeron rendering.
+  namedExports: { realDayPosition(){ return { phase: fakePhase }; }, nowClock(){ return new Date(); } },
 });
 
 const { addPlayedRange, playedCoverage, checkTrackCompletion, incrementTrackPlay } = await import('../../src/history/played.js');

@@ -79,7 +79,11 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){}, touchBackupField(){} },
 });
 mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
-  namedExports: { realDayPosition(){ return { phase: 'midday' }; } },
+  // PRESSINGS_110 PR3: record-art/tiers.js's Nychthemeron pattern now
+  // imports nowClock from this same module too, reached transitively
+  // through this file's own import chain -- stubbed here even though
+  // nothing in this test ever exercises Nychthemeron rendering.
+  namedExports: { realDayPosition(){ return { phase: 'midday' }; }, nowClock(){ return new Date(); } },
 });
 // RF19 (docs/12_REFINE.md): pushBackup() now computes a checksum on every
 // push via sync/images.js's real sha256Hex (crypto.subtle.digest) -- a real,

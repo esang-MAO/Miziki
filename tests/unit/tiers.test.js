@@ -1,9 +1,24 @@
-import { test } from 'node:test';
+import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import {
+
+// PRESSINGS_110 PR3: Nychthemeron reads the live day/night phase through
+// sundown/solar.js's nowClock() and sundown/arc.js's phaseAt() — both
+// mocked here (node's ESM module-mock, --experimental-test-module-mocks)
+// so the one test that exercises it can drive both branches without
+// depending on the real wall clock. Neither export is used by any other
+// test in this file, so this has no effect on anything else here.
+let mockPhase = 'day';
+mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
+  namedExports: { nowClock(){ return new Date(); } },
+});
+mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
+  namedExports: { phaseAt(){ return mockPhase; } },
+});
+
+const {
   trackTier, albumKey, VARIANT_DEFS, OLD_VARIANT_ID_MAP, BAND_NAMES,
   selectVariant, selectRareVariant, resolveVariantId, getVariantDef, variantBackground,
-} from '../../src/record-art/tiers.js';
+} = await import('../../src/record-art/tiers.js');
 
 function track(meta){ return { meta, tags: {} }; }
 function albumTrack(name, meta){ return { meta, tags: { album: name } }; }
@@ -43,7 +58,7 @@ test('CR7 catalogue: every solid/effect has a band, jet and rares do not', () =>
   for(const d of RARE_DEFS) assert.equal(d.band, null);
 });
 
-test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects)', () => {
+test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 rare)', () => {
   const countBand = (defs, band) => defs.filter(d => d.band === band).length;
   assert.equal(SOLID_DEFS.length, 40);
   assert.equal(countBand(SOLID_DEFS, 'common'), 20);
@@ -53,7 +68,7 @@ test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects)', (
   assert.equal(countBand(EFFECT_DEFS, 'common'), 24);
   assert.equal(countBand(EFFECT_DEFS, 'uncommon'), 22);
   assert.equal(countBand(EFFECT_DEFS, 'scarce'), 8);
-  assert.equal(RARE_DEFS.length, 4);
+  assert.equal(RARE_DEFS.length, 8);
 });
 
 test('CR7 draw: the same album always lands on the same variant', () => {
@@ -194,6 +209,63 @@ test('PRESSINGS_110: cloud renders four soft islands of the ink over the base, f
   assert.equal(bg.split(def.ink).length - 1, 4, 'four cloud islands');
   assert.ok(bg.includes(def.base));
   assert.ok(bg.includes(def.rim));
+});
+
+/* ================= PRESSINGS_110 PR3: rare expansion to 8
+   (docs/PRESSINGS_110.md §4) — four new rares, all clear- or sky-driven.
+   Moonstone deliberately reuses the existing 'marble' case verbatim;
+   the other three get their own case in variantBackground(). ================= */
+
+test('PRESSINGS_110: Moonstone reuses the marble case with its own translucent colours', () => {
+  const def = VARIANT_DEFS.moonstone;
+  assert.equal(def.pattern, 'marble');
+  const bg = variantBackground(def);
+  // the marble case reads body/veins/rim off the def directly when present
+  assert.ok(bg.includes(def.veins), 'vein colour should appear in the repeating vein layer');
+  assert.ok(bg.includes(def.body), 'the clear body colour should appear in the base radial layer');
+  assert.ok(bg.includes(def.rim));
+  assert.ok(bg.startsWith('repeating-linear-gradient(62deg,'));
+});
+
+test('PRESSINGS_110: Aurora swirls two inks with transparent gaps over a clear rim fade', () => {
+  const def = VARIANT_DEFS.aurora;
+  const bg = variantBackground(def);
+  const [t1, t2, rim] = def.colors;
+  assert.ok(bg.startsWith('conic-gradient(from -30deg,transparent'));
+  assert.ok(bg.includes(t1));
+  assert.ok(bg.includes(t2));
+  // gaps between the two swirl inks are what let the clear body show through
+  assert.equal(bg.split('transparent').length - 1, 4, 'three swirl gaps plus the rim-fade centre');
+  assert.ok(bg.includes('radial-gradient(circle at 50% 50%,transparent 0 88%,' + rim + ' 94% 100%)'));
+});
+
+test('PRESSINGS_110: Black Ice is a hard-edged Jet core under a clear outer band, no soft blend', () => {
+  const def = VARIANT_DEFS['black-ice'];
+  const bg = variantBackground(def);
+  assert.ok(bg.startsWith('radial-gradient(circle at 50% 50%,' + def.jet + ' 0 56%,transparent 56% 100%)'),
+    'the core/outer-band split should be a hard edge, not a feathered one');
+  // the same two rim-highlight spots every other rare pattern already uses
+  assert.ok(bg.includes('radial-gradient(circle at 34% 28%,rgba(255,255,255,.34)'));
+  assert.ok(bg.includes('radial-gradient(circle at 72% 78%,rgba(255,255,255,.14)'));
+});
+
+test('PRESSINGS_110: Nychthemeron renders its day colours when phaseAt() reads day', () => {
+  mockPhase = 'day';
+  const def = VARIANT_DEFS.nychthemeron;
+  const bg = variantBackground(def);
+  const [hi, body, rim] = def.colors;
+  assert.equal(bg, 'radial-gradient(circle at 50% 50%,' + hi + ' 0 34%,' + body + ' 34% 90%,' + rim + ' 90% 100%)');
+});
+
+test('PRESSINGS_110: Nychthemeron switches to its night colours once phaseAt() reads anything else', () => {
+  for(const phase of ['dawn', 'dusk', 'night']){
+    mockPhase = phase;
+    const def = VARIANT_DEFS.nychthemeron;
+    const bg = variantBackground(def);
+    const [hi, body, rim] = def.night;
+    assert.equal(bg, 'radial-gradient(circle at 50% 50%,' + hi + ' 0 34%,' + body + ' 34% 90%,' + rim + ' 90% 100%)',
+      'phase ' + phase + ' should read as night');
+  }
 });
 
 function luminance(hex){
