@@ -20,6 +20,8 @@ function baseLocal(deviceId, overrides){
     prefs: {}, profileName: '', picture: null,
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
     trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
+    zoetropeUnlocked: {}, zoetropeDayProgress: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
     // RF17 (docs/12_REFINE.md): add-wins playlist membership, local-id
     // keyed (state.js's S.playlistMembershipAt) — see toDoc()'s own
@@ -201,6 +203,59 @@ test('history clear: achievements/Collection/rareUnlocked from a stale row are i
   assert.deepEqual(merged.totals.rareUnlocked, {});
   assert.deepEqual(merged.totals.achievements, {});
   assert.deepEqual(merged.totals.collection, {});
+});
+
+test('history clear: zoetropeUnlocked/zoetropeDayProgress from a stale row are ignored the same way as rareUnlocked', () => {
+  const a = baseLocal('a', {
+    historyClearedAt: 0,
+    zoetropeUnlocked: { al1: true },
+    zoetropeDayProgress: { al1: ['2020-01-01', '2020-01-02', '2020-01-03'] },
+  });
+  const b = toDoc(baseLocal('b', { historyClearedAt: 1000 }));
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.zoetropeUnlocked, {});
+  assert.deepEqual(merged.totals.zoetropeDayProgress, {});
+});
+
+// ---- PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeDayProgress's
+// own merge primitive, unionDaySets() -- a per-album union of calendar-day
+// keys across devices, deduplicated and sorted, the same class of
+// primitive as unionFlags()/mergeSealed() just above it, for a shape
+// neither of those fit exactly (one level of per-album nesting, holding a
+// *set* of strings rather than a flat flag or a single boolean). ----
+
+test('zoetropeDayProgress: two devices\' day-progress for the same album union, deduplicated', () => {
+  const a = baseLocal('a', { zoetropeDayProgress: { al1: ['2020-01-01', '2020-01-02'] } });
+  const b = toDoc(baseLocal('b', { zoetropeDayProgress: { al1: ['2020-01-02', '2020-01-03'] } }));
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.zoetropeDayProgress.al1, ['2020-01-01', '2020-01-02', '2020-01-03']);
+});
+
+test('zoetropeDayProgress: the union is sorted regardless of each device\'s own insertion order', () => {
+  const a = baseLocal('a', { zoetropeDayProgress: { al1: ['2020-03-01'] } });
+  const b = toDoc(baseLocal('b', { zoetropeDayProgress: { al1: ['2020-01-01'] } }));
+  const c = toDoc(baseLocal('c', { zoetropeDayProgress: { al1: ['2020-02-01'] } }));
+  const merged1 = fromDocs(a, [b, c]);
+  const merged2 = fromDocs(a, [c, b]);
+  assert.deepEqual(merged1.totals.zoetropeDayProgress.al1, ['2020-01-01', '2020-02-01', '2020-03-01']);
+  assert.deepEqual(merged2.totals.zoetropeDayProgress.al1, ['2020-01-01', '2020-02-01', '2020-03-01']);
+});
+
+test('zoetropeDayProgress: a different album\'s day-progress is tracked independently, and an empty/missing map merges as {}', () => {
+  const a = baseLocal('a', { zoetropeDayProgress: { al1: ['2020-01-01'] } });
+  const b = toDoc(baseLocal('b', { zoetropeDayProgress: { al2: ['2020-01-01'] } }));
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.zoetropeDayProgress, { al1: ['2020-01-01'], al2: ['2020-01-01'] });
+
+  const soloMerged = fromDocs(baseLocal('solo'), []);
+  assert.deepEqual(soloMerged.totals.zoetropeDayProgress, {});
+});
+
+test('zoetropeUnlocked: a union of flags across devices, same as rareUnlocked', () => {
+  const a = baseLocal('a', { zoetropeUnlocked: { al1: true } });
+  const b = toDoc(baseLocal('b', { zoetropeUnlocked: { al2: true } }));
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.zoetropeUnlocked, { al1: true, al2: true });
 });
 
 test('history clear: sealed records are untouched by a clear (SEALED spec §2 stays true across devices too)', () => {
@@ -407,6 +462,8 @@ test('round trip: toDoc -> fromDocs with no other devices reproduces this device
     trackPlayCounts: { [key]: 4 },
     sessionCounts: { Album: 2 },
     rareUnlocked: { Album: true },
+    zoetropeUnlocked: { Album: true },
+    zoetropeDayProgress: { Album: ['2020-01-01', '2020-01-02', '2020-01-03'] },
     playlists: [{ name: 'Mix', items: ['local-a'], system: undefined }],
     updatedAt: {
       playlistDefs: { Mix: { seq: 1, at: 1 } },
@@ -417,6 +474,8 @@ test('round trip: toDoc -> fromDocs with no other devices reproduces this device
   assert.equal(merged.totals.counters.trackPlayCounts[key], 4);
   assert.equal(merged.totals.counters.sessionCounts.Album, 2);
   assert.deepEqual(merged.totals.rareUnlocked, { Album: true });
+  assert.deepEqual(merged.totals.zoetropeUnlocked, { Album: true });
+  assert.deepEqual(merged.totals.zoetropeDayProgress, { Album: ['2020-01-01', '2020-01-02', '2020-01-03'] });
   assert.deepEqual(merged.itemWrites.playlistOrder.Mix, [key]);
   assert.deepEqual(merged.playlistMembership.Mix, [key]);
 });
@@ -581,6 +640,21 @@ test('validateDoc: rejects a doc whose sealed list holds a non-string entry', ()
   const doc = toDoc(baseLocal('a', { sealedIds: ['ok'] }));
   const bad = Object.assign({}, doc, { sealed: { sealed: [123], broken: [] } });
   assert.equal(validateDoc(bad), false);
+});
+
+test('validateDoc: rejects a doc whose zoetropeDayProgress entry is not an array of strings', () => {
+  const doc = toDoc(baseLocal('a', { zoetropeDayProgress: { al1: ['2020-01-01'] } }));
+  const bad = Object.assign({}, doc, { zoetropeDayProgress: { al1: 'not-an-array' } });
+  assert.equal(validateDoc(bad), false);
+  const bad2 = Object.assign({}, doc, { zoetropeDayProgress: { al1: [42] } });
+  assert.equal(validateDoc(bad2), false);
+});
+
+test('validateDoc: a missing zoetropeDayProgress field at all (pre-PR7 doc) still validates', () => {
+  const doc = toDoc(baseLocal('a'));
+  const bad = Object.assign({}, doc);
+  delete bad.zoetropeDayProgress;
+  assert.equal(validateDoc(bad), true);
 });
 
 test('validateDoc: rejects a doc whose itemWrites entry is missing a numeric seq', () => {

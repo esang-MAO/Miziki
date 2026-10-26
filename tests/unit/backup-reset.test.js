@@ -168,7 +168,8 @@ function freshState(){
   S.profile = { name: '', username: '', art: null, artBlob: null, pictureHash: null };
   S.trackPlayCounts = {}; S.sessionCounts = {}; S.metalEligibleSessions = {};
   S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.albumLastPlayed = {};
-  S.rareUnlocked = {}; S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
+  S.rareUnlocked = {}; S.zoetropeUnlocked = {}; S.zoetropeDayProgress = {};
+  S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
   S.sealed = new Set(); S.sealedBroken = new Set();
   S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0, picture:0 };
   S.historyClearedAt = 0; S.deviceId = null; S.deviceLabel = null; S.backupRestoredFor = null;
@@ -188,6 +189,7 @@ function remoteRow(deviceId, overrides){
     prefs: {}, profileName: '', picture: null,
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
     trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    zoetropeUnlocked: {}, zoetropeDayProgress: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
   }, overrides));
   return { device_id: deviceId, doc };
@@ -258,6 +260,12 @@ test('RF1: another device\'s newer clear zeroes and persists this device\'s coun
     S.trackPlayCounts = { k1: 7 };
     S.sessionCounts = { albumA: 3 };
     S.achievements = { albumA: { tier: 'gold' } };
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
+    // zoetropeDayProgress are session-derived milestone state, the exact
+    // same class as rareUnlocked right below -- a remote clear must zero
+    // and persist them the same way.
+    S.zoetropeUnlocked = { albumA: true };
+    S.zoetropeDayProgress = { albumA: ['2020-01-01', '2020-01-02', '2020-01-03'] };
     S.historyClearedAt = 0;
 
     const clearedAt = Date.now();
@@ -271,6 +279,8 @@ test('RF1: another device\'s newer clear zeroes and persists this device\'s coun
     // zeroed in memory
     assert.deepEqual(S.trackPlayCounts, {});
     assert.deepEqual(S.sessionCounts, {});
+    assert.deepEqual(S.zoetropeUnlocked, {});
+    assert.deepEqual(S.zoetropeDayProgress, {});
     assert.equal(S.historyClearedAt, clearedAt);
 
     // RF1's actual bug: persisted to meta too, not just in-memory --
@@ -279,6 +289,8 @@ test('RF1: another device\'s newer clear zeroes and persists this device\'s coun
     assert.deepEqual(metaStore.get('sessionCounts'), {});
     assert.deepEqual(metaStore.get('metalEligibleSessions'), {});
     assert.deepEqual(metaStore.get('trackMetalEligiblePlays'), {});
+    assert.deepEqual(metaStore.get('zoetropeUnlocked'), {});
+    assert.deepEqual(metaStore.get('zoetropeDayProgress'), {});
     assert.equal(metaStore.get('historyClearedAt'), clearedAt);
 
     // and the very next push (pullAndMergeBackup's own trailing pushBackup())

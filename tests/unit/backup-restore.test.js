@@ -63,7 +63,8 @@ function freshState(){
   S.profile = { name: '', username: '', art: null, artBlob: null, pictureHash: null };
   S.trackPlayCounts = {}; S.sessionCounts = {}; S.metalEligibleSessions = {};
   S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.albumLastPlayed = {};
-  S.rareUnlocked = {}; S.achievements = {}; S.collection = {}; S.mergedStats = null;
+  S.rareUnlocked = {}; S.zoetropeUnlocked = {}; S.zoetropeDayProgress = {};
+  S.achievements = {}; S.collection = {}; S.mergedStats = null;
   S.sealed = new Set(); S.sealedBroken = new Set();
   S.backupUpdatedAt = { playlists:0, albumOrder:0, albumSort:0, albumDisplay:0, trackDisplay:0, albumEdge:0, albumLookPref:0, prefs:0, profileName:0, picture:0 };
   S.playlistMembershipAt = {};
@@ -85,6 +86,7 @@ function remoteRow(deviceId, overrides){
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
     phasePlayCounts: {}, albumPhaseCounts: {},
     trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    zoetropeUnlocked: {}, zoetropeDayProgress: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {}, playlistMembershipAt: {},
   }, overrides));
   return { device_id: deviceId, doc, checksum: null };
@@ -171,6 +173,11 @@ test('RF19 pt4: a fresh fake-indexeddb device reconstructs playlists, stats, ach
     sessionCounts: { [albKey]: 4 },
     achievements: { [albKey]: { tier: 'gold' } },
     collection: { [albKey]: { variant: 'rare' } },
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked is the
+    // same union-of-flags shape as rareUnlocked right above it -- confirm
+    // it round-trips through the real pull/apply/persist path the same way.
+    zoetropeUnlocked: { [albKey]: true },
+    zoetropeDayProgress: { [albKey]: ['2020-01-01', '2020-01-02', '2020-01-03'] },
     sealedIds: [albKey],
     overlaysRaw: [{ id: remoteLocalId, fields: { title: 'Nightdrive (Remaster)' }, editedAt: 500 }],
   });
@@ -191,6 +198,8 @@ test('RF19 pt4: a fresh fake-indexeddb device reconstructs playlists, stats, ach
   assert.equal(S.mergedStats.sessionCounts[albKey], 4);
   assert.deepEqual(S.achievements[albKey], { tier: 'gold' });
   assert.deepEqual(S.collection[albKey], { variant: 'rare' });
+  assert.equal(S.zoetropeUnlocked[albKey], true);
+  assert.deepEqual(S.zoetropeDayProgress[albKey], ['2020-01-01', '2020-01-02', '2020-01-03']);
   assert.ok(S.sealed.has(albKey), 'the remote seal was adopted');
   assert.equal(track.tags.title, 'Nightdrive (Remaster)', 'the remote overlay was applied to the real local track');
 

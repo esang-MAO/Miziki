@@ -80,6 +80,33 @@ export function unionEarliest(rows, field, dateField){
   return out;
 }
 
+// ---- PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeDayProgress is
+// {albumId: [dayKey, ...]} — the distinct local-calendar days a full,
+// in-order play-through has completed on, for that album, on any device.
+// Neither sumCounters (not a count) nor mergeSealed (not a plain top-level
+// set) fits this shape: it's a per-album *set* of day-keys, one level
+// deeper than mergeSealed's own flat set, closer to sumNestedCounters'
+// per-album nesting but unioned rather than summed, since the same real
+// calendar day logged on two different devices (both syncing after being
+// offline) must count once toward the 3-day target, not twice. Returned
+// arrays are sorted so two devices that merge the same rows in a different
+// order still produce byte-identical output (mergeRows' own "any order,
+// same answer" invariant) ----
+export function unionDaySets(rows, field){
+  const sets = {};
+  for(const row of rows){
+    const m = row[field];
+    if(!m) continue;
+    for(const albumId of Object.keys(m)){
+      const dest = sets[albumId] || (sets[albumId] = new Set());
+      (m[albumId] || []).forEach(day => dest.add(day));
+    }
+  }
+  const out = {};
+  Object.keys(sets).forEach(albumId => { out[albumId] = [...sets[albumId]].sort(); });
+  return out;
+}
+
 // ---- sealed records: a seal broken on any device stays broken everywhere
 // (B2 table) — independent of historyClearedAt, since SEALED spec §2 keeps
 // S.sealed independent of listening history on the local side too ----
@@ -312,6 +339,12 @@ export function mergeRows(rows){
       rareUnlocked: unionFlags(fresh, 'rareUnlocked'),
       achievements: unionEarliest(fresh, 'achievements', 'updatedAt'),
       collection: unionEarliest(fresh, 'collection', 'discoveredAt'),
+      // PRESSINGS_110 PR7: zoetropes get their own milestone pool, entirely
+      // separate from rareUnlocked right above — same union-of-flags rule,
+      // same historyClearedAt-gated freshness (a cleared device's own
+      // stale day-progress shouldn't keep counting toward an unlock).
+      zoetropeUnlocked: unionFlags(fresh, 'zoetropeUnlocked'),
+      zoetropeDayProgress: unionDaySets(fresh, 'zoetropeDayProgress'),
     },
     sealed: mergeSealed(rows),
     overlays: mergeOverlays(rows),

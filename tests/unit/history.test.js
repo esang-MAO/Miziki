@@ -10,6 +10,11 @@ import { DB } from '../../src/storage/idb.js';
 // history/clear.js chain reaches sealed.js (via edit.js) before any mock
 // of this module would apply.
 globalThis.window = { matchMedia(){ return { matches: false }; } };
+// sessionTrackComplete() calls MizikiSocial.listeningChanged() on a real
+// album-session completion -- a genuine global in production (set by the
+// classic script src/miziki-social.js), stubbed here the same way
+// forget-library.test.js already does for the same reason.
+globalThis.MizikiSocial = { listeningChanged(){} };
 
 // played.js imports from the real src/history/sessions.js (sessionTrackComplete,
 // persistTrackPlayCounts, persistTrackMetalEligiblePlays); played.js and
@@ -164,6 +169,8 @@ function resetState(overrides){
   Object.assign(S, {
     tracks: [], index: -1, curPlayed: [], curTrackDone: false, sessionActive: null,
     sessions: {}, sessionCounts: {}, metalEligibleSessions: {}, rareUnlocked: {},
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
+    zoetropeUnlocked: {}, zoetropeDayProgress: {},
     albumLastPlayed: {}, albumDisplay: {}, albumLookPref: {},
     achievements: {}, collection: {},
     trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {}, trackDisplay: {},
@@ -270,6 +277,96 @@ test('checkTrackCompletion: a track with no duration never completes', () => {
   addPlayedRange(0, 50);
   checkTrackCompletion(t);
   assert.equal(S.curTrackDone, false);
+});
+
+// -- PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetrope day-progress -----
+// sessionTrackComplete() only runs the zoetrope/rare checks once
+// S.sessionActive === albumKey(t) and a matching S.sessions[albumId] record
+// says this is the record's last expected track -- hand-built here rather
+// than driven through sessionOnLoad()/albumExpectedOrder(), the same
+// one-track-album shortcut rareUnlocked's own (untested-directly) sibling
+// would need too, since this file doesn't otherwise touch S.tracks at all.
+function completeAlbumSession(t, albumId){
+  S.sessionActive = albumId;
+  S.sessions[albumId] = { albumId, tracksCompleted: [], expectedOrder: [t.id], startedAt: Date.now(), lastActivityAt: Date.now() };
+}
+
+test('zoetrope day-progress: a full in-order session records today once, not once per play', () => {
+  resetState();
+  const t = fakeTrack();
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.deepEqual(S.zoetropeDayProgress.al, [dayKeyFor(Date.now())]);
+  assert.equal(S.zoetropeUnlocked.al, undefined);
+
+  // a second full session the same day must not add a second entry for
+  // the same calendar day
+  S.curTrackDone = false; S.curPlayed = [];
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.deepEqual(S.zoetropeDayProgress.al, [dayKeyFor(Date.now())]);
+  assert.equal(S.zoetropeUnlocked.al, undefined);
+});
+
+test('zoetrope unlock: 3 distinct calendar days, not 3 sessions', () => {
+  resetState();
+  const t = fakeTrack();
+  mock.timers.enable({ apis: ['Date'] });
+  try {
+    completeAlbumSession(t, 'al');
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    assert.equal(S.zoetropeDayProgress.al.length, 1);
+    assert.equal(S.zoetropeUnlocked.al, undefined);
+
+    mock.timers.tick(24 * 3600 * 1000); // day 2
+    S.curTrackDone = false; S.curPlayed = [];
+    completeAlbumSession(t, 'al');
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    assert.equal(S.zoetropeDayProgress.al.length, 2);
+    assert.equal(S.zoetropeUnlocked.al, undefined);
+
+    mock.timers.tick(24 * 3600 * 1000); // day 3 -- the earning threshold
+    S.curTrackDone = false; S.curPlayed = [];
+    completeAlbumSession(t, 'al');
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    assert.equal(S.zoetropeDayProgress.al.length, 3);
+    assert.equal(S.zoetropeUnlocked.al, true);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test('zoetrope unlock: an album that already earned it is left alone by a later session (no further day-progress writes)', () => {
+  resetState({ zoetropeUnlocked: { al: true }, zoetropeDayProgress: { al: ['2020-01-01', '2020-01-02', '2020-01-03'] } });
+  const t = fakeTrack();
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.deepEqual(S.zoetropeDayProgress.al, ['2020-01-01', '2020-01-02', '2020-01-03']);
+  assert.equal(S.zoetropeUnlocked.al, true);
+});
+
+test('zoetrope unlock: a different album\'s day-progress is tracked independently', () => {
+  resetState();
+  const t1 = fakeTrack({ id: 't1', tags: { title: 'T1', artist: 'A', album: 'Al', albumArtist: 'A', track: 1, disc: 0 } });
+  const t2 = fakeTrack({ id: 't2', tags: { title: 'T2', artist: 'B', album: 'Other', albumArtist: 'B', track: 1, disc: 0 } });
+  completeAlbumSession(t1, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t1);
+  assert.deepEqual(Object.keys(S.zoetropeDayProgress), ['al']);
+
+  S.curTrackDone = false; S.curPlayed = [];
+  completeAlbumSession(t2, 'other');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t2);
+  assert.deepEqual(Object.keys(S.zoetropeDayProgress).sort(), ['al', 'other']);
+  assert.equal(S.zoetropeDayProgress.al.length, 1);
+  assert.equal(S.zoetropeDayProgress.other.length, 1);
 });
 
 // -- DA5 (docs/DAY_ARC.md): phase-of-play counting ----------------------------
@@ -393,6 +490,7 @@ test('clearListeningHistory: full scope wipes session/play counters and leaves t
   resetState({
     tracks: [fakeTrack({ id:'t1' })],
     sessionCounts: { al1: 3 }, metalEligibleSessions: { al1: 2 }, rareUnlocked: { al1: true },
+    zoetropeUnlocked: { al1: true }, zoetropeDayProgress: { al1: ['2020-01-01', '2020-01-02', '2020-01-03'] },
     albumLastPlayed: { al1: Date.now() }, albumDisplay: { al1: {name:'x'} }, albumLookPref: { al1: 'rare' },
     achievements: { al1: { albumId:'al1', tier:2 } }, collection: { al1: { albumId:'al1' } },
     sessions: { al1: { albumId:'al1' } },
@@ -408,6 +506,8 @@ test('clearListeningHistory: full scope wipes session/play counters and leaves t
   assert.deepEqual(S.sessionCounts, {});
   assert.deepEqual(S.metalEligibleSessions, {});
   assert.deepEqual(S.rareUnlocked, {});
+  assert.deepEqual(S.zoetropeUnlocked, {});
+  assert.deepEqual(S.zoetropeDayProgress, {});
   assert.deepEqual(S.albumLastPlayed, {});
   assert.deepEqual(S.albumDisplay, {});
   assert.deepEqual(S.albumLookPref, {});
@@ -438,6 +538,11 @@ test('clearListeningHistory: orphaned-only scope drops only identities no longer
     albumLastPlayed: { al: 1, goneAlbum: 1 },
     achievements: {}, collection: {}, sessions: {},
     trackPlayCounts: { 'a|al|t': 2, 'gone|key|x': 9 },
+    // PRESSINGS_110 PR7: zoetropeUnlocked/zoetropeDayProgress are keyed by
+    // album id, the same identity shape as sessionCounts/albumLastPlayed
+    // right above -- pruned the same way.
+    zoetropeUnlocked: { al: true, goneAlbum: true },
+    zoetropeDayProgress: { al: ['2020-01-01'], goneAlbum: ['2020-01-01'] },
   });
 
   await clearListeningHistory(true);
@@ -445,9 +550,13 @@ test('clearListeningHistory: orphaned-only scope drops only identities no longer
   // the still-in-library album/track identity survives
   assert.ok('al' in S.sessionCounts);
   assert.ok('a|al|t' in S.trackPlayCounts);
+  assert.ok('al' in S.zoetropeUnlocked);
+  assert.ok('al' in S.zoetropeDayProgress);
   // the orphaned ones (no longer in S.tracks) are dropped
   assert.ok(!('goneAlbum' in S.sessionCounts));
   assert.ok(!('gone|key|x' in S.trackPlayCounts));
+  assert.ok(!('goneAlbum' in S.zoetropeUnlocked));
+  assert.ok(!('goneAlbum' in S.zoetropeDayProgress));
 
   DB.db.close();
 });

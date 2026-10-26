@@ -223,6 +223,11 @@ function buildLocalState(){
     trackLastPlayed: S.trackLastPlayed,
     albumLastPlayed: S.albumLastPlayed,
     rareUnlocked: S.rareUnlocked,
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): "store earned zoetropes
+    // and day-progress with the account backup" — same shape/rule as
+    // rareUnlocked right above, its own independent milestone pool.
+    zoetropeUnlocked: S.zoetropeUnlocked,
+    zoetropeDayProgress: S.zoetropeDayProgress,
     achievements: S.achievements,
     collection: S.collection,
     sealedIds: [...S.sealed],
@@ -614,6 +619,13 @@ async function applyMerged(merged, ownLocal, client, uid){
     await meta.put('historyClearedAt', S.historyClearedAt);
   }
   Object.assign(S.rareUnlocked, merged.totals.rareUnlocked);
+  // PRESSINGS_110 PR7: merged.totals.zoetropeUnlocked/zoetropeDayProgress
+  // adopt the same way rareUnlocked does right above — a plain Object.assign
+  // for the flag map, and a wholesale overwrite for the day-progress map
+  // since unionDaySets() already returns the full, deduplicated per-album
+  // union across every device (not something to merge piecemeal in place).
+  Object.assign(S.zoetropeUnlocked, merged.totals.zoetropeUnlocked);
+  Object.assign(S.zoetropeDayProgress, merged.totals.zoetropeDayProgress);
   Object.assign(S.achievements, merged.totals.achievements);
   Object.assign(S.collection, merged.totals.collection);
   Object.keys(merged.totals.maxFields.trackLastPlayed).forEach(k => {
@@ -1119,6 +1131,9 @@ export function collectLocalDownloadData(){
       trackLastPlayed: local.trackLastPlayed,
       albumLastPlayed: local.albumLastPlayed,
       rareUnlocked: local.rareUnlocked,
+      // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
+      zoetropeUnlocked: local.zoetropeUnlocked,
+      zoetropeDayProgress: local.zoetropeDayProgress,
       achievements: local.achievements,
       collection: local.collection,
       sealedIds: local.sealedIds,

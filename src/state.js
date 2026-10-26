@@ -120,6 +120,19 @@ export const S = {
   // record art + session tracking (see spec)
   sessions:{}, sessionCounts:{}, rareUnlocked:{}, sessionActive:null,
   curPlayed:[], curTrackDone:false,
+  // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §5/§8): the zoetrope milestone
+  // pool — its own counter and its own pool, separate from rareUnlocked
+  // right above (§8, point 2: "Zoetropes get their own session
+  // milestones"). zoetropeUnlocked is {albumId: true}, the exact same
+  // union-of-flags shape as rareUnlocked, backed up the same way.
+  // zoetropeDayProgress is {albumId: [dayKey, ...]}, the distinct local-
+  // calendar days (sundown/rhythm.js's dayKeyFor()) a full, in-order,
+  // every-side play-through has completed on for that album — earns the
+  // zoetrope once 3 different days are recorded (ZOETROPE_DAYS_TO_EARN,
+  // history/sessions.js). Also backed up (§8: "store earned zoetropes and
+  // day-progress with the account backup") so progress isn't stranded on
+  // one device.
+  zoetropeUnlocked:{}, zoetropeDayProgress:{},
   // metal tiers (see spec) — a separate counter from sessionCounts, keyed by
   // trackIdentityKey(). trackPlayCounts/sessionCounts are the true lifetime
   // totals (used for Top Songs, rare-variant progress, collection discovery);
