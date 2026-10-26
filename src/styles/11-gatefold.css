@@ -82,34 +82,36 @@
   box-shadow:inset 12px 0 10px -10px rgba(0,0,0,.45)}
 .gf-face-back{transform:rotateY(180deg);background:#1C1226;color:var(--paper)}
 .gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px;outline:none}
-.gf-left h3{font-family:var(--display);font-size:var(--fs-title);margin:0 0 var(--sp-2)}
-.gf-left .gf-liner{font-size:var(--fs-caption);color:var(--paper);opacity:.9;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
-.gf-left .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-caption);
+.gf-left h3, .picture-sleeve-body h3{font-family:var(--display);font-size:var(--fs-title);margin:0 0 var(--sp-2)}
+.gf-left .gf-liner, .picture-sleeve-body .gf-liner{font-size:var(--fs-caption);color:var(--paper);opacity:.9;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+.gf-left .gf-credit-row, .picture-sleeve-body .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-caption);
   padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-.gf-left .gf-credit-row em{font-style:normal;color:var(--muted)}
-.gf-left .gf-credit-row a{color:var(--accent-text);text-decoration:underline;text-decoration-thickness:1px}
-/* .crate-detail-panel (src/crate/view.js) reuses gatefoldSocialControlsHTML()
-   verbatim (design-layout polish pass) for its own rating/sleeve-note/pin
-   controls — same function, so the same styling applies in both homes
-   rather than a second copy of these rules. */
-.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);margin:10px 0}
-.gf-left .gf-minimal-note{font-size:var(--fs-caption);color:var(--muted);margin-top:6px}
-.gf-left .gf-social, .crate-detail-panel .gf-social{margin-top:var(--sp-4);padding-top:14px;border-top:1px solid var(--line);
+.gf-left .gf-credit-row em, .picture-sleeve-body .gf-credit-row em{font-style:normal;color:var(--muted)}
+.gf-left .gf-credit-row a, .picture-sleeve-body .gf-credit-row a{color:var(--accent-text);text-decoration:underline;text-decoration-thickness:1px}
+/* .crate-detail-panel (src/crate/view.js) and .picture-sleeve-body
+   (src/gatefold/picture-sleeve.js, docs/17_SINGLES.md) both reuse
+   gatefoldSocialControlsHTML()/buildGatefoldLeftPanel() verbatim for
+   their own rating/sleeve-note/pin controls and left-panel content —
+   same functions, so the same styling applies in every home rather than
+   a second copy of these rules. */
+.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line, .picture-sleeve-body .gf-meta-line{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);margin:10px 0}
+.gf-left .gf-minimal-note, .picture-sleeve-body .gf-minimal-note{font-size:var(--fs-caption);color:var(--muted);margin-top:6px}
+.gf-left .gf-social, .crate-detail-panel .gf-social, .picture-sleeve-body .gf-social{margin-top:var(--sp-4);padding-top:14px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:10px}
-.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;
+.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption, .picture-sleeve-body .gf-social-caption{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;
   text-transform:uppercase;color:var(--muted);margin:0}
-.gf-left .gf-stars, .crate-detail-panel .gf-stars{display:flex;gap:2px;margin-left:-5px}
-.gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+.gf-left .gf-stars, .crate-detail-panel .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
+.gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:none;border:0;color:var(--muted);font-size:var(--fs-title);padding:0}
-.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on{color:var(--accent-text)}
-.gf-left .gf-note-input, .crate-detail-panel .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
+.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--accent-text)}
+.gf-left .gf-note-input, .crate-detail-panel .gf-note-input, .picture-sleeve-body .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
-.gf-left .gf-note-input::placeholder, .crate-detail-panel .gf-note-input::placeholder{color:var(--muted)}
-.gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+.gf-left .gf-note-input::placeholder, .crate-detail-panel .gf-note-input::placeholder, .picture-sleeve-body .gf-note-input::placeholder{color:var(--muted)}
+.gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn, .picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.06em;background:none}
-.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-text);
+.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-text);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}

@@ -21,7 +21,11 @@ mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { thumbURL: {} },
+  // restoreThumbs: picture-sleeve.js's real import of record-art/peek.js
+  // reaches record-art/looks.js, which reaches history/sessions.js for
+  // restoreThumbs — mocked here too, same "stop the chain at the door"
+  // reasoning as every other name in this list.
+  namedExports: { thumbURL: {}, restoreThumbs: async () => {} },
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
   namedExports: { getCrateArtURL: async () => null },
@@ -56,6 +60,7 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 
 const { gatefoldSideSplits, isGatefoldOpen } = await import('../../src/gatefold/view.js');
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');
+const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
 
 function fakeTrack(disc, duration){ return { tags: { disc }, duration }; }
@@ -104,4 +109,39 @@ test('isGatefoldOpen reads the module-private GF state (null when closed)', () =
 
 test('isSealedSheetOpen reads the module-private SEALSHEET state (null when closed)', () => {
   assert.equal(isSealedSheetOpen(), false);
+});
+
+// docs/17_SINGLES.md: isSingleRecord() is a plain track-count check (exactly
+// one side with exactly one track, per Ken) — independent of
+// record-art/format.js's own duration-based format table, so a one-track
+// record over any length still counts as a single here.
+test('isSingleRecord: one track on the album is a single', () => {
+  S.albumSort = {}; S.albumOrder = {};
+  S.tracks = [{ tags: { disc: 1, album: 'Solo', title: 'Only Track' }, duration: 180 }];
+  assert.equal(isSingleRecord({ album: 'Solo' }), true);
+});
+
+test('isSingleRecord: a long one-track record is still a single', () => {
+  S.albumSort = {}; S.albumOrder = {};
+  S.tracks = [{ tags: { disc: 1, album: 'Extended Mix', title: 'The One' }, duration: 20 * 60 }];
+  assert.equal(isSingleRecord({ album: 'Extended Mix' }), true);
+});
+
+test('isSingleRecord: two or more tracks on the album is not a single', () => {
+  S.albumSort = {}; S.albumOrder = {};
+  S.tracks = [
+    { tags: { disc: 1, album: 'EP', title: 'A' }, duration: 180 },
+    { tags: { disc: 1, album: 'EP', title: 'B' }, duration: 180 },
+  ];
+  assert.equal(isSingleRecord({ album: 'EP' }), false);
+});
+
+test('isSingleRecord: an album with no tracks at all is not a single', () => {
+  S.albumSort = {}; S.albumOrder = {};
+  S.tracks = [{ tags: { disc: 1, album: 'Other', title: 'X' }, duration: 180 }];
+  assert.equal(isSingleRecord({ album: 'Nothing here' }), false);
+});
+
+test('isPictureSleeveOpen reads the module-private SLEEVE state (null when closed)', () => {
+  assert.equal(isPictureSleeveOpen(), false);
 });

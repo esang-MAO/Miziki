@@ -230,7 +230,10 @@ export function gatefoldSocialControlsHTML(item){
   return wrap;
 }
 
-function buildGatefoldLeftPanel(item){
+// Exported (docs/17_SINGLES.md) so the picture-sleeve view can reuse the
+// gatefold's own left-panel content wholesale (liner notes/credits, the
+// meta line, and the shared social controls) rather than a second copy.
+export function buildGatefoldLeftPanel(item){
   const host = document.createDocumentFragment();
   const liner = albumLinerNotes(item.album);
   const roll = albumCreditRoll(item.album);

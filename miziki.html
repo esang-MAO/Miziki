@@ -86,6 +86,7 @@
 <link rel="stylesheet" href="/src/styles/26-sundown-sheet.css">
 <link rel="stylesheet" href="/src/styles/27-eq.css">
 <link rel="stylesheet" href="/src/styles/27-library-sleeves.css">
+<link rel="stylesheet" href="/src/styles/28-picture-sleeve.css">
 </head>
 <body>
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -1579,6 +1580,24 @@
       <span>Still sealed. Play breaks the seal.</span>
       <button class="seal-sheet-open-btn" id="sealSheetOpenBtn" type="button">Open</button>
     </div>
+  </div>
+</div>
+
+<!-- PICTURE SLEEVE: a single — one side, one track — opens into this flat,
+     fading sheet instead of the gatefold's two-panel swing (docs/17_SINGLES.md) -->
+<div class="picture-sleeve" id="pictureSleeve" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <div class="picture-sleeve-box" id="pictureSleeveBox">
+    <button class="picture-sleeve-close" id="pictureSleeveClose" aria-label="Close">‹ CRATE</button>
+    <div class="picture-sleeve-face" id="pictureSleeveFace">
+      <img id="pictureSleeveArt" alt="">
+      <div class="picture-sleeve-peek" id="pictureSleevePeek"></div>
+    </div>
+    <div class="picture-sleeve-text">
+      <div class="picture-sleeve-artist" id="pictureSleeveArtist"></div>
+      <div class="picture-sleeve-title" id="pictureSleeveTitle"></div>
+      <span class="picture-sleeve-chip" id="pictureSleeveFormat"></span>
+    </div>
+    <div class="picture-sleeve-body" id="pictureSleeveBody" tabindex="-1"></div>
   </div>
 </div>
 
