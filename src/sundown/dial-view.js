@@ -62,6 +62,21 @@ function verticalGradient(stops) {
   return 'linear-gradient(180deg, ' + stops.map((c, i) => c + ' ' + pct[i] + '%').join(', ') + ')';
 }
 
+// Dragging "Preview the day" can walk S.previewMin through every phase of
+// a 24h day in a couple of real seconds (setPreviewMinutes() calls this
+// via renderDialView() on every pointermove) — far faster than the real
+// clock ever changes phase. A phase change arriving less than this long
+// after the previous one almost certainly came from the drag, not from
+// real time passing, so it swaps instantly instead of starting another
+// 3-minute crossfade: without this, a fast drag kept retriggering a new
+// SKY_CROSSFADE_MS transition on top of one still mid-flight, each new
+// call finding the "front" layer already near full opacity and writing
+// its background straight onto it with no animation left to mask the
+// change — a rapid series of hard cuts that read as the sky flickering
+// rather than crossfading. Reported by Ken as "previewing... seems to
+// fluctuate."
+const RAPID_PHASE_CHANGE_MS = 1500;
+
 // PR 6 gave the Sound view its own copy of this same crossfade
 // (#sdSkySoundA/B) — RF9 (docs/12_REFINE.md) removed that view's own dial
 // and sky background outright (Day has the one dial now), leaving a
@@ -70,11 +85,14 @@ function verticalGradient(stops) {
 // since that's what made the two independent in the first place and
 // costs nothing with one caller.
 function makeSkyUpdater(idPrefix) {
-  const state = { front: 'A', lastPhase: null };
+  const state = { front: 'A', lastPhase: null, lastChangeAt: 0 };
   return function updateSkyBackground(skyPhase, stops) {
     if (skyPhase === state.lastPhase) return;
     const isFirstPaint = state.lastPhase === null;
+    const now = Date.now();
+    const rapid = !isFirstPaint && (now - state.lastChangeAt) < RAPID_PHASE_CHANGE_MS;
     state.lastPhase = skyPhase;
+    state.lastChangeAt = now;
     const frontLayer = $('#' + idPrefix + state.front);
     if (isFirstPaint) {
       // The very first paint shows the real sky immediately, with no
@@ -89,8 +107,9 @@ function makeSkyUpdater(idPrefix) {
     // §4.4: "Respect prefers-reduced-motion (no... sky cross-fade
     // animation; values still update)" — the new gradient still lands on
     // the back layer so a render mid-crossfade is never wrong, but with
-    // REDUCED it swaps instantly instead of fading over SKY_CROSSFADE_MS.
-    const duration = REDUCED ? 0 : SKY_CROSSFADE_MS;
+    // REDUCED, or a rapid preview-driven change (see RAPID_PHASE_CHANGE_MS
+    // above), it swaps instantly instead of fading over SKY_CROSSFADE_MS.
+    const duration = (REDUCED || rapid) ? 0 : SKY_CROSSFADE_MS;
     backLayer.style.transition = frontLayer.style.transition = duration ? 'opacity ' + duration + 'ms linear' : 'none';
     backLayer.style.opacity = '1';
     frontLayer.style.opacity = '0';
