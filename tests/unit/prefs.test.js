@@ -20,6 +20,7 @@ function fakeS(overrides = {}){
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
     mono: false, balance: 0, deviceVolume: 1,
+    zoetropesEnabled: true,
   }, overrides);
 }
 
@@ -42,6 +43,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     loudnessMode: S.loudnessMode,
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
+    zoetropesEnabled: S.zoetropesEnabled,
   });
 });
 
@@ -411,4 +413,25 @@ test('bad values are ignored: a non-boolean mono, an out-of-range balance/device
   // the UI itself could never reach.
   assert.equal(parsed.balance, 1);
   assert.equal(parsed.deviceVolume, 0);
+});
+
+// Follow-up to PRESSINGS_110 PR7 (Ken, 2026-10-26, "an option in the
+// settings to turn off zoetropes earned"): round-trip, old-data default and
+// bad-value coverage, the same three-test shape every other boolean toggle
+// in this file already establishes.
+test('round trip: zoetropesEnabled survives a non-default value', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ zoetropesEnabled: false })));
+  assert.equal(parsed.zoetropesEnabled, false);
+});
+
+test('old saved data: no zoetropesEnabled field at all leaves it out, so the default (on) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.zoetropesEnabled;
+  const parsed = parsePrefs(raw);
+  assert.equal('zoetropesEnabled' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean zoetropesEnabled', () => {
+  const parsed = parsePrefs({ zoetropesEnabled: 'yes' });
+  assert.equal('zoetropesEnabled' in parsed, false);
 });

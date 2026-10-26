@@ -7,6 +7,7 @@ import {
 import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
 import { persistAlbumLookPref } from '../history/sessions.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
+import { RPM_45 } from './format.js';
 
 /* ================= look switching =================
    Once an album has more than one available "look" — the rare variant, an
@@ -24,7 +25,12 @@ function availableLooks(t){
   // another look via the picker (S.albumLookPref), it's just the default
   // once unlocked (resolveLook() below checks it ahead of rare, per §8's
   // explicit "the zoetrope wins on display" precedence rule).
-  if(S.zoetropeUnlocked[albumId]) looks.push('zoetrope');
+  // Follow-up to PR7 (Ken, 2026-10-26): the Settings "Zoetropes earned"
+  // switch — off stops offering an earned zoetrope as a candidate look at
+  // all, falling through this same precedence chain to rare/metal/variant
+  // with no further change needed below. Earned state itself (S.
+  // zoetropeUnlocked/zoetropeDayProgress) is untouched either way.
+  if(S.zoetropesEnabled && S.zoetropeUnlocked[albumId]) looks.push('zoetrope');
   if(S.rareUnlocked[albumId] && t.art) looks.push('rare');
   const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId);
   if(metal) looks.push('metal');
@@ -137,7 +143,7 @@ export function discLook(t){
   // PRESSINGS_110 PR7 (§5/§8): resolved once per call so both the
   // 'zoetrope' look itself and the "metal lays over a zoetrope" case
   // below can share it without drawing the variant twice.
-  const zoetropeId = S.zoetropeUnlocked[albumId] ? selectZoetropeVariant(t) : null;
+  const zoetropeId = (S.zoetropesEnabled && S.zoetropeUnlocked[albumId]) ? selectZoetropeVariant(t) : null;
   const zoetropeDef = zoetropeId ? getVariantDef(zoetropeId) : null;
   // The record's own real format (LP/45) only matters visually for
   // whichever album is actually on the platter right now — S.recordFormat
@@ -149,8 +155,16 @@ export function discLook(t){
   const curT = current();
   const format = (curT && albumKey(curT) === albumId) ? S.recordFormat : null;
   if(look === 'zoetrope'){
+    // Follow-up to PR7: the frame count the live strobe ring
+    // (player/clock.js's frame(), via record-art/zoetrope-motion.js)
+    // quantizes against — the same LP/45 frame-count split
+    // variantBackground() above just used to pick disc_lp vs disc_45,
+    // since a 45's extra frames are what keeps its faster loop smooth
+    // (§5: "the extra frames keep it smooth").
+    const frameCount = (format && format.speed === RPM_45) ? zoetropeDef.frames45 : zoetropeDef.framesLp;
     return { look, rare: false, rareId: null, tier: null, variant: zoetropeId, metal: null,
-      bg: variantBackground(zoetropeDef, format), lightOverlay: null, labelKind: 'amber', paperLabel: false };
+      bg: variantBackground(zoetropeDef, format), lightOverlay: null, labelKind: 'amber', paperLabel: false,
+      frameCount };
   }
   const rare = look === 'rare';
   if(rare){
@@ -220,11 +234,21 @@ export function applyDiscVariant(t, crossfade){
   // frame loop writes onto #disc every tick. Shown only while a metal
   // look is active; hidden (and its background cleared) otherwise.
   const light = $('#discMetalLight');
+  // Follow-up to PR7 (strobe-animation wiring): the zoetrope frame-ring
+  // overlay — a sibling of #disc, same reasoning as #discMetalLight just
+  // above. Shown only while the active look is 'zoetrope' (the one case
+  // #disc's own background is actually the zoetrope art rather than a
+  // metal/variant texture); S.zoetropeFrameCount is the one thing
+  // player/clock.js's frame() needs each tick to drive it, so it's
+  // cleared here right alongside the DOM.
+  const ring = $('#discZoetropeRing');
   if(!t){
     disc.classList.remove('rare');
     label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
     setDiscBackground(disc, '', false);
     if(light){ light.style.background = ''; light.classList.remove('on'); }
+    if(ring){ ring.style.background = ''; ring.classList.remove('on'); }
+    S.zoetropeFrameCount = null;
     $('#lookBtn').style.display = 'none';
     return;
   }
@@ -259,5 +283,12 @@ export function applyDiscVariant(t, crossfade){
   if(light){
     if(d.lightOverlay){ light.style.background = d.lightOverlay; light.classList.add('on'); }
     else { light.style.background = ''; light.classList.remove('on'); }
+  }
+  if(d.look === 'zoetrope' && d.frameCount){
+    if(ring){ ring.style.background = bg; ring.classList.add('on'); }
+    S.zoetropeFrameCount = d.frameCount;
+  } else {
+    if(ring){ ring.style.background = ''; ring.classList.remove('on'); }
+    S.zoetropeFrameCount = null;
   }
 }

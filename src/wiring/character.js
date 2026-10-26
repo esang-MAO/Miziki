@@ -53,6 +53,24 @@ function togglePaperLabel(){
   if(t) applyDiscVariant(t, true);
 }
 
+// Follow-up to PRESSINGS_110 PR7 (Ken, 2026-10-26): the Settings "Zoetropes
+// earned" switch. Same shape as togglePaperLabel() just above — off stops
+// awarding new zoetropes (history/sessions.js's sessionTrackComplete()
+// gate) and stops offering an already-earned one as the active look
+// (record-art/looks.js's availableLooks() gate), with no data lost either
+// way (zoetropeUnlocked/zoetropeDayProgress are untouched by this switch).
+// The applyDiscVariant() call here is what makes flipping it live update
+// the platter immediately, the same reason togglePaperLabel() makes one.
+function toggleZoetropes(){
+  S.zoetropesEnabled = !S.zoetropesEnabled;
+  const b = $('#zoetropesBtn');
+  b.textContent = S.zoetropesEnabled ? 'On' : 'Off';
+  b.setAttribute('aria-pressed', String(S.zoetropesEnabled));
+  queueSave();
+  const t = current();
+  if(t) applyDiscVariant(t, true);
+}
+
 export function wireCharacter(){
   const presets = {light:{wow:.12,sat:.18,soft:.22,comp:.2}, classic:{wow:.30,sat:.35,soft:.40,comp:.35}, worn:{wow:.62,sat:.6,soft:.68,comp:.55}};
   const presetBtns = document.querySelectorAll('[data-preset]');
@@ -225,6 +243,7 @@ export function wireCharacter(){
   $('#scratchBtn').addEventListener('click', toggleScratch);
   $('#sleevePullBtn').addEventListener('click', toggleSleevePull);
   $('#paperLabelBtn').addEventListener('click', togglePaperLabel);
+  $('#zoetropesBtn').addEventListener('click', toggleZoetropes);
 
   // AU7 (docs/16_AUDIO.md §6): same inline On/Off .seg shape as Scratch/
   // Sleeve Pull above. The slider mutates S.balance directly on 'input'

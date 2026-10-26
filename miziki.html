@@ -347,6 +347,18 @@
         <div class="seg"><button id="paperLabelBtn" aria-pressed="false">Off</button></div>
       </div>
 
+      <!-- PRESSINGS_110 follow-up (Ken, 2026-10-26): "include an option in
+           the settings to turn off zoetropes earned." Same seg/row shape
+           as paperLabelOnLossy just above. Default on, matching S's own
+           default -- turning this off freezes day-progress/unlocks (no
+           data loss) and stops offering an already-earned zoetrope as the
+           platter's active look, falling back cleanly to rare/metal/
+           variant. -->
+      <div class="row">
+        <div class="k">Zoetropes earned<em>Playing an album every side start-to-finish on 10 different days earns it a strobe-animated zoetrope pressing.</em> <details class="sd-info"><summary aria-label="More about zoetropes earned">(i)</summary>Off pauses new progress (nothing already earned is lost) and stops showing an earned zoetrope on the platter until turned back on.</details></div>
+        <div class="seg"><button id="zoetropesBtn" aria-pressed="true">On</button></div>
+      </div>
+
       <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto, the same
            4-value [data-*] seg + caption shape [data-depth] already
            established for Sundown's own "How deep the night goes" row. -->
@@ -940,6 +952,20 @@
             <span class="side-letter" id="sideLetter" aria-hidden="true"></span>
           </div>
         </div>
+        <!-- PRESSINGS_110 follow-up (strobe-animation wiring, Ken,
+             2026-10-26): the zoetrope frame ring -- a sibling of #disc,
+             never a child, the same "so it never inherits the per-frame
+             rotation transform player/clock.js's frame() writes onto
+             #disc alone" reasoning #discMetalLight (PR4) already
+             established right below. Shows the same full-disc background
+             image as #disc, CSS-masked (02-stage-platter.css) to just the
+             ring annulus every zoetrope disc shares, then given its own,
+             separately-quantized transform each frame
+             (record-art/zoetrope-motion.js's zoetropeRingAngleDeg(),
+             called from player/clock.js's frame()) so the figures appear
+             to animate in place instead of merely spinning. Hidden
+             (opacity 0) whenever the current look isn't a zoetrope. -->
+        <div class="disc-zoetrope-ring" id="discZoetropeRing" aria-hidden="true"></div>
         <div class="disc-metal-light" id="discMetalLight" aria-hidden="true"></div>
       </div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
