@@ -14,7 +14,7 @@
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
-import { ensureContext } from '../audio/engine.js';
+import { ensureContext, decodeAudioFile } from '../audio/engine.js';
 import { touchLRU } from '../player/buffers.js';
 import { setQueue } from '../player/queue.js';
 import { allIdx } from './model.js';
@@ -113,8 +113,10 @@ export async function addFiles(list){
       // AU3 (docs/16_AUDIO.md §2.3): the context is created once, at the
       // device's own fixed rate — decodeAudioData resamples to it
       // regardless of the file's own rate, so there's no rate to pass here.
-      await ensureContext();
-      const buffer = await S.ctx.decodeAudioData(raw);
+      // Found 2026-10-26: decoded on a disposable OfflineAudioContext, not
+      // the live S.ctx, so a big import batch can't contend with whatever
+      // is already playing — see decodeAudioFile()'s own comment.
+      const buffer = await decodeAudioFile(raw);
       // Encoder delay/padding sample counts are expressed at the file's own
       // native rate — converting to seconds here keeps everything else
       // (t.duration, startSource's offsets) rate-independent. Lossless

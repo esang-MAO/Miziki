@@ -8,7 +8,7 @@ import { readDetails, emptyDetails } from './tags/index.js';
 import { rebuildPeopleIndex, updateCreditsButtonForCurrent } from './credits.js';
 import { renderProfile } from '../profile/screens.js';
 import { invalidateCrateModel } from '../crate/model.js';
-import { ensureContext } from '../audio/engine.js';
+import { decodeAudioFile } from '../audio/engine.js';
 import { measureTrack } from '../audio/loudness.js';
 import { detectHook } from '../audio/hook.js';
 
@@ -189,8 +189,10 @@ export async function healLoudness(){
       const rec = await tracks.get(t.id);
       if(rec && rec.blob){
         const raw = await rec.blob.arrayBuffer();
-        await ensureContext();
-        const buffer = await S.ctx.decodeAudioData(raw);
+        // Found 2026-10-26: decoded off the live S.ctx — see
+        // decodeAudioFile()'s own comment — so this idle heal pass can't
+        // contend with whatever's already playing.
+        const buffer = await decodeAudioFile(raw);
         const channels = [];
         for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
         t.details.loudness = measureTrack(channels, buffer.sampleRate);
@@ -223,8 +225,9 @@ export async function healHooks(){
       const rec = await tracks.get(t.id);
       if(rec && rec.blob){
         const raw = await rec.blob.arrayBuffer();
-        await ensureContext();
-        const buffer = await S.ctx.decodeAudioData(raw);
+        // Same reason as healLoudness() just above — decode off the live
+        // S.ctx, not on it.
+        const buffer = await decodeAudioFile(raw);
         const channels = [];
         for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
         const hook = detectHook(channels, buffer.sampleRate);

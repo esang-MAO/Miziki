@@ -609,3 +609,26 @@ export async function ensureContext(){
   applyOutputRoute();
   await S.ctx.resume();
 }
+
+// Decodes a file's raw bytes without touching the live context's own
+// rendering thread — found 2026-10-26 ("the upload interfering with the
+// song being played"): library/import.js's addFiles() loop and
+// library/thumbs.js's healLoudness()/healHooks() all used to call
+// `S.ctx.decodeAudioData(raw)` directly, decoding every newly-imported
+// (or healed) file's full audio on the exact same AudioContext that's
+// actively rendering whatever's currently playing — real contention for
+// the audio thread, especially for a multi-minute lossless FLAC/WAV, and
+// audible as a glitch in the track already playing. A plain, disposable
+// OfflineAudioContext decodes the same way (decodeAudioData resamples to
+// *its own* sampleRate, same as the live context's would) but never
+// renders anything and shares no graph with the live context, so it
+// can't contend with it. player/buffers.js's ensureBuffer() (decoding a
+// track for imminent playback itself, including a gapless preload) is
+// deliberately left on the live S.ctx — that path has to produce a
+// buffer the live graph can use right away, and isn't what this bug
+// report was about.
+export async function decodeAudioFile(raw){
+  await ensureContext();
+  const offline = new OfflineAudioContext(1, 1, S.ctx.sampleRate);
+  return await offline.decodeAudioData(raw);
+}

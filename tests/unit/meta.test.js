@@ -26,6 +26,7 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: {
     applyCharacter(){}, applyLoudnessNorm(){}, applyEQ(){}, ensureContext(){},
     applyMonoBalance(){}, applyDeviceVolume(){}, balanceCaptionFor(){ return 'Center'; },
+    decodeAudioFile: async () => {},
   },
 });
 mock.module(new URL('../../src/sundown/location.js', import.meta.url).href, {

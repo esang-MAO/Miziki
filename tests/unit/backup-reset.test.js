@@ -64,7 +64,7 @@ mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { ensureContext(){}, applyCharacter(){}, applyWobbleRate(){}, applyLoudnessNorm(){}, routeSource(){} },
+  namedExports: { ensureContext(){}, applyCharacter(){}, applyWobbleRate(){}, applyLoudnessNorm(){}, routeSource(){}, decodeAudioFile: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
