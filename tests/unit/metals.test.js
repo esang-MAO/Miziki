@@ -14,7 +14,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 
 const {
   albumMetalFor, trackMetalFor, ALBUM_METAL_THRESHOLDS, TRACK_METAL_THRESHOLDS,
-  METAL_COLORS, metalLabelKind, metalBackground,
+  METAL_COLORS, metalLabelKind, metalBackground, metalPlatterBackground, metalLightOverlay,
 } = await import('../../src/record-art/metals.js');
 const { resolveLook } = await import('../../src/record-art/looks.js');
 const { albumKey } = await import('../../src/record-art/tiers.js');
@@ -153,20 +153,64 @@ test('CR7 metalLabelKind: gold and platinum invert, silver gets a ring, bronze s
   assert.equal(metalLabelKind('unknown-metal'), 'amber');
 });
 
-test('CR7: METAL_COLORS carries all four fields per metal, thresholds untouched', () => {
+test('PRESSINGS_110 PR4: METAL_COLORS carries shadow/mid/highlight per metal, thresholds untouched', () => {
   for(const name of ['bronze', 'silver', 'gold', 'platinum']){
     const m = METAL_COLORS[name];
     assert.ok(m, name + ' missing from METAL_COLORS');
-    for(const k of ['base', 'highlight', 'shadow', 'underglow']) assert.ok(m[k], name + '.' + k + ' missing');
+    for(const k of ['shadow', 'mid', 'highlight']) assert.ok(m[k], name + '.' + k + ' missing');
   }
   assert.equal(ALBUM_METAL_THRESHOLDS.find(l => l.name === 'bronze').sessions, 8);
   assert.equal(ALBUM_METAL_THRESHOLDS.find(l => l.name === 'platinum').sessions, 40);
 });
 
-test('CR7: metalBackground() renders a non-empty, layered background for every metal', () => {
+/* ================= PRESSINGS_110 PR4: two-layer metal lighting
+   (docs/PRESSINGS_110.md §6) — metalLightOverlay() is the screen-fixed
+   "bow tie," metalPlatterBackground() is the rotating layer that reads
+   the underlying pressing's own rim/body colours, and metalBackground()
+   stays as the combined, no-pressing-context fallback the two profile
+   chip call sites use. ================= */
+
+test('PRESSINGS_110 PR4: metalPlatterBackground() falls back to the metal\'s own shadow/mid with no pressing given', () => {
+  for(const name of ['bronze', 'silver', 'gold', 'platinum']){
+    const bg = metalPlatterBackground(name);
+    assert.ok(bg.includes(METAL_COLORS[name].mid), name + ' should fall back to its own mid fill');
+    assert.ok(bg.includes(METAL_COLORS[name].shadow), name + ' should fall back to its own shadow as the rim');
+    assert.ok(bg.startsWith('repeating-radial-gradient'), 'the fine concentric brushing should come first');
+  }
+  assert.equal(metalPlatterBackground('not-a-metal'), '');
+});
+
+test('PRESSINGS_110 PR4: metalPlatterBackground() reads the underlying pressing\'s own rim/body when given — "the pressing still shows"', () => {
+  const bg = metalPlatterBackground('gold', '#2A5E54', 'rgba(169,224,220,.75)');
+  assert.ok(bg.includes('#2A5E54'), 'a gold Verdigris should have a green rim');
+  assert.ok(bg.includes('rgba(169,224,220,.75)'), 'and the pressing\'s own body colour as the underglow');
+  assert.ok(!bg.includes(METAL_COLORS.gold.shadow), 'the metal\'s own fixed shadow should not appear once a real pressing rim is given');
+});
+
+test('PRESSINGS_110 PR4: metalLightOverlay() renders the exact spec stop sequence, feathered (no two stops share an angle)', () => {
+  for(const name of ['bronze', 'silver', 'gold', 'platinum']){
+    const bg = metalLightOverlay(name);
+    assert.ok(bg.startsWith('conic-gradient(from 0deg,'));
+    for(const angle of ['0deg', '45deg', '95deg', '135deg', '175deg', '225deg', '272deg', '302deg', '313deg', '324deg', '360deg']){
+      assert.ok(bg.includes(angle), name + ' missing stop at ' + angle);
+    }
+    // the three derived blends: shadow 75% into mid, highlight 45% into
+    // mid, and white 35% into highlight — color-mix, not a literal hex,
+    // since each is a blend rather than one of the metal's own three colours
+    const m = METAL_COLORS[name];
+    assert.ok(bg.includes('color-mix(in srgb,' + m.shadow + ' 75%,' + m.mid + ' 25%)'));
+    assert.ok(bg.includes('color-mix(in srgb,' + m.highlight + ' 45%,' + m.mid + ' 55%)'));
+    assert.ok(bg.includes('color-mix(in srgb,#fff 35%,' + m.highlight + ' 65%)'));
+  }
+  assert.equal(metalLightOverlay('not-a-metal'), '');
+});
+
+test('PRESSINGS_110 PR4: metalBackground() combines both layers for the no-pressing-context call sites', () => {
   for(const name of ['bronze', 'silver', 'gold', 'platinum']){
     const bg = metalBackground(name);
-    assert.ok(typeof bg === 'string' && bg.split(',').length >= 3, name + ' did not render three layers');
+    assert.ok(bg.includes('conic-gradient'), name + ' missing the fixed light layer');
+    assert.ok(bg.includes('repeating-radial-gradient'), name + ' missing the rotating brushed layer');
+    assert.equal(bg, metalLightOverlay(name) + ',' + metalPlatterBackground(name));
   }
   assert.equal(metalBackground('not-a-metal'), '');
 });

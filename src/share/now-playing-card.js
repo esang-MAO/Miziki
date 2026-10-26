@@ -28,7 +28,8 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
     }catch(_e){}
   } else if(look === 'metal'){
     const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
-    const base = ((METAL_COLORS[metal] || METAL_COLORS.bronze)).base;
+    // PRESSINGS_110 PR4: `mid` is this swatch's equivalent of the old `base`.
+    const base = ((METAL_COLORS[metal] || METAL_COLORS.bronze)).mid;
     const colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
     ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
     ctx.fillRect(cx - r, cy - r, r*2, r*2);
