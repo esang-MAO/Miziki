@@ -177,7 +177,19 @@ function mediaSessionSync(){
   if(!('mediaSession' in navigator)) return;
   const ms = navigator.mediaSession, t = current();
   if(!t) return;
-  if(!S.bg.handlers) bgInstallHandlers();
+  // Found 2026-10-26 (lock screen shows the default +-10s skip buttons
+  // instead of previous/next, even though they're registered): the old
+  // "install once, ever" guard (if(!S.bg.handlers)) could install the
+  // handlers the very first time this ran -- which can be well before the
+  // hidden background-audio element, or even real playback, actually
+  // exists -- and iOS is known to silently ignore a Media Session handler
+  // registered before the page is genuinely the active "Now Playing"
+  // item, with no event that tells the page this happened so it can
+  // retry. Re-asserting on every sync (cheap -- just setActionHandler
+  // calls) instead of once ever means every real play/pause/track-change
+  // (bgSync() runs on each, via renderMiniPlayer()) is another chance for
+  // iOS to pick the registration up for real.
+  bgInstallHandlers();
   const key = [t.id, t.tags.title, t.tags.artist, t.tags.album, t.art || ''].join('|');
   if(key !== S.bg.msKey){
     const base = {title:t.tags.title, artist:t.tags.artist, album:t.tags.album};
