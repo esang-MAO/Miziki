@@ -19,17 +19,20 @@ export const TRACK_METAL_THRESHOLDS = [
   {name:'platinum', plays:250},
   {name:'gold',     plays:125}
 ];
-// CR7 (docs/13_CRATE.md): a metal is a finish laid over the pressing, not
-// a flat fill — four values per metal (base/highlight/shadow/underglow),
-// per docs/design/crate/README.md's own table. The label itself inverts
-// for gold/platinum (amber on either is near-unreadable, 1.03:1 for
-// gold) and silver gets its own aubergine ring — see metalLabelKind()
-// below, read by record-art/looks.js when painting the platter label.
+// PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): a metal's own three colours
+// (shadow/mid/highlight, `data/pressings.json`'s own field names and
+// values — these superseded CR7's base/highlight/shadow/underglow set,
+// which no longer needed an underglow of its own now that the rim/
+// underglow comes from the underlying pressing instead, see below). The
+// label still inverts for gold/platinum (amber on either is near-
+// unreadable) and silver still gets its own aubergine ring — see
+// metalLabelKind() below, read by record-art/looks.js when painting the
+// platter label.
 export const METAL_COLORS = {
-  bronze:   {base:'#B07A3C', highlight:'#E3B77A', shadow:'#5A3516', underglow:'#8A3A1E'},
-  silver:   {base:'#A9ADB4', highlight:'#EDEFF2', shadow:'#4D5259', underglow:'#2E3238'},
-  gold:     {base:'#D6AD3F', highlight:'#F7E7A8', shadow:'#7A4E12', underglow:'#8A3A1E'},
-  platinum: {base:'#D3D7DC', highlight:'#F8F9FA', shadow:'#8A9199', underglow:'#B9C4D0'},
+  bronze:   {shadow:'#5A3516', mid:'#B27A3C', highlight:'#E3B77A'},
+  silver:   {shadow:'#4D5259', mid:'#A9A9B4', highlight:'#E8EFF2'},
+  gold:     {shadow:'#7A4E12', mid:'#D6A83F', highlight:'#F7E7A8'},
+  platinum: {shadow:'#8A9199', mid:'#D3D7DC', highlight:'#F8F9FA'},
 };
 // 'invert': the label flips to an aubergine disc with an amber mark, ringed
 // in the metal's own shadow tone. 'silver-ring': the ordinary amber label,
@@ -65,23 +68,62 @@ export function trackMetalFor(trackKey){
 // incrementTrackPlay moved to src/history/played.js (step 5c), alongside
 // checkTrackCompletion, its only caller.
 
-// brushed metal, not a flat fill: one narrow feathered specular band (the
-// light-catching angle), a broad mid-tone, a deep shadow opposite, fine
-// concentric lines, and a rim ring of the metal's own underglow — CR7's
-// replacement for the old single-base conic wedge. Still baked into the
-// disc's own background (so it rotates with the platter, same limitation
-// the old wedge already had — a screen-fixed highlight would need a
-// separate overlay element, out of scope here).
-export function metalBackground(name){
+// PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): a shared color-mix helper
+// for the three derived blends the light overlay's own stop list needs.
+function mix(colorA, pctA, colorB){
+  return 'color-mix(in srgb,' + colorA + ' ' + pctA + '%,' + colorB + ' ' + (100 - pctA) + '%)';
+}
+
+// The layer that SPINS with the platter: fine concentric brushing plus a
+// flat mid-tone fill — no baked-in light/shadow wedge any more, that's
+// metalLightOverlay()'s job now, screen-fixed. "The pressing still shows"
+// (§6): a soft underglow and a crisp rim, both read off the UNDERLYING
+// pressing's own body/rim colours when given (record-art/looks.js's
+// discLook() always has tier/variant in hand even for a metal look, so it
+// can pass the real pressing's own colours through) — a gold Verdigris
+// has a green edge; two gold records differ. With no pressing context
+// (the profile pressing-chart chips, which show a metal with no specific
+// record attached) both fall back to the metal's own shadow/mid.
+export function metalPlatterBackground(name, pressingRim, pressingBody){
   const m = METAL_COLORS[name];
   if(!m) return '';
-  const { base, highlight, shadow, underglow } = m;
+  const { mid, shadow } = m;
+  const rim = pressingRim || shadow;
+  const underglow = pressingBody || mid;
   const concentric = 'repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.06) 0 1px,transparent 1px 3px)';
-  const conic = 'conic-gradient(from 205deg,' + highlight + ' 0deg 10deg,' + base + ' 10deg 150deg,'
-      + shadow + ' 150deg 195deg,' + base + ' 195deg 350deg,' + highlight + ' 350deg 360deg)';
-  const radial = 'radial-gradient(circle at 50% 50%,' + highlight + ' 0 27%,' + base + ' 27% 85%,'
-      + shadow + ' 85% 97%,' + underglow + ' 97% 100%)';
-  return conic + ',' + concentric + ',' + radial;
+  const radial = 'radial-gradient(circle at 50% 50%,' + mid + ' 0 80%,' + underglow + ' 80% 94%,' + rim + ' 94% 100%)';
+  return concentric + ',' + radial;
+}
+
+// The layer FIXED to the screen — never rotates, so it has to live on its
+// own DOM element (a sibling of #disc, never a part of it — see
+// record-art/looks.js's applyDiscVariant()). A soft "bow tie" of light:
+// the exact stop sequence from §6 — every stop at its own distinct angle,
+// so CSS's own smooth interpolation between conic-gradient stops gives
+// the feathered edges the spec asks for with no hard quarters, nothing
+// extra needed to soften them.
+export function metalLightOverlay(name){
+  const m = METAL_COLORS[name];
+  if(!m) return '';
+  const { mid, shadow, highlight } = m;
+  const shadowBlend = mix(shadow, 75, mid);
+  const weakHighlight = mix(highlight, 45, mid);
+  const core = mix('#fff', 35, highlight);
+  return 'conic-gradient(from 0deg,' + mid + ' 0deg,' + shadowBlend + ' 45deg,' + mid + ' 95deg,'
+      + weakHighlight + ' 135deg,' + mid + ' 175deg,' + shadowBlend + ' 225deg,' + mid + ' 272deg,'
+      + highlight + ' 302deg,' + core + ' 313deg,' + highlight + ' 324deg,' + mid + ' 360deg)';
+}
+
+// Combined, single-string form for the two call sites with no rotation to
+// split across and no specific underlying pressing in hand — the profile
+// pressing-chart chips (profile/badges.js's metalBadge(), profile/
+// records.js's metalDisc()). Layers the fixed light on top of the
+// (fallback-coloured) platter layer; record-art/looks.js's discLook() is
+// the one caller that instead calls the two layers separately, since it
+// has both a real underlying pressing and a genuinely rotating disc.
+export function metalBackground(name){
+  if(!METAL_COLORS[name]) return '';
+  return metalLightOverlay(name) + ',' + metalPlatterBackground(name);
 }
 
 // crossfades when asked to (a same-album background change with no sleeve

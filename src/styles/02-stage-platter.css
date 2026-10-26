@@ -61,6 +61,19 @@
    reveal the new one underneath — used for same-album metal/tier changes
    that have no sleeve animation to cover an instant swap (see METAL spec §4) */
 .disc-fade{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0}
+/* PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): the metal "bow tie" of
+   light — a sibling of .disc, not a child or pseudo-element of it, so it
+   never inherits the per-frame rotation transform player/clock.js's
+   frame() writes onto #disc alone (this element sits directly inside
+   .platter-box, which never rotates). soft-light blends the light stops
+   with whatever the rotating platter layer shows beneath, rather than
+   painting over it outright — the pressing's own rim/underglow still has
+   to read through. record-art/looks.js's applyDiscVariant() sets the
+   background (metalLightOverlay()) and toggles .on; cleared/hidden
+   whenever the active look isn't a metal at all. */
+.disc-metal-light{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  opacity:0;mix-blend-mode:soft-light;transition:opacity .5s,background .5s}
+.disc-metal-light.on{opacity:.85}
 .label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
   display:grid;place-content:center;text-align:center;color:#170D04;

@@ -4,7 +4,7 @@ import {
   trackTier, albumKey, trackIdentityKey, selectVariant, selectRareVariant,
   getVariantDef, variantBackground,
 } from './tiers.js';
-import { albumMetalFor, trackMetalFor, metalBackground, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
+import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
 import { persistAlbumLookPref } from '../history/sessions.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
@@ -132,7 +132,7 @@ export function discLook(t){
     } else {
       bg = variantBackground(getVariantDef(rareId));
     }
-    return { look, rare: true, rareId, tier: null, variant: null, metal: null, bg, labelKind: 'amber', paperLabel: false };
+    return { look, rare: true, rareId, tier: null, variant: null, metal: null, bg, lightOverlay: null, labelKind: 'amber', paperLabel: false };
   }
   const {tier, variant} = selectVariant(t);
   // track wins over album — see METAL spec §4. Grandfathered metals are
@@ -142,12 +142,24 @@ export function discLook(t){
   // 'metal' is even a candidate in the first place.
   const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
   if(metal){
-    return { look, rare: false, rareId: null, tier, variant, metal, bg: metalBackground(metal), labelKind: metalLabelKind(metal), paperLabel: false };
+    // PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): "the pressing still
+    // shows" — the metal's rotating layer reads its rim/underglow off the
+    // pressing underneath it, not a fixed per-metal swatch. tier/variant
+    // are already resolved above regardless of the metal look, so the
+    // underlying def's own colours (ring/body/rim, see tiers.js's F())
+    // are always in hand with no extra lookup.
+    const def = getVariantDef(variant);
+    const pressingRim = def.rim || (def.colors && def.colors[2]);
+    const pressingBody = def.body || (def.colors && def.colors[1]);
+    return { look, rare: false, rareId: null, tier, variant, metal,
+      bg: metalPlatterBackground(metal, pressingRim, pressingBody),
+      lightOverlay: metalLightOverlay(metal),
+      labelKind: metalLabelKind(metal), paperLabel: false };
   }
   // "Decided" (docs/13_CRATE.md, CR7): tier-1 Jet gets the paper label
   // behind a Settings switch, off by default — amber everywhere else.
   return { look, rare: false, rareId: null, tier, variant, metal: null,
-    bg: variantBackground(getVariantDef(variant)), labelKind: 'amber', paperLabel: tier === 1 && S.paperLabelOnLossy };
+    bg: variantBackground(getVariantDef(variant)), lightOverlay: null, labelKind: 'amber', paperLabel: tier === 1 && S.paperLabelOnLossy };
 }
 
 // Outside the full player the artwork travels as a plain circular label; the disc's
@@ -156,10 +168,17 @@ export function discLook(t){
 // animation to cover it — see updateShellAlbum()'s sameAlbum flag.
 export function applyDiscVariant(t, crossfade){
   const disc = $('#disc'), label = $('#label');
+  // PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): the screen-fixed light
+  // layer — a sibling of #disc inside #platterBox, never a part of #disc
+  // itself, so it never inherits the rotation transform player/clock.js's
+  // frame loop writes onto #disc every tick. Shown only while a metal
+  // look is active; hidden (and its background cleared) otherwise.
+  const light = $('#discMetalLight');
   if(!t){
     disc.classList.remove('rare');
     label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
     setDiscBackground(disc, '', false);
+    if(light){ light.style.background = ''; light.classList.remove('on'); }
     $('#lookBtn').style.display = 'none';
     return;
   }
@@ -183,4 +202,8 @@ export function applyDiscVariant(t, crossfade){
   label.classList.toggle('metal-invert', labelKind === 'invert');
   label.classList.toggle('metal-silver', labelKind === 'silver-ring');
   setDiscBackground(disc, bg, crossfade);
+  if(light){
+    if(d.lightOverlay){ light.style.background = d.lightOverlay; light.classList.add('on'); }
+    else { light.style.background = ''; light.classList.remove('on'); }
+  }
 }

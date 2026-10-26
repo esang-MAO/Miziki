@@ -192,7 +192,8 @@ export async function composeShareImage(opts){
       let cx = rightX + r;
       order.filter(k => counts[k]).forEach(k => {
         ctx.beginPath(); ctx.arc(cx, rightY + r*0.2, r, 0, Math.PI*2);
-        const metalBase = (METAL_COLORS[k] && METAL_COLORS[k].base) || '#9c8a74';
+        // PRESSINGS_110 PR4: `mid` is this swatch's equivalent of the old `base`.
+        const metalBase = (METAL_COLORS[k] && METAL_COLORS[k].mid) || '#9c8a74';
         ctx.fillStyle = shareSwatchGradient(ctx, cx, rightY + r*0.2, r, [metalBase, hexMix(metalBase,'#000',0.35), hexMix(metalBase,'#000',0.6)]);
         ctx.fill();
         ctx.fillStyle = '#171310'; ctx.font = '700 ' + Math.round(r*0.85) + 'px Archivo, sans-serif';
