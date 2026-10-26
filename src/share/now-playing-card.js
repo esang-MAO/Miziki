@@ -1,10 +1,10 @@
-import { albumKey, trackIdentityKey, VARIANT_DEFS, selectVariant } from '../record-art/tiers.js';
-import { albumMetalFor, trackMetalFor, METAL_COLORS } from '../record-art/metals.js';
+import { albumKey, trackIdentityKey, selectVariant } from '../record-art/tiers.js';
+import { albumMetalFor, trackMetalFor } from '../record-art/metals.js';
 import { fmt } from '../player/clock.js';
 import {
-  SHARE_FORMATS, shareFitText, shareFitLines, shareSwatchGradient, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark, hexMix,
-  layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP,
+  SHARE_FORMATS, shareFitText, shareFitLines, loadImageEl, drawCover,
+  roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark,
+  fillShareDisc, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP,
 } from './styles.js';
 import { spinChipText } from '../sundown/spin-wording.js';
 
@@ -18,81 +18,19 @@ const CLOCK_GAP = 20; // README "10 below the bar"
 const CHIPS_GAP = 60; // README "30 below the clock"
 const FOOTER_CLEARANCE = 0.05; // the footer's own fixed distance above safeBottom, as a fraction of h — unchanged from before SH2, just now a fixed position rather than one content could push further down
 
-// Fills the full disc circle with whatever look is resolved for this track
-// — same precedence applyDiscVariant() uses on the real platter — so the
-// share image never falls back to a generic disc. `half` is true for the
-// normal composition, where only the left semicircle ends up visible once
-// the art square is drawn on top: asymmetric patterns need to orient
-// themselves so both their colors land in that visible half instead of
-// reading as one flat color (see LIBRARY spec §2, disc rendering).
-async function fillShareDisc(ctx, t, look, cx, cy, r, half){
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
-  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-  if(look === 'rare'){
-    try{
-      const img = await loadImageEl(t.art);
-      drawCover(ctx, img, cx - r, cy - r, r*2, r*2);
-      const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
-      ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    }catch(_e){}
-  } else if(look === 'metal'){
-    const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
-    // PRESSINGS_110 PR4: `mid` is this swatch's equivalent of the old `base`.
-    const base = ((METAL_COLORS[metal] || METAL_COLORS.bronze)).mid;
-    const colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
-    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, colors);
-    ctx.fillRect(cx - r, cy - r, r*2, r*2);
-  } else {
-    const {variant} = selectVariant(t);
-    const def = VARIANT_DEFS[variant];
-    const [a, b, c] = def.colors;
-    if(def.pattern === 'split' && half){
-      // a left/right split would read as one flat color once the right
-      // half is occluded by the art panel — a top/bottom split instead
-      // guarantees both colors land within the visible left arc
-      ctx.fillStyle = a; ctx.fillRect(cx - r, cy - r, r*2, r);
-      ctx.fillStyle = c; ctx.fillRect(cx - r, cy, r*2, r);
-    } else if(def.pattern === 'split'){
-      ctx.fillStyle = a; ctx.fillRect(cx, cy - r, r, r*2);
-      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r, r*2);
-    } else if(def.pattern === 'swirl'){
-      const g = ctx.createConicGradient(0, cx, cy);
-      [a, b, c, a, b, c, a].forEach((col, i) => g.addColorStop(i/6, col));
-      ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    } else if(def.pattern === 'splatter'){
-      // random enough that either half works, so no orientation care needed
-      ctx.fillStyle = c; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-      const spots = [[30,25],[70,20],[50,50],[20,65],[80,60],[40,80],[65,40],[15,40]];
-      spots.forEach(([px, py], i) => {
-        const sx = cx - r + (px/100)*r*2, sy = cy - r + (py/100)*r*2;
-        ctx.beginPath(); ctx.arc(sx, sy, r*0.06, 0, Math.PI*2);
-        ctx.fillStyle = i % 2 ? b : a; ctx.fill();
-      });
-    } else {
-      ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, def.colors);
-      ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    }
-  }
-  // groove rings so it still reads as a record, not a flat swatch
-  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
-  for(let rr = r*0.4; rr < r*0.97; rr += r*0.085){
-    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
-  }
-  ctx.restore();
-  // label
-  const lr = r * 0.32;
-  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
-  ctx.fillStyle = '#3A2007'; ctx.fill();
-  if(look === 'rare'){
-    try{
-      const limg = await loadImageEl(t.art);
-      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
-      drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
-      ctx.restore();
-    }catch(_e){}
-  }
+// SH3 (docs/18_SHARE.md): the track-specific lookups fillShareDisc() itself
+// used to do are now this card's own job — the moved function (styles.js)
+// takes an already-resolved {art, look, variant, metal} instead, so the
+// Record card (whose own `data` already arrives pre-resolved by the
+// gatefold) doesn't need to pull in trackIdentityKey/albumKey/
+// selectVariant/albumMetalFor/trackMetalFor just to call it.
+function discInfoFor(t, look){
+  return {
+    art: t.art || null,
+    look,
+    variant: selectVariant(t).variant,
+    metal: trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t)),
+  };
 }
 
 /* ---- Now Playing card (composePlayerShareImage) — the record peeking from
@@ -127,7 +65,7 @@ export async function composePlayerShareImage(opts){
     // suspended inside it (see the normal branch's own comment below)
     const r = Math.round(w * (format === 'story' ? 0.27 : 0.23));
     const cx = w/2, cy = y + r;
-    await fillShareDisc(ctx, t, look, cx, cy, r, false);
+    await fillShareDisc(ctx, discInfoFor(t, look), cx, cy, r, false);
     y = cy + r + Math.round(h*0.05);
   } else {
     // the disc sits behind an album-art square, offset so roughly half of
@@ -137,7 +75,7 @@ export async function composePlayerShareImage(opts){
     const squareLeft = Math.round((w - side)/2 + side*0.22);
     const squareTop = y;
     const discCx = squareLeft, discCy = squareTop + side/2, r = side/2;
-    await fillShareDisc(ctx, t, look, discCx, discCy, r, true);
+    await fillShareDisc(ctx, discInfoFor(t, look), discCx, discCy, r, true);
     if(t.art){
       try{
         const img = await loadImageEl(t.art);
