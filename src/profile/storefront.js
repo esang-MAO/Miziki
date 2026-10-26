@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { normKey } from '../util/text.js';
-import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
+import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { groupBy } from '../library/model.js';
 import { DB } from '../storage/idb.js';
@@ -528,22 +528,32 @@ function countOwned(ownedIds, ids){
   return n;
 }
 
-// CR11 point 3: a cream catalog card with a paint-chip strip, in family
-// order (SOLID_IDS/EFFECT_IDS are already in that order — see their own
-// export comment in record-art/tiers.js). Shared between the profile's own
-// chart (opts.showNumbers true: a real count, missing names, tap-to-jump)
-// and a friend's (opts.showNumbers false: chips only, no numbers, no tap —
-// point 4, nothing here compares two people).
+// CR11 point 3; counts/chips grown to 4 families in PRESSINGS_110 PR8
+// (§7): a cream catalog card with a paint-chip strip, in family order
+// (SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS are already in that order —
+// see their own export comments in record-art/tiers.js). Shared between
+// the profile's own chart (opts.showNumbers true: real counts, missing
+// names, tap-to-jump) and a friend's (opts.showNumbers false: chips only,
+// no numbers, no tap — point 4, nothing here compares two people). A
+// friend's own owned set (social/screens/friend-store.js) only ever
+// carries solid/effect ids, since quality_tier can't say whether a rare
+// or zoetrope was earned — RARE_IDS/ZOETROPE_IDS chips show there too,
+// correctly dim, with no change needed on that call site.
 export function renderPressingCard(ownedIds, opts = {}){
   const showNumbers = !!opts.showNumbers;
   const card = el('div','pressing-card');
   card.appendChild(el('h3','pressing-card-head','Pressings'));
   if(showNumbers){
     const solidN = countOwned(ownedIds, SOLID_IDS), effectN = countOwned(ownedIds, EFFECT_IDS);
-    card.appendChild(el('div','pressing-card-count', solidN + ' OF ' + SOLID_IDS.length + ' · ' + effectN + ' OF ' + EFFECT_IDS.length));
+    const rareN = countOwned(ownedIds, RARE_IDS), zoetropeN = countOwned(ownedIds, ZOETROPE_IDS);
+    card.appendChild(el('div','pressing-card-count',
+      'COLORS ' + solidN + ' OF ' + SOLID_IDS.length
+      + ' · EFFECTS ' + effectN + ' OF ' + EFFECT_IDS.length
+      + ' · RARE ' + rareN + ' OF ' + RARE_IDS.length
+      + ' · ZOETROPES ' + zoetropeN + ' OF ' + ZOETROPE_IDS.length));
   }
   const strip = el('div','pressing-chip-strip');
-  const allIds = [...SOLID_IDS, ...EFFECT_IDS];
+  const allIds = [...SOLID_IDS, ...EFFECT_IDS, ...RARE_IDS, ...ZOETROPE_IDS];
   const missingNames = [];
   allIds.forEach(id => {
     const def = VARIANT_DEFS[id];

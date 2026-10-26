@@ -364,7 +364,10 @@ export function getVariantDef(id){ return VARIANT_DEFS[resolveVariantId(id)]; }
 // is written in that order.
 export const SOLID_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family !== 'effects' && VARIANT_DEFS[id].family !== 'rare' && VARIANT_DEFS[id].family !== 'zoetrope' && id !== 'jet');
 export const EFFECT_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'effects');
-const RARE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'rare');
+// PRESSINGS_110 PR8 (§7): exported alongside SOLID_IDS/EFFECT_IDS above so
+// the profile chart card can count/list the 8 rare pressings the same
+// "fresh from the id list" way, with no second filter of its own.
+export const RARE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'rare');
 // PRESSINGS_110 PR5: the zoetrope pool — same "never cached, re-picked
 // fresh from the id list every time" shape as RARE_IDS/selectRareVariant
 // above. Not yet wired into looks.js's live rendering (discLook()/
