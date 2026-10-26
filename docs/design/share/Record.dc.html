@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Record share card, square</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&amp;family=Archivo:ital,wght@0,400;0,600;0,700;1,400&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Archivo,sans-serif;color:#EFE9DF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.disc{position:absolute;border-radius:50%;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.disc::before{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,0) 0 3px,rgba(255,255,255,.055) 3px 4px)}
+.disc::after{content:'';position:absolute;left:50%;top:50%;width:32%;height:32%;margin:-16% 0 0 -16%;border-radius:50%;background:#FF9E2C;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.tick{width:3px;height:14px;border-radius:1px;background:rgba(239,233,223,.22)}
+.tick.on{background:#FF9E2C}
+</style>
+</helmet>
+<div style="width: 540px; height: 540px; box-sizing: border-box; position: relative; overflow: hidden; background: linear-gradient(180deg, #1D2F38 0%, #101A20 55%, #07080C 100%); padding: 36px 32px; display: flex; flex-direction: column; justify-content: space-between">
+
+  <div style="display: flex; gap: 28px; align-items: flex-start">
+    <!-- sleeve, record pulled part-way out to the right in its pressing -->
+    <div style="position: relative; width: 300px; height: 232px; flex-shrink: 0">
+      <div class="disc" aria-hidden="true" style="left: 96px; top: 8px; width: 216px; height: 216px; background: radial-gradient(circle at 50% 50%, #3FA873 0%, #2E8B57 60%, #1B5A38 100%)"></div>
+      <div role="img" aria-label="Album cover placeholder" style="position: absolute; left: 0; top: 0; width: 232px; height: 232px; border-radius: 3px; background: #3C4F6B; box-shadow: 0 10px 30px rgba(0,0,0,.6); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box">
+        <span style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .12em; color: rgba(239,233,223,.55)">[COVER]</span>
+      </div>
+    </div>
+
+    <!-- pressing + record facts -->
+    <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-top: 6px">
+      <div class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C">PRESSING</div>
+      <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 40px; line-height: .95; letter-spacing: .01em">Emerald</div>
+      <div class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .08em; color: #94A0A6; margin-top: 2px">TRANSLUCENT · SCARCE · 33⅓</div>
+      <div style="display: flex; gap: 4px; margin-top: 12px" aria-label="Rated 4 of 5">
+        <div class="tick on"></div><div class="tick on"></div><div class="tick on"></div><div class="tick on"></div><div class="tick"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- the record itself -->
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-size: 26px; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Album title]</div>
+    <div style="font-size: 15px; color: #B9C2C6">[Artist] · [YEAR]</div>
+    <div style="font-size: 15px; font-style: italic; line-height: 1.4; color: #D9D3C8; margin-top: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">“[Sleeve note — a line or two in the owner's words, clipped at two lines.]”</div>
+  </div>
+
+  <!-- footer: friends sticker left, brand right -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-end">
+    <div class="mono" style="display: inline-flex; align-items: center; gap: 8px; height: 24px; padding: 0 11px; border-radius: 12px; border: 1px solid rgba(239,233,223,.32); font-size: 10px; font-weight: 600; letter-spacing: .06em; color: #EFE9DF">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: #FF9E2C"></span>IN 3 FRIENDS' CRATES
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
+      <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+      <div class="mono" style="font-size: 9px; font-weight: 600; letter-spacing: .12em; color: #94A0A6">[NAME]'S CRATE</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":540,"height":540}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

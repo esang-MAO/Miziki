@@ -53,6 +53,13 @@ let renderProfileCalls = 0;
 mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { renderProfile(){ renderProfileCalls++; } },
 });
+// SH1 (docs/18_SHARE.md): records.js's own new Pressings-screen Share
+// button imports openShareSheet from share/sheet.js, which would otherwise
+// reach the real share composer chain — stopped at the door here too.
+const openShareSheetCalls = [];
+mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
+  namedExports: { openShareSheet(opts){ openShareSheetCalls.push(opts); } },
+});
 
 const { S } = await import('../../src/state.js');
 const { albumKey, getVariantDef, variantBackground } = await import('../../src/record-art/tiers.js');

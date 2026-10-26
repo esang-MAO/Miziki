@@ -20,6 +20,7 @@ import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
 import { openEqSheet, eqStateLabel } from '../player/eq-sheet.js';
+import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, rhythmVerdictLabel } from '../sundown/rhythm.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -368,10 +369,26 @@ function renderListeningScreen(body){
   // profile's Records section/screen (records.js), alongside the records
   // they belong to.
 
-  const shareBtn = el('button','cta ghost profile-share','Share');
-  shareBtn.classList.toggle('active', crateFilled());
-  shareBtn.addEventListener('click', openShareSheet);
-  wrap.appendChild(shareBtn);
+  // SH1 (docs/18_SHARE.md): "Profile home: the existing Share button
+  // becomes two rows, 'Share crate' and 'Share season' (the second only
+  // once the rhythm card is unlocked, >= 20 plays in the 90-day window)."
+  // Same gate renderRhythmCard() itself uses (rhythm-card.js) -- windowed,
+  // not the lifetime phasePlayCounts.
+  const shareStack = el('div','profile-share-stack');
+  const shareCrateBtn = el('button','cta ghost profile-share','Share crate');
+  shareCrateBtn.classList.toggle('active', crateFilled());
+  shareCrateBtn.addEventListener('click', () => openShareSheet({ card:'crate' }));
+  shareStack.appendChild(shareCrateBtn);
+
+  const rhythm = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
+  if(rhythm.total >= RHYTHM_MIN_PLAYS){
+    const shareSeasonBtn = el('button','cta ghost profile-share','Share season');
+    shareSeasonBtn.addEventListener('click', () => openShareSheet({ card:'season', data:{
+      verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
+    } }));
+    shareStack.appendChild(shareSeasonBtn);
+  }
+  wrap.appendChild(shareStack);
 
   body.appendChild(wrap);
 }

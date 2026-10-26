@@ -158,7 +158,10 @@ function applyPrefs(p){
       b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
   }
   if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') S.shareStyle = p.shareStyle;
-  if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') S.shareFormat = p.shareFormat;
+  // SH1 (docs/18_SHARE.md): merge onto the existing object, never replace
+  // it wholesale -- the same "keep the object identity, merge the
+  // restored keys onto it" shape S.eq's own restore already uses.
+  if(p.shareFormatByCard) Object.assign(S.shareFormatByCard, p.shareFormatByCard);
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
   // D2: theme has no dedicated UI side effect of its own here, the way

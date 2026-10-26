@@ -113,6 +113,12 @@
   letter-spacing:.06em;background:none}
 .gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-text);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
+/* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
+   Same plain-pill shape as .gf-pin-btn just above, minus the pressed
+   highlight -- it never toggles, it opens the share sheet. */
+.gf-left .gf-share-btn, .crate-detail-panel .gf-share-btn, .picture-sleeve-body .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:var(--fs-micro);
+  letter-spacing:.06em;background:none}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}

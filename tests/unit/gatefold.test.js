@@ -57,6 +57,13 @@ mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {} },
 });
+// SH1 (docs/18_SHARE.md): view.js's own new "Share record" button imports
+// openShareSheet from share/sheet.js, which would otherwise reach the real
+// share composer chain (crate-card.js -> history/achievements.js, etc.) —
+// mocked here too, the same "stop the chain at the door" reasoning.
+mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
+  namedExports: { openShareSheet(){} },
+});
 
 const { gatefoldSideSplits, isGatefoldOpen } = await import('../../src/gatefold/view.js');
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');

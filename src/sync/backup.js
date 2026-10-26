@@ -753,7 +753,7 @@ function applyPrefsPatch(rawPrefs){
   // until the user actually changes them here, same as the B2 table's
   // "last write wins, per field" rule for prefs as a whole doc.
   if(parsed.shareStyle) S.shareStyle = parsed.shareStyle;
-  if(parsed.shareFormat) S.shareFormat = parsed.shareFormat;
+  if(parsed.shareFormatByCard) Object.assign(S.shareFormatByCard, parsed.shareFormatByCard);
   if(parsed.librarySort) S.librarySort = parsed.librarySort;
   if(parsed.crateAnchor) S.crateAnchor = parsed.crateAnchor;
 }

@@ -197,17 +197,27 @@ export const S = {
   // DA6 (docs/DAY_ARC.md): `rhythm` is the My Crate card's own Include
   // toggle for the listening-rhythm verdict line -- same session-only
   // shape (never saved to prefs/backup) as its four siblings here.
-  profileView:{screen:'home', recordsFilter:'all'}, shareSelection:{albums:true, songs:true, metals:true, collection:true, name:true, rhythm:true},
-  // DA6: the Now Playing card's own one Include toggle ("Time of day" ->
-  // the "Spun at dusk" line) -- a separate object from shareSelection
-  // above since the two sheets' own section lists are otherwise
-  // unrelated, the same way shareSelection itself never applied to the
-  // player card before this step. Session-only, same as shareSelection.
-  playerShareSelection:{phase:true},
-  // Part 2 §2: remembered across both share sheets; format's own per-type
-  // default (story for Now Playing, square for Crate) only applies the very
-  // first time, before either sheet has ever set a preference
-  shareStyle:'night', shareFormat:null,
+  profileView:{screen:'home', recordsFilter:'all'},
+  // SH1 (docs/18_SHARE.md): one sheet, five cards -- Include toggles are
+  // per card now (`shareSelectionByCard`), replacing the old shareSelection/
+  // playerShareSelection pair. `crate` keeps every key the composer itself
+  // still unconditionally draws (SH5 is what actually removes the other
+  // five sections from crate-card.js) but the sheet only ever shows a
+  // Name toggle for it, per SH1 item 3's own Include-toggle table.
+  // Session-only, never saved to prefs/backup, same as before this step.
+  shareSelectionByCard:{
+    nowPlaying:{phase:true},
+    record:{note:true, friends:true},
+    pressings:{},
+    crate:{albums:true, songs:true, metals:true, collection:true, name:true, rhythm:true},
+    season:{name:true},
+  },
+  // Part 2 §2 / SH1 item 2: each card remembers its own format choice,
+  // replacing the single shareFormat -- a per-card default (README table)
+  // only applies the very first time, before that card's own sheet open
+  // has ever set a preference.
+  shareStyle:'night',
+  shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
   sleep:{mode:null, at:null, timer:null, fading:false},
   // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this

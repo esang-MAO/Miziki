@@ -31,7 +31,7 @@ const KNOWN_PREF_KEYS = new Set([
   'bgAudio', 'launchIntro',
   'libraryLayout', 'crateGroup', 'crateAnchor', 'albumSides',
   'sealedRecords', 'playInFullPlayer',
-  'shareStyle', 'shareFormat',
+  'shareStyle', 'shareFormatByCard',
   'theme', 'charDrift',
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
@@ -76,7 +76,7 @@ export function serializePrefs(S){
     bgAudio: S.bgAudio, launchIntro: S.launchIntro,
     libraryLayout: S.libraryLayout, crateGroup: S.crateGroup, crateAnchor: S.crateAnchor, albumSides: S.albumSides,
     sealedRecords: S.sealedRecords, playInFullPlayer: S.playInFullPlayer,
-    shareStyle: S.shareStyle, shareFormat: S.shareFormat,
+    shareStyle: S.shareStyle, shareFormatByCard: S.shareFormatByCard,
     theme: S.theme,
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
@@ -124,7 +124,17 @@ export function parsePrefs(raw){
   if(typeof p.sealedRecords === 'boolean') out.sealedRecords = p.sealedRecords;
   if(typeof p.playInFullPlayer === 'boolean') out.playInFullPlayer = p.playInFullPlayer;
   if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') out.shareStyle = p.shareStyle;
-  if(p.shareFormat === 'story' || p.shareFormat === 'portrait' || p.shareFormat === 'square') out.shareFormat = p.shareFormat;
+  // SH1 (docs/18_SHARE.md): one format default per card, not one for the
+  // whole app -- each card's own saved choice is checked individually, so
+  // a malformed or missing entry for one card never drops the others.
+  if(p.shareFormatByCard && typeof p.shareFormatByCard === 'object'){
+    const sfbc = {};
+    ['nowPlaying', 'record', 'pressings', 'crate', 'season'].forEach(card => {
+      const v = p.shareFormatByCard[card];
+      if(v === 'story' || v === 'portrait' || v === 'square') sfbc[card] = v;
+    });
+    if(Object.keys(sfbc).length) out.shareFormatByCard = sfbc;
+  }
   // D2 (docs/DESKTOP_LAYOUT.md): a saved object without this field (every
   // device before D2) is meant to load as the default (Auto) — same as
   // any other missing field, just leaving it out of `out` below. DA4

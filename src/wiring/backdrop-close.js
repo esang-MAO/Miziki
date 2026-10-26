@@ -33,7 +33,6 @@ const OVERLAYS = [
   { overlay: '#lookOverlay', layer: 'look' },
   { overlay: '#queueOverlay', layer: 'queue' },
   { overlay: '#shareOverlay', layer: 'share' },
-  { overlay: '#playerShareOverlay', layer: 'player-share' },
   { overlay: '#bgOfferCard', layer: 'bg-offer' },
 ];
 

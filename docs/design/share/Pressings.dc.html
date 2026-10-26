@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pressings share card, story</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&amp;family=Archivo:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Archivo,sans-serif;color:#EFE9DF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.tile{display:flex;flex-direction:column;gap:6px;width:148px}
+.art{position:relative;width:148px;height:96px}
+.cover{position:absolute;left:0;top:8px;width:80px;height:80px;border-radius:2px;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.disc{position:absolute;left:52px;top:0;width:96px;height:96px;border-radius:50%;box-shadow:0 8px 20px rgba(0,0,0,.55)}
+.disc::before{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,0) 0 2px,rgba(255,255,255,.055) 2px 3px)}
+.disc::after{content:'';position:absolute;left:50%;top:50%;width:32%;height:32%;margin:-16% 0 0 -16%;border-radius:50%;background:#FF9E2C;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.nm{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al{font-size:11px;color:#94A0A6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</helmet>
+<div style="width: 540px; height: 960px; box-sizing: border-box; position: relative; overflow: hidden; background: linear-gradient(180deg, #1D2F38 0%, #101A20 55%, #07080C 100%); padding: 125px 32px 0; display: flex; flex-direction: column">
+
+  <!-- header -->
+  <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 26px">
+    <div class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C">PRESSINGS</div>
+    <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: .01em">14 of 110</div>
+    <div class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">9 SOLIDS · 4 EFFECTS · 1 RARE · 0 ZOETROPES</div>
+  </div>
+
+  <!-- 3 × 4 tiles: pressing disc in front, its record's cover behind, newest first -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; row-gap: 18px">
+    <div class="tile"><div class="art"><div class="cover" style="background: #6B4A3A"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #3660BE 0%, #2A4FA0 60%, #172B5C 100%)"></div></div><div class="nm">Cobalt</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #3C4F6B"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #3FA873 0%, #2E8B57 60%, #1B5A38 100%)"></div></div><div class="nm">Emerald</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #8A6A2E"></div><div class="disc" aria-hidden="true" style="background: conic-gradient(from 20deg, #1F5A62, #3A8A94, #123F42, #A9E0DC, #1F5A62)"></div></div><div class="nm">Sea Smoke</div><div class="al">[Album title]</div></div>
+
+    <div class="tile"><div class="art"><div class="cover" style="background: #4E3B5C"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #9A2B66 0%, #B03A78 60%, #5E1A3E 100%)"></div></div><div class="nm">Fuchsia</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #2F5B50"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 40% 40%, #B9D9EB 0 2px, transparent 2px), radial-gradient(circle at 70% 65%, #B9D9EB 0 1.5px, transparent 1.5px), radial-gradient(circle at 30% 70%, #B9D9EB 0 1.5px, transparent 1.5px), radial-gradient(circle at 50% 50%, #3B4080 0%, #2949A6 55%, #1A1C3A 100%)"></div></div><div class="nm">Indigo Galaxy</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #7A3B2E"></div><div class="disc" aria-hidden="true" style="background: linear-gradient(180deg, #EDE3CF 0%, #EDE3CF 50%, #3FA873 50%, #3FA873 100%)"></div></div><div class="nm">Emerald Burst</div><div class="al">[Album title]</div></div>
+
+    <div class="tile"><div class="art"><div class="cover" style="background: #5B5B5B"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #A9E0DC 0%, #8FD3CF 60%, #5E9D99 100%)"></div></div><div class="nm">Aquamarine</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #2D3A4A"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #5B1A3C 0%, #6E2448 60%, #3A0F26 100%)"></div></div><div class="nm">Tyrian</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #8C7A5A"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #1A1716 0%, #2B2622 60%, #0C0B0A 100%)"></div></div><div class="nm">Jet</div><div class="al">[Album title]</div></div>
+
+    <div class="tile"><div class="art"><div class="cover" style="background: #3E6B5A"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #E3B77A 0%, #B27A3C 60%, #5A3516 100%)"></div></div><div class="nm">Bronze</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #6B3A4A"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.18) 0%, rgba(239,233,223,.08) 60%, rgba(239,233,223,.03) 100%); box-shadow: inset 0 0 0 1px rgba(239,233,223,.3), 0 8px 20px rgba(0,0,0,.55)"></div></div><div class="nm" style="color: #FF9E2C">Ultra Clear</div><div class="al">[Album title]</div></div>
+    <div class="tile"><div class="art"><div class="cover" style="background: #2B2B2B"></div><div class="disc" aria-hidden="true" style="background: radial-gradient(circle at 50% 50%, #F7E7A8 0%, #D6A83F 60%, #7A4E12 100%)"></div></div><div class="nm">Gold</div><div class="al">[Album title]</div></div>
+  </div>
+
+  <div class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .08em; color: #94A0A6; margin-top: 22px">+ 2 MORE · NEWEST FIRST</div>
+
+  <!-- brand footer -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 118px; display: flex; flex-direction: column; align-items: center; gap: 8px">
+    <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+    <div class="mono" style="font-size: 9px; font-weight: 600; letter-spacing: .14em; color: #94A0A6">[NAME]'S CRATE · EARNED BY LISTENING</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":540,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

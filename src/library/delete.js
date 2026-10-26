@@ -131,7 +131,7 @@ export async function deleteTracks(idsToDelete){
       // land, the library is empty, so disc-hidden must be (re-)applied after
       if(S.playerOpen) forceCloseLayer('player');
       $('#platterBox').classList.add('disc-hidden');
-      $('#playerShareBtn').style.display = 'none';
+      $('#playerShareIconBtn').style.display = 'none';
       $('#queueBtn').style.display = 'none';
       $('#sleepTimerBtn').style.display = 'none';
       $('#trackInfoBtn').style.display = 'none';
@@ -210,7 +210,7 @@ export async function forgetLibrary(){
   S.platterEmpty = false; clearSpinDown();
   $('#sleeve').style.display = 'none';
   $('#platterBox').classList.add('disc-hidden');
-  $('#playerShareBtn').style.display = 'none';
+  $('#playerShareIconBtn').style.display = 'none';
   $('#queueBtn').style.display = 'none';
   $('#sleepTimerBtn').style.display = 'none';
   $('#trackInfoBtn').style.display = 'none';

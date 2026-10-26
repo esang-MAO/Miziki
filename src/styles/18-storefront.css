@@ -206,6 +206,8 @@ button.pressing-chip.owned{cursor:pointer}
 .records-screen{padding-bottom:var(--sp-6)}
 .records-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:var(--sp-3)}
 .records-tabs button{min-height:40px}
+/* SH1 (docs/18_SHARE.md): the Pressings tab's own Share entry point. */
+.store-records-share{width:100%;margin-top:var(--sp-3)}
 .records-letter{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);margin-top:var(--sp-5)}
 .records-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--sp-5)}
 .records-group-head h3{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.02em}

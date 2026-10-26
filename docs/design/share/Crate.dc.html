@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crate share card, square</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&amp;family=Archivo:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Archivo,sans-serif;color:#EFE9DF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.cv{border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.row{display:flex;align-items:baseline;gap:10px;min-width:0}
+.rk{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#FF9E2C;flex-shrink:0}
+.ti{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar{font-size:12px;color:#94A0A6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:40%}
+</style>
+</helmet>
+<div style="width: 540px; height: 540px; box-sizing: border-box; position: relative; overflow: hidden; background: linear-gradient(180deg, #1D2F38 0%, #101A20 55%, #07080C 100%); padding: 32px; display: flex; flex-direction: column; gap: 22px">
+
+  <!-- header: avatar, crate name, counts -->
+  <div style="display: flex; align-items: center; gap: 14px">
+    <div aria-hidden="true" style="width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #3E8E7E 0%, #245048 60%, #122623 100%); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 17px">K</div>
+    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+      <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 24px; line-height: 1; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[NAME]'S CRATE</div>
+      <div class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .08em; color: #94A0A6">212 RECORDS · 2,418 TRACKS</div>
+    </div>
+  </div>
+
+  <!-- top albums: hero + 2×2 -->
+  <div style="display: flex; gap: 14px">
+    <div class="cv" role="img" aria-label="Top album cover placeholder" style="width: 222px; height: 222px; background: #6B4A3A; display: flex; align-items: flex-end; padding: 10px; box-sizing: border-box">
+      <span class="mono" style="font-size: 10px; font-weight: 600; letter-spacing: .1em; color: rgba(239,233,223,.7)">01</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; flex: 1 1 0; min-width: 0">
+      <div class="cv" style="aspect-ratio: 1 / 1; background: #3C4F6B"></div>
+      <div class="cv" style="aspect-ratio: 1 / 1; background: #8A6A2E"></div>
+      <div class="cv" style="aspect-ratio: 1 / 1; background: #4E3B5C"></div>
+      <div class="cv" style="aspect-ratio: 1 / 1; background: #2F5B50"></div>
+    </div>
+  </div>
+
+  <!-- top album line -->
+  <div style="display: flex; flex-direction: column; gap: 3px">
+    <div class="mono" style="font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C">01 · TOP ALBUM</div>
+    <div style="font-size: 20px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[Album title]</div>
+    <div style="font-size: 13px; color: #B9C2C6">[Artist] · 14 sessions</div>
+  </div>
+
+  <!-- top songs, full width -->
+  <div style="display: flex; flex-direction: column; gap: 7px">
+    <div class="mono" style="font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C; margin-bottom: 2px">TOP SONGS</div>
+    <div class="row"><span class="rk">01</span><span class="ti">[Song title]</span><span class="ar">· [Artist]</span></div>
+    <div class="row"><span class="rk">02</span><span class="ti">[Song title]</span><span class="ar">· [Artist]</span></div>
+    <div class="row"><span class="rk">03</span><span class="ti">[Song title]</span><span class="ar">· [Artist]</span></div>
+  </div>
+
+  <!-- brand -->
+  <div style="position: absolute; right: 32px; bottom: 28px; font-family: Antonio, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":540,"height":540}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
