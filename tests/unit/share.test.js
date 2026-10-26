@@ -419,11 +419,10 @@ test('S.shareSelectionByCard: defaults match SH1 item 3\'s own Include-toggle ta
   assert.deepEqual(new Set(Object.keys(S.shareSelectionByCard.record)), new Set(['note', 'friends']));
   // pressings -> none
   assert.deepEqual(S.shareSelectionByCard.pressings, {});
-  // crate -> every section the composer still draws, but the sheet only
-  // ever shows a Name toggle for it (buildIncludeToggles reads from
-  // INCLUDE_LABELS, not from this object's own key count) -- SH5's own
-  // job is to actually shrink this object once crate-card.js stops
-  // drawing the other five sections unconditionally.
+  // crate -> Name (SH5 removed the metals/collection/rhythm sections and
+  // their own Include toggles from crate-card.js, so this is the one key
+  // left, not just the one the sheet happens to show a toggle for).
+  assert.deepEqual(Object.keys(S.shareSelectionByCard.crate), ['name']);
   assert.equal(S.shareSelectionByCard.crate.name, true);
   // season -> Name
   assert.deepEqual(Object.keys(S.shareSelectionByCard.season), ['name']);
