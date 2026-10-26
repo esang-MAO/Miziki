@@ -45,6 +45,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: {
     restoreThumbs: async () => {}, pruneThumbs: async () => {},
     persistAlbumDisplay: async () => {}, persistTrackDisplay: async () => {},
+    persistable(rec){ return rec; },
   },
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {

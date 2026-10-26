@@ -54,7 +54,7 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 // Since step 7c, delete.js's deleteCrateArtTiers/invalidateCrateModel
 // imports are real ones from src/crate/tiers.js/model.js instead of

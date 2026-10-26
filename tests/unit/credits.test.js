@@ -117,7 +117,7 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },

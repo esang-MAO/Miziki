@@ -15,7 +15,7 @@
    listening history (SEALED spec §2) — it moved, with the rest of that
    cohesive unit, into src/library/sealed.js in step 6b instead. */
 import { S, current, touchBackupKey } from '../state.js';
-import { albumKey, trackTier } from '../record-art/tiers.js';
+import { albumKey, trackTier, selectVariant, VARIANT_DEFS, CHART_VERSION } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { sessions, meta, achievements, collection, profile } from '../storage/repo.js';
 // Real circular import with looks.js (step 6b) — looks.js imports
@@ -23,7 +23,7 @@ import { sessions, meta, achievements, collection, profile } from '../storage/re
 // between engine.js and transport.js (step 3a). restoreThumbs is a real,
 // non-circular import (step 6b) — thumbs.js doesn't depend on this module.
 import { applyDiscVariant } from '../record-art/looks.js';
-import { restoreThumbs } from '../library/thumbs.js';
+import { restoreThumbs, persistable } from '../library/thumbs.js';
 
 const FOUR_HOURS = 4 * 3600 * 1000;
 
@@ -172,6 +172,34 @@ function checkRareUnlock(albumId){
   }
 }
 
+// PRESSINGS_110 (docs/PRESSINGS_110.md §8, point 1): the effects shelf grew
+// 32 -> 54, which changes where `hash % shelfSize` lands for a hi-res
+// (tier 3) album whose draw happened to land on an effect. A Collection
+// record discovered before this growth has no chartVersion stamp at all
+// (or one below the current CHART_VERSION); re-run selectVariant() against
+// a still-in-library sample track and overwrite the stored variant/pattern
+// — discoveredAt is untouched, since this isn't a new discovery, just the
+// one-time re-draw the spec calls for. Tier 2 (solid) records are left
+// alone: the 40-solid pool/mix is unchanged by this growth, so recomputing
+// one would always be a no-op. An album with no track left in the library
+// (forgotten, not deleted) keeps its stale record, same as any other
+// "nothing to recompute against" case elsewhere in this codebase — it'll
+// be picked up the next time this runs, once a matching file reappears.
+export async function migrateChartVersion(){
+  for(const albumId of Object.keys(S.collection)){
+    const rec = S.collection[albumId];
+    if(rec.tier !== 3) continue;
+    if((rec.chartVersion || 1) >= CHART_VERSION) continue;
+    const sample = S.tracks.find(t => albumKey(t) === albumId);
+    if(!sample) continue;
+    const {variant} = selectVariant(sample);
+    rec.variant = variant;
+    rec.pattern = VARIANT_DEFS[variant].pattern;
+    rec.chartVersion = CHART_VERSION;
+    await collection.put(persistable(rec));
+  }
+}
+
 export async function restoreSessions(){
   const recs = await sessions.all();
   const now = Date.now();
@@ -221,6 +249,7 @@ export async function restoreSessions(){
   if(edge) S.albumEdge = edge;
   (await achievements.all()).forEach(r => { S.achievements[r.albumId] = r; });
   (await collection.all()).forEach(r => { S.collection[r.albumId] = r; });
+  await migrateChartVersion();
   await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
   const prof = await profile.get('me');
   if(prof){

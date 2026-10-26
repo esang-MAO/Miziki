@@ -32,19 +32,44 @@ export function trackIdentityKey(t){ return normKey(t.tags.artist) + '|' + album
 function variantHashKey(t){ return albumKey(t); }
 
 /* ================= CR7: pressings and finishes (docs/13_CRATE.md) =================
-   The catalogue: 40 solids in nine families, 32 two-ink effects, four rare
-   (session-unlock only), plus the one tier-1 pressing, Jet. Three stops
-   are label ring / body / rim — kept as a flat `colors` 3-tuple so every
-   existing consumer that reads def.colors positionally (shareSwatchGradient,
-   the plain radial fallback below) keeps working unchanged; pattern-
-   specific fields (inks/veins/tones/drift/rim/etc.) carry whatever each
-   richer pattern needs beyond that 3-stop summary. `band` is 'common' |
-   'uncommon' | 'scarce' for the 40 solids and 32 effects (docs/design/
-   crate/README.md's own counts: 20/14/6 solids, 16/11/5 effects); Jet and
-   the four rares aren't banded — Jet is the only tier-1 pressing, and
-   rares come from the session unlock, not the file. */
+   The catalogue: 40 solids in nine families, 54 two-ink (three-ink for
+   tri-split) effects across 11 techniques, four rare (session-unlock
+   only), plus the one tier-1 pressing, Jet. Three stops are label ring /
+   body / rim — kept as a flat `colors` 3-tuple so every existing consumer
+   that reads def.colors positionally (shareSwatchGradient, the plain
+   radial fallback below) keeps working unchanged; pattern-specific
+   fields (inks/veins/tones/drift/rim/etc.) carry whatever each richer
+   pattern needs beyond that 3-stop summary. `band` is 'common' |
+   'uncommon' | 'scarce' for the 40 solids and 54 effects (docs/design/
+   crate/README.md's own counts: 20/14/6 solids; PRESSINGS_110.md grew
+   effects to 24/22/8); Jet and the rares aren't banded — Jet is the only
+   tier-1 pressing, and rares come from the session unlock, not the file.
+
+   PRESSINGS_110 (docs/PRESSINGS_110.md, data/pressings.json): grew effects
+   from 32 to 54 across 7 new techniques (tri-split, pinwheel, target, core,
+   galaxy, burst, cloud — target/core are both the existing "ring & core"
+   family's own sub-patterns, not new families) and rare from 4 to 8. See
+   that doc's own "chartVersion: 2" decision, implemented in
+   history/sessions.js's restoreSessions(), for the one-time re-draw this
+   growth triggers for hi-res albums' already-discovered Collection entries.
+   New `pattern` keys (tri-split/pinwheel/target/core/galaxy/burst/cloud)
+   fall through to variantBackground()'s 'solid' default until the PR that
+   adds real rendering for each — a deliberate, reviewed intermediate state,
+   not a bug: every new def still carries a full ring/body/rim colors
+   3-tuple, so the default radial gradient already renders something sane. */
 
 const F = (ring, body, rim) => [ring, body, rim];
+
+// PRESSINGS_110 (docs/PRESSINGS_110.md §8, point 1): bumped 1 -> 2 when the
+// effects shelf grew 32 -> 54, which moves where `hash % shelfSize` lands
+// for some already-discovered hi-res (tier 3) albums. A Collection record
+// (history/achievements.js's upsertCollectionEntry) stamps the version it
+// was drawn under; history/sessions.js's restoreSessions() re-draws any
+// tier-3 record still stamped below this (or never stamped at all, i.e.
+// from before this field existed) once on first launch after the upgrade.
+// Lossy/lossless draws (Jet, the 40 solids) are untouched by this bump —
+// nothing about their own pools changed — so only tier 3 is ever re-drawn.
+export const CHART_VERSION = 2;
 
 export const VARIANT_DEFS = {
   // ---- tier 1: the one lossy pressing ----
@@ -97,7 +122,7 @@ export const VARIANT_DEFS = {
   paynesgrey:  {family:'greys', finish:'opaque', band:'common', pattern:'solid', colors:F('#4A5565','#3C4654','#232A33'), name:"Payne's grey", sub:null, note:'A cool, blue-leaning grey.'},
   graphite:    {family:'greys', finish:'opaque', band:'common', pattern:'solid', colors:F('#55585C','#3F4245','#222426'), name:'Graphite', sub:null, note:'A flat, even grey, the plainest of the family.'},
 
-  // ---- tier 3: 32 two-ink effects ----
+  // ---- tier 3: 54 effects across 11 techniques (PRESSINGS_110) ----
   'woad-madder':       {family:'effects', finish:'opaque', band:'common', pattern:'swirl', inks:['#2B4A7A','#B5433A'], rim:'#1A1A22', colors:F('#2B4A7A','#B5433A','#1A1A22'), name:'Woad & Madder', sub:null, note:'Two streaks of dusty blue and warm red, feathered through each other.'},
   'minium-vermilion':  {family:'effects', finish:'opaque', band:'uncommon', pattern:'swirl', inks:['#E0552A','#C4302B'], rim:'#5C1512', colors:F('#E0552A','#C4302B','#5C1512'), name:'Minium & Vermilion', sub:null, note:'Two close reds, swirled so they barely separate.'},
   'prussian-bone':     {family:'effects', finish:'opaque', band:'common', pattern:'swirl', inks:['#2B5586','#DED7C7'], rim:'#122540', colors:F('#2B5586','#DED7C7','#122540'), name:'Prussian & Bone', sub:null, note:'Deep blue streaked through pale bone.'},
@@ -124,12 +149,43 @@ export const VARIANT_DEFS = {
   rhodonite:           {family:'effects', finish:'opaque', band:'scarce', pattern:'marble', body:'#D97A96', veins:'#3C4654', rim:'#7A2E48', colors:F('#D97A96','#3C4654','#7A2E48'), name:'Rhodonite', sub:null, note:'Pink marble veined with cool grey, named for the stone.'},
   jasper:              {family:'effects', finish:'opaque', band:'uncommon', pattern:'marble', body:'#8B4426', veins:'#B8862E', rim:'#4F2412', colors:F('#8B4426','#B8862E','#4F2412'), name:'Jasper', sub:null, note:'Brown marble veined with gold.'},
   sodalite:            {family:'effects', finish:'opaque', band:'uncommon', pattern:'marble', body:'#3B6192', veins:'#E6E2DA', rim:'#1A2E4A', colors:F('#3B6192','#E6E2DA','#1A2E4A'), name:'Sodalite', sub:null, note:'Blue marble veined with chalk, named for the stone.'},
-  'coral-teal':        {family:'effects', finish:'opaque', band:'uncommon', pattern:'splatter', base:'#28868B', ink:'#E8806A', rim:'#123F42', colors:F('#28868B','#E8806A','#123F42'), name:'Coral on Teal', sub:null, note:'Warm coral spots scattered across blue-green.'},
+  'coral-teal':        {family:'effects', finish:'opaque', band:'common', pattern:'splatter', base:'#28868B', ink:'#E8806A', rim:'#123F42', colors:F('#28868B','#E8806A','#123F42'), name:'Coral on Teal', sub:null, note:'Warm coral spots scattered across blue-green.'},
   ember:               {family:'effects', finish:'opaque', band:'scarce', pattern:'splatter', base:'#6B1F1C', ink:'#B8862E', rim:'#3E1210', colors:F('#6B1F1C','#B8862E','#3E1210'), name:'Ember', sub:null, note:'Gold spots scattered across deep red, like embers in coal.'},
   'rose-smoke':        {family:'effects', finish:'translucent', band:'uncommon', pattern:'smoke', tones:['#8A4A60','#B8678A','#5A2E40'], drift:'#E3B8AE', rim:'#5A2E40', colors:F('#8A4A60','#B8678A','#5A2E40'), name:'Rose Smoke', sub:null, note:'A warm pink haze, drifting slowly.'},
   'sea-smoke':         {family:'effects', finish:'translucent', band:'scarce', pattern:'smoke', tones:['#1F5A62','#3A8A94','#123F42'], drift:'#A9E0DC', rim:'#123F42', colors:F('#1F5A62','#3A8A94','#123F42'), name:'Sea Smoke', sub:null, note:'A cool sea-green haze — one of the rarer effects.'},
   'teal-ring':         {family:'effects', finish:'opaque', band:'uncommon', pattern:'ring', inner:'#28868B', outer:'#D4674F', rim:'#8A3A2A', colors:F('#28868B','#D4674F','#8A3A2A'), name:'Teal ring', sub:null, note:'A blue-green ring set inside warm coral.'},
   'oxblood-ring':      {family:'effects', finish:'opaque', band:'common', pattern:'ring', inner:'#6B1F1C', outer:'#DED7C7', rim:'#A9A69B', colors:F('#6B1F1C','#DED7C7','#A9A69B'), name:'Oxblood ring', sub:null, note:'A deep red ring set inside pale bone.'},
+
+  // ---- PRESSINGS_110: 22 new effects across 7 new techniques (tri-split,
+  // pinwheel, target, core, galaxy, burst, cloud), bringing the shelf from
+  // 32 to 54. Colours/bands are ported verbatim from data/pressings.json;
+  // `pattern` keys below aren't handled by variantBackground() yet — until
+  // the next PR adds real switch branches for them, every one of these
+  // falls through to the 'solid' default, which still renders a sane
+  // radial gradient from the same ring/body/rim 3-tuple every other
+  // pattern already carries. ----
+  'vermilion-chalk-pine': {family:'effects', finish:'opaque', band:'uncommon', pattern:'tri-split', inks:['#C4302B','#E6E2DA','#2A6A4F'], rim:'#B9B5AC', colors:F('#F4F1EA','#E6E2DA','#B9B5AC'), name:'Vermilion Chalk Pine', sub:null, note:'Three vertical bands — vermilion, chalk, and pine — side by side with no blend.'},
+  'cobalt-bone-madder':   {family:'effects', finish:'opaque', band:'uncommon', pattern:'tri-split', inks:['#3660BE','#DED7C7','#9A3328'], rim:'#A9A69B', colors:F('#F1EDE3','#DED7C7','#A9A69B'), name:'Cobalt Bone Madder', sub:null, note:'Cobalt and madder squared off on either side of a plain bone band.'},
+  'ochre-jet-terracotta': {family:'effects', finish:'opaque', band:'common', pattern:'tri-split', inks:['#9A6E22','#1C1A1E','#C05131'], rim:'#0A090B', colors:F('#2A272C','#1C1A1E','#0A090B'), name:'Ochre Jet Terracotta', sub:null, note:'Gold and clay bracket a black middle band — the common tri-split of the shelf.'},
+  'madder-pinwheel':   {family:'effects', finish:'opaque', band:'common', pattern:'pinwheel', inks:['#9A3328','#DCCDB0'], rim:'#5C1A14', colors:F('#B5433A','#9A3328','#5C1A14'), name:'Madder Pinwheel', sub:null, note:'Six hard wedges of madder and pale isabelline, spun off the label like a pinwheel.'},
+  'teal-pinwheel':     {family:'effects', finish:'opaque', band:'common', pattern:'pinwheel', inks:['#28868B','#E6E2DA'], rim:'#123F42', colors:F('#1F6F73','#28868B','#123F42'), name:'Teal Pinwheel', sub:null, note:'Six wedges of blue-green and chalk, the same pinwheel cut as Madder.'},
+  'grape-pinwheel':    {family:'effects', finish:'opaque', band:'uncommon', pattern:'pinwheel', inks:['#582C83','#DED7C7'], rim:'#361A52', colors:F('#6D419B','#582C83','#361A52'), name:'Grape Pinwheel', sub:null, note:'Deep purple and pale bone in six alternating wedges — one of the scarcer pinwheels.'},
+  'sienna-pinwheel':   {family:'effects', finish:'opaque', band:'common', pattern:'pinwheel', inks:['#8B4426','#DCCDB0'], rim:'#4F2412', colors:F('#A0522D','#8B4426','#4F2412'), name:'Sienna Pinwheel', sub:null, note:'Burnt-orange brown and isabelline, cut into the same six-wedge pinwheel.'},
+  'tyrian-target':     {family:'effects', finish:'opaque', band:'uncommon', pattern:'target', base:'#DCCDB0', ink:'#5B1A3C', rim:'#B8A684', colors:F('#EDE3CF','#DCCDB0','#B8A684'), name:'Tyrian Target', sub:null, note:'Three concentric bands of royal purple on pale isabelline — a target, not a ring.'},
+  'ochre-in-jet':      {family:'effects', finish:'opaque', band:'common', pattern:'core', inner:'#9A6E22', outer:'#1C1A1E', rim:'#5E4212', colors:F('#B8862E','#9A6E22','#5E4212'), name:'Ochre in Jet', sub:null, note:'A gold core set inside a plain jet rim — no blend between the two.'},
+  'coral-in-prussian': {family:'effects', finish:'opaque', band:'uncommon', pattern:'core', inner:'#D4674F', outer:'#2B5586', rim:'#8A3A2A', colors:F('#E8806A','#D4674F','#8A3A2A'), name:'Coral in Prussian', sub:null, note:'A warm coral core set inside a deep Prussian rim, the two meeting with a clean edge.'},
+  'petrol-galaxy':  {family:'effects', finish:'opaque', band:'uncommon', pattern:'galaxy', tones:['#2C5E68','#28868B'], specks:'#E6E2DA', rim:'#13303A', colors:F('#204A52','#2C5E68','#13303A'), name:'Petrol Galaxy', sub:null, note:'A petrol-teal swirl flecked with small chalk specks, like stars caught in deep water.'},
+  'oxblood-galaxy': {family:'effects', finish:'opaque', band:'uncommon', pattern:'galaxy', tones:['#6B1F1C','#9A3328'], specks:'#DED7C7', rim:'#3E1210', colors:F('#8A2E2A','#6B1F1C','#3E1210'), name:'Oxblood Galaxy', sub:null, note:'A dried-blood red swirl with pale bone specks scattered through it.'},
+  'indigo-galaxy':  {family:'effects', finish:'opaque', band:'scarce', pattern:'galaxy', tones:['#3B4080','#2949A6'], specks:'#B9D9EB', rim:'#1A1C3A', colors:F('#2C2F5E','#3B4080','#1A1C3A'), name:'Indigo Galaxy', sub:null, note:'A deep blue-violet swirl flecked with powder blue — one of the rarer galaxies.'},
+  'jet-galaxy':     {family:'effects', finish:'opaque', band:'scarce', pattern:'galaxy', tones:['#1C1A1E','#3C4654'], specks:['#E6E2DA','#D4674F'], rim:'#0A090B', colors:F('#2A272C','#1C1A1E','#0A090B'), name:'Jet Galaxy', sub:null, note:'Black swirled with grey, flecked with both chalk and coral — the busiest galaxy on the shelf.'},
+  'vermilion-burst': {family:'effects', finish:'opaque', band:'uncommon', pattern:'burst', base:'#E6E2DA', ink:'#C4302B', rim:'#B9B5AC', colors:F('#F4F1EA','#E6E2DA','#B9B5AC'), name:'Vermilion Burst', sub:null, note:'Vermilion rays fan out from the label and fade into chalk at the rim.'},
+  'cobalt-burst':    {family:'effects', finish:'opaque', band:'uncommon', pattern:'burst', base:'#DED7C7', ink:'#3660BE', rim:'#A9A69B', colors:F('#F1EDE3','#DED7C7','#A9A69B'), name:'Cobalt Burst', sub:null, note:'Cobalt rays radiating from the label, softening into bone toward the edge.'},
+  'emerald-burst':   {family:'effects', finish:'opaque', band:'scarce', pattern:'burst', base:'#DCCDB0', ink:'#3FA873', rim:'#B8A684', colors:F('#EDE3CF','#DCCDB0','#B8A684'), name:'Emerald Burst', sub:null, note:'A jewel-green starburst over isabelline — one of the rarer bursts.'},
+  'tyrian-burst':    {family:'effects', finish:'opaque', band:'uncommon', pattern:'burst', base:'#E3B8AE', ink:'#5B1A3C', rim:'#B48A80', colors:F('#F0D0C8','#E3B8AE','#B48A80'), name:'Tyrian Burst', sub:null, note:'Royal-purple rays fanning out across a soft blush field.'},
+  'chalk-cloud':  {family:'effects', finish:'translucent', band:'common', pattern:'cloud', base:'#2C5E68', ink:'#E6E2DA', rim:'#13303A', colors:F('#204A52','#2C5E68','#13303A'), name:'Chalk Cloud', sub:null, note:'Soft chalk islands drifting in translucent petrol — the sky shows through at the edges.'},
+  'blush-cloud':  {family:'effects', finish:'translucent', band:'uncommon', pattern:'cloud', base:'#6E6C69', ink:'#E3B8AE', rim:'#2E2D2C', colors:F('#A9A7A4','#6E6C69','#2E2D2C'), name:'Blush Cloud', sub:null, note:'Pale blush islands adrift in a translucent smoke-grey field.'},
+  'olive-cloud':  {family:'effects', finish:'translucent', band:'uncommon', pattern:'cloud', base:'#A9E0DC', ink:'#4A5527', rim:'#5E9D99', colors:F('#8FD3CF','#A9E0DC','#5E9D99'), name:'Olive Cloud', sub:null, note:'Dusty olive islands floating in a translucent sea-glass aquamarine.'},
+  'powder-cloud': {family:'effects', finish:'translucent', band:'common', pattern:'cloud', base:'#2B5586', ink:'#B9D9EB', rim:'#122540', colors:F('#1F3F66','#2B5586','#122540'), name:'Powder Cloud', sub:null, note:'Pale powder-blue islands drifting through a translucent deep Prussian field.'},
 
   // ---- rare: session unlock only, never from the file ----
   'ultra-clear': {family:'rare', finish:'translucent', band:null, pattern:'clear',
