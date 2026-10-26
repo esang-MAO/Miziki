@@ -34,6 +34,12 @@
        counters, same rule as trackPlayCounts/sessionCounts; already keyed
        by a portable string, no idToKey conversion needed)
      trackLastPlayed, albumLastPlayed, rareUnlocked, achievements, collection,
+     zoetropeUnlocked, zoetropeDayProgress,  (PRESSINGS_110 PR7,
+       docs/PRESSINGS_110.md §8 — zoetropeUnlocked is the same union-of-
+       flags shape as rareUnlocked right above; zoetropeDayProgress is
+       {albumId: [dayKey, ...]}, already keyed by a portable albumKey()
+       string and plain local-calendar-day strings, no idToKey conversion
+       needed, merged by sync/merge.js's unionDaySets())
      sealedIds, brokenSealIds,       (S.sealed as an array, plus a *new*
        local list this device has ever broken — S doesn't track that today;
        see CLAUDE.md's step-03 note)
@@ -278,6 +284,11 @@ export function toDoc(localState){
       albumLastPlayed: s.albumLastPlayed || {},
     },
     rareUnlocked: s.rareUnlocked || {},
+    // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): "store earned zoetropes
+    // and day-progress with the account backup" — same shape/posture as
+    // rareUnlocked right above, a second, entirely independent pool.
+    zoetropeUnlocked: s.zoetropeUnlocked || {},
+    zoetropeDayProgress: s.zoetropeDayProgress || {},
     achievements: stripArtMap(s.achievements),
     collection: stripArtMap(s.collection),
 
@@ -503,6 +514,16 @@ function isFlatMaxMap(v){
   return Object.keys(v).every(k => isNonNegNum(v[k]));
 }
 function isStringArray(v){ return Array.isArray(v) && v.every(isStr); }
+// PRESSINGS_110 PR7: zoetropeDayProgress's own shape, {albumId: [dayKey,
+// ...]} — unlike rareUnlocked (a flat flag map merge.js's unionFlags()
+// already tolerates any truthy value in, with no explicit check needed
+// here, same precedent), unionDaySets() calls .forEach on each album's own
+// value, so a malformed non-array there would throw mid-merge rather than
+// just being silently ignored — worth the one explicit check.
+function isAlbumDaySetMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(k => isStringArray(v[k] || []));
+}
 function isItemWritesArray(v){
   return Array.isArray(v) && v.every(e => e && typeof e === 'object'
     && isStr(e.key) && isNonNegInt(e.seq) && isNonNegInt(e.at)
@@ -524,6 +545,8 @@ export function validateDoc(doc){
   const maxFields = doc.maxFields || {};
   if(!isFlatMaxMap(maxFields.trackLastPlayed || {})) return false;
   if(!isFlatMaxMap(maxFields.albumLastPlayed || {})) return false;
+
+  if(doc.zoetropeDayProgress !== undefined && !isAlbumDaySetMap(doc.zoetropeDayProgress)) return false;
 
   const sealed = doc.sealed || {};
   if(!isStringArray(sealed.sealed || [])) return false;

@@ -15,6 +15,11 @@ import {
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
   persistPhasePlayCountsByDay,
+  // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
+  // zoetropeDayProgress are session-derived milestone state, the exact
+  // same class as rareUnlocked right above — both scopes below reset/prune
+  // it the same way rareUnlocked already is.
+  persistZoetropeUnlocked, persistZoetropeDayProgress,
 } from './sessions.js';
 import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
@@ -50,6 +55,7 @@ export async function resetLocalHistory(){
   const albumLookPrefKeys = Object.keys(S.albumLookPref);
   const trackDisplayKeys = Object.keys(S.trackDisplay);
   S.sessionCounts = {}; S.metalEligibleSessions = {}; S.rareUnlocked = {};
+  S.zoetropeUnlocked = {}; S.zoetropeDayProgress = {};
   S.albumLastPlayed = {}; S.albumDisplay = {}; S.albumLookPref = {};
   S.achievements = {}; S.collection = {}; S.sessions = {}; S.sessionActive = null;
   S.trackPlayCounts = {}; S.trackMetalEligiblePlays = {}; S.trackLastPlayed = {}; S.trackDisplay = {};
@@ -61,6 +67,7 @@ export async function resetLocalHistory(){
   await pruneThumbs();
   await Promise.all([
     persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
+    persistZoetropeUnlocked(), persistZoetropeDayProgress(),
     persistAlbumLastPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
     persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
     persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay()
@@ -82,6 +89,8 @@ export async function clearListeningHistory(orphanedOnly){
     S.sessionCounts = filterKeep(S.sessionCounts, albumIds);
     S.metalEligibleSessions = filterKeep(S.metalEligibleSessions, albumIds);
     S.rareUnlocked = filterKeep(S.rareUnlocked, albumIds);
+    S.zoetropeUnlocked = filterKeep(S.zoetropeUnlocked, albumIds);
+    S.zoetropeDayProgress = filterKeep(S.zoetropeDayProgress, albumIds);
     S.albumLastPlayed = filterKeep(S.albumLastPlayed, albumIds);
     S.albumDisplay = filterKeep(S.albumDisplay, albumIds);
     S.albumLookPref = filterKeep(S.albumLookPref, albumIds);
@@ -108,6 +117,7 @@ export async function clearListeningHistory(orphanedOnly){
     await pruneThumbs();
     await Promise.all([
       persistSessionCounts(), persistMetalEligibleSessions(), persistRareUnlocked(),
+      persistZoetropeUnlocked(), persistZoetropeDayProgress(),
       persistAlbumLastPlayed(), persistAlbumDisplay(droppedAlbumDisplay), persistAlbumLookPref(droppedAlbumLookPref),
       persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(droppedTrackDisplay),
       persistPhasePlayCounts(), persistAlbumPhaseCounts()

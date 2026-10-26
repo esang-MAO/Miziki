@@ -24,8 +24,27 @@ import { sessions, meta, achievements, collection, profile } from '../storage/re
 // non-circular import (step 6b) — thumbs.js doesn't depend on this module.
 import { applyDiscVariant } from '../record-art/looks.js';
 import { restoreThumbs, persistable } from '../library/thumbs.js';
+// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): distinct calendar days —
+// dayKeyFor() is the already-established local-calendar-day-key helper
+// (RF22's own S.phasePlayCountsByDay bucketing), reused here rather than
+// a second date-keying scheme.
+import { dayKeyFor } from '../sundown/rhythm.js';
 
 const FOUR_HOURS = 4 * 3600 * 1000;
+
+// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): kept in its own named
+// constant, per the spec's own "keep the numbers in one config block so
+// they're easy to tune" instruction. Raised from the spec's original 3 to
+// 10 at Ken's request (2026-10-26): "I want the zoetrope to be a bit more
+// challenging to earn than the metals" — the top metal (platinum) needs
+// 40 qualifying sessions with no day-spread at all, so a determined
+// binge-listener could clear it in a single sitting; a zoetrope can
+// never be rushed that way regardless of this number, since each day
+// only ever contributes one credit no matter how many full play-throughs
+// happen on it. 10 keeps that "lived with it over time" shape (Ken's own
+// stated preference for the different-days mechanic) while making the
+// zoetrope clearly the harder, slower-to-earn of the two.
+export const ZOETROPE_DAYS_TO_EARN = 10;
 
 export function albumExpectedOrder(albumId){
   const sample = S.tracks.find(t => albumKey(t) === albumId);
@@ -61,6 +80,11 @@ export async function persistAlbumFormat(keys){
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumFormat', k));
 }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
+// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropes get their own
+// session milestone pool, entirely separate from rareUnlocked above — same
+// union-of-flags backed-up shape, same persist-on-every-change posture.
+export async function persistZoetropeUnlocked(){ await meta.put('zoetropeUnlocked', S.zoetropeUnlocked); }
+export async function persistZoetropeDayProgress(){ await meta.put('zoetropeDayProgress', S.zoetropeDayProgress); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
@@ -149,6 +173,7 @@ export function sessionTrackComplete(t){
     persistMetalEligibleSessions();
     persistAlbumLastPlayed();
     checkRareUnlock(albumId);
+    checkZoetropeUnlock(albumId);
     MizikiSocial.listeningChanged();
     // the album metal (if any) is a pure function of the count that just
     // changed — re-render the platter if this album is still what's showing
@@ -167,6 +192,34 @@ function checkRareUnlock(albumId){
   if((S.sessionCounts[albumId] || 0) >= 50){
     S.rareUnlocked[albumId] = true;
     persistRareUnlocked();
+    const t = current();
+    if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
+  }
+}
+
+// PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): the zoetrope's own milestone
+// pool — a full, in-order, no-skip play-through (the same completion this
+// function already requires to even reach here, per spec §8's "reuse the
+// existing in-order/no-skip session-completion machinery") on
+// ZOETROPE_DAYS_TO_EARN distinct calendar days. "Session, never the file" —
+// nothing here reads the album's hash; the zoetrope stays unreachable from
+// looks.js's rendering until this flag flips, same reasoning as rareUnlocked.
+function checkZoetropeUnlock(albumId){
+  if(S.zoetropeUnlocked[albumId]) return;
+  const days = S.zoetropeDayProgress[albumId] || (S.zoetropeDayProgress[albumId] = []);
+  const today = dayKeyFor(Date.now());
+  if(!days.includes(today)){
+    days.push(today);
+    persistZoetropeDayProgress();
+  }
+  if(days.length >= ZOETROPE_DAYS_TO_EARN){
+    S.zoetropeUnlocked[albumId] = true;
+    persistZoetropeUnlocked();
+    // reveal happens on its own via the existing pressing peek (discLook()
+    // is called fresh every time, record-art/peek.js) — this refresh is
+    // only for the platter if this same album happens to be loaded right
+    // now, the same "refresh what's already showing" shape checkRareUnlock
+    // uses just below.
     const t = current();
     if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
   }
@@ -212,6 +265,11 @@ export async function restoreSessions(){
   if(counts) S.sessionCounts = counts;
   const unlocked = await meta.get('rareUnlocked');
   if(unlocked) S.rareUnlocked = unlocked;
+  // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
+  const zoetropeUnlocked = await meta.get('zoetropeUnlocked');
+  if(zoetropeUnlocked) S.zoetropeUnlocked = zoetropeUnlocked;
+  const zoetropeDayProgress = await meta.get('zoetropeDayProgress');
+  if(zoetropeDayProgress) S.zoetropeDayProgress = zoetropeDayProgress;
   const plays = await meta.get('trackPlayCounts');
   if(plays) S.trackPlayCounts = plays;
   // fall back to a copy of the true lifetime counters if this is the first

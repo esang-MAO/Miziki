@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import {
   trackTier, albumKey, trackIdentityKey, selectVariant, selectRareVariant,
-  getVariantDef, variantBackground,
+  selectZoetropeVariant, getVariantDef, variantBackground,
 } from './tiers.js';
 import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
 import { persistAlbumLookPref } from '../history/sessions.js';
@@ -19,6 +19,12 @@ function availableLooks(t){
   const albumId = albumKey(t);
   const tier = trackTier(t);
   const looks = [];
+  // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §5/§8): an earned zoetrope is
+  // a genuine look like rare/metal — the user can still opt back to
+  // another look via the picker (S.albumLookPref), it's just the default
+  // once unlocked (resolveLook() below checks it ahead of rare, per §8's
+  // explicit "the zoetrope wins on display" precedence rule).
+  if(S.zoetropeUnlocked[albumId]) looks.push('zoetrope');
   if(S.rareUnlocked[albumId] && t.art) looks.push('rare');
   const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId);
   if(metal) looks.push('metal');
@@ -34,6 +40,11 @@ export function resolveLook(t){
   const looks = availableLooks(t);
   const pref = S.albumLookPref[albumKey(t)];
   if(pref && looks.includes(pref)) return pref;
+  // PRESSINGS_110 PR7 (§8): "the zoetrope wins on display" over rare —
+  // the rare unlock stays earned/counted either way (checkRareUnlock and
+  // checkZoetropeUnlock are entirely independent counters), this is only
+  // about which one actually paints the disc by default.
+  if(looks.includes('zoetrope')) return 'zoetrope';
   if(looks.includes('rare')) return 'rare';
   if(looks.includes('metal')) return 'metal';
   return 'variant';
@@ -60,6 +71,10 @@ function familyGroupLabel(def){
 }
 
 function buildLookOptionContent(kind, t){
+  if(kind === 'zoetrope'){
+    const def = getVariantDef(selectZoetropeVariant(t));
+    return { group: 'Zoetrope', name: def.name, sub: def.sub, note: def.note };
+  }
   if(kind === 'rare'){
     const def = getVariantDef(selectRareVariant(t));
     return { group: 'Rare', name: def.name, sub: def.sub, note: def.note };
@@ -111,12 +126,32 @@ export function closeLookPicker(){
 }
 
 // The disc's resolved surface for a track, with no DOM side effects: the
-// same look precedence (rare > metal > file variant, unless a saved look
-// preference says otherwise) the platter uses. Shared by applyDiscVariant()
+// same look precedence (zoetrope > rare > metal > file variant, unless a
+// saved look preference says otherwise — PR7, docs/PRESSINGS_110.md §8)
+// the platter uses. Shared by applyDiscVariant()
 // below and record-art/peek.js, so the record that peeks out of a sleeve
 // (launch intro, crate pull) is always the same pressing the platter shows.
 export function discLook(t){
   const look = resolveLook(t);
+  const albumId = albumKey(t);
+  // PRESSINGS_110 PR7 (§5/§8): resolved once per call so both the
+  // 'zoetrope' look itself and the "metal lays over a zoetrope" case
+  // below can share it without drawing the variant twice.
+  const zoetropeId = S.zoetropeUnlocked[albumId] ? selectZoetropeVariant(t) : null;
+  const zoetropeDef = zoetropeId ? getVariantDef(zoetropeId) : null;
+  // The record's own real format (LP/45) only matters visually for
+  // whichever album is actually on the platter right now — S.recordFormat
+  // is set at load() for that one record (player/transport.js). A peek at
+  // a different, not-currently-loaded album (the crate, a friend's shelf)
+  // falls back to the LP art, the format table's own unremarkable
+  // default, the same way every other format-unaware caller here already
+  // does.
+  const curT = current();
+  const format = (curT && albumKey(curT) === albumId) ? S.recordFormat : null;
+  if(look === 'zoetrope'){
+    return { look, rare: false, rareId: null, tier: null, variant: zoetropeId, metal: null,
+      bg: variantBackground(zoetropeDef, format), lightOverlay: null, labelKind: 'amber', paperLabel: false };
+  }
   const rare = look === 'rare';
   if(rare){
     // CR7: four rare pressings now, not one — Ultra clear/Picture disc keep
@@ -148,7 +183,18 @@ export function discLook(t){
     // are already resolved above regardless of the metal look, so the
     // underlying def's own colours (ring/body/rim, see tiers.js's F())
     // are always in hand with no extra lookup.
-    const def = getVariantDef(variant);
+    //
+    // PR7 (§8): "Metals can still lay over a zoetrope" — once a zoetrope
+    // is earned it's replaced this album's pressing everywhere for this
+    // user (§8's own precedence rule), so the metal's rim/underglow reads
+    // the zoetrope's own colours instead of the file-drawn variant's —
+    // "a gold Verdigris has a green edge; two gold records differ" holds
+    // the same way for a zoetrope-replaced pressing. Metal's own visual
+    // (the synthesized brushed-ring/radial texture) still fully covers
+    // the disc either way, same as it already does over every other
+    // tier — nothing in this app composites a pressing's own art under
+    // the metal layer, zoetrope included.
+    const def = zoetropeDef || getVariantDef(variant);
     const pressingRim = def.rim || (def.colors && def.colors[2]);
     const pressingBody = def.body || (def.colors && def.colors[1]);
     return { look, rare: false, rareId: null, tier, variant, metal,
@@ -188,6 +234,14 @@ export function applyDiscVariant(t, crossfade){
   label.classList.toggle('rare', d.rare);
   if(d.rare){
     disc.dataset.variant = d.rareId;
+    delete disc.dataset.tier;
+  } else if(d.look === 'zoetrope'){
+    // PR7: discLook() returns tier:null for a zoetrope, the same as rare —
+    // there's no tier-1/2/3 distinction once a pressing's been replaced by
+    // an earned zoetrope, so this mirrors the rare branch's own
+    // "delete, don't stringify null" handling instead of falling into the
+    // metal/variant branch below.
+    disc.dataset.variant = d.variant;
     delete disc.dataset.tier;
   } else {
     disc.dataset.tier = d.tier;
