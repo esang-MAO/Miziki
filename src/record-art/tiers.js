@@ -159,11 +159,11 @@ export const VARIANT_DEFS = {
   // ---- PRESSINGS_110: 22 new effects across 7 new techniques (tri-split,
   // pinwheel, target, core, galaxy, burst, cloud), bringing the shelf from
   // 32 to 54. Colours/bands are ported verbatim from data/pressings.json;
-  // `pattern` keys below aren't handled by variantBackground() yet — until
-  // the next PR adds real switch branches for them, every one of these
-  // falls through to the 'solid' default, which still renders a sane
-  // radial gradient from the same ring/body/rim 3-tuple every other
-  // pattern already carries. ----
+  // variantBackground() below has a real switch branch for each of these
+  // seven `pattern` keys (PRESSINGS_110 PR2), adapted from that file's own
+  // css_layers hints into the same gradient-only vocabulary every other
+  // pattern here already uses — see that function's own entry for why
+  // filter/mask/opacity aren't used even where the reference art does. ----
   'vermilion-chalk-pine': {family:'effects', finish:'opaque', band:'uncommon', pattern:'tri-split', inks:['#C4302B','#E6E2DA','#2A6A4F'], rim:'#B9B5AC', colors:F('#F4F1EA','#E6E2DA','#B9B5AC'), name:'Vermilion Chalk Pine', sub:null, note:'Three vertical bands — vermilion, chalk, and pine — side by side with no blend.'},
   'cobalt-bone-madder':   {family:'effects', finish:'opaque', band:'uncommon', pattern:'tri-split', inks:['#3660BE','#DED7C7','#9A3328'], rim:'#A9A69B', colors:F('#F1EDE3','#DED7C7','#A9A69B'), name:'Cobalt Bone Madder', sub:null, note:'Cobalt and madder squared off on either side of a plain bone band.'},
   'ochre-jet-terracotta': {family:'effects', finish:'opaque', band:'common', pattern:'tri-split', inks:['#9A6E22','#1C1A1E','#C05131'], rim:'#0A090B', colors:F('#2A272C','#1C1A1E','#0A090B'), name:'Ochre Jet Terracotta', sub:null, note:'Gold and clay bracket a black middle band — the common tri-split of the shelf.'},
@@ -387,6 +387,74 @@ export function variantBackground(def){
       // the "angle follows the platter" rule from the README
       return 'conic-gradient(from 40deg,' + a + ' 0deg 150deg,' + drift[0] + ' 150deg 175deg,' + drift[1] + ' 175deg 200deg,' + a + ' 200deg 360deg),'
         + 'radial-gradient(circle at 50% 50%,transparent 0 88%,' + c + ' 94% 100%)';
+    }
+    // ---- PRESSINGS_110: the seven new effect techniques. Every caller
+    // assigns the return value straight to `.style.background`, a plain
+    // CSS property — not `filter`/`mask`/`opacity` — so each case below
+    // is adapted from data/pressings.json's own css_layers (which do use
+    // filter/mask) into gradient-only layers that read the same way, the
+    // same house style every pattern above already follows. ----
+    case 'tri-split': {
+      // three vertical bands, no blend between them
+      const [i1, i2, i3] = def.inks || [a, b, c];
+      return 'linear-gradient(90deg,' + i1 + ' 0 33.4%,' + i2 + ' 33.4% 66.7%,' + i3 + ' 66.7% 100%)';
+    }
+    case 'pinwheel': {
+      // six hard wedges spun off the label — a conic wheel, distinct from
+      // swirl's soft feathered streaks
+      const [i1, i2] = def.inks || [a, b];
+      return 'conic-gradient(from 12deg,' + i1 + ' 0deg 60deg,' + i2 + ' 60deg 120deg,'
+        + i1 + ' 120deg 180deg,' + i2 + ' 180deg 240deg,' + i1 + ' 240deg 300deg,' + i2 + ' 300deg 360deg)';
+    }
+    case 'target': {
+      // three concentric bands with hard transparent gaps between them —
+      // a target, not a smooth ring — over the base colour
+      const base = def.base || a, ink = def.ink || b, rim = def.rim || c;
+      return 'radial-gradient(circle at 50% 50%,transparent 0 36%,' + ink + ' 36% 42%,'
+        + 'transparent 42% 54%,' + ink + ' 54% 60%,transparent 60% 72%,' + ink + ' 72% 78%,'
+        + 'transparent 78% 92%,' + rim + ' 92% 100%),'
+        + 'radial-gradient(circle at 50% 50%,' + base + ' 0 100%)';
+    }
+    case 'core': {
+      // a clean, hard edge between core and rim — "no blend between the
+      // two," per the spec — so a single two-stop radial is enough
+      const inner = def.inner || a, outer = def.outer || b;
+      return 'radial-gradient(circle at 50% 50%,' + inner + ' 0 58%,' + outer + ' 58% 100%)';
+    }
+    case 'galaxy': {
+      // a soft two-tone swirl flecked with small specks of a third ink —
+      // def.specks may be one colour or (for the busiest galaxy) an
+      // alternating pair, same seven fixed points the reference art uses
+      const [t1, t2] = def.tones || [a, b];
+      const rim = def.rim || c;
+      const specks = def.specks;
+      const speckAt = (i) => Array.isArray(specks) ? specks[i % specks.length] : (specks || c);
+      const points = [[30,30],[72,62],[58,22],[26,70],[80,34],[46,84],[68,80]];
+      const speckLayers = points.map(([x, y], i) =>
+        'radial-gradient(circle at ' + x + '% ' + y + '%,' + speckAt(i) + ' 0 2%,transparent 3%)');
+      return speckLayers.join(',') + ','
+        + 'conic-gradient(from -40deg,' + t1 + ' 0deg 79.2deg,' + t2 + ' 79.2deg 136.8deg,'
+        + t1 + ' 136.8deg 208.8deg,' + t2 + ' 208.8deg 273.6deg,' + t1 + ' 273.6deg 360deg),'
+        + 'radial-gradient(circle at 50% 50%,transparent 0 88%,' + rim + ' 94% 100%)';
+    }
+    case 'burst': {
+      // starburst rays fanning from the label, fading out before the rim —
+      // the fade is a radial layer on top with a transparent band, standing
+      // in for the reference art's own CSS mask
+      const base = def.base || a, ink = def.ink || b, rim = def.rim || c;
+      return 'radial-gradient(circle at 50% 50%,' + base + ' 0 22%,transparent 26% 74%,' + rim + ' 92% 100%),'
+        + 'repeating-conic-gradient(from 3deg,' + ink + ' 0deg 5deg,transparent 5deg 15deg)';
+    }
+    case 'cloud': {
+      // soft islands of the second ink adrift in the base — the same four
+      // fixed spots the reference art uses, each a feathered blob rather
+      // than a hard dot
+      const base = def.base || a, ink = def.ink || b, rim = def.rim || c;
+      return 'radial-gradient(circle at 30% 34%,' + ink + ' 0 10%,transparent 26%),'
+        + 'radial-gradient(circle at 70% 40%,' + ink + ' 0 7%,transparent 20%),'
+        + 'radial-gradient(circle at 52% 74%,' + ink + ' 0 9%,transparent 23%),'
+        + 'radial-gradient(circle at 24% 66%,' + ink + ' 0 5%,transparent 15%),'
+        + 'radial-gradient(circle at 50% 50%,' + base + ' 0 90%,' + rim + ' 92% 100%)';
     }
     default: // 'solid'
       return 'radial-gradient(circle at 50% 50%,' + a + ' 0 27%,' + b + ' 27% 90%,' + c + ' 90% 100%)';
