@@ -138,14 +138,31 @@ function bgTeardown(){
 // brief pause. Only treat it as really paused if nothing starts again quickly — that
 // keeps the lock screen from flickering and the media element running across tracks
 // (iOS is touchy about restarting an element outside a tap).
+//
+// Found 2026-10-26 ("the lock screen doesn't even recognize the song"):
+// mediaSessionSync()/bgPosition() used to be gated behind bgRouteActive()
+// here (and in applyBgAudioSetting()), on the assumption that Media
+// Session metadata only matters once the hidden <audio> element is what
+// keeps the OS treating this as real media playback. But
+// navigator.mediaSession is a plain JS API independent of that element —
+// it's exactly as cheap to keep populated whether or not Background
+// playback (the opt-in "keep playing when the screen locks" toggle) is
+// on, and leaving it unset meant Control Center/the lock screen fell back
+// to iOS's own generic widget (the page's bare hostname for a title, and
+// its default ±10s skip buttons instead of real previous/next — see
+// bgInstallHandlers()'s own comment on that default) for as long as the
+// page happened to still be alive without it. The <audio> element itself
+// — what actually lets playback survive a real background/lock, not just
+// this metadata — stays exactly as gated on bgRouteActive() as before.
 export function bgSync(){
-  if(!bgRouteActive()) return;
-  clearTimeout(S.bg.idleTimer);
-  if(S.playing){
-    const el = bgEl();
-    if(el.srcObject && el.paused) bgStartEl();
-  } else {
-    S.bg.idleTimer = setTimeout(() => { if(!S.playing) bgIdleNow(); }, 1500);
+  if(bgRouteActive()){
+    clearTimeout(S.bg.idleTimer);
+    if(S.playing){
+      const el = bgEl();
+      if(el.srcObject && el.paused) bgStartEl();
+    } else {
+      S.bg.idleTimer = setTimeout(() => { if(!S.playing) bgIdleNow(); }, 1500);
+    }
   }
   mediaSessionSync();
 }
@@ -163,13 +180,21 @@ function mediaSessionSync(){
   if(!S.bg.handlers) bgInstallHandlers();
   const key = [t.id, t.tags.title, t.tags.artist, t.tags.album, t.art || ''].join('|');
   if(key !== S.bg.msKey){
-    S.bg.msKey = key;
     const base = {title:t.tags.title, artist:t.tags.artist, album:t.tags.album};
+    let assigned = false;
     try{
       ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: t.art ? [{src:t.art, sizes:'512x512'}] : []}));
+      assigned = true;
     }catch(_e){
-      try{ ms.metadata = new MediaMetadata(base); }catch(_){}
+      try{ ms.metadata = new MediaMetadata(base); assigned = true; }catch(_){}
     }
+    // Only remember this key once a MediaMetadata assignment actually
+    // succeeded (found 2026-10-26, alongside the bgRouteActive() gating
+    // above) — committing the key on a failed attempt meant a single
+    // transient MediaMetadata/artwork error permanently skipped every
+    // future retry for that same track, since the key comparison above
+    // would never see a change again until the track itself changed.
+    if(assigned) S.bg.msKey = key;
   }
   if(S.playing){ try{ ms.playbackState = 'playing'; }catch(_e){} }
   bgPosition();
@@ -203,7 +228,7 @@ function bgRemoveHandlers(){
 }
 
 export function bgPosition(){
-  if(!bgRouteActive() || !('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+  if(!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
   const t = current(); if(!t || !t.duration) return;
   try{
     navigator.mediaSession.setPositionState({duration:t.duration, playbackRate:S.rate > 0 ? S.rate : 1,
@@ -230,9 +255,14 @@ export function bgUpdateUI(){
 export function applyBgAudioSetting(){
   // on iOS this also lets Web Audio play with the silent switch on
   try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(_e){}
+  // applyOutputRoute() already tears down the hidden <audio> element on
+  // an on->off transition (its own else branch, bgTeardown()) — that's
+  // the real, audio-element-specific cleanup this toggle controls.
+  // Media Session metadata/handlers are kept either way (see bgSync()'s
+  // own comment above): bgTeardown() still wipes them as a side effect of
+  // that transition, so re-sync right after to put them straight back.
   applyOutputRoute();
-  if(bgRouteActive()) mediaSessionSync();
-  else bgTeardown();
+  mediaSessionSync();
 }
 
 export function toggleBgAudio(){
