@@ -1,0 +1,41 @@
+/* ================= 7″ picture sleeve (docs/17_SINGLES.md) =================
+   A single opens into this flat, fading sheet instead of the gatefold's
+   swing. Same .seal-sheet/.seal-sheet-box shape as 12-sealed-records.css
+   (position:fixed scrim + a bottom sheet that translates up), including
+   that file's own dark-theme-literal lock on the box — this sheet reuses
+   the gatefold's own left-panel content verbatim (buildGatefoldLeftPanel,
+   docs/17_SINGLES.md), so it keeps the same fixed dark "sleeve interior"
+   look that content was built against, for the same reason the sealed
+   sheet's own box does. The sleeve face/peek-disc pair mirrors
+   src/profile/records.js's .rec-sleeve/.rec-disc shape (18-storefront.css)
+   at a larger size. */
+.picture-sleeve{position:fixed;inset:0;z-index:30;display:none;background:rgba(5,7,9,.72)}
+.picture-sleeve.open{display:block}
+.picture-sleeve-box{position:absolute;left:20px;right:20px;bottom:0;top:8%;
+  background:#1C1226;border-radius:10px 10px 0 0;overflow-y:auto;padding:var(--sp-4);
+  opacity:0;transition:opacity .25s ease-out;
+  --paper:#EFE9DF; --muted:#94A0A6; --accent-text:#FF9E2C}
+.picture-sleeve.show .picture-sleeve-box{opacity:1}
+@media (prefers-reduced-motion:reduce){ .picture-sleeve-box{transition:opacity .15s} }
+.picture-sleeve-close{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--paper);
+  background:none;border:0;padding:0;margin-bottom:var(--sp-3)}
+.picture-sleeve-face{position:relative;width:72%;max-width:320px;margin:0 auto var(--sp-4);aspect-ratio:1}
+.picture-sleeve-face img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;border-radius:var(--radius-control);
+  box-shadow:var(--sh-3);background:linear-gradient(165deg,#2B2622,#1A1716);display:block}
+.picture-sleeve-peek{position:absolute;left:10%;top:-16%;width:80%;aspect-ratio:1;z-index:0}
+.picture-sleeve-text{text-align:center;margin-bottom:var(--sp-3)}
+.picture-sleeve-artist{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.picture-sleeve-title{font-family:var(--display);font-size:var(--fs-title);font-weight:700;margin:2px 0}
+.picture-sleeve-chip{display:inline-block;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+  color:var(--accent-text);border:1px solid var(--accent);border-radius:3px;padding:2px var(--sp-2);margin-top:4px}
+.picture-sleeve-chip:empty{display:none}
+.picture-sleeve-body{outline:none}
+.picture-sleeve-play{width:100%;display:flex;align-items:center;gap:var(--sp-3);
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);
+  padding:var(--sp-3);margin-bottom:var(--sp-4);color:var(--paper);text-align:left}
+.picture-sleeve-play-glyph{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:var(--fs-caption)}
+.picture-sleeve-now .picture-sleeve-play-glyph{background:none;color:var(--accent-text)}
+.picture-sleeve-play-text{flex:1;min-width:0;display:flex;justify-content:space-between;gap:var(--sp-2)}
+.picture-sleeve-play-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picture-sleeve-play-dur{flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:var(--fs-caption)}

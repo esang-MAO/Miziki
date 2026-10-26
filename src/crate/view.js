@@ -34,6 +34,7 @@ import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
 import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices } from '../gatefold/view.js';
 import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
+import { isSingleRecord, openPictureSleeve } from '../gatefold/picture-sleeve.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { playNext, addToQueue } from '../player/queue.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
@@ -101,6 +102,10 @@ function openCrateAlbum(item){
   // too — a sealed record still opens the sealed sheet there, same as on
   // a phone.
   if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
+  // docs/17_SINGLES.md: a single — one side, one track — opens the flat,
+  // fading picture sleeve instead of the gatefold's two-panel swing.
+  // Sealing (above) takes precedence over this check.
+  if(isSingleRecord(item)){ openPictureSleeve(item); return; }
   // CR10 (docs/13_CRATE.md) point 1: "Tap still opens the gatefold" — the
   // D5-era desktop branch that showed the tracklist in the side panel
   // instead, on tap, is gone. The panel now follows the front record on
