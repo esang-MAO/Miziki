@@ -74,6 +74,24 @@
 .disc-metal-light{position:absolute;inset:0;border-radius:50%;pointer-events:none;
   opacity:0;mix-blend-mode:soft-light;transition:opacity .5s,background .5s}
 .disc-metal-light.on{opacity:.85}
+/* PRESSINGS_110 follow-up (strobe-animation wiring, Ken, 2026-10-26): the
+   zoetrope frame ring. Every zoetrope disc shares the same template
+   geometry (viewBox -100..100, a ring stroke spanning radius 54 to 91 out
+   of a body radius of 100) -- a single fixed mask exposes just that
+   annulus, so the same full-disc image record-art/looks.js already points
+   #disc's own background at can be shown a second time here, clipped to
+   the ring alone, and given its own quantized rotation
+   (player/clock.js's frame(), via record-art/zoetrope-motion.js) that's
+   independent of #disc's smoothly-spinning transform -- a sibling, not a
+   child, for the exact same reason .disc-metal-light above is one.
+   transition never covers transform: that's written every animation
+   frame by JS, never animated by CSS. */
+.disc-zoetrope-ring{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background-size:cover;background-position:center;
+  mask-image:radial-gradient(circle,transparent 0,transparent 53%,white 55%,white 90%,transparent 92%,transparent 100%);
+  -webkit-mask-image:radial-gradient(circle,transparent 0,transparent 53%,white 55%,white 90%,transparent 92%,transparent 100%);
+  opacity:0;transition:opacity .5s,background .5s}
+.disc-zoetrope-ring.on{opacity:1}
 .label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
   display:grid;place-content:center;text-align:center;color:#170D04;

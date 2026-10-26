@@ -40,6 +40,7 @@ const KNOWN_PREF_KEYS = new Set([
   'loudnessMode',
   'eq',
   'mono', 'balance', 'deviceVolume',
+  'zoetropesEnabled',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -85,6 +86,7 @@ export function serializePrefs(S){
     loudnessMode: S.loudnessMode,
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
+    zoetropesEnabled: S.zoetropesEnabled,
   }, unknownPrefKeys || {});
 }
 
@@ -205,6 +207,11 @@ export function parsePrefs(raw){
   if(typeof p.mono === 'boolean') out.mono = p.mono;
   if(typeof p.balance === 'number') out.balance = Math.max(-1, Math.min(1, p.balance));
   if(typeof p.deviceVolume === 'number') out.deviceVolume = Math.max(0, Math.min(1, p.deviceVolume));
+  // Follow-up to PRESSINGS_110 PR7: a saved object without this (every
+  // device before this PR) loads as on, the stated default and today's
+  // behavior — the same "missing means the default" shape every other
+  // boolean toggle in this file already follows.
+  if(typeof p.zoetropesEnabled === 'boolean') out.zoetropesEnabled = p.zoetropesEnabled;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

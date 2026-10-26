@@ -237,6 +237,11 @@ function applyPrefs(p){
     const d = $('#balanceDesc'); if(d) d.textContent = balanceCaptionFor(S.balance); }
   if(typeof p.deviceVolume === 'number') S.deviceVolume = p.deviceVolume;
   { const s = $('#barVolume'); if(s) s.value = String(S.deviceVolume); }
+  // Follow-up to PRESSINGS_110 PR7 (Ken, 2026-10-26): no dedicated UI side
+  // effect of its own beyond the switch's own text/aria-pressed — same
+  // inline sync shape as monoBtn/surfaceNoiseUnderMusicBtn above.
+  if(typeof p.zoetropesEnabled === 'boolean') S.zoetropesEnabled = p.zoetropesEnabled;
+  { const b = $('#zoetropesBtn'); if(b){ b.textContent = S.zoetropesEnabled ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.zoetropesEnabled)); } }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's

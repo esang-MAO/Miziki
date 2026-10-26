@@ -133,6 +133,25 @@ export const S = {
   // day-progress with the account backup") so progress isn't stranded on
   // one device.
   zoetropeUnlocked:{}, zoetropeDayProgress:{},
+  // Follow-up to PR7 (Ken, 2026-10-26): "include an option in the settings
+  // to turn off zoetropes earned." A saved boolean, same persisted-setting
+  // shape as paperLabelOnLossy (docs/13_CRATE.md CR7) — default true (every
+  // device before this PR loads as on, the long-standing behavior).
+  // Turning it off stops awarding new zoetropes (history/sessions.js's
+  // sessionTrackComplete() skips checkZoetropeUnlock() entirely, so
+  // zoetropeDayProgress/zoetropeUnlocked are frozen, not reset) and stops
+  // offering an already-earned one as the active look
+  // (record-art/looks.js's availableLooks() stops pushing 'zoetrope',
+  // which falls through resolveLook()'s existing rare/metal/variant
+  // precedence with no further change needed there).
+  zoetropesEnabled:true,
+  // The frame count of whichever zoetrope is currently showing on the
+  // platter, or null when none is. Runtime only — never saved, never a
+  // prefs field, the same posture as recordFormat/labelSideFormat/rpmEase
+  // above. Set by record-art/looks.js's applyDiscVariant() and read every
+  // tick by player/clock.js's frame() to drive the quantized frame-ring
+  // overlay (record-art/zoetrope-motion.js's zoetropeRingAngleDeg()).
+  zoetropeFrameCount:null,
   // metal tiers (see spec) — a separate counter from sessionCounts, keyed by
   // trackIdentityKey(). trackPlayCounts/sessionCounts are the true lifetime
   // totals (used for Top Songs, rare-variant progress, collection discovery);

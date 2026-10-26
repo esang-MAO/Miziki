@@ -173,7 +173,12 @@ export function sessionTrackComplete(t){
     persistMetalEligibleSessions();
     persistAlbumLastPlayed();
     checkRareUnlock(albumId);
-    checkZoetropeUnlock(albumId);
+    // Follow-up to PR7 (Ken, 2026-10-26): the Settings "Zoetropes earned"
+    // switch — off stops awarding new zoetropes outright, freezing
+    // zoetropeDayProgress exactly where it is rather than resetting it, so
+    // turning it back on resumes with zero progress lost. rareUnlock above
+    // is unaffected either way.
+    if(S.zoetropesEnabled) checkZoetropeUnlock(albumId);
     MizikiSocial.listeningChanged();
     // the album metal (if any) is a pure function of the count that just
     // changed — re-render the platter if this album is still what's showing

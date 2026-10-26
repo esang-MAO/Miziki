@@ -12,6 +12,7 @@ import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
 import { RPM_33 } from '../record-art/format.js';
+import { zoetropeRingAngleDeg } from '../record-art/zoetrope-motion.js';
 
 // AU10 (docs/16_AUDIO.md §5, "the speed change"): the platter's own base
 // RPM, eased over S.rpmEase.ms when one's in flight (player/transport.js's
@@ -107,6 +108,28 @@ export function frame(now){
     // AU10 (docs/16_AUDIO.md §5): rpm × 6°/s -- 200°/s at 33⅓, 270°/s at 45.
     S.angle = (S.angle + dt * spin * currentBaseRpm() * 6) % 360;
     $('#disc').style.transform = 'rotate(' + S.angle + 'deg)';
+    // Follow-up to PRESSINGS_110 PR6/PR7 (strobe-animation wiring, Ken,
+    // 2026-10-26): the zoetrope frame ring tracks the same real angle as
+    // #disc, quantized to the nearest frame-slot boundary
+    // (record-art/zoetrope-motion.js) so each figure appears to animate in
+    // place rather than merely spin. `spin` above is already the fraction
+    // of full speed in effect right now (0 while stopped/spun-down, up to
+    // S.rate while playing) — the same number frame()'s own S.angle advance
+    // already multiplies by — so actualRps is just nominalRps*spin, with
+    // no separate Sundown lookup needed here. reducedMotion is always
+    // false at this call site: REDUCED is already checked by the
+    // surrounding `if`, which is what makes "no stepping" true for this
+    // ring the same way it's already true for #disc itself (no transform
+    // is ever written while reduced motion is on).
+    if(S.zoetropeFrameCount){
+      const nominalRps = currentBaseRpm() / 60;
+      const ringAngle = zoetropeRingAngleDeg({
+        realAngleDeg: S.angle, frameCount: S.zoetropeFrameCount,
+        actualRps: nominalRps * spin, nominalRps,
+        mode: S.mode, reducedMotion: false,
+      });
+      $('#discZoetropeRing').style.transform = 'rotate(' + ringAngle + 'deg)';
+    }
   }
 
   if(now - lastUI > 90){ lastUI = now; drawTime(); }

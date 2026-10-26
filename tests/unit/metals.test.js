@@ -16,14 +16,14 @@ const {
   albumMetalFor, trackMetalFor, ALBUM_METAL_THRESHOLDS, TRACK_METAL_THRESHOLDS,
   METAL_COLORS, metalLabelKind, metalBackground, metalPlatterBackground, metalLightOverlay,
 } = await import('../../src/record-art/metals.js');
-const { resolveLook } = await import('../../src/record-art/looks.js');
+const { resolveLook, discLook } = await import('../../src/record-art/looks.js');
 const { albumKey } = await import('../../src/record-art/tiers.js');
 const { S } = await import('../../src/state.js');
 
 function resetState(overrides){
   Object.assign(S, {
     metalEligibleSessions: {}, trackMetalEligiblePlays: {}, rareUnlocked: {}, albumLookPref: {},
-    mergedStats: null,
+    mergedStats: null, zoetropeUnlocked: {}, zoetropesEnabled: true,
   }, overrides);
 }
 
@@ -141,6 +141,86 @@ test('resolveLook: a saved preference for a look no longer available falls back'
 test('resolveLook: nothing earned on a tier-1 track falls back to the plain variant', () => {
   resetState();
   assert.equal(resolveLook(album), 'variant');
+});
+
+/* ================= PRESSINGS_110 PR7 follow-up: the "Zoetropes earned"
+   settings switch (Ken, 2026-10-26) ================= */
+
+test('resolveLook: an earned zoetrope wins on display over a rare unlock (PR7 §8)', () => {
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    rareUnlocked: { [albumId]: true },
+  });
+  assert.equal(resolveLook(album), 'zoetrope');
+});
+
+test('resolveLook: with zoetropesEnabled off, an earned zoetrope is never offered — falls through to rare', () => {
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    rareUnlocked: { [albumId]: true },
+    zoetropesEnabled: false,
+  });
+  assert.equal(resolveLook(album), 'rare');
+});
+
+test('resolveLook: with zoetropesEnabled off and nothing else earned, falls all the way through to the plain variant', () => {
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    zoetropesEnabled: false,
+  });
+  assert.equal(resolveLook(album), 'variant');
+});
+
+test('resolveLook: a saved zoetrope preference is skipped while zoetropesEnabled is off, same as any other unavailable look', () => {
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    rareUnlocked: { [albumId]: true },
+    albumLookPref: { [albumId]: 'zoetrope' },
+    zoetropesEnabled: false,
+  });
+  assert.equal(resolveLook(album), 'rare');
+});
+
+test('discLook: an earned, enabled zoetrope returns the LP frame count by default, the one live player/clock.js needs to drive the ring', () => {
+  resetState({ zoetropeUnlocked: { [albumId]: true } });
+  const d = discLook(album);
+  assert.equal(d.look, 'zoetrope');
+  assert.equal(typeof d.frameCount, 'number');
+  assert.ok(d.frameCount > 0);
+});
+
+test('discLook: with zoetropesEnabled off, the look falls through to the plain variant and carries no frameCount at all', () => {
+  resetState({ zoetropeUnlocked: { [albumId]: true }, zoetropesEnabled: false });
+  const d = discLook(album);
+  assert.equal(d.look, 'variant');
+  assert.equal(d.frameCount, undefined);
+});
+
+test('discLook: a metal laid over an earned zoetrope reads the zoetrope\'s own rim/underglow colors while the switch is on', () => {
+  // resolveLook's own precedence puts an earned zoetrope ahead of metal
+  // (§8: "the zoetrope wins on display"), so a saved look preference of
+  // 'metal' is what reaches discLook's "metal lays over a zoetrope"
+  // branch — the opt-back path availableLooks()'s own comment describes,
+  // the same way a user who's earned both would reach it from the picker.
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    metalEligibleSessions: { [albumId]: albumGold },
+    albumLookPref: { [albumId]: 'metal' },
+  });
+  const withZoetrope = discLook(album);
+  resetState({
+    zoetropeUnlocked: { [albumId]: true },
+    metalEligibleSessions: { [albumId]: albumGold },
+    albumLookPref: { [albumId]: 'metal' },
+    zoetropesEnabled: false,
+  });
+  const withoutZoetrope = discLook(album);
+  assert.equal(withZoetrope.look, 'metal');
+  assert.equal(withoutZoetrope.look, 'metal');
+  // Turning the switch off changes which def's rim/body colours the
+  // metal's own underglow reads — the same "pretend the feature doesn't
+  // exist" consistency the switch gives everywhere else.
+  assert.notEqual(withZoetrope.bg, withoutZoetrope.bg);
 });
 
 /* ================= CR7: pressings and finishes (docs/13_CRATE.md) ================= */
