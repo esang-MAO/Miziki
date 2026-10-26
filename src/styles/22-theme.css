@@ -114,3 +114,26 @@
   transition:background-color 1.5s ease, color 1.5s ease, border-color 1.5s ease,
     fill 1.5s ease, stroke 1.5s ease !important;
 }
+
+/* The app's own status bar (miziki.html's apple-mobile-web-app-status-bar-
+   style, black-translucent) always renders the OS's time/battery glyphs in
+   white, since iOS has no translucent style that gives dark glyphs. Dark
+   theme's own sky1 (#1D2F38, 00-base.css) is already dark enough there;
+   light theme's pale sky1 (#F6F1E7, above) is not, so light theme gets its
+   own thin dark scrim behind exactly the safe-area strip the status bar
+   sits over -- restricted to that one strip, never bleeding into the rest
+   of .sky-bg, so the app's own light background is otherwise untouched.
+   .sky-bg::before itself defaults to display:none in 00-base.css (dark
+   theme never shows it); the two light selectors below are the only
+   places that turn it back on, the same pinned-vs-auto split every other
+   light override in this file already uses. */
+:root[data-theme="light"] .sky-bg::before{
+  display:block; content:''; position:absolute; left:0; right:0; top:0;
+  height:env(safe-area-inset-top); background:rgba(21,35,43,.35);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .sky-bg::before{
+    display:block; content:''; position:absolute; left:0; right:0; top:0;
+    height:env(safe-area-inset-top); background:rgba(21,35,43,.35);
+  }
+}
