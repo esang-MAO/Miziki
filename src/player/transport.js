@@ -354,7 +354,7 @@ export function load(i){
   renderMiniPlayer();
   updateGatefoldNowPlaying();
   drawTime();
-  $('#playerShareBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
+  $('#playerShareIconBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
   $('#queueBtn').style.display = '';
   $('#sleepTimerBtn').style.display = '';
   updateCreditsButtonForCurrent();

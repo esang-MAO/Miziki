@@ -88,8 +88,9 @@ async function fillShareDisc(ctx, t, look, cx, cy, r, half){
    behind its sleeve (fillShareDisc), kicker + title (auto-shrink to 2
    lines) + artist + album·year, a live progress line, spec chips, brand
    footer. `opts`: {style, format, data}, data gathered by the caller
-   (renderPlayerShareCanvas) from current()/S.pos/resolveLook() — the
-   composer itself touches nothing but its arguments. ---- */
+   (sheet.js's own gatherNowPlayingData()) from current()/S.pos/
+   resolveLook() — the composer itself touches nothing but its
+   arguments. ---- */
 export async function composePlayerShareImage(opts){
   const style = opts.style || 'night', format = opts.format || 'story';
   const dim = SHARE_FORMATS[format] || SHARE_FORMATS.story;

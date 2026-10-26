@@ -103,7 +103,7 @@ export function clearToRest(){
   $('#platterBox').classList.add('disc-hidden');
   $('#sleeve').style.display = 'none';
   S.platterEmpty = true;
-  ['#playerShareBtn', '#queueBtn', '#sleepTimerBtn', '#trackInfoBtn', '#playerFavBtn']
+  ['#playerShareIconBtn', '#queueBtn', '#sleepTimerBtn', '#trackInfoBtn', '#playerFavBtn']
     .forEach(sel => { const b = $(sel); if(b) b.style.display = 'none'; });
   stopSleepState();
   renderMiniPlayer();

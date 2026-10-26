@@ -1024,10 +1024,15 @@
         <h2 id="trackName">Nothing on the platter</h2>
         <button class="icon-btn" id="trackInfoBtn" aria-label="Credits and notes" style="display:none">ⓘ</button>
         <button class="icon-btn heart-btn" id="playerFavBtn" aria-label="Favorite" aria-pressed="false" style="display:none">♡</button>
-        <!-- RF8 (docs/12_REFINE.md): Edit info/Share/Queue/Sleep timer moved
+        <!-- SH1 (docs/18_SHARE.md): a visible Share entry point, not an
+             overflow row nobody found -- same hidden-until-a-track-loads
+             rule the old #playerShareBtn overflow row had. -->
+        <button class="icon-btn" id="playerShareIconBtn" aria-label="Share" style="display:none">↗</button>
+        <!-- RF8 (docs/12_REFINE.md): Edit info/Queue/Sleep timer moved
              into this one overflow; Look stays put below (not one of the
              four the doc names), and the mini-player's own queue shortcut
-             (#miniQueueBtn) is untouched. -->
+             (#miniQueueBtn) is untouched. SH1 moved Share out of this menu
+             onto its own icon button, above. -->
         <button class="icon-btn" id="playerOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
           <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
         </button>
@@ -1065,7 +1070,6 @@
     <div class="overflow-scrim" id="playerOverflowScrim"></div>
     <div class="overflow-menu" id="playerOverflowMenu" role="menu">
       <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
-      <button class="overflow-menu-row" id="playerShareBtn" style="display:none" role="menuitem">Share</button>
       <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
       <!-- AU6 (docs/16_AUDIO.md §3): EQ -- beside Queue in spirit (both
            live in this same overflow menu, RF8's one home for the player's
@@ -1460,20 +1464,24 @@
   </div>
 </div>
 
-<!-- SHARE: composed off-screen, not a screenshot of the tab. RF10
-     (docs/12_REFINE.md, "share cards, one good default"): the sheet opens
-     on its best style (S.shareStyle, applied but not shown) with one
-     visible choice, Story/Square -- Portrait (still a real SHARE_FORMATS
-     entry, src/share/styles.js, "composers unchanged") just has no button
-     here any more. Style and Include move into #shareMoreBody, a plain
-     hidden-attribute disclosure (same shape as RF9's #soundAdvancedBody,
-     src/wiring/character.js), toggled by #shareMoreToggle down in the
-     actions row alongside Save/Copy, per docs/design/refine/README.md's
-     "Share sheet (RF10)" entry. -->
+<!-- SHARE (SH1, docs/18_SHARE.md): one sheet, five entry points. Composed
+     off-screen, not a screenshot of the tab. Opened as openShareSheet({card,
+     data}) -- #shareHeadTitle reads the card's own name ("Share · Now
+     Playing"), the format seg's pressed button and #shareToggles' own rows
+     are rebuilt per card on every open (src/share/sheet.js's CARD_DEFS),
+     since each card has its own default format and its own Include list
+     (SH1 item 3). RF10 (docs/12_REFINE.md, "share cards, one good
+     default"): the sheet still opens on its best style (S.shareStyle,
+     applied but not shown) with one visible choice, Story/Square --
+     Portrait (still a real SHARE_FORMATS entry, src/share/styles.js,
+     "composers unchanged") just has no button here. Style and Include stay
+     behind #shareMoreBody, a plain hidden-attribute disclosure (same shape
+     as RF9's #soundAdvancedBody, src/wiring/character.js), toggled by
+     #shareMoreToggle down in the actions row alongside Save/Copy. -->
 <div class="share-overlay" id="shareOverlay" aria-hidden="true">
   <div class="share-sheet" id="shareSheetBox">
     <div class="edit-head">
-      <span>Share</span>
+      <span id="shareHeadTitle">Share</span>
       <button class="edit-close" id="shareClose" aria-label="Close">✕</button>
     </div>
     <div class="share-canvas-wrap"><canvas id="shareCanvas"></canvas></div>
@@ -1488,60 +1496,14 @@
         <button class="share-style-chip" data-style="cover" aria-pressed="false"><span class="share-style-swatch style-cover"></span>Cover</button>
         <button class="share-style-chip" data-style="paper" aria-pressed="false"><span class="share-style-swatch style-paper"></span>Paper</button>
       </div>
-      <p class="share-section-label">Include</p>
-      <div class="share-toggles" id="shareToggles">
-        <button class="cta ghost" data-section="albums" aria-pressed="true">Albums</button>
-        <button class="cta ghost" data-section="songs" aria-pressed="true">Songs</button>
-        <button class="cta ghost" data-section="metals" aria-pressed="true">Metals</button>
-        <button class="cta ghost" data-section="collection" aria-pressed="true">Collection</button>
-        <button class="cta ghost" data-section="name" aria-pressed="true">Name</button>
-        <button class="cta ghost" data-section="rhythm" aria-pressed="true">Listening rhythm</button>
-      </div>
+      <p class="share-section-label" id="shareIncludeLabel" hidden>Include</p>
+      <div class="share-toggles" id="shareToggles"></div>
     </div>
     <button class="cta share-primary" id="shareShareBtn" style="display:none">Share…</button>
     <div class="share-actions-row">
       <button class="cta ghost" id="shareSave">Save image</button>
       <button class="cta ghost" id="shareCopy" style="display:none">Copy</button>
       <button type="button" class="cta ghost" id="shareMoreToggle" aria-expanded="false" aria-controls="shareMoreBody">More options ›</button>
-    </div>
-  </div>
-</div>
-
-<!-- PLAYER SHARE: this record, right now — distinct from the profile stat
-     sheet above. No selectable content sections; it's always the current
-     disc + jacket. See LIBRARY spec §2. Since DA6 (docs/DAY_ARC.md), it
-     does carry one Include toggle of its own — "Time of day", the "Spun
-     at dusk" line, default on. RF10 (docs/12_REFINE.md): same Story/Square
-     + More-options-disclosure shape as the crate sheet above — see that
-     sheet's own comment. -->
-<div class="share-overlay" id="playerShareOverlay" aria-hidden="true">
-  <div class="share-sheet" id="playerShareSheetBox">
-    <div class="edit-head">
-      <span>Share</span>
-      <button class="edit-close" id="playerShareClose" aria-label="Close">✕</button>
-    </div>
-    <div class="share-canvas-wrap"><canvas id="playerShareCanvas"></canvas></div>
-    <div class="seg" id="playerShareFormatSeg" style="margin-bottom:4px">
-      <button data-format="story" aria-pressed="true">Story 9:16</button>
-      <button data-format="square" aria-pressed="false">Square 1:1</button>
-    </div>
-    <div id="playerShareMoreBody" hidden>
-      <p class="share-section-label">Style</p>
-      <div class="share-style-row" id="playerShareStyleRow">
-        <button class="share-style-chip" data-style="night" aria-pressed="true"><span class="share-style-swatch style-night"></span>Night</button>
-        <button class="share-style-chip" data-style="cover" aria-pressed="false"><span class="share-style-swatch style-cover"></span>Cover</button>
-        <button class="share-style-chip" data-style="paper" aria-pressed="false"><span class="share-style-swatch style-paper"></span>Paper</button>
-      </div>
-      <p class="share-section-label">Include</p>
-      <div class="share-toggles" id="playerShareToggles">
-        <button class="cta ghost" data-section="phase" aria-pressed="true">Time of day</button>
-      </div>
-    </div>
-    <button class="cta share-primary" id="playerShareShareBtn" style="display:none">Share…</button>
-    <div class="share-actions-row">
-      <button class="cta ghost" id="playerShareSave">Save image</button>
-      <button class="cta ghost" id="playerShareCopy" style="display:none">Copy</button>
-      <button type="button" class="cta ghost" id="playerShareMoreToggle" aria-expanded="false" aria-controls="playerShareMoreBody">More options ›</button>
     </div>
   </div>
 </div>

@@ -72,6 +72,13 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {} },
 });
+// SH1 (docs/18_SHARE.md): storefront.js's own pre-existing import of
+// records.js (storeRecordsSection) now reaches records.js's new
+// openShareSheet import (share/sheet.js), which would otherwise pull in
+// the real share composer chain -- stopped at the door here too.
+mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
+  namedExports: { openShareSheet(){} },
+});
 
 const { renderPressingCard } = await import('../../src/profile/storefront.js');
 

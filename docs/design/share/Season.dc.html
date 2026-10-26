@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Season share card, square</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@700&amp;family=Archivo:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Archivo,sans-serif;color:#EFE9DF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.lg{display:flex;align-items:center;gap:8px;font-size:12px;color:#B9C2C6}
+.lg .d{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lg .v{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A0A6;margin-left:auto}
+.metal{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:#171310;box-shadow:0 6px 14px rgba(0,0,0,.5)}
+</style>
+</helmet>
+<div style="width: 540px; height: 540px; box-sizing: border-box; position: relative; overflow: hidden; background: linear-gradient(180deg, #1D2F38 0%, #101A20 55%, #07080C 100%); padding: 36px 32px; display: flex; flex-direction: column; gap: 26px">
+
+  <!-- header -->
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C">THIS SEASON · LAST 90 DAYS</div>
+    <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 38px; line-height: 1; letter-spacing: .01em">Lately, mostly after dark</div>
+  </div>
+
+  <!-- ring + legend -->
+  <div style="display: flex; align-items: center; gap: 32px">
+    <div role="img" aria-label="Listening by time of day: night 41%, twilight 18%, golden 12%, afternoon 10%, midday 8%, morning 6%, dawn 5%" style="position: relative; width: 200px; height: 200px; flex-shrink: 0">
+      <div style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#8E7CC3 0deg 148deg, #E7A7B8 148deg 166deg, #9FD8E8 166deg 188deg, #EFE9DF 188deg 216deg, #D9C7A0 216deg 252deg, #F2B35C 252deg 295deg, #FF9E2C 295deg 360deg)"></div>
+      <div style="position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0 3px, rgba(0,0,0,.12) 3px 4px)"></div>
+      <div style="position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: #101A20; display: flex; align-items: center; justify-content: center">
+        <span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #94A0A6">412</span>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 7px; flex: 1 1 0; min-width: 0">
+      <div class="lg"><span class="d" style="background: #8E7CC3"></span>Night<span class="v">41%</span></div>
+      <div class="lg"><span class="d" style="background: #FF9E2C"></span>Twilight<span class="v">18%</span></div>
+      <div class="lg"><span class="d" style="background: #F2B35C"></span>Golden hour<span class="v">12%</span></div>
+      <div class="lg"><span class="d" style="background: #D9C7A0"></span>Afternoon<span class="v">10%</span></div>
+      <div class="lg"><span class="d" style="background: #EFE9DF"></span>Midday<span class="v">8%</span></div>
+      <div class="lg"><span class="d" style="background: #9FD8E8"></span>Morning<span class="v">6%</span></div>
+      <div class="lg"><span class="d" style="background: #E7A7B8"></span>Dawn<span class="v">5%</span></div>
+    </div>
+  </div>
+
+  <!-- metals earned, counts on the discs -->
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div class="mono" style="font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #FF9E2C">METALS</div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div class="metal" aria-label="1 platinum" style="background: radial-gradient(circle at 35% 30%, #F8F9FA 0%, #D3D7DC 55%, #8A9199 100%)">1</div>
+      <div class="metal" aria-label="3 gold" style="background: radial-gradient(circle at 35% 30%, #F7E7A8 0%, #D6A83F 55%, #7A4E12 100%)">3</div>
+      <div class="metal" aria-label="7 silver" style="background: radial-gradient(circle at 35% 30%, #E8EFF2 0%, #A9A9B4 55%, #4D5259 100%)">7</div>
+      <div class="metal" aria-label="12 bronze" style="background: radial-gradient(circle at 35% 30%, #E3B77A 0%, #B27A3C 55%, #5A3516 100%)">12</div>
+      <div class="mono" style="font-size: 10px; font-weight: 500; letter-spacing: .08em; color: #94A0A6; margin-left: 6px">23 RECORDS PLAYED THROUGH</div>
+    </div>
+  </div>
+
+  <!-- brand -->
+  <div style="position: absolute; right: 32px; bottom: 28px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
+    <div style="font-family: Antonio, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .02em">Mi<span style="color: #FF9E2C">zi</span>ki</div>
+    <div class="mono" style="font-size: 9px; font-weight: 600; letter-spacing: .12em; color: #94A0A6">[NAME]'S CRATE</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":540,"height":540}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

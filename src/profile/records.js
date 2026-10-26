@@ -12,6 +12,7 @@ import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetrope
 // and this file reaches both back only from inside functions.
 import { renderPressingCard } from './storefront.js';
 import { renderProfile } from './screens.js';
+import { openShareSheet } from '../share/sheet.js';
 
 /* ================= profile records + pressings =================
    One section for the crate and what it has earned. The profile home shows
@@ -234,6 +235,17 @@ export function renderRecordsScreen(body){
     tabs.appendChild(b);
   });
   wrap.appendChild(tabs);
+
+  // SH1 (docs/18_SHARE.md): "Profile › Records › Pressings: a Share
+  // button in the screen header." Only on the Pressings tab -- All
+  // records has no card of its own to share.
+  if(filter === 'pressings'){
+    const owned = new Set([...ownedPressingIds(), ...ownedRarePressingIds(), ...ownedZoetropePressingIds()]);
+    const shareBtn = el('button','cta ghost store-records-share','Share');
+    shareBtn.type = 'button';
+    shareBtn.addEventListener('click', () => openShareSheet({ card:'pressings', data:{ total: owned.size } }));
+    wrap.appendChild(shareBtn);
+  }
 
   if(filter === 'all') renderAllRecords(wrap, records);
   else renderPressings(wrap);

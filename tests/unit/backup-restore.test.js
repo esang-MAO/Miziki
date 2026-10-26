@@ -71,7 +71,7 @@ function freshState(){
   S.historyClearedAt = 0; S.deviceId = null; S.deviceLabel = null; S.backupRestoredFor = null;
   S.backupSeq = 0; S.backupPushSeq = 0;
   S.phasePlayCounts = {}; S.albumPhaseCounts = {}; S.rhythmPushedAt = 0;
-  S.shareStyle = null; S.shareFormat = null; S.librarySort = null; S.crateAnchor = null;
+  S.shareStyle = null; S.shareFormatByCard = {}; S.librarySort = null; S.crateAnchor = null;
 }
 
 // Shaped like fetchRemoteRows()'s own client.from(table).select(...) rows --

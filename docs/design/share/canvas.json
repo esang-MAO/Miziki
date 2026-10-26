@@ -1,0 +1,24 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-26T10:40:00Z"},
+  "title": "Miziki Share Cards",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html":      {"x": 0,    "y": 0, "w": 540, "h": 960, "title": "1 · Now Playing (story)"},
+    "Record.dc.html":    {"x": 620,  "y": 0, "w": 540, "h": 540, "title": "2 · Record (square)"},
+    "Pressings.dc.html": {"x": 1240, "y": 0, "w": 540, "h": 960, "title": "3 · Pressings (story)"},
+    "Crate.dc.html":     {"x": 1860, "y": 0, "w": 540, "h": 540, "title": "4 · Crate (square)"},
+    "Season.dc.html":    {"x": 2480, "y": 0, "w": 540, "h": 540, "title": "5 · Season (square)"}
+  },
+  "order": ["Main.dc.html", "Record.dc.html", "Pressings.dc.html", "Crate.dc.html", "Season.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Share cards — five types, Night style, shown at half scale (1080 → 540)", "kind": "title1", "maxW": 3020},
+    "s5": {"x": 2480, "y": 660, "w": 540, "text": "Season: the listening-rhythm ring and verdict over the rolling 90 days, plus the metals earned. Unlocks at the same 20-play threshold as the profile card; the verdict stays a sentence, never a shouted label.", "fill": "purple"},
+    "s1": {"x": 0, "y": 1080, "w": 540, "text": "Now Playing: shared from the player. Fixes the crowding: the title gets its own band, the clock sits under the line instead of inside the chip row, and chips wrap to a second row rather than squeezing. Record peeks from behind the jacket in its real pressing.", "fill": "orange"},
+    "s2": {"x": 620, "y": 660, "w": 540, "text": "Record: shared from a record sheet / gatefold. One record only — pressing name, finish, sleeve note, the thin rating as decoration, and the friends sticker when it applies.", "fill": "blue"},
+    "s3": {"x": 1240, "y": 1080, "w": 540, "text": "Pressings: the collection card. Each tile is the pressing disc with its record's cover tucked behind it, so the variant and the album read together. 12 tiles, newest first; the header counts the rest.", "fill": "teal"},
+    "s4": {"x": 1860, "y": 660, "w": 540, "text": "Crate: slimmed to what it's good at — top albums and top songs. Metals, the collection row and the listening-rhythm verdict all leave this card (they had been causing the bunching).", "fill": "green"}
+  },
+  "designSystems": []
+}

@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 // src/share/styles.js has no imports of its own (pure DOM/canvas-free at
@@ -74,4 +74,145 @@ test('resolveShareStyle: Paper and Night each resolve to their own named kit; Co
   assert.equal((await resolveShareStyle('cover', null)).name, 'night');
   // an unrecognized style name is treated the same as no style at all
   assert.equal((await resolveShareStyle('not-a-real-style', null)).name, 'night');
+});
+
+/* ===================== SH1 (docs/18_SHARE.md) =====================
+   "One share sheet, five entry points" -- src/share/sheet.js is now the
+   one place that opens any of five cards (nowPlaying/record/pressings/
+   crate/season), each through the same nav-stack.js layer id ('share').
+   The real composers (crate-card.js/now-playing-card.js/record-card.js/
+   pressings-card.js/season-card.js) draw real canvases nothing in Node
+   can render, so -- same "stop the chain at the door" shape every other
+   mock-heavy file in this suite already uses -- every one of them is
+   mocked to a trivial async function returning a plain {width,height}
+   object, and sheet.js's own direct DOM/global-document reads are
+   stubbed rather than given a real browser. What's actually under test:
+   that openShareSheet() registers its single 'share' layer with
+   nav-stack.js for every card (the "open/close path through nav-stack.js
+   for each card" SH1 item 6 asks for), and that S.shareSelectionByCard's
+   defaults match each card's own Include-toggle table (item 3). */
+
+const openLayerCalls = [];
+mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
+  namedExports: {
+    openLayer(id, closeFn, opts){ openLayerCalls.push({ id, closeFn, opts }); },
+    closeLayer(){},
+    forceCloseLayer(){},
+  },
+});
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
+});
+mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
+  namedExports: { resolveLook(){ return 'none'; } },
+});
+mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
+  namedExports: { currentDayPosition(){ return { phase:'midday' }; } },
+});
+mock.module(new URL('../../src/share/crate-card.js', import.meta.url).href, {
+  namedExports: { composeShareImage: async () => ({ width:1, height:1 }) },
+});
+mock.module(new URL('../../src/share/now-playing-card.js', import.meta.url).href, {
+  namedExports: { composePlayerShareImage: async () => ({ width:1, height:1 }) },
+});
+mock.module(new URL('../../src/share/record-card.js', import.meta.url).href, {
+  namedExports: { composeRecordShareImage: async () => ({ width:1, height:1 }) },
+});
+mock.module(new URL('../../src/share/pressings-card.js', import.meta.url).href, {
+  namedExports: { composePressingsShareImage: async () => ({ width:1, height:1 }) },
+});
+mock.module(new URL('../../src/share/season-card.js', import.meta.url).href, {
+  namedExports: { composeSeasonShareImage: async () => ({ width:1, height:1 }) },
+});
+
+// sheet.js reads/writes the DOM two ways: through util/dom.js's $/el (every
+// id-keyed element the sheet touches), and through the bare `document`
+// global directly (shareSelectedStyle/shareSelectedFormat's own
+// querySelector, and openShareSheet's two querySelectorAll calls) --
+// both stubbed here rather than given a real browser.
+const elCache = new Map();
+function fakeEl(){
+  const classes = new Set();
+  return {
+    textContent: '', hidden: false, style: {}, dataset: {}, width: 0, height: 0,
+    classList: {
+      add(...cs){ cs.forEach(c => classes.add(c)); },
+      remove(...cs){ cs.forEach(c => classes.delete(c)); },
+      contains(c){ return classes.has(c); },
+      toggle(c, on){ if(on === undefined) on = !classes.has(c); if(on) classes.add(c); else classes.delete(c); return on; },
+    },
+    setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
+    addEventListener(){}, appendChild(child){ return child; },
+    getContext(){ return { drawImage(){} }; },
+  };
+}
+mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
+  namedExports: {
+    $(sel){ if(!elCache.has(sel)) elCache.set(sel, fakeEl()); return elCache.get(sel); },
+    el(tag, cls, text){ const e = fakeEl(); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; },
+  },
+});
+
+function makeChip(dataset){
+  const attrs = {};
+  return { dataset, setAttribute(k, v){ attrs[k] = v; }, getAttribute(k){ return attrs[k]; }, _attrs: attrs };
+}
+const fakeStyleChips = [makeChip({ style:'night' }), makeChip({ style:'cover' }), makeChip({ style:'paper' })];
+const fakeFormatChips = [makeChip({ format:'story' }), makeChip({ format:'square' })];
+globalThis.document = {
+  querySelector(sel){
+    if(sel.includes('shareStyleRow')) return fakeStyleChips.find(c => c._attrs['aria-pressed'] === 'true') || null;
+    if(sel.includes('shareFormatSeg') || sel.includes('FormatSeg')) return fakeFormatChips.find(c => c._attrs['aria-pressed'] === 'true') || null;
+    return null;
+  },
+  querySelectorAll(sel){
+    if(sel.includes('shareStyleRow')) return fakeStyleChips;
+    if(sel.includes('shareFormatSeg')) return fakeFormatChips;
+    return [];
+  },
+};
+
+const { S } = await import('../../src/state.js');
+const { openShareSheet, shareCurrentCard } = await import('../../src/share/sheet.js');
+
+const ALL_CARDS = ['nowPlaying', 'record', 'pressings', 'crate', 'season'];
+
+test('openShareSheet: every one of the five cards registers the single "share" nav-stack layer', async () => {
+  for(const card of ALL_CARDS){
+    openLayerCalls.length = 0;
+    await openShareSheet({ card, data:{} });
+    assert.equal(openLayerCalls.length, 1, `${card}: openShareSheet must register exactly one layer`);
+    assert.equal(openLayerCalls[0].id, 'share', `${card}: the layer id is always 'share', never a per-card id`);
+    assert.equal(shareCurrentCard(), card);
+  }
+});
+
+test('openShareSheet: an unrecognized card falls back to crate (the sheet\'s own default)', async () => {
+  await openShareSheet({ card:'not-a-real-card' });
+  assert.equal(shareCurrentCard(), 'crate');
+});
+
+test('S.shareSelectionByCard: defaults match SH1 item 3\'s own Include-toggle table', () => {
+  // nowPlaying -> Time of day
+  assert.deepEqual(Object.keys(S.shareSelectionByCard.nowPlaying), ['phase']);
+  assert.equal(S.shareSelectionByCard.nowPlaying.phase, true);
+  // record -> Sleeve note, Friends
+  assert.deepEqual(new Set(Object.keys(S.shareSelectionByCard.record)), new Set(['note', 'friends']));
+  // pressings -> none
+  assert.deepEqual(S.shareSelectionByCard.pressings, {});
+  // crate -> every section the composer still draws, but the sheet only
+  // ever shows a Name toggle for it (buildIncludeToggles reads from
+  // INCLUDE_LABELS, not from this object's own key count) -- SH5's own
+  // job is to actually shrink this object once crate-card.js stops
+  // drawing the other five sections unconditionally.
+  assert.equal(S.shareSelectionByCard.crate.name, true);
+  // season -> Name
+  assert.deepEqual(Object.keys(S.shareSelectionByCard.season), ['name']);
+  assert.equal(S.shareSelectionByCard.season.name, true);
+});
+
+test('S.shareFormatByCard: every card has its own per-card default format (SH1 item 2)', () => {
+  assert.deepEqual(S.shareFormatByCard, {
+    nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square',
+  });
 });

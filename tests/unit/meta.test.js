@@ -104,7 +104,7 @@ function resetState(overrides){
     mode: 'vinyl', target: 0.80, pace: 'window', auto: true, librarySort: 'artist',
     sleevePullEnabled: true, bgAudio: false, launchIntro: true,
     libraryLayout: 'crate', crateGroup: 'az', crateAnchor: null, albumSides: false,
-    sealedRecords: true, playInFullPlayer: true, shareStyle: 'night', shareFormat: null,
+    sealedRecords: true, playInFullPlayer: true, shareStyle: 'night', shareFormatByCard: {},
     shuffle: false, repeat: 'off', view: { mode: 'crate', group: null }, theme: 'auto',
   }, overrides);
 }

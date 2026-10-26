@@ -449,7 +449,7 @@
      to these other two, in their own existing DOM order */
   .store-section{grid-column:1/-1;order:21}
 
-  .profile-share{grid-column:1/-1;order:30}
+  .profile-share-stack{grid-column:1/-1;order:30}
   /* the local-only storefront's own closing note ("This is a local
      preview...") — a direct child of .store-host, so the child
      combinator still matches it correctly even though .store-host

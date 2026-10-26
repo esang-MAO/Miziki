@@ -28,6 +28,7 @@ import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
+import { openShareSheet } from '../share/sheet.js';
 import { splitSides } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
@@ -193,6 +194,20 @@ export function gatefoldSocialControlsHTML(item){
   const pinBtn = document.createElement('button');
   pinBtn.type = 'button'; pinBtn.className = 'gf-pin-btn';
   wrap.appendChild(pinBtn);
+
+  // SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record
+  // row." Minimal data for now -- SH3's own composer is still the stub
+  // in src/share/record-card.js; this just gets the entry point wired so
+  // it isn't dead once SH3 lands.
+  const shareBtn = document.createElement('button');
+  shareBtn.type = 'button'; shareBtn.className = 'gf-share-btn';
+  shareBtn.textContent = 'Share record';
+  shareBtn.addEventListener('click', () => {
+    openShareSheet({ card:'record', data:{
+      album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
+    } });
+  });
+  wrap.appendChild(shareBtn);
 
   function paint(){
     const s = MizikiSocial.getAlbumSocial(item.albumId);

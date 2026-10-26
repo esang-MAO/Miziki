@@ -17,7 +17,6 @@ const SHEETS = [
   { sheet: '#creditsSheetBox', layer: 'credits' },
   { sheet: '#editSheetBox', layer: 'edit' },
   { sheet: '#shareSheetBox', layer: 'share' },
-  { sheet: '#playerShareSheetBox', layer: 'player-share' },
   { sheet: '#sleepSheetBox', layer: 'sleep' },
   { sheet: '#recordSheetBox', layer: 'record-sheet' },
 ];

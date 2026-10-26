@@ -10,7 +10,7 @@ function fakeS(overrides = {}){
     bgAudio: false, launchIntro: true,
     libraryLayout: 'crate', crateGroup: 'az', crateAnchor: 'some-anchor', albumSides: false,
     sealedRecords: true, playInFullPlayer: true,
-    shareStyle: 'night', shareFormat: 'story',
+    shareStyle: 'night', shareFormatByCard: { nowPlaying: 'story', crate: 'square' },
     theme: 'auto',
     charDrift: 'subtle',
     slipmatCustom: false, slipmatWordmark: true, slipmatDim: true,
@@ -33,7 +33,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     bgAudio: S.bgAudio, launchIntro: S.launchIntro,
     libraryLayout: S.libraryLayout, crateGroup: S.crateGroup, crateAnchor: S.crateAnchor, albumSides: S.albumSides,
     sealedRecords: S.sealedRecords, playInFullPlayer: S.playInFullPlayer,
-    shareStyle: S.shareStyle, shareFormat: S.shareFormat,
+    shareStyle: S.shareStyle, shareFormatByCard: S.shareFormatByCard,
     theme: S.theme,
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
@@ -187,8 +187,22 @@ test('bad values are ignored: unlisted enum values', () => {
     libraryLayout: 'grid',
     crateGroup: 'genre-but-misspelled',
     shareStyle: 'neon',
-    shareFormat: 'widescreen',
   });
+  assert.deepEqual(parsed, {});
+});
+
+// SH1 (docs/18_SHARE.md): shareFormatByCard is now a per-card object, not a
+// single enum -- a bad card value is dropped, a good one survives, and a
+// not-even-an-object value drops the whole field.
+test('bad values are ignored: shareFormatByCard with an unlisted per-card value', () => {
+  const parsed = parsePrefs({
+    shareFormatByCard: { nowPlaying: 'widescreen', crate: 'square' },
+  });
+  assert.deepEqual(parsed, { shareFormatByCard: { crate: 'square' } });
+});
+
+test('bad values are ignored: shareFormatByCard not an object at all', () => {
+  const parsed = parsePrefs({ shareFormatByCard: 'square' });
   assert.deepEqual(parsed, {});
 });
 
