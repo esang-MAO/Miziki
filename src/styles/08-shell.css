@@ -20,7 +20,15 @@
 .mini-player.resuming .mini-progress{display:block;position:absolute;left:0;right:0;top:0;
   height:2px;background:rgba(239,233,223,.12)}
 .mini-progress>span{display:block;height:100%;background:var(--accent)}
-.mini-player.resuming{position:relative}
+/* .mini-player's own base rule above is already position:fixed, which
+   already establishes the containing block .mini-progress needs for its
+   position:absolute -- a position:relative override here used to replace
+   that fixed positioning outright whenever S.resumePending was true,
+   pulling the whole strip out of the viewport-pinned layer and into the
+   normal document flow (reported: the mini-player floating mid-screen,
+   or clipped behind the tab bar, specifically in the paused-at-relaunch
+   state). Removed rather than fixed in place -- there was never a reason
+   for this rule to touch position at all. */
 .mini-player.resuming .mini-play.tbtn#miniPlay{background:var(--accent);color:var(--on-accent);
   border-radius:50%}
 .mini-tap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
