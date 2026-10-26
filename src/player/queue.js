@@ -142,8 +142,15 @@ export function advance(dir, auto){
    nextTrack()/prevTrack(), same as a tap) -- §3 only asks for those to be
    *shorter*, which naturally falls out of there being no Surface Noise
    bed (Off/Pure) or, with it on, no screen to show the platter dip on
-   either way, so the one real difference is already covered without a
-   separate "from the lock screen" branch.
+   either way.
+
+   This section's own earlier assumption that no separate "from the lock
+   screen" branch was needed turned out wrong in one way: a lock-screen
+   press reaches this function while the page is hidden, and iOS can
+   re-suspend a backgrounded page before the setTimeout below gets to
+   run, silently dropping the "drop" half of the skip. skipWithLift()
+   now checks document.hidden up front and resolves immediately in that
+   case -- see its own comment for the full reasoning.
 
    Scope note: §3's own "skipping past the last track of a side behaves
    like the side ending" rule needs the Auto-flip/run-out-wait state
@@ -200,6 +207,23 @@ export function skipWithLift(dir){
   cancelPendingGapless();   // AU4: a manual skip invalidates whatever was pre-armed for the natural next track
   if(pendingSkip){ pendingSkip.dir = dir; return; }   // §3 "rapid skips collapse"
   if(dir !== 0 && resolveSkipTarget(dir) === null){ advance(dir, false); return; }
+  // Found 2026-10-26 ("can't skip from the lock screen"): lock-screen/
+  // headphone/car Next/Previous reach this function from a MediaSession
+  // action handler while the page is hidden (screen locked, app
+  // backgrounded). iOS only wakes a suspended page briefly to run that
+  // handler, and can re-suspend it again before a setTimeout scheduled
+  // below ever fires — so the lift's own "drop" half (the actual
+  // advance()/seek() call, deferred SKIP_FADE_MS-SKIP_LIFT_MS+SKIP_AIR_MS
+  // below) silently never ran, and a second press just mutated a
+  // pendingSkip that would never resolve either. Nothing is visible to
+  // animate while hidden anyway, so resolve immediately instead of
+  // deferring through a timer that isn't guaranteed to survive — the
+  // exact "separate 'from the lock screen' branch" the comment above
+  // this function once said wasn't needed.
+  if(typeof document !== 'undefined' && document.hidden){
+    if(dir === 0) seek(0); else advance(dir, false);
+    return;
+  }
   const t = current();
   // AU9 (docs/16_AUDIO.md §5): the currently-playing record's own rpm,
   // cached onto S.recordFormat by transport.js's load() — rotationHz() in
