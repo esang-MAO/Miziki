@@ -242,6 +242,48 @@ export function shareChip(ctx, kit, text, x, y, filled){
   return w;
 }
 
+// SH2 (docs/18_SHARE.md): the chip row's own layout math, pulled out of
+// composePlayerShareImage into a pure, directly-testable function — same
+// font/padding shareChip() itself draws with, so a decision made here
+// about what fits never disagrees with what actually gets drawn.
+export const CHIP_FONT = '600 22px "IBM Plex Mono", monospace';
+export const CHIP_HEIGHT = 46;
+export const CHIP_PAD_X = 22;
+export const CHIP_GAP = 16;
+export const CHIP_ROW_GAP = 16;
+
+// Wraps `chips` ({text, filled}) into left-to-right rows that each fit
+// within maxW. Each row's items carry `x` as an offset from 0 (the row's
+// own center) — the caller adds its real center-x when drawing. Three
+// chips (SH2 item 3's own test case) wrap to two rows once their combined
+// width — measured with shareChip()'s own font/padding — exceeds maxW.
+// Returns {rows, height}: rows is an array of arrays of
+// {text, filled, width, x}, height the total stacked height including
+// CHIP_ROW_GAP between rows (0 for an empty chip list).
+export function layoutChips(ctx, chips, maxW){
+  ctx.save();
+  ctx.font = CHIP_FONT;
+  const widths = chips.map(c => Math.round(ctx.measureText(c.text).width) + CHIP_PAD_X*2);
+  ctx.restore();
+  const rawRows = [];
+  let row = [], rowW = 0;
+  chips.forEach((c, i) => {
+    const w = widths[i];
+    const nextW = row.length ? rowW + CHIP_GAP + w : w;
+    if(row.length && nextW > maxW){ rawRows.push(row); row = []; rowW = 0; }
+    row.push({ text: c.text, filled: c.filled, width: w });
+    rowW = row.length === 1 ? w : rowW + CHIP_GAP + w;
+  });
+  if(row.length) rawRows.push(row);
+  const rows = rawRows.map(r => {
+    const totalW = r.reduce((s, c) => s + c.width, 0) + CHIP_GAP * (r.length - 1);
+    let x = -totalW / 2;
+    return r.map(c => { const item = { ...c, x }; x += c.width + CHIP_GAP; return item; });
+  });
+  const height = rows.length ? rows.length * CHIP_HEIGHT + (rows.length - 1) * CHIP_ROW_GAP : 0;
+  return { rows, height };
+}
+
 // Small color-math/fallback-jacket helpers used by both card composers
 // (composeShareImage and composePlayerShareImage) — kept here with the
 // rest of the shared style primitives rather than duplicated, or homed
