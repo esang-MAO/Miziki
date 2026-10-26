@@ -566,7 +566,7 @@ async function runGatefoldOpen(mode){
 
 let gfSeqCounter = 0;
 
-export function openGatefold(item){
+export function openGatefold(item, opts){
   if(GF) return;
   const mode = gatefoldViewportMode();
   const trackIdx = gatefoldTrackIndices(item);
@@ -584,6 +584,14 @@ export function openGatefold(item){
   gatefoldInfoAndSleeveHTML(item);
   gatefoldSetCoverArt(item).catch(() => {});
   updateGatefoldSleeveState();
+  // docs/13_CRATE.md's pull gesture: "the record slides out of the sleeve
+  // ... then the gatefold opens with the disc already out" — a committed
+  // crate pull (src/crate/view.js's commitPull()) passes {discAlreadyOut:true}
+  // so the gatefold's own sleeve-disc icon continues straight from the
+  // pull's own reveal instead of starting at rest, reusing the exact same
+  // out-then-settle flourish a track play from inside the gatefold already
+  // has (§A6).
+  if(opts && opts.discAlreadyOut) gatefoldSleeveFlourish();
 
   const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size);
   $('#gfLeftCue').style.display = hasLeftContent ? '' : 'none';

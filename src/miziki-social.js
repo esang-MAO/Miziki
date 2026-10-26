@@ -128,7 +128,20 @@
   const X = {
     enabled: false, sb: null, adapter: null, timing: { ...DEFAULT_TIMING },
     userId: null, profile: null, libraryReady: false,
-    state: null,                 // persisted (see freshState)
+    // Starts as a fresh (not null) state rather than waiting for init()'s
+    // own async loadState() to resolve — pins/ratings/notes are documented
+    // as available whether or not the user has ever signed in (see
+    // crate/model.js's/crate/view.js's own getPins()/getAlbumSocial()
+    // comments), so there's no real "not loaded yet" state to represent;
+    // a null here just meant a caller reached during that async window
+    // (e.g. the very first profile-tab render, or a crate tap, on a cold
+    // launch) threw `Cannot read properties of null` instead of seeing
+    // the same empty state loadState() would have produced anyway. Some
+    // call sites had grown their own try/catch around this race
+    // (crate/model.js, crate/view.js); others (gatefold/view.js,
+    // profile/storefront.js) hadn't, and could still crash. loadState()
+    // overwrites this with the real persisted state once it resolves.
+    state: freshState(),         // persisted (see freshState)
     st: {                        // observable status
       enabled: false, auth: 'signedOut', sync: 'idle', pendingRemovals: 0,
       skipped: { noArtist: 0, collisions: 0 }, lastSyncedAt: null, lastError: null
