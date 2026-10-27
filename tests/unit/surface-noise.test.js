@@ -6,7 +6,7 @@ import {
   rotationWobble, leadInSamples, runoutNoiseSamples, underMusicSamples,
   needleDropSamples, needleLiftSamples,
   startLeadIn, startRunoutNoise, startUnderMusicBed, playNeedleDrop, playNeedleLift,
-  skipDropHissSamples, playSkipDrop, fadeMusicTo,
+  skipDropHissSamples, playSkipDrop, fadeMusicTo, fadeMusicInAt,
   SKIP_DROP_HISS_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
   crinkleBurstSamples, playCrinkleBurst,
   LEAD_IN_SEC, SEVEN_INCH_LEAD_IN_SEC, leadInSecFor,
@@ -187,6 +187,36 @@ test('fadeMusicTo is a safe no-op without a trackGain node, and ramps it when on
   };
   fadeMusicTo(0, 80);
   assert.deepEqual(sets, [['cancel', 10], ['set', 1, 10], ['ramp', 0, 10.08]]);
+  S.ctx = null; S.nodes = null;
+});
+
+// PL1 (docs/19_PLAYER.md, "the silent new album"): fadeMusicInAt() is
+// fadeMusicTo()'s own counterpart for a start that doesn't happen "now" --
+// it has to schedule from 0, anchored at the given future context time,
+// not from whatever trackGain already holds "now", since trackGain is
+// silent (0) for the whole lead-in and there's nothing to ramp from until
+// the music itself actually starts.
+test('fadeMusicInAt is a safe no-op without a trackGain node, and schedules a 0-to-1 ramp anchored at `when`', () => {
+  S.ctx = null; S.nodes = null;
+  assert.doesNotThrow(() => fadeMusicInAt(12, 10));
+
+  const sets = [];
+  S.ctx = { currentTime: 10 };
+  S.nodes = {
+    trackGain: {
+      gain: {
+        value: 0,
+        cancelScheduledValues(t){ sets.push(['cancel', t]); },
+        setValueAtTime(v, t){ sets.push(['set', v, t]); },
+        linearRampToValueAtTime(v, t){ sets.push(['ramp', v, t]); },
+      },
+    },
+  };
+  // `when` (12) is in the future relative to currentTime (10) -- a 2s
+  // lead-in, say -- and every scheduled point is anchored at or after
+  // `when`, never at "now".
+  fadeMusicInAt(12, 10);
+  assert.deepEqual(sets, [['cancel', 12], ['set', 0, 12], ['ramp', 1, 12.01]]);
   S.ctx = null; S.nodes = null;
 });
 

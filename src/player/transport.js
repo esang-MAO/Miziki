@@ -31,7 +31,7 @@ import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
   playNeedleDrop, startLeadIn, startUnderMusicBed,
-  leadInSecFor, fadeMusicTo
+  leadInSecFor, fadeMusicTo, fadeMusicInAt
 } from '../audio/surface-noise.js';
 import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
@@ -414,11 +414,25 @@ export function startSource(offset, leadInSec = 0, opts = {}){
   S.source = src;
   // AU2 (docs/16_AUDIO.md §2.2): every ordinary start fades trackGain in
   // over START_FADE_MS, scheduled at the exact same `when` the source
-  // itself starts at -- except a lead-in/needle drop (leadInSec > 0),
-  // which already has its own envelope (the needle-drop/lead-in noise
-  // itself ramps up on a separate path, surface-noise.js's startBuffer(),
-  // that never touches trackGain at all -- see that file's §3 comment).
-  if(leadInSec <= 0 && !opts.skipFadeIn) fadeMusicTo(1, START_FADE_MS);
+  // itself starts at. PL1 (docs/19_PLAYER.md, "the silent new album"):
+  // a lead-in/needle drop (leadInSec > 0, or any other future `when`)
+  // still needs trackGain brought back to 1 -- the needle-drop/lead-in
+  // noise's own envelope (surface-noise.js's startBuffer(), §3) rides a
+  // separate bus and never touches trackGain -- it's scheduled with
+  // fadeMusicInAt() instead, anchored at `when` itself rather than "now",
+  // so the music is silent through the lead-in and only starts fading up
+  // once it actually begins. Every other ordinary start (immediate,
+  // leadInSec === 0) keeps the original fadeMusicTo(1, ...) from
+  // whatever trackGain already holds. opts.skipFadeIn means the caller
+  // (seek()'s own replace-source path) already scheduled this ramp
+  // itself as part of a combined dip, so neither branch runs.
+  if(!opts.skipFadeIn){
+    if(leadInSec > 0 || (opts.startAt != null && opts.startAt > S.ctx.currentTime)){
+      fadeMusicInAt(when, START_FADE_MS);
+    } else {
+      fadeMusicTo(1, START_FADE_MS);
+    }
+  }
   preloadNextTrack();
 }
 
