@@ -51,6 +51,15 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
+// PL2 (docs/19_PLAYER.md, "one clock"): background.js's new currentPos()
+// import (bgPosition(), for the lock-screen scrubber) would otherwise
+// reach the real player/clock.js, whose own real sleep-timer.js import
+// needs `el` from util/dom.js — not provided by this file's own minimal
+// dom.js mock above. Stopped at the door, same reasoning as every other
+// mock in this file; none of this file's own assertions touch bgPosition().
+mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
+  namedExports: { currentPos(){ return 0; } },
+});
 // A bare no-op mock would leave resolveBgOffer()'s closeLayer('bg-offer')
 // call without a way to run the close callback openLayer() was given —
 // background.js relies on that callback (closeBgOfferCardInstant) actually

@@ -104,7 +104,6 @@ function paintSpeedToggle(speed){
 let pendingOpening = null;
 function cancelPendingOpening(fadeMs = 150){
   if(pendingOpening){ pendingOpening.stop(fadeMs); pendingOpening = null; }
-  S.openUntil = 0;
 }
 
 // §1, "Under the music": a faint continuous bed for as long as playback
@@ -205,7 +204,7 @@ function armGaplessNext(nextIdx, next, remainingRealSec){
   routeSource(src);
   const when = S.ctx.currentTime + remainingRealSec;
   src.start(when, next.gaplessDelaySec || 0, next.duration);
-  pendingGapless = { nextIdx, src };
+  pendingGapless = { nextIdx, src, when };
   // No onended wired yet -- the old, still-finishing source's own onended
   // (wireSourceOnEnded, above) is what actually drives advance()/load()/
   // play() at the real boundary; play()'s adoption branch is what gives
@@ -412,6 +411,14 @@ export function startSource(offset, leadInSec = 0, opts = {}){
   const when = opts.startAt != null ? opts.startAt : (leadInSec > 0 ? S.ctx.currentTime + leadInSec : 0);
   src.start(when, playOffset + (t.gaplessDelaySec || 0), t.duration - playOffset);
   S.source = src;
+  // PL2 (docs/19_PLAYER.md, "one clock"): anchor position to this source's
+  // real start time on the audio clock -- `when === 0` means "start()
+  // treats anything at or before currentTime as now" (Web Audio's own
+  // rule), not a literal anchor at context time 0, so that case anchors
+  // to S.ctx.currentTime instead. Before this ctxTime, player/clock.js's
+  // currentPos() reads 0 -- this is what replaces S.openUntil's old
+  // wall-clock lead-in deadline.
+  S.anchor = { ctxTime: when > 0 ? when : S.ctx.currentTime, offset: playOffset, rate: S.rate };
   // AU2 (docs/16_AUDIO.md §2.2): every ordinary start fades trackGain in
   // over START_FADE_MS, scheduled at the exact same `when` the source
   // itself starts at. PL1 (docs/19_PLAYER.md, "the silent new album"):
@@ -455,6 +462,7 @@ export async function play(){
   // async step below (ensureBuffer/ctx.resume): the hand-off already
   // happened, sample-accurately, on the Web Audio clock.
   const adopted = (pendingGapless && pendingGapless.nextIdx === S.index) ? pendingGapless.src : null;
+  const adoptedWhen = adopted ? pendingGapless.when : 0;
   if(adopted) pendingGapless = null;
   if(!adopted){
     if(!await ensureBuffer(S.index)) return;
@@ -496,12 +504,17 @@ export async function play(){
       playNeedleDrop();
       pendingOpening = startLeadIn(leadInDurSec, releaseSeed(albumKey(t), sideLetterFor(t, S.index)), scale, rotHz);
       leadInSec = leadInDurSec;
-      S.openUntil = performance.now() + leadInSec * 1000;
     }
   }
   S.pendingSideStart = false;
   if(adopted){
     S.source = adopted;
+    // PL2 (docs/19_PLAYER.md, "one clock"): this source was armed by
+    // maybeScheduleGaplessNext() to start() at `adoptedWhen` -- always a
+    // fresh track at its own position 0, never a side start (isSideStart()
+    // already rules that out for an adopted source, so leadInSec is
+    // always 0 here).
+    S.anchor = { ctxTime: adoptedWhen, offset: 0, rate: S.rate };
     const gen = ++S.gen;
     adopted.onended = () => wireSourceOnEnded(adopted, gen);
     preloadNextTrack();

@@ -30,6 +30,30 @@ function currentBaseRpm(){
   return ease.from + (ease.to - ease.from) * easeOutCubic(p);
 }
 
+// PL2 (docs/19_PLAYER.md, "one clock"): position is always derived from
+// S.anchor ({ctxTime, offset, rate}, set by player/transport.js whenever a
+// source starts or replaces another, and re-anchored below whenever
+// S.rate itself changes), never accumulated from per-tick dt — the old
+// `S.pos += dt * S.rate` model drifted from the real audio clock, which
+// is what gapless scheduling, the lock-screen scrubber and interruption
+// detection all actually need to agree with.
+// - Not playing, no anchor yet, or the context isn't 'running' (PL4's
+//   frozen-on-interruption case): hold whatever S.pos already is — tick()
+//   only ever writes it while actually playing, so it's already the right
+//   frozen snapshot.
+// - Before anchor.ctxTime (the lead-in/needle-drop window — this is what
+//   used to be S.openUntil's wall-clock deadline): position reads 0.
+// - Otherwise: anchor.offset plus however much real, rate-adjusted time
+//   has elapsed on the audio clock since anchor.ctxTime, clamped to
+//   [0, duration].
+export function currentPos(){
+  const t = current();
+  if(!t || !S.anchor || !S.playing || !S.ctx || S.ctx.state !== 'running') return S.pos;
+  if(S.ctx.currentTime < S.anchor.ctxTime) return 0;
+  const pos = S.anchor.offset + (S.ctx.currentTime - S.anchor.ctxTime) * S.anchor.rate;
+  return clamp(pos, 0, t.duration);
+}
+
 /* ================= render loop ================= */
 let last = performance.now();
 // NV1: the last --sky1/--sky2 strings actually written, so drawSun() can
@@ -50,25 +74,24 @@ export function tick(now, maxDt){
 
   const r = computeRate();
   if(Math.abs(r - S.rate) > 0.0001){
+    // PL2: re-anchor at the new rate — capture the exact position the old
+    // anchor/rate would report right now, before either changes, so the
+    // switch itself introduces no jump. Sundown's own changes are gradual
+    // (computeRate() ramps toward its target), so re-anchoring on every
+    // tick it moves is cheap and keeps the anchor exact throughout.
+    const pos = currentPos();
     S.rate = r;
     if(S.source) S.source.playbackRate.setTargetAtTime(r, S.ctx.currentTime, 0.08);
     // AU3 (docs/16_AUDIO.md §2.3): "updated wherever S.rate changes" —
     // this is the one place it ever is.
     applyWobbleRate(r);
+    if(S.anchor && S.ctx) S.anchor = { ctxTime: S.ctx.currentTime, offset: pos, rate: r };
   }
 
   const t = current();
   if(S.playing && t){
-    // Surface Noise's lead-in (docs/15_SURFACE_NOISE.md §1): the needle
-    // drop + lead-in noise is already playing, scheduled on the audio
-    // clock, but the track's own audio hasn't started yet — hold the
-    // scrub position at 0 (and don't credit any played range yet) until
-    // S.openUntil's wall-clock deadline passes.
-    if(S.openUntil && now < S.openUntil){ return dt; }
-    if(S.openUntil) S.openUntil = 0;
     const prevPos = S.pos;
-    S.pos += dt * S.rate;
-    if(S.pos >= t.duration){ S.pos = t.duration; }
+    S.pos = currentPos();
     addPlayedRange(prevPos, S.pos);
     checkTrackCompletion(t);
     // AU4 (docs/16_AUDIO.md §2.4): arms the next track's own source to

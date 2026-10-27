@@ -4,6 +4,7 @@ import { clamp } from '../util/math.js';
 import { setPathNote } from '../ui/path-note.js';
 import { ensureContext } from '../audio/engine.js';
 import { play, pause, seek } from './transport.js';
+import { currentPos } from './clock.js';
 import { prevTrack, nextTrack } from './controls.js';
 import { queueSave } from '../storage/meta.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
@@ -242,9 +243,12 @@ function bgRemoveHandlers(){
 export function bgPosition(){
   if(!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
   const t = current(); if(!t || !t.duration) return;
+  // PL2 (docs/19_PLAYER.md, "one clock"): the anchor-derived position, not
+  // the possibly-stale S.pos — same reasoning as every other reader this
+  // PR moved onto currentPos().
   try{
     navigator.mediaSession.setPositionState({duration:t.duration, playbackRate:S.rate > 0 ? S.rate : 1,
-      position:clamp(S.pos, 0, t.duration)});
+      position:clamp(currentPos(), 0, t.duration)});
   }catch(_e){}
 }
 
