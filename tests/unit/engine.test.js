@@ -33,7 +33,7 @@ mock.module(new URL('../../src/player/background.js', import.meta.url).href, {
   namedExports: { applyOutputRoute(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { stop(){} },
+  namedExports: { stop(){}, handleContextInterruption(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawSun(){} },

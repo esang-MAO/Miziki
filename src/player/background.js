@@ -209,7 +209,12 @@ function mediaSessionSync(){
     // would never see a change again until the track itself changed.
     if(assigned) S.bg.msKey = key;
   }
-  if(S.playing){ try{ ms.playbackState = 'playing'; }catch(_e){} }
+  // PL4 (docs/19_PLAYER.md, "interruptions and coming back"): set on both
+  // routes, not only while the background-audio element is active -- this
+  // already runs on every play/pause/track-change (bgSync() via
+  // renderMiniPlayer()), so the lock screen's own playbackState agrees
+  // with S.playing whether or not Background playback is on.
+  try{ ms.playbackState = S.playing ? 'playing' : 'paused'; }catch(_e){}
   bgPosition();
 }
 

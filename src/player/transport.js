@@ -494,6 +494,7 @@ export async function play(){
   }
   if(S.playing) return;
   S.playing = true;
+  S.pausedBySystem = false;   // PL4: a resume (lock-screen Play, in-app Play, or the user tapping back in) clears the system-pause flag
   // AU1 (docs/16_AUDIO.md §2.1): whatever restoreResume() landed paused
   // on the platter is no longer "pending" the moment Play actually runs —
   // from here on the mini player shows the ordinary artist line again
@@ -570,6 +571,33 @@ export function stop(){
   stopUnderMusicBed(0);
   stopSourceCleanly();   // AU2: 15ms fade-out before the source actually stops
   S.playing = false;
+  const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
+  renderMiniPlayer();
+}
+
+// PL4 (docs/19_PLAYER.md, "interruptions and coming back"): the context
+// leaving 'running' while S.playing -- iOS reports 'interrupted' or
+// 'suspended' for a call, Siri, or another app taking the audio session --
+// is a system pause, not a track end. Freeze exactly where currentPos()
+// already reports it (clock.js's own `S.ctx.state !== 'running'` guard
+// means S.pos already holds the last good value, nothing more to do there)
+// rather than let the old source's onended fire a bogus advance(), and
+// rather than stopSourceCleanly()'s own 15ms fade -- scheduling anything
+// against ctx.currentTime on a context that just left 'running' can't be
+// trusted to land. S.pausedBySystem marks this apart from an ordinary
+// pause so the resume paths (play(), wiring/transport.js's Play button,
+// background.js's lock-screen handler) know to restart from here rather
+// than treating it as "already paused, nothing to resume."
+export function handleContextInterruption(){
+  if(!S.playing) return;
+  cancelPendingGapless();
+  cancelPendingOpening(0);
+  stopUnderMusicBed(0);
+  const src = S.source;
+  if(src){ src.onended = null; try{ src.stop(); }catch(_e){} }
+  S.source = null;
+  S.playing = false;
+  S.pausedBySystem = true;
   const b = $('#play'); if(b){ b.textContent = '▶'; b.setAttribute('aria-label','Play'); }
   renderMiniPlayer();
 }
