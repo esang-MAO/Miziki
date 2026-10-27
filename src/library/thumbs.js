@@ -9,7 +9,7 @@ import { rebuildPeopleIndex, updateCreditsButtonForCurrent } from './credits.js'
 import { renderProfile } from '../profile/screens.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { decodeAudioFile } from '../audio/engine.js';
-import { measureTrack } from '../audio/loudness.js';
+import { measureTrack, TRUE_PEAK_VERSION } from '../audio/loudness.js';
 import { detectHook } from '../audio/hook.js';
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
@@ -180,7 +180,12 @@ export async function healDetails(){
 // "pause while something is playing" rule healDetails()/healThumbs() use.
 export async function healLoudness(){
   if(!storage.available()) return;
-  const targets = S.tracks.filter(t => t.stored && t.details && !(t.details.loudness && t.details.loudness.measured));
+  // PL5 item 4: re-measure once more, even for a track already measured,
+  // when its truePeakVersion doesn't match the current algorithm — the
+  // one-time cost of recomputing a changed true-peak estimate on the
+  // next boot repair pass, same mechanism, no separate migration.
+  const targets = S.tracks.filter(t => t.stored && t.details
+    && !(t.details.loudness && t.details.loudness.measured && t.details.loudness.truePeakVersion === TRUE_PEAK_VERSION));
   for(let i = 0; i < targets.length; i++){
     while(S.playing) await sleep(500);
     const t = targets[i];

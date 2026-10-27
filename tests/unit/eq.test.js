@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import {
   GRAPHIC_BANDS_HZ, GRAPHIC_BAND_MAX_DB, TILT_MAX_DB, MAX_PARAMETRIC_BANDS,
   PARAMETRIC_BAND_MAX_DB, PREAMP_MIN_DB, PREAMP_MAX_DB, EQ_PRESETS, EQ_PRESET_KEYS,
-  HEADPHONE_PRESETS, HEADPHONE_PRESET_KEYS, PARAMETRIC_TYPES,
   clamp, clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampPreampDb,
   clampFreqHz, clampQ, autoPreampDbFromPeak, combineDbCurve, sampleFrequenciesLog,
-  matchPreset, matchHeadphonePreset, sanitizeParametricBand, sanitizeParametricBands,
+  matchPreset, sanitizeParametricBand, sanitizeParametricBands,
   defaultEqState,
 } from '../../src/audio/eq.js';
 
@@ -149,65 +148,4 @@ test('every built-in preset stays zero or negative — "favor cuts over boosts"'
   for(const key of EQ_PRESET_KEYS){
     for(const db of EQ_PRESETS[key].graphicBands) assert.ok(db <= 0, `${key} band ${db} is a boost, not a cut`);
   }
-});
-
-// Headphone-correction follow-on: real published-measurement presets,
-// a different kind than EQ_PRESETS above (which are taste-shaping and
-// graphic-only) — these are always parametric, up to MAX_PARAMETRIC_BANDS,
-// and carry no preampDb of their own (auto preamp derives it live).
-test('HEADPHONE_PRESETS: every preset stays within this app\'s own parametric limits', () => {
-  for(const key of HEADPHONE_PRESET_KEYS){
-    const preset = HEADPHONE_PRESETS[key];
-    assert.ok(typeof preset.label === 'string' && preset.label.length > 0);
-    assert.ok(preset.bands.length > 0 && preset.bands.length <= MAX_PARAMETRIC_BANDS);
-    assert.ok(!('preampDb' in preset), `${key} should carry no preampDb of its own`);
-    for(const band of preset.bands){
-      assert.ok(PARAMETRIC_TYPES.includes(band.type));
-      assert.equal(band.freq, clampFreqHz(band.freq));
-      assert.equal(band.gainDb, clampParametricGainDb(band.gainDb));
-      assert.equal(band.q, clampQ(band.q));
-    }
-  }
-});
-
-test('matchHeadphonePreset: every built-in headphone preset matches its own bands exactly', () => {
-  for(const key of HEADPHONE_PRESET_KEYS){
-    assert.equal(matchHeadphonePreset(HEADPHONE_PRESETS[key].bands), key);
-  }
-});
-
-test('matchHeadphonePreset: a hand-built band list of the same shape reads as no match', () => {
-  assert.equal(matchHeadphonePreset([{ type: 'peak', freq: 1000, gainDb: 3, q: 0.7 }]), null);
-  assert.equal(matchHeadphonePreset([]), null);
-});
-
-test('matchHeadphonePreset: a tweaked copy of a real preset no longer matches it', () => {
-  const bands = HEADPHONE_PRESETS[HEADPHONE_PRESET_KEYS[0]].bands.map(b => Object.assign({}, b));
-  bands[0].gainDb += 1;
-  assert.equal(matchHeadphonePreset(bands), null);
-});
-
-test('matchHeadphonePreset: not an array at all reads as no match, never throws', () => {
-  assert.equal(matchHeadphonePreset(null), null);
-  assert.equal(matchHeadphonePreset(undefined), null);
-  assert.equal(matchHeadphonePreset('nope'), null);
-});
-
-test('HEADPHONE_PRESETS: every preset round-trips through sanitizeParametricBands unchanged', () => {
-  for(const key of HEADPHONE_PRESET_KEYS){
-    const cleaned = sanitizeParametricBands(HEADPHONE_PRESETS[key].bands);
-    assert.deepEqual(cleaned, HEADPHONE_PRESETS[key].bands);
-  }
-});
-
-// Wired/Bluetooth follow-on: a real same-headphone pair, not a fabricated
-// split of a headphone AutoEQ only ever measured once.
-test('HEADPHONE_PRESETS: the Amiron Wireless wired/Bluetooth pair are both present and genuinely distinct', () => {
-  assert.ok('beyerdynamicAmironWirelessWired' in HEADPHONE_PRESETS);
-  assert.ok('beyerdynamicAmironWirelessBluetooth' in HEADPHONE_PRESETS);
-  const wired = HEADPHONE_PRESETS.beyerdynamicAmironWirelessWired;
-  const bt = HEADPHONE_PRESETS.beyerdynamicAmironWirelessBluetooth;
-  assert.notEqual(matchHeadphonePreset(wired.bands), matchHeadphonePreset(bt.bands));
-  assert.ok(/wired/i.test(wired.label));
-  assert.ok(/bluetooth/i.test(bt.label));
 });

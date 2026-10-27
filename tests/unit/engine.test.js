@@ -41,7 +41,7 @@ mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
 
 global.window = { AudioContext: function(){}, webkitAudioContext: function(){} };
 
-const { satCurve, buildGraph, routeSource, applyCharacter, applyWobbleRate, auditionStageAlone, auditionComparePure, releaseAudition } = await import('../../src/audio/engine.js');
+const { satCurve, buildGraph, routeSource, applyCharacter, applyWobbleRate, auditionStageAlone, auditionComparePure, releaseAudition, disconnectVinylChain, rebuildVinylChain } = await import('../../src/audio/engine.js');
 const { S } = await import('../../src/state.js');
 const { makeupGainFor } = await import('../../src/audio/level-match.js');
 const { rotationHz, RPM_33, RPM_45 } = await import('../../src/record-art/format.js');
@@ -157,6 +157,39 @@ test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> 
   assert.ok(n.monoMerge.connections.includes(n.deviceVolume));
   assert.ok(n.deviceVolume.connections.includes(n.out));
   assert.ok(n.out.connections.includes(ctx.destination));
+});
+
+// PL5 item 6: in Pure, the Vinyl chain shouldn't just carry silence --
+// it should be severed from the graph entirely (nothing left to render),
+// then rebuilt (fresh oscillators; a stopped OscillatorNode can't restart)
+// the moment Vinyl comes back.
+test('disconnectVinylChain severs both ends of the chain and stops its oscillators; rebuildVinylChain restores it with fresh ones', async () => {
+  const ctx = makeFakeContext();
+  S.ctx = ctx;
+  S.nodes = await buildGraph(ctx);
+  const n = S.nodes;
+  assert.ok(n.pad.connections.includes(n.wobble));
+  assert.ok(n.makeup.connections.includes(n.master));
+  const oldWowOsc = n.wowOsc, oldFlutOsc = n.flutOsc;
+  oldWowOsc.stop = mock.fn();
+  oldFlutOsc.stop = mock.fn();
+
+  disconnectVinylChain();
+  assert.equal(n.pad.connections.includes(n.wobble), false);
+  assert.equal(n.makeup.connections.includes(n.master), false);
+  assert.equal(oldWowOsc.stop.mock.calls.length, 1);
+  assert.equal(oldFlutOsc.stop.mock.calls.length, 1);
+  // calling it again while already idle is a no-op, not a double-stop
+  disconnectVinylChain();
+  assert.equal(oldWowOsc.stop.mock.calls.length, 1);
+
+  rebuildVinylChain();
+  assert.ok(n.pad.connections.includes(n.wobble));
+  assert.ok(n.makeup.connections.includes(n.master));
+  assert.notEqual(n.wowOsc, oldWowOsc);
+  assert.notEqual(n.flutOsc, oldFlutOsc);
+  assert.ok(n.wowOsc.connections.includes(n.wowAmt));
+  assert.ok(n.wowAmt.connections.includes(n.wobble.delayTime));
 });
 
 // docs/15_SURFACE_NOISE.md §3 (needle-lift skipping): src now passes

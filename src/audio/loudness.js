@@ -6,18 +6,23 @@
    imports, no S, no window — safe to import directly in a node:test file
    the same way sundown/rhythm.js and audio/level-match.js already are.
 
-   Two deliberate simplifications from the full ITU spec, both scoped to
-   stay cheap enough to run on a phone at import time with no worker (see
+   One deliberate simplification from the full ITU spec, scoped to stay
+   cheap enough to run on a phone at import time with no worker (see
    src/library/import.js's own header comment for why there's no literal
    Worker here, despite the doc's "in a worker" suggestion):
-     - True peak is estimated by 4x linear-interpolation oversampling, not
-       the spec's own polyphase FIR. Close enough to catch an inter-sample
-       overshoot a plain sample-peak scan would miss, without the filter
-       design a correct implementation needs.
      - Clipping is counted per channel independently and summed, not
        de-duplicated across channels at the same sample index. A stereo
        clip still counts (usually twice, once per channel) rather than
-       being missed, which is the safer direction to be imprecise in. */
+       being missed, which is the safer direction to be imprecise in.
+
+   True peak (PL5 item 4) is a proper 4x-oversampled estimate: a
+   Kaiser-windowed-sinc polyphase FIR reconstructs the 3 intermediate
+   points between each pair of samples, in the spirit of BS.1770 Annex
+   2's own oversampled-FIR approach -- not a transcription of ITU's own
+   published coefficient table, which isn't something to fabricate from
+   memory. This replaces a former 4x linear-interpolation guess, which
+   could never read higher than the two samples it sat between and so
+   could never actually catch an inter-sample overshoot. */
 
 // ITU-R BS.1770-4 K-weighting: a shelf pre-filter, then an RLB high-pass.
 // Coefficients are derived from the filter design, not hardcoded for one
@@ -110,17 +115,85 @@ export function integratedLoudnessLUFS(channels, sampleRate){
   return meanSquareToLufs(finalSet.reduce((a,b)=>a+b,0) / finalSet.length);
 }
 
-// 4x linear-interpolation oversample peak (see header comment) — returns
-// the estimated true peak in dBFS (0dBFS = full scale).
+// True-peak version stamp: bumped whenever estimateTruePeakDb()'s own
+// algorithm changes, so library/thumbs.js's healLoudness() knows to
+// re-measure an already-measured track exactly once (PL5 item 4).
+export const TRUE_PEAK_VERSION = 2;
+
+const TRUE_PEAK_OVERSAMPLE = 4;
+const TRUE_PEAK_TAPS = 8; // per intermediate phase -- 4 original samples each side
+const TRUE_PEAK_KAISER_BETA = 8;
+
+// Modified Bessel function of the first kind, order 0 -- the Kaiser
+// window's own defining function. Series expansion, accurate to well
+// past double precision's useful range for the beta used here.
+function besselI0(x){
+  let sum = 1, term = 1;
+  const halfX = x / 2;
+  for(let k = 1; k <= 40; k++){
+    term *= (halfX * halfX) / (k * k);
+    sum += term;
+    if(term < sum * 1e-15) break;
+  }
+  return sum;
+}
+
+function sincPi(x){
+  return x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x);
+}
+
+// Built lazily, once: for each of the 3 intermediate phases between a
+// pair of samples (k = 1, 2, 3 of 4), a small Kaiser-windowed-sinc FIR
+// that reconstructs the signal at that fractional offset from the
+// TRUE_PEAK_TAPS original samples straddling it.
+let truePeakPhaseBank = null;
+
+function buildTruePeakPhaseBank(){
+  const half = TRUE_PEAK_TAPS / 2; // 4
+  const offsets = [];
+  for(let m = -(half - 1); m <= half; m++) offsets.push(m); // -3..4
+  const edge = half + 0.5;
+  const winDenom = besselI0(TRUE_PEAK_KAISER_BETA);
+  const bank = [];
+  for(let k = 1; k < TRUE_PEAK_OVERSAMPLE; k++){
+    const frac = k / TRUE_PEAK_OVERSAMPLE;
+    const coeffs = offsets.map(m => {
+      const dist = m - frac;
+      const t = dist / edge;
+      const win = Math.abs(t) <= 1 ? besselI0(TRUE_PEAK_KAISER_BETA * Math.sqrt(1 - t * t)) / winDenom : 0;
+      return sincPi(dist) * win;
+    });
+    bank.push({ offsets, coeffs });
+  }
+  return bank;
+}
+
+// Real 4x-oversampled true peak (see header comment) — returns the
+// estimated true peak in dBFS (0dBFS = full scale). Samples outside the
+// buffer (near either end) are clamped to the nearest real sample rather
+// than assumed zero, so a loud track that simply starts or ends mid-wave
+// doesn't read a false edge overshoot from an imagined silence next to it.
 export function estimateTruePeakDb(channels){
+  if(!truePeakPhaseBank) truePeakPhaseBank = buildTruePeakPhaseBank();
   let peak = 0;
   for(const ch of (channels || [])){
-    for(let i = 0; i < ch.length - 1; i++){
-      const a = ch[i], b = ch[i+1];
-      peak = Math.max(peak, Math.abs(a));
-      for(let k = 1; k < 4; k++) peak = Math.max(peak, Math.abs(a + (b - a) * (k/4)));
+    const len = ch.length;
+    if(!len) continue;
+    for(let i = 0; i < len; i++){
+      const a = Math.abs(ch[i]);
+      if(a > peak) peak = a;
     }
-    if(ch.length) peak = Math.max(peak, Math.abs(ch[ch.length - 1]));
+    for(let i = 0; i < len - 1; i++){
+      for(const phase of truePeakPhaseBank){
+        let val = 0;
+        for(let j = 0; j < phase.offsets.length; j++){
+          const idx = Math.min(len - 1, Math.max(0, i + phase.offsets[j]));
+          val += ch[idx] * phase.coeffs[j];
+        }
+        const a = Math.abs(val);
+        if(a > peak) peak = a;
+      }
+    }
   }
   return peak > 0 ? linearToDb(peak) : -Infinity;
 }
@@ -159,7 +232,7 @@ export function measureTrack(channels, sampleRate){
   const truePeakDb = estimateTruePeakDb(channels);
   const clipRuns = countClippingRuns(channels);
   const plr = peakToLoudnessRatio(truePeakDb, lufs);
-  return { lufs, truePeakDb, clipRuns, plr, measured: true };
+  return { lufs, truePeakDb, clipRuns, plr, measured: true, truePeakVersion: TRUE_PEAK_VERSION };
 }
 
 // §4's reference level. ReplayGain 2.0/EBU R128 use -18 LUFS, but that's

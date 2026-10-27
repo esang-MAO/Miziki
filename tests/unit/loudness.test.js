@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   integratedLoudnessLUFS, estimateTruePeakDb, countClippingRuns, peakToLoudnessRatio,
   dbToLinear, linearToDb, measureTrack, trackGainDb, albumGainDb, clampGainDbForPeak,
-  classifyDynamics, loudnessCaptionFor, formatGainDb, REFERENCE_LUFS,
+  classifyDynamics, loudnessCaptionFor, formatGainDb, REFERENCE_LUFS, TRUE_PEAK_VERSION,
 } from '../../src/audio/loudness.js';
 
 // src/audio/loudness.js has no imports of its own (same leaf shape as
@@ -62,6 +62,28 @@ test('estimateTruePeakDb: no channels reads -Infinity', () => {
   assert.equal(estimateTruePeakDb(null), -Infinity);
 });
 
+// PL5 item 4: the whole point of a real oversampled estimate is catching
+// a peak that sits *between* samples, which a plain sample scan (and the
+// old 4x linear-interpolation guess, which can never exceed the two
+// samples it sat between) would miss. A unit-amplitude sine at exactly
+// Fs/4, phase-shifted so its true continuous peak falls exactly halfway
+// between two samples, is the textbook case: no single sample ever
+// reaches 1.0 (every sample reads ±1/√2, about -3dB), but the signal's
+// real peak is the full 0dBFS.
+test('estimateTruePeakDb: catches an inter-sample overshoot a plain sample scan would miss', () => {
+  const freq = SR / 4;
+  const n = 40;
+  const ch = new Float32Array(n);
+  for(let i = 0; i < n; i++) ch[i] = Math.sin(2 * Math.PI * freq * i / SR + Math.PI / 4);
+  let sampleOnlyPeak = 0;
+  for(let i = 0; i < n; i++) sampleOnlyPeak = Math.max(sampleOnlyPeak, Math.abs(ch[i]));
+  const sampleOnlyDb = linearToDb(sampleOnlyPeak);
+  const trueDb = estimateTruePeakDb([ch]);
+  assert.ok(trueDb > sampleOnlyDb + 2,
+    `true peak ${trueDb} should clear the raw sample peak ${sampleOnlyDb} by a wide margin`);
+  assert.ok(trueDb < 0.5, `true peak ${trueDb} should stay close to the sine's real 0dBFS peak`);
+});
+
 test('countClippingRuns: a run of exactly the minimum length counts once', () => {
   const ch = new Float32Array([0, 1, 1, 1, 0, 0]);
   assert.equal(countClippingRuns([ch]), 1);
@@ -102,6 +124,7 @@ test('measureTrack: returns a measured, finite reading for a real signal', () =>
   assert.ok(isFinite(m.truePeakDb));
   assert.equal(m.clipRuns, 0);
   assert.ok(isFinite(m.plr));
+  assert.equal(m.truePeakVersion, TRUE_PEAK_VERSION);
 });
 
 test('measureTrack: a clipped signal is detected', () => {

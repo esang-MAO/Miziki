@@ -20,9 +20,6 @@
 
 .eq-mode-seg{margin-bottom:var(--sp-4)}
 
-.eq-hp-wrap{margin-bottom:var(--sp-5)}
-.eq-hp-wrap .eq-slider-label{margin-bottom:6px}
-
 .eq-preset-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--sp-5)}
 .eq-preset-chip{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.04em;
   padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:none;
