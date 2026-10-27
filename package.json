@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings=0",
     "test": "node tests/client.test.js",
     "test:unit": "node --experimental-test-module-mocks --test tests/unit/*.test.js",
-    "perf": "node tests/perf/nav.perf.js"
+    "perf": "node tests/perf/nav.perf.js",
+    "test:audio-render": "node tests/audio-render/run.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
