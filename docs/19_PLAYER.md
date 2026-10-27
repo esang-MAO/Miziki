@@ -161,6 +161,20 @@ Add these to CLAUDE.md's device checklist in PL1/PL4:
 > 10. **Honest readout.** The track spec line shows what's actually happening: source format, and the engine rate when it differs, e.g. `FLAC · 24/192 → 48 kHz`. No upsampling claims, ever. Tapping it adds one plain-text state: **Untouched** (lossless, Pure, EQ and normalization off, rates match), **Converted** (only the sample rate changed), or **Shaped** (names what's changing it: EQ, normalization, Vinyl). Unit-test the state function.
 > 11. **Measure in WebKit, not just Chromium.** Every render test in this PR runs in Playwright WebKit too (the engine iOS uses); record the resampler and Sundown numbers in `docs/perf/BASELINE.md`.
 >
+> **Vinyl, like a finely tuned turntable:**
+>
+> *Ken, Oct 27: Vinyl mode should sound clean and crisp, like a high-quality, finely tuned record player; the Vinyl effects are a complementary bonus on top, never at the cost of clarity.* Today's defaults (`S.char = {wow:0.30, sat:0.35, soft:0.40, comp:0.35}`, `applyCharacter()` in `audio/engine.js`) work out to roughly a 3.6 dB treble cut from 7 kHz up (`tone` shelf, `-9 * soft`) and a compressor at about −12 dB threshold, 2:1 ratio on everything. That's a worn-player sound, not a fine one.
+>
+> 12. **Measure the defaults** (render tests, WebKit and Chromium): frequency response of the full Vinyl chain on a sweep; THD+N and harmonic profile of a 1 kHz sine at −1 dBFS and −20 dBFS; wow and flutter in % (weighted RMS) from a 3150 Hz tone; how often and how deep the compressor acts on a dynamic test track. Record them in `docs/perf/BASELINE.md`.
+> 13. **Retune to "fine turntable" targets at the default settings:**
+>     - Response within ±1 dB from 30 Hz to 15 kHz, no more than −2 dB at 20 kHz (move the softening shelf up and make it gentler).
+>     - Wow and flutter around 0.03% weighted RMS: there if you listen for it, never a wobble.
+>     - Saturation adds low-order (mostly 2nd) harmonics only, under 0.3% THD at −1 dBFS; nothing gritty, no added high-order harmonics.
+>     - Compression barely moves on normal material (≤1–2 dB gain reduction on peaks), so dynamics stay open.
+>     - Day-arc character drift stays inside these targets at its default (Subtle) intensity.
+> 14. **Keep everyone's slider positions.** Change what each slider *means* (rescale the mappings in `applyCharacter()` and `satCurve()`), not the saved values, so the default position lands on the new targets and the far end of each slider still reaches today's heavier sound for anyone who wants it. Regenerate the Vinyl level-match table (`audio/level-match.js`) for the new mappings so Vinyl and Pure stay within 0.5 dB.
+> 15. **Ken listens on wired headphones** (not AirPods, which hide these differences) before the PR is approved: the same tracks in Pure and in Vinyl at default should differ by character, not by clarity.
+>
 > Device note for Ken: over AirPods or any Bluetooth headphones, iOS re-encodes everything to roughly AAC 256 kbps before it leaves the phone, so the hi-res tiers sound the same there as 16/44.1. They only pay off on a wired path (a USB-C DAC). The native build can go further: ask iOS for the file's own sample rate (`AVAudioSession.setPreferredSampleRate`) so a DAC gets 96 or 192 kHz untouched.
 
 

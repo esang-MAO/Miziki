@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Miziki offline-render harness</title></head>
+<body>
+<script type="module">
+  // Generic runner: loads the spec module named by ?spec=, awaits its
+  // exported run(), and parks the result on window for the Node side
+  // (tests/audio-render/run.js) to read back via page.evaluate(). The
+  // spec path is relative to this file (served at tests/audio-render/),
+  // so a spec under tests/audio-render/specs/ names itself as
+  // "./specs/whatever.js".
+  const params = new URLSearchParams(location.search);
+  const specPath = params.get('spec');
+  window.__harnessDone = false;
+  window.__harnessResult = null;
+  window.__harnessError = null;
+  try {
+    const mod = await import(specPath);
+    window.__harnessResult = await mod.run();
+  } catch (err) {
+    window.__harnessError = { message: String((err && err.message) || err), stack: String((err && err.stack) || '') };
+  } finally {
+    window.__harnessDone = true;
+  }
+</script>
+</body>
+</html>
