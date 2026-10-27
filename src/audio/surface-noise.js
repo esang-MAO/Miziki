@@ -365,3 +365,25 @@ export function fadeMusicTo(value, ms){
     g.gain.linearRampToValueAtTime(value, end);
   }catch(_e){}
 }
+
+// PL1 (docs/19_PLAYER.md): fadeMusicTo()'s own counterpart for a start that
+// doesn't happen "now" -- a needle-drop/lead-in (startSource()'s own
+// leadInSec) schedules the actual music start at a future context time,
+// and the lead-in noise's envelope on this same bus (startBuffer(), above)
+// never touches trackGain at all. Before this existed, nothing ever
+// scheduled trackGain back up for that case, so it stayed wherever the
+// previous track's stop left it (usually 0) -- a new album picked while
+// one is already playing, or paused, with surface noise on, played
+// silence once the lead-in finished. cancelScheduledValues/setValueAtTime
+// are both anchored at `when`, not "now", so a fade-out already ramping
+// toward 0 earlier in the same tick is left alone right up to the moment
+// the new source actually starts.
+export function fadeMusicInAt(when, ms){
+  const g = S.nodes && S.nodes.trackGain, ctx = S.ctx;
+  if(!g || !ctx) return;
+  try{
+    g.gain.cancelScheduledValues(when);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(1, when + Math.max(0, ms) / 1000);
+  }catch(_e){}
+}
