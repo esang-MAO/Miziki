@@ -121,6 +121,14 @@ export const S = {
   // reads 0). null until the first source ever starts. Runtime only,
   // never saved.
   anchor:null,
+  // PL4 (docs/19_PLAYER.md, "interruptions and coming back"): true from the
+  // moment player/transport.js's handleContextInterruption() freezes
+  // playback because S.ctx left 'running' (a call, Siri, another app
+  // taking the audio session) until play() next actually resumes — tells
+  // the resume paths this is a system pause to restart from, not an
+  // ordinary one with nothing pending. Runtime only, never saved — a fresh
+  // launch has no interruption to remember.
+  pausedBySystem:false,
   // AU1 (docs/16_AUDIO.md §2.1): true from the moment restoreResume()
   // (src/player/resume.js) lands a paused record on launch until Play is
   // first pressed (player/transport.js's play() clears it) — the one

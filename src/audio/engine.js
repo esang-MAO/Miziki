@@ -13,6 +13,7 @@ import {
   defaultEqState,
 } from './eq.js';
 import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
+import { handleContextInterruption } from '../player/transport.js';
 
 // AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
 // 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
@@ -599,6 +600,13 @@ export async function ensureContext(){
   auditioning = null;
   eqAuditioningFlat = false;
   S.ctx = makeContext();
+  // PL4 (docs/19_PLAYER.md, "interruptions and coming back"): the context
+  // leaving 'running' (iOS reports 'interrupted' or 'suspended' for a
+  // call, Siri, or another app taking the audio session) while something
+  // is playing is a system pause -- handleContextInterruption() itself
+  // guards on S.playing, so this fires harmlessly for every other state
+  // transition too (including the context coming back to 'running').
+  S.ctx.onstatechange = () => { if(S.ctx && S.ctx.state !== 'running') handleContextInterruption(); };
   S.nodes = await buildGraph(S.ctx);
   applyCharacter();
   applyVolume();
