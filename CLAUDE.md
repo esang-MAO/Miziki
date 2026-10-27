@@ -161,12 +161,14 @@ Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.
 - [ ] Existing library is still there after the update (IndexedDB intact)
 - [ ] Add songs and add a folder; FLAC, WAV, ALAC and MP3 play
 - [ ] Pure and Vinyl switch works; character sliders audibly change Vinyl
+- [ ] Album A playing, surface noise on → pick album B from the crate. Music audible after the lead-in. Repeat with A paused.
 - [ ] Sundown auto rate and the preview slider; manual rate
 - [ ] Sleeve pull, mini-player to full-player morph, spin-to-scrub, scratching with Scratch on/off
 - [ ] Crate view, gatefold, sealed records
 - [ ] Queue: play next, add, reorder, shuffle and repeat
 - [ ] Edit track info and revert; remove from library
 - [ ] Background playback plus lock-screen controls with the screen locked
+- [ ] Lock the screen with the background toggle on, across a track boundary inside an album: no gap. Across an album boundary: next album starts within a second or two.
 - [ ] Sleep timer
 - [ ] Share image: each style and format saves
 - [ ] With social config empty, social screens show the calm "not set up" state

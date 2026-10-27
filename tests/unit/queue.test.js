@@ -146,8 +146,9 @@ const loadMock = mock.fn();
 const playMock = mock.fn();
 const pauseMock = mock.fn();
 const seekMock = mock.fn();
+const cancelPendingGaplessMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
+  namedExports: { load: loadMock, play: playMock, pause: pauseMock, seek: seekMock, sideLetterFor(){ return ''; }, cancelPendingGapless: cancelPendingGaplessMock },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
@@ -210,6 +211,7 @@ function resetState(overrides){
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); seekMock.mock.resetCalls();
+  cancelPendingGaplessMock.mock.resetCalls();
   playNeedleLiftMock.mock.resetCalls(); playSkipDropMock.mock.resetCalls();
   fadeMusicToMock.mock.resetCalls();
   fakeActive = true; fakeScale = 1;
@@ -450,6 +452,35 @@ test('queueReorderTo moves a row within the upcoming portion, never past the cur
   });
   queueReorderTo(2, 0);   // move the last upcoming row ("d") to the front of "upcoming"
   assert.deepEqual(S.queue, [0,3,1,2]);
+});
+
+/* ================= PL3 (docs/19_PLAYER.md): re-arm on a queue edit ================= */
+
+test('PL3: clearUpcoming cancels whatever gapless source was pre-armed for the stale "next"', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  clearUpcoming();
+  assert.equal(cancelPendingGaplessMock.mock.calls.length, 1);
+});
+
+test('PL3: queueRemoveAt cancels whatever gapless source was pre-armed for the stale "next"', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c')],
+    baseQueue: [0,1,2], queue: [0,1,2], qpos: 0, index: 0,
+  });
+  queueRemoveAt(1);
+  assert.equal(cancelPendingGaplessMock.mock.calls.length, 1);
+});
+
+test('PL3: queueReorderTo cancels whatever gapless source was pre-armed for the stale "next"', () => {
+  resetState({
+    tracks: [fakeTrackWithTags('a'), fakeTrackWithTags('b'), fakeTrackWithTags('c'), fakeTrackWithTags('d')],
+    baseQueue: [0,1,2,3], queue: [0,1,2,3], qpos: 0, index: 0,
+  });
+  queueReorderTo(2, 0);
+  assert.equal(cancelPendingGaplessMock.mock.calls.length, 1);
 });
 
 test('queueMove(pos, dir) is a thin adjacent-swap wrapper over queueReorderTo, unchanged for VoiceOver', () => {

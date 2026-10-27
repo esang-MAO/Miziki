@@ -141,12 +141,32 @@ export function cancelPendingGapless(){
 
 // How close to the current source's own computed end (in real,
 // rate-adjusted seconds) maybeScheduleGaplessNext() waits before arming
-// the next one. Close enough that S.rate -- which only ever moves
-// gradually, via clock.js's own ~0.08s setTargetAtTime ramp toward
-// Sundown's computed rate -- is effectively frozen for the rest of this
-// window; arming any earlier would risk the eventual real end time
-// drifting away from what was scheduled.
-const GAPLESS_ARM_LEAD_SEC = 0.25;
+// the next one. PL3 (docs/19_PLAYER.md, "gapless that always lands"):
+// this no longer needs to be tiny -- the boundary itself is computed
+// exactly from S.anchor (not re-estimated from S.pos/S.rate at arm time),
+// so a wide lead window is just as accurate as a narrow one. Wide enough
+// to comfortably clear the 1s hidden-tab tick rate (clock.js's tick()
+// only runs every ~1s while document.hidden), so a track boundary that
+// falls inside that gap still gets armed before it arrives.
+const GAPLESS_ARM_LEAD_SEC = 8;
+
+// PL3 (docs/19_PLAYER.md, item 4): "decode away from the boundary" --
+// the track change itself does no decode work, so preloadNextTrack()'s
+// own decode runs ~2s after the current source actually starts rather
+// than synchronously in the same tick as the change. Not gesture-critical
+// (preloadNextTrack() only warms the *next* track's buffer; this one's
+// is already decoded by the time this runs), so a plain setTimeout here
+// never touches rule 9's synchronous play()-call-stack requirement.
+// Re-scheduled, never stacked -- schedulePreload() always clears
+// whatever timer the previous track change left running first, since
+// preloadNextTrack() itself reads live state (peekNextIndex()) at
+// whatever moment it actually fires.
+const PRELOAD_DELAY_MS = 2000;
+let preloadTimer = null;
+function schedulePreload(){
+  if(preloadTimer) clearTimeout(preloadTimer);
+  preloadTimer = setTimeout(() => { preloadTimer = null; preloadNextTrack(); }, PRELOAD_DELAY_MS);
+}
 
 // Shared onended logic for every AudioBufferSourceNode this file ever
 // starts -- startSource()'s own fresh source and, since AU4, a pre-armed
@@ -188,21 +208,24 @@ export function maybeScheduleGaplessNext(){
   const next = S.tracks[nextIdx];
   if(!next || !next.buffer) return;   // not decoded yet -- the plain onended fallback below handles it
   if(albumKey(next) !== albumKey(t)) return;   // a record change between albums keeps its own ceremony
-  // Remaining real time on the current source, at its live playback
-  // rate -- an estimate (S.rate could still drift a little before the
-  // boundary actually arrives), good enough this close to it per
-  // GAPLESS_ARM_LEAD_SEC's own comment above.
-  const remainingRealSec = (t.duration - S.pos) / (S.rate || 1);
+  if(!S.anchor) return;
+  // PL3 (docs/19_PLAYER.md, item 1): the exact context time the current
+  // source ends, derived from S.anchor rather than re-estimated from
+  // S.pos/S.rate -- robust to GAPLESS_ARM_LEAD_SEC's now-wide arm window
+  // because it never drifts: a later rate change re-anchors (see clock.js's
+  // tick()) and cancels/re-arms this (item 3), rather than leaving a stale
+  // boundary computed against the old rate.
+  const endCtxTime = S.anchor.ctxTime + (t.duration - S.anchor.offset) / (S.anchor.rate || 1);
+  const remainingRealSec = endCtxTime - S.ctx.currentTime;
   if(remainingRealSec > GAPLESS_ARM_LEAD_SEC || remainingRealSec <= 0) return;
-  armGaplessNext(nextIdx, next, remainingRealSec);
+  armGaplessNext(nextIdx, next, endCtxTime);
 }
 
-function armGaplessNext(nextIdx, next, remainingRealSec){
+function armGaplessNext(nextIdx, next, when){
   const src = S.ctx.createBufferSource();
   src.buffer = next.buffer;
   src.playbackRate.value = S.rate;
   routeSource(src);
-  const when = S.ctx.currentTime + remainingRealSec;
   src.start(when, next.gaplessDelaySec || 0, next.duration);
   pendingGapless = { nextIdx, src, when };
   // No onended wired yet -- the old, still-finishing source's own onended
@@ -440,7 +463,7 @@ export function startSource(offset, leadInSec = 0, opts = {}){
       fadeMusicTo(1, START_FADE_MS);
     }
   }
-  preloadNextTrack();
+  schedulePreload();
 }
 
 export async function play(){
@@ -517,7 +540,7 @@ export async function play(){
     S.anchor = { ctxTime: adoptedWhen, offset: 0, rate: S.rate };
     const gen = ++S.gen;
     adopted.onended = () => wireSourceOnEnded(adopted, gen);
-    preloadNextTrack();
+    schedulePreload();
   } else {
     startSource(S.pos, leadInSec);
   }

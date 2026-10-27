@@ -2,6 +2,7 @@ import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { routeSource, applyCharacter } from './engine.js';
 import { fadeMusicTo } from './surface-noise.js';
+import { cancelPendingGapless } from '../player/transport.js';
 
 // AU2 (docs/16_AUDIO.md §2.2): the same 15ms edge player/transport.js's
 // own EDGE_FADE_MS names for pause/stop/seek -- duplicated, not imported,
@@ -52,6 +53,11 @@ export function setMode(m){
   // already-current mode or has no live source yet, so routeSource() just
   // runs immediately there, same as before this step. The same rule
   // applies to any future path change (this file's own CLAUDE.md entry).
+  // PL3 (docs/19_PLAYER.md, item 3): a pre-armed gapless source was routed
+  // (routeSource()) for the mode that was current when it was armed —
+  // cancel so maybeScheduleGaplessNext() re-arms (and re-routes) it fresh
+  // under the new mode, rather than letting a stale-routed source adopt.
+  if(prevMode !== m) cancelPendingGapless();
   if(prevSource && prevMode !== m){
     fadeMusicTo(0, MODE_DIP_MS);
     setTimeout(() => {
