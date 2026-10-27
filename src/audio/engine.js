@@ -138,8 +138,9 @@ export async function buildGraph(ctx){
   // mono/balance -> limiter -> volume -> out" — the preamp + EQ-band slot
   // AU5's own norm comment said a later PR would fill. Every gain-bearing
   // node here defaults to a flat response (shelf/peaking gain 0, or a
-  // biquad 'allpass' type for an unused parametric slot, whose magnitude
-  // response is unity at every frequency regardless of its own frequency/Q)
+  // 'peaking' biquad at 0 dB gain for an unused parametric slot — exact
+  // unity response regardless of frequency/Q, unlike 'allpass' which is
+  // flat in level but shifts phase — PL5 item 1)
   // so the chain is inert the moment it's built — applyEQ() is what
   // actually makes it do anything, exactly like applyCharacter() for the
   // Vinyl chain above.
@@ -152,12 +153,21 @@ export async function buildGraph(ctx){
   });
   n.eqParametric = [];
   for(let i = 0; i < MAX_PARAMETRIC_BANDS; i++){
-    const f = ctx.createBiquadFilter(); f.type = 'allpass'; f.frequency.value = 1000; f.Q.value = 0.7; f.gain.value = 0;
+    const f = ctx.createBiquadFilter(); f.type = 'peaking'; f.frequency.value = 1000; f.Q.value = 0.7; f.gain.value = 0;
     n.eqParametric.push(f);
   }
   n.eqPreamp.connect(n.eqTiltLow).connect(n.eqTiltHigh);
   n.eqTail = n.eqTiltHigh;
   for(const f of [...n.eqGraphic, ...n.eqParametric]){ n.eqTail.connect(f); n.eqTail = f; }
+  // PL5 item 5: up-mix mono to stereo (duplicated, unity gain) here, on the
+  // last EQ-band node feeding the balance stage, so StereoPannerNode below
+  // sees a genuine 2-channel input and never falls into its own special-
+  // cased mono equal-power pan law (which pans a true mono input ~3 dB
+  // down at centre) — StereoPannerNode's own channelCountMode is locked to
+  // 'clamped-max' and can't be changed, so the up-mix has to happen upstream.
+  n.eqTail.channelCount = 2;
+  n.eqTail.channelCountMode = 'explicit';
+  n.eqTail.channelInterpretation = 'speakers';
 
   // A second, never-connected bank of the same filter shapes, used only to
   // measure the curve a *configuration* would produce (computeEqCurveDb(),
@@ -173,7 +183,7 @@ export async function buildGraph(ctx){
   n.eqScratch.tiltHigh.type = 'highshelf'; n.eqScratch.tiltHigh.frequency.value = TILT_PIVOT_HZ;
   n.eqScratch.graphic.forEach((f, i) => { f.type = 'peaking'; f.frequency.value = GRAPHIC_BANDS_HZ[i]; f.Q.value = GRAPHIC_BAND_Q; });
   for(let i = 0; i < MAX_PARAMETRIC_BANDS; i++){
-    const f = ctx.createBiquadFilter(); f.type = 'allpass'; f.frequency.value = 1000; f.Q.value = 0.7;
+    const f = ctx.createBiquadFilter(); f.type = 'peaking'; f.frequency.value = 1000; f.Q.value = 0.7; f.gain.value = 0;
     n.eqScratch.parametric.push(f);
   }
 
@@ -467,7 +477,7 @@ function setScratchFromState(n, eq){
     n.eqScratch.tiltHigh.gain.value = tiltDb;
     const bands = eq.graphicBands || [];
     n.eqScratch.graphic.forEach((f, i) => { f.gain.value = clampGraphicBandDb(bands[i] || 0); });
-    n.eqScratch.parametric.forEach(f => { f.type = 'allpass'; });
+    n.eqScratch.parametric.forEach(f => { f.type = 'peaking'; f.gain.value = 0; });
   } else {
     n.eqScratch.tiltLow.gain.value = 0;
     n.eqScratch.tiltHigh.gain.value = 0;
@@ -475,7 +485,7 @@ function setScratchFromState(n, eq){
     const bands = (eq.parametricBands || []).slice(0, MAX_PARAMETRIC_BANDS);
     n.eqScratch.parametric.forEach((f, i) => {
       const b = bands[i];
-      if(!b){ f.type = 'allpass'; return; }
+      if(!b){ f.type = 'peaking'; f.gain.value = 0; return; }
       f.type = BIQUAD_TYPE_FOR[b.type];
       f.frequency.value = b.freq;
       f.Q.value = b.q;
@@ -506,10 +516,12 @@ export function computeEqCurveDb(eq, freqs){
   return combineDbCurve(dbArrays);
 }
 
-// AU6 §3: sets every real node from S.eq. The preamp always reflects the
-// *configured* curve (computed above) regardless of `enabled`/an audition
-// hold — "Both keep the auto-preamp offset, so the comparison is about
-// tone, not volume." Only the bands themselves go flat when bypassed.
+// AU6 §3: sets every real node from S.eq. While an audition hold is in
+// progress, the preamp keeps reflecting the *configured* curve (computed
+// above) — "Both keep the auto-preamp offset, so the comparison is about
+// tone, not volume." But EQ off means off (PL5 item 2): with `eq.enabled`
+// false, the preamp itself drops to 0 dB too, not just the bands — Pure
+// with EQ off is untouched, not touched-but-gain-compensated.
 export function applyEQ(ramp = 0.05){
   if(!S.nodes || !S.ctx) return;
   const eq = S.eq || defaultEqState();
@@ -517,7 +529,9 @@ export function applyEQ(ramp = 0.05){
 
   const curve = computeEqCurveDb(eq, sampleFrequenciesLog());
   const peakDb = curve.length ? Math.max(...curve) : 0;
-  const preampDb = eq.autoPreamp !== false ? autoPreampDbFromPeak(peakDb) : clampPreampDb(eq.preampDb || 0);
+  const preampDb = eq.enabled
+    ? (eq.autoPreamp !== false ? autoPreampDbFromPeak(peakDb) : clampPreampDb(eq.preampDb || 0))
+    : 0;
   n.eqPreamp.gain.setTargetAtTime(dbToLinear(preampDb), t, ramp);
 
   const bypass = !eq.enabled || eqAuditioningFlat;
@@ -534,7 +548,7 @@ export function applyEQ(ramp = 0.05){
   n.eqParametric.forEach((f, i) => {
     const b = pBands[i];
     if(!b){
-      f.type = 'allpass';
+      f.type = 'peaking';
       f.gain.setTargetAtTime(0, t, ramp);
       return;
     }
@@ -570,8 +584,49 @@ export function routeSource(src){
 // place this needs rerunning: player/transport.js's load(), whenever
 // S.recordFormat.speed itself changes (a new record, not a new rate).
 export function applyWobbleRate(rate){
-  if(!S.nodes || !S.ctx) return;
+  if(!S.nodes || !S.ctx || !S.nodes.wowOsc) return;
   S.nodes.wowOsc.frequency.setTargetAtTime(wowHzFor(rate), S.ctx.currentTime, 0.08);
+}
+
+// PL5 item 6: the Vinyl chain (wobble -> sat -> satTrim -> dc -> tone ->
+// comp -> makeup, plus its two always-modulating oscillators) stays fully
+// wired in Vinyl, but in Pure it was processing silence the whole time --
+// wasted CPU per docs/19_PLAYER.md's own review finding. Severing both
+// ends of the chain (pad's entry edge and makeup's exit edge) drops it out
+// of the graph reachable from the destination entirely, so there's
+// nothing left for the audio thread to render; stopping the oscillators
+// (an OscillatorNode can never be restarted once stopped, hence
+// rebuildVinylChain() below building fresh ones) finishes the job. Called
+// from mode.js's setMode(), on the Pure side of a real mode transition.
+export function disconnectVinylChain(){
+  const n = S.nodes;
+  if(!n || !n.pad || !S.ctx || n.vinylChainIdle) return;
+  n.pad.disconnect();
+  n.makeup.disconnect();
+  if(n.wowOsc){ try{ n.wowOsc.stop(); }catch(_e){} }
+  if(n.flutOsc){ try{ n.flutOsc.stop(); }catch(_e){} }
+  n.vinylChainIdle = true;
+}
+
+// The mirror of disconnectVinylChain(), called on the Vinyl side of a
+// real mode transition: rebuilds the two oscillators (new instances --
+// a stopped OscillatorNode can't be restarted) and restores both of the
+// chain's severed edges. applyCharacter() (already called at the end of
+// every setMode()) re-applies wow/flutter/sat/tone/comp/makeup to the
+// now-live chain; the gain nodes the fresh oscillators feed (wowAmt/
+// flutAmt) were never disconnected, so they need no rebuilding of their own.
+export function rebuildVinylChain(){
+  const n = S.nodes;
+  if(!n || !n.pad || !S.ctx || !n.vinylChainIdle) return;
+  const ctx = S.ctx;
+  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.rate);
+  n.flutOsc = ctx.createOscillator(); n.flutOsc.frequency.value = 6.3;
+  n.wowOsc.connect(n.wowAmt);
+  n.flutOsc.connect(n.flutAmt);
+  n.wowOsc.start(); n.flutOsc.start();
+  n.pad.connect(n.wobble);
+  n.makeup.connect(n.master);
+  n.vinylChainIdle = false;
 }
 
 // DA2 (docs/DAY_ARC.md): "recompute about every 30s" — called once from

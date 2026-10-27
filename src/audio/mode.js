@@ -1,6 +1,6 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { routeSource, applyCharacter } from './engine.js';
+import { routeSource, applyCharacter, disconnectVinylChain, rebuildVinylChain } from './engine.js';
 import { fadeMusicTo } from './surface-noise.js';
 import { cancelPendingGapless } from '../player/transport.js';
 
@@ -58,15 +58,27 @@ export function setMode(m){
   // cancel so maybeScheduleGaplessNext() re-arms (and re-routes) it fresh
   // under the new mode, rather than letting a stale-routed source adopt.
   if(prevMode !== m) cancelPendingGapless();
+  // PL5 item 6: the Vinyl chain itself (its own oscillators included)
+  // only needs touching on a real transition -- rebuild happens inside
+  // the dip, before the reroute that feeds it (so Vinyl's chain is
+  // already live the instant trackGain reconnects to it); disconnect
+  // happens after the reroute, once trackGain has already moved off of
+  // it (so nothing is severed out from under a signal still flowing
+  // through it).
   if(prevSource && prevMode !== m){
     fadeMusicTo(0, MODE_DIP_MS);
     setTimeout(() => {
       if(S.source !== prevSource) return;   // interrupted mid-dip (paused/stopped/track changed)
+      if(vinyl) rebuildVinylChain();
       routeSource(prevSource);
+      if(!vinyl) disconnectVinylChain();
       fadeMusicTo(1, MODE_DIP_MS);
     }, MODE_DIP_MS);
-  } else if(S.source){
-    routeSource(S.source);
+  } else {
+    if(S.source) routeSource(S.source);
+    if(prevMode !== m){
+      if(vinyl) rebuildVinylChain(); else disconnectVinylChain();
+    }
   }
   // DA2 (docs/DAY_ARC.md): applyCharacter() now also gates on S.mode (Pure
   // forces drift to 'off' regardless of S.charDrift — see engine.js's own

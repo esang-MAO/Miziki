@@ -25,9 +25,8 @@ import {
   GRAPHIC_BANDS_HZ, GRAPHIC_BAND_MAX_DB, TILT_MAX_DB, MAX_PARAMETRIC_BANDS,
   PARAMETRIC_BAND_MAX_DB, PARAMETRIC_TYPES, PARAMETRIC_GAIN_TYPES,
   EQ_PRESETS, EQ_PRESET_LABELS, EQ_PRESET_KEYS,
-  HEADPHONE_PRESETS, HEADPHONE_PRESET_KEYS,
   clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampFreqHz, clampQ,
-  sampleFrequenciesLog, matchPreset, matchHeadphonePreset, defaultEqState,
+  sampleFrequenciesLog, matchPreset, defaultEqState,
 } from '../audio/eq.js';
 
 const PARAMETRIC_TYPE_LABELS = {
@@ -49,8 +48,7 @@ function currentStateLabel(eq){
   if(!eq.enabled) return 'OFF';
   if(eq.mode === 'parametric'){
     if(!eq.parametricBands || !eq.parametricBands.length) return 'FLAT · ON';
-    const hp = matchHeadphonePreset(eq.parametricBands);
-    return (hp ? HEADPHONE_PRESETS[hp].label : 'CUSTOM') + ' · ON';
+    return 'CUSTOM · ON';
   }
   const preset = matchPreset(eq.graphicBands, eq.tilt);
   return (preset ? EQ_PRESET_LABELS[preset] : 'CUSTOM') + ' · ON';
@@ -249,36 +247,6 @@ function renderPresets(host, eq){
   host.appendChild(row);
 }
 
-// Headphone-correction picker: real published-measurement corrections
-// (HEADPHONE_PRESETS, audio/eq.js), not the taste-shaping EQ_PRESETS
-// chips above -- shown regardless of which mode tab is open, since
-// tapping one always switches to parametric (the only mode with enough
-// resolution for a real correction curve) and replaces whatever
-// parametric bands were there. eq.autoPreamp is left untouched: it's
-// already on by default, and leaving it on is what lets engine.js derive
-// the right preamp for this exact (6-band-reduced) curve itself, rather
-// than this file carrying a second, possibly-stale preamp number.
-function renderHeadphoneCorrection(host, eq){
-  const wrap = el('div','eq-hp-wrap');
-  wrap.appendChild(el('div','eq-slider-label','Headphone correction'));
-  const row = el('div','eq-preset-row');
-  const active = eq.mode === 'parametric' ? matchHeadphonePreset(eq.parametricBands) : null;
-  HEADPHONE_PRESET_KEYS.forEach(key => {
-    const preset = HEADPHONE_PRESETS[key];
-    const chip = el('button','eq-preset-chip' + (active === key ? ' active' : ''), preset.label);
-    chip.setAttribute('aria-pressed', String(active === key));
-    chip.addEventListener('click', () => {
-      eq.mode = 'parametric';
-      eq.parametricBands = preset.bands.map(b => Object.assign({}, b));
-      eq.enabled = true;
-      queueSave(); applyEQ(); renderEqSheet();
-    });
-    row.appendChild(chip);
-  });
-  wrap.appendChild(row);
-  host.appendChild(wrap);
-}
-
 export function renderEqSheet(){
   const body = $('#eqSheetBody');
   if(!body) return;
@@ -314,8 +282,6 @@ export function renderEqSheet(){
     modeSeg.appendChild(b);
   });
   body.appendChild(modeSeg);
-
-  renderHeadphoneCorrection(body, eq);
 
   if(eq.mode === 'graphic'){
     renderPresets(body, eq);
