@@ -127,8 +127,9 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 // (step 3b) — mocked directly for the same reason as above. `load` is
 // needed too since step 6b's transitive chain (see above) reaches the
 // real player/queue.js, which imports it alongside play/pause/seek.
+const cancelPendingGaplessMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, maybeScheduleGaplessNext(){}, cancelPendingGapless(){} },
+  namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, maybeScheduleGaplessNext(){}, cancelPendingGapless: cancelPendingGaplessMock },
 });
 // clock.js's top-level setInterval (the hidden-page fallback clock) is a
 // real OS timer once clock.js is imported directly here — unlike in the
@@ -312,6 +313,22 @@ test('a rate change re-anchors to the current derived position with no jump', ()
   assert.ok(Math.abs(currentPos() - posBefore) < 1e-9);
   S.ctx.currentTime += 5; // 5 more real seconds, now at the new rate
   assert.ok(Math.abs(currentPos() - (posBefore + 5 * 0.8)) < 1e-9);
+});
+
+test('PL3: tick\'s real rate-change branch cancels whatever gapless source was pre-armed for the old boundary', () => {
+  S.tracks = [fakeTrack(60)]; S.index = 0;
+  S.playing = true; S.rate = 1; S.pos = 0; S.source = null;
+  S.mode = 'vinyl'; S.auto = false; S.manualRate = 1;
+  S.ctx = fakeCtx(700);
+  S.anchor = { ctxTime: 700, offset: 0, rate: 1 };
+  const now0 = farFutureNow();
+  tick(now0, 0.1); // primes `last`; manualRate matches S.rate, so no re-anchor yet
+  cancelPendingGaplessMock.mock.resetCalls();
+  S.manualRate = 0.85; // computeRate() (S.auto === false) now returns a different rate
+  S.ctx.currentTime = 701;
+  tick(now0 + 50, 0.1); // this tick's own rate-change branch must re-anchor and cancel the stale arm
+  assert.equal(cancelPendingGaplessMock.mock.calls.length, 1);
+  assert.equal(S.rate, 0.85);
 });
 
 const { angleDelta, SCRUB_SEC_PER_ROTATION, SCRATCH_SEC_PER_ROTATION } = await import('../../src/player/scrub.js');

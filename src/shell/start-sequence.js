@@ -259,13 +259,17 @@ export async function runStartSequence(t, info, startAudio){
   hideOutgoingSleeve();
   removeSleeveWrap();
 
-  if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED){
+  if(!t || !info || info.type === 'none' || !S.sleevePullEnabled || REDUCED || document.hidden){
     // no ceremony to carry it — play() itself breaks a sealed album's seal
     // silently the instant it actually starts (SEALED spec §6). Nothing of
     // the sleeve is shown here, so the shrink-wrap peel has nothing to
     // animate — just the crinkle, "or a crinkle sound only in the
     // background" (docs/15_SURFACE_NOISE.md §2, "Rules" — it never blocks
     // play, from a track list/search/lock-screen tap same as anywhere else).
+    // PL3 (docs/19_PLAYER.md): an album change while the page is hidden
+    // skips the sleeve ceremony's sleep()/animation waits entirely and
+    // starts the next album directly, the same way side flips and skips
+    // already bail on document.hidden (runout.js's endOfQueue/sideFlipTurnAt).
     if(t && isAlbumSealed(albumKey(t))) playCrinkleBurst(releaseSeed(albumKey(t)), 0.4);
     $('#platterBox').classList.remove('disc-hidden');   // nothing will emerge it, so it's just there
     startAudio();

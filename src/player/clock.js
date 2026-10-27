@@ -7,7 +7,7 @@ import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
 import { applyWobbleRate } from '../audio/engine.js';
-import { maybeScheduleGaplessNext } from './transport.js';
+import { maybeScheduleGaplessNext, cancelPendingGapless } from './transport.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
@@ -86,6 +86,10 @@ export function tick(now, maxDt){
     // this is the one place it ever is.
     applyWobbleRate(r);
     if(S.anchor && S.ctx) S.anchor = { ctxTime: S.ctx.currentTime, offset: pos, rate: r };
+    // PL3 (docs/19_PLAYER.md, item 3): a rate change moves the boundary
+    // any already-armed gapless source was scheduled against — cancel and
+    // let maybeScheduleGaplessNext() re-arm it from the fresh anchor below.
+    cancelPendingGapless();
   }
 
   const t = current();
