@@ -107,10 +107,20 @@ export const S = {
   autoFlip:true,
   // runtime only, never saved: whether the track load() just landed on is
   // the first track of its side (so play() knows to run the needle-drop +
-  // lead-in), and the wall-clock deadline (performance.now()-based) the
-  // playback clock holds S.pos at 0 until, while that lead-in is still
-  // playing and the track's own audio hasn't actually started yet.
-  pendingSideStart:false, openUntil:0,
+  // lead-in).
+  pendingSideStart:false,
+  // PL2 (docs/19_PLAYER.md, "one clock"): the single source of truth for
+  // playback position — { ctxTime, offset, rate }, set whenever a source
+  // starts or replaces another (startSource(), play()'s gapless-adoption
+  // branch, seek()'s replace-source path) and whenever S.rate itself
+  // changes (player/clock.js's tick(), the one place that happens).
+  // Position is always derived from this, never accumulated:
+  // player/clock.js's currentPos() reads it directly, replacing both the
+  // old per-tick `S.pos += dt * S.rate` and S.openUntil's wall-clock
+  // lead-in deadline (before anchor.ctxTime on the audio clock, position
+  // reads 0). null until the first source ever starts. Runtime only,
+  // never saved.
+  anchor:null,
   // AU1 (docs/16_AUDIO.md §2.1): true from the moment restoreResume()
   // (src/player/resume.js) lands a paused record on launch until Play is
   // first pressed (player/transport.js's play() clears it) — the one
