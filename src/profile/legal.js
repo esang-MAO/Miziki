@@ -17,7 +17,6 @@
    unlike a file's own embedded tags), but because there's no reason for
    this one screen to be the sole exception to how the rest of the app
    builds its DOM. */
-import { S } from '../state.js';
 import { el } from '../util/dom.js';
 
 const LAST_UPDATED = 'October 20, 2026';
@@ -142,27 +141,7 @@ export function renderTermsScreen(body){
   ]);
 }
 
-// Reached from the sign-in wizard's first step, the Account screen, and the
-// Privacy screen (profile/privacy.js) — each already imports renderProfile
-// from screens.js for its own navigation, so this takes it as a parameter
-// rather than importing screens.js here, the same shape privacy.js's own
-// wirePrivacyLink already uses and for the same reason: screens.js is
-// already a real circular-import hub for several sibling profile/social
-// modules, and this one small link doesn't need to add another edge to it.
-// `before`, if given, runs right before navigating — the sign-in wizard's
-// own footer passes closeSocialAuth so the modal overlay doesn't stay open
-// on top of the profile screen underneath it; the Account/Privacy call
-// sites don't need it, since renderProfile() there just redraws the same
-// #profileBody the sheet is already showing.
-export function legalLinksRow(renderProfile, before){
-  const go = (screen) => { if(before) before(); S.profileView.screen = screen; renderProfile(); };
-  const row = el('p','note legal-links');
-  const privacyBtn = el('button','link-btn','Privacy Policy');
-  privacyBtn.addEventListener('click', ()=> go('privacyPolicy'));
-  const termsBtn = el('button','link-btn','Terms of use');
-  termsBtn.addEventListener('click', ()=> go('termsOfUse'));
-  row.appendChild(privacyBtn);
-  row.appendChild(document.createTextNode(' · '));
-  row.appendChild(termsBtn);
-  return row;
-}
+// TR2 (docs/19_PLAYER.md): legalLinksRow() moved to the tiny, often-reached
+// profile/legal-links.js leaf, which this file's own two screens no longer
+// need -- callers that only want the link row no longer pull this file's
+// full Privacy Policy/Terms of use text in with it.

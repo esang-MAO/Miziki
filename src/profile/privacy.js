@@ -12,7 +12,6 @@
    social layer when it's inert), and the social-only sections (visibility,
    sharing, requests, blocked) show a calm "sign in to use this" row
    instead of fetching anything. */
-import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { storeSwitch, timeAgoShort } from './storefront.js';
 import { getBackupStatus, collectDownloadData, pushOrClearListeningRhythm } from '../sync/backup.js';
@@ -170,14 +169,7 @@ export function renderPrivacyScreen(body){
   renderSocialSection(body, status);
 }
 
-// takes the caller's own renderProfile (screens.js, settings.js both
-// already import it for their own navigation) rather than importing it
-// here — privacy.js importing back from screens.js would make the two a
-// real circular pair, and screens.js is already the hub several other
-// profile/social modules circle back to; no need to add one more edge
-// just for this one button.
-export function wirePrivacyLink(host, renderProfile){
-  const btn = el('button','cta ghost profile-share','Privacy');
-  btn.addEventListener('click', ()=>{ S.profileView.screen = 'privacy'; renderProfile(); });
-  host.appendChild(btn);
-}
+// TR2 (docs/19_PLAYER.md): wirePrivacyLink() moved to the tiny, often-
+// reached profile/privacy-link.js leaf -- callers that only want the
+// Profile-tab button no longer pull this file's full Privacy screen in
+// with it.

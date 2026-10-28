@@ -9,8 +9,8 @@ import { renderStorefrontSection } from './storefront.js';
 import { renderRecordsScreen } from './records.js';
 import { renderRhythmCard } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
-import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
-import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './legal.js';
+import { wirePrivacyLink } from './privacy-link.js';
+import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, isDaylightPhase } from '../ui/theme.js';
@@ -126,9 +126,23 @@ export function renderProfile(opts = {}){
   else if(screen === 'collection'){ S.profileView.screen = 'records'; S.profileView.recordsFilter = 'pressings'; renderRecordsScreen(body); }
   else if(screen === 'settings') renderAppSettingsScreen(body);
   else if(screen === 'socialSettings'){ renderSocialSettingsScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
-  else if(screen === 'privacy'){ renderPrivacyScreen(body); body.appendChild(legalLinksRow(renderProfile)); }
-  else if(screen === 'privacyPolicy') renderPrivacyPolicyScreen(body);
-  else if(screen === 'termsOfUse') renderTermsScreen(body);
+  // TR2 (docs/19_PLAYER.md): privacy.js's full Privacy screen and legal.js's
+  // Privacy Policy/Terms of use text are real weight nobody needs until one
+  // of these three screens is actually opened -- dynamically imported here,
+  // fire-and-forget the same way renderSocialSection (privacy.js) already
+  // builds its own async content into a passed-in body.
+  else if(screen === 'privacy'){
+    import('./privacy.js').then(({ renderPrivacyScreen }) => {
+      renderPrivacyScreen(body);
+      body.appendChild(legalLinksRow(renderProfile));
+    });
+  }
+  else if(screen === 'privacyPolicy'){
+    import('./legal.js').then(({ renderPrivacyPolicyScreen }) => renderPrivacyPolicyScreen(body));
+  }
+  else if(screen === 'termsOfUse'){
+    import('./legal.js').then(({ renderTermsScreen }) => renderTermsScreen(body));
+  }
   else renderProfileHome(body, refreshingHome);
   lastProfileScreen = screen;
   refreshLibraryTools();

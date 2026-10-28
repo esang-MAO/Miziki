@@ -3,8 +3,8 @@ import { el, $ } from '../util/dom.js';
 import { timeAgoShort } from './storefront.js';
 import { renderProfile } from './screens.js';
 import { renderHome, clearHomeFeedCache } from '../social/screens/home.js';
-import { wirePrivacyLink } from './privacy.js';
-import { legalLinksRow } from './legal.js';
+import { wirePrivacyLink } from './privacy-link.js';
+import { legalLinksRow } from './legal-links.js';
 import { getBackupStatus, listBackupDevices, removeBackupDevice, dismissStaleDeviceNotice } from '../sync/backup.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
