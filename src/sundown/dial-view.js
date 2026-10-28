@@ -72,18 +72,13 @@ function verticalGradient(stops) {
 // SKY_CROSSFADE_MS transition on top of one still mid-flight, each new
 // call finding the "front" layer already near full opacity and writing
 // its background straight onto it with no animation left to mask the
-// change — a rapid series of hard cuts that read as the sky flickering
-// rather than crossfading. Reported by Ken as "previewing... seems to
-// fluctuate."
+// change — a rapid series of hard cuts that reads as the sky flickering
+// rather than crossfading.
 const RAPID_PHASE_CHANGE_MS = 1500;
 
-// PR 6 gave the Sound view its own copy of this same crossfade
-// (#sdSkySoundA/B) — RF9 (docs/12_REFINE.md) removed that view's own dial
-// and sky background outright (Day has the one dial now), leaving a
-// single caller below; kept parameterized by layer-id prefix and its own
-// module-private front/lastPhase pair (via `state`, below) regardless,
-// since that's what made the two independent in the first place and
-// costs nothing with one caller.
+// Parameterized by layer-id prefix, with its own module-private
+// front/lastPhase pair (via `state`, below) even though there's one
+// caller — costs nothing and keeps the door open for another caller.
 function makeSkyUpdater(idPrefix) {
   const state = { front: 'A', lastPhase: null, lastChangeAt: 0 };
   return function updateSkyBackground(skyPhase, stops) {

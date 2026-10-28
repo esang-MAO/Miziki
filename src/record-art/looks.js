@@ -155,12 +155,11 @@ export function discLook(t){
   const curT = current();
   const format = (curT && albumKey(curT) === albumId) ? S.recordFormat : null;
   if(look === 'zoetrope'){
-    // Follow-up to PR7: the frame count the live strobe ring
-    // (player/clock.js's frame(), via record-art/zoetrope-motion.js)
-    // quantizes against — the same LP/45 frame-count split
-    // variantBackground() above just used to pick disc_lp vs disc_45,
-    // since a 45's extra frames are what keeps its faster loop smooth
-    // (§5: "the extra frames keep it smooth").
+    // The frame count the live strobe ring (player/clock.js's frame(),
+    // via record-art/zoetrope-motion.js) quantizes against — the same
+    // LP/45 split variantBackground() above uses to pick disc_lp vs
+    // disc_45, since a 45's extra frames are what keeps its faster loop
+    // smooth (§5: "the extra frames keep it smooth").
     const frameCount = (format && format.speed === RPM_45) ? zoetropeDef.frames45 : zoetropeDef.framesLp;
     return { look, rare: false, rareId: null, tier: null, variant: zoetropeId, metal: null,
       bg: variantBackground(zoetropeDef, format), lightOverlay: null, labelKind: 'amber', paperLabel: false,

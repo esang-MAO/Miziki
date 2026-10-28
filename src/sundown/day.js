@@ -45,17 +45,16 @@ export function dayEvents(date, lat, lon){
 // minutes) have passed, and 1 for the rest of the night including the
 // pre-dawn tail — never reset or reused for anything else. It exists
 // specifically because phaseProgress itself is always 0 for 'night' (by
-// design — see that field's own note below), which is correct for every
-// existing consumer (drift.js's own 'night' case is a flat hold that never
-// reads phaseProgress at all) but leaves clock.js's own sky-token blend
-// (src/player/clock.js's skyGradientStops()) with nothing to ramp across
-// for the one interior waypoint its own 8-anchor table needs (the "Dusk"
-// anchor, docs/design/day-arc/README.md — the sky keeps darkening for a
-// short while after dusk before settling, the same "a felt move, not a
-// jump" shape pace()/easedProgress() already give the dusk window itself).
-// A second field, not a repurposed phaseProgress, so none of DA1/DA2's own
-// already-shipped "night's phaseProgress is always 0" behavior changes for
-// anything that doesn't opt into reading this new one.
+// design — see that field's own note below), which most callers want,
+// but leaves clock.js's own sky-token blend (src/player/clock.js's
+// skyGradientStops()) with nothing to ramp across for the one interior
+// waypoint its own 8-anchor table needs (the "Dusk" anchor,
+// docs/design/day-arc/README.md — the sky keeps darkening for a short
+// while after dusk before settling, the same "a felt move, not a jump"
+// shape pace()/easedProgress() already give the dusk window itself).
+// A second field, not a repurposed phaseProgress, so "night's
+// phaseProgress is always 0" stays true for anything that doesn't opt
+// into reading this one.
 //
 // rateProgress is the raw (un-paced — see src/sundown/solar.js's
 // easedProgress(), which applies Window/Moment pacing on top of this) 0=day/

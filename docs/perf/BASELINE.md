@@ -349,3 +349,17 @@ This is comment-only: no logic, no `await`, no whitespace outside comment lines 
 Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
 
 Device check: not needed — comment-only change, confirmed byte-identical build output.
+
+## TR6 batch 2: sundown + record-art comment diet
+
+Batch 2 of TR6's grouped comment diet, covering `src/sundown/` and `src/record-art/` — the Day Arc/Sundown day model and the pressing/zoetrope art catalogue.
+
+Went through every comment in both folders. Trimmed narration of *when* and *in which PR/step* something changed ("PR 6 gave the Sound view its own dial... RF9 removed it", "Reported by Ken as...", "since the launch-intro rework", "an earlier version of this code") down to the current behavior and its rationale. Kept every comment that explains *why* or warns about a trap — `solar.js`'s `computeRate()` invariant ("the one place the rate-always-1-in-Pure rule lives"), `arc.js`'s midnight-wrap and conic-gradient stop-ordering trap notes, `day.js`'s polar-date/legacy-data fallback reasoning — and kept short plan-doc pointers (`DA1`, `DA4`, `RF9`, `RF27`, `§3.3`, `§3.4`).
+
+Found and fixed several comments left stale by earlier TR PRs: `arc.js`'s `DRIFT_SIZE`/`DRIFT_SCALE`/`effectiveCharAt()` comments and `day.js`'s night-phaseProgress comment referenced `sundown/drift.js`, deleted in TR5 — rewritten to describe current behavior without the dangling file reference. `record-art/tiers.js`'s `ZOETROPE_IDS`/`selectZoetropeVariant()` comments and `record-art/zoetrope-motion.js`'s header still described zoetropes as "not yet wired into any live path, PR7 will call this" — but PR7 (#205) shipped weeks ago and zoetropes are live (`looks.js`/`state.js` both gate on `S.zoetropeUnlocked`); rewritten to describe the real, current gating instead of a stale future-tense plan.
+
+Comment-only: no logic, no `await`, no whitespace outside comment lines touched. Confirmed by hashing all `dist/assets/*.js` chunks before and after — byte-identical.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.
