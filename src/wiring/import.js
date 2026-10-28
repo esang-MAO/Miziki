@@ -1,9 +1,7 @@
 /* ================= wiring: import =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the header + menu
-   (S1 §3), the file pickers, drag-and-drop over the library route, the
-   single-file duplicate prompt, and the library-wide duplicate scan.
-   Every function called here was already a real export of its owning
-   module. */
+   The header + menu (S1 §3), the file pickers, drag-and-drop over the
+   library route, the single-file duplicate prompt, and the library-wide
+   duplicate scan. */
 import { $ } from '../util/dom.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from '../library/import.js';
 import { resolveDuplicatePrompt } from '../library/duplicates-ui.js';

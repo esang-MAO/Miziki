@@ -1,10 +1,8 @@
 /* ================= wiring: transport controls =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the play/next/prev/
-   shuffle/repeat buttons, the scrub slider, the Pure/Vinyl mode buttons,
-   the sleep timer, the favorite buttons (player + mini-player), and the
-   mini-player/full-player open/close/interrupt wiring. Every function
-   called here was already a real export of its owning module; this file
-   adds no new export anywhere else. */
+   The play/next/prev/shuffle/repeat buttons, the scrub slider, the
+   Pure/Vinyl mode buttons, the sleep timer, the favorite buttons
+   (player + mini-player), and the mini-player/full-player
+   open/close/interrupt wiring. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { bgPrime } from '../player/background.js';

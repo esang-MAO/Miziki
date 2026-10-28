@@ -1,8 +1,6 @@
 /* ================= wiring: library management =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the "Forget
-   library" two-tap confirm button, and the clear-listening-history
-   overlay. Every function called here was already a real export of
-   its owning module. */
+   The "Forget library" two-tap confirm button, and the
+   clear-listening-history overlay. */
 import { $ } from '../util/dom.js';
 import { forgetLibrary } from '../library/delete.js';
 import { clearListeningHistory } from '../history/clear.js';

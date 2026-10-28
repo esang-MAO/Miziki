@@ -65,22 +65,21 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   $('#sleeve').style.display = 'none';
 
   // Close the gatefold's own nav-stack entry now, before the player's layer
-  // is opened, rather than at the very end of this function (where it used
-  // to run, after the flight/overshoot/settle completed): closeLayer and
-  // forceCloseLayer both close a background layer *and* everything stacked
-  // above it, which is right for an overlay opened on top of the gatefold,
-  // but wrong here — the player replaces the gatefold rather than nesting
-  // inside it, so leaving the old ordering meant forceCloseLayer('gatefold')
-  // later spliced away the player's own, by-then-already-open nav-stack
-  // entry too (it had ended up stacked above 'gatefold' in the layers
-  // array), running the player's instantClose (closePlayer) right as the
-  // hand-off finished and silently closing the player it had just animated
-  // open. {skipHistory:true} avoids a second race this reorder would
-  // otherwise hit — see nav-stack.js's own comment on finishClose(). The
-  // gatefold's exit fade just below still needs #gatefold to keep
-  // rendering for its own ~400ms, so pin display:block inline for exactly
-  // that span — closeGatefoldInstant() only drops the .open class, which
-  // is what governs display via CSS (.gatefold{display:none}).
+  // is opened — not after the flight/overshoot/settle completes.
+  // closeLayer/forceCloseLayer both close a background layer *and*
+  // everything stacked above it, which is right for an overlay opened on
+  // top of the gatefold, but wrong here: the player replaces the gatefold
+  // rather than nesting inside it, so closing the gatefold's entry late
+  // would splice away the player's own, by-then-already-open nav-stack
+  // entry too (it ends up stacked above 'gatefold' in the layers array),
+  // running the player's instantClose (closePlayer) right as the hand-off
+  // finished and silently closing the player it had just animated open.
+  // {skipHistory:true} avoids a second race — see nav-stack.js's own
+  // comment on finishClose(). The gatefold's exit fade just below still
+  // needs #gatefold to keep rendering for its own ~400ms, so pin
+  // display:block inline for exactly that span — closeGatefoldInstant()
+  // only drops the .open class, which is what governs display via CSS
+  // (.gatefold{display:none}).
   if(isGatefoldOpen()){
     gf.style.display = 'block';
     forceCloseLayer('gatefold', { skipHistory: true });

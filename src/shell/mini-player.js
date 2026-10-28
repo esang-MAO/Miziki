@@ -119,9 +119,9 @@ export function updateChromeInset(){
     document.documentElement.style.setProperty('--chrome-inset', (tabH + miniH + 16) + 'px');
     if(typeof applyCrateMiniInset === 'function') applyCrateMiniInset();
     if(typeof centerEmptyState === 'function' && !S.tracks.length && isLibraryRouteVisible()) centerEmptyState();
-    // Ken, 2026-10-22: #libBody's own internal-scroll height (the Library
-    // scroll lock, shell/routes.js's showRoute()) depends on --chrome-inset,
-    // just written above -- recompute it here too so a resize (or the mini
+    // #libBody's own internal-scroll height (the Library scroll lock,
+    // shell/routes.js's showRoute()) depends on --chrome-inset, just
+    // written above -- recompute it here too so a resize (or the mini
     // player showing/hiding) keeps it accurate, not just the one-time call
     // showRoute() itself makes on a route switch.
     updateLibBodyInset();

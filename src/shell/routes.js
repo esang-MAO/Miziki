@@ -84,18 +84,15 @@ export function showRoute(name){
   // NV3: save the leaving route's own scroll position before anything about
   // the DOM changes — window.scrollY here is still wherever the user left it.
   if(currentRouteName && isNewRoute) saveScrollPosition('route:' + currentRouteName);
-  // Ken, 2026-10-22: "go back to the lock of the library tab... make sure
-  // lock doesn't leak to other tabs." The earlier attempt (PR #164, reverted
-  // as #165) toggled body overflow:hidden via a reactive body:has(...)
-  // selector and broke on real iOS Safari — toggling overflow:hidden on a
-  // body that's mid-scroll is a known engine quirk, and the reactive
-  // selector gave no single place to guarantee the lock actually lifts.
-  // This time the class is set/cleared only here, tied 1:1 to the one
+  // The lib-scroll-lock class is set/cleared only here, tied 1:1 to the one
   // function that already switches which .route is on, so it can never
   // outlive the route it belongs to: always removed before anything else
   // about the route changes, and only re-added once the Library route is
   // confirmed on screen and its own scroll position (always 0 — see below)
-  // has already settled.
+  // has already settled. Trap: a reactive body:has(...) selector toggling
+  // body overflow:hidden instead breaks on real iOS Safari — toggling
+  // overflow:hidden on a body that's mid-scroll is a known engine quirk, and
+  // a reactive selector gives no single place to guarantee the lock lifts.
   if(isNewRoute) document.body.classList.remove('lib-scroll-lock');
   // the gatefold is a library-only view (opened from the crate); it must
   // never persist over another tab's content since it's a fixed full-screen
