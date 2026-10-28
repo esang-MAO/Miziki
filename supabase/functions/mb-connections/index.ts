@@ -116,6 +116,9 @@ Deno.serve(async (req) => {
     return json(data);
   } catch (e) {
     // MusicBrainz down or throttling: the client keeps whatever it had.
-    return json({ status: "error", error: String((e as Error).message || e), artist: null, items: [] }, 502);
+    // The detail goes to the function's own logs only, never back to the
+    // caller (CodeQL: information exposure through an error message).
+    console.error("mb-connections failed for", key, e);
+    return json({ status: "error", artist: null, items: [] }, 502);
   }
 });
