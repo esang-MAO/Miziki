@@ -1,5 +1,4 @@
 /* ================= tag readers: MP3 header (rate/channels, LAME gapless) =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged.
    ID3 tag/details/artwork reading lives in id3.js — this file is only the
    raw MPEG frame header mp3Info() scans for. */
 import { txt, u32be, synch } from './bytes.js';

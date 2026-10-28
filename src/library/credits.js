@@ -1,8 +1,8 @@
 /* ================= liner notes & credits (CREDITS spec §1) =================
-   Moved out of main.js (step 5e). Read-only presentation of t.details —
-   comments shown as "Notes" only when they read like real liner notes (long
-   enough, or multi-line, and not a rip-tool signature), with everything
-   else available behind a toggle.
+   Read-only presentation of t.details — comments shown as "Notes" only
+   when they read like real liner notes (long enough, or multi-line, and
+   not a rip-tool signature), with everything else available behind a
+   toggle.
 
    ================= credits that link: person view (CREDITS spec §2) =====
    A lazily-rebuilt index — rebuilt only when tracks change or healDetails
@@ -94,9 +94,9 @@ function trackCreditRows(d){
   return rows;
 }
 
-// exported (previously module-private) since step D6 lets the desktop
-// side panel's "Credits" tab target this at #playerSideBody instead of
-// the phone overlay's #creditsBody — same render, just a different host.
+// Exported so the desktop side panel's "Credits" tab can target this at
+// #playerSideBody instead of the phone overlay's #creditsBody — same
+// render, just a different host.
 // host defaults to the phone sheet's own element, unchanged for that call
 // site (openCreditsSheet() below). The "#creditsTitle text" line that used
 // to live here moved to openCreditsSheet() instead — it's overlay-sheet

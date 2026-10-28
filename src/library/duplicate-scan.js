@@ -1,7 +1,7 @@
 /* ================= duplicate scan (library-wide) =================
-   Moved out of main.js (step 5d). Separate from the single-file duplicate
-   prompt shown during import (see duplicates-ui.js) — this is the "scan my
-   whole library" screen reached from settings. Library-wide scan for
+   Separate from the single-file duplicate prompt shown during import (see
+   duplicates-ui.js) — this is the "scan my whole library" screen reached
+   from settings. Library-wide scan for
    duplicates that arise from metadata edits, not just import (see
    PLAYBACK/IMPORT spec §6) — offered separately in settings. */
 import { S } from '../state.js';
@@ -28,9 +28,9 @@ export function openDuplicateScan(){
   openLayer('duplicate-scan', closeDuplicateScan, { container: overlay });
 }
 // Pure-ish DOM builder, split out so a malicious tag value's handling is
-// testable without the rest of renderDupScan's $()/deleteTracks chain
-// (security hardening, step 01 — track title/artist are untrusted file-tag
-// text, so this must never reach innerHTML).
+// testable without the rest of renderDupScan's $()/deleteTracks chain.
+// Track title/artist are untrusted file-tag text, so this must never
+// reach innerHTML.
 export function duplicateNamesElement(tracks){
   const namesEl = document.createElement('div');
   namesEl.className = 'k';

@@ -1,6 +1,6 @@
 /* ================= deletion =================
-   Moved out of main.js (step 5d). Removes files from Miziki's library
-   only — never from disk. Listening history is not file-scoped:
+   Removes files from Miziki's library only — never from disk. Listening
+   history is not file-scoped:
    sessionCounts/rareUnlocked/albumLastPlayed/albumDisplay/achievements/
    collection are already keyed by the normalized album identity
    (albumKey), and trackPlayCounts/trackLastPlayed/trackDisplay by the
@@ -160,18 +160,13 @@ export function deleteArtist(artist){
   deleteTracks(S.tracks.filter(t => t.tags.artist === artist).map(t => t.id));
 }
 
-/* F3 spec (step 02): "Forget library" removes your songs and keeps your
-   listening stats. It used to clear the tracks/meta/sessions/overlays/
-   artwork stores wholesale, which erased play counts, sessions, metals,
-   sealed state, playlists, edits and settings along with the songs
-   themselves — and left some in-memory stats fields un-reset, so a later
-   save could write part of that half-cleared state back (the write-back
-   bug step 5d already flagged). Now only the tracks store, this album's
-   crate-art tiers, and thumbnails nothing else still references are
-   removed; meta/sessions/overlays/achievements/collection are untouched,
-   so playlists, track edits, custom covers, manual order/sort and sealed
-   state all wait and reconnect automatically once the same files (same
-   id: name|size|lastModified) are added back. "Clear listening history"
+/* F3 spec: "Forget library" removes your songs and keeps your listening
+   stats. Only the tracks store, this album's crate-art tiers, and
+   thumbnails nothing else still references are removed; meta/sessions/
+   overlays/achievements/collection are untouched, so playlists, track
+   edits, custom covers, manual order/sort and sealed state all wait and
+   reconnect automatically once the same files (same id:
+   name|size|lastModified) are added back. "Clear listening history"
    stays the one place that resets stats. */
 export async function forgetLibrary(){
   // every crate-tier image belongs to an album about to lose its last

@@ -1,16 +1,14 @@
 /* ================= file import and tag reading =================
-   Moved out of main.js (step 5b): addFiles()'s import loop (and its
-   drag-and-drop file-walking helpers), the test tone, storeTrack(), and
-   likely-duplicate detection. Byte-level tag/artwork parsing itself lives
-   in src/library/tags/ — this module is "what to do with a File object,"
-   not "how to read one." The import loop's behavior is unchanged: one
-   file at a time, the "Importing N of M" note, a failed file skipped
-   (not aborting the batch), and new albums sealed once per batch
-   (SEALED spec §2). Since AU5 (docs/16_AUDIO.md §4), the import loop also
-   runs the BS.1770 loudness measurement right after decodeAudioData, and
-   since AU12 (§7) the hook-detection pass right alongside it — both via
-   audio/analysis-client.js's analyzeTrack() (PL6 item 1: off the main
-   thread, in a Worker). */
+   addFiles()'s import loop (and its drag-and-drop file-walking helpers),
+   the test tone, storeTrack(), and likely-duplicate detection. Byte-level
+   tag/artwork parsing itself lives in src/library/tags/ — this module is
+   "what to do with a File object," not "how to read one." One file at a
+   time, the "Importing N of M" note, a failed file skipped (not aborting
+   the batch), and new albums sealed once per batch (SEALED spec §2). The
+   import loop also runs the BS.1770 loudness measurement (AU5,
+   docs/16_AUDIO.md §4) and the hook-detection pass (AU12, §7) right after
+   decodeAudioData, both via audio/analysis-client.js's analyzeTrack()
+   (off the main thread, in a Worker). */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -112,9 +110,9 @@ export async function addFiles(list){
       // AU3 (docs/16_AUDIO.md §2.3): the context is created once, at the
       // device's own fixed rate — decodeAudioData resamples to it
       // regardless of the file's own rate, so there's no rate to pass here.
-      // Found 2026-10-26: decoded on a disposable OfflineAudioContext, not
-      // the live S.ctx, so a big import batch can't contend with whatever
-      // is already playing — see decodeAudioFile()'s own comment.
+      // Decoded on a disposable OfflineAudioContext, not the live S.ctx, so
+      // a big import batch can't contend with whatever is already playing
+      // — see decodeAudioFile()'s own comment.
       const buffer = await decodeAudioFile(raw);
       // Encoder delay/padding sample counts are expressed at the file's own
       // native rate — converting to seconds here keeps everything else
@@ -164,8 +162,8 @@ export async function addFiles(list){
       S.tracks.push(t);
       touchLRU(S.tracks.length - 1);
       // a backed-up edit/playlist entry that arrived (via sync) before this
-      // exact file ever did — step 06, B3's "music re-added later" — waits
-      // by identity key until this moment to attach
+      // exact file ever did ("music re-added later") waits by identity key
+      // until this moment to attach
       reconcileImportedTrack(t);
       {
         const aid = albumKey(t);

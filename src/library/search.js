@@ -1,6 +1,6 @@
 /* ================= library-wide search + sort =================
-   Moved out of main.js (step 5e). Search matches artist/album/track title
-   and groups results by type rather than interleaving them. Sort applies
+   Search matches artist/album/track title and groups results by type
+   rather than interleaving them. Sort applies
    to whichever top-level list (Songs or Albums) is showing; session count
    is meaningful at the album scope, so on the Songs list it sorts by the
    containing album's count rather than being omitted. Preference persists

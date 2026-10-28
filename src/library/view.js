@@ -1,14 +1,10 @@
 /* ================= library =================
-   Moved out of main.js (step 7d): the "library" section's row/group
-   renderers and selection/deletion UI helpers, plus renderTracks() itself
-   — the function that actually draws the Songs/Artists/Playlists/crate
-   tabs, search results, and the breadcrumb/drill-down between them.
-   renderTracks() used to sit ~900 lines further down in main.js, inside
-   the misleadingly-named "S3: gatefold album view" header (which also
-   covers the gatefold and the sealed-record sheet, neither of which moved
-   here — that's step 7e's territory, see src/crate/view.js's own step 7c
-   note) — purely a physical-position accident, not because it has
-   anything to do with the gatefold. */
+   The "library" section's row/group renderers and selection/deletion UI
+   helpers, plus renderTracks() itself — the function that actually draws
+   the Songs/Artists/Playlists/crate tabs, search results, and the
+   breadcrumb/drill-down between them. The gatefold and sealed-record
+   sheet live separately in src/gatefold/ and src/crate/view.js — this
+   module has nothing to do with either. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { fmt } from '../util/text.js';
@@ -591,17 +587,17 @@ function restoreScrollAnchor(host, anchor){
   }
 }
 
-// Ken, 2026-10-22: the body-level scroll lock (shell/routes.js's own
-// showRoute()) means #libBody can no longer rely on page scroll to reveal a
-// longer Songs/Artists/Playlists/search-results list -- this gives it its
-// own internal scroll region instead, sized to whatever room is actually
-// left under the header/tabs and above the mini player/tab bar, the same
+// The body-level scroll lock (shell/routes.js's own showRoute()) means
+// #libBody can no longer rely on page scroll to reveal a longer
+// Songs/Artists/Playlists/search-results list -- this gives it its own
+// internal scroll region instead, sized to whatever room is actually left
+// under the header/tabs and above the mini player/tab bar, the same
 // getBoundingClientRect()+--chrome-inset approach crate/view.js's own
 // applyCrateMiniInset() already uses for the same "how much room is left"
 // question. Crate view is deliberately exempt -- it already fits itself to
-// the viewport via applyCrateMiniInset() and never relied on page scroll at
-// all (see the CR14-era revert's own documented reasoning), so giving it a
-// second, competing scroll container here would only fight that.
+// the viewport via applyCrateMiniInset() and never relies on page scroll
+// at all, so giving it a second, competing scroll container here would
+// only fight that.
 export function updateLibBodyInset(){
   const route = document.getElementById('route-library');
   const host = $('#libBody');

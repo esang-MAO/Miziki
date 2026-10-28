@@ -1,6 +1,5 @@
 /* ================= tag readers: ID3v2 (MP3, AIFF, and WAV/AIFF files with a
-   bolted-on ID3 chunk) =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged. */
+   bolted-on ID3 chunk) ================= */
 import { txt, u32be, synch, decodeText, clean, artURL } from './bytes.js';
 import { emptyDetails, splitNames, parseYear, creditRoleBucket, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 

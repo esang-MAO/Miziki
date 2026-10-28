@@ -364,6 +364,20 @@ Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 pas
 
 Device check: not needed — comment-only change, confirmed byte-identical build output.
 
+## TR6 batch 4: library + history comment diet
+
+Batch 4 of TR6's grouped comment diet, covering `src/library/` (including `src/library/tags/`) and `src/history/` — the library data model/view/import/edit/delete surface, tag parsing, and the only module allowed to write listening counters.
+
+Trimmed "Moved out of main.js (step N)" provenance headers across most files in both folders (`library/tags/*.js`, `library/view.js`, `library/credits.js`, `library/favorites.js`, `library/duplicates-ui.js`, `library/search.js`, `library/delete.js`, `library/edit.js`, `library/duplicate-scan.js`, `library/import.js`, `history/sessions.js`, `history/clear.js`, `history/played.js`), plus narration of *when*/*in which step* something changed elsewhere: a "previously module-private since step D6" aside in `library/credits.js`; a "Ken, 2026-10-22" framing on `library/view.js`'s scroll-lock rationale (kept the why, dropped the dated framing); "Found 2026-10-26" and "step 06, B3" framings in `library/import.js` (kept the underlying reasoning); a "security hardening, step 01" framing on a trap note in `library/duplicate-scan.js` (kept the trap); "Follow-up to PR7 (Ken, 2026-10-26)" framing in `history/sessions.js` (kept the behavior explanation). `library/delete.js`'s "Forget library" comment had its "it used to clear everything, which caused a write-back bug" history trimmed down to the still-true invariant (what's cleared vs. kept) that CLAUDE.md documents as load-bearing.
+
+Kept every comment that explains *why* or warns about a trap: `history/clear.js`'s "the only path that touches listening history" note and `library/delete.js`'s "Forget library keeps stats" invariant (both load-bearing per CLAUDE.md), the `albumArtistSet` narrative trimmed elsewhere wasn't present here, the gapless-encoder-delay-in-seconds rationale in `library/import.js`, the sealed/cross-device-merge "ever broken" distinction in `library/sealed.js`, and every short plan-doc pointer (`AU3`/`AU5`/`AU9`/`AU10`/`AU12`, `RF7`/`RF8`/`RF15`/`RF17`/`RF23`, `CR6`/`CR9`/`CR10`, `F3`, `B2`/`B3`/`B4` spec-table references).
+
+Comment-only: no logic, no `await`, no non-comment line touched. Confirmed by hashing all `dist/assets/*.js` chunks before and after — byte-identical.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.
+
 ## TR6 batch 3: crate + gatefold + launch comment diet
 
 Batch 3 of TR6's grouped comment diet, covering `src/crate/`, `src/gatefold/`, and `src/launch/` — the crate shelf, the gatefold/sealed-sheet/picture-sleeve overlays, and the launch intro.

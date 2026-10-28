@@ -1,19 +1,16 @@
 /* ================= record art: session tracking =================
-   Moved out of main.js (step 5c). A "qualifying session" is one full
-   play-through of an album, in order, with shuffle off, zero skips, and
-   every track actually heard (not just scrubbed past) to 95%. See spec
-   §7-8. Persisted one record per in-progress album so a
-   backgrounded/killed app can resume within a 4-hour gap.
+   A "qualifying session" is one full play-through of an album, in order,
+   with shuffle off, zero skips, and every track actually heard (not just
+   scrubbed past) to 95%. See spec §7-8. Persisted one record per
+   in-progress album so a backgrounded/killed app can resume within a
+   4-hour gap.
 
-   persistAlbumLastPlayed moved here too, from the old "profile tab"
-   section — S.albumLastPlayed is written only by sessionTrackComplete
-   below, so its setter belongs beside its one writer, not beside the
-   profile screen that merely reads it for display. persistSealedAlbums
-   stayed out of this module in step 5c — it's tightly coupled to
-   restoreSealedAlbums/isAlbumSealed/breakSeal, none of which are
-   session-tracking, and S.sealed is deliberately independent of
-   listening history (SEALED spec §2) — it moved, with the rest of that
-   cohesive unit, into src/library/sealed.js in step 6b instead. */
+   persistAlbumLastPlayed lives here (not with the profile screen) since
+   S.albumLastPlayed is written only by sessionTrackComplete below — its
+   setter belongs beside its one writer. persistSealedAlbums/
+   restoreSealedAlbums/isAlbumSealed/breakSeal live in
+   src/library/sealed.js instead: S.sealed is deliberately independent of
+   listening history (SEALED spec §2), so sealing isn't session-tracking. */
 import { S, current, touchBackupKey } from '../state.js';
 import { albumKey, trackTier, selectVariant, VARIANT_DEFS, CHART_VERSION } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
@@ -173,11 +170,10 @@ export function sessionTrackComplete(t){
     persistMetalEligibleSessions();
     persistAlbumLastPlayed();
     checkRareUnlock(albumId);
-    // Follow-up to PR7 (Ken, 2026-10-26): the Settings "Zoetropes earned"
-    // switch — off stops awarding new zoetropes outright, freezing
-    // zoetropeDayProgress exactly where it is rather than resetting it, so
-    // turning it back on resumes with zero progress lost. rareUnlock above
-    // is unaffected either way.
+    // The Settings "Zoetropes earned" switch — off stops awarding new
+    // zoetropes outright, freezing zoetropeDayProgress exactly where it
+    // is rather than resetting it, so turning it back on resumes with
+    // zero progress lost. rareUnlock above is unaffected either way.
     if(S.zoetropesEnabled) checkZoetropeUnlock(albumId);
     MizikiSocial.listeningChanged();
     // the album metal (if any) is a pure function of the count that just

@@ -1,5 +1,4 @@
 /* ================= tag readers: shared byte/text primitives =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged.
    Pure functions of bytes — no DOM, no S. Every format module in this
    directory imports from here rather than duplicating these. */
 

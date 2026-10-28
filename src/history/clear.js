@@ -1,11 +1,9 @@
 /* ================= clear listening history =================
-   Moved out of main.js (step 5c; the decoded-audio cache that used to
-   sit in this section moved separately, in 5a). Deliberately separate
-   from deletion — deletion never touches listening history, this is
-   the only path that does (see LIBRARY spec §1). Full scope wipes
-   everything; the lighter "orphaned only" scope drops just the records
-   for identities no longer in the library, leaving current albums
-   untouched. */
+   Deliberately separate from deletion — deletion never touches listening
+   history, this is the only path that does (see LIBRARY spec §1). Full
+   scope wipes everything; the lighter "orphaned only" scope drops just
+   the records for identities no longer in the library, leaving current
+   albums untouched. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';

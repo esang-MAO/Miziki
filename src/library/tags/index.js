@@ -1,5 +1,4 @@
 /* ================= tag readers: format dispatch =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged —
    readHeader/readTags/readDetails/findArtworkBlob are the public surface
    of src/library/tags/: everything that needs to read a music file's
    bytes (today, just src/library/import.js) goes through these four,
