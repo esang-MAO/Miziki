@@ -81,9 +81,9 @@ export function phaseAt(now, sun) {
 //         unchanged shape from solar.js's own easedProgress()/pace()
 //   recoveryWindowMs: defaults to RECOVERY_WINDOW_MS
 //
-// Down-leg (sunset -> dusk) and the post-dusk hold are untouched from
-// today's behavior/shape (just re-expressed here); the recovery leg
-// (riseT - recoveryWindowMs -> riseT) is the new part (§3.3).
+// Down-leg (sunset -> dusk) and the post-dusk hold keep their existing
+// behavior/shape; the recovery leg (riseT - recoveryWindowMs -> riseT)
+// is §3.3's addition.
 export function rateInfoAt(now, sun, settings = {}) {
   const { mode, auto, target = 1, paceMode = 'window', recoveryWindowMs = RECOVERY_WINDOW_MS } = settings;
   if (mode === 'pure') return { rate: 1, trend: 'full' };
@@ -172,24 +172,18 @@ export function toneWordAt(now, sun) {
 /* ---------------- 3.4 Tone drift: per-parameter offsets ---------------- */
 
 // §3.4's own table — direction and size, as a fraction of each parameter's
-// own 0..1 range, at Full intensity. Bus compression is deliberately 0
-// ("unchanged") — DA2's old anchor table (sundown/drift.js) drifted it
-// too, but this brief's own table does not, and this is an implementation
-// of what the brief specifies, not a carry-over of DA2's shape.
+// own 0..1 range, at Full intensity. Bus compression is deliberately 0:
+// the brief's table names no compression drift.
 const DRIFT_SIZE = { wow: 0.30, sat: 0.27, soft: 0.27, comp: 0 };
 
-// "Subtle is roughly one third of Full" (§3.4) — deliberately its own
-// scale, not DA2's {off:0, subtle:0.5, full:1} (sundown/drift.js's
-// INTENSITY_SCALE): a different table with different per-parameter sizes
-// gets its own proportion rather than inheriting DA2's.
+// "Subtle is roughly one third of Full" (§3.4).
 export const DRIFT_SCALE = { off: 0, subtle: 1 / 3, full: 1 };
 
 // driftOffsetsAt(now, sun, intensity) -> {wow, sat, soft, comp}, each an
 // additive offset onto the user's own 0..1 Character slider value.
-// Unlike DA2's driftOffsets() (an anchor table that can push either warmer
-// or brighter than the user's own baseline), warmth w(t) only ever rises
-// off of 0 at its brightest (solar noon) — so every offset here is >= 0;
-// "softer / warmer / more" is the only direction §3.4's table names.
+// warmth w(t) only ever rises off of 0 at its brightest (solar noon) — so
+// every offset here is >= 0; "softer / warmer / more" is the only
+// direction §3.4's table names.
 export function driftOffsetsAt(now, sun, intensity) {
   const scale = DRIFT_SCALE[intensity] || 0;
   if (scale === 0) return { wow: 0, sat: 0, soft: 0, comp: 0 };
@@ -198,11 +192,10 @@ export function driftOffsetsAt(now, sun, intensity) {
 }
 
 // effectiveCharAt(userChar, now, sun, intensity) -> {wow, sat, soft, comp},
-// each clamp(user + offset, 0, 1) — the Day Arc v2 replacement for
-// sundown/drift.js's effectiveChar(); src/audio/engine.js's
-// applyCharacter() is the one real caller (PR 3, DAY_ARC_BRIEF.md).
-// userChar is a plain {wow,sat,soft,comp} object (S.char itself, or
-// anything shaped like it); never mutated.
+// each clamp(user + offset, 0, 1). src/audio/engine.js's
+// applyCharacter() is the one real caller. userChar is a plain
+// {wow,sat,soft,comp} object (S.char itself, or anything shaped like it);
+// never mutated.
 export function effectiveCharAt(userChar, now, sun, intensity) {
   const o = driftOffsetsAt(now, sun, intensity);
   return {
@@ -301,12 +294,11 @@ export function skyRingStops(sun) {
   // Midday/Afternoon boundary: the same "midpoint between solar noon and
   // sunset, clamped so it never falls before noon or after sunset" rule
   // src/sundown/day.js's own dayPosition() uses for this exact split --
-  // duplicated per this function's own header comment. Splitting exactly
-  // at noon itself (an earlier version of this code) put solar noon on
-  // the Midday/Afternoon boundary, where a conic-gradient's own same-
-  // position stop-ordering rule (colorAt's header comment above) resolves
-  // to whichever color is listed *second*, i.e. Afternoon -- silently
-  // breaking "solar noon always falls inside the midday span."
+  // duplicated per this function's own header comment. Must not split
+  // exactly at noon itself: a conic-gradient's same-position stop-
+  // ordering rule resolves a tie to whichever color is listed *second*,
+  // i.e. Afternoon -- silently breaking "solar noon always falls inside
+  // the midday span."
   const noonSetMid = clamp((noonMin + setMin) / 2, noonMin, setMin);
   const middaySplit = Math.min(Math.max(noonSetMid, morningEnd), goldenStart);
 

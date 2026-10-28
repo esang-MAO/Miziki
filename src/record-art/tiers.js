@@ -264,11 +264,10 @@ export const VARIANT_DEFS = {
     night:['#5862C4','#3B4080','#1A1C3A'],
     name:'Nychthemeron', sub:null, note:"Powder blue by day, indigo after sundown — it follows wherever the sun actually is, not a session clock."},
 
-  // ---- PRESSINGS_110 PR5 (docs/PRESSINGS_110.md §5): tier 5, zoetropes —
-  // session-earned only, same as rare (PR7 is what actually earns one;
-  // this PR only ports the catalogue and renders the disc at rest, see
-  // this file's own "static rendering" header comment below). `colors`
-  // still carries the F() 3-tuple (body/ink/accent, read positionally by
+  // ---- Tier 5, zoetropes — session-earned only, same as rare (see this
+  // file's own "static rendering" header comment below for what renders
+  // at rest vs. live). `colors` still carries the F() 3-tuple
+  // (body/ink/accent, read positionally by
   // every generic consumer — chip swatches, shareSwatchGradient — the
   // same compatibility reason every other family keeps it), even though
   // the disc's own real art is the two `disc_lp`/`disc_45` imports above,
@@ -370,13 +369,10 @@ export const EFFECT_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id
 export const RARE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'rare');
 // PRESSINGS_110 PR5: the zoetrope pool — same "never cached, re-picked
 // fresh from the id list every time" shape as RARE_IDS/selectRareVariant
-// above. Not yet wired into looks.js's live rendering (discLook()/
-// availableLooks()) in this PR — there's no earned/unlocked state to gate
-// it on until PR7, so wiring it now would make a zoetrope appear from the
-// album hash alone, with no session earned, which the spec's own "session,
-// never the file" rule forbids. selectZoetropeVariant() exists and is
-// tested as a pure primitive; PR7 is what actually calls it from a live
-// path once S.zoetropeUnlocked (or equivalent) exists to gate it.
+// above. looks.js's live rendering (discLook()/availableLooks()) gates
+// this on S.zoetropeUnlocked — never on the album hash alone, since the
+// spec's own "session, never the file" rule forbids a zoetrope appearing
+// with no session earned.
 export const ZOETROPE_IDS = Object.keys(VARIANT_DEFS).filter(id => VARIANT_DEFS[id].family === 'zoetrope');
 
 const BAND_NAMES = ['common', 'uncommon', 'scarce'];
@@ -453,8 +449,7 @@ export function selectRareVariant(t){
 // above, its own unused hash-salt byte ('\u0004') so neither draw ever
 // correlates with the other or with the tier-mix/band/colour draws. "A
 // record presses the same zoetrope in every crate that holds it" per the
-// README's own rule, carried over to this fifth tier. Not called from any
-// live path yet — see ZOETROPE_IDS' own comment above.
+// README's own rule, carried over to this fifth tier.
 export function selectZoetropeVariant(t){
   return pickFromPool(ZOETROPE_IDS, frac32(variantHashKey(t), '\u0004'));
 }

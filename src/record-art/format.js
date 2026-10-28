@@ -5,18 +5,15 @@
 
    Three independent pieces live here:
    - bestSideCut()/sideLengthsFromDurations(): the duration-based side
-     split ("keep track order and pick the cut point that best balances
-     the two sides") that superseded the old track-count midpoint split.
+     split — keep track order and pick the cut point that best balances
+     the two sides.
    - formatForLongestSide()/recordFormat()/albumRecordFormat(): the
      "format from the longest side" table (7" @45 / 10" EP @45 / 12" EP
      @45 / 12" LP @33⅓), plus the personal Auto/33⅓/45 override.
-   - rotationHz(): "the platter turns at rpm × 6°/s × S.rate... add one
-     helper, rotationHz() = (rpm / 60) × S.rate, and use it for the wobble
-     oscillator and for every surface-noise call that passes 0.55 * S.rate
-     today" -- one source of truth shared by audio/engine.js's wow
-     oscillator and every surface-noise call site that used to hardcode
-     0.55 (33.333/60 rounded) in player/transport.js, player/queue.js and
-     shell/runout.js. */
+   - rotationHz(): the platter turns at rpm × 6°/s × S.rate; rotationHz()
+     = (rpm / 60) × S.rate is the one source of truth shared by
+     audio/engine.js's wow oscillator and every surface-noise call site
+     in player/transport.js, player/queue.js and shell/runout.js. */
 
 export const RPM_33 = 33.333;
 export const RPM_45 = 45;

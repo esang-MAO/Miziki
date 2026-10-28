@@ -65,9 +65,6 @@ export function trackMetalFor(trackKey){
   return null;
 }
 
-// incrementTrackPlay moved to src/history/played.js (step 5c), alongside
-// checkTrackCompletion, its only caller.
-
 // PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): a shared color-mix helper
 // for the three derived blends the light overlay's own stop list needs.
 function mix(colorA, pctA, colorB){

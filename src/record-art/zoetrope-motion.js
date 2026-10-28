@@ -1,12 +1,7 @@
-// PRESSINGS_110 PR6: zoetrope strobe animation — the pure motion math
-// (docs/PRESSINGS_110.md §5, "How it animates (strobe model)").
-//
-// Not yet wired into any render loop: the zoetrope pool itself isn't reachable
-// from live rendering until PR7's earned-state gate exists (see record-art/tiers.js's
-// own ZOETROPE_IDS/selectZoetropeVariant entry from PR5). This module is the pure,
-// directly-testable primitive PR7 will call once there's a real earned zoetrope on
-// the platter to animate — the same "build the primitive now, wire the trigger
-// later" shape PR1/PR5 already established for the catalogue and its draw function.
+// Zoetrope strobe animation — the pure motion math (docs/PRESSINGS_110.md
+// §5, "How it animates (strobe model)"). Called from player/clock.js's
+// render loop once an album has an earned zoetrope on the platter
+// (S.zoetropeUnlocked, record-art/looks.js/tiers.js).
 //
 // Zero imports, no DOM, no S — a leaf module, same posture as audio/loudness.js/
 // sundown/rhythm.js, safe to import directly in a test.

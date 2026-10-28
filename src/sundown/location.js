@@ -46,27 +46,22 @@ export function initLocationPrompt(){
   const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation);
 }
 
-// DA1 (docs/DAY_ARC.md): fills all five day-model events, not just
-// tonight's sunset/dusk — the doc's own fixed stand-in times (dawn 6:20,
-// sunrise 6:50, noon 1:00 pm, sunset 8:10 pm — unchanged from before DA1
-// — dusk 8:36 pm, the same 26-minute gap sunset/dusk already had) for
-// whenever location is unavailable. Since DA4, also writes the same
-// device-only sun-times cache computeSun() does (solar.js's own
-// persistSunTimesCache()) — "written whenever events are computed," per
-// that step's own doc, and these fixed stand-ins count: without this, a
-// device that never grants location would carry a stale (or entirely
-// absent) cache forever, leaving theme-boot.js's own freshness check
-// ("is this cache from today") permanently false and always falling
-// through to its own hardcoded 6:50 am/8:10 pm default — which happens
-// to equal these same two numbers anyway, so this call is a belt-and-
-// suspenders freshness stamp more than a behavior change for that one
-// device, not a correctness fix on its own.
+// Fills all five day-model events, not just tonight's sunset/dusk — the
+// fixed stand-in times (dawn 6:20, sunrise 6:50, noon 1:00 pm, sunset
+// 8:10 pm, dusk 8:36 pm) for whenever location is unavailable. Also
+// writes the same device-only sun-times cache computeSun() does
+// (solar.js's own persistSunTimesCache()): without this, a device that
+// never grants location would carry a stale (or entirely absent) cache
+// forever, leaving theme-boot.js's own freshness check ("is this cache
+// from today") permanently false — a belt-and-suspenders freshness stamp
+// more than a behavior change, since the fallback default already
+// matches these same two numbers.
 //
-// Since the launch-intro rework: today's real sunrise/sunset, when the
-// sun-times cache already has them from an earlier fix today, replace the
-// fixed stand-ins (day.js's standInEvents()), so the first frames — the
-// launch intro's sky among them — follow the real time of day instead of
-// assuming an 8:10 pm sunset until location answers.
+// Today's real sunrise/sunset, when the sun-times cache already has them
+// from earlier today, replace the fixed stand-ins (day.js's
+// standInEvents()), so the first frames — the launch intro's sky among
+// them — follow the real time of day instead of assuming an 8:10 pm
+// sunset until location answers.
 export function fallbackSun(){
   let cache = null;
   try{ cache = JSON.parse(localStorage.getItem(SUN_TIMES_STORAGE_KEY) || 'null'); }catch(_e){}

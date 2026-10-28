@@ -83,12 +83,9 @@ export function resetPreview() {
   if (S.previewMin !== 0) setPreviewMinutes(0);
 }
 
-// PR 6 (DAY_ARC_BRIEF.md §4.3) gave the Sound view its own, smaller dial
-// (#soundDial) driving the exact same shared S.previewMin; RF9
-// (docs/12_REFINE.md) removed that second dial outright (Day has the one
-// dial now), leaving `.day-dial`'s own querySelectorAll with a single
-// match -- kept as a selector rather than a fixed id regardless, the
-// same reasoning `.sd-now-btn` just below still has with one button left.
+// Day has the one dial now, but `.day-dial`'s own querySelectorAll stays
+// a selector rather than a fixed id — same reasoning `.sd-now-btn` just
+// below still has with one button left.
 export function wireDialGesture() {
   const dials = document.querySelectorAll('.day-dial');
   if (!dials.length) return;
@@ -135,7 +132,6 @@ export function wireDialGesture() {
   window.addEventListener('pointerup', release);
   window.addEventListener('pointercancel', release);
 
-  // Day's #sdNowBtn and Sound's own #sdNowBtnSound (PR 6) share the
-  // `.sd-now-btn` class and the exact same reset behavior.
+  // Every `.sd-now-btn` shares the exact same reset behavior.
   document.querySelectorAll('.sd-now-btn').forEach(btn => btn.addEventListener('click', resetPreview));
 }
