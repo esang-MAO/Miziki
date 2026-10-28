@@ -181,8 +181,8 @@ export function parsePrefs(raw){
     if(p.eq.mode === 'graphic' || p.eq.mode === 'parametric') eq.mode = p.eq.mode;
     if(typeof p.eq.tilt === 'number') eq.tilt = clampTiltDb(p.eq.tilt);
     if(Array.isArray(p.eq.graphicBands)){
-      eq.graphicBands = GRAPHIC_BANDS_HZ.map((_, i) =>
-        typeof p.eq.graphicBands[i] === 'number' ? clampGraphicBandDb(p.eq.graphicBands[i]) : 0);
+      eq.graphicBands = GRAPHIC_BANDS_HZ.map((hzAt, i) =>
+        typeof p.eq.graphicBands[i] === 'number' ? clampGraphicBandDb(p.eq.graphicBands[i], hzAt) : 0);
     }
     if(Array.isArray(p.eq.parametricBands)) eq.parametricBands = sanitizeParametricBands(p.eq.parametricBands);
     if(typeof p.eq.autoPreamp === 'boolean') eq.autoPreamp = p.eq.autoPreamp;
@@ -196,8 +196,8 @@ export function parsePrefs(raw){
         if(preset.mode === 'graphic' || preset.mode === 'parametric') cleanPreset.mode = preset.mode;
         if(typeof preset.tilt === 'number') cleanPreset.tilt = clampTiltDb(preset.tilt);
         if(Array.isArray(preset.graphicBands)){
-          cleanPreset.graphicBands = GRAPHIC_BANDS_HZ.map((_, i) =>
-            typeof preset.graphicBands[i] === 'number' ? clampGraphicBandDb(preset.graphicBands[i]) : 0);
+          cleanPreset.graphicBands = GRAPHIC_BANDS_HZ.map((hzAt, i) =>
+            typeof preset.graphicBands[i] === 'number' ? clampGraphicBandDb(preset.graphicBands[i], hzAt) : 0);
         }
         if(Array.isArray(preset.parametricBands)) cleanPreset.parametricBands = sanitizeParametricBands(preset.parametricBands);
         if(typeof name === 'string' && name.length && name.length <= 40) saved[name] = cleanPreset;

@@ -24,9 +24,10 @@ import {
 import {
   GRAPHIC_BANDS_HZ, GRAPHIC_BAND_MAX_DB, TILT_MAX_DB, MAX_PARAMETRIC_BANDS,
   PARAMETRIC_BAND_MAX_DB, PARAMETRIC_TYPES, PARAMETRIC_GAIN_TYPES,
+  PREAMP_MIN_DB, PREAMP_MAX_DB,
   EQ_PRESETS, EQ_PRESET_LABELS, EQ_PRESET_KEYS,
-  clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampFreqHz, clampQ,
-  sampleFrequenciesLog, matchPreset, defaultEqState,
+  clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampFreqHz, clampQForBand,
+  clampPreampDb, sampleFrequenciesLog, matchPreset, defaultEqState,
 } from '../audio/eq.js';
 
 const PARAMETRIC_TYPE_LABELS = {
@@ -111,6 +112,12 @@ function sliderRow({ label, valueText, min, max, step, value, onInput }){
   input.className = 'eq-slider';
   input.addEventListener('input', () => { onInput(parseFloat(input.value), valEl); });
   row.appendChild(input);
+  // PL8 items 2-3: lets a sibling slider's own onInput (gain capping a
+  // boost's Q, or frequency capping a boost's gain) push a value onto
+  // this slider without a full structural re-render -- which would drop
+  // whichever <input> the user is actually mid-drag on, per this file's
+  // own header comment on why live edits stay out of renderEqSheet().
+  row.setValue = (v, text) => { input.value = String(v); valEl.textContent = text; };
   return row;
 }
 
@@ -131,7 +138,7 @@ function renderGraphicBands(host, eq){
       label: hz(f) + 'Hz', valueText: fmtDb(eq.graphicBands[i] || 0) + ' dB',
       min: -GRAPHIC_BAND_MAX_DB, max: GRAPHIC_BAND_MAX_DB, step: 0.5, value: eq.graphicBands[i] || 0,
       onInput(v, valEl){
-        eq.graphicBands[i] = clampGraphicBandDb(v); valEl.textContent = fmtDb(eq.graphicBands[i]) + ' dB';
+        eq.graphicBands[i] = clampGraphicBandDb(v, f); valEl.textContent = fmtDb(eq.graphicBands[i]) + ' dB';
         queueSave(); applyEQ(); updateCurveOnly();
       },
     });
@@ -169,34 +176,57 @@ function parametricBandRow(eq, index){
   head.appendChild(removeBtn);
   row.appendChild(head);
 
+  // PL8 items 2-3: a boost's own gain caps lower near/above 10 kHz, and a
+  // boost's own Q caps lower above +6 dB -- forward-declared so the Gain
+  // and Frequency sliders' own onInput can reach across and re-cap each
+  // other (via row.setValue(), never a structural re-render mid-drag).
+  let gainRow = null, qRow = null;
+
   row.appendChild(sliderRow({
     label: 'Frequency', valueText: hz(Math.round(band.freq)) + 'Hz',
     min: 20, max: 20000, step: 1, value: band.freq,
     onInput(v, valEl){
       band.freq = clampFreqHz(v); valEl.textContent = hz(Math.round(band.freq)) + 'Hz';
+      if(gainRow && PARAMETRIC_GAIN_TYPES.includes(band.type)){
+        const cappedGain = clampParametricGainDb(band.gainDb, band.type, band.freq);
+        if(cappedGain !== band.gainDb){
+          band.gainDb = cappedGain;
+          gainRow.setValue(band.gainDb, fmtDb(band.gainDb) + ' dB');
+        }
+      }
       queueSave(); applyEQ(); updateCurveOnly();
     },
   }));
 
   if(PARAMETRIC_GAIN_TYPES.includes(band.type)){
-    row.appendChild(sliderRow({
+    gainRow = sliderRow({
       label: 'Gain', valueText: fmtDb(band.gainDb) + ' dB',
       min: -PARAMETRIC_BAND_MAX_DB, max: PARAMETRIC_BAND_MAX_DB, step: 0.5, value: band.gainDb,
       onInput(v, valEl){
-        band.gainDb = clampParametricGainDb(v); valEl.textContent = fmtDb(band.gainDb) + ' dB';
+        band.gainDb = clampParametricGainDb(v, band.type, band.freq);
+        valEl.textContent = fmtDb(band.gainDb) + ' dB';
+        if(qRow){
+          const cappedQ = clampQForBand(band.q, band.gainDb, band.type);
+          if(cappedQ !== band.q){
+            band.q = cappedQ;
+            qRow.setValue(band.q, band.q.toFixed(2));
+          }
+        }
         queueSave(); applyEQ(); updateCurveOnly();
       },
-    }));
+    });
+    row.appendChild(gainRow);
   }
 
-  row.appendChild(sliderRow({
+  qRow = sliderRow({
     label: 'Q', valueText: band.q.toFixed(2),
     min: 0.1, max: 18, step: 0.1, value: band.q,
     onInput(v, valEl){
-      band.q = clampQ(v); valEl.textContent = band.q.toFixed(2);
+      band.q = clampQForBand(v, band.gainDb, band.type); valEl.textContent = band.q.toFixed(2);
       queueSave(); applyEQ(); updateCurveOnly();
     },
-  }));
+  });
+  row.appendChild(qRow);
 
   return row;
 }
@@ -303,9 +333,11 @@ export function renderEqSheet(){
   if(eq.autoPreamp === false){
     body.appendChild(sliderRow({
       label: 'Manual preamp', valueText: fmtDb(eq.preampDb) + ' dB',
-      min: -24, max: 12, step: 0.5, value: eq.preampDb,
+      min: PREAMP_MIN_DB, max: PREAMP_MAX_DB, step: 0.5, value: eq.preampDb,
       onInput(v, valEl){
-        eq.preampDb = v; valEl.textContent = fmtDb(eq.preampDb) + ' dB';
+        // PL8 item 1: manual preamp is capped at 0 dB -- it can only ever
+        // push the combined curve into the limiter above that.
+        eq.preampDb = clampPreampDb(v); valEl.textContent = fmtDb(eq.preampDb) + ' dB';
         queueSave(); applyEQ(); updateCurveOnly();
       },
     }));

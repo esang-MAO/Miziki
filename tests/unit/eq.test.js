@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {
   GRAPHIC_BANDS_HZ, GRAPHIC_BAND_MAX_DB, TILT_MAX_DB, MAX_PARAMETRIC_BANDS,
   PARAMETRIC_BAND_MAX_DB, PREAMP_MIN_DB, PREAMP_MAX_DB, EQ_PRESETS, EQ_PRESET_KEYS,
+  TREBLE_BOOST_CAP_HZ, TREBLE_BOOST_CAP_DB, BOOST_NARROW_Q_THRESHOLD_DB, BOOST_NARROW_Q_MAX,
   clamp, clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampPreampDb,
-  clampFreqHz, clampQ, autoPreampDbFromPeak, combineDbCurve, sampleFrequenciesLog,
+  clampFreqHz, clampQ, clampQForBand, autoPreampDbFromPeak, combineDbCurve, sampleFrequenciesLog,
   matchPreset, sanitizeParametricBand, sanitizeParametricBands,
   defaultEqState,
 } from '../../src/audio/eq.js';
@@ -148,4 +149,50 @@ test('every built-in preset stays zero or negative — "favor cuts over boosts"'
   for(const key of EQ_PRESET_KEYS){
     for(const db of EQ_PRESETS[key].graphicBands) assert.ok(db <= 0, `${key} band ${db} is a boost, not a cut`);
   }
+});
+
+test('PL8 item 1: manual preamp caps at 0 dB — it can only ever push into the limiter above that', () => {
+  assert.equal(PREAMP_MAX_DB, 0);
+  assert.equal(clampPreampDb(12), 0);
+  assert.equal(clampPreampDb(0.1), 0);
+  assert.equal(clampPreampDb(0), 0);
+  assert.equal(clampPreampDb(-6), -6);
+});
+
+test('PL8 item 3: a boost at or above 10 kHz caps at +6 dB — a cut up there is unaffected', () => {
+  assert.equal(GRAPHIC_BANDS_HZ[GRAPHIC_BANDS_HZ.length - 1], 16000);
+  assert.equal(clampGraphicBandDb(12, 16000), TREBLE_BOOST_CAP_DB);
+  assert.equal(clampGraphicBandDb(5, 16000), 5, 'a boost under the cap is untouched');
+  assert.equal(clampGraphicBandDb(-12, 16000), -GRAPHIC_BAND_MAX_DB, 'cuts up there keep the full range');
+  // a band below the treble line is never affected by it
+  assert.equal(clampGraphicBandDb(12, 8000), GRAPHIC_BAND_MAX_DB);
+  // no hz at all (every pre-PL8 call site) keeps the plain symmetric clamp
+  assert.equal(clampGraphicBandDb(12), GRAPHIC_BAND_MAX_DB);
+});
+
+test('PL8 item 3: the same 10 kHz boost cap applies to high-shelf/peak parametric bands, not lowshelf/cuts', () => {
+  assert.equal(clampParametricGainDb(12, 'peak', TREBLE_BOOST_CAP_HZ), TREBLE_BOOST_CAP_DB);
+  assert.equal(clampParametricGainDb(12, 'highshelf', 15000), TREBLE_BOOST_CAP_DB);
+  assert.equal(clampParametricGainDb(-12, 'peak', 15000), -PARAMETRIC_BAND_MAX_DB, 'cuts keep the full range');
+  assert.equal(clampParametricGainDb(12, 'lowshelf', 15000), PARAMETRIC_BAND_MAX_DB, 'lowshelf boosts the low end, not the top');
+  assert.equal(clampParametricGainDb(12, 'peak', 9000), PARAMETRIC_BAND_MAX_DB, 'below the treble line, unaffected');
+});
+
+test('PL8 item 2: a boost above +6 dB caps Q at 3 — a cut, or a smaller boost, keeps the full range', () => {
+  assert.equal(clampQForBand(18, 12, 'peak'), BOOST_NARROW_Q_MAX);
+  assert.equal(clampQForBand(18, BOOST_NARROW_Q_THRESHOLD_DB, 'peak'), 18, 'exactly at the threshold is not yet capped');
+  assert.equal(clampQForBand(18, BOOST_NARROW_Q_THRESHOLD_DB + 0.1, 'peak'), BOOST_NARROW_Q_MAX);
+  assert.equal(clampQForBand(18, -12, 'peak'), 18, 'a cut keeps the full Q range');
+  assert.equal(clampQForBand(18, 12, 'lowcut'), 18, 'lowcut/highcut ignore gain entirely — never capped');
+});
+
+test('sanitizeParametricBand: PL8 — a stale boost+Q pair re-caps on load in gain-then-Q order', () => {
+  // saved on an older build, before either cap existed
+  const band = sanitizeParametricBand({ type: 'peak', freq: 15000, gainDb: 12, q: 18 });
+  assert.equal(band.gainDb, TREBLE_BOOST_CAP_DB, 'treble boost cap applies first');
+  assert.equal(band.q, 18, 'once gain is capped to +6 it is back under the narrow-Q threshold, so Q is untouched');
+
+  const narrow = sanitizeParametricBand({ type: 'peak', freq: 1000, gainDb: 12, q: 18 });
+  assert.equal(narrow.gainDb, PARAMETRIC_BAND_MAX_DB, 'below the treble line, gain is not re-capped');
+  assert.equal(narrow.q, BOOST_NARROW_Q_MAX, 'but a +12 dB boost still caps Q');
 });
