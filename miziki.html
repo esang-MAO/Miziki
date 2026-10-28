@@ -3,68 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- Without these two, a home-screen install never actually runs fullscreen
-     on iOS -- the status bar sits as native OS chrome entirely outside our
-     viewport (env(safe-area-inset-top) always reads 0 as a result), and a
-     Home Screen web app without apple-mobile-web-app-capable also reserves
-     a bit more height above the webview than the status bar alone, on top
-     of .top's own ~24px spacer (01-header.css) -- reported by Ken as an
-     oversized gap above the tab row. black-translucent lets our own
-     background (.sky-bg) show straight through the status bar instead of
-     a second, opaque bar sitting above it; every route's own top padding
-     now reads env(safe-area-inset-top) (.top, .add-menu, .social-nav-head)
-     so nothing ends up drawn under the notch/Dynamic Island once the
-     webview extends under it. -->
+<!-- iOS fullscreen home-screen install; see docs/19_PLAYER_HTML_NOTES.md#ios-fullscreen-meta-tags-apple-mobile-web-app-capablestatus-bar-style -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- D2 (docs/DESKTOP_LAYOUT.md): avoids a flash of the wrong theme for a
-     pinned Light or Dark choice. The real saved choice (S.theme) lives in
-     IndexedDB, only readable after first paint — this tiny external
-     classic script (the CSP allows only same-origin scripts, no inline)
-     reads the localStorage mirror src/ui/theme.js keeps in sync with it
-     instead, and sets documentElement's data-theme attribute before the
-     stylesheet <link> tags below are even parsed, since it's a blocking
-     classic script placed ahead of them. A relative path, not an
-     absolute one: Vite only rewrites paths it actually bundles, and a
-     plain classic script src is explicitly left untouched ("can't be
-     bundled without type=module") — a %BASE_URL% prefix here got
-     double-applied by Vite's own dev-server base handling
-     (http://host/Miziki/Miziki/src/...). A relative path sidesteps that:
-     it resolves correctly against the page's own final URL in both dev
-     and the built site, with no base-rewriting involved at all. The
-     copy-theme-boot plugin in vite.config.js keeps the file at this same
-     src/ path under the build output. Auto needs none of this — with no
-     data-theme attribute set, src/styles/22-theme.css's own
-     @media (prefers-color-scheme) rule handles it with zero JavaScript
-     at first paint. -->
+<!-- anti-flash theme-boot script; see docs/19_PLAYER_HTML_NOTES.md#theme-bootjs-script-tag -->
 <script src="src/theme-boot.js"></script>
-<!-- Tracks --sky2 (00-base.css's dark block / 22-theme.css's light block)
-     at the active theme's own value. A <meta> attribute can't read a CSS
-     custom property, so src/ui/theme.js's applyTheme() sets this
-     literal in JS instead, resolved against the device's own scheme
-     while Auto is active — this is just the fallback value for the
-     brief window before that JS has run. -->
+<!-- fallback theme-color before src/ui/theme.js's applyTheme() runs; a
+     <meta> can't read a CSS custom property (--sky2), so this is a plain
+     literal, resolved against the device's own scheme while Auto. -->
 <meta name="theme-color" content="#101A20">
-<!-- GitHub Pages can't set HTTP response headers, so the Content Security
-     Policy lives here as a meta tag instead — a second line of defense
-     limiting where code/data can come from. worker-src covers the
-     AudioWorklet scratch processor (loaded same-origin, no blob: needed
-     for the worklet script itself, but harmless to allow); img-src/
-     media-src allow blob: for locally-decoded artwork/audio; style-src
-     needs 'unsafe-inline' for this app's many inline style="..." writes
-     (crate/gatefold/share-canvas layout math, etc.) — no inline <script>
-     exists anywhere, so script-src stays 'self' with no exception.
-     connect-src needs blob: too (found and fixed in step 02): the crate
-     art/thumbnail builders (src/crate/tiers.js, src/library/thumbs.js)
-     fetch() the track's own blob: object URL to re-read its embedded
-     cover art before resizing it — without blob: here, every one of
-     those fetches was silently blocked and swallowed by its own
-     catch(_e){return false}, so crate art and thumbnails never built for
-     any file with embedded artwork. Step 04 added the Supabase project's
-     own https:// and wss:// origins to connect-src, and the https:// one
-     to img-src too (REST/auth calls, the realtime "now spinning"
-     subscription, and any Storage-hosted avatar) — without these,
-     sign-in silently fails once real keys exist. -->
+<!-- Content Security Policy, as a meta tag since GitHub Pages can't set a
+     real response header — see CLAUDE.md's "Security" section for the
+     policy's current rationale. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co wss://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Miziki</title>
@@ -123,10 +73,7 @@
 
 <div class="wrap">
 
-  <!-- the wordmark used to live here; removed to free up vertical space on
-       every tab. The search/add icons moved down onto the library tabs row
-       (#libNav) — this header now exists only to host the expanded search
-       field, which still swaps in over that same row (see openSearchField). -->
+  <!-- hosts the expanded search field (see openSearchField) -->
   <header class="top" id="appHeader">
     <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
       <div class="hdr-search-field">
@@ -166,11 +113,7 @@
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>
 
-    <!-- RF8 (docs/12_REFINE.md): one header row — tabs on the left, search/
-         +/overflow on the right. Select and the crate order toggle's old
-         Library-tools copy both moved out of this row (Select into the new
-         overflow below; the crate toggle has one home now, #crateGroupToggleTab,
-         no longer desktop-only — see crate/view.js's updateCrateGroupToggleUI()). -->
+    <!-- one header row: tabs on the left, search/+/overflow on the right -->
     <div class="lib-tabs" id="libNav" style="display:none">
       <div class="lib-tabs-group" id="libNavTabs" style="display:none">
         <button data-view="songs" aria-pressed="true">Songs</button>
@@ -178,18 +121,9 @@
         <button data-view="artists" aria-pressed="false">Artists</button>
         <button data-view="playlists" aria-pressed="false">Playlists</button>
       </div>
-      <!-- CR14 (docs/14_CRATE_SECTIONS.md, PR 1): the search/add/overflow
-           icons and the crate-order chip now share one right-hand column
-           (search/add/overflow on top, the chip right-aligned under them,
-           only while the Crate tab is active) instead of both floating on
-           the tabs' own baseline — that's what let the tab row and the
-           icon row collide at narrow widths. The tab group itself scrolls
-           sideways rather than wrapping under the icons on the narrowest
-           phones (see .lib-tabs-group in 01-header.css). -->
+      <!-- icons + order chip share one column to avoid colliding with the
+           tab row at narrow widths (see .lib-tabs-group, 01-header.css) -->
       <div class="lib-tabs-right">
-        <!-- search/add used to live in the big wordmark header above; moved
-             here so they still show (the add button even with an empty
-             library) without needing their own separate header row -->
         <div class="hdr-actions" id="hdrActions">
           <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
             <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
@@ -201,14 +135,9 @@
             <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
           </button>
         </div>
-        <!-- the A-Z/Genre/Decade crate-grouping toggle — one home for this
-             control now (RF8), shown whenever crate mode is active, any
-             platform. CR4 (docs/13_CRATE.md) adds the third option, Decade —
-             always offered, unlike Genre, which is skipped when the library
-             has no genre tags at all (updateCrateGroupToggleUI(), crate/
-             view.js). Was a three-pill .seg row; now one quiet chip that
-             cycles A–Z → Genre → Decade on each tap, so the header row stays
-             a single line next to the tabs. -->
+        <!-- A-Z/Genre/Decade crate-grouping toggle, shown whenever crate
+             mode is active; Genre is skipped when the library has no genre
+             tags at all (updateCrateGroupToggleUI(), crate/view.js) -->
         <button class="crate-group-cycle" id="crateGroupToggleTab" type="button" style="display:none"
                 aria-label="Crate order: A–Z. Tap to change.">
           <span class="crate-group-cycle-k">Sort</span>
@@ -245,18 +174,7 @@
     <div class="crumb" id="profileCrumb" style="display:none"></div>
     <div id="profileBody"></div>
     <input id="profilePicFile" type="file" accept="image/*">
-    <!-- LIBRARY TOOLS: static markup (not rebuilt by renderProfile()'s own
-         innerHTML reset elsewhere, or by renderTracks() back when this
-         lived in #route-library) so its listeners survive every re-render
-         — see S1 spec §5's original implementation note. RF8 (docs/
-         12_REFINE.md) had moved this into #route-library's own overflow
-         menu; Ken, 2026-10-22, asked to move it back out, this time to
-         Profile › Settings rather than the old pre-RF8 profile home
-         screen — parked here, hidden, like #playbackSettingsStash right
-         below, and moved into Profile › Settings by
-         renderAppSettingsScreen(); moved back by renderProfile() (via
-         parkLibraryTools()) before the body is wiped on any screen
-         change. Refreshed by refreshLibraryTools(). -->
+    <!-- LIBRARY TOOLS: see docs/19_PLAYER_HTML_NOTES.md#libtoolsstashlibtools-profile -->
     <div id="libToolsStash" style="display:none">
     <div class="lib-tools" id="libTools">
       <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
@@ -322,21 +240,7 @@
       </div>
     </div>
     </div>
-    <!-- PLAYBACK SETTINGS: static markup (like #libTools) so its listeners
-         survive renderProfile()'s innerHTML reset. Parked here, hidden, and
-         moved into Profile › Settings by renderAppSettingsScreen(); moved
-         back by renderProfile() before the body is wiped.
-
-         RF11 (docs/12_REFINE.md, point 5): "every helper is one line of
-         caption text; anything longer sits behind an (i)." Each row's own
-         <em> is now one sentence; the rest sits behind the same native
-         <details class="sd-info"> "(i)" disclosure RF9's own Character card
-         already established (src/styles/25-day-arc-v2.css). #bgAudioNote
-         keeps its id and stays a plain <em> — src/player/background.js's
-         bgUpdateUI() overwrites its textContent directly for the
-         unsupported-browser/retry states, which a <details> child would
-         not survive — so its own (i) is a separate, static sibling instead
-         of nested inside it. -->
+    <!-- PLAYBACK SETTINGS: see docs/19_PLAYER_HTML_NOTES.md#playbacksettingsstashplaybacksettings-profile -->
     <div id="playbackSettingsStash" style="display:none">
       <div id="playbackSettings">
       <div class="row">
@@ -364,21 +268,14 @@
         <div class="seg"><button id="paperLabelBtn" aria-pressed="false">Off</button></div>
       </div>
 
-      <!-- PRESSINGS_110 follow-up (Ken, 2026-10-26): "include an option in
-           the settings to turn off zoetropes earned." Same seg/row shape
-           as paperLabelOnLossy just above. Default on, matching S's own
-           default -- turning this off freezes day-progress/unlocks (no
-           data loss) and stops offering an already-earned zoetrope as the
-           platter's active look, falling back cleanly to rare/metal/
-           variant. -->
+      <!-- off freezes day-progress/unlocks (no data loss) and stops
+           offering an earned zoetrope as the active look -->
       <div class="row">
         <div class="k">Zoetropes earned<em>Playing an album every side start-to-finish on 10 different days earns it a strobe-animated zoetrope pressing.</em> <details class="sd-info"><summary aria-label="More about zoetropes earned">(i)</summary>Off pauses new progress (nothing already earned is lost) and stops showing an earned zoetrope on the platter until turned back on.</details></div>
         <div class="seg"><button id="zoetropesBtn" aria-pressed="true">On</button></div>
       </div>
 
-      <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto, the same
-           4-value [data-*] seg + caption shape [data-depth] already
-           established for Sundown's own "How deep the night goes" row. -->
+      <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto -->
       <div class="row">
         <div class="k">Loudness normalization<em id="loudnessDesc">Auto: album gain for an album played in order, track gain otherwise.</em> <details class="sd-info"><summary aria-label="More about loudness normalization">(i)</summary>Evens out volume between quietly and loudly mastered records, using a file's own ReplayGain tag when it has one, or Miziki's own measurement otherwise. Never pushes a track into clipping — the safety limiter still catches anything left.</details></div>
         <div class="seg">
@@ -389,13 +286,10 @@
         </div>
       </div>
 
-      <!-- AU7 (docs/16_AUDIO.md §6): "a Mono switch that sends (L+R)/2 to
-           both sides, and a constant-power L/R balance" — applies in the
-           shared output stage in both Pure and Vinyl (audio/engine.js's
-           applyMonoBalance()). Same On/Off .seg shape as Scratch/Sleeve
-           Pull above; the slider mutates S.balance directly on 'input',
-           the same "no full re-render mid-drag" shape the EQ sheet's own
-           sliders already use (see src/wiring/character.js). -->
+      <!-- AU7 (docs/16_AUDIO.md §6): Mono/Balance apply in the shared
+           output stage in both Pure and Vinyl (audio/engine.js's
+           applyMonoBalance()); the slider mutates S.balance directly on
+           'input', no full re-render mid-drag. -->
       <div class="row">
         <div class="k">Mono<em>Sends the same mix to both speakers or earbuds.</em> <details class="sd-info"><summary aria-label="More about Mono">(i)</summary>Helps one-earbud listening and hearing in one ear — a record mixed in stereo only sounds complete to a centered listener anyway.</details></div>
         <div class="seg"><button id="monoBtn" aria-pressed="false">Off</button></div>
@@ -418,10 +312,7 @@
 
 <!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
 <div class="mini-player" id="miniPlayer" style="display:none">
-  <!-- AU1 (docs/16_AUDIO.md §2.1): "a progress hairline across its top
-       edge" -- shown only while S.resumePending (shell/mini-player.js's
-       renderMiniPlayer()), the same "picking up where you left off"
-       moment the paused-at subtitle below replaces the artist line for. -->
+  <!-- progress hairline, shown only while S.resumePending (shell/mini-player.js) -->
   <span class="mini-progress" id="miniProgress" aria-hidden="true"><span id="miniProgressBar"></span></span>
   <button class="mini-tap" id="miniTap" aria-label="Open player">
     <span class="mini-indicator" id="miniIndicator">
@@ -438,28 +329,12 @@
       <em id="miniArtist"></em>
     </span>
   </button>
-  <!-- RF26 (docs/12_REFINE.md): the sun button -- one of the sheet's own
-       ways in (src/shell/sundown-sheet.js), tinted by the current phase
-       via data-phase (src/player/clock.js's drawSun(), same "write a
-       data attribute, let CSS own the colour" shape the platter knob
-       below uses). Sits between the title and the queue button, exactly
-       where the mockup (SheetLibrary.dc.html) draws it. -->
+  <!-- sun button: opens the Sundown sheet; tinted via data-phase, written
+       by drawSun() (src/player/clock.js) -->
   <button type="button" class="icon-btn mini-sun-btn" id="miniSunBtn" aria-label="Sundown">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
   </button>
-  <!-- RF8 (docs/12_REFINE.md): the mini-player dropped its own favorite
-       button (#miniFavBtn) — the player already has one (#playerFavBtn).
-       D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/
-       next/seek/mode controls. New ids throughout, driving the exact
-       same prevTrack()/nextTrack()/seek()/setMode() the full player's
-       own #prev/#next/#scrub/#modePure/#modeVinyl already call
-       (src/wiring/transport.js) — per the doc's own "a desktop player
-       bar must reuse or restyle those [ids], not clone them" rule, so
-       these are new elements, not copies of those ids. Each is
-       display:none below 1024px (src/styles/08-shell.css), so on a
-       phone none of them occupy a flex slot in this strip at all — the
-       existing #miniTap/#miniQueueBtn/#miniPlay stay in their same
-       relative visual order, unchanged. -->
+  <!-- desktop player-bar controls; see docs/19_PLAYER_HTML_NOTES.md#desktop-player-bar-controls-barprevbarnextbarscrubbarvolume-etc -->
   <button class="mini-bar-btn" id="barPrev" aria-label="Previous track">◀◀</button>
   <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
@@ -469,68 +344,38 @@
     <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
     <span class="mini-bar-time" id="barTotal">0:00</span>
   </div>
-  <!-- CEREMONY (docs/CEREMONY.md, §1): the bar mirrors the same single
-       toggle, same rule as every other D4 bar control — a new id driving
-       the exact same setMode(), never a clone of the full player's own
-       #modeToggle. -->
+  <!-- mirrors setMode(); a new id, never a clone of #modeToggle -->
   <div class="mini-bar-modes" id="miniBarModes">
     <button class="mini-bar-mode-toggle" id="barModeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
       <span class="mode-toggle-track mode-toggle-track-sm"><i class="mode-toggle-thumb mode-toggle-thumb-sm"></i></span>
       <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
     </button>
   </div>
-  <!-- AU7 (docs/16_AUDIO.md §6): "Volume slider on desktop only, after
-       the limiter, saved per device. Phones keep the system volume." A
-       new id, same rule as every other D4 bar control above — wired to
-       the real audio/engine.js node (applyDeviceVolume()), not a clone
-       of anything. display:none below 1024px (src/styles/08-shell.css),
-       same as .mini-bar-btn/.mini-bar-seek/.mini-bar-modes. -->
+  <!-- AU7 (docs/16_AUDIO.md §6): volume slider, desktop only, after the
+       limiter, saved per device (applyDeviceVolume(), audio/engine.js);
+       phones keep the system volume -->
   <input class="mini-bar-volume" id="barVolume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
 </div>
 
-<!-- D3 (docs/DESKTOP_LAYOUT.md): on phones this wrapper is invisible
-     scaffolding — the nav below renders exactly as it always has, and
-     #sidebarExtra stays display:none the whole time. At 1024px and
-     wider, src/styles/23-desktop.css turns this into the left sidebar:
-     the same nav buttons (now a vertical column, wireRoutes() unchanged)
-     plus the new playlists list and Sundown summary card the mockup adds,
-     built by src/shell/sidebar.js/drawSun() (src/player/clock.js) rather
-     than duplicating the computation that already exists for the phone's
-     own Playlists tab. RF26 (docs/12_REFINE.md): "Sundown route" above is
-     stale -- Sundown is a sheet now (src/shell/sundown-sheet.js), not a
-     route; the summary card below is this sheet's own desktop way in. -->
+<!-- desktop sidebar: invisible scaffolding below 1024px; becomes the left
+     sidebar via 23-desktop.css, built by shell/sidebar.js/clock.js's
+     drawSun() -->
 <div class="sidebar" id="sidebar">
 <nav class="tabbar" id="tabbar" role="tablist">
   <button class="tabbar-btn" role="tab" data-route="library" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M4 8l2-4h12l2 4M4 8v11h16V8M4 8h16M9 8v11M15 8v11"/></svg>
     <span>Library</span>
   </button>
-  <!-- Ken, 2026-10-22: superseding RF7's (docs/12_REFINE.md) own "always
-       present" rule — hidden outright (style.display, set by JS) while
-       signed out or social off, shown again the instant sign-in completes.
-       src/social/screens/home.js's updateHomeTabVisibility() is the one
-       place that toggles it, wired to MizikiSocial's own 'status' event —
-       no id/attribute here needs to change for that. -->
+  <!-- hidden while signed out/social off, shown on sign-in — see
+       social/screens/home.js's updateHomeTabVisibility() -->
   <button class="tabbar-btn" role="tab" data-route="home" id="homeTabBtn" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20c.7-3.4 2.8-5.3 5.5-5.3s4.8 1.9 5.5 5.3M14.8 14.6c2.4.2 4 1.8 4.7 5.4"/></svg>
     <span>Home</span>
   </button>
-  <!-- RF26 (docs/12_REFINE.md): the Sundown tab is gone outright, not
-       redirected -- three equal tabs now (Library/Home/Profile). Its
-       content (the Day/Sound views just moved above, DA3/RF9's own) now
-       opens from a sheet instead: the sun knob on the platter, the sun
-       button on the mini-player, the desktop sidebar's own Sundown
-       summary, or Settings -> Sundown (src/shell/sundown-sheet.js).
-       showRoute('sundown')/showRoute('character') both call
-       openSundownSheet() instead of switching the tab bar at all now,
-       so a stale saved tab or an old link still lands somewhere real. -->
-  <!-- D7 (docs/DESKTOP_LAYOUT.md): "Keep the route id, change only the
-       visible label on desktop" — data-route stays "profile" (routing,
-       aria-selected and every other reference go by that attribute, never
-       by this button's text — confirmed via grep of shell/routes.js and
-       wiring/routes.js before making this change), and only which of the
-       two spans is visible flips at 1024px+ (src/styles/23-desktop.css).
-       Phones keep seeing "Profile"; nothing here needs a JS change. -->
+  <!-- Sundown's content opens from a sheet (sundown-sheet.js), not a tab;
+       showRoute('sundown')/('character') redirect into it -->
+  <!-- D7: data-route stays "profile" for routing/aria; only the visible
+       label (Profile vs Crate) flips at 1024px+ (23-desktop.css) -->
   <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
     <span class="tabbar-label">Profile</span>
@@ -538,13 +383,8 @@
   </button>
 </nav>
 <div class="sidebar-extra" id="sidebarExtra">
-  <!-- CR10 (docs/13_CRATE.md point 3): "a BINS list (New arrivals, Staff
-       picks, Sealed, with counts) above PLAYLISTS; each jumps the crate."
-       Mirrors the crate's own virtual bins (src/crate/model.js's
-       buildVirtualBins()), built by src/shell/sidebar.js's
-       renderSidebarBins() the same way #sidebarPlaylists already mirrors
-       S.playlists; wired in src/wiring/library-view.js (the module that
-       already owns "switch to the crate view"), not here. -->
+  <!-- CR10: mirrors the crate's own virtual bins (crate/model.js's
+       buildVirtualBins()), built by sidebar.js's renderSidebarBins() -->
   <div class="sidebar-section">
     <div class="sidebar-heading">Bins</div>
     <ul class="sidebar-bins" id="sidebarBins"></ul>
@@ -553,37 +393,21 @@
     <div class="sidebar-heading">Playlists</div>
     <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>
   </div>
-  <!-- RF26 (docs/12_REFINE.md): a real button now, not a static card --
-       this is the desktop way in to the Sundown sheet (opened as a
-       right-side panel over the player's side panel, per the doc's own
-       "no sheet on desktop" rule; src/shell/sundown-sheet.js). -->
+  <!-- desktop way in to the Sundown sheet (src/shell/sundown-sheet.js) -->
   <button type="button" class="sidebar-section sidebar-sundown" id="sidebarSundown">
     <div class="sidebar-heading">Sundown</div>
-    <!-- DA3 (docs/DAY_ARC.md): mirrors the Day view's own phase block —
-         "reuse the readout, don't compute it twice," same as every other
-         mirror drawSun() already writes into this card. -->
+    <!-- mirrors the Day view's own phase block, written by drawSun() -->
     <div class="sidebar-sundown-phase" id="sidePhaseName"></div>
     <div class="sidebar-sundown-rate" id="sidePhaseSub"></div>
     <div class="sidebar-sundown-rate" id="sideRateWhy"></div>
     <div class="sidebar-sundown-leg" id="sideLegStart"></div>
     <div class="sidebar-sundown-leg" id="sideLegEnd"></div>
   </button>
-  <!-- RF8 (docs/12_REFINE.md): the sidebar's own Auto/Light/Dark/
-       Nychthemeron control was removed outright — one home per control;
-       Profile › Settings already has it (src/profile/screens.js). -->
 </div>
 </div>
 
-<!-- RF26 (docs/12_REFINE.md): the Sundown tab is gone outright -- this
-     sheet is the one way to reach its content now, opened from the sun
-     knob on the platter, the sun button on the mini-player, the desktop
-     sidebar's own Sundown summary, or Settings -> Sundown
-     (src/shell/sundown-sheet.js). The Day/Sound content below is RF9's,
-     byte-for-byte unchanged -- same ids, same wiring
-     (src/wiring/sundown.js, src/sundown/dial-gesture.js) -- only lifted
-     out of a tab-bar route into an overlay registered with the NV2
-     layer stack, so Back/Escape/the scrim all close it the same way
-     every other sheet in the app already closes. -->
+<!-- the one way to reach Sundown's content; registered with the NV2 layer
+     stack so Back/Escape/scrim close it like any other sheet -->
 <div class="sundown-sheet-scrim" id="sundownSheetScrim" aria-hidden="true"></div>
 <div class="sundown-sheet" id="sundownSheet" aria-hidden="true" role="dialog" aria-label="Sundown">
   <div class="sundown-sheet-grabber" id="sundownSheetGrabber" aria-hidden="true"></div>
@@ -601,31 +425,20 @@
     <div id="sundownDayView">
       <p class="sd-eyebrow" id="sundownEyebrow">Now</p>
 
-      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4), PR 4: the record-shaped dial,
-           the event row and the three reading cards. src/sundown/
-           dial-view.js's renderDialView() paints all of it, driven by
-           src/sundown/dial.js's dialStateAt() — no gesture yet (PR 5's
-           own job), so the dial is display-only here and always shows
-           the real clock. -->
-      <!-- §3.5B's own screen-background gradient, scoped to this view
-           only (not the app-wide .sky-bg layer, which still follows the
-           old DA3 model untouched) — src/sundown/dial-view.js crossfades
-           between #sdSkyA/#sdSkyB whenever the sky phase actually
-           changes, per the brief's "never hard-cut." -->
+      <!-- the record-shaped dial, event row and reading cards; painted by
+           sundown/dial-view.js's renderDialView(), driven by dial.js's
+           dialStateAt(). #sdSkyA/#sdSkyB crossfade whenever the sky phase
+           changes, never hard-cutting. -->
       <div class="sd-sky-bg" id="sdSkyBg" aria-hidden="true">
         <div class="sd-sky-layer" id="sdSkyA"></div>
         <div class="sd-sky-layer" id="sdSkyB"></div>
       </div>
 
       <div class="day-dial-wrap">
-        <!-- §4.4/§4.4a (PR 5): a touch/drag + keyboard slider, not just a
-             display — src/sundown/dial-gesture.js wires the drag and the
-             arrow/PageUp/PageDown keys; it and dial-view.js's
-             renderDialView() keep aria-valuenow/aria-valuetext current.
-             aria-valuemin/valuemax are the one real day's worth of
-             minutes (0..1439): the *displayed* value always wraps into
-             that range even though the drag itself (S.previewMin) is
-             unbounded across multiple turns. -->
+        <!-- touch/drag + keyboard slider (dial-gesture.js); aria-valuemin/
+             valuemax are one day's minutes (0..1439) -- the *displayed*
+             value always wraps into that range even though the drag
+             itself (S.previewMin) is unbounded across multiple turns -->
         <div class="day-dial" id="dayDial" role="slider" tabindex="0" aria-label="Preview the day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0" aria-valuetext="Live">
           <div class="day-dial-ring" id="dayDialRing" aria-hidden="true"></div>
           <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
@@ -650,17 +463,9 @@
         <span id="sdSunset">SUNSET —</span>
       </div>
 
-      <!-- RF9 (docs/12_REFINE.md): the three reading cards (Platter/Sound/
-           Sky, PR 4) are gone outright -- the dial above is already the
-           one preview; a second set of numbers under it just repeated
-           what it already shows. dial-view.js's paintDayView() dropped
-           the matching writes. -->
-
-      <!-- §4.2 item 4 (PR 5): the hint row + NOW button. src/sundown/
-           dial-gesture.js wires the button (resetPreview()) and toggles
-           its own "previewing" (filled amber) class from
-           dial-view.js's renderDialView(), the same "repaint reflects
-           S.previewMin" shape every other readout on this view uses. -->
+      <!-- hint row + NOW button; dial-gesture.js wires the button
+           (resetPreview()) and toggles the "previewing" class from
+           dial-view.js's renderDialView() -->
       <div class="sd-hint-row">
         <span class="sd-hint-icon" aria-hidden="true">↻</span>
         <span class="sd-hint-text">Spin the record to preview any hour. Plays never count while previewing.</span>
@@ -668,17 +473,10 @@
       </div>
 
 
-      <!-- RF9 (docs/12_REFINE.md): one choice, not four rows -- Auto/
-           Manual, the manual-rate slider, the full-night-rate seg and the
-           Window/Moment pacing row all collapse onto this single segmented
-           control. Off is Auto off (S.auto=false; whatever S.manualRate
-           was already saved -- 1.0 for everyone new -- plays silently,
-           with no slider to see or change it); Gentle/Medium/Deep set
-           S.auto=true and S.target to 0.85/0.80/0.75, the exact three
-           values the old "Full-night rate" seg already offered. Saved
-           pacing (S.pace) other than the default 'window' keeps applying
-           with no visible control -- src/wiring/sundown.js's own handler
-           never touches S.pace at all now. -->
+      <!-- Off is S.auto=false (plays at whatever S.manualRate is saved,
+           1.0 for everyone new); Gentle/Medium/Deep set S.auto=true and
+           S.target to 0.85/0.80/0.75. Saved pacing (S.pace) other than
+           the default 'window' keeps applying with no visible control. -->
       <h3 class="sd-heading">Sundown</h3>
       <div class="row">
         <div class="k">How deep the night goes<em id="depthDesc">Medium — 0.80× · 3.9 st</em></div>
@@ -695,17 +493,9 @@
 
     <!-- SOUND (was the Character route) -->
     <div id="sundownSoundView" style="display:none">
-      <!-- Day Arc v2 (DAY_ARC_BRIEF.md §4.3), PR 6: the Vinyl-drift
-           segmented control + four character cards + Tone today curve.
-           src/sundown/dial-view.js's renderDialView() paints the cards
-           and curve, driven by the same soundCardsAt()/toneCurveSamples()
-           (src/sundown/dial.js) the Day view's own dial uses. -->
-      <!-- RF9 (docs/12_REFINE.md): the second preview dial is gone --
-           Day already has the dial, and previewing any hour from here
-           too just duplicated that one control under a different face.
-           dial-view.js dropped the matching paint function, and the
-           ambient sky crossfade that only ever painted behind this dial
-           went with it. -->
+      <!-- the Vinyl-drift seg + four character cards + Tone today curve;
+           painted by dial-view.js's renderDialView(), driven by
+           soundCardsAt()/toneCurveSamples() (sundown/dial.js) -->
 
       <p class="sd-section-label">Vinyl drift through the day</p>
       <div class="seg sd-drift-seg" role="group" aria-label="Vinyl drift level">
@@ -714,14 +504,9 @@
         <button data-char-drift="full" aria-pressed="false">Full</button>
       </div>
 
-      <!-- RF9 (docs/12_REFINE.md): drift + the three presets below are the
-           main controls; the per-value cards and their own fine-tune
-           sliders move behind one shared "Advanced" disclosure instead of
-           sitting always-visible above the presets -- wireCharacter()
-           (src/wiring/character.js) wires #soundAdvancedToggle the same
-           hidden/aria-expanded shape it already uses for each card's own
-           [data-char-tune], just one level up. Nothing inside changes:
-           each card is still its own disclosure once Advanced is open. -->
+      <!-- drift + the three presets are the main controls; the per-value
+           cards and fine-tune sliders sit behind this one "Advanced"
+           disclosure (wireCharacter(), src/wiring/character.js) -->
       <button type="button" class="cta ghost sd-advanced-toggle" id="soundAdvancedToggle" aria-expanded="false" aria-controls="soundAdvancedBody">Advanced ›</button>
       <div id="soundAdvancedBody" hidden>
         <div class="sd-charcards">
@@ -775,18 +560,13 @@
           </div>
         </div>
 
-        <!-- RF28 ("what am I hearing"): the whole-chain twin of the four
-             per-stage "Hear it alone" buttons above -- held, every stage
-             bypasses at once, so the chain reads exactly as Pure would.
-             src/wiring/character.js wires every [data-audition-stage]/
-             [data-audition-pure] button through the same press-and-hold
-             handler. -->
+        <!-- RF28: held, every stage bypasses at once, so the chain reads
+             exactly as Pure would (wiring/character.js) -->
         <button type="button" class="sd-audition-btn sd-audition-pure" data-audition-pure aria-pressed="false">Compare with Pure</button>
       </div>
 
-      <!-- RF9: the chart only means anything once something is actually
-           drifting -- wireCharacter() shows/hides this by id alongside the
-           drift seg's own aria-pressed writes (updateToneCurveVisibility()). -->
+      <!-- shown only once something is actually drifting
+           (updateToneCurveVisibility(), wiring/character.js) -->
       <div class="sd-tonecurve" id="sdToneCurveWrap">
         <div class="sd-tonecurve-head">
           <span>Tone today</span>
@@ -844,10 +624,8 @@
         <div class="seg"><button id="surfaceNoiseUnderMusicBtn" aria-pressed="false">Off</button></div>
       </div>
 
-      <!-- docs/15_SURFACE_NOISE.md §4: On keeps today's behavior (the
-           record flips itself); Off leaves it waiting in the run-out for
-           the player's own flip gesture (tapping the open player, the
-           lock-screen Next control, or Play) -- see shell/runout.js. -->
+      <!-- docs/15_SURFACE_NOISE.md §4: Off leaves it waiting in the
+           run-out for the player's own flip gesture (shell/runout.js) -->
       <div class="row" style="margin-top:12px">
         <div class="k">Auto-flip sides<em>Off waits for you to flip side A over.</em></div>
         <div class="seg" role="group" aria-label="Auto-flip sides">
@@ -863,35 +641,20 @@
 <div class="player-overlay" id="playerOverlay" aria-hidden="true">
   <button class="player-dismiss" id="playerDismiss" aria-label="Close player">︿</button>
 
-  <!-- D6 (docs/DESKTOP_LAYOUT.md): .player-layout is invisible scaffolding
-       below the desktop breakpoint (display:contents, the same pattern
-       .sidebar/.crate-layout already established in D3/D5), so .stage
-       lays out exactly as it always has on a phone. At 1024px+ it becomes
-       a flex row: .stage (platter+sleeve, then #stageInfo) on the left,
-       #playerSidePanel (Up next / Liner notes / Credits) on the right.
-       #stageInfo wraps six pre-existing, untouched elements (unchanged
-       ids, unchanged content, unchanged own CSS) purely so .stage can lay
-       the platter and "everything else" out side by side on desktop
-       without becoming a flat, un-groupable multi-item flex row — it is
-       itself display:contents below 1024px, so these six elements remain
-       exactly as if they were still direct children of .stage there. -->
+  <!-- D6: see docs/19_PLAYER_HTML_NOTES.md#player-layoutstageinfo-full-player-desktop -->
   <div class="player-layout">
   <section class="stage">
     <div class="platter-stage" id="platterStage">
       <!-- CEREMONY §2: the empty slipmat, shown only at rest (nothing loaded) -->
       <div class="slipmat-rest" aria-hidden="true"><span>MIZIKI</span></div>
-      <!-- AU10 (docs/16_AUDIO.md §5): "a 7″ disc on the platter, with the
-           slipmat showing around it" -- a plain felt mat behind the
-           shrunk .platter-box, shown only under .format-7in (02-stage-
-           platter.css), toggled by player/transport.js's load(). -->
+      <!-- AU10: felt mat behind the shrunk .platter-box, shown only under
+           .format-7in, toggled by player/transport.js's load() -->
       <div class="platter-mat" aria-hidden="true"></div>
       <div class="platter-box disc-hidden" id="platterBox">
         <div class="disc" id="disc">
           <div class="disc-fade" id="discFade" aria-hidden="true"></div>
-          <!-- AU10: the 7″ adapter -- "a big center hole holds a
-               three-spoke 45 adapter that turns with the record." A
-               child of #disc so it rotates with it; only shown under
-               .format-7in. -->
+          <!-- AU10: 45 adapter; a child of #disc so it rotates with it,
+               only shown under .format-7in -->
           <svg class="disc45-adapter" viewBox="0 0 40 40" aria-hidden="true">
             <circle cx="20" cy="20" r="5.5"></circle>
             <g>
@@ -900,31 +663,19 @@
               <path d="M20 20 L20 3 L23 3 Z" transform="rotate(240 20 20)"></path>
             </g>
           </svg>
-          <!-- SURFACE_NOISE §5: the dead-wax etching -- a matrix line plus a
-               short mark, scratched into the ungrooved band between the
-               groove and the label. Faded up purely by the existing
-               .platter-stage.runout class (src/shell/runout.js already
-               toggles it for every run-out moment -- no change needed
-               there), magnified via a long-press loupe (src/player/scrub.js).
-               Generated client-side, seeded from the release id, and
-               written at track load (player/transport.js) -- see
-               src/record-art/etchings.js. -->
+          <!-- SURFACE_NOISE §5: dead-wax etching; faded up by
+               .platter-stage.runout (shell/runout.js), magnified via a
+               long-press loupe (player/scrub.js). Generated client-side
+               from the release id at track load (record-art/etchings.js). -->
           <svg class="dead-wax" id="deadWax" viewBox="0 0 200 200" aria-hidden="true">
             <defs><path id="deadWaxPath" d="M 50 100 A 50 50 0 1 1 150 100"></path></defs>
             <text><textPath href="#deadWaxPath" startOffset="18%" id="deadWaxMatrixText"></textPath></text>
             <text><textPath href="#deadWaxPath" startOffset="60%" id="deadWaxMessageText"></textPath></text>
           </svg>
-          <!-- RF15 (docs/12_REFINE.md, "the record store in the surfaces"):
-               the label carries the record -- album title, plus a small mono
-               arc of real data (current RPM, side, stereo/mono), the way an
-               actual pressing's own label would. Shown only without embedded
-               art (.label.has-art hides this group in CSS) -- once a cover
-               crops into the label circle, the art itself already carries
-               the record's identity, so this never overlays text on a
-               photo. #labelArcText/#labelTitle are written at track load
-               (player/transport.js) and on every drawSun() tick (the RPM
-               keeps tracking Sundown's drift the same way the plain number
-               it replaces always did). -->
+          <!-- RF15: shown only without embedded art (.label.has-art hides
+               this group). #labelArcText/#labelTitle are written at
+               track load (player/transport.js) and on every drawSun()
+               tick, tracking Sundown's drift. -->
           <div class="label" id="label">
             <img class="art" id="labelArt" alt="">
             <svg class="label-arc" viewBox="0 0 128 128" aria-hidden="true">
@@ -938,19 +689,7 @@
             <span class="side-letter" id="sideLetter" aria-hidden="true"></span>
           </div>
         </div>
-        <!-- PRESSINGS_110 follow-up (strobe-animation wiring, Ken,
-             2026-10-26): the zoetrope frame ring -- a sibling of #disc,
-             never a child, the same "so it never inherits the per-frame
-             rotation transform player/clock.js's frame() writes onto
-             #disc alone" reasoning #discMetalLight (PR4) already
-             established right below. Shows the same full-disc background
-             image as #disc, CSS-masked (02-stage-platter.css) to just the
-             ring annulus every zoetrope disc shares, then given its own,
-             separately-quantized transform each frame
-             (record-art/zoetrope-motion.js's zoetropeRingAngleDeg(),
-             called from player/clock.js's frame()) so the figures appear
-             to animate in place instead of merely spinning. Hidden
-             (opacity 0) whenever the current look isn't a zoetrope. -->
+        <!-- zoetrope frame ring; see docs/19_PLAYER_HTML_NOTES.md#zoetroperring-platter -->
         <div class="disc-zoetrope-ring" id="discZoetropeRing" aria-hidden="true"></div>
         <div class="disc-metal-light" id="discMetalLight" aria-hidden="true"></div>
       </div>
@@ -963,19 +702,7 @@
         <img class="sleeve-art" id="sleeveOutArt" alt="">
         <div class="sleeve-mark">MIZIKI</div>
       </div>
-      <!-- RF26 (docs/12_REFINE.md): the sun knob -- "where a turntable's
-           speed knob sits," at the platter's lower right. A sibling of
-           #platterBox/#disc, not a child, so it sits on top of the
-           platter without ever becoming part of #disc's own scratch/
-           spin pointer target (src/player/scrub.js's wireSpinToScrub()
-           binds to #platterStage/#disc directly; this button's own click
-           handler is a separate listener on a separate element, so
-           spinning the record still scratches exactly as it always has
-           — the knob never moves the platter, same as the doc's own
-           "never touches the platter" rule). data-phase is written by
-           drawSun() (src/player/clock.js) the same way the mini-player's
-           sun button's is -- CSS (src/styles/26-sundown-sheet.css) owns
-           the ring colour per phase, not JS. -->
+      <!-- sun knob; see docs/19_PLAYER_HTML_NOTES.md#sunknob-platter -->
       <button type="button" class="sun-knob" id="sunKnob" aria-label="Sundown">
         <svg class="sun-knob-ring" viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="32" cy="32" r="29"></circle>
@@ -983,11 +710,8 @@
         <svg class="sun-knob-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
         <span class="sun-knob-time" id="sunKnobTime"></span>
       </button>
-      <!-- AU10 (docs/16_AUDIO.md §5): "at 0ms a 33⅓ | 45 switch clicks
-           over" during a speed change -- a passive indicator (never
-           tappable; the format itself comes from the record, or the edit
-           sheet's own override), painted by player/transport.js's
-           paintSpeedToggle() on every load. -->
+      <!-- AU10: passive indicator (never tappable), painted by
+           player/transport.js's paintSpeedToggle() on every load -->
       <div class="speed-toggle" id="speedToggle" aria-hidden="true">
         <span data-speed="33.333">33⅓</span>
         <span data-speed="45">45</span>
@@ -1014,43 +738,29 @@
              overflow row nobody found -- same hidden-until-a-track-loads
              rule the old #playerShareBtn overflow row had. -->
         <button class="icon-btn" id="playerShareIconBtn" aria-label="Share" style="display:none">↗</button>
-        <!-- RF8 (docs/12_REFINE.md): Edit info/Queue/Sleep timer moved
-             into this one overflow; Look stays put below (not one of the
-             four the doc names), and the mini-player's own queue shortcut
-             (#miniQueueBtn) is untouched. SH1 moved Share out of this menu
-             onto its own icon button, above. -->
+        <!-- Edit info/Queue/Sleep timer live in this one overflow; Look
+             stays put below; Share has its own icon button, above -->
         <button class="icon-btn" id="playerOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
           <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
         </button>
       </div>
       <div class="by" id="trackBy"></div>
-      <!-- AU10 (docs/16_AUDIO.md §5): "a 7″ · 45 chip before the spec
-           line" -- only ever shown for a 45 (a 33⅓ LP is the
-           unremarkable default); written by player/transport.js's
-           load() alongside #trackSpec itself, right below. -->
+      <!-- shown only for a 45; written by player/transport.js's load() -->
       <div class="format-chip" id="trackSpecFormat"></div>
       <!-- PL8 item 10 (docs/19_PLAYER.md): tapping this reveals its own
            Untouched/Converted/Shaped state (src/player/transport.js's
            toggleTrackSpecState(), wired in src/wiring/transport.js). -->
       <div class="spec" id="trackSpec" role="button" tabindex="0" aria-label="Signal path, tap for state">Load a file to see its signal path</div>
-      <!-- RF26 (docs/12_REFINE.md): "the format line adds the phase" --
-           a sibling, not a child of #trackSpec, since load()
-           (src/player/transport.js) sets #trackSpec's own textContent
-           wholesale on every track change and would otherwise wipe out
-           anything written here; drawSun() (src/player/clock.js) keeps
-           this one live instead, the same "two small mirrors of the one
-           already-computed value" shape #tElapsed/#barElapsed already
-           use. Empty, and collapsed by CSS, until a track is loaded. -->
+      <!-- a sibling, not a child, of #trackSpec -- load() sets that one's
+           textContent wholesale on every track change, which would wipe
+           this out; drawSun() keeps this one live instead -->
       <div class="spec" id="trackSpecPhase"></div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
-        <!-- docs/15_SURFACE_NOISE.md §4 (Auto-flip Off): shown only while
-             the record is waiting in the run-out for the user to flip it
-             (shell/runout.js's own S.runout.kind === 'wait'). Flip performs
-             the real flip to side B at any point in the wait, whether the
-             run-out is still playing or has already timed out; Lift needle
-             only ever shows for "Until I lift it," and only before that
-             timeout, since past it the needle's already up. -->
+        <!-- docs/15_SURFACE_NOISE.md §4: shown only while waiting in the
+             run-out for the user to flip (shell/runout.js's
+             S.runout.kind === 'wait'); Lift needle only for "Until I
+             lift it," and only before that timeout -->
         <button class="cta" id="flipPrompt" style="display:none">Flip to Side B</button>
         <button class="cta ghost" id="liftNeedleBtn" style="display:none">Lift needle</button>
       </div>
@@ -1060,17 +770,12 @@
     <div class="overflow-menu" id="playerOverflowMenu" role="menu">
       <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
       <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
-      <!-- AU6 (docs/16_AUDIO.md §3): EQ -- beside Queue in spirit (both
-           live in this same overflow menu, RF8's one home for the player's
-           secondary controls). Not gated behind a loaded track the way
-           #queueBtn/#sleepTimerBtn are -- EQ settings and the sheet itself
-           are meaningful with nothing playing. -->
+      <!-- AU6: not gated behind a loaded track like #queueBtn/#sleepTimerBtn --
+           EQ settings are meaningful with nothing playing -->
       <button class="overflow-menu-row" id="eqBtn" role="menuitem">EQ</button>
       <button class="overflow-menu-row" id="sleepTimerBtn" style="display:none" role="menuitem">🌙 Sleep Timer</button>
-      <!-- RF21 (docs/12_REFINE.md, "a quieter broadcast"): private spin --
-           a menuitemcheckbox, not a settings toggle, since it's scoped to
-           this one listening session only (S.privateSpin, state.js), not
-           a saved pref. src/wiring/transport.js wires the click. -->
+      <!-- RF21: a menuitemcheckbox, not a settings toggle -- scoped to
+           this one session only (S.privateSpin), not a saved pref -->
       <button class="overflow-menu-row overflow-menu-row-check" id="privateSpinBtn" role="menuitemcheckbox" aria-checked="false">Don't share this session</button>
     </div>
 
@@ -1090,10 +795,7 @@
       </button>
     </div>
 
-    <!-- CEREMONY (docs/CEREMONY.md, §1): one toggle replaces the old
-         #modePure/#modeVinyl two-button group. A real switch — Space/
-         Enter toggles it the same as a tap — whose own label text
-         reads the current mode ("Vinyl"/"Pure"), set by setMode(). -->
+    <!-- a real switch -- Space/Enter toggles it the same as a tap -->
     <div class="modes">
       <button class="mode-toggle" id="modeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
         <span class="mode-toggle-track"><i class="mode-toggle-thumb"></i></span>
@@ -1173,12 +875,8 @@
       <input class="pl-input" id="editYear" type="number" min="0" max="2100">
     </div>
 
-    <!-- AU9 (docs/16_AUDIO.md §5): the personal per-album speed override.
-         Single-track edits of an album-tagged file only -- shown/hidden by
-         src/library/edit.js's openEditSheet(). Auto reads the format table
-         (7" if the longest side fits, otherwise 12"); 33 is always a 12" at
-         33 1/3; 45 keeps the table's own size. Personal: syncs in your
-         backup, but friends see the automatic format (AU11's territory). -->
+    <!-- AU9: personal per-album speed override -- syncs in your backup,
+         but friends always see the automatic format (AU11) -->
     <div class="slider-row" id="editFormatRow" style="display:none">
       <div class="slider-head"><span>Speed</span></div>
       <div class="seg" id="editFormatSeg" role="group" aria-label="Personal speed override">
@@ -1186,12 +884,7 @@
         <button data-format-override="33">33⅓</button>
         <button data-format-override="45">45</button>
       </div>
-      <!-- AU10 (docs/16_AUDIO.md §5, png/06-EditSpeed.png): "a small disc,
-           7″ SINGLE · 45 RPM, and one line... then Auto picks the speed
-           from the side lengths, so it matches for everyone. A choice
-           here is yours only; friends still see Auto." Written by
-           src/library/edit.js's paintEditFormatSeg(), same call site as
-           the seg's own aria-pressed paint above. -->
+      <!-- written by library/edit.js's paintEditFormatSeg() -->
       <div class="edit-format-result">
         <div class="edit-format-disc" aria-hidden="true"></div>
         <div>
@@ -1216,13 +909,7 @@
   <button class="cta ghost" id="undoBtn">Undo</button>
 </div>
 
-<!-- RF5 (docs/12_REFINE.md, point 3): shown when another tab upgrades the
-     database (IndexedDB onversionchange) while this tab is open — this
-     tab's own connection to it has already been closed by then
-     (src/storage/idb.js), so reloading is the only way back to a working,
-     persistent library here. Same fixed-banner shape as #undoBanner just
-     above, just with no dismiss but Reload — there's nothing to undo and
-     nothing useful left to do here until the page reloads. -->
+<!-- RF5: see docs/19_PLAYER_HTML_NOTES.md#dbstalebanner-the-indexeddb-upgrade-reload-banner -->
 <div class="undo-banner" id="dbStaleBanner" style="display:none">
   <span>Miziki updated in another tab. Reload.</span>
   <button class="cta ghost" id="dbStaleReload">Reload</button>
@@ -1579,18 +1266,9 @@
   </div>
 </div>
 
-<!-- src/main.js is the main player script, loaded as a module
-     (type="module") so Vite bundles it into a hashed asset under
-     dist/assets/ like any other module. src/miziki-social.js (the social
-     layer's sync client, self-contained as window.MizikiSocial; does
-     nothing until the app's own code calls MizikiSocial.init() with a
-     Supabase URL/anon key, and with neither it stays enabled:false and
-     inert) is now a real ES module too (TR3, docs/19_PLAYER.md) —
-     main.js imports it for its side effect, as its very first import, so
-     `MizikiSocial` is already a real global by the time the rest of
-     main.js's own top-level code runs, the same ordering a separate
-     classic <script src="src/miziki-social.js"> tag ahead of this one
-     used to guarantee. -->
+<!-- main.js imports src/miziki-social.js for its side effect, as its very
+     first import, so window.MizikiSocial exists before the rest of
+     main.js's own top-level code runs. -->
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
