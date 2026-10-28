@@ -4,14 +4,20 @@
    (close, style chips, format seg, save/share/copy, the More-options
    disclosure). The per-card Include toggles are rebuilt on every open and
    wired inline there instead (src/share/sheet.js's buildIncludeToggles),
-   since the set of buttons itself changes with the card. */
+   since the set of buttons itself changes with the card.
+
+   TR2 (docs/19_PLAYER.md): src/share/* (five canvas card composers) is
+   real weight launch never needs, so every listener here dynamically
+   imports it instead of a top-level static import -- a share sheet can
+   only ever be open (these buttons visible/clickable) after one of the
+   open entry points (openPlayerShareSheet here, or openShareSheet from
+   profile/records.js, profile/screens.js, gatefold/view.js) already ran
+   its own import('../share/sheet.js'), so by the time a user reaches any
+   listener below the module is already fetched and import() just returns
+   the cached module -- no added delay, no behavior change. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
-import {
-  openPlayerShareSheet, shareCurrentCard, shareFilename,
-  queueShareRender, shareDoSave, shareDoShare, shareDoCopy,
-} from '../share/sheet.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireShare(){
@@ -28,22 +34,38 @@ export function wireShare(){
     shareMoreBody.hidden = !opening;
     shareMoreToggle.setAttribute('aria-expanded', String(opening));
   });
-  document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(b => b.addEventListener('click', ()=>{
+  document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(b => b.addEventListener('click', async ()=>{
     S.shareStyle = b.dataset.style;
     document.querySelectorAll('#shareStyleRow .share-style-chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    queueSave(); queueShareRender();
+    queueSave();
+    const { queueShareRender } = await import('../share/sheet.js');
+    queueShareRender();
   }));
-  document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b => b.addEventListener('click', ()=>{
+  document.querySelectorAll('#shareFormatSeg [data-format]').forEach(b => b.addEventListener('click', async ()=>{
+    const { shareCurrentCard, queueShareRender } = await import('../share/sheet.js');
     S.shareFormatByCard[shareCurrentCard()] = b.dataset.format;
     document.querySelectorAll('#shareFormatSeg [data-format]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     queueSave(); queueShareRender();
   }));
-  $('#shareShareBtn').addEventListener('click', () => shareDoShare($('#shareCanvas'), shareFilename()));
-  $('#shareSave').addEventListener('click', () => shareDoSave($('#shareCanvas'), shareFilename()));
-  $('#shareCopy').addEventListener('click', () => shareDoCopy($('#shareCanvas')));
+  $('#shareShareBtn').addEventListener('click', async () => {
+    const { shareDoShare, shareFilename } = await import('../share/sheet.js');
+    shareDoShare($('#shareCanvas'), shareFilename());
+  });
+  $('#shareSave').addEventListener('click', async () => {
+    const { shareDoSave, shareFilename } = await import('../share/sheet.js');
+    shareDoSave($('#shareCanvas'), shareFilename());
+  });
+  $('#shareCopy').addEventListener('click', async () => {
+    const { shareDoCopy } = await import('../share/sheet.js');
+    shareDoCopy($('#shareCanvas'));
+  });
 
   // SH1 item 4: the player's own visible Share icon button, replacing the
   // old #playerShareBtn overflow row -- opens the sheet on the Now
-  // Playing card.
-  $('#playerShareIconBtn').addEventListener('click', openPlayerShareSheet);
+  // Playing card. This is one of the module's own "first use" entry
+  // points -- see this file's own header comment.
+  $('#playerShareIconBtn').addEventListener('click', async () => {
+    const { openPlayerShareSheet } = await import('../share/sheet.js');
+    openPlayerShareSheet();
+  });
 }

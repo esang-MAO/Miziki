@@ -11,7 +11,6 @@ import { renderRhythmCard } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { renderPrivacyScreen, wirePrivacyLink } from './privacy.js';
 import { renderPrivacyPolicyScreen, renderTermsScreen, legalLinksRow } from './legal.js';
-import { openShareSheet } from '../share/sheet.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, isDaylightPhase } from '../ui/theme.js';
@@ -377,19 +376,23 @@ function renderListeningScreen(body){
   const shareStack = el('div','profile-share-stack');
   const shareCrateBtn = el('button','cta ghost profile-share','Share crate');
   shareCrateBtn.classList.toggle('active', crateFilled());
-  shareCrateBtn.addEventListener('click', () => openShareSheet({ card:'crate' }));
+  shareCrateBtn.addEventListener('click', async () => {
+    const { openShareSheet } = await import('../share/sheet.js');
+    openShareSheet({ card:'crate' });
+  });
   shareStack.appendChild(shareCrateBtn);
 
   const rhythm = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
   if(rhythm.total >= RHYTHM_MIN_PLAYS){
     const shareSeasonBtn = el('button','cta ghost profile-share','Share season');
-    shareSeasonBtn.addEventListener('click', () => {
+    shareSeasonBtn.addEventListener('click', async () => {
       // SH6 (docs/18_SHARE.md) item 1: metals = per-tier counts from
       // achievementsList(), playedThrough = that same list's own length
       // (every earned tier counts once toward "played through").
       const achList = achievementsList();
       const metals = {};
       achList.forEach(a => { metals[a.tier] = (metals[a.tier] || 0) + 1; });
+      const { openShareSheet } = await import('../share/sheet.js');
       openShareSheet({ card:'season', data:{
         verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
         metals, playedThrough: achList.length, ownerName: S.profile.name || null,

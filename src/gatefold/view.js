@@ -28,7 +28,6 @@ import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
-import { openShareSheet } from '../share/sheet.js';
 import { splitSides } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
@@ -202,7 +201,8 @@ export function gatefoldSocialControlsHTML(item){
   const shareBtn = document.createElement('button');
   shareBtn.type = 'button'; shareBtn.className = 'gf-share-btn';
   shareBtn.textContent = 'Share record';
-  shareBtn.addEventListener('click', () => {
+  shareBtn.addEventListener('click', async () => {
+    const { openShareSheet } = await import('../share/sheet.js');
     openShareSheet({ card:'record', data:{
       album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
     } });

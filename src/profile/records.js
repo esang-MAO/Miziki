@@ -12,8 +12,6 @@ import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetrope
 // and this file reaches both back only from inside functions.
 import { renderPressingCard } from './storefront.js';
 import { renderProfile } from './screens.js';
-import { openShareSheet } from '../share/sheet.js';
-import { sortPressingsNewestFirst } from '../share/pressings-card.js';
 
 /* ================= profile records + pressings =================
    One section for the crate and what it has earned. The profile home shows
@@ -118,7 +116,12 @@ function countFamily(ownedIds, ids){
   for(const id of ids) if(ownedIds.has(id)) n++;
   return n;
 }
-function pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope){
+// TR2 (docs/19_PLAYER.md): async since this is only ever called from the
+// Share button below, which already dynamically imports share/sheet.js --
+// sortPressingsNewestFirst (share/pressings-card.js) rides along with it
+// instead of pulling that file into a static import here.
+async function pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope){
+  const { sortPressingsNewestFirst } = await import('../share/pressings-card.js');
   return {
     records: sortPressingsNewestFirst(Object.values(S.collection)),
     counts: {
@@ -278,8 +281,13 @@ export function renderRecordsScreen(body){
     if(owned.size){
       const shareBtn = el('button','cta ghost store-records-share','Share');
       shareBtn.type = 'button';
-      shareBtn.addEventListener('click', () => openShareSheet({ card:'pressings',
-        data: pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope) }));
+      shareBtn.addEventListener('click', async () => {
+        const [{ openShareSheet }, data] = await Promise.all([
+          import('../share/sheet.js'),
+          pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope),
+        ]);
+        openShareSheet({ card:'pressings', data });
+      });
       wrap.appendChild(shareBtn);
     }
   }

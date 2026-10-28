@@ -108,3 +108,35 @@ Full per-frequency detail, the stage breakdown (delay-line residual after `wobbl
 **Compressor GR's sign**, unrelated to this PR: the spec's own `measureCompressorGainReduction()` defines GR as positive when the compressor makes the loud segment quieter, but this chain's dynamic test material measures *negative* (-1.65dB) at that same ~1.6dB magnitude — a pre-existing property of this compressor path (a 12dB-wide knee puts the probe level inside the knee's transition region, not cleanly above threshold) that item 12 never flagged because it only read the magnitude. Out of scope for item 13 (frequency response + harmonic balance); the spec's own check now asserts on magnitude to match item 12's prior read, not the sign, with a comment pointing here.
 
 Item 14 (keep the Character sliders meaningful): `soft`'s saved values are untouched — only its dB/unit mapping shrank, so the slider's full range still spans quiet-to-colored, just less heavy at every point. `sat`'s saved values are likewise untouched; the curve's own internal shape changed, but `amount=0` is still silent and `amount=1` is still audibly "more" than any lower setting (verified: THD rises monotonically with `amount` in the curve's own math). Item 15 (Ken's own wired-headphone listening test) is the remaining gate before these numbers are treated as the real verdict rather than an offline measurement.
+
+## TR2: lazy-load `src/share/*` (docs/19_PLAYER.md)
+
+Step 1's baseline chunk sizes, measured on `main` (commit `39e9c87`) before any TR2 change, default base (`npm run build`):
+
+| File | Size | gzip |
+|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 513.11 kB | 157.30 kB |
+| `dist/assets/dist-*.js` (`@supabase/supabase-js`, already lazy) | 218.84 kB | 56.54 kB |
+| `dist/assets/demo-*.js` (`?social=demo`, already lazy) | 10.39 kB | 3.65 kB |
+| `dist/miziki.html` | 94.35 kB | — |
+| `dist/assets/miziki-*.css` | 147.67 kB | — |
+
+This PR converts every external call site of `src/share/sheet.js` (and the one of `src/share/pressings-card.js` reached only through it) from a static `import` to an inline `await import(...)` at the point of use: `src/wiring/share.js` (the share sheet's own static controls — style chips, format seg, save/share/copy, and the player's Share icon button), `src/profile/screens.js` (crate and season Share buttons), `src/profile/records.js` (the pressings-chart Share button, plus its `pressingsShareData()` helper), and `src/gatefold/view.js` (the record sheet's Share record row). Every one of these is a click handler, so the import only ever starts once a user has already reached a screen with a Share button — launch itself never touches the module. Since `import()` caches by module specifier, once any one of these handlers has run, every other handler's `await import('../share/sheet.js')` resolves from cache with no added delay.
+
+Step 5's new chunk sizes, same build, same branch:
+
+| File | Size | gzip | vs. baseline |
+|---|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 484.84 kB | 147.75 kB | -28.27 kB / -9.55 kB gzip |
+| `dist/assets/sheet-*.js` (new, lazy) | 20.52 kB | 7.01 kB | — |
+| `dist/assets/pressings-card-*.js` (new, lazy) | 10.34 kB | 4.29 kB | — |
+| `dist/assets/dist-*.js` | 218.84 kB | 56.54 kB | unchanged |
+| `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
+| `dist/miziki.html` | 94.35 kB | — | unchanged |
+| `dist/assets/miziki-*.css` | 147.67 kB | — | unchanged |
+
+`sheet.js` pulls in the four other card composers (`crate-card.js`, `now-playing-card.js`, `record-card.js`, `season-card.js`) and `share/styles.js`, all bundled into the one new `sheet-*.js` chunk by Vite's own code-splitting — only `pressings-card.js` split out separately, since `profile/records.js` imports it directly rather than through `sheet.js`. ~31kB (~13.6kB gzip) of canvas-card code that launch previously downloaded and parsed unconditionally is now fetched only by a user who opens a share sheet.
+
+Scope notes for the rest of TR2 (`docs/19_PLAYER.md`'s other four lazy-load targets), left to follow-up PRs: the EQ sheet needs a prerequisite split (its tiny pure `eqStateLabel()`, used synchronously by the Settings screen on every render, is in the same file as the heavy sheet-rendering code — Vite splits at file granularity, so today any import of either pulls in both); social screens split into `friend-store.js` (lazy-loadable) and `home.js` (wired into boot-time tab-visibility/routing, left static); `profile/legal.js`/`privacy.js` not yet scoped; `src/sync/*` is too deeply embedded in core always-active write paths (history, import, edit, settings) to convert wholesale — only the doc's own narrower ask (defer `initBackupSync()`'s pull until after first paint) remains open.
+
+Device check (step 5): not yet run on-device — first tap on the player's Share icon, a crate/season/pressings Share button, and a gatefold record's Share row should each open with no visible delay, same as before this change.
