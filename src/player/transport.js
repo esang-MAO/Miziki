@@ -35,6 +35,7 @@ import {
 } from '../audio/surface-noise.js';
 import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
+import { specRateSuffix, specState, specStateLabel } from './track-spec.js';
 
 // AU2 (docs/16_AUDIO.md §2.2): every ordinary edge -- pause, stop, seek --
 // fades S.nodes.trackGain by this many ms before the source actually
@@ -44,6 +45,44 @@ import { saveResumeNow } from './resume.js';
 // each name their own figure.
 const EDGE_FADE_MS = 15;
 const START_FADE_MS = 10;
+
+// PL8 item 10: whether the current track's spec line is showing its
+// plain-text state (Untouched/Converted/Shaped) alongside the format —
+// module-level since it survives across the renders a tap triggers, but
+// reset to collapsed on every new load() (see its own call site below).
+let specExpanded = false;
+
+// Writes #trackSpec's full text -- the plain format + resample arrow
+// always, plus the tapped state when specExpanded. Called from load()
+// (collapsed) and from toggleTrackSpecState() (the tap itself).
+function renderTrackSpecLine(t){
+  const el = $('#trackSpec');
+  if(!el || !t) return;
+  const m = t.meta;
+  const engineRate = S.ctx ? S.ctx.sampleRate : null;
+  const base = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
+    m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ')
+    + specRateSuffix(m.rate, engineRate);
+  if(!specExpanded){ el.textContent = base; return; }
+  const eq = S.eq || {};
+  const state = specState({
+    lossless: m.lossless, mode: S.mode, eqEnabled: !!eq.enabled,
+    loudnessMode: S.loudnessMode, sourceRateHz: m.rate, engineRateHz: engineRate,
+  });
+  el.textContent = base + ' — ' + specStateLabel(state);
+}
+
+// Tapping the spec line (wired from src/wiring/transport.js) toggles the
+// state word on or off, recomputed fresh at tap time — not kept live
+// against a setting changed elsewhere while it's showing (see the doc's
+// own "tapping it adds one plain-text state," a discrete action, not a
+// subscription).
+export function toggleTrackSpecState(){
+  const t = current();
+  if(!t) return;
+  specExpanded = !specExpanded;
+  renderTrackSpecLine(t);
+}
 
 // docs/15_SURFACE_NOISE.md §1: "the lead-in plays only at the start of a
 // side: playing from stopped, or after a flip" — true when i is the first
@@ -361,8 +400,11 @@ export function load(i){
   // radius now follows this side's fullness (record-art/format.js).
   const sideLen = albumTrackIdx ? sideLengthOf(albumTrackIdx, i) : 0;
   applyDeadWaxEtching(t, sideLetterFor(t, i), sideFullness(sideLen, S.recordFormat));
-  $('#trackSpec').textContent = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
-    m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ');
+  // PL8 item 10: a new track's spec line always starts collapsed (plain
+  // format + resample arrow, no state word) -- renderTrackSpecLine()
+  // reads specExpanded, so it has to be reset before that first render.
+  specExpanded = false;
+  renderTrackSpecLine(t);
   setPathNote('');
   // NV3: only the now-playing marker moved — patch the old and new rows in
   // place rather than rebuilding the whole library list on every track
