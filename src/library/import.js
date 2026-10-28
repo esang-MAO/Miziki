@@ -7,10 +7,10 @@
    file at a time, the "Importing N of M" note, a failed file skipped
    (not aborting the batch), and new albums sealed once per batch
    (SEALED spec §2). Since AU5 (docs/16_AUDIO.md §4), the import loop also
-   runs the BS.1770 loudness measurement right after decodeAudioData (see
-   that call site's own comment for why there's no literal Worker, despite
-   the doc's "in a worker" suggestion) — src/audio/loudness.js is a pure,
-   DOM-free leaf, imported directly. */
+   runs the BS.1770 loudness measurement right after decodeAudioData, and
+   since AU12 (§7) the hook-detection pass right alongside it — both via
+   audio/analysis-client.js's analyzeTrack() (PL6 item 1: off the main
+   thread, in a Worker). */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -30,8 +30,7 @@ import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
-import { measureTrack } from '../audio/loudness.js';
-import { detectHook } from '../audio/hook.js';
+import { analyzeTrack } from '../audio/analysis-client.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -126,30 +125,20 @@ export async function addFiles(list){
       const gaplessDelaySec = meta.gapless ? meta.gapless.delay / gaplessRate : 0;
       const gaplessPaddingSec = meta.gapless ? meta.gapless.padding / gaplessRate : 0;
       const trimmedDuration = Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec);
-      // AU5 (docs/16_AUDIO.md §4): "Import already decodes every file,
-      // so compute BS.1770 integrated loudness and true peak there." Done
-      // as a plain async step in this same loop rather than a literal
-      // Worker — the measurement is a few biquad passes over one decoded
-      // track (tens to low hundreds of ms of JS time), and this codebase
-      // has no existing precedent of reaching for a Worker for comparable
-      // on-device work (crate tiers/thumbnails are plain async main-thread
-      // functions too) — not worth the message-protocol/lifecycle plumbing
-      // a Worker needs for a one-shot, already-background (await-based)
-      // computation that already yields the main thread between files via
-      // the loop's own await points.
+      // AU5 (docs/16_AUDIO.md §4)/AU12 (§7): "Import already decodes every
+      // file, so compute BS.1770 integrated loudness and true peak there"
+      // / "find each track's most-repeated section" — one round trip to
+      // the analysis worker (PL6 item 1) computes both from the same
+      // decode, off the main thread. detectHook()'s own result is null
+      // for anything too short for a meaningful 8-30s repeat (or with no
+      // clear one at all) — hookStart/hookEnd are simply left unset on
+      // details, the same "absent means unknown" posture every other
+      // optional details field already has.
       const channels = [];
       for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-      details.loudness = measureTrack(channels, buffer.sampleRate);
-      // AU12 (docs/16_AUDIO.md §7): "At import (and in the same idle pass
-      // as §4), find each track's most-repeated section." Same channel
-      // data already decoded for the loudness measurement just above, so
-      // this is one more pass over it rather than a second decode.
-      // detectHook() returns null for anything too short for a meaningful
-      // 8-30s repeat (or with no clear one at all) — hookStart/hookEnd are
-      // simply left unset on details, the same "absent means unknown"
-      // posture every other optional details field already has.
-      const hook = detectHook(channels, buffer.sampleRate);
-      if(hook){ details.hookStart = hook.hookStart; details.hookEnd = hook.hookEnd; }
+      const analysis = await analyzeTrack(channels, buffer.sampleRate);
+      details.loudness = analysis.loudness;
+      if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
       const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
       if(dup){
         const choice = await askDuplicateResolution(dup, f.name);
