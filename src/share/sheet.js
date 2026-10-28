@@ -86,9 +86,9 @@ export function shareFilename(){
   return 'miziki-' + (CARD_FILENAMES[currentCard] || currentCard) + '-' + format + '.png';
 }
 
-// Now Playing's own data gather -- unchanged from before SH1, just moved
-// under its card key rather than a dedicated player-sheet render function.
-// Every other card's data is gathered by its own entry point screen and
+// Now Playing's own data gather, under its card key rather than a
+// dedicated player-sheet render function. Every other card's data is
+// gathered by its own entry point screen and
 // handed in via openShareSheet({card, data}), per each card's own SH3/
 // SH4/SH6 doc entry ("data is gathered by the gatefold", etc.) -- Now
 // Playing is the one exception, since the sheet already reads current()/

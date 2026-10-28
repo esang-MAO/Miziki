@@ -1,14 +1,12 @@
 /* ================= storage interface =================
    A small domain interface on top of the raw IndexedDB wrapper (`DB`,
-   src/storage/idb.js, step 4a), replacing ~100 direct `DB.put`/`DB.get`/etc.
-   calls spread across main.js (step 4c). Code asks for *what* it needs
-   ("the overlay for this track", "this album's play counts") rather than
-   *how* it's stored — when Miziki becomes an App Store app, only the
-   inside of this module should need to change (see the note at the bottom
-   of this file).
+   src/storage/idb.js). Code asks for *what* it needs ("the overlay for
+   this track", "this album's play counts") rather than *how* it's stored
+   — when Miziki becomes an App Store app, only the inside of this module
+   should need to change (see the note at the bottom of this file).
 
-   One small object per store, with only the methods something in main.js
-   actually calls — no method here that nothing uses. `storage.available()`
+   One small object per store, with only the methods something actually
+   calls — no method here that nothing uses. `storage.available()`
    replaces direct reads of `DB.ok`; `storage.open()` is the one call that
    opens the database at boot. Every store keeps today's "storage
    unavailable" behavior exactly, because it's just forwarding to `DB`,

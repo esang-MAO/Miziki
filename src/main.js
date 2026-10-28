@@ -65,16 +65,12 @@ import { wirePullRefresh } from './wiring/pull-refresh.js';
 import { wireSwipeClose } from './wiring/swipe-close.js';
 import { wireBackdropClose } from './wiring/backdrop-close.js';
 
-/* Everything that used to live here — the audio graph, the library, the
-   gatefold and sealed-record sheet, the crate, the launch intro, the
-   navigation shell, profile/social, share images, and every area's own
-   DOM wiring — has moved out into its own module over the course of this
-   engagement's step 2 through 7f (see the repo-layout entries in
-   CLAUDE.md for the full history of what moved where and when). This
-   file is now what the "wiring" header always implied main.js itself
-   should become: a short boot file. The actual per-area event wiring
-   (step 7f) lives under src/wiring/, one file per UI area, each
-   exporting a single wireX() function that main.js calls below; the
+/* This is a short boot file: the audio graph, library, gatefold and
+   sealed-record sheet, crate, launch intro, navigation shell, profile/
+   social, share images, and every area's own DOM wiring each live in
+   their own module (see CLAUDE.md's repo-layout entries). The actual
+   per-area event wiring lives under src/wiring/, one file per UI area,
+   each exporting a single wireX() function that main.js calls below; the
    library-loading boot sequence itself (restoreLibrary()) stays here,
    since that's what a boot file's own job actually is. */
 
@@ -109,14 +105,14 @@ onRouteRestore(showRoute);
 initScrollRestoration();   // NV3: hands scroll-position restoration entirely to the app
 
 setMode('vinyl');
-// Ken, 2026-10-22: the Home tab itself is hidden outright while signed
-// out/social off, shown again the instant sign-in completes -- status()
-// already has a real answer this early (it starts at auth:'signedOut'
-// regardless of whether social is even configured, well before
-// MizikiSocial.init() ever runs inside restoreLibrary() below), so there's
-// no reason to wait for that. Wired here, not inside home.js itself, so
-// tests (and any other early-loading module) can stub MizikiSocial first —
-// see updateHomeTabVisibility()'s own comment.
+// The Home tab itself is hidden outright while signed out/social off,
+// shown again the instant sign-in completes -- status() already has a
+// real answer this early (it starts at auth:'signedOut' regardless of
+// whether social is even configured, well before MizikiSocial.init() ever
+// runs inside restoreLibrary() below), so there's no reason to wait for
+// that. Wired here, not inside home.js itself, so tests (and any other
+// early-loading module) can stub MizikiSocial first — see
+// updateHomeTabVisibility()'s own comment.
 updateHomeTabVisibility();
 MizikiSocial.on('status', updateHomeTabVisibility);
 applyTheme();
@@ -127,8 +123,8 @@ scheduleMidnightRecompute();   // DA1: keeps the day model from going stale over
 scheduleDriftRecompute();      // DA2: keeps Vinyl's character drift tracking the day
 updateChromeInset();
 window.addEventListener('resize', updateChromeInset);
-// Ken, 2026-10-22: the Library route's own lock/inset (shell/routes.js's
-// showRoute()) is only ever applied inside showRoute() itself -- the
+// The Library route's own lock/inset (shell/routes.js's showRoute()) is
+// only ever applied inside showRoute() itself -- the
 // default .route.on state is static HTML with no matching JS call, so
 // without this the lock/inset would never actually take effect on a fresh
 // load, only once the user later switched away from and back to Library.
@@ -261,10 +257,10 @@ async function restoreLibrary(){
   onBackup('reset', () => resetLocalHistory());
   initBackupSync();
   MizikiSocial.libraryLoaded();
-  // Ken, 2026-10-22: superseding RF7's own "the tab bar never changes
-  // shape" rule — the Home tab itself is hidden outright while signed out
-  // or social off, and reappears the instant sign-in completes. See
-  // social/screens/home.js's updateHomeTabVisibility() for the actual
+  // The Home tab itself is hidden outright while signed out or social
+  // off, and reappears the instant sign-in completes (overrides RF7's own
+  // "the tab bar never changes shape" rule). See social/screens/home.js's
+  // updateHomeTabVisibility() for the actual
   // show/hide logic (wired to MizikiSocial's own 'status' event, so no
   // separate call is needed here).
   if(new URLSearchParams(location.search).get('social') === 'demo'){

@@ -1,13 +1,13 @@
 /* ================= backup doc: format + local <-> doc conversion =========
-   B2 (account backup, step 03): pure functions only — no network, no DOM,
-   no S import. A later PR (B1/B3) builds `localState` from the real S
-   object and IndexedDB, uploads toDoc()'s output as this device's one row
-   (`library_backup`, keyed by user + device), fetches every row for the
-   user, and calls fromDocs() to get the merged result to apply back to S.
+   Pure functions only — no network, no DOM, no S import. sync/backup.js
+   builds `localState` from the real S object and IndexedDB, uploads
+   toDoc()'s output as this device's one row (`library_backup`, keyed by
+   user + device), fetches every row for the user, and calls fromDocs() to
+   get the merged result to apply back to S.
 
-   RF17 (docs/12_REFINE.md, "merge per item, not per blob") rewrote this
-   file's whole doc shape (SCHEMA_VERSION 3): every field that used to be
-   one last-write-wins stamp over a whole map (albumOrder, albumSort,
+   SCHEMA_VERSION 3 (RF17, docs/12_REFINE.md, "merge per item, not per
+   blob"): every field that's one last-write-wins stamp over a whole map
+   (albumOrder, albumSort,
    albumDisplay, trackDisplay, albumEdge, albumLookPref, prefs) is now one
    stamp per key, so a change to one album or one pref key never competes
    on merge with an unrelated, but later, change to a different key of the

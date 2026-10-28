@@ -406,4 +406,20 @@ Kept every comment that explains *why* or warns about a trap: `shell/nav-stack.j
 
 Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
 
+## TR6 batch 6: social, profile, share, sync, storage, ui, util, top-level — comment diet (final batch)
+
+Batch 6 of TR6's grouped comment diet — the last one, covering `src/social/`, `src/profile/`, `src/share/`, `src/sync/`, `src/storage/`, `src/ui/`, `src/util/`, and the top-level files `src/main.js`, `src/state.js`, `src/miziki-social.js`.
+
+Trimmed narration of *when*/*in which step* something changed: "Moved out of main.js" provenance notes in `storage/idb.js`/`storage/repo.js`/`storage/prefs.js`; "Split out of main.js's applyPrefs()/saveMeta() (step 4b)" in `storage/prefs.js`'s header; "Ken, 2026-10-22" dated framings in `social/screens/home.js` (twice), `profile/screens.js` (twice), `main.js` (three places); a "Follow-up to PRESSINGS_110 PR7" framing in `state.js`/`storage/meta.js`; a "security hardening, step 01 — this used to fall back to..." framing in `miziki-social.js`'s `init()` doc comment; the pure history block at the top of `main.js` narrating which step moved what out of it; "RF17 ... rewrote this file's whole doc shape" framing in `sync/backup-doc.js`'s header; "Step 06 (B3), extended in step 07 (B4)" framing in `sync/backup.js`'s header; a stale "stays in main.js for now" claim in `storage/idb.js` (persistence helpers actually live in `storage/meta.js` — fixed while trimming it, since it was in scope).
+
+Kept every comment that explains *why* or warns about a trap: `state.js`'s whole backup-field/Lamport-counter rationale (RF16/RF17/RF18), `sync/backup.js`'s rule-9 "never on the iOS tap-to-play path" note and its "never imports library/view.js/record-art/looks.js/storage/meta.js" circular-import warning, `sync/merge.js`'s per-field merge-rule comments, `storage/meta.js`'s touch-key diffing rationale, `main.js`'s NV2 nav-stack-first-thing ordering note and its dynamic-import-for-bundle-size notes, `miziki-social.js`'s own "real ES module... still assigns to root.MizikiSocial" header, and every short plan-doc pointer (`RF1`/`RF4`/`RF5`/`RF7`/`RF16`-`RF18`/`RF21`/`RF22`, `AU1`/`AU5`-`AU11`, `DA1`-`DA6`, `CR8`-`CR11`, `SH1`-`SH5`, `NV2`-`NV4`, `TR2`/`TR3`, `PRESSINGS_110 PR7`/`PR8`, `B2`-`B4` spec-table references).
+
+**Comment-only**: no logic, no `await` added/removed/reordered, no non-comment line touched. Confirmed by hashing all `dist/assets/*.js` chunks before and after — byte-identical.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.
+
+**This completes TR6, and with it the whole TR1-TR7 repo-trim phase** (docs/19_PLAYER.md): TR1-TR5 and TR7 merged earlier in this phase, TR6 merged across 6 batches (#251-#255 and this PR) grouping ~20 `src/` folders by subsystem instead of one PR per folder, per Ken's own call on scope.
+
 Device check: not needed — comment-only change, confirmed byte-identical build output.

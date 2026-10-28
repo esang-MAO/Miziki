@@ -6,10 +6,9 @@
    engine — every call below quietly no-ops and Miziki behaves exactly as it
    did before: fully working, session-only.
 
-   Moved out of main.js's "persistence" section unchanged (step 4a) — the
-   rest of that section (queueSave, saveMeta, restoreMeta and the various
-   persist*() helpers) stays in main.js for now; this is just the layer they
-   sit on. See CLAUDE.md's persistence rules: any future version bump must
+   The rest of the persistence layer (queueSave, saveMeta, restoreMeta and
+   the various persist*() helpers, src/storage/meta.js) sits on top of this.
+   See CLAUDE.md's persistence rules: any future version bump must
    come with a new upgrade test in tests/unit/idb.test.js that starts from
    the previous version's real store layout, with data in it. */
 export const DB = {

@@ -239,12 +239,11 @@ async function loadState() {
  * init({ url, anonKey, adapter | env, sb?, supabaseLib?, timing? })
  *   env = { S, DB, albumKey, trackTier, albumMetalFor }  → builds the Miziki adapter
  *   sb  = a ready client (tests); otherwise one is created from url/anonKey.
- *   supabaseLib = the bundled @supabase/supabase-js module (security
- *   hardening, step 01 — this used to fall back to fetching an unpinned
- *   copy from a CDN; the app now always passes its own bundled copy, or
- *   a real global at `root.supabase` for callers that load it another
- *   way, and init() fails closed (inert, same as no keys) rather than
- *   ever reaching out to a CDN on its own).
+ *   supabaseLib = the bundled @supabase/supabase-js module — the app
+ *   always passes its own bundled copy, or a real global at
+ *   `root.supabase` for callers that load it another way; init() fails
+ *   closed (inert, same as no keys) rather than ever reaching out to a
+ *   CDN on its own.
  */
 async function init(opts) {
   opts = opts || {};

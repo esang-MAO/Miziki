@@ -1,5 +1,5 @@
 /* ================= legal: Privacy Policy and Terms of use =================
-   Step 08 (P3, part A). Two screens, reached from the sign-in flow
+   Two screens, reached from the sign-in flow
    (profile/settings.js), the Account screen (profile/settings.js) and the
    Privacy screen (profile/privacy.js) — S.profileView.screen = 'privacyPolicy'
    or 'termsOfUse', then renderProfile() (same navigation shape every other

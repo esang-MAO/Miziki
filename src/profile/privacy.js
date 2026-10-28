@@ -1,9 +1,7 @@
 /* ================= privacy screen =================
-   Step 06 (B3): one place for controls that were scattered across the
-   social sign-in wizard and the old "socialSettings" screen (now the
-   Account screen, src/profile/settings.js) — profile visibility, the two
-   sharing toggles, follow requests, blocked accounts, and backup status.
-   Reachable from Profile (renderProfileHome, below) and from the Account
+   One place for profile visibility, the two sharing toggles, follow
+   requests, blocked accounts, and backup status. Reachable from Profile
+   (renderProfileHome, below) and from the Account
    screen (settings.js's own Privacy link) — both just set
    S.profileView.screen = 'privacy' and re-render.
 
