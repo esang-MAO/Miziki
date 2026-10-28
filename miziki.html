@@ -667,37 +667,6 @@
         <button type="button" class="sd-now-btn" id="sdNowBtn">NOW</button>
       </div>
 
-      <!-- DA3's own day-arc SVG/phase-block/"Now playing at" row: kept in
-           the DOM, hidden by CSS only (.sdv1, src/styles/25-day-arc-v2.css)
-           so player/clock.js's drawSun() keeps writing to these exact ids
-           with no code change there, and the desktop sidebar's own mirror
-           (#sidePhaseName/#sideRateWhy/etc.) keeps reading them unchanged —
-           see src/sundown/dial-view.js's own header comment. -->
-      <div class="sdv1">
-        <svg class="day-arc" id="dayArc" viewBox="0 0 342 150" aria-hidden="true" focusable="false">
-          <line class="arc-horizon" x1="12" y1="92" x2="330" y2="92"></line>
-          <path class="arc-day-path" d="M24,92 Q171,24 318,92"></path>
-          <path class="arc-night-path" d="M24,92 Q171,160 318,92"></path>
-          <circle class="arc-dot" id="sunDot" cx="24" cy="92" r="6"></circle>
-        </svg>
-        <div class="arc-labels">
-          <div class="arc-label" id="arcLabelDawn"><span>Dawn</span><b id="arcTimeDawn">—</b></div>
-          <div class="arc-label" id="arcLabelSunrise"><span>Sunrise</span><b id="arcTimeSunrise">—</b></div>
-          <div class="arc-label" id="arcLabelNoon"><span>Noon</span><b id="arcTimeNoon">—</b></div>
-          <div class="arc-label" id="arcLabelSunset"><span>Sunset</span><b id="arcTimeSunset">—</b></div>
-          <div class="arc-label" id="arcLabelDusk"><span>Dusk</span><b id="arcTimeDusk">—</b></div>
-        </div>
-
-        <div class="phase-block">
-          <h2 id="phaseName">Daylight</h2>
-          <p id="phaseSub">Full speed</p>
-        </div>
-
-        <div class="row">
-          <div class="k">Now playing at<em id="rateWhy">Daylight — full speed</em></div>
-          <div class="readout" id="rateOut">1.000× · 0.0 st</div>
-        </div>
-      </div>
 
       <!-- RF9 (docs/12_REFINE.md): one choice, not four rows -- Auto/
            Manual, the manual-rate slider, the full-night-rate seg and the

@@ -224,8 +224,8 @@ export function depthKeyFor(auto, target){
 // approximate semitone count in simple quarter-semitone fractions
 // ("-2.4% ~= -1/4 semitone"), never a raw multiplier ("0.80x") or a bare
 // decimal semitone count ("3.9 st"). One helper so every reader (the
-// depth caption just below, player/clock.js's #rateOut and
-// #trackSpecPhase) shows the same number the same way. Only meant for an
+// depth caption just below, player/clock.js's #trackSpecPhase) shows the
+// same number the same way. Only meant for an
 // actual change (rate !== 1) — a caller that also needs a "full speed" or
 // "off" label keeps writing that text itself, since this function only
 // ever describes a difference from full speed.

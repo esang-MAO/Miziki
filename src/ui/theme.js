@@ -41,7 +41,7 @@
    Arc v2]. Do not add a second clock" — in place of the old DA1-DA6
    7-phase dayPosition()/currentDayPosition() model
    (sundown/solar.js/day.js, both left in place for the still-shipping
-   old Sundown UI behind .sdv1, untouched by this PR). phaseAt()'s own
+   old Sundown rate logic, untouched by this PR). phaseAt()'s own
    four labels (dawn/day/dusk/night) split cleanly into light (day) and
    dark (dawn/dusk/night) — see isDaylightPhase() below.
      - while Auto is active, listens for the device's own scheme changing

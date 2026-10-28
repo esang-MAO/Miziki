@@ -161,12 +161,7 @@ mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
 // --sky1/--sky2 fix under test — neither exists in this file's Node
 // environment otherwise. A single reusable stub element is enough: none
 // of drawSun()'s own tests care about its textContent/style.width, only
-// about the one inline-style side effect this fix changed. DA3's own
-// updateDayArc() additionally reads/writes classList.toggle (the sun/
-// moon dot and the five arc labels) and setAttribute (the dot's cx/cy) —
-// a plain classList.toggle stub (recording the last call, not a real
-// Set) and a no-op setAttribute are enough, since no test here reads
-// either back.
+// about the one inline-style side effect this fix changed.
 // RF26 (docs/12_REFINE.md): drawSun() now also writes dataset.phase onto
 // the sheet's two ways-in (the sun knob, the mini-player's sun button) —
 // dataset needs a real (if fake) object for that write to land on.
@@ -189,7 +184,7 @@ globalThis.document = {
   },
 };
 
-const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, dayArcPosition, crateLightColor } = await import('../../src/player/clock.js');
+const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, crateLightColor } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -541,23 +536,6 @@ test('phaseText: dawn reads "percent risen", twilight reads "percent down", othe
   assert.deepEqual(phaseText(pos('twilight', 0.6), 0, 0.6), { name: 'Twilight', sub: '60% of the way down' });
   assert.deepEqual(phaseText(pos('morning'), 0, 0), { name: 'Morning', sub: 'Bright, full speed' });
   assert.deepEqual(phaseText(pos('night'), 0, 0), { name: 'Night', sub: 'Settled in for the night' });
-});
-
-// dayArcPosition: pure, schematic x/y for the arc's sun/moon dot.
-test('dayArcPosition: day phases walk left to right and never go below the horizon', () => {
-  const dawnStart = dayArcPosition(pos('dawn', 0));
-  const twilightEnd = dayArcPosition(pos('twilight', 1));
-  assert.ok(dawnStart.x < twilightEnd.x, 'dawn should start to the left of where twilight ends');
-  for(const phase of ['dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
-    const { y, isNight } = dayArcPosition(pos(phase, 0.5));
-    assert.equal(isNight, false);
-    assert.ok(y <= 92, 'day phases should sit at or above the horizon line');
-  }
-});
-test('dayArcPosition: night sits below the horizon, flagged isNight', () => {
-  const { y, isNight } = dayArcPosition(pos('night'));
-  assert.equal(isNight, true);
-  assert.ok(y > 92, 'night should sit below the horizon line');
 });
 
 // The fix under test since the sky-fix changelog entry, now extended by
