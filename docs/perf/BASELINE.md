@@ -321,3 +321,19 @@ New sizes (`MIZIKI_BASE=/ npm run build`, compared against TR4 part 2's "after" 
 A small CSS cut from the 8 removed selectors; the JS main chunk is flat (within noise) since this item mostly moved code between modules rather than cutting it, and added one new tiny module (`util/text.js`).
 
 Device check: not yet run on-device — no markup changed and no runtime behavior changed (confirmed by the full unit suite and the NaN-guard-preserving `eq.js` rewrite); the device checklist's "Tap the player's spec line" and general playback/EQ items are the closest relevant checks, worth a quick pass alongside the next change that touches this code.
+
+## TR7: repo weight
+
+TR7 (docs/19_PLAYER.md) is two independent asks: losslessly compress `docs/design/**/png`, and archive old `docs/CHANGELOG.md` entries so the live file stays short.
+
+**PNG compression.** The doc names `oxipng`, which isn't available in this environment (not in Ubuntu's apt repos, and installing a standalone binary via `npx`/`cargo` is blocked by this session's sandboxing) — used `optipng -o7 -strip all` instead, the same lossless-recompression idea (re-encodes the PNG's deflate stream for a smaller file, strips non-essential metadata chunks, touches zero pixel data). All 12 files are under `docs/design/audio/png/` (confirmed via `find docs/design -name "*.png"` — nothing elsewhere in the tree) and aren't referenced by the built app (`grep -rl "docs/design" src/ miziki.html vite.config.js` only turns up comments citing design-doc paths, never an actual asset import), so this has zero effect on `npm run build`'s output.
+
+| | Before | After |
+|---|---|---|
+| `docs/design/audio/png/` (12 files) | 3,535,564 bytes (3.37 MiB) | 2,556,039 bytes (2.44 MiB) |
+
+A 27.7% cut (~957 KB). Still a couple MB total — the doc's fallback ("if still large, move the originals to a GitHub release and link them") would cut it further, but that means deleting files from the repo and rewriting the design README's links to point at release assets instead; left as Ken's call rather than done unilaterally in this pass, since the lossless recompression alone already gets a meaningful reduction with zero risk.
+
+**CHANGELOG archival.** Not done — nothing qualifies. The doc asks to archive entries "before October" into `docs/history/CHANGELOG-2026-H1.md`, but `docs/CHANGELOG.md` itself was only created on 2026-10-14 (CLAUDE.md's own changelog note: PR #98 moved the step-by-step history out of CLAUDE.md into this file, which overflowed context otherwise) — every entry in it, start to finish, already carries an October 2026 date or sits in October's own step sequence. There's no `docs/history/` directory yet and no pre-October content to move into one. If the file grows large enough in the future to need its own split, that's a job for whenever it actually has pre-cutoff entries, not now.
+
+Device check: none needed — doc-only changes, zero code/build impact.
