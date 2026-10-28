@@ -1,9 +1,7 @@
 /* ================= wiring: profile and social =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the profile
-   picture picker, the social sign-in sheet's close button, the social
-   nav stack's back button, and the record sheet's close button. Every
-   function called here was already a real export of its owning
-   module. */
+   The profile picture picker, the social sign-in sheet's close button,
+   the social nav stack's back button, and the record sheet's close
+   button. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { persistProfile, renderProfile } from '../profile/screens.js';

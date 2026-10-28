@@ -1,9 +1,6 @@
 // NV2 (docs/11_SMOOTH_NAVIGATION.md): a single history-based layer stack so
 // Back, Escape and every overlay's own close button all close exactly the
-// topmost open layer, everywhere in the app. Before this step, the only
-// existing precedent (src/wiring/gatefold.js's global Escape handler) was a
-// hand-written priority chain covering just four of the ~13 overlays in the
-// app, with no History API involvement anywhere in src/ at all.
+// topmost open layer, everywhere in the app.
 //
 // `layers` is the ground truth of what's open, kept in exact sync with real
 // `history.pushState()` entries pushed by `openLayer()` — one entry per

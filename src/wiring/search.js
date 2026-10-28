@@ -1,8 +1,6 @@
 /* ================= wiring: library search =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the library search
-   field's own input/focus/blur handling and the header search icon/
-   Cancel/× (S1 §2.1). Every function called here was already a real
-   export of its owning module. */
+   The library search field's own input/focus/blur handling and the
+   header search icon/Cancel/× (S1 §2.1). */
 import { $ } from '../util/dom.js';
 import { renderTracks } from '../library/view.js';
 import { updateSearchChipsVisibility } from '../library/search.js';

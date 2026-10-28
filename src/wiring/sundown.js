@@ -1,34 +1,18 @@
 /* ================= wiring: Sundown panel =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the auto/manual
-   toggle, the manual-rate slider, the full-night-rate target buttons,
-   the pacing buttons, and the preview slider. Every function called
-   here was already a real export of its owning module.
+   The Day/Sound tab switch (selectSundownView itself lives in
+   src/shell/routes.js, not here — see that module's own comment for
+   why), the one "How deep the night goes" control ([data-depth], four
+   buttons: Off is Auto off; Gentle/Medium/Deep set Auto on and S.target
+   to one of three values), the preview slider's dial gesture, and the
+   sheet's own ways-in (the sun knob, the mini-player's sun button, the
+   sidebar's Sundown card, the sheet's own close button/scrim/drag —
+   src/shell/sundown-sheet.js).
 
-   DA3 (docs/DAY_ARC.md) added the Day/Sound tab switch (selectSundownView
-   itself lives in src/shell/routes.js, not here — see that module's own
-   comment for why) and rewrote the preview slider from a sunset-window-
-   relative formula to a direct 24h-from-now minute offset, matching the
-   mockup's own <input min="0" max="1440">.
-
-   RF9 (docs/12_REFINE.md): the old Auto/Manual toggle, manual-rate
-   slider, full-night-rate seg and Window/Moment pacing row collapsed
-   onto one "How deep the night goes" control ([data-depth], four
-   buttons). Off is Auto off; Gentle/Medium/Deep set Auto on and S.target
-   to one of the three values the old seg already offered. S.manualRate
-   and S.pace are untouched here -- a saved non-default value for either
-   (there's no UI left to set manualRate away from 1, but an old save
-   might still carry one; Moment pacing still can) keeps applying with no
-   visible control, per that doc's own "no pref is deleted" rule. The
-   duplicate "Character now" shortcut link into Sound is gone too --
-   the Day/Sound tabs above are the one way there now.
-
-   RF26 (docs/12_REFINE.md): this content moved into a sheet
-   (src/shell/sundown-sheet.js) -- the Day/Sound tab click handler below
-   also syncs the sheet's own half/full height to whichever view was just
-   picked, and wireSundown() now wires the sheet's own ways-in (the sun
-   knob, the mini-player's sun button, the sidebar's Sundown card, the
-   sheet's own close button/scrim/drag) at the same boot-time call site
-   this file's own tab/depth wiring already runs from. */
+   S.manualRate and S.pace are untouched here -- a saved non-default
+   value for either (there's no UI left to set manualRate away from 1,
+   but an old save might still carry one; Moment pacing still can) keeps
+   applying with no visible control, per the "no pref is deleted" rule
+   (docs/12_REFINE.md). */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';

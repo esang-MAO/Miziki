@@ -4,21 +4,14 @@
    be unit-tested without a browser. The orchestration that uses them lives
    in shell/runout.js and shell/start-sequence.js.
 
-   AU9 (docs/16_AUDIO.md §5) replaced splitSides()'s old track-count
-   midpoint split with the time-balanced one record-art/format.js's
-   bestSideCut() computes, and added sideLengthsFor()/albumFormatFor() --
-   the record's own side lengths and format are computed independent of
-   whether Album sides itself is on ("the format... is computed whether or
-   not the Sides setting is on. With Sides off, there are simply no
-   flips."), so this file keeps its one real import from that still-pure
-   leaf module rather than duplicating the split math a second time.
-
-   Later follow-up (Ken, "double albums as four sides (A-D) instead of
-   one side per disc"): splitSides()/sideLengthsFor() used to give a
-   multi-disc album exactly one side per disc, however long that disc
-   ran -- a double album read as just Side A/Side B. Both now apply the
-   same per-disc time-balance a single disc already got, so a two-disc
-   album with at least two tracks per disc reads as four sides, A-D. */
+   splitSides() uses record-art/format.js's bestSideCut() (AU9, §5) for a
+   time-balanced split rather than a track-count midpoint; sideLengthsFor()/
+   albumFormatFor() compute the record's own side lengths and format
+   independent of whether Album sides itself is on -- the format is always
+   computed, so turning Sides off just means there are no flips. A
+   multi-disc album applies that same per-disc time-balance to each disc,
+   so a two-disc album with at least two tracks per disc reads as four
+   sides, A-D, not two. */
 import { bestSideCut, sideLengthsFromDurations, albumRecordFormat } from '../record-art/format.js';
 
 // §4, change records. Milliseconds from the moment the next record is asked
@@ -63,18 +56,15 @@ export function grooveThumpTimes(durSec, period = GROOVE.thumpEverySec){
   return out;
 }
 
-// The album's sides, as the gatefold shows them. A double (or triple, ...)
-// album is no longer one side per disc -- each disc gets the same
-// time-balanced two-side split a single disc already gets ("one track: a
-// single side, no flip. Two tracks: A and B. Three or more: balanced by
-// time."), so a two-disc album with at least two tracks per disc reads as
-// four sides, A-D, not two. A disc with fewer than two tracks of its own
-// still can't be split (there's nothing to balance), so it stays one
-// whole side on its own -- bestSideCut() can't be asked to split it
-// (fewer than 2 durations returns the array's own length, "no cut," which
-// would otherwise produce one correct whole-disc group plus a second,
-// spurious empty one if not guarded against here explicitly). Null when
-// sides are turned off or there's only one track to show.
+// The album's sides, as the gatefold shows them. Each disc of a multi-disc
+// album gets the same time-balanced two-side split a single disc gets: one
+// track is a single side, two tracks are A and B, three or more are
+// balanced by time. A disc with fewer than two tracks of its own can't be
+// split (there's nothing to balance) and stays one whole side -- guarded
+// explicitly here because bestSideCut() on fewer than 2 durations returns
+// the array's own length ("no cut"), which would otherwise produce a
+// spurious empty second group alongside the correct whole-disc one. Null
+// when sides are turned off or there's only one track to show.
 // trackIdx: the album's track indices in play order; tracks: S.tracks.
 export function splitSides(trackIdx, tracks, enabled){
   if(!enabled || !trackIdx || trackIdx.length < 2) return null;

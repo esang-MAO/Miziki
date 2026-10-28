@@ -1,16 +1,11 @@
 /* ================= wiring: Character panel and Settings toggles =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the character
-   presets, Scratch, sleeve pull, launch intro, and background playback.
-   Every function called here was already a real export of its owning
-   module. RF7 added the background-playback return offer card's own two
-   buttons, alongside the existing toggle.
+   The character presets, Scratch, sleeve pull, launch intro, and
+   background playback, plus the background-playback return offer card's
+   own two buttons (RF7) alongside the existing toggle.
 
-   tabs-design-unify removed the four always-visible character sliders,
-   leaving only the three presets; a later follow-up (per that branch's
-   own "possible follow-ups" note, and Ken's own ask) re-added per-value
-   fine-tuning, but tucked behind each Sound card instead of restoring
-   the old always-on block — see the `[data-char-tune]`/`[data-char-fine]`
-   wiring below.
+   Per-value fine-tuning is tucked behind each Sound card rather than an
+   always-on block of four sliders — see the `[data-char-tune]`/
+   `[data-char-fine]` wiring below.
 
    RF9 (docs/12_REFINE.md): drift + the three presets are the Sound
    view's main controls now -- the whole charcards grid (the four cards'
@@ -52,14 +47,14 @@ function togglePaperLabel(){
   if(t) applyDiscVariant(t, true);
 }
 
-// Follow-up to PRESSINGS_110 PR7 (Ken, 2026-10-26): the Settings "Zoetropes
-// earned" switch. Same shape as togglePaperLabel() just above — off stops
-// awarding new zoetropes (history/sessions.js's sessionTrackComplete()
-// gate) and stops offering an already-earned one as the active look
-// (record-art/looks.js's availableLooks() gate), with no data lost either
-// way (zoetropeUnlocked/zoetropeDayProgress are untouched by this switch).
-// The applyDiscVariant() call here is what makes flipping it live update
-// the platter immediately, the same reason togglePaperLabel() makes one.
+// The Settings "Zoetropes earned" switch. Same shape as togglePaperLabel()
+// just above — off stops awarding new zoetropes (history/sessions.js's
+// sessionTrackComplete() gate) and stops offering an already-earned one as
+// the active look (record-art/looks.js's availableLooks() gate), with no
+// data lost either way (zoetropeUnlocked/zoetropeDayProgress are untouched
+// by this switch). The applyDiscVariant() call here is what makes flipping
+// it live update the platter immediately, the same reason
+// togglePaperLabel() makes one.
 function toggleZoetropes(){
   S.zoetropesEnabled = !S.zoetropesEnabled;
   const b = $('#zoetropesBtn');

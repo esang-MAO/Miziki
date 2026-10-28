@@ -1,8 +1,6 @@
 /* ================= wiring: metadata editing and credits =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the edit sheet
-   (open from the player, close/save/revert, the art picker, undo) and
-   the credits sheet (open from the player, close). Every function
-   called here was already a real export of its owning module. */
+   The edit sheet (open from the player, close/save/revert, the art
+   picker, undo) and the credits sheet (open from the player, close). */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import {

@@ -1,10 +1,9 @@
 /* ================= wiring: library view =================
-   Moved out of main.js's "wiring" IIFE (step 7f) — the Songs/Artists/
-   Playlists/Crate view-mode tabs, the library layout toggle, the crate
-   group toggle, the album-sides/sealed-records/play-in-full-player
-   toggles, the library tools disclosure panel, select mode, the row
-   overflow menu, and the shared confirm-delete dialog. Every function
-   called here was already a real export of its owning module. */
+   The Songs/Artists/Playlists/Crate view-mode tabs, the library layout
+   toggle, the crate group toggle, the album-sides/sealed-records/
+   play-in-full-player toggles, the library tools disclosure panel,
+   select mode, the row overflow menu, and the shared confirm-delete
+   dialog. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { idxOf } from '../library/model.js';
@@ -98,9 +97,8 @@ export function wireLibraryView(){
   });
 
   // RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
-  // Select moved here off the tabs row. Ken, 2026-10-22: Library tools
-  // itself moved out again, to Profile › Settings — this menu's own
-  // #libOverflowToolsBtn row went with it (see shell/header.js's
+  // Select lives here off the tabs row. Library tools itself lives in
+  // Profile › Settings instead (see shell/header.js's
   // openLibOverflowMenu()/closeLibOverflowMenu() and profile/screens.js's
   // renderAppSettingsScreen()).
   $('#hdrOverflowBtn').addEventListener('click', ()=> isLibOverflowMenuOpen() ? closeLayer('lib-overflow-menu') : openLibOverflowMenu());

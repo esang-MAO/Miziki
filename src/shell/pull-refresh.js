@@ -52,16 +52,14 @@ export function shouldThrottle(lastRefreshAt, now){
   return (now - lastRefreshAt) < REFRESH_THROTTLE_MS;
 }
 
-// RF11 (docs/12_REFINE.md, point 4): this indicator used to also build its
-// own always-in-the-DOM, absolutely-positioned keyboard "Refresh" button
-// (.pull-refresh-btn) — on Profile that button visually collided with the
-// Settings gear sitting at the same top-right corner of the screen. The
-// accessible trigger is now each caller's own concern (src/wiring/
-// pull-refresh.js builds a real in-flow button for Home, and folds Profile's
-// into its Settings menu via registerProfileRefresh()/triggerProfileRefresh()
-// below) — this indicator is left with only the touch gesture's own visual
-// feedback (the spinner dot) and the aria-live status line, exactly as
-// before.
+// RF11 (docs/12_REFINE.md, point 4): the accessible keyboard trigger is each
+// caller's own concern, not this indicator's — an absolutely-positioned
+// button built here would collide with the Settings gear at the same
+// top-right corner on Profile. src/wiring/pull-refresh.js builds a real
+// in-flow button for Home, and folds Profile's into its Settings menu via
+// registerProfileRefresh()/triggerProfileRefresh() below; this indicator is
+// left with only the touch gesture's own visual feedback (the spinner dot)
+// and the aria-live status line.
 function buildIndicatorDom(routeEl){
   const controls = document.createElement('div');
   controls.className = 'pull-refresh';

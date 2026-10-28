@@ -393,3 +393,17 @@ Comment-only: no logic, no `await`, no whitespace outside comment lines touched.
 Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
 
 Device check: not needed — comment-only change, confirmed byte-identical build output.
+
+## TR6 batch 5: shell + wiring comment diet
+
+Batch 5 of TR6's grouped comment diet, covering `src/shell/` and `src/wiring/` — the navigation shell (nav-stack, mini-player, header, routes, the player overlay/morph/hand-off/put-away ceremonies, sidebar, scroll memory, pull-refresh, swipe-close, the Sundown sheet) and the wiring layer (one `wireX()` per UI area, attaching listeners).
+
+Trimmed the "Moved out of main.js's 'wiring' IIFE (step 7f)" provenance header that opened almost every file in `src/wiring/`, plus other narration of *when*/*in which step or PR* something changed: dated "Ken, 2026-10-2x" framings in `shell/mini-player.js`, `shell/routes.js`, `shell/sundown-sheet.js`, `wiring/library-view.js`; "used to X, now Y" history in `shell/pull-refresh.js`, `wiring/pull-refresh.js`, `wiring/lifecycle.js`, `wiring/sundown.js`, `shell/sundown-sheet.js` (twice); a redundant two-paragraph restatement of the same multi-disc-sides rule in `shell/ceremony-timing.js`'s header and `splitSides()`'s own comment, folded into one; a "found 2026-10-26" framing in `wiring/lifecycle.js`; and a layered DA3/RF9/RF26 narration stack in `wiring/sundown.js`'s header collapsed to what the panel actually wires today.
+
+Kept every comment that explains *why* or warns about a trap: `shell/nav-stack.js`'s whole history-stack invariant block (NV2), `shell/handoff.js`'s nav-stack reorder/race explanation (tightened, trap kept), `shell/start-sequence.js`'s iOS-gesture-critical sequencing, `shell/runout.js`'s groove/flip/wait state machine, `wiring/transport.js`'s `bgPrime()`-before-`await` comment (rule 9 — left completely untouched, header-only trim), `wiring/share.js`'s/`wiring/gatefold.js`'s dynamic-import and Escape-handler-location notes, and `wiring/sundown.js`'s `S.manualRate`/`S.pace` "no pref is deleted" invariant — plus every short plan-doc pointer (`NV2`-`NV5`, `AU1`/`AU5`-`AU9`, `RF7`-`RF11`, `RF21`, `RF26`, `RF28`, `CR10`, `D2`-`D6`, `SH1`, `PL3`/`PL4`/`PL8`, `TR2`, spec-section references).
+
+**Comment-only**: no logic, no `await` added/removed/reordered, no non-comment line touched (verified with particular care in the rule-9 files: `shell/player-overlay.js`, `shell/start-sequence.js`, `shell/handoff.js`, `shell/put-away.js`, `wiring/transport.js`). Confirmed by hashing all `dist/assets/*.js` chunks before and after — byte-identical.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.

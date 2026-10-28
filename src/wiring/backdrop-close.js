@@ -1,8 +1,6 @@
-// Ken, 2026-10-21: "allow users to easily close/'x' out of any menus that
-// open or by simply clicking on another part of the screen to close it."
-// Every full-screen sheet in this app already has an explicit X (or Back/
-// Escape, via nav-stack.js's own generic handler) — what was missing was
-// tapping the dimmed backdrop itself. Each of these overlays is one
+// Tapping the dimmed backdrop closes the sheet, alongside the explicit X
+// (or Back/Escape, via nav-stack.js's own generic handler) every full-screen
+// sheet already has. Each of these overlays is one
 // element doubling as its own backdrop (.edit-overlay/.share-overlay,
 // position:fixed;inset:0, flex-centering a smaller sheet child inside
 // itself) — unlike the Sundown sheet or the add/overflow menus, which have

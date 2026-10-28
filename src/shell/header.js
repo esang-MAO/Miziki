@@ -9,10 +9,7 @@ import { openLayer } from './nav-stack.js';
    isLibraryRouteVisible, updateHeaderActionsAvailability,
    updateLibTabsForLayout, refreshLibraryTools, the header search field
    (openSearchField/closeSearchField/isSearchFieldOpen), the header + menu
-   (openAddMenu/closeAddMenu/isAddMenuOpen), and showRoute. These sat under
-   the old "share image"/"setMode" header only because that's physically
-   where they were in the file, not because they're share-image or mode
-   code — left in main.js for step 7's navigation-shell module. */
+   (openAddMenu/closeAddMenu/isAddMenuOpen), and showRoute. */
 
 // the library tabs row (icons + the Songs/Crate/Artists/Playlists group)
 // only ever shows on the library route; the icons stay even with an empty
@@ -35,15 +32,14 @@ export function updateLibTabsForLayout(){
   else { firstTab.dataset.view = 'albums'; firstTab.textContent = 'Albums'; }
 }
 
-// Ken, 2026-10-22: Library tools moved out of #route-library's own overflow
-// menu (RF8's placement) back to Profile › Settings, parked in
-// #libToolsStash the rest of the time (profile/screens.js's own
-// parkLibraryTools()/renderAppSettingsScreen(), the same stash shape
-// #playbackSettings already uses). Its visibility is governed entirely by
-// which DOM parent currently holds it, not by which route is active, so
-// this only refreshes its counts/row states, never a display toggle of its
-// own — the stash itself, and renderAppSettingsScreen()'s own "Playback &
-// behavior"-style section it's appended into, are what show or hide it.
+// Library tools lives in Profile › Settings, parked in #libToolsStash the
+// rest of the time (profile/screens.js's own parkLibraryTools()/
+// renderAppSettingsScreen(), the same stash shape #playbackSettings already
+// uses). Its visibility is governed entirely by which DOM parent currently
+// holds it, not by which route is active, so this only refreshes its
+// counts/row states, never a display toggle of its own — the stash itself,
+// and renderAppSettingsScreen()'s own "Playback & behavior"-style section
+// it's appended into, are what show or hide it.
 export function refreshLibraryTools(){
   const tools = $('#libTools');
   if(!tools) return;
@@ -107,9 +103,8 @@ export function isAddMenuOpen(){
 }
 
 // RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
-// Select and Library tools, both of which used to be their own always-
-// visible controls on the tabs row. Same popover shape as the + menu
-// above, positioned off its own button instead.
+// Select and Library tools. Same popover shape as the + menu above,
+// positioned off its own button instead.
 export function openLibOverflowMenu(){
   const btn = $('#hdrOverflowBtn'), r = btn.getBoundingClientRect();
   const menu = $('#libOverflowMenu');
