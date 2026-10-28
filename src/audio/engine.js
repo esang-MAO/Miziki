@@ -98,6 +98,21 @@ export async function buildGraph(ctx){
   n.wowOsc.connect(n.wowAmt).connect(n.wobble.delayTime);
   n.flutOsc.connect(n.flutAmt).connect(n.wobble.delayTime);
   n.wowOsc.start(); n.flutOsc.start();
+  // PL8 item 13 (docs/19_PLAYER.md, docs/perf/BASELINE.md): n.wobble's own
+  // constant 12ms base delay needs fractional-sample interpolation
+  // (0.012 * 44100 isn't an integer sample count), and that interpolation
+  // is a real, frequency-growing lowpass -- present unconditionally in
+  // Vinyl, even at wow:0, since the base delay is the oscillators'
+  // modulation center point, not something the slider gates. A fixed
+  // highshelf, fit against the delay line's own measured loss curve at
+  // 44.1kHz (a lone DelayNode at 0.012s: -0.69dB@7kHz growing smoothly to
+  // -4.28dB@20kHz) via BiquadFilterNode.getFrequencyResponse(), cancels
+  // it back out to within 0.7dB up to 15kHz and 0.5dB at 20kHz -- see
+  // docs/perf/BASELINE.md's item 13 section for the fit. This is a
+  // correction for the delay line's own interpolation artifact, not a
+  // Character setting -- applyCharacter() never touches it.
+  n.wobbleTilt = ctx.createBiquadFilter(); n.wobbleTilt.type = 'highshelf';
+  n.wobbleTilt.frequency.value = 10800; n.wobbleTilt.gain.value = 3.8;
   // electrical colorations
   n.sat = ctx.createWaveShaper(); n.sat.oversample = '4x';
   n.satTrim = ctx.createGain();
@@ -123,7 +138,7 @@ export async function buildGraph(ctx){
   n.pad = ctx.createGain(); n.pad.gain.value = PAD_GAIN;
   n.pad.connect(n.wobble);
 
-  n.wobble.connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
+  n.wobble.connect(n.wobbleTilt).connect(n.sat).connect(n.satTrim).connect(n.dc).connect(n.tone).connect(n.comp).connect(n.makeup).connect(n.master);
 
   // AU5 (docs/16_AUDIO.md §4): "norm" — the one loudness-normalization gain
   // node, inserted between master and limiter exactly where AU3's own
@@ -264,17 +279,40 @@ export function applyDeviceVolume(ramp = 0.05){
   S.nodes.deviceVolume.gain.setTargetAtTime(clampDeviceVolume(S.deviceVolume), S.ctx.currentTime, ramp);
 }
 
+// PL8 item 13 (docs/19_PLAYER.md, docs/perf/BASELINE.md): the old formula
+// scaled k (tanh's own drive) with `amount`, up to k=3.2 at amount=1 --
+// well into tanh's own saturating region, where its *own* odd-harmonic
+// series dominates the curve's small asym*x² term that was meant to keep
+// this warm (H2) rather than harsh (H3+). Measured result: H3-dominant,
+// 2.9% THD at -1dBFS default against a 0.3% "fine turntable" target.
+//
+// Fix: hold k fixed and small (K below) regardless of `amount`, so
+// tanh(k·z)/tanh(k) stays close to linear across the whole ±1 input
+// range -- in that regime the curve's odd-order residual (from tanh's own
+// cubic term) shrinks much faster than the quadratic asym*x² term
+// survives the /tanh(k) normalization, leaving a clean, almost pure H2
+// shaper. `amount` now scales only how much of that quadratic warmth gets
+// mixed in (asym, mix below), never how hard anything clips -- fit
+// empirically (a brute-force param sweep against this exact measure) to
+// land just under the 0.3% THD / H2-dominant target at the shipped
+// default (amount=0.35), while amount=1 still reads as audibly "more."
+const SAT_K = 0.3, SAT_ASYM_SCALE = 0.12, SAT_MIX_SCALE = 0.5;
 export function satCurve(amount){
   const N = 2049, c = new Float32Array(N);
   if(amount < 0.005){ for(let i=0;i<N;i++) c[i] = (i*2)/(N-1) - 1; return {curve:c, trim:1}; }
-  // gentle soft clip blended with the dry signal; the x² term is the asymmetry
-  // that makes even harmonics rather than the harsher odd-order kind
-  const mix = amount*0.8, k = 1 + amount*2.2, asym = amount*0.18, norm = Math.tanh(k);
+  const mix = amount*SAT_MIX_SCALE, asym = amount*SAT_ASYM_SCALE, norm = Math.tanh(SAT_K);
   for(let i=0;i<N;i++){
     const x = (i*2)/(N-1) - 1;
-    c[i] = (1 - mix)*x + mix * Math.tanh(k*(x + asym*x*x)) / norm;
+    c[i] = (1 - mix)*x + mix * Math.tanh(SAT_K*(x + asym*x*x)) / norm;
   }
-  return {curve:c, trim: 1/(1 + amount*0.5)};
+  // The asym term's positive-peak argument (1+asym) sits further from
+  // zero than its negative-peak argument (-1+asym), so the curve's own
+  // peak nudges a few percent past unity at high amount (1.07 at
+  // amount=1) rather than landing symmetrically -- trim brings the peak
+  // back to exactly 1 instead of leaving extra headroom eaten before
+  // satTrim's downstream neighbors (dc/tone/comp/makeup) ever see it.
+  // Fit to the curve's own measured peak across amount, not guessed.
+  return {curve:c, trim: 1/(1 + 0.058*amount*amount)};
 }
 
 // DA2 (docs/DAY_ARC.md): the one effective-value gate for the whole day
@@ -393,7 +431,15 @@ export function applyCharacter(ramp = 0.05){
     n.satTrim.gain.setTargetAtTime(s.trim, t, ramp);
     lastAppliedSat = effSat;
   }
-  n.tone.gain.setTargetAtTime(-9 * c.soft * (is45 ? 0.7 : 1), t, ramp);
+  // PL8 item 13/14: rescaled from -9 to -2dB/unit -- at -9, the shipped
+  // default (soft=0.40) alone cut -3.6dB from 7kHz up, already blowing
+  // past the ±1dB/30Hz-15kHz "fine turntable" target before the wobble
+  // delay line's own loss (fixed above) was even added in. -2 keeps
+  // `soft`'s saved values and relative ordering untouched (item 14: the
+  // mapping is rescaled, not the saved amounts) while landing the default
+  // at a sub-1dB tilt -- still audibly "softer" at the slider's high end,
+  // just no longer heavy enough to read as muddying at its own default.
+  n.tone.gain.setTargetAtTime(-2 * c.soft * (is45 ? 0.7 : 1), t, ramp);
   n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, ramp);
   n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, ramp);
   // AU3 §2.3 (finding 4): the old `1 + 0.4*c.comp` here, on top of
