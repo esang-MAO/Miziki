@@ -62,24 +62,33 @@ function residualDb(signal, freqHz, sampleRate){
   return linearToDb(Math.sqrt(sumSqResidual / signal.length) / Math.sqrt(sumSqFundamental / signal.length));
 }
 
-async function buildChain(mode, { disableComp = false } = {}){
-  const ctx = new OfflineAudioContext(2, 1, SAMPLE_RATE);
-  S.ctx = ctx;
-  S.nodes = await buildGraph(ctx);
-  S.mode = mode;
+// applyCharacter() only rebuilds n.sat's WaveShaper curve when the
+// effective sat value moves by more than 0.005 since the last call
+// (engine.js's module-level `lastAppliedSat`) -- a correct optimization
+// in the real app, which builds exactly one graph for the whole session
+// (ensureContext() never calls buildGraph() twice -- confirmed by
+// reading it), so that cache always matches the one n.sat it was ever
+// set on. This test harness isn't that: each renderTone() call below
+// builds a brand-new graph (a fresh OfflineAudioContext, a fresh n.sat
+// with WHATWG's own default `curve = null`, i.e. true passthrough) while
+// `lastAppliedSat` persists across calls in the same loaded module. Caught
+// via a real, reproducible symptom: two back-to-back renderTone() calls
+// with the identical default sat produced two different THD+N numbers
+// (-30.8dB then -68.0dB) -- the second one skipped the curve rebuild
+// entirely, measuring an accidentally-unshaped WaveShaper. Fixed with a
+// deliberate cache-bust: force `lastAppliedSat` away from whatever this
+// call's real effSat is, via a cheap throwaway applyCharacter() call
+// with a sentinel sat value guaranteed not to collide, before applying
+// the real character state for the render that's actually measured.
+const CACHE_BUST_SAT_SENTINELS = [0.137, 0.861]; // two off-grid values; alternating rules out ever matching either side of a 0.005 window by chance
+let cacheBustIndex = 0;
+function bustSatCache(){
+  const sentinel = CACHE_BUST_SAT_SENTINELS[cacheBustIndex % CACHE_BUST_SAT_SENTINELS.length];
+  cacheBustIndex++;
+  const savedChar = S.char;
+  S.char = { ...savedChar, sat: sentinel };
   applyCharacter(0);
-  applyEQ(0);
-  applyLoudnessNorm(0);
-  applyMonoBalance(0);
-  applyDeviceVolume(0);
-  if(disableComp){
-    // isolate the compressor's own dynamic action, holding makeup (keyed
-    // on c.comp, already set by applyCharacter() above) fixed -- NOT
-    // bypassStage()'s shape, which also resets makeup to 1.
-    S.nodes.comp.threshold.setTargetAtTime(0, ctx.currentTime, 0);
-    S.nodes.comp.ratio.setTargetAtTime(1, ctx.currentTime, 0);
-  }
-  return ctx;
+  S.char = savedChar;
 }
 
 async function renderTone(mode, freqHz, amplitude, durationSec, { settleSec = 0.3, disableComp = false, charOverride = null } = {}){
@@ -90,6 +99,7 @@ async function renderTone(mode, freqHz, amplitude, durationSec, { settleSec = 0.
   S.ctx = ctx;
   S.nodes = await buildGraph(ctx);
   S.mode = mode;
+  bustSatCache();
   applyCharacter(0);
   applyEQ(0);
   applyLoudnessNorm(0);
@@ -145,11 +155,70 @@ async function measureFrequencyResponse(){
   return RESPONSE_FREQS_HZ.map(freqHz => ({ freqHz, relativeDb: levels[freqHz] - ref }));
 }
 
+// ---- 1b. Stage breakdown of that rolloff, at the 3 frequencies item 13's
+// targets actually bind at. CORRECTS an earlier draft of this PR's own
+// write-up, which blamed "biquad cramping" on the tone highshelf alone --
+// wrong, caught while scoping item 13's retune. A standalone highshelf
+// filter (BiquadFilterNode.getFrequencyResponse(), no chain around it) at
+// the same freq/gain shows no cramping at all: -3.57dB at 15kHz, -3.60dB
+// at 20kHz, essentially its own nominal -3.6dB the whole way -- textbook
+// shelf behavior. The other ~3dB is the wobble DelayNode's own constant
+// 12ms base delay (wowHzFor()'s modulation rides on top of it, but the
+// 12ms centre point itself is unconditional -- present even at wow=0):
+// a non-integer-sample delay needs fractional-sample interpolation, and
+// linear interpolation (the likely default) is a mild, frequency-growing
+// lowpass -- confirmed in isolation (just a DelayNode, delayTime=0.012,
+// nothing else in the graph): -2.94dB at 15kHz, -4.28dB at 20kHz, on its
+// own. Stage sum (-3.57-2.94=-6.51, -3.60-4.28=-7.88) matches the full-
+// chain measurement (-6.49, -7.86) within rounding -- the two stages
+// account for the whole thing. This means the delay line's own fixed
+// base delay costs Vinyl mode real treble *unconditionally*, independent
+// of the wow slider's value -- item 13/14's retune needs to address that,
+// not just the tone shelf.
+async function measureStageBreakdown(){
+  const freqs = [15000, 20000];
+  const shelfPlusDelay = {}, delayOnly = {};
+  for(const freqHz of freqs){
+    const withShelf = await renderTone('vinyl', freqHz, RESPONSE_PROBE_AMPLITUDE, 1.0, { charOverride: { wow: 0 } });
+    const withoutShelf = await renderTone('vinyl', freqHz, RESPONSE_PROBE_AMPLITUDE, 1.0, { charOverride: { wow: 0, soft: 0, sat: 0, comp: 0 } });
+    shelfPlusDelay[freqHz] = linearToDb(projectAtFrequency(withShelf, freqHz, SAMPLE_RATE).amplitude / RESPONSE_PROBE_AMPLITUDE);
+    delayOnly[freqHz] = linearToDb(projectAtFrequency(withoutShelf, freqHz, SAMPLE_RATE).amplitude / RESPONSE_PROBE_AMPLITUDE);
+  }
+  const ref1k = linearToDb(projectAtFrequency(
+    await renderTone('vinyl', 1000, RESPONSE_PROBE_AMPLITUDE, 1.0, { charOverride: { wow: 0, soft: 0, sat: 0, comp: 0 } }),
+    1000, SAMPLE_RATE,
+  ).amplitude / RESPONSE_PROBE_AMPLITUDE);
+  return freqs.map(freqHz => ({ freqHz, delayOnlyDb: delayOnly[freqHz] - ref1k }));
+}
+
 // ---- 2. THD+N and harmonic profile of a 1kHz sine, full chain (sat + dc
 // + tone + comp), at two levels. wow=0 here too -- same reasoning as the
 // frequency-response measurement above: wow's own FM sidebands would
 // otherwise land in the "+N" residual bucket and muddy a number this doc
 // specifically wants attributed to saturation's harmonic profile.
+//
+// CORRECTS an earlier draft of this PR's own write-up, which (due to the
+// same stale-WaveShaper-curve test bug bustSatCache() now fixes -- see
+// its own comment above renderTone()) reported a clean -68dB/H2-dominant
+// result. That number came from a render whose n.sat.curve was silently
+// never set at all (the module-level cache skipped the rebuild for a
+// brand-new node), i.e. a transparent WaveShaper doing no shaping --
+// not a measurement of the real saturation curve. With the bug fixed,
+// the real numbers are worse and a different shape: at -1dBFS, THD+N
+// measures -30.8dB (2.9%, item 13's target is <0.3% / -50.5dB) and is
+// H3-dominant (-30.9dB, essentially all of it) over H2 (-50.3dB) --
+// the opposite of engine.js's own stated design intent ("the x² term is
+// the asymmetry that makes even harmonics rather than the harsher odd-
+// order kind"). Root cause (confirmed by isolating the compressor out
+// and the tone shelf out -- both leave H3 essentially unchanged): at a
+// near-full-scale drive level, satCurve()'s tanh-based soft clip is an
+// odd function and dominates with its own intrinsic odd-harmonic series;
+// the curve's small asymmetry term (amount*0.18, 0.063 at the default)
+// isn't enough to out-weigh that at -1dBFS. The quieter -20dBFS probe
+// does come out H2-dominant and much cleaner (-59.4dB THD+N, H2 -60.7dB
+// vs H3 -65.3dB) -- the asymmetry term dominates at low drive, tanh's
+// own odd series takes over as drive approaches 0dBFS. This is a real
+// item 13 target the retune needs to hit, not something already met.
 async function measureThdAndHarmonics(amplitude, label){
   const analysis = await renderTone('vinyl', 1000, amplitude, 1.0, { settleSec: 1.0, charOverride: { wow: 0 } }); // long settle: comp release = 260ms
   const fundamentalDb = linearToDb(projectAtFrequency(analysis, 1000, SAMPLE_RATE).amplitude / amplitude);
@@ -203,6 +272,7 @@ async function renderDynamicTrack(disableComp){
   S.ctx = ctx;
   S.nodes = await buildGraph(ctx);
   S.mode = 'vinyl';
+  bustSatCache(); // see renderTone()'s own comment -- same reason, same fix
   applyCharacter(0);
   applyEQ(0);
   applyLoudnessNorm(0);
@@ -249,6 +319,7 @@ async function measureCompressorGainReduction(){
 
 export async function run(){
   const response = await measureFrequencyResponse();
+  const stageBreakdown = await measureStageBreakdown();
   const thdLoud = await measureThdAndHarmonics(Math.pow(10, -1 / 20), '-1dBFS');
   const thdQuiet = await measureThdAndHarmonics(Math.pow(10, -20 / 20), '-20dBFS');
   const wowFlutter = await measureWowFlutter();
@@ -263,7 +334,9 @@ export async function run(){
       value: worstResponseDeviation,
       pass: true,
       detail: response.map(r => `${r.freqHz}Hz: ${r.relativeDb >= 0 ? '+' : ''}${r.relativeDb.toFixed(2)}dB`)
-        .concat([`30Hz-15kHz worst deviation: ${worstResponseDeviation.toFixed(2)}dB (item 13 target: <=1dB)`, `20kHz: ${at20k.toFixed(2)}dB (item 13 target: >=-2dB)`]),
+        .concat([`30Hz-15kHz worst deviation: ${worstResponseDeviation.toFixed(2)}dB (item 13 target: <=1dB)`, `20kHz: ${at20k.toFixed(2)}dB (item 13 target: >=-2dB)`])
+        .concat(['stage breakdown (which part of the rolloff is the tone shelf vs. the wobble delay line):'])
+        .concat(stageBreakdown.map(r => `  ${r.freqHz}Hz: delay-line-alone ${r.delayOnlyDb.toFixed(2)}dB (tone shelf off, wow off) -- the rest is the tone shelf itself`)),
     },
     {
       name: 'baseline: THD+N and 2nd/3rd harmonic profile at -1dBFS and -20dBFS (measurement only)',
