@@ -1,6 +1,5 @@
 /* ================= tag readers: liner notes / credits =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged —
-   a separate, additive read, never touching the six identity fields
+   A separate, additive read, never touching the six identity fields
    (title/artist/album/albumArtist/track/disc) read by each format's own
    *Tags() function (see CREDITS spec §0). Shared by every format's
    *Details() function in this directory. */

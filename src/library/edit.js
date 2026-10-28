@@ -1,6 +1,6 @@
 /* ================= metadata editing: sidecar overlay =================
-   Moved out of main.js (step 5d). Source of truth stays the app's own
-   database. Edits are stored as a sparse overlay (only the fields actually
+   Source of truth stays the app's own database. Edits are stored as a
+   sparse overlay (only the fields actually
    changed) keyed by the same stable file id used everywhere else — never
    by mutating the original file. Resolve order for any field: user edit >
    embedded file tag > fallback. The overlay is applied once, when a track

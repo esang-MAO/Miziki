@@ -1,11 +1,10 @@
 /* ================= duplicate prompt + scan overlay (close) =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged.
    askDuplicateResolution() is shown once per likely-duplicate file during
    import (see import.js); closeDuplicateScan() closes the separate,
    library-wide duplicate-scan overlay opened by openDuplicateScan() (see
-   duplicate-scan.js, step 5d) — kept here rather than moved there since it
-   doesn't touch findAllDuplicateGroups/renderDupScan, just the dialog
-   plumbing shared with askDuplicateResolution(). No S, no main.js import. */
+   duplicate-scan.js) — kept here rather than there since it doesn't touch
+   findAllDuplicateGroups/renderDupScan, just the dialog plumbing shared
+   with askDuplicateResolution(). No S, no main.js import. */
 import { $ } from '../util/dom.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 

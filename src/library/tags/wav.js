@@ -1,5 +1,4 @@
 /* ================= tag readers: WAV (RIFF INFO chunk) =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged.
    WAV has no standard place for embedded artwork at all — see index.js's
    findArtworkBlob(), which falls through to a bolted-on ID3 chunk if one
    exists, same as it always has. */

@@ -1,5 +1,4 @@
-/* ================= tag readers: MP4 / ALAC / AAC =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged. */
+/* ================= tag readers: MP4 / ALAC / AAC ================= */
 import { txt, u32be, clean, artURL } from './bytes.js';
 import { emptyDetails, splitNames, parseYear, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 

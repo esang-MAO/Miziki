@@ -1,11 +1,11 @@
 /* ================= favorites: a real playlist, not a separate flag =======
-   Moved out of main.js (step 5e). (CREDITS/FAVORITES spec §4). The
-   system:'favorites' tag must be carried through every place playlists are
-   copied — saveMeta/restoreMeta and deleteTracks' explicit-removal filter
-   — or it's lost on the next reload. Playlist items are track ids, not
-   positions (F3 spec, step 02) — a favorited track that's since been
-   forgotten (not deleted) just stays in the list, hidden until it
-   reconnects, so this module never needs to resolve an index at all. */
+   (CREDITS/FAVORITES spec §4). The system:'favorites' tag must be carried
+   through every place playlists are copied — saveMeta/restoreMeta and
+   deleteTracks' explicit-removal filter — or it's lost on the next
+   reload. Playlist items are track ids, not positions (F3 spec) — a
+   favorited track that's since been forgotten (not deleted) just stays in
+   the list, hidden until it reconnects, so this module never needs to
+   resolve an index at all. */
 import { S, current, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';

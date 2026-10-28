@@ -1,5 +1,4 @@
-/* ================= tag readers: FLAC =================
-   Moved out of main.js's "file loading" section (step 5b), unchanged. */
+/* ================= tag readers: FLAC ================= */
 import { txt, u32be, artURL } from './bytes.js';
 import { emptyDetails, splitNames, parsePerformerEntry, parseYear, parseReplayGainDb, parseReplayGainPeak } from './details.js';
 

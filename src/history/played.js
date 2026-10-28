@@ -1,8 +1,6 @@
 /* ---- played-duration tracking: which portions of the current track's timeline
    have actually sounded, not just been scrubbed past. Forward playback extends
-   the last interval in O(1); a merge only runs when coverage is asked for. ----
-   Moved out of main.js's "record art: session tracking" section, plus
-   incrementTrackPlay (out of "metal tiers") — step 5c. */
+   the last interval in O(1); a merge only runs when coverage is asked for. ---- */
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
 import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay } from './sessions.js';
