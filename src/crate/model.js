@@ -1,10 +1,7 @@
 /* ================= crate data model =================
-   Moved out of main.js's "S4: crate image tiers" section (step 7c),
-   unchanged — physically sat there only because that's where the file
-   happened to put it, not because grouping/sorting albums is image-tier
-   work (CRATE spec §2). One crate record per album id; loose ("Unknown
-   Album") tracks collapse into one pseudo-record per artist instead of
-   one per track. */
+   Grouping/sorting albums for the crate view (CRATE spec §2). One crate
+   record per album id; loose ("Unknown Album") tracks collapse into one
+   pseudo-record per artist instead of one per track. */
 import { S } from '../state.js';
 import { normKey } from '../util/text.js';
 import { clamp } from '../util/math.js';
@@ -234,18 +231,16 @@ function buildCrateRecords(){
     const artistSet = new Set(tracks.map(t => t.tags.artist));
     const albumArtistSet = new Set(tracks.map(t => t.tags.albumArtist));
     let artist;
-    // Ken, 2026-10-22: albumArtistSet.size === 1 used to be trusted on its
-    // own, but when no track in the album carries an albumArtist tag at
-    // all (a common real-world case -- it's an optional tag many rippers
-    // never write), every track's tags.albumArtist is the same `undefined`,
-    // so the set still has size 1 and this branch picked [undefined][0] as
-    // the record's own artist. That undefined then reached
-    // buildGatefoldTracklist()'s `item.artist.toUpperCase()` (via the
-    // desktop crate detail panel, gatefold/view.js) and threw -- during
-    // boot, synchronously inside restoreLibrary()'s renderTracks() call, so
-    // everything after it (markLibraryReady(), healing, queue restore,
-    // social init) silently never ran. Guard: only trust the set's one
-    // value when it's a real, non-empty tag.
+    // Trap: when no track in the album carries an albumArtist tag at all
+    // (a common real-world case -- it's an optional tag many rippers never
+    // write), every track's tags.albumArtist is the same `undefined`, so
+    // the set still has size 1. Trusting that blindly picks undefined as
+    // the record's own artist, which reaches buildGatefoldTracklist()'s
+    // `item.artist.toUpperCase()` (via the desktop crate detail panel,
+    // gatefold/view.js) and throws -- synchronously inside
+    // restoreLibrary()'s renderTracks() call during boot, so everything
+    // after it silently never runs. Guard: only trust the set's one value
+    // when it's a real, non-empty tag.
     const [onlyAlbumArtist] = albumArtistSet;
     if(albumArtistSet.size === 1 && onlyAlbumArtist) artist = onlyAlbumArtist;
     else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
@@ -458,11 +453,10 @@ function buildCrateModel(group){
     }
     sections.push({key:'az', label:'A–Z', start:azStart, end: items.length});
 
-    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the virtual bins move here —
-    // az-only, after the whole letter run, each its own trailing section,
-    // in the order new/sealed/picks (buildVirtualBins() itself enforces
-    // that order; picks is always last). They used to be pushed first, in
-    // every sort — see buildVirtualBins()'s own comment above.
+    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the virtual bins — az-only,
+    // after the whole letter run, each its own trailing section, in the
+    // order new/sealed/picks (buildVirtualBins() itself enforces that
+    // order; picks is always last).
     buildVirtualBins(records).forEach(bin => {
       const secStart = items.length;
       jumpIndex.set('key:' + bin.key, items.length);
@@ -677,20 +671,18 @@ export const CRATE_PULL_REVERSAL_PX = 12;
 export const CRATE_PULL_HOLD_MS = 450;
 export const CRATE_PULL_COMMIT_FRACTION = 0.4;
 
-// Gesture-classification gap found 2026-10-22 ("the record view pops open
-// while I'm just scrolling the crate"): a steadily-rising drag that never
-// crosses CRATE_PULL_UP_PX and never reverses by CRATE_PULL_REVERSAL_PX --
-// e.g. a quick, modest scroll flick of a few px to maybe 15-20px up --
-// has no way to resolve to 'pull' or 'flip' inside classifyCratePointer
-// Trace() above: neither threshold is met, and classifyCratePointerTrace()
-// correctly keeps waiting (it has to, so a genuine slow pull still has its
-// whole 0-24px window to commit). If the pointer is released before
-// CRATE_PULL_HOLD_MS, the trace is left at 'pending' forever, which used to
-// read, at release, as a plain tap -- opening the record the user was only
-// ever trying to scroll past. CRATE_PENDING_RELEASE_MOVE_PX matches the
-// ordinary (non-front-record) flip drag's own "moved" threshold (3px, see
-// crate/view.js's dragState.moved check) so the two gestures agree on what
-// counts as "the user was dragging, not tapping."
+// Trap: a steadily-rising drag that never crosses CRATE_PULL_UP_PX and
+// never reverses by CRATE_PULL_REVERSAL_PX -- e.g. a quick, modest scroll
+// flick of a few px to maybe 15-20px up -- has no way to resolve to 'pull'
+// or 'flip' inside classifyCratePointerTrace() above: neither threshold is
+// met, and it correctly keeps waiting (it has to, so a genuine slow pull
+// still has its whole 0-24px window to commit). If the pointer is released
+// before CRATE_PULL_HOLD_MS, the trace is left at 'pending' forever, which
+// would read, at release, as a plain tap -- opening the record the user
+// was only ever trying to scroll past. CRATE_PENDING_RELEASE_MOVE_PX
+// matches the ordinary (non-front-record) flip drag's own "moved"
+// threshold (3px, see crate/view.js's dragState.moved check) so the two
+// gestures agree on what counts as "the user was dragging, not tapping."
 export const CRATE_PENDING_RELEASE_MOVE_PX = 3;
 
 // Pure: given the trace as it stood at pointerup, was there real movement

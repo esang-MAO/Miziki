@@ -4,14 +4,9 @@
    at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
    every other album entry point keeps renderAlbumDetail() untouched.
 
-   Moved out of main.js (step 7e) — this header had sat above the gatefold,
-   the sealed-record sheet, the crate-shelf rendering (moved to
-   src/crate/view.js in step 7c) and renderTracks() (moved to
-   src/library/view.js in step 7d) all at once, purely by physical accident
-   (flagged by the step 7 prompt itself). Only the gatefold itself lives
-   here now — the sealed-record sheet, which shares buildGatefoldTracklist/
-   gatefoldTrackIndices with it, moved into the sibling module
-   src/gatefold/sealed-sheet.js. */
+   Only the gatefold itself lives here — the sealed-record sheet, which
+   shares buildGatefoldTracklist/gatefoldTrackIndices with it, lives in the
+   sibling module src/gatefold/sealed-sheet.js. */
 import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { sleep } from '../util/async.js';

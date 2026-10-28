@@ -1,12 +1,9 @@
 /* ================= crate view (opens from within the "S3" header) ==========
-   Moved out of main.js (step 7c). This is crate-shelf rendering, not
-   gatefold code — it only sat under the old "S3: gatefold album view"
-   header because that's physically where it landed; the step 7 prompt
-   itself flagged that header as covering more than just the gatefold.
+   This is crate-shelf rendering, not gatefold code.
    `renderCrate()`/`applyCrateMiniInset()`/`centerEmptyState()` are
-   exported for `renderTracks()` (`src/library/view.js`, step 7d) and
-   `src/shell/mini-player.js` (step 7b) to call; `openCrateAlbum()` is the
-   crate's own entry point into the gatefold/sealed sheet (step 7e). */
+   exported for `renderTracks()` (`src/library/view.js`) and
+   `src/shell/mini-player.js` to call; `openCrateAlbum()` is the crate's
+   own entry point into the gatefold/sealed sheet. */
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { clamp } from '../util/math.js';
@@ -110,10 +107,9 @@ function openCrateAlbum(item, opts){
   // Sealing (above) takes precedence over this check.
   if(isSingleRecord(item)){ openPictureSleeve(item); return; }
   // CR10 (docs/13_CRATE.md) point 1: "Tap still opens the gatefold" — the
-  // D5-era desktop branch that showed the tracklist in the side panel
-  // instead, on tap, is gone. The panel now follows the front record on
-  // its own (onSettled(), below) with nothing to tap first, so a tap's
-  // only job left is what it's always been on a phone: open the gatefold.
+  // side panel follows the front record on its own (onSettled(), below)
+  // with nothing to tap first, so a tap's only job is what it's always
+  // been on a phone: open the gatefold.
   openGatefold(item, opts);
 }
 
@@ -279,16 +275,10 @@ function renderCrateDetailPanel(item){
 function updateCrateGroupToggleUI(){
   const hasGenres = libraryHasGenres();
   if(!hasGenres && S.crateGroup === 'genre'){ S.crateGroup = 'az'; invalidateCrateModel(); queueSave(); }
-  // RF8 (docs/12_REFINE.md): one home for this control. It used to have
-  // two — a Profile › Library tools copy (#crateGroupToggle) shown on
-  // every platform, plus this tab-row copy (#crateGroupToggleTab) shown
-  // desktop-only — RF8 removed the first and made this one the only
-  // home, so it now shows on every platform rather than being gated on
-  // isDesktopShell(). renderTracks() already hides it by default on
-  // every render; this is the one place (crate mode's own re-render
-  // hook) that turns it back on. A bare window resize across the old
-  // desktop breakpoint isn't separately handled, but that gating is gone
-  // now anyway.
+  // RF8 (docs/12_REFINE.md): one home for this control (#crateGroupToggleTab),
+  // shown on every platform, not gated on isDesktopShell(). renderTracks()
+  // already hides it by default on every render; this is the one place
+  // (crate mode's own re-render hook) that turns it back on.
   const tabToggle = $('#crateGroupToggleTab');
   if(tabToggle){
     tabToggle.style.display = 'inline-flex';
@@ -476,29 +466,21 @@ export function applyCrateMiniInset(){
   const stageHeight = Math.max(0, available);
   stage.style.height = stageHeight + 'px';
   // the rail is a sibling of the stage, absolutely positioned against
-  // .crate-wrap rather than sized to the stage — it used to be a hardcoded
-  // 440px (left over from when the stage itself was a fixed height) and
-  // didn't shrink along with a dynamic stage, so on a short screen it could
-  // poke out well past the stage's own bottom edge and inflate the page's
-  // scrollable height even once the stage/info math above was correct.
-  // Keep it inset the same 10px top and bottom as the stage always has.
+  // .crate-wrap rather than sized to the stage, so it has to be sized and
+  // positioned here explicitly to track a dynamic stage height — otherwise
+  // it can poke out past the stage's own bottom edge and inflate the
+  // page's scrollable height. Keep it inset the same 10px top and bottom
+  // as the stage always has.
   const railEl = document.querySelector('.crate-rail');
   if(railEl){
     railEl.style.height = Math.max(0, stageHeight - 20) + 'px';
-    // CR14 (docs/14_CRATE_SECTIONS.md PR 2): a real bug found during this
-    // PR's own device-checklist pass, not present before it — the rail's
-    // CSS top:10px is a fixed offset against .crate-wrap, authored back
-    // when .crate-header was the only thing ever sitting above .crate-stage
-    // in the wrap. This PR's own .crate-section-header can now also sit
-    // there (any sort with more than one section), pushing the stage
-    // further down than that fixed 10px accounts for, so the rail — still
-    // anchored near the wrap's own top — overlapped the section header row
-    // instead of lining up with the stage, at every width, worst on a
-    // narrow phone where the two rows are tallest relative to the screen.
-    // Setting the rail's own top to the stage's *actual* offset within the
-    // wrap (plus the same 10px inset the stage always keeps) makes it track
-    // whatever's above it — zero, one, or (on a future header addition)
-    // more rows — instead of a number authored for exactly one case.
+    // Trap: the rail's CSS top:10px is a fixed offset against .crate-wrap.
+    // .crate-header and (CR14) .crate-section-header can both sit above
+    // .crate-stage in the wrap (zero, one, or both rows depending on
+    // sort), pushing the stage down by a variable amount that a fixed
+    // 10px can't account for. Setting the rail's own top to the stage's
+    // *actual* offset within the wrap (plus the same 10px inset) makes it
+    // track whatever's above it instead of a number authored for one case.
     railEl.style.top = (stage.offsetTop + 10) + 'px';
   }
 }

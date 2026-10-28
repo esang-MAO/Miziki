@@ -1,12 +1,12 @@
 /* ================= crate/launch shared geometry =================
-   Moved out of main.js's "launch intro" section (step 7c), unchanged.
    The 3D pose for a card at fractional distance `d` from the current
    position (negative = above/earlier, positive = below/later). Shared by
    the launch overlay and the crate (see CRATE spec §3) — one geometry
    implementation so the two views can never drift apart. `opts.originY`
    is where the stack's centre sits (launch: baked into its own CSS `top`,
-   so it passes 0 here; crate: 170px, passed explicitly since the crate
-   card sits at `top:0` and reads its vertical position from `pose.y`). */
+   so it passes 0 here; crate: CRATE_ORIGIN_Y, passed explicitly since the
+   crate card sits at `top:0` and reads its vertical position from
+   `pose.y`). */
 export function flowPose(a, d, speed, opts){
   opts = opts || {};
   const originY = opts.originY || 0, spread = opts.spread == null ? 1 : opts.spread;
