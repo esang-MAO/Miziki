@@ -42,8 +42,7 @@ function currentBaseRpm(){
 //   frozen-on-interruption case): hold whatever S.pos already is — tick()
 //   only ever writes it while actually playing, so it's already the right
 //   frozen snapshot.
-// - Before anchor.ctxTime (the lead-in/needle-drop window — this is what
-//   used to be S.openUntil's wall-clock deadline): position reads 0.
+// - Before anchor.ctxTime (the lead-in/needle-drop window): position reads 0.
 // - Otherwise: anchor.offset plus however much real, rate-adjusted time
 //   has elapsed on the audio clock since anchor.ctxTime, clamped to
 //   [0, duration].
@@ -144,8 +143,7 @@ export function frame(now){
     // AU10 (docs/16_AUDIO.md §5): rpm × 6°/s -- 200°/s at 33⅓, 270°/s at 45.
     S.angle = (S.angle + dt * spin * currentBaseRpm() * 6) % 360;
     $('#disc').style.transform = 'rotate(' + S.angle + 'deg)';
-    // Follow-up to PRESSINGS_110 PR6/PR7 (strobe-animation wiring, Ken,
-    // 2026-10-26): the zoetrope frame ring tracks the same real angle as
+    // The zoetrope frame ring tracks the same real angle as
     // #disc, quantized to the nearest frame-slot boundary
     // (record-art/zoetrope-motion.js) so each figure appears to animate in
     // place rather than merely spin. `spin` above is already the fraction
@@ -176,10 +174,10 @@ let lastUI = 0, lastSky = 0;
 
 // hidden pages get no frames; keep the clock honest from a timer. A long gap here is
 // real elapsed time (audio kept playing), not a stall, so the cap is much larger.
-// PL7 item 2: used to call bgPosition() unconditionally every second here —
-// that's exactly the "every tick" setPositionState calls the doc asks to
-// avoid. tick() above already calls it on an actual rate re-anchor, and
-// seek()/play()/pause()/load() each already trigger it their own way
+// PL7 item 2: must NOT call bgPosition() unconditionally every second here
+// — that's exactly the "every tick" setPositionState calls the doc asks
+// to avoid. tick() above already calls it on an actual rate re-anchor,
+// and seek()/play()/pause()/load() each already trigger it their own way
 // (directly, or via renderMiniPlayer() -> bgSync()) — nothing else here
 // needs its own poll.
 setInterval(() => {
@@ -252,15 +250,13 @@ export function drawSun(){
   else rateWhyText = 'Twilight — ' + Math.round(e*100) + '% of the way down';
 
   // D3 (docs/DESKTOP_LAYOUT.md): the desktop sidebar's own Sundown summary
-  // card gets this same computed string directly (TR4, docs/19_PLAYER.md:
-  // used to mirror it off a hidden #rateWhy element, the old DA3 day-arc
-  // markup that carried it; that element is gone now, so this is written
-  // just once instead of twice) — rather than having a second module call
-  // sunProgress()/computeRate() on its own. This id exists only in the
-  // sidebar's own DOM (src/shell/sidebar.js has no render function of its
-  // own for it), hidden below the 1024px breakpoint by CSS, so the null
-  // guard here is just "does the sidebar card exist in the DOM," never a
-  // breakpoint check.
+  // card gets this same computed string directly, written once here
+  // rather than having a second module call sunProgress()/computeRate()
+  // on its own. This id exists only in the sidebar's own DOM
+  // (src/shell/sidebar.js has no render function of its own for it),
+  // hidden below the 1024px breakpoint by CSS, so the null guard here is
+  // just "does the sidebar card exist in the DOM," never a breakpoint
+  // check.
   const sideWhy = $('#sideRateWhy');
   if(sideWhy) sideWhy.textContent = rateWhyText;
   if(S.sun.ok){
@@ -270,18 +266,17 @@ export function drawSun(){
     if(sideEnd) sideEnd.textContent = 'Dusk ' + f(S.sun.dusk);
   }
 
-  // DA3 (docs/DAY_ARC.md): the sky now follows the whole day in both
-  // themes, not just the dusk window in dark — see skyGradientStops()'s
-  // own header comment for the 8-anchor design. This replaces the D2-era
-  // "Light keeps its static tokens, no inline override" behavior
-  // (CLAUDE.md's own D2 changelog entry, and the sky-fix entry right
-  // after it) on purpose: that was a deliberate stand-in for "we haven't
-  // designed a light sky arc yet," not a permanent rule — the design
-  // README (docs/design/day-arc/README.md) now gives Light its own full,
-  // contrast-checked anchor table, so there's no longer a reason to skip
-  // animating it. document.documentElement.style.setProperty() still
-  // writes an inline style (always wins over the stylesheet's own
-  // 22-theme.css tokens), which is exactly the point now in both themes.
+  // DA3 (docs/DAY_ARC.md): the sky follows the whole day in both themes,
+  // not just the dusk window in dark — see skyGradientStops()'s own
+  // header comment for the 8-anchor design. This is deliberate, not a
+  // regression of "Light keeps its static tokens, no inline override"
+  // (CLAUDE.md's own D2 changelog entry): that was a stand-in for not
+  // having designed a light sky arc yet, not a permanent rule. The design
+  // README (docs/design/day-arc/README.md) gives Light its own full,
+  // contrast-checked anchor table, so there's no reason to skip animating
+  // it. document.documentElement.style.setProperty() still writes an
+  // inline style (always wins over the stylesheet's own 22-theme.css
+  // tokens), which is the point in both themes now.
   // DA4 (docs/DAY_ARC.md): this is the one place in the app that already
   // recomputes the day position on a steady ~220ms cadence while
   // visible, so it's also where a live Nychthemeron crossing (the sun
@@ -339,10 +334,9 @@ export function drawSun(){
   // CR1 (docs/13_CRATE.md): the sleeve's own sky-lit top edge — warm white
   // at Golden hour, cool at Night, smoothstep-blended across the same
   // phase boundaries as --sky1/--sky2/--muted above. Only the crate card
-  // reads it (src/styles/10-crate.css's .crate-card lit-edge box-shadow —
-  // the bin's own cardboard lip this comment used to also mention was
-  // removed, 2026-10-21), so it's written with the same change-guard every
-  // other per-tick custom property here already uses.
+  // reads it (src/styles/10-crate.css's .crate-card lit-edge box-shadow),
+  // so it's written with the same change-guard every other per-tick
+  // custom property here already uses.
   const crateLight = crateLightColor(dayPos);
   if(crateLight !== lastCrateLight){
     lastCrateLight = crateLight;
@@ -388,13 +382,7 @@ export function drawSun(){
       : '';
   }
 
-  // RF9 (docs/12_REFINE.md) removed DA3's own "Rise at dawn" row (#sunriseNext
-  // -- the dial's own event row already carries the next sunrise time) and
-  // the Day-drift shortcut row (#dayDriftSummary -- the Day/Sound tabs are
-  // the one way into Sound now) outright, so this function no longer
-  // writes to either.
-
-  // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the new dial + reading cards paint
+  // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the dial + reading cards paint
   // off the exact same tick this whole function already runs on — see
   // sundown/dial-view.js's own header comment for why this rides along
   // here rather than a second timer.
@@ -538,14 +526,12 @@ const MUTED_ANCHORS_DARK = {
   night: MUTED_COOL, dawn: MUTED_COOL, morning: MUTED_COOL, midday: MUTED_COOL,
   afternoon: MUTED_COOL, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_COOL,
 };
-// Light "keeps one pair" (the design README's own wording). CR8
-// (docs/13_CRATE.md point 2) moved --muted's own light value from #4F616A
-// to #6B6258 (--muted-2 unchanged) -- this is the one other place that
-// pair is set, since drawSun() writes --muted/--muted-2 inline every tick
-// and would otherwise silently override the CSS token with the stale
-// value. Still a flat pair with no warm/cool split (tests/unit/
-// contrast.test.js's own CR8 check covers the floor this comment used to
-// state here by hand).
+// Light "keeps one pair" (the design README's own wording). This is the
+// one other place that pair is set, since drawSun() writes
+// --muted/--muted-2 inline every tick and would otherwise silently
+// override the CSS token with a stale value. Still a flat pair with no
+// warm/cool split (tests/unit/contrast.test.js's own CR8 check covers the
+// contrast floor).
 const MUTED_LIGHT = toStops([[107,98,88],[110,122,128]]); // --muted #6B6258 / --muted-2 #6E7A80
 
 export function mutedGradientStops(dayPos, theme){

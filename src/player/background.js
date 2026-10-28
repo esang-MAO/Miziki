@@ -141,21 +141,18 @@ function bgTeardown(){
 // keeps the lock screen from flickering and the media element running across tracks
 // (iOS is touchy about restarting an element outside a tap).
 //
-// Found 2026-10-26 ("the lock screen doesn't even recognize the song"):
-// mediaSessionSync()/bgPosition() used to be gated behind bgRouteActive()
-// here (and in applyBgAudioSetting()), on the assumption that Media
-// Session metadata only matters once the hidden <audio> element is what
-// keeps the OS treating this as real media playback. But
-// navigator.mediaSession is a plain JS API independent of that element —
-// it's exactly as cheap to keep populated whether or not Background
-// playback (the opt-in "keep playing when the screen locks" toggle) is
-// on, and leaving it unset meant Control Center/the lock screen fell back
-// to iOS's own generic widget (the page's bare hostname for a title, and
-// its default ±10s skip buttons instead of real previous/next — see
+// navigator.mediaSession is a plain JS API independent of the hidden
+// <audio> element (what actually lets playback survive a real
+// background/lock) — it's exactly as cheap to keep populated whether or
+// not Background playback (the opt-in "keep playing when the screen
+// locks" toggle) is on. So mediaSessionSync()/bgPosition() are NOT gated
+// on bgRouteActive() here (or in applyBgAudioSetting()): leaving them
+// unset would mean Control Center/the lock screen fall back to iOS's own
+// generic widget (the page's bare hostname for a title, and its default
+// ±10s skip buttons instead of real previous/next — see
 // bgInstallHandlers()'s own comment on that default) for as long as the
-// page happened to still be alive without it. The <audio> element itself
-// — what actually lets playback survive a real background/lock, not just
-// this metadata — stays exactly as gated on bgRouteActive() as before.
+// page happens to still be alive without it. The <audio> element itself
+// stays gated on bgRouteActive().
 export function bgSync(){
   if(bgRouteActive()){
     clearTimeout(S.bg.idleTimer);
@@ -179,18 +176,17 @@ export function mediaSessionSync(){
   if(!('mediaSession' in navigator)) return;
   const ms = navigator.mediaSession, t = current();
   if(!t) return;
-  // Found 2026-10-26 (lock screen shows the default +-10s skip buttons
-  // instead of previous/next, even though they're registered): the old
-  // "install once, ever" guard (if(!S.bg.handlers)) could install the
-  // handlers the very first time this ran -- which can be well before the
-  // hidden background-audio element, or even real playback, actually
-  // exists -- and iOS is known to silently ignore a Media Session handler
-  // registered before the page is genuinely the active "Now Playing"
-  // item, with no event that tells the page this happened so it can
-  // retry. Re-asserting on every sync (cheap -- just setActionHandler
-  // calls) instead of once ever means every real play/pause/track-change
-  // (bgSync() runs on each, via renderMiniPlayer()) is another chance for
-  // iOS to pick the registration up for real.
+  // iOS silently ignores a Media Session handler registered before the
+  // page is genuinely the active "Now Playing" item (the lock screen then
+  // shows the default ±10s skip buttons instead of previous/next, even
+  // though they're registered), with no event that tells the page this
+  // happened so it can retry. An "install once, ever" guard risks
+  // registering too early -- well before the hidden background-audio
+  // element, or even real playback, actually exists. Re-asserting on
+  // every sync (cheap -- just setActionHandler calls) instead of once
+  // ever means every real play/pause/track-change (bgSync() runs on
+  // each, via renderMiniPlayer()) is another chance for iOS to pick the
+  // registration up for real.
   bgInstallHandlers();
   const key = [t.id, t.tags.title, t.tags.artist, t.tags.album, t.art || ''].join('|');
   if(key !== S.bg.msKey){
@@ -209,11 +205,11 @@ export function mediaSessionSync(){
       try{ ms.metadata = new MediaMetadata(base); assigned = true; }catch(_){}
     }
     // Only remember this key once a MediaMetadata assignment actually
-    // succeeded (found 2026-10-26, alongside the bgRouteActive() gating
-    // above) — committing the key on a failed attempt meant a single
-    // transient MediaMetadata/artwork error permanently skipped every
-    // future retry for that same track, since the key comparison above
-    // would never see a change again until the track itself changed.
+    // succeeded — committing the key on a failed attempt would mean a
+    // single transient MediaMetadata/artwork error permanently skips
+    // every future retry for that same track, since the key comparison
+    // above would never see a change again until the track itself
+    // changes.
     if(assigned) S.bg.msKey = key;
     if(assigned && !cachedArt && t.art){
       ensureLockscreenArtwork(t).then(entries => {

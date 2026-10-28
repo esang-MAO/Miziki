@@ -35,11 +35,12 @@ export const PARAMETRIC_TYPES = ['peak', 'lowshelf', 'highshelf', 'lowcut', 'hig
 export const PARAMETRIC_GAIN_TYPES = ['peak', 'lowshelf', 'highshelf'];
 
 export const PREAMP_MIN_DB = -24;
-// PL8 item 1 (docs/19_PLAYER.md): manual preamp used to go to +12 dB, which
-// can only ever push the combined curve into the limiter -- auto-preamp
-// already prevents that for the auto path, so the manual path is capped at
-// 0 dB too. Saved values above 0 clamp down on load via clampPreampDb below
-// (storage/prefs.js), without touching anything else about the saved state.
+// PL8 item 1 (docs/19_PLAYER.md): the manual preamp is capped at 0 dB --
+// above that can only ever push the combined curve into the limiter, and
+// auto-preamp already prevents that for the auto path, so the manual path
+// gets the same ceiling. Saved values above 0 clamp down on load via
+// clampPreampDb below (storage/prefs.js), without touching anything else
+// about the saved state.
 export const PREAMP_MAX_DB = 0;
 
 // Built-in presets as 10-band graphic gain arrays. "Ears latch onto peaks

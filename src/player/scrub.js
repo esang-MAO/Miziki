@@ -9,10 +9,9 @@ import { isShrinkWrapTarget } from '../shell/start-sequence.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
 // alongside the sliders (not its own top-level S field) since it's saved
-// the same way, as part of the same prefs.char object. Sat in main.js's
-// "launch intro" section only by physical accident (step 7c) — moved here
-// instead, since this is the module that already owns Scratch (the
-// gesture-handling code above reads S.char.scratch directly).
+// the same way, as part of the same prefs.char object. Lives in this
+// module since it already owns Scratch (the gesture-handling code above
+// reads S.char.scratch directly).
 export function toggleScratch(){
   S.char.scratch = !S.char.scratch;
   const b = $('#scratchBtn');
