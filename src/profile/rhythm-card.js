@@ -45,7 +45,7 @@ import {
   bestAlbumPerPhase, windowedPhaseCounts,
 } from '../sundown/rhythm.js';
 
-const PHASE_LABEL = {
+export const PHASE_LABEL = {
   night: 'Night', dawn: 'Dawn', morning: 'Morning', midday: 'Midday',
   afternoon: 'Afternoon', golden: 'Golden hour', twilight: 'Twilight',
 };

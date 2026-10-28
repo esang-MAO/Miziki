@@ -35,6 +35,12 @@ li.letter-head{list-style:none;padding:6px 0 4px}
   background:linear-gradient(90deg,#8E7A60,#4D3D2F)}
 .artist-shelf{display:flex;gap:var(--sp-3);overflow-x:auto;overscroll-behavior-x:contain;
   scroll-snap-type:x proximity;padding:var(--sp-4) var(--sp-2) var(--sp-5);-webkit-overflow-scrolling:touch}
+.shelf-item{flex:0 0 auto;width:128px;display:flex;flex-direction:column;gap:var(--sp-2);scroll-snap-align:start}
+.shelf-caption{display:flex;flex-direction:column;gap:2px;padding:0 2px}
+.shelf-caption b{font-weight:400;font-size:var(--fs-caption);line-height:var(--lh-caption);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.shelf-caption span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:.10em;color:var(--muted)}
 .shelf-sleeve{flex:0 0 auto;width:128px;height:128px;border-radius:var(--radius-control);
   border:none;padding:0;overflow:hidden;background:var(--panel);box-shadow:var(--sh-2);
   scroll-snap-align:start;transform:rotate(1.5deg)}
@@ -42,6 +48,51 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .shelf-sleeve img{width:100%;height:100%;object-fit:cover;display:block}
 .shelf-sleeve .g-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
   font-size:var(--fs-hero);color:var(--muted)}
+
+/* ---- Artist page: the local shelves (docs/21_ARTIST_PAGE.md) ----
+   Your most spun, You & [artist], Your pressings — under the record
+   shelf, above Connected. */
+.artist-section{padding:0 0 var(--sp-5)}
+.artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--data);font-size:var(--fs-label);line-height:var(--lh-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400}
+
+.most-spun-list{list-style:none;margin:0;padding:0}
+.most-spun-row{width:100%;min-height:48px;display:flex;align-items:center;gap:var(--sp-3);
+  background:none;border:0;padding:var(--sp-1) 0;color:inherit;text-align:left;cursor:pointer}
+.most-spun-row:active{background:var(--sel)}
+.most-spun-n{width:18px;flex:0 0 auto;font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
+.most-spun-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.most-spun-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.most-spun-text em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:.10em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.most-spun-plays{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
+
+/* a taped-on index card, the crate's stock family (not chrome) */
+.artist-history{position:relative;margin:var(--sp-2) 0 var(--sp-5);padding:var(--sp-4);
+  background:var(--stock-card);color:#2A2418;border-radius:2px;box-shadow:var(--sh-2);transform:rotate(-.8deg)}
+.artist-history-tape{position:absolute;top:-9px;left:50%;width:68px;height:18px;margin-left:-34px;
+  background:rgba(232,217,168,.75);transform:rotate(3deg)}
+.artist-history-title{margin:0 0 var(--sp-3);font-family:var(--display);font-weight:400;
+  font-size:var(--fs-title);line-height:var(--lh-title)}
+.artist-history-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+.artist-history-stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.artist-history-stat b{font-weight:500;font-size:var(--fs-row);line-height:var(--lh-row);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artist-history-stat span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:.10em;text-transform:uppercase;color:#5E5440}
+
+.pressings-row{display:flex;gap:var(--sp-4);overflow-x:auto;overscroll-behavior-x:contain;
+  padding:var(--sp-1) 0 var(--sp-2);-webkit-overflow-scrolling:touch}
+.pressing-item{flex:0 0 auto;width:88px;margin:0;display:flex;flex-direction:column;align-items:center;gap:var(--sp-2)}
+.pressing-disc{position:relative;width:72px;height:72px;border-radius:50%;box-shadow:var(--sh-2);
+  background-size:cover;background-position:center}
+.pressing-disc-hole{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;
+  border-radius:50%;background:rgba(0,0,0,.7)}
+.pressing-item figcaption{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0;width:100%}
+.pressing-item figcaption b{font-weight:400;font-size:var(--fs-caption);line-height:var(--lh-caption)}
+.pressing-item figcaption span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:.10em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 
 /* ---- Artist page: the Connected shelf (docs/20_CONNECTED.md) ----
    Related artists' records, under the artist's own shelf. Plain paper
