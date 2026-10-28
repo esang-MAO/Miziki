@@ -55,7 +55,6 @@
    there's nothing left for a page-level lock to actually fix — removed
    outright rather than re-scoped. */
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
-.crate-group-toggle{margin-bottom:10px}
 /* CR1: a header row above the stage — how many records are in the bin and
    how it's grouped on the left, the (restyled) now-playing indicator on
    the right. */
@@ -206,7 +205,6 @@
 .crate-info h3{font-family:var(--display);font-weight:700;font-size:var(--fs-title);margin:0 0 2px;letter-spacing:.02em}
 .crate-info .crate-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:0 0 2px}
 .crate-info .crate-info-meta{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
-.crate-info-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-3)}
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.08em;color:var(--accent-text);border:1px solid var(--accent);border-radius:12px;padding:var(--sp-1) 10px;
   margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}

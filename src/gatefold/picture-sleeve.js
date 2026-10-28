@@ -16,7 +16,7 @@ import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import { buildPeekDisc } from '../record-art/peek.js';
 import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { formatChipText } from '../record-art/format.js';

@@ -1,7 +1,7 @@
 import { getVariantDef } from '../record-art/tiers.js';
 import {
   SHARE_FORMATS, shareFitText, shareFitLines, roundRectPath, drawShareWordmark,
-  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc,
+  wordmarkWidth, resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc,
 } from './styles.js';
 
 /* ---- Record card (composeRecordShareImage) — the sleeve with the record
@@ -58,14 +58,6 @@ function pressingFacts(data){
   if(def && def.band) parts.push(def.band.toUpperCase());
   parts.push(speedLabel(data.speed));
   return { name, sub: parts.join(' · ') };
-}
-
-function wordmarkWidth(ctx, fontPx){
-  ctx.save();
-  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
-  const w = ctx.measureText('Mi').width + ctx.measureText('zi').width + ctx.measureText('ki').width;
-  ctx.restore();
-  return w;
 }
 
 // Runs the whole composition once as pure geometry (draw=false, no

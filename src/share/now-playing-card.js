@@ -1,6 +1,6 @@
 import { albumKey, trackIdentityKey, selectVariant } from '../record-art/tiers.js';
 import { albumMetalFor, trackMetalFor } from '../record-art/metals.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import {
   SHARE_FORMATS, shareFitText, shareFitLines, loadImageEl, drawCover,
   roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark,

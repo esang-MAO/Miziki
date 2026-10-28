@@ -1,5 +1,6 @@
 import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
+import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
 import { topAlbums, topTracks, achievementsList, crateFilled } from '../history/achievements.js';
 import { metalBadge } from './badges.js';
@@ -58,8 +59,6 @@ export function formatDisplayName(name){
   if(parts.length === 1) return parts[0];
   return parts[0] + ' ' + parts[parts.length - 1][0].toUpperCase() + '.';
 }
-
-export const fmtCount = (n, one, many) => n + ' ' + (n === 1 ? one : many);
 
 export function topTile(label, art, title, subtitle, emptyText, onTap){
   const b = el('button','profile-top-tile');
@@ -219,7 +218,7 @@ function nychthemeronSwitchCaption(){
     : 'Turns light at sunrise tomorrow.';
 }
 // The playback toggles (Scratch, Sleeve Pull, Launch intro, Background
-// playback, Car Mode) are static markup in miziki.html so the listeners
+// playback) are static markup in miziki.html so the listeners
 // src/wiring/character.js attached at boot, and the ids bgUpdateUI()/
 // applyPrefs() look up, survive every render. They sit hidden in
 // #playbackSettingsStash; Settings borrows them, and renderProfile()

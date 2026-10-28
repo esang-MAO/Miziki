@@ -1,16 +1,19 @@
-/* AU6 (docs/16_AUDIO.md §3): EQ -- the pure, leaf half. No imports, no
-   DOM, no AudioContext -- the same "directly unit-testable in Node" shape
-   as audio/loudness.js and audio/level-match.js. Everything that actually
-   needs a real BiquadFilterNode (building the live graph, measuring the
-   true combined curve via getFrequencyResponse(), applying parameters)
-   lives in audio/engine.js instead -- this module only holds the constants
-   and the math that decides what those real nodes should be set to, and
-   the serialization rules storage/prefs.js reuses.
+/* AU6 (docs/16_AUDIO.md §3): EQ -- the pure, leaf half. No DOM, no
+   AudioContext -- the same "directly unit-testable in Node" shape as
+   audio/loudness.js and audio/level-match.js (its one import, util/math.js,
+   is itself a dependency-free pure leaf, so that shape holds). Everything
+   that actually needs a real BiquadFilterNode (building the live graph,
+   measuring the true combined curve via getFrequencyResponse(), applying
+   parameters) lives in audio/engine.js instead -- this module only holds
+   the constants and the math that decides what those real nodes should be
+   set to, and the serialization rules storage/prefs.js reuses.
 
    Tilt convention: a positive tiltDb is BRIGHTER (cuts the low shelf,
    boosts the high shelf); negative is warmer. Both shelves pivot at the
    same TILT_PIVOT_HZ, per the doc's own "pivot near 1 kHz... low shelf and
    high shelf moving in opposite directions." */
+
+import { clamp as clampRange } from '../util/math.js';
 
 // 10-band ISO graphic EQ, 31 Hz to 16 kHz (doubling each band, one octave
 // apart -- the doc's own "10-band graphic (31 Hz to 16 kHz, ±12 dB)").
@@ -39,15 +42,6 @@ export const PREAMP_MIN_DB = -24;
 // (storage/prefs.js), without touching anything else about the saved state.
 export const PREAMP_MAX_DB = 0;
 
-// Standard 1/3-octave band centers, 20 Hz to 20 kHz -- used only by the
-// Verify script's own "matches getFrequencyResponse() within 0.1 dB at
-// 1/3-octave points" check (docs/16_AUDIO.md §3), not by the app itself.
-export const THIRD_OCTAVE_HZ = [
-  20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
-  800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000,
-  12500, 16000, 20000,
-];
-
 // Built-in presets as 10-band graphic gain arrays. "Ears latch onto peaks
 // more than dips (McCarthy 5.3.1), so the built-in presets favor cuts over
 // boosts" -- every one of these is zero or negative, never a boost. Names
@@ -66,7 +60,7 @@ export const EQ_PRESET_KEYS = Object.keys(EQ_PRESETS);
 
 export function clamp(v, lo, hi){
   if(typeof v !== 'number' || !isFinite(v)) return lo;
-  return Math.min(hi, Math.max(lo, v));
+  return clampRange(v, lo, hi);
 }
 export const clampTiltDb = db => clamp(db, -TILT_MAX_DB, TILT_MAX_DB);
 

@@ -5,12 +5,14 @@ import assert from 'node:assert/strict';
 // play) and shell/handoff.js (for runGatefoldHandoff) — the same peer-import
 // shape already established between engine.js/transport.js — plus real,
 // one-directional imports into library/credits.js, library/thumbs.js,
-// crate/tiers.js, player/clock.js, player/queue.js, shell/start-sequence.js
-// and shell/player-overlay.js, none of which are this file's own subject.
-// All are mocked directly here, the usual "stop the chain at the door"
-// reasoning, since loading any of them for real would reach wide chains
-// (player/queue.js alone would reach player/buffers.js's ensureContext and
-// sundown/location.js's circular queueSave import).
+// crate/tiers.js, player/queue.js, shell/start-sequence.js and shell/
+// player-overlay.js, none of which are this file's own subject. All are
+// mocked directly here, the usual "stop the chain at the door" reasoning,
+// since loading any of them for real would reach wide chains (player/
+// queue.js alone would reach player/buffers.js's ensureContext and
+// sundown/location.js's circular queueSave import). util/text.js's fmt()
+// (TR5, docs/19_PLAYER.md) is real-loaded instead — a tiny, pure,
+// DOM-free leaf, same precedent as player/eq-label.js elsewhere.
 globalThis.window = { matchMedia(){ return { matches: false }; } };
 globalThis.document = { documentElement: { style: { setProperty(){} } } };
 
@@ -29,9 +31,6 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
   namedExports: { getCrateArtURL: async () => null },
-});
-mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { fmt(s){ return String(s); } },
 });
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   namedExports: { setQueue(){} },

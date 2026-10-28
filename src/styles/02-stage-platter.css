@@ -221,7 +221,6 @@
 .grouprow{content-visibility:auto;contain-intrinsic-size:auto 67px}
 .tracklist li.picked{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .tracklist li.picked .t-idx::after{content:'✓';color:var(--accent-text);margin-left:2px}
-.lib-nav{margin:var(--sp-1) 0 6px}
 .crumb{display:flex;align-items:center;gap:var(--sp-3);padding:10px 0;border-bottom:1px solid var(--line)}
 .crumb-back{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--accent-text)}
 .crumb-label{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.06em;overflow:hidden;

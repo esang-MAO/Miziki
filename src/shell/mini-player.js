@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { albumKey } from '../record-art/tiers.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import { REDUCED } from '../util/motion.js';
 import { bgSync } from '../player/background.js';
 import { isLibraryRouteVisible } from './routes.js';

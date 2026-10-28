@@ -104,9 +104,8 @@ export function toggleSleevePull(){
   queueSave();
 }
 
-// RF6 (docs/12_REFINE.md): Car Mode (toggleMotion, the GPS speed watch) is
-// removed outright — this is just the master gain now, at unity (or the
-// sleep-timer fade, the one other thing that still passes a glide here).
+// This is just the master gain, at unity (or the sleep-timer fade, the
+// one other thing that still passes a glide here).
 export function applyVolume(glide){
   if(!S.nodes) return;
   S.nodes.master.gain.setTargetAtTime(1, S.ctx.currentTime, glide ? glide/3 : 0.05);

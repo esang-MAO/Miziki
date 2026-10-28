@@ -18,5 +18,4 @@
   font-family:var(--display);font-size:var(--fs-caption);letter-spacing:.06em;font-weight:600;
   text-transform:uppercase;min-width:44px;text-align:left;
 }
-.mode-note{font-size:var(--fs-caption);color:var(--muted);line-height:1.5;margin:2px 0 0}
 
