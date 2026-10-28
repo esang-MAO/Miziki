@@ -43,6 +43,33 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .shelf-sleeve .g-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
   font-size:var(--fs-hero);color:var(--muted)}
 
+/* ---- Artist page: the Connected shelf (docs/20_CONNECTED.md) ----
+   Related artists' records, under the artist's own shelf. Plain paper
+   sleeves with the title lettered on — no remote cover art (Cover Art
+   Archive would be a new third-party host; see the plan doc). */
+.connected{padding:0 0 var(--sp-5)}
+.connected-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3);
+  padding:0 0 var(--sp-2)}
+.connected-eyebrow{margin:0;font-family:var(--data);font-size:var(--fs-label);line-height:var(--lh-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.connected-list{list-style:none;margin:0;padding:0}
+.connected-row{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:var(--sp-1) 0}
+.connected-sleeve{flex:0 0 auto;width:44px;height:44px;border-radius:2px;background:var(--stock-manila);
+  box-shadow:var(--sh-1);display:flex;align-items:flex-end;padding:3px;box-sizing:border-box;overflow:hidden}
+.connected-sleeve-title{font-family:var(--display);font-size:var(--fs-micro);line-height:1.05;color:#2A2418;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.connected-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.connected-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.connected-sub{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+  letter-spacing:.10em;color:var(--muted)}
+.connected-sub .link-btn{font-size:var(--fs-micro);letter-spacing:.10em}
+.connected-role{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:var(--radius-control);
+  padding:2px var(--sp-1)}
+.connected-buy{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-family:var(--data);
+  font-size:var(--fs-micro);letter-spacing:.10em;color:var(--accent-text);text-decoration:none}
+
 /* ---- Playlists: a 2x2 grid of compilation sleeves ---- */
 .playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) 0}
 .playlist-tile{display:flex;flex-direction:column;border:none;padding:0;cursor:pointer;

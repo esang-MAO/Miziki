@@ -15,6 +15,7 @@ import { fmt } from '../player/clock.js';
 import { setQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
+import { appendConnectedShelf } from './connected.js';
 import { queueSave } from '../storage/meta.js';
 import { byName, groupBy, allIdx, albumTracks, idOf, idxOf, trackSort } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
@@ -863,6 +864,9 @@ function renderTracksBody(host){
         shelf.appendChild(btn);
       });
       host.appendChild(shelf);
+      // Connected crate (docs/20_CONNECTED.md): related artists' records
+      // under the shelf — stays hidden until the shared cache has some
+      appendConnectedShelf(host, v.group);
     } else {
       renderAlbumDetail(host, ul, v.artistAlbum);
     }

@@ -136,6 +136,8 @@ mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
     trackHasCreditsContent(){ return false; }, albumLinerNotes(){ return ''; },
     albumCreditRoll(){ return new Map(); }, creditRow(){ return fakeEl(); },
     renderPersonView(){},
+    // library/connected.js (the artist page's Connected shelf) imports these
+    isLibraryArtist(){ return false; }, openPersonOrArtist(){},
   },
 });
 mock.module(new URL('../../src/library/favorites.js', import.meta.url).href, {

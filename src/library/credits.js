@@ -44,6 +44,9 @@ function artistExists(name){
   const key = normKey(name);
   return S.tracks.some(t => normKey(t.tags.artist) === key || normKey(t.tags.albumArtist) === key);
 }
+// exported for the artist page's Connected shelf (library/connected.js),
+// which links a related artist's name only when they're in this library
+export function isLibraryArtist(name){ return artistExists(name); }
 
 export function openPersonOrArtist(name){
   if($('#creditsOverlay').classList.contains('open')) forceCloseLayer('credits');

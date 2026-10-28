@@ -24,7 +24,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 - `src/audio/` — `engine.js` (the Web Audio graph: Pure/Vinyl routing, character chain, output stage — see "How the app is put together"); `mode.js`; `scratch-processor.js`/`limiter-processor.js` (AudioWorkletProcessors, classic scripts); `level-match.js`; `loudness.js` (BS.1770 loudness/true-peak, pure); `eq.js` (EQ's pure half); `hook.js`/`hook-preview.js` (hook detection, pure).
 - `src/ui/` — `path-note.js`, `haptic.js`, `theme.js` (Auto/Light/Dark/Nychthemeron).
 - `src/theme-boot.js` — anti-flash head script: sets `data-theme` from a `localStorage` mirror before CSS applies.
-- `src/library/` — `model.js`; `tags/` (byte-level format parsers, pure); `import.js` (import loop, dup detection, loudness/hook measurement); `duplicates-ui.js`; `edit.js` (overlay edits, undo, format override); `delete.js` (deletion, Forget Library — clears only `tracks`/crate-art/thumbnails, never stats/settings); `duplicate-scan.js`; `credits.js`; `favorites.js` (system playlist); `search.js`; `view.js` (library screen render/select, `renderTracks`); `sealed.js`; `thumbs.js` (thumbnail gen/healing).
+- `src/library/` — `model.js`; `tags/` (byte-level format parsers, pure); `import.js` (import loop, dup detection, loudness/hook measurement); `duplicates-ui.js`; `edit.js` (overlay edits, undo, format override); `delete.js` (deletion, Forget Library — clears only `tracks`/crate-art/thumbnails, never stats/settings); `duplicate-scan.js`; `credits.js`; `connected.js` (the artist page's Connected shelf — related artists' records from the shared MusicBrainz cache, docs/20_CONNECTED.md); `favorites.js` (system playlist); `search.js`; `view.js` (library screen render/select, `renderTracks`); `sealed.js`; `thumbs.js` (thumbnail gen/healing).
 - `src/gatefold/` — `view.js` (open/close, tracklist, side splits, hand-off); `sealed-sheet.js`; `picture-sleeve.js` (single-track singles).
 - `src/history/` — the only place writing listening counters: `played.js`, `sessions.js`, `clear.js`, `achievements.js`.
 - `src/profile/` — `badges.js`; `records.js` (pressings & metals screen); `rhythm-card.js`; `storefront.js` (shared by the profile's own storefront and a friend's); `settings.js` (sign-in, Account screen, device list); `privacy.js`; `legal.js` (synced with `docs/PRIVACY_POLICY.md`/`docs/TERMS_OF_USE.md`); `screens.js` (`renderProfile`, Settings screen).
@@ -35,6 +35,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 - `src/styles/` — numbered CSS files, cascade order matters; `fonts.css` self-hosts `@font-face`. `00-base.css` holds the token scale; `22-theme.css` holds light/Nychthemeron overrides.
 - `src/fonts/` — self-hosted Antonio/Archivo/IBM Plex Mono, Latin subset, OFL licensed.
 - `src/miziki-social.js` — the social client (`MizikiSocial`). Classic script, not a module; wired via `env`-passed accessor functions, not imports, so it stays import-free.
+- `supabase/functions/` — edge functions: `mb-connections/` (the only code that calls MusicBrainz — fills the connected-crate cache, off unless the `MB_ENABLED` secret is `true`) and `_shared/mb-connections.js` (its pure parsing, plain JS so `tests/unit/connected.test.js` runs it under Node).
 - `supabase/migrations/` — schema/RPCs/RLS, applied in numeric order. **Never edit an applied migration** — add a new one. From `012_migrations_log.sql` on, each asserts the prior version is logged and logs its own.
 - `tests/unit/` — `node:test` tests for extracted pure functions (`npm run test:unit`); several mock modules that would otherwise need a browser or a wide unrelated dependency web — expected here, not a smell.
 - `tests/client.test.js` — social-client tests against a local Postgres. `tests/perf/` — `nav.perf.js` (`npm run perf`, not CI) plus fixtures.
@@ -81,7 +82,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 
 ## What's stored server-side, and who can see it
 
-(For the privacy policy/App Store label, not for extending the sync engine.) Every table lives in the user's own Supabase project; Miziki makes no other third-party requests. **Audio, embedded art, and location (used only for Sundown's sun times) never leave the device, signed in or not.** A custom cover and the profile picture are the one exception, uploaded re-encoded/EXIF-stripped.
+(For the privacy policy/App Store label, not for extending the sync engine.) Every table lives in the user's own Supabase project; the app makes no other third-party requests. The one server-side exception is the `mb-connections` edge function, which (once `MB_ENABLED` is on) sends an artist's name to musicbrainz.org to fill the shared cache — never who asked. **Audio, embedded art, and location (used only for Sundown's sun times) never leave the device, signed in or not.** A custom cover and the profile picture are the one exception, uploaded re-encoded/EXIF-stripped.
 
 | Server-side table/column | What it holds | Who can see it |
 |---|---|---|
@@ -94,6 +95,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 | `follows`, `blocks` | Who follows/blocks whom | Visible only to the owner, via RLS; follow counts are exposed more broadly through an RPC |
 | `feed_events` | The home-feed event log (never a milestone/metal unlock); rows expire 45 days after creation | Only where the underlying event is already visible |
 | `reports` | Filed reports against other accounts/content | Moderation-only |
+| `mb_artists`, `artist_connections` | Shared MusicBrainz cache for the Connected shelf: artist names/MBIDs, related artists, their release groups and buy links — public catalog data, no `user_id` | Anyone, signed in or out (read-only; only the `mb-connections` edge function writes, with the service role) |
 | `auth.users` (Supabase Auth) | Email, used only for the emailed one-time sign-in code | Supabase's own auth infrastructure — no password is ever stored |
 
 **Download my data** (Privacy screen): a `miziki-data-YYYY-MM-DD.json` export of local stats/settings/playlists/track-edit text always, plus the account/social/backup snapshot when signed in.
