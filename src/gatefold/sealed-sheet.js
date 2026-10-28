@@ -6,10 +6,7 @@
    just a different row-tap handler, SEALED spec §5), which is why this
    lives alongside it rather than in src/library/sealed.js: that module
    stays about the sealed-records *data* (S.sealed, isAlbumSealed, the
-   persist calls), not this sheet's own UI.
-
-   Moved out of main.js (step 7e) — see src/gatefold/view.js's own header
-   comment for the misleading-header history this and the gatefold shared. */
+   persist calls), not this sheet's own UI. */
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
@@ -82,8 +79,7 @@ export function openSealedSheet(item){
   const coverWrap = $('#sealSheetCoverWrap');
   coverWrap.querySelectorAll('.seal-wrap, .seal-sticker').forEach(n => n.remove());
   // CR6 point 5: "the sealed sheet's header cover uses the same film at
-  // 64px" -- matching .seal-sheet-cover's own real 64px box (it was
-  // passing 96 here before, inconsistent with that box's actual size).
+  // 64px" -- must match .seal-sheet-cover's own real 64px box.
   coverWrap.appendChild(buildSealOverlay(64, item.albumId, item.addedAt));
   const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   if(art) $('#sealSheetCoverArt').src = art;

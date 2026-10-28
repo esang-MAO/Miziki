@@ -363,3 +363,19 @@ Comment-only: no logic, no `await`, no whitespace outside comment lines touched.
 Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
 
 Device check: not needed — comment-only change, confirmed byte-identical build output.
+
+## TR6 batch 3: crate + gatefold + launch comment diet
+
+Batch 3 of TR6's grouped comment diet, covering `src/crate/`, `src/gatefold/`, and `src/launch/` — the crate shelf, the gatefold/sealed-sheet/picture-sleeve overlays, and the launch intro.
+
+Trimmed narration of *when* and *in which step/PR* something changed: `main.js`/"step 7c/7d/7e" move history in the header comments of `crate/constants.js`, `crate/model.js`, `crate/tiers.js`, `crate/view.js`, `gatefold/view.js`, and `gatefold/sealed-sheet.js`; a "used to be a hardcoded 440px" aside in `crate/view.js`'s rail-sizing code; an RF8 "it used to have two homes" aside; a "Ken, 2026-10-22" dated bug narrative in `crate/model.js` (kept the underlying trap explanation, dropped the dated framing); a "gesture-classification gap found 2026-10-22" framing in `crate/model.js`'s pull-gesture constants (kept the trap reasoning); a "this PR's own device-checklist pass" framing on a rail-offset trap note in `crate/view.js` (kept the trap, dropped the PR-provenance framing); and a stale "it was passing 96 here before" aside in `gatefold/sealed-sheet.js`.
+
+Also fixed one stale cross-reference found in scope: `crate/geometry.js`'s header said the crate passes `170` as `opts.originY`, but `crate/constants.js`'s `CRATE_ORIGIN_Y` is actually `110` (changed since the comment was written) — rewritten to name the constant instead of a now-wrong literal, so it can't drift again.
+
+Kept every comment that explains *why* or warns about a trap — the `albumArtistSet`/`undefined`-artist guard in `crate/model.js`, the stage-height-vs-"available" overflow trap in `crate/view.js`, the pull/flip/hold gesture-classification reasoning, the REDUCED-mode `skipHistory` race note in `gatefold/view.js`'s `gatefoldPlayTrack()` — and every short plan-doc pointer (`CR1`-`CR14`, `AU10`, `D3`/`D5`, `RF8`/`RF22`, `SH1`, `§A2`-`§A7`).
+
+Comment-only: no logic, no `await`, no whitespace outside comment lines touched. Confirmed by hashing all `dist/assets/*.js` chunks before and after — byte-identical.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.

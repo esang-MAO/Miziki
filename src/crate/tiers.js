@@ -1,10 +1,9 @@
 /* ================= S4: crate image tiers (640px "S", 1200px "L") =========
-   Moved out of main.js's "S4: crate image tiers" section (step 7c),
-   unchanged. Stored in the existing `artwork` store (keyed by id, never
-   `meta` — that would read hundreds of MB into memory on every launch)
-   under prefixed ids `crate640:<albumId>` / `crate1200:<albumId>`, built
-   lazily and fetched through a small LRU of object URLs. See the
-   image-quality spec §B1-B3. No DB version bump — the store already exists. */
+   Stored in the existing `artwork` store (keyed by id, never `meta` — that
+   would read hundreds of MB into memory on every launch) under prefixed
+   ids `crate640:<albumId>` / `crate1200:<albumId>`, built lazily and
+   fetched through a small LRU of object URLs. See the image-quality spec
+   §B1-B3. No DB version bump — the store already exists. */
 import { S } from '../state.js';
 import { sleep } from '../util/async.js';
 import { albumKey } from '../record-art/tiers.js';
