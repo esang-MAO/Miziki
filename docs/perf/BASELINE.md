@@ -337,3 +337,15 @@ A 27.7% cut (~957 KB). Still a couple MB total — the doc's fallback ("if still
 **CHANGELOG archival.** Not done — nothing qualifies. The doc asks to archive entries "before October" into `docs/history/CHANGELOG-2026-H1.md`, but `docs/CHANGELOG.md` itself was only created on 2026-10-14 (CLAUDE.md's own changelog note: PR #98 moved the step-by-step history out of CLAUDE.md into this file, which overflowed context otherwise) — every entry in it, start to finish, already carries an October 2026 date or sits in October's own step sequence. There's no `docs/history/` directory yet and no pre-October content to move into one. If the file grows large enough in the future to need its own split, that's a job for whenever it actually has pre-cutoff entries, not now.
 
 Device check: none needed — doc-only changes, zero code/build impact.
+
+## TR6 batch 1: audio + player comment diet
+
+TR6 (docs/19_PLAYER.md, "comment diet, last, folder by folder") is being done as 6 batched PRs grouping `src/`'s ~20 folders by subsystem, rather than one per folder, per Ken's call. Batch 1 covers `src/audio/` and `src/player/` — the core engine and playback code, including the iOS-gesture-critical `player/transport.js` (refactor rule 9).
+
+Went through every comment in both folders. Trimmed comments that only narrated *when* and *in which step* something changed — "used to be X", "the old formula", "found 2026-10-26", bare PR-number references, module-move history — down to the current behavior and its rationale. Kept every comment that explains *why* something is the way it is or warns about a trap (the rule-9 iOS gesture comments in `transport.js`/`background.js`, the makeup-gain/THD rationale in `engine.js`/`level-match.js`, the trap notes in `clock.js` about writing shared DOM state once vs. twice), and kept short plan-doc pointers like `AU9`/`PL8 item 13`/`(DA2)`. One comment in `engine.js` referencing `drift.js`'s `effectiveChar()` and `drawSun()`'s old badge write — both already deleted by TR4/TR5 — was rewritten to describe the current `arc.js`-based gate instead of the stale reference.
+
+This is comment-only: no logic, no `await`, no whitespace outside comment lines touched. Confirmed by hashing all 12 `dist/assets/*.js` chunks before and after — byte-identical (comments are stripped by the minifier either way).
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean, same chunk hashes as before).
+
+Device check: not needed — comment-only change, confirmed byte-identical build output.

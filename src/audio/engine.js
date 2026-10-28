@@ -324,29 +324,19 @@ export function satCurve(amount){
 // never leave a drifted value sitting on a node Pure doesn't even route
 // through, waiting to surprise the next Vinyl switch.
 //
-// Day Arc v2 (DAY_ARC_BRIEF.md, PR 3): the effective value now comes from
-// arc.js's effectiveCharAt() (warmth-based, §3.4) instead of drift.js's
-// effectiveChar() (DA2's 7-phase anchor table) — same gate, same S.charDrift
-// setting (reused per Q1: the Sound view's own control is relabeled
-// Off/Subtle/Full rather than borrowing the "Pure" name), new source model.
-// nowClock() (not a bare currentDayPosition()/`new Date()`) is what keeps
-// Preview the day audible here, same reasoning as solar.js's computeRate().
-// Known, accepted gap until the new Sound view ships (brief §8 PR 6): the
-// *old* Sundown/Character screen's own per-slider "now" badge (clock.js's
-// drawSun(), still reading drift.js's effectiveChar()) no longer matches
-// what's actually audible — the same class of temporary UI/audio
-// discrepancy already accepted in PR 2 for the rate readout, until the
-// screens that show it are themselves replaced.
+// The effective value comes from arc.js's effectiveCharAt() (warmth-based,
+// §3.4), gated on the same S.charDrift setting (the Sound view's own
+// control, labeled Off/Subtle/Full). nowClock() (not a bare
+// currentDayPosition()/`new Date()`) is what keeps Preview the day audible
+// here, same reasoning as solar.js's computeRate().
 //
-// `ramp` defaults to the same 50ms every existing call site here already
-// used before DA2 (a slider drag, a preset click, a mode switch, restoring
-// saved prefs) — none of those should suddenly feel sluggish just because
-// drift now rides along with them. src/wiring/character.js's own ~30s
-// drift-recompute timer (the one new call site DA2 adds) passes a longer
-// ~2s time constant instead, per the doc's own "ramping with a longer time
-// constant, so the drift is never audible as a change" — that line is
-// about the drift's own slow background movement, not about making a
-// direct user edit laggy.
+// `ramp` defaults to 50ms for a direct user edit (a slider drag, a preset
+// click, a mode switch, restoring saved prefs) — none of those should feel
+// sluggish just because drift rides along with them. src/wiring/character.js's
+// own ~30s drift-recompute timer passes a longer ~2s time constant instead,
+// per the doc's own "ramping with a longer time constant, so the drift is
+// never audible as a change" — that's about the drift's own slow background
+// movement, not a direct user edit.
 let lastAppliedSat = null;
 
 // RF28 ("what am I hearing"): Sound › Advanced's press-and-hold audition
@@ -431,24 +421,19 @@ export function applyCharacter(ramp = 0.05){
     n.satTrim.gain.setTargetAtTime(s.trim, t, ramp);
     lastAppliedSat = effSat;
   }
-  // PL8 item 13/14: rescaled from -9 to -2dB/unit -- at -9, the shipped
-  // default (soft=0.40) alone cut -3.6dB from 7kHz up, already blowing
-  // past the ±1dB/30Hz-15kHz "fine turntable" target before the wobble
-  // delay line's own loss (fixed above) was even added in. -2 keeps
-  // `soft`'s saved values and relative ordering untouched (item 14: the
-  // mapping is rescaled, not the saved amounts) while landing the default
-  // at a sub-1dB tilt -- still audibly "softer" at the slider's high end,
-  // just no longer heavy enough to read as muddying at its own default.
+  // PL8 item 13/14: -2dB/unit keeps the ±1dB/30Hz-15kHz "fine turntable"
+  // target even with the wobble delay line's own loss factored in, while
+  // scaling `soft`'s saved values rather than replacing them, so existing
+  // saved settings keep working. Still audibly "softer" at the slider's
+  // high end without reading as muddying at its own default.
   n.tone.gain.setTargetAtTime(-2 * c.soft * (is45 ? 0.7 : 1), t, ramp);
   n.comp.threshold.setTargetAtTime(-6 - 18*c.comp, t, ramp);
   n.comp.ratio.setTargetAtTime(1 + 3*c.comp, t, ramp);
-  // AU3 §2.3 (finding 4): the old `1 + 0.4*c.comp` here, on top of
-  // DynamicsCompressorNode's own automatic makeup gain and the pad's own
-  // -3dB, is why Vinyl played louder than Pure. makeupGainFor() is the
-  // offline-derived table (scripts/derive-makeup-table.mjs) that instead
-  // lands Vinyl within 0.5dB of Pure's own integrated loudness at every
-  // Character setting — it already accounts for the pad, so nothing here
-  // needs to compensate for PAD_GAIN separately.
+  // AU3 §2.3 (finding 4): makeupGainFor() — an offline-derived table
+  // (scripts/derive-makeup-table.mjs) — keeps Vinyl within 0.5dB of Pure's
+  // own integrated loudness at every Character setting, already accounting
+  // for DynamicsCompressorNode's automatic makeup gain and the pad's own
+  // -3dB, so nothing here needs to compensate for PAD_GAIN separately.
   n.makeup.gain.setTargetAtTime(makeupGainFor(c), t, ramp);
 }
 
@@ -697,10 +682,9 @@ export function scheduleDriftRecompute(){
 }
 
 // AU3 §2.3: "create the AudioContext once... and never rebuild it for a
-// track" — this used to close and recreate S.ctx whenever a file's own
-// rate differed from the context's (finding 2: a gap, a possible click,
-// and every node reset). Now it only ever builds once, lazily, the first
-// time anything needs a context, and resumes it every other time.
+// track" — builds once, lazily, the first time anything needs a context,
+// and resumes it every other time, so a mid-track rate change never gaps,
+// clicks, or resets every node.
 export async function ensureContext(){
   if(S.ctx){ await S.ctx.resume(); return; }
   // A fresh context means fresh nodes — any in-progress audition hold
@@ -727,22 +711,18 @@ export async function ensureContext(){
 }
 
 // Decodes a file's raw bytes without touching the live context's own
-// rendering thread — found 2026-10-26 ("the upload interfering with the
-// song being played"): library/import.js's addFiles() loop and
-// library/thumbs.js's healLoudness()/healHooks() all used to call
-// `S.ctx.decodeAudioData(raw)` directly, decoding every newly-imported
-// (or healed) file's full audio on the exact same AudioContext that's
-// actively rendering whatever's currently playing — real contention for
-// the audio thread, especially for a multi-minute lossless FLAC/WAV, and
-// audible as a glitch in the track already playing. A plain, disposable
+// rendering thread. library/import.js's addFiles() loop and
+// library/thumbs.js's healLoudness()/healHooks() decode here rather than
+// on the live S.ctx: decoding on the live context contends for the audio
+// thread — especially for a multi-minute lossless FLAC/WAV — and is
+// audible as a glitch in whatever's already playing. A plain, disposable
 // OfflineAudioContext decodes the same way (decodeAudioData resamples to
-// *its own* sampleRate, same as the live context's would) but never
-// renders anything and shares no graph with the live context, so it
-// can't contend with it. player/buffers.js's ensureBuffer() (decoding a
-// track for imminent playback itself, including a gapless preload) is
-// deliberately left on the live S.ctx — that path has to produce a
-// buffer the live graph can use right away, and isn't what this bug
-// report was about.
+// *its own* sampleRate, same as the live context's would) but renders
+// nothing and shares no graph with the live context, so it can't contend
+// with it. player/buffers.js's ensureBuffer() (decoding a track for
+// imminent playback itself, including a gapless preload) is deliberately
+// left on the live S.ctx — that path has to produce a buffer the live
+// graph can use right away.
 export async function decodeAudioFile(raw){
   await ensureContext();
   const offline = new OfflineAudioContext(1, 1, S.ctx.sampleRate);

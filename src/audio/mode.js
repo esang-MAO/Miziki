@@ -51,8 +51,8 @@ export function setMode(m){
   // every restore-from-prefs/boot-time call (storage/meta.js's
   // applyPrefs(), main.js's own setMode('vinyl')) either repeats the
   // already-current mode or has no live source yet, so routeSource() just
-  // runs immediately there, same as before this step. The same rule
-  // applies to any future path change (this file's own CLAUDE.md entry).
+  // runs immediately there. The same rule applies to any future path
+  // change (this file's own CLAUDE.md entry).
   // PL3 (docs/19_PLAYER.md, item 3): a pre-armed gapless source was routed
   // (routeSource()) for the mode that was current when it was armed —
   // cancel so maybeScheduleGaplessNext() re-arms (and re-routes) it fresh

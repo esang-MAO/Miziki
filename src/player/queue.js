@@ -1,8 +1,4 @@
-/* ================= queue, shuffle, repeat =================
-   Moved out of main.js (step 5a), together with the "visible queue"
-   section's advance()/preloadNextTrack() — see CLAUDE.md. The rest of the
-   "visible queue" section (queueInsert/playNext/addToQueue, queueRemoveAt,
-   queueMove, the queue-sheet UI) moved in here too, in step 5e. */
+/* ================= queue, shuffle, repeat ================= */
 import { S, current, touchBackupKey } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { albumKey, trackTier, trackIdentityKey } from '../record-art/tiers.js';
@@ -207,27 +203,24 @@ export function skipWithLift(dir){
   cancelPendingGapless();   // AU4: a manual skip invalidates whatever was pre-armed for the natural next track
   if(pendingSkip){ pendingSkip.dir = dir; return; }   // §3 "rapid skips collapse"
   if(dir !== 0 && resolveSkipTarget(dir) === null){ advance(dir, false); return; }
-  // Found 2026-10-26 ("can't skip from the lock screen"): lock-screen/
-  // headphone/car Next/Previous reach this function from a MediaSession
-  // action handler while the page is hidden (screen locked, app
-  // backgrounded). iOS only wakes a suspended page briefly to run that
+  // lock-screen/headphone/car Next/Previous reach this function from a
+  // MediaSession action handler while the page is hidden (screen locked,
+  // app backgrounded). iOS only wakes a suspended page briefly to run that
   // handler, and can re-suspend it again before a setTimeout scheduled
   // below ever fires — so the lift's own "drop" half (the actual
   // advance()/seek() call, deferred SKIP_FADE_MS-SKIP_LIFT_MS+SKIP_AIR_MS
-  // below) silently never ran, and a second press just mutated a
-  // pendingSkip that would never resolve either. Nothing is visible to
-  // animate while hidden anyway, so resolve immediately instead of
-  // deferring through a timer that isn't guaranteed to survive — the
-  // exact "separate 'from the lock screen' branch" the comment above
-  // this function once said wasn't needed.
+  // below) would silently never run, and a second press would just
+  // mutate a pendingSkip that never resolves either. Nothing is visible
+  // to animate while hidden anyway, so resolve immediately instead of
+  // deferring through a timer that isn't guaranteed to survive.
   if(typeof document !== 'undefined' && document.hidden){
     if(dir === 0) seek(0); else advance(dir, false);
     return;
   }
   const t = current();
   // AU9 (docs/16_AUDIO.md §5): the currently-playing record's own rpm,
-  // cached onto S.recordFormat by transport.js's load() — rotationHz() in
-  // place of the old fixed 0.55 * S.rate.
+  // cached onto S.recordFormat by transport.js's load(), feeds rotationHz()
+  // below rather than a fixed rate multiplier.
   const rpm45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);
   const scale = t ? noiseFloorScale(S.surfaceNoise, trackTier(t), undefined, rpm45) : 0;
   const active = surfaceNoiseActive() && scale > 0;
@@ -375,9 +368,9 @@ export function queueRemoveAt(pos){
   showQueueUndo('Removed "' + removedTitle + '" from the queue.');
   renderQueueSheet(queueSheetHost);
 }
-// AU8: generalizes the old adjacent-swap queueMove() so a drag can jump
-// more than one slot at once — queueMove(pos, dir) is kept as the ▲▼
-// VoiceOver-action entry point, now a thin wrapper over this. Exported for
+// AU8: generalizes queueMove()'s adjacent-swap so a drag can jump more
+// than one slot at once — queueMove(pos, dir) is kept as the ▲▼
+// VoiceOver-action entry point, a thin wrapper over this. Exported for
 // its own unit test, same precedent as queueRemoveAt just above.
 export function queueReorderTo(fromPos, toPos){
   const fromIdx = S.qpos + 1 + fromPos;
@@ -466,9 +459,9 @@ function wireQueueDragHandle(handle, li, pos, listEl){
   handle.addEventListener('pointercancel', endQueueDrag);
 }
 
-// exported (previously module-private) since step D6 lets the desktop side
-// panel's "Up next" tab target this at #playerSideBody instead of the
-// phone overlay's #queueBody — same render, just a different host
+// Exported so the desktop side panel's "Up next" tab can target this at
+// #playerSideBody instead of the phone overlay's #queueBody — same
+// render, just a different host.
 export function renderQueueSheet(host){
   queueSheetHost = host || $('#queueBody');
   const dest = queueSheetHost; dest.innerHTML = '';

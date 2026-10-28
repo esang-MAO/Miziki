@@ -181,9 +181,9 @@ export function cancelPendingGapless(){
 // How close to the current source's own computed end (in real,
 // rate-adjusted seconds) maybeScheduleGaplessNext() waits before arming
 // the next one. PL3 (docs/19_PLAYER.md, "gapless that always lands"):
-// this no longer needs to be tiny -- the boundary itself is computed
-// exactly from S.anchor (not re-estimated from S.pos/S.rate at arm time),
-// so a wide lead window is just as accurate as a narrow one. Wide enough
+// doesn't need to be tiny -- the boundary itself is computed exactly from
+// S.anchor (not re-estimated from S.pos/S.rate at arm time), so a wide
+// lead window is just as accurate as a narrow one. Wide enough
 // to comfortably clear the 1s hidden-tab tick rate (clock.js's tick()
 // only runs every ~1s while document.hidden), so a track boundary that
 // falls inside that gap still gets armed before it arrives.
@@ -412,7 +412,7 @@ export function load(i){
   // begin with (nothing to fix there); only the new row's own row has to
   // exist for this to be enough — if it isn't currently on screen either
   // (grouped/drilled-into views, an active search, the crate), fall back
-  // to a full render exactly as before this change.
+  // to a full render.
   if(prevTrack && prevTrack.id !== t.id) updateTrackRow(prevTrack.id);
   if(!updateTrackRow(t.id)) renderTracks();
   renderMiniPlayer();
@@ -481,8 +481,7 @@ export function startSource(offset, leadInSec = 0, opts = {}){
   // treats anything at or before currentTime as now" (Web Audio's own
   // rule), not a literal anchor at context time 0, so that case anchors
   // to S.ctx.currentTime instead. Before this ctxTime, player/clock.js's
-  // currentPos() reads 0 -- this is what replaces S.openUntil's old
-  // wall-clock lead-in deadline.
+  // currentPos() reads 0.
   S.anchor = { ctxTime: when > 0 ? when : S.ctx.currentTime, offset: playOffset, rate: S.rate };
   // AU2 (docs/16_AUDIO.md §2.2): every ordinary start fades trackGain in
   // over START_FADE_MS, scheduled at the exact same `when` the source
@@ -554,10 +553,9 @@ export async function play(){
   // already says so, since a side flip keeps its own ceremony and is never
   // pre-armed — see maybeScheduleGaplessNext()), so this naturally no-ops
   // on the adopted path with no extra branch needed.
-  // AU9 (docs/16_AUDIO.md §5): rotationHz() in place of the old fixed
-  // 0.55 * S.rate (33⅓'s own rate, hardcoded) — the record's own rpm,
-  // cached onto S.recordFormat by load() just above, drives every one of
-  // these generators now, and a 45 gets the shorter lead-in and the
+  // AU9 (docs/16_AUDIO.md §5): rotationHz() — the record's own rpm,
+  // cached onto S.recordFormat by load() just above — drives every one
+  // of these generators, so a 45 gets the shorter lead-in and the
   // quieter noise floor that section's own "cleaner in Vinyl for 45s"
   // rule asks for.
   const rpm45 = !!(S.recordFormat && S.recordFormat.speed === RPM_45);

@@ -122,9 +122,9 @@ export function popSamples(sampleRate, durSec, seed, levelDb = -34, perSecond = 
 }
 
 // A slight amplitude wobble at platter rate — 0.55 Hz at 33⅓, scaled by
-// whatever live rate the caller passes in (Sundown's own slowdown, so the
-// noise's own pulse slows with the record, same tie-in PR #172 gave
-// scratch audio's pitch).
+// whatever live rate the caller passes in (Sundown's own slowdown), so the
+// noise's own pulse slows with the record — the same tie-in scratch
+// audio's pitch has.
 export function rotationWobble(sampleRate, n, rateHz = 0.55){
   const out = new Float32Array(n);
   const w = 2 * Math.PI * rateHz / sampleRate;
@@ -370,11 +370,10 @@ export function fadeMusicTo(value, ms){
 // doesn't happen "now" -- a needle-drop/lead-in (startSource()'s own
 // leadInSec) schedules the actual music start at a future context time,
 // and the lead-in noise's envelope on this same bus (startBuffer(), above)
-// never touches trackGain at all. Before this existed, nothing ever
-// scheduled trackGain back up for that case, so it stayed wherever the
-// previous track's stop left it (usually 0) -- a new album picked while
-// one is already playing, or paused, with surface noise on, played
-// silence once the lead-in finished. cancelScheduledValues/setValueAtTime
+// never touches trackGain at all. Without this, trackGain would stay
+// wherever the previous track's stop left it (usually 0) -- a new album
+// picked while one is already playing, or paused, with surface noise on,
+// would play silence once the lead-in finished. cancelScheduledValues/setValueAtTime
 // are both anchored at `when`, not "now", so a fade-out already ramping
 // toward 0 earlier in the same tick is left alone right up to the moment
 // the new source actually starts.
