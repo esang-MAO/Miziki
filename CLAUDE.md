@@ -171,6 +171,7 @@ Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.
 - [ ] Lock the screen with the background toggle on, across a track boundary inside an album: no gap. Across an album boundary: next album starts within a second or two.
 - [ ] Take a phone call (or ask Siri something) while a track is playing: music pauses, no crash, no second source. Lock-screen Play and in-app Play both resume from exactly where it stopped.
 - [ ] Lock-screen/Control Center Play-Pause reflects actual playback state with Background playback both on and off, not just the one route.
+- [ ] Lock-screen artwork shows (not blank) and survives the app being backgrounded a while. Lock-screen scrubber/position stays in step with the music through a Sundown slowdown, same as the in-app scrubber.
 - [ ] Background playback off: background the app (don't lock the phone) with a track playing, then return. Playback stays paused (never auto-resumes) and the scrubber/platter show the real position.
 - [ ] Sleep timer
 - [ ] Share image: each style and format saves
