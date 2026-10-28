@@ -1,8 +1,7 @@
-// A proper home for two small motion-related primitives that used to live
-// as top-level main.js exports: the OS-level reduced-motion preference
-// (read once, at module load, same as it always was) and the easing curve
-// the put-away sequence's spin-down uses (src/shell/put-away.js — read by
-// the render loop, src/player/clock.js). Moved out, step 7b.
+// Two small motion-related primitives: the OS-level reduced-motion
+// preference (read once, at module load) and the easing curve the
+// put-away sequence's spin-down uses (src/shell/put-away.js — read by
+// the render loop, src/player/clock.js).
 export const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // The disc's rotation normally snaps to 0 the instant S.playing goes false

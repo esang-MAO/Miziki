@@ -324,9 +324,9 @@ export function renderStorefrontSection(body){
 // vendored client builds internally — none of this touches the network.
 function localStaffPicks(){
   // DB (not the repo.js interface) is what MizikiSocial.mizikiAdapter's own
-  // signature expects — this is the one call site step 4c's "no DB. calls
-  // outside src/storage/" leaves alone, since the adapter is social-client
-  // code, not main.js's own storage access.
+  // signature expects — the one deliberate exception to "no DB calls
+  // outside src/storage/," since the adapter is social-client code, not
+  // this app's own storage access.
   const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
   return MizikiSocial.getPins().map(albumId => {
     const info = adapter.albumInfo(albumId);

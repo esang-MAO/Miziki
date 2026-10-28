@@ -4,11 +4,11 @@
    hides). Step 04 of the backup/account-system plan (docs/SUPABASE_SETUP.md)
    fills these in once the project and its migrations exist — the anon key
    is safe in client code, RLS is the actual protection.
-   SOCIAL_SUPABASE_ANON_KEY keeps its old name, but as of step 04 it holds
-   Supabase's newer *publishable* key (sb_publishable_…, Settings -> API
-   Keys), not the legacy JWT-shaped anon key Supabase is retiring at the
-   end of 2026 — never the secret key (sb_secret_…), which must never be
-   in client code or this repo at all. */
+   SOCIAL_SUPABASE_ANON_KEY keeps its old name, but holds Supabase's newer
+   *publishable* key (sb_publishable_…, Settings -> API Keys), not the
+   legacy JWT-shaped anon key Supabase is retiring at the end of 2026 —
+   never the secret key (sb_secret_…), which must never be in client code
+   or this repo at all. */
 export const SOCIAL_SUPABASE_URL = 'https://yeyeprzdlbyacisfftjp.supabase.co';
 export const SOCIAL_SUPABASE_ANON_KEY = 'sb_publishable_g7Ywv3lxDfwqxuAyCUSojg_wXd9Csnv';
 
@@ -151,9 +151,9 @@ export const S = {
   // day-progress with the account backup") so progress isn't stranded on
   // one device.
   zoetropeUnlocked:{}, zoetropeDayProgress:{},
-  // Follow-up to PR7 (Ken, 2026-10-26): "include an option in the settings
-  // to turn off zoetropes earned." A saved boolean, same persisted-setting
-  // shape as paperLabelOnLossy (docs/13_CRATE.md CR7) — default true (every
+  // "Include an option in the settings to turn off zoetropes earned." A
+  // saved boolean, same persisted-setting shape as paperLabelOnLossy
+  // (docs/13_CRATE.md CR7) — default true (every
   // device before this PR loads as on, the long-standing behavior).
   // Turning it off stops awarding new zoetropes (history/sessions.js's
   // sessionTrackComplete() skips checkZoetropeUnlock() entirely, so
@@ -362,7 +362,7 @@ S.playInFullPlayer = true;
 // above instead of this map (nothing to restore there yet).
 S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null, sectionPos:{}};
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
-// fight the user's own input value (step 3c — was a top-level let in main.js)
+// fight the user's own input value
 S.scrubbing = false;
 
 // D2 (docs/DESKTOP_LAYOUT.md): one of 'auto'/'light'/'dark'. Auto is the

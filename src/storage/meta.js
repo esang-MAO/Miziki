@@ -17,7 +17,7 @@ import { applySlipmat } from '../ui/slipmat.js';
 
 /* ================= persistence =================
    The rest of what gets saved, on top of the raw IndexedDB wrapper (`DB`,
-   src/storage/idb.js, step 4a): queueSave()/saveMeta()/restoreMeta() and the
+   src/storage/idb.js): queueSave()/saveMeta()/restoreMeta() and the
    various persist*() helpers elsewhere read and write through it. If storage
    is unavailable, every DB call quietly no-ops and Miziki behaves exactly as
    it did before: fully working, session-only. */
@@ -50,10 +50,11 @@ function touchChangedPrefKeys(nextPrefs){
 
 async function saveMeta(){
   if(!storage.available()) return;
-  // playlists/albumOrder already hold track ids, not positions (F3 spec,
-  // step 02) — they're written straight through, including any id whose
-  // track isn't currently in the library (forgotten, not yet reconnected);
-  // dropping those here is exactly the write-back bug step 02 fixed
+  // playlists/albumOrder hold track ids, not positions (F3 spec) — they're
+  // written straight through, including any id whose track isn't
+  // currently in the library (forgotten, not yet reconnected); dropping
+  // those here would be a write-back bug (a reconnected track would never
+  // rejoin its playlist/order)
   await meta.put('playlists', S.playlists.map(p => ({name:p.name, items:p.items.slice(), system:p.system})));
   await meta.put('albumOrder', S.albumOrder);
   await meta.put('albumSort', S.albumSort);
@@ -240,9 +241,9 @@ function applyPrefs(p){
     const d = $('#balanceDesc'); if(d) d.textContent = balanceCaptionFor(S.balance); }
   if(typeof p.deviceVolume === 'number') S.deviceVolume = p.deviceVolume;
   { const s = $('#barVolume'); if(s) s.value = String(S.deviceVolume); }
-  // Follow-up to PRESSINGS_110 PR7 (Ken, 2026-10-26): no dedicated UI side
-  // effect of its own beyond the switch's own text/aria-pressed — same
-  // inline sync shape as monoBtn/surfaceNoiseUnderMusicBtn above.
+  // No dedicated UI side effect of its own beyond the switch's own
+  // text/aria-pressed — same inline sync shape as monoBtn/
+  // surfaceNoiseUnderMusicBtn above.
   if(typeof p.zoetropesEnabled === 'boolean') S.zoetropesEnabled = p.zoetropesEnabled;
   { const b = $('#zoetropesBtn'); if(b){ b.textContent = S.zoetropesEnabled ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.zoetropesEnabled)); } }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by

@@ -1,9 +1,8 @@
 /* ================= account backup: sync engine =================
-   Step 06 (B3), extended in step 07 (B4) with custom-cover and profile-
-   picture/avatar backup to Supabase Storage (migration 006). The server
-   table (public.library_backup, migration 005), the pure merge logic
-   (backup-doc.js/merge.js, step 03) and the storage buckets already
-   exist — this is the part that wires them into the running app. Nothing
+   Wires the server table (public.library_backup, migration 005), the pure
+   merge logic (backup-doc.js/merge.js), and the Supabase Storage buckets
+   for custom-cover and profile-picture/avatar backup (migration 006) into
+   the running app. Nothing
    here runs unless the user is signed in; with social config empty (or
    signed out), every exported function here is a safe no-op, same as the
    rest of the social layer (see CLAUDE.md's "Social config" note).
@@ -63,10 +62,10 @@ const B = {
   // track yet (B2's own "doesn't exist locally yet" list, applied) — kept
   // in memory and mirrored to meta so a restart doesn't lose them
   pending: { overlays: {}, playlistItems: [], albumOrderItems: [], covers: {} },
-  // step 07 (B4): hashes this device has already confirmed uploaded this
-  // install, so an unchanged cover/avatar isn't re-uploaded every single
-  // sync cycle once online — keyed 'bucket:hash', persisted to meta so a
-  // restart doesn't forget and immediately re-upload everything once
+  // Hashes this device has already confirmed uploaded this install, so an
+  // unchanged cover/avatar isn't re-uploaded every single sync cycle once
+  // online — keyed 'bucket:hash', persisted to meta so a restart doesn't
+  // forget and immediately re-upload everything once online again.
   uploadedHashes: null,
   // RF18 (docs/12_REFINE.md): this account's other devices' own last-known
   // {updatedAt, row} per device_id — see fetchRemoteRows()'s own comment.

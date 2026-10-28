@@ -1,14 +1,11 @@
 /* ================= saved settings: parse, then apply =================
-   Split out of main.js's applyPrefs()/saveMeta() (step 4b) into two pure
-   functions, so the part that matters for data safety — does an old or
-   malformed saved object still load correctly — can be tested without a
-   DOM or a database. applyPrefs() itself stays in main.js (it calls
-   setMode(), cycleRepeat(), bgUpdateUI() and other screen/side-effect
-   functions) and now takes parsePrefs()'s output instead of the raw saved
-   object; saveMeta() now writes serializePrefs(S) instead of building the
-   object inline. Neither this split, nor moving it here, changes what
-   gets saved or how a saved object is read back — same field names, same
-   checks, same allowed values as before.
+   Two pure functions, so the part that matters for data safety — does an
+   old or malformed saved object still load correctly — can be tested
+   without a DOM or a database. applyPrefs() itself stays in main.js (it
+   calls setMode(), cycleRepeat(), bgUpdateUI() and other screen/side-effect
+   functions) and takes parsePrefs()'s output instead of the raw saved
+   object; saveMeta() writes serializePrefs(S) instead of building the
+   object inline.
 
    Rule for later additions: every new saved setting goes into BOTH
    serializePrefs and parsePrefs, gets a default in S (src/state.js), and
@@ -217,10 +214,9 @@ export function parsePrefs(raw){
   if(typeof p.mono === 'boolean') out.mono = p.mono;
   if(typeof p.balance === 'number') out.balance = Math.max(-1, Math.min(1, p.balance));
   if(typeof p.deviceVolume === 'number') out.deviceVolume = Math.max(0, Math.min(1, p.deviceVolume));
-  // Follow-up to PRESSINGS_110 PR7: a saved object without this (every
-  // device before this PR) loads as on, the stated default and today's
-  // behavior — the same "missing means the default" shape every other
-  // boolean toggle in this file already follows.
+  // A saved object without this loads as on, the stated default — the
+  // same "missing means the default" shape every other boolean toggle in
+  // this file already follows.
   if(typeof p.zoetropesEnabled === 'boolean') out.zoetropesEnabled = p.zoetropesEnabled;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved

@@ -31,9 +31,9 @@ import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhas
    albumDisplay is the one place that snapshot lives, shared by both.
    Timestamps double as the recency tie-break and, per §11, keep every
    record ready for a future account system: stable ids, no device-keyed
-   identifiers, no absolute paths. persistAlbumLastPlayed moved to
-   src/history/sessions.js (step 5c) — its only writer, sessionTrackComplete,
-   lives there. */
+   identifiers, no absolute paths. persistAlbumLastPlayed lives in
+   src/history/sessions.js — its only writer, sessionTrackComplete, is
+   there too. */
 export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed', S.trackLastPlayed); }
 
 /* ================= profile tab rendering =================
@@ -43,8 +43,8 @@ export async function persistTrackLastPlayed(){ await meta.put('trackLastPlayed'
 export async function persistProfile(){
   await profile.put({k:'me', name:S.profile.name, username:S.profile.username, pictureBlob:S.profile.artBlob || undefined});
   touchBackupField('profileName');
-  // step 07, B4: the profile picture doubles as the account's public
-  // avatar once signed in — re-encode/hash is idempotent and cheap, so
+  // The profile picture doubles as the account's public avatar once
+  // signed in — re-encode/hash is idempotent and cheap, so
   // this runs on every save (including a name-only change) rather than
   // tracking separately whether the picture itself actually changed;
   // the real network upload is deduped by hash in queueAvatarUpload's
@@ -87,11 +87,10 @@ export function topTile(label, art, title, subtitle, emptyText, onTap){
 // different screen anyway). Navigating to a sub-screen (Listening,
 // Settings, …) and back still does a full rebuild of the home screen
 // itself the first time it's entered again — this only changes what
-// happens on a *refresh while already looking at it*, per the plan's own
-// "Profile" bullet; avoiding re-creating unchanged <img> elements inside
-// the storefront's own avatar (its header always rebuilds internally once
-// called) is a deeper change to src/profile/storefront.js itself,
-// deliberately left out of this PR's scope — see its PR description.
+// happens on a *refresh while already looking at it*. Avoiding re-creating
+// unchanged <img> elements inside the storefront's own avatar (its header
+// always rebuilds internally once called) would be a deeper change to
+// src/profile/storefront.js itself, deliberately out of scope here.
 // RF11 (docs/12_REFINE.md, "Profile is your crate") moved the rhythm card
 // off this home screen onto the new Listening sub-screen alongside the
 // rest of renderListeningScreen()'s own content, so there's only the one
@@ -174,20 +173,16 @@ function renderProfileHome(body, refresh){
   renderStorefrontSection(profileHomeHosts.storefrontHost);
 }
 
-// DA3 (docs/DAY_ARC.md, artboard ProfileSettings): the Appearance control
-// moved off the old Character tab (now gone — its content lives in
-// Sundown's own Sound view, src/wiring/sundown.js) into this new screen,
-// reached via the Settings button renderStorefrontSection() now adds at
-// the top of every profile-home state — see storefront.js's own comment
-// for why that needed to move there rather than staying only on the
-// signed-in storefront's own gear button. RF8 (docs/12_REFINE.md) removed
-// the desktop sidebar's own second copy of this control (D7,
-// #sidebarAppearance) — this screen is its one home now, phone and
-// desktop alike. This screen's own buttons are built fresh on every
-// render, so each gets its own click listener right here rather than
-// relying on wireCharacter()'s boot-time querySelectorAll pass; setTheme()
-// still syncs aria-pressed on every [data-theme-choice] button in the
-// document whenever any one of them is actually clicked.
+// DA3 (docs/DAY_ARC.md, artboard ProfileSettings): the Appearance control's
+// one home, phone and desktop alike, reached via the Settings button
+// renderStorefrontSection() adds at the top of every profile-home state —
+// see storefront.js's own comment for why that needed to move there
+// rather than staying only on the signed-in storefront's own gear button.
+// This screen's own buttons are built fresh on every render, so each gets
+// its own click listener right here rather than relying on
+// wireCharacter()'s boot-time querySelectorAll pass; setTheme() still
+// syncs aria-pressed on every [data-theme-choice] button in the document
+// whenever any one of them is actually clicked.
 //
 // DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): Nychthemeron is
 // the fourth choice — the mockup's own 2×2 grid (settings-appearance's
@@ -199,11 +194,10 @@ function renderProfileHome(body, refresh){
 function nychthemeronSwitchCaption(){
   if(!S.sun.ok) return 'Resolves once your location is known.';
   const fmt = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  // PR7 (DAY_ARC_BRIEF.md): reads arc.js's phaseAt() (via theme.js's own
-  // isDaylightPhase()), the same day model Nychthemeron's own
-  // light/dark resolution now uses (src/ui/theme.js's effectiveTheme()),
-  // in place of the old DA1-DA6 dayPosition()/currentDayPosition().
-  // nowClock() folds S.previewMin in the same way every other Day Arc v2
+  // Reads arc.js's phaseAt() (via theme.js's own isDaylightPhase()), the
+  // same day model Nychthemeron's own light/dark resolution uses
+  // (src/ui/theme.js's effectiveTheme()). nowClock() folds S.previewMin
+  // in the same way every other Day Arc v2
   // readout does, so "Preview the day" moves this caption too.
   const now = nowClock();
   if(isDaylightPhase(phaseAt(now, S.sun))) return 'Turns dark at ' + fmt(S.sun.set) + ' today.';
@@ -227,10 +221,9 @@ function parkPlaybackSettings(){
   const panel = $('#playbackSettings'), stash = $('#playbackSettingsStash');
   if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
 }
-// Ken, 2026-10-22: the same parking shape as parkPlaybackSettings() above,
-// for #libTools — moved back out of #route-library (RF8's placement) into
-// Profile › Settings. Parked here, hidden, in #libToolsStash
-// (miziki.html); renderAppSettingsScreen() borrows it below.
+// The same parking shape as parkPlaybackSettings() above, for #libTools —
+// parked here, hidden, in #libToolsStash (miziki.html);
+// renderAppSettingsScreen() borrows it below.
 function parkLibraryTools(){
   const panel = $('#libTools'), stash = $('#libToolsStash');
   if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
@@ -273,9 +266,8 @@ function renderAppSettingsScreen(body){
   appearance.appendChild(slipmat);
   renderSlipmatRow(slipmat, () => { if(S.profileView.screen === 'settings') renderProfile(); });
 
-  // Ken, 2026-10-22: Library tools (layout/sides/sealed/play-in-full-player,
-  // find duplicates, clear history, test tone, forget library) moved here
-  // from the Library route's own overflow menu (RF8's placement) — see
+  // Library tools (layout/sides/sealed/play-in-full-player, find
+  // duplicates, clear history, test tone, forget library) — see
   // parkLibraryTools()/#libToolsStash above.
   const library = el('div','settings-section');
   library.appendChild(el('div','settings-section-head', 'Library'));

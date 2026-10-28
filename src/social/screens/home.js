@@ -15,15 +15,12 @@ import { beginSocialSignIn } from '../../profile/settings.js';
 // out from under whoever was on it.
 import { showRoute } from '../../shell/routes.js';
 
-// Ken, 2026-10-22: Home used to reuse profile/storefront.js's own
-// renderOpenStoreCard() wholesale when signed out -- the exact same card
-// Profile shows, avatar/name editor, this device's own Records count and
-// crate grid included. That made the two tabs look identical signed out,
-// which was never the intent: RF7 (docs/12_REFINE.md) only asked for "one
-// card (what friends' crates are, and a sign-in button)," not a second
-// copy of the Profile screen's own identity editor. This is Home's own
-// card -- no avatar, no username, no crate grid of this device's own
-// records, just what the feed is for and a way in.
+// RF7 (docs/12_REFINE.md) asks for "one card (what friends' crates are,
+// and a sign-in button)," not a copy of the Profile screen's own identity
+// editor -- so this is Home's own card, deliberately distinct from
+// profile/storefront.js's renderOpenStoreCard(): no avatar, no username,
+// no crate grid of this device's own records, just what the feed is for
+// and a way in.
 function renderHomeSignInCard(host, authState){
   host.innerHTML = '';
   host.appendChild(storeAwning());
@@ -38,9 +35,9 @@ function renderHomeSignInCard(host, authState){
   host.appendChild(card);
 }
 
-// Ken, 2026-10-22: the Home tab itself is gone outright while signed out,
-// not just its content -- reappears the instant MizikiSocial reports
-// auth:'ready'. #homeTabBtn has no hidden markup of its own in miziki.html
+// The Home tab itself is gone outright while signed out, not just its
+// content -- reappears the instant MizikiSocial reports auth:'ready'.
+// #homeTabBtn has no hidden markup of its own in miziki.html
 // (it's the one every signed-in return visit actually wants to see), so
 // this is what hides it. style.display, not the hidden attribute:
 // .tabbar-btn's own display:flex rule in 08-shell.css has the exact same

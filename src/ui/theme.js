@@ -64,10 +64,10 @@
    embedded contexts), and losing the optimization there is a far smaller
    problem than throwing.
 
-   effectiveTheme() gained `export` after D7 shipped, for one external
-   caller: src/player/clock.js's drawSun() (fix, not part of D1-D7 —
-   see that file's own comment at its sky-color block). It resolves
-   'light'/'dark'/'auto'/'nychthemeron' down to the one the device is
+   effectiveTheme() is exported for one external caller: src/player/
+   clock.js's drawSun() (see that file's own comment at its sky-color
+   block). It resolves 'light'/'dark'/'auto'/'nychthemeron' down to the one
+   the device is
    actually showing right now, the same question drawSun() needs
    answered to know whether its own animated sky palette is still
    in-theme. */
@@ -83,11 +83,10 @@ export const THEME_STORAGE_KEY = 'miziki-theme';
 // 22-theme.css's light block), not a separately-chosen approximation
 const THEME_COLOR = { dark: '#101A20', light: '#ECE5D8' };
 
-// PR7 (DAY_ARC_BRIEF.md): arc.js's phaseAt() only ever names one light
-// phase ('day' — sunrise up to ~32 min before sunset, §3.2's own fixed
-// offsets); 'dawn'/'dusk'/'night' are all dark, the same "is the sun up"
-// cut the old 7-phase LIGHT_PHASES set made, just against the new
-// 4-phase model instead of day.js's dayPosition().
+// arc.js's phaseAt() only ever names one light phase ('day' — sunrise up
+// to ~32 min before sunset, §3.2's own fixed offsets); 'dawn'/'dusk'/
+// 'night' are all dark — the "is the sun up" cut against the 4-phase
+// model.
 //
 // exported so the Settings/sidebar caption ("Turns dark at 6:33pm today")
 // can ask "is the sun up right now" the same way effectiveTheme() itself
