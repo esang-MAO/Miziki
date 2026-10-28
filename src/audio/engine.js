@@ -10,7 +10,7 @@ import {
   GRAPHIC_BANDS_HZ, GRAPHIC_BAND_Q, TILT_PIVOT_HZ, MAX_PARAMETRIC_BANDS,
   PARAMETRIC_GAIN_TYPES, autoPreampDbFromPeak, combineDbCurve,
   sampleFrequenciesLog, clampTiltDb, clampGraphicBandDb, clampPreampDb,
-  defaultEqState,
+  clampParametricGainDb, clampQForBand, defaultEqState,
 } from './eq.js';
 import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 import { handleContextInterruption } from '../player/transport.js';
@@ -476,7 +476,7 @@ function setScratchFromState(n, eq){
     n.eqScratch.tiltLow.gain.value = -tiltDb;
     n.eqScratch.tiltHigh.gain.value = tiltDb;
     const bands = eq.graphicBands || [];
-    n.eqScratch.graphic.forEach((f, i) => { f.gain.value = clampGraphicBandDb(bands[i] || 0); });
+    n.eqScratch.graphic.forEach((f, i) => { f.gain.value = clampGraphicBandDb(bands[i] || 0, GRAPHIC_BANDS_HZ[i]); });
     n.eqScratch.parametric.forEach(f => { f.type = 'peaking'; f.gain.value = 0; });
   } else {
     n.eqScratch.tiltLow.gain.value = 0;
@@ -488,8 +488,13 @@ function setScratchFromState(n, eq){
       if(!b){ f.type = 'peaking'; f.gain.value = 0; return; }
       f.type = BIQUAD_TYPE_FOR[b.type];
       f.frequency.value = b.freq;
-      f.Q.value = b.q;
-      f.gain.value = PARAMETRIC_GAIN_TYPES.includes(b.type) ? b.gainDb : 0;
+      // PL8 items 2-3: re-clamp gain/Q at the point they actually reach a
+      // real node, not just at slider-interaction time -- a stale or
+      // synced-from-another-device value (prefs last-write-wins per key)
+      // can carry a gain/Q pair saved under an older, looser cap.
+      const gainDb = PARAMETRIC_GAIN_TYPES.includes(b.type) ? clampParametricGainDb(b.gainDb, b.type, b.freq) : 0;
+      f.gain.value = gainDb;
+      f.Q.value = clampQForBand(b.q, gainDb, b.type);
     });
   }
 }
@@ -542,7 +547,7 @@ export function applyEQ(ramp = 0.05){
   n.eqTiltHigh.gain.setTargetAtTime(tiltDb, t, ramp);
 
   const bands = (!bypass && mode === 'graphic') ? (eq.graphicBands || []) : [];
-  n.eqGraphic.forEach((f, i) => f.gain.setTargetAtTime(clampGraphicBandDb(bands[i] || 0), t, ramp));
+  n.eqGraphic.forEach((f, i) => f.gain.setTargetAtTime(clampGraphicBandDb(bands[i] || 0, GRAPHIC_BANDS_HZ[i]), t, ramp));
 
   const pBands = (!bypass && mode === 'parametric') ? (eq.parametricBands || []).slice(0, MAX_PARAMETRIC_BANDS) : [];
   n.eqParametric.forEach((f, i) => {
@@ -554,8 +559,10 @@ export function applyEQ(ramp = 0.05){
     }
     f.type = BIQUAD_TYPE_FOR[b.type];
     f.frequency.setTargetAtTime(b.freq, t, ramp);
-    f.Q.setTargetAtTime(b.q, t, ramp);
-    f.gain.setTargetAtTime(PARAMETRIC_GAIN_TYPES.includes(b.type) ? b.gainDb : 0, t, ramp);
+    // PL8 items 2-3: see the matching comment in setScratchFromState() above.
+    const gainDb = PARAMETRIC_GAIN_TYPES.includes(b.type) ? clampParametricGainDb(b.gainDb, b.type, b.freq) : 0;
+    f.Q.setTargetAtTime(clampQForBand(b.q, gainDb, b.type), t, ramp);
+    f.gain.setTargetAtTime(gainDb, t, ramp);
   });
 }
 

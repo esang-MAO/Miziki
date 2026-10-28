@@ -32,7 +32,12 @@ export const PARAMETRIC_TYPES = ['peak', 'lowshelf', 'highshelf', 'lowcut', 'hig
 export const PARAMETRIC_GAIN_TYPES = ['peak', 'lowshelf', 'highshelf'];
 
 export const PREAMP_MIN_DB = -24;
-export const PREAMP_MAX_DB = 12;
+// PL8 item 1 (docs/19_PLAYER.md): manual preamp used to go to +12 dB, which
+// can only ever push the combined curve into the limiter -- auto-preamp
+// already prevents that for the auto path, so the manual path is capped at
+// 0 dB too. Saved values above 0 clamp down on load via clampPreampDb below
+// (storage/prefs.js), without touching anything else about the saved state.
+export const PREAMP_MAX_DB = 0;
 
 // Standard 1/3-octave band centers, 20 Hz to 20 kHz -- used only by the
 // Verify script's own "matches getFrequencyResponse() within 0.1 dB at
@@ -64,11 +69,52 @@ export function clamp(v, lo, hi){
   return Math.min(hi, Math.max(lo, v));
 }
 export const clampTiltDb = db => clamp(db, -TILT_MAX_DB, TILT_MAX_DB);
-export const clampGraphicBandDb = db => clamp(db, -GRAPHIC_BAND_MAX_DB, GRAPHIC_BAND_MAX_DB);
-export const clampParametricGainDb = db => clamp(db, -PARAMETRIC_BAND_MAX_DB, PARAMETRIC_BAND_MAX_DB);
+
+// PL8 item 3 (docs/19_PLAYER.md): at the engine's own rate, Web Audio's
+// biquads cramp near the top of the band, and lossy files hide their
+// artifacts up there -- so a *boost* at or above 10 kHz is capped lower
+// than the general band ceiling. Cuts are never affected (nothing here
+// stops a cut from reaching the full -GRAPHIC_BAND_MAX_DB/-PARAMETRIC_BAND_MAX_DB).
+export const TREBLE_BOOST_CAP_HZ = 10000;
+export const TREBLE_BOOST_CAP_DB = 6;
+
+// `hz` is optional so every pre-PL8 call site (which has no frequency to
+// give, or whose band is always below the treble line) keeps the plain
+// symmetric ±GRAPHIC_BAND_MAX_DB clamp unchanged.
+export function clampGraphicBandDb(db, hz){
+  if(typeof hz === 'number' && hz >= TREBLE_BOOST_CAP_HZ && typeof db === 'number' && db > 0){
+    return clamp(db, 0, TREBLE_BOOST_CAP_DB);
+  }
+  return clamp(db, -GRAPHIC_BAND_MAX_DB, GRAPHIC_BAND_MAX_DB);
+}
+
+// `type`/`freq` are optional for the same reason as clampGraphicBandDb's
+// `hz` -- only a high-shelf or peak band at or above the treble line gets
+// the lower boost cap (lowshelf boosts the low end, not the top; lowcut/
+// highcut ignore gain entirely).
+export function clampParametricGainDb(db, type, freq){
+  const isTrebleBand = (type === 'highshelf' || type === 'peak')
+    && typeof freq === 'number' && freq >= TREBLE_BOOST_CAP_HZ;
+  if(isTrebleBand && typeof db === 'number' && db > 0){
+    return clamp(db, 0, TREBLE_BOOST_CAP_DB);
+  }
+  return clamp(db, -PARAMETRIC_BAND_MAX_DB, PARAMETRIC_BAND_MAX_DB);
+}
 export const clampPreampDb = db => clamp(db, PREAMP_MIN_DB, PREAMP_MAX_DB);
 export const clampFreqHz = hz => clamp(hz, 20, 20000);
 export const clampQ = q => clamp(q, 0.1, 18);
+
+// PL8 item 2: a narrow (high-Q), tall (big-dB) boost rings and sounds
+// whistly -- cuts keep the full Q range (a narrow notch is exactly what a
+// surgical cut wants), so this only narrows the ceiling for a *boost*
+// above BOOST_NARROW_Q_THRESHOLD_DB. `gainDb`/`type` optional for the same
+// reason as the two clamps above.
+export const BOOST_NARROW_Q_THRESHOLD_DB = 6;
+export const BOOST_NARROW_Q_MAX = 3;
+export function clampQForBand(q, gainDb, type){
+  const isBoost = PARAMETRIC_GAIN_TYPES.includes(type) && typeof gainDb === 'number' && gainDb > BOOST_NARROW_Q_THRESHOLD_DB;
+  return clamp(q, 0.1, isBoost ? BOOST_NARROW_Q_MAX : 18);
+}
 
 // §3's own gain clamp: "when the combined curve rises above 0 dB
 // anywhere, lower the preamp by that peak." peakDb is the curve's own
@@ -134,14 +180,17 @@ export function sanitizeParametricBand(raw){
   const band = {
     type: raw.type,
     freq: clampFreqHz(typeof raw.freq === 'number' ? raw.freq : 1000),
-    q: clampQ(typeof raw.q === 'number' ? raw.q : 0.7),
   };
   // gain only means something for peak/shelf types -- a cut filter's own
   // "amount" is its frequency/Q, so keep gainDb at 0 rather than carrying
-  // a stray number a cut-type band would simply never apply.
+  // a stray number a cut-type band would simply never apply. Gain is
+  // clamped before Q (PL8 items 2-3), since a saved Q that was fine for a
+  // 0 dB boost may no longer fit once a stale/synced gain above the
+  // treble or narrow-Q threshold gets capped back down on load.
   band.gainDb = PARAMETRIC_GAIN_TYPES.includes(raw.type)
-    ? clampParametricGainDb(typeof raw.gainDb === 'number' ? raw.gainDb : 0)
+    ? clampParametricGainDb(typeof raw.gainDb === 'number' ? raw.gainDb : 0, band.type, band.freq)
     : 0;
+  band.q = clampQForBand(typeof raw.q === 'number' ? raw.q : 0.7, band.gainDb, band.type);
   return band;
 }
 

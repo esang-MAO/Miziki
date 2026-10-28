@@ -353,7 +353,10 @@ test('bad values are ignored: an unrecognized loudnessMode', () => {
 test('round trip: eq survives with every field intact', () => {
   const eq = {
     enabled: true, mode: 'parametric', tilt: 3,
-    graphicBands: [1,2,3,4,5,6,7,8,9,10],
+    // index 9 is the 16 kHz band (PL8 item 3: boosts up there cap at +6 dB),
+    // so this fixture's own top band stays at the cap's own ceiling to still
+    // round-trip exactly.
+    graphicBands: [1,2,3,4,5,6,7,8,9,6],
     parametricBands: [{ type: 'peak', freq: 500, gainDb: 4, q: 0.9 }],
     autoPreamp: false, preampDb: -2,
     savedPresets: { 'my preset': { mode: 'graphic', tilt: 1, graphicBands: [0,0,0,0,0,0,0,0,0,1], parametricBands: [] } },
@@ -388,7 +391,8 @@ test('bad values in eq are clamped or dropped, never left to throw or escape the
   assert.deepEqual(parsed.eq.graphicBands, [12, -12, 0, 0, 0, 0, 0, 0, 0, 0]);
   assert.equal(parsed.eq.parametricBands.length, 1);
   assert.equal(parsed.eq.parametricBands[0].gainDb, 12);
-  assert.equal(parsed.eq.preampDb, 12);
+  // PL8 item 1: manual preamp caps at 0 dB now, not +12.
+  assert.equal(parsed.eq.preampDb, 0);
   assert.equal(parsed.eq.savedPresets.ok.tilt, 6);
   assert.deepEqual(parsed.eq.savedPresets.ok.graphicBands, [12,0,0,0,0,0,0,0,0,0]);
   assert.equal('bad' in parsed.eq.savedPresets, false);
