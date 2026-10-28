@@ -140,3 +140,22 @@ Step 5's new chunk sizes, same build, same branch:
 Scope notes for the rest of TR2 (`docs/19_PLAYER.md`'s other four lazy-load targets), left to follow-up PRs: the EQ sheet needs a prerequisite split (its tiny pure `eqStateLabel()`, used synchronously by the Settings screen on every render, is in the same file as the heavy sheet-rendering code — Vite splits at file granularity, so today any import of either pulls in both); social screens split into `friend-store.js` (lazy-loadable) and `home.js` (wired into boot-time tab-visibility/routing, left static); `profile/legal.js`/`privacy.js` not yet scoped; `src/sync/*` is too deeply embedded in core always-active write paths (history, import, edit, settings) to convert wholesale — only the doc's own narrower ask (defer `initBackupSync()`'s pull until after first paint) remains open.
 
 Device check (step 5): not yet run on-device — first tap on the player's Share icon, a crate/season/pressings Share button, and a gatefold record's Share row should each open with no visible delay, same as before this change.
+
+## TR2: lazy-load the EQ sheet (docs/19_PLAYER.md)
+
+Same baseline as the share/* section above, measured after PR #242 merged (main chunk 484.84 kB / gzip 147.75 kB).
+
+`src/player/eq-sheet.js`'s tiny pure `eqStateLabel()` — used synchronously by the Settings → Playback row on every render of that screen, not a rare "first use" — was in the same file as the heavy sheet-rendering code (`renderEqSheet`, `drawCurve`, `sliderRow`, the graphic/parametric band builders, presets), so any static import of either pulled in both. Split `eqStateLabel()` and its small dependency (`ensureEq()`, `currentStateLabel()`) into a new, DOM-free leaf, `src/player/eq-label.js` (imports only `state.js` and the pure `audio/eq.js`). `eq-sheet.js` now imports `ensureEq`/`currentStateLabel` from there instead of keeping its own copies. `profile/screens.js` imports `eqStateLabel` from `eq-label.js` and now dynamically imports `eq-sheet.js` only inside the EQ row's click handler; `wiring/transport.js`'s `#eqBtn` handler (the player overflow menu's EQ entry) does the same.
+
+New chunk sizes:
+
+| File | Size | gzip | vs. PR #242 |
+|---|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 477.85 kB | 145.71 kB | -6.99 kB / -2.04 kB gzip |
+| `dist/assets/eq-sheet-*.js` (new, lazy) | 7.40 kB | 2.70 kB | — |
+| `dist/assets/sheet-*.js` | 20.53 kB | 7.04 kB | unchanged |
+| `dist/assets/pressings-card-*.js` | 10.34 kB | 4.29 kB | unchanged |
+| `dist/assets/dist-*.js` | 218.84 kB | 56.54 kB | unchanged |
+| `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
+
+Device check: not yet run on-device — opening the EQ sheet from the player overflow menu and from Settings → Playback should both still open with no visible delay; the Settings screen's EQ row should still show the right state text ("OFF"/"CUSTOM · ON"/preset name) immediately, with no flash of a stale value.

@@ -15,7 +15,6 @@ import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
 import { openSleepSheet } from '../player/sleep-timer.js';
-import { openEqSheet } from '../player/eq-sheet.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { touchActiveSession } from '../history/sessions.js';
 import { updateShellAlbum } from '../shell/mini-player.js';
@@ -88,8 +87,13 @@ export function wireTransport(){
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
 
   // AU6 (docs/16_AUDIO.md §3): the EQ sheet, same overflow-menu entry
-  // point as Sleep timer just above.
-  $('#eqBtn').addEventListener('click', openEqSheet);
+  // point as Sleep timer just above. TR2 (docs/19_PLAYER.md): dynamically
+  // imported -- launch never needs the sheet's own rendering code, only
+  // a tap on this button does.
+  $('#eqBtn').addEventListener('click', async () => {
+    const { openEqSheet } = await import('../player/eq-sheet.js');
+    openEqSheet();
+  });
   $('#eqClose').addEventListener('click', () => closeLayer('eq'));
 
   // PL8 item 10 (docs/19_PLAYER.md): tapping the spec line reveals its

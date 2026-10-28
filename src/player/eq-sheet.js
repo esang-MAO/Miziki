@@ -14,10 +14,10 @@
    mutate S.eq, queueSave(), applyEQ(), update just that row's own
    value label and redraw the canvas. This is what keeps a mid-drag
    native <input type="range"> from losing its own pointer capture. */
-import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { openLayer } from '../shell/nav-stack.js';
+import { ensureEq, currentStateLabel } from './eq-label.js';
 import {
   applyEQ, computeEqCurveDb, auditionEqFlat, releaseEqAudition,
 } from '../audio/engine.js';
@@ -27,7 +27,7 @@ import {
   PREAMP_MIN_DB, PREAMP_MAX_DB,
   EQ_PRESETS, EQ_PRESET_LABELS, EQ_PRESET_KEYS,
   clampTiltDb, clampGraphicBandDb, clampParametricGainDb, clampFreqHz, clampQForBand,
-  clampPreampDb, sampleFrequenciesLog, matchPreset, defaultEqState,
+  clampPreampDb, sampleFrequenciesLog, matchPreset,
 } from '../audio/eq.js';
 
 const PARAMETRIC_TYPE_LABELS = {
@@ -37,27 +37,8 @@ const PARAMETRIC_TYPE_LABELS = {
 const CURVE_FREQS = sampleFrequenciesLog(160);
 let holdingFlat = false;
 
-function ensureEq(){
-  if(!S.eq) S.eq = defaultEqState();
-  return S.eq;
-}
-
 function hz(f){ return f >= 1000 ? (f % 1000 === 0 ? (f/1000)+'k' : (f/1000).toFixed(1)+'k') : String(f); }
 function fmtDb(db){ const v = Math.round(db * 10) / 10; return (v > 0 ? '+' : '') + v.toFixed(1); }
-
-function currentStateLabel(eq){
-  if(!eq.enabled) return 'OFF';
-  if(eq.mode === 'parametric'){
-    if(!eq.parametricBands || !eq.parametricBands.length) return 'FLAT · ON';
-    return 'CUSTOM · ON';
-  }
-  const preset = matchPreset(eq.graphicBands, eq.tilt);
-  return (preset ? EQ_PRESET_LABELS[preset] : 'CUSTOM') + ' · ON';
-}
-// exported for the Settings -> Playback row (profile/screens.js), which
-// shows this same "CUSTOM · ON" text without needing its own copy of the
-// matching logic.
-export function eqStateLabel(){ return currentStateLabel(ensureEq()); }
 
 function drawCurve(canvas){
   if(!canvas) return;

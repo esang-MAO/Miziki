@@ -18,7 +18,7 @@ import { renderSlipmatRow } from './slipmat-editor.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
-import { openEqSheet, eqStateLabel } from '../player/eq-sheet.js';
+import { eqStateLabel } from '../player/eq-label.js';
 import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, rhythmVerdictLabel } from '../sundown/rhythm.js';
 
 /* ================= profile tab =================
@@ -284,7 +284,15 @@ function renderAppSettingsScreen(body){
   eqRowRight.appendChild(el('span','settings-link-value', eqStateLabel()));
   eqRowRight.appendChild(el('span','g-chev','›'));
   eqRow.appendChild(eqRowRight);
-  eqRow.addEventListener('click', () => openEqSheet());
+  // TR2 (docs/19_PLAYER.md): eq-sheet.js's heavy sheet-rendering code is
+  // only ever needed once this row is tapped, so it's fetched here
+  // instead of statically imported -- eqStateLabel() above comes from
+  // the tiny eq-label.js leaf instead, so the Settings screen itself
+  // never pulls in the full sheet module just to show the state text.
+  eqRow.addEventListener('click', async () => {
+    const { openEqSheet } = await import('../player/eq-sheet.js');
+    openEqSheet();
+  });
   playback.appendChild(eqRow);
   body.appendChild(playback);
 
