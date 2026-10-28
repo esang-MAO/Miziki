@@ -267,3 +267,23 @@ New sizes:
 A modest cut — the bulk of TR4's ~40 kB estimate is the comment-trimming pass, still to come in the follow-up PR.
 
 Device check: not yet run on-device — the Sundown tab's Day view (the dial, event row, hint row, depth control) should look and behave identically; the desktop sidebar's Sundown summary card should still show the same phase name/sub-line and "Now playing at" text it always has.
+
+## TR4 (part 2): `miziki.html` comment diet
+
+The follow-up to part 1: trimmed `miziki.html`'s ~102 HTML comments, no markup/attribute/behavior changes anywhere (refactor rule 1), comment text only. For each comment, one of three outcomes:
+
+- **Kept as a short structural marker** where the surrounding id/class already made the comment's content obvious, or compressed in place to a one-to-three-line version when the full rationale wasn't worth a doc entry of its own (e.g. a cross-reference to an existing docs section, a one-line "why this id is a sibling not a child" note).
+- **Moved to a new `docs/19_PLAYER_HTML_NOTES.md`**, organized top-to-bottom to match the markup, for comments carrying real, still-current design rationale worth keeping in full — a load-bearing ordering guarantee, an iOS/Safari quirk, a cross-reference explaining *why* an element is shaped the way it is. The HTML itself keeps only a one-line pointer comment into that file.
+- **Deleted outright** where a comment was pure history ("this used to live here," "PR N moved X out") that explained a past change, not a current constraint — safe to drop with no replacement.
+
+About 45 of the 102 comments were edited (roughly half pointer-to-docs or compressed-in-place, a handful deleted outright); the remaining ~55 were already short structural markers and left untouched. The CSP `<meta>` tag's comment was compressed to a one-line pointer at CLAUDE.md's own "Security" section rather than duplicated into the new docs file, since CLAUDE.md already documents that policy's current rationale.
+
+New sizes (`MIZIKI_BASE=/ npm run build`):
+
+| File | Before (TR4 part 1) | After |
+|---|---|---|
+| `dist/miziki.html` | 91.57 kB / gzip 26.56 kB | 69.18 kB / gzip 18.25 kB |
+
+A ~22.4 kB raw / ~8.3 kB gzip cut, all from the HTML file itself — no JS/CSS chunk changed size (confirmed: every `dist/assets/*` entry in this build's output matches TR4 part 1's own numbers exactly). Combined with part 1's modest cut, this gets reasonably close to the plan doc's overall "~40 kB off the shipped HTML" estimate for TR4 as a whole.
+
+Device check: not yet run on-device — this PR touches zero markup/JS/CSS, only comment text, so no behavior to re-check beyond confirming the page still loads and renders identically (verified via `npm run build` + `npm run preview` locally).
