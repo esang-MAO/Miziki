@@ -7,7 +7,6 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { persistProfile, renderProfile } from '../profile/screens.js';
-import { popSocialScreen } from '../social/screens/friend-store.js';
 import { cropSquareImage } from '../library/edit.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
@@ -27,6 +26,13 @@ export function wireAccount(){
   });
 
   $('#socialAuthClose').addEventListener('click', () => closeLayer('social-auth'));
-  $('#socialNavBack').addEventListener('click', popSocialScreen);
+  // TR2 (docs/19_PLAYER.md): the social nav stack (this Back button) can
+  // only ever be open after one of friend-store.js's own open* entry
+  // points already ran its own import('../social/screens/friend-store.js')
+  // -- same reasoning as src/wiring/share.js's own header comment.
+  $('#socialNavBack').addEventListener('click', async () => {
+    const { popSocialScreen } = await import('../social/screens/friend-store.js');
+    popSocialScreen();
+  });
   $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
 }

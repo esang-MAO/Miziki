@@ -1,12 +1,6 @@
 import { $, el } from '../../util/dom.js';
 import { storeAwning, storeRequestsCard } from '../../profile/storefront.js';
-// Real circular import with ./friend-store.js (the same shape as engine.js/
-// transport.js and the other established peer pairs): openFriendStore is
-// friend-store.js's own, needed here for every tap-through to a friend's
-// crate (a feed card, a people-search result, a now-spinning tile); that
-// file in turn imports feedEventText back from here, for the friend
-// store's own "recently at the counter" activity rows.
-import { openFriendStore } from './friend-store.js';
+import { feedEventText } from './feed-text.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 // Real circular import with profile/settings.js (the same shape as
 // engine.js/transport.js) -- settings.js already imports renderHome/
@@ -75,22 +69,6 @@ export function updateHomeTabVisibility(){
 }
 
 /* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
-export function feedEventText(e){
-  const title = e.title || 'a record';
-  if(e.type === 'added'){
-    const n = (e.payload && e.payload.count) || 1;
-    return n > 1 ? ('added ' + n + ' records') : ('added ' + title);
-  }
-  if(e.type === 'pinned') return 'pinned ' + title + ' to staff picks';
-  if(e.type === 'review'){
-    const p = e.payload || {};
-    if(p.rating) return 'rated ' + title + ' ' + '★'.repeat(p.rating);
-    return 'wrote a sleeve note on ' + title;
-  }
-  if(e.type === 'unlock') return 'unlocked a ' + ((e.payload && e.payload.variant) || 'rare') + ' pressing of ' + title;
-  return 'updated ' + title;
-}
-
 export function groupFeedEvents(events){
   const groups = [];
   events.forEach(e => {
@@ -113,7 +91,14 @@ function homeFeedGroupCard(group){
     const more = el('div','store-activity-row home-feed-more', '+' + (group.events.length - shown.length) + ' more');
     card.appendChild(more);
   }
-  card.addEventListener('click', ()=> openFriendStore(group.actor_handle));
+  // TR2 (docs/19_PLAYER.md): friend-store.js is real weight the home feed
+  // itself never needs until a card is actually tapped -- dynamically
+  // imported here and at this file's other two openFriendStore call
+  // sites below, same pattern as src/wiring/share.js.
+  card.addEventListener('click', async ()=> {
+    const { openFriendStore } = await import('./friend-store.js');
+    openFriendStore(group.actor_handle);
+  });
   return card;
 }
 
@@ -145,7 +130,10 @@ function homePeopleSearch(container){
         text.appendChild(el('b', null, p.display_name || p.handle));
         text.appendChild(el('em', null, p.handle));
         btn.appendChild(text);
-        btn.addEventListener('click', ()=> openFriendStore(p.handle));
+        btn.addEventListener('click', async ()=> {
+          const { openFriendStore } = await import('./friend-store.js');
+          openFriendStore(p.handle);
+        });
         results.appendChild(btn);
       });
     }, 300);
@@ -202,7 +190,10 @@ function paintHomeSpinRow(){
     const handle = homeFollowingHandles.get(evt.userId);
     if(handle){
       tile.classList.add('home-spin-tap');
-      tile.addEventListener('click', ()=> openFriendStore(handle));
+      tile.addEventListener('click', async ()=> {
+        const { openFriendStore } = await import('./friend-store.js');
+        openFriendStore(handle);
+      });
     }
     row.appendChild(tile);
   });

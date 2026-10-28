@@ -159,3 +159,25 @@ New chunk sizes:
 | `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
 
 Device check: not yet run on-device — opening the EQ sheet from the player overflow menu and from Settings → Playback should both still open with no visible delay; the Settings screen's EQ row should still show the right state text ("OFF"/"CUSTOM · ON"/preset name) immediately, with no flash of a stale value.
+
+## TR2: lazy-load social screens' friend-store.js (docs/19_PLAYER.md)
+
+Same baseline as the two sections above, measured after PR #243 merged (main chunk 477.85 kB / gzip 145.71 kB).
+
+`src/social/screens/friend-store.js` and `src/social/screens/home.js` had a real circular import (`home.js` imported `openFriendStore` from `friend-store.js`; `friend-store.js` imported `feedEventText` back from `home.js`, for the friend store's own "recently at the counter" activity rows). That cycle pinned both files into the same bundle chunk regardless of how any *external* call site imported them — `home.js` itself is loaded unconditionally at boot (`main.js`'s `updateHomeTabVisibility`, `shell/routes.js`'s `renderHome`, `profile/settings.js`, `wiring/pull-refresh.js`), so the cycle meant `friend-store.js` rode along in the main chunk too, no matter what `library/credits.js` or `wiring/account.js` did with their own imports of it.
+
+Pulled `feedEventText()` — a small, pure, DOM-free function — out into a new leaf, `src/social/screens/feed-text.js`, that both files import from instead of each other. That breaks the only static edge from `friend-store.js` back to `home.js`. With the cycle gone, every remaining external reference to `friend-store.js`'s exports now goes through a click-time `await import(...)`: `home.js`'s own three `openFriendStore` call sites (a feed card, a people-search result, a now-spinning tile), `library/credits.js`'s "friends who have this record" links, and `wiring/account.js`'s social-nav-stack Back button. `home.js`'s own always-loaded exports (`renderHome`, `updateHomeTabVisibility`, `refreshHome`, `clearHomeFeedCache`, `groupFeedEvents`) are untouched and stay static, per the earlier scope note that `home.js` itself is too deeply wired into boot-time routing to lazy-load.
+
+New chunk sizes:
+
+| File | Size | gzip | vs. PR #243 |
+|---|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 465.60 kB | 142.55 kB | -12.25 kB / -3.16 kB gzip |
+| `dist/assets/friend-store-*.js` (new, lazy) | 13.23 kB | 4.01 kB | — |
+| `dist/assets/eq-sheet-*.js` | 7.40 kB | 2.72 kB | unchanged |
+| `dist/assets/sheet-*.js` | 20.54 kB | 7.07 kB | unchanged |
+| `dist/assets/pressings-card-*.js` | 10.34 kB | 4.28 kB | unchanged |
+| `dist/assets/dist-*.js` | 218.84 kB | 56.54 kB | unchanged |
+| `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
+
+Device check: not yet run on-device — opening a friend's crate from a home-feed card, a people-search result, a now-spinning tile, a credits-screen "friends who have this" link, and the social-nav Back button should all still work with no visible delay.
