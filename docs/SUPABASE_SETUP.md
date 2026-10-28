@@ -344,6 +344,12 @@ Once this works, you're ready for B1.
 
 ---
 
+## 7b. Connected crate: the MusicBrainz edge function (optional, off by default)
+
+The artist page's Connected shelf reads a shared cache (`023_artist_connections.sql`) that one edge function fills from MusicBrainz. Everything ships switched off; the shelf just stays hidden. To turn it on, follow **docs/20_CONNECTED.md → Switching it on** (deploy `mb-connections`, set `MB_CONTACT` and `MB_ENABLED=true`, update the privacy text in the same PR). Unset `MB_ENABLED` to stop all MusicBrainz traffic without a redeploy.
+
+---
+
 ## 8. Staging: a second project to push migrations through first
 
 (Step RF5, `docs/12_REFINE.md`, point 2 — "guardrails for a one-person

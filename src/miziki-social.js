@@ -1040,6 +1040,30 @@
   const creditFriends = (personNameNorm, role) => guarded(async () => ({
     ok: true, items: (await rpc('credit_friends', { p_person_name_norm: personNameNorm, p_role: role })) || []
   }));
+  // Connected crate (docs/20_CONNECTED.md): records by artists related to
+  // this one (members, bands they were in, collaborations), from the
+  // shared MusicBrainz cache (migration 023). Reads the cache first —
+  // signed in or out — and only when it's 'missing'/'stale' and someone is
+  // signed in asks the mb-connections edge function to fill it; that call
+  // returns { status: 'disabled' } until MusicBrainz is switched on
+  // server-side, and the shelf simply stays hidden. One answer per name per
+  // session, so re-opening an artist page never re-asks.
+  const connectionsCache = new Map();
+  const artistConnections = (name, nameNorm) => guarded(async () => {
+    if (!nameNorm) return { ok: true, status: 'missing', artist: null, items: [] };
+    if (connectionsCache.has(nameNorm)) return connectionsCache.get(nameNorm);
+    let res = (await rpc('artist_connections', { p_name_norm: nameNorm })) || { status: 'missing', items: [] };
+    if ((res.status === 'missing' || res.status === 'stale') && X.st.auth === 'ready' && X.sb.functions) {
+      try {
+        const { data, error } = await X.sb.functions.invoke('mb-connections', { body: { name } });
+        if (!error && data && (data.status === 'fresh' || data.status === 'stale' || data.status === 'nomatch')) res = data;
+        else if (!error && data && data.status === 'disabled') res = { ...res, disabled: true };
+      } catch (_e) { /* function not deployed yet, or offline: keep what the cache had */ }
+    }
+    const out = { ok: true, status: res.status, disabled: !!res.disabled, artist: res.artist || null, items: res.items || [] };
+    connectionsCache.set(nameNorm, out);
+    return out;
+  });
   const homeFeed = ({ limit = 50, before } = {}) => guarded(async () => ({
     ok: true, events: (await rpc('home_feed_rich', { p_limit: limit, p_before: before || new Date().toISOString() })) || []
   }));
@@ -1194,7 +1218,7 @@
     searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing,
     block, unblock, listBlocked, report,
     // reading
-    loadProfile, crate, inCommon, creditFriends, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
+    loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
     // helpers (also used by tests / UI)
     releaseKey, labelColor, sha256hex, mizikiAdapter,
     _internals: { X, buildItems, normAlbum, normArtist, cleanNote }

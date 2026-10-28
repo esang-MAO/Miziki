@@ -155,6 +155,16 @@ export function installSocialDemo(){
     return {ok:true, items: f.crate.slice(offset, offset + limit)};
   };
   MizikiSocial.inCommon = async () => ({ok:true, items:[]});
+  // Connected crate (docs/20_CONNECTED.md): every artist page gets the
+  // same invented related artists, so the shelf can be reviewed against
+  // any library without the MusicBrainz cache being live.
+  MizikiSocial.artistConnections = async () => ({ok:true, status:'fresh', disabled:false, artist:null, items:[
+    {release_group_mbid:'demo-rg1', title:'Low Tide Sessions', year:1999, via_mbid:'demo-a1', via_name:'Demo Member One', role:'member', buy_url:'https://example.com/'},
+    {release_group_mbid:'demo-rg2', title:'Second Wind', year:2004, via_mbid:'demo-a1', via_name:'Demo Member One', role:'member', buy_url:'https://example.com/'},
+    {release_group_mbid:'demo-rg3', title:'Ventilation Shaft', year:2000, via_mbid:'demo-a2', via_name:'Demo Member Two', role:'member', buy_url:null},
+    {release_group_mbid:'demo-rg4', title:'The Side Project', year:2000, via_mbid:'demo-a3', via_name:'Demo Collective', role:'collab', buy_url:'https://example.com/'},
+    {release_group_mbid:'demo-rg5', title:'An Unusually Long Album Title That Has To Truncate Cleanly', year:null, via_mbid:'demo-a4', via_name:'Demo Earlier Band', role:'band', buy_url:null}
+  ]});
   MizikiSocial.addToDigging = async (releaseId, sourceUserId) => {
     const f = friendById(sourceUserId);
     if(f){
