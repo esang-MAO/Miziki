@@ -60,6 +60,14 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { currentPos(){ return 0; } },
 });
+// PL7 item 1: background.js's new lock-screen-artwork imports would
+// otherwise reach the real library/thumbs.js, whose own real chain (edit.js,
+// credits.js, record-art/looks.js needing `el` from util/dom.js, etc.) is
+// exactly what this file's mocks above already stop at the door. None of
+// this file's own assertions touch lock-screen artwork.
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: { peekLockscreenArtwork(){ return null; }, ensureLockscreenArtwork: async () => [] },
+});
 // A bare no-op mock would leave resolveBgOffer()'s closeLayer('bg-offer')
 // call without a way to run the close callback openLayer() was given —
 // background.js relies on that callback (closeBgOfferCardInstant) actually

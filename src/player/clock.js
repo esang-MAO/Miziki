@@ -90,6 +90,14 @@ export function tick(now, maxDt){
     // any already-armed gapless source was scheduled against — cancel and
     // let maybeScheduleGaplessNext() re-arm it from the fresh anchor below.
     cancelPendingGapless();
+    // PL7 item 2: "rate re-anchor" is one of the five moments the lock
+    // screen's setPositionState should fire on — this is the one place
+    // S.rate/S.anchor ever change, so it's the one place to call it from.
+    // During an active Sundown ramp this fires once per tick the rate
+    // actually moves, which is exactly what keeps the lock-screen scrubber
+    // in step through the slowdown (PL7 item 3); outside a ramp S.rate
+    // never changes, so this never runs at a plain per-tick rate.
+    bgPosition();
   }
 
   const t = current();
@@ -167,10 +175,15 @@ let lastUI = 0, lastSky = 0;
 
 // hidden pages get no frames; keep the clock honest from a timer. A long gap here is
 // real elapsed time (audio kept playing), not a stall, so the cap is much larger.
+// PL7 item 2: used to call bgPosition() unconditionally every second here —
+// that's exactly the "every tick" setPositionState calls the doc asks to
+// avoid. tick() above already calls it on an actual rate re-anchor, and
+// seek()/play()/pause()/load() each already trigger it their own way
+// (directly, or via renderMiniPlayer() -> bgSync()) — nothing else here
+// needs its own poll.
 setInterval(() => {
   if(!document.hidden || !S.playing) return;
   tick(performance.now(), 120);
-  bgPosition();
 }, 1000);
 
 export function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }

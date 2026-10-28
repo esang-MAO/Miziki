@@ -8,6 +8,7 @@ import { currentPos } from './clock.js';
 import { prevTrack, nextTrack } from './controls.js';
 import { queueSave } from '../storage/meta.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
+import { peekLockscreenArtwork, ensureLockscreenArtwork } from '../library/thumbs.js';
 
 /* ================= background playback (optional) =================
    Off by default, and when it is off none of this runs: audio goes master ->
@@ -174,7 +175,7 @@ export function bgIdleNow(){
   if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(_e){} }
 }
 
-function mediaSessionSync(){
+export function mediaSessionSync(){
   if(!('mediaSession' in navigator)) return;
   const ms = navigator.mediaSession, t = current();
   if(!t) return;
@@ -194,9 +195,15 @@ function mediaSessionSync(){
   const key = [t.id, t.tags.title, t.tags.artist, t.tags.album, t.art || ''].join('|');
   if(key !== S.bg.msKey){
     const base = {title:t.tags.title, artist:t.tags.artist, album:t.tags.album};
+    // PL7 item 1: whatever lock-screen artwork is already cached for this
+    // exact track+source goes in immediately; a cache miss means an empty
+    // array for now (not t.art itself — that's a blob: URL, the one thing
+    // this is specifically avoiding) and ensureLockscreenArtwork() below
+    // patches it in once the data URLs are ready.
+    const cachedArt = peekLockscreenArtwork(t);
     let assigned = false;
     try{
-      ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: t.art ? [{src:t.art, sizes:'512x512'}] : []}));
+      ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: cachedArt || []}));
       assigned = true;
     }catch(_e){
       try{ ms.metadata = new MediaMetadata(base); assigned = true; }catch(_){}
@@ -208,6 +215,14 @@ function mediaSessionSync(){
     // future retry for that same track, since the key comparison above
     // would never see a change again until the track itself changed.
     if(assigned) S.bg.msKey = key;
+    if(assigned && !cachedArt && t.art){
+      ensureLockscreenArtwork(t).then(entries => {
+        // the track (or its art) may have moved on by the time this
+        // resolves — only patch the metadata back in if it hasn't
+        if(!entries.length || S.bg.msKey !== key) return;
+        try{ ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: entries})); }catch(_e){}
+      });
+    }
   }
   // PL4 (docs/19_PLAYER.md, "interruptions and coming back"): set on both
   // routes, not only while the background-audio element is active -- this

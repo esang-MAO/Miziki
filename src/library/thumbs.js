@@ -37,6 +37,67 @@ async function makeThumb(url, px){
   }catch(_e){ return null; }
 }
 
+/* ---- PL7 item 1 (docs/19_PLAYER.md): lock-screen artwork ----
+   The Now Playing widget iOS shows on the lock screen is drawn by a
+   separate OS process, not the page itself — a blob: object URL (what
+   every other artwork reference in this app uses, t.art included) is
+   scoped to this document and isn't guaranteed to still resolve once the
+   page is backgrounded long enough for that process to actually need it.
+   A data: URI has no such lifetime dependency, so lock-screen artwork is
+   generated as data URLs specifically, at the three sizes PL7 calls for
+   (256/512/1024), with their own `type` — never reusing t.art or a
+   thumbs.js thumbnail's existing object URL as-is. */
+export const LOCKSCREEN_ART_SIZES = [256, 512, 1024];
+const LOCKSCREEN_ART_CACHE_MAX = 4;   // only ever the current (and maybe just-previous) track matters
+const lockscreenArtCache = new Map();   // trackId -> {source, entries}
+
+// Pure: whether a cached lock-screen artwork entry can be reused for this
+// track id and artwork source, pulled out so the cache-hit logic is
+// unit-testable without canvas/fetch/DOM.
+export function lockscreenArtCacheHit(cached, source){
+  return !!cached && !!source && cached.source === source;
+}
+
+export function peekLockscreenArtwork(t){
+  if(!t || !t.art) return null;
+  const cached = lockscreenArtCache.get(t.id);
+  return lockscreenArtCacheHit(cached, t.art) ? cached.entries : null;
+}
+
+async function cropSquareDataURL(url, maxDim){
+  const blob = await (await fetch(url)).blob();
+  const bmp = await createImageBitmap(blob);
+  const side = Math.min(bmp.width, bmp.height);
+  const sx = (bmp.width - side) / 2, sy = (bmp.height - side) / 2;
+  const out = Math.min(maxDim, side);
+  const canvas = document.createElement('canvas');
+  canvas.width = out; canvas.height = out;
+  canvas.getContext('2d').drawImage(bmp, sx, sy, side, side, 0, 0, out, out);
+  return canvas.toDataURL('image/jpeg', 0.88);
+}
+
+// Generates (and caches, per track id) the 256/512/1024 MediaMetadata
+// artwork entries for `t`. Async — a caller on the lock-screen-sync path
+// should apply whatever MediaMetadata it already has immediately and
+// patch the artwork in once this resolves, rather than block on it.
+export async function ensureLockscreenArtwork(t){
+  if(!t || !t.art) return [];
+  const hit = peekLockscreenArtwork(t);
+  if(hit) return hit;
+  try{
+    const entries = [];
+    for(const px of LOCKSCREEN_ART_SIZES){
+      const dataUrl = await cropSquareDataURL(t.art, px);
+      entries.push({src: dataUrl, sizes: px + 'x' + px, type: 'image/jpeg'});
+    }
+    if(lockscreenArtCache.size >= LOCKSCREEN_ART_CACHE_MAX){
+      lockscreenArtCache.delete(lockscreenArtCache.keys().next().value);
+    }
+    lockscreenArtCache.set(t.id, {source: t.art, entries});
+    return entries;
+  }catch(_e){ return []; }
+}
+
 // records are saved without their runtime `art` URL
 function persistableMap(map){
   const out = {};
