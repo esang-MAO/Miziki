@@ -16,10 +16,10 @@
    gesture (dial-gesture.js) writes S.previewMin first, then calls this to
    repaint from that new, settled value, so there's exactly one source of
    truth for "what time is the dial showing" at any instant. The old
-   day-arc SVG/phase-block/"Now playing at" row (miziki.html, DA3) stay in
-   the DOM, hidden by CSS only (#sundownDayView .sdv1), so player/clock.js's
-   own drawSun() keeps writing to them with zero code change there — the
-   sidebar's own mirror ids (#sidePhaseName etc.) read those, not this. */
+   day-arc SVG/phase-block/"Now playing at" row this view's dial replaced
+   visually is gone outright now (TR4, docs/19_PLAYER.md) — player/
+   clock.js's drawSun() writes the sidebar's own mirror ids
+   (#sidePhaseName etc.) directly instead. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { REDUCED } from '../util/motion.js';

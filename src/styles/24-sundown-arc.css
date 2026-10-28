@@ -47,29 +47,3 @@
   color:var(--muted); margin:22px 0 var(--sp-1);
 }
 
-.day-arc{ display:block; width:100%; height:auto; margin:var(--sp-1) 0 var(--sp-2); }
-.arc-horizon{ stroke:var(--line); stroke-width:1; }
-.arc-day-path{ fill:none; stroke:var(--cool); stroke-width:1.5; opacity:.5; }
-.arc-night-path{ fill:none; stroke:var(--muted); stroke-width:1; stroke-dasharray:2 4; opacity:.5; }
-.arc-dot{ fill:var(--accent); filter:drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent)); }
-.arc-dot.arc-dot-night{ fill:var(--cool); filter:drop-shadow(0 0 4px color-mix(in srgb, var(--cool) 60%, transparent)); }
-
-.arc-labels{
-  display:grid; grid-template-columns:repeat(5, 1fr); gap:var(--sp-1);
-  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.04em; text-transform:uppercase;
-  color:var(--muted); text-align:center; margin-bottom:18px;
-}
-.arc-label span{ display:block; }
-.arc-label b{ display:block; font-weight:400; color:var(--muted); margin-top:2px; font-size:var(--fs-micro);letter-spacing:.10em; }
-.arc-label.arc-label-active span, .arc-label.arc-label-active b{ color:var(--accent-text); }
-
-.phase-block{ margin-bottom:10px; }
-.phase-block h2{
-  font-family:var(--display); font-size:var(--fs-display);letter-spacing:.02em; line-height:1.05; margin:0 0 2px;
-  text-transform:uppercase; color:var(--paper);
-}
-.phase-block p{ margin:0; color:var(--muted); font-size:var(--fs-caption); }
-
-@media (min-width:1024px){
-  .phase-block h2{ font-size:var(--fs-display); }
-}

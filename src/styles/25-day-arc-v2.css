@@ -4,12 +4,6 @@
    a new component file always appends at the end of the cascade here.
    src/sundown/dial-view.js is the one place that paints any of this. */
 
-/* DA3's own day-arc SVG/phase-block/"Now playing at" row stay in the DOM
-   (miziki.html) so player/clock.js's drawSun() keeps writing to them
-   unchanged — see dial-view.js's header comment — but this view no
-   longer shows them: the new dial above replaces them visually. */
-.sdv1{ display:none; }
-
 /* §3.5B's own screen-background gradient, scoped to the Day view only —
    a plain two-layer crossfade (dial-view.js's updateSkyBackground())
    sitting behind the dial/event-row/cards, not the app-wide .sky-bg

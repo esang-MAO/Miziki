@@ -222,11 +222,6 @@ export function drawSun(){
       eyebrow.classList.remove('sd-previewing');
     }
   }
-  // RF27 (docs/12_REFINE.md): "show the number next to the sound" — a
-  // percentage plus an approximate semitone fraction, not a raw
-  // multiplier/decimal semitone count. Full speed (rate === 1) reads as
-  // its own plain label rather than "0.0% ≈ 0 semitones".
-  $('#rateOut').textContent = S.rate >= 0.999 && S.rate <= 1.001 ? 'Full speed' : formatRateChange(S.rate);
   // RF15 (docs/12_REFINE.md): the platter label's own mono arc — real RPM
   // (tracks Sundown's drift, same number the plain readout this replaced
   // always showed) plus the side/format half transport.js's load() cached
@@ -248,27 +243,27 @@ export function drawSun(){
   // not a distinct line for each of the seven phases (that's DA3's own
   // richer phase line).
   const dayPos = currentDayPosition();
-  if(S.mode === 'pure') $('#rateWhy').textContent = 'Pure — always full speed (Sundown applies in Vinyl)';
-  else if(!S.auto) $('#rateWhy').textContent = 'Set by hand';
-  else if(dayPos.phase === 'dawn') $('#rateWhy').textContent = 'Dawn — rising, ' + Math.round(dayPos.phaseProgress*100) + '% of the way up';
-  else if(dayPos.phase === 'morning') $('#rateWhy').textContent = 'Morning — full speed';
-  else if(p <= 0) $('#rateWhy').textContent = 'Daylight — full speed';
-  else if(p >= 1) $('#rateWhy').textContent = 'Night — settled at ' + S.target.toFixed(2) + '×';
-  else $('#rateWhy').textContent = 'Twilight — ' + Math.round(e*100) + '% of the way down';
+  let rateWhyText;
+  if(S.mode === 'pure') rateWhyText = 'Pure — always full speed (Sundown applies in Vinyl)';
+  else if(!S.auto) rateWhyText = 'Set by hand';
+  else if(dayPos.phase === 'dawn') rateWhyText = 'Dawn — rising, ' + Math.round(dayPos.phaseProgress*100) + '% of the way up';
+  else if(dayPos.phase === 'morning') rateWhyText = 'Morning — full speed';
+  else if(p <= 0) rateWhyText = 'Daylight — full speed';
+  else if(p >= 1) rateWhyText = 'Night — settled at ' + S.target.toFixed(2) + '×';
+  else rateWhyText = 'Twilight — ' + Math.round(e*100) + '% of the way down';
 
   // D3 (docs/DESKTOP_LAYOUT.md): the desktop sidebar's own Sundown summary
-  // card mirrors this exact readout — "reuse the Sundown readout drawSun()
-  // already writes rather than computing it twice," per that doc — rather
-  // than having a second module call sunProgress()/computeRate() on its
-  // own. These ids exist only in the sidebar's own DOM (src/shell/
-  // sidebar.js has no render function of its own for them), hidden below
-  // the 1024px breakpoint by CSS, so the null guard here is just "does
-  // the sidebar card exist in the DOM," never a breakpoint check. Since
-  // DA3, the sunset/dusk leg mirror reads the day arc's own two time
-  // labels (#arcTimeSunset/#arcTimeDusk, set by updateDayArc() below)
-  // instead of the now-removed #legStart/#legEnd row.
+  // card gets this same computed string directly (TR4, docs/19_PLAYER.md:
+  // used to mirror it off a hidden #rateWhy element, the old DA3 day-arc
+  // markup that carried it; that element is gone now, so this is written
+  // just once instead of twice) — rather than having a second module call
+  // sunProgress()/computeRate() on its own. This id exists only in the
+  // sidebar's own DOM (src/shell/sidebar.js has no render function of its
+  // own for it), hidden below the 1024px breakpoint by CSS, so the null
+  // guard here is just "does the sidebar card exist in the DOM," never a
+  // breakpoint check.
   const sideWhy = $('#sideRateWhy');
-  if(sideWhy) sideWhy.textContent = $('#rateWhy').textContent;
+  if(sideWhy) sideWhy.textContent = rateWhyText;
   if(S.sun.ok){
     const sideStart = $('#sideLegStart'), sideEnd = $('#sideLegEnd');
     const f = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
@@ -356,16 +351,13 @@ export function drawSun(){
   }
 
   // DA3's own phase block: a big phase name ("Twilight") plus a muted
-  // sub-line ("60% of the way down"), kept separate from #rateWhy just
-  // above (which stays the existing, shorter "Now playing at" sub-copy —
-  // the doc's own "keep the existing readout and add a new phase line"
-  // instruction, not a replacement for it). phaseText() is a small, pure
-  // DOM-free helper so the actual phase-name/phase-sub strings are
-  // directly unit-testable without a document.
+  // sub-line ("60% of the way down"), kept separate from rateWhyText just
+  // above (the existing, shorter "Now playing at" sub-copy — the doc's own
+  // "keep the existing readout and add a new phase line" instruction, not
+  // a replacement for it). phaseText() is a small, pure DOM-free helper so
+  // the actual phase-name/phase-sub strings are directly unit-testable
+  // without a document.
   const { name, sub } = phaseText(dayPos, p, e);
-  const phaseNameEl = $('#phaseName'), phaseSubEl = $('#phaseSub');
-  if(phaseNameEl) phaseNameEl.textContent = name;
-  if(phaseSubEl) phaseSubEl.textContent = sub;
   const sidePhaseName = $('#sidePhaseName'), sidePhaseSub = $('#sidePhaseSub');
   if(sidePhaseName) sidePhaseName.textContent = name;
   if(sidePhaseSub) sidePhaseSub.textContent = sub;
@@ -388,15 +380,14 @@ export function drawSun(){
   if(knobTime) knobTime.textContent = nowClock().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const specPhase = $('#trackSpecPhase');
   if(specPhase){
-    // RF27 (docs/12_REFINE.md): same percentage+semitone format as #rateOut
-    // and the depth caption (solar.js's formatRateChange()), not a bare
-    // "X ST SLOWER" — upper-cased to match this line's own all-caps style.
+    // RF27 (docs/12_REFINE.md): same percentage+semitone format as
+    // rateWhyText above and the depth caption (solar.js's
+    // formatRateChange()), not a bare "X ST SLOWER" — upper-cased to
+    // match this line's own all-caps style.
     specPhase.textContent = current()
       ? name.toUpperCase() + ' · ' + (S.mode === 'pure' || S.rate >= 0.999 ? 'FULL SPEED' : formatRateChange(S.rate).toUpperCase())
       : '';
   }
-
-  updateDayArc(dayPos);
 
   // RF9 (docs/12_REFINE.md) removed DA3's own "Rise at dawn" row (#sunriseNext
   // -- the dial's own event row already carries the next sunrise time) and
@@ -409,80 +400,6 @@ export function drawSun(){
   // sundown/dial-view.js's own header comment for why this rides along
   // here rather than a second timer.
   renderDialView();
-}
-
-// DA3's day arc: moves the sun-or-moon dot and highlights the current
-// phase's label. Null-guarded the same way every other optional id in
-// this function is — #dayArc only exists in the Sundown route's own
-// markup (miziki.html), not in every test harness that loads this file.
-function updateDayArc(dayPos){
-  const dot = $('#sunDot');
-  if(dot){
-    const { x, y, isNight } = dayArcPosition(dayPos);
-    dot.setAttribute('cx', x.toFixed(1));
-    dot.setAttribute('cy', y.toFixed(1));
-    dot.classList.toggle('arc-dot-night', isNight);
-  }
-  const active = DAY_ARC_ACTIVE_LABEL[dayPos.phase] || null;
-  for(const key of ['dawn', 'sunrise', 'noon', 'sunset', 'dusk']){
-    const label = $('#arcLabel' + key[0].toUpperCase() + key.slice(1));
-    if(label) label.classList.toggle('arc-label-active', key === active);
-  }
-  if(S.sun.ok){
-    const f = d => d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-    const times = { dawn: S.sun.dawn, sunrise: S.sun.rise, noon: S.sun.noon, sunset: S.sun.set, dusk: S.sun.dusk };
-    for(const key in times){
-      const el = $('#arcTime' + key[0].toUpperCase() + key.slice(1));
-      if(el && times[key]) el.textContent = f(times[key]);
-    }
-  }
-}
-
-// Which of the arc's five labels (dawn/sunrise/noon/sunset/dusk) takes the
-// accent color for each of dayPosition()'s seven phases — a schematic
-// many-to-one mapping (seven phases, five labelled moments), since the
-// arc itself is schematic (the design README's own "not to scale" note):
-// each phase highlights whichever labelled moment it's currently
-// building toward or holding at. Night highlights nothing — none of the
-// five labelled instants is "now" for the whole rest of the night.
-const DAY_ARC_ACTIVE_LABEL = {
-  dawn: 'dawn', morning: 'sunrise', midday: 'noon', afternoon: 'noon',
-  golden: 'sunset', twilight: 'dusk', night: null,
-};
-
-// The arc's own schematic (not-to-scale — see the design README) x/y
-// position for the sun-or-moon dot, in the SVG's own 0..342 x 0..150
-// viewBox coordinate space. Day phases (dawn through twilight) walk left
-// to right along a fixed, evenly-spaced schematic span per phase — not
-// real elapsed fractions of each phase's own true duration, the same
-// "the five labels are evenly spread, the bands are widened so they fit"
-// simplification the design README's own arc component already
-// describes — rising from the horizon at dawn to a peak around midday
-// and back down to the horizon by the end of twilight. Night has no
-// finer-grained progress of its own (dayPosition()'s phaseProgress is
-// always 0 there, by design — see day.js's own duskRampProgress note) so
-// the moon sits at one fixed, representative point under the horizon
-// rather than animating across the night — a deliberate, documented
-// simplification, not a bug: tracking the moon's real position would
-// need a value dayPosition() doesn't expose anywhere else in this
-// feature, for a purely decorative dot. Exported for its own unit test,
-// same precedent as angleDelta (scrub.js)/skyGradientStops above.
-const DAY_ARC_GEOMETRY = { marginX: 24, width: 294, horizonY: 92, dayAmp: 68, nightY: 128 };
-const DAY_ARC_PHASE_SPAN = {
-  dawn:      [0.00, 0.14],
-  morning:   [0.14, 0.32],
-  midday:    [0.32, 0.50],
-  afternoon: [0.50, 0.68],
-  golden:    [0.68, 0.86],
-  twilight:  [0.86, 1.00],
-};
-
-export function dayArcPosition(dayPos){
-  const { marginX, width, horizonY, dayAmp, nightY } = DAY_ARC_GEOMETRY;
-  if(dayPos.phase === 'night') return { x: marginX + width / 2, y: nightY, isNight: true };
-  const span = DAY_ARC_PHASE_SPAN[dayPos.phase] || DAY_ARC_PHASE_SPAN.midday;
-  const t = clamp(span[0] + clamp(dayPos.phaseProgress || 0, 0, 1) * (span[1] - span[0]), 0, 1);
-  return { x: marginX + t * width, y: horizonY - dayAmp * Math.sin(Math.PI * t), isNight: false };
 }
 
 // DA3's phase-name/phase-sub text, pulled out of drawSun() as a small pure

@@ -242,3 +242,28 @@ New chunk sizes (`MIZIKI_BASE=/ npm run build`):
 Net effect on what a device actually downloads: the main chunk's reported size grows (it now includes code that used to live in a separate, unbundled file), but total page weight drops, since the social client is now minified instead of shipped as commented, whitespace-heavy source, and is no longer a second, separately-fetched file.
 
 Device check: not yet run on-device — sign-in/sign-out, crate sharing, follow requests, and every other social-layer action should behave identically; with social config empty, the calm "not set up" state should still show everywhere it did before.
+
+## TR4 (part 1): remove the dead `.sdv1` day-arc markup
+
+TR4 is "`miziki.html` diet": move the HTML comments' useful content into `docs/`, and remove the hidden `.sdv1` block (DA3's old day-arc SVG/phase-block/"Now playing at" row, kept in the DOM only so `drawSun()` had something to write into, superseded visually by the Day Arc v2 dial) plus its matching CSS and JS writes. Split into two PRs per refactor rule 2 — this one is just the dead-markup removal; the comment-trimming pass across the file's ~103 HTML comments is its own, separate PR.
+
+Removed:
+- `miziki.html`: the whole `<div class="sdv1">...</div>` block (the day-arc SVG, the five arc labels, the phase block, the old "Now playing at" row) and its header comment.
+- `src/player/clock.js`: `drawSun()`'s writes to `#rateOut` and `#phaseName`/`#phaseSub` (dead — nothing read them once the block feeding the sidebar's own mirrors was the only consumer, and nothing else ever read them). The `#rateWhy` chain is now computed into a local `rateWhyText` and written once, straight to the sidebar's `#sideRateWhy` — same text, no more mirroring off a hidden element. `updateDayArc()` (painted `#sunDot`/`#arcLabel*`/`#arcTime*`, all `.sdv1`-only ids) and its three supporting constants/export (`DAY_ARC_ACTIVE_LABEL`, `DAY_ARC_GEOMETRY`, `DAY_ARC_PHASE_SPAN`, `dayArcPosition()`) are gone outright, along with `dayArcPosition()`'s two unit tests in `tests/unit/clock.test.js`.
+- `src/styles/24-sundown-arc.css`: `.day-arc`/`.arc-horizon`/`.arc-day-path`/`.arc-night-path`/`.arc-dot`/`.arc-labels`/`.arc-label`/`.phase-block` and their media-query rule — all `.sdv1`-only, confirmed by grep against both the stylesheet's own file and the rest of `src/`/`miziki.html` before removal.
+- `src/styles/25-day-arc-v2.css`: the `.sdv1{ display:none; }` rule and its header comment.
+- Stale comments in `src/sundown/dial-view.js` and `src/ui/theme.js` that described the now-removed block.
+
+Confirmed no behavior change: the only place anything *read back* from the `.sdv1` DOM (rather than just writing to it) was `#sideRateWhy` copying `#rateWhy`'s `textContent` — the sidebar's phase-name/phase-sub and sunset/dusk-leg mirrors already computed their own values directly (`name`/`sub` from the same `phaseText()` call; `S.sun.set`/`S.sun.dusk` directly), a pre-existing fact the old comments near them had actually gone stale on.
+
+New sizes:
+
+| File | Before | After |
+|---|---|---|
+| `dist/miziki.html` (`MIZIKI_BASE=/`) | 93.38 kB / gzip 27.07 kB | 91.57 kB / gzip 26.56 kB |
+| `dist/assets/miziki-*.css` | 147.61 kB / gzip 26.57 kB | 146.27 kB / gzip 26.33 kB |
+| `dist/assets/miziki-*.js` (main chunk) | 480.49 kB / gzip 148.38 kB | 479.04 kB / gzip 147.89 kB |
+
+A modest cut — the bulk of TR4's ~40 kB estimate is the comment-trimming pass, still to come in the follow-up PR.
+
+Device check: not yet run on-device — the Sundown tab's Day view (the dial, event row, hint row, depth control) should look and behave identically; the desktop sidebar's Sundown summary card should still show the same phase name/sub-line and "Now playing at" text it always has.
