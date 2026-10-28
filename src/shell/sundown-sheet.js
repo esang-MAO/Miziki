@@ -29,11 +29,6 @@ import { selectSundownView, lastSundownView } from './routes.js';
 const DRAG_OPEN_THRESHOLD = 60;   // px dragged up past half-height to snap to full
 const DRAG_CLOSE_THRESHOLD = 120; // px dragged down past half-height to dismiss
 
-export function isSundownSheetOpen(){
-  const sheet = $('#sundownSheet');
-  return !!(sheet && sheet.classList.contains('open'));
-}
-
 // Called on open and on every explicit Day/Sound tab tap (src/wiring/
 // sundown.js) — the view's own default height, overridden only by an
 // in-progress drag.

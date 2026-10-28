@@ -124,9 +124,6 @@ globalThis.getComputedStyle = () => ({ getPropertyValue(){ return ''; } });
 const scrollByMock = mock.fn();
 globalThis.window = { scrollBy: scrollByMock, scrollTo(){}, innerHeight: 800 };
 
-mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { fmt(s){ return String(s); } },
-});
 const setQueueMock = mock.fn();
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   namedExports: { setQueue: setQueueMock },

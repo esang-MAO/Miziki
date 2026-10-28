@@ -22,7 +22,7 @@ import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import { setQueue } from '../player/queue.js';
 import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';

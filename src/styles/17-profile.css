@@ -5,8 +5,6 @@
    .store-id in 18-storefront.css) — there is deliberately no second
    .profile-header/.profile-pic editor here any more; one identity, shown
    and edited once, in every state (local, open-store, signed-in). */
-.profile-count{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em;margin:var(--sp-3) 0 0}
-
 /* Top Album/Top Song tiles, and the Achievements/Collection empty states,
    predate the storefront card redesign (PR #109/#110) and the Day Arc v2
    Sound tab (sd-charcard) — both since settled on the same card family
@@ -50,10 +48,6 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .profile-badge img{position:absolute;inset:22%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
 .profile-badge-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;
   color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.collection-group{margin-top:var(--sp-4)}
-.collection-group-name{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:var(--sp-2)}
-
 /* SH1 (docs/18_SHARE.md): the profile home's own Share button became two
    rows, "Share crate" and "Share season" -- a plain vertical stack, each
    row full-width like the single button used to be. */

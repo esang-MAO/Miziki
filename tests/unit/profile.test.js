@@ -61,13 +61,6 @@ function resetProfileHosts(){
   Object.values(profileHosts).forEach(h => { h.innerHTML = ''; });
 }
 
-// fmtCount lives in src/profile/screens.js, which also exports the real
-// profile screens — those pull in profile/storefront.js, profile/
-// settings.js, share/sheet.js and history/achievements.js, each of which
-// would in turn need MizikiSocial/a real document/the rest of the player
-// chain. Mocked directly here, same "stop the chain at the door" reasoning
-// every other test file in this suite already uses, since this file only
-// wants fmtCount itself.
 // NV4: tracked (not a bare no-op) so a test can tell whether
 // renderProfile({refresh:true}) actually reused the same storefront/rhythm
 // hosts across calls versus tearing them down and rebuilding fresh ones —
@@ -197,7 +190,8 @@ mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
   namedExports: { openSundownSheet(){} },
 });
 
-const { fmtCount, renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
+const { renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
+const { fmtCount } = await import('../../src/util/text.js');
 const { S } = await import('../../src/state.js');
 const { metalBadge, collectionBadge } = await import('../../src/profile/badges.js');
 const { METAL_COLORS } = await import('../../src/record-art/metals.js');

@@ -4,7 +4,7 @@ import { PHASE_COLOR } from '../profile/rhythm-card.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient,
-  drawShareWordmark, resolveShareStyle,
+  drawShareWordmark, wordmarkWidth, resolveShareStyle,
 } from './styles.js';
 
 /* ---- Season card (composeSeasonShareImage) — the listening-rhythm
@@ -36,14 +36,6 @@ const METAL_TIER_ORDER = ['rare', 'platinum', 'gold', 'silver', 'bronze'];
 export function metalTierOrder(metals){
   const m = metals || {};
   return METAL_TIER_ORDER.filter(k => (m[k] || 0) > 0);
-}
-
-function wordmarkWidth(ctx, fontPx){
-  ctx.save();
-  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
-  const total = ['Mi', 'zi', 'ki'].reduce((s, txt) => s + ctx.measureText(txt).width, 0);
-  ctx.restore();
-  return total;
 }
 
 // A hard-edged conic ring (not a blend) — two colour stops per wedge, at

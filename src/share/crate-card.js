@@ -3,22 +3,14 @@ import { albumKey } from '../record-art/tiers.js';
 import { topAlbums, topTracks } from '../history/achievements.js';
 import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, resolveShareStyle, drawDiagonalWordmark,
+  roundRectPath, drawShareWordmark, wordmarkWidth, resolveShareStyle, drawDiagonalWordmark,
 } from './styles.js';
-import { fmtCount } from '../profile/screens.js';
+import { fmtCount } from '../util/text.js';
 
 // SH5 (docs/18_SHARE.md): the wordmark moved off-centre (bottom-right), so
 // its own width has to be measured ahead of drawShareWordmark's call
 // (which always centres on whatever x it's given) -- same font string,
 // measured and discarded before the real draw.
-function wordmarkWidth(ctx, fontPx){
-  ctx.save();
-  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
-  const total = ['Mi','zi','ki'].reduce((s, txt) => s + ctx.measureText(txt).width, 0);
-  ctx.restore();
-  return total;
-}
-
 /* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
    record, a grid of the next covers, top songs, brand wordmark. SH5
    (docs/18_SHARE.md) dropped the metals/collection/rhythm sections this

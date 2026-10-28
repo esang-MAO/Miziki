@@ -203,6 +203,16 @@ export function drawShareWordmark(ctx, centerX, baselineY, fontPx, ink, accent){
   ctx.restore();
 }
 
+// measured width of the "Miziki" wordmark at a given size — callers use
+// this to center/right-align drawShareWordmark() before drawing it
+export function wordmarkWidth(ctx, fontPx){
+  ctx.save();
+  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
+  const total = ['Mi', 'zi', 'ki'].reduce((s, txt) => s + ctx.measureText(txt).width, 0);
+  ctx.restore();
+  return total;
+}
+
 // a tiny, cached static-noise tile for Paper's grain — generated once,
 // tiled via a canvas pattern rather than redrawn per pixel
 let shareGrainCanvasCache = null;

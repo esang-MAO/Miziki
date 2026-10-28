@@ -1,6 +1,7 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
+import { fmt } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
@@ -185,8 +186,6 @@ setInterval(() => {
   if(!document.hidden || !S.playing) return;
   tick(performance.now(), 120);
 }, 1000);
-
-export function fmt(s){ s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
 
 export function drawTime(){
   const t = current();

@@ -21,8 +21,6 @@
 .store-header{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap}
 .store-edit-btn{min-height:40px;padding:0 var(--sp-4);border-radius:9px;border:1px solid var(--line);
   background:none;color:var(--paper);font-size:var(--fs-caption);font-weight:500;flex:none;margin-left:auto}
-.store-gear{width:44px;height:44px;flex:none;color:var(--muted);font-size:var(--fs-row);
-  display:flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:-6px}
 .store-avatar{width:80px;height:80px;border-radius:50%;flex:none;position:relative;
   background:repeating-radial-gradient(circle at 50% 50%,#0B0908 0px,#0B0908 2px,#17140F 2px,#17140F 3px);
   box-shadow:var(--sh-2)}
@@ -52,7 +50,6 @@
 .store-vis-row{display:flex;align-items:center;gap:10px;margin:14px 0 0;flex-wrap:wrap}
 .store-vis-chip{min-height:44px;padding:0 var(--sp-4);border-radius:22px;border:1.5px solid var(--line);
   background:none;color:var(--paper);font-size:var(--fs-caption);font-weight:600;display:inline-flex;align-items:center;gap:7px}
-.store-vis-link{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);background:none;border:0;min-height:44px}
 
 .store-stats{display:flex;gap:26px;margin:18px 0 0}
 .store-stat{flex:none;display:flex;flex-direction:column;gap:2px;min-width:0}

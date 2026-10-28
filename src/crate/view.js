@@ -39,7 +39,7 @@ import { openCreditsSheet } from '../library/credits.js';
 import { playNext, addToQueue } from '../player/queue.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { trackIdentityKey } from '../record-art/tiers.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import {
   playHookPreview, stopHookPreview, hookPreviewInfo, hookPreviewElapsedSec, hookPreviewAnalyser,
 } from '../audio/hook-preview.js';

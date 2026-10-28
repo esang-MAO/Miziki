@@ -106,11 +106,6 @@ export async function applySlipmat(){
   }
 }
 
-export async function hasSavedSlipmat(){
-  try{ const rec = await artwork.get(SLIPMAT_ART_ID); return !!(rec && rec.blob); }
-  catch(_e){ return false; }
-}
-
 export function saveSlipmatImage(blob){ return artwork.put({ id: SLIPMAT_ART_ID, blob }); }
 export function removeSlipmatImage(){ return artwork.del(SLIPMAT_ART_ID); }
 export async function getSlipmatImage(){

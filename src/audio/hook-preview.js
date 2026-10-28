@@ -24,10 +24,6 @@ const DEFAULT_SPAN_SEC = 20;
 
 let active = null;   // {source, gain, analyser, ctx, trackIdx, hookStart, hookEnd, span, startedAt}
 
-export function isHookPreviewActive(){
-  return !!active;
-}
-
 export function hookPreviewInfo(){
   if(!active) return null;
   const {trackIdx, hookStart, hookEnd, span} = active;

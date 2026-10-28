@@ -11,7 +11,7 @@
    anything to do with the gatefold. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { fmt } from '../player/clock.js';
+import { fmt } from '../util/text.js';
 import { setQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';

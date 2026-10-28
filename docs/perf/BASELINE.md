@@ -287,3 +287,37 @@ New sizes (`MIZIKI_BASE=/ npm run build`):
 A ~22.4 kB raw / ~8.3 kB gzip cut, all from the HTML file itself — no JS/CSS chunk changed size (confirmed: every `dist/assets/*` entry in this build's output matches TR4 part 1's own numbers exactly). Combined with part 1's modest cut, this gets reasonably close to the plan doc's overall "~40 kB off the shipped HTML" estimate for TR4 as a whole.
 
 Device check: not yet run on-device — this PR touches zero markup/JS/CSS, only comment text, so no behavior to re-check beyond confirming the page still loads and renders identically (verified via `npm run build` + `npm run preview` locally).
+
+## TR5: dead and duplicated code
+
+TR5 is docs/19_PLAYER.md's item 13, "dead and duplicated code": delete a stale module and its test, remove unused exports, remove unused CSS selectors, and de-duplicate three small pure helpers that had each grown a second (or third) copy. No behavior change (refactor rule 1) — every candidate was grepped across the whole repo first to confirm it was truly unused, or truly identical, before touching it.
+
+Removed outright (confirmed dead by grep, no callers anywhere but each one's own definition/test):
+- `src/sundown/drift.js` and `tests/unit/drift.test.js` — superseded by `arc.js`'s `driftOffsetsAt()`; `drift.js`'s own exports (`driftOffsets`, `effectiveChar`) had no real callers left, only its own test.
+- `src/audio/hook-preview.js`'s `isHookPreviewActive()`.
+- `src/audio/eq.js`'s `THIRD_OCTAVE_HZ` constant (only ever referenced in its own comment and the plan doc's prose).
+- `src/ui/slipmat.js`'s `hasSavedSlipmat()`.
+- `src/shell/sundown-sheet.js`'s `isSundownSheetOpen()`.
+- 8 unused CSS selectors: `.crate-group-toggle`, `.crate-info-row` (`src/styles/10-crate.css`); `.collection-group`, `.collection-group-name`, `.profile-count` (`src/styles/17-profile.css`); `.lib-nav` (`src/styles/02-stage-platter.css`); `.mode-note` (`src/styles/06-mode-switch.css`); `.store-gear`, `.store-vis-link` (`src/styles/18-storefront.css`). Checked each against `.js`/`.html`/`.css` first, and specifically ruled out any name that's built at runtime as a template string (the doc's own warning about `crate-sticker-*` in `crate/view.js`, which is unrelated to this list and was left alone).
+
+De-duplicated:
+- `wordmarkWidth(ctx, fontPx)` — byte-for-byte the same canvas measurement, copied into `src/share/season-card.js`, `src/share/record-card.js`, and `src/share/crate-card.js`. Moved to `src/share/styles.js` next to the `drawShareWordmark()` it supports; all three cards now import it from there instead of defining their own copy.
+- `fmt()` (seconds → `m:ss`) and `fmtCount()` (`"N thing"`/`"N things"`) — each lived in one module (`player/clock.js`, `profile/screens.js`) and was imported sideways by several others. Both moved to `src/util/text.js`, a tiny, pure, DOM-free leaf alongside the existing `normKey()`; every importer (`library/view.js`, `share/now-playing-card.js`, `shell/mini-player.js`, `crate/view.js`, `gatefold/view.js`, `gatefold/picture-sleeve.js`, `share/crate-card.js`) now points at `util/text.js` instead of the module that happened to define it first. `tests/unit/gatefold.test.js` and `tests/unit/library-view.test.js` no longer mock `player/clock.js`'s `fmt` (it's gone from that file); they real-load `util/text.js` instead, the same precedent as `player/eq-label.js` elsewhere.
+- `src/audio/eq.js`'s own `clamp(v, lo, hi)` now delegates its range math to `util/math.js`'s `clamp`, keeping its own NaN/non-finite guard (`typeof v !== 'number' || !isFinite(v)` → returns `lo`) as a wrapper rather than reimplementing `Math.min(hi, Math.max(lo, v))` a second time — `util/math.js`'s version lacks that guard, so the wrapper is required for behavioral equivalence, not optional. `eq.js` picks up its first import as a result; its header comment was updated to note that `util/math.js` is itself a dependency-free pure leaf, so the module's "directly unit-testable in Node" shape is unaffected.
+- 3 stale "Car Mode" comments (RF6, docs/12_REFINE.md — the feature itself was removed outright, these were the last mentions) in `src/wiring/character.js`, `src/profile/screens.js`, and `src/sundown/location.js`, each edited to drop just the Car-Mode-specific clause while keeping the rest of the surrounding comment's still-current content.
+
+Skipped: the plan doc's "`data/pressings.json` duplicated verbatim as `VARIANT_DEFS` in `record-art/tiers.js`" item. `pressings.json` is a hand-authored design-spec reference (not currently imported by any runtime code) whose raw shape (`id`/`name`/`tier`/`family`/`ring`/`body`/`rim`/`translucent`/`rarity`) doesn't match `VARIANT_DEFS`'s computed/authored shape — it's missing the `note` flavor text, `pattern`, `sub`, and the `colors` field `VARIANT_DEFS` builds via a helper. A naive "import the JSON instead" swap risks silently dropping the `note` strings users see; doing this properly means either adding a transform step that reconstructs every missing field or re-deriving `pressings.json` itself from `VARIANT_DEFS`, either of which is a larger, riskier change than "dead and duplicated code" scope, so it's left for its own follow-up rather than forced through here.
+
+Verification: `npm run lint` (zero warnings), `npm run test:unit` (1157/1157 passing, no mocks needed updating beyond the two `fmt` mocks removed above), `MIZIKI_BASE=/ npm run build` and `npm run build` (both clean).
+
+New sizes (`MIZIKI_BASE=/ npm run build`, compared against TR4 part 2's "after" row):
+
+| File | Before | After |
+|---|---|---|
+| `dist/miziki.html` | 69.18 kB / gzip 18.25 kB | 69.18 kB / gzip 18.25 kB (unchanged — this PR touched no markup) |
+| `dist/assets/miziki-*.css` | 146.27 kB / gzip 26.33 kB | 145.35 kB / gzip 26.22 kB |
+| `dist/assets/miziki-*.js` (main chunk) | 479.04 kB / gzip 147.89 kB | 479.01 kB / gzip 148.19 kB |
+
+A small CSS cut from the 8 removed selectors; the JS main chunk is flat (within noise) since this item mostly moved code between modules rather than cutting it, and added one new tiny module (`util/text.js`).
+
+Device check: not yet run on-device — no markup changed and no runtime behavior changed (confirmed by the full unit suite and the NaN-guard-preserving `eq.js` rewrite); the device checklist's "Tap the player's spec line" and general playback/EQ items are the closest relevant checks, worth a quick pass alongside the next change that touches this code.
