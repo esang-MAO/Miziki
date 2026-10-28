@@ -67,6 +67,31 @@ let moduleLoadedCtx = null;       // the AudioContext the worklet module is regi
 let scratchNode = null, scratchGain = null, scratchGraphCtx = null;
 let scratchWindowStart = 0, scratchWindowEnd = 0;
 
+// PL6 item 3: a single reusable set of per-channel scratch arrays, sized
+// once to the window's own max possible length, instead of a fresh
+// `.slice()` allocation (tens of MB/s of garbage on a long scratch
+// session, right at the moment the user starts touching the disc) on
+// every gesture start and every refetch. Only one scratch can ever be
+// active at a time (every other piece of this module's own state above
+// is singular too), so one cached slot -- replaced wholesale the moment
+// a different track, or a differently-shaped buffer for the same track
+// (an LRU eviction and re-decode, buffers.js), is scratched -- is enough;
+// nothing here can grow unbounded across a session.
+let scratchCacheTrack = null, scratchCacheBuffer = null, scratchCacheChannels = null, scratchCacheCapacity = 0;
+
+function scratchWindowScratchChannels(t, numberOfChannels, capacitySamples){
+  if(scratchCacheTrack !== t || scratchCacheBuffer !== t.buffer
+    || !scratchCacheChannels || scratchCacheChannels.length !== numberOfChannels
+    || scratchCacheCapacity !== capacitySamples){
+    scratchCacheTrack = t;
+    scratchCacheBuffer = t.buffer;
+    scratchCacheCapacity = capacitySamples;
+    scratchCacheChannels = [];
+    for(let c = 0; c < numberOfChannels; c++) scratchCacheChannels.push(new Float32Array(capacitySamples));
+  }
+  return scratchCacheChannels;
+}
+
 async function ensureScratchModule(ctx){
   if(!scratchSupported) return false;
   if(moduleLoadedCtx === ctx) return true;
@@ -88,20 +113,35 @@ function freeScratchNode(){
   scratchNode = null; scratchGain = null; scratchGraphCtx = null;
 }
 
-function loadScratchWindow(buffer, centerSec){
+function loadScratchWindow(t, centerSec){
+  const buffer = t.buffer;
   const sr = buffer.sampleRate, dur = buffer.duration;
   const startSec = clamp(centerSec - SCRATCH_WINDOW_SEC, 0, dur);
   const endSec = clamp(centerSec + SCRATCH_WINDOW_SEC, 0, dur);
   const startSample = Math.floor(startSec * sr);
   const endSample = Math.min(buffer.length, Math.ceil(endSec * sr));
+  const windowLen = endSample - startSample;
+  // the largest a window can ever be, at this track's own sample rate --
+  // the fixed capacity the cached arrays below are sized to once, up front.
+  const capacitySamples = Math.ceil(2 * SCRATCH_WINDOW_SEC * sr) + 1;
+  const cached = scratchWindowScratchChannels(t, buffer.numberOfChannels, capacitySamples);
   const chans = [];
-  for(let c = 0; c < buffer.numberOfChannels; c++) chans.push(buffer.getChannelData(c).slice(startSample, endSample));
+  for(let c = 0; c < buffer.numberOfChannels; c++){
+    const dst = cached[c];
+    dst.set(buffer.getChannelData(c).subarray(startSample, endSample), 0);
+    chans.push(dst.subarray(0, windowLen));
+  }
   scratchWindowStart = startSample / sr;
   scratchWindowEnd = endSample / sr;
+  // Not transferred: the arrays above are the reusable cache itself, so
+  // handing ownership away would defeat the whole point of caching them.
+  // scratch-processor.js's own `new Float32Array(buf)` already copies
+  // whichever of the two (a raw ArrayBuffer or, as here, a typed-array
+  // view) it's handed, so no worklet-side change is needed for this.
   scratchNode.port.postMessage({
-    type:'window', channels: chans.map(c => c.buffer), sampleRate: sr,
+    type:'window', channels: chans, sampleRate: sr,
     windowStart: scratchWindowStart, trackDuration: dur,
-  }, chans.map(c => c.buffer));
+  });
 }
 
 // Called once a gesture is claimed and confirmed to be a scratch (Vinyl +
@@ -127,7 +167,7 @@ async function startScratch(t){
     scratchNode.connect(scratchGain).connect(S.nodes.wobble);
     scratchGraphCtx = ctx;
   }
-  loadScratchWindow(t.buffer, S.pos);
+  loadScratchWindow(t, S.pos);
   scratchNode.port.postMessage({type:'start', position: S.pos});
   const now = ctx.currentTime;
   scratchGain.gain.cancelScheduledValues(now);
@@ -140,7 +180,7 @@ function updateScratchTarget(t){
   if(!scratchNode) return;
   scratchNode.port.postMessage({type:'target', target: S.pos});
   if(S.pos < scratchWindowStart + SCRATCH_REFETCH_MARGIN_SEC || S.pos > scratchWindowEnd - SCRATCH_REFETCH_MARGIN_SEC){
-    loadScratchWindow(t.buffer, S.pos);
+    loadScratchWindow(t, S.pos);
   }
 }
 

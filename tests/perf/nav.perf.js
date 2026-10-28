@@ -64,6 +64,14 @@ const TRACK_COUNT = 2000;
 const ALBUM_COUNT = 180;
 const REPS = 15;   // RF5, point 4: 15 repetitions per timed measurement
 
+// PL6 item 4 (docs/19_PLAYER.md): "no long task over 50ms during playback
+// while a 10-album import runs" — a 10-album batch of real, decodable WAV
+// files small enough to import quickly under 4x throttling.
+const IMPORT_ALBUMS = 10;
+const IMPORT_TRACKS_PER_ALBUM = 4;
+const IMPORT_TRACK_DURATION_SEC = 6;
+const LONG_TASK_THRESHOLD_MS = 50;
+
 function findChromiumExecutable(){
   const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
   if(browsersPath && existsSync(browsersPath)){
@@ -71,6 +79,8 @@ function findChromiumExecutable(){
     if(dir){
       const exe = path.join(browsersPath, dir, 'chrome-linux', 'chrome');
       if(existsSync(exe)) return exe;
+      const exe64 = path.join(browsersPath, dir, 'chrome-linux64', 'chrome');
+      if(existsSync(exe64)) return exe64;
     }
   }
   return undefined; // fall back to @playwright/test's own resolution
@@ -247,6 +257,127 @@ function buildBackupDocSizeReport(tracks){
   return { bytes: Buffer.byteLength(JSON.stringify(doc), 'utf8') };
 }
 
+// PL6 item 4: a real, decodable PCM WAV file — a 220Hz tone at a fixed
+// amplitude, stereo, 16-bit — small and fast to synthesize but genuine audio
+// for decodeAudioData() to actually decode (not a stub/empty buffer), so the
+// real addFiles() import path (including PL6 item 1's analysis Worker) does
+// real work.
+function buildWavFile(name, durationSec, sampleRate = 44100){
+  const frames = Math.round(durationSec * sampleRate);
+  const dataSize = frames * 4; // stereo, 16-bit = 4 bytes/frame
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + dataSize, 4); buf.write('WAVE', 8);
+  buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20);
+  buf.writeUInt16LE(2, 22); buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 4, 28); buf.writeUInt16LE(4, 32); buf.writeUInt16LE(16, 34);
+  buf.write('data', 36); buf.writeUInt32LE(dataSize, 40);
+  for(let i = 0; i < frames; i++){
+    const sample = Math.round(Math.sin(2 * Math.PI * 220 * i / sampleRate) * 8000);
+    const off = 44 + i * 4;
+    buf.writeInt16LE(sample, off);
+    buf.writeInt16LE(sample, off + 2);
+  }
+  return { name, mimeType: 'audio/wav', buffer: buf };
+}
+
+// PL6 item 4: starts a longtask PerformanceObserver, starts real playback,
+// then drives a real 10-album import through the real #file <input> and
+// addFiles() path using setInputFiles (Playwright attaches in-memory
+// buffers to the input directly, no disk fixtures needed) — the real-world
+// "importing while something is already playing" scenario PL6's
+// Worker/idle-pass changes were meant to fix.
+//
+// Getting real playback running here (not just a queued/loaded track) took
+// three things the library's default state otherwise defeats:
+//  - the default library view is Crate (src/state.js's S.view.mode), whose
+//    rows aren't `li[data-id]` song rows at all — switch to Songs first.
+//  - #tone (the test-tone button) only exists inside the empty-library
+//    state (`#empty`, miziki.html), so it's unreachable once the harness's
+//    synthetic 2,000-track library is seeded — importing one small real
+//    setup file through the exact same #file/addFiles() path the real
+//    measurement uses, then clicking its own row, works regardless of
+//    library size.
+//  - a track click runs the sleeve-opening ceremony (player/queue.js's
+//    setQueue() → openPlayerViaSheet()/runStartSequence()) before play()
+//    ever actually runs; the ceremony's own animation never resolves a
+//    requestAnimationFrame-driven step in a headless page with no real
+//    paint cadence, so play() is never reached. Emulating
+//    prefers-reduced-motion (set once on the whole page in main(), same as
+//    a real iOS user with Reduce Motion on) makes every ceremony skip
+//    straight to its end state, same as `src/util/motion.js`'s REDUCED
+//    flag already does for a real user.
+async function measureLongTaskDuringImportWhilePlaying(page){
+  // Scoped to this measurement only (not set globally in main()) so it
+  // can't change what the dropped-frames/open-close measurements above are
+  // actually timing — this is the last measurement main() runs, so nothing
+  // after it needs motion restored to normal.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.click('#tabbar [data-route="library"]').catch(() => {});
+  await page.click('[data-view="songs"]').catch(() => {});
+  await page.waitForTimeout(200);
+
+  await page.setInputFiles('#file', [buildWavFile('Perf Setup Track.wav', 20)]);
+  await page.waitForFunction(
+    () => (document.querySelector('#pathNote')?.textContent || '').includes('Importing 1 of 1'),
+    { timeout: 30000 },
+  );
+  await page.waitForTimeout(1000);
+  await page.locator('li:has-text("Perf Setup Track")').first().click({ timeout: 10000 });
+  await page.waitForFunction(
+    () => document.getElementById('miniIndicator')?.classList.contains('playing'),
+    { timeout: 10000 },
+  );
+
+  await page.evaluate(() => {
+    window.__perfLongTasks = [];
+    const obs = new PerformanceObserver((list) => {
+      for(const entry of list.getEntries()) window.__perfLongTasks.push(entry.duration);
+    });
+    try{ obs.observe({ entryTypes: ['longtask'] }); }catch(_e){ /* longtask not supported */ }
+    window.__perfLongTaskObs = obs;
+  });
+
+  const files = [];
+  for(let a = 0; a < IMPORT_ALBUMS; a++){
+    for(let t = 0; t < IMPORT_TRACKS_PER_ALBUM; t++){
+      files.push(buildWavFile(`Perf Album ${a + 1} - Track ${t + 1}.wav`, IMPORT_TRACK_DURATION_SEC));
+    }
+  }
+
+  const t0 = Date.now();
+  // A generous explicit timeout — under 4x CPU throttling, attaching 40
+  // files to the real <input> and having the page start processing the
+  // first one can occasionally take longer than Playwright's 30s default,
+  // same noisy-by-nature territory this whole script already lives in.
+  await page.setInputFiles('#file', files, { timeout: 60000 });
+  // addFiles()'s loop writes "Importing N of M — <name>" to #pathNote for
+  // every file, then leaves it on the last note once the batch finishes —
+  // waiting for the count to reach the full file list is the one reliable
+  // "the whole batch is done" signal available from outside the app.
+  await page.waitForFunction(
+    (total) => (document.querySelector('#pathNote')?.textContent || '').includes(`Importing ${total} of ${total}`),
+    files.length,
+    { timeout: 120000 },
+  );
+  // the last file's own decode/analyze/store work still has to finish after
+  // its "Importing N of N" note is written
+  await page.waitForTimeout(1500);
+  const importMs = Date.now() - t0;
+
+  const result = await page.evaluate((threshold) => {
+    window.__perfLongTaskObs.disconnect();
+    const longTasks = window.__perfLongTasks || [];
+    return {
+      count: longTasks.length,
+      totalMs: Math.round(longTasks.reduce((a, b) => a + b, 0)),
+      longestMs: longTasks.length ? Math.round(Math.max(...longTasks)) : 0,
+      overThreshold: longTasks.filter(d => d > threshold).length,
+    };
+  }, LONG_TASK_THRESHOLD_MS);
+  result.importMs = importMs;
+  return result;
+}
+
 async function seedLibrary(page){
   const tracks = buildSyntheticLibrary(TRACK_COUNT, ALBUM_COUNT);
   await page.evaluate((recs) => new Promise((resolve, reject) => {
@@ -297,7 +428,7 @@ async function main(){
     await client.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE_RATE });
 
     const results = { trackCount: TRACK_COUNT, albumCount: ALBUM_COUNT, cpuThrottle: CPU_THROTTLE_RATE, reps: REPS,
-      tabs: {}, scroll: null, sheets: {}, sundown: null, restoreLibrary: null, backupDoc: null, notes: [] };
+      tabs: {}, scroll: null, sheets: {}, sundown: null, restoreLibrary: null, backupDoc: null, importWhilePlaying: null, notes: [] };
 
     // --- Backup doc size (RF5, point 4) — pure computation, no page needed ---
     results.backupDoc = buildBackupDocSizeReport(buildSyntheticLibrary(TRACK_COUNT, ALBUM_COUNT));
@@ -381,6 +512,18 @@ async function main(){
     console.log(`restoreLibrary() reload timing, ${REPS} reps …`);
     results.restoreLibrary = await measureRestoreLibraryRepeated(page, REPS);
 
+    // --- PL6 item 4: long tasks while a 10-album import runs during playback ---
+    // One run, not REPS — a real import is slow enough (real decode + a
+    // worker round trip per file) that 15 reps would make every run of this
+    // script noticeably longer, and the pass/fail bar ("no long task over
+    // 50ms") is a threshold check, not a distribution needing median/p95.
+    try{
+      console.log(`Importing ${IMPORT_ALBUMS} albums while a test tone plays …`);
+      results.importWhilePlaying = await measureLongTaskDuringImportWhilePlaying(page);
+    }catch(e){
+      results.notes.push('Import-while-playing long-task measurement failed: ' + e.message.split('\n')[0]);
+    }
+
     const md = renderMarkdown(results);
     mkdirSync(path.dirname(outPath), { recursive: true });
     writeFileSync(outPath, md);
@@ -454,6 +597,18 @@ function renderMarkdown(r){
     ? `**${r.backupDoc.bytes.toLocaleString('en-US')} bytes** (\`JSON.stringify(toDoc(...))\`, UTF-8) — `
       + `well under the 2MB \`jsonb\` column cap (CLAUDE.md's "Backup: what gets synced"). Not a timing sample, so no median/p95 — a single deterministic computation at this library size.`
     : 'n/a');
+  lines.push('');
+  lines.push(`## PL6: long tasks while a ${IMPORT_ALBUMS}-album import runs during playback`);
+  lines.push('');
+  if(r.importWhilePlaying){
+    const p = r.importWhilePlaying;
+    lines.push(`A test tone plays while ${IMPORT_ALBUMS} albums (${IMPORT_ALBUMS * IMPORT_TRACKS_PER_ALBUM} real, decodable WAV files) `
+      + `import through the real \`addFiles()\` path. Import took ${p.importMs}ms. `
+      + `Long tasks observed: **${p.count}** (total ${p.totalMs}ms, longest ${p.longestMs}ms), `
+      + `of which **${p.overThreshold}** exceeded the ${LONG_TASK_THRESHOLD_MS}ms bar PL6 sets.`);
+  } else {
+    lines.push('n/a');
+  }
   if(r.notes.length){
     lines.push('');
     lines.push('## Notes');

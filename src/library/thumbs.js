@@ -9,8 +9,8 @@ import { rebuildPeopleIndex, updateCreditsButtonForCurrent } from './credits.js'
 import { renderProfile } from '../profile/screens.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { decodeAudioFile } from '../audio/engine.js';
-import { measureTrack, TRUE_PEAK_VERSION } from '../audio/loudness.js';
-import { detectHook } from '../audio/hook.js';
+import { TRUE_PEAK_VERSION } from '../audio/loudness.js';
+import { analyzeTrack } from '../audio/analysis-client.js';
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -141,16 +141,45 @@ export async function healThumbs(){
   }
 }
 
+// PL6 item 2: one track per idle slot (requestIdleCallback, with a
+// setTimeout fallback where it doesn't exist — the same fallback shape
+// library/view.js's own scheduleIdle() already uses for chunked row
+// rendering), instead of a fixed guessed delay (`sleep(0)`/`sleep(30)`)
+// between tracks. Still pauses (never cancels) while something is
+// playing or the user's hands are on a gesture (the scrub bar) — a real
+// yield back to the browser's own scheduler, not just a shorter wait.
+function scheduleIdle(fn){
+  if(typeof requestIdleCallback === 'function') requestIdleCallback(fn, {timeout: 500});
+  else setTimeout(fn, 0);
+}
+
+// Runs `processOne(item)` for each item in `items`, one per idle slot --
+// awaited before the next one is even scheduled, so a slow track (decode
+// + a worker round trip) never piles idle callbacks on top of each other.
+// Every boot repair pass below (healDetails/healLoudness/healHooks) uses
+// this same scheduling, not just the ones AU5/AU12 originally yielded for.
+function runIdlePass(items, processOne){
+  return new Promise(resolve => {
+    function step(i){
+      if(i >= items.length){ resolve(); return; }
+      scheduleIdle(async () => {
+        while(S.playing || S.scrubbing) await sleep(500);
+        const item = items[i];
+        if(S.tracks.includes(item)) await processOne(item);  // else deleted while we waited
+        step(i + 1);
+      });
+    }
+    step(0);
+  });
+}
+
 // back-fills t.details (liner notes/credits) on libraries stored before that
-// field existed — a non-blocking, batched re-read of each stored file's own
-// tags, same shape as healThumbs() above (see CREDITS spec §0)
+// field existed — a non-blocking, resumable re-read of each stored file's
+// own tags, same shape as healThumbs() above (see CREDITS spec §0)
 export async function healDetails(){
   if(!storage.available()) return;
   const targets = S.tracks.filter(t => t.stored && !t.details);
-  for(let i = 0; i < targets.length; i++){
-    while(S.playing) await sleep(500);
-    const t = targets[i];
-    if(!S.tracks.includes(t)) continue;   // deleted while we waited
+  await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
       if(rec && rec.blob){
@@ -162,9 +191,7 @@ export async function healDetails(){
         t.details = emptyDetails();
       }
     }catch(_e){ t.details = emptyDetails(); }
-    await sleep(0);
-    if((i + 1) % 5 === 0) await sleep(30);
-  }
+  });
   if(typeof rebuildPeopleIndex === 'function') rebuildPeopleIndex();
   if(typeof invalidateCrateModel === 'function') invalidateCrateModel();
   if(typeof updateCreditsButtonForCurrent === 'function') updateCreditsButtonForCurrent();
@@ -172,12 +199,8 @@ export async function healDetails(){
 
 // AU5 (docs/16_AUDIO.md §4): "Run an idle-time pass over the existing
 // library once" — a library imported before this feature existed has
-// details.loudness still unset; this measures it the same batched,
-// yielding, resumable way healDetails() already backfills a missing
-// details object entirely. Decoding a whole track just to measure it is
-// the one genuinely expensive step in this file, so it yields after every
-// single track (not just every 5th) and still respects the same
-// "pause while something is playing" rule healDetails()/healThumbs() use.
+// details.loudness still unset; this measures it the same resumable way
+// healDetails() already backfills a missing details object entirely.
 export async function healLoudness(){
   if(!storage.available()) return;
   // PL5 item 4: re-measure once more, even for a track already measured,
@@ -186,10 +209,7 @@ export async function healLoudness(){
   // next boot repair pass, same mechanism, no separate migration.
   const targets = S.tracks.filter(t => t.stored && t.details
     && !(t.details.loudness && t.details.loudness.measured && t.details.loudness.truePeakVersion === TRUE_PEAK_VERSION));
-  for(let i = 0; i < targets.length; i++){
-    while(S.playing) await sleep(500);
-    const t = targets[i];
-    if(!S.tracks.includes(t)) continue;   // deleted while we waited
+  await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
       if(rec && rec.blob){
@@ -200,14 +220,14 @@ export async function healLoudness(){
         const buffer = await decodeAudioFile(raw);
         const channels = [];
         for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-        t.details.loudness = measureTrack(channels, buffer.sampleRate);
+        // PL6 item 1: off the main thread, via the analysis worker.
+        const analysis = await analyzeTrack(channels, buffer.sampleRate);
+        t.details.loudness = analysis.loudness;
         rec.details = t.details;
         await tracks.put(rec);
       }
     }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
-    await sleep(0);
-    await sleep(30);
-  }
+  });
 }
 
 // AU12 (docs/16_AUDIO.md §7): the same "idle pass... for a library imported
@@ -222,10 +242,7 @@ export async function healLoudness(){
 export async function healHooks(){
   if(!storage.available()) return;
   const targets = S.tracks.filter(t => t.stored && t.details && typeof t.details.hookStart !== 'number');
-  for(let i = 0; i < targets.length; i++){
-    while(S.playing) await sleep(500);
-    const t = targets[i];
-    if(!S.tracks.includes(t)) continue;   // deleted while we waited
+  await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
       if(rec && rec.blob){
@@ -235,18 +252,17 @@ export async function healHooks(){
         const buffer = await decodeAudioFile(raw);
         const channels = [];
         for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-        const hook = detectHook(channels, buffer.sampleRate);
-        if(hook){
-          t.details.hookStart = hook.hookStart;
-          t.details.hookEnd = hook.hookEnd;
+        // PL6 item 1: off the main thread, via the analysis worker.
+        const analysis = await analyzeTrack(channels, buffer.sampleRate);
+        if(analysis.hook){
+          t.details.hookStart = analysis.hook.hookStart;
+          t.details.hookEnd = analysis.hook.hookEnd;
           rec.details = t.details;
           await tracks.put(rec);
         }
       }
     }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
-    await sleep(0);
-    await sleep(30);
-  }
+  });
 }
 
 // drops thumbnails whose records are gone (after clearing listening history)
