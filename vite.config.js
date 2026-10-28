@@ -5,39 +5,16 @@ const { defineConfig } = require('vite');
 const path = require('path');
 const fs = require('fs');
 
-// miziki.html loads src/miziki-social.js as a plain classic <script src>
-// (not type="module"), on purpose — see the comment above that tag — so it
-// keeps executing synchronously in place, exactly like the inline copy it
-// replaced. Vite only bundles `type="module"` scripts referenced from HTML;
-// a plain script src is left completely untouched (confirmed: `vite build`
-// warns "can't be bundled without type=module" and never copies the file),
-// so without this it would 404 in the built app. This plugin copies the
-// file to the same src/ path under outDir, and the HTML references it via
-// a plain relative path (src="src/miziki-social.js"), not an absolute
-// %BASE_URL%-prefixed one — see the comment above that tag in miziki.html
-// for why. That relative reference is also what makes it base-agnostic:
-// it resolves correctly against the page's own URL regardless of what
-// `base` below is set to, so Netlify's '/' base (see netlify.toml) needs
-// no special-casing here.
-function copySocialClient() {
-  return {
-    name: 'copy-social-client',
-    apply: 'build',
-    closeBundle() {
-      const from = path.resolve(__dirname, 'src/miziki-social.js');
-      const toDir = path.resolve(__dirname, 'dist/src');
-      fs.mkdirSync(toDir, { recursive: true });
-      fs.copyFileSync(from, path.join(toDir, 'miziki-social.js'));
-    },
-  };
-}
-
 // src/theme-boot.js (D2, docs/DESKTOP_LAYOUT.md) — the anti-flash head
-// script, same shape and same reason as copySocialClient() just above: a
-// plain classic <script src>, not type="module", so Vite leaves it
-// completely untouched rather than bundling it. It has to run before
+// script: a plain classic <script src>, not type="module", so Vite leaves
+// it completely untouched rather than bundling it. It has to run before
 // src/ui/theme.js (a real module, bundled normally) even loads, which is
 // the whole point of it being a separate file in the first place.
+// (src/miziki-social.js used to need the same treatment via a sibling
+// copySocialClient() plugin here, but TR3, docs/19_PLAYER.md turned it
+// into a real ES module, statically imported for its side effect from
+// src/main.js, so Vite now bundles and minifies it normally like any
+// other module — no plugin needed.)
 function copyThemeBoot() {
   return {
     name: 'copy-theme-boot',
@@ -68,5 +45,5 @@ module.exports = defineConfig({
       input: path.resolve(__dirname, 'miziki.html'),
     },
   },
-  plugins: [copySocialClient(), copyThemeBoot()],
+  plugins: [copyThemeBoot()],
 });

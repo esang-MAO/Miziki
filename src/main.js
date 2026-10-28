@@ -1,4 +1,11 @@
 "use strict";
+// TR3 (docs/19_PLAYER.md): a real ES module now, imported here purely for
+// its side effect (it assigns window.MizikiSocial itself, see its own
+// header comment) -- must stay the very first import so that global
+// exists before any of this file's own top-level code runs, the same
+// ordering a separate classic <script src="src/miziki-social.js"> tag
+// ahead of this module's <script> tag in miziki.html used to guarantee.
+import './miziki-social.js';
 import { S, current, SOCIAL_SUPABASE_URL, SOCIAL_SUPABASE_ANON_KEY } from './state.js';
 import { $ } from './util/dom.js';
 import { trackTier, albumKey } from './record-art/tiers.js';

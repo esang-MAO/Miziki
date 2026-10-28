@@ -213,3 +213,32 @@ Device check: not yet run on-device — opening Settings → Privacy, and Privac
 `src/sync/backup.js` (~1180 lines) can't be moved out of the main chunk at all without a much larger restructuring than TR2's "one extraction" scope allows: its exports are called synchronously from several always-active, frequently-hit paths — `storage/meta.js`'s `scheduleBackupSync` (reached from `queueSave`, used nearly everywhere), `library/import.js`, `library/edit.js`, `history/played.js`, `history/clear.js`, `wiring/lifecycle.js`, `profile/screens.js`/`settings.js`/`privacy.js` — so the module is already loaded and evaluated as part of the main bundle regardless of where or how `initBackupSync()` itself is called.
 
 That leaves the doc's own narrower parenthetical — "start the backup pull after first paint" — as a *timing* question, not a bundle-size one, and checking `main.js`'s actual boot sequence shows it's already satisfied: `showRoute('library')` and `requestAnimationFrame(frame)` run synchronously at the top level before the browser's first paint even has a chance to happen, and `restoreLibrary()` (called right after, never awaited by the boot script) is async with several real `await` points — `storage.open()`, `tracks.all()`, `loadOverlaysBatch()`, `restoreMeta()`, `restoreSessions()`, `restoreSealedAlbums()` — all *before* `renderTracks()` even runs, let alone before `initBackupSync()` near the end of that function. By the time `initBackupSync()` runs, the browser has had many real yield points to paint. `initBackupSync()` itself is also cheap: it bails out immediately (`if(!soc || !soc.on) return;`) for every user without social configured (today, that's everyone), and even when configured, the real network pull (`runPull()`) only fires after an async `getUser()` call resolves — never synchronously, never blocking anything. No further change needed here; same conclusion as TR2 item 2's "stale main.js:213 comment" check in the `share/*` PR.
+
+## TR3: social client into the bundle
+
+`src/miziki-social.js` (1227 lines) was the one remaining classic `<script src>` besides `theme-boot.js` — Vite left it completely untouched and `vite.config.js`'s `copySocialClient()` plugin copied it verbatim to `dist/src/miziki-social.js` (63.29 kB raw, 20.27 kB gzipped, unminified and separately fetched).
+
+Converted it into a real ES module: dropped the `(function (root) {...})(window)` IIFE wrapper and its now-redundant `if (root.MizikiSocial) return;` double-load guard (module caching already deduplicates a repeated `import`), dedented the body, and kept the file assigning to `root.MizikiSocial` (`root` being `window` in the browser, `globalThis` under Node) rather than exporting anything — 24 other modules reach `MizikiSocial` as a bare global today, and converting every one of those call sites to a real `import` is a separate, much larger change outside this PR's scope. `tests/client.test.js`'s own `require('../src/miziki-social.js')` still works unchanged, since the file still has no `import`/`export` statements and Node still gets a `root` to assign to.
+
+`main.js` now imports the file for its side effect only, as its very first import — ES module execution order guarantees `MizikiSocial` is a real global before any of `main.js`'s own top-level code runs, the same ordering the removed classic-script-then-module-script tag order used to guarantee. Removed `copySocialClient()` from `vite.config.js` and the now-obsolete classic `<script src="src/miziki-social.js">` tag from `miziki.html`.
+
+**Judgment call, documented rather than asked:** the doc's text asks for this file to land "bundled and minified with the lazy social chunk" (i.e. inside `friend-store-*.js`/`sheet-*.js`, fetched only when a social screen opens). That's not possible without a much larger, riskier restructuring: `main.js` calls `MizikiSocial.on('status', updateHomeTabVisibility)` synchronously at its own top level (before any `await`, to decide the Home tab's initial visibility) and calls `await MizikiSocial.init(...)` unconditionally inside `restoreLibrary()` for every user, configured or not — so the client's *presence* is needed synchronously at boot regardless of configuration, even though its *internal logic* no-ops when unconfigured. Making it truly lazy would mean teaching `main.js` to fake a synchronous "not ready yet" status until a dynamic import resolves, which is a behavior change to boot sequencing that refactor rule 1 (no behavior changes in a refactor PR) rules out here. This PR takes the safe half of TR3's ask — real module, bundled, minified, `copySocialClient()` gone — and leaves true lazy-chunk placement as a follow-up only worth doing if Ken wants the extra boot-sequencing risk. The hand-rolled `sha256hex` → `crypto.subtle.digest` swap is also left for a separate PR (refactor rule 2): it touches ~10 call sites across the file and turns several of them `async`, which is its own, independently reviewable diff.
+
+New chunk sizes (`MIZIKI_BASE=/ npm run build`):
+
+| File | Size | gzip | vs. PR #245 |
+|---|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 480.49 kB | 148.38 kB | +27.30 kB / +9.62 kB gzip (social client now inlined, minified, dead-code-eliminated here instead of shipping as a separate 63.29 kB / 20.27 kB gzip raw file) |
+| `dist/src/miziki-social.js` (separate file) | — (removed) | — | -63.29 kB / -20.27 kB gzip off total page weight |
+| `dist/assets/legal-*.js` | 8.16 kB | 3.19 kB | unchanged |
+| `dist/assets/privacy-*.js` | 4.87 kB | 1.87 kB | unchanged |
+| `dist/assets/friend-store-*.js` | 13.23 kB | 4.03 kB | unchanged |
+| `dist/assets/eq-sheet-*.js` | 7.40 kB | 2.71 kB | unchanged |
+| `dist/assets/sheet-*.js` | 20.54 kB | 7.01 kB | unchanged |
+| `dist/assets/pressings-card-*.js` | 10.34 kB | 4.29 kB | unchanged |
+| `dist/assets/dist-*.js` | 218.84 kB | 56.54 kB | unchanged |
+| `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
+
+Net effect on what a device actually downloads: the main chunk's reported size grows (it now includes code that used to live in a separate, unbundled file), but total page weight drops, since the social client is now minified instead of shipped as commented, whitespace-heavy source, and is no longer a second, separately-fetched file.
+
+Device check: not yet run on-device — sign-in/sign-out, crate sharing, follow requests, and every other social-layer action should behave identically; with social config empty, the calm "not set up" state should still show everywhere it did before.

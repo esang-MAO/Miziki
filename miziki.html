@@ -25,12 +25,15 @@
      instead, and sets documentElement's data-theme attribute before the
      stylesheet <link> tags below are even parsed, since it's a blocking
      classic script placed ahead of them. A relative path, not an
-     absolute one — see the comment on src/miziki-social.js's own
-     <script> tag further down for why a plain (non type="module") script
-     src needs that to resolve correctly under both deploy bases; the
+     absolute one: Vite only rewrites paths it actually bundles, and a
+     plain classic script src is explicitly left untouched ("can't be
+     bundled without type=module") — a %BASE_URL% prefix here got
+     double-applied by Vite's own dev-server base handling
+     (http://host/Miziki/Miziki/src/...). A relative path sidesteps that:
+     it resolves correctly against the page's own final URL in both dev
+     and the built site, with no base-rewriting involved at all. The
      copy-theme-boot plugin in vite.config.js keeps the file at this same
-     src/ path under the build output, the same way copy-social-client
-     already does for miziki-social.js. Auto needs none of this — with no
+     src/ path under the build output. Auto needs none of this — with no
      data-theme attribute set, src/styles/22-theme.css's own
      @media (prefers-color-scheme) rule handles it with zero JavaScript
      at first paint. -->
@@ -1607,35 +1610,18 @@
   </div>
 </div>
 
-<!-- src/miziki-social.js is the social layer's sync client, and the single
-     source of truth for it (step 1: tooling — this used to be a vendored
-     inline copy; now loaded directly). Self-contained (window.MizikiSocial),
-     does nothing until the app's own code below calls MizikiSocial.init()
-     with a Supabase URL/anon key; with neither it stays enabled:false and
-     inert. Loaded as a classic script, not type="module", so it still
-     executes synchronously in place, exactly like the inline copy it
-     replaces — the main player script right after it checks
-     `typeof MizikiSocial` and expects it already defined.
-     A plain relative path, not an absolute %BASE_URL%-prefixed one: Vite
-     only rewrites paths it actually bundles, and a plain classic script
-     src is explicitly left untouched ("can't be bundled without
-     type=module") — a %BASE_URL% prefix here got double-applied by Vite's
-     own dev-server base handling (http://host/Miziki/Miziki/src/...).
-     A relative path sidesteps that: it resolves correctly against the
-     page's own final URL in both dev and the built site, same as it
-     would for a plain static HTML page, with no base-rewriting involved
-     at all. The copy-social-client plugin in vite.config.js keeps the
-     file at this same src/ path under the build output. -->
-<script src="src/miziki-social.js"></script>
-
-<!-- src/main.js is the main player script (step 2a: tooling) — loaded
-     as a module now (type="module"), not a classic script, so Vite
-     bundles it into a hashed asset under dist/assets/ like any other
-     module. src/miziki-social.js just above stays a classic script, so
-     `MizikiSocial` is already a real global by the time this runs —
-     module scripts are deferred (execute after the document parses)
-     exactly like a classic script at the end of <body> already was, so
-     that ordering guarantee is unchanged either way. -->
+<!-- src/main.js is the main player script, loaded as a module
+     (type="module") so Vite bundles it into a hashed asset under
+     dist/assets/ like any other module. src/miziki-social.js (the social
+     layer's sync client, self-contained as window.MizikiSocial; does
+     nothing until the app's own code calls MizikiSocial.init() with a
+     Supabase URL/anon key, and with neither it stays enabled:false and
+     inert) is now a real ES module too (TR3, docs/19_PLAYER.md) —
+     main.js imports it for its side effect, as its very first import, so
+     `MizikiSocial` is already a real global by the time the rest of
+     main.js's own top-level code runs, the same ordering a separate
+     classic <script src="src/miziki-social.js"> tag ahead of this one
+     used to guarantee. -->
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

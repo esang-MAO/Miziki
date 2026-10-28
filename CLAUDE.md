@@ -9,7 +9,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 
 ## Repo layout
 
-- `miziki.html` — the markup shell: CSP/referrer meta tags, `theme-boot.js` (pre-paint theme), stylesheet links in cascade order, the tab bar/sidebar, mini-player, crate/library/profile routes, full-player overlay with desktop side panel, gatefold, sealed-record/picture-sleeve sheets, Sundown sheet, EQ/queue/share/credits/edit sheets, then `<script type="module" src="src/main.js">` preceded by the classic `src/miziki-social.js` script (so `MizikiSocial` is global before `main.js` runs).
+- `miziki.html` — the markup shell: CSP/referrer meta tags, `theme-boot.js` (pre-paint theme), stylesheet links in cascade order, the tab bar/sidebar, mini-player, crate/library/profile routes, full-player overlay with desktop side panel, gatefold, sealed-record/picture-sleeve sheets, Sundown sheet, EQ/queue/share/credits/edit sheets, then `<script type="module" src="src/main.js">`, which imports `src/miziki-social.js` for its side effect as its very first import (so `MizikiSocial` is global before the rest of `main.js` runs).
 - `src/main.js` — the boot file: imports what it needs, calls each `wireX()` from `src/wiring/` once, runs the startup sequence, then `restoreLibrary()` (opens storage, loads tracks, restores state, rebuilds indexes, heals thumbnails/details/crate-art/loudness/hooks, inits `MizikiSocial`, runs the launch intro) and wires backup-sync's `onBackup('applied', ...)` listener. The one module allowed to import `renderTracks`/`applyDiscVariant`/`renderProfile`/`isProfileRouteVisible` together — a module, not a classic script.
 - `src/wiring/` — one file per UI area, each exporting a single `wireX()` that only attaches listeners: lifecycle, transport, library-view, search, import, library-management, gatefold (also the global Escape handler), sundown, character, edit, account, share, overlays, routes, pull-refresh.
 - `src/state.js` — exports `S`, the one app-state object (audio graph, tracks/queue/mode, character/EQ/loudness/mono-balance, sessions, Sundown/day-arc fields, sync bookkeeping, theme, privacy flags, assorted runtime-only fields) and `current()`. Also the two social config constants. No imports — every other module can safely depend on it.
@@ -34,7 +34,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 - `scripts/derive-makeup-table.mjs` — re-run if the Vinyl chain's topology changes; derives `level-match.js`'s makeup-gain table from a real render.
 - `src/styles/` — numbered CSS files, cascade order matters; `fonts.css` self-hosts `@font-face`. `00-base.css` holds the token scale; `22-theme.css` holds light/Nychthemeron overrides.
 - `src/fonts/` — self-hosted Antonio/Archivo/IBM Plex Mono, Latin subset, OFL licensed.
-- `src/miziki-social.js` — the social client (`MizikiSocial`). Classic script, not a module; wired via `env`-passed accessor functions, not imports, so it stays import-free.
+- `src/miziki-social.js` — the social client (`MizikiSocial`). A real ES module (bundled and minified like any other), but still assigns to `window.MizikiSocial` rather than exporting, since most callers reach it as a global rather than importing it (`main.js` imports it only for that side effect, as its first import); wired via `env`-passed accessor functions, not imports, so it stays decoupled from the rest of the app.
 - `supabase/functions/` — edge functions: `mb-connections/` (the only code that calls MusicBrainz — fills the connected-crate cache, off unless the `MB_ENABLED` secret is `true`) and `_shared/mb-connections.js` (its pure parsing, plain JS so `tests/unit/connected.test.js` runs it under Node).
 - `supabase/migrations/` — schema/RPCs/RLS, applied in numeric order. **Never edit an applied migration** — add a new one. From `012_migrations_log.sql` on, each asserts the prior version is logged and logs its own.
 - `tests/unit/` — `node:test` tests for extracted pure functions (`npm run test:unit`); several mock modules that would otherwise need a browser or a wide unrelated dependency web — expected here, not a smell.
@@ -184,7 +184,7 @@ Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.
 
 - `npm install` — Vite, `fake-indexeddb`, `eslint`/`globals`, `@playwright/test` — dev-only, not part of the built app.
 - `npm run dev` — Vite dev server at `http://localhost:5173/Miziki/` (note the `/Miziki/`).
-- `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` and `dist/src/miziki-social.js` (copied verbatim, since Vite only bundles `type="module"` scripts). `dist/` is gitignored.
+- `npm run build` — builds to `dist/miziki.html` plus `dist/assets/` and `dist/src/theme-boot.js` (the one remaining file Vite copies verbatim, since it's a plain classic script, not `type="module"`). `dist/` is gitignored.
 - `npm run preview` — serves built `dist/` at `http://localhost:4173/Miziki/`, closest to real GitHub Pages.
 - `npm run lint` — ESLint over the whole repo, zero errors/warnings required. Both CI pipelines run this before `npm run test:unit`.
 - `npm test` — `tests/client.test.js` against a local Postgres (see its header for connection defaults).
