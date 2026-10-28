@@ -55,18 +55,22 @@ test('satCurve(0) is an identity curve with trim 1', () => {
 });
 
 // The asym*x² term is an intentional asymmetry (for even-harmonic
-// coloration), so the curve overshoots [-1, 1] slightly at the extremes —
-// measured up to ~0.0033 at amount=0.35 and ~0.0018 at amount=1. That's a
-// real property of the math, not float noise, so EPS is sized to it
-// rather than to double-precision rounding.
-const EPS = 0.005;
+// coloration), so the curve overshoots [-1, 1] at the extremes — measured
+// up to ~0.007 at amount=0.35 and ~0.056 at amount=1 with PL8 item 13's
+// retuned k/asym/mix (the raw curve array, before satTrim brings the
+// *trimmed* output back under 1 — this check is on the untrimmed array).
+// That's a real property of the math, not float noise, so CURVE_EPS is
+// sized to it rather than to double-precision rounding. EPS (below) stays
+// tight for the exact-arithmetic float comparisons elsewhere in this file.
+const CURVE_EPS = 0.06;
+const EPS = 1e-6;
 for (const amount of [0.35, 1]) {
   test(`satCurve(${amount}) stays within range (± a small, intentional overshoot), is monotonic, and trims below 1`, () => {
     const { curve, trim } = satCurve(amount);
     assert.ok(trim < 1);
     let prev = -Infinity;
     for (const v of curve) {
-      assert.ok(v >= -1 - EPS && v <= 1 + EPS, `curve value ${v} out of [-1-EPS, 1+EPS]`);
+      assert.ok(v >= -1 - CURVE_EPS && v <= 1 + CURVE_EPS, `curve value ${v} out of [-1-CURVE_EPS, 1+CURVE_EPS]`);
       assert.ok(v >= prev, 'curve must be monotonically increasing');
       prev = v;
     }
@@ -105,11 +109,14 @@ function makeFakeContext() {
   };
 }
 
-test('buildGraph wires pad -> wobble -> sat -> satTrim -> dc -> tone -> comp -> makeup -> master -> out -> destination, in that order', async () => {
+test('buildGraph wires pad -> wobble -> wobbleTilt -> sat -> satTrim -> dc -> tone -> comp -> makeup -> master -> out -> destination, in that order', async () => {
   const ctx = makeFakeContext();
   const n = await buildGraph(ctx);
   assert.ok(n.pad.connections.includes(n.wobble));
-  assert.ok(n.wobble.connections.includes(n.sat));
+  // PL8 item 13: wobbleTilt is the always-on correction for wobble's own
+  // fractional-delay interpolation loss -- see engine.js's own comment.
+  assert.ok(n.wobble.connections.includes(n.wobbleTilt));
+  assert.ok(n.wobbleTilt.connections.includes(n.sat));
   assert.ok(n.sat.connections.includes(n.satTrim));
   assert.ok(n.satTrim.connections.includes(n.dc));
   assert.ok(n.dc.connections.includes(n.tone));
@@ -237,11 +244,11 @@ test('applyCharacter: Pure never applies drift, even at Full intensity and solar
   S.ctx = { currentTime: 0 };
   S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
-  // undrifted: soft 0.40 -> tone gain -9*0.40; drifted (warmth=1, Full)
-  // would instead be soft 0.67 -> -6.03 (§3.4: soft +0.27 at Full), so this
+  // undrifted: soft 0.40 -> tone gain -2*0.40; drifted (warmth=1, Full)
+  // would instead be soft 0.67 -> -1.34 (§3.4: soft +0.27 at Full), so this
   // also confirms the gate actually does something, not just that nothing
   // threw.
-  assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
+  assert.equal(S.nodes.tone.gain.lastTarget, -2 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
   // AU3 §2.3: makeup now comes from the derived level-match table, keyed
   // on comp alone (bus compression never drifts, so this is unaffected
@@ -260,7 +267,7 @@ test('applyCharacter: Vinyl applies the warmth-based drift at Full intensity', a
   // deliberately not drifted, unlike DA2's old anchor table) — an
   // epsilon-tolerant compare, same EPS as satCurve's own above, for the
   // same float-ULP reason as before.
-  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.67)) < EPS);
+  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-2 * 0.67)) < EPS);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35, 'bus compression never drifts (§3.4)');
   assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }), 'makeup follows comp alone, which never drifts');
 });
@@ -272,7 +279,7 @@ test('applyCharacter: Vinyl with intensity off matches the user\'s own raw slide
   S.ctx = { currentTime: 0 };
   S.nodes = await buildGraph(makeFakeContext());
   applyCharacter();
-  assert.equal(S.nodes.tone.gain.lastTarget, -9 * 0.40);
+  assert.equal(S.nodes.tone.gain.lastTarget, -2 * 0.40);
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
   assert.equal(S.nodes.makeup.gain.lastTarget, makeupGainFor({ comp: 0.35 }));
 });
@@ -290,11 +297,11 @@ test('applyCharacter: a 45 scales softening and saturation down from a 33⅓', a
   applyCharacter();
   const toneAt33 = S.nodes.tone.gain.lastTarget;
   const trimAt33 = S.nodes.satTrim.gain.lastTarget;
-  assert.equal(toneAt33, -9 * 0.40);
+  assert.equal(toneAt33, -2 * 0.40);
 
   S.recordFormat = { size: '7"', speed: RPM_45 };
   applyCharacter();
-  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-9 * 0.40 * 0.7)) < EPS, 'softening scaled ×0.7');
+  assert.ok(Math.abs(S.nodes.tone.gain.lastTarget - (-2 * 0.40 * 0.7)) < EPS, 'softening scaled ×0.7');
   assert.notEqual(S.nodes.satTrim.gain.lastTarget, trimAt33, 'a different effective sat rebuilds the curve/trim');
   // comp/wow are untouched by the 45 scale
   assert.equal(S.nodes.comp.threshold.lastTarget, -6 - 18 * 0.35);
@@ -400,7 +407,7 @@ test('releaseAudition: restores every stage from current S.char, not a stale sna
   auditionStageAlone('wow');
   S.char.soft = 0.9; // changed while held
   releaseAudition();
-  assert.equal(n.tone.gain.lastTarget, -9 * 0.9, 'restored from the current slider value, not the one at hold-start');
+  assert.equal(n.tone.gain.lastTarget, -2 * 0.9, 'restored from the current slider value, not the one at hold-start');
 });
 
 test('releaseAudition is a no-op when nothing is being audition-held', async () => {

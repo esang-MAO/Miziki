@@ -61,15 +61,17 @@ async function main(){
     // same reasoning CLAUDE.md gives for sync/images.js's own duplicated
     // crop logic: two systems that would otherwise need to be wired
     // together just to share one small, stable formula). --
+    // PL8 item 13: fixed small k (SAT_K), amount scales only asym/mix --
+    // see engine.js's own satCurve() comment for why.
     function satCurve(amount){
       const N = 2049, c = new Float32Array(N);
       if(amount < 0.005){ for(let i=0;i<N;i++) c[i] = (i*2)/(N-1) - 1; return {curve:c, trim:1}; }
-      const mix = amount*0.8, k = 1 + amount*2.2, asym = amount*0.18, norm = Math.tanh(k);
+      const SAT_K = 0.3, mix = amount*0.5, asym = amount*0.12, norm = Math.tanh(SAT_K);
       for(let i=0;i<N;i++){
         const x = (i*2)/(N-1) - 1;
-        c[i] = (1 - mix)*x + mix * Math.tanh(k*(x + asym*x*x)) / norm;
+        c[i] = (1 - mix)*x + mix * Math.tanh(SAT_K*(x + asym*x*x)) / norm;
       }
-      return {curve:c, trim: 1/(1 + amount*0.5)};
+      return {curve:c, trim: 1/(1 + 0.058*amount*amount)};
     }
 
     // -- BS.1770 integrated loudness (ITU-R BS.1770-4), K-weighting biquad
@@ -154,18 +156,23 @@ async function main(){
       flutOsc.connect(flutAmt).connect(wobble.delayTime);
       wowOsc.start(); flutOsc.start();
 
+      // PL8 item 13: the always-on correction for wobble's own
+      // interpolation loss -- see engine.js's buildGraph() comment.
+      const wobbleTilt = ctx.createBiquadFilter(); wobbleTilt.type = 'highshelf';
+      wobbleTilt.frequency.value = 10800; wobbleTilt.gain.value = 3.8;
+
       const satNode = ctx.createWaveShaper(); satNode.oversample = '4x';
       const s = satCurve(sat); satNode.curve = s.curve;
       const satTrim = ctx.createGain(); satTrim.gain.value = s.trim;
       const dc = ctx.createBiquadFilter(); dc.type='highpass'; dc.frequency.value=14; dc.Q.value=0.7;
-      const tone = ctx.createBiquadFilter(); tone.type='highshelf'; tone.frequency.value=7000; tone.gain.value = -9*soft;
+      const tone = ctx.createBiquadFilter(); tone.type='highshelf'; tone.frequency.value=7000; tone.gain.value = -2*soft; // PL8 item 13/14: rescaled from -9
       const comp2 = ctx.createDynamicsCompressor();
       comp2.knee.value=12; comp2.attack.value=0.012; comp2.release.value=0.26;
       comp2.threshold.value = -6 - 18*comp;
       comp2.ratio.value = 1 + 3*comp;
       const makeup = ctx.createGain(); makeup.gain.value = 1; // unity -- this is the render we're solving for
 
-      src.connect(pad).connect(wobble).connect(satNode).connect(satTrim).connect(dc).connect(tone).connect(comp2).connect(makeup).connect(ctx.destination);
+      src.connect(pad).connect(wobble).connect(wobbleTilt).connect(satNode).connect(satTrim).connect(dc).connect(tone).connect(comp2).connect(makeup).connect(ctx.destination);
       src.start(0);
       const out = await ctx.startRendering();
       return integratedLoudness([out.getChannelData(0), out.getChannelData(1)]);
