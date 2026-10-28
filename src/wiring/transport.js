@@ -9,7 +9,7 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { bgPrime } from '../player/background.js';
 import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
-import { pause, play, seek } from '../player/transport.js';
+import { pause, play, seek, toggleTrackSpecState } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
@@ -91,6 +91,15 @@ export function wireTransport(){
   // point as Sleep timer just above.
   $('#eqBtn').addEventListener('click', openEqSheet);
   $('#eqClose').addEventListener('click', () => closeLayer('eq'));
+
+  // PL8 item 10 (docs/19_PLAYER.md): tapping the spec line reveals its
+  // own Untouched/Converted/Shaped state. role="button" (miziki.html)
+  // needs its own Enter/Space handling -- a real <button> would get it
+  // for free, but this sits inline in running text, not styled as one.
+  $('#trackSpec').addEventListener('click', toggleTrackSpecState);
+  $('#trackSpec').addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTrackSpecState(); }
+  });
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
 

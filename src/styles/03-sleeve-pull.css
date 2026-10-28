@@ -83,6 +83,10 @@
 .now h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:.03em;margin:0 0 var(--sp-1);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .now .spec{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
+/* PL8 item 10 (docs/19_PLAYER.md): #trackSpec alone is tappable (its own
+   Untouched/Converted/Shaped state) -- #trackSpecPhase, the sibling .spec
+   just below it, is not. */
+#trackSpec{cursor:pointer}
 /* AU10 (docs/16_AUDIO.md §5): "a 7″ · 45 chip before the spec line" -- only
    ever shown for a 45 (a 33⅓ LP is the unremarkable default, so the
    element is left empty and :empty hides it -- player/transport.js's

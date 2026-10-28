@@ -169,6 +169,7 @@ Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.
 - [ ] Crate view, gatefold, sealed records
 - [ ] Queue: play next, add, reorder, shuffle and repeat
 - [ ] Edit track info and revert; remove from library
+- [ ] Tap the player's spec line: shows Untouched/Converted/Shaped and matches what's actually on (EQ, normalization, Vinyl, a resampled rate)
 - [ ] Background playback plus lock-screen controls with the screen locked
 - [ ] Lock the screen with the background toggle on, across a track boundary inside an album: no gap. Across an album boundary: next album starts within a second or two.
 - [ ] Take a phone call (or ask Siri something) while a track is playing: music pauses, no crash, no second source. Lock-screen Play and in-app Play both resume from exactly where it stopped.

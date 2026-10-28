@@ -1057,7 +1057,10 @@
            unremarkable default); written by player/transport.js's
            load() alongside #trackSpec itself, right below. -->
       <div class="format-chip" id="trackSpecFormat"></div>
-      <div class="spec" id="trackSpec">Load a file to see its signal path</div>
+      <!-- PL8 item 10 (docs/19_PLAYER.md): tapping this reveals its own
+           Untouched/Converted/Shaped state (src/player/transport.js's
+           toggleTrackSpecState(), wired in src/wiring/transport.js). -->
+      <div class="spec" id="trackSpec" role="button" tabindex="0" aria-label="Signal path, tap for state">Load a file to see its signal path</div>
       <!-- RF26 (docs/12_REFINE.md): "the format line adds the phase" --
            a sibling, not a child of #trackSpec, since load()
            (src/player/transport.js) sets #trackSpec's own textContent
