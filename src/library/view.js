@@ -16,6 +16,8 @@ import { setQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
 import { appendConnectedShelf } from './connected.js';
+import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-shelves.js';
+import { albumYearFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
 import { byName, groupBy, allIdx, albumTracks, idOf, idxOf, trackSort } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
@@ -812,7 +814,11 @@ function renderTracksBody(host){
         if(!albums.has(album)) albums.set(album, []);
         albums.get(album).push(i);
       });
-      const entries = [...albums.entries()].sort((a,b) => byName(a[0], b[0]));
+      // shelf order is release year, oldest first, like a record-store bin
+      // (and the crate's own per-artist order) — undated albums last, A–Z
+      const yearOf = new Map([...albums.entries()].map(([album, aidx]) => [album, albumYearFor(aidx)]));
+      const entries = [...albums.entries()].sort((a,b) =>
+        (yearOf.get(a[0]) || 9999) - (yearOf.get(b[0]) || 9999) || byName(a[0], b[0]));
       const flat = entries.flatMap(([, aidx]) => aidx.slice().sort(trackSort));
 
       const actions = el('div','artist-actions');
@@ -852,6 +858,9 @@ function renderTracksBody(host){
       host.appendChild(el('div','artist-shelf-rail'));
       const shelf = el('div','artist-shelf');
       entries.forEach(([album, aidx], k) => {
+        // docs/21_ARTIST_PAGE.md: each sleeve carries its title and year
+        // underneath, so a cover doesn't have to be recognized to be found
+        const item = el('div','shelf-item');
         const btn = el('button','shelf-sleeve' + (k % 2 ? ' shelf-sleeve-alt' : ''));
         const src = thumbURL['album:' + albumKey(S.tracks[aidx[0]])] || S.tracks[aidx[0]].art;
         if(src){
@@ -861,9 +870,20 @@ function renderTracksBody(host){
         } else btn.appendChild(el('span','g-art','◍'));
         btn.title = album;
         btn.addEventListener('click', ()=>{ v.artistAlbum = album; renderTracks(); });
-        shelf.appendChild(btn);
+        item.appendChild(btn);
+        const cap = el('span','shelf-caption');
+        cap.appendChild(el('b', null, album));
+        const year = yearOf.get(album);
+        if(year) cap.appendChild(el('span', null, String(year)));
+        item.appendChild(cap);
+        shelf.appendChild(item);
       });
       host.appendChild(shelf);
+      // the local shelves (docs/21_ARTIST_PAGE.md) — on-device stats only,
+      // each omitted until it has something to show
+      appendMostSpun(host, idx);
+      appendArtistHistory(host, v.group, idx);
+      appendPressings(host, entries);
       // Connected crate (docs/20_CONNECTED.md): related artists' records
       // under the shelf — stays hidden until the shared cache has some
       appendConnectedShelf(host, v.group);

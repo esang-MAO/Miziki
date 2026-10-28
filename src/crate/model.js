@@ -124,7 +124,7 @@ function albumGenreFor(idx){
 
 // an album's year is the most common non-zero t.details.year among its
 // tracks, ties going to the earliest (CRATE spec §2) — 0 means unknown
-function albumYearFor(idx){
+export function albumYearFor(idx){
   const counts = new Map();
   idx.forEach(i => {
     const y = S.tracks[i].details && S.tracks[i].details.year;
@@ -542,7 +542,7 @@ const WEEKDAY_LABELS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 // "LAST SPUN TUE" within the last week; a bare M/D once it's further back,
 // since "LAST SPUN TUE" said eight days later would misread as "this past
 // Tuesday" rather than the one before it.
-function lastSpunLabel(ts){
+export function lastSpunLabel(ts){
   if(!ts) return '';
   const diffDays = Math.floor((Date.now() - ts) / (24 * 3600 * 1000));
   if(diffDays < 7) return WEEKDAY_LABELS[new Date(ts).getDay()];

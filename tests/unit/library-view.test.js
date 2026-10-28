@@ -187,6 +187,10 @@ const centerEmptyStateMock = mock.fn();
 mock.module(new URL('../../src/crate/view.js', import.meta.url).href, {
   namedExports: { centerEmptyState: centerEmptyStateMock, renderCrate: renderCrateMock },
 });
+// the artist page's local shelves (docs/21_ARTIST_PAGE.md)
+mock.module(new URL('../../src/library/artist-shelves.js', import.meta.url).href, {
+  namedExports: { appendMostSpun(){}, appendArtistHistory(){}, appendPressings(){} },
+});
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
