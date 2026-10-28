@@ -181,3 +181,35 @@ New chunk sizes:
 | `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
 
 Device check: not yet run on-device — opening a friend's crate from a home-feed card, a people-search result, a now-spinning tile, a credits-screen "friends who have this" link, and the social-nav Back button should all still work with no visible delay.
+
+## TR2: lazy-load profile/legal.js and privacy.js (docs/19_PLAYER.md)
+
+Same baseline as the three sections above, measured after PR #244 merged (main chunk 465.60 kB / gzip 142.55 kB).
+
+Both files had the same shape as the EQ sheet's own split earlier in TR2: a tiny, often-rendered piece (`legal.js`'s `legalLinksRow()`, built on every Settings/Account/Privacy screen render and the sign-in wizard's footer; `privacy.js`'s `wirePrivacyLink()`, built once per Profile-tab visit) living in the same file as a much heavier, rarely-opened piece (`legal.js`'s full Privacy Policy/Terms of use text; `privacy.js`'s full Privacy screen — backup status, visibility picker, sharing toggles, follow requests, blocked accounts, data download).
+
+Split each tiny piece into its own leaf (`src/profile/legal-links.js`, `src/profile/privacy-link.js`). `profile/screens.js` and `profile/settings.js` now import the common pieces from those leaves and dynamically import `legal.js`/`privacy.js` themselves only for the three screens that actually need the heavy content (`privacy`, `privacyPolicy`, `termsOfUse`), fire-and-forget the same way `privacy.js`'s own `renderSocialSection()` already builds async content into a passed-in body.
+
+`privacy.js`'s heavy half still imports `getBackupStatus`/`collectDownloadData`/`pushOrClearListeningRhythm` from `src/sync/backup.js` — that import resolves from cache, not a second network fetch, since `sync/backup.js` stays in the main chunk regardless (see the note below).
+
+New chunk sizes:
+
+| File | Size | gzip | vs. PR #244 |
+|---|---|---|---|
+| `dist/assets/miziki-*.js` (main chunk) | 453.19 kB | 138.76 kB | -12.41 kB / -3.79 kB gzip |
+| `dist/assets/legal-*.js` (new, lazy) | 8.16 kB | 3.19 kB | — |
+| `dist/assets/privacy-*.js` (new, lazy) | 4.87 kB | 1.87 kB | — |
+| `dist/assets/friend-store-*.js` | 13.23 kB | 4.03 kB | unchanged |
+| `dist/assets/eq-sheet-*.js` | 7.40 kB | 2.72 kB | unchanged |
+| `dist/assets/sheet-*.js` | 20.54 kB | 7.01 kB | unchanged |
+| `dist/assets/pressings-card-*.js` | 10.34 kB | 4.29 kB | unchanged |
+| `dist/assets/dist-*.js` | 218.84 kB | 56.54 kB | unchanged |
+| `dist/assets/demo-*.js` | 10.39 kB | 3.65 kB | unchanged |
+
+Device check: not yet run on-device — opening Settings → Privacy, and Privacy Policy/Terms of use from any of their entry points, should each open with no visible delay; the Settings/Account/Privacy screens' own Privacy Policy/Terms of use links, and the Profile tab's Privacy button, should still appear immediately.
+
+## TR2's fifth target, `src/sync/*`: no code change needed
+
+`src/sync/backup.js` (~1180 lines) can't be moved out of the main chunk at all without a much larger restructuring than TR2's "one extraction" scope allows: its exports are called synchronously from several always-active, frequently-hit paths — `storage/meta.js`'s `scheduleBackupSync` (reached from `queueSave`, used nearly everywhere), `library/import.js`, `library/edit.js`, `history/played.js`, `history/clear.js`, `wiring/lifecycle.js`, `profile/screens.js`/`settings.js`/`privacy.js` — so the module is already loaded and evaluated as part of the main bundle regardless of where or how `initBackupSync()` itself is called.
+
+That leaves the doc's own narrower parenthetical — "start the backup pull after first paint" — as a *timing* question, not a bundle-size one, and checking `main.js`'s actual boot sequence shows it's already satisfied: `showRoute('library')` and `requestAnimationFrame(frame)` run synchronously at the top level before the browser's first paint even has a chance to happen, and `restoreLibrary()` (called right after, never awaited by the boot script) is async with several real `await` points — `storage.open()`, `tracks.all()`, `loadOverlaysBatch()`, `restoreMeta()`, `restoreSessions()`, `restoreSealedAlbums()` — all *before* `renderTracks()` even runs, let alone before `initBackupSync()` near the end of that function. By the time `initBackupSync()` runs, the browser has had many real yield points to paint. `initBackupSync()` itself is also cheap: it bails out immediately (`if(!soc || !soc.on) return;`) for every user without social configured (today, that's everyone), and even when configured, the real network pull (`runPull()`) only fires after an async `getUser()` call resolves — never synchronously, never blocking anything. No further change needed here; same conclusion as TR2 item 2's "stale main.js:213 comment" check in the `share/*` PR.

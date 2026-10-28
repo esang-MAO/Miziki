@@ -32,7 +32,10 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
     $(sel){ return profileHosts[sel] || fakeEl(); },
   },
 });
-globalThis.document = { createElement(){ return fakeEl(); } };
+// TR2 (docs/19_PLAYER.md): legal-links.js's legalLinksRow() calls the real
+// document.createTextNode directly (not through util/dom.js's el()) --
+// stubbed alongside createElement now that this file real-loads it.
+globalThis.document = { createElement(){ return fakeEl(); }, createTextNode(text){ return { nodeType: 3, textContent: text }; } };
 
 // NV4 (docs/11_SMOOTH_NAVIGATION.md): renderProfile()/renderProfileHome()'s
 // own "build once, refresh in place" claim needs #profileCrumb/#profileBody
@@ -102,11 +105,15 @@ mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
   namedExports: { renderSocialSettingsScreen(){} },
 });
 mock.module(new URL('../../src/profile/privacy.js', import.meta.url).href, {
-  namedExports: { renderPrivacyScreen(){}, wirePrivacyLink(){} },
+  namedExports: { renderPrivacyScreen(){} },
 });
 mock.module(new URL('../../src/profile/legal.js', import.meta.url).href, {
-  namedExports: { renderPrivacyPolicyScreen(){}, renderTermsScreen(){}, legalLinksRow(){ return fakeEl(); } },
+  namedExports: { renderPrivacyPolicyScreen(){}, renderTermsScreen(){} },
 });
+// TR2 (docs/19_PLAYER.md): wirePrivacyLink/legalLinksRow moved to their own
+// tiny, DOM-free-enough leaves (profile/privacy-link.js, profile/
+// legal-links.js) -- real-loaded here, like player/eq-label.js elsewhere in
+// this suite, rather than mocked, since neither pulls in anything wide.
 mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
   namedExports: { queueAvatarUpload(){} },
 });
@@ -274,7 +281,10 @@ test('renderProfile: a plain call on the home screen builds a fresh storefront h
   renderProfile();
   assert.equal(storefrontCalls.length, 1);
   assert.equal(rhythmCalls.length, 0, 'the rhythm card lives on the Listening screen now, not home');
-  assert.equal(profileHosts['#profileBody'].children.length, 1, 'just the storefrontHost');
+  // TR2 (docs/19_PLAYER.md): wirePrivacyLink (now real-loaded from the tiny
+  // profile/privacy-link.js leaf, not mocked away) appends its own Privacy
+  // button to #profileBody alongside the storefrontHost.
+  assert.equal(profileHosts['#profileBody'].children.length, 2, 'the storefrontHost plus the Privacy button');
 });
 
 test('renderProfile({refresh:true}) while already on home never wipes #profileBody -- same host, re-painted', () => {
@@ -283,7 +293,7 @@ test('renderProfile({refresh:true}) while already on home never wipes #profileBo
   const [storefrontHost] = profileHosts['#profileBody'].children;
   renderProfile({ refresh: true });
   assert.equal(storefrontCalls.length, 2, 'renderStorefrontSection ran again, to pick up fresh data');
-  assert.equal(profileHosts['#profileBody'].children.length, 1, 'no new top-level host was appended');
+  assert.equal(profileHosts['#profileBody'].children.length, 2, 'no new top-level host was appended');
   assert.equal(profileHosts['#profileBody'].children[0], storefrontHost, 'same storefront host, not torn down');
 });
 
