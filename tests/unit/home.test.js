@@ -2,12 +2,14 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 // NV4 (docs/11_SMOOTH_NAVIGATION.md): social/screens/home.js's real
-// circular pair with friend-store.js, plus its real imports of
-// profile/storefront.js and sundown/spin-wording.js, all reach wider
-// chains than this file needs for its own subject (renderHome()'s own
-// build-once/cache/patch behavior) -- mocked directly, the usual "stop the
-// chain at the door" reasoning every other mock-heavy file in this suite
-// already uses.
+// imports of profile/storefront.js and sundown/spin-wording.js reach
+// wider chains than this file needs for its own subject (renderHome()'s
+// own build-once/cache/patch behavior) -- mocked directly, the usual
+// "stop the chain at the door" reasoning every other mock-heavy file in
+// this suite already uses. TR2 (docs/19_PLAYER.md) moved home.js's own
+// openFriendStore call sites behind a click-time dynamic import of
+// friend-store.js, so this mock is no longer load-bearing for any static
+// chain -- kept in case a future test exercises one of those clicks.
 mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url).href, {
   namedExports: { openFriendStore(){} },
 });
@@ -107,8 +109,12 @@ globalThis.localStorage = (() => {
   };
 })();
 
-const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, feedEventText, updateHomeTabVisibility, _resetHomeStateForTests } =
+const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, updateHomeTabVisibility, _resetHomeStateForTests } =
   await import('../../src/social/screens/home.js');
+// TR2 (docs/19_PLAYER.md): feedEventText moved to the tiny, DOM-free
+// social/screens/feed-text.js (it used to be home.js's own half of a real
+// circular import with friend-store.js) -- imported from there directly.
+const { feedEventText } = await import('../../src/social/screens/feed-text.js');
 
 function fakeEvent(id, overrides){
   return Object.assign({ type:'added', title:'Album ' + id, actor_id:'a1', actor_handle:'a', actor_name:'A' }, overrides);

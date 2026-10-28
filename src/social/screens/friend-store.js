@@ -7,12 +7,13 @@ import {
 // key (selectVariantForAlbum), never a new server column — see that
 // function's own comment in tiers.js for why a title+tier pair is enough.
 import { selectVariantForAlbum, getVariantDef } from '../../record-art/tiers.js';
-// Real circular import with ./home.js (the same shape as engine.js/
-// transport.js and the other established peer pairs): feedEventText is
-// home.js's own, but friendActivitySection below (the "recently at the
-// counter" section of a friend's store) formats a friend's activity rows
-// with the same text as the home feed does.
-import { feedEventText } from './home.js';
+// TR2 (docs/19_PLAYER.md): feedEventText used to be home.js's own, with
+// a real circular import back the other way (home.js imported
+// openFriendStore from this file) -- pulled into the tiny, DOM-free
+// ./feed-text.js leaf so this file no longer has any static edge back to
+// home.js, letting it move into its own lazy chunk (see the open*/pop*
+// call sites below's own entry-point comment).
+import { feedEventText } from './feed-text.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 import { openLayer, closeLayer } from '../../shell/nav-stack.js';

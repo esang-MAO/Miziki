@@ -16,7 +16,6 @@ import { setQueue } from '../player/queue.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks, songRow } from './view.js';
 import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
-import { openFriendStore } from '../social/screens/friend-store.js';
 import { classifyDynamics, albumGainDb, formatGainDb } from '../audio/loudness.js';
 import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
@@ -354,7 +353,13 @@ function appendCreditFriendsLine(section, name, role){
     friends.sort((a,b) => byName(a.name, b.name)).forEach(f => {
       const li = el('li');
       const link = el('button','link-btn', f.name + (f.releases.length > 1 ? ' (' + f.releases.length + ')' : ''));
-      link.addEventListener('click', () => openFriendStore(f.handle));
+      // TR2 (docs/19_PLAYER.md): friend-store.js is real weight the
+      // credits screen itself never needs until one of these links is
+      // actually tapped.
+      link.addEventListener('click', async () => {
+        const { openFriendStore } = await import('../social/screens/friend-store.js');
+        openFriendStore(f.handle);
+      });
       li.appendChild(link);
       list.appendChild(li);
     });

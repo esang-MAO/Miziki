@@ -383,6 +383,13 @@ test('renderPersonView, signed in: appends a friends-line that lists friends on 
   assert.equal(liLinks[1].textContent, 'bob');
 
   liLinks[1]._click();
+  // TR2 (docs/19_PLAYER.md): the click handler now dynamically imports
+  // friend-store.js before calling openFriendStore -- a real
+  // module-loader round trip takes more than one microtask/macrotask
+  // tick, so poll briefly rather than guess a fixed delay.
+  for(let i = 0; i < 50 && openFriendStoreMock.mock.calls.length === 0; i++){
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
   assert.equal(openFriendStoreMock.mock.calls.length, 1);
   assert.equal(openFriendStoreMock.mock.calls[0].arguments[0], 'bob');
 });
