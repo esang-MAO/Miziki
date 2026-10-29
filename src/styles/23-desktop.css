@@ -520,3 +520,54 @@
   }
   .platter-stage.changing .sleeve-out{animation-name:changeSleeveOutLeft}
 }
+
+/* TY7b (docs/22_TYPE.md): the glance view -- desktop, a record loaded, 60s
+   idle (src/shell/player-overlay.js adds/removes .glance and the body-level
+   .glance-active, since the chrome it dims is a sibling of #playerOverlay,
+   not a descendant). Not .at-rest above, which is the empty-state class and
+   mutually exclusive with this by construction (glance always needs a
+   current track). Read top to bottom: the signage-sized title/artist/
+   album·year, then everything that fades rather than hides (so the layout
+   never jumps when the pointer returns), then the chrome dim. */
+@media (min-width:1024px){
+  /* title's own font-size is set inline by fitGlanceTitle() (the one
+     numeric exception to "no literal size outside the tokens" here,
+     since this is the one title in the app that free-shrinks continuously
+     rather than stepping between fixed token sizes -- same reasoning
+     share/styles.js's shareFitLines() already has for canvas text) */
+  .player-overlay.glance #trackName{
+    letter-spacing:var(--track-numeral);transition:font-size .25s ease-out;
+  }
+  .player-overlay.glance #trackBy{display:none}
+  .player-overlay.glance .glance-meta{display:block}
+  .player-overlay.glance .glance-artist{
+    font-family:var(--body);font-weight:500;font-size:var(--fs-hero);color:var(--paper);
+  }
+  /* DA6-style phase colour (docs/DAY_ARC.md) is the one place besides the
+     accent's own existing uses that colour carries text, per TY7's own
+     "glance is the one place the accent may be text" rule -- this line
+     still reads --muted by default; player/clock.js's mutedGradientStops()
+     already drives --muted's live tone every tick, so no extra wiring is
+     needed here for it to warm toward dusk. */
+  .player-overlay.glance .glance-albumyear{
+    font-family:var(--body);font-size:var(--fs-title);color:var(--muted);margin-top:2px;
+  }
+  .player-overlay.glance #trackSpecFormat,
+  .player-overlay.glance #trackSpec,
+  .player-overlay.glance #trackSpecPhase,
+  .player-overlay.glance #scrub,
+  .player-overlay.glance .times,
+  .player-overlay.glance .transport,
+  .player-overlay.glance .modes,
+  .player-overlay.glance #nowActions,
+  .player-overlay.glance .now-title-row .icon-btn{
+    opacity:0;pointer-events:none;transition:opacity .25s ease-out;
+  }
+  /* the chrome dims rather than hides, so the layout doesn't jump when the
+     pointer returns -- 250ms both ways, same as the fades above */
+  body.glance-active .sidebar,
+  body.glance-active #miniPlayer,
+  body.glance-active .player-side-panel{
+    opacity:.4;transition:opacity .25s ease-out;
+  }
+}

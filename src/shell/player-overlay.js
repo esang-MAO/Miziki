@@ -1,6 +1,7 @@
 import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { REDUCED } from '../util/motion.js';
+import { isDesktopShell } from '../util/viewport.js';
 import { play } from '../player/transport.js';
 import { SLEEVE_ANIM } from './mini-player.js';
 import { runStartSequence, interruptStartSequence } from './start-sequence.js';
@@ -15,6 +16,7 @@ export function openPlayerViaSheet(t, info){
   ov.setAttribute('aria-hidden','false');
   ov.classList.add('open');
   openLayer('player', closePlayer, { container: ov });
+  scheduleGlance();
   // under REDUCED the sheet's slide-up transition is `none` (see .player-
   // overlay's reduced-motion rule), so transitionend never fires — go
   // straight to the ceremony instead of waiting on an event that won't come
@@ -33,12 +35,14 @@ export function openPlayer(){
   S.playerOpen = true;
   openLayer('player', closePlayer, { container: $('#playerOverlay') });
   runMorphOpen();
+  scheduleGlance();
 }
 
 export function closePlayer(){
   if(morphInFlight()){ interruptMorph(); return; }
   S.playerOpen = false;
   interruptStartSequence();
+  exitGlance();
   const ov = $('#playerOverlay');
   ov.classList.remove('open');
   ov.setAttribute('aria-hidden','true');
@@ -140,3 +144,91 @@ export function closePlayerOverflowMenu(){
 export function isPlayerOverflowMenuOpen(){
   return $('#playerOverflowMenu').classList.contains('open');
 }
+
+/* ---- TY7b (docs/22_TYPE.md): the glance view, the desktop-with-a-record-
+   loaded "second monitor" case. 60s with no pointer movement, key or
+   wheel adds .glance to #playerOverlay (and .glance-active to <body>, so
+   the sidebar/mini-bar chrome a sibling of the overlay can dim without a
+   :has() selector); any of those events removes it. Not .at-rest (CEREMONY
+   §2's empty-state class, untouched by this) — glance requires a current
+   track and the overlay to already be open; the two are mutually exclusive
+   by construction, since .at-rest only ever applies with nothing loaded. */
+const GLANCE_IDLE_MS = 60000;
+const GLANCE_TITLE_FLOOR_PX = 28; // --fs-hero -- never shrinks below the next step down
+let glanceTimer = null;
+let lastPointerMoveAt = 0;
+
+function fillGlanceMeta(){
+  const t = current();
+  const artistEl = $('#glanceArtist'), albumEl = $('#glanceAlbumYear');
+  if(!t || !t.tags){ artistEl.textContent = ''; albumEl.textContent = ''; return; }
+  artistEl.textContent = t.tags.artist || '';
+  albumEl.textContent = [t.tags.album, t.tags.year].filter(Boolean).join(' · ');
+}
+
+// SH2-style measure-then-shrink (src/share/styles.js's shareFitLines does
+// the same thing for canvas text): starts at --fs-numeral, steps down
+// while the title spills past two lines, same as every other auto-shrink
+// title in this app rather than ever truncating or marqueeing (TY7's own
+// "no looping text animation, ever" rule).
+function fitGlanceTitle(){
+  const title = $('#trackName');
+  const numeralPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs-numeral')) || 64;
+  let size = numeralPx;
+  title.style.fontSize = size + 'px';
+  const lineH = size; // --lh-numeral is 1
+  while(title.scrollHeight > lineH * 2 + 2 && size > GLANCE_TITLE_FLOOR_PX){
+    size -= 2;
+    title.style.fontSize = size + 'px';
+  }
+}
+
+function enterGlance(){
+  if(!isDesktopShell() || !S.playerOpen || !current()) return;
+  const ov = $('#playerOverlay');
+  if(!ov.classList.contains('open') || ov.classList.contains('glance')) return;
+  ov.classList.add('glance');
+  document.body.classList.add('glance-active');
+  fillGlanceMeta();
+  fitGlanceTitle();
+}
+
+function exitGlance(){
+  clearTimeout(glanceTimer); glanceTimer = null;
+  const ov = $('#playerOverlay');
+  if(!ov.classList.contains('glance')) return;
+  ov.classList.remove('glance');
+  document.body.classList.remove('glance-active');
+  $('#trackName').style.fontSize = '';
+}
+
+function scheduleGlance(){
+  clearTimeout(glanceTimer);
+  if(!isDesktopShell() || !S.playerOpen || !current()) return;
+  glanceTimer = setTimeout(enterGlance, GLANCE_IDLE_MS);
+}
+
+// Any of pointer movement, a key or the wheel both leaves glance (if it was
+// showing) and restarts the 60s idle clock — one path handles both, since
+// leaving and re-arming always happen together.
+function onGlanceActivity(){
+  exitGlance();
+  scheduleGlance();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ov = $('#playerOverlay');
+  if(!ov) return;
+  // throttled: a raw pointermove fires far more often than this needs
+  ov.addEventListener('pointermove', () => {
+    const now = Date.now();
+    if(now - lastPointerMoveAt < 200) return;
+    lastPointerMoveAt = now;
+    onGlanceActivity();
+  });
+}, {once:true});
+document.addEventListener('keydown', onGlanceActivity);
+document.addEventListener('wheel', onGlanceActivity, {passive:true});
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){ clearTimeout(glanceTimer); glanceTimer = null; }
+});

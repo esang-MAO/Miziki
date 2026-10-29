@@ -747,6 +747,16 @@
         </button>
       </div>
       <div class="by" id="trackBy"></div>
+      <!-- TY7b (docs/22_TYPE.md): the glance view's own artist/album·year
+           lines, each its own size -- #trackBy stays a single combined
+           line for every other state, so this is a separate pair filled
+           only on glance-enter (src/shell/player-overlay.js), not a
+           restructuring of #trackBy's own rendering (player/transport.js's
+           load(), the iOS-gesture-critical file CLAUDE.md rule 9 covers). -->
+      <div class="glance-meta" id="glanceMeta" aria-hidden="true">
+        <div class="glance-artist" id="glanceArtist"></div>
+        <div class="glance-albumyear" id="glanceAlbumYear"></div>
+      </div>
       <!-- shown only for a 45; written by player/transport.js's load() -->
       <div class="format-chip" id="trackSpecFormat"></div>
       <!-- PL8 item 10 (docs/19_PLAYER.md): tapping this reveals its own
