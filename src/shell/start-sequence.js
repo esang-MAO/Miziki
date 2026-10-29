@@ -81,7 +81,7 @@ const SHRINK_LONG_PRESS_MS = 500;     // matches player/scrub.js's dead-wax loup
 
 function hypeStickerText(t){
   const year = t && t.tags && t.tags.year;
-  return year ? ('NEW · ' + year) : 'NEW';
+  return year ? ('New · ' + year) : 'New';
 }
 
 // the sealed wrap on the incoming sleeve, shown from the moment it starts

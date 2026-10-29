@@ -71,7 +71,8 @@ export async function composeShareImage(opts){
   ctx.font = '700 ' + Math.round(w*0.042) + 'px Antonio, sans-serif';
   ctx.fillStyle = kit.ink;
   ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.42);
-  ctx.font = '500 ' + Math.round(w*0.02) + 'px "IBM Plex Mono", monospace';
+  // TY6 (docs/22_TYPE.md): metadata is Archivo .num, not mono.
+  ctx.font = '500 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
   ctx.fillText(recordCount + ' RECORDS · ' + trackCount + ' TRACKS', textX, avY + avSize*0.42 + Math.round(w*0.03));
 
@@ -131,9 +132,12 @@ export async function composeShareImage(opts){
     }
   }
 
-  ctx.font = '700 ' + Math.round(w*0.02) + 'px "IBM Plex Mono", monospace';
+  // TY6: the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '700 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.accent;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
   ctx.fillText('01 · TOP ALBUM', twoCol ? heroX : pad, y);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   y += Math.round(w*0.04);
   ctx.font = '700 ' + Math.round(w*0.04) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.ink;
@@ -153,9 +157,12 @@ export async function composeShareImage(opts){
   let leftY = y;
 
   if(sections.songs !== false){
-    ctx.font = '700 ' + Math.round(w*0.019) + 'px "IBM Plex Mono", monospace';
+    // TY6: the kicker is Archivo caps --track-caps, not mono.
+    ctx.font = '700 ' + Math.round(w*0.019) + 'px Archivo, sans-serif';
     ctx.fillStyle = kit.accent;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
     ctx.fillText('TOP SONGS', leftX, leftY);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     leftY += Math.round(w*0.036);
     // SH5 item 3: three rows in Square (and portrait, which has no board
     // of its own), five in Story -- matching the design README's own

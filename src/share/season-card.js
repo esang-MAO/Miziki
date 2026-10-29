@@ -85,7 +85,8 @@ function drawRing(ctx, kit, cx, cy, r, shares, total){
   ctx.fillStyle = kit.ink;
   ctx.font = '700 ' + Math.round(r * 0.5) + 'px Antonio, sans-serif';
   ctx.fillText(String(total), cx, cy - r * 0.06);
-  ctx.font = '500 ' + Math.round(r * 0.14) + 'px "IBM Plex Mono", monospace';
+  // TY6: metadata is Archivo .num, not mono.
+  ctx.font = '500 ' + Math.round(r * 0.14) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
   ctx.fillText(total === 1 ? 'PLAY' : 'PLAYS', cx, cy + r * 0.22);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
@@ -100,7 +101,8 @@ function drawLegend(ctx, kit, x, y, w, shares, rowH, dotR, fontPx){
     const labelX = x + dotR * 2 + Math.round(fontPx * 0.5);
     ctx.fillText(PHASE_LABEL[p], labelX, y);
     const pct = Math.round(shares[p] * 100) + '%';
-    ctx.font = '600 ' + fontPx + 'px "IBM Plex Mono", monospace';
+    // TY6: metadata is Archivo .num, not mono.
+    ctx.font = '600 ' + fontPx + 'px Archivo, sans-serif';
     ctx.fillStyle = kit.sub; ctx.textAlign = 'right';
     ctx.fillText(pct, x + w, y);
     ctx.textAlign = 'left';
@@ -125,9 +127,12 @@ function metalDiscGradient(ctx, cx, cy, r, tier){
 function drawMetalsRow(ctx, kit, x, y, metals, playedThrough, discR, fontPx){
   const order = metalTierOrder(metals);
   if(!order.length) return y;
-  ctx.font = '700 ' + Math.round(fontPx * 1.1) + 'px "IBM Plex Mono", monospace';
+  // TY6: the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '700 ' + Math.round(fontPx * 1.1) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.accent;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
   ctx.fillText('METALS', x, y);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   y += Math.round(fontPx * 1.8);
 
   let cx = x + discR;
@@ -143,7 +148,8 @@ function drawMetalsRow(ctx, kit, x, y, metals, playedThrough, discR, fontPx){
   });
   y += discR * 2 + Math.round(fontPx * 1.6);
 
-  ctx.font = '500 ' + fontPx + 'px "IBM Plex Mono", monospace';
+  // TY6: metadata is Archivo .num, not mono.
+  ctx.font = '500 ' + fontPx + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
   ctx.fillText(playedThrough + ' RECORD' + (playedThrough === 1 ? '' : 'S') + ' PLAYED THROUGH', x, y);
   return y + Math.round(fontPx * 1.6);
@@ -169,12 +175,17 @@ export async function composeSeasonShareImage(opts){
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
   // SH6 item 2: kicker + headline (sentence case, never uppercased)
-  ctx.font = '600 ' + Math.round(w * 0.019) + 'px "IBM Plex Mono", monospace';
+  // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '600 ' + Math.round(w * 0.019) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.accent;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
   ctx.fillText('THIS SEASON · LAST 90 DAYS', pad, dims.safeTop);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
-  const headlineSize = Math.round(w * (stacked ? 0.052 : 0.046));
-  ctx.font = '700 ' + headlineSize + 'px Antonio, sans-serif';
+  // TY6: the season word (the verdict) is this card's one hand-lettered
+  // element -- Caveat, not Antonio.
+  const headlineSize = Math.round(w * (stacked ? 0.062 : 0.054));
+  ctx.font = '700 ' + headlineSize + 'px Caveat, cursive';
   ctx.fillStyle = kit.ink;
   let y = dims.safeTop + Math.round(w * 0.055);
   const headline = shareFitText(ctx, data.verdict || 'This season', w - pad * 2);
@@ -209,7 +220,8 @@ export async function composeSeasonShareImage(opts){
   const markY = Math.min(Math.max(y, dims.safeTop) + Math.round(h * 0.03), dims.safeBottom);
   await drawShareWordmark(ctx, w - pad - wmWidth / 2, markY, wmFontPx, kit.ink, kit.accent);
   if(showName){
-    ctx.font = '600 ' + Math.round(w * 0.016) + 'px "IBM Plex Mono", monospace';
+    // TY6: metadata is Archivo .num, not mono.
+    ctx.font = '600 ' + Math.round(w * 0.016) + 'px Archivo, sans-serif';
     ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
     ctx.fillText(data.ownerName.toUpperCase() + "'S CRATE", w - pad, markY + Math.round(w * 0.028));
     ctx.textAlign = 'left';

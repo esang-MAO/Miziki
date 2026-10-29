@@ -101,9 +101,15 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
   let fy = coverTop;
-  ctx.font = '600 ' + Math.round(22*scale) + 'px "IBM Plex Mono", monospace';
+  // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '600 ' + Math.round(22*scale) + 'px Archivo, sans-serif';
   fy += Math.round(22*scale);
-  if(draw){ ctx.fillStyle = kit.accent; ctx.fillText('PRESSING', factsX, fy); }
+  if(draw){
+    ctx.fillStyle = kit.accent;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+    ctx.fillText('PRESSING', factsX, fy);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
   fy += Math.round(30*scale);
 
   const facts = pressingFacts(data);
@@ -135,10 +141,16 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   y = Math.max(groupBottom, fy) + Math.round(56*scale);
 
   const titleMax = w - pad*2;
-  ctx.font = '700 ' + Math.round(52*scale) + 'px Archivo, sans-serif';
+  // TY6: the title is Antonio --track-display, not Archivo.
+  ctx.font = '700 ' + Math.round(52*scale) + 'px Antonio, sans-serif';
   const titleText = shareFitText(ctx, data.album || '', titleMax);
   y += Math.round(52*scale*0.95);
-  if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(titleText, pad, y); }
+  if(draw){
+    ctx.fillStyle = kit.ink;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
+    ctx.fillText(titleText, pad, y);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
   y += Math.round(20*scale);
 
   ctx.font = '400 ' + Math.round(30*scale) + 'px Archivo, sans-serif';
@@ -149,12 +161,14 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
 
   const note = recordNoteText(data.note);
   if(note){
+    // TY6: the sleeve note is this card's one hand-lettered element —
+    // Caveat, not italic Archivo.
     y += Math.round(20*scale);
-    const noteSizeBase = Math.round(30*scale);
-    const { lines: noteLines, fontSize: noteSize } = shareFitLines(ctx, note, titleMax, 2, noteSizeBase, 'italic 400', 'Archivo, sans-serif');
-    ctx.font = 'italic 400 ' + noteSize + 'px Archivo, sans-serif';
+    const noteSizeBase = Math.round(36*scale);
+    const { lines: noteLines, fontSize: noteSize } = shareFitLines(ctx, note, titleMax, 3, noteSizeBase, '500', 'Caveat, cursive');
+    ctx.font = '500 ' + noteSize + 'px Caveat, cursive';
     noteLines.forEach(line => {
-      y += Math.round(noteSize*1.4);
+      y += Math.round(noteSize*1.15);
       if(draw){ ctx.fillStyle = '#D9D3C8'; ctx.fillText(line, pad, y); }
     });
   }
@@ -169,7 +183,8 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
 
   if(draw){
     await drawShareWordmark(ctx, rightEdge - wmW/2, wordmarkY, wordmarkPx, kit.ink, kit.accent);
-    ctx.font = '600 ' + crateNamePx + 'px "IBM Plex Mono", monospace';
+    // TY6 (docs/22_TYPE.md): metadata is Archivo .num, not mono.
+    ctx.font = '600 ' + crateNamePx + 'px Archivo, sans-serif';
     ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
     const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE');
     ctx.fillText(crateName, rightEdge, crateNameY);

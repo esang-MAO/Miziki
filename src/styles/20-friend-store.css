@@ -69,8 +69,12 @@
 .record-rating-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);margin:0 0 6px}
 .record-stars{font-size:var(--fs-row);letter-spacing:2px;color:#B8641A;margin-bottom:var(--sp-2)}
-.record-note{transform:rotate(-1deg);background:var(--cream);color:#1A1410;border-radius:6px;
-  padding:var(--sp-3) 14px;font-size:var(--fs-caption);line-height:1.4;margin-bottom:18px}
+/* TY6 (docs/22_TYPE.md): the one hand-lettered element on this sheet --
+   Caveat 500 18px on stock-card, max three lines; the rating just above
+   keeps its existing star glyphs. */
+.record-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
+  padding:var(--sp-3) 14px;font-family:var(--hand);font-weight:500;font-size:18px;line-height:1.3;
+  margin-bottom:18px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .record-owned{font-size:var(--fs-caption);color:var(--muted);margin-bottom:14px}
 
 /* NV5 (docs/11_SMOOTH_NAVIGATION.md): same slide-up/down treatment as
