@@ -60,7 +60,7 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 // file's own fake `document` provides, and none of which this test cares
 // about (that's tests/unit/theme.test.js's own job).
 mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
-  namedExports: { applyTheme(){} },
+  namedExports: { applyTheme(){}, applyLargerText(){} },
 });
 // RF9 (docs/12_REFINE.md): applyPrefs()'s own restore-time sync for the
 // new "How deep the night goes"/Tone-today-visibility controls calls

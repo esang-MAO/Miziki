@@ -38,6 +38,7 @@ const KNOWN_PREF_KEYS = new Set([
   'eq',
   'mono', 'balance', 'deviceVolume',
   'zoetropesEnabled',
+  'largerText',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -84,6 +85,7 @@ export function serializePrefs(S){
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
     zoetropesEnabled: S.zoetropesEnabled,
+    largerText: S.largerText,
   }, unknownPrefKeys || {});
 }
 
@@ -218,6 +220,9 @@ export function parsePrefs(raw){
   // same "missing means the default" shape every other boolean toggle in
   // this file already follows.
   if(typeof p.zoetropesEnabled === 'boolean') out.zoetropesEnabled = p.zoetropesEnabled;
+  // TY5 (docs/22_TYPE.md): a saved object without this loads as off, the
+  // stated default — the same "missing means the default" shape as above.
+  if(typeof p.largerText === 'boolean') out.largerText = p.largerText;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

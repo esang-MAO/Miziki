@@ -12,7 +12,7 @@ import { toggleShuffle, cycleRepeat } from '../player/controls.js';
 import { bgUpdateUI, applyBgAudioSetting } from '../player/background.js';
 import { attachLaunchSettingRow } from '../launch/intro.js';
 import { scheduleBackupSync } from '../sync/backup.js';
-import { applyTheme } from '../ui/theme.js';
+import { applyTheme, applyLargerText } from '../ui/theme.js';
 import { applySlipmat } from '../ui/slipmat.js';
 
 /* ================= persistence =================
@@ -178,6 +178,12 @@ function applyPrefs(p){
   // parsePrefs() correctly.
   if(p.theme === 'auto' || p.theme === 'light' || p.theme === 'dark' || p.theme === 'nychthemeron') S.theme = p.theme;
   applyTheme();
+  // TY5: no dedicated aria sync of its own needed here — renderProfile()
+  // rebuilds the Settings screen's switch fresh from S.largerText on every
+  // open, the same reason the theme seg's buttons above need a live sync
+  // (document.querySelectorAll) but this one doesn't.
+  if(typeof p.largerText === 'boolean') S.largerText = p.largerText;
+  applyLargerText();
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own
   // aria-pressed state here, the same inline shape sleevePullEnabled's own

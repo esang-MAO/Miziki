@@ -540,6 +540,12 @@ const MUTED_ANCHORS_DARK = {
 // TY1: light's --muted-2 floor was raised the same way (#6E7A80 -> #5E6A70).
 const MUTED_LIGHT = toStops([[107,98,88],[94,106,112]]); // --muted #6B6258 / --muted-2 #5E6A70
 
+// TY5 (docs/22_TYPE.md): Nychthemeron and this function move tone only --
+// neither this function nor drawSun() (its one caller) ever writes
+// font-size, font-family, letter-spacing or font-weight; see
+// tests/unit/clock.test.js's own assertion of that, kept beside the
+// mutedGradientStops/skyGradientStops tests it would catch a regression
+// alongside.
 export function mutedGradientStops(dayPos, theme){
   if(theme === 'light') return MUTED_LIGHT;
   return blendAnchors(MUTED_ANCHORS_DARK, dayPos);

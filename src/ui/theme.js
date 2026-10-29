@@ -177,6 +177,23 @@ export function setTheme(choice){
   applyTheme();
 }
 
+// TY5 (docs/22_TYPE.md): Settings → Appearance's "Larger text" switch — a
+// class, not an inline style, so the one :root.larger-text rule in
+// 00-base.css is the single place the 1.15 multiplier lives, the same
+// "the rule lives in CSS, JS only toggles the class" shape .theme-transition
+// above already uses. Called unconditionally at boot (main.js) and again
+// whenever applyPrefs() restores a saved S.largerText, mirroring
+// applyTheme()'s own two call sites.
+export function applyLargerText(){
+  document.documentElement.classList.toggle('larger-text', !!S.largerText);
+}
+
+export function setLargerText(on){
+  S.largerText = !!on;
+  queueSave();
+  applyLargerText();
+}
+
 // DA4: briefly makes background/text/border colors transition instead of
 // snapping, for the one Nychthemeron flip itself — "switch with a ~1.5s
 // colour transition" (the doc's own wording). A class on :root, not an

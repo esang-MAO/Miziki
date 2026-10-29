@@ -21,6 +21,7 @@ function fakeS(overrides = {}){
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
     mono: false, balance: 0, deviceVolume: 1,
     zoetropesEnabled: true,
+    largerText: false,
   }, overrides);
 }
 
@@ -44,6 +45,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
     zoetropesEnabled: S.zoetropesEnabled,
+    largerText: S.largerText,
   });
 });
 
@@ -452,4 +454,23 @@ test('old saved data: no zoetropesEnabled field at all leaves it out, so the def
 test('bad values are ignored: a non-boolean zoetropesEnabled', () => {
   const parsed = parsePrefs({ zoetropesEnabled: 'yes' });
   assert.equal('zoetropesEnabled' in parsed, false);
+});
+
+// TY5 (docs/22_TYPE.md): the "Larger text" switch — same three-test shape
+// as every other boolean toggle in this file.
+test('round trip: largerText survives a non-default value', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ largerText: true })));
+  assert.equal(parsed.largerText, true);
+});
+
+test('old saved data: no largerText field at all leaves it out, so the default (off) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.largerText;
+  const parsed = parsePrefs(raw);
+  assert.equal('largerText' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean largerText', () => {
+  const parsed = parsePrefs({ largerText: 'yes' });
+  assert.equal('largerText' in parsed, false);
 });

@@ -578,6 +578,19 @@ test('drawSun(): dark and light produce different inline values for the same day
   const light = drawSunAt('light', false);
   assert.notEqual(light['--sky1'], darkSky1);
 });
+// TY5 (docs/22_TYPE.md): "Nychthemeron and mutedGradientStops() move tone
+// only" -- drawSun() writes a handful of custom properties onto :root
+// every tick (--sky1/--sky2/--muted/--muted-2/etc, asserted individually
+// above); this guards that none of them, now or in some later phase/theme
+// this file adds, is a font property smuggled in alongside a color.
+test('drawSun(): never writes a font-size/font-family/letter-spacing/font-weight custom property', () => {
+  for(const theme of ['dark', 'light']){
+    const style = drawSunAt(theme, false);
+    for(const name of Object.keys(style)){
+      assert.doesNotMatch(name, /font|letter-spacing/i, `drawSun() wrote ${name}, a font property`);
+    }
+  }
+});
 
 // NV1: drawSun() runs on a steady ~220ms timer while visible, repainting
 // the fixed-position sky gradient (.sky-bg, 00-base.css) every time it
