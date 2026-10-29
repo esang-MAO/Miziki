@@ -168,7 +168,7 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   const crateNameY = wordmarkY + crateNamePx + Math.round(10*scale);
 
   if(draw){
-    drawShareWordmark(ctx, rightEdge - wmW/2, wordmarkY, wordmarkPx, kit.ink, kit.accent);
+    await drawShareWordmark(ctx, rightEdge - wmW/2, wordmarkY, wordmarkPx, kit.ink, kit.accent);
     ctx.font = '600 ' + crateNamePx + 'px "IBM Plex Mono", monospace';
     ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
     const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE');

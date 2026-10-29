@@ -13,10 +13,19 @@
 /* RF11 (docs/12_REFINE.md, point 3): "the awning shrinks to a 12px trim" —
    was a 22px scalloped band; now a slim accent strip at the top of the
    crate view. */
-.store-awning{display:flex;margin:0 0 var(--sp-4);filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.store-awning-wrap{margin:0 0 var(--sp-4)}
+.store-awning{display:flex;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
 .store-awning > div{flex:1;height:12px;border-radius:0 0 12px 12px}
-.store-awning > div:nth-child(odd){background:var(--accent)}
-.store-awning > div:nth-child(even){background:var(--cream)}
+/* TY4 (docs/22_TYPE.md): "Crate of [name]," set in the same bones as the
+   wordmark, stock-card paper under the striped trim above it. */
+.store-awning-card{background:var(--stock-card);color:#26202C;padding:var(--sp-2) var(--sp-3) 11px;
+  text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.3)}
+.store-awning-kicker{font-family:var(--body);font-size:11px;font-weight:600;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--warm-grey)}
+.store-awning-name{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.08em;
+  line-height:1.05;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.store-awning-name--md{font-weight:600;font-size:20px;letter-spacing:.06em}
+.store-awning-name--sm{font-weight:500;font-size:17px;letter-spacing:.04em}
 
 .store-header{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap}
 .store-edit-btn{min-height:40px;padding:0 var(--sp-4);border-radius:9px;border:1px solid var(--line);
@@ -32,9 +41,9 @@
 .store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
 .store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
-.store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:.01em;line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:var(--fs-caption);color:var(--muted)}
-.store-handle-input{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:.01em;line-height:1;margin:0;width:100%;
+.store-handle-input{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;width:100%;
   background:none;border:0;color:var(--paper);padding:0}
 /* RF11 (docs/12_REFINE.md, point 3): "the username in --paper even as a
    placeholder" — was --muted, which read as disabled/greyed-out rather
@@ -53,8 +62,11 @@
 
 .store-stats{display:flex;gap:26px;margin:18px 0 0}
 .store-stat{flex:none;display:flex;flex-direction:column;gap:2px;min-width:0}
-.store-stat b{font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:.02em;line-height:1}
-.store-stat span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.store-stat b{font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:var(--track-display);line-height:1}
+/* TY4 (docs/22_TYPE.md): off the mono whitelist, sentence case — 13px is a
+   deliberate half-step between --fs-caption and --fs-body (the plan's own
+   number), not a token. */
+.store-stat span{font-family:var(--body);font-size:13px;color:var(--muted)}
 .store-stat.accent b{color:var(--accent-text)}
 
 /* RF11 (docs/12_REFINE.md, point 1): the one row every storefront state

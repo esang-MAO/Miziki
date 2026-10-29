@@ -94,7 +94,7 @@ function friendStoreHeader(full, extraBtn){
 }
 
 function renderLockedFriendStore(body, full){
-  body.appendChild(storeAwning());
+  body.appendChild(storeAwning(full.profile.handle));
   body.appendChild(friendStoreHeader(full));
   if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
 
@@ -395,7 +395,7 @@ function friendActivitySection(full){
 }
 
 function renderFriendStoreContent(body, full){
-  body.appendChild(storeAwning());
+  body.appendChild(storeAwning(full.profile.handle));
   const share = el('button','store-share-icon','↗');
   share.setAttribute('aria-label','Share this crate');
   share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));

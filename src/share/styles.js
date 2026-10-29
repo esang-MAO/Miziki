@@ -24,6 +24,7 @@
 // tiers.js/metals.js's own machinery.
 import { getVariantDef } from '../record-art/tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
+import { wordmarkMarkup } from '../ui/wordmark.js';
 
 export const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
 
@@ -191,26 +192,44 @@ export function roundRectPath(ctx, x, y, w, h, r){
   ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
 }
 
-// the masthead wordmark, "zi" in the accent colour like the app header
-export function drawShareWordmark(ctx, centerX, baselineY, fontPx, ink, accent){
-  ctx.save();
-  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
-  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  const parts = [['Mi', ink], ['zi', accent], ['ki', ink]];
-  const total = parts.reduce((s,[txt]) => s + ctx.measureText(txt).width, 0);
-  let x = centerX - total/2;
-  parts.forEach(([txt, col]) => { ctx.fillStyle = col; ctx.fillText(txt, x, baselineY); x += ctx.measureText(txt).width; });
-  ctx.restore();
+// TY4 (docs/22_TYPE.md): the one drawn mark, not live Antonio text with "zi"
+// manually recoloured — ink becomes the letters, accent the rings, same as
+// --paper/--accent-text do everywhere else the mark appears. A canvas has
+// no access to the live page's custom properties, so the two colours are
+// baked into the SVG string (wordmarkMarkup) before it's rasterized.
+// data/wordmark.svg's own viewBox: a 4759.6x2128.2 box whose baseline sits
+// 2098.2 units from its top — both read off the file so a redraw of the
+// mark can't silently drift out of step with this scale/baseline math.
+const WORDMARK_VB_W = 4759.6, WORDMARK_VB_H = 2128.2, WORDMARK_VB_BASELINE = 2098.2;
+const WORDMARK_CAP_HEIGHT = 1760;   // the "M"'s own cap height, in the same units
+
+const wordmarkImgCache = new Map();
+function loadShareWordmarkImg(ink, accent){
+  const key = ink + '|' + accent;
+  let p = wordmarkImgCache.get(key);
+  if(!p){
+    const svg = wordmarkMarkup(ink, accent);
+    p = loadImageEl('data:image/svg+xml,' + encodeURIComponent(svg));
+    wordmarkImgCache.set(key, p);
+  }
+  return p;
 }
 
-// measured width of the "Miziki" wordmark at a given size — callers use
-// this to center/right-align drawShareWordmark() before drawing it
+// the masthead wordmark — now async (an Image load), so every composer that
+// calls it must await it same as it already awaits loadImageEl() for art
+export async function drawShareWordmark(ctx, centerX, baselineY, fontPx, ink, accent){
+  const img = await loadShareWordmarkImg(ink, accent);
+  const scale = (fontPx * 1.05) / WORDMARK_CAP_HEIGHT;
+  const w = WORDMARK_VB_W * scale, h = WORDMARK_VB_H * scale;
+  const x = centerX - w/2, y = baselineY - (WORDMARK_VB_BASELINE/WORDMARK_VB_H) * h;
+  ctx.drawImage(img, x, y, w, h);
+}
+
+// measured width of the wordmark at a given size — callers use this to
+// center/right-align drawShareWordmark() before drawing it
 export function wordmarkWidth(ctx, fontPx){
-  ctx.save();
-  ctx.font = '700 ' + Math.round(fontPx) + 'px Antonio, sans-serif';
-  const total = ['Mi', 'zi', 'ki'].reduce((s, txt) => s + ctx.measureText(txt).width, 0);
-  ctx.restore();
-  return total;
+  const scale = (fontPx * 1.05) / WORDMARK_CAP_HEIGHT;
+  return WORDMARK_VB_W * scale;
 }
 
 // a tiny, cached static-noise tile for Paper's grain — generated once,

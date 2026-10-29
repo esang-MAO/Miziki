@@ -10,7 +10,10 @@
   align-items:center;justify-content:center;text-align:center}
 .sleeve-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
 .sleeve.has-art .sleeve-art{opacity:1}
-.sleeve-mark{font-family:var(--display);font-weight:700;font-size:var(--fs-row);letter-spacing:.18em;color:var(--muted)}
+/* TY4 (docs/22_TYPE.md): the "F" cut -- rotated -12deg here, drawn upright
+   (src/shell/start-sequence.js sets the SVG once per sleeve at load). */
+.sleeve-mark{width:34%;transform:rotate(-12deg)}
+.sleeve-mark svg{display:block;width:100%;height:auto}
 .sleeve.has-art .sleeve-mark{display:none}
 /* Driven as three separate steps from JS (see runStartSequence), not one
    keyframe spanning the whole pull, because the middle step's length
