@@ -39,8 +39,7 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .shelf-caption{display:flex;flex-direction:column;gap:2px;padding:0 2px}
 .shelf-caption b{font-weight:400;font-size:var(--fs-caption);line-height:var(--lh-caption);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.shelf-caption span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
-  letter-spacing:.10em;color:var(--muted)}
+.shelf-caption span{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted)}
 .shelf-sleeve{flex:0 0 auto;width:128px;height:128px;border-radius:var(--radius-control);
   border:none;padding:0;overflow:hidden;background:var(--panel);box-shadow:var(--sh-2);
   scroll-snap-align:start;transform:rotate(1.5deg)}
@@ -53,20 +52,20 @@ li.letter-head{list-style:none;padding:6px 0 4px}
    Your most spun, You & [artist], Your pressings — under the record
    shelf, above Connected. */
 .artist-section{padding:0 0 var(--sp-5)}
-.artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--data);font-size:var(--fs-label);line-height:var(--lh-label);
-  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
+  letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);font-weight:500}
 
 .most-spun-list{list-style:none;margin:0;padding:0}
 .most-spun-row{width:100%;min-height:48px;display:flex;align-items:center;gap:var(--sp-3);
   background:none;border:0;padding:var(--sp-1) 0;color:inherit;text-align:left;cursor:pointer}
 .most-spun-row:active{background:var(--sel)}
-.most-spun-n{width:18px;flex:0 0 auto;font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
+.most-spun-n{width:18px;flex:0 0 auto;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
 .most-spun-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .most-spun-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.most-spun-text em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
-  letter-spacing:.10em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.most-spun-plays{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
+.most-spun-text em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
+  color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.most-spun-plays{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
 
 /* a taped-on index card, the crate's stock family (not chrome) */
 .artist-history{position:relative;margin:var(--sp-2) 0 var(--sp-5);padding:var(--sp-4);
@@ -91,8 +90,8 @@ li.letter-head{list-style:none;padding:6px 0 4px}
   border-radius:50%;background:rgba(0,0,0,.7)}
 .pressing-item figcaption{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0;width:100%}
 .pressing-item figcaption b{font-weight:400;font-size:var(--fs-caption);line-height:var(--lh-caption)}
-.pressing-item figcaption span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
-  letter-spacing:.10em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.pressing-item figcaption span{font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
+  color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 
 /* ---- Artist page: the Connected shelf (docs/20_CONNECTED.md) ----
    Related artists' records, under the artist's own shelf. Plain paper
@@ -101,8 +100,8 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .connected{padding:0 0 var(--sp-5)}
 .connected-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3);
   padding:0 0 var(--sp-2)}
-.connected-eyebrow{margin:0;font-family:var(--data);font-size:var(--fs-label);line-height:var(--lh-label);
-  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.connected-eyebrow{margin:0;font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
+  letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);font-weight:500}
 .connected-list{list-style:none;margin:0;padding:0}
 .connected-row{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:var(--sp-1) 0}
 .connected-sleeve{flex:0 0 auto;width:44px;height:44px;border-radius:2px;background:var(--stock-manila);
@@ -112,14 +111,14 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .connected-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .connected-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.connected-sub{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
-  letter-spacing:.10em;color:var(--muted)}
-.connected-sub .link-btn{font-size:var(--fs-micro);letter-spacing:.10em}
-.connected-role{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;
+.connected-sub{font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
+  color:var(--muted)}
+.connected-sub .link-btn{font-size:var(--fs-caption)}
+.connected-role{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:var(--radius-control);
   padding:2px var(--sp-1)}
-.connected-buy{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-family:var(--data);
-  font-size:var(--fs-micro);letter-spacing:.10em;color:var(--accent-text);text-decoration:none}
+.connected-buy{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-family:var(--body);
+  font-size:var(--fs-body);font-weight:500;color:var(--accent-text);text-decoration:none}
 
 /* ---- Playlists: a 2x2 grid of compilation sleeves ---- */
 .playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) 0}

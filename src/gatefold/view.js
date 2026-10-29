@@ -98,7 +98,7 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler){
 // gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6)
 export function buildGatefoldTracklist(item, trackIdx, playHandler){
   const host = document.createDocumentFragment();
-  host.appendChild(el('p','gf-tl-head', item.artist.toUpperCase()));
+  host.appendChild(el('p','gf-tl-head', item.artist));
   host.appendChild(el('h2','gf-tl-title', item.album));
   const sides = gatefoldSideSplits(trackIdx);
   if(sides){
@@ -106,7 +106,7 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
       const total = side.idx.reduce((s,i) => s + (S.tracks[i].duration || 0), 0);
       const head = el('div','gf-side-head');
       head.appendChild(el('b', null, side.label));
-      head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' TRACK · ':' TRACKS · ') + fmt(total).toUpperCase()));
+      head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' track · ':' tracks · ') + fmt(total)));
       host.appendChild(head);
       side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler)));
     });
@@ -165,7 +165,7 @@ function sleeveNotePromptFor(albumId){
 // this renders with the same styling in its new home.
 export function gatefoldSocialControlsHTML(item){
   const wrap = el('div','gf-social');
-  wrap.appendChild(el('p','gf-social-caption','YOUR COPY'));
+  wrap.appendChild(el('p','gf-social-caption','Your copy'));
 
   const stars = el('div','gf-stars');
   stars.setAttribute('role','radiogroup');
@@ -251,7 +251,7 @@ export function buildGatefoldLeftPanel(item){
     host.appendChild(el('h3', null, item.album));
     const metaBits = [item.year || null, item.genre || null,
       item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
-    host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+    host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
     host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
     host.appendChild(gatefoldSocialControlsHTML(item));
     return host;
@@ -269,7 +269,7 @@ export function buildGatefoldLeftPanel(item){
   }
   const metaBits = [item.year || null, item.genre || null,
     item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
-  host.appendChild(el('p','gf-meta-line', metaBits.join(' · ').toUpperCase()));
+  host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
   host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
 }
@@ -362,7 +362,7 @@ function gatefoldInfoAndSleeveHTML(item){
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
   const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
     fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
-  info.appendChild(el('p','gf-info-meta', metaBits.join(' · ').toUpperCase()));
+  info.appendChild(el('p','gf-info-meta', metaBits.join(' · ')));
 }
 
 async function gatefoldSetCoverArt(item){

@@ -97,7 +97,7 @@ export function openPictureSleeve(item){
   peekHost.innerHTML = '';
   peekHost.appendChild(buildPeekDisc(S.tracks[trackIdx[0]]));
 
-  $('#pictureSleeveArtist').textContent = item.artist.toUpperCase();
+  $('#pictureSleeveArtist').textContent = item.artist;
   $('#pictureSleeveTitle').textContent = item.album;
   const format = albumFormatFor(trackIdx, S.tracks, (S.albumFormat && S.albumFormat[item.albumId]) || 'auto');
   const chip = $('#pictureSleeveFormat');
