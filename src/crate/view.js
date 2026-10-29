@@ -82,8 +82,8 @@ function buildStickerEl(sticker){
   }
   const tag = document.createElement('div');
   tag.className = 'crate-sticker crate-sticker-' + sticker.kind;
-  tag.textContent = sticker.kind === 'new' ? 'NEW'
-    : sticker.kind === 'friends' ? (sticker.count || 1) + (sticker.count === 1 ? ' FRIEND' : ' FRIENDS')
+  tag.textContent = sticker.kind === 'new' ? 'New'
+    : sticker.kind === 'friends' ? (sticker.count || 1) + (sticker.count === 1 ? ' friend' : ' friends')
     : sticker.kind === 'hires' ? (sticker.bits || '') + '/' + Math.round((sticker.rate || 0) / 1000)
     : '';
   return tag;

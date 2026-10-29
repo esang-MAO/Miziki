@@ -113,10 +113,13 @@ export async function composePressingsShareImage(opts){
   let y = dim.safeTop;
 
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.font = '600 24px "IBM Plex Mono", monospace';
+  // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '600 24px Archivo, sans-serif';
   y += 24;
   ctx.fillStyle = kit.accent;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
   ctx.fillText('PRESSINGS', pad, y);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   y += 12;
 
   ctx.font = '700 76px Antonio, sans-serif';
@@ -125,7 +128,8 @@ export async function composePressingsShareImage(opts){
   ctx.fillText((data.total || 0) + ' of ' + (data.chartSize || 0), pad, y);
   y += 20;
 
-  ctx.font = '500 20px "IBM Plex Mono", monospace';
+  // TY6: metadata is Archivo .num, not mono.
+  ctx.font = '500 20px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
   ctx.fillText(shareFitText(ctx, familyCountsLine(data.counts), w - pad*2), pad, y);
   y += 52;
@@ -146,7 +150,8 @@ export async function composePressingsShareImage(opts){
   const more = moreCountText(records, format);
   if(more){
     ctx.textAlign = 'center';
-    ctx.font = '500 20px "IBM Plex Mono", monospace';
+    // TY6: metadata is Archivo .num, not mono.
+    ctx.font = '500 20px Archivo, sans-serif';
     ctx.fillStyle = kit.sub;
     ctx.fillText(more, w/2, y);
     y += 44;
@@ -155,7 +160,7 @@ export async function composePressingsShareImage(opts){
   ctx.textAlign = 'center';
   const markY = Math.max(y, dim.safeBottom - 40);
   await drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
-  ctx.font = '600 20px "IBM Plex Mono", monospace';
+  ctx.font = '600 20px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
   const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE') + ' · EARNED BY LISTENING';
   ctx.fillText(crateName, w/2, markY + 26);

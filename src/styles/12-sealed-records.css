@@ -136,10 +136,13 @@
   background:
     radial-gradient(ellipse 60% 40% at 6% 4%, rgba(20,16,10,.5), transparent 70%),
     radial-gradient(ellipse 55% 45% at 96% 96%, rgba(20,16,10,.45), transparent 70%)}
+/* TY6 (docs/22_TYPE.md): a hand-lettered sticker -- Caveat 700 on
+   --stock-manila, rotated within the stickers' shared -4deg..+3deg range
+   (CR3's own sticker kit, 10-crate.css's .crate-sticker-new/-friends). */
 .seal-sticker{position:absolute;top:10%;right:6%;max-width:60%;
-  background:#F2E8D2;color:#2A1B38;transform:rotate(-7deg);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;font-weight:700;
-  padding:3px var(--sp-2);border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  background:var(--stock-manila);color:#2A1B38;transform:rotate(-2deg);
+  font-family:var(--hand);font-size:18px;font-weight:700;
+  padding:1px var(--sp-2) 3px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.3);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shrink-tear-line{position:absolute;left:0;top:0;height:7.5%;width:100%;
   transform-origin:0% 0%;background:rgba(255,255,255,.28);box-shadow:0 1px 0 rgba(255,255,255,.35);

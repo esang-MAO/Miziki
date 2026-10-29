@@ -122,15 +122,28 @@ export async function composePlayerShareImage(opts){
   const startY = y;
   function layoutBody(includeAlbumYear, includeChips, draw){
     let yy = startY;
-    ctx.font = '700 ' + Math.round(w*0.024) + 'px "IBM Plex Mono", monospace';
-    if(draw){ ctx.fillStyle = kit.accent; ctx.fillText('NOW PLAYING', w/2, yy); }
+    // TY6 (docs/22_TYPE.md): the kicker ("Now playing", "Spun at dusk") is
+    // Archivo caps --track-caps, not mono.
+    ctx.font = '700 ' + Math.round(w*0.024) + 'px Archivo, sans-serif';
+    if(draw){
+      ctx.fillStyle = kit.accent;
+      if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+      ctx.fillText('NOW PLAYING', w/2, yy);
+      if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    }
     yy += Math.round(w*0.05);
 
-    const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Archivo, sans-serif');
-    ctx.font = '700 ' + titleSize + 'px Archivo, sans-serif';
+    // TY6: the title is Antonio --track-display, not Archivo.
+    const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Antonio, sans-serif');
+    ctx.font = '700 ' + titleSize + 'px Antonio, sans-serif';
     titleLines.forEach(line => {
       yy += Math.round(titleSize*1.08);
-      if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(line, w/2, yy); }
+      if(draw){
+        ctx.fillStyle = kit.ink;
+        if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
+        ctx.fillText(line, w/2, yy);
+        if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+      }
     });
     // SH2 item 1: measured title height plus one fixed gap, never h*0.055
     // (or any other fraction of canvas height disconnected from the title
@@ -146,7 +159,8 @@ export async function composePlayerShareImage(opts){
     yy += Math.round(w*0.045);
 
     if(includeAlbumYear && albumYearText){
-      ctx.font = '600 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace';
+      // TY6: metadata is Archivo .num, not mono.
+      ctx.font = '600 ' + Math.round(w*0.021) + 'px Archivo, sans-serif';
       const albumText = shareFitText(ctx, albumYearText, titleMax);
       if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(albumText, w/2, yy); }
     }
@@ -164,7 +178,8 @@ export async function composePlayerShareImage(opts){
       }
       // SH2 item 2: the clock sits under the line, not inside the chip row.
       yy += CLOCK_GAP;
-      ctx.font = '500 ' + Math.round(w*0.021) + 'px "IBM Plex Mono", monospace';
+      // TY6: elapsed/duration is Archivo .num, not mono.
+      ctx.font = '500 ' + Math.round(w*0.021) + 'px Archivo, sans-serif';
       if(draw){
         ctx.fillStyle = kit.sub;
         ctx.textAlign = 'left'; ctx.fillText(fmt(data.elapsed), pad, yy);
@@ -201,9 +216,12 @@ export async function composePlayerShareImage(opts){
 
   ctx.textAlign = 'center';
   await drawShareWordmark(ctx, w/2, footerTopY, Math.round(w*0.03), kit.ink, kit.accent);
-  ctx.font = '600 ' + Math.round(w*0.0165) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
+  // TY6: the strapline is Archivo caps .1em, not mono.
+  ctx.font = '600 ' + Math.round(w*0.0165) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
   const lossless = !(t.meta && t.meta.lossless === false);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.1em';
   ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, footerTopY + Math.round(h*0.026));
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   return canvas;
 }

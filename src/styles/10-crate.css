@@ -250,8 +250,17 @@
   text-transform:uppercase;transform:rotate(-4deg);
   box-shadow:0 1px 2px rgba(0,0,0,.35);padding:3px 6px;border-radius:2px;
   color:var(--sticker-ink);pointer-events:none;white-space:nowrap}
-.crate-sticker-new{background:var(--sticker-butter)}
-.crate-sticker-friends{background:var(--sticker-pink);border-radius:10px}
+/* TY6 (docs/22_TYPE.md): "new arrival"/"friends have this" are hand-
+   lettered, not mono caps -- Caveat 700, rotated within the stickers'
+   shared -4deg..+3deg range (12-sealed-records.css's .seal-sticker
+   shares the same range for "sealed/shrink-wrap"). .crate-sticker-hires
+   stays mono (sample-rate/bit-depth is the mono whitelist's own item),
+   so only these two override the base rule's font/size/transform/caps. */
+.crate-sticker-new,.crate-sticker-friends{
+  font-family:var(--hand);font-weight:700;font-size:16px;letter-spacing:0;
+  text-transform:none;padding:0 8px 3px}
+.crate-sticker-new{background:#F0D650;transform:rotate(-3deg)}
+.crate-sticker-friends{background:var(--stock-manila);border-radius:10px;transform:rotate(2deg)}
 .crate-sticker-hires{background:var(--sticker-blue);color:#fff}
 /* the metal dot carries no text — a plain finished circle, per the design
    doc's own "none" ink column for that row */

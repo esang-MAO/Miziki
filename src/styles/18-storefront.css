@@ -110,10 +110,16 @@
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--accent-text)}
-.store-pick-note{transform:rotate(-1deg);background:var(--cream);color:#1A1410;border-radius:4px;padding:var(--sp-2) 10px;
+.store-pick-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:4px;padding:var(--sp-2) 10px;
   font-size:var(--fs-caption);line-height:1.35;display:flex;flex-direction:column;gap:var(--sp-1)}
 .store-pick-stars{font-size:var(--fs-caption);letter-spacing:1.5px;color:#B8641A}
 .store-pick-name{font-size:var(--fs-caption);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* TY6 (docs/22_TYPE.md): same hand-lettered sleeve note as the full record
+   sheet (20-friend-store.css's .record-note) -- the one Caveat element on
+   this tile, clamped to 3 lines in case a long note outgrows the 132px
+   card. */
+.store-pick-sleeve-note{font-family:var(--hand);font-weight:500;font-size:18px;line-height:1.1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 /* RF15 (docs/12_REFINE.md, point 4): the cream bin-divider look, same
    family as the crate's own A-Z/genre dividers (10-crate.css's
    .crate-divider-tab/.crate-divider-label) — a small "+" tab, rounded only

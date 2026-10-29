@@ -157,7 +157,7 @@ export function storePickTile(pick){
   const note = el('div','store-pick-note');
   note.appendChild(el('div','store-pick-stars', pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : ''));
   note.appendChild(el('div','store-pick-name', pick.title));
-  if(pick.sleeve_note) note.appendChild(el('div', null, pick.sleeve_note));
+  if(pick.sleeve_note) note.appendChild(el('div', 'store-pick-sleeve-note', pick.sleeve_note));
   tile.appendChild(note);
   return tile;
 }
