@@ -15,47 +15,40 @@
    response, which points three @font-face weights at the identical URL
    for each. IBM Plex Mono isn't variable, so its two weights are two
    separate files. See src/fonts/OFL-*.txt for each family's license. */
+/* TY1 (docs/22_TYPE.md, audit point 9): one @font-face per family, not one
+   per weight -- the three/three weight declarations above pointed at the
+   exact same variable-font file each (confirmed by diffing the CSS2 API's
+   own response), so `font-weight: 400 700` on a single rule is the same
+   bytes and the same three request, while also letting TY5's dark/light
+   weight split (450/500 for body text) resolve to a real intermediate
+   instance instead of snapping to the nearest declared weight. */
 @font-face {
   font-family: 'Antonio';
   font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../fonts/antonio-variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Antonio';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('../fonts/antonio-variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Antonio';
-  font-style: normal;
-  font-weight: 700;
+  font-weight: 400 700;
   font-display: swap;
   src: url('../fonts/antonio-variable.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Archivo';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 700;
   font-display: swap;
   src: url('../fonts/archivo-variable.woff2') format('woff2');
 }
+/* TY1: a local fallback face, metrics-matched to Archivo via size-adjust/
+   ascent-override, so the system-ui/Helvetica Neue stack --body falls
+   back to before the webfont loads doesn't reflow the page out from
+   under it once 'Archivo' actually lands (font-display: swap's own
+   flash-of-unstyled-text window). No `src` beyond `local()` -- this is a
+   metrics override for whichever system face is already resident, never
+   another network request. */
 @font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('../fonts/archivo-variable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('../fonts/archivo-variable.woff2') format('woff2');
+  font-family: 'Archivo Fallback';
+  src: local('Helvetica Neue'), local('Arial'), local(system-ui);
+  size-adjust: 104%;
+  ascent-override: 92%;
+  descent-override: 24%;
 }
 @font-face {
   font-family: 'IBM Plex Mono';
@@ -70,4 +63,14 @@
   font-weight: 500;
   font-display: swap;
   src: url('../fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+/* TY1: the fourth voice -- self-hosted Latin subset, OFL, one variable
+   file like Antonio/Archivo (the 500 and 700 weight CSS the Google Fonts
+   API serves both point at this same URL). See src/fonts/OFL-caveat.txt. */
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url('../fonts/caveat-variable.woff2') format('woff2');
 }

@@ -6,8 +6,14 @@
   /* RF14 (docs/12_REFINE.md, point 1): tertiary text, new -- see
      player/clock.js's mutedGradientStops() for the warm/cool-follows-the-
      sky rule that overrides this default via inline style while the app
-     is running; this is just the static fallback for first paint. */
-  --muted-2:#7A868C;
+     is running; this is just the static fallback for first paint.
+     TY1 (docs/22_TYPE.md, audit point 4): #7A868C only cleared 3.7:1 on
+     --sky1 -- under the 4.5:1 floor anything read (not just a ≥14px
+     secondary) needs. #86939A clears 4.6:1 on --sky1 / 5.5:1 on --sky2;
+     mutedGradientStops()'s own cool/light pairs were raised to match, so
+     the live gradient never dips back under this floor. --muted-2 is only
+     ever used at --fs-body (14px) and up now (TY1's own shared rule). */
+  --muted-2:#86939A;
   --line:rgba(239,233,223,.14);
   /* RF14 (docs/12_REFINE.md, point 4): "sky, panel and raised read as
      three levels" -- .42 -> .55. */
@@ -20,38 +26,63 @@
   --amber:#FF9E2C;
   --cool:#9FD8E8;
   --accent:var(--amber);
+  /* TY1 (docs/22_TYPE.md): dark's --accent-text is --amber itself, light's
+     is the darker --amber-shade (22-theme.css) -- never bare --amber as
+     text in light theme, where it's only 1.65:1. tests/unit/theme.test.js
+     asserts the light value clears 4.5:1 on --sky1/--sky2/--stock-card. */
   --accent-text:#FF9E2C;
   --on-accent:#2A1B38;
   --shadow:rgba(0,0,0,.45);
   --miziki-orange:#FF9E2C;
   --disc-a:#26282F; --disc-b:#15161B; --disc-c:#0D0E13;
   --display:'Antonio','Oswald','Arial Narrow',sans-serif;
-  --body:'Archivo','Helvetica Neue',system-ui,sans-serif;
+  --body:'Archivo','Archivo Fallback',system-ui,'Helvetica Neue',sans-serif;
   --data:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
+  /* TY1 (docs/22_TYPE.md): the fourth voice -- paper, tape and stickers
+     only (10-crate.css, 12-sealed-records.css, 17-profile.css, 18-
+     storefront.css, share/*.js), never UI chrome. Caveat, self-hosted
+     Latin subset like the other three (src/fonts/caveat-variable.woff2,
+     OFL-caveat.txt), one variable file covering 400-700 the same way
+     Antonio/Archivo do (fonts.css). */
+  --hand:'Caveat','Bradley Hand',cursive;
   /* D2 (docs/DESKTOP_LAYOUT.md): lets native controls (scrollbars, form
      fields, the system's own UI chrome) follow the active theme too.
      src/styles/22-theme.css's light/auto blocks each set this to `light`
      for the same reason "three places" applies to every other token. */
   color-scheme:dark;
 
-  /* RF13 (docs/12_REFINE.md): the type/spacing/elevation scale. See
-     CLAUDE.md's own "CSS token scale (RF13)" entry for the rule this
-     exists to enforce -- no font-size or spacing value outside these
-     tokens without a comment saying why. Each --fs-* pairs with its own
-     --lh-* (unitless line-height); letter-spacing follows the size-based
-     rule (.10em at 10px, .08em at 11px, .02em on Antonio >=24px, 0
-     elsewhere) applied per rule, not bundled into the token, since the
-     same size is shared by both capitalized-label and plain-text uses. */
-  --fs-micro:10px;   --lh-micro:1.3;
-  --fs-label:11px;   --lh-label:1.3;
+  /* RF13 (docs/12_REFINE.md), remapped by TY1 (docs/22_TYPE.md): ten steps
+     collapse to six plus one hero numeral step, per Kunz's calibrated
+     ratio range. See CLAUDE.md's own "CSS token scale" entry for the rule
+     this exists to enforce -- no font-size or spacing value outside these
+     tokens without a comment saying why. Each real --fs-* pairs with its
+     own --lh-* (unitless line-height); letter-spacing is one of the three
+     --track-* tokens below, applied per rule (TY1's own shared tracking
+     rule), not bundled into the size token, since the same size is shared
+     by both capitalized-label and plain-text uses.
+
+     --fs-micro/--fs-label/--fs-head/--fs-display are retired -- each is a
+     one-release alias onto its replacement so no call site breaks before
+     its own PR (TY2/TY3) moves it to the real token. Grep these four names
+     after TY3 lands: every remaining hit should become the token it
+     aliases to, then the alias itself can go. */
   --fs-caption:12px; --lh-caption:1.45;
-  --fs-body:14px;    --lh-body:1.5;
+  --fs-body:14px;    --lh-body:1.45;
   --fs-row:16px;     --lh-row:1.35;
   --fs-title:20px;   --lh-title:1.2;
-  --fs-head:24px;    --lh-head:1.15;
-  --fs-hero:28px;    --lh-hero:1.1;
-  --fs-display:36px; --lh-display:1;
+  --fs-hero:28px;    --lh-hero:1.05;
   --fs-giant:44px;   --lh-giant:1;
+  --fs-numeral:64px; --lh-numeral:1;
+
+  --fs-micro:var(--fs-caption);   --lh-micro:var(--lh-caption);
+  --fs-label:var(--fs-caption);   --lh-label:var(--lh-caption);
+  --fs-head:var(--fs-hero);       --lh-head:var(--lh-hero);
+  --fs-display:var(--fs-giant);   --lh-display:var(--lh-giant);
+
+  /* TY1: the three tracking values every caps/Antonio rule in the app
+     picks from -- see CLAUDE.md's "Tracking follows size" rule. No other
+     letter-spacing value belongs in src/styles. */
+  --track-caps:.08em; --track-display:-.01em; --track-numeral:-.015em;
 
   /* Spacing scale. "A heading sits closer to what it heads than to what's
      above it" -- --sp-6 above a heading, --sp-2 below it. */
@@ -120,8 +151,19 @@
 html,body{height:100%; background:var(--sky2); overscroll-behavior-y:none}
 body{
   margin:0; font-family:var(--body); color:var(--paper);
+  /* TY1 (docs/22_TYPE.md, audit point 7): antialiasing is *for* light text
+     on a dark ground -- dark theme keeps it here as the default (bare
+     :root, before theme.js has set data-theme, is dark); 22-theme.css's
+     light selectors set this back to `auto`, and its dark reassertion
+     block repeats it, the same three-places pattern as every other
+     per-theme token there. */
   -webkit-font-smoothing:antialiased;
 }
+/* TY1: numerals that must align -- clocks, durations, counts, stats --
+   get tabular figures via a utility class, not a blanket rule on `body`
+   (which would affect running prose too). Applied at each call site in
+   TY2/TY3. */
+.num{ font-variant-numeric:tabular-nums; }
 /* NV1: the sky gradient used to be body's own `background` with
    `background-attachment:fixed` — correct-looking, but it makes body (the
    app's one scroller) repaint this full-screen gradient on every scroll

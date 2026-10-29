@@ -520,8 +520,13 @@ export function skyGradientStops(dayPos, theme){
 // and Night's own dusk-ramp (duskRampProgress) blends from that cool Dusk
 // value toward the (also cool) Night value -- effectively flat, since both
 // ends of that ramp are the same pair.
-const MUTED_COOL = [[148,160,166],[122,134,140]];   // --muted #94A0A6 / --muted-2 #7A868C
-const MUTED_WARM = [[169,156,143],[133,122,112]];   // --muted #A99C8F / --muted-2 #857A70
+// TY1 (docs/22_TYPE.md, audit point 4): --muted-2's floor was raised in
+// 00-base.css (#7A868C -> #86939A) because the old value only cleared
+// 3.7:1 against --sky1 -- these two anchor pairs are updated to match so
+// the live per-minute gradient this function drives never redraws a
+// value darker than the new static floor.
+const MUTED_COOL = [[148,160,166],[134,147,154]];   // --muted #94A0A6 / --muted-2 #86939A
+const MUTED_WARM = [[169,156,143],[141,131,122]];   // --muted #A99C8F / --muted-2 #8D837A
 const MUTED_ANCHORS_DARK = {
   night: MUTED_COOL, dawn: MUTED_COOL, morning: MUTED_COOL, midday: MUTED_COOL,
   afternoon: MUTED_COOL, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_COOL,
@@ -532,7 +537,8 @@ const MUTED_ANCHORS_DARK = {
 // override the CSS token with a stale value. Still a flat pair with no
 // warm/cool split (tests/unit/contrast.test.js's own CR8 check covers the
 // contrast floor).
-const MUTED_LIGHT = toStops([[107,98,88],[110,122,128]]); // --muted #6B6258 / --muted-2 #6E7A80
+// TY1: light's --muted-2 floor was raised the same way (#6E7A80 -> #5E6A70).
+const MUTED_LIGHT = toStops([[107,98,88],[94,106,112]]); // --muted #6B6258 / --muted-2 #5E6A70
 
 export function mutedGradientStops(dayPos, theme){
   if(theme === 'light') return MUTED_LIGHT;

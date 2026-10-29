@@ -325,3 +325,31 @@ test('resolveBootThemeFromSunCache: a malformed cache (missing rise/set) falls b
   assert.equal(resolveBootThemeFromSunCache({ date: bootToday }, new Date('2026-06-15T12:00:00')), 'light');
   assert.equal(resolveBootThemeFromSunCache({ date: bootToday, rise: bootRise }, new Date('2026-06-15T21:00:00')), 'dark');
 });
+
+// TY1 (docs/22_TYPE.md): --amber never belongs as text in light theme
+// (1.65:1) -- light's --accent-text must stay --amber-shade, and must
+// clear the 4.5:1 floor against every surface it actually sits on: both
+// sky stops and --stock-card (the crate's paper fill the pill/chip text
+// sometimes sits on). A self-contained WCAG relative-luminance calc, the
+// same formula tests/unit/contrast.test.js uses, kept local here rather
+// than imported since that file is a standalone sweep script, not a
+// module meant to be imported.
+function srgbToLinearTY1(c){ const n = c/255; return n <= 0.03928 ? n/12.92 : Math.pow((n+0.055)/1.055, 2.4); }
+function relLuminanceTY1(hex){
+  const h = hex.replace('#','');
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return 0.2126*srgbToLinearTY1(r) + 0.7152*srgbToLinearTY1(g) + 0.0722*srgbToLinearTY1(b);
+}
+function contrastRatioTY1(hexA, hexB){
+  const l1 = relLuminanceTY1(hexA), l2 = relLuminanceTY1(hexB);
+  const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+test('light theme --accent-text (#9A4700) clears 4.5:1 against --sky1/--sky2/--stock-card', () => {
+  const ACCENT_TEXT_LIGHT = '#9A4700';
+  const SURFACES = { '--sky1': '#F6F1E7', '--sky2': '#ECE5D8', '--stock-card': '#EFE6D2' };
+  for (const [name, hex] of Object.entries(SURFACES)) {
+    const ratio = contrastRatioTY1(ACCENT_TEXT_LIGHT, hex);
+    assert.ok(ratio >= 4.5, `light --accent-text vs ${name} (${hex}) — ratio ${ratio.toFixed(2)}:1`);
+  }
+});
