@@ -389,6 +389,13 @@ S.slipmatDim = true;
 // with no carve-out, unlike `theme`/the slipmat flags above.
 S.paperLabelOnLossy = false;
 
+// TY5 (docs/22_TYPE.md): Settings → Appearance's "Larger text" switch —
+// multiplies the six TY1 --fs-* tokens by 1.15 (src/ui/theme.js's
+// applyLargerText(), src/styles/00-base.css's :root.larger-text block).
+// A readability need, not a look, so unlike `theme` it rides inside
+// `prefs` with no device-only carve-out — it should follow the account.
+S.largerText = false;
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist

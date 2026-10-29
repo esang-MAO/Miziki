@@ -141,6 +141,18 @@
   --plinth:#1C1A1F;
   --plinth-edge:#2A272C;
 }
+/* TY5 (docs/22_TYPE.md): Settings → Appearance's "Larger text" switch
+   (src/ui/theme.js's applyLargerText(), a class not an inline style) —
+   the six real --fs-* tokens times 1.15, Salem Press's readability-toggle
+   recommendation. --lh-* stays as-is (already a unitless ratio, so it
+   keeps working at any size); --fs-numeral is the one hero-numeral step,
+   not one of "the six," and is left alone. The four retired aliases
+   (--fs-micro/-label/-head/-display) read these via var(), so they scale
+   for free without a row of their own. */
+:root.larger-text{
+  --fs-caption:13.8px; --fs-body:16.1px; --fs-row:18.4px;
+  --fs-title:23px; --fs-hero:32.2px; --fs-giant:50.6px;
+}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 /* html needs its own dark background too, not just body's: iOS Safari's
    rubber-band overscroll bounce at the top/bottom of the page reveals
@@ -158,6 +170,16 @@ body{
      block repeats it, the same three-places pattern as every other
      per-theme token there. */
   -webkit-font-smoothing:antialiased;
+  /* TY5 (docs/22_TYPE.md): "two themes, not one inverted" -- dark text at
+     500 on a dark ground over-asserts itself the way the same weight on
+     paper doesn't, so row/body text (anything that doesn't set its own
+     font-weight) sits a half-step lighter here than light theme's 500
+     (22-theme.css's own light/dark selectors, same three-places pattern as
+     -webkit-font-smoothing just above). A title's own explicit 700 and any
+     metadata's own explicit weight both override this inherited default,
+     so neither moves. Needs fonts.css's TY1 move to `font-weight: 400 700`
+     variable Archivo faces -- a static weight pair can't render 450. */
+  font-weight:450;
 }
 /* TY1: numerals that must align -- clocks, durations, counts, stats --
    get tabular figures via a utility class, not a blanket rule on `body`

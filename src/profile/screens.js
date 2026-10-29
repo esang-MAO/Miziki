@@ -4,7 +4,7 @@ import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
 import { topAlbums, topTracks, achievementsList, crateFilled } from '../history/achievements.js';
 import { metalBadge } from './badges.js';
-import { renderStorefrontSection } from './storefront.js';
+import { renderStorefrontSection, storeSwitch } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
 // pressing chart moved there; see records.js's own header.
 import { renderRecordsScreen } from './records.js';
@@ -14,7 +14,7 @@ import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
-import { setTheme, isDaylightPhase } from '../ui/theme.js';
+import { setTheme, setLargerText, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
@@ -258,6 +258,14 @@ function renderAppSettingsScreen(body){
     'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. Choosing Light or Dark keeps that look regardless of the device.'));
   note.appendChild(info);
   appearance.appendChild(note);
+  // TY5 (docs/22_TYPE.md): "a 'Larger text' switch in Settings →
+  // Appearance" — same row shape slipmat-editor.js's own switchRow()
+  // uses, built fresh here since this screen already rebuilds whole on
+  // every render (this file's own header comment, just above).
+  const largerTextRow = el('div','social-setting-row');
+  largerTextRow.appendChild(el('h2', null, 'Larger text'));
+  largerTextRow.appendChild(storeSwitch('Larger text', S.largerText, v => setLargerText(v)));
+  appearance.appendChild(largerTextRow);
   body.appendChild(appearance);
 
   // CEREMONY §6: the Slipmat row, part of Appearance. Filled once the saved

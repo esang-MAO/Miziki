@@ -45,7 +45,7 @@ import { initScrollRestoration } from './shell/scroll-memory.js';
 import { renderProfile } from './profile/screens.js';
 import { resetLocalHistory } from './history/clear.js';
 import { initBackupSync, onBackup } from './sync/backup.js';
-import { applyTheme } from './ui/theme.js';
+import { applyTheme, applyLargerText } from './ui/theme.js';
 
 import { wireTransport } from './wiring/transport.js';
 import { wireLibraryView } from './wiring/library-view.js';
@@ -116,6 +116,7 @@ setMode('vinyl');
 updateHomeTabVisibility();
 MizikiSocial.on('status', updateHomeTabVisibility);
 applyTheme();
+applyLargerText();
 fallbackSun();
 initLocationPrompt();   // RF7: never prompts for location at boot, only on request
 drawSun();

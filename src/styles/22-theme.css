@@ -85,9 +85,11 @@
    gets the OS's own `auto` hinting instead. Both selectors mirror the
    pinned/auto split every other light override in this file already
    uses. */
-:root[data-theme="light"] body{ -webkit-font-smoothing:auto; }
+/* TY5: row/body text a half-step heavier on paper than on the dark ground
+   above (00-base.css's own comment on `body` has the reasoning). */
+:root[data-theme="light"] body{ -webkit-font-smoothing:auto; font-weight:500; }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme]) body{ -webkit-font-smoothing:auto; }
+  :root:not([data-theme]) body{ -webkit-font-smoothing:auto; font-weight:500; }
 }
 
 :root[data-theme="dark"]{
@@ -107,9 +109,9 @@
   --shadow:rgba(0,0,0,.45);
   color-scheme:dark;
 }
-/* TY1 (audit point 7): the explicit dark reassertion, same reasoning as
+/* TY1 (audit point 7)/TY5: the explicit dark reassertion, same reasoning as
    the block it belongs to. */
-:root[data-theme="dark"] body{ -webkit-font-smoothing:antialiased; }
+:root[data-theme="dark"] body{ -webkit-font-smoothing:antialiased; font-weight:450; }
 
 /* DA4 (docs/DAY_ARC.md): "switch with a ~1.5s colour transition" — for
    Nychthemeron's own live light<->dark crossing only (src/ui/theme.js's
