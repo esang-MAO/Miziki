@@ -38,6 +38,24 @@
      place repeating the 76px/232px numbers the sidebar's own flex-basis
      already sets just below — read, never written, outside this file. */
   :root{--sidebar-width:76px}
+  /* TY7 (docs/22_TYPE.md), "Size at the desk": desktop is further from the
+     eye and the surface is brighter/larger, so the phone floor moves up
+     one notch here. Rows stay 16px (already right); nothing on desktop is
+     set at 12px. Hunt's note that a page full of white space "may be
+     overpowering on a light-emitting screen" is why the light theme keeps
+     its grain/stock-card panels rather than going flat white at this size
+     (22-theme.css, unchanged by this rule). */
+  :root{--fs-body:15px; --fs-caption:13px; --lh-body:1.5}
+  /* TY7, "Measure": prose never spans a panel just because the panel is
+     wide. Liner notes/credits, the master read-out, sleeve notes, the
+     empty-state copy, the Privacy/Terms screens and the friend store's
+     bio all cap at --measure; the crate's detail panel and the gatefold's
+     track list are not prose and stay fluid, so they're deliberately not
+     listed here. */
+  #profileBody p, .credit-note, .dynamics-note, .record-note,
+  .store-pick-sleeve-note, .store-bio, .rest-hint p{
+    max-width:var(--measure);
+  }
   /* .wrap stops being a centered 520px column and becomes a flex item
      sharing a row with the sidebar — this is what actually gives it "the
      rest of the space beside the sidebar" with no manual width/margin
