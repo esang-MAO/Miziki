@@ -505,7 +505,9 @@ test('mutedGradientStops: light theme keeps one pair regardless of phase', () =>
   const golden = mutedGradientStops(pos('golden'), 'light');
   const night = mutedGradientStops(pos('night', 0, 1), 'light');
   assert.deepEqual(golden, night);
-  assert.deepEqual(golden, ['rgb(107,98,88)', 'rgb(110,122,128)']);
+  // TY1 (docs/22_TYPE.md, audit point 4): --muted-2's light floor was
+  // raised #6E7A80 -> #5E6A70.
+  assert.deepEqual(golden, ['rgb(107,98,88)', 'rgb(94,106,112)']);
 });
 
 test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) too, sampled every 10 minutes across a full day', async () => {

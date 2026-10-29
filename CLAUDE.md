@@ -104,22 +104,25 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 
 `src/styles/00-base.css`'s `:root` defines the app's whole type/spacing/elevation/radius scale. **No font-size or spacing value outside these tokens without a comment saying why.**
 
-**Type** (`--fs-*` font-size, `--lh-*` its own paired line-height):
+**Type** (`--fs-*` font-size, `--lh-*` its own paired line-height). TY1 (docs/22_TYPE.md) collapsed the old ten-step scale to six plus one hero numeral step; `--fs-micro`/`--fs-label`/`--fs-head`/`--fs-display` still exist as one-release aliases onto the token each one retired into (`--fs-caption`, `--fs-caption`, `--fs-hero`, `--fs-giant`), for call sites not yet migrated — treat any you touch as a token to move, not a token to add to:
 
 | Token | Size/line-height | Role |
 |---|---|---|
-| `--fs-micro`/`--lh-micro` | 10px / 1.3 | annotations: times, kHz, stat labels |
-| `--fs-label`/`--lh-label` | 11px / 1.3 | tabs, tab bar, segments, eyebrows |
-| `--fs-caption`/`--lh-caption` | 12px / 1.45 | helper text, sub-lines |
-| `--fs-body`/`--lh-body` | 14px / 1.5 | secondary lines, paragraphs |
-| `--fs-row`/`--lh-row` | 16px / 1.35 | list titles, setting names, inputs |
-| `--fs-title`/`--lh-title` | 20px / 1.2 | card values, sheet titles |
-| `--fs-head`/`--lh-head` | 24px / 1.15 | section heads, crate album name |
-| `--fs-hero`/`--lh-hero` | 28px / 1.1 | player title, dial word |
-| `--fs-display`/`--lh-display` | 36px / 1 | phase name, big stats |
-| `--fs-giant`/`--lh-giant` | 44px / 1 | profile name, dial time |
+| `--fs-caption`/`--lh-caption` | 12px / 1.45 | the smallest readable text: captions, caps kickers — the floor for anything read |
+| `--fs-body`/`--lh-body` | 14px / 1.45 | secondary lines, paragraphs, tab-bar labels, chips, counts |
+| `--fs-row`/`--lh-row` | 16px / 1.35 | list titles, tabs, buttons, inputs, setting names |
+| `--fs-title`/`--lh-title` | 20px / 1.2 | sheet titles, section titles |
+| `--fs-hero`/`--lh-hero` | 28px / 1.05 | crate album name, headings, stats (Antonio) |
+| `--fs-giant`/`--lh-giant` | 44px / 1 | player title, profile name, dial time (Antonio) |
+| `--fs-numeral`/`--lh-numeral` | 64px / 1 | the one hero numeral: dial hour, season-card figure, the desktop glance view |
 
-Letter-spacing follows size, not a token of its own: `.10em` at `--fs-micro`, `.08em` at `--fs-label`, `.02em` on Antonio (`var(--display)`) at `--fs-head` and up, `0` otherwise — unless a rule already carries its own hand-tuned value (an eyebrow, a crumb), which stays as authored. Antonio stays to no more than two sizes per screen.
+11px survives only on physical-object detail (label rim, dead wax, the pressing peek's tiny stamp) where the same information is legibly repeated nearby — never on anything read as its only source.
+
+Three voices, one hand: every text rule in `src/styles` is `var(--body)` (Archivo — read or tapped), `var(--display)` (Antonio — looked at), `var(--data)` (Plex Mono — the mono whitelist only: format chips, sample-rate/bit-depth, catalogue numbers/dead-wax, the paper label's rim text, typed bin labels, share-card timestamps/format lines, EQ readouts, duplicate-scan/import-log readouts), or `var(--hand)` (Caveat — paper, tape, stickers only). A rule that can't say which it is, is wrong.
+
+Tracking is one of three tokens, never a literal: `--track-caps` (`.08em`, caps, ~130% word space), `--track-display` (`-.01em`, Antonio ≥28px), `--track-numeral` (`-.015em`, Antonio ≥44px) — lowercase is never tracked, and reversed (dark-theme) text takes `+.01em` over its light-theme value. The one hand-tuned exception is the launch wordmark lockup. Antonio stays to no more than two sizes per screen.
+
+Hierarchy by tone before size: in any list, title at `--paper`, secondary at `rgba(paper,.85)`, tertiary at `--muted`; `--muted-2` only at `--fs-body` (14px) and up.
 
 **Spacing:** `--sp-1` 4px · `--sp-2` 8px · `--sp-3` 12px · `--sp-4` 16px · `--sp-5` 24px · `--sp-6` 32px · `--sp-7` 48px · `--sp-8` 64px. A heading sits closer to what it heads than to what's above it. **Radii:** `--radius-control` 4px, `--radius-card` 12px; circles stay plain `50%`.
 
