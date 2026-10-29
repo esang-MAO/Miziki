@@ -84,6 +84,13 @@
      letter-spacing value belongs in src/styles. */
   --track-caps:.08em; --track-display:-.01em; --track-numeral:-.015em;
 
+  /* TY7 (docs/22_TYPE.md): the line-length cap for any run of prose on
+     desktop -- ~60 characters of Archivo at 16px (Ruder 50-60, Kunz
+     40-60, Latin 45-75). Only reasserted under the desktop breakpoint
+     (23-desktop.css); the phone layout is already narrow enough that
+     nothing here needs it. */
+  --measure:34em;
+
   /* Spacing scale. "A heading sits closer to what it heads than to what's
      above it" -- --sp-6 above a heading, --sp-2 below it. */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
