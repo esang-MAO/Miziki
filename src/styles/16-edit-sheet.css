@@ -28,7 +28,7 @@
   display:flex;align-items:center;justify-content:center}
 .edit-art-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
 .edit-art-preview{width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--panel);
-  display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em}
+  display:grid;place-content:center;flex:0 0 auto;color:var(--muted);font-family:var(--display);font-size:var(--fs-row)}
 .edit-art-preview img{width:100%;height:100%;object-fit:cover}
 .pl-input[type=text],.pl-input[type=number]{width:100%}
 
@@ -46,31 +46,33 @@
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .row .k{font-size:var(--fs-body)}
-.row .k em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px;line-height:1.45}
-.readout{font-family:var(--data);font-size:var(--fs-caption);color:var(--accent-text);white-space:nowrap;transition:color .5s}
+.row .k em{display:block;font-style:normal;font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.45}
+.readout{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--accent-text);white-space:nowrap;transition:color .5s}
 .readout.plain{color:var(--paper)}
 
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;padding:7px 10px;
+/* TY2: a segmented control -- Archivo, sentence case. */
+.seg button{font-family:var(--body);font-size:var(--fs-body);font-weight:500;padding:7px 10px;
   border:1px solid var(--line);border-radius:3px;color:var(--muted)}
 .seg button[aria-pressed="true"]{border-color:var(--accent);color:var(--paper);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 
 .slider-row{padding:13px 0;border-bottom:1px solid var(--line)}
 .slider-row:last-child{border-bottom:0}
 .slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
-.slider-head span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.slider-head b{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;font-weight:500;color:var(--paper)}
+.slider-head span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
+.slider-head b{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}
 input[type=range]{width:100%;accent-color:var(--accent);height:22px}
 input[type=file]{display:none}
 
+/* TY2: the primary-action button -- Archivo, sentence case. */
 .cta{display:inline-block;border:1px solid var(--accent);color:var(--accent-text);border-radius:3px;
-  padding:11px var(--sp-4);font-family:var(--data);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase;transition:color .5s,border-color .5s}
+  padding:11px var(--sp-4);font-family:var(--body);font-size:var(--fs-row);font-weight:500;transition:color .5s,border-color .5s}
 .cta.ghost{border-color:var(--line);color:var(--paper)}
 .stack{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:14px}
 
 .empty{border:1px dashed var(--line);border-radius:4px;padding:20px;text-align:center}
 .empty p{margin:0 0 var(--sp-1);font-size:var(--fs-body)}
-.empty small{color:var(--muted);font-size:var(--fs-label);letter-spacing:.08em;line-height:1.5;display:block}
+.empty small{color:var(--muted);font-size:var(--fs-caption);line-height:1.5;display:block}
 
 .tracklist{list-style:none;margin:var(--sp-4) 0 0;padding:0}
 /* RF13 (docs/12_REFINE.md): "remove per-row hairlines in song and artist
@@ -79,8 +81,8 @@ input[type=file]{display:none}
 .tracklist li{display:flex;align-items:center;gap:var(--sp-3);padding:11px 0}
 .tracklist .t-name{flex:1;min-width:0}
 .tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tracklist .t-name em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted)}
-.tracklist .t-idx{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);width:18px}
+.tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted)}
+.tracklist .t-idx{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:18px}
 .tracklist li[aria-current="true"] .t-idx{color:var(--accent-text)}
 .note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
 .warn{color:#FFB4A2}
@@ -93,19 +95,20 @@ input[type=file]{display:none}
 .edit-format-disc{width:36px;height:36px;border-radius:50%;flex:0 0 auto;
   background:radial-gradient(circle at 50% 50%,var(--disc-a) 0 55%,var(--disc-b) 55% 92%,var(--disc-c) 92% 100%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-.edit-format-summary{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.06em;
+.edit-format-summary{font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;color:var(--paper)}
 .edit-format-result .note{margin:2px 0 0}
 
 /* AU8 (docs/16_AUDIO.md §6): the queue sheet's own small additions. */
 .cta.small{padding:7px var(--sp-3);font-size:var(--fs-micro)}
 .queue-head-actions{display:flex;align-items:center;gap:var(--sp-2)}
-.queue-section-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);
+/* TY2: section kickers -- Archivo caps, --track-caps. */
+.queue-section-label{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);
   margin:var(--sp-4) 0 0}
 .queue-recent{opacity:.6}
 .queue-recent .t-name em{color:var(--muted)}
 .queue-section-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
-  margin:var(--sp-4) 0 0;font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
+  margin:var(--sp-4) 0 0;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 /* a pointer-driven grab handle, not the HTML5 DnD API (iOS Safari never
    fires dragstart from a touch gesture) -- touch-action:none keeps a
    vertical drag from also scrolling the sheet underneath it. Hidden from
@@ -132,7 +135,7 @@ input[type=file]{display:none}
    one line of text, stacked and left-aligned instead of centered. */
 .look-option{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
   text-align:left;width:100%;white-space:normal;padding:10px var(--sp-4)}
-.look-option-group{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;
+.look-option-group{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;opacity:.75}
 .look-option-name{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.02em;text-transform:none}
 .look-option-sub{font-size:var(--fs-caption);opacity:.85;text-transform:none;letter-spacing:normal;font-family:inherit}

@@ -23,7 +23,8 @@
 .hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:var(--fs-row);font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
-.hdr-cancel{flex:0 0 auto;font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+/* TY2 (docs/22_TYPE.md): a button -- Archivo, sentence case, no tracking. */
+.hdr-cancel{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--accent-text)}
 mark.hl{background:none;color:var(--accent-text);font-weight:600}
 
 /* + menu popover (S1 §3) */
@@ -97,9 +98,11 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .lib-tabs-group{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0;min-height:32px;
   overflow-x:auto;scrollbar-width:none}
 .lib-tabs-group::-webkit-scrollbar{display:none}
-.lib-tabs-group button{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;
-  padding:var(--sp-2) 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;flex:0 0 auto}
-.lib-tabs-group button[aria-pressed="true"]{color:var(--paper);border-bottom-color:var(--accent)}
+/* TY2: Library header tabs (Songs/Crate/Artists/Playlists) -- Archivo,
+   sentence case, baseline-aligned; the orange underline stays. */
+.lib-tabs-group button{font-family:var(--body);font-size:var(--fs-row);font-weight:500;
+  padding:var(--sp-2) 0;color:var(--muted);border-bottom:1.5px solid transparent;margin-bottom:-1px;flex:0 0 auto}
+.lib-tabs-group button[aria-pressed="true"]{color:var(--paper);font-weight:600;border-bottom-color:var(--accent)}
 .lib-tabs-group .lib-select-tab{color:var(--muted)}
 /* CR14: search/add/overflow and the crate-order chip now share one
    right-hand column — flex, not a grid, so an empty library (no tabs at
@@ -109,9 +112,10 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 /* crate-order chip: replaces the A–Z/Genre/Decade pill row with one
    tap-to-cycle control, set in the same voice as the tabs beside it. The
    right-hand column above now places it, so it needs no margin of its own. */
+/* TY2: the A-Z chip -- Archivo, sentence case, no tracking. */
 .crate-group-cycle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
   padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:none;
-  font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
+  font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   color:var(--paper);touch-action:manipulation;white-space:nowrap}
 .crate-group-cycle:active{background:var(--sel)}
 .crate-group-cycle-k{color:var(--muted)}
@@ -124,15 +128,18 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent-text);
   display:grid;place-content:center;font-size:var(--fs-row);flex:0 0 auto;transition:transform .2s}
 .lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
-.lib-tools-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase}
-.lib-tools-preview{margin-left:auto;font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.04em}
+/* TY2: a settings row label -- Archivo row, not a kicker (reads as a
+   setting name, not a caps section head). .lib-tools-caption below is
+   the actual section kicker. */
+.lib-tools-label{font-family:var(--body);font-size:var(--fs-row);font-weight:500}
+.lib-tools-preview{margin-left:auto;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .lib-tools-panel{overflow:hidden;max-height:0;transition:max-height .2s ease}
 .lib-tools-panel.open{max-height:1400px}
-.lib-tools-caption{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
+.lib-tools-caption{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);margin:22px 0 var(--sp-1)}
 .lib-tools-row2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .lib-tools-row2 .k{font-size:var(--fs-body)}
-.lib-tools-row2 .k em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px;line-height:1.4}
+.lib-tools-row2 .k em{display:block;font-style:normal;font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.4}
 .lib-tools-danger .k{color:#E0705A}
 .lib-tools-danger .k em{color:var(--muted)}
 .forget-btn{border-color:#E0705A;color:#E0705A}

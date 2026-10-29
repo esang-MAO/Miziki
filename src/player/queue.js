@@ -480,7 +480,7 @@ export function renderQueueSheet(host){
   // close enough to "when it finished" for a dimmed, secondary row.
   const played = S.queue.slice(0, S.qpos);
   if(played.length){
-    dest.appendChild(el('p','queue-section-label','RECENTLY PLAYED'));
+    dest.appendChild(el('p','queue-section-label','Recently played'));
     const rul = el('ul','tracklist queue-recent');
     played.slice(-5).reverse().forEach(idx => {
       const t = S.tracks[idx]; if(!t) return;
@@ -512,8 +512,8 @@ export function renderQueueSheet(host){
   const upcoming = S.queue.slice(S.qpos + 1);
   if(upcoming.length){
     const head = el('div','queue-section-head');
-    head.appendChild(el('span', null, 'UP NEXT · ' + upcoming.length));
-    const clear = el('button','cta ghost small','Clear Upcoming');
+    head.appendChild(el('span', null, 'Up next · ' + upcoming.length));
+    const clear = el('button','cta ghost small','Clear upcoming');
     clear.addEventListener('click', clearUpcoming);
     head.appendChild(clear);
     dest.appendChild(head);
