@@ -1,0 +1,36 @@
+<svg viewBox="0 0 4759.6 2128.2" width="4759.6" height="2128.2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Miziki">
+  <!-- TY4 (docs/22_TYPE.md): the "A" cut, Antonio Bold skeleton, lowercase
+       after the cap M, -.01em tracking, the three i-dots replaced by
+       spindle rings. Drawn once as outlines (not <text>) from the Antonio
+       Bold glyph data itself, so it never depends on the font loading.
+       .wordmark-letters/.wordmark-rings read the paper/accent-text custom
+       properties so the mark follows dark/light theme and metal-invert
+       contexts automatically; a context reversed onto an accent-colored
+       ground (the vinyl label, an awning stripe) overrides both with a CSS
+       rule of its own, the same way .label.metal-invert already overrides
+       other label colors. This is the one drawing for all three cuts the
+       plan names: used as-is it's the "A" cut; a caller rotating the whole
+       svg element 12 degrees (a CSS transform, not baked in here) gets the
+       "F" display cut; adding .wordmark-mini gets the filled-dot "C" cut,
+       which holds at sizes below 16px down to favicon scale, where an open
+       ring's stroke would disappear. No XML comment double-hyphens above:
+       DOMParser's strict XML mode (ui/wordmark.js) rejects them outright. -->
+  <style>
+    .wordmark-letters{fill:var(--paper,#EFE9DF)}
+    .wordmark-rings{fill:none;stroke:var(--accent-text,#FF9E2C);stroke-width:69.58}
+    .wordmark-mini .wordmark-rings{fill:var(--accent-text,#FF9E2C);stroke:none}
+  </style>
+  <g class="wordmark-letters">
+      <path d="M202 2098.2V338.2H535L785 1624.2L1020 338.2H1355V2098.2H1116V1442.2L1126 840.2L889 2090.2H676L429 840.2L439 1442.2V2098.2Z"/>
+      <path d="M1603.52 2098.2V598.2H1868.52V2098.2Z"/>
+      <path d="M2057.04 2098.2V1898.2L2387.04 825.2H2082.04V598.2H2656.04V789.2L2328.04 1876.2H2642.04V2098.2Z"/>
+      <path d="M2831.56 2098.2V598.2H3096.56V2098.2Z"/>
+      <path d="M3347.08 2098.2V323.2H3612.08V1280.2L3868.08 598.2H4137.08L3848.08 1336.2L4154.08 2098.2H3884.08L3612.08 1385.2V2098.2Z"/>
+      <path d="M4288.6 2098.2V598.2H4553.6V2098.2Z"/>
+  </g>
+  <g class="wordmark-rings">
+      <circle cx="1736.02" cy="219.1" r="149.1"/>
+      <circle cx="2964.06" cy="219.1" r="149.1"/>
+      <circle cx="4421.1" cy="219.1" r="149.1"/>
+  </g>
+</svg>

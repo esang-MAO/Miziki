@@ -12,8 +12,16 @@ import { play } from '../player/transport.js';
 import { clearSpinDown, startSpinDown } from './put-away.js';
 import { cancelRunout, interruptRunout } from './runout.js';
 import { CHANGE_TIMELINE } from './ceremony-timing.js';
+import { wordmarkEl } from '../ui/wordmark.js';
 
-const STAGE_CLASSES = ['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
+// TY4 (docs/22_TYPE.md): the empty-sleeve state's "F" cut, tilted -12deg by
+// 03-sleeve-pull.css's own .sleeve-mark rule (the SVG is always drawn
+// upright) — set once per sleeve at module load, same as every other
+// static boot-time fill in this file's sibling modules.
+$('#sleeve .sleeve-mark').appendChild(wordmarkEl());
+$('#sleeveOut .sleeve-mark').appendChild(wordmarkEl());
+
+const STAGE_CLASSES =['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
 
 // the outgoing sleeve of an overlapped change (CEREMONY §4) — its own
 // element, so it can still be leaving while the new #sleeve arrives

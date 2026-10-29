@@ -8,6 +8,9 @@ import assert from 'node:assert/strict';
 // browser would otherwise provide" approach idb.test.js/shell.test.js use.
 globalThis.document = {
   documentElement: { style: { setProperty(){} } },
+  // TY4's module-load-time $('#launchWordmark').replaceChildren(...) needs
+  // this to resolve to something; the wordmark itself is mocked away below.
+  querySelector(){ return { replaceChildren(){} }; },
 };
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
@@ -31,6 +34,11 @@ mock.module(new URL('../../src/record-art/peek.js', import.meta.url).href, {
 });
 mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
   namedExports: { hapticTick(){} },
+});
+// TY4 (docs/22_TYPE.md): the drawn wordmark SVG — a ?raw asset import node:test
+// can't resolve, and nothing this file tests reads its actual markup anyway.
+mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
+  namedExports: { wordmarkEl(){ return { classList: { add(){} } }; } },
 });
 
 const {

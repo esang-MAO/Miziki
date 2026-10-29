@@ -154,7 +154,7 @@ export async function composePressingsShareImage(opts){
 
   ctx.textAlign = 'center';
   const markY = Math.max(y, dim.safeBottom - 40);
-  drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
+  await drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
   ctx.font = '600 20px "IBM Plex Mono", monospace';
   ctx.fillStyle = kit.sub;
   const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE') + ' · EARNED BY LISTENING';

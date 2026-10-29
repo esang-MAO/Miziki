@@ -200,7 +200,7 @@ export async function composePlayerShareImage(opts){
   layoutBody(includeAlbumYear, includeChips, true);
 
   ctx.textAlign = 'center';
-  drawShareWordmark(ctx, w/2, footerTopY, Math.round(w*0.03), kit.ink, kit.accent);
+  await drawShareWordmark(ctx, w/2, footerTopY, Math.round(w*0.03), kit.ink, kit.accent);
   ctx.font = '600 ' + Math.round(w*0.0165) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = kit.sub;
   const lossless = !(t.meta && t.meta.lossless === false);
   ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, footerTopY + Math.round(h*0.026));

@@ -30,6 +30,7 @@ import { CRATE_PEEK_MAX_FRACTION } from '../crate/model.js';
 import { thumbURL } from '../library/thumbs.js';
 import { buildPeekDisc } from '../record-art/peek.js';
 import { hapticTick } from '../ui/haptic.js';
+import { wordmarkEl as buildWordmark } from '../ui/wordmark.js';
 
 // resolved by restoreLibrary() (main.js) once S.tracks/sessions/thumbnails
 // are in place — the launch intro races this against a timeout rather than
@@ -54,6 +55,10 @@ document.documentElement.style.setProperty('--launch-fade-duration', LAUNCH_ANIM
 document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM.pullMs + 'ms');
 document.documentElement.style.setProperty('--launch-wordmark-duration', (LAUNCH_ANIM.catchMs + LAUNCH_ANIM.pullMs) + 'ms');
 document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
+
+// TY4 (docs/22_TYPE.md): the launch header's wordmark is the drawn SVG now,
+// not live text -- set once at module load, same as the CSS vars above.
+$('#launchWordmark').replaceChildren(buildWordmark());
 
 // the 390x740 design stage scales uniformly to fit the viewport rather than
 // being redrawn per size — CSS alone can't turn a viewport length into a
@@ -201,13 +206,14 @@ function applyLaunchCardPose(el, pose, extraScale, liftPx){
   el.style.zIndex = pose.z;
 }
 
-// The Miziki cover: the wordmark set diagonally on a plain sleeve. Colour
-// comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off the
-// resolved data-theme, so it matches the app before first paint.
+// The Miziki cover: the wordmark's "F" cut, tilted -12deg (09-launch-intro.css
+// rotates it; the SVG itself is always drawn upright) on a plain sleeve.
+// Colour comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off
+// the resolved data-theme, so it matches the app before first paint.
 function launchMizikiMark(){
   const mark = document.createElement('div');
   mark.className = 'launch-card-mark';
-  mark.innerHTML = 'Mi<span>zi</span>ki';
+  mark.appendChild(buildWordmark());
   return mark;
 }
 

@@ -205,7 +205,7 @@ export async function composeShareImage(opts){
   const wmFontPx = Math.round(w*0.034);
   const wmWidth = wordmarkWidth(ctx, wmFontPx);
   const markY = Math.min(Math.max(leftY, Math.round(h*0.02)) + Math.round(h*0.03), bottomY);
-  drawShareWordmark(ctx, w - pad - wmWidth/2, markY, wmFontPx, kit.ink, kit.accent);
+  await drawShareWordmark(ctx, w - pad - wmWidth/2, markY, wmFontPx, kit.ink, kit.accent);
 
   return canvas;
 }

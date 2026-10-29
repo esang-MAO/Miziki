@@ -21,11 +21,14 @@
 .launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;
   perspective:1000px;perspective-origin:50% 36%;
   transform:scale(var(--launch-scale,1))}
+/* TY4 (docs/22_TYPE.md): the "A" cut (data/wordmark.svg), muted until the
+   catch. "Grown" now scales the drawn mark itself (transform, same as every
+   other launch-card move) rather than jumping font-size. */
 .launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
-  font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.16em;color:var(--muted);
-  opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out}
-.launch-wordmark span{color:var(--accent-text)}
-.launch-wordmark.launch-grown{opacity:1;font-size:var(--fs-giant);letter-spacing:.1em;top:auto;bottom:140px}
+  opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out,
+    transform var(--launch-wordmark-duration,900ms) ease-out}
+.launch-wordmark svg{width:130px;height:auto;display:inline-block}
+.launch-wordmark.launch-grown{opacity:1;top:auto;bottom:140px;transform:scale(2.2)}
 .launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
   opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
 .launch-stack.launch-settled{opacity:1}
@@ -49,9 +52,12 @@
   box-shadow:inset 0 1px 0 rgba(255,235,200,.42),inset 6px 0 10px -6px rgba(0,0,0,.28),
     inset 0 -3px 0 rgba(0,0,0,.25)}
 .launch-card-miziki{background:linear-gradient(165deg,var(--rec1),var(--rec2))}
-.launch-card-mark{position:relative;font-family:var(--display);font-weight:700;letter-spacing:.1em;
-  color:var(--recink);white-space:nowrap;transform:rotate(-35deg);font-size:var(--fs-display)}
-.launch-card-mark span{color:var(--accent-text)}
+/* TY4: the "F" cut -- the same drawing, rotated -12deg, never upright here.
+   --recink/--accent-text (not --paper) so the sleeve still follows the
+   warm-Jet/bone theming above rather than the app's own paper/accent pair. */
+.launch-card-mark{position:relative;width:46%;transform:rotate(-12deg);
+  --paper:var(--recink)}
+.launch-card-mark svg{display:block;width:100%;height:auto}
 /* the record sliding out of the top of the caught sleeve (see .peek-disc,
    10-crate.css, for its surface); starts fully behind the face */
 .launch-peek{left:4%;top:4%;width:92%;height:92%;z-index:0}

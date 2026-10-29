@@ -9,7 +9,14 @@ import assert from 'node:assert/strict';
 // metals.js's METAL_COLORS (for the fillShareDisc() it now exports, see
 // below) — neither of those touches the DOM at its own top level either,
 // so this doesn't cost styles.js its own "safe to import directly, no
-// mocking" property.
+// mocking" property. The one exception, TY4 (docs/22_TYPE.md): styles.js
+// now imports ui/wordmark.js for drawShareWordmark's real mark, and that
+// module's own top-level `?raw` asset import is a Vite-only feature
+// node:test can't resolve at all — mocked away since nothing here tests
+// drawShareWordmark's pixels (Canvas doesn't run in Node either, see below).
+mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
+  namedExports: { wordmarkMarkup(){ return '<svg></svg>'; } },
+});
 const { SHARE_FORMATS, resolveShareStyle, shareFitLines, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP } = await import('../../src/share/styles.js');
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this

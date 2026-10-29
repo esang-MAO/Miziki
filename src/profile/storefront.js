@@ -25,10 +25,39 @@ import { renderTracks } from '../library/view.js';
 export const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
 export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
 
-export function storeAwning(){
+// TY4 (docs/22_TYPE.md): four colourways from the CR8 palette, picked by a
+// hash of the username rather than anything about the account, so friends'
+// storefronts differ from each other by colour alone, never by type.
+const AWNING_COLORWAYS = ['var(--accent)', 'var(--verdigris)', 'var(--prussian)', 'var(--puce)'];
+function awningColorway(handle){
+  let h = 0;
+  for(let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) | 0;
+  return AWNING_COLORWAYS[Math.abs(h) % AWNING_COLORWAYS.length];
+}
+
+// `handle` is omitted while there's no username yet (renderOpenStoreCard) —
+// the plain striped strip, no "Crate of" card, since there's no name to set
+// a colourway from or print on it.
+export function storeAwning(handle){
+  const wrap = el('div','store-awning-wrap');
   const awning = el('div','store-awning');
-  for(let i = 0; i < 10; i++) awning.appendChild(el('div'));
-  return awning;
+  const stripe = handle ? awningColorway(handle) : 'var(--accent)';
+  for(let i = 0; i < 10; i++){
+    const div = el('div');
+    div.style.background = (i % 2 === 0) ? stripe : 'var(--cream)';
+    awning.appendChild(div);
+  }
+  wrap.appendChild(awning);
+  if(handle){
+    const card = el('div','store-awning-card');
+    card.appendChild(el('div','store-awning-kicker','Crate of'));
+    // TY4: a long name drops a weight/tracking step rather than condensing,
+    // wrapping or ellipsizing — see 18-storefront.css's own three size rules.
+    const nameSize = handle.length > 22 ? 'sm' : handle.length > 14 ? 'md' : 'lg';
+    card.appendChild(el('div', 'store-awning-name store-awning-name--' + nameSize, handle));
+    wrap.appendChild(card);
+  }
+  return wrap;
 }
 
 export function storeSwitch(label, checked, onToggle){
@@ -339,7 +368,7 @@ function localStaffPicks(){
 
 function renderLocalStorefront(host){
   host.innerHTML = '';
-  host.appendChild(storeAwning());
+  host.appendChild(storeAwning(S.profile.username || ''));
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
 
@@ -480,7 +509,7 @@ function storeDiggingSection(full, host){
 
 function renderStorefront(host, full, requests){
   host.innerHTML = '';
-  host.appendChild(storeAwning());
+  host.appendChild(storeAwning(full.profile.handle));
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
   const idBox = el('div','store-id');

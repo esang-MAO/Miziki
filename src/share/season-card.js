@@ -207,7 +207,7 @@ export async function composeSeasonShareImage(opts){
   const wmWidth = wordmarkWidth(ctx, wmFontPx);
   const showName = (S.shareSelectionByCard.season.name !== false) && !!data.ownerName;
   const markY = Math.min(Math.max(y, dims.safeTop) + Math.round(h * 0.03), dims.safeBottom);
-  drawShareWordmark(ctx, w - pad - wmWidth / 2, markY, wmFontPx, kit.ink, kit.accent);
+  await drawShareWordmark(ctx, w - pad - wmWidth / 2, markY, wmFontPx, kit.ink, kit.accent);
   if(showName){
     ctx.font = '600 ' + Math.round(w * 0.016) + 'px "IBM Plex Mono", monospace';
     ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
