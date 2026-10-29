@@ -149,7 +149,7 @@
   .mini-bar-btn:hover,.mini-bar-btn:focus-visible{border-color:var(--accent);color:var(--accent-text)}
 
   .mini-bar-seek{display:flex;align-items:center;gap:var(--sp-2);flex:1 1 auto;min-width:0;max-width:480px}
-  .mini-bar-time{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);flex:0 0 auto}
+  .mini-bar-time{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--muted);flex:0 0 auto}
   .mini-bar-scrub{flex:1 1 auto;min-width:0;margin:0}
 
   /* CEREMONY (docs/CEREMONY.md, §1): the bar's own mirror of the single
@@ -222,8 +222,9 @@
      side-split tracklist, replacing the old Play-album/Credits .cta pill
      pair and the album-art <img> this panel no longer builds. */
   .crate-detail-textactions{display:flex;gap:2px;margin:2px 0 var(--sp-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  /* TY2: the CREDITS/PIN/SLEEVE NOTE row -- Archivo, sentence case. */
   .crate-detail-textbtn{flex:1 1 auto;min-height:40px;padding:0 10px;border:0;background:transparent;
-    font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);cursor:pointer}
+    font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--muted);cursor:pointer}
   .crate-detail-textbtn:hover,.crate-detail-textbtn:focus-visible{color:var(--paper)}
   .crate-detail-textbtn[aria-pressed="true"]{color:var(--accent-text)}
   .crate-detail-note{margin:0 0 var(--sp-3)}
@@ -238,7 +239,7 @@
   .sidebar{flex:0 0 232px;width:232px;padding:var(--sp-4) var(--sp-4) 20px}
   .tabbar{gap:2px}
   .tabbar-btn{flex-direction:row;justify-content:flex-start;gap:var(--sp-3);padding:10px 10px}
-  .tabbar-btn span{display:inline;font-size:var(--fs-caption);letter-spacing:.06em;text-transform:none}
+  .tabbar-btn span{display:inline;font-size:var(--fs-body);text-transform:none}
   .tabbar-btn[aria-selected="true"]{background:var(--sel)}
 
   .sidebar-extra{
@@ -246,7 +247,7 @@
     border-top:1px solid var(--line);overflow-y:auto;min-height:0;
   }
   .sidebar-heading{
-    font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+    font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
     text-transform:uppercase;color:var(--muted);margin:0 0 var(--sp-2);padding:0 10px;
   }
   .sidebar-playlists{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
@@ -278,9 +279,9 @@
   .sidebar-sundown:hover,.sidebar-sundown:focus-visible{background:var(--raised)}
   /* DA3 (docs/DAY_ARC.md): the phase block's own mirror — see
      src/player/clock.js's drawSun() for what writes into these two. */
-  .sidebar-sundown-phase{font-family:var(--display);font-size:var(--fs-title);text-transform:uppercase;color:var(--paper);margin-bottom:2px}
+  .sidebar-sundown-phase{font-family:var(--display);font-size:var(--fs-title);text-transform:uppercase;letter-spacing:var(--track-caps);color:var(--paper);margin-bottom:2px}
   .sidebar-sundown-rate{font-size:var(--fs-caption);color:var(--paper);margin-bottom:var(--sp-1)}
-  .sidebar-sundown-leg{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
+  .sidebar-sundown-leg{font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 
   /* D7: "Keep the route id, change only the visible label on desktop" —
      the generic .tabbar-btn span{display:inline} rule just above would
@@ -490,8 +491,8 @@
   .player-overlay.at-rest .modes{display:none !important}
   .player-overlay.at-rest .slipmat-rest{display:grid}
   .player-overlay.at-rest .rest-hint{display:block;max-width:340px}
-  .rest-eyebrow{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-  .rest-hint h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:.03em;margin:6px 0 var(--sp-2)}
+  .rest-eyebrow{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
+  .rest-hint h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:0;margin:6px 0 var(--sp-2)}
   .rest-hint p{color:var(--muted);margin:0 0 var(--sp-4);line-height:1.45}
   @keyframes changeSleeveOutLeft{
     0%{transform:translateX(115%);opacity:0}

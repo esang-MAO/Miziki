@@ -19,7 +19,7 @@
   background:var(--raised);position:relative}
 .profile-top-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .profile-top-tile b{display:block;font-weight:500;font-size:var(--fs-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.profile-top-tile em{font-style:normal;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);
+.profile-top-tile em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 
 .profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
@@ -30,7 +30,7 @@
 .profile-section{width:100%;background:var(--raised);border:1px solid var(--line);border-radius:14px;
   text-align:left;margin-top:18px;padding:var(--sp-4)}
 .profile-section-head{display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);
   padding-bottom:10px;border-bottom:1px solid var(--line)}
 /* Both the Achievements div and the Collection button share the bordered
    card look above now (one style for the whole tab); this rule is just
@@ -46,7 +46,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .profile-badge{width:100%;aspect-ratio:1;border-radius:50%;position:relative;overflow:hidden;
   box-shadow:var(--sh-2)}
 .profile-badge img{position:absolute;inset:22%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
-.profile-badge-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;text-transform:uppercase;
+.profile-badge-label{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* SH1 (docs/18_SHARE.md): the profile home's own Share button became two
    rows, "Share crate" and "Share season" -- a plain vertical stack, each
@@ -75,7 +75,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   color:var(--paper);font-size:var(--fs-body);min-height:40px;padding:0 var(--sp-3);border-radius:6px}
 .profile-settings-menu-item:hover,.profile-settings-menu-item:focus-visible{background:var(--raised)}
 .settings-section{margin-top:22px}
-.settings-section-head{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;
+.settings-section-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:var(--sp-3)}
 /* DA4 (docs/DAY_ARC.md, docs/design/day-arc/README.md): a 2x2 grid once
    Nychthemeron made this a four-button row — "the grid gives the long
@@ -105,7 +105,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
    doesn't blow out the row the way it would as a bare flex child. */
 .settings-slider{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 160px;max-width:160px}
 .settings-slider input[type=range]{flex:1 1 auto;width:auto}
-.settings-slider-val{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
+.settings-slider-val{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);
   color:var(--muted);flex:0 0 auto;min-width:50px;text-align:right}
 
 /* DA5 (docs/DAY_ARC.md, docs/design/day-arc/README.md "Listening
@@ -117,7 +117,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
    progress bars, no locked slots" rule (PROFILE spec §1) — DA5 asks for
    it explicitly. */
 .rhythm-card{margin-top:22px;border:1px solid var(--line);border-radius:6px;padding:var(--sp-4)}
-.rhythm-card-head{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;
+.rhythm-card-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .rhythm-locked{border-style:dashed}
 .rhythm-locked .note{margin:0;color:var(--muted);font-size:var(--fs-caption)}
@@ -127,22 +127,22 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .rhythm-ring-center{width:62%;height:62%;border-radius:50%;background:var(--panel);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .rhythm-ring-center b{font-family:var(--display);font-size:var(--fs-title);line-height:1}
-.rhythm-ring-center span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;
+.rhythm-ring-center span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted)}
 .rhythm-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .rhythm-legend-row{display:flex;align-items:center;gap:7px;font-size:var(--fs-caption)}
 .rhythm-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%}
 .rhythm-legend-label{flex:1;min-width:0;color:var(--paper)}
-.rhythm-legend-pct{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
+.rhythm-legend-pct{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--muted)}
 .rhythm-verdict{margin:var(--sp-4) 0 0;font-family:var(--display);font-size:var(--fs-title);text-transform:uppercase;
-  letter-spacing:.02em;color:var(--paper)}
+  letter-spacing:var(--track-caps);color:var(--paper)}
 .rhythm-records{margin-top:14px;display:flex;flex-direction:column;gap:9px}
 .rhythm-record-row{display:flex;align-items:center;gap:10px}
 .rhythm-record-art{flex:0 0 auto;width:34px;height:34px;border-radius:3px;overflow:hidden;
   background:var(--panel);position:relative}
 .rhythm-record-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .rhythm-record-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.rhythm-record-text b{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;
+.rhythm-record-text b{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted)}
 .rhythm-record-text span{font-size:var(--fs-caption);color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -154,7 +154,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .slipmat-tile > div{height:100px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
   position:relative;overflow:hidden;box-sizing:border-box}
 .slipmat-tile[aria-pressed="true"] > div{border:2px solid var(--accent)}
-.slipmat-tile-label{display:block;margin-top:6px;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+.slipmat-tile-label{display:block;margin-top:6px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted)}
 .slipmat-tile[aria-pressed="true"] .slipmat-tile-label{color:var(--accent-text)}
 .slipmat-felt::after{content:'';position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
@@ -183,5 +183,5 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
   font-weight:600;font-size:var(--fs-title);letter-spacing:.32em;padding-left:.32em;color:#EFE9DF;opacity:.9;
   text-shadow:0 1px 6px rgba(0,0,0,.5);pointer-events:none}
 .slipmat-zoom{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.slipmat-zoom-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.slipmat-zoom-label{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .slipmat-zoom input{flex:1}

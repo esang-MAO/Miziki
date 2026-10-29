@@ -60,7 +60,8 @@
    the right. */
 .crate-header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
   margin-bottom:var(--sp-2)}
-.crate-header-left{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--muted-2)}
+/* TY2 (docs/22_TYPE.md): the record count/status line -- Archivo body. */
+.crate-header-left{font-family:var(--body);font-size:var(--fs-body);color:var(--muted-2)}
 /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): previous/next arrows, the active
    section's name, one dot per section — above the stage. Empty (no
    markup at all) whenever there's only one section, so it costs nothing
@@ -71,7 +72,8 @@
   font-family:var(--display);font-size:var(--fs-title);line-height:1;color:var(--muted-2)}
 .crate-section-arrow:disabled{opacity:.25;cursor:default}
 .crate-section-mid{display:flex;flex-direction:column;align-items:center;gap:4px}
-.crate-section-name{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;
+/* TY2: a section kicker -- Archivo caps, --track-caps. */
+.crate-section-name{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted)}
 .crate-section-dots{display:flex;align-items:center;gap:5px}
 .crate-section-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-2);opacity:.4}
@@ -174,10 +176,11 @@
 /* CR2 point 4: the divider catalog card's own PLAY ALL button — outlined
    aubergine on cream, plays the bin/artist/letter/genre in order via the
    divider item's own flattened idx list (crate/model.js's flatIdx()). */
+/* TY2: a button ("Play all") -- Archivo, sentence case. */
 .crate-divider-playall{display:inline-block;margin-top:var(--sp-2);
   padding:var(--sp-1) var(--sp-4);border:1px solid #2A1B38;border-radius:var(--radius-control);
-  background:var(--cream);color:#2A1B38;font-family:var(--data);font-size:var(--fs-label);
-  letter-spacing:.08em;cursor:pointer}
+  background:var(--cream);color:#2A1B38;font-family:var(--body);font-size:var(--fs-body);
+  font-weight:500;cursor:pointer}
 /* CR14 (docs/14_CRATE_SECTIONS.md PR 2, "the letter rail moves to the left
    edge"): the rail is left-aligned now — plain letters, no box/border/
    pill chrome of their own (the rail-item rule below resets any default
@@ -205,8 +208,8 @@
 .crate-info h3{font-family:var(--display);font-weight:700;font-size:var(--fs-title);margin:0 0 2px;letter-spacing:.02em}
 .crate-info .crate-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:0 0 2px}
 .crate-info .crate-info-meta{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
-.crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.08em;color:var(--accent-text);border:1px solid var(--accent);border-radius:12px;padding:var(--sp-1) 10px;
+.crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
+  color:var(--accent-text);border:1px solid var(--accent);border-radius:12px;padding:var(--sp-1) 10px;
   margin-left:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
 /* CR1: "now-playing as text in the phase colour" — no pill, no border; the
    crate's header row (above) is a plain flex line, so this just needs to
@@ -214,7 +217,7 @@
    writes everywhere else (player/clock.js's drawSun()), not the fixed
    --accent a bordered chip used. */
 .crate-topbar{display:none;align-items:center;gap:6px;background:none;border:none;padding:0;margin:0;
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--phase-color);
+  font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--phase-color);
   max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .crate-topbar.show{display:inline-flex}
 .crate-flat-wrap{margin-top:10px}

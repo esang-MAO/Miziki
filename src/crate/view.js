@@ -221,21 +221,21 @@ function renderCrateDetailPanel(item){
   // (11-gatefold.css's own selectors already cover .crate-detail-panel)
   // in a small disclosure rather than always showing it open.
   const actions = el('div','crate-detail-textactions');
-  const creditsBtn = el('button','crate-detail-textbtn','CREDITS');
+  const creditsBtn = el('button','crate-detail-textbtn','Credits');
   creditsBtn.setAttribute('aria-label','Credits for ' + item.album);
   creditsBtn.addEventListener('click', () => { const t = S.tracks[item.idx[0]]; if(t) openCreditsSheet(t); });
   actions.appendChild(creditsBtn);
-  const pinBtn = el('button','crate-detail-textbtn','PIN');
+  const pinBtn = el('button','crate-detail-textbtn','Pin');
   function paintPin(){
     const pinned = safeAlbumSocial(item.albumId).pinRank != null;
     pinBtn.setAttribute('aria-pressed', String(pinned));
-    pinBtn.textContent = pinned ? 'PINNED' : 'PIN';
+    pinBtn.textContent = pinned ? 'Pinned' : 'Pin';
   }
   pinBtn.addEventListener('click', () => {
     const pinned = safeAlbumSocial(item.albumId).pinRank != null;
     try{
       if(pinned) MizikiSocial.unpin(item.albumId);
-      else if(!MizikiSocial.pin(item.albumId)){ pinBtn.textContent = 'FULL'; setTimeout(paintPin, 1800); return; }
+      else if(!MizikiSocial.pin(item.albumId)){ pinBtn.textContent = 'Full'; setTimeout(paintPin, 1800); return; }
     }catch(_e){ /* MizikiSocial.init() hasn't resolved yet -- see safeAlbumSocial() */ }
     paintPin();
   });
@@ -252,7 +252,7 @@ function renderCrateDetailPanel(item){
     try{ MizikiSocial.setNote(item.albumId, noteInput.value); }catch(_e){ /* see safeAlbumSocial() */ }
   });
   noteWrap.appendChild(noteInput);
-  const noteBtn = el('button','crate-detail-textbtn','SLEEVE NOTE');
+  const noteBtn = el('button','crate-detail-textbtn','Sleeve note');
   noteBtn.setAttribute('aria-expanded','false');
   noteBtn.addEventListener('click', () => {
     const show = noteWrap.hidden;
@@ -586,7 +586,7 @@ export function renderCrate(host){
   // indicator on the right, as plain phase-coloured text rather than a
   // bordered pill.
   const header = el('div','crate-header');
-  const groupLabel = model.group === 'genre' ? 'GENRE' : model.group === 'decade' ? 'DECADE' : 'A–Z';
+  const groupLabel = model.group === 'genre' ? 'Genre' : model.group === 'decade' ? 'Decade' : 'A–Z';
   // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the count is the active
   // section's own record count, not the whole crate's — updateHeaderLeft()
   // recomputes it on every section switch.
@@ -594,7 +594,7 @@ export function renderCrate(host){
   function updateHeaderLeft(){
     const section = curSection();
     const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
-    headerLeft.textContent = count + (count === 1 ? ' RECORD' : ' RECORDS') + ' · ' + groupLabel;
+    headerLeft.textContent = count + (count === 1 ? ' record' : ' records') + ' · ' + groupLabel;
   }
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
@@ -833,7 +833,7 @@ export function renderCrate(host){
       info.appendChild(el('p','crate-info-sub', dividerDescFor(item)));
       info.appendChild(el('p','crate-info-meta', item.meta));
       if(item.idx && item.idx.length){
-        const playAllBtn = el('button','crate-divider-playall','PLAY ALL');
+        const playAllBtn = el('button','crate-divider-playall','Play all');
         playAllBtn.setAttribute('aria-label','Play all in ' + item.label);
         playAllBtn.addEventListener('click', e => { e.stopPropagation(); setQueue(item.idx, 0, true); });
         info.appendChild(playAllBtn);

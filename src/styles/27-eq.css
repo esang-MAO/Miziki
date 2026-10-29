@@ -5,9 +5,12 @@
 
 .eq-head-row{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
 .eq-head-sub{font-size:var(--fs-caption);color:var(--muted);flex:1}
-.eq-state-chip{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
+/* TY2 (docs/22_TYPE.md): band labels and switches move to Archivo; the
+   Hz/dB readouts below (.eq-slider-value) stay mono -- the EQ whitelist
+   item. */
+.eq-state-chip{font-family:var(--body);font-size:var(--fs-caption);
   color:var(--muted)}
-.eq-switch{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;
+.eq-switch{font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   padding:6px 14px;border-radius:var(--radius-control);border:1px solid var(--line);
   background:var(--panel);color:var(--muted)}
 .eq-switch[aria-checked="true"]{background:var(--accent);color:var(--on-accent);
@@ -21,7 +24,7 @@
 .eq-mode-seg{margin-bottom:var(--sp-4)}
 
 .eq-preset-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--sp-5)}
-.eq-preset-chip{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.04em;
+.eq-preset-chip{font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:none;
   color:var(--muted)}
 .eq-preset-chip.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
@@ -48,7 +51,7 @@
 
 .eq-preamp-row{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:var(--sp-3)}
-.eq-auto-btn{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.04em;
+.eq-auto-btn{font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   padding:6px 12px;border-radius:var(--radius-control);border:1px solid var(--line);
   background:none;color:var(--muted)}
 .eq-auto-btn.active{color:var(--accent-text);border-color:var(--accent)}
