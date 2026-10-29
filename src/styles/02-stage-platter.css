@@ -239,6 +239,10 @@
 .pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:var(--fs-row);padding:10px var(--sp-3)}
 .by{font-size:var(--fs-caption);color:var(--muted);margin-bottom:5px}
+/* TY7b (docs/22_TYPE.md): filled and shown only by the desktop glance view
+   (23-desktop.css, src/shell/player-overlay.js) -- never visible on phone
+   or in any other desktop state, where #trackBy is the one by-line. */
+.glance-meta{display:none}
 .tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
 .tbtn.mini[aria-pressed="true"]{color:var(--accent-text);border-color:var(--accent);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
