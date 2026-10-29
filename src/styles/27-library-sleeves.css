@@ -16,9 +16,14 @@
 .artist-stack img:nth-child(3){transform:rotate(8deg);z-index:1}
 
 /* ---- Artists/Songs: sticky letter heads + the crate's rail, reused ---- */
+/* letter-head sticks to the top of the list while scrolling, so it needs an
+   opaque background -- var(--sky2) matches body's own flat background
+   (00-base.css). It previously read var(--bg,transparent) but --bg is never
+   defined anywhere, so the divider was always transparent and the row
+   scrolling up behind it showed through the letter glyph. */
 .letter-head{position:sticky;top:0;z-index:4;padding:6px var(--sp-2) 4px;
   font-family:var(--display);font-size:20px;letter-spacing:.02em;color:var(--muted);
-  background:var(--bg,transparent)}
+  background:var(--sky2)}
 li.letter-head{list-style:none;padding:6px 0 4px}
 .lib-rail{position:fixed;right:4px;top:96px;bottom:140px;width:22px;z-index:30}
 .letter-rail-item{position:absolute;right:0;background:none;border:none;cursor:pointer;
