@@ -17,14 +17,15 @@
   --paper:#EFE9DF; --muted:#94A0A6; --accent-text:#FF9E2C}
 .picture-sleeve.show .picture-sleeve-box{opacity:1}
 @media (prefers-reduced-motion:reduce){ .picture-sleeve-box{transition:opacity .15s} }
-.picture-sleeve-close{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--paper);
+/* TY3 (docs/22_TYPE.md): a button -- Archivo, sentence case. */
+.picture-sleeve-close{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper);
   background:none;border:0;padding:0;margin-bottom:var(--sp-3)}
 .picture-sleeve-face{position:relative;width:72%;max-width:320px;margin:0 auto var(--sp-4);aspect-ratio:1}
 .picture-sleeve-face img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;border-radius:var(--radius-control);
   box-shadow:var(--sh-3);background:linear-gradient(165deg,#2B2622,#1A1716);display:block}
 .picture-sleeve-peek{position:absolute;left:10%;top:-16%;width:80%;aspect-ratio:1;z-index:0}
 .picture-sleeve-text{text-align:center;margin-bottom:var(--sp-3)}
-.picture-sleeve-artist{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.picture-sleeve-artist{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .picture-sleeve-title{font-family:var(--display);font-size:var(--fs-title);font-weight:700;margin:2px 0}
 .picture-sleeve-chip{display:inline-block;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
   color:var(--accent-text);border:1px solid var(--accent);border-radius:3px;padding:2px var(--sp-2);margin-top:4px}
@@ -38,4 +39,4 @@
 .picture-sleeve-now .picture-sleeve-play-glyph{background:none;color:var(--accent-text)}
 .picture-sleeve-play-text{flex:1;min-width:0;display:flex;justify-content:space-between;gap:var(--sp-2)}
 .picture-sleeve-play-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.picture-sleeve-play-dur{flex:0 0 auto;color:var(--muted);font-family:var(--data);font-size:var(--fs-caption)}
+.picture-sleeve-play-dur{flex:0 0 auto;color:var(--muted);font-family:var(--body);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}

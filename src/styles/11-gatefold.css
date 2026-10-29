@@ -35,8 +35,9 @@
   --paper:#EFE9DF; --muted:#94A0A6; --line:rgba(239,233,223,.14);
   --panel:rgba(10,14,18,.55); --accent-text:#FF9E2C;
 }
+/* TY3 (docs/22_TYPE.md): a button -- Archivo, sentence case. */
 .gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
-  font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--paper);opacity:0;
+  font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper);opacity:0;
   transition:opacity .15s;padding:6px var(--sp-1)}
 .gatefold.gf-chrome-in .gf-back{opacity:1}
 .gf-stage{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 40%}
@@ -48,19 +49,23 @@
   overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
 .gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
 .gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px;outline:none}
-.gf-tl-head{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
+/* TY3: an eyebrow over the album title -- Archivo caps, --track-caps. */
+.gf-tl-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);margin-bottom:2px}
-.gf-tl-title{font-family:var(--display);font-size:var(--fs-head);font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+.gf-tl-title{font-family:var(--display);font-size:var(--fs-head);font-weight:700;margin:0 0 10px;letter-spacing:0}
+/* TY3: "side headings stay Antonio" -- the A/B letter moves off mono;
+   the track-count/duration span is plain Archivo body, tabular figures. */
 .gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
-  font-family:var(--data);margin:10px 0 2px}
-.gf-side-head b{color:var(--accent-text);font-size:var(--fs-label);letter-spacing:.2em}
-.gf-side-head span{color:var(--muted);font-size:var(--fs-micro);letter-spacing:.10em}
+  font-family:var(--display);margin:10px 0 2px}
+.gf-side-head b{color:var(--accent-text);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
+.gf-side-head span{font-family:var(--body);color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
 .gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   min-height:44px;padding-block:9px;border-radius:4px}
 .gf-track-row:active{background:rgba(255,158,44,.14);transition:background .12s}
-.gf-track-row .gf-tn{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);width:20px;flex:0 0 auto}
+/* TY3: the number/duration columns -- Archivo body, tabular figures. */
+.gf-track-row .gf-tn{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:20px;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .gf-track-row .gf-tt{flex:1;min-width:0;font-size:var(--fs-caption);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gf-track-row .gf-td{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);flex:0 0 auto}
+.gf-track-row .gf-td{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
 .gf-track-row.gf-now-playing .gf-tt{color:var(--accent-text)}
 .gf-track-row.gf-now-playing .gf-tn{color:var(--accent-text)}
 .gf-now-glyph{display:inline-block;width:10px}
@@ -94,11 +99,14 @@
    their own rating/sleeve-note/pin controls and left-panel content —
    same functions, so the same styling applies in every home rather than
    a second copy of these rules. */
-.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line, .picture-sleeve-body .gf-meta-line{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);margin:10px 0}
+/* TY3: the format/sample-rate summary line -- stays mono (the whitelist's
+   sample-rate item) but mixed case, not caps (see the matching JS change
+   dropping .toUpperCase()). */
+.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line, .picture-sleeve-body .gf-meta-line{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);margin:10px 0}
 .gf-left .gf-minimal-note, .picture-sleeve-body .gf-minimal-note{font-size:var(--fs-caption);color:var(--muted);margin-top:6px}
 .gf-left .gf-social, .crate-detail-panel .gf-social, .picture-sleeve-body .gf-social{margin-top:var(--sp-4);padding-top:14px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:10px}
-.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption, .picture-sleeve-body .gf-social-caption{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;
+.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption, .picture-sleeve-body .gf-social-caption{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted);margin:0}
 .gf-left .gf-stars, .crate-detail-panel .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
 .gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
@@ -109,22 +117,22 @@
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
 .gf-left .gf-note-input::placeholder, .crate-detail-panel .gf-note-input::placeholder, .picture-sleeve-body .gf-note-input::placeholder{color:var(--muted)}
 .gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn, .picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
-  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.06em;background:none}
+  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
+  font-weight:500;background:none}
 .gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-text);
   background:color-mix(in srgb,var(--accent) 12%,transparent)}
 /* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
    Same plain-pill shape as .gf-pin-btn just above, minus the pressed
    highlight -- it never toggles, it opens the share sheet. */
 .gf-left .gf-share-btn, .crate-detail-panel .gf-share-btn, .picture-sleeve-body .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
-  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.06em;background:none}
+  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
+  font-weight:500;background:none}
 .gf-left-cue{position:absolute;left:0;top:80px;width:20px;height:350px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:446px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}
 .gf-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
-.gf-info-meta{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
+.gf-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
 .gf-sleeve{position:absolute;left:20px;right:20px;top:522px;height:300px;overflow:hidden;pointer-events:none;
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-sleeve{opacity:1}
