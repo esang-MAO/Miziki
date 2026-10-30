@@ -57,7 +57,7 @@
    the track-count/duration span is plain Archivo body, tabular figures. */
 .gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
   font-family:var(--display);margin:10px 0 2px}
-.gf-side-head b{color:var(--accent-text);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
+.gf-side-head b{color:var(--cream);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
 .gf-side-head span{font-family:var(--body);color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
 .gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   min-height:44px;padding-block:9px;border-radius:4px}
@@ -66,10 +66,10 @@
 .gf-track-row .gf-tn{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:20px;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .gf-track-row .gf-tt{flex:1;min-width:0;font-size:var(--fs-caption);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gf-track-row .gf-td{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
-.gf-track-row.gf-now-playing .gf-tt{color:var(--accent-text)}
-.gf-track-row.gf-now-playing .gf-tn{color:var(--accent-text)}
+.gf-track-row.gf-now-playing .gf-tt{color:var(--cream)}
+.gf-track-row.gf-now-playing .gf-tn{color:var(--cream)}
 .gf-now-glyph{display:inline-block;width:10px}
-.gf-now-glyph span{display:inline-block;width:2px;background:var(--accent);margin-right:1px;
+.gf-now-glyph span{display:inline-block;width:2px;background:var(--cream);margin-right:1px;
   animation:gfbar 1s ease-in-out infinite}
 .gf-now-glyph span:nth-child(1){height:6px}.gf-now-glyph span:nth-child(2){height:10px;animation-delay:.2s}
 .gf-now-glyph span:nth-child(3){height:4px;animation-delay:.4s}
@@ -92,7 +92,7 @@
 .gf-left .gf-credit-row, .picture-sleeve-body .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-caption);
   padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .gf-left .gf-credit-row em, .picture-sleeve-body .gf-credit-row em{font-style:normal;color:var(--muted)}
-.gf-left .gf-credit-row a, .picture-sleeve-body .gf-credit-row a{color:var(--accent-text);text-decoration:underline;text-decoration-thickness:1px}
+.gf-left .gf-credit-row a, .picture-sleeve-body .gf-credit-row a{color:var(--cream);text-decoration:underline;text-decoration-thickness:1px}
 /* .crate-detail-panel (src/crate/view.js) and .picture-sleeve-body
    (src/gatefold/picture-sleeve.js, docs/17_SINGLES.md) both reuse
    gatefoldSocialControlsHTML()/buildGatefoldLeftPanel() verbatim for
@@ -111,7 +111,7 @@
 .gf-left .gf-stars, .crate-detail-panel .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
 .gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:none;border:0;color:var(--muted);font-size:var(--fs-title);padding:0}
-.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--accent-text)}
+.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--cream)}
 .gf-left .gf-note-input, .crate-detail-panel .gf-note-input, .picture-sleeve-body .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
@@ -119,8 +119,8 @@
 .gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn, .picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
-.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-text);
-  background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
+  background:color-mix(in srgb,var(--cream) 12%,transparent)}
 /* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
    Same plain-pill shape as .gf-pin-btn just above, minus the pressed
    highlight -- it never toggles, it opens the share sheet. */
@@ -158,7 +158,7 @@
 .gf-flat-head .gf-flat-seg{margin-left:auto;display:flex;gap:var(--sp-1)}
 .gf-flat-seg button{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;padding:var(--sp-1) 10px;
   border-radius:10px;color:var(--muted)}
-.gf-flat-seg button[aria-pressed="true"]{color:#1C1226;background:var(--accent)}
+.gf-flat-seg button[aria-pressed="true"]{color:#1C1226;background:var(--cream)}
 .gf-flat-body{flex:1;overflow-y:auto;padding:0 var(--sp-4) var(--sp-4)}
 @media (prefers-reduced-motion:reduce){
   .gf-cover,.gf-camera,.gf-back,.gf-info,.gf-sleeve,.gf-flat-tracks,.gf-sleeve-disc-wrap{transition:none}

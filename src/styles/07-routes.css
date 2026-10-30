@@ -1,7 +1,7 @@
 /* ---------- routes (Library / Sundown / Character) ---------- */
 .route{display:none;padding:20px 0 0}
 .route.on{display:block}
-.route.drag-over{outline:2px dashed var(--accent);outline-offset:-8px;background:rgba(255,255,255,.03)}
+.route.drag-over{outline:2px dashed var(--cream);outline-offset:-8px;background:rgba(255,255,255,.03)}
 
 /* Ken, 2026-10-22: "go back to the lock of the library tab... make sure
    lock doesn't leak to other tabs." A prior attempt (PR #164) locked body

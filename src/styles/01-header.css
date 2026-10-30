@@ -12,20 +12,20 @@
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 .hdr-icon-btn{width:32px;height:32px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
 .hdr-icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--accent-text)}
+.hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--cream)}
 .hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
 .hdr-icon-btn svg{transition:transform .2s}
 /* search field replaces the whole header row while active */
 .hdr-search-row{display:flex;align-items:center;gap:10px}
 .hdr-search-field{flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-3);
-  border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
+  border:1px solid var(--cream);border-radius:8px;background:color-mix(in srgb,var(--cream) 6%,transparent)}
 .hdr-search-field svg{width:16px;height:16px;flex:0 0 auto;color:var(--muted);fill:none;stroke:currentColor;stroke-width:1.8}
 .hdr-search-field input{flex:1;min-width:0;background:none;border:0;color:var(--paper);font-size:var(--fs-row);font-family:var(--body)}
 .hdr-search-field input::placeholder{color:var(--muted)}
 .hdr-search-clear{flex:0 0 auto;width:22px;height:22px;color:var(--muted);display:grid;place-content:center}
 /* TY2 (docs/22_TYPE.md): a button -- Archivo, sentence case, no tracking. */
-.hdr-cancel{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--accent-text)}
-mark.hl{background:none;color:var(--accent-text);font-weight:600}
+.hdr-cancel{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--cream)}
+mark.hl{background:none;color:var(--cream);font-weight:600}
 
 /* + menu popover (S1 §3) */
 .add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
@@ -51,7 +51,7 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .add-menu.open{display:flex}
 .add-menu-row{display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) 10px;border-radius:6px;text-align:left;width:100%}
 .add-menu-row:active{background:var(--sel)}
-.add-menu-row svg{width:20px;height:20px;color:var(--accent-text);flex:0 0 auto;margin-top:1px;
+.add-menu-row svg{width:20px;height:20px;color:var(--cream);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .add-menu-row b{display:block;font-size:var(--fs-body);font-weight:500}
 .add-menu-row em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px}
@@ -80,7 +80,7 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 .overflow-menu-row-check::after{content:'';width:18px;height:18px;flex:0 0 auto;border-radius:50%;
   border:1px solid var(--line)}
 .overflow-menu-row-check[aria-checked="true"]::after{content:'✓';display:grid;place-content:center;
-  font-size:var(--fs-micro);line-height:1;background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  font-size:var(--fs-micro);line-height:1;background:var(--cream);border-color:var(--cream);color:var(--on-accent)}
 
 /* quiet underlined view tabs, replacing the boxed .seg pills (S1 §2.2) */
 /* the outer row must never wrap: with only two flex children (the tab
@@ -99,10 +99,11 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
   overflow-x:auto;scrollbar-width:none}
 .lib-tabs-group::-webkit-scrollbar{display:none}
 /* TY2: Library header tabs (Songs/Crate/Artists/Playlists) -- Archivo,
-   sentence case, baseline-aligned; the orange underline stays. */
+   sentence case, baseline-aligned. FS2 (docs/25_FROM_SCRATCH.md): amber
+   never signals state -- the active tab's underline is cream, not amber. */
 .lib-tabs-group button{font-family:var(--body);font-size:var(--fs-row);font-weight:500;
   padding:var(--sp-2) 0;color:var(--muted);border-bottom:1.5px solid transparent;margin-bottom:-1px;flex:0 0 auto}
-.lib-tabs-group button[aria-pressed="true"]{color:var(--paper);font-weight:600;border-bottom-color:var(--accent)}
+.lib-tabs-group button[aria-pressed="true"]{color:var(--cream);font-weight:600;border-bottom-color:var(--cream)}
 .lib-tabs-group .lib-select-tab{color:var(--muted)}
 /* CR14: search/add/overflow and the crate-order chip now share one
    right-hand column — flex, not a grid, so an empty library (no tabs at
@@ -125,7 +126,7 @@ mark.hl{background:none;color:var(--accent-text);font-weight:600}
 /* Profile > Library tools (S1 §5) */
 .lib-tools{margin-top:28px}
 .lib-tools-row{display:flex;align-items:center;gap:var(--sp-3);width:100%;background:none;border:0;padding:0;text-align:left}
-.lib-tools-plus{width:26px;height:26px;border:1px solid var(--accent);border-radius:50%;color:var(--accent-text);
+.lib-tools-plus{width:26px;height:26px;border:1px solid var(--cream);border-radius:50%;color:var(--cream);
   display:grid;place-content:center;font-size:var(--fs-row);flex:0 0 auto;transition:transform .2s}
 .lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
 /* TY2: a settings row label -- Archivo row, not a kicker (reads as a

@@ -32,7 +32,7 @@
    both visually round already, so a plain outline would look odd; this
    traces the dial's own circle instead. */
 .day-dial:focus-visible{
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--amber) 55%, transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--cream) 55%, transparent);
 }
 .day-dial-ring{
   position:absolute; inset:0; border-radius:50%;
@@ -122,7 +122,7 @@
   font-family:var(--data); font-size:var(--fs-label); letter-spacing:.04em; text-transform:uppercase;
   color:var(--muted); margin-bottom:14px;
 }
-.sd-event-row em{ color:var(--accent-text); font-style:normal; font-weight:600; }
+.sd-event-row em{ color:var(--cream); font-style:normal; font-weight:600; }
 
 /* RF9 (docs/12_REFINE.md) removed the three reading cards (Platter/Sound/
    Sky, PR 4) that used to sit here outright -- the dial above is already
@@ -160,7 +160,7 @@
    by dial-view.js's renderDialView(), the same "repaint reflects state"
    shape every other readout on this view already uses. */
 .sd-now-btn.previewing{
-  background:var(--amber); border-color:var(--amber); color:var(--on-accent);
+  background:var(--cream); border-color:var(--cream); color:var(--on-accent);
 }
 
 @media (min-width:1024px){
@@ -212,7 +212,7 @@
   font-family:var(--body); font-size:var(--fs-caption); font-weight:500; padding:var(--sp-1) 6px;
 }
 .sd-drift-seg button[aria-pressed="true"],
-.sd-preset-seg button[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); font-weight:600; }
+.sd-preset-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
 
 /* RF9 (docs/12_REFINE.md): one shared disclosure in front of the whole
    charcards grid, instead of it sitting always-visible — the presets
@@ -231,7 +231,7 @@
   display:flex; flex-direction:column; gap:2px; text-align:left;
   font-family:inherit; color:inherit; min-height:44px; cursor:pointer;
 }
-.sd-charcard[aria-expanded="true"]{ border-color:var(--amber); }
+.sd-charcard[aria-expanded="true"]{ border-color:var(--cream); }
 .sd-charcard-label{
   margin:0; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted);
@@ -241,7 +241,7 @@
   position:relative; margin-top:5px; height:4px; border-radius:2px; background:var(--field);
 }
 .sd-charcard-track i{ position:absolute; display:block; border-radius:2px; }
-.sd-charcard-track i:first-child{ left:0; top:0; height:4px; width:0%; background:var(--amber); }
+.sd-charcard-track i:first-child{ left:0; top:0; height:4px; width:0%; background:var(--cream); }
 .sd-charcard-track i:last-child{ top:-3px; left:0%; width:2px; height:10px; background:var(--paper); }
 
 /* The fine-tune slider revealed by tapping the card right above it
@@ -276,7 +276,7 @@
   font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.02em;
   cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none;
 }
-.sd-audition-btn[aria-pressed="true"]{ background:var(--amber); color:var(--on-accent); border-color:var(--amber); }
+.sd-audition-btn[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); border-color:var(--cream); }
 .sd-audition-pure{
   align-self:stretch; width:100%; text-align:center; margin:0 0 18px; padding:10px;
 }
@@ -294,8 +294,8 @@
 .sd-tonecurve-svg{ display:block; width:100%; height:auto; margin-top:var(--sp-1); }
 .sd-tonecurve-axislabel{ font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.05em; fill:var(--muted); }
 #sdToneCurveLine{ stroke:var(--cool); stroke-width:2; stroke-linejoin:round; }
-#sdToneCurveNowLine{ stroke:var(--amber); stroke-width:1.5; stroke-dasharray:2 3; }
-#sdToneCurveNowDot{ fill:var(--amber); stroke:var(--chrome); stroke-width:2; }
+#sdToneCurveNowLine{ stroke:var(--cream); stroke-width:1.5; stroke-dasharray:2 3; }
+#sdToneCurveNowDot{ fill:var(--cream); stroke:var(--chrome); stroke-width:2; }
 .sd-tonecurve-ticks{
   display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-micro);letter-spacing:.10em; color:var(--muted);
 }
@@ -307,7 +307,7 @@
    reading as part of the sentence above it rather than its own block. */
 .sd-info{ display:inline; }
 .sd-info summary{
-  display:inline; cursor:pointer; color:var(--accent-text); list-style:none;
+  display:inline; cursor:pointer; color:var(--cream); list-style:none;
 }
 .sd-info summary::-webkit-details-marker{ display:none; }
 .sd-info[open] summary{ margin-right:var(--sp-1); }
@@ -324,7 +324,7 @@
 }
 .home-feed-card{ flex-direction:column; align-items:stretch; cursor:pointer; }
 .home-feed-head{ margin-bottom:6px; }
-.home-feed-more{ color:var(--accent-text); }
+.home-feed-more{ color:var(--cream); }
 /* RW2 (docs/23_RHYTHM_AND_WEAR.md): the right-aligned "Today" mono label
    next to the Activity heading -- #homeBody .store-section-head above is
    already a flex row with justify-content:space-between, so this is just
@@ -353,6 +353,6 @@
 .home-feed-banner-sub{ font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:var(--muted); }
 .home-spin-cover{
   display:flex; align-items:center; justify-content:center;
-  font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--accent-text);
+  font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--cream);
 }
 .home-spin-tap{ cursor:pointer; }

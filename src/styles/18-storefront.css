@@ -40,7 +40,7 @@
 .store-avatar-label::after{content:'';width:20%;height:20%;border-radius:50%;background:var(--sky1)}
 .store-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .store-id{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
-.store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--cream)}
 .store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:var(--fs-caption);color:var(--muted)}
 .store-handle-input{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;width:100%;
@@ -67,7 +67,7 @@
    deliberate half-step between --fs-caption and --fs-body (the plan's own
    number), not a token. */
 .store-stat span{font-family:var(--body);font-size:13px;color:var(--muted)}
-.store-stat.accent b{color:var(--accent-text)}
+.store-stat.accent b{color:var(--cream)}
 
 /* RF11 (docs/12_REFINE.md, point 1): the one row every storefront state
    links into the new routed Listening screen (top album/song, metals,
@@ -89,13 +89,13 @@
 .store-switch{width:52px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
   display:flex;align-items:center;justify-content:center}
 .store-switch-track{flex:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative}
-.store-switch[aria-checked="true"] .store-switch-track{background:var(--accent)}
+.store-switch[aria-checked="true"] .store-switch-track{background:var(--cream)}
 .store-switch-track i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#14110F;transition:left .15s;display:block}
 .store-switch[aria-checked="true"] .store-switch-track i{left:21px}
 
 .store-section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 0}
 .store-section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.03em;text-transform:uppercase}
-.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--accent-text);
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--cream);
   letter-spacing:.08em;text-transform:uppercase;padding:var(--sp-3) 0 var(--sp-3) var(--sp-3);min-height:44px}
 
 /* RF20 point 4: one line under a rule-chosen list (Fresh for you, You both
@@ -109,7 +109,7 @@
 .store-pick-cover{width:132px;height:132px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--accent-text)}
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--cream)}
 .store-pick-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:4px;padding:var(--sp-2) 10px;
   font-size:var(--fs-caption);line-height:1.35;display:flex;flex-direction:column;gap:var(--sp-1)}
 .store-pick-stars{font-size:var(--fs-caption);letter-spacing:1.5px;color:#B8641A}
@@ -127,8 +127,8 @@
 .store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-dig-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-dig-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
-.store-dig-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--accent-text)}
-.store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);background:var(--accent);
+.store-dig-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--cream)}
+.store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--cream);background:var(--cream);
   color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
 
 .store-crate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3) 10px;margin-top:var(--sp-3)}
@@ -164,7 +164,7 @@ button.pressing-chip{cursor:pointer}
 
 /* CR11 point 1-2: the in-common pressing line and the record sheet's own
    pressing name/note/diff. */
-.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--accent-text);
+.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--cream);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .record-pressing-name{margin-top:var(--sp-2);font-weight:600;font-size:var(--fs-body)}
 .record-pressing-note{margin:2px 0 0;font-size:var(--fs-caption);color:var(--muted)}

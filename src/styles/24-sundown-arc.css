@@ -18,7 +18,7 @@
 }
 .sd-tabs button[aria-selected="true"]{
   color:var(--paper);
-  background:color-mix(in srgb, var(--accent) 8%, transparent);
+  background:color-mix(in srgb, var(--cream) 8%, transparent);
 }
 /* NV5 (docs/11_SMOOTH_NAVIGATION.md): one shared underline that slides
    between the two tabs' own halves, replacing each button's own static
@@ -29,7 +29,7 @@
    offsetLeft/offsetWidth instead of a fixed 50%. */
 .sd-tabs-indicator{
   position:absolute; left:0; bottom:-1px; width:50%; height:2px;
-  background:var(--accent); transform:translateX(0); transition:transform .2s ease;
+  background:var(--cream); transform:translateX(0); transition:transform .2s ease;
 }
 .sd-tabs[data-selected="sound"] .sd-tabs-indicator{transform:translateX(100%)}
 @media (prefers-reduced-motion:reduce){
@@ -40,7 +40,7 @@
   font-family:var(--data); font-size:var(--fs-label); letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted); margin:0 0 var(--sp-2);
 }
-.sd-eyebrow.sd-previewing{ color:var(--accent-text); }
+.sd-eyebrow.sd-previewing{ color:var(--cream); }
 
 .sd-heading{
   font-family:var(--data); font-size:var(--fs-label); letter-spacing:.12em; text-transform:uppercase;

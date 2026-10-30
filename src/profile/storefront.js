@@ -28,7 +28,7 @@ export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', publ
 // TY4 (docs/22_TYPE.md): four colourways from the CR8 palette, picked by a
 // hash of the username rather than anything about the account, so friends'
 // storefronts differ from each other by colour alone, never by type.
-const AWNING_COLORWAYS = ['var(--accent)', 'var(--verdigris)', 'var(--prussian)', 'var(--puce)'];
+const AWNING_COLORWAYS = ['var(--olive)', 'var(--verdigris)', 'var(--prussian)', 'var(--puce)'];
 function awningColorway(handle){
   let h = 0;
   for(let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) | 0;
@@ -41,10 +41,13 @@ function awningColorway(handle){
 export function storeAwning(handle){
   const wrap = el('div','store-awning-wrap');
   const awning = el('div','store-awning');
-  const stripe = handle ? awningColorway(handle) : 'var(--accent)';
+  // FS2 (docs/25_FROM_SCRATCH.md): the no-handle default is oxblood, not
+  // amber -- amber never signals state, and this fallback is the one
+  // place the awning has no username to hash a colourway from.
+  const stripe = handle ? awningColorway(handle) : '#7A2E2A';
   for(let i = 0; i < 10; i++){
     const div = el('div');
-    div.style.background = (i % 2 === 0) ? stripe : 'var(--cream)';
+    div.style.background = (i % 2 === 0) ? stripe : (handle ? 'var(--cream)' : 'var(--stock-divider-1)');
     awning.appendChild(div);
   }
   wrap.appendChild(awning);

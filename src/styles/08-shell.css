@@ -19,7 +19,7 @@
 .mini-progress{display:none}
 .mini-player.resuming .mini-progress{display:block;position:absolute;left:0;right:0;top:0;
   height:2px;background:rgba(239,233,223,.12)}
-.mini-progress>span{display:block;height:100%;background:var(--accent)}
+.mini-progress>span{display:block;height:100%;background:var(--cream)}
 /* .mini-player's own base rule above is already position:fixed, which
    already establishes the containing block .mini-progress needs for its
    position:absolute -- a position:relative override here used to replace
@@ -29,7 +29,7 @@
    or clipped behind the tab bar, specifically in the paused-at-relaunch
    state). Removed rather than fixed in place -- there was never a reason
    for this rule to touch position at all. */
-.mini-player.resuming .mini-play.tbtn#miniPlay{background:var(--accent);color:var(--on-accent);
+.mini-player.resuming .mini-play.tbtn#miniPlay{background:var(--cream);color:var(--on-accent);
   border-radius:50%}
 .mini-tap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
 .mini-indicator{position:relative;width:38px;height:38px;flex:0 0 auto}
@@ -78,9 +78,9 @@
    point 1 contrast fix doesn't apply to it), the label switches to
    --paper at weight 500, and a 2px accent bar marks the cell's own top
    edge (docs/design/refine/README.md's own "Tab bar" row). */
-.tabbar-btn[aria-selected="true"] svg{color:var(--accent);opacity:1}
+.tabbar-btn[aria-selected="true"] svg{color:var(--cream);opacity:1}
 .tabbar-btn[aria-selected="true"] span{color:var(--paper);font-weight:600}
 .tabbar-btn[aria-selected="true"]::before{content:'';position:absolute;top:0;left:50%;
   transform:translateX(-50%);width:28px;height:1.5px;border-radius:0 0 2px 2px;
-  background:var(--accent)}
+  background:var(--cream)}
 
