@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sundown, Day view, previewing Stirring</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08070C}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+.sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:rgba(239,233,223,.16);position:relative;margin:0;cursor:pointer;flex:none}
+.sw::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#EFE9DF;transition:left .2s}
+.sw:checked{background:#FF9E2C}
+.sw:checked::after{left:21px;background:#2A1B38}
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; box-sizing: border-box; background: linear-gradient(180deg, #120E19 0%, #08070C 100%); font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; position: relative; overflow: hidden">
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 56px; background: rgba(7,8,12,.55)"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 48px; bottom: 0; background: #08070C; border-radius: 12px 12px 0 0; box-shadow: 0 4px 8px rgba(0,0,0,.25), 0 24px 48px rgba(0,0,0,.45); display: flex; flex-direction: column">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: #94A0A6; opacity: .5; margin: 10px auto 4px"></div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 4px 16px 8px">
+      <h2 style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05; letter-spacing: .02em; margin: 0; flex: 1">Sundown</h2>
+      <button type="button" aria-label="Close Sundown" style="width: 44px; height: 44px; background: none; border: 0; color: #94A0A6; font-size: 16px">✕</button>
+    </div>
+    <div role="tablist" aria-label="Sundown view" style="display: flex; margin: 0 16px 14px; border-bottom: 1px solid rgba(239,233,223,.14)">
+      <button type="button" role="tab" aria-selected="true" style="flex: 1; height: 44px; border: 0; border-bottom: 2px solid #FF9E2C; background: rgba(255,158,44,.08); color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase">Day</button>
+      <button type="button" role="tab" aria-selected="false" style="flex: 1; height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase">Sound</button>
+    </div>
+
+    <div style="padding: 0 16px; display: flex; flex-direction: column">
+      <p style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #FF9E2C; margin: 0 0 8px">Previewing · 3:30 AM</p>
+
+      <div style="display: flex; justify-content: center; margin: 14px 0 22px">
+        <div role="slider" tabindex="0" aria-label="Preview the day" aria-valuetext="Previewing 3:30 AM" style="position: relative; width: 300px; height: 300px; border-radius: 50%">
+          <div aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #D8D3C9 0deg 30deg, #CBBD9C 45deg 60deg, #E8B67A 68deg 78deg, #D99A5A 82deg 98deg, #8578AE 112deg 278deg, #CFA0AD 286deg 294deg, #98C2CE 302deg 340deg, #D8D3C9 355deg); filter: drop-shadow(0 0 10px rgba(255,158,44,.18))"></div>
+          <div aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg 193deg, rgba(255,158,44,.95) 193deg 232.5deg, transparent 232.5deg); -webkit-mask: radial-gradient(circle closest-side, transparent 91%, #000 92% 97%, transparent 98%); mask: radial-gradient(circle closest-side, transparent 91%, #000 92% 97%, transparent 98%)"></div>
+          <div aria-hidden="true" style="position: absolute; top: -20px; left: 150px; transform: translateX(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; color: #94A0A6">12P</div>
+          <div aria-hidden="true" style="position: absolute; top: 150px; right: -26px; transform: translateY(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; color: #94A0A6">6P</div>
+          <div aria-hidden="true" style="position: absolute; bottom: -20px; left: 150px; transform: translateX(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; color: #94A0A6">12A</div>
+          <div aria-hidden="true" style="position: absolute; top: 150px; left: -26px; transform: translateY(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; color: #94A0A6">6A</div>
+          <div aria-hidden="true" style="position: absolute; inset: 25.5px; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.22) 0 1px, transparent 1px 7px), radial-gradient(circle at 38% 32%, #26282F, #15161B 55%, #0D0E13 100%); box-shadow: 0 0 0 1px rgba(0,0,0,.4) inset, 0 10px 24px rgba(0,0,0,.45)"></div>
+          <div aria-hidden="true" style="position: absolute; left: 291.1px; top: 123.8px; width: 3px; height: 18px; border-radius: 2px; background: #FFFFFF; transform: translate(-50%,-50%) rotate(79.5deg)"></div>
+          <div aria-hidden="true" style="position: absolute; left: 18.4px; top: 92.8px; width: 3px; height: 18px; border-radius: 2px; background: #FF9E2C; box-shadow: 0 0 8px rgba(255,158,44,.8); transform: translate(-50%,-50%) rotate(293.5deg)"></div>
+          <div aria-hidden="true" style="position: absolute; left: 36.2px; top: 237.4px; width: 14px; height: 14px; border-radius: 50%; background: #0B0C10; box-shadow: 0 0 0 2px #FF9E2C, 0 0 10px 3px rgba(255,158,44,.7); transform: translate(-50%,-50%); display: flex; align-items: center; justify-content: center">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #FF9E2C"></div>
+          </div>
+          <div aria-hidden="true" style="position: absolute; left: 81px; top: 81px; width: 138px; height: 138px; border-radius: 50%; background: #FF9E2C; color: #2A1B38; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(255,158,44,.55)">
+            <b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05; letter-spacing: .02em">3:30</b>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; margin-top: 4px">AM</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #94A0A6">
+        <span>Sunrise 7:34</span>
+        <em style="font-style: normal; font-weight: 600; color: #FF9E2C">Sunrise in 4h 4m</em>
+        <span>Sunset 6:10</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; background: rgba(239,233,223,.07); margin-bottom: 14px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between">
+          <h3 style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05; letter-spacing: -.01em; text-transform: uppercase; margin: 0">Night</h3>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em; color: #EFE9DF">Rising · 0.805×</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.45; color: rgba(239,233,223,.85)">Rising slowly since midnight. Back to full speed at sunrise, 7:34.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #94A0A6">Home updates again in the morning.</p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 12px; line-height: 1.45; color: #94A0A6">
+        <span aria-hidden="true" style="font-size: 14px">↻</span>
+        <span style="flex: 1">Spin the record to preview any hour. Plays never count while previewing.</span>
+        <button type="button" style="min-width: 44px; min-height: 28px; padding: 0 12px; border-radius: 999px; border: 1px solid #FF9E2C; background: #FF9E2C; color: #2A1B38; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em">NOW</button>
+      </div>
+
+      <h3 style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #94A0A6; margin: 8px 0 8px">Sundown</h3>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px">
+        <div style="font-size: 16px; line-height: 1.35">How deep the night goes <span style="display: block; font-size: 14px; color: #94A0A6">Medium · 0.80× · 3.9 st</span></div>
+        <div role="group" aria-label="How deep the night goes" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+          <button type="button" aria-pressed="false" style="height: 44px; border-radius: 4px; border: 1px solid rgba(239,233,223,.14); background: transparent; color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em">Off</button>
+          <button type="button" aria-pressed="false" style="height: 44px; border-radius: 4px; border: 1px solid rgba(239,233,223,.14); background: transparent; color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em">Gentle</button>
+          <button type="button" aria-pressed="true" style="height: 44px; border-radius: 4px; border: 1px solid #FF9E2C; background: rgba(255,158,44,.14); color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em">Medium</button>
+          <button type="button" aria-pressed="false" style="height: 44px; border-radius: 4px; border: 1px solid rgba(239,233,223,.14); background: transparent; color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .06em">Deep</button>
+        </div>
+      </div>
+
+      <label style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(239,233,223,.14)">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 16px; line-height: 1.35">Rest at the turning points</span>
+          <span style="font-size: 14px; line-height: 1.45; color: #94A0A6">When a record ends within an hour of sunset or midnight, let the run-out play and stop there.</span>
+        </span>
+        <input class="sw" type="checkbox" role="switch">
+      </label>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
