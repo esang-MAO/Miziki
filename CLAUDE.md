@@ -61,6 +61,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   |---|---|---|
   | Per-device play/session/metal/eligibility counters, `phasePlayCounts`/`albumPhaseCounts` | backed up | sum across devices (nested sum for the per-album map) |
   | `trackLastPlayed`, `albumLastPlayed` | backed up | max |
+  | `albumFirstPlayed` | backed up | min |
   | `rareUnlocked`, `achievements`, `collection` | backed up | union; earliest earned date wins on overlap |
   | `S.sealed` | backed up | broken anywhere stays broken everywhere |
   | `sessions` store (in-progress play-through) | device-only, excluded | merging two devices' in-progress sessions could corrupt the completion rule; nothing durable is lost since a session only affects anything persistent once it completes |

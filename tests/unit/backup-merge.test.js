@@ -19,7 +19,7 @@ function baseLocal(deviceId, overrides){
     albumDisplay: {}, trackDisplay: {}, albumEdge: {}, albumLookPref: {},
     prefs: {}, profileName: '', picture: null,
     trackPlayCounts: {}, sessionCounts: {}, metalEligibleSessions: {}, trackMetalEligiblePlays: {},
-    trackLastPlayed: {}, albumLastPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
+    trackLastPlayed: {}, albumLastPlayed: {}, albumFirstPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
     // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
     zoetropeUnlocked: {}, zoetropeDayProgress: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
@@ -53,6 +53,35 @@ test('counter invariant: three devices, interleaved sync order never changes the
   const orders = [[0,1,2], [2,1,0], [1,2,0], [0,2,1]];
   const totals = orders.map(order => mergeRows(order.map(i => docs[i])).totals.counters.trackPlayCounts.k1);
   assert.deepEqual(totals, [10, 10, 10, 10]);
+});
+
+// ---- RW7 (docs/23_RHYTHM_AND_WEAR.md): albumFirstPlayed is a min merge,
+// the mirror of albumLastPlayed's existing max merge ----
+
+test('RW7: albumFirstPlayed merges as the earliest first-play across devices', () => {
+  const a = baseLocal('a', { albumFirstPlayed: { alb1: 5000 } });
+  const b = toDoc(baseLocal('b', { albumFirstPlayed: { alb1: 2000 } }));
+  const c = toDoc(baseLocal('c', { albumFirstPlayed: { alb1: 9000 } }));
+  const result = fromDocs(a, [b, c]);
+  assert.equal(result.totals.minFields.albumFirstPlayed.alb1, 2000);
+});
+
+test('RW7: albumFirstPlayed, interleaved sync order never changes the result', () => {
+  const docs = [
+    toDoc(baseLocal('a', { albumFirstPlayed: { alb1: 5000 } })),
+    toDoc(baseLocal('b', { albumFirstPlayed: { alb1: 2000 } })),
+    toDoc(baseLocal('c', { albumFirstPlayed: { alb1: 9000 } })),
+  ];
+  const orders = [[0,1,2], [2,1,0], [1,2,0], [0,2,1]];
+  const totals = orders.map(order => mergeRows(order.map(i => docs[i])).totals.minFields.albumFirstPlayed.alb1);
+  assert.deepEqual(totals, [2000, 2000, 2000, 2000]);
+});
+
+test('RW7: an album only one device has ever played keeps that device\'s own first-play time', () => {
+  const a = baseLocal('a', { albumFirstPlayed: { alb1: 5000 } });
+  const b = toDoc(baseLocal('b', { albumFirstPlayed: {} }));
+  const result = fromDocs(a, [b]);
+  assert.equal(result.totals.minFields.albumFirstPlayed.alb1, 5000);
 });
 
 // ---- DA5 (docs/DAY_ARC.md): phasePlayCounts/albumPhaseCounts are per-

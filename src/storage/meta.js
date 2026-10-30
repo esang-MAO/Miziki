@@ -231,6 +231,9 @@ function applyPrefs(p){
   // largerText above — renderProfile() rebuilds the Settings screen's
   // switch fresh from S.seasonalSky on every open.
   if(typeof p.seasonalSky === 'boolean') S.seasonalSky = p.seasonalSky;
+  // RW7: same reason -- renderProfile() rebuilds the Settings switch
+  // fresh from S.showWear on every open.
+  if(typeof p.showWear === 'boolean') S.showWear = p.showWear;
   // AU5 (docs/16_AUDIO.md §4): same inline [data-*] sync shape as the
   // controls above — no dedicated UI side effect beyond aria-pressed.
   if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') S.loudnessMode = p.loudnessMode;

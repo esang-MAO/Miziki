@@ -13,6 +13,19 @@ import { clearSpinDown, startSpinDown } from './put-away.js';
 import { cancelRunout, interruptRunout } from './runout.js';
 import { CHANGE_TIMELINE } from './ceremony-timing.js';
 import { wordmarkEl } from '../ui/wordmark.js';
+import { wearStage } from '../record-art/wear.js';
+
+const WEAR_STAGES = ['light', 'worn', 'loved'];
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): purely cosmetic, a plain class toggle
+// with no await of its own — safe to call anywhere in this ceremony
+// without touching its gesture-critical timing (CLAUDE.md rule 9). Sealed
+// records never show wear; their own path above never calls this.
+export function applySleeveWear(el, albumId){
+  WEAR_STAGES.forEach(s => el.classList.remove('wear-' + s));
+  if(S.showWear === false) return;
+  const stage = wearStage(S.sessionCounts[albumId], S.albumFirstPlayed[albumId], Date.now());
+  if(stage !== 'new') el.classList.add('wear-' + stage);
+}
 
 // TY4 (docs/22_TYPE.md): the empty-sleeve state's "F" cut, tilted -12deg by
 // 03-sleeve-pull.css's own .sleeve-mark rule (the SVG is always drawn
@@ -314,6 +327,7 @@ export async function runStartSequence(t, info, startAudio){
   if(cancelled()) return;
 
   sleeveArtFor(t.art, !!t.art);
+  applySleeveWear($('#sleeve'), albumKey(t));
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';
   if(sealedForPeel) attachSleeveWrap(t);

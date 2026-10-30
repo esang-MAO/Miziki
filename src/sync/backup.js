@@ -221,6 +221,9 @@ function buildLocalState(){
     albumPhaseCounts: S.albumPhaseCounts,
     trackLastPlayed: S.trackLastPlayed,
     albumLastPlayed: S.albumLastPlayed,
+    // RW7 (docs/23_RHYTHM_AND_WEAR.md): min merge, the mirror of
+    // albumLastPlayed's max merge just above.
+    albumFirstPlayed: S.albumFirstPlayed,
     rareUnlocked: S.rareUnlocked,
     // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): "store earned zoetropes
     // and day-progress with the account backup" — same shape/rule as
@@ -632,6 +635,13 @@ async function applyMerged(merged, ownLocal, client, uid){
   });
   Object.keys(merged.totals.maxFields.albumLastPlayed).forEach(k => {
     S.albumLastPlayed[k] = Math.max(S.albumLastPlayed[k] || 0, merged.totals.maxFields.albumLastPlayed[k]);
+  });
+  // RW7: min merge, the mirror of albumLastPlayed just above -- an
+  // existing local value with no incoming value for that key stays as-is,
+  // same as the max fields do.
+  Object.keys(merged.totals.minFields.albumFirstPlayed).forEach(k => {
+    const incoming = merged.totals.minFields.albumFirstPlayed[k];
+    S.albumFirstPlayed[k] = (S.albumFirstPlayed[k] != null) ? Math.min(S.albumFirstPlayed[k], incoming) : incoming;
   });
   // RF4 (docs/12_REFINE.md): the cross-device counter sums, kept as their
   // own value rather than folded into the per-device counters above (see
@@ -1129,6 +1139,7 @@ export function collectLocalDownloadData(){
       trackMetalEligiblePlays: local.trackMetalEligiblePlays,
       trackLastPlayed: local.trackLastPlayed,
       albumLastPlayed: local.albumLastPlayed,
+      albumFirstPlayed: local.albumFirstPlayed,
       rareUnlocked: local.rareUnlocked,
       // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
       zoetropeUnlocked: local.zoetropeUnlocked,

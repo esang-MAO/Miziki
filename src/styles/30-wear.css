@@ -1,0 +1,90 @@
+/* RW7 (docs/23_RHYTHM_AND_WEAR.md, docs/design/rhythm-wear/README.md "RW7 ·
+   wear"): records and sleeves show their play history, as CSS layers on
+   the existing sleeve/disc elements -- never a new element shape, never a
+   rounded corner on a sleeve, never a circular ring on a sleeve. Four
+   stages (wear-light/wear-worn/wear-loved; "new" adds no class at all),
+   applied to: the crate card (10-crate.css's .crate-card/.crate-card-face),
+   the gatefold's own sleeve/disc (11-gatefold.css's .gf-sleeve/
+   .gf-sleeve-paper), the player's full sleeve (03-sleeve-pull.css's
+   .sleeve), and the pressing peek's disc (10-crate.css's .peek-disc).
+   Scoped as a representative scuff/fade/hairline/corner-ding set per
+   stage, not a pixel-for-pixel trace of the design frames' crease angle,
+   sticker rectangle position, or tape shape.
+
+   Literal colours below are the README's own wear table
+   (rgba(214,196,160,…) cream, darkening greys) -- not part of the type/
+   spacing token scale this file's sibling comments usually call out. */
+
+/* ---- crate card sleeve (10-crate.css's .crate-card::after already
+   carries the lit-edge/spine box-shadow every card gets; a wear stage
+   repeats that base shadow and layers its own scuff/fade/ding on top via
+   background-image + extra inset shadows, kept on the same ::after so it
+   paints above .crate-card-face's cover image). ---- */
+.crate-card.wear-light::after{
+  box-shadow:inset 0 1px 0 var(--crate-light),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25),inset 0 0 0 1px rgba(214,196,160,.12),
+    inset -10px -10px 0 -8px rgba(0,0,0,.22);
+}
+.crate-card.wear-worn::after{
+  box-shadow:inset 0 1px 0 var(--crate-light),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25),inset 0 0 0 2px rgba(214,196,160,.18),
+    inset -14px -14px 0 -10px rgba(0,0,0,.3),inset 0 -2px 0 2px rgba(0,0,0,.4);
+  background-image:linear-gradient(115deg,rgba(214,196,160,.2),transparent 55%);
+}
+.crate-card.wear-loved::after{
+  box-shadow:inset 0 1px 0 var(--crate-light),inset 6px 0 10px -6px rgba(0,0,0,.28),
+    inset 0 -3px 0 rgba(0,0,0,.25),inset 0 0 0 2px rgba(214,196,160,.26),
+    inset -18px -18px 0 -12px rgba(0,0,0,.34),inset 0 -2px 0 2px rgba(0,0,0,.45);
+  background-image:linear-gradient(115deg,rgba(214,196,160,.3),transparent 60%),
+    radial-gradient(14px 14px at calc(100% - 4px) 4px,rgba(214,196,160,.22) 0 90%,transparent 100%);
+}
+
+/* ---- gatefold pocket paper + disc ---- */
+.gf-sleeve.wear-worn .gf-sleeve-paper,
+.gf-sleeve.wear-loved .gf-sleeve-paper{
+  background-image:linear-gradient(115deg,rgba(214,196,160,.2),transparent 55%);
+}
+.gf-sleeve.wear-loved .gf-sleeve-paper{
+  background-image:linear-gradient(115deg,rgba(214,196,160,.3),transparent 60%);
+}
+.gf-sleeve.wear-light .gf-sleeve-disc-wrap,
+.gf-sleeve.wear-worn .gf-sleeve-disc-wrap,
+.gf-sleeve.wear-loved .gf-sleeve-disc-wrap{filter:saturate(.95)}
+.gf-sleeve.wear-worn .gf-sleeve-disc-wrap{filter:saturate(.88) brightness(.97)}
+.gf-sleeve.wear-loved .gf-sleeve-disc-wrap{filter:saturate(.8) brightness(.94)}
+
+/* under the artist line, "Worn · N plays since Month YYYY" / "Well loved ·
+   …" -- nothing for new/light (gatefoldInfoAndSleeveHTML only appends this
+   element for those two stages). */
+.gf-info-wear{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
+
+/* per-side "SIDE A · 260 PLAYS" with a thin bar, from trackPlayCounts
+   summed per side. */
+.gf-side-wear{padding:0 var(--sp-1) var(--sp-2)}
+.gf-side-wear-label{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
+  color:var(--muted);text-transform:uppercase}
+.gf-side-wear-bar{height:4px;border-radius:2px;margin-top:4px;background:rgba(239,233,223,.1);overflow:hidden}
+.gf-side-wear-fill{height:100%;border-radius:2px;background:rgba(239,233,223,.4)}
+
+/* ---- the player's full sleeve (03-sleeve-pull.css's .sleeve) ---- */
+.sleeve::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0}
+.sleeve.wear-light::after{opacity:1;box-shadow:inset 0 0 0 1px rgba(214,196,160,.12),
+  inset -12px -12px 0 -9px rgba(0,0,0,.22)}
+.sleeve.wear-worn::after{opacity:1;box-shadow:inset 0 0 0 2px rgba(214,196,160,.18),
+  inset -16px -16px 0 -11px rgba(0,0,0,.3),inset 0 -3px 0 2px rgba(0,0,0,.4);
+  background-image:linear-gradient(115deg,rgba(214,196,160,.2),transparent 55%)}
+.sleeve.wear-loved::after{opacity:1;box-shadow:inset 0 0 0 2px rgba(214,196,160,.26),
+  inset -20px -20px 0 -13px rgba(0,0,0,.34),inset 0 -3px 0 2px rgba(0,0,0,.45);
+  background-image:linear-gradient(115deg,rgba(214,196,160,.3),transparent 60%),
+    radial-gradient(16px 16px at calc(100% - 6px) 6px,rgba(214,196,160,.22) 0 90%,transparent 100%)}
+
+/* ---- the pressing peek's disc: label fade + vinyl hairlines, never a
+   sleeve treatment (buildPeekDisc never shows a sleeve at all). ---- */
+.peek-disc.wear-light .peek-disc-sheen{opacity:.85}
+.peek-disc.wear-worn::after,
+.peek-disc.wear-loved::after{
+  content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 10deg,rgba(255,255,255,.08) 0 1deg,transparent 1deg 34deg);
+}
+.peek-disc.wear-worn .peek-disc-sheen{opacity:.6}
+.peek-disc.wear-loved .peek-disc-sheen{opacity:.4}

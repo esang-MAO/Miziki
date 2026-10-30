@@ -20,7 +20,7 @@ import { renderMiniPlayer } from './mini-player.js';
 import { renderPlayerSidePanel } from './player-side-panel.js';
 import { forceCloseLayer } from './nav-stack.js';
 import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown, clearSpinDown } from './put-away.js';
-import { sleeveArtFor } from './start-sequence.js';
+import { sleeveArtFor, applySleeveWear } from './start-sequence.js';
 // RW4 (docs/23_RHYTHM_AND_WEAR.md): real circular import, same shape as
 // start-sequence.js/transport.js already have with this file -- queue.js
 // imports endOfQueue/stopAtRecordEndCeremony from here, and this file
@@ -133,6 +133,7 @@ function holdSleeve(t, reason, pendingIndex){
   stage.classList.remove('runout','flipping','putaway-slide','putaway-out','sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
   clearSpinDown();
   sleeveArtFor(t.art, !!t.art);
+  applySleeveWear($('#sleeve'), albumKey(t));
   $('#sleeve').style.display = 'flex';
   stage.classList.add('putaway-in');
   $('#platterBox').classList.remove('disc-hidden');

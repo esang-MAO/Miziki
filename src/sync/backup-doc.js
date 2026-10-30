@@ -283,6 +283,11 @@ export function toDoc(localState){
       trackLastPlayed: s.trackLastPlayed || {},
       albumLastPlayed: s.albumLastPlayed || {},
     },
+    // RW7 (docs/23_RHYTHM_AND_WEAR.md): min merge, the mirror of maxFields
+    // above.
+    minFields: {
+      albumFirstPlayed: s.albumFirstPlayed || {},
+    },
     rareUnlocked: s.rareUnlocked || {},
     // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): "store earned zoetropes
     // and day-progress with the account backup" — same shape/posture as
@@ -545,6 +550,11 @@ export function validateDoc(doc){
   const maxFields = doc.maxFields || {};
   if(!isFlatMaxMap(maxFields.trackLastPlayed || {})) return false;
   if(!isFlatMaxMap(maxFields.albumLastPlayed || {})) return false;
+
+  // RW7: same flat string->number shape as maxFields above, so the same
+  // validator applies.
+  const minFields = doc.minFields || {};
+  if(!isFlatMaxMap(minFields.albumFirstPlayed || {})) return false;
 
   if(doc.zoetropeDayProgress !== undefined && !isAlbumDaySetMap(doc.zoetropeDayProgress)) return false;
 

@@ -14,7 +14,7 @@ import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools } from '../shell/header.js';
 import { queueAvatarUpload } from '../sync/backup.js';
-import { setTheme, setLargerText, setSeasonalSky, isDaylightPhase } from '../ui/theme.js';
+import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
 import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
@@ -274,6 +274,14 @@ function renderAppSettingsScreen(body){
   seasonalSkyRow.appendChild(storeSwitch('Sky follows the seasons', S.seasonalSky, v => setSeasonalSky(v)));
   appearance.appendChild(seasonalSkyRow);
   appearance.appendChild(el('p','note','The sky’s colors shift slightly through the year.'));
+  // RW7: on by default -- off shows every record new, but the data
+  // keeps counting, so turning it back on later shows the true stage
+  // with no gap.
+  const showWearRow = el('div','social-setting-row');
+  showWearRow.appendChild(el('h2', null, 'Show wear'));
+  showWearRow.appendChild(storeSwitch('Show wear', S.showWear, v => setShowWear(v)));
+  appearance.appendChild(showWearRow);
+  appearance.appendChild(el('p','note','Records and sleeves look worn from play, alongside their metals.'));
   body.appendChild(appearance);
 
   // CEREMONY §6: the Slipmat row, part of Appearance. Filled once the saved

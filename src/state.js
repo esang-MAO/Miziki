@@ -163,6 +163,12 @@ export const S = {
   // which falls through resolveLook()'s existing rare/metal/variant
   // precedence with no further change needed there).
   zoetropesEnabled:true,
+  // RW7 (docs/23_RHYTHM_AND_WEAR.md): records and sleeves show their play
+  // history. "Show wear" setting, on by default — off shows every record
+  // new, but the data underneath (sessionCounts, albumFirstPlayed) keeps
+  // counting, so turning it back on later shows the true stage with no
+  // gap. No per-record restore.
+  showWear:true,
   // The frame count of whichever zoetrope is currently showing on the
   // platter, or null when none is. Runtime only — never saved, never a
   // prefs field, the same posture as recordFormat/labelSideFormat/rpmEase
@@ -210,6 +216,11 @@ export const S = {
   // uploaded for the profile picture / public avatar; null until the
   // first successful re-encode (upload itself may still be pending)
   profile:{name:'', username:'', art:null, artBlob:null, pictureHash:null},
+  // RW7: album key -> first counted play time (ms epoch), written only
+  // from src/history/. Backed up with a min merge (src/sync/merge.js) --
+  // the earliest first-play across devices wins, unlike albumLastPlayed's
+  // max merge.
+  albumFirstPlayed:{},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
   profileView:{screen:'home', recordsFilter:'all'},

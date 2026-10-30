@@ -12,7 +12,8 @@ import { $, el } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
-import { albumKey } from '../record-art/tiers.js';
+import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
+import { wearStage, wearCopy } from '../record-art/wear.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
@@ -93,6 +94,22 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler){
   return row;
 }
 
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): pure per-side play-count sums, from
+// trackPlayCounts summed over each side's own track indices -- pulled out
+// of buildGatefoldTracklist below purely for testability (the same
+// precedent gatefoldSideSplits itself already sets), since the DOM half
+// of that function can't run under node:test's plain-object document
+// stub. null when wear is off. The bar's width is each side's share of
+// the album's total plays, so an album with no plays yet (every side at
+// 0) carries no share to draw a bar from at all.
+export function gatefoldSideWearShares(sides){
+  if(!sides) return null;
+  const plays = sides.map(side => side.idx.reduce((s,i) =>
+    s + (S.trackPlayCounts[trackIdentityKey(S.tracks[i])] || 0), 0));
+  const total = plays.reduce((s,n) => s + n, 0);
+  return plays.map(n => ({ plays: n, pct: total > 0 ? Math.round(n / total * 100) : 0 }));
+}
+
 // playHandler lets the sealed sheet reuse this exact rendering (order, rows,
 // sides) while running a different play path (SEALED spec §5) — the
 // gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6)
@@ -102,12 +119,26 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
   host.appendChild(el('h2','gf-tl-title', item.album));
   const sides = gatefoldSideSplits(trackIdx);
   if(sides){
-    sides.forEach(side => {
+    const showWear = S.showWear !== false;
+    const shares = showWear ? gatefoldSideWearShares(sides) : null;
+    const totalPlays = shares ? shares.reduce((s,x) => s + x.plays, 0) : 0;
+    sides.forEach((side, si) => {
       const total = side.idx.reduce((s,i) => s + (S.tracks[i].duration || 0), 0);
       const head = el('div','gf-side-head');
       head.appendChild(el('b', null, side.label));
       head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' track · ':' tracks · ') + fmt(total)));
       host.appendChild(head);
+      if(showWear && totalPlays > 0){
+        const playWord = shares[si].plays === 1 ? 'PLAY' : 'PLAYS';
+        const wrap = el('div','gf-side-wear');
+        wrap.appendChild(el('span','gf-side-wear-label', side.label + ' · ' + shares[si].plays + ' ' + playWord));
+        const bar = el('div','gf-side-wear-bar');
+        const fill = el('div','gf-side-wear-fill');
+        fill.style.width = shares[si].pct + '%';
+        bar.appendChild(fill);
+        wrap.appendChild(bar);
+        host.appendChild(wrap);
+      }
       side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler)));
     });
   } else {
@@ -278,9 +309,18 @@ function gatefoldOnPlatter(item){
   return S.shellAlbumId === item.albumId && !S.platterEmpty;
 }
 
+const GF_WEAR_STAGES = ['light', 'worn', 'loved'];
 function updateGatefoldSleeveState(){
   if(!GF) return;
   $('#gfSleeveDiscWrap').classList.toggle('gf-disc-empty', gatefoldOnPlatter(GF.item));
+  // RW7 (docs/23_RHYTHM_AND_WEAR.md): the gatefold's own sleeve/disc, the
+  // same CSS layer the crate card and player sleeve use.
+  const gfSleeve = $('#gfSleeve');
+  GF_WEAR_STAGES.forEach(s => gfSleeve.classList.remove('wear-' + s));
+  if(S.showWear !== false){
+    const stage = wearStage(S.sessionCounts[GF.item.albumId], S.albumFirstPlayed[GF.item.albumId], Date.now());
+    if(stage !== 'new') gfSleeve.classList.add('wear-' + stage);
+  }
 }
 
 // decorative only: the disc peeks out as if pulled from the pocket, then the
@@ -360,6 +400,14 @@ function gatefoldInfoAndSleeveHTML(item){
   const info = $('#gfInfo'); info.innerHTML = '';
   info.appendChild(el('h3','gf-info-title', item.album));
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  // RW7 (docs/23_RHYTHM_AND_WEAR.md): "Worn · N plays since Month YYYY" /
+  // "Well loved · …" under the artist line -- nothing at all for new/light
+  // (wearCopy returns null for those stages).
+  if(S.showWear !== false){
+    const stage = wearStage(S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId], Date.now());
+    const copy = wearCopy(stage, S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId]);
+    if(copy) info.appendChild(el('p','gf-info-wear', copy));
+  }
   const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
     fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
   info.appendChild(el('p','gf-info-meta', metaBits.join(' · ')));

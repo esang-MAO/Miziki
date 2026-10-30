@@ -161,6 +161,9 @@ test('forgetLibrary: empties the tracks store and leaves meta/sessions/overlays/
   await tracks.put({ id: 't1', tags: fakeTrack().tags });
   await meta.put('trackPlayCounts', { k1: 5 });
   await meta.put('sessionCounts', { al: 3 });
+  // RW7 (docs/23_RHYTHM_AND_WEAR.md): "Forget library" keeps wear, the
+  // same meta-store-is-untouched reasoning as sessionCounts above.
+  await meta.put('albumFirstPlayed', { al: 1000 });
   await meta.put('rareUnlocked', { al: true });
   await meta.put('prefs', { mode: 'vinyl' });
   await meta.put('playlists', [{ name: 'Faves', items: ['t1'], system: undefined }]);
@@ -178,6 +181,7 @@ test('forgetLibrary: empties the tracks store and leaves meta/sessions/overlays/
   assert.equal((await tracks.all()).length, 0);
   assert.deepEqual(await meta.get('trackPlayCounts'), { k1: 5 });
   assert.deepEqual(await meta.get('sessionCounts'), { al: 3 });
+  assert.deepEqual(await meta.get('albumFirstPlayed'), { al: 1000 });
   assert.deepEqual(await meta.get('rareUnlocked'), { al: true });
   assert.deepEqual(await meta.get('prefs'), { mode: 'vinyl' });
   assert.deepEqual(await meta.get('playlists'), [{ name: 'Faves', items: ['t1'], system: undefined }]);
