@@ -109,8 +109,9 @@ globalThis.localStorage = (() => {
   };
 })();
 
-const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, updateHomeTabVisibility, _resetHomeStateForTests } =
+const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, updateHomeTabVisibility, shouldFetchHomeFeed, homeBannerStateAt, _resetHomeStateForTests } =
   await import('../../src/social/screens/home.js');
+const { S } = await import('../../src/state.js');
 // TR2 (docs/19_PLAYER.md): feedEventText moved to the tiny, DOM-free
 // social/screens/feed-text.js (it used to be home.js's own half of a real
 // circular import with friend-store.js) -- imported from there directly.
@@ -132,6 +133,7 @@ function resetHome(opts = {}){
   homeTabBtn.setAttribute('aria-selected', 'false');
   lastShowRouteCall = null;
   localStorage._reset();
+  S.sun = { lat:null, lon:null, dawn:null, rise:null, noon:null, set:null, dusk:null, altitudeAtNoon:null, ok:false };
   globalThis.MizikiSocial = Object.assign({
     status(){ return { auth: 'ready' }; },
     listRequests: async () => ({ ok:true, requests:[] }),
@@ -222,7 +224,7 @@ test('renderHome: "Loading…" appears only on the very first load ever (no cach
   // once the (empty, per resetHome's default) feed resolves -- so after
   // the full await, the loading row is already gone.
   const feedSection = homeBody.children[homeBody.children.length - 1];
-  const feedHolder = feedSection.children[1];
+  const feedHolder = feedSection.children[2];
   assert.equal(feedHolder.children.length, 1);
   assert.equal(feedHolder.children[0].textContent, 'Nothing yet — follow some friends to see what they’re up to.');
 });
@@ -239,7 +241,7 @@ test('renderHome: a cached feed shows synchronously, before the network call res
   localStorage.setItem('miziki-home-feed-cache', JSON.stringify({ events: [fakeEvent('x')] }));
   const pending = renderHome(); // not awaited yet -- runs synchronously up to its first await
   const feedSection = homeBody.children[homeBody.children.length - 1];
-  const feedHolder = feedSection.children[1];
+  const feedHolder = feedSection.children[2];
   assert.equal(feedHolder.children.length, 1);
   assert.notEqual(feedHolder.children[0].textContent, 'Loading…');
   void pending; // leaves the unresolved homeFeed() promise dangling on purpose
@@ -309,4 +311,113 @@ test('groupFeedEvents: calling it twice on the same events array gives byte-iden
 test('feedEventText: "added" with a plural count says how many, singular says the title', () => {
   assert.equal(feedEventText(fakeEvent('1', { type:'added', title:'Thriller', payload:{count:1} })), 'added Thriller');
   assert.equal(feedEventText(fakeEvent('1', { type:'added', title:'Thriller', payload:{count:3} })), 'added 3 records');
+});
+
+// --- RW2 (docs/23_RHYTHM_AND_WEAR.md): Home updates once a day ----------
+
+test('shouldFetchHomeFeed: no cache ever fetches (first-ever load)', () => {
+  assert.equal(shouldFetchHomeFeed(null, Date.now() - 1000, Date.now()), true);
+});
+
+test('shouldFetchHomeFeed: cache fetched before today\'s sunrise, now at/after sunrise -> fetch', () => {
+  const sunrise = Date.parse('2026-01-15T07:00:00Z');
+  const cachedAt = sunrise - 60000; // fetched a minute before sunrise (yesterday's refresh)
+  assert.equal(shouldFetchHomeFeed(cachedAt, sunrise, sunrise), true, 'exactly at sunrise');
+  assert.equal(shouldFetchHomeFeed(cachedAt, sunrise, sunrise + 3600000), true, 'an hour after sunrise');
+});
+
+test('shouldFetchHomeFeed: cache already fetched after today\'s sunrise -> no refetch', () => {
+  const sunrise = Date.parse('2026-01-15T07:00:00Z');
+  const cachedAt = sunrise + 60000; // already refreshed this morning
+  assert.equal(shouldFetchHomeFeed(cachedAt, sunrise, sunrise + 3600000), false);
+});
+
+test('shouldFetchHomeFeed: before sunrise -> no fetch, whatever the cache', () => {
+  const sunrise = Date.parse('2026-01-15T07:00:00Z');
+  assert.equal(shouldFetchHomeFeed(sunrise - 100000, sunrise, sunrise - 1000), false, 'still pre-dawn');
+});
+
+test('shouldFetchHomeFeed: a Sundown preview never factors in -- the caller always passes real Date.now(), this function takes plain numbers', () => {
+  // (documented by construction: shouldFetchHomeFeed has no S/previewMin
+  // dependency at all -- this test just pins that it takes plain ms.)
+  const sunrise = Date.now() - 1000;
+  assert.equal(typeof shouldFetchHomeFeed(null, sunrise, Date.now()), 'boolean');
+});
+
+test('shouldFetchHomeFeed: no usable sunrise fails open to always-fetch, never gets stuck', () => {
+  assert.equal(shouldFetchHomeFeed(Date.now(), null, Date.now()), true);
+});
+
+test('homeBannerStateAt: morning during today\'s daylight window, caughtUp after sunset and before sunrise', () => {
+  const sun = { rise: new Date('2026-01-15T07:00:00Z'), set: new Date('2026-01-15T17:00:00Z') };
+  assert.equal(homeBannerStateAt(Date.parse('2026-01-15T07:00:00Z'), sun), 'morning', 'exactly at sunrise');
+  assert.equal(homeBannerStateAt(Date.parse('2026-01-15T12:00:00Z'), sun), 'morning', 'midday');
+  assert.equal(homeBannerStateAt(Date.parse('2026-01-15T17:00:00Z'), sun), 'caughtUp', 'exactly at sunset');
+  assert.equal(homeBannerStateAt(Date.parse('2026-01-15T20:00:00Z'), sun), 'caughtUp', 'evening');
+  assert.equal(homeBannerStateAt(Date.parse('2026-01-15T03:00:00Z'), sun), 'caughtUp', 'pre-dawn');
+});
+
+test('homeBannerStateAt: no usable sun data -> null (no banner either way)', () => {
+  assert.equal(homeBannerStateAt(Date.now(), {}), null);
+  assert.equal(homeBannerStateAt(Date.now(), null), null);
+});
+
+test('refreshHome: a fresh cache (fetched this morning) skips the network fetch and repaints the cache instead', async () => {
+  const sunrise = new Date(Date.now() - 2 * 3600000); // sunrise 2h ago
+  resetHome();
+  S.sun.rise = sunrise;
+  S.sun.set = new Date(Date.now() + 2 * 3600000);
+  localStorage.setItem('miziki-home-feed-cache', JSON.stringify({ events: [fakeEvent('cached')], fetchedAt: sunrise.getTime() + 60000 }));
+  let fetchCalled = false;
+  globalThis.MizikiSocial.homeFeed = async () => { fetchCalled = true; return { ok:true, events:[fakeEvent('network')] }; };
+  await renderHome();
+  assert.equal(fetchCalled, false, 'today\'s feed was already fetched this morning -- no network call');
+  const feedSection = homeBody.children[homeBody.children.length - 1];
+  const feedHolder = feedSection.children[2]; // [head, bannerHolder, feedHolder]
+  const card = feedHolder.children[0];
+  assert.equal(card.children[1].textContent, 'added Album cached', 'the cached event, not the network one');
+});
+
+test('refreshHome: a stale cache (fetched before sunrise) does fetch once sunrise has arrived', async () => {
+  const sunrise = new Date(Date.now() - 3600000); // sunrise an hour ago
+  resetHome();
+  S.sun.rise = sunrise;
+  S.sun.set = new Date(Date.now() + 3600000);
+  localStorage.setItem('miziki-home-feed-cache', JSON.stringify({ events: [fakeEvent('stale')], fetchedAt: sunrise.getTime() - 60000 }));
+  let fetchCalled = false;
+  globalThis.MizikiSocial.homeFeed = async () => { fetchCalled = true; return { ok:true, events:[fakeEvent('fresh')] }; };
+  await renderHome();
+  assert.equal(fetchCalled, true);
+});
+
+test('refreshHome: after sunset, pull-to-refresh shows the same caught-up banner instead of fetching', async () => {
+  resetHome();
+  S.sun.rise = new Date(Date.now() - 10 * 3600000);
+  S.sun.set = new Date(Date.now() - 3600000); // sunset an hour ago
+  localStorage.setItem('miziki-home-feed-cache', JSON.stringify({ events: [fakeEvent('a')], fetchedAt: Date.now() - 2 * 3600000 }));
+  let fetchCalled = false;
+  globalThis.MizikiSocial.homeFeed = async () => { fetchCalled = true; return { ok:true, events:[] }; };
+  await renderHome();
+  assert.equal(fetchCalled, false);
+  const feedSection = homeBody.children[homeBody.children.length - 1];
+  const bannerHolder = feedSection.children[1];
+  assert.equal(bannerHolder.children[0].className, 'home-feed-banner home-feed-banner-caughtup');
+
+  // a second refreshHome() (what pull-to-refresh calls) stays caught up.
+  await refreshHome();
+  assert.equal(fetchCalled, false);
+  assert.equal(bannerHolder.children[0].className, 'home-feed-banner home-feed-banner-caughtup');
+});
+
+test('renderHome: follow requests and Now spinning stay live even when the feed itself skips its fetch', async () => {
+  const sunrise = new Date(Date.now() - 3600000);
+  resetHome({ social: { listRequests: async () => ({ ok:true, requests:[{ id:'r1' }] }) } });
+  S.sun.rise = sunrise;
+  S.sun.set = new Date(Date.now() + 3600000);
+  localStorage.setItem('miziki-home-feed-cache', JSON.stringify({ events: [], fetchedAt: sunrise.getTime() + 1000 }));
+  let requestsCalled = false;
+  const realListRequests = globalThis.MizikiSocial.listRequests;
+  globalThis.MizikiSocial.listRequests = async () => { requestsCalled = true; return realListRequests(); };
+  await renderHome();
+  assert.equal(requestsCalled, true, 'requests are fetched live regardless of the feed fetch gate');
 });

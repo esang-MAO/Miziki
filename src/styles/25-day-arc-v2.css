@@ -325,6 +325,32 @@
 .home-feed-card{ flex-direction:column; align-items:stretch; cursor:pointer; }
 .home-feed-head{ margin-bottom:6px; }
 .home-feed-more{ color:var(--accent-text); }
+/* RW2 (docs/23_RHYTHM_AND_WEAR.md): the right-aligned "Today" mono label
+   next to the Activity heading -- #homeBody .store-section-head above is
+   already a flex row with justify-content:space-between, so this is just
+   the label's own type treatment. */
+.home-feed-today{ font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em; color:var(--muted); }
+/* The morning/caught-up banner (HomeMorning/HomeEvening frames). Morning
+   gets the morning phase color on its kicker (RING_PHASE_COLOR.morning,
+   src/sundown/arc.js, matched here as a literal since this file has no
+   per-phase color tokens of its own); caught-up is the dashed "closes the
+   list" card instead. */
+.home-feed-banner{
+  display:flex; flex-direction:column; gap:4px; padding:var(--sp-3) var(--sp-4);
+  border-radius:var(--radius-card); background:var(--panel); margin-bottom:var(--sp-3);
+}
+.home-feed-banner-kicker{
+  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.08em; text-transform:uppercase; color:#98C2CE;
+}
+.home-feed-banner p{ margin:0; font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:color-mix(in srgb, var(--paper) 85%, transparent); }
+.home-feed-banner-caughtup{
+  background:transparent; border:1px dashed var(--line); align-items:center; text-align:center; padding:var(--sp-5) var(--sp-4);
+}
+.home-feed-banner-title{
+  font-family:var(--display); font-weight:600; font-size:var(--fs-title); line-height:var(--lh-title);
+  letter-spacing:var(--track-display); text-transform:uppercase; color:var(--paper);
+}
+.home-feed-banner-sub{ font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:var(--muted); }
 .home-spin-cover{
   display:flex; align-items:center; justify-content:center;
   font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--accent-text);

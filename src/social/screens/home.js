@@ -1,4 +1,5 @@
 import { $, el } from '../../util/dom.js';
+import { S } from '../../state.js';
 import { storeAwning, storeRequestsCard } from '../../profile/storefront.js';
 import { feedEventText } from './feed-text.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
@@ -204,26 +205,84 @@ function paintHomeSpinRow(){
 // from src/profile/settings.js's three sign-out/delete-account sites.
 // CLAUDE.md's own backup-table rule ("every new saved key goes into that
 // table") applies to this too — see this PR's CLAUDE.md edit, device-only.
+// RW2 (docs/23_RHYTHM_AND_WEAR.md) adds `fetchedAt` alongside `events` —
+// when the feed itself was last actually fetched, read by
+// shouldFetchHomeFeed()/homeBannerStateAt() below to decide whether
+// today's once-a-day fetch is still owed.
 const HOME_FEED_CACHE_KEY = 'miziki-home-feed-cache';
 let homeShellBuilt = false;
 let feedHolderEl = null;
 let requestsHolderEl = null;
+let bannerHolderEl = null;
 
 function loadFeedCache(){
   try{
     const raw = localStorage.getItem(HOME_FEED_CACHE_KEY);
     if(!raw) return null;
     const data = JSON.parse(raw);
-    return (data && Array.isArray(data.events)) ? data.events : null;
+    return (data && Array.isArray(data.events)) ? { events: data.events, fetchedAt: data.fetchedAt || null } : null;
   }catch(_e){ return null; }
 }
 function saveFeedCache(events){
-  try{ localStorage.setItem(HOME_FEED_CACHE_KEY, JSON.stringify({ events })); }
+  try{ localStorage.setItem(HOME_FEED_CACHE_KEY, JSON.stringify({ events, fetchedAt: Date.now() })); }
   catch(_e){}
 }
 export function clearHomeFeedCache(){
   homeShellBuilt = false;
   try{ localStorage.removeItem(HOME_FEED_CACHE_KEY); }catch(_e){}
+}
+
+// shouldFetchHomeFeed(cachedFetchedAt, sunriseMs, nowMs) -> RW2's own
+// fetch gate: true on the very first load (no cache yet), or once per day
+// the first time `now` reaches today's sunrise after the cache's last
+// fetch — i.e. the cache is stale *and* the morning window has opened.
+// Pure/exported so this decision is testable with no DOM, same shape as
+// groupFeedEvents() above. `sunriseMs` with nothing usable (no sun data
+// at all, which shouldn't happen given location.js's own fallback) fails
+// open to "always fetch" rather than get the feed permanently stuck.
+export function shouldFetchHomeFeed(cachedFetchedAt, sunriseMs, nowMs){
+  if(cachedFetchedAt == null) return true;
+  if(sunriseMs == null) return true;
+  return cachedFetchedAt < sunriseMs && nowMs >= sunriseMs;
+}
+
+// homeBannerStateAt(nowMs, sun) -> 'morning' | 'caughtUp' | null. 'morning'
+// during today's own daylight window (sunrise up to sunset); 'caughtUp'
+// the rest of the time (including the pre-dawn tail of last night, which
+// reads the same as "after sunset" — nothing new arrives until the next
+// sunrise either way). null with no usable sun data (nothing to anchor
+// either state to — the shell just shows the feed with no banner).
+export function homeBannerStateAt(nowMs, sun){
+  if(!sun || !sun.rise || !sun.set) return null;
+  const riseT = sun.rise.getTime(), setT = sun.set.getTime();
+  return (nowMs >= riseT && nowMs < setT) ? 'morning' : 'caughtUp';
+}
+
+function fmtClock12(date){
+  const h24 = date.getHours(), m = date.getMinutes();
+  const h12 = h24 % 12 || 12;
+  return h12 + ':' + String(m).padStart(2, '0');
+}
+
+// paintHomeBanner(fetchedAt) -> the morning/caught-up card above the feed
+// (HomeMorning/HomeEvening frames, docs/design/rhythm-wear/), or clears
+// the host outside both states.
+function paintHomeBanner(fetchedAt){
+  if(!bannerHolderEl) return;
+  bannerHolderEl.innerHTML = '';
+  const state = homeBannerStateAt(Date.now(), S.sun);
+  if(state === 'morning'){
+    const card = el('div','home-feed-banner');
+    const when = fetchedAt ? fmtClock12(new Date(fetchedAt)) : (S.sun && S.sun.rise ? fmtClock12(S.sun.rise) : '');
+    card.appendChild(el('span','home-feed-banner-kicker', 'Updated this morning' + (when ? ' · ' + when : '')));
+    card.appendChild(el('p', null, 'Everything your friends added since yesterday. Home updates once a day.'));
+    bannerHolderEl.appendChild(card);
+  } else if(state === 'caughtUp'){
+    const card = el('div','home-feed-banner home-feed-banner-caughtup');
+    card.appendChild(el('span','home-feed-banner-title', "You're all caught up"));
+    card.appendChild(el('span','home-feed-banner-sub', 'New activity shows up tomorrow morning.'));
+    bannerHolderEl.appendChild(card);
+  }
 }
 
 function paintRequests(reqs){
@@ -264,19 +323,28 @@ function buildHomeShell(container){
   container.appendChild(requestsHolderEl);
   homeNowSpinningRow(container);
   const feedSection = el('div','store-section');
-  feedSection.appendChild(el('div','store-section-head')).appendChild(el('h2', null, 'Activity'));
+  const feedHead = el('div','store-section-head');
+  feedHead.appendChild(el('h2', null, 'Activity'));
+  feedHead.appendChild(el('span','home-feed-today', 'Today'));
+  feedSection.appendChild(feedHead);
+  bannerHolderEl = el('div');
+  feedSection.appendChild(bannerHolderEl);
   feedHolderEl = el('div');
   feedSection.appendChild(feedHolderEl);
   container.appendChild(feedSection);
 }
 
-// The actual data refresh — re-fetches requests/following/the feed and
-// patches each of buildHomeShell()'s own stable hosts in place. This is
-// what pull-to-refresh calls (src/shell/pull-refresh.js), what the
+// The actual data refresh — re-fetches requests/following, and patches
+// each of buildHomeShell()'s own stable hosts in place. This is what
+// pull-to-refresh calls (src/shell/pull-refresh.js), what the
 // follow-request card's own accept/decline buttons call afterward (in
 // place of a full renderHome(), which used to rebuild the whole tab just to
 // reflect one answered request), and what a normal renderHome() call runs
-// after making sure the shell exists.
+// after making sure the shell exists. RW2 (docs/23_RHYTHM_AND_WEAR.md):
+// requests/following/Now spinning stay live at every hour as before — the
+// feed itself only re-fetches once shouldFetchHomeFeed() says today's
+// morning window is owed a fetch; otherwise (including a pull-to-refresh
+// after sunset) this just repaints the cache and the caught-up banner.
 export async function refreshHome(){
   const [reqs, following] = await Promise.all([MizikiSocial.listRequests(), MizikiSocial.listFollowing()]);
   paintRequests(reqs);
@@ -284,11 +352,20 @@ export async function refreshHome(){
   if(following.ok) following.following.forEach(f => {
     if(f.status === 'accepted' && f.profiles) homeFollowingHandles.set(f.followee_id, f.profiles.handle);
   });
-  const feed = await MizikiSocial.homeFeed({limit:50});
-  if(feed.ok){
-    paintFeed(feed.events);
-    saveFeedCache(feed.events);
+
+  const cache = loadFeedCache();
+  const sunriseMs = S.sun && S.sun.rise ? S.sun.rise.getTime() : null;
+  if(shouldFetchHomeFeed(cache ? cache.fetchedAt : null, sunriseMs, Date.now())){
+    const feed = await MizikiSocial.homeFeed({limit:50});
+    if(feed.ok){
+      paintFeed(feed.events);
+      saveFeedCache(feed.events);
+      paintHomeBanner(Date.now());
+      return;
+    }
   }
+  if(cache) paintFeed(cache.events);
+  paintHomeBanner(cache ? cache.fetchedAt : null);
 }
 
 export async function renderHome(){
@@ -307,7 +384,7 @@ export async function renderHome(){
     // before this device has ever cached a feed at all, never on a return
     // visit, per NV4 item 1.
     const cached = loadFeedCache();
-    if(cached) paintFeed(cached);
+    if(cached){ paintFeed(cached.events); paintHomeBanner(cached.fetchedAt); }
     else feedHolderEl.appendChild(el('p','store-loading','Loading…'));
   }
   await refreshHome();
@@ -318,6 +395,7 @@ export function _resetHomeStateForTests(){
   homeShellBuilt = false;
   feedHolderEl = null;
   requestsHolderEl = null;
+  bannerHolderEl = null;
   homeFollowingHandles = new Map();
   if(homeSpinUnsub){ homeSpinUnsub(); homeSpinUnsub = null; }
   homeSpinState.clear();
