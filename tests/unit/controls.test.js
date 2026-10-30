@@ -73,7 +73,7 @@ const performPendingFlipMock = mock.fn();
 mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
   namedExports: {
     endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; },
-    clearToRest(){}, performPendingFlip: performPendingFlipMock,
+    clearToRest(){}, performPendingFlip: performPendingFlipMock, stopAtRecordEndCeremony(){},
   },
 });
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {

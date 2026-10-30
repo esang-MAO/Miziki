@@ -19,7 +19,14 @@ import { GROOVE, FLIP, splitSides, sideTurn, runoutWaitMs } from './ceremony-tim
 import { renderMiniPlayer } from './mini-player.js';
 import { renderPlayerSidePanel } from './player-side-panel.js';
 import { forceCloseLayer } from './nav-stack.js';
-import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown } from './put-away.js';
+import { shouldPutAway, putAwayInstant, runPutAwaySequence, startSpinDown, clearSpinDown } from './put-away.js';
+import { sleeveArtFor } from './start-sequence.js';
+// RW4 (docs/23_RHYTHM_AND_WEAR.md): real circular import, same shape as
+// start-sequence.js/transport.js already have with this file -- queue.js
+// imports endOfQueue/stopAtRecordEndCeremony from here, and this file
+// calls back into queue.js's paintRestingCard() once a ceremony lands on
+// the held sleeve.
+import { paintRestingCard } from '../player/queue.js';
 
 /* ================= run-out groove, rest, side flip (docs/CEREMONY.md §2, §3) =================
    §2: the last record of the queue ends, the needle rides the run-out groove
@@ -113,17 +120,39 @@ export function clearToRest(){
   updateGatefoldNowPlaying();
 }
 
-// advance()'s end-of-queue branch, after it has already paused. A manual
-// skip past the last track keeps the old behavior (nothing clears). A real
-// finish runs the groove and the put-away where there's something to see,
-// otherwise (Pure, the setting off, the player closed, the page hidden)
-// cuts straight to the same final state.
-export async function endOfQueue(auto){
-  if(!auto) return;
-  const t = current();
-  if(!t || S.mode === 'pure' || !shouldPutAway(auto) || !S.playerOpen || document.hidden){
-    putAwayInstant();
-    clearToRest();
+// RW4 (docs/23_RHYTHM_AND_WEAR.md): the record resting half out of its
+// sleeve -- the exact midpoint of the existing put-away animation (the
+// sleeve has arrived, the disc hasn't slid into it yet), held rather
+// than completed. S.index/S.queue are left exactly as they are (unlike
+// clearToRest()), so the just-finished track's own title/artist/art
+// keep showing and current() keeps returning it -- that's also what
+// keeps .rest-hint's Open Crate/Open Library suggestions from showing,
+// with no extra guard needed, since that only ever triggers on !current().
+function holdSleeve(t, reason, pendingIndex){
+  const stage = $('#platterStage');
+  stage.classList.remove('runout','flipping','putaway-slide','putaway-out','sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
+  clearSpinDown();
+  sleeveArtFor(t.art, !!t.art);
+  $('#sleeve').style.display = 'flex';
+  stage.classList.add('putaway-in');
+  $('#platterBox').classList.remove('disc-hidden');
+  S.platterEmpty = false;
+  S.resting = { reason, pendingIndex, side: currentSideLetter(t), endedAt: Date.now() };
+  paintRestingCard();
+  renderMiniPlayer();
+  renderPlayerSidePanel();
+}
+
+// Shared by a real end-of-queue finish and RW3's This record only/Stop
+// between records -- same run-out groove and put-away ceremony either
+// way (one in, one out: no second ceremony for RW3's own stop), ending
+// on the held sleeve (holdSleeve()) instead of completing the put-away
+// into the empty slipmat. Pure, the setting off, the player closed, or
+// the page hidden skip the animation but land on the exact same final
+// state, same as today's early-exit already does.
+async function runToHeldSleeve(t, reason, pendingIndex){
+  if(S.mode === 'pure' || !shouldPutAway(true) || !S.playerOpen || document.hidden){
+    holdSleeve(t, reason, pendingIndex);
     return;
   }
   const stage = $('#platterStage');
@@ -133,7 +162,7 @@ export async function endOfQueue(auto){
     if(S.runout && S.runout.kind === 'end') cancelRunout();
     return true;
   };
-  S.runout = {kind:'end', turning:true};
+  S.runout = {kind:'end', turning:true, reason, pendingIndex};
   stage.classList.add('runout');
   groove = startRunout((GROOVE.ms + GROOVE.spinDownMs) / 1000);
   startNoiseLayer(t, (GROOVE.ms + GROOVE.spinDownMs) / 1000);
@@ -147,10 +176,31 @@ export async function endOfQueue(auto){
   stage.classList.remove('runout');
   await sleep(GROOVE.spinDownMs);
   if(cancelled()) return;
-  await runPutAwaySequence(t, {skipSpin:true, token});
+  // holdAfterArrive: stop right where the sleeve has arrived and the disc
+  // is still fully visible beside it -- never run the rest of the put-away
+  // (the disc sliding in and disappearing, the sleeve itself then hiding).
+  await runPutAwaySequence(t, {skipSpin:true, token, holdAfterArrive:true});
   if(cancelled()) return;
   S.runout = null;
-  clearToRest();
+  holdSleeve(t, reason, pendingIndex);
+}
+
+// advance()'s end-of-queue branch, after it has already paused. A manual
+// skip past the last track keeps the old behavior (nothing clears).
+export async function endOfQueue(auto){
+  if(!auto) return;
+  const t = current();
+  if(!t){ putAwayInstant(); clearToRest(); return; }   // nothing to hold -- genuinely nothing loaded
+  await runToHeldSleeve(t, 'queueEnd', null);
+}
+
+// RW3: This record only / Stop between records at sunset and midnight --
+// called by player/queue.js's advance() right after it pauses, same
+// "already paused, just land somewhere" shape endOfQueue() has always had.
+export async function stopAtRecordEndCeremony(reason, pendingIndex){
+  const t = current();
+  if(!t) return;
+  await runToHeldSleeve(t, reason, pendingIndex);
 }
 
 // Pure: would moving from the current track to queue index n trigger the
@@ -360,8 +410,13 @@ export function interruptRunout(){
   cancelRunout();
   S.sleeveSeq++;
   if(r.kind === 'end'){
-    putAwayInstant();
-    clearToRest();
+    // RW4: an 'end' ceremony interrupted mid-flight was heading for the
+    // held sleeve (r.reason/r.pendingIndex, stashed by runToHeldSleeve()),
+    // same final state a tap landing after it finished would reach --
+    // land there directly instead of the old empty-slipmat shortcut.
+    const t = current();
+    if(t && r.reason) holdSleeve(t, r.reason, r.pendingIndex);
+    else { putAwayInstant(); clearToRest(); }
   } else {
     $('#platterBox').classList.remove('disc-hidden');
     S.qpos = r.n;
