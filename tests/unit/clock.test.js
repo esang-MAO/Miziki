@@ -554,15 +554,22 @@ test('mutedGradientStops: every anchor clears 4.5:1 (muted) / 3:1 (muted-2), bot
   }
 });
 
-test('mutedGradientStops: dark theme is warm during Golden/Twilight, cool everywhere else', () => {
+// FS1 (docs/25_FROM_SCRATCH.md): "warm neutrals ... not blue-grey" retires
+// the old cool pair -- every phase but Golden/Twilight (their own slightly
+// warmer pair, unchanged) and Dawn (its own lighter pair, for contrast
+// against Dawn's own lighter sky) now reads the same base warm pair as the
+// static --muted/--muted-2 tokens.
+test('mutedGradientStops: dark theme is warm during Golden/Twilight, warmer base everywhere else, lighter still at Dawn', () => {
   const [goldenMuted] = mutedGradientStops(pos('golden'), 'dark');
   const [twilightMuted] = mutedGradientStops(pos('twilight'), 'dark');
   const [nightMuted] = mutedGradientStops(pos('night', 0, 1), 'dark');
   const [middayMuted] = mutedGradientStops(pos('midday'), 'dark');
+  const [dawnMuted] = mutedGradientStops(pos('dawn'), 'dark');
   assert.deepEqual(goldenMuted, 'rgb(169,156,143)');   // the warm pair (#A99C8F)
   assert.deepEqual(twilightMuted, 'rgb(169,156,143)');
-  assert.deepEqual(nightMuted, 'rgb(148,160,166)');    // the cool pair (#94A0A6)
-  assert.deepEqual(middayMuted, 'rgb(148,160,166)');
+  assert.deepEqual(nightMuted, 'rgb(171,162,152)');    // the base warm pair (#ABA298)
+  assert.deepEqual(middayMuted, 'rgb(171,162,152)');
+  assert.deepEqual(dawnMuted, 'rgb(201,191,180)');     // Dawn's own lighter pair (#C9BFB4)
 });
 
 test('mutedGradientStops: light theme keeps one pair regardless of phase', () => {

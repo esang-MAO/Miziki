@@ -229,7 +229,7 @@
 .crate-flat-wrap{margin-top:10px}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2);border-radius:4px;scroll-snap-align:center}
-.crate-flat-item.crate-flat-current{background:rgba(255,158,44,.1);outline:1px solid rgba(255,158,44,.5)}
+.crate-flat-item.crate-flat-current{background:rgba(233,162,74,.1);outline:1px solid rgba(233,162,74,.5)}
 .crate-flat-item img, .crate-flat-item .crate-flat-flat{width:56px;height:56px;border-radius:4px;object-fit:cover;flex:0 0 auto}
 .crate-flat-divider{font-family:var(--display);font-weight:700;font-size:var(--fs-row);color:var(--muted);padding:var(--sp-1) 0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}

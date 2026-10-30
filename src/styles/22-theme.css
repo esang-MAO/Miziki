@@ -58,6 +58,16 @@
      ramp calls for, the same per-theme split --accent-text already has. */
   --amber-shade:#9A4700;
   --shadow:rgba(21,35,43,.22);
+  /* FS1 (docs/25_FROM_SCRATCH.md point 2): destructive actions, light's
+     own value -- #A2382C. */
+  --danger:#A2382C;
+  /* FS1 point 2: "stickers and paper slips lift to #FBF7EE so they still
+     read as paper on the light ground" -- --stock-card is light theme's
+     only paper-slip surface that needs its own lift; the manila/bone/
+     divider stock tokens (00-base.css) are a distinct, already-warm hue
+     family and stay theme-invariant by design (CLAUDE.md: "the crate ...
+     keep[s] [its] own colors in both themes"). */
+  --stock-card:#FBF7EE;
   color-scheme:light;
 }
 
@@ -77,6 +87,8 @@
     --accent-text:#9A4700;
     --amber-shade:#9A4700;
     --shadow:rgba(21,35,43,.22);
+    --danger:#A2382C;
+    --stock-card:#FBF7EE;
     color-scheme:light;
   }
 }
@@ -96,17 +108,21 @@
   --sky1:#1D2F38; --sky2:#101A20; --sky3:#07080C;
   --paper:#EFE9DF;
   --cream:#EFE9DF;
-  --muted:#94A0A6;
-  --muted-2:#86939A;
+  --muted:#ABA298;
+  --muted-2:#9A9187;
   --line:rgba(239,233,223,.14);
-  --panel:rgba(10,14,18,.55);
-  --chrome:rgba(10,14,18,.9);
+  --panel:rgba(12,10,9,.55);
+  --chrome:rgba(12,10,9,.92);
   --raised:rgba(239,233,223,.07);
   --field:rgba(239,233,223,.06);
-  --sel:rgba(255,158,44,.14);
-  --accent-text:#FF9E2C;
+  --sel:rgba(239,233,223,.10);
+  --accent-text:#E9A24A;
   --amber-shade:#C47F1E;
   --shadow:rgba(0,0,0,.45);
+  --popover:#2A2522;
+  --danger:#E8A196;
+  --danger-line:#D9877C;
+  --stock-card:#EFE6D2;
   color-scheme:dark;
 }
 /* TY1 (audit point 7)/TY5: the explicit dark reassertion, same reasoning as

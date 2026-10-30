@@ -39,7 +39,7 @@
 .mini-square.has-art .mini-art{opacity:1}
 .mini-mark{font-family:var(--display);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--muted)}
 .mini-square.has-art .mini-mark{display:none}
-.mini-disc{border-radius:50%;background:#15161B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+.mini-disc{border-radius:50%;background:#1C1A1F;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
   opacity:0;overflow:hidden}
 /* the disc surface itself stays plain black regardless of tier — only this
    tiny inset label carries artwork */

@@ -25,5 +25,5 @@ export function wordmarkEl(){
 export function wordmarkMarkup(letterColor, ringColor){
   return wordmarkRaw
     .replace('fill:var(--paper,#EFE9DF)', 'fill:' + letterColor)
-    .replace('stroke:var(--accent-text,#FF9E2C)', 'stroke:' + ringColor);
+    .replace('stroke:var(--accent-text,#E9A24A)', 'stroke:' + ringColor);
 }

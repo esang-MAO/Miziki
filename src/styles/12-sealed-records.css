@@ -31,7 +31,7 @@
    own bottom offset no longer needs to clear the strip and shrank from
    26px (22px strip height + 4px gap) to a plain 8px inset. */
 .seal-date-tag{position:absolute;left:4%;bottom:8px;max-width:72%;
-  background:#F2E8D2;border-left:2px solid var(--miziki-orange);
+  background:#F2E8D2;border-left:2px solid var(--amber);
   color:#2A1B38;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
   padding:2px var(--sp-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* point 2, "the tear strip": top 22px (moved up from the bottom edge
@@ -91,7 +91,7 @@
      Locked here the same way: back to their own dark-theme literal values
      (00-base.css's bare :root), scoped to this one box so every descendant
      inherits it with no per-rule hardcoding needed. */
-  --paper:#EFE9DF; --muted:#94A0A6; --accent-text:#FF9E2C}
+  --paper:#EFE9DF; --muted:#ABA298; --accent-text:#E9A24A}
 .seal-sheet.show .seal-sheet-box{transform:translateY(0)}
 @media (prefers-reduced-motion:reduce){ .seal-sheet-box{transition:opacity .15s;transform:none;opacity:0}
   .seal-sheet.show .seal-sheet-box{opacity:1} }

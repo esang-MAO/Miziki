@@ -2,39 +2,59 @@
   --sky1:#1D2F38; --sky2:#101A20; --sky3:#07080C;
   --paper:#EFE9DF;
   --cream:#EFE9DF;
-  --muted:#94A0A6;
+  /* FS1 (docs/25_FROM_SCRATCH.md): warm neutrals -- muted text comes from
+     the warm black/paper family, not blue-grey. #94A0A6 -> #ABA298. */
+  --muted:#ABA298;
   /* RF14 (docs/12_REFINE.md, point 1): tertiary text, new -- see
-     player/clock.js's mutedGradientStops() for the warm/cool-follows-the-
-     sky rule that overrides this default via inline style while the app
-     is running; this is just the static fallback for first paint.
-     TY1 (docs/22_TYPE.md, audit point 4): #7A868C only cleared 3.7:1 on
-     --sky1 -- under the 4.5:1 floor anything read (not just a ≥14px
-     secondary) needs. #86939A clears 4.6:1 on --sky1 / 5.5:1 on --sky2;
-     mutedGradientStops()'s own cool/light pairs were raised to match, so
-     the live gradient never dips back under this floor. --muted-2 is only
-     ever used at --fs-body (14px) and up now (TY1's own shared rule). */
-  --muted-2:#86939A;
+     player/clock.js's mutedGradientStops() for the per-phase blend that
+     overrides this default via inline style while the app is running;
+     this is just the static fallback for first paint.
+     TY1 (docs/22_TYPE.md, audit point 4): the floor is 4.5:1 on --sky1 --
+     under that, anything read (not just a ≥14px secondary) fails.
+     FS1: #86939A -> #9A9187, the warm pair's own --muted-2 half; still
+     clears the floor (see tests/unit/contrast.test.js's CR8 check).
+     --muted-2 is only ever used at --fs-body (14px) and up now (TY1's own
+     shared rule). */
+  --muted-2:#9A9187;
   --line:rgba(239,233,223,.14);
   /* RF14 (docs/12_REFINE.md, point 4): "sky, panel and raised read as
-     three levels" -- .42 -> .55. */
-  --panel:rgba(10,14,18,.55);
-  --chrome:rgba(10,14,18,.9);
+     three levels" -- .42 -> .55.
+     FS1: lifted onto a warm base (12,10,9) instead of the sky's own
+     blue-black (10,14,18) -- chrome stops reading as a tint of the sky. */
+  --panel:rgba(12,10,9,.55);
+  --chrome:rgba(12,10,9,.92);
   /* RF14 (docs/12_REFINE.md, point 4): .04 -> .07, for the same reason. */
   --raised:rgba(239,233,223,.07);
   --field:rgba(239,233,223,.06);
-  --sel:rgba(255,158,44,.14);
-  --amber:#FF9E2C;
+  /* FS1: --sel carried an amber tint before this PR -- "amber never
+     signals state" (CLAUDE.md) means the pressed/selected tint itself
+     can't be amber-derived, so this becomes a plain cream tint with no
+     hue of its own. */
+  --sel:rgba(239,233,223,.10);
+  /* FS1: the one amber, as a printed ink -- #FF9E2C -> #E9A24A. Still the
+     label, the Sundown knob's sun and the wordmark's rings only (FS2
+     moves every state use of the old value off amber onto cream). */
+  --amber:#E9A24A;
   --cool:#9FD8E8;
   --accent:var(--amber);
   /* TY1 (docs/22_TYPE.md): dark's --accent-text is --amber itself, light's
      is the darker --amber-shade (22-theme.css) -- never bare --amber as
      text in light theme, where it's only 1.65:1. tests/unit/theme.test.js
      asserts the light value clears 4.5:1 on --sky1/--sky2/--stock-card. */
-  --accent-text:#FF9E2C;
+  --accent-text:var(--amber);
   --on-accent:#2A1B38;
   --shadow:rgba(0,0,0,.45);
-  --miziki-orange:#FF9E2C;
-  --disc-a:#26282F; --disc-b:#15161B; --disc-c:#0D0E13;
+  /* FS1: a popover/menu surface distinct from --panel/--chrome -- new,
+     used by FS4's popovers and menus (#addMenu, #libOverflowMenu,
+     #playerOverflowMenu) and FS12's Sundown sheet. */
+  --popover:#2A2522;
+  /* FS1: destructive actions (Forget library, revert) -- new, not part of
+     the amber family on purpose, since amber never signals state. */
+  --danger:#E8A196;
+  --danger-line:#D9877C;
+  /* FS1: warm black, replacing the old blue-black record body (the plinth
+     the platter stage already uses, --plinth below, is the same family). */
+  --disc-a:#242127; --disc-b:#1C1A1F; --disc-c:#141216;
   --display:'Antonio','Oswald','Arial Narrow',sans-serif;
   --body:'Archivo','Archivo Fallback',system-ui,'Helvetica Neue',sans-serif;
   --data:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
@@ -143,8 +163,10 @@
   --stock-card:#EFE6D2;
   --stock-bone:#F4F1E9;
   /* Platter plinth: warm black, darker than any record body (--disc-c is
-     #0D0E13) so even Jet still lifts off it. New — the platter stage has
-     never had a plinth surface of its own before this PR. */
+     #141216) so even Jet still lifts off it. New — the platter stage has
+     never had a plinth surface of its own before this PR. FS1
+     (docs/25_FROM_SCRATCH.md) moves --disc-a/b/c onto this same warm-black
+     family -- --disc-b is now this exact plinth hex. */
   --plinth:#1C1A1F;
   --plinth-edge:#2A272C;
 }

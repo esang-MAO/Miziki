@@ -153,7 +153,7 @@ export async function fillShareDisc(ctx, info, cx, cy, r, half){
   const { art, look, variant, metal } = info;
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
-  ctx.fillStyle = '#15161B'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
+  ctx.fillStyle = '#1C1A1F'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
   if(look === 'rare'){
     try{
       const img = await loadImageEl(art);
@@ -370,7 +370,7 @@ export async function resolveShareStyle(style, artURL){
     };
   }
   return {
-    name:'night', ink:'#EFE9DF', sub:'#94A0A6', accent:'#FF9E2C',
+    name:'night', ink:'#EFE9DF', sub:'#ABA298', accent:'#E9A24A',
     chipBorder:'rgba(239,233,223,.32)', chipBg:'rgba(255,255,255,.05)',
     paintBg(ctx, w, h){
       const g = ctx.createLinearGradient(0, 0, 0, h);

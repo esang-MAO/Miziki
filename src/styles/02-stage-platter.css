@@ -103,7 +103,7 @@
    This ring is a fixed Miziki orange, except in Pure — see the
    .mode-pure .label.has-art rule below (RF15) for why that one case
    now overrides it. */
-.label.has-art{box-shadow:inset 0 0 0 3px var(--miziki-orange),inset 0 0 0 5px rgba(0,0,0,.45)}
+.label.has-art{box-shadow:inset 0 0 0 3px var(--amber),inset 0 0 0 5px rgba(0,0,0,.45)}
 .label.rare{box-shadow:none}
 /* RF15 (docs/12_REFINE.md, "the record store in the surfaces"): the
    art-less label used to show only a plain "33.3" + "vinyl"/"pure" pair —
