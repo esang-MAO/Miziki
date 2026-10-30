@@ -194,6 +194,19 @@ export function setLargerText(on){
   applyLargerText();
 }
 
+// RW6 (docs/23_RHYTHM_AND_WEAR.md): "Sky follows the seasons" — color
+// only, no class to toggle. No immediate repaint call here (unlike
+// applyLargerText() above): main.js's own requestAnimationFrame loop
+// already calls drawSun() every ~220ms regardless of which screen is
+// open, so the sky catches up within a frame or two on its own —
+// avoids a circular import back to player/clock.js, which a test-time
+// mock.module() ordering issue (tests/unit/clock.test.js's own dom.js
+// stub) makes genuinely costly here, not just a style preference.
+export function setSeasonalSky(on){
+  S.seasonalSky = !!on;
+  queueSave();
+}
+
 // DA4: briefly makes background/text/border colors transition instead of
 // snapping, for the one Nychthemeron flip itself — "switch with a ~1.5s
 // colour transition" (the doc's own wording). A class on :root, not an

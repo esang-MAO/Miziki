@@ -258,7 +258,12 @@ export const S = {
   // hidden one) and shell/runout.js's clearToRest() clears it back to
   // false once the queue genuinely ends, so it never silently stays on
   // for a later, different listening session.
-  privateSpin:false
+  privateSpin:false,
+  // RW6 (docs/23_RHYTHM_AND_WEAR.md): "Sky follows the seasons" (Profile ›
+  // Settings › Appearance), color only -- speed/depth/sound never read
+  // it. Default on; see storage/prefs.js's serializePrefs/parsePrefs and
+  // src/player/clock.js's skyGradientStops()/seasonalAnchors().
+  seasonalSky:true
 };
 
 export function current(){ return S.tracks[S.index] || null; }
