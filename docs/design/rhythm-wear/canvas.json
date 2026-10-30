@@ -1,0 +1,28 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-30T16:50:00Z"},
+  "title": "Miziki Four Hinges",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 980, "title": "Sundown · Day · night (8:40 PM, live)"},
+    "Stirring.dc.html": {"x": 470, "y": 0, "w": 390, "h": 980, "title": "Sundown · Day · previewing 3:30 AM (rising)"},
+    "HomeEvening.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Home · after sunset (caught up)"},
+    "HomeMorning.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Home · morning (updated once a day)"},
+    "OneRecord.dc.html": {"x": 0, "y": 1340, "w": 390, "h": 844, "title": "This record only · playing"},
+    "RestAtHinge.dc.html": {"x": 470, "y": 1340, "w": 390, "h": 844, "title": "Paused after a record at sunset"},
+    "GlanceFirst.dc.html": {"x": 940, "y": 1340, "w": 390, "h": 844, "title": "Evening glance · first layer (idle ~20 s)"},
+    "GlanceDeep.dc.html": {"x": 1410, "y": 1340, "w": 390, "h": 844, "title": "Evening glance · deepest layer (idle ~60 s, after midnight)"},
+    "Seasons.dc.html": {"x": 0, "y": 2530, "w": 1640, "h": 700, "title": "Seasonal sky tint"},
+    "WearStages.dc.html": {"x": 0, "y": 3580, "w": 1640, "h": 640, "title": "Wear · one record over its life"},
+    "WearGatefold.dc.html": {"x": 1720, "y": 3580, "w": 390, "h": 844, "title": "Wear · a well-loved record opened"}
+  },
+  "order": ["Main.dc.html", "Stirring.dc.html", "HomeEvening.dc.html", "HomeMorning.dc.html", "OneRecord.dc.html", "RestAtHinge.dc.html", "GlanceFirst.dc.html", "GlanceDeep.dc.html", "Seasons.dc.html", "WearStages.dc.html", "WearGatefold.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -260, "text": "Sundown and Home through the day", "kind": "title1", "maxW": 1800},
+    "t2": {"x": 0, "y": 1080, "text": "This record only · evening glance", "kind": "title1", "maxW": 1800},
+    "t3": {"x": 0, "y": 2270, "text": "Seasons", "kind": "title1", "maxW": 1640},
+    "t4": {"x": 0, "y": 3320, "text": "Wear", "kind": "title1", "maxW": 2110}
+  },
+  "designSystems": []
+}
