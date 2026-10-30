@@ -17,7 +17,13 @@ Most of the behaviour is already in the build. What changes is mostly the look: 
 
 **Designs:** `docs/design/from-scratch/` (frames plus README). Every prompt below points Claude Code there. Frames ending in `b-…-current` are the build as it was, for comparison only.
 
-**Order:** FS0 → FS12, one PR each, the usual routine (preview, merge, after-merge check). FS1–FS3 are the foundation and go first, in order. FS10 (Focus) waits for FS5. FS11 waits for FS3. FS6–FS9 can run in any order after FS4. FS12 is last, after everything else has merged.
+**Order:** FS0 → FS17, one PR each, the usual routine (preview, merge, after-merge check).
+- FS1–FS3 are the foundation and go first, in order.
+- FS4 comes next; FS6–FS9 and FS13–FS16 can then run in any order.
+- FS10 (Focus) and FS12 (Sundown sheet) wait for FS5. FS11 waits for FS3.
+- FS17 is last, after everything else has merged.
+
+**Uniform throughout (Ken, Oct 30):** the from-scratch rules touch **every** surface of the app, not just the screens that have frames. FS5–FS12 redraw the framed screens. FS13–FS16 apply the same rules to every other screen, sheet and overlay, by inventory. FS17 proves nothing was left on the old look. Where a surface has no frame, the nearest frame and the rules in `docs/design/from-scratch/README.md` decide.
 
 **One in, one out (CLAUDE.md):** each PR's description names what it removes, absorbs or simplifies. Every step below has a **Removed** list naming the exact code to delete. Those lists are the minimum, not the whole job (see **Replace, don't layer**).
 
@@ -34,7 +40,7 @@ This plan **replaces** parts of Miziki. It never adds a new version beside an ol
 5. **Every PR description has a "Removed" section.** It lists the files, ids, classes, tokens, functions and tests deleted. Beside it, the greps proving each is gone (zero hits in `src/`, `miziki.html` and `tests/`, outside the changelog).
 6. **Docs say what's true now.** CLAUDE.md is edited to the new state. The old description moves to `docs/CHANGELOG.md` as history, and is never left in CLAUDE.md beside the new one.
 
-FS12, at the end, sweeps for anything the earlier PRs missed.
+FS17, at the end, sweeps for anything the earlier PRs missed.
 
 ---
 
@@ -263,9 +269,111 @@ FS12, at the end, sweeps for anything the earlier PRs missed.
 
 ---
 
-## FS12: the sweep
+## FS12: the Sundown sheet
 
-> Read CLAUDE.md and this doc's **Replace, don't layer** rules. Runs after FS0–FS11 have all merged. Cleanup only; no behaviour or visual change.
+> Read CLAUDE.md and the README (frames `19-sundown-day`, `20-sundown-sound`). Depends on FS5 (which moves Vinyl/Pure into the Sound view). `shell/sundown-sheet.js`, `sundown/dial-view.js`, `sundown/dial-gesture.js`, `wiring/sundown.js`, `wiring/character.js`, `src/styles/24-sundown-arc.css`, `25-day-arc-v2.css`, `26-sundown-sheet.css`. Behaviour, prefs and the dial gesture are unchanged; this is the look and the wording.
+>
+> 1. **Sheet:** 16 px top radius, grabber, warm night ground with a hairline top edge. The header row is the Day | Sound segmented control (cream selected) and the 44 px × close. The visible "Sundown" title goes (the dialog keeps `aria-label="Sundown"`).
+> 2. **Day view:**
+>    - Kicker "Now · 8:40 pm" (FS4 kicker style; "Previewing · 3:30 am" while the dial is turned), then the phase word in Antonio 44. The trend and rate sit at the right ("Slowing" muted over "0.93×" cream, tabular).
+>    - The 24-hour record dial: the day's sky as a conic rim with noon at the top, warm-black grooves and an amber paper label reading "LIVE" (mono 8) over the time (Antonio 15; the previewed time while turning). There are four small cream ticks at sunrise, noon, sunset and solar midnight, with no labels on the rim. The sun dot (amber, the sun is allowed) marks now. RW1's rising arc stays.
+>    - Under it: "Sunset 6:12 pm" and "Sunrise 7:34 am" in Archivo 13 muted, then "Spin the record to preview any hour." with a "Now" pill (sentence case, replacing NOW and the ↻ hint icon). RW1's night card keeps its place and takes the same type.
+>    - Section heading "Through the night" (Antonio 20). Under it, "How deep the night goes · 0.80× at its slowest" over a full-width Off/Gentle/Medium/Deep segmented control, then the stop-at-sunset-and-midnight **switch** (FS3) with the sub-line "For an hour around each, playback stops when a record ends."
+> 3. **Sound view:**
+>    - **Vinyl** as the first row: Antonio 28 label, sub-line "Off plays every file untouched, at full speed.", and a switch.
+>    - Then three full-width segmented controls, each with an Archivo 15/500 label: **Starting point** (Light dust / Classic press / Well-played), **Through the day** (Off / Subtle / Full; was "Vinyl drift through the day") and **Surface noise** (Off / Subtle / Well-loved).
+>    - Then two rows: **Fine-tune ›** (value "Wow, saturation, top end, compression"; opens the existing four character cards, each keeping "Hear it alone") and **EQ ›** (value = `eqStateLabel()`; opens the same EQ sheet as the player's ··· menu, never a copy).
+>    - Then the comparison button. While Vinyl is off, everything below the Vinyl row is shown at 40% and inert, since it only applies to Vinyl.
+> 4. **Hear it without Vinyl** replaces the "Compare with Pure" label. The behaviour stays a **tap to toggle** (Ken, Oct 30), exactly as today: tap once for the flat signal, tap again to return. It uses the existing Pure audition path (`data-audition-pure`, `aria-pressed`), not a new one. While it's on, the button shows its pressed state with a cream fill and ink text (FS2), and the audition ends on its own if the sheet closes, as it does now.
+> 5. **Removed:** the "Sundown" title and its CSS; the `sd-eyebrow`, `sd-hint-icon`, `NOW` caps and the event row's caps styling (restyled in place); "Advanced ›" and its `cta ghost` button (it becomes the Fine-tune row and keeps `aria-controls`); the inline "Starting point" note paragraph and its `(i)` details; the old "Vinyl drift through the day" label; the "Compare with Pure" label (the same button, relabelled and restyled); every On/Off `.seg` in the sheet (FS3 should already have converted them; confirm here).
+>
+> Lint and unit tests pass (update any test asserting the old labels or `#soundAdvancedToggle` text); both builds preview with no console errors. Open the PR with the preview link at the top. Do not merge.
+
+**Preview focus:** open Sundown from the player at dusk and at 11 PM (dial preview): both views match frames `19` and `20`. Turn Vinyl off: the rest of Sound dims and nothing changes the audio. Fine-tune and EQ open what they opened before.
+
+---
+
+## FS13: library, everywhere else
+
+> Read CLAUDE.md, this doc's rules and the README's rules section. No new frames: each surface takes the rules and the nearest frame (`03-crate` for lists and cards, `01-now-playing` for detail headers, `18-library-tools-expanded` for sheets and settings-like rows). Restyle in place; no behaviour change.
+>
+> Surfaces, each checked off in the PR description:
+> - **Songs, Artists and Playlists lists** (`library/view.js`): rows with the title in Archivo 16/500 and secondary text in Archivo 14 muted; durations Archivo 13 tabular; no caps or mono row text; selection state cream, not amber.
+> - **Artist view** (`library/artist-shelves.js`, `library/connected.js`, docs/21): shelf headings Antonio 20 + muted qualifier; captioned sleeves; "not in your crate" and friend stickers in the sticker palette (CR3); buy links as plain Archivo links.
+> - **Gatefold, picture sleeve and sealed sheet** (`gatefold/*`): track lists with numbers in tabular Archivo; credits (`library/credits.js`) in Archivo with roles muted; paper surfaces lifted per FS1; the seal tear unchanged.
+> - **Edit sheet and tag editing** (`library/edit.js`, `library/tags`, `16-edit-sheet.css`): labels Archivo 14/500 above fields, fields on `--field` with a 1 px edge, focus ring cream; any on/off a switch.
+> - **Search** (`library/search.js`): the field and results follow the list rows; "no results" plain and muted.
+> - **Import, duplicates and delete** (`library/import.js`, `duplicates-ui.js`, `delete.js`): progress and confirmation copy plain; destructive buttons use `--danger`.
+> - **Select mode bar** (`#selectBar`): ghost buttons as outlined pills, the count in Archivo 14 tabular.
+>
+> **Removed:** every library-side mono/caps UI label, amber state and blue-grey literal these surfaces still carry, restyled in place. Lint and unit tests pass; both builds preview with no console errors. Open the PR with the preview link at the top. Do not merge.
+
+**Preview focus:** walk Songs, Artists, Playlists, one artist, one gatefold (and a sealed record), edit a tag, search, select two records. Nothing should look like the old app.
+
+---
+
+## FS14: profile, records and social, everywhere else
+
+> Same rules as FS13. Nearest frames: `04-storefront`, `12-after-dark-home`, `18-library-tools-expanded`.
+>
+> Surfaces:
+> - **Records and pressings** (`profile/records.js`, `profile/badges.js`): the found-pressings chart as discs with names in Archivo 13; metals as found; nothing counted (QC1); headings Antonio 20.
+> - **Listening rhythm card** (`profile/rhythm-card.js`): the 24-hour ring from frame `07` and the verdict as a sentence.
+> - **Friend's crate** (`social/screens/friend-store.js`): same layout as FS7's storefront in their colourway; "In common" without accent; follow/unfollow as an outlined pill.
+> - **Feed text and Home** (`social/screens/feed-text.js`) beyond FS9: activity lines in Archivo 14, handles 500, times muted.
+> - **Settings, Account, Privacy and Legal** (`profile/settings.js`, `privacy.js`, `legal.js`, `legal-links.js`, `privacy-link.js`, `21-legal.css`): section kickers per FS4, rows 50 px with switches (FS3) and chevrons, values muted; legal text at a 34em measure, Archivo 16/1.5.
+> - **Sign-in** (`#socialAuthSheet`, `19-signin.css`): sheet per FS12's sheet style; fields per FS13's edit sheet; one cream primary button.
+> - **Slipmat editor** (`profile/slipmat-editor.js`): sheet style; controls per the rules.
+>
+> **Removed:** the same leftovers as FS13 on these surfaces. Lint and unit tests pass; both builds preview with no console errors. Open the PR with the preview link at the top. Do not merge.
+
+**Preview focus:** walk Profile › Records, the rhythm card, a friend's crate, Settings › Account › Privacy, Legal, sign-in (signed out), the slipmat editor.
+
+---
+
+## FS15: player sheets and overlays, everywhere else
+
+> Same rules. Nearest frames: `01`, `13`–`16`, `19`–`20`.
+>
+> Surfaces:
+> - **Queue** (`player/queue.js` UI): rows per FS13; the current track marked by weight and a small disc, not amber; drag handles muted.
+> - **EQ sheet** (`player/eq-sheet.js`, `27-eq.css`): sheet style per FS12; the curve drawn in cream on the warm ground; presets segmented; the on/off a switch (FS3).
+> - **Share sheet** (`share/sheet.js`): sheet style; card previews; the five entry points unchanged.
+> - **Sleep timer** (`player/sleep-timer.js`): options as segmented or rows; remaining time Archivo tabular.
+> - **Mini-player** (`shell/mini-player.js`): title Archivo 15/500, artist 13 muted, a 2 px cream progress line, no amber.
+> - **Run-out, resting and put-away states** (`shell/runout.js`, `shell/put-away.js`): copy and buttons as frames `15`/`16`.
+> - **Evening glance** (`player/evening-glance.js`, `29-evening-glance.css`): fades only; the colours follow FS1.
+> - **Pull to refresh** (`25-pull-refresh.css`): the indicator in cream.
+>
+> **Removed:** the same leftovers as FS13 on these surfaces. Lint and unit tests pass; both builds preview with no console errors. Open the PR with the preview link at the top. Do not merge.
+
+**Preview focus:** open the queue, EQ, share sheet and sleep timer from the player; let a record end; use the mini-player.
+
+---
+
+## FS16: launch, desktop and the rest
+
+> Same rules. Nearest frames: all.
+>
+> Surfaces:
+> - **Launch intro** (`launch/intro.js`, `09-launch-intro.css`): the ring wordmark's −12° cut (F) on the title card; plain sleeves; the sky from the first frame (unchanged).
+> - **Desktop layout** (`23-desktop.css`, `shell/sidebar.js`, `shell/player-side-panel.js`): sidebar items per FS4's tab rules (active cream/weight); the player side panel per FS5; the at-rest view per TY7; Library tools, Focus and the Sundown sheet as specified for desktop in FS10–FS12; light and dark both.
+> - **Wear, picture sleeves and sealed film** (`30-wear.css`, `28-picture-sleeve.css`, `12-sealed-records.css`): no amber except the label; the film's tint from the phase colour (CR6).
+> - **Empty and first-run states** (empty library, nothing played yet): plain copy, the empty slipmat, the wordmark's empty-sleeve cut.
+> - **Toasts and inline notes** (`ui/path-note.js`, `.note`): Archivo 13 muted, never amber.
+> - **Any surface not named in FS5–FS16:** list it in this PR's description and apply the rules.
+>
+> **Removed:** the same leftovers as FS13 on these surfaces. Lint and unit tests pass; both builds preview with no console errors, at phone width and at desktop width, in light and dark. Open the PR with the preview link at the top. Do not merge.
+
+**Preview focus:** launch the app cold; use it on desktop in both themes; empty the library on a test device and look at the first-run state.
+
+---
+
+## FS17: the sweep
+
+> Read CLAUDE.md and this doc's **Replace, don't layer** rules. Runs after FS0–FS16 have all merged. Cleanup only; no behaviour or visual change.
+>
+> 0. **Uniformity check first:** with the app running, visit every route, sheet and overlay listed in FS5–FS16 at phone and desktop widths in both themes. For each one, confirm three things: no amber outside the label, sun and wordmark; no mono or caps UI text outside objects and kickers; every on/off is a switch. Anything that fails is fixed in this PR and listed.
 >
 > 1. **Orphaned ids:** every `id="…"` in `miziki.html` must be referenced somewhere in `src/` (or by a `for=`/`aria-*` in the markup); remove the ones that aren't.
 > 2. **Dead CSS:** build, then list every class and id selector in `src/styles/` that matches nothing in `miziki.html` or in any class/id string set from `src/` (`el('div','…')`, `className`, `classList.add`). Delete the dead rules. Delete any stylesheet left empty, along with its `<link>`.
@@ -274,8 +382,8 @@ FS12, at the end, sweeps for anything the earlier PRs missed.
 > 5. **Dead tests and fixtures** for anything removed by FS1–FS11.
 > 6. **The old greps return nothing** (outside `docs/CHANGELOG.md` and superseded-note lines): `#FF9E2C`, `miziki-orange`, `recordOnly`, `record-only`, `store-switch`, `modeToggle"` (the player one), `NO STREAMING`, `>On<`/`>Off<` in a `.seg`.
 > 7. **Docs:** CLAUDE.md describes only the current app; `docs/CHANGELOG.md` gets one entry per FS PR.
-> 8. **Bundle size:** compare `dist/` JS and CSS sizes before and after FS1–FS12 in the PR description. It should go down, or the PR explains why not.
+> 8. **Bundle size:** compare `dist/` JS and CSS sizes before and after FS1–FS17 in the PR description. It should go down, or the PR explains why not.
 >
 > Lint and unit tests pass; both builds preview with no console errors; the device checklist passes in full. Open the PR with the preview link at the top. Do not merge.
 
-**Preview focus:** run the full device checklist. Nothing looks or behaves differently from the end of FS11.
+**Preview focus:** run the full device checklist. Nothing looks or behaves differently from the end of FS16, except fixes listed under step 0.

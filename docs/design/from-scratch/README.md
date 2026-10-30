@@ -43,6 +43,10 @@ Placeholder text in square brackets (`[Album title]`) and the sample names (Harb
 | `16-focus-end.png` | Record ended: sleeve held, Play it again / Back to your queue | FS10 |
 | `17-library-tools-menu.png` | The library's ··· menu with Library tools | FS11 |
 | `18-library-tools-expanded.png` | Library tools grown from the menu, with switches and × | FS3, FS11 |
+| `19-sundown-day.png` | Sundown sheet, Day view, at dusk: phase, 24-hour record dial, through the night | FS12 |
+| `20-sundown-sound.png` | Sundown sheet, Sound view: Vinyl switch, starting point, through the day, surface noise, fine-tune, EQ | FS5, FS12 |
+
+**Surfaces without a frame** (library lists, artist view, gatefold, edit sheet, records and pressings, friend's crate, settings, sign-in, queue, EQ sheet, share sheet, sleep timer, mini-player, launch intro, desktop, empty states) follow the rules above and the nearest frame; FS13–FS16 list them all.
 
 ## Notes for the build
 
