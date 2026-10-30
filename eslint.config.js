@@ -121,6 +121,7 @@ module.exports = [
       'src/shell/runout.js',
       'src/wiring/pull-refresh.js',
       'src/wiring/transport.js',
+      'src/share/crate-card.js',
     ],
     languageOptions: {
       globals: { MizikiSocial: 'readonly' },

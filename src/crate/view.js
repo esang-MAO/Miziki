@@ -21,6 +21,7 @@ import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import { buildPeekDisc } from '../record-art/peek.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
+import { dividerArtEl } from './divider-art.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
@@ -704,7 +705,14 @@ export function renderCrate(host){
         }
       }
       const tab = document.createElement('div'); tab.className = 'crate-divider-tab'; tab.textContent = item.label;
-      const label = document.createElement('div'); label.className = 'crate-divider-label'; label.textContent = item.label;
+      const label = document.createElement('div'); label.className = 'crate-divider-label';
+      // TY6: the four fixed bin words get pre-drawn hand-lettered art
+      // instead of live Antonio text; every other divider (letter/genre/
+      // decade/artist) is a word the library itself decides, so it stays
+      // live text -- there's no art to draw for an artist name.
+      const art = item.kind === 'bin' ? dividerArtEl(item.key) : null;
+      if(art){ art.setAttribute('aria-label', item.label); label.appendChild(art); label.classList.add('crate-divider-label-art'); }
+      else label.textContent = item.label;
       const meta = document.createElement('div'); meta.className = 'crate-divider-meta'; meta.textContent = item.meta;
       d.appendChild(tab); d.appendChild(label); d.appendChild(meta);
       card.appendChild(d);

@@ -171,6 +171,12 @@
   text-transform:uppercase;opacity:.85;overflow:hidden;white-space:nowrap}
 .crate-divider-label{font-family:var(--display);font-weight:700;font-size:var(--fs-giant);letter-spacing:.02em;text-align:center;
   line-height:1.05;word-break:break-word}
+/* TY6 (docs/22_TYPE.md): the pre-drawn bin-word art replaces the Antonio
+   text above for the four fixed words -- sized by height like a dropped-in
+   wordmark, capped to the card's own stock width so "New arrivals"/"Staff
+   picks" never spill past the inner rule (10-crate.css's own 14px inset). */
+.crate-divider-label-art{display:flex;justify-content:center}
+.crate-divider-label-art svg{height:38px;width:auto;max-width:100%}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em}
 /* CR2 point 4: the divider catalog card's own PLAY ALL button — outlined
