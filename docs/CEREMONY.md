@@ -15,6 +15,8 @@ All frames below are approved. This file is the spec; build it as the separate P
 
 ## 1. Vinyl/Pure toggle
 
+**Superseded by docs/25_FROM_SCRATCH.md:** the toggle moves into the Sundown sheet (FS5).
+
 One toggle replaces `#modePure` / `#modeVinyl`, and the bar mirrors `#barModePure` / `#barModeVinyl`. It sets the same mode through `setMode`. Label reads the current mode ("Vinyl" / "Pure"). Keyboard focusable, `aria-pressed`. No audio change.
 
 ## 2. End of queue (Vinyl)

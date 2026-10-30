@@ -57,6 +57,8 @@ They follow CLAUDE.md's **How Miziki behaves** rules (PR #269). The thinking beh
 
 ## RW3: This record only, and stopping between records at sunset and midnight
 
+**Superseded by docs/25_FROM_SCRATCH.md:** "This record only" becomes Focus (FS10).
+
 > Read CLAUDE.md and the README first (frames `OneRecord`, `RestAtHinge`, `Main`). This is a feature PR. One in, one out: **reuse the sleep timer's existing "end of album" stop** in `advance()` (`src/player/queue.js`) rather than adding a second boundary check, by extracting it into one helper both use.
 >
 > 1. **This record only** (player): a switch card under the title, per `OneRecord`: "This record only" / "Your queue waits. When this side ends, playback stops." While on, the queue button hides and only the current side's tracks are listed. When the record ends (the next queued track is a different album, or the queue ends), playback stops as in RW4's resting state, keeping the queue intact. It's a per-session toggle that resets when the app relaunches (not saved).
