@@ -7,6 +7,48 @@ import {
 } from './styles.js';
 import { fmtCount } from '../util/text.js';
 
+// Ken's 2026-10-30 ask: the "staff pick" sticker TY6 named as deferred
+// ("doesn't exist yet, new-art work out of scope for a type PR"). Local
+// staff-pick state is MizikiSocial's own pin list (crate/model.js's
+// localStaffPickIds() reads the same X.state.pins) -- reached as the real
+// global per the established "never import MizikiSocial, check typeof
+// first" pattern (crate/model.js, library/credits.js), since this file
+// stays DOM-free/pure like the rest of share/*.js and crate/model.js isn't
+// a dependency any share card needs for anything else.
+function topAlbumIsStaffPick(albumId){
+  if(typeof MizikiSocial === 'undefined' || !MizikiSocial.getPins) return false;
+  try{ return MizikiSocial.getPins().includes(albumId); }catch(_e){ return false; }
+}
+
+// Matches the DOM sticker kit's "staff pick" family (10-crate.css's
+// .crate-sticker-new/-friends, 12-sealed-records.css's .seal-sticker):
+// Caveat 700 on --stock-manila, rotated within the shared -4deg..+3deg
+// range. Drawn on canvas rather than styled with those classes since a
+// share card has no DOM to attach them to.
+function drawStaffPickSticker(ctx, heroX, heroY, heroW, w){
+  const fontPx = Math.round(w*0.026);
+  const text = 'Staff pick';
+  ctx.save();
+  ctx.font = '700 ' + fontPx + 'px Caveat, cursive';
+  const padX = Math.round(w*0.014), padY = Math.round(w*0.008);
+  const textW = ctx.measureText(text).width;
+  const boxW = textW + padX*2, boxH = fontPx + padY*2;
+  // top right of the hero, inset the way .seal-sticker insets from its
+  // own sleeve face (top:10%;right:6%)
+  const cx = heroX + heroW - Math.round(heroW*0.06) - boxW/2;
+  const cy = heroY + Math.round(heroW*0.10) + boxH/2;
+  ctx.translate(cx, cy);
+  ctx.rotate(-3 * Math.PI / 180);
+  ctx.fillStyle = '#E8D9A8';   // --stock-manila
+  roundRectPath(ctx, -boxW/2, -boxH/2, boxW, boxH, 3);
+  ctx.fill();
+  ctx.fillStyle = '#2A1B38';   // the sticker kit's own ink
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 1);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // SH5 (docs/18_SHARE.md): the wordmark moved off-centre (bottom-right), so
 // its own width has to be measured ahead of drawShareWordmark's call
 // (which always centres on whatever x it's given) -- same font string,
@@ -88,6 +130,9 @@ export async function composeShareImage(opts){
     } else drawDiagonalWordmark(ctx, heroX, y, heroW);
   } else {
     ctx.fillStyle = kit.chipBg; roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.fill();
+  }
+  if(topAlbum && topAlbumIsStaffPick(topAlbum.albumId)){
+    drawStaffPickSticker(ctx, heroX, y, heroW, w);
   }
 
   if(twoCol){
