@@ -28,16 +28,16 @@ export function wearStage(albumSessions, firstPlayedAt, now){
   return 'new';
 }
 
-// "Worn · N plays since Month YYYY" / "Well loved · …" — nothing for
-// new/light, per the README table ("the first word follows the stage: no
-// word for New and Light, 'Worn' or 'Well loved' after").
-export function wearCopy(stage, albumSessions, firstPlayedAt){
+// QC4 (docs/24_QUIET_COUNTS.md): "Worn · since Month YYYY" / "Well loved ·
+// since Month YYYY" — the stage word and the first-played month, no play
+// count. Nothing for new/light, per the README table ("the first word
+// follows the stage: no word for New and Light, 'Worn' or 'Well loved'
+// after").
+export function wearCopy(stage, firstPlayedAt){
   if(stage !== 'worn' && stage !== 'loved') return null;
   const label = stage === 'loved' ? 'Well loved' : 'Worn';
-  const plays = albumSessions || 0;
-  const playWord = plays === 1 ? 'play' : 'plays';
-  if(!firstPlayedAt) return `${label} · ${plays} ${playWord}`;
+  if(!firstPlayedAt) return label;
   const d = new Date(firstPlayedAt);
   const since = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-  return `${label} · ${plays} ${playWord} since ${since}`;
+  return `${label} · since ${since}`;
 }

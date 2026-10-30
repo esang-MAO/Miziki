@@ -43,23 +43,29 @@ test('wearStage: a falsy firstPlayedAt contributes no age nudge', () => {
   assert.equal(wearStage(19, null, Date.now()), 'new');
 });
 
+// QC4 (docs/24_QUIET_COUNTS.md): wearCopy no longer takes a play count at
+// all -- "Worn · since Month YYYY" / "Well loved · since Month YYYY", no
+// digits anywhere but the year.
 test('wearCopy: nothing for new or light', () => {
   const now = Date.now();
-  assert.equal(wearCopy('new', 5, now), null);
-  assert.equal(wearCopy('light', 25, now), null);
+  assert.equal(wearCopy('new', now), null);
+  assert.equal(wearCopy('light', now), null);
 });
 
-test('wearCopy: "Worn · N plays since Month YYYY" / "Well loved · …"', () => {
+test('wearCopy: "Worn · since Month YYYY" / "Well loved · since Month YYYY" -- no play count', () => {
   const firstPlayed = Date.UTC(2025, 2, 1); // March 2025
-  assert.equal(wearCopy('worn', 150, firstPlayed), 'Worn · 150 plays since March 2025');
-  assert.equal(wearCopy('loved', 412, firstPlayed), 'Well loved · 412 plays since March 2025');
+  assert.equal(wearCopy('worn', firstPlayed), 'Worn · since March 2025');
+  assert.equal(wearCopy('loved', firstPlayed), 'Well loved · since March 2025');
 });
 
-test('wearCopy: singular "play" at exactly one play', () => {
+test('wearCopy: no firstPlayedAt still returns the stage word alone, no "since" clause', () => {
+  assert.equal(wearCopy('worn', null), 'Worn');
+  assert.equal(wearCopy('loved', null), 'Well loved');
+});
+
+test('wearCopy: the wear line carries no digits other than the year', () => {
   const firstPlayed = Date.UTC(2025, 2, 1);
-  assert.equal(wearCopy('worn', 1, firstPlayed), 'Worn · 1 play since March 2025');
-});
-
-test('wearCopy: no firstPlayedAt still returns a copy line, without the "since" clause', () => {
-  assert.equal(wearCopy('worn', 150, null), 'Worn · 150 plays');
+  const copy = wearCopy('loved', firstPlayed);
+  const yearStripped = copy.replace(/\b2025\b/, '');
+  assert.ok(!/\d/.test(yearStripped), `expected no stray digits in "${copy}"`);
 });

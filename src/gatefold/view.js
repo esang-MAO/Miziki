@@ -129,9 +129,11 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
       head.appendChild(el('span', null, side.idx.length + (side.idx.length===1?' track · ':' tracks · ') + fmt(total)));
       host.appendChild(head);
       if(showWear && totalPlays > 0){
-        const playWord = shares[si].plays === 1 ? 'PLAY' : 'PLAYS';
+        // QC4 (docs/24_QUIET_COUNTS.md point 2): the bar still shows each
+        // side's share of the record's plays (shares[si].pct), but nothing
+        // numeric is ever drawn next to it -- side.label alone, no play count.
         const wrap = el('div','gf-side-wear');
-        wrap.appendChild(el('span','gf-side-wear-label', side.label + ' · ' + shares[si].plays + ' ' + playWord));
+        wrap.appendChild(el('span','gf-side-wear-label', side.label));
         const bar = el('div','gf-side-wear-bar');
         const fill = el('div','gf-side-wear-fill');
         fill.style.width = shares[si].pct + '%';
@@ -400,12 +402,12 @@ function gatefoldInfoAndSleeveHTML(item){
   const info = $('#gfInfo'); info.innerHTML = '';
   info.appendChild(el('h3','gf-info-title', item.album));
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
-  // RW7 (docs/23_RHYTHM_AND_WEAR.md): "Worn · N plays since Month YYYY" /
-  // "Well loved · …" under the artist line -- nothing at all for new/light
-  // (wearCopy returns null for those stages).
+  // QC4 (docs/24_QUIET_COUNTS.md): "Worn · since Month YYYY" / "Well loved ·
+  // since Month YYYY" under the artist line -- no play count, and nothing
+  // at all for new/light (wearCopy returns null for those stages).
   if(S.showWear !== false){
     const stage = wearStage(S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId], Date.now());
-    const copy = wearCopy(stage, S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId]);
+    const copy = wearCopy(stage, S.albumFirstPlayed[item.albumId]);
     if(copy) info.appendChild(el('p','gf-info-wear', copy));
   }
   const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
