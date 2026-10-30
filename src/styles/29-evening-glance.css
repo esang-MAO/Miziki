@@ -1,0 +1,82 @@
+/* RW5 (docs/23_RHYTHM_AND_WEAR.md): evening glance (phones),
+   src/player/evening-glance.js, wired in src/shell/player-overlay.js.
+   After sunset an idle, playing full player sheds its controls in two
+   layers. Everything fades rather than hides, so the layout never jumps
+   when a touch brings it back; the fade out is slow (the controls drift
+   away) and the return is quick. Phones only: the desktop glance view
+   (23-desktop.css, TY7b) handles wide screens.
+
+   #recordOnlyRow/#restingCard (RW3/RW4) are controls/state copy, same
+   category as #nowActions -- they fade in layer 1 too, on whichever
+   screens they happen to be visible. */
+@media (max-width:1023px){
+  .player-overlay #playerDismiss,
+  .player-overlay .now-title-row .icon-btn,
+  .player-overlay #trackSpecFormat,
+  .player-overlay #trackSpec,
+  .player-overlay #trackSpecPhase,
+  .player-overlay #recordOnlyRow,
+  .player-overlay #restingCard,
+  .player-overlay #nowActions,
+  .player-overlay #scrub,
+  .player-overlay .times,
+  .player-overlay .transport,
+  .player-overlay .modes,
+  .player-overlay .sun-knob,
+  .player-overlay .speed-toggle,
+  .player-overlay #trackBy,
+  .player-overlay #trackName{
+    transition:opacity .25s ease-out;
+  }
+
+  /* layer 1: controls drift away; title, artist, platter and a dim
+     progress line stay */
+  .player-overlay.eve-glance #playerDismiss,
+  .player-overlay.eve-glance .now-title-row .icon-btn,
+  .player-overlay.eve-glance #trackSpecFormat,
+  .player-overlay.eve-glance #trackSpec,
+  .player-overlay.eve-glance #trackSpecPhase,
+  .player-overlay.eve-glance #recordOnlyRow,
+  .player-overlay.eve-glance #restingCard,
+  .player-overlay.eve-glance #nowActions,
+  .player-overlay.eve-glance .times,
+  .player-overlay.eve-glance .transport,
+  .player-overlay.eve-glance .modes,
+  .player-overlay.eve-glance .sun-knob,
+  .player-overlay.eve-glance .speed-toggle{
+    opacity:0; pointer-events:none; transition:opacity 1.6s ease-in-out;
+  }
+  .player-overlay.eve-glance #scrub{
+    opacity:.35; pointer-events:none; transition:opacity 1.6s ease-in-out;
+  }
+
+  /* layer 2 (night only): just the platter and a dimmed title */
+  .player-overlay.eve-glance-deep #scrub,
+  .player-overlay.eve-glance-deep #trackBy{
+    opacity:0; pointer-events:none; transition:opacity 2.4s ease-in-out;
+  }
+  .player-overlay.eve-glance-deep #trackName{
+    opacity:.7; transition:opacity 2.4s ease-in-out;
+  }
+}
+
+@media (max-width:1023px) and (prefers-reduced-motion:reduce){
+  .player-overlay #playerDismiss,
+  .player-overlay .now-title-row .icon-btn,
+  .player-overlay #trackSpecFormat,
+  .player-overlay #trackSpec,
+  .player-overlay #trackSpecPhase,
+  .player-overlay #recordOnlyRow,
+  .player-overlay #restingCard,
+  .player-overlay #nowActions,
+  .player-overlay #scrub,
+  .player-overlay .times,
+  .player-overlay .transport,
+  .player-overlay .modes,
+  .player-overlay .sun-knob,
+  .player-overlay .speed-toggle,
+  .player-overlay #trackBy,
+  .player-overlay #trackName{
+    transition:none;
+  }
+}
