@@ -12,7 +12,7 @@ import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
-  persistPhasePlayCountsByDay,
+  persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay,
   // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
   // zoetropeDayProgress are session-derived milestone state, the exact
   // same class as rareUnlocked right above — both scopes below reset/prune
@@ -64,6 +64,10 @@ export async function resetLocalHistory(){
   // RF22 (docs/12_REFINE.md): the day-bucketed twin of phasePlayCounts —
   // same full-scope-only treatment (see the orphaned-only branch below).
   S.phasePlayCountsByDay = {};
+  // QC2 (docs/24_QUIET_COUNTS.md): phasePlayCountsByDay's per-album twin —
+  // same full-scope-only treatment, same reason (calendar-day keyed, not
+  // identity keyed, so an orphaned-only clear has nothing to prune by).
+  S.albumPlayCountsByDay = {};
   await achievements.clear(); await collection.clear(); await sessions.clear();
   await pruneThumbs();
   await Promise.all([
@@ -71,7 +75,7 @@ export async function resetLocalHistory(){
     persistZoetropeUnlocked(), persistZoetropeDayProgress(),
     persistAlbumLastPlayed(), persistAlbumFirstPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
     persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
-    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay()
+    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay(), persistAlbumPlayCountsByDay()
   ]);
 }
 

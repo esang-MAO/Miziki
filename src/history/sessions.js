@@ -64,6 +64,9 @@ export async function persistAlbumPhaseCounts(){ await meta.put('albumPhaseCount
 // state.js's own S.phasePlayCountsByDay entry); persisted/restored the
 // same way as every sibling counter in this file regardless.
 export async function persistPhasePlayCountsByDay(){ await meta.put('phasePlayCountsByDay', S.phasePlayCountsByDay); }
+// QC2 (docs/24_QUIET_COUNTS.md) -- the per-album twin above, same
+// device-only posture as phasePlayCountsByDay.
+export async function persistAlbumPlayCountsByDay(){ await meta.put('albumPlayCountsByDay', S.albumPlayCountsByDay); }
 // RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
 // changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
 export async function persistAlbumLookPref(keys){
@@ -324,6 +327,8 @@ export async function restoreSessions(){
   // yet" until new plays repopulate it.
   const phaseCountsByDay = await meta.get('phasePlayCountsByDay');
   if(phaseCountsByDay) S.phasePlayCountsByDay = phaseCountsByDay;
+  const albumCountsByDay = await meta.get('albumPlayCountsByDay');
+  if(albumCountsByDay) S.albumPlayCountsByDay = albumCountsByDay;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
   // AU9 (docs/16_AUDIO.md §5)

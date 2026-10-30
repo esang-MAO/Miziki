@@ -73,7 +73,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   | listening-rhythm shared snapshot (`{verdict, shares}` only) | opt-in, default off, needs ≥20 counted plays | single-writer; a separate `profiles.listening_rhythm` column, read via a visibility-gated RPC, not the sync doc |
   | `tracks` (audio, embedded art), crate-tier/thumbnail blobs, `t.details.replayGain`/`.loudness`/`.hookStart`/`.hookEnd` | excluded | re-derived locally from whatever's on the device |
   | social meta (ratings/notes/pins/follows) | excluded | already syncs through the social layer |
-  | `deviceId`, `theme`, `S.deviceVolume`, the custom-slipmat flags/image, the sun-times cache, the home-feed cache, `S.rhythmPushedAt`, `S.phasePlayCountsByDay` | device-only | stripped from the uploaded copy (or never read from it) — each follows the device, not the account, for a stated reason (appearance/volume/slipmat are device preferences; the caches and rhythm-push bookkeeping are pure local plumbing) |
+  | `deviceId`, `theme`, `S.deviceVolume`, the custom-slipmat flags/image, the sun-times cache, the home-feed cache, `S.rhythmPushedAt`, `S.phasePlayCountsByDay`, `S.albumPlayCountsByDay` | device-only | stripped from the uploaded copy (or never read from it) — each follows the device, not the account, for a stated reason (appearance/volume/slipmat are device preferences; the caches and rhythm-push bookkeeping are pure local plumbing) |
 
   **Rule: every new saved key goes into this table** (backed up, device-only, or excluded) when it's added. A key that rides inside `prefs`/an existing per-device counter with no special handling needs no new row — only a key that gets its *own* carve-out (like `theme`) does.
 

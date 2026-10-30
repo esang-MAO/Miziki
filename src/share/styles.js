@@ -72,6 +72,38 @@ export function shareSwatchGradient(ctx, cx, cy, r, colors){
   return g;
 }
 
+// QC1/QC2 (docs/24_QUIET_COUNTS.md): a small rounded-square pressing chip,
+// the canvas counterpart of record-art/tiers.js's own CSS
+// variantBackground() — used by the Pressings share card to draw the same
+// found-chips grid the profile's own pressing-chart card shows, at chip
+// rather than full-disc size, so no groove rings or label hole.
+export function fillVariantSwatch(ctx, def, x, y, size, radius){
+  ctx.save();
+  roundRectPath(ctx, x, y, size, size, radius);
+  ctx.clip();
+  const [a, b, c] = def.colors;
+  if(def.pattern === 'split'){
+    const [i1, i2] = def.inks || [a, c];
+    ctx.fillStyle = i1; ctx.fillRect(x, y, size, size/2);
+    ctx.fillStyle = i2; ctx.fillRect(x, y + size/2, size, size/2);
+  } else if(def.pattern === 'swirl'){
+    const [i1, i2] = def.inks || [a, b];
+    const g = ctx.createConicGradient(0, x + size/2, y + size/2);
+    [i1, i2, i1, i2, i1, i2, i1].forEach((col, i) => g.addColorStop(i/6, col));
+    ctx.fillStyle = g; ctx.fillRect(x, y, size, size);
+  } else if(def.pattern === 'splatter'){
+    ctx.fillStyle = c; ctx.fillRect(x, y, size, size);
+    [[30,25],[70,20],[50,50],[20,65],[80,60]].forEach(([px, py], i) => {
+      ctx.beginPath(); ctx.arc(x + (px/100)*size, y + (py/100)*size, size*0.09, 0, Math.PI*2);
+      ctx.fillStyle = i % 2 ? b : a; ctx.fill();
+    });
+  } else {
+    ctx.fillStyle = shareSwatchGradient(ctx, x + size/2, y + size/2, size/2, def.colors);
+    ctx.fillRect(x, y, size, size);
+  }
+  ctx.restore();
+}
+
 // waits for decode() too, not just the load event, so the first draw never
 // races a not-yet-decoded frame (spec §2 implementation notes)
 export function loadImageEl(src){

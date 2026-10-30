@@ -65,7 +65,8 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 const {
   isAlbumSealed, breakSeal, restoreSealedAlbums, buildSealOverlay,
 } = await import('../../src/library/sealed.js');
-const { topAlbums, topTracks } = await import('../../src/history/achievements.js');
+const { topAlbums, topTracks, topAlbumsInWindow } = await import('../../src/history/achievements.js');
+const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
 // RF4 (docs/12_REFINE.md): record-art/metals.js is a leaf beyond S/$ (and
 // albumMetalFor() itself never calls $) -- safe to import directly here,
 // no extra mocking needed, for the "metal is justified by the count shown"
@@ -78,7 +79,7 @@ function resetState(overrides){
     sealedRecords: true, sealed: new Set(),
     sessionCounts: {}, albumLastPlayed: {}, albumDisplay: {},
     trackPlayCounts: {}, trackLastPlayed: {}, trackDisplay: {},
-    mergedStats: null, metalEligibleSessions: {},
+    mergedStats: null, metalEligibleSessions: {}, albumPlayCountsByDay: {},
   }, overrides);
   updateSealedSheetAfterBreakMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
@@ -137,6 +138,49 @@ test('topAlbums: an unknown album id still gets a display fallback', () => {
   resetState({ sessionCounts: { orphan: 1 } });
   const top = topAlbums(1);
   assert.deepEqual(top[0].display, { name: 'orphan', artist: '', art: null });
+});
+
+// QC2 (docs/24_QUIET_COUNTS.md): topAlbumsInWindow() — the Season share
+// card's "most played this season" selection, windowed by day (unlike
+// topAlbums()'s lifetime sessionCounts) and capped to n.
+test('topAlbumsInWindow: top n by plays in the window, ties broken by most recently played', () => {
+  const today = dayKeyFor(Date.now());
+  resetState({
+    albumPlayCountsByDay: { [today]: { a1: 2, a2: 5, a3: 5 } },
+    albumLastPlayed: { a1: 100, a2: 50, a3: 200 },
+    albumDisplay: { a1: { name: 'One' }, a2: { name: 'Two' }, a3: { name: 'Three' } },
+  });
+  const top = topAlbumsInWindow(2, 90);
+  assert.deepEqual(top.map(a => a.albumId), ['a3', 'a2']);
+  assert.equal(top[0].name, 'Three');
+});
+
+test('topAlbumsInWindow: fewer albums than n just returns what there is', () => {
+  const today = dayKeyFor(Date.now());
+  resetState({ albumPlayCountsByDay: { [today]: { a1: 1 } }, albumDisplay: { a1: { name: 'Solo' } } });
+  const top = topAlbumsInWindow(3, 90);
+  assert.equal(top.length, 1);
+  assert.equal(top[0].albumId, 'a1');
+});
+
+test('topAlbumsInWindow: plays outside the window don\'t count', () => {
+  const longAgo = dayKeyFor(Date.now() - 200 * 24 * 60 * 60 * 1000);
+  resetState({ albumPlayCountsByDay: { [longAgo]: { orphan: 9 } } });
+  assert.deepEqual(topAlbumsInWindow(3, 90), []);
+});
+
+test('topAlbumsInWindow: an unknown album id (no S.albumDisplay entry) still gets a display fallback', () => {
+  const today = dayKeyFor(Date.now());
+  resetState({ albumPlayCountsByDay: { [today]: { orphan: 1 } } });
+  const top = topAlbumsInWindow(1, 90);
+  assert.equal(top[0].name, 'orphan');
+  assert.equal(top[0].artist, '');
+  assert.equal(top[0].art, null);
+});
+
+test('topAlbumsInWindow: nothing in the window at all is an empty list, not a thrown error', () => {
+  resetState({ albumPlayCountsByDay: {} });
+  assert.deepEqual(topAlbumsInWindow(3, 90), []);
 });
 
 test('topTracks: orders by play count, ties broken by most recently played', () => {

@@ -4,7 +4,7 @@ import {
   PHASES, RHYTHM_MIN_PLAYS, RHYTHM_VERDICT_THRESHOLD, RHYTHM_AROUND_LABEL,
   RHYTHM_WINDOW_DAYS, RHYTHM_PRUNE_KEEP_DAYS,
   computeRhythmShares, rhythmVerdictLabel, bestAlbumPerPhase,
-  dayKeyFor, windowedPhaseCounts, pruneDayBuckets,
+  dayKeyFor, windowedPhaseCounts, windowedCounts, pruneDayBuckets,
 } from '../../src/sundown/rhythm.js';
 
 // DA5 (docs/DAY_ARC.md) — pure functions over plain {phase: count} maps,
@@ -167,4 +167,33 @@ test('pruneDayBuckets: empty/missing input never throws', () => {
 test('RHYTHM_WINDOW_DAYS/RHYTHM_PRUNE_KEEP_DAYS: the prune window is comfortably wider than the read window', () => {
   assert.equal(RHYTHM_WINDOW_DAYS, 90);
   assert.ok(RHYTHM_PRUNE_KEEP_DAYS > RHYTHM_WINDOW_DAYS);
+});
+
+// QC2 (docs/24_QUIET_COUNTS.md) — windowedCounts(), windowedPhaseCounts()'s
+// generic sibling for S.albumPlayCountsByDay (arbitrary keys, not the
+// fixed PHASES set), underlying the Season share card's "most played this
+// season" row (history/achievements.js's topAlbumsInWindow()).
+test('windowedCounts: sums only the buckets within the window, over whatever keys a bucket actually holds', () => {
+  const now = new Date(2026, 5, 15).getTime(); // June 15, 2026
+  const byDay = {
+    [dayKeyFor(new Date(2026, 5, 15))]: { alpha: 3 },          // today -- in
+    [dayKeyFor(new Date(2026, 5, 1))]: { alpha: 2, bravo: 1 }, // 14 days ago -- in, exactly at the window edge
+    [dayKeyFor(new Date(2026, 2, 1))]: { alpha: 100 },         // ~106 days ago -- out
+  };
+  assert.deepEqual(windowedCounts(byDay, now, RHYTHM_WINDOW_DAYS), { alpha: 5, bravo: 1 });
+});
+
+test('windowedCounts: the day exactly windowDays ago is still inside the window; one day earlier is not', () => {
+  const now = new Date(2026, 5, 15).getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const edgeDay = new Date(now - RHYTHM_WINDOW_DAYS * DAY_MS);
+  const justOutside = new Date(now - (RHYTHM_WINDOW_DAYS + 1) * DAY_MS);
+  const byDay = { [dayKeyFor(edgeDay)]: { alpha: 9 }, [dayKeyFor(justOutside)]: { alpha: 100 } };
+  assert.deepEqual(windowedCounts(byDay, now, RHYTHM_WINDOW_DAYS), { alpha: 9 });
+});
+
+test('windowedCounts: empty/missing input never throws', () => {
+  assert.deepEqual(windowedCounts(undefined, Date.now(), RHYTHM_WINDOW_DAYS), {});
+  assert.deepEqual(windowedCounts({}, Date.now(), RHYTHM_WINDOW_DAYS), {});
+  assert.deepEqual(windowedCounts(null, Date.now(), RHYTHM_WINDOW_DAYS), {});
 });

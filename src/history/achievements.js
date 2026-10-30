@@ -2,6 +2,7 @@ import { S } from '../state.js';
 import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, selectRareVariant, selectZoetropeVariant, CHART_VERSION } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { albumExpectedOrder } from './sessions.js';
+import { windowedCounts, RHYTHM_WINDOW_DAYS } from '../sundown/rhythm.js';
 import { idxOf } from '../library/model.js';
 import { achievements, collection } from '../storage/repo.js';
 import { thumbURL, persistable } from '../library/thumbs.js';
@@ -146,6 +147,25 @@ export function topTracks(n){
 const METAL_RANK = {rare:5, platinum:4, gold:3, silver:2, bronze:1};
 export function achievementsList(){
   return Object.values(S.achievements).sort((a,b) => METAL_RANK[b.tier] - METAL_RANK[a.tier] || b.updatedAt - a.updatedAt);
+}
+
+// QC2 (docs/24_QUIET_COUNTS.md): the Season share card's "most played this
+// season" row — the top n albums by plays within the last windowDays
+// (default the same RHYTHM_WINDOW_DAYS the rhythm verdict uses), summed
+// from S.albumPlayCountsByDay via sundown/rhythm.js's generic
+// windowedCounts(). Not merged cross-device (that counter is device-only,
+// state.js's own S.albumPlayCountsByDay comment) — a season is what this
+// device heard lately, the same posture the rhythm card already has.
+export function topAlbumsInWindow(n, windowDays = RHYTHM_WINDOW_DAYS){
+  const counts = windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays);
+  return Object.keys(counts)
+    .map(albumId => {
+      const disp = S.albumDisplay[albumId] || {name:albumId, artist:'', art:null};
+      return {albumId, count:counts[albumId], name:disp.name, artist:disp.artist,
+        art: thumbURL['album:' + albumId] || disp.art};
+    })
+    .sort((a,b) => b.count - a.count || (S.albumLastPlayed[b.albumId] || 0) - (S.albumLastPlayed[a.albumId] || 0))
+    .slice(0, n);
 }
 
 // colors / splits / splatter as distinct groups, per PROFILE spec §9

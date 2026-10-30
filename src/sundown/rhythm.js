@@ -92,6 +92,25 @@ export function windowedPhaseCounts(byDay, now, windowDays){
   return out;
 }
 
+// Generic sibling of windowedPhaseCounts() above, for a day-bucket map
+// whose per-day value isn't the fixed PHASES set — QC2 (docs/
+// 24_QUIET_COUNTS.md)'s S.albumPlayCountsByDay, one {albumId: count} map
+// per day, sums however many distinct keys a bucket actually holds
+// instead of iterating a known list.
+export function windowedCounts(byDay, now, windowDays){
+  const map = byDay || {};
+  const cutoff = (now instanceof Date ? now.getTime() : now) - windowDays * MS_PER_DAY;
+  const out = {};
+  Object.keys(map).forEach(key => {
+    const parts = key.split('-');
+    const keyMs = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    if(keyMs < cutoff) return;
+    const bucket = map[key] || {};
+    Object.keys(bucket).forEach(k => { out[k] = (out[k] || 0) + bucket[k]; });
+  });
+  return out;
+}
+
 // Pure — returns a new object, never mutates `byDay`. Drops any bucket
 // older than `keepDays`, so the map a device persists never grows past a
 // bounded size no matter how long the library's been played.
