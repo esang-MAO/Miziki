@@ -167,23 +167,27 @@ test('PRESSINGS_110 PR8: ownedZoetropePressingIds() needs both the per-album unl
   assert.deepEqual(ownedZoetropePressingIds(), expected);
 });
 
-/* ---- renderPressingCard: numbers/tap-to-jump vs. chips-only ---- */
+/* ---- renderPressingCard (QC1, docs/24_QUIET_COUNTS.md): owned-only chips,
+   grouped by family, interactive vs. chips-only ---- */
 
-test('PRESSINGS_110 PR8: renderPressingCard with showNumbers shows all four COLORS/EFFECTS/RARE/ZOETROPES counts and a clickable owned chip', () => {
+function familyRows(card){ return card.kids.filter(k => k.className === 'pressing-family-row'); }
+function familyLabel(row){ return row.kids.find(k => k.className === 'pressing-family-label').textContent; }
+function familyStrip(row){ return row.kids.find(k => k.className === 'pressing-chip-strip'); }
+
+test('QC1: renderPressingCard draws only owned chips, one row per family that has one, no counts', () => {
   const soloId = SOLID_IDS[0];
   const owned = new Set([soloId]);
-  const card = renderPressingCard(owned, { showNumbers: true });
-  const countEl = card.kids.find(k => k.className === 'pressing-card-count');
-  assert.ok(countEl, 'count line is shown when showNumbers is true');
-  assert.equal(countEl.textContent,
-    'COLORS 1 OF ' + SOLID_IDS.length
-    + ' · EFFECTS 0 OF ' + EFFECT_IDS.length
-    + ' · RARE 0 OF ' + RARE_IDS.length
-    + ' · ZOETROPES 0 OF ' + ZOETROPE_IDS.length);
-  const strip = card.kids.find(k => k.className === 'pressing-chip-strip');
-  assert.equal(strip.kids.length, SOLID_IDS.length + EFFECT_IDS.length + RARE_IDS.length + ZOETROPE_IDS.length);
-  const ownedChip = strip.kids[SOLID_IDS.indexOf(soloId)];
-  assert.equal(ownedChip.tag, 'button', 'an owned chip is a real button when numbers/tap are shown');
+  const card = renderPressingCard(owned, { interactive: true });
+  assert.equal(card.kids.find(k => k.className === 'pressing-card-count'), undefined);
+  assert.equal(card.kids.find(k => k.className === 'pressing-card-missing'), undefined);
+  const head = card.kids.find(k => k.className === 'pressing-card-head-row');
+  assert.ok(head.kids.some(k => k.className === 'pressing-card-found' && k.textContent === 'found while listening'));
+  const rows = familyRows(card);
+  assert.deepEqual(rows.map(familyLabel), ['Colors'], 'families with nothing found are omitted entirely');
+  const strip = familyStrip(rows[0]);
+  assert.equal(strip.kids.length, 1, 'only the owned chip is drawn, never the missing ones');
+  const ownedChip = strip.kids[0];
+  assert.equal(ownedChip.tag, 'button', 'an owned chip is a real button when interactive');
   assert.ok(ownedChip.className.includes('owned'));
   // tapping it sets the one-shot jump signal and routes to the crate
   S.view = { mode: null, group: 'x', artistAlbum: 'x', playlist: 'x', person: 'x', crateLooseIdx: 1, picking: true };
@@ -197,22 +201,27 @@ test('PRESSINGS_110 PR8: renderPressingCard with showNumbers shows all four COLO
   assert.equal(renderTracksMock.mock.calls.length, 1);
 });
 
-test('CR11: renderPressingCard with showNumbers names a few missing pressings', () => {
-  const card = renderPressingCard(new Set(), { showNumbers: true });
-  const missing = card.kids.find(k => k.className === 'pressing-card-missing');
-  assert.ok(missing, 'a wholly-empty crate names some missing pressings');
-  assert.ok(missing.textContent.startsWith('Missing: '));
+test('QC1: renderPressingCard with nothing owned draws no family rows at all', () => {
+  const card = renderPressingCard(new Set(), { interactive: true });
+  assert.deepEqual(familyRows(card), []);
 });
 
-test('CR11 point 4: a friend\'s pressing card (showNumbers false) renders chips only — no count line, no tap, no numbers', () => {
+test('QC1: renderPressingCard draws a family row per found family, in family order', () => {
+  const owned = new Set([SOLID_IDS[0], EFFECT_IDS[0], RARE_IDS[0]]);
+  const card = renderPressingCard(owned, { interactive: true });
+  assert.deepEqual(familyRows(card).map(familyLabel), ['Colors', 'Effects', 'Rare']);
+});
+
+test('CR11 point 4, QC1: a friend\'s pressing card (interactive:false) renders found chips only — no tap, their unfound pressings never drawn', () => {
   showRouteMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
   const soloId = SOLID_IDS[0];
-  const card = renderPressingCard(new Set([soloId]), { showNumbers: false });
-  assert.equal(card.kids.find(k => k.className === 'pressing-card-count'), undefined);
-  assert.equal(card.kids.find(k => k.className === 'pressing-card-missing'), undefined);
-  const strip = card.kids.find(k => k.className === 'pressing-chip-strip');
-  const ownedChip = strip.kids[SOLID_IDS.indexOf(soloId)];
+  const card = renderPressingCard(new Set([soloId]), { interactive: false });
+  const rows = familyRows(card);
+  assert.deepEqual(rows.map(familyLabel), ['Colors']);
+  const strip = familyStrip(rows[0]);
+  assert.equal(strip.kids.length, 1);
+  const ownedChip = strip.kids[0];
   assert.equal(ownedChip.tag, 'div', 'never a button on a friend\'s card, since nothing is tappable');
   ownedChip.click ? ownedChip.click() : null; // no-op either way: no click handler was ever attached
   assert.equal(showRouteMock.mock.calls.length, 0);
@@ -222,10 +231,23 @@ test('CR11 point 4: a friend\'s pressing card (showNumbers false) renders chips 
 test('CR11 point 3: a scarce-band chip carries the dot marker', () => {
   const allIds = [...SOLID_IDS, ...EFFECT_IDS, ...RARE_IDS, ...ZOETROPE_IDS];
   const scarceId = allIds.find(id => VARIANT_DEFS[id].band === 'scarce');
-  const card = renderPressingCard(new Set(), { showNumbers: false });
-  const strip = card.kids.find(k => k.className === 'pressing-chip-strip');
-  const chip = strip.kids[allIds.indexOf(scarceId)];
-  assert.ok(chip.kids.some(k => k.className === 'pressing-chip-dot'));
+  const card = renderPressingCard(new Set([scarceId]), { interactive: false });
+  const strip = familyStrip(familyRows(card)[0]);
+  assert.ok(strip.kids[0].kids.some(k => k.className === 'pressing-chip-dot'));
+});
+
+test('QC1: renderPressingCard draws a Metals row only for tiers reached, none when opts.metals is empty/omitted', () => {
+  const owned = new Set([SOLID_IDS[0]]);
+  const noMetals = renderPressingCard(owned, { interactive: true });
+  assert.equal(noMetals.kids.find(k => k.className === 'pressing-metals'), undefined, 'no Metals row at all with nothing reached');
+
+  const metals = [{ tier: 'bronze', label: 'Bronze', bg: 'BRONZE-BG' }, { tier: 'gold', label: 'Gold', bg: 'GOLD-BG' }];
+  const withMetals = renderPressingCard(owned, { interactive: true, metals });
+  const block = withMetals.kids.find(k => k.className === 'pressing-metals');
+  assert.ok(block);
+  const row = block.kids.find(k => k.className === 'pressing-metals-row');
+  assert.equal(row.kids.length, 2);
+  assert.deepEqual(row.kids.map(cell => cell.kids.find(k => k.className === 'pressing-metal-name').textContent), ['Bronze', 'Gold']);
 });
 
 /* ---- point 1: "Both Verdigris" / "Yours: X · Friend's: Y" — same shared

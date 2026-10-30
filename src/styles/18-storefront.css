@@ -153,20 +153,27 @@
 .store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px var(--sp-1)}
 .store-requests-list .store-dig-row:last-child{border-bottom:0}
 
-/* CR11 point 3: the pressing chart — "a cream catalog card with a
-   paint-chip strip in family order." Shared by the profile's own card
-   (numbers, tap-to-jump — profile/storefront.js's renderPressingCard) and
-   a friend's (chips only — social/screens/friend-store.js). */
+/* CR11 point 3, QC1 (docs/24_QUIET_COUNTS.md): the pressing chart — "a
+   cream catalog card with a paint-chip strip in family order," owned
+   chips only, grouped under a mono-caps family label, plus a dashed-off
+   Metals row. Shared by the profile's own card (tap-to-jump —
+   profile/storefront.js's renderPressingCard) and a friend's (no tap —
+   social/screens/friend-store.js). */
 .pressing-card{margin-top:14px;background:var(--cream);color:#1A1410;border-radius:var(--radius-card);padding:13px 15px}
+.pressing-card-head-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-2)}
 .pressing-card-head{margin:0;font-family:var(--display);font-size:var(--fs-row);font-weight:600;letter-spacing:.02em}
-.pressing-card-count{margin-top:2px;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;opacity:.65}
-.pressing-chip-strip{display:flex;flex-wrap:wrap;gap:5px;margin-top:var(--sp-3)}
+.pressing-card-found{font-family:var(--hand);font-weight:500;font-size:var(--fs-title);line-height:1;color:#5A4A3A}
+.pressing-family-row{display:flex;flex-direction:column;gap:6px;margin-top:var(--sp-3)}
+.pressing-family-label{font-family:var(--data);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase}
+.pressing-chip-strip{display:flex;flex-wrap:wrap;gap:5px}
 .pressing-chip{width:20px;height:20px;border-radius:var(--radius-control);border:0;padding:0;position:relative;flex:none}
-.pressing-chip.owned{opacity:1}
-.pressing-chip.missing{opacity:.18}
-button.pressing-chip.owned{cursor:pointer}
+button.pressing-chip{cursor:pointer}
 .pressing-chip-dot{position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:#1A1410}
-.pressing-card-missing{margin:var(--sp-2) 0 0;font-size:var(--fs-caption);opacity:.7}
+.pressing-metals{display:flex;flex-direction:column;gap:var(--sp-2);margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px dashed rgba(26,20,16,.2)}
+.pressing-metals-row{display:flex;flex-wrap:wrap;gap:var(--sp-3)}
+.pressing-metal-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:50px}
+.pressing-metal-disc{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 9px rgba(0,0,0,.08)}
+.pressing-metal-name{font-size:var(--fs-caption);line-height:var(--lh-caption);color:#3A2E24}
 
 /* CR11 point 1-2: the in-common pressing line and the record sheet's own
    pressing name/note/diff. */

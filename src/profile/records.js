@@ -88,11 +88,22 @@ export function pressingCounts(){
   return {pressings: Object.keys(S.collection).length, metals: achievementsList().length};
 }
 
-export function recordsCountLine(nRecords, counts){
-  const parts = [plural(nRecords, 'record', 'records')];
-  if(counts.pressings) parts.push(plural(counts.pressings, 'pressing', 'pressings'));
-  if(counts.metals) parts.push(plural(counts.metals, 'metal', 'metals'));
-  return parts.join(' · ');
+// QC1 (docs/24_QUIET_COUNTS.md): the Records header is just the record
+// count — no pressing/metal totals.
+export function recordsCountLine(nRecords){
+  return plural(nRecords, 'record', 'records');
+}
+
+// QC1: one disc per metal tier reached, highest tier last — the dashed-off
+// Metals row on renderPressingCard's own card, resolved here (not in
+// storefront.js) since it needs metalDisc()/METAL_NAME, which already live
+// in this file alongside achievementsList().
+const METAL_TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'rare'];
+export function reachedMetals(){
+  const byTier = {};
+  achievementsList().forEach(rec => { if(!byTier[rec.tier]) byTier[rec.tier] = rec; });
+  return METAL_TIER_ORDER.filter(tier => byTier[tier])
+    .map(tier => ({tier, label: METAL_NAME[tier], bg: metalDisc(byTier[tier])}));
 }
 
 // "A"–"Z", or "#" for anything that doesn't start with a plain letter.
@@ -197,7 +208,7 @@ export function storeRecordsSection(){
   const head = el('div','store-section-head store-records-head');
   const title = el('div','store-records-title');
   title.appendChild(el('h2', null, 'Records'));
-  title.appendChild(el('span','store-records-count', recordsCountLine(records.length, counts)));
+  title.appendChild(el('span','store-records-count', recordsCountLine(records.length)));
   head.appendChild(title);
   if(records.length || counts.pressings || counts.metals){
     const seeAll = el('button', null, 'See all ›');
@@ -255,7 +266,7 @@ export function renderRecordsScreen(body){
   const records = libraryRecords();
   const counts = pressingCounts();
   const wrap = el('div','records-screen');
-  wrap.appendChild(el('div','store-records-count', recordsCountLine(records.length, counts)));
+  wrap.appendChild(el('div','store-records-count', recordsCountLine(records.length)));
 
   const tabs = el('div','seg records-tabs');
   tabs.setAttribute('role','tablist');
@@ -333,7 +344,7 @@ function renderPressings(wrap){
   // solid/effect alone to all four families — merge the three counters
   // that each own one family rather than teaching any of them the others.
   const owned = new Set([...ownedPressingIds(), ...ownedRarePressingIds(), ...ownedZoetropePressingIds()]);
-  wrap.appendChild(renderPressingCard(owned, {showNumbers: true}));
+  wrap.appendChild(renderPressingCard(owned, {interactive: true, metals: reachedMetals()}));
   const coll = Object.values(S.collection).sort((a, b) => pressingName(a).localeCompare(pressingName(b)));
   const asItem = rec => ({name: rec.name, artist: rec.artist, art: albumArt(rec.albumId, rec.art),
     disc: pressingDisc(rec), label: pressingName(rec)});
@@ -343,7 +354,7 @@ function renderPressings(wrap){
     art: albumArt(rec.albumId, rec.art), disc: metalDisc(rec), label: METAL_NAME[rec.tier] || rec.tier}));
   if(!colors.length && !effects.length && !metals.length){
     const empty = el('div','profile-empty');
-    empty.appendChild(el('p', null, 'Play an album through on a lossless file to unlock its pressing. Keep playing it to earn metals.'));
+    empty.appendChild(el('p', null, 'Pressings and metals show up here as you listen.'));
     wrap.appendChild(empty);
     return;
   }
