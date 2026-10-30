@@ -14,7 +14,7 @@
 .picture-sleeve-box{position:absolute;left:20px;right:20px;bottom:0;top:8%;
   background:#1C1226;border-radius:10px 10px 0 0;overflow-y:auto;padding:var(--sp-4);
   opacity:0;transition:opacity .25s ease-out;
-  --paper:#EFE9DF; --muted:#94A0A6; --accent-text:#FF9E2C}
+  --paper:#EFE9DF; --muted:#ABA298; --accent-text:#E9A24A}
 .picture-sleeve.show .picture-sleeve-box{opacity:1}
 @media (prefers-reduced-motion:reduce){ .picture-sleeve-box{transition:opacity .15s} }
 /* TY3 (docs/22_TYPE.md): a button -- Archivo, sentence case. */

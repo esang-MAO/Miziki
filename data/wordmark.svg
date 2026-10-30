@@ -17,8 +17,8 @@
        DOMParser's strict XML mode (ui/wordmark.js) rejects them outright. -->
   <style>
     .wordmark-letters{fill:var(--paper,#EFE9DF)}
-    .wordmark-rings{fill:none;stroke:var(--accent-text,#FF9E2C);stroke-width:69.58}
-    .wordmark-mini .wordmark-rings{fill:var(--accent-text,#FF9E2C);stroke:none}
+    .wordmark-rings{fill:none;stroke:var(--accent-text,#E9A24A);stroke-width:69.58}
+    .wordmark-mini .wordmark-rings{fill:var(--accent-text,#E9A24A);stroke:none}
   </style>
   <g class="wordmark-letters">
       <path d="M202 2098.2V338.2H535L785 1624.2L1020 338.2H1355V2098.2H1116V1442.2L1126 840.2L889 2090.2H676L429 840.2L439 1442.2V2098.2Z"/>

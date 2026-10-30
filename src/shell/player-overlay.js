@@ -80,7 +80,7 @@ export function runMorphOpen(){
   ghost.style.height = miniRect.height + 'px';
   ghost.style.left = miniRect.left + 'px';
   ghost.style.top = miniRect.top + 'px';
-  ghost.style.background = realDisc.style.background || '#15161B';
+  ghost.style.background = realDisc.style.background || '#1C1A1F';
   ghost.style.transition = 'none';
   ghost.style.transform = 'translate(0,0) scale(1)';
   ghost.style.display = 'block';

@@ -608,11 +608,23 @@ export function skyGradientStops(dayPos, theme, seasonWeights){
 // 3.7:1 against --sky1 -- these two anchor pairs are updated to match so
 // the live per-minute gradient this function drives never redraws a
 // value darker than the new static floor.
-const MUTED_COOL = [[148,160,166],[134,147,154]];   // --muted #94A0A6 / --muted-2 #86939A
+// FS1 (docs/25_FROM_SCRATCH.md): "warm neutrals ... not blue-grey" retires
+// RF14's cool pair -- every non-Golden/Twilight phase now takes the same
+// warm base as the static --muted/--muted-2 tokens (00-base.css), and Dawn
+// gets its own lighter pair (the README's own values) since the base warm
+// pair doesn't clear contrast against Dawn's own lighter sky. Dawn is held
+// flat here (mutedGradientStops()'s own early return below), not run
+// through blendAnchors()'s generic 'dawn' case -- that case always mixes
+// anchors.night->anchors.morning regardless of what's keyed under
+// anchors.dawn (it's shared with skyGradientStops(), where dawn really is
+// a night->morning transition), so an anchors.dawn entry here would be
+// silently unused.
+const MUTED_BASE = [[171,162,152],[154,145,135]];   // --muted #ABA298 / --muted-2 #9A9187
 const MUTED_WARM = [[169,156,143],[141,131,122]];   // --muted #A99C8F / --muted-2 #8D837A
+const MUTED_DAWN = [[201,191,180],[214,204,192]];   // #C9BFB4 / #D6CCC0
 const MUTED_ANCHORS_DARK = {
-  night: MUTED_COOL, dawn: MUTED_COOL, morning: MUTED_COOL, midday: MUTED_COOL,
-  afternoon: MUTED_COOL, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_COOL,
+  night: MUTED_BASE, morning: MUTED_BASE, midday: MUTED_BASE,
+  afternoon: MUTED_BASE, golden: MUTED_WARM, twilight: MUTED_WARM, dusk: MUTED_BASE,
 };
 // Light "keeps one pair" (the design README's own wording). This is the
 // one other place that pair is set, since drawSun() writes
@@ -631,6 +643,7 @@ const MUTED_LIGHT = toStops([[107,98,88],[94,106,112]]); // --muted #6B6258 / --
 // alongside.
 export function mutedGradientStops(dayPos, theme){
   if(theme === 'light') return MUTED_LIGHT;
+  if(dayPos && dayPos.phase === 'dawn') return toStops(MUTED_DAWN);
   return blendAnchors(MUTED_ANCHORS_DARK, dayPos);
 }
 

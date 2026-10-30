@@ -157,7 +157,7 @@
 .platter-stage.changing .sleeve-out{animation:changeSleeveOut 1500ms ease-in-out forwards}
 
 /* §2/§3 run-out groove: the needle rides the last groove, the label ring glows. */
-.platter-stage.runout .label{box-shadow:inset 0 0 0 3px var(--accent),0 0 18px rgba(255,158,44,.35)}
+.platter-stage.runout .label{box-shadow:inset 0 0 0 3px var(--accent),0 0 18px rgba(233,162,74,.35)}
 
 /* SURFACE_NOISE §5: the dead-wax etching fades up during the same run-out
    moment ("this is the moment it's meant to be found") -- hidden otherwise,

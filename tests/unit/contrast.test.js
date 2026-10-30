@@ -1,14 +1,15 @@
 // RF12 (docs/12_REFINE.md, point 4): "a small script computes contrast for
 // every `color:` declaration resolved against both themes' backgrounds and
 // fails below 4.5:1 for text under 18px." This checks exactly the family
-// of tokens RF12 itself is about -- --accent, --accent-text, --amber and
-// --miziki-orange (all four names the app has historically used for the
-// one orange color, per RF12 point 1's own wording: "Every text use of
-// --accent, --amber or --miziki-orange becomes --accent-text") -- plus any
-// hardcoded hex literal equal to one of those tokens' own values, since
-// that's exactly the kind of bypass-the-token bug point 1's grep-based
-// sweep could miss (and did: see 03-sleeve-pull.css's .heart-btn fix,
-// found by an early run of this very script).
+// of tokens RF12 itself is about -- --accent, --accent-text and --amber
+// (RF12 point 1's own wording: "Every text use of --accent, --amber or
+// --miziki-orange becomes --accent-text" -- --miziki-orange itself was
+// removed by FS1, docs/25_FROM_SCRATCH.md, which renamed every one of its
+// uses onto --amber) -- plus any hardcoded hex literal equal to one of
+// those tokens' own values, since that's exactly the kind of bypass-the-
+// token bug point 1's grep-based sweep could miss (and did: see
+// 03-sleeve-pull.css's .heart-btn fix, found by an early run of this very
+// script).
 //
 // It deliberately does NOT check every arbitrary `color:` declaration in
 // the stylesheets. Two reasons, both load-bearing: (1) --on-accent and
@@ -40,7 +41,7 @@ import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STYLES_DIR = path.join(__dirname, '..', '..', 'src', 'styles');
 
-const ACCENT_FAMILY_TOKENS = ['--accent', '--accent-text', '--amber', '--miziki-orange'];
+const ACCENT_FAMILY_TOKENS = ['--accent', '--accent-text', '--amber'];
 
 function stripComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -356,6 +357,33 @@ test('CR8: --amber-shade clears 4.5:1 against --sky2, in both themes', () => {
 // named in the README's figure list (it's a darker bridge tone, not a
 // fourth fill of its own), so it isn't checked here as a fourth
 // secondary -- it has no "light text on top of it" use site yet either.
+// FS1 (docs/25_FROM_SCRATCH.md, point 4): "extend the existing contrast
+// test to every new/changed token in both themes ... --danger >= 4.5 on
+// --popover, light --accent-text >= 4.5 on --sky1/--sky2/--stock-card."
+// The light --accent-text/--stock-card case is already covered by
+// theme.test.js's own TY1 test (stock-card's light value is unchanged by
+// FS1 -- only its *literal paper-slip* reading changed, to #FBF7EE, which
+// is lighter still and so only improves that ratio). --popover is dark-
+// only (light theme's popovers/menus still read --panel/--chrome), so
+// --danger is checked against --popover in dark and against both sky
+// stops in light, the same "whatever it actually sits on" pairing CR8's
+// own secondaries test below uses.
+test('FS1: --danger clears 4.5:1 against the surface it actually sits on, in both themes', () => {
+  const failures = [];
+  const dangerBg = { dark: ['--popover'], light: ['--sky1', '--sky2'] };
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue('var(--danger)', tokens));
+    assert.ok(fg, `${themeName}: --danger should resolve to a real color`);
+    for (const bgVar of dangerBg[themeName]) {
+      const bg = parseColor(resolveValue(`var(${bgVar})`, tokens));
+      assert.ok(bg, `${themeName}: ${bgVar} should resolve to a real color`);
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < 4.5) failures.push(`${themeName} --danger vs ${bgVar} — ratio ${ratio.toFixed(2)}:1`);
+    }
+  }
+  assert.deepEqual(failures, [], `--danger contrast failures:\n${failures.join('\n')}`);
+});
+
 test('CR8: secondaries clear 3:1 for the light text each theme would put on them', () => {
   const secondaries = ['--prussian', '--verdigris', '--puce', '--olive'];
   const TEXT_TOKEN = { dark: '--paper', light: '--cream' };

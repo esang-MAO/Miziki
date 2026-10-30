@@ -32,8 +32,8 @@
    everywhere, so --accent-text (the only other accent-derived token this
    file reads) is the only accent-family one that varies by theme at all. */
 .gf-right, .gf-face, .gf-flat-tracks{
-  --paper:#EFE9DF; --muted:#94A0A6; --line:rgba(239,233,223,.14);
-  --panel:rgba(10,14,18,.55); --accent-text:#FF9E2C;
+  --paper:#EFE9DF; --muted:#ABA298; --line:rgba(239,233,223,.14);
+  --panel:rgba(12,10,9,.55); --accent-text:#E9A24A;
 }
 /* TY3 (docs/22_TYPE.md): a button -- Archivo, sentence case. */
 .gf-back{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:6;
@@ -61,7 +61,7 @@
 .gf-side-head span{font-family:var(--body);color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
 .gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   min-height:44px;padding-block:9px;border-radius:4px}
-.gf-track-row:active{background:rgba(255,158,44,.14);transition:background .12s}
+.gf-track-row:active{background:var(--sel);transition:background .12s}
 /* TY3: the number/duration columns -- Archivo body, tabular figures. */
 .gf-track-row .gf-tn{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:20px;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .gf-track-row .gf-tt{flex:1;min-width:0;font-size:var(--fs-caption);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
