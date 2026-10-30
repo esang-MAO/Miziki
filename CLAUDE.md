@@ -138,6 +138,16 @@ Hierarchy by tone before size: in any list, title at `--paper`, secondary at `rg
 - **No second warm in the chrome.** The app's chrome (panels, chips, cards, dividers) gets exactly one warm color family at a time — amber in dark theme's existing surfaces, the stock/bin/plinth family in the crate.
 - **No mauve neutral, and no amber tricolour.** A neutral surface stays on the muted/warm-grey family, never drifts toward a mauve/purple read. No single screen uses amber for three distinct meanings at once (accent, a phase color, and a status) — a phase/status color comes from the secondaries (`--prussian`/`--verdigris`/`--puce`/`--olive`/`--olive-deep`), never a second use of amber.
 
+### How Miziki behaves
+
+These shape behavior, not copy: the reasons behind them are never surfaced to the user. On-screen wording stays plain and standard.
+
+- **Miziki never asks for attention.** No push notifications, badges on the app or tabs, streaks, reminders, "you haven't listened in a while" copy, or prompts to come back. Nothing announces a time of day. An unlock (a metal, a rare pressing, a zoetrope) is found where it lives — on the record, the sleeve, the profile — never pushed as a toast or popup. The app waits like a turntable in the corner.
+- **Endings are part of the music.** Never trim a run-out, a fade or the silence between sides, and never fill it with a suggestion. When playback stops, the screen holds the record or its sleeve — never an empty state, and never a "what to play next" prompt. A resting screen should look warm, not blank.
+- **One in, one out.** Every feature PR's description names what it removes, absorbs or simplifies. A feature that adds a control retires one where it can; if nothing goes, the description says why.
+- **Motion flows.** Prefer a continuous gesture (drag, spin, swipe) over a new button. Animations ease evenly with no bursts, and visible changes over time (sky, light, speed, tone) move in small steps — crossfade, never hard-cut.
+- **Less after dark.** As the evening goes on, the app shows less, never more: no new content is pushed after sunset, and an idle player sheds controls rather than adding them.
+
 ## Security
 
 - **Miziki makes no third-party requests at runtime, other than the user's own Supabase project, when one is configured.** Fonts, the social client library, and the app's own code are all bundled or self-hosted. **A future change that adds a new external host needs both a CSP update and a privacy note here saying what that host receives and when.**
