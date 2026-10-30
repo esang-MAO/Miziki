@@ -10,3 +10,5 @@ the live canvas is https://claude.ai/artifact/DPc8E7d27pXBbgjNmxK5c3.
 - `Pressings.dc.html` — expanded, Pressings: the pressing chart, then Colors, Effects, Metals.
 
 Counts and album names in the frames are placeholders in brackets.
+
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).

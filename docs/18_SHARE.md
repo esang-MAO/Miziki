@@ -66,6 +66,8 @@ Build after RF10 and RF20. SH1 (the sheet) first; SH2–SH6 in any order after i
 
 ## SH4: Pressings card (new)
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 > Read the README's SH3 board. New `src/share/pressings-card.js`, `composePressingsShareImage({style, format, data})`.
 >
 > 1. `data.records` = `Object.values(S.collection)` sorted by `discoveredAt` descending, **newest first**, gathered by the Records screen; `data.counts` = per-family counts (solids / effects / rare / zoetropes) from `collectionGroups()` extended for the 110 chart; `data.total` = the chart size from `tiers.js`.

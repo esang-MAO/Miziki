@@ -139,6 +139,8 @@ Build after RF9 and RF26 (the three-tab bar) and alongside Phase C; CR1 before C
 
 ## CR11: pressings between friends
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 > Read CLAUDE.md and the README first. Build after RF20 (records in common first) and CR7.
 >
 > 1. **Records in common** shows each copy's pressing under the sleeve: "Both Verdigris", or "Yours: Verdigris · Ken's: Jet". The friend's tier comes from `crate_items.quality_tier`, which `sync_crate` already stores; the pressing is derived locally from the shared album key, so no new column.

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pressings and Season share cards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0C10}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 1360px; height: 640px; box-sizing: border-box; background: #0B0C10; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #94A0A6">Today · Pressings card</span>
+    <div style="width: 300px; height: 533px; box-sizing: border-box; border-radius: 12px; background: #EFE9DF; color: #1A1410; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #5A4A3A">PRESSINGS</span>
+      <span style="font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 64px; line-height: 1">27 of 110</span>
+      <span style="font-size: 12px; line-height: 1.45; color: #5A4A3A">12 colors · 9 effects · 1 rare · 0 zoetropes</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px">
+        <sc-for list="{{discs}}" as="d" hint-placeholder-count="6">
+          <div aria-hidden="true" style="{{d}}"></div>
+        </sc-for>
+      </div>
+      <span style="margin-top: auto; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 20px">miziki</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #EFE9DF">Proposed · Pressings card</span>
+    <div style="width: 300px; height: 533px; box-sizing: border-box; border-radius: 12px; background: #EFE9DF; color: #1A1410; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #5A4A3A">PRESSINGS</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="22">
+          <span aria-hidden="true" style="{{c}}"></span>
+        </sc-for>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px">
+        <sc-for list="{{discs}}" as="d" hint-placeholder-count="6">
+          <div aria-hidden="true" style="{{d}}"></div>
+        </sc-for>
+      </div>
+      <span style="margin-top: auto; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 20px">miziki</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #94A0A6">Today · Season card</span>
+    <div style="width: 300px; height: 533px; box-sizing: border-box; border-radius: 12px; background: linear-gradient(180deg, #1E1828, #0D0B13); padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #94A0A6">THIS SEASON · LAST 90 DAYS</span>
+      <span style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05; text-transform: uppercase">Mostly a night listener</span>
+      <div aria-hidden="true" style="align-self: center; width: 130px; height: 130px; border-radius: 50%; background: conic-gradient(#8578AE 0 46%, #D99A5A 46% 64%, #E8B67A 64% 76%, #CBBD9C 76% 90%, #98C2CE 90% 100%); display: flex; align-items: center; justify-content: center"><div style="width: 92px; height: 92px; border-radius: 50%; background: #120E19; display: flex; flex-direction: column; align-items: center; justify-content: center"><b style="font-family: 'Antonio', sans-serif; font-size: 28px">412</b><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #94A0A6">PLAYS</span></div></div>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #94A0A6">METALS</span>
+      <div style="display: flex; gap: 10px">
+        <sc-for list="{{metalsNow}}" as="m" hint-placeholder-count="3">
+          <div aria-hidden="true" style="{{m.style}}"><b style="font-family: 'Antonio', sans-serif; font-size: 16px; color: #1A1410">{{m.n}}</b></div>
+        </sc-for>
+      </div>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #94A0A6">14 RECORDS PLAYED THROUGH</span>
+      <span style="margin-top: auto; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 20px">miziki</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #EFE9DF">Proposed · Season card</span>
+    <div style="width: 300px; height: 533px; box-sizing: border-box; border-radius: 12px; background: linear-gradient(180deg, #1E1828, #0D0B13); padding: 24px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #94A0A6">THIS SEASON · LAST 90 DAYS</span>
+      <span style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05; text-transform: uppercase">Mostly a night listener</span>
+      <div aria-hidden="true" style="align-self: center; width: 130px; height: 130px; border-radius: 50%; background: conic-gradient(#8578AE 0 46%, #D99A5A 46% 64%, #E8B67A 64% 76%, #CBBD9C 76% 90%, #98C2CE 90% 100%); display: flex; align-items: center; justify-content: center"><div style="width: 92px; height: 92px; border-radius: 50%; background: #120E19; display: flex; flex-direction: column; align-items: center; justify-content: center"><b style="font-family: 'Antonio', sans-serif; font-size: 28px">412</b><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #94A0A6">PLAYS</span></div></div>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; color: #94A0A6">MOST PLAYED THIS SEASON</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{topCovers}}" as="c" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div aria-hidden="true" style="{{c.style}}"></div>
+            <span style="font-size: 12px; line-height: 1.45; color: rgba(239,233,223,.85)">[Album]</span>
+          </div>
+        </sc-for>
+      </div>
+      <span style="margin-top: auto; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 20px">miziki</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hsl = (h, s, l) => 'hsl(' + Math.round(h) + ',' + s + '%,' + l + '%)';
+    const chips = [];
+    for (let i = 0; i < 12; i++) chips.push('display:inline-block;width:20px;height:20px;border-radius:4px;background:' + hsl((i * 137.5) % 360, 45, 42));
+    for (let i = 0; i < 9; i++) chips.push('display:inline-block;width:20px;height:20px;border-radius:4px;background:linear-gradient(135deg,' + hsl((i * 97) % 360, 50, 45) + ' 50%,' + hsl((i * 97 + 150) % 360, 45, 60) + ' 50%)');
+    chips.push('display:inline-block;width:20px;height:20px;border-radius:4px;background:radial-gradient(circle at 35% 30%, #F4F1EA, #B9C7CF 60%, #8FA3AE)');
+    const discs = [0, 1, 2, 3, 4, 5].map(i => 'aspect-ratio:1;border-radius:50%;background:radial-gradient(circle, #1A1410 0 8%, ' + hsl((i * 61) % 360, 45, 45) + ' 9% 30%, #15161B 31%);box-shadow:0 2px 6px rgba(0,0,0,.3)');
+    const metal = (bg, n) => ({ style: 'width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:' + bg, n: n });
+    const G = 'radial-gradient(circle at 35% 30%, #F8E39A, #C9A23A 60%, #8A6A18)';
+    const S = 'radial-gradient(circle at 35% 30%, #F2F2F0, #A9AEB2 60%, #6F757A)';
+    const B = 'radial-gradient(circle at 35% 30%, #E2A36B, #A4602E 60%, #6E3C1A)';
+    const metalsNow = [metal(G, '2'), metal(S, '3'), metal(B, '4')];
+    const metalsNew = [G, S, B].map(bg => 'width:44px;height:44px;border-radius:50%;background:' + bg);
+    const topCovers = ['linear-gradient(150deg,#2B5586,#132842)', 'linear-gradient(150deg,#5A3A4A,#241620)', 'linear-gradient(150deg,#3D5A3A,#1A2818)'].map(bg => ({ style: 'aspect-ratio:1;border-radius:2px;background:' + bg + ';box-shadow:0 2px 6px rgba(0,0,0,.4)' }));
+    return { chips, discs, metalsNow, metalsNew, topCovers };
+  }
+}
+</script>
+</body>
+</html>

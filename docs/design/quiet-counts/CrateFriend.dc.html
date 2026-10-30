@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A friend's crate stats and where followers live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0C10}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 820px; height: 460px; box-sizing: border-box; background: #0B0C10; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #94A0A6">Today · a friend's crate</span>
+    <div style="flex: 1; border-radius: 12px; background: linear-gradient(180deg, #1D2F38 0%, #101A20 60%); padding: 16px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: #4A3A2C"></div>
+        <span style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05">[friend]</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center">
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05">112</b><span style="font-size: 12px; color: #94A0A6">Records</span></div>
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05">6</b><span style="font-size: 12px; color: #94A0A6">Staff picks</span></div>
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05; color: #FF9E2C">9</b><span style="font-size: 12px; color: #FF9E2C">In common</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #EFE9DF">Proposed</span>
+    <div style="border-radius: 12px; background: linear-gradient(180deg, #1D2F38 0%, #101A20 60%); padding: 16px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: #4A3A2C"></div>
+        <span style="font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05">[friend]</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center">
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05">112</b><span style="font-size: 12px; color: #94A0A6">Records</span></div>
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05">6</b><span style="font-size: 12px; color: #94A0A6">Staff picks</span></div>
+        <div style="display: flex; flex-direction: column"><b style="font-family: 'Antonio', sans-serif; font-size: 28px; line-height: 1.05">9</b><span style="font-size: 12px; color: #94A0A6">In common</span></div>
+      </div>
+    </div>
+    <span style="margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #EFE9DF">Proposed · Profile › Settings › Account</span>
+    <div style="border-radius: 12px; background: #101A20; padding: 4px 16px; display: flex; flex-direction: column">
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; color: #EFE9DF; text-decoration: none; font-size: 16px; border-bottom: 1px solid rgba(239,233,223,.08)"><span>Followers</span><span style="color: #94A0A6">48 ›</span></a>
+      <a href="#" style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; color: #EFE9DF; text-decoration: none; font-size: 16px"><span>Following</span><span style="color: #94A0A6">31 ›</span></a>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":820,"height":460}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
