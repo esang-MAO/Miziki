@@ -95,7 +95,7 @@
    element is left empty and :empty hides it -- player/transport.js's
    load() is the one writer). */
 .format-chip{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
-  color:var(--accent-text);margin-top:2px}
+  color:var(--cream);margin-top:2px}
 .format-chip:empty{display:none}
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
   font-size:var(--fs-row);color:var(--muted);margin-bottom:var(--sp-1)}
@@ -106,7 +106,7 @@
    is a filled heart glyph under 24px, the same icon-as-text category
    .icon-btn's own color:var(--muted) already uses, so it gets the same
    --accent-text treatment as every other sub-24px text/glyph use. */
-.heart-btn[aria-pressed="true"]{color:var(--accent-text)}
+.heart-btn[aria-pressed="true"]{color:var(--cream)}
 .heart-btn.pop{animation:heartPop .35s ease}
 @keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
 

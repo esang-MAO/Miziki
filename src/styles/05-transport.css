@@ -4,5 +4,5 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .tbtn{width:44px;height:44px;border:1px solid var(--line);border-radius:50%;display:grid;place-content:center;
       font-size:var(--fs-body);background:rgba(255,255,255,.03)}
 .tbtn:active{background:rgba(255,255,255,.09)}
-.play{width:60px;height:60px;border-color:var(--accent);color:var(--accent-text);font-size:var(--fs-title);transition:color .5s,border-color .5s}
+.play{width:60px;height:60px;border-color:var(--cream);color:var(--cream);font-size:var(--fs-title);transition:color .5s,border-color .5s}
 

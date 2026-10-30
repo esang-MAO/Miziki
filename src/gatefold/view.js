@@ -153,7 +153,7 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
 // crate underneath isn't left showing a stale position when it reopens
 function gatefoldCreditLink(name){
   const b = el('button','', name);
-  b.style.color = 'var(--accent)'; b.style.textDecoration = 'underline';
+  b.style.color = 'var(--cream)'; b.style.textDecoration = 'underline';
   b.addEventListener('click', () => { forceCloseLayer('gatefold'); openPersonOrArtist(name); });
   return b;
 }

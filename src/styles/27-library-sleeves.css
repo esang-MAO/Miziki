@@ -29,7 +29,7 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .letter-rail-item{position:absolute;right:0;background:none;border:none;cursor:pointer;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;color:var(--muted);
   padding:1px 2px}
-.letter-rail-item.letter-rail-current{color:var(--accent-text);font-weight:500}
+.letter-rail-item.letter-rail-current{color:var(--cream);font-weight:600}
 .letter-rail-item.letter-rail-dim{opacity:.28}
 .letter-rail-item:disabled{pointer-events:none}
 
@@ -123,7 +123,7 @@ li.letter-head{list-style:none;padding:6px 0 4px}
   text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:var(--radius-control);
   padding:2px var(--sp-1)}
 .connected-buy{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-family:var(--body);
-  font-size:var(--fs-body);font-weight:500;color:var(--accent-text);text-decoration:none}
+  font-size:var(--fs-body);font-weight:500;color:var(--cream);text-decoration:none}
 
 /* ---- Playlists: a 2x2 grid of compilation sleeves ---- */
 .playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) 0}
@@ -140,7 +140,7 @@ li.letter-head{list-style:none;padding:6px 0 4px}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pl-strip em{font-style:normal;font-family:var(--data);font-size:8px;letter-spacing:.08em;
   text-transform:uppercase;color:#2A1B38;opacity:.7}
-.playlist-tile.is-fav .pl-strip b::before{content:'♥ ';color:var(--accent-text)}
+.playlist-tile.is-fav .pl-strip b::before{content:'♥ ';color:var(--cream)}
 .playlist-tile-empty{grid-column:1/-1}
 .playlist-tile-empty .pl-covers{background:var(--raised);display:flex;align-items:center;
   justify-content:center;font-size:var(--fs-display);color:var(--muted)}

@@ -4,5 +4,5 @@
 .legal-list{margin:0 0 14px;padding-left:18px}
 .legal-list li{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin-top:6px}
 .legal-links{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:10px}
-.link-btn{background:none;border:0;padding:0;color:var(--accent-text);font-size:var(--fs-caption);
+.link-btn{background:none;border:0;padding:0;color:var(--cream);font-size:var(--fs-caption);
   font-family:var(--body);text-decoration:underline;text-underline-offset:2px}

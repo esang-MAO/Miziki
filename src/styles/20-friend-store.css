@@ -18,8 +18,8 @@
 .social-nav-body{flex:1;overflow-y:auto;padding:var(--sp-1) 20px calc(var(--sp-5) + env(safe-area-inset-bottom));box-sizing:border-box}
 
 .store-follow-row{display:flex;align-items:center;gap:10px;margin-top:var(--sp-4)}
-.store-follow-btn{min-height:44px;padding:0 22px;border-radius:22px;border:1.5px solid var(--accent);
-  color:var(--accent-text);background:none;font-size:var(--fs-caption);font-weight:600}
+.store-follow-btn{min-height:44px;padding:0 22px;border-radius:22px;border:1.5px solid var(--cream);
+  color:var(--cream);background:none;font-size:var(--fs-caption);font-weight:600}
 .store-follow-btn.following{border-color:var(--line);color:var(--paper)}
 .store-follow-btn.pending{border-color:var(--line);color:var(--muted)}
 .store-share-icon{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--line);
@@ -27,7 +27,7 @@
 
 .store-locked-card{margin-top:26px;background:var(--panel);border:1.5px dashed var(--line);
   border-radius:14px;padding:var(--sp-5) 20px;text-align:center}
-.store-locked-card h3{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.04em;margin:0 0 var(--sp-2);color:var(--accent-text)}
+.store-locked-card h3{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.04em;margin:0 0 var(--sp-2);color:var(--cream)}
 .store-locked-card p{font-size:var(--fs-caption);color:var(--muted);line-height:1.5;margin:0}
 .store-locked-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
 .store-locked-slot{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--line);background:var(--panel)}
@@ -35,14 +35,14 @@
 
 .store-picks-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
 .store-picks-dots span{width:6px;height:6px;border-radius:3px;background:var(--line);display:block;transition:width .15s,background .15s}
-.store-picks-dots span.on{background:var(--accent);width:16px}
+.store-picks-dots span.on{background:var(--cream);width:16px}
 
 .store-fresh-row{display:flex;align-items:center;gap:var(--sp-3);padding:11px 0;border-bottom:1px solid var(--line)}
 .store-fresh-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-fresh-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-fresh-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
-.store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--accent);
-  color:var(--accent-text);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:var(--fs-title)}
+.store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--cream);
+  color:var(--cream);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:var(--fs-title)}
 .store-fresh-add.added{border-color:var(--line);color:var(--muted)}
 
 .store-spin-ago{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);flex:none}
@@ -65,7 +65,7 @@
 .record-artist{font-size:var(--fs-body);color:var(--muted);margin:0 0 var(--sp-3)}
 .record-chips{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-4)}
 .record-chip{padding:5px 11px;border-radius:10px;background:var(--panel);font-family:var(--data);
-  font-size:var(--fs-micro);letter-spacing:.04em;color:var(--accent-text)}
+  font-size:var(--fs-micro);letter-spacing:.04em;color:var(--cream)}
 .record-rating-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);margin:0 0 6px}
 .record-stars{font-size:var(--fs-row);letter-spacing:2px;color:#B8641A;margin-bottom:var(--sp-2)}
@@ -98,8 +98,8 @@
 .share-canvas-wrap{width:100%;border-radius:6px;overflow:hidden;background:#000;margin:14px 0}
 .share-canvas-wrap canvas{width:100%;height:auto;display:block}
 .share-toggles{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin:var(--sp-1) 0 14px}
-.share-toggles button[aria-pressed="true"]{border-color:var(--accent);color:var(--paper);
-  background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.share-toggles button[aria-pressed="true"]{border-color:var(--cream);color:var(--paper);
+  background:color-mix(in srgb,var(--cream) 12%,transparent)}
 
 .share-section-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);margin:14px 0 var(--sp-2)}
@@ -108,12 +108,12 @@
   color:var(--muted);font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em}
 .share-style-swatch{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);display:block}
 .share-style-chip[aria-pressed="true"]{color:var(--paper)}
-.share-style-chip[aria-pressed="true"] .share-style-swatch{box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.15)}
+.share-style-chip[aria-pressed="true"] .share-style-swatch{box-shadow:0 0 0 2px var(--cream),inset 0 0 0 1px rgba(255,255,255,.15)}
 .share-style-swatch.style-night{background:linear-gradient(160deg,#1D2F38,#07080C)}
 .share-style-swatch.style-cover{background:linear-gradient(160deg,#C77B3C,#4A1E12)}
 .share-style-swatch.style-paper{background:#EDE6D6}
 .share-primary{display:block;width:100%;box-sizing:border-box;text-align:center;margin-top:14px;
-  background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  background:color-mix(in srgb,var(--cream) 14%,transparent)}
 /* RF10 (docs/12_REFINE.md): flex, not a fixed-column grid -- Copy and
    More options each show/hide independently (canCopyImages(), the
    disclosure's own open state has no bearing on this row at all), so the
@@ -122,5 +122,5 @@
 .share-actions-row{display:flex;gap:var(--sp-2);margin-top:var(--sp-2)}
 .share-actions-row .cta{flex:1;text-align:center;box-sizing:border-box}
 
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

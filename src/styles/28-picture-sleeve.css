@@ -28,15 +28,15 @@
 .picture-sleeve-artist{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .picture-sleeve-title{font-family:var(--display);font-size:var(--fs-title);font-weight:700;margin:2px 0}
 .picture-sleeve-chip{display:inline-block;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
-  color:var(--accent-text);border:1px solid var(--accent);border-radius:3px;padding:2px var(--sp-2);margin-top:4px}
+  color:var(--cream);border:1px solid var(--cream);border-radius:3px;padding:2px var(--sp-2);margin-top:4px}
 .picture-sleeve-chip:empty{display:none}
 .picture-sleeve-body{outline:none}
 .picture-sleeve-play{width:100%;display:flex;align-items:center;gap:var(--sp-3);
   background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);
   padding:var(--sp-3);margin-bottom:var(--sp-4);color:var(--paper);text-align:left}
 .picture-sleeve-play-glyph{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:var(--fs-caption)}
-.picture-sleeve-now .picture-sleeve-play-glyph{background:none;color:var(--accent-text)}
+  border-radius:50%;background:var(--cream);color:var(--on-accent);font-size:var(--fs-caption)}
+.picture-sleeve-now .picture-sleeve-play-glyph{background:none;color:var(--cream)}
 .picture-sleeve-play-text{flex:1;min-width:0;display:flex;justify-content:space-between;gap:var(--sp-2)}
 .picture-sleeve-play-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .picture-sleeve-play-dur{flex:0 0 auto;color:var(--muted);font-family:var(--body);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}

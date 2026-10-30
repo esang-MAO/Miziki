@@ -31,7 +31,7 @@
    own bottom offset no longer needs to clear the strip and shrank from
    26px (22px strip height + 4px gap) to a plain 8px inset. */
 .seal-date-tag{position:absolute;left:4%;bottom:8px;max-width:72%;
-  background:#F2E8D2;border-left:2px solid var(--amber);
+  background:#F2E8D2;border-left:2px solid var(--cream);
   color:#2A1B38;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
   padding:2px var(--sp-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* point 2, "the tear strip": top 22px (moved up from the bottom edge
@@ -69,8 +69,8 @@
 .seal-wrap.seal-lifting{transition:transform .42s ease-in,opacity .42s ease-in;
   transform:translateY(-100%);opacity:0}
 .seal-wrap.seal-fading{transition:opacity .15s;opacity:0}
-.new-tag{display:inline-block;color:var(--accent-text);font-family:var(--data);font-size:var(--fs-micro);
-  letter-spacing:.1em;border:1px solid var(--accent);border-radius:3px;padding:1px var(--sp-1);margin-left:6px;vertical-align:1px}
+.new-tag{display:inline-block;color:var(--cream);font-family:var(--data);font-size:var(--fs-micro);
+  letter-spacing:.1em;border:1px solid var(--cream);border-radius:3px;padding:1px var(--sp-1);margin-left:6px;vertical-align:1px}
 
 /* the sealed sheet (SEALED spec §5): the gatefold's tracklist panel, same
    rows/order/handlers, no swing, no camera, no left panel, no inner sleeve */
@@ -108,7 +108,7 @@
   display:flex;align-items:center;justify-content:center;gap:var(--sp-3)}
 /* docs/15_SURFACE_NOISE.md §2 accessibility: peel without the drag */
 .seal-sheet-open-btn{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
-  color:var(--accent-text);background:none;border:1px solid var(--accent);border-radius:3px;
+  color:var(--cream);background:none;border:1px solid var(--cream);border-radius:3px;
   padding:3px var(--sp-2);flex:0 0 auto}
 
 /* ================= shrink-wrap peel (docs/15_SURFACE_NOISE.md §2) =================
