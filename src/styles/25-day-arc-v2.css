@@ -41,6 +41,16 @@
   background:conic-gradient(from 180deg at 50% 50%, var(--sky2), var(--sky1), var(--sky2));
   filter:drop-shadow(0 0 10px color-mix(in srgb, var(--amber) 18%, transparent));
 }
+/* RW1 (docs/23_RHYTHM_AND_WEAR.md): the rising-leg overlay sits exactly
+   over the ring (same inset, same mask-by-layering-the-disc-on-top, which
+   it still gets since it comes before the disc in markup, same as the
+   ring itself), with its own background painted by dial-view.js's
+   risingArcGradient() — 'none' outside the rising trend, so it's
+   invisible with nothing extra to toggle. */
+.day-dial-rising-arc{
+  filter:drop-shadow(0 0 6px color-mix(in srgb, var(--amber) 45%, transparent));
+}
+
 /* The ring is masked to its outer 17% by layering the disc (83% of the
    dial's size) on top, rather than a CSS mask — simpler, and works the
    same in every browser this app supports (CLAUDE.md's own "Android and
@@ -116,7 +126,22 @@
 
 /* RF9 (docs/12_REFINE.md) removed the three reading cards (Platter/Sound/
    Sky, PR 4) that used to sit here outright -- the dial above is already
-   the one preview. */
+   the one preview. RW1 (docs/23_RHYTHM_AND_WEAR.md) brings back exactly
+   one, scoped to the Night phase's own rising story -- not a revival of
+   the other two, which stay cut. */
+.sd-night-card{
+  display:flex; flex-direction:column; gap:6px;
+  padding:var(--sp-3) var(--sp-4); border-radius:var(--radius-card);
+  background:var(--panel); margin-bottom:var(--sp-3);
+}
+.sd-night-card[hidden]{ display:none; }
+.sd-night-card-head{ display:flex; align-items:baseline; justify-content:space-between; }
+.sd-night-card-head h3{
+  margin:0; font-family:var(--display); font-weight:600; font-size:var(--fs-hero); line-height:var(--lh-hero);
+  letter-spacing:var(--track-display); text-transform:uppercase; color:var(--paper);
+}
+.sd-night-card-head span{ font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em; color:var(--paper); }
+.sd-night-card p{ margin:0; font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:color-mix(in srgb, var(--paper) 85%, transparent); }
 
 /* §4.2 item 4 (PR 5): the hint row + NOW button. */
 .sd-hint-row{

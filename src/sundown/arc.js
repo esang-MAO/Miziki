@@ -2,8 +2,9 @@
    Pure functions, no DOM, no S import — same "testable without a browser"
    shape as sundown/solar.js / day.js themselves. This module implements
    the brief's own day model: a 4-phase label (phaseAt), the platter-rate
-   curve with the new fixed-window recovery leg (rateAt/trendAt), the
-   tone-drift warmth scalar (warmthAt), and the sky palette lookups
+   curve with its recovery leg (rateAt/trendAt — starting at solar
+   midnight since RW1, docs/23_RHYTHM_AND_WEAR.md), the tone-drift warmth
+   scalar (warmthAt), and the sky palette lookups
    (skyBackgroundStops/skyRingStops) — all as pure functions of
    (time, sun, settings), per the brief's own §3.3 rule ("no stored ramp
    state").
@@ -30,11 +31,19 @@ const MIN = 60000;
 const HOUR = 60 * MIN;
 const DAY_MS = 24 * HOUR;
 
-// §3.3: "Default RECOVERY_WINDOW = 2h. Make it a named constant so it can
-// be tuned by ear (try 90 min to 3 h)." Not user-facing yet (§7).
-export const RECOVERY_WINDOW_MS = 2 * HOUR;
+// RW1 (docs/23_RHYTHM_AND_WEAR.md): the recovery leg now starts at solar
+// midnight, not a fixed window before sunrise. This fallback window is
+// what a too-short night (solar midnight falling after sunrise, or less
+// than 2h before it — far north in summer) falls back to instead, kept at
+// the same 2h the old fixed-window leg always used.
+const FALLBACK_RECOVERY_WINDOW_MS = 2 * HOUR;
 
 const smooth = p => p * p * (3 - 2 * p);
+// RW1's own easing for the recovery leg: p⁴, p = 0 -> 1 across the span
+// from solar midnight to sunrise — deliberately slower to leave than
+// smooth()'s ease-in-out, so the rise stays inaudible for longer before
+// sunrise finally pulls it the rest of the way up.
+const quartic = p => { const c = clamp(p, 0, 1); return c * c * c * c; };
 // Mirrors solar.js's own pace() exactly (Window spreads evenly; Moment
 // holds back then moves near the end) — the down-leg keeps using this,
 // per the brief's "do not rewrite the existing down-leg, replace with
@@ -70,7 +79,33 @@ export function phaseAt(now, sun) {
 
 /* ---------------- 3.3 Platter speed ---------------- */
 
-// rateInfoAt(now, sun, settings) -> { rate, trend }. settings:
+// solarMidnightBefore(noon) -> the solar-midnight timestamp preceding the
+// coming sunrise, or null with no usable sun.noon. `noon`, for a pre-dawn
+// `now`, is already the *coming* day's solar noon (hours after the
+// sunrise it precedes) — the same nearest-transit property this module's
+// header comment relies on elsewhere — so noon minus 12h lands this
+// morning, before that sunrise, not yesterday's.
+function solarMidnightBefore(noon) {
+  return noon ? noon.getTime() - 12 * HOUR : null;
+}
+
+// RW1 (docs/23_RHYTHM_AND_WEAR.md): where the recovery leg starts — solar
+// midnight when there's a real span to rise across, else the old fixed
+// 2h-before-sunrise fallback (solar midnight falling after sunrise, or
+// less than 2h before it — far north in summer, or no sun.noon at all).
+function recoveryStartAt(riseT, noon) {
+  const solarMidnight = solarMidnightBefore(noon);
+  if (solarMidnight !== null && solarMidnight < riseT && riseT - solarMidnight >= FALLBACK_RECOVERY_WINDOW_MS) {
+    return solarMidnight;
+  }
+  return riseT - FALLBACK_RECOVERY_WINDOW_MS;
+}
+
+// rateInfoAt(now, sun, settings) -> { rate, trend, recoveryStart }.
+// recoveryStart (a timestamp, or null outside the pre-sunrise half of the
+// night) is where the recovery leg starts — solar midnight in the normal
+// case — exposed so dial-view.js can draw the "rising" ring arc from the
+// same boundary this function itself used. settings:
 //   mode: S.mode ('pure' wins over everything, rate 1, no recovery)
 //   auto: S.auto (false = manual speed override; brief: wins over
 //         everything the same way Pure does — the day-arc curve itself
@@ -79,15 +114,14 @@ export function phaseAt(now, sun) {
 //   target: the floor (S.target)
 //   paceMode: S.pace ('window' | 'moment'), applied to the down-leg only —
 //         unchanged shape from solar.js's own easedProgress()/pace()
-//   recoveryWindowMs: defaults to RECOVERY_WINDOW_MS
 //
 // Down-leg (sunset -> dusk) and the post-dusk hold keep their existing
-// behavior/shape; the recovery leg (riseT - recoveryWindowMs -> riseT)
-// is §3.3's addition.
+// behavior/shape; the recovery leg (recoveryStartAt(...) -> riseT) is
+// RW1's own addition, replacing §3.3's original fixed 2h window.
 export function rateInfoAt(now, sun, settings = {}) {
-  const { mode, auto, target = 1, paceMode = 'window', recoveryWindowMs = RECOVERY_WINDOW_MS } = settings;
-  if (mode === 'pure') return { rate: 1, trend: 'full' };
-  if (auto === false) return { rate: 1, trend: 'full' };
+  const { mode, auto, target = 1, paceMode = 'window' } = settings;
+  if (mode === 'pure') return { rate: 1, trend: 'full', recoveryStart: null };
+  if (auto === false) return { rate: 1, trend: 'full', recoveryStart: null };
   // sun.rise is checked separately below (not here): a sun object with
   // only set/dusk known (no usable sunrise — the brief's own "polar
   // day/night, no location" case, or a legacy/partial fixture) still
@@ -95,7 +129,7 @@ export function rateInfoAt(now, sun, settings = {}) {
   // never recovers, since there's no sunrise to recover toward. This
   // mirrors day.js's own "legacy/partial data" fallback for exactly the
   // same reason (see that file's own comment on the shape).
-  if (!sun || !sun.set || !sun.dusk) return { rate: 1, trend: 'full' };
+  if (!sun || !sun.set || !sun.dusk) return { rate: 1, trend: 'full', recoveryStart: null };
 
   const t = now.getTime();
   const setT = sun.set.getTime(), duskT = sun.dusk.getTime();
@@ -109,22 +143,27 @@ export function rateInfoAt(now, sun, settings = {}) {
   // transit's own* evening — still hours in the future, not the dusk that
   // actually preceded this stretch of night).
   if (riseT !== null && t < riseT) {
-    const recoveryStart = riseT - recoveryWindowMs;
+    const recoveryStart = recoveryStartAt(riseT, sun.noon);
     if (t >= recoveryStart) {
-      const p = smooth(clamp((t - recoveryStart) / (recoveryWindowMs || 1), 0, 1));
-      return { rate: clamp(target + (1 - target) * p, lo, hi), trend: 'rising' };
+      const p = quartic((t - recoveryStart) / (riseT - recoveryStart || 1));
+      return { rate: clamp(target + (1 - target) * p, lo, hi), trend: 'rising', recoveryStart };
     }
-    return { rate: clamp(target, lo, hi), trend: 'floor' };
+    return { rate: clamp(target, lo, hi), trend: 'floor', recoveryStart };
   }
-  if (t < setT) return { rate: 1, trend: 'full' };
+  if (t < setT) return { rate: 1, trend: 'full', recoveryStart: null };
   if (t < duskT) {
     const p = pace((t - setT) / (duskT - setT || 1), paceMode);
-    return { rate: clamp(1 + (target - 1) * p, lo, hi), trend: 'down' };
+    return { rate: clamp(1 + (target - 1) * p, lo, hi), trend: 'down', recoveryStart: null };
   }
   // t >= duskT, and we already know t >= riseT (the first branch would
   // otherwise have matched) — the ordinary post-dusk hold, continuing
   // until the (stale-from-here, genuinely upcoming-elsewhere) riseT.
-  return { rate: clamp(target, lo, hi), trend: 'floor' };
+  // recoveryStart is null here too: this stretch (dusk tonight -> the
+  // riseT that names *this transit's own* morning, still hours off) isn't
+  // the pre-sunrise half the recovery leg actually belongs to — that one
+  // only ever matches the `t < riseT` branch above, on a later call once
+  // `now` has moved past midnight.
+  return { rate: clamp(target, lo, hi), trend: 'floor', recoveryStart: null };
 }
 
 export function rateAt(now, sun, settings = {}) {

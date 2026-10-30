@@ -441,6 +441,10 @@
              itself (S.previewMin) is unbounded across multiple turns -->
         <div class="day-dial" id="dayDial" role="slider" tabindex="0" aria-label="Preview the day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0" aria-valuetext="Live">
           <div class="day-dial-ring" id="dayDialRing" aria-hidden="true"></div>
+          <!-- RW1 (docs/23_RHYTHM_AND_WEAR.md): a thin amber arc from solar
+               midnight to now, shown only while the platter is rising
+               (dial-view.js's risingArcGradient(), driven by st.risingArc). -->
+          <div class="day-dial-ring day-dial-rising-arc" id="dayDialRisingArc" aria-hidden="true"></div>
           <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
           <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
           <div class="day-dial-hourlabel day-dial-hourlabel-bottom" aria-hidden="true">12A</div>
@@ -461,6 +465,18 @@
         <span id="sdSunrise">SUNRISE —</span>
         <em id="sdNextEvent">—</em>
         <span id="sdSunset">SUNSET —</span>
+      </div>
+
+      <!-- RW1 (docs/23_RHYTHM_AND_WEAR.md): the one reading card the Night
+           phase gets back — phase word, trend·rate, and the copy on what
+           the rising leg is doing. Hidden outside 'night' (dial-view.js
+           toggles [hidden] from st.nightCard). -->
+      <div class="sd-night-card" id="sdNightCard" hidden>
+        <div class="sd-night-card-head">
+          <h3 id="sdNightCardTitle">Night</h3>
+          <span id="sdNightCardTrendRate">—</span>
+        </div>
+        <p id="sdNightCardBody"></p>
       </div>
 
       <!-- hint row + NOW button; dial-gesture.js wires the button
