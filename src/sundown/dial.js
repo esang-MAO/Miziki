@@ -6,7 +6,7 @@
    DOM-painting module (dial-view.js) only ever reads this object, it
    never recomputes any of the day-model math itself. */
 import { clamp } from '../util/math.js';
-import { phaseAt, rateAt, trendAt, warmthAt, toneWordAt, skyPaletteNameAt, skyPhaseAt, skyBackgroundStops, skyRingStops, driftOffsetsAt, DRIFT_SCALE } from './arc.js';
+import { phaseAt, rateInfoAt, trendAt, warmthAt, toneWordAt, skyPaletteNameAt, skyPhaseAt, skyBackgroundStops, skyRingStops, driftOffsetsAt, DRIFT_SCALE } from './arc.js';
 
 const MIN = 60000;
 const DAY_MIN = 1440;
@@ -40,6 +40,15 @@ export function angleDeltaMinutes(a, b) {
   while (d > 180) d -= 360;
   while (d < -180) d += 360;
   return d * (DAY_MIN / 360);
+}
+
+// formatRate(0.8) -> '0.80×', formatRate(0.8286) -> '0.829×' — three
+// decimals, trimmed to two when the third is a trailing zero (the "round
+// floor" case), matching the design frames' own "0.80×"/"0.805×" copy.
+function formatRate(rate) {
+  let s = rate.toFixed(3);
+  if (s.endsWith('0')) s = s.slice(0, -1);
+  return s + '×';
 }
 
 const fmtClock = date => {
@@ -84,19 +93,51 @@ export function nextEventText(now, sun) {
   return { label: toSunrise ? 'SUNRISE' : 'SUNSET', text: 'IN ' + text };
 }
 
+// RW1's own night card (docs/23_RHYTHM_AND_WEAR.md, frames Main/Stirring):
+// shown only in the 'night' phase, title the phase word, body picked by
+// trend ('floor' before solar midnight, 'rising' from then on — the only
+// two trends rateInfoAt ever reports while phaseAt reads 'night').
+// Returns null outside 'night', same "nothing to paint" shape every other
+// optional field on this object already uses.
+function nightCardAt(phase, info, sun) {
+  if (phase !== 'night') return null;
+  const body = info.trend === 'rising'
+    ? 'Rising slowly since midnight. Back to full speed at sunrise' + (sun && sun.rise ? ', ' + fmtShortestClock(sun.rise) : '') + '.'
+    : "Settled for the night. After midnight the platter starts rising, slowly enough that you won't notice until near sunrise.";
+  return { trendRate: TREND_RATE_LABEL[info.trend] + ' · ' + formatRate(info.rate), body };
+}
+
+const TREND_RATE_LABEL = { floor: 'Slowest', rising: 'Rising' };
+
+// fmtShortestClock(date) -> '7:34' — no am/pm suffix, for the night
+// card's own "sunrise, 7:34." copy (fmtShortClock's trailing A/P reads
+// wrong mid-sentence there).
+const fmtShortestClock = date => {
+  const h24 = date.getHours(), m = date.getMinutes();
+  const h12 = h24 % 12 || 12;
+  return h12 + ':' + String(m).padStart(2, '0');
+};
+
 // dialStateAt(now, sun, settings) -> everything dial-view.js's
 // renderDialView() needs to paint, in one call. `settings` is the same
-// {mode, auto, target, paceMode, recoveryWindowMs} shape rateInfoAt/
-// driftOffsetsAt already take.
+// {mode, auto, target, paceMode} shape rateInfoAt/driftOffsetsAt already
+// take.
 export function dialStateAt(now, sun, settings = {}) {
   const phase = phaseAt(now, sun);
-  const rate = rateAt(now, sun, settings);
+  const info = rateInfoAt(now, sun, settings);
+  const rate = info.rate;
   const trend = trendAt(now, sun, settings);
   const tone = toneWordAt(now, sun);
   const paletteName = skyPaletteNameAt(now, sun, settings);
   const skyPhase = skyPhaseAt(now, sun, settings);
   const { big, ampm } = fmtClock(now);
   const nextEvent = nextEventText(now, sun);
+  // RW1: while rising, a thin amber arc on the ring from solar midnight
+  // (info.recoveryStart) to the current marker angle — null the rest of
+  // the time, same "nothing to paint" shape as sunriseAngleDeg/etc.
+  const risingArc = info.trend === 'rising' && info.recoveryStart != null
+    ? { fromDeg: angleDegAt(new Date(info.recoveryStart)), toDeg: angleDegAt(now) }
+    : null;
   return {
     phase, phaseLabel: phase.toUpperCase(),
     timeBig: big, timeAmPm: ampm,
@@ -110,6 +151,8 @@ export function dialStateAt(now, sun, settings = {}) {
     sunriseAngleDeg: sun && sun.rise ? angleDegAt(sun.rise) : null,
     sunsetAngleDeg: sun && sun.set ? angleDegAt(sun.set) : null,
     warmth: warmthAt(now, sun),
+    nightCard: nightCardAt(phase, info, sun),
+    risingArc,
     // §4.4's own accessibility example verbatim ("5:58 PM, dusk") — a
     // slider's aria-valuenow is conventionally a plain number, so this
     // uses minutes-of-day (0..1439, wrapping every real day) rather than

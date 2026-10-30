@@ -124,9 +124,41 @@ function conicGradientFromRingStops(stops) {
   return 'conic-gradient(from 180deg at 50% 50%, ' + parts.join(', ') + ')';
 }
 
+// RW1 (docs/23_RHYTHM_AND_WEAR.md): the thin amber arc that overlays the
+// ring from solar midnight to now while the platter is rising —
+// st.risingArc is null the rest of the time (dial.js), which just clears
+// this layer back to transparent.
+function risingArcGradient(arc) {
+  if (!arc) return 'none';
+  // `from 180deg` matches conicGradientFromRingStops()'s own rotation, so
+  // the arc lines up with the ring beneath it at the same angle.
+  const from = ((arc.fromDeg % 360) + 360) % 360, to = ((arc.toDeg % 360) + 360) % 360;
+  // angleDegAt() only ever moves forward through the night (it never
+  // wraps backward across this short a span), but a wrapped pair
+  // (fromDeg just before 360, toDeg just after 0) still needs its `to`
+  // pushed a full turn ahead so the gradient sweeps the short, correct
+  // way instead of the long way around.
+  const toAdj = to < from ? to + 360 : to;
+  return 'conic-gradient(from 180deg at 50% 50%, transparent ' + from.toFixed(2) + 'deg, var(--amber) ' + from.toFixed(2) + 'deg, var(--amber) ' + toAdj.toFixed(2) + 'deg, transparent ' + toAdj.toFixed(2) + 'deg)';
+}
+
 function paintDayView(dial, st) {
   const ring = $('#dayDialRing');
   if (ring) ring.style.background = conicGradientFromRingStops(st.ringStops) || '';
+
+  const risingArc = $('#dayDialRisingArc');
+  if (risingArc) risingArc.style.background = risingArcGradient(st.risingArc);
+
+  const nightCard = $('#sdNightCard');
+  if (nightCard) {
+    nightCard.hidden = !st.nightCard;
+    if (st.nightCard) {
+      const title = $('#sdNightCardTitle'), trendRate = $('#sdNightCardTrendRate'), body = $('#sdNightCardBody');
+      if (title) title.textContent = st.phaseLabel;
+      if (trendRate) trendRate.textContent = st.nightCard.trendRate;
+      if (body) body.textContent = st.nightCard.body;
+    }
+  }
 
   updateSkyBackground(st.skyPhase, st.skyStops);
 

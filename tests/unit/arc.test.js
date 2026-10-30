@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents } from '../../src/sundown/day.js';
-import { phaseAt, rateAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, toneWordAt, skyPaletteNameAt, skyRingStops, RECOVERY_WINDOW_MS } from '../../src/sundown/arc.js';
+import { phaseAt, rateAt, rateInfoAt, trendAt, warmthAt, driftOffsetsAt, effectiveCharAt, toneWordAt, skyPaletteNameAt, skyRingStops } from '../../src/sundown/arc.js';
 
 // src/sundown/arc.js has no DOM/`S`-mutating top level (same precedent as
 // day.test.js/solar.test.js) — no mocking needed.
@@ -19,33 +19,67 @@ const SUN = dayEvents(DATE, COLUMBIA.lat, COLUMBIA.lon);
 
 const settings = (over = {}) => ({ mode: 'vinyl', auto: true, target: 0.85, paceMode: 'window', ...over });
 
-test('rateAt: recovery leg — floor at sunrise-3h and sunrise-2h, rising and ~midway at sunrise-1h, 1.0 at sunrise, 1.0 at noon', () => {
-  const rise = SUN.rise.getTime();
-  const s = settings({ recoveryWindowMs: RECOVERY_WINDOW_MS });
-  const at = (ms) => rateAt(new Date(rise + ms), SUN, s);
+// RW1 (docs/23_RHYTHM_AND_WEAR.md): solar midnight is sun.noon - 12h — for
+// this fixture's pre-dawn `now`, sun.noon is already the coming day's
+// noon (the module's own nearest-transit property), so this lands this
+// morning, before sunrise, not yesterday's.
+const SOLAR_MIDNIGHT = SUN.noon.getTime() - 12 * 3600000;
 
-  assert.equal(at(-3 * 3600000), 0.85, 'sunrise-3h is at the floor');
-  assert.equal(at(-2 * 3600000), 0.85, 'sunrise-2h (recovery start) is still at the floor');
-  const mid = at(-1 * 3600000);
-  assert.ok(mid > 0.85 && mid < 1, 'sunrise-1h is rising, strictly between floor and 1.0');
-  assert.ok(Math.abs(mid - (0.85 + (1 - 0.85) * 0.5)) < 1e-9, 'sunrise-1h is exactly the smoothstep midpoint value');
-  assert.equal(rateAt(SUN.rise, SUN, s), 1, 'rate is exactly 1.0 at sunrise');
-  assert.equal(rateAt(SUN.noon, SUN, s), 1, 'rate is 1.0 at solar noon');
-});
-
-test('rateAt: continuous at the hold->recovery and recovery->day joins (no jump)', () => {
+test('rateInfoAt: recovery leg starts exactly at solar midnight, eased p^4, full speed at sunrise', () => {
   const rise = SUN.rise.getTime();
   const s = settings();
-  const recoveryStart = rise - RECOVERY_WINDOW_MS;
-  const eps = 1; // 1ms either side of each join
+  // sanity: this fixture has a real span to rise across, not the
+  // short-night fallback case (that's its own test below).
+  assert.ok(SOLAR_MIDNIGHT < rise && rise - SOLAR_MIDNIGHT >= 2 * 3600000);
 
-  const beforeJoin1 = rateAt(new Date(recoveryStart - eps), SUN, s);
-  const afterJoin1 = rateAt(new Date(recoveryStart + eps), SUN, s);
-  assert.ok(Math.abs(beforeJoin1 - afterJoin1) < 1e-6, 'hold->recovery join has no jump');
+  assert.equal(rateAt(new Date(SOLAR_MIDNIGHT - 60000), SUN, s), 0.85, 'still at the floor a minute before solar midnight');
+  assert.equal(rateAt(new Date(SOLAR_MIDNIGHT), SUN, s), 0.85, 'exactly the floor at solar midnight itself (p=0)');
+  assert.equal(rateAt(SUN.rise, SUN, s), 1, 'full speed exactly at sunrise');
+  assert.equal(rateAt(SUN.noon, SUN, s), 1, 'full speed at solar noon');
 
-  const beforeJoin2 = rateAt(new Date(rise - eps), SUN, s);
-  const afterJoin2 = rateAt(new Date(rise + eps), SUN, s);
-  assert.ok(Math.abs(beforeJoin2 - afterJoin2) < 1e-3, 'recovery->day join has no jump');
+  const info = rateInfoAt(new Date(SOLAR_MIDNIGHT + 1), SUN, s);
+  assert.equal(info.trend, 'rising');
+  assert.equal(info.recoveryStart, SOLAR_MIDNIGHT);
+
+  const span = rise - SOLAR_MIDNIGHT;
+  const sampleT = SOLAR_MIDNIGHT + span * 0.6;
+  const expected = 0.85 + (1 - 0.85) * Math.pow(0.6, 4);
+  assert.ok(Math.abs(rateAt(new Date(sampleT), SUN, s) - expected) < 1e-6, 'matches the p^4 formula 60% through the span');
+});
+
+test('rateInfoAt: short-night fallback — solar midnight within 2h of sunrise, or after it, falls back to the fixed 2h window', () => {
+  const rise = new Date('2025-06-21T02:30:00');
+  const base = { rise, set: new Date('2025-06-20T22:00:00'), dusk: new Date('2025-06-20T22:30:00') };
+  const s = settings();
+  const sample = new Date(rise.getTime() - 90 * 60000); // 1h30m before sunrise
+
+  // solar midnight only 1h before sunrise — too short a span, falls back.
+  const shortSpan = { ...base, noon: new Date(rise.getTime() + 11 * 3600000) };
+  const infoShort = rateInfoAt(sample, shortSpan, s);
+  assert.equal(infoShort.recoveryStart, rise.getTime() - 2 * 3600000);
+  assert.equal(infoShort.trend, 'rising');
+
+  // solar midnight after sunrise outright — also falls back.
+  const afterRise = { ...base, noon: new Date(rise.getTime() + 13 * 3600000) };
+  const infoAfter = rateInfoAt(sample, afterRise, s);
+  assert.equal(infoAfter.recoveryStart, rise.getTime() - 2 * 3600000);
+
+  // no sun.noon at all — same fallback, not a thrown error.
+  const noNoon = { ...base };
+  const infoNoNoon = rateInfoAt(sample, noNoon, s);
+  assert.equal(infoNoNoon.recoveryStart, rise.getTime() - 2 * 3600000);
+});
+
+test('rateAt: continuous every minute across 48h — no step at midnight, solar midnight, sunrise, sunset or dusk', () => {
+  const s = settings();
+  const start = new Date(SUN.noon.getTime() - 24 * 3600000);
+  let prev = rateAt(start, SUN, s);
+  for (let m = 1; m <= 48 * 60; m++) {
+    const t = new Date(start.getTime() + m * 60000);
+    const r = rateAt(t, SUN, s);
+    assert.ok(Math.abs(r - prev) < 0.01, `no jump at minute ${m} (${prev} -> ${r})`);
+    prev = r;
+  }
 });
 
 test('rateAt: continuous at the day->down-leg and down-leg->hold joins (existing down-leg, unchanged shape)', () => {
@@ -62,11 +96,12 @@ test('rateAt: continuous at the day->down-leg and down-leg->hold joins (existing
   assert.ok(Math.abs(beforeDusk - afterDusk) < 1e-3, 'down-leg->hold join has no jump');
 });
 
-test('rateAt: Pure mode returns 1.0 at every time, including during recovery and the down-leg', () => {
-  const rise = SUN.rise.getTime(), set = SUN.set.getTime(), dusk = SUN.dusk.getTime();
+test('rateAt: Pure mode returns 1.0 at every sample across the same 48h sweep, including through solar midnight and sunrise', () => {
   const s = settings({ mode: 'pure' });
-  for (const t of [rise - 3600000, rise, set, (set + dusk) / 2, dusk + 3600000]) {
-    assert.equal(rateAt(new Date(t), SUN, s), 1, `Pure is 1.0 at ${new Date(t).toISOString()}`);
+  const start = new Date(SUN.noon.getTime() - 24 * 3600000);
+  for (let m = 0; m <= 48 * 60; m += 15) {
+    const t = new Date(start.getTime() + m * 60000);
+    assert.equal(rateAt(t, SUN, s), 1, `Pure is 1.0 at ${t.toISOString()}`);
   }
 });
 
@@ -102,22 +137,16 @@ test('rateAt: output never goes negative or outside [floor, 1] across a full 24h
   }
 });
 
-test('rateAt: a very short recovery/short-night window still produces a monotonic, bounded curve', () => {
-  // A deliberately tiny recovery window stresses the recovery-leg math
-  // without needing a genuine polar fixture; the output stays within
-  // [floor, 1.0] regardless (the defensive clamp in rateInfoAt).
-  const s = settings({ recoveryWindowMs: 5 * 60000 });
-  const rise = SUN.rise.getTime();
-  const samples = [-30, -10, -5, -2, -1, 0, 1].map(min => rateAt(new Date(rise + min * 60000), SUN, s));
+test('rateAt: the recovery leg is monotonic non-decreasing from solar midnight to sunrise', () => {
+  const samples = [-30, -10, -5, -2, -1, 0, 1].map(min => rateAt(new Date(SUN.rise.getTime() + min * 60000), SUN, settings()));
   for (const r of samples) assert.ok(r >= 0.85 - 1e-9 && r <= 1 + 1e-9, `rate ${r} stays bounded`);
-  // monotonic non-decreasing through the approach to sunrise
   for (let i = 1; i < samples.length; i++) assert.ok(samples[i] >= samples[i - 1] - 1e-9, 'never reverses while approaching sunrise');
 });
 
 test('trendAt: labels match §3.3\'s table at each state', () => {
   const s = settings();
   const rise = SUN.rise.getTime(), set = SUN.set.getTime(), dusk = SUN.dusk.getTime();
-  assert.equal(trendAt(new Date(rise - 3 * 3600000), SUN, s), 'Slowest');
+  assert.equal(trendAt(new Date(SOLAR_MIDNIGHT - 3600000), SUN, s), 'Slowest', 'an hour before solar midnight is still at the floor');
   assert.equal(trendAt(new Date(rise - 1 * 3600000), SUN, s), 'Rising');
   assert.equal(trendAt(SUN.noon, SUN, s), 'Full speed');
   assert.equal(trendAt(new Date((set + dusk) / 2), SUN, s), 'Easing down');
@@ -245,7 +274,7 @@ test('skyPaletteNameAt: matches §4.2\'s own four palette names, INDIGO covering
   assert.equal(skyPaletteNameAt(SUN.dusk, SUN, s), 'EMBER');
   assert.equal(skyPaletteNameAt(new Date(SUN.rise.getTime() - 10 * 60000), SUN, s), 'ROSE', 'within the dawn window, just before sunrise');
   assert.equal(skyPaletteNameAt(new Date(SUN.dusk.getTime() + 3600000), SUN, s), 'INDIGO');
-  const preDawn = new Date(SUN.rise.getTime() - RECOVERY_WINDOW_MS / 2);
+  const preDawn = new Date((SOLAR_MIDNIGHT + SUN.rise.getTime()) / 2);
   assert.equal(skyPaletteNameAt(preDawn, SUN, s), 'INDIGO');
 });
 

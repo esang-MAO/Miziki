@@ -77,12 +77,14 @@ test('nextEventText: "Preview the day" can push `now` more than 24h past a trans
 });
 
 test('dialStateAt: assembles the Pre-dawn state from §5\'s own table (platter rising, tone warm, phase still night)', () => {
-  const t = new Date(SUN.rise.getTime() - 56 * 60000); // recovery started at rise-2h; sample ~1h04m before rise
-  const st = dialStateAt(t, SUN, settings({ recoveryWindowMs: 2 * 3600000 }));
+  const t = new Date(SUN.rise.getTime() - 56 * 60000); // well within the recovery leg (which, RW1, now starts at solar midnight)
+  const st = dialStateAt(t, SUN, settings());
   assert.equal(st.phase, 'night');
   assert.equal(st.phaseLabel, 'NIGHT');
   assert.equal(st.trend, 'Rising');
-  assert.ok(st.platterPct > 85 && st.platterPct < 100, `platter ${st.platterPct}% is rising, between floor and full`);
+  assert.ok(st.platterPct > 85 && st.platterPct <= 100, `platter ${st.platterPct}% is rising, between floor and full`);
+  assert.ok(st.nightCard && st.nightCard.body.startsWith('Rising slowly since midnight'));
+  assert.ok(st.risingArc && typeof st.risingArc.fromDeg === 'number' && typeof st.risingArc.toDeg === 'number');
 });
 
 test('dialStateAt: midday matches §5\'s own Midday row (100%, Full speed, BRIGHT, AZURE)', () => {
@@ -115,6 +117,14 @@ test('dialStateAt: night matches §5\'s own Night row (floor, Slowest, WARM, IND
   assert.equal(st.trend, 'Slowest');
   assert.equal(st.tone, 'WARM');
   assert.equal(st.paletteName, 'INDIGO');
+  assert.ok(st.nightCard && st.nightCard.body.startsWith('Settled for the night'));
+  assert.equal(st.risingArc, null, 'no ring arc while still at the floor');
+});
+
+test('dialStateAt: nightCard is null outside the night phase, and risingArc is null outside the rising trend', () => {
+  const midday = dialStateAt(SUN.noon, SUN, settings());
+  assert.equal(midday.nightCard, null);
+  assert.equal(midday.risingArc, null);
 });
 
 test('dialStateAt: carries sunrise/sunset labels and ring/sky stops straight from arc.js, with no usable sun falling back cleanly', () => {
