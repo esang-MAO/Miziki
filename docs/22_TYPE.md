@@ -76,7 +76,7 @@ CLAUDE.md's "CSS token scale" table is replaced with the one above; the "Letter-
 ## TY2: the chrome moves to Archivo (`01-header`, `07-routes`, `08-shell`, `10-crate` header, `16-edit-sheet`, `17-profile`, `19-signin`, `21-legal`, `23-desktop` sidebar/mini-bar, `27-eq` labels)
 
 - Tab bar labels: `--body` 12px 600 (active) / 500, sentence case, no tracking. Active indicator hairline `1.5px`, not `2px` (Kunz: a short rule reads heavier).
-- Library header tabs (Songs / Crate / Artists / Playlists): `--row` 15–16px 500/600, sentence case, baseline-aligned, `gap: var(--sp-5)`; the orange underline stays. This also fixes the "nothing overlapping on one line" ask from 14_CRATE_SECTIONS at Dynamic Type sizes, because Archivo lowercase is ~30% narrower than tracked mono caps.
+- Library header tabs (Songs / Crate / Artists / Playlists): `--row` 15–16px 500/600, sentence case, baseline-aligned, `gap: var(--sp-5)`; the orange underline stays (**superseded by docs/25_FROM_SCRATCH.md**: the active state is cream, not amber). This also fixes the "nothing overlapping on one line" ask from 14_CRATE_SECTIONS at Dynamic Type sizes, because Archivo lowercase is ~30% narrower than tracked mono caps.
 - Section kickers ("Now spinning · Side A", "Your crate", "Other masters read"): `--caption` 12px 500 caps `--track-caps` in `--muted`; the separator dot in `--muted-2`.
 - Counts and status lines ("[18] records · 45 rpm", "6 records · 2 sealed", "Most spun · Last 30 days"): `--body` 13–14px sentence case, `.num`. Brackets go.
 - Buttons and chips (A–Z chip, Choose files, Play all, Edit, the Vinyl/Pure pill): `--row` or `--body` 500, sentence case. The pill keeps its dot and outline.

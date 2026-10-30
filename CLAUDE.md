@@ -135,7 +135,11 @@ Hierarchy by tone before size: in any list, title at `--paper`, secondary at `rg
 
 ## Design rules
 
+**Superseded by docs/25_FROM_SCRATCH.md:** the accent is now `#E9A24A` and never signals state.
+
 - **Amber never signals state.** `--amber`/`--amber-tint`/`--amber-shade` are Miziki's one accent color, not a status color — never pressed/success/error. A pressed or selected state uses a ring, a filled background, or a weight change, never "turns amber" where it wasn't already amber.
+- **Every on/off control is a switch** (`.switch`, `role="switch"`).
+- **One amber:** `--amber` is the label, the sun and the wordmark's rings. Nothing else is amber.
 - **No second warm in the chrome.** The app's chrome (panels, chips, cards, dividers) gets exactly one warm color family at a time — amber in dark theme's existing surfaces, the stock/bin/plinth family in the crate.
 - **No mauve neutral, and no amber tricolour.** A neutral surface stays on the muted/warm-grey family, never drifts toward a mauve/purple read. No single screen uses amber for three distinct meanings at once (accent, a phase color, and a status) — a phase/status color comes from the secondaries (`--prussian`/`--verdigris`/`--puce`/`--olive`/`--olive-deep`), never a second use of amber.
 

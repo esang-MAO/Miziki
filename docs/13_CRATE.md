@@ -155,6 +155,8 @@ Build after RF9 and RF26 (the three-tab bar) and alongside Phase C; CR1 before C
 
 ## CR8: palette additions
 
+**Superseded by docs/25_FROM_SCRATCH.md:** the accent is now `#E9A24A` and never signals state.
+
 > Read CLAUDE.md and the README first. Tokens only, plus the few places that use them; no layout.
 >
 > 1. `--amber-tint`, `--amber-shade` (dark `#C47F1E`, light `#9A4700`); `--prussian`, `--verdigris`, `--puce`, `--olive`, `--olive-deep`, `--warm-grey`; the stock tokens (`--stock-divider-1/2`, `--stock-lip`, `--stock-manila`, `--stock-card`, `--stock-bone`, `--bin-1/2/3`, `--plinth`, `--plinth-edge`); the sticker tokens from CR3.
