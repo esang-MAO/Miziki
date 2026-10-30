@@ -711,13 +711,25 @@ test('advance: a manual skip (auto=false) never triggers This record only\'s sto
 });
 
 test('advance: Stop between records does nothing at midday (no turning point)', () => {
+  // This test used to compare against the real Date.now() instead of a
+  // frozen one, like its three sibling tests below already do -- harmless
+  // on the day it was written, but it silently started failing (and
+  // failing the real GitHub Pages deploy) once wall-clock time drifted
+  // within 60 minutes of the hardcoded sunset below. Frozen the same way
+  // its siblings are.
   const noon = new Date('2026-10-30T16:52:00Z');   // Columbia, MD solar noon, from the RW1 README sample
+  const sunset = new Date('2026-10-30T22:10:00Z');
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
     queue: [0,1], qpos: 0, index: 0, stopAtTurns: true,
-    sun: { noon, set: new Date('2026-10-30T22:10:00Z') },
+    sun: { noon, set: sunset },
+    nowOverride: noon,   // exactly solar noon -- as far as possible from both turning points
   });
-  advance(1, true);
+  const realNow = Date.now;
+  Date.now = () => S.nowOverride.getTime();
+  try{
+    advance(1, true);
+  } finally { Date.now = realNow; }
   assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
