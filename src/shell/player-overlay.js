@@ -6,6 +6,8 @@ import { play } from '../player/transport.js';
 import { SLEEVE_ANIM } from './mini-player.js';
 import { runStartSequence, interruptStartSequence } from './start-sequence.js';
 import { openLayer } from './nav-stack.js';
+import { currentDayPosition } from '../sundown/solar.js';
+import { eveningGlanceLevel, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS } from '../player/evening-glance.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
@@ -17,6 +19,7 @@ export function openPlayerViaSheet(t, info){
   ov.classList.add('open');
   openLayer('player', closePlayer, { container: ov });
   scheduleGlance();
+  wakeEveningGlance();
   // under REDUCED the sheet's slide-up transition is `none` (see .player-
   // overlay's reduced-motion rule), so transitionend never fires — go
   // straight to the ceremony instead of waiting on an event that won't come
@@ -36,6 +39,7 @@ export function openPlayer(){
   openLayer('player', closePlayer, { container: $('#playerOverlay') });
   runMorphOpen();
   scheduleGlance();
+  wakeEveningGlance();
 }
 
 export function closePlayer(){
@@ -43,6 +47,7 @@ export function closePlayer(){
   S.playerOpen = false;
   interruptStartSequence();
   exitGlance();
+  clearEveningGlance();
   const ov = $('#playerOverlay');
   ov.classList.remove('open');
   ov.setAttribute('aria-hidden','true');
@@ -231,4 +236,62 @@ document.addEventListener('keydown', onGlanceActivity);
 document.addEventListener('wheel', onGlanceActivity, {passive:true});
 document.addEventListener('visibilitychange', () => {
   if(document.hidden){ clearTimeout(glanceTimer); glanceTimer = null; }
+});
+
+/* ---- Evening glance (phones): src/player/evening-glance.js. After sunset
+   an idle full player fades its controls in two layers (.eve-glance, then
+   .eve-glance-deep on #playerOverlay), styled in 29-evening-glance.css.
+   Phones only: the desktop has its own glance view above. Any touch or key
+   brings everything back, and the touch that wakes it is swallowed so it
+   can't land on a control that was invisible a moment before (a faded
+   Pause button sits right under a thumb). Spin-to-scrub on the disc is
+   pointer-driven, not click-driven, so a drag still works straight away. ---- */
+let eveTimers = [];
+let eveLastActivityAt = 0;
+let eveLevel = 0;
+let eveSwallowClickUntil = 0;
+
+function setEveningGlanceLevel(level){
+  if(level === eveLevel) return;
+  eveLevel = level;
+  const ov = $('#playerOverlay');
+  if(!ov) return;
+  ov.classList.toggle('eve-glance', level >= 1);
+  ov.classList.toggle('eve-glance-deep', level >= 2);
+}
+
+function applyEveningGlance(){
+  if(isDesktopShell() || !S.playerOpen || !current()){ setEveningGlanceLevel(0); return; }
+  setEveningGlanceLevel(eveningGlanceLevel(Date.now() - eveLastActivityAt, currentDayPosition().phase, S.playing));
+}
+
+export function clearEveningGlance(){
+  eveTimers.forEach(clearTimeout);
+  eveTimers = [];
+  setEveningGlanceLevel(0);
+}
+
+export function wakeEveningGlance(){
+  clearEveningGlance();
+  eveLastActivityAt = Date.now();
+  if(isDesktopShell() || !S.playerOpen || !current()) return;
+  // +50ms so Date.now() has definitely passed each threshold when it fires
+  eveTimers = [EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS].map(ms => setTimeout(applyEveningGlance, ms + 50));
+}
+
+document.addEventListener('pointerdown', () => {
+  if(eveLevel > 0) eveSwallowClickUntil = Date.now() + 600;
+  if(S.playerOpen) wakeEveningGlance();
+}, {capture:true, passive:true});
+document.addEventListener('click', e => {
+  if(Date.now() < eveSwallowClickUntil){
+    eveSwallowClickUntil = 0;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, {capture:true});
+document.addEventListener('keydown', () => { if(S.playerOpen) wakeEveningGlance(); });
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){ eveTimers.forEach(clearTimeout); eveTimers = []; }
+  else if(S.playerOpen) wakeEveningGlance();
 });
