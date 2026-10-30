@@ -55,6 +55,8 @@ Boards are drawn at **half scale**: 540 × 960 for Story (export 1080 × 1920) a
 
 ## Pressings (SH3 board)
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 - Header, gap 6: kicker `PRESSINGS`; `14 of 110` Antonio 700 38; family counts mono 10 / 500 / `.08em` sub. 26 below.
 - Grid 3 columns, column gap 16, row gap 18; tile 148 wide. Tile art box 148 × 96: cover 80 at left, 8 down; disc 96 at left 52, in front. Pressing name mono 11 / 600 / `.06em` uppercase, ellipsis (rare names in accent); album title Archivo 11 sub, ellipsis; gap 6.
 - Story: 4 rows (12 tiles); Square: 2 rows (6). Then `+ N MORE · NEWEST FIRST` mono 10 sub, 22 below, only when there are more.

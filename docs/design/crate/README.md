@@ -220,6 +220,8 @@ Rule: a metal lighter than amber inverts the label (amber on gold is 1.03:1). `M
 
 ## Pressings between friends (CR11)
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 - **Records in common** shows each copy's pressing side by side under the sleeve: "Both Verdigris", or "Yours: Verdigris · Ken's: Jet". No judgement in the copy; the Jet speaks for itself.
 - **The record sheet** names the pressing and its sleeve note: "Verdigris. The green that grows on copper." and, when a friend's copy differs by tier, one line: "Ken has a Jet copy."
 - **The pressing chart**: a cream catalog card on your own profile, a paint-chip strip of the colours in your crate in family order, with owned chips at full strength and missing ones at 18%. Scarce pressings carry a small ink dot on their chip, owned or missing. Your own card shows `23 OF 40 · 6 OF 32` and names a few missing ones; a **friend's card shows their chips with no numbers**, so it is something to look at, never a score. Tapping a chip jumps the crate to the first record in that pressing.

@@ -1,0 +1,23 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-30T17:32:00Z"},
+  "title": "Miziki Records & Pressings",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Now.dc.html": {"x": 0, "y": 0, "w": 390, "h": 1180, "title": "Today · Records › Pressings"},
+    "Main.dc.html": {"x": 470, "y": 0, "w": 390, "h": 1180, "title": "Proposed · grows as you find them"},
+    "Counts.dc.html": {"x": 940, "y": 0, "w": 820, "h": 380, "title": "Records count line and empty state"},
+    "Rhythm.dc.html": {"x": 0, "y": 1520, "w": 820, "h": 600, "title": "Listening rhythm before it's ready"},
+    "CrateOwn.dc.html": {"x": 900, "y": 1520, "w": 820, "h": 640, "title": "Your crate · stats and staff picks"},
+    "CrateFriend.dc.html": {"x": 1800, "y": 1520, "w": 820, "h": 460, "title": "A friend's crate · and where followers go"},
+    "ShareCards.dc.html": {"x": 0, "y": 2500, "w": 1360, "h": 640, "title": "Share cards · Pressings and Season"}
+  },
+  "order": ["Now.dc.html", "Main.dc.html", "Counts.dc.html", "Rhythm.dc.html", "CrateOwn.dc.html", "CrateFriend.dc.html", "ShareCards.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -260, "text": "Pressings and metals, seen only on your Records", "kind": "title1", "maxW": 1760},
+    "t2": {"x": 0, "y": 1260, "text": "Profile and crate", "kind": "title1", "maxW": 2620},
+    "t3": {"x": 0, "y": 2240, "text": "Share cards", "kind": "title1", "maxW": 1360}
+  },
+  "designSystems": []
+}

@@ -17,6 +17,8 @@ The two design books, read separately, reached the same three conclusions. That 
 
 ## What the audit found
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 **Things that are wrong today (all confirmed in code or on screen):**
 
 1. **A "Clear listening history" on another device undoes itself.** `applyMerged()` (`src/sync/backup.js`) handles `ownReset` by zeroing 4 counters *in memory* and persisting only `historyClearedAt`. `clearListeningHistory()` (`src/history/clear.js`) zeroes 14 fields and persists all of them. After a reload, `restoreSessions()` reads the old counts back from `meta`, and the next push uploads them under the new clear stamp, on every device.
@@ -203,6 +205,8 @@ RF12 (light-theme contrast) is small and independent. It can jump the queue at a
 ---
 
 ### RF11: Profile is your crate
+
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
 
 > Read CLAUDE.md first.
 >

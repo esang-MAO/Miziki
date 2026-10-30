@@ -137,6 +137,8 @@ underglow in its body colour. A gold Verdigris has a green edge; two gold record
 
 ## 7. Profile chart card
 
+**Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
+
 Update the pressing-chart card counts to the new shelves, e.g.
 `COLORS [n] OF 40 · EFFECTS [n] OF 54 · RARE [n] OF 8 · ZOETROPES [n] OF 8`.
 Chip strip grows to match; tapping a chip still jumps the crate to that pressing.

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Records, Pressings tab, today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600&amp;family=Archivo:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#101A20}
+a{color:#FF9E2C}a:hover{color:#FFB85E}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1180px; box-sizing: border-box; background: linear-gradient(180deg, #1D2F38 0%, #101A20 40%); font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; padding: 16px 16px 32px; display: flex; flex-direction: column; gap: 16px">
+  <div style="display: flex; align-items: center; gap: 8px; height: 44px">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; background: none; border: 0; color: #94A0A6; font-size: 20px">‹</button>
+    <h1 style="margin: 0; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 28px; line-height: 1.05; letter-spacing: -.01em">Records</h1>
+    <span style="margin-left: auto; font-size: 14px; color: #94A0A6">40 records · 22 pressings · 9 metals</span>
+  </div>
+
+  <div role="tablist" aria-label="Records view" style="display: flex; border-bottom: 1px solid rgba(239,233,223,.14)">
+    <button type="button" role="tab" aria-selected="false" style="flex: 1; height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #94A0A6; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase">All</button>
+    <button type="button" role="tab" aria-selected="true" style="flex: 1; height: 44px; border: 0; border-bottom: 2px solid #FF9E2C; background: rgba(255,158,44,.08); color: #EFE9DF; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase">Pressings</button>
+  </div>
+
+  <div style="background: #EFE9DF; color: #1A1410; border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h2 style="margin: 0; font-family: 'Antonio', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: .02em">Pressings</h2>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .1em; color: #5A4A3A">COLORS 12 OF 40 · EFFECTS 9 OF 54 · RARE 1 OF 8 · ZOETROPES 0 OF 8</span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 5px">
+      <sc-for list="{{chips}}" as="chip" hint-placeholder-count="110">
+        <span aria-label="{{chip.label}}" style="{{chip.style}}"></span>
+      </sc-for>
+    </div>
+    <p style="margin: 0; font-size: 12px; line-height: 1.45; color: #5A4A3A">Missing: Woad &amp; Madder, Prussian &amp; Bone, Teal &amp; Coral, Olive &amp; Terracotta, ...</p>
+  </div>
+
+  <sc-for list="{{shelves}}" as="shelf" hint-placeholder-count="3">
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #94A0A6">{{shelf.name}}</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{shelf.items}}" as="it" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="position: relative; aspect-ratio: 1; margin-top: 22px">
+              <div aria-hidden="true" style="{{it.disc}}"></div>
+              <div aria-hidden="true" style="position: absolute; inset: 0; border-radius: 2px; background: {{it.sleeve}}; box-shadow: 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35)"></div>
+            </div>
+            <span style="font-size: 14px; line-height: 1.45">[Album]</span>
+            <span style="font-size: 12px; line-height: 1.45; color: #94A0A6">{{it.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hsl = (h, s, l) => 'hsl(' + Math.round(h) + ',' + s + '%,' + l + '%)';
+    const chip = (bg, found) => ({ style: 'display:inline-block;width:20px;height:20px;border-radius:4px;background:' + bg + ';opacity:' + (found ? 1 : 0.18), label: found ? 'A pressing you have' : 'Not yet in your crate' });
+    const fam = (n, foundEvery, bgFor) => { const out = []; for (let i = 0; i < n; i++) out.push(chip(bgFor(i), ((i * 7 + 3) % n) < foundEvery)); return out; };
+    const chips = [].concat(
+      fam(40, 12, i => hsl((i * 137.5) % 360, 45, 42)),
+      fam(54, 9, i => 'linear-gradient(135deg,' + hsl((i * 97) % 360, 50, 45) + ' 50%,' + hsl((i * 97 + 150) % 360, 45, 60) + ' 50%)'),
+      fam(8, 1, () => 'radial-gradient(circle at 35% 30%, #F4F1EA, #B9C7CF 60%, #8FA3AE)'),
+      fam(8, 0, () => 'repeating-conic-gradient(#333 0 20deg, #888 20deg 40deg)')
+    );
+    const peek = bg => 'position:absolute;left:12%;right:12%;top:-22px;aspect-ratio:1;border-radius:50%;background:' + bg;
+    const sleeves = ['linear-gradient(150deg,#2B5586,#132842)', 'linear-gradient(150deg,#5A3A4A,#241620)', 'linear-gradient(150deg,#3D5A3A,#1A2818)'];
+    const shelves = [
+      { name: 'Colors', items: [0, 1, 2].map(i => ({ disc: peek(hsl((i * 137.5) % 360, 45, 42)), sleeve: sleeves[i], label: '[Pressing name]' })) },
+      { name: 'Effects', items: [0, 1].map(i => ({ disc: peek('linear-gradient(135deg,' + hsl(i * 97, 50, 45) + ' 50%,' + hsl(i * 97 + 150, 45, 60) + ' 50%)'), sleeve: sleeves[i + 1], label: '[Pressing name]' })) },
+      { name: 'Metals', items: [['Gold', '#C9A23A'], ['Silver', '#A9AEB2'], ['Bronze', '#A4602E']].map((m, i) => ({ disc: peek('radial-gradient(circle at 35% 30%, #fff8, ' + m[1] + ' 60%)'), sleeve: sleeves[i], label: m[0] })) }
+    ];
+    return { chips, shelves };
+  }
+}
+</script>
+</body>
+</html>
