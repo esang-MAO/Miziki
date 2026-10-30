@@ -55,24 +55,22 @@ function reset(){
   S.albumDisplay = {};
 }
 
-test('below the 20-play gate renders the locked card, not the ring', () => {
+// QC3 (docs/24_QUIET_COUNTS.md): below the gate, nothing is drawn at all
+// -- no locked card, no "N of 20 plays" progress line.
+test('below the 20-play gate renders nothing at all -- no locked card, no ring', () => {
   reset();
   seedToday({ night: 12 });
   const host = fakeEl();
   renderRhythmCard(host);
-  const locked = findAll(host, 'rhythm-locked');
-  assert.equal(locked.length, 1);
+  assert.equal(host.childNodes.length, 0);
   assert.equal(findAll(host, 'rhythm-ring').length, 0);
-  const note = findAll(host, 'note')[0];
-  assert.ok(note.textContent.includes('12 of 20 plays'), note.textContent);
 });
 
-test('exactly at the gate (20) unlocks the full card', () => {
+test('exactly at the gate (20) renders the full card', () => {
   reset();
   seedToday({ night: 20 });
   const host = fakeEl();
   renderRhythmCard(host);
-  assert.equal(findAll(host, 'rhythm-locked').length, 0);
   assert.equal(findAll(host, 'rhythm-ring').length, 1);
 });
 
@@ -97,13 +95,13 @@ test('the verdict reflects the dominant phase, in RF22\'s "a season" phrasing', 
   assert.equal(findAll(host, 'rhythm-verdict')[0].textContent, 'Lately, leaning golden hour');
 });
 
-test('a play outside the 90-day window is not counted -- a stale season reads as locked again', () => {
+test('a play outside the 90-day window is not counted -- a stale season renders nothing again', () => {
   reset();
   const stale = dayKeyFor(new Date(Date.now() - 200 * 24 * 60 * 60 * 1000));
   S.phasePlayCountsByDay = { [stale]: { night: 30 } };
   const host = fakeEl();
   renderRhythmCard(host);
-  assert.equal(findAll(host, 'rhythm-locked').length, 1);
+  assert.equal(host.childNodes.length, 0);
   assert.equal(findAll(host, 'rhythm-ring').length, 0);
 });
 

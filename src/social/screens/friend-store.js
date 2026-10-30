@@ -417,7 +417,7 @@ function renderFriendStoreContent(body, full){
   const stats = el('div','store-stats');
   stats.appendChild(storeStat('Records', full.summary.records));
   stats.appendChild(storeStat('Staff picks', full.summary.pins));
-  stats.appendChild(storeStat('In common', full.summary.in_common || 0, true));
+  stats.appendChild(storeStat('In common', full.summary.in_common || 0));
   body.appendChild(stats);
 
   body.appendChild(friendNowSpinningRow(full));

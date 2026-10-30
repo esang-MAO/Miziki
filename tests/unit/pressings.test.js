@@ -80,7 +80,7 @@ mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
 
-const { renderPressingCard } = await import('../../src/profile/storefront.js');
+const { renderPressingCard, storePicksSection, storeStat } = await import('../../src/profile/storefront.js');
 
 // friend-store.js's own pressingLineFor() — point 1's "Both Verdigris" /
 // "Yours: X · Friend's: Y" line, exercised against the real
@@ -298,4 +298,32 @@ test('CR11 point 2: different tiers that happen to draw different pressings read
 test('CR11 point 2: a missing tier on either side (an old, unmigrated row) shows no line at all', () => {
   assert.equal(pressingLineFor({ title: 'No Tiers Yet', my_quality_tier: null, their_quality_tier: 2 }, 'ken'), null);
   assert.equal(pressingLineFor({ title: 'No Tiers Yet', my_quality_tier: 2, their_quality_tier: null }, 'ken'), null);
+});
+
+/* ---- QC3 (docs/24_QUIET_COUNTS.md): staff picks and stat rows without
+   counts-as-progress -- storePicksSection's own "N of 8"/empty-slot
+   removal, and storeStat's accent flag, the one mechanism that put
+   "Followers"/"In common" in amber on the stats row above both crates. ---- */
+
+test('QC3 point 3-4: storeStat never carries the accent class unless explicitly asked -- the mechanism every stats row above now relies on', () => {
+  assert.equal(storeStat('Records', 12).className, 'store-stat');
+  assert.equal(storeStat('Staff picks', 3, false).className, 'store-stat');
+  assert.equal(storeStat('In common', 5, true).className, 'store-stat accent', 'the flag itself still works -- nothing left in storefront.js/friend-store.js passes it anymore');
+});
+
+test('QC3 point 2: storePicksSection heading has no "of 8", and real picks render with no empty slot', () => {
+  const pick = { title: 'A Real Pick' };
+  const section = storePicksSection({ staffPicks: [pick] });
+  const head = section.kids.find(k => k.className === 'store-section-head');
+  assert.equal(head.kids[0].textContent, 'Staff picks');
+  const row = section.kids.find(k => k.className === 'store-picks-row');
+  assert.equal(row.kids.length, 1, 'no empty "Pin a record" slot alongside the one real pick');
+});
+
+test('QC3 point 2: zero picks shows one plain line, no empty-slot tile', () => {
+  const section = storePicksSection({ staffPicks: [] });
+  assert.equal(section.kids.find(k => k.className === 'store-picks-row'), undefined);
+  assert.equal(section.kids.find(k => k.className === 'store-pick-empty'), undefined);
+  const line = section.kids.find(k => k.className === 'store-loading');
+  assert.equal(line.textContent, 'Pin a record to put it here.');
 });
