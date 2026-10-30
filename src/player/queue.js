@@ -4,14 +4,14 @@ import { $, el } from '../util/dom.js';
 import { albumKey, trackTier, trackIdentityKey } from '../record-art/tiers.js';
 import { idOf } from '../library/model.js';
 import { sleepStopPlayback } from './sleep-timer.js';
-import { load, play, pause, pauseAndRest, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
+import { load, play, pause, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
 import { turningPointAt } from '../sundown/arc.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
-import { endOfQueue, maybeSideFlip } from '../shell/runout.js';
+import { endOfQueue, maybeSideFlip, stopAtRecordEndCeremony } from '../shell/runout.js';
 import { openLayer } from '../shell/nav-stack.js';
 import { REDUCED } from '../util/motion.js';
 import { queueSave } from '../storage/meta.js';
@@ -130,7 +130,14 @@ export function advance(dir, auto){
         const tp = turningPointAt(Date.now(), S.sun);
         if(tp) reason = tp;
       }
-      if(reason){ stopAtRecordEnd(reason, atEnd ? null : n2); return; }
+      if(reason){
+        pause(); S.pos = 0; drawTime();
+        // RW4 (docs/23_RHYTHM_AND_WEAR.md): same run-out/put-away ceremony
+        // as a real finish just below, ending on the held sleeve instead
+        // of the empty slipmat -- not a second stop mechanism.
+        stopAtRecordEndCeremony(reason, atEnd ? null : n2);
+        return;
+      }
     }
   }
   if(!auto) invalidateActiveSessionIfAny();     // an explicit next/prev press is a skip
@@ -139,9 +146,11 @@ export function advance(dir, auto){
     if(S.repeat === 'all'){ if(S.shuffle) buildOrder(); n = 0; }
     else {
       pause(); S.pos = 0; drawTime();
-      // a real finish rides the run-out groove, goes back in its sleeve and
-      // clears to the empty slipmat (CEREMONY §2); a manual skip past the
-      // last track just stops, as it always has
+      // RW4: a real finish rides the run-out groove, goes back in its
+      // sleeve, and now holds there (the held sleeve) rather than clearing
+      // all the way to the empty slipmat -- CEREMONY §2's old final state
+      // is left for the genuinely-empty case (clearToRest() elsewhere). A
+      // manual skip past the last track just stops, as it always has.
       endOfQueue(auto);
       return;        // end of the record
     }
@@ -158,17 +167,22 @@ export function advance(dir, auto){
   else play();
 }
 
-/* ================= RW3 (docs/23_RHYTHM_AND_WEAR.md): resting at a record boundary =================
-   No run-out/put-away ceremony here -- this reuses the sleep timer's own
-   plain stop (pauseAndRest()) via the shared isAlbumBoundary() check
-   above. RW4 is the PR that unifies this with the real end-of-queue
-   final state (the held sleeve); for now this paints its own small
-   resting card (miziki.html's #restingCard). */
+/* ================= RW3/RW4 (docs/23_RHYTHM_AND_WEAR.md): resting at a record boundary =================
+   src/shell/runout.js runs the actual run-out/put-away ceremony (shared
+   with a real end-of-queue finish, RW4) and calls this module's
+   paintRestingCard() once it lands on the held sleeve -- S.resting is set
+   there, not here. This section is left with the UI (the card itself,
+   Play/Flip) and the queue-side effects of leaving the resting state. */
 const RESTING_COPY = {
   recordOnly: 'Playback stops after this record.',
   sunset: 'Around sunset, playback stops between records.',
   midnight: 'Around midnight, playback stops between records.',
+  queueEnd: "You've reached the end of your queue.",
 };
+const RESTING_NOTE = {
+  queueEnd: 'Press play to start it again.',
+};
+const DEFAULT_RESTING_NOTE = 'Your queue is still there. Press play to continue.';
 
 // RW3: the first entry in S.queue that's the same album as curT but a
 // different side -- what a manual "Flip to Side B" from the resting
@@ -188,24 +202,29 @@ function otherSideQueuePos(curT){
   return null;
 }
 
-function paintRestingCard(){
+// RW4: "Side A · ended 6:31 PM" -- a plain 12-hour clock, same shape the
+// rest of the player already uses for a readout this small (no seconds).
+function fmtEndedAt(ms){
+  return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// Exported: src/shell/runout.js calls this once it lands on the held
+// sleeve (S.resting already set there), and this module's own
+// continueFromResting()/flipFromResting()/toggleRecordOnly() call it
+// again whenever S.resting changes.
+export function paintRestingCard(){
   const card = $('#restingCard'); if(!card) return;
   const r = S.resting;
   card.style.display = r ? '' : 'none';
   if(!r) return;
-  const kicker = $('#restingKicker'); if(kicker) kicker.textContent = 'Paused after this record';
+  const kicker = $('#restingKicker');
+  if(kicker) kicker.textContent = r.reason === 'queueEnd' ? 'Played through' : 'Paused after this record';
   const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.recordOnly;
+  const note = $('#restingNote'); if(note) note.textContent = RESTING_NOTE[r.reason] || DEFAULT_RESTING_NOTE;
+  const meta = $('#restingMeta');
+  if(meta) meta.textContent = (r.side ? 'Side ' + r.side + ' · ' : '') + 'Ended ' + fmtEndedAt(r.endedAt);
   const flipBtn = $('#restingFlipBtn');
   if(flipBtn) flipBtn.style.display = otherSideQueuePos(current()) !== null ? '' : 'none';
-}
-
-// reason: 'recordOnly' | 'sunset' | 'midnight'. pendingIndex is where
-// Play (continueFromResting()) should resume the queue from -- null when
-// the queue has genuinely run out, same as endOfQueue()'s own case.
-function stopAtRecordEnd(reason, pendingIndex){
-  pauseAndRest();
-  S.resting = { reason, pendingIndex };
-  paintRestingCard();
 }
 
 export function continueFromResting(){
@@ -213,8 +232,23 @@ export function continueFromResting(){
   if(!r) return;
   S.resting = null;
   paintRestingCard();
-  if(r.pendingIndex === null || r.pendingIndex === undefined) return;
-  S.qpos = r.pendingIndex;
+  if(r.pendingIndex === null || r.pendingIndex === undefined){
+    // RW4: nothing was queued after this record -- "Play to start it
+    // again" restarts the whole record from side A, not just wherever
+    // playback happened to stop.
+    const curT = S.tracks[S.queue[S.qpos]];
+    let startPos = S.qpos;
+    if(curT){
+      while(startPos > 0){
+        const prevT = S.tracks[S.queue[startPos - 1]];
+        if(!prevT || albumKey(prevT) !== albumKey(curT)) break;
+        startPos--;
+      }
+    }
+    S.qpos = startPos;
+  } else {
+    S.qpos = r.pendingIndex;
+  }
   load(S.queue[S.qpos]);
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();

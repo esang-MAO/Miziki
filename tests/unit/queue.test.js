@@ -117,8 +117,15 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
 });
 // CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
 // shell/runout.js, whose real chain reaches library/view.js — stop it here.
+// RW4 (docs/23_RHYTHM_AND_WEAR.md): stopAtRecordEndCeremony is a spy, not
+// a no-op -- advance()'s RW3 stop now just hands off to it (the real
+// run-out/put-away ceremony lives in shell/runout.js, out of scope here).
+const stopAtRecordEndCeremonyMock = mock.fn();
 mock.module(new URL('../../src/shell/runout.js', import.meta.url).href, {
-  namedExports: { endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; }, clearToRest(){}, performPendingFlip(){ return false; } },
+  namedExports: {
+    endOfQueue(){}, maybeSideFlip(){ return false; }, cancelRunout(){}, interruptRunout(){ return false; },
+    clearToRest(){}, performPendingFlip(){ return false; }, stopAtRecordEndCeremony: stopAtRecordEndCeremonyMock,
+  },
 });
 mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   namedExports: { shouldPutAway(){ return false; }, putAwayInstant(){}, runPutAwaySequence(){} },
@@ -206,7 +213,7 @@ const {
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
   queueRemoveAt, queueReorderTo, isAlbumBoundary, continueFromResting,
-  flipFromResting, updateRecordOnlyUI, toggleRecordOnly,
+  flipFromResting, updateRecordOnlyUI, toggleRecordOnly, paintRestingCard,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
@@ -222,6 +229,7 @@ function resetState(overrides){
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); pauseAndRestMock.mock.resetCalls();
+  stopAtRecordEndCeremonyMock.mock.resetCalls();
   seekMock.mock.resetCalls();
   cancelPendingGaplessMock.mock.resetCalls();
   playNeedleLiftMock.mock.resetCalls(); playSkipDropMock.mock.resetCalls();
@@ -652,30 +660,34 @@ test('advance: This record only stops at a side flip exactly like a plain bounda
   });
   advance(1, true);
   // same album, different side -- not a boundary, so playback just continues
-  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+  assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
   assert.equal(S.resting, null);
 });
 
-test('advance: This record only stops and rests when the next queued track is a different album', () => {
+// RW4 (docs/23_RHYTHM_AND_WEAR.md): the actual run-out/put-away ceremony
+// and the S.resting write both now live in shell/runout.js's
+// stopAtRecordEndCeremony() (mocked here as a spy) -- advance() itself is
+// only responsible for pausing and handing off the right reason/pendingIndex.
+test('advance: This record only stops and hands off to the ceremony when the next queued track is a different album', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
     queue: [0,1], qpos: 0, index: 0, recordOnly: true,
   });
   advance(1, true);
-  assert.equal(pauseAndRestMock.mock.calls.length, 1);
+  assert.equal(pauseMock.mock.calls.length, 1);
+  assert.equal(S.pos, 0);
   assert.equal(S.qpos, 0);   // never moved onto the next album
-  assert.deepEqual(S.resting, { reason: 'recordOnly', pendingIndex: 1 });
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['recordOnly', 1]);
 });
 
-test('advance: This record only stops and rests at the genuine end of the queue, with a null pendingIndex', () => {
+test('advance: This record only stops and hands off to the ceremony at the genuine end of the queue, with a null pendingIndex', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0, recordOnly: true, repeat: 'off',
   });
   advance(1, true);
-  assert.equal(pauseAndRestMock.mock.calls.length, 1);
-  assert.deepEqual(S.resting, { reason: 'recordOnly', pendingIndex: null });
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['recordOnly', null]);
 });
 
 test('advance: This record only off rolls on as usual past an album boundary', () => {
@@ -684,7 +696,7 @@ test('advance: This record only off rolls on as usual past an album boundary', (
     queue: [0,1], qpos: 0, index: 0, recordOnly: false,
   });
   advance(1, true);
-  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+  assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
 
@@ -694,7 +706,7 @@ test('advance: a manual skip (auto=false) never triggers This record only\'s sto
     queue: [0,1], qpos: 0, index: 0, recordOnly: true,
   });
   advance(1, false);
-  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+  assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
 
@@ -706,7 +718,7 @@ test('advance: Stop between records does nothing at midday (no turning point)', 
     sun: { noon, set: new Date('2026-10-30T22:10:00Z') },
   });
   advance(1, true);
-  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+  assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
 
@@ -723,8 +735,7 @@ test('advance: Stop between records stops within 60 minutes of sunset', () => {
   try{
     advance(1, true);
   } finally { Date.now = realNow; }
-  assert.equal(pauseAndRestMock.mock.calls.length, 1);
-  assert.deepEqual(S.resting, { reason: 'sunset', pendingIndex: 1 });
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['sunset', 1]);
 });
 
 test('advance: Stop between records does nothing 61 minutes past sunset', () => {
@@ -740,7 +751,7 @@ test('advance: Stop between records does nothing 61 minutes past sunset', () => 
   try{
     advance(1, true);
   } finally { Date.now = realNow; }
-  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+  assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
 
@@ -758,8 +769,7 @@ test('advance: Stop between records stops within 60 minutes of solar midnight', 
   try{
     advance(1, true);
   } finally { Date.now = realNow; }
-  assert.equal(pauseAndRestMock.mock.calls.length, 1);
-  assert.deepEqual(S.resting, { reason: 'midnight', pendingIndex: 1 });
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['midnight', 1]);
 });
 
 test('continueFromResting: Play continues the queue from where it stopped', () => {
@@ -775,7 +785,23 @@ test('continueFromResting: Play continues the queue from where it stopped', () =
   assert.equal(playMock.mock.calls.length, 1);
 });
 
-test('continueFromResting: a null pendingIndex (genuine queue end) just clears the resting state', () => {
+// RW4 (docs/23_RHYTHM_AND_WEAR.md): "Play to start it again" restarts the
+// whole record from side A, not just wherever playback happened to stop
+// -- a null pendingIndex means nothing was queued after it.
+test('continueFromResting: a null pendingIndex (genuine queue end) restarts the record from its first track', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B'), fakeAlbumTrack('X','C')],
+    queue: [0,1,2], qpos: 2, index: 2,
+    resting: { reason: 'queueEnd', pendingIndex: null },
+  });
+  continueFromResting();
+  assert.equal(S.resting, null);
+  assert.equal(S.qpos, 0);   // back to the start of album X, not qpos 2 where it stopped
+  assert.equal(loadMock.mock.calls.length, 1);
+  assert.equal(playMock.mock.calls.length, 1);
+});
+
+test('continueFromResting: a null pendingIndex with a single-track record just restarts that track', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0,
@@ -783,8 +809,9 @@ test('continueFromResting: a null pendingIndex (genuine queue end) just clears t
   });
   continueFromResting();
   assert.equal(S.resting, null);
-  assert.equal(loadMock.mock.calls.length, 0);
-  assert.equal(playMock.mock.calls.length, 0);
+  assert.equal(S.qpos, 0);
+  assert.equal(loadMock.mock.calls.length, 1);
+  assert.equal(playMock.mock.calls.length, 1);
 });
 
 test('continueFromResting is a quiet no-op when nothing is resting', () => {
@@ -814,6 +841,38 @@ test('flipFromResting is a no-op (clears resting, nothing to load) when the albu
   flipFromResting();
   assert.equal(S.resting, null);
   assert.equal(loadMock.mock.calls.length, 0);
+});
+
+test('paintRestingCard: queueEnd gets its own copy, note, and meta line, and hides the Flip button with no other side queued', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A')],
+    queue: [0], qpos: 0, index: 0,
+    resting: { reason: 'queueEnd', pendingIndex: null, side: 'A', endedAt: Date.UTC(2026,9,30,18,31) },
+  });
+  paintRestingCard();
+  assert.equal(elCache.get('#restingCard').style.display, '');
+  assert.equal(elCache.get('#restingBody').textContent, "You've reached the end of your queue.");
+  assert.equal(elCache.get('#restingNote').textContent, 'Press play to start it again.');
+  assert.ok(elCache.get('#restingMeta').textContent.includes('Side A'));
+  assert.equal(elCache.get('#restingFlipBtn').style.display, 'none');
+});
+
+test('paintRestingCard: a RW3 stop keeps the "queue is still there" note and shows the Flip button when another side is queued', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
+    queue: [0,1,2], qpos: 0, index: 0,
+    resting: { reason: 'sunset', pendingIndex: 1, side: 'A', endedAt: Date.now() },
+  });
+  paintRestingCard();
+  assert.equal(elCache.get('#restingBody').textContent, 'Around sunset, playback stops between records.');
+  assert.equal(elCache.get('#restingNote').textContent, 'Your queue is still there. Press play to continue.');
+  assert.equal(elCache.get('#restingFlipBtn').style.display, '');
+});
+
+test('paintRestingCard: nothing resting hides the card', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0, resting: null });
+  paintRestingCard();
+  assert.equal(elCache.get('#restingCard').style.display, 'none');
 });
 
 test('renderQueueSheet: This record only lists only the current side\'s upcoming tracks', () => {

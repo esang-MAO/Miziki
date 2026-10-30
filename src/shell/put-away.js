@@ -55,6 +55,12 @@ export async function runPutAwaySequence(t, opts = {}){
   // the sleeve's animation to finish, just on the clock
   await sleep(SLEEVE_ANIM.putSlideDelayMs);
   if(cancelled()) return;
+  // RW4 (docs/23_RHYTHM_AND_WEAR.md): the held-sleeve final state (shell/
+  // runout.js) stops the ceremony right here -- sleeve arrived, disc
+  // still fully visible beside it -- instead of running the rest of the
+  // put-away (the disc sliding in and disappearing, the sleeve itself
+  // then hiding).
+  if(opts.holdAfterArrive) return;
   stage.classList.add('putaway-slide');
 
   await waitAnimEnd(discBox, SLEEVE_ANIM.putSlideMs);

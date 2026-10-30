@@ -126,6 +126,10 @@
    phase colour via the global --phase-color (player/clock.js), never
    amber, per CLAUDE.md's "amber never signals state". */
 .resting-card{margin-top:10px}
+/* RW4: "Side A · ended 6:31 PM" */
+.resting-meta{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.resting-meta:empty{display:none}
 .resting-kicker{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
   color:var(--phase-color,var(--muted));text-transform:uppercase}
 .resting-body{font-family:var(--body);font-size:var(--fs-body);color:var(--paper);margin:var(--sp-1) 0 0}
