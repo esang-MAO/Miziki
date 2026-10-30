@@ -77,6 +77,10 @@ export async function persistAlbumFormat(keys){
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumFormat', k));
 }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): written once, the first time an album
+// completes a qualifying session — never overwritten after that, so it
+// stays the true first-play time regardless of how old the entry is.
+export async function persistAlbumFirstPlayed(){ await meta.put('albumFirstPlayed', S.albumFirstPlayed); }
 // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropes get their own
 // session milestone pool, entirely separate from rareUnlocked above — same
 // union-of-flags backed-up shape, same persist-on-every-change posture.
@@ -166,6 +170,13 @@ export function sessionTrackComplete(t){
     S.sessionCounts[albumId] = (S.sessionCounts[albumId] || 0) + 1;
     if(trackTier(t) === 1) S.metalEligibleSessions[albumId] = (S.metalEligibleSessions[albumId] || 0) + 1;
     S.albumLastPlayed[albumId] = Date.now();
+    // RW7: written once -- a later qualifying session never overwrites it.
+    // == null (not a bare falsy check) so a genuine epoch-0 timestamp
+    // doesn't read as "not set yet" and get silently overwritten.
+    if(S.albumFirstPlayed[albumId] == null){
+      S.albumFirstPlayed[albumId] = Date.now();
+      persistAlbumFirstPlayed();
+    }
     persistSessionCounts();
     persistMetalEligibleSessions();
     persistAlbumLastPlayed();
@@ -254,6 +265,28 @@ export async function migrateChartVersion(){
   }
 }
 
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): one-shot backfill, same shape as
+// migrateChartVersion() above. Albums played before this PR have no
+// albumFirstPlayed entry -- give them one from the earliest timestamp
+// already on record (albumLastPlayed, or whichever of achievements'/
+// collection's own discoveredAt is older), falling back to "now" when
+// there's genuinely nothing to go on. Runs once per album: an entry
+// already present (new play, or an earlier run of this migration) is
+// left untouched.
+export async function migrateAlbumFirstPlayed(){
+  let changed = false;
+  for(const albumId of Object.keys(S.sessionCounts)){
+    if(S.albumFirstPlayed[albumId] != null) continue;
+    const candidates = [S.albumLastPlayed[albumId],
+      S.achievements[albumId] && S.achievements[albumId].discoveredAt,
+      S.collection[albumId] && S.collection[albumId].discoveredAt]
+      .filter(t => typeof t === 'number' && t > 0);
+    S.albumFirstPlayed[albumId] = candidates.length ? Math.min(...candidates) : Date.now();
+    changed = true;
+  }
+  if(changed) await persistAlbumFirstPlayed();
+}
+
 export async function restoreSessions(){
   const recs = await sessions.all();
   const now = Date.now();
@@ -298,6 +331,8 @@ export async function restoreSessions(){
   if(albumFormatPref) S.albumFormat = albumFormatPref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
+  const albumFirst = await meta.get('albumFirstPlayed');
+  if(albumFirst) S.albumFirstPlayed = albumFirst;
   const trackLast = await meta.get('trackLastPlayed');
   if(trackLast) S.trackLastPlayed = trackLast;
   const display = await meta.get('albumDisplay');
@@ -309,6 +344,7 @@ export async function restoreSessions(){
   (await achievements.all()).forEach(r => { S.achievements[r.albumId] = r; });
   (await collection.all()).forEach(r => { S.collection[r.albumId] = r; });
   await migrateChartVersion();
+  await migrateAlbumFirstPlayed();
   await restoreThumbs();   // rebuilds every record's `art` from its stored thumbnail
   const prof = await profile.get('me');
   if(prof){

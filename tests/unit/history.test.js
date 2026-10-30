@@ -172,8 +172,8 @@ function resetState(overrides){
     sessions: {}, sessionCounts: {}, metalEligibleSessions: {}, rareUnlocked: {},
     // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
     zoetropeUnlocked: {}, zoetropeDayProgress: {},
-    albumLastPlayed: {}, albumDisplay: {}, albumLookPref: {},
-    achievements: {}, collection: {},
+    albumLastPlayed: {}, albumFirstPlayed: {}, albumDisplay: {}, albumLookPref: {},
+    achievements: {}, collection: {}, showWear: true,
     trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {}, trackDisplay: {},
     // DA5 (docs/DAY_ARC.md); phasePlayCountsByDay added RF22 (docs/12_REFINE.md)
     phasePlayCounts: {}, phasePlayCountsByDay: {}, albumPhaseCounts: {}, previewMin: 0,
@@ -291,6 +291,30 @@ function completeAlbumSession(t, albumId){
   S.sessionActive = albumId;
   S.sessions[albumId] = { albumId, tracksCompleted: [], expectedOrder: [t.id], startedAt: Date.now(), lastActivityAt: Date.now() };
 }
+
+// -- RW7 (docs/23_RHYTHM_AND_WEAR.md): albumFirstPlayed, written once -----
+
+test('sessionTrackComplete: a qualifying session sets albumFirstPlayed once', () => {
+  resetState();
+  const t = fakeTrack();
+  mock.timers.enable({ apis: ['Date'] });
+  try {
+    completeAlbumSession(t, 'al');
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    const firstTime = S.albumFirstPlayed.al;
+    assert.equal(typeof firstTime, 'number');
+
+    mock.timers.tick(24 * 3600 * 1000);
+    S.curTrackDone = false; S.curPlayed = [];
+    completeAlbumSession(t, 'al');
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    assert.equal(S.albumFirstPlayed.al, firstTime);
+  } finally {
+    mock.timers.reset();
+  }
+});
 
 test('zoetrope day-progress: a full in-order session records today once, not once per play', () => {
   resetState();
@@ -481,7 +505,8 @@ test('clearListeningHistory: full scope wipes session/play counters and leaves t
     tracks: [fakeTrack({ id:'t1' })],
     sessionCounts: { al1: 3 }, metalEligibleSessions: { al1: 2 }, rareUnlocked: { al1: true },
     zoetropeUnlocked: { al1: true }, zoetropeDayProgress: { al1: ['2020-01-01', '2020-01-02', '2020-01-03'] },
-    albumLastPlayed: { al1: Date.now() }, albumDisplay: { al1: {name:'x'} }, albumLookPref: { al1: 'rare' },
+    albumLastPlayed: { al1: Date.now() }, albumFirstPlayed: { al1: Date.now() },
+    albumDisplay: { al1: {name:'x'} }, albumLookPref: { al1: 'rare' },
     achievements: { al1: { albumId:'al1', tier:2 } }, collection: { al1: { albumId:'al1' } },
     sessions: { al1: { albumId:'al1' } },
     trackPlayCounts: { tk1: 5 }, trackMetalEligiblePlays: { tk1: 3 }, trackLastPlayed: { tk1: Date.now() },
@@ -499,6 +524,7 @@ test('clearListeningHistory: full scope wipes session/play counters and leaves t
   assert.deepEqual(S.zoetropeUnlocked, {});
   assert.deepEqual(S.zoetropeDayProgress, {});
   assert.deepEqual(S.albumLastPlayed, {});
+  assert.deepEqual(S.albumFirstPlayed, {});
   assert.deepEqual(S.albumDisplay, {});
   assert.deepEqual(S.albumLookPref, {});
   assert.deepEqual(S.achievements, {});
@@ -526,6 +552,7 @@ test('clearListeningHistory: orphaned-only scope drops only identities no longer
     // is normKey(artist)|albumKey|normKey(title) ("a|al|t" for this track)
     sessionCounts: { al: 3, goneAlbum: 7 },
     albumLastPlayed: { al: 1, goneAlbum: 1 },
+    albumFirstPlayed: { al: 1, goneAlbum: 1 },
     achievements: {}, collection: {}, sessions: {},
     trackPlayCounts: { 'a|al|t': 2, 'gone|key|x': 9 },
     // PRESSINGS_110 PR7: zoetropeUnlocked/zoetropeDayProgress are keyed by
@@ -539,11 +566,13 @@ test('clearListeningHistory: orphaned-only scope drops only identities no longer
 
   // the still-in-library album/track identity survives
   assert.ok('al' in S.sessionCounts);
+  assert.ok('al' in S.albumFirstPlayed);
   assert.ok('a|al|t' in S.trackPlayCounts);
   assert.ok('al' in S.zoetropeUnlocked);
   assert.ok('al' in S.zoetropeDayProgress);
   // the orphaned ones (no longer in S.tracks) are dropped
   assert.ok(!('goneAlbum' in S.sessionCounts));
+  assert.ok(!('goneAlbum' in S.albumFirstPlayed));
   assert.ok(!('gone|key|x' in S.trackPlayCounts));
   assert.ok(!('goneAlbum' in S.zoetropeUnlocked));
   assert.ok(!('goneAlbum' in S.zoetropeDayProgress));

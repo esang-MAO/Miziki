@@ -3,7 +3,8 @@ import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { SLEEVE_ANIM, renderMiniPlayer } from './mini-player.js';
-import { waitAnimEnd, sleeveArtFor } from './start-sequence.js';
+import { waitAnimEnd, sleeveArtFor, applySleeveWear } from './start-sequence.js';
+import { albumKey } from '../record-art/tiers.js';
 
 /* ================= put-away: the record goes back in its sleeve =================
    Mirror image of the pull, run from advance()'s end-of-queue branch: the
@@ -46,6 +47,7 @@ export async function runPutAwaySequence(t, opts = {}){
   if(!opts.skipSpin) startSpinDown(SLEEVE_ANIM.putSpinMs);
 
   sleeveArtFor(t.art, !!t.art);
+  applySleeveWear($('#sleeve'), albumKey(t));
   $('#sleeve').style.display = 'flex';
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back
   stage.classList.add('putaway-in');

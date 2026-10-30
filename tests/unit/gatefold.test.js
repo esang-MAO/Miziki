@@ -64,7 +64,7 @@ mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
 
-const { gatefoldSideSplits, isGatefoldOpen } = await import('../../src/gatefold/view.js');
+const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen } = await import('../../src/gatefold/view.js');
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
@@ -150,4 +150,30 @@ test('isSingleRecord: an album with no tracks at all is not a single', () => {
 
 test('isPictureSleeveOpen reads the module-private SLEEVE state (null when closed)', () => {
   assert.equal(isPictureSleeveOpen(), false);
+});
+
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): per-side play-count sums, from
+// trackPlayCounts summed per side (gatefoldSideWearShares, the pure half
+// of buildGatefoldTracklist's per-side bar).
+test('gatefoldSideWearShares: null input (no split) returns null', () => {
+  assert.equal(gatefoldSideWearShares(null), null);
+});
+
+test('gatefoldSideWearShares: splits each side\'s plays and its share of the album total', () => {
+  S.tracks = [
+    { tags: { artist: 'A', album: 'Al', title: 'One' } },
+    { tags: { artist: 'A', album: 'Al', title: 'Two' } },
+    { tags: { artist: 'A', album: 'Al', title: 'Three' } },
+  ];
+  S.trackPlayCounts = { 'a|al|one': 30, 'a|al|two': 0, 'a|al|three': 10 };
+  const sides = [{ label: 'Side A', idx: [0, 1] }, { label: 'Side B', idx: [2] }];
+  const shares = gatefoldSideWearShares(sides);
+  assert.deepEqual(shares, [{ plays: 30, pct: 75 }, { plays: 10, pct: 25 }]);
+});
+
+test('gatefoldSideWearShares: an album with no plays at all gives every side a 0% share', () => {
+  S.tracks = [{ tags: { artist: 'A', album: 'Al', title: 'One' } }];
+  S.trackPlayCounts = {};
+  const sides = [{ label: 'Side A', idx: [0] }];
+  assert.deepEqual(gatefoldSideWearShares(sides), [{ plays: 0, pct: 0 }]);
 });

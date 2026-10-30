@@ -20,6 +20,7 @@ import { openAddMenu } from '../shell/header.js';
 import { getCrateArtURL, prewarmCrateAnchorL } from './tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import { buildPeekDisc } from '../record-art/peek.js';
+import { wearStage } from '../record-art/wear.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import { dividerArtEl } from './divider-art.js';
 import {
@@ -726,6 +727,14 @@ export function renderCrate(host){
       const sealed = isAlbumSealed(item.albumId);
       if(sealed) card.appendChild(buildSealOverlay(cardSize, item.albumId, item.addedAt));
       else {
+        // RW7 (docs/23_RHYTHM_AND_WEAR.md): wear sits alongside metals (it
+        // doesn't replace them), is never shown on a sealed record (the
+        // branch above), and can be switched off entirely without
+        // touching the data it's computed from.
+        if(S.showWear !== false){
+          const stage = wearStage(S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId], Date.now());
+          if(stage !== 'new') card.classList.add('wear-' + stage);
+        }
         // CR3 point 1: "most sleeves are quiet; the few stickers mean
         // something" — stickerFor() already returns null for most records.
         const sticker = stickerFor(item, false);

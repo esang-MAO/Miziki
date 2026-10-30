@@ -23,7 +23,7 @@ mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
   namedExports: { SLEEVE_ANIM: { putSpinMs: 500 }, renderMiniPlayer(){} },
 });
 mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
-  namedExports: { waitAnimEnd: async () => {}, sleeveArtFor(){} },
+  namedExports: { waitAnimEnd: async () => {}, sleeveArtFor(){}, applySleeveWear(){} },
 });
 
 const { easeOutCubic } = await import('../../src/util/motion.js');

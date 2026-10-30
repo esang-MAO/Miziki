@@ -52,6 +52,20 @@ export function maxField(rows, field){
   return out;
 }
 
+// ---- albumFirstPlayed (RW7): min() across devices -- the earliest
+// first-play wins, the mirror image of maxField above ----
+export function minField(rows, field){
+  const out = {};
+  for(const row of rows){
+    const m = row.minFields && row.minFields[field];
+    if(!m) continue;
+    for(const k of Object.keys(m)){
+      out[k] = (k in out) ? Math.min(out[k], m[k] || 0) : (m[k] || 0);
+    }
+  }
+  return out;
+}
+
 // ---- rareUnlocked: union of {albumKey: true} maps ----
 export function unionFlags(rows, field){
   const out = {};
@@ -335,6 +349,11 @@ export function mergeRows(rows){
       maxFields: {
         trackLastPlayed: maxField(fresh, 'trackLastPlayed'),
         albumLastPlayed: maxField(fresh, 'albumLastPlayed'),
+      },
+      // RW7 (docs/23_RHYTHM_AND_WEAR.md): albumFirstPlayed is a min merge,
+      // the mirror of albumLastPlayed's max merge just above.
+      minFields: {
+        albumFirstPlayed: minField(fresh, 'albumFirstPlayed'),
       },
       rareUnlocked: unionFlags(fresh, 'rareUnlocked'),
       achievements: unionEarliest(fresh, 'achievements', 'updatedAt'),

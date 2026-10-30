@@ -24,6 +24,7 @@ function fakeS(overrides = {}){
     zoetropesEnabled: true,
     largerText: false,
     seasonalSky: true,
+    showWear: true,
   }, overrides);
 }
 
@@ -50,6 +51,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     zoetropesEnabled: S.zoetropesEnabled,
     largerText: S.largerText,
     seasonalSky: S.seasonalSky,
+    showWear: S.showWear,
   });
 });
 
@@ -372,6 +374,27 @@ test('old saved data: no seasonalSky field at all leaves it out, so the default 
 test('bad values are ignored: a non-boolean seasonalSky', () => {
   const parsed = parsePrefs({ seasonalSky: 'on' });
   assert.equal('seasonalSky' in parsed, false);
+});
+
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
+// device before this PR) loads as on -- the stated default.
+test('round trip: showWear survives both On and Off', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ showWear: true })));
+  assert.equal(p1.showWear, true);
+  const p2 = parsePrefs(serializePrefs(fakeS({ showWear: false })));
+  assert.equal(p2.showWear, false);
+});
+
+test('old saved data: no showWear field at all leaves it out, so the default (On) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.showWear;
+  const parsed = parsePrefs(raw);
+  assert.equal('showWear' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean showWear', () => {
+  const parsed = parsePrefs({ showWear: 'on' });
+  assert.equal('showWear' in parsed, false);
 });
 
 // AU5 (docs/16_AUDIO.md §4): a saved object without this field (every

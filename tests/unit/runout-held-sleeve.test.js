@@ -89,7 +89,7 @@ mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
-  namedExports: { sleeveArtFor(){} },
+  namedExports: { sleeveArtFor(){}, applySleeveWear(){} },
 });
 const paintRestingCardMock = mock.fn();
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {

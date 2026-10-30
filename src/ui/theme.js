@@ -207,6 +207,17 @@ export function setSeasonalSky(on){
   queueSave();
 }
 
+// RW7 (docs/23_RHYTHM_AND_WEAR.md): "Show wear" -- off shows every record
+// new, the data underneath keeps counting. No per-record restore, and (as
+// with setSeasonalSky above) no forced immediate re-render of every open
+// surface: the crate/gatefold/sleeve already redraw themselves on their
+// own next open or recycle, which is when each actually re-reads
+// S.showWear.
+export function setShowWear(on){
+  S.showWear = !!on;
+  queueSave();
+}
+
 // DA4: briefly makes background/text/border colors transition instead of
 // snapping, for the one Nychthemeron flip itself — "switch with a ~1.5s
 // colour transition" (the doc's own wording). A class on :root, not an
