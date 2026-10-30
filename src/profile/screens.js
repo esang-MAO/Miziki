@@ -2,7 +2,7 @@ import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, crateFilled } from '../history/achievements.js';
+import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow } from '../history/achievements.js';
 import { metalBadge } from './badges.js';
 import { renderStorefrontSection, storeSwitch } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
@@ -423,16 +423,13 @@ function renderListeningScreen(body){
   if(rhythm.total >= RHYTHM_MIN_PLAYS){
     const shareSeasonBtn = el('button','cta ghost profile-share','Share season');
     shareSeasonBtn.addEventListener('click', async () => {
-      // SH6 (docs/18_SHARE.md) item 1: metals = per-tier counts from
-      // achievementsList(), playedThrough = that same list's own length
-      // (every earned tier counts once toward "played through").
-      const achList = achievementsList();
-      const metals = {};
-      achList.forEach(a => { metals[a.tier] = (metals[a.tier] || 0) + 1; });
+      // QC2 (docs/24_QUIET_COUNTS.md): "most played this season" — the top
+      // 3 albums by plays in the card's own window, replacing the old
+      // metals/"N records played through" figures (SH6 item 1, superseded).
       const { openShareSheet } = await import('../share/sheet.js');
       openShareSheet({ card:'season', data:{
         verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
-        metals, playedThrough: achList.length, ownerName: S.profile.name || null,
+        topAlbums: topAlbumsInWindow(3, RHYTHM_WINDOW_DAYS), ownerName: S.profile.name || null,
       } });
     });
     shareStack.appendChild(shareSeasonBtn);

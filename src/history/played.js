@@ -3,7 +3,7 @@
    the last interval in O(1); a merge only runs when coverage is asked for. ---- */
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
-import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay } from './sessions.js';
+import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay } from './sessions.js';
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
@@ -58,12 +58,18 @@ export function incrementTrackPlay(t){
   const todayBucket = S.phasePlayCountsByDay[today] || (S.phasePlayCountsByDay[today] = {});
   todayBucket[phase] = (todayBucket[phase] || 0) + 1;
   S.phasePlayCountsByDay = pruneDayBuckets(S.phasePlayCountsByDay, Date.now(), RHYTHM_PRUNE_KEEP_DAYS);
+  // QC2 (docs/24_QUIET_COUNTS.md): the per-album twin, same day-bucketing
+  // and pruning, for the Season share card's windowed "most played" row.
+  const todayAlbumBucket = S.albumPlayCountsByDay[today] || (S.albumPlayCountsByDay[today] = {});
+  todayAlbumBucket[albumId] = (todayAlbumBucket[albumId] || 0) + 1;
+  S.albumPlayCountsByDay = pruneDayBuckets(S.albumPlayCountsByDay, Date.now(), RHYTHM_PRUNE_KEEP_DAYS);
   persistTrackPlayCounts();
   persistTrackMetalEligiblePlays();
   persistTrackLastPlayed();
   persistPhasePlayCounts();
   persistAlbumPhaseCounts();
   persistPhasePlayCountsByDay();
+  persistAlbumPlayCountsByDay();
   snapshotAlbumDisplay(t);
   snapshotTrackDisplay(t, key);
   if(current() === t) applyDiscVariant(t, true);

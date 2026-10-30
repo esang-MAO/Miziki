@@ -1,20 +1,21 @@
-import { getVariantDef } from '../record-art/tiers.js';
+import { getVariantDef, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS } from '../record-art/tiers.js';
 import {
   SHARE_FORMATS, shareFitText, roundRectPath, drawShareWordmark,
-  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc,
+  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc, fillVariantSwatch,
 } from './styles.js';
 
 /* ---- Pressings card (composePressingsShareImage) — a grid of unlocked
-   pressings, shared from Profile › Records › Pressings. Header (PRESSINGS
-   kicker, "N of 110", family counts), a 3-column grid of the most
-   recently discovered pressings (newest first), a "+ N more" line when
-   the collection outgrows the grid, and a footer. `opts`: {style, format,
-   data}. `data` is gathered by the Records screen: {records (S.collection
-   values, already sorted newest-first — see sortPressingsNewestFirst
-   below), counts (per-family {owned, total}, one entry each for solid/
-   effects/rare/zoetrope), total (the owned count shown as "N of"),
-   chartSize (the "of N" denominator), ownerName} — docs/18_SHARE.md, SH4
-   items 1 and 2. ---- */
+   pressings, shared from Profile › Records › Pressings. QC2 (docs/
+   24_QUIET_COUNTS.md): a "PRESSINGS" kicker, the owned-only chip grid
+   grouped by family (same grouping and order as the profile's own chart,
+   profile/storefront.js's renderPressingCard — no "N of 110", no family
+   counts), a 3-column grid of the most recently discovered pressings
+   (newest first), a "+ N more" line when the collection outgrows the
+   grid, and a footer. `opts`: {style, format, data}. `data` is gathered
+   by the Records screen: {records (S.collection values, already sorted
+   newest-first — see sortPressingsNewestFirst below), ownedIds (the
+   merged set of every owned variant id, across all four families),
+   ownerName} — docs/18_SHARE.md, SH4 items 1 and 2. ---- */
 
 const GRID_COLS = 3;
 const GRID_ROWS = { story: 4, square: 2 };
@@ -47,17 +48,40 @@ export function moreCountText(records, format){
   return extra > 0 ? ('+ ' + extra + ' MORE · NEWEST FIRST') : null;
 }
 
-// one "LABEL owned OF total" clause per family, in solid/effects/rare/
-// zoetrope order (SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS's own order,
-// record-art/tiers.js) — a family with no catalogue entries at all (a
-// future, still-empty family) is left out rather than shown as "0 of 0".
-export function familyCountsLine(counts){
-  if(!counts) return '';
-  const part = (label, c) => (c && c.total) ? (label + ' ' + c.owned + ' OF ' + c.total) : null;
-  return [
-    part('COLORS', counts.solid), part('EFFECTS', counts.effects),
-    part('RARE', counts.rare), part('ZOETROPES', counts.zoetrope),
-  ].filter(Boolean).join(' · ');
+// QC1/QC2: the same family grouping/order profile/storefront.js's
+// renderPressingCard() draws (SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS's
+// own order, record-art/tiers.js) — duplicated here rather than shared,
+// since one draws DOM chips and the other canvas ones.
+const PRESSING_FAMILIES = [
+  {label:'COLORS', ids:SOLID_IDS}, {label:'EFFECTS', ids:EFFECT_IDS},
+  {label:'RARE', ids:RARE_IDS}, {label:'ZOETROPES', ids:ZOETROPE_IDS},
+];
+const CHIP_SIZE = 32, CHIP_GAP = 10, CHIP_RADIUS = 6;
+
+// one row of found chips per family that has any, a mono-caps label above
+// each row — only the owned chips are ever drawn, never a missing one.
+// Returns the y position just past the last row drawn.
+export function drawPressingChips(ctx, kit, ownedIds, x, y, maxW){
+  let cy = y;
+  PRESSING_FAMILIES.forEach(({label, ids}) => {
+    const owned = ids.filter(id => ownedIds.has(id));
+    if(!owned.length) return;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '500 18px "IBM Plex Mono", monospace';
+    ctx.fillStyle = kit.sub;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+    ctx.fillText(label, x, cy + 14);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    cy += 32;
+    let cx = x;
+    owned.forEach(id => {
+      if(cx + CHIP_SIZE > x + maxW){ cx = x; cy += CHIP_SIZE + CHIP_GAP; }
+      fillVariantSwatch(ctx, getVariantDef(id), cx, cy, CHIP_SIZE, CHIP_RADIUS);
+      cx += CHIP_SIZE + CHIP_GAP;
+    });
+    cy += CHIP_SIZE + 24;
+  });
+  return cy;
 }
 
 // the tile art box: cover tucked behind-left, pressing disc in front
@@ -120,19 +144,10 @@ export async function composePressingsShareImage(opts){
   if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
   ctx.fillText('PRESSINGS', pad, y);
   if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  y += 12;
+  y += 28;
 
-  ctx.font = '700 76px Antonio, sans-serif';
-  y += Math.round(76*0.9);
-  ctx.fillStyle = kit.ink;
-  ctx.fillText((data.total || 0) + ' of ' + (data.chartSize || 0), pad, y);
-  y += 20;
-
-  // TY6: metadata is Archivo .num, not mono.
-  ctx.font = '500 20px Archivo, sans-serif';
-  ctx.fillStyle = kit.sub;
-  ctx.fillText(shareFitText(ctx, familyCountsLine(data.counts), w - pad*2), pad, y);
-  y += 52;
+  y = drawPressingChips(ctx, kit, data.ownedIds || new Set(), pad, y, w - pad*2);
+  y += 24;
 
   const records = data.records || [];
   const shownCount = Math.min(records.length, tileCountFor(format));

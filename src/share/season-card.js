@@ -1,10 +1,9 @@
 import { S } from '../state.js';
 import { PHASES } from '../sundown/rhythm.js';
 import { PHASE_COLOR } from '../profile/rhythm-card.js';
-import { METAL_COLORS } from '../record-art/metals.js';
 import {
-  SHARE_FORMATS, shareFitText, shareSwatchGradient,
-  drawShareWordmark, wordmarkWidth, resolveShareStyle,
+  SHARE_FORMATS, shareFitText, drawShareWordmark, wordmarkWidth, resolveShareStyle,
+  roundRectPath, loadImageEl, drawCover, drawDiagonalWordmark,
 } from './styles.js';
 
 /* ---- Season card (composeSeasonShareImage) — the listening-rhythm
@@ -15,9 +14,9 @@ import {
    data}. `data` is gathered by the profile's Listening screen (src/
    profile/screens.js): {verdict, shares, total} from
    computeRhythmShares(windowedPhaseCounts(...))/rhythmVerdictLabel
-   (sundown/rhythm.js), plus metals = per-tier counts from
-   achievementsList(), playedThrough = achievements count, ownerName.
-   The composer reads nothing else. ---- */
+   (sundown/rhythm.js), plus topAlbums (QC2, docs/24_QUIET_COUNTS.md —
+   the top 3 albums by plays in the same window, history/achievements.js's
+   topAlbumsInWindow()) and ownerName. The composer reads nothing else. ---- */
 
 // SH6 item 3: "sorted by share descending" — a flat sort over the fixed
 // PHASES order keeps ties deterministic (the earlier-in-PHASES phase
@@ -27,15 +26,6 @@ export function legendOrder(shares){
   const s = shares || {};
   return PHASES.filter(p => (s[p] || 0) > 0)
     .sort((a, b) => (s[b] || 0) - (s[a] || 0));
-}
-
-// SH6 item 4: "tiers with 0 are omitted" — rare outranks the metal
-// ladder, same priority order the old crate-card.js metals section used
-// (METAL_RANK in history/achievements.js). Exported for its own test.
-const METAL_TIER_ORDER = ['rare', 'platinum', 'gold', 'silver', 'bronze'];
-export function metalTierOrder(metals){
-  const m = metals || {};
-  return METAL_TIER_ORDER.filter(k => (m[k] || 0) > 0);
 }
 
 // A hard-edged conic ring (not a blend) — two colour stops per wedge, at
@@ -111,48 +101,48 @@ function drawLegend(ctx, kit, x, y, w, shares, rowH, dotR, fontPx){
   return y;
 }
 
-// SH6 item 4: a brushed highlight->mid->shadow gradient per disc, the
-// same three METAL_COLORS stops the platter's own metal pressing uses,
-// just a diagonal linear sweep instead of the platter's concentric one —
-// "brushed" reads as a straight-grain sweep across a disc face, not a
-// radial one.
-function metalDiscGradient(ctx, cx, cy, r, tier){
-  const m = METAL_COLORS[tier];
-  if(!m) return shareSwatchGradient(ctx, cx, cy, r, ['#C9B896', '#9c8a74', '#5c5040']);
-  const g = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
-  g.addColorStop(0, m.highlight); g.addColorStop(0.5, m.mid); g.addColorStop(1, m.shadow);
-  return g;
-}
-
-function drawMetalsRow(ctx, kit, x, y, metals, playedThrough, discR, fontPx){
-  const order = metalTierOrder(metals);
-  if(!order.length) return y;
+// QC2 (docs/24_QUIET_COUNTS.md): "MOST PLAYED THIS SEASON" — the top 3
+// albums (data.topAlbums, already selected and windowed by
+// history/achievements.js's topAlbumsInWindow()) as cover art plus the
+// album name underneath, replacing the old metals/"N records played
+// through" figures. Omitted outright with nothing in the window at all,
+// same "no row when there's nothing to show" shape drawMetalsRow() used.
+async function drawTopAlbumsRow(ctx, kit, x, y, maxW, albums, fontPx){
+  if(!albums.length) return y;
   // TY6: the kicker is Archivo caps --track-caps, not mono.
   ctx.font = '700 ' + Math.round(fontPx * 1.1) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.accent;
   if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
-  ctx.fillText('METALS', x, y);
+  ctx.fillText('MOST PLAYED THIS SEASON', x, y);
   if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   y += Math.round(fontPx * 1.8);
 
-  let cx = x + discR;
-  order.forEach(tier => {
-    ctx.beginPath(); ctx.arc(cx, y + discR * 0.2, discR, 0, Math.PI * 2);
-    ctx.fillStyle = metalDiscGradient(ctx, cx, y + discR * 0.2, discR, tier);
-    ctx.fill();
-    ctx.fillStyle = '#171310'; ctx.font = '700 ' + Math.round(discR * 0.85) + 'px Archivo, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(metals[tier]), cx, y + discR * 0.2 + 1);
+  const cols = 3;
+  const gap = Math.round(maxW * 0.04);
+  const tileW = Math.round((maxW - gap * (cols - 1)) / cols);
+  const nameFontPx = Math.round(fontPx * 0.95);
+  const shown = albums.slice(0, cols);
+  for(let i = 0; i < shown.length; i++){
+    const rec = shown[i];
+    const tx = x + i * (tileW + gap);
+    ctx.save();
+    roundRectPath(ctx, tx, y, tileW, tileW, Math.round(tileW * 0.04));
+    ctx.clip();
+    if(rec.art){
+      try{
+        const img = await loadImageEl(rec.art);
+        drawCover(ctx, img, tx, y, tileW, tileW);
+      }catch(_e){ drawDiagonalWordmark(ctx, tx, y, tileW); }
+    } else {
+      drawDiagonalWordmark(ctx, tx, y, tileW);
+    }
+    ctx.restore();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    cx += discR * 2 + Math.round(fontPx * 0.9);
-  });
-  y += discR * 2 + Math.round(fontPx * 1.6);
-
-  // TY6: metadata is Archivo .num, not mono.
-  ctx.font = '500 ' + fontPx + 'px Archivo, sans-serif';
-  ctx.fillStyle = kit.sub;
-  ctx.fillText(playedThrough + ' RECORD' + (playedThrough === 1 ? '' : 'S') + ' PLAYED THROUGH', x, y);
-  return y + Math.round(fontPx * 1.6);
+    ctx.font = '400 ' + nameFontPx + 'px Archivo, sans-serif';
+    ctx.fillStyle = kit.sub;
+    ctx.fillText(shareFitText(ctx, rec.name || '', tileW), tx, y + tileW + Math.round(nameFontPx * 1.3));
+  }
+  return y + tileW + Math.round(nameFontPx * 1.3) + Math.round(fontPx * 0.8);
 }
 
 export async function composeSeasonShareImage(opts){
@@ -209,8 +199,8 @@ export async function composeSeasonShareImage(opts){
     y = cy + ringR + Math.round(w * 0.04);
   }
 
-  // SH6 item 4: metals row, omitted outright with no earned tiers at all
-  y = drawMetalsRow(ctx, kit, pad, y, data.metals || {}, data.playedThrough || 0, Math.round(w * 0.026), Math.round(w * 0.019));
+  // QC2: top-albums row, omitted outright with nothing in the window
+  y = await drawTopAlbumsRow(ctx, kit, pad, y, w - pad * 2, data.topAlbums || [], Math.round(w * 0.019));
 
   // SH6 item 5: footer, wordmark + [NAME]'S CRATE, bottom-right — the
   // same off-centre shape SH5 gave crate-card.js's own wordmark

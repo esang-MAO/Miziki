@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { groupBy } from '../library/model.js';
-import { albumKey, getVariantDef, variantBackground, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS } from '../record-art/tiers.js';
+import { albumKey, getVariantDef, variantBackground } from '../record-art/tiers.js';
 import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
@@ -112,37 +112,22 @@ export function recordLetter(name){
   return /^[A-Z]$/.test(c) ? c : '#';
 }
 
-// SH4 (docs/18_SHARE.md): the Pressings share card's own data — gathered
-// here (the Records screen), same "the calling screen hands the composer
-// pre-resolved data" shape SH3's Record card already established. The
-// per-family {owned, total} counts reuse the exact COLORS/EFFECTS/RARE/
-// ZOETROPES arithmetic storefront.js's own renderPressingCard() already
-// does inline against SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS -- kept
-// as its own small loop here rather than a shared export, the same
-// "duplicate the small shared formula rather than wire two independent
-// systems together" call CLAUDE.md documents for sync/images.js/
-// player/clock.js's own PHASE_COLOR duplication.
-function countFamily(ownedIds, ids){
-  let n = 0;
-  for(const id of ids) if(ownedIds.has(id)) n++;
-  return n;
-}
+// SH4 (docs/18_SHARE.md), QC2 (docs/24_QUIET_COUNTS.md): the Pressings
+// share card's own data — gathered here (the Records screen), same "the
+// calling screen hands the composer pre-resolved data" shape SH3's Record
+// card already established. QC2 drops the "N of 110"/family-counts
+// figures the card used to draw, so this only needs the merged owned-id
+// set (the card groups it into families itself, the same order
+// storefront.js's renderPressingCard() uses) and the record grid data.
 // TR2 (docs/19_PLAYER.md): async since this is only ever called from the
 // Share button below, which already dynamically imports share/sheet.js --
 // sortPressingsNewestFirst (share/pressings-card.js) rides along with it
 // instead of pulling that file into a static import here.
-async function pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope){
+async function pressingsShareData(owned){
   const { sortPressingsNewestFirst } = await import('../share/pressings-card.js');
   return {
     records: sortPressingsNewestFirst(Object.values(S.collection)),
-    counts: {
-      solid:    { owned: countFamily(ownedSolidEffect, SOLID_IDS),  total: SOLID_IDS.length },
-      effects:  { owned: countFamily(ownedSolidEffect, EFFECT_IDS), total: EFFECT_IDS.length },
-      rare:     { owned: countFamily(ownedRare, RARE_IDS),          total: RARE_IDS.length },
-      zoetrope: { owned: countFamily(ownedZoetrope, ZOETROPE_IDS),  total: ZOETROPE_IDS.length },
-    },
-    total: owned.size,
-    chartSize: SOLID_IDS.length + EFFECT_IDS.length + RARE_IDS.length + ZOETROPE_IDS.length,
+    ownedIds: owned,
     ownerName: S.profile && S.profile.name,
   };
 }
@@ -295,7 +280,7 @@ export function renderRecordsScreen(body){
       shareBtn.addEventListener('click', async () => {
         const [{ openShareSheet }, data] = await Promise.all([
           import('../share/sheet.js'),
-          pressingsShareData(owned, ownedSolidEffect, ownedRare, ownedZoetrope),
+          pressingsShareData(owned),
         ]);
         openShareSheet({ card:'pressings', data });
       });

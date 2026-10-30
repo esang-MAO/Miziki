@@ -156,7 +156,7 @@ test('recordNoteText: a real note survives, trimmed', () => {
    node:test's mock.module() replaces the module in the registry for
    every subsequent import, real or not, so the real module has to be
    loaded first. */
-const { sortPressingsNewestFirst, tileCountFor, moreCountText, familyCountsLine } = await import('../../src/share/pressings-card.js');
+const { sortPressingsNewestFirst, tileCountFor, moreCountText } = await import('../../src/share/pressings-card.js');
 
 test('sortPressingsNewestFirst: newest discoveredAt first, regardless of input order', () => {
   const a = { albumId: 'a', discoveredAt: 100 };
@@ -195,23 +195,12 @@ test('moreCountText: counts exactly how many are left off, newest-first framing'
   assert.equal(moreCountText(eightRecords, 'story'), null);
 });
 
-test('familyCountsLine: one clause per family, in solid/effects/rare/zoetrope order', () => {
-  const counts = {
-    solid: {owned: 14, total: 20}, effects: {owned: 3, total: 54},
-    rare: {owned: 1, total: 4}, zoetrope: {owned: 0, total: 6},
-  };
-  assert.equal(familyCountsLine(counts), 'COLORS 14 OF 20 · EFFECTS 3 OF 54 · RARE 1 OF 4 · ZOETROPES 0 OF 6');
-});
-
-test('familyCountsLine: a family with no catalogue entries at all is left out, not shown as "0 of 0"', () => {
-  const counts = { solid: {owned: 2, total: 5}, effects: {owned: 0, total: 0}, rare: null, zoetrope: {owned: 0, total: 6} };
-  assert.equal(familyCountsLine(counts), 'COLORS 2 OF 5 · ZOETROPES 0 OF 6');
-});
-
-test('familyCountsLine: no counts at all is an empty line, not a thrown error', () => {
-  assert.equal(familyCountsLine(null), '');
-  assert.equal(familyCountsLine(undefined), '');
-});
+// QC2 (docs/24_QUIET_COUNTS.md) removed familyCountsLine() along with the
+// "N of 110"/family-counts figures it formatted — the Pressings card now
+// draws an owned-chips grid instead (drawPressingChips(), real canvas
+// drawing woven into composePressingsShareImage itself, the same "not
+// behind a separable pure helper" shape this file's own header comment
+// already describes for composeShareImage/composePlayerShareImage).
 
 /* ===================== SH2 (docs/18_SHARE.md) =====================
    "Now Playing, re-spaced" -- layoutChips(ctx, chips, maxW) is the one
@@ -317,7 +306,7 @@ test('layoutChips: an empty chip list lays out to nothing', () => {
    before the SH1 block below mocks season-card.js wholesale (for
    sheet.js's own tests), for the same reason record-card.js/
    pressings-card.js's real imports above do. */
-const { legendOrder, metalTierOrder } = await import('../../src/share/season-card.js');
+const { legendOrder } = await import('../../src/share/season-card.js');
 
 test('legendOrder: sorted by share descending', () => {
   const shares = { night: 0.1, dawn: 0, morning: 0.5, midday: 0.4, afternoon: 0, golden: 0, twilight: 0 };
@@ -335,16 +324,14 @@ test('legendOrder: a tie breaks by the fixed PHASES order, deterministically', (
   assert.deepEqual(legendOrder({ golden: 0.5, night: 0.5 }), ['night', 'golden']);
 });
 
-test('metalTierOrder: rare outranks the metal ladder, platinum down to bronze', () => {
-  assert.deepEqual(metalTierOrder({ bronze: 1, gold: 2, rare: 1, silver: 1, platinum: 1 }),
-    ['rare', 'platinum', 'gold', 'silver', 'bronze']);
-});
-
-test('metalTierOrder: a tier with 0 (or missing) is omitted', () => {
-  assert.deepEqual(metalTierOrder({ gold: 3, silver: 0, bronze: 1 }), ['gold', 'bronze']);
-  assert.deepEqual(metalTierOrder({}), []);
-  assert.deepEqual(metalTierOrder(null), [], 'no metals at all means an empty order, not a thrown error');
-});
+// QC2 (docs/24_QUIET_COUNTS.md) removed metalTierOrder()/drawMetalsRow()
+// along with the Season card's metals/"N records played through" figures
+// — replaced by "MOST PLAYED THIS SEASON" (drawTopAlbumsRow(), real
+// canvas drawing, not separately unit-testable for the same reason as
+// drawPressingChips above). Its own selection logic —
+// history/achievements.js's topAlbumsInWindow(), reading
+// sundown/rhythm.js's windowedCounts() — is pure and tested directly
+// below instead.
 
 /* ===================== SH1 (docs/18_SHARE.md) =====================
    "One share sheet, five entry points" -- src/share/sheet.js is now the

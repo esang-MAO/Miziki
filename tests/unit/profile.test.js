@@ -122,6 +122,10 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
   namedExports: {
     topAlbums(){ return mockTopAlbums; }, topTracks(){ return mockTopTracks; }, achievementsList(){ return mockAchievements; },
     crateFilled(){ return false; }, collectionGroups(){ return {}; },
+    // QC2 (docs/24_QUIET_COUNTS.md): the Season share card's windowed
+    // top-albums pick — this file's own tests only care that the share
+    // button exists and wires to openShareSheet, not what it's built from.
+    topAlbumsInWindow(){ return []; },
     // CR11 point 3: ownedPressingIds() has its own coverage in
     // tests/unit/pressings.test.js — mocked here since this file's own
     // renderListeningScreen() tests only care that the card gets built,

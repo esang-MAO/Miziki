@@ -544,6 +544,15 @@ S.albumPhaseCounts = {};
 // (history/played.js's incrementTrackPlay(), via pruneDayBuckets()) to a
 // generous multiple of the window so it never grows without bound.
 S.phasePlayCountsByDay = {};
+// QC2 (docs/24_QUIET_COUNTS.md): the per-album twin of phasePlayCountsByDay
+// above -- {dayKey: {albumId: count}} -- for the Season share card's "most
+// played this season" row (top 3 albums by plays in the window, replacing
+// the old metals/"N records played through" figures). Same device-only
+// posture and pruning as phasePlayCountsByDay (history/played.js's
+// incrementTrackPlay(), sundown/rhythm.js's pruneDayBuckets()); read via
+// sundown/rhythm.js's windowedCounts() and history/achievements.js's
+// topAlbumsInWindow().
+S.albumPlayCountsByDay = {};
 // device-only sync bookkeeping -- the last time this device actually
 // pushed a listening-rhythm snapshot to the account (src/sync/backup.js's
 // pushBackup(), "updated at most daily" per the doc) -- never itself
