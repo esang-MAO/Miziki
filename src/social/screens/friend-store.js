@@ -352,8 +352,8 @@ function friendCrateSection(full){
   return section;
 }
 
-// CR11 point 3-4: a friend's own pressing chart — chips only, no numbers,
-// no tap (showNumbers:false, see renderPressingCard's own comment) since
+// CR11 point 3-4, QC1: a friend's own pressing chart — found chips only,
+// no tap (interactive:false, see renderPressingCard's own comment) since
 // nothing here compares two people. Fetches the friend's whole crate once
 // (bounded, same cap friendCrateSection's own "Browse all" ceiling uses)
 // purely to derive each item's pressing locally — no new RPC needed.
@@ -373,7 +373,7 @@ function friendPressingSection(full){
       const {variant} = selectVariantForAlbum(item.title, item.quality_tier);
       if(variant !== 'jet') owned.add(variant);
     });
-    holder.appendChild(renderPressingCard(owned, {showNumbers: false}));
+    holder.appendChild(renderPressingCard(owned, {interactive: false}));
   });
   return section;
 }

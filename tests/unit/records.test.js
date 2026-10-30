@@ -117,10 +117,22 @@ test('recordLetter: plain letters, accents folded, everything else is #', () => 
   assert.equal(R.recordLetter(''), '#');
 });
 
-test('recordsCountLine: singular/plural, and pressings/metals only when there are any', () => {
-  assert.equal(R.recordsCountLine(1, {pressings: 0, metals: 0}), '1 record');
-  assert.equal(R.recordsCountLine(212, {pressings: 9, metals: 3}), '212 records · 9 pressings · 3 metals');
-  assert.equal(R.recordsCountLine(5, {pressings: 0, metals: 1}), '5 records · 1 metal');
+test('recordsCountLine (QC1): just the record count, singular/plural — no pressing/metal totals', () => {
+  assert.equal(R.recordsCountLine(1), '1 record');
+  assert.equal(R.recordsCountLine(212), '212 records');
+});
+
+test('reachedMetals (QC1): one entry per tier reached, highest tier last, nothing for tiers not reached', () => {
+  mockAchievements = [
+    {albumId: 'a', tier: 'silver', name: 'A', artist: '', updatedAt: 1},
+    {albumId: 'b', tier: 'bronze', name: 'B', artist: '', updatedAt: 2},
+    {albumId: 'c', tier: 'silver', name: 'C', artist: '', updatedAt: 3},
+  ];
+  const metals = R.reachedMetals();
+  assert.deepEqual(metals.map(m => m.tier), ['bronze', 'silver']);
+  assert.deepEqual(metals.map(m => m.label), ['Bronze', 'Silver']);
+  mockAchievements = [];
+  assert.deepEqual(R.reachedMetals(), []);
 });
 
 test('libraryRecords: one entry per album, A-Z, preferring the album thumbnail over embedded art', () => {
@@ -184,7 +196,8 @@ test('renderRecordsScreen(pressings): the chart, then Colors, Effects and Metals
   const body = fakeEl();
   R.renderRecordsScreen(body);
   assert.equal(pressingCardCalls.length, 1);
-  assert.equal(pressingCardCalls[0].showNumbers, true);
+  assert.equal(pressingCardCalls[0].interactive, true);
+  assert.deepEqual(pressingCardCalls[0].metals.map(m => m.tier), ['silver']);
   const heads = byClass(body, 'records-group-head').map(h => h.childNodes[0].textContent);
   assert.deepEqual(heads, ['Colors', 'Effects', 'Metals']);
   assert.equal(byClass(body, 'pulled').length, 3);
@@ -195,7 +208,9 @@ test('renderRecordsScreen(pressings): empty state when nothing is unlocked', () 
   S.profileView.recordsFilter = 'pressings';
   const body = fakeEl();
   R.renderRecordsScreen(body);
-  assert.equal(byClass(body, 'profile-empty').length, 1);
+  const empty = byClass(body, 'profile-empty')[0];
+  assert.ok(empty);
+  assert.equal(empty.childNodes[0].textContent, 'Pressings and metals show up here as you listen.');
   assert.equal(byClass(body, 'records-group-head').length, 0);
 });
 

@@ -548,66 +548,77 @@ function renderStorefront(host, full, requests){
   host.appendChild(storeRecordsSection());
 }
 
-// CR11 point 3: how many of a family's own ids an owned-set actually holds —
-// used only for the "N OF 40 · M OF 32" count line, never shown on a
-// friend's card (point 4: counts are first-person only).
-function countOwned(ownedIds, ids){
-  let n = 0;
-  for(const id of ids) if(ownedIds.has(id)) n++;
-  return n;
-}
-
-// CR11 point 3; counts/chips grown to 4 families in PRESSINGS_110 PR8
-// (§7): a cream catalog card with a paint-chip strip, in family order
-// (SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS are already in that order —
-// see their own export comments in record-art/tiers.js). Shared between
-// the profile's own chart (opts.showNumbers true: real counts, missing
-// names, tap-to-jump) and a friend's (opts.showNumbers false: chips only,
-// no numbers, no tap — point 4, nothing here compares two people). A
-// friend's own owned set (social/screens/friend-store.js) only ever
-// carries solid/effect ids, since quality_tier can't say whether a rare
-// or zoetrope was earned — RARE_IDS/ZOETROPE_IDS chips show there too,
-// correctly dim, with no change needed on that call site.
+// QC1 (docs/24_QUIET_COUNTS.md): pressings are found, never counted toward
+// a total — one row per family (SOLID_IDS/EFFECT_IDS/RARE_IDS/ZOETROPE_IDS,
+// already in family order — see their own export comments in
+// record-art/tiers.js) that has at least one owned chip, and only the
+// owned chips themselves; nothing missing is ever drawn. Shared between
+// the profile's own chart (opts.interactive true: tap-to-jump, see CR11)
+// and a friend's (opts.interactive false — point 4, nothing here compares
+// two people). opts.metals, when given, is the caller's own pre-resolved
+// {tier, label, bg} list (highest tier last) for the dashed-off Metals
+// row; omitted or empty draws no Metals row at all. A friend's own owned
+// set (social/screens/friend-store.js) only ever carries solid/effect
+// ids, since quality_tier can't say whether a rare or zoetrope was
+// earned, and passes no metals.
+const PRESSING_FAMILIES = [
+  {label:'Colors', ids:SOLID_IDS},
+  {label:'Effects', ids:EFFECT_IDS},
+  {label:'Rare', ids:RARE_IDS},
+  {label:'Zoetropes', ids:ZOETROPE_IDS},
+];
 export function renderPressingCard(ownedIds, opts = {}){
-  const showNumbers = !!opts.showNumbers;
+  const interactive = !!opts.interactive;
+  const metals = opts.metals || [];
   const card = el('div','pressing-card');
-  card.appendChild(el('h3','pressing-card-head','Pressings'));
-  if(showNumbers){
-    const solidN = countOwned(ownedIds, SOLID_IDS), effectN = countOwned(ownedIds, EFFECT_IDS);
-    const rareN = countOwned(ownedIds, RARE_IDS), zoetropeN = countOwned(ownedIds, ZOETROPE_IDS);
-    card.appendChild(el('div','pressing-card-count',
-      'COLORS ' + solidN + ' OF ' + SOLID_IDS.length
-      + ' · EFFECTS ' + effectN + ' OF ' + EFFECT_IDS.length
-      + ' · RARE ' + rareN + ' OF ' + RARE_IDS.length
-      + ' · ZOETROPES ' + zoetropeN + ' OF ' + ZOETROPE_IDS.length));
-  }
-  const strip = el('div','pressing-chip-strip');
-  const allIds = [...SOLID_IDS, ...EFFECT_IDS, ...RARE_IDS, ...ZOETROPE_IDS];
-  const missingNames = [];
-  allIds.forEach(id => {
-    const def = VARIANT_DEFS[id];
-    const owned = ownedIds.has(id);
-    if(!owned) missingNames.push(def.name);
-    const clickable = showNumbers && owned;
-    const chip = el(clickable ? 'button' : 'div', 'pressing-chip' + (owned ? ' owned' : ' missing'));
-    chip.style.background = variantBackground(def);
-    chip.setAttribute('aria-label', def.name + (owned ? '' : ' (not yet in your crate)'));
-    if(def.band === 'scarce') chip.appendChild(el('span','pressing-chip-dot'));
-    if(clickable){
-      chip.addEventListener('click', ()=>{
-        S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
-        S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
-        S.crate.pendingJumpVariant = id;
-        showRoute('library');
-        renderTracks();
-      });
-    }
-    strip.appendChild(chip);
+  const head = el('div','pressing-card-head-row');
+  head.appendChild(el('h3','pressing-card-head','Pressings'));
+  head.appendChild(el('span','pressing-card-found','found while listening'));
+  card.appendChild(head);
+
+  PRESSING_FAMILIES.forEach(({label, ids}) => {
+    const owned = ids.filter(id => ownedIds.has(id));
+    if(!owned.length) return;
+    const row = el('div','pressing-family-row');
+    row.appendChild(el('span','pressing-family-label', label));
+    const strip = el('div','pressing-chip-strip');
+    owned.forEach(id => {
+      const def = VARIANT_DEFS[id];
+      const chip = el(interactive ? 'button' : 'div', 'pressing-chip owned');
+      chip.style.background = variantBackground(def);
+      chip.setAttribute('aria-label', def.name);
+      if(def.band === 'scarce') chip.appendChild(el('span','pressing-chip-dot'));
+      if(interactive){
+        chip.addEventListener('click', ()=>{
+          S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+          S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+          S.crate.pendingJumpVariant = id;
+          showRoute('library');
+          renderTracks();
+        });
+      }
+      strip.appendChild(chip);
+    });
+    row.appendChild(strip);
+    card.appendChild(row);
   });
-  card.appendChild(strip);
-  if(showNumbers && missingNames.length){
-    const shown = missingNames.slice(0, 4).join(', ') + (missingNames.length > 4 ? ', ...' : '');
-    card.appendChild(el('p','pressing-card-missing','Missing: ' + shown));
+
+  if(metals.length){
+    const metalsBlock = el('div','pressing-metals');
+    metalsBlock.appendChild(el('span','pressing-family-label','Metals'));
+    const row = el('div','pressing-metals-row');
+    metals.forEach(m => {
+      const cell = el('div','pressing-metal-cell');
+      const disc = el('span','pressing-metal-disc');
+      disc.style.background = m.bg;
+      disc.setAttribute('aria-label', m.label);
+      cell.appendChild(disc);
+      cell.appendChild(el('span','pressing-metal-name', m.label));
+      row.appendChild(cell);
+    });
+    metalsBlock.appendChild(row);
+    card.appendChild(metalsBlock);
   }
+
   return card;
 }
