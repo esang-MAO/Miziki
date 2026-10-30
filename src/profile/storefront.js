@@ -390,7 +390,7 @@ function renderLocalStorefront(host){
 
   const stats = el('div','store-stats');
   stats.appendChild(storeStat('Records', groupBy('album').length));
-  stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length, true));
+  stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length));
   host.appendChild(stats);
   host.appendChild(storeListeningRow());
 
@@ -441,33 +441,25 @@ function storeNowSpinningCard(full, _host){
   return card;
 }
 
-// RF11 (docs/12_REFINE.md): "one empty slot and '0 of 8' in its heading;
-// more slots appear as records are pinned" — a brand-new crate shows
-// exactly one empty slot, not seven, and the heading's own count climbs
-// as each pick is added, rather than every tile existing up front.
-function storePicksSection(full){
+// QC3 (docs/24_QUIET_COUNTS.md): staff picks are shown as found, never
+// counted toward their cap — heading has no "— N of 8", and there is no
+// empty "Pin a record" slot (pinning itself happens from a record's own
+// gatefold/crate menu, src/gatefold/view.js and src/crate/view.js's own
+// MizikiSocial.pin() calls — never from a tile in this section). The cap
+// of 8 is still enforced as a rule by MizikiSocial.pin() itself; this
+// section just stops displaying it. Zero picks gets one plain line
+// instead of a placeholder tile.
+export function storePicksSection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'Staff picks — ' + full.staffPicks.length + ' of 8'));
+  head.appendChild(el('h2', null, 'Staff picks'));
   section.appendChild(head);
+  if(!full.staffPicks.length){
+    section.appendChild(el('p','store-loading','Pin a record to put it here.'));
+    return section;
+  }
   const row = el('div','store-picks-row');
   full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
-  if(full.staffPicks.length < 8){
-    // RF15 (docs/12_REFINE.md, point 4, "empty slots as bin dividers"): the
-    // plain dashed placeholder becomes a cream bin-divider tile — a small
-    // "+" tab plus a card reading "PIN A RECORD" — the same tab-and-card
-    // shape the crate's own A-Z/genre dividers already use (10-crate.css's
-    // .crate-divider-tab/.crate-divider-label), per Profile.dc.html's own
-    // mockup. The slot count already shows in this section's own heading
-    // ("Staff picks — N of 8"), so the tile itself doesn't repeat it.
-    const empty = el('div','store-pick-empty');
-    empty.setAttribute('aria-label', 'Pin a record — slot ' + (full.staffPicks.length + 1) + ' of 8');
-    empty.appendChild(el('span','store-pick-empty-tab','+'));
-    const card = el('div','store-pick-empty-card');
-    card.appendChild(el('span', null, 'Pin a record'));
-    empty.appendChild(card);
-    row.appendChild(empty);
-  }
   section.appendChild(row);
   return section;
 }
@@ -537,8 +529,6 @@ function renderStorefront(host, full, requests){
   const stats = el('div','store-stats');
   stats.appendChild(storeStat('Records', full.summary.records));
   stats.appendChild(storeStat('Staff picks', full.summary.pins));
-  stats.appendChild(storeStat('Followers', full.summary.followers || 0, true));
-  stats.appendChild(storeStat('Digging', full.diggingCount || 0));
   host.appendChild(stats);
   host.appendChild(storeListeningRow());
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));

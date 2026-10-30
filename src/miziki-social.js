@@ -945,6 +945,17 @@ const listFollowing = () => guarded(async () => {
     .eq('follower_id', X.userId).order('created_at', { ascending: false }));
   return { ok: true, following: rows || [] };
 });
+// QC3 (docs/24_QUIET_COUNTS.md point 5): Settings > Account's own simple
+// list sheet for "Followers N" -- only accepted followers, the people who
+// can already see this account's crate, mirroring listFollowing() exactly
+// (same RLS row -- follows_select already lets either party read it, see
+// 001_schema.sql -- no new RPC/migration needed).
+const listFollowers = () => guarded(async () => {
+  const rows = await q(X.sb.from('follows')
+    .select('follower_id, profiles!follows_follower_id_fkey(handle, display_name)')
+    .eq('followee_id', X.userId).eq('status', 'accepted').order('created_at', { ascending: false }));
+  return { ok: true, followers: rows || [] };
+});
 const block = userId => guarded(async () => {
   await q(X.sb.from('blocks').insert({ blocker_id: X.userId, blocked_id: userId }));
   return { ok: true };
@@ -1223,7 +1234,7 @@ root.MizikiSocial = {
   // sync
   syncNow, confirmRemovals,
   // people
-  searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing,
+  searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing, listFollowers,
   block, unblock, listBlocked, report,
   // reading
   loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,

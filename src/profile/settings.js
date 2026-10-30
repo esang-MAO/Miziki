@@ -296,6 +296,46 @@ function renderDeviceList(body){
   });
 }
 
+// QC3 (docs/24_QUIET_COUNTS.md point 5): a plain "Followers N ›" / "Following
+// N ›" row, expanding in place to a flat name list on tap -- the same
+// expand-on-click shape storeRequestsCard() already uses, just without the
+// accept/decline actions. The count itself still shows (it's who-can-see-you
+// bookkeeping, not a progress total the app is asking you to chase), only
+// the chip/score surfaces QC1-QC4 touch don't.
+function renderFollowRow(body, label, loader){
+  const btn = el('button','settings-link-row');
+  const text = el('span', null, label);
+  btn.appendChild(text);
+  btn.appendChild(el('span','g-chev','›'));
+  btn.setAttribute('aria-expanded','false');
+  const list = el('div','store-requests-list');
+  list.style.display = 'none';
+  let people = null;
+  loader().then(r => {
+    people = (r.ok && (r.followers || r.following)) || [];
+    text.textContent = label + ' ' + people.length;
+  });
+  btn.addEventListener('click', ()=>{
+    const open = list.style.display === 'none';
+    list.style.display = open ? 'block' : 'none';
+    btn.setAttribute('aria-expanded', String(open));
+    if(open && people && !list.childNodes.length){
+      if(!people.length){ list.appendChild(el('p','note','Nobody yet.')); }
+      people.forEach(p => {
+        const prof = p.profiles || {};
+        const row = el('div','store-dig-row');
+        const rtext = el('div','store-dig-text');
+        rtext.appendChild(el('b', null, prof.display_name || prof.handle || 'Someone'));
+        if(prof.handle) rtext.appendChild(el('em', null, '@' + prof.handle));
+        row.appendChild(rtext);
+        list.appendChild(row);
+      });
+    }
+  });
+  body.appendChild(btn);
+  body.appendChild(list);
+}
+
 function renderDeleteAccount(body, profile){
   const section = el('div','social-setting-row');
   section.appendChild(el('h2', null, 'Delete account'));
@@ -362,6 +402,10 @@ export function renderSocialSettingsScreen(body){
       body.insertBefore(idRow, body.firstChild);
       body.insertBefore(el('p','note', accountBackupStatusLine()), idRow.nextSibling);
     });
+    // QC3 point 5: only shown once there's a signed-in profile to have
+    // followers/following at all -- hidden entirely when signed out.
+    renderFollowRow(body, 'Followers', () => MizikiSocial.listFollowers());
+    renderFollowRow(body, 'Following', () => MizikiSocial.listFollowing());
   });
 
   renderDeviceList(body);

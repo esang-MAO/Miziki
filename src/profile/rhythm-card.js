@@ -150,13 +150,6 @@ function recordRow(phase, albumId){
   return row;
 }
 
-function renderLocked(host, total){
-  const card = el('div', 'rhythm-card rhythm-locked');
-  card.appendChild(el('div', 'rhythm-card-head', 'Listening rhythm'));
-  card.appendChild(el('p', 'note', total + ' of ' + RHYTHM_MIN_PLAYS + ' plays — keep listening to unlock your rhythm.'));
-  host.appendChild(card);
-}
-
 // Shared by both renderRhythmCard() (this device's own full card) and
 // renderSharedRhythmCard() (a friend's shared snapshot) — the ring +
 // legend + verdict are identical either way; only what goes in the
@@ -191,13 +184,14 @@ function buildCard(verdict, shares, centerLines){
 // RF22 (docs/12_REFINE.md, "words that invite", point 3): "listening
 // rhythm as a season" — windowed to the last RHYTHM_WINDOW_DAYS, not a
 // lifetime total, so the 20-play gate below is also a 20-plays-*lately*
-// gate: a device that hasn't played anything in a season reads as
-// "not enough plays yet" again, the same honest "nothing to show"
-// renderLocked() already gives a brand-new profile.
+// gate: a device that hasn't played anything in a season reads as not
+// enough yet. QC3 (docs/24_QUIET_COUNTS.md): below the gate, nothing is
+// drawn at all — no locked card, no "N of 20 plays" progress line. The
+// card appears, complete, the moment there's enough data.
 export function renderRhythmCard(host){
   host.innerHTML = '';
   const { total, shares } = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
-  if(total < RHYTHM_MIN_PLAYS){ renderLocked(host, total); return; }
+  if(total < RHYTHM_MIN_PLAYS) return;
 
   const card = buildCard(rhythmVerdictLabel(shares), shares,
     [['b', String(total)], ['span', total === 1 ? 'play' : 'plays']]);
