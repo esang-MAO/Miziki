@@ -67,7 +67,7 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { ensureContext(){}, applyCharacter(){}, applyWobbleRate(){}, applyLoudnessNorm(){}, routeSource(){}, decodeAudioFile: async () => {} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
+  namedExports: { load(){}, pause(){}, pauseAndRest(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){} },

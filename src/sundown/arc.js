@@ -176,6 +176,25 @@ export function trendAt(now, sun, settings = {}) {
   return TREND_LABEL[rateInfoAt(now, sun, settings).trend];
 }
 
+// RW3 (docs/23_RHYTHM_AND_WEAR.md): turningPointAt(nowMs, sun) -> 'sunset'
+// | 'midnight' | null -- true within 60 minutes either side of sunset or
+// solar midnight (real time), the two "turning points" Stop between
+// records at sunset and midnight watches for. Solar midnight is whichever
+// of the two instances around sun.noon (-12h / +12h) falls nearer to
+// `nowMs` -- the same reasoning solarMidnightBefore() above uses for a
+// pre-dawn `now`, generalized since this can run at any hour of the day,
+// not just the pre-sunrise stretch rateInfoAt() cares about.
+const TURNING_POINT_WINDOW_MS = 60 * MIN;
+export function turningPointAt(nowMs, sun){
+  if(!sun || !sun.set || !sun.noon) return null;
+  if(Math.abs(nowMs - sun.set.getTime()) <= TURNING_POINT_WINDOW_MS) return 'sunset';
+  const noonT = sun.noon.getTime();
+  const before = noonT - 12 * HOUR, after = noonT + 12 * HOUR;
+  const midnightT = Math.abs(nowMs - before) <= Math.abs(nowMs - after) ? before : after;
+  if(Math.abs(nowMs - midnightT) <= TURNING_POINT_WINDOW_MS) return 'midnight';
+  return null;
+}
+
 /* ---------------- 3.4 Tone drift: warmth ---------------- */
 
 // warmthAt(now, sun) -> w in [0,1]. 0 at solar noon, 1 at solar midnight,

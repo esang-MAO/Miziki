@@ -100,7 +100,7 @@ mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
   namedExports: { persistTrackLastPlayed: async () => {}, renderProfile(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { stop(){}, load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
+  namedExports: { stop(){}, load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },

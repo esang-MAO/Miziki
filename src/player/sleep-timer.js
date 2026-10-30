@@ -1,8 +1,7 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { applyVolume } from '../sundown/location.js';
-import { pause } from './transport.js';
-import { drawTime } from './clock.js';
+import { pauseAndRest } from './transport.js';
 import { setPathNote } from '../ui/path-note.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
@@ -43,7 +42,7 @@ export function stopSleepState(){
 
 // no fade, no put-away — just stop where advance() would otherwise have moved on
 export function sleepStopPlayback(){
-  pause(); S.pos = 0; drawTime();
+  pauseAndRest();
   setPathNote('Sleep timer ended.');
   stopSleepState();
 }
@@ -62,7 +61,7 @@ function sleepStartFade(remainMs){
 function sleepTimeExpired(){
   clearSleepTimer();
   // already paused manually: nothing to fade or stop, just clear the state
-  if(S.playing){ pause(); S.pos = 0; drawTime(); }
+  if(S.playing) pauseAndRest();
   sleepCancelGainAutomation();
   S.sleep.fading = false;
   applyVolume();

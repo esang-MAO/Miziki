@@ -17,6 +17,7 @@ function fakeS(overrides = {}){
     paperLabelOnLossy: false,
     surfaceNoise: 'subtle', runoutLength: 'normal', surfaceNoiseUnderMusic: false,
     autoFlip: true,
+    stopAtTurns: false,
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
     mono: false, balance: 0, deviceVolume: 1,
@@ -41,6 +42,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
@@ -326,6 +328,27 @@ test('old saved data: no autoFlip field at all leaves it out, so the default (On
 test('bad values are ignored: a non-boolean autoFlip', () => {
   const parsed = parsePrefs({ autoFlip: 'on' });
   assert.equal('autoFlip' in parsed, false);
+});
+
+// RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
+// device before this PR) loads as off -- the stated default.
+test('round trip: stopAtTurns survives both On and Off', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ stopAtTurns: true })));
+  assert.equal(p1.stopAtTurns, true);
+  const p2 = parsePrefs(serializePrefs(fakeS({ stopAtTurns: false })));
+  assert.equal(p2.stopAtTurns, false);
+});
+
+test('old saved data: no stopAtTurns field at all leaves it out, so the default (Off) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.stopAtTurns;
+  const parsed = parsePrefs(raw);
+  assert.equal('stopAtTurns' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean stopAtTurns', () => {
+  const parsed = parsePrefs({ stopAtTurns: 'on' });
+  assert.equal('stopAtTurns' in parsed, false);
 });
 
 // AU5 (docs/16_AUDIO.md §4): a saved object without this field (every

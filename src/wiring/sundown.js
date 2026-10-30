@@ -49,6 +49,17 @@ export function wireSundown(){
   }));
   paintDepth();
 
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline text+aria-pressed
+  // toggle shape as character.js's surfaceNoiseUnderMusicBtn -- read
+  // fresh by advance() (src/player/queue.js) at the next album boundary.
+  $('#stopAtTurnsBtn').addEventListener('click', () => {
+    S.stopAtTurns = !S.stopAtTurns;
+    const b = $('#stopAtTurnsBtn');
+    b.textContent = S.stopAtTurns ? 'On' : 'Off';
+    b.setAttribute('aria-pressed', String(S.stopAtTurns));
+    queueSave();
+  });
+
   // "Preview the day" lives only on the dial now (dial-gesture.js): drag
   // or arrow-key it to write S.previewMin through the one shared
   // setPreviewMinutes(), and the NOW button (also wired there) is the one

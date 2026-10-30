@@ -51,7 +51,7 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { advance(){}, preloadNextTrack(){}, peekNextIndex(){ return null; } },
+  namedExports: { advance(){}, preloadNextTrack(){}, peekNextIndex(){ return null; }, updateRecordOnlyUI(){} },
 });
 const ensureBufferMock = mock.fn(async () => true);
 mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {

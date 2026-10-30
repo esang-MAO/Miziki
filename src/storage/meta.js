@@ -222,6 +222,11 @@ function applyPrefs(p){
   if(typeof p.autoFlip === 'boolean') S.autoFlip = p.autoFlip;
   document.querySelectorAll('[data-auto-flip]').forEach(b =>
     b.setAttribute('aria-pressed', String((b.dataset.autoFlip === 'on') === S.autoFlip)));
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline text+aria-pressed sync
+  // shape as surfaceNoiseUnderMusicBtn above -- no dedicated UI side
+  // effect beyond the button's own label.
+  if(typeof p.stopAtTurns === 'boolean') S.stopAtTurns = p.stopAtTurns;
+  { const b = $('#stopAtTurnsBtn'); if(b){ b.textContent = S.stopAtTurns ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.stopAtTurns)); } }
   // AU5 (docs/16_AUDIO.md §4): same inline [data-*] sync shape as the
   // controls above — no dedicated UI side effect beyond aria-pressed.
   if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') S.loudnessMode = p.loudnessMode;

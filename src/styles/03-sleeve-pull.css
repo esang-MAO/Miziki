@@ -110,6 +110,27 @@
 .heart-btn.pop{animation:heartPop .35s ease}
 @keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
 
+/* RW3 (docs/23_RHYTHM_AND_WEAR.md): "This record only" -- a switch card
+   under the title, distinct from a plain settings .row (background
+   instead of a hairline, since it sits in running player chrome, not a
+   list). */
+.record-only-row{background:var(--panel);border-radius:var(--radius-card);
+  padding:var(--sp-3);margin-top:var(--sp-3);border-bottom:none;text-align:left}
+/* RW3: hides the overflow menu's Queue row while on, independent of its
+   own "hidden until a track is loaded" style.display toggle
+   (player/transport.js's load()). */
+#queueBtn.record-only-hidden{display:none}
+
+/* RW3: the resting card, in place of the ordinary spec/actions while
+   paused at a record boundary (S.resting). Kicker takes the current
+   phase colour via the global --phase-color (player/clock.js), never
+   amber, per CLAUDE.md's "amber never signals state". */
+.resting-card{margin-top:10px}
+.resting-kicker{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
+  color:var(--phase-color,var(--muted));text-transform:uppercase}
+.resting-body{font-family:var(--body);font-size:var(--fs-body);color:var(--paper);margin:var(--sp-1) 0 0}
+.resting-note{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin:var(--sp-1) 0 var(--sp-2)}
+
 
 /* ---------- ceremonies (docs/CEREMONY.md §2-§4) ---------- */
 /* §4 change records: the outgoing disc lifts, slides into its own sleeve,

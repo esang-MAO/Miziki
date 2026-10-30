@@ -235,6 +235,17 @@ export const S = {
   shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
   sleep:{mode:null, at:null, timer:null, fading:false},
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): This record only -- a per-session
+  // player toggle, resets on relaunch, never saved to prefs/backup.
+  recordOnly:false,
+  // RW3: Stop between records at sunset and midnight (Sundown › Day).
+  // Saved, default off -- see storage/prefs.js's serializePrefs/parsePrefs.
+  stopAtTurns:false,
+  // RW3: non-null while paused at a record boundary (This record only or
+  // Stop between records) -- {reason:'recordOnly'|'sunset'|'midnight',
+  // pendingIndex} for the resting card's own copy and for the Play button
+  // to know where to continue the queue from. Runtime only, never saved.
+  resting:null,
   // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
   // session" in the player's own "···" menu. Session-only, like `sleep`
   // above — never saved to prefs/backup, so it never follows to a new
