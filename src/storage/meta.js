@@ -227,6 +227,10 @@ function applyPrefs(p){
   // effect beyond the button's own label.
   if(typeof p.stopAtTurns === 'boolean') S.stopAtTurns = p.stopAtTurns;
   { const b = $('#stopAtTurnsBtn'); if(b){ b.textContent = S.stopAtTurns ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.stopAtTurns)); } }
+  // RW6: no dedicated UI sync of its own needed here, same reason as
+  // largerText above — renderProfile() rebuilds the Settings screen's
+  // switch fresh from S.seasonalSky on every open.
+  if(typeof p.seasonalSky === 'boolean') S.seasonalSky = p.seasonalSky;
   // AU5 (docs/16_AUDIO.md §4): same inline [data-*] sync shape as the
   // controls above — no dedicated UI side effect beyond aria-pressed.
   if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') S.loudnessMode = p.loudnessMode;

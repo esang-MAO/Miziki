@@ -23,6 +23,7 @@ function fakeS(overrides = {}){
     mono: false, balance: 0, deviceVolume: 1,
     zoetropesEnabled: true,
     largerText: false,
+    seasonalSky: true,
   }, overrides);
 }
 
@@ -48,6 +49,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
     zoetropesEnabled: S.zoetropesEnabled,
     largerText: S.largerText,
+    seasonalSky: S.seasonalSky,
   });
 });
 
@@ -349,6 +351,27 @@ test('old saved data: no stopAtTurns field at all leaves it out, so the default 
 test('bad values are ignored: a non-boolean stopAtTurns', () => {
   const parsed = parsePrefs({ stopAtTurns: 'on' });
   assert.equal('stopAtTurns' in parsed, false);
+});
+
+// RW6 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
+// device before this PR) loads as on -- the stated default.
+test('round trip: seasonalSky survives both On and Off', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ seasonalSky: true })));
+  assert.equal(p1.seasonalSky, true);
+  const p2 = parsePrefs(serializePrefs(fakeS({ seasonalSky: false })));
+  assert.equal(p2.seasonalSky, false);
+});
+
+test('old saved data: no seasonalSky field at all leaves it out, so the default (On) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.seasonalSky;
+  const parsed = parsePrefs(raw);
+  assert.equal('seasonalSky' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean seasonalSky', () => {
+  const parsed = parsePrefs({ seasonalSky: 'on' });
+  assert.equal('seasonalSky' in parsed, false);
 });
 
 // AU5 (docs/16_AUDIO.md §4): a saved object without this field (every

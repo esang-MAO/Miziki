@@ -148,7 +148,7 @@ mock.module(new URL('../../src/profile/slipmat-editor.js', import.meta.url).href
 // DA4 added isDaylightPhase, screens.js's own Nychthemeron-caption-text
 // helper's one call into theme.js -- same mock, one more name.
 mock.module(new URL('../../src/ui/theme.js', import.meta.url).href, {
-  namedExports: { setTheme(){}, setLargerText(){}, isDaylightPhase(){ return false; } },
+  namedExports: { setTheme(){}, setLargerText(){}, setSeasonalSky(){}, isDaylightPhase(){ return false; } },
 });
 // PR7 (DAY_ARC_BRIEF.md) swapped screens.js's own Nychthemeron-caption
 // helper from solar.js's currentDayPosition() to nowClock() + arc.js's

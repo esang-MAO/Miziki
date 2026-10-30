@@ -477,6 +477,70 @@ test('skyGradientStops: blended values stay >=4.5:1 too, sampled every 10 minute
 // --muted-2 against the sky, so this is what actually exercises them: the
 // same floors, just for the new per-anchor-blended token instead of a
 // single static value.
+// RW6 (docs/23_RHYTHM_AND_WEAR.md): seasonal sky tint, a third optional
+// seasonWeights argument (seasonTint()'s own shape) -- omitted, this is
+// byte-identical to the pre-RW6 function every test above already
+// covers, which is also exactly what "Sky follows the seasons" off means.
+test('skyGradientStops: no season weights (off) matches an explicit null weights argument, at every anchor', () => {
+  for(const theme of ['dark', 'light']){
+    for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+      assert.deepEqual(skyGradientStops(pos(phase, 0, 1), theme), skyGradientStops(pos(phase, 0, 1), theme, null));
+    }
+  }
+});
+
+test('skyGradientStops: with a season blend, every anchor still stays >=4.5:1 against paper/muted/accent-text, at each of the four season peaks, both themes', async () => {
+  const { seasonTint } = await import('../../src/sundown/season.js');
+  const peaks = [
+    new Date(Date.UTC(2026, 3, 20)),
+    new Date(Date.UTC(2026, 6, 20)),
+    new Date(Date.UTC(2026, 9, 20)),
+    new Date(Date.UTC(2026, 0, 20)),
+  ];
+  for(const peak of peaks){
+    const weights = seasonTint(peak, null);
+    for(const theme of ['dark', 'light']){
+      for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){
+        const [sky1, sky2] = skyGradientStops(pos(phase, 0, 1), theme, weights);
+        for(const token in TEXT_TOKENS[theme]){
+          const fg = TEXT_TOKENS[theme][token];
+          const ratio = Math.min(contrastRatio(fg, sky1), contrastRatio(fg, sky2));
+          assert.ok(ratio >= 4.5, `${peak.toISOString()} ${theme}/${phase}/${token}: contrast ${ratio.toFixed(2)} below 4.5`);
+        }
+      }
+    }
+  }
+});
+
+test('skyGradientStops: blended values stay >=4.5:1 with a season blend too, sampled every 10 minutes across a full day, at each season peak', async () => {
+  const { dayEvents, dayPosition } = await import('../../src/sundown/day.js');
+  const { seasonTint } = await import('../../src/sundown/season.js');
+  const COLUMBIA = { lat: 39.20, lon: -76.86 };
+  const peaks = [
+    new Date('2026-04-20T12:00:00Z'),
+    new Date('2026-07-20T12:00:00Z'),
+    new Date('2026-10-20T12:00:00Z'),
+    new Date('2026-01-20T12:00:00Z'),
+  ];
+  for(const peakDate of peaks){
+    const weights = seasonTint(peakDate, COLUMBIA.lat);
+    const events = dayEvents(peakDate, COLUMBIA.lat, COLUMBIA.lon);
+    const start = new Date(peakDate.getTime() - 8 * 3600000);
+    for(const theme of ['dark', 'light']){
+      for(let m = 0; m < 24 * 60; m += 10){
+        const now = new Date(start.getTime() + m * 60000);
+        const dayPos = dayPosition(now, events);
+        const [sky1, sky2] = skyGradientStops(dayPos, theme, weights);
+        for(const token in TEXT_TOKENS[theme]){
+          const fg = TEXT_TOKENS[theme][token];
+          const ratio = Math.min(contrastRatio(fg, sky1), contrastRatio(fg, sky2));
+          assert.ok(ratio >= 4.5, `${peakDate.toISOString()} ${theme} at +${m}min (${dayPos.phase}) / ${token}: contrast ${ratio.toFixed(2)} below 4.5`);
+        }
+      }
+    }
+  }
+});
+
 test('mutedGradientStops: every anchor clears 4.5:1 (muted) / 3:1 (muted-2), both themes', () => {
   for(const theme of ['dark', 'light']){
     for(const phase of ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight']){

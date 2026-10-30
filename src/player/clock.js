@@ -4,6 +4,7 @@ import { clamp } from '../util/math.js';
 import { fmt } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
+import { seasonTint } from '../sundown/season.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
@@ -296,7 +297,8 @@ export function drawSun(){
   // was last written, the same "don't touch the DOM for a no-op" shape
   // every other guarded id in this function already uses.
   const theme = effectiveTheme();
-  const [sky1, sky2] = skyGradientStops(dayPos, theme);
+  const seasonWeights = S.seasonalSky !== false ? seasonTint(Date.now(), S.sun.lat) : null;
+  const [sky1, sky2] = skyGradientStops(dayPos, theme, seasonWeights);
   if(sky1 !== lastSky1 || sky2 !== lastSky2){
     lastSky1 = sky1; lastSky2 = sky2;
     document.documentElement.style.setProperty('--sky1', sky1);
@@ -480,6 +482,82 @@ const mixRGB = (a,b,k) => a.map((v,i) => Math.round(v + (b[i]-v)*k));
 const mixPair = (a,b,k) => [mixRGB(a[0],b[0],k), mixRGB(a[1],b[1],k)];
 const toStops = pair => ['rgb('+pair[0].join(',')+')', 'rgb('+pair[1].join(',')+')'];
 
+// RW6 (docs/23_RHYTHM_AND_WEAR.md): seasonal sky tint, color only --
+// speed, depth and sound never read the season. Deltas below are each
+// season's dark-theme midday/twilight swatch (docs/design/rhythm-wear/
+// README.md's own table, Seasons.dc.html) minus this file's existing
+// dark midday/twilight anchors, so a season weight of 0 reproduces
+// today's sky exactly. The other six anchors have no swatch of their
+// own -- each takes whichever of midday's/twilight's shift it sits
+// nearest to in the day's own cycle (dawn/morning/afternoon are day-lit,
+// so midday's shift; night/golden/dusk are evening-lit, so twilight's).
+const SEASON_DELTAS_DARK = {
+  midday: {
+    spring: [[-2,3,-2],[-1,2,-2]],
+    summer: [[2,4,8],[1,2,4]],
+    autumn: [[9,0,-5],[4,0,-4]],
+    winter: [[-1,-4,0],[-1,-2,2]],
+  },
+  twilight: {
+    spring: [[0,3,-2],[0,2,-2]],
+    summer: [[7,3,-5],[2,2,-4]],
+    autumn: [[3,3,-15],[1,3,-8]],
+    winter: [[-7,0,5],[-4,0,4]],
+  },
+};
+// Light theme: "the equivalent gentle shift" -- same hue direction, a
+// gentler magnitude (half) so a season never pushes a light-theme anchor
+// past its own existing contrast floor (tests/unit/contrast.test.js).
+const LIGHT_SHIFT_SCALE = 0.5;
+// The six anchors with no swatch of their own take a *softer* fraction of
+// whichever shift they're nearest to, not the full amount: dark/morning's
+// own existing margin against --muted is already its tightest anchor
+// (tests/unit/clock.test.js's own per-10-minute contrast sweep), with
+// only ~0.12 of headroom above 4.5:1 to begin with -- the full midday
+// shift (most sharply, Summer's) would eat past it. 0.3 (found empirically
+// against every anchor/theme/season combination, with a margin for
+// rounding) keeps every one of them comfortably clear.
+const SPILLOVER_SHIFT_SCALE = 0.3;
+
+function weightedDelta(deltas, weights){
+  const sum = [[0,0,0],[0,0,0]];
+  for(const season of Object.keys(weights)){
+    const d = deltas[season];
+    const w = weights[season];
+    for(let stop = 0; stop < 2; stop++){
+      for(let ch = 0; ch < 3; ch++) sum[stop][ch] += d[stop][ch] * w;
+    }
+  }
+  return sum;
+}
+
+const addPair = (base, delta, scale = 1) => base.map((stop, i) =>
+  stop.map((v, ch) => Math.max(0, Math.min(255, Math.round(v + delta[i][ch] * scale)))));
+
+// seasonalAnchors(theme, weights) -- SKY_ANCHORS[theme], shifted by the
+// season blend's own weighted deltas. Returns the unmodified table when
+// every weight is falsy (S.seasonalSky off), so skyGradientStops() below
+// can call this unconditionally.
+function seasonalAnchors(theme, weights){
+  if(!weights) return SKY_ANCHORS[theme];
+  const base = SKY_ANCHORS[theme];
+  const lightScale = theme === 'light' ? LIGHT_SHIFT_SCALE : 1;
+  const coreScale = lightScale;
+  const spillScale = SPILLOVER_SHIFT_SCALE * lightScale;
+  const middayDelta = weightedDelta(SEASON_DELTAS_DARK.midday, weights);
+  const twilightDelta = weightedDelta(SEASON_DELTAS_DARK.twilight, weights);
+  return {
+    night: addPair(base.night, twilightDelta, spillScale),
+    dawn: addPair(base.dawn, middayDelta, spillScale),
+    morning: addPair(base.morning, middayDelta, spillScale),
+    midday: addPair(base.midday, middayDelta, coreScale),
+    afternoon: addPair(base.afternoon, middayDelta, spillScale),
+    golden: addPair(base.golden, twilightDelta, spillScale),
+    twilight: addPair(base.twilight, twilightDelta, coreScale),
+    dusk: addPair(base.dusk, twilightDelta, spillScale),
+  };
+}
+
 // blendAnchors(anchors, dayPos) -- the same 8-anchor, phase/phaseProgress-
 // driven smoothstep blend skyGradientStops() has always used, pulled out
 // so RF14 (docs/12_REFINE.md)'s --muted/--muted-2 blend (mutedGradientStops()
@@ -504,8 +582,13 @@ function blendAnchors(anchors, dayPos){
   }
 }
 
-export function skyGradientStops(dayPos, theme){
-  return blendAnchors(SKY_ANCHORS[theme === 'light' ? 'light' : 'dark'], dayPos);
+// RW6: seasonWeights is optional (seasonTint()'s own {spring,summer,
+// autumn,winter} shape) -- omitted or null, this is byte-identical to
+// the function's pre-RW6 behavior (every existing caller/test above),
+// which is also exactly what "Sky follows the seasons" off means.
+export function skyGradientStops(dayPos, theme, seasonWeights){
+  const th = theme === 'light' ? 'light' : 'dark';
+  return blendAnchors(seasonalAnchors(th, seasonWeights), dayPos);
 }
 
 // RF14 (docs/12_REFINE.md, point 1): "muted follows the sky" -- --muted/
