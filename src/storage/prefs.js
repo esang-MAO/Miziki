@@ -33,7 +33,7 @@ const KNOWN_PREF_KEYS = new Set([
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
   'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
-  'autoFlip',
+  'autoFlip', 'stopAtTurns',
   'loudnessMode',
   'eq',
   'mono', 'balance', 'deviceVolume',
@@ -81,6 +81,7 @@ export function serializePrefs(S){
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
@@ -164,6 +165,9 @@ export function parsePrefs(raw){
   // docs/15_SURFACE_NOISE.md §4: a saved object without this (every device
   // before this PR) loads as On, the stated default and today's behavior.
   if(typeof p.autoFlip === 'boolean') out.autoFlip = p.autoFlip;
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
+  // device before this PR) loads as off, the stated default.
+  if(typeof p.stopAtTurns === 'boolean') out.stopAtTurns = p.stopAtTurns;
   // AU5 (docs/16_AUDIO.md §4): a saved object without this (every device
   // before this PR) loads as Auto, the stated default.
   if(p.loudnessMode === 'off' || p.loudnessMode === 'track' || p.loudnessMode === 'album' || p.loudnessMode === 'auto') out.loudnessMode = p.loudnessMode;

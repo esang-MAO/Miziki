@@ -4,7 +4,8 @@ import { $, el } from '../util/dom.js';
 import { albumKey, trackTier, trackIdentityKey } from '../record-art/tiers.js';
 import { idOf } from '../library/model.js';
 import { sleepStopPlayback } from './sleep-timer.js';
-import { load, play, pause, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
+import { load, play, pause, pauseAndRest, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
+import { turningPointAt } from '../sundown/arc.js';
 import { drawTime } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
@@ -91,6 +92,16 @@ export function preloadNextTrack(){
   ensureBuffer(nextIdx).catch(()=>{});
 }
 
+// RW3 (docs/23_RHYTHM_AND_WEAR.md): true when nextT is missing (the
+// queue has nothing more right now) or belongs to a different album than
+// curT -- the one "stop at the end of this album" boundary check, shared
+// by the sleep timer's own end-of-album stop (below) and This record
+// only / Stop between records at sunset and midnight (also below), per
+// the plan's own "reuse... by extracting it into one helper both use."
+export function isAlbumBoundary(curT, nextT){
+  return !nextT || albumKey(nextT) !== albumKey(curT);
+}
+
 export function advance(dir, auto){
   if(!S.queue.length) return;
   if(auto && S.repeat === 'one'){ seek(0); if(!S.playing) play(); return; }
@@ -98,8 +109,29 @@ export function advance(dir, auto){
   if(auto && S.sleep.mode === 'album'){
     const curT = S.tracks[S.queue[S.qpos]];
     const n2 = S.qpos + dir;
-    const nextT = (n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
-    if(curT && (!nextT || albumKey(nextT) !== albumKey(curT))){ sleepStopPlayback(); return; }
+    const atEnd = n2 >= S.queue.length && S.repeat !== 'all';
+    const nextT = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
+    if(curT && isAlbumBoundary(curT, nextT)){ sleepStopPlayback(); return; }
+  }
+  // RW3: This record only / Stop between records at sunset and midnight
+  // -- both stop exactly where the sleep timer's own "end of album" stop
+  // just above does, never mid-album and never at a side flip (a side
+  // flip's nextT is the same album, so isAlbumBoundary() is false there).
+  // Checked only on a natural end (auto), same as the sleep-timer block.
+  if(auto && (S.recordOnly || S.stopAtTurns)){
+    const curT = S.tracks[S.queue[S.qpos]];
+    const n2 = S.qpos + dir;
+    const atEnd = n2 >= S.queue.length && S.repeat !== 'all';
+    const nextT = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
+    if(curT && isAlbumBoundary(curT, nextT)){
+      let reason = null;
+      if(S.recordOnly) reason = 'recordOnly';
+      else {
+        const tp = turningPointAt(Date.now(), S.sun);
+        if(tp) reason = tp;
+      }
+      if(reason){ stopAtRecordEnd(reason, atEnd ? null : n2); return; }
+    }
   }
   if(!auto) invalidateActiveSessionIfAny();     // an explicit next/prev press is a skip
   let n = S.qpos + dir;
@@ -124,6 +156,101 @@ export function advance(dir, auto){
   // With the player closed there's nothing to see, so audio just starts.
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();
+}
+
+/* ================= RW3 (docs/23_RHYTHM_AND_WEAR.md): resting at a record boundary =================
+   No run-out/put-away ceremony here -- this reuses the sleep timer's own
+   plain stop (pauseAndRest()) via the shared isAlbumBoundary() check
+   above. RW4 is the PR that unifies this with the real end-of-queue
+   final state (the held sleeve); for now this paints its own small
+   resting card (miziki.html's #restingCard). */
+const RESTING_COPY = {
+  recordOnly: 'Playback stops after this record.',
+  sunset: 'Around sunset, playback stops between records.',
+  midnight: 'Around midnight, playback stops between records.',
+};
+
+// RW3: the first entry in S.queue that's the same album as curT but a
+// different side -- what a manual "Flip to Side B" from the resting
+// card jumps to, without disturbing the rest of the queue (the same
+// "pick a track directly" shape a library/gatefold tap already uses).
+// null when the album has no other side, or none of it is in the queue.
+function otherSideQueuePos(curT){
+  if(!curT) return null;
+  const curSide = sideLetterFor(curT, S.queue[S.qpos]);
+  if(!curSide) return null;
+  for(let i = 0; i < S.queue.length; i++){
+    const idx = S.queue[i];
+    const t = S.tracks[idx]; if(!t) continue;
+    if(albumKey(t) !== albumKey(curT)) continue;
+    if(sideLetterFor(t, idx) !== curSide) return i;
+  }
+  return null;
+}
+
+function paintRestingCard(){
+  const card = $('#restingCard'); if(!card) return;
+  const r = S.resting;
+  card.style.display = r ? '' : 'none';
+  if(!r) return;
+  const kicker = $('#restingKicker'); if(kicker) kicker.textContent = 'Paused after this record';
+  const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.recordOnly;
+  const flipBtn = $('#restingFlipBtn');
+  if(flipBtn) flipBtn.style.display = otherSideQueuePos(current()) !== null ? '' : 'none';
+}
+
+// reason: 'recordOnly' | 'sunset' | 'midnight'. pendingIndex is where
+// Play (continueFromResting()) should resume the queue from -- null when
+// the queue has genuinely run out, same as endOfQueue()'s own case.
+function stopAtRecordEnd(reason, pendingIndex){
+  pauseAndRest();
+  S.resting = { reason, pendingIndex };
+  paintRestingCard();
+}
+
+export function continueFromResting(){
+  const r = S.resting;
+  if(!r) return;
+  S.resting = null;
+  paintRestingCard();
+  if(r.pendingIndex === null || r.pendingIndex === undefined) return;
+  S.qpos = r.pendingIndex;
+  load(S.queue[S.qpos]);
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else play();
+}
+
+export function flipFromResting(){
+  if(!S.resting) return;
+  const pos = otherSideQueuePos(current());
+  S.resting = null;
+  paintRestingCard();
+  if(pos === null) return;
+  S.qpos = pos;
+  load(S.queue[pos]);
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else play();
+}
+
+// RW3: "This record only" -- a per-session player toggle (S.recordOnly,
+// never saved). Syncs the switch card's own aria-pressed/label and the
+// overflow menu's Queue row (hidden while on, per the plan's "the queue
+// button hides"); called on toggle and, from transport.js's load(), on
+// every track change so a freshly loaded track's row reflects it too.
+export function updateRecordOnlyUI(){
+  const btn = $('#recordOnlyBtn');
+  if(btn){ btn.textContent = S.recordOnly ? 'On' : 'Off'; btn.setAttribute('aria-pressed', String(S.recordOnly)); }
+  // a dedicated class rather than style.display directly -- #queueBtn's
+  // own display is also toggled independently (hidden until a track is
+  // loaded, src/player/transport.js's load()), and the two reasons must
+  // not stomp on each other.
+  const queueBtn = $('#queueBtn');
+  if(queueBtn) queueBtn.classList.toggle('record-only-hidden', S.recordOnly);
+}
+
+export function toggleRecordOnly(){
+  S.recordOnly = !S.recordOnly;
+  updateRecordOnlyUI();
 }
 
 /* ================= §3 (docs/15_SURFACE_NOISE.md): needle-lift skipping =================
@@ -509,7 +636,18 @@ export function renderQueueSheet(host){
     li.appendChild(name);
     ul.appendChild(li);
   }
-  const upcoming = S.queue.slice(S.qpos + 1);
+  // RW3: "only the current side's tracks are listed" while This record
+  // only is on -- cut the upcoming list at the first track that isn't
+  // the same album and side as what's currently playing.
+  let upcoming = S.queue.slice(S.qpos + 1);
+  if(S.recordOnly && curT){
+    const curSide = sideLetterFor(curT, curIdx);
+    const cut = upcoming.findIndex(idx => {
+      const t = S.tracks[idx];
+      return !t || albumKey(t) !== albumKey(curT) || sideLetterFor(t, idx) !== curSide;
+    });
+    if(cut !== -1) upcoming = upcoming.slice(0, cut);
+  }
   if(upcoming.length){
     const head = el('div','queue-section-head');
     head.appendChild(el('span', null, 'Up next · ' + upcoming.length));

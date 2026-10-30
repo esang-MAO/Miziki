@@ -11,7 +11,7 @@ import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
-import { advance, preloadNextTrack, peekNextIndex } from './queue.js';
+import { advance, preloadNextTrack, peekNextIndex, updateRecordOnlyUI } from './queue.js';
 import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
@@ -421,6 +421,8 @@ export function load(i){
   $('#playerShareIconBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
   $('#queueBtn').style.display = '';
   $('#sleepTimerBtn').style.display = '';
+  $('#recordOnlyRow').style.display = '';   // RW3: hidden until a track is loaded, same as the row above
+  updateRecordOnlyUI();   // RW3: re-applies the Queue row's own hide-while-on state for the new track
   updateCreditsButtonForCurrent();
   updateFavoriteButtons();
   updateSleepUI();
@@ -648,6 +650,17 @@ export function pause(){ S.playing = false; cancelPendingGapless(); cancelPendin
   MizikiSocial.nowSpinningPaused();
   if(bgRouteActive()) bgIdleNow();
   saveResumeNow();   // AU1: "immediately on pause" (docs/16_AUDIO.md §2.1)
+}
+
+// RW3 (docs/23_RHYTHM_AND_WEAR.md): the sleep timer's own "no fade, no
+// put-away -- just stop where advance() would otherwise have moved on"
+// shape, extracted so This record only / Stop between records at sunset
+// and midnight (src/player/queue.js) can reuse exactly the same stop,
+// alongside the sleep timer's own two call sites (sleep-timer.js).
+export function pauseAndRest(){
+  pause();
+  S.pos = 0;
+  drawTime();
 }
 
 export function seek(sec){

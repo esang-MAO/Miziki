@@ -504,6 +504,14 @@
         </div>
       </div>
 
+      <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): off by default; This record
+           only (the player's own switch card, below) is the always-
+           available per-session equivalent. -->
+      <div class="row" style="margin-top:12px">
+        <div class="k">Stop between records at sunset and midnight<em>For an hour around sunset and around midnight, playback stops when a record ends instead of moving on to your queue.</em></div>
+        <div class="seg"><button id="stopAtTurnsBtn" aria-pressed="false">Off</button></div>
+      </div>
+
       <p class="note" id="locNote"></p>
     </div>
 
@@ -763,6 +771,16 @@
         </button>
       </div>
       <div class="by" id="trackBy"></div>
+      <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): a per-session toggle (S.recordOnly,
+           state.js) -- resets on relaunch, never saved. While on, the
+           overflow menu's Queue row hides (src/player/queue.js's
+           updateRecordOnlyUI()) and the queue sheet lists only the
+           current side's tracks. Hidden until a track is loaded, same
+           as #trackSpecFormat below. -->
+      <div class="row record-only-row" id="recordOnlyRow" style="display:none">
+        <div class="k">This record only<em>Your queue waits. When this side ends, playback stops.</em></div>
+        <div class="seg"><button id="recordOnlyBtn" aria-pressed="false">Off</button></div>
+      </div>
       <!-- TY7b (docs/22_TYPE.md): the glance view's own artist/album·year
            lines, each its own size -- #trackBy stays a single combined
            line for every other state, so this is a separate pair filled
@@ -783,6 +801,18 @@
            textContent wholesale on every track change, which would wipe
            this out; drawSun() keeps this one live instead -->
       <div class="spec" id="trackSpecPhase"></div>
+      <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): shown instead of the ordinary
+           spec/actions while paused at a record boundary (This record
+           only, or Stop between records at sunset/midnight) -- S.resting,
+           painted by src/player/queue.js's paintRestingCard(). RW4 is the
+           PR that unifies this with the real end-of-queue final state
+           (the held sleeve); for now this is its own small card. -->
+      <div class="resting-card" id="restingCard" style="display:none">
+        <div class="resting-kicker" id="restingKicker"></div>
+        <p class="resting-body" id="restingBody"></p>
+        <p class="resting-note">Your queue is still there. Press play to continue.</p>
+        <button class="cta ghost" id="restingFlipBtn" style="display:none">Flip to Side B</button>
+      </div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
         <!-- docs/15_SURFACE_NOISE.md §4: shown only while waiting in the

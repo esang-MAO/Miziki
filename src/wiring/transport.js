@@ -9,6 +9,7 @@ import { bgPrime } from '../player/background.js';
 import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
 import { pause, play, seek, toggleTrackSpecState } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
+import { continueFromResting, flipFromResting, toggleRecordOnly } from '../player/queue.js';
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
@@ -33,6 +34,10 @@ export function wireTransport(){
     if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext();
     if(S.playing) pause();
+    // RW3 (docs/23_RHYTHM_AND_WEAR.md): resting at a record boundary --
+    // Play continues the queue from where it stopped, same gesture as
+    // every other case below.
+    else if(S.resting) continueFromResting();
     // the sleeve is covering an empty platter — bring the disc back out
     // before playing, same ceremony as picking a track from the library
     else if(S.platterEmpty) runStartSequence(current(), updateShellAlbum(current()), play);
@@ -105,6 +110,12 @@ export function wireTransport(){
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
 
+  // RW3: This record only (per-session, never saved) and the resting
+  // card's own Flip to Side B -- both act straight on the current queue,
+  // no overflow menu involved.
+  $('#recordOnlyBtn').addEventListener('click', toggleRecordOnly);
+  $('#restingFlipBtn').addEventListener('click', flipFromResting);
+
   // docs/15_SURFACE_NOISE.md §4: the player's own discoverable way to flip
   // a waiting record (#flipPrompt) or, for "Until I lift it" only, lift
   // the needle without flipping (#liftNeedleBtn) -- both only ever shown
@@ -151,6 +162,7 @@ export function wireTransport(){
     if(!S.playing) bgPrime();
     if(!S.ctx) await ensureContext();
     if(S.playing) pause();
+    else if(S.resting) continueFromResting();
     else if(S.platterEmpty && S.playerOpen) runStartSequence(current(), updateShellAlbum(current()), play);
     else if(S.platterEmpty){
       // the full player isn't open to show the pull, so there's nothing to

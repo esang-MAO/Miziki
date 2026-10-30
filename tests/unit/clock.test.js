@@ -129,7 +129,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
 // real player/queue.js, which imports it alongside play/pause/seek.
 const cancelPendingGaplessMock = mock.fn();
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, pause(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, maybeScheduleGaplessNext(){}, cancelPendingGapless: cancelPendingGaplessMock },
+  namedExports: { load(){}, pause(){}, pauseAndRest(){}, play(){}, seek(){}, sideLetterFor(){ return ''; }, maybeScheduleGaplessNext(){}, cancelPendingGapless: cancelPendingGaplessMock },
 });
 // clock.js's top-level setInterval (the hidden-page fallback clock) is a
 // real OS timer once clock.js is imported directly here — unlike in the

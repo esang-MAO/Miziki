@@ -120,7 +120,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
-  namedExports: { load(){}, play(){}, pause(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
+  namedExports: { load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){} },
