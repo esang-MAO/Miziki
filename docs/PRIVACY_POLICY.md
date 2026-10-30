@@ -40,7 +40,7 @@ optional account features (sign-in, backup, social).
   the feed (a record added, pinned, or reviewed) is automatically removed
   after 45 days.
 - **Your private listening backup** — play counts, session counts,
-  achievements and Collection progress, sealed/broken-record state, the
+  achievements and your Collection, sealed/broken-record state, the
   text of any track edits you've made (title/artist/album — never the
   audio itself), playlists, and your app settings. This is private to
   your account; nobody else can see it.
