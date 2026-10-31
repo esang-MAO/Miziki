@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
   namedExports: { wordmarkMarkup(){ return '<svg></svg>'; } },
 });
-const { SHARE_FORMATS, resolveShareStyle, shareFitLines, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP } = await import('../../src/share/styles.js');
+const { SHARE_FORMATS, resolveShareStyle, shareFitLines } = await import('../../src/share/styles.js');
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this
 // file sticks to the two genuinely pure parts of the share-image code:
@@ -126,9 +126,9 @@ test('friendsStickerText: no friends (0, null, undefined) means no sticker at al
   assert.equal(friendsStickerText(-1), null);
 });
 
-test('friendsStickerText: singular and plural read grammatically, not just "IN N FRIENDS\' CRATES" verbatim', () => {
-  assert.equal(friendsStickerText(1), "IN 1 FRIEND'S CRATE");
-  assert.equal(friendsStickerText(3), "IN 3 FRIENDS' CRATES");
+test('friendsStickerText: singular and plural read grammatically ("1 friend" / "3 friends")', () => {
+  assert.equal(friendsStickerText(1), '1 friend');
+  assert.equal(friendsStickerText(3), '3 friends');
 });
 
 test('recordNoteText: an empty or whitespace-only note is treated the same as no note', () => {
@@ -202,17 +202,14 @@ test('moreCountText: counts exactly how many are left off, newest-first framing'
 // behind a separable pure helper" shape this file's own header comment
 // already describes for composeShareImage/composePlayerShareImage).
 
-/* ===================== SH2 (docs/18_SHARE.md) =====================
-   "Now Playing, re-spaced" -- layoutChips(ctx, chips, maxW) is the one
-   piece of the re-layout that's genuinely pure (no canvas drawing, only
-   ctx.measureText), pulled out of now-playing-card.js's own
-   composePlayerShareImage into styles.js specifically so it's directly
-   testable here with a fake, measurement-only canvas context -- no
-   mocking of any module needed, same as shareFitLines/resolveShareStyle
-   above. shareFitLines itself is also exercised directly (the "long
-   title" case SH2 item 5 asks for), confirming the exact per-line/
-   font-size result composePlayerShareImage's own title-clearance
-   calculation depends on. */
+/* ===================== FS8 (docs/25_FROM_SCRATCH.md) =====================
+   The Now Playing card's own re-layout dropped the progress bar, clock,
+   spec-chip row and slogan line outright (point 2) -- layoutChips()/
+   shareChip()/the CHIP_* constants that used to live in styles.js for
+   that chip row are gone with them (nothing left unused in share/, per
+   the plan's own "Removed" note). shareFitLines itself is still
+   exercised directly below, confirming the exact per-line/font-size
+   result the title-clearance calculation depends on. */
 
 // a minimal canvas 2D context stand-in: measureText's width is a plain
 // function of string length and whatever px size the current ctx.font
@@ -255,42 +252,6 @@ test('shareFitLines: a short title never shrinks or truncates', () => {
   assert.deepEqual(lines, ['Short Title']);
 });
 
-test('layoutChips: chips that fit stay on one row, centered around 0', () => {
-  const ctx = makeFakeCtx();
-  const chips = [{text:'A', filled:false}, {text:'B', filled:true}];
-  const { rows, height } = layoutChips(ctx, chips, 1000);
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].length, 2);
-  assert.equal(height, CHIP_HEIGHT);
-  const first = rows[0][0], last = rows[0][rows[0].length-1];
-  assert.ok(first.x < 0, 'the row starts left of center');
-  assert.ok(Math.abs((last.x + last.width) - (-first.x)) < 1, 'the row is symmetric around 0');
-});
-
-test('layoutChips: three chips that cannot all share one row wrap to a second, dropping none (SH2 item 3)', () => {
-  const ctx = makeFakeCtx();
-  const chips = [
-    {text:'FLAC · 44.1 KHZ · 16-BIT', filled:false},
-    {text:'VINYL', filled:true},
-    {text:'SPUN AT DUSK', filled:false},
-  ];
-  ctx.font = CHIP_FONT;
-  const widths = chips.map(c => Math.round(ctx.measureText(c.text).width) + 44);
-  // room for exactly the first two side by side, not all three
-  const narrowMaxW = widths[0] + 16 + widths[1] + 10;
-  const { rows, height } = layoutChips(ctx, chips, narrowMaxW);
-  assert.equal(rows.length, 2, 'three chips that do not fit one row wrap to a second');
-  assert.equal(rows[0].length + rows[1].length, 3, 'every chip is kept, just wrapped');
-  assert.equal(height, CHIP_HEIGHT*2 + CHIP_ROW_GAP, 'stacked height accounts for the row gap');
-});
-
-test('layoutChips: an empty chip list lays out to nothing', () => {
-  const ctx = makeFakeCtx();
-  const { rows, height } = layoutChips(ctx, [], 1000);
-  assert.deepEqual(rows, []);
-  assert.equal(height, 0);
-});
-
 /* ===================== SH6 (docs/18_SHARE.md) =====================
    The Season card (src/share/season-card.js) -- item 7's own "legend
    order, zero-tier omission, the lock threshold shared with rhythm.js."
@@ -306,7 +267,7 @@ test('layoutChips: an empty chip list lays out to nothing', () => {
    before the SH1 block below mocks season-card.js wholesale (for
    sheet.js's own tests), for the same reason record-card.js/
    pressings-card.js's real imports above do. */
-const { legendOrder } = await import('../../src/share/season-card.js');
+const { legendOrder, verdictSentence } = await import('../../src/share/season-card.js');
 
 test('legendOrder: sorted by share descending', () => {
   const shares = { night: 0.1, dawn: 0, morning: 0.5, midday: 0.4, afternoon: 0, golden: 0, twilight: 0 };
@@ -322,6 +283,21 @@ test('legendOrder: a phase with no share at all is left out, not shown at 0%', (
 test('legendOrder: a tie breaks by the fixed PHASES order, deterministically', () => {
   // night (index 0) outranks golden (index 5) in PHASES' own fixed order
   assert.deepEqual(legendOrder({ golden: 0.5, night: 0.5 }), ['night', 'golden']);
+});
+
+// FS8 (docs/25_FROM_SCRATCH.md point 4): verdictSentence() -- the Season
+// card's own standalone sentence, dropping rhythmVerdictLabel()'s
+// "Lately, " prefix (meant for the profile card's inline use) and ending
+// with a period.
+test('verdictSentence: drops the "Lately, " prefix and ends with a period', () => {
+  assert.equal(verdictSentence('Lately, mostly after dark'), 'Mostly after dark.');
+  assert.equal(verdictSentence('Lately, around the clock'), 'Around the clock.');
+});
+
+test('verdictSentence: never double-punctuates, and empty input gives empty output', () => {
+  assert.equal(verdictSentence('Already ends with a period.'), 'Already ends with a period.');
+  assert.equal(verdictSentence(''), '');
+  assert.equal(verdictSentence(null), '');
 });
 
 // QC2 (docs/24_QUIET_COUNTS.md) removed metalTierOrder()/drawMetalsRow()

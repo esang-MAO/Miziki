@@ -156,6 +156,14 @@ export function achievementsList(){
 // windowedCounts(). Not merged cross-device (that counter is device-only,
 // state.js's own S.albumPlayCountsByDay comment) — a season is what this
 // device heard lately, the same posture the rhythm card already has.
+// FS8 (docs/25_FROM_SCRATCH.md): the Season share card's header count --
+// "Sep – Nov · 41 records" -- is how many distinct albums were played in
+// the window, not the ring's own total (plays). Same windowedCounts() data
+// topAlbumsInWindow() above reads, just counting keys instead of mapping them.
+export function recordsInWindowCount(windowDays = RHYTHM_WINDOW_DAYS){
+  return Object.keys(windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays)).length;
+}
+
 export function topAlbumsInWindow(n, windowDays = RHYTHM_WINDOW_DAYS){
   const counts = windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays);
   return Object.keys(counts)

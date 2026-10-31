@@ -4,7 +4,7 @@ import {
   PHASES, RHYTHM_MIN_PLAYS, RHYTHM_VERDICT_THRESHOLD, RHYTHM_AROUND_LABEL,
   RHYTHM_WINDOW_DAYS, RHYTHM_PRUNE_KEEP_DAYS,
   computeRhythmShares, rhythmVerdictLabel, bestAlbumPerPhase,
-  dayKeyFor, windowedPhaseCounts, windowedCounts, pruneDayBuckets,
+  dayKeyFor, windowedPhaseCounts, windowedCounts, pruneDayBuckets, seasonLabelFor,
 } from '../../src/sundown/rhythm.js';
 
 // DA5 (docs/DAY_ARC.md) — pure functions over plain {phase: count} maps,
@@ -196,4 +196,24 @@ test('windowedCounts: empty/missing input never throws', () => {
   assert.deepEqual(windowedCounts(undefined, Date.now(), RHYTHM_WINDOW_DAYS), {});
   assert.deepEqual(windowedCounts({}, Date.now(), RHYTHM_WINDOW_DAYS), {});
   assert.deepEqual(windowedCounts(null, Date.now(), RHYTHM_WINDOW_DAYS), {});
+});
+
+// FS8 (docs/25_FROM_SCRATCH.md point 4) — seasonLabelFor(), the Season
+// share card's own headline: the meteorological season the window's end
+// falls in, plus the month range the window spans.
+test('seasonLabelFor: names the meteorological season the window ends in', () => {
+  assert.equal(seasonLabelFor(new Date(2026, 9, 31), 90).name, 'Autumn'); // Oct 31
+  assert.equal(seasonLabelFor(new Date(2026, 0, 15), 90).name, 'Winter'); // Jan 15
+  assert.equal(seasonLabelFor(new Date(2026, 3, 1), 90).name, 'Spring'); // Apr 1
+  assert.equal(seasonLabelFor(new Date(2026, 6, 4), 90).name, 'Summer'); // Jul 4
+  assert.equal(seasonLabelFor(new Date(2026, 11, 25), 90).name, 'Winter'); // Dec 25
+});
+
+test('seasonLabelFor: the range spans the window\'s start month to its end month', () => {
+  // a 90-day window ending Oct 31, 2026 starts Aug 2, 2026
+  assert.equal(seasonLabelFor(new Date(2026, 9, 31), 90).range, 'Aug – Oct');
+});
+
+test('seasonLabelFor: a window that never leaves the current month gives one month, not a range', () => {
+  assert.equal(seasonLabelFor(new Date(2026, 9, 2), 1).range, 'Oct');
 });

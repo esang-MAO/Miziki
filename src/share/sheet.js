@@ -100,9 +100,9 @@ function gatherNowPlayingData(){
   // the card is "a picture of what's on screen," per the doc's own
   // wording, so it shows the previewed phase while Preview the day is
   // active, the same as every other on-screen Sundown readout.
-  return { track: t, elapsed: S.pos, duration: t.duration || 0,
-    look: resolveLook(t), mode: S.mode, year: t.details && t.details.year,
-    phase: currentDayPosition().phase, includePhase: S.shareSelectionByCard.nowPlaying.phase !== false };
+  return { track: t, look: resolveLook(t), mode: S.mode, year: t.details && t.details.year,
+    phase: currentDayPosition().phase, includePhase: S.shareSelectionByCard.nowPlaying.phase !== false,
+    ownerName: S.profile.name || null };
 }
 
 async function composeForCurrentCard(style, format){

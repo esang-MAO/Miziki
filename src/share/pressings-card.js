@@ -1,7 +1,7 @@
 import { getVariantDef, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS } from '../record-art/tiers.js';
 import {
-  SHARE_FORMATS, shareFitText, roundRectPath, drawShareWordmark,
-  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc, fillVariantSwatch,
+  SHARE_FORMATS, shareFitText, roundRectPath,
+  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc, fillVariantSwatch, drawShareFooter,
 } from './styles.js';
 
 /* ---- Pressings card (composePressingsShareImage) — a grid of unlocked
@@ -172,13 +172,12 @@ export async function composePressingsShareImage(opts){
     y += 44;
   }
 
-  ctx.textAlign = 'center';
-  const markY = Math.max(y, dim.safeBottom - 40);
-  await drawShareWordmark(ctx, w/2, markY, Math.round(w*0.03), kit.ink, kit.accent);
-  ctx.font = '600 20px Archivo, sans-serif';
-  ctx.fillStyle = kit.sub;
-  const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE') + ' · EARNED BY LISTENING';
-  ctx.fillText(crateName, w/2, markY + 26);
+  // FS8 (docs/25_FROM_SCRATCH.md point 1/5): the same shared footer every
+  // card now draws, wordmark bottom-left + "from the crate of NAME"
+  // bottom-right -- voices/palette only, no count ("EARNED BY LISTENING"
+  // dropped along with the old centred wordmark, QC2's "no counts" rule).
+  const footerY = Math.max(y + 10, dim.safeBottom - 30);
+  await drawShareFooter(ctx, kit, w, pad, Math.min(footerY, dim.safeBottom), data.ownerName || null);
 
   return canvas;
 }

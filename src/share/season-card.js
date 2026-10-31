@@ -2,21 +2,22 @@ import { S } from '../state.js';
 import { PHASES } from '../sundown/rhythm.js';
 import { PHASE_COLOR } from '../profile/rhythm-card.js';
 import {
-  SHARE_FORMATS, shareFitText, drawShareWordmark, wordmarkWidth, resolveShareStyle,
-  roundRectPath, loadImageEl, drawCover, drawDiagonalWordmark,
+  SHARE_FORMATS, shareFitText, resolveShareStyle,
+  roundRectPath, loadImageEl, drawCover, drawDiagonalWordmark, drawShareFooter,
 } from './styles.js';
 
-/* ---- Season card (composeSeasonShareImage) — the listening-rhythm
-   verdict, shared from Profile home once the rhythm card is unlocked
-   (SH1 item 4 — the entry point is hidden below RHYTHM_MIN_PLAYS plays
-   in the window; this composer is never called locked, so there's no
-   locked-state branch to draw here at all). `opts`: {style, format,
+/* ---- Season card (composeSeasonShareImage) — the season name as the
+   headline ("Autumn", "Sep – Nov · 41 records"), the 24-hour listening
+   ring with its verdict sentence beside it, "MOST SPUN" (the top 3
+   albums by plays in the window), brand footer. `opts`: {style, format,
    data}. `data` is gathered by the profile's Listening screen (src/
    profile/screens.js): {verdict, shares, total} from
    computeRhythmShares(windowedPhaseCounts(...))/rhythmVerdictLabel
-   (sundown/rhythm.js), plus topAlbums (QC2, docs/24_QUIET_COUNTS.md —
-   the top 3 albums by plays in the same window, history/achievements.js's
-   topAlbumsInWindow()) and ownerName. The composer reads nothing else. ---- */
+   (sundown/rhythm.js), {name, range} from seasonLabelFor(), recordCount
+   from recordsInWindowCount() (history/achievements.js), topAlbums (QC2,
+   docs/24_QUIET_COUNTS.md — the top 3 albums by plays in the same
+   window, history/achievements.js's topAlbumsInWindow()) and ownerName.
+   The composer reads nothing else. ---- */
 
 // SH6 item 3: "sorted by share descending" — a flat sort over the fixed
 // PHASES order keeps ties deterministic (the earlier-in-PHASES phase
@@ -47,17 +48,10 @@ function ringGradient(ctx, cx, cy, order, shares){
   return g;
 }
 
-const PHASE_LABEL = {
-  night: 'Night', dawn: 'Dawn', morning: 'Morning', midday: 'Midday',
-  afternoon: 'Afternoon', golden: 'Golden hour', twilight: 'Twilight',
-};
-
 function drawRing(ctx, kit, cx, cy, r, shares, total){
   ctx.save();
   ctx.fillStyle = ringGradient(ctx, cx, cy, legendOrder(shares), shares);
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-  // faint groove rings, same as every other disc-shaped swatch in this
-  // card family (styles.js's own fillShareDisc)
   ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 1;
   for(let rr = r * 0.55; rr < r * 0.97; rr += r * 0.09){
     ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
@@ -82,45 +76,38 @@ function drawRing(ctx, kit, cx, cy, r, shares, total){
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
-function drawLegend(ctx, kit, x, y, w, shares, rowH, dotR, fontPx){
-  legendOrder(shares).forEach(p => {
-    ctx.beginPath(); ctx.arc(x + dotR, y - dotR * 0.1, dotR, 0, Math.PI * 2);
-    ctx.fillStyle = PHASE_COLOR[p]; ctx.fill();
-    ctx.font = '500 ' + fontPx + 'px Archivo, sans-serif';
-    ctx.fillStyle = kit.ink;
-    const labelX = x + dotR * 2 + Math.round(fontPx * 0.5);
-    ctx.fillText(PHASE_LABEL[p], labelX, y);
-    const pct = Math.round(shares[p] * 100) + '%';
-    // TY6: metadata is Archivo .num, not mono.
-    ctx.font = '600 ' + fontPx + 'px Archivo, sans-serif';
-    ctx.fillStyle = kit.sub; ctx.textAlign = 'right';
-    ctx.fillText(pct, x + w, y);
-    ctx.textAlign = 'left';
-    y += rowH;
-  });
-  return y;
+// "noon"/"midnight" labels at the ring's own top/bottom, same as the
+// profile's own live rhythm-card.js dial.
+function drawRingLabels(ctx, kit, cx, cy, r){
+  ctx.save();
+  ctx.font = '500 18px Archivo, sans-serif';
+  ctx.fillStyle = kit.sub;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('noon', cx, cy - r - 14);
+  ctx.fillText('midnight', cx, cy + r + 28);
+  ctx.restore();
 }
 
-// QC2 (docs/24_QUIET_COUNTS.md): "MOST PLAYED THIS SEASON" — the top 3
-// albums (data.topAlbums, already selected and windowed by
+// QC2 (docs/24_QUIET_COUNTS.md): "MOST SPUN" — the top 3 albums
+// (data.topAlbums, already selected and windowed by
 // history/achievements.js's topAlbumsInWindow()) as cover art plus the
 // album name underneath, replacing the old metals/"N records played
 // through" figures. Omitted outright with nothing in the window at all,
 // same "no row when there's nothing to show" shape drawMetalsRow() used.
-async function drawTopAlbumsRow(ctx, kit, x, y, maxW, albums, fontPx){
+async function drawTopAlbumsRow(ctx, kit, x, y, maxW, albums){
   if(!albums.length) return y;
   // TY6: the kicker is Archivo caps --track-caps, not mono.
-  ctx.font = '700 ' + Math.round(fontPx * 1.1) + 'px Archivo, sans-serif';
+  ctx.font = '700 20px Archivo, sans-serif';
   ctx.fillStyle = kit.accent;
   if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
-  ctx.fillText('MOST PLAYED THIS SEASON', x, y);
+  ctx.fillText('MOST SPUN', x, y);
   if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  y += Math.round(fontPx * 1.8);
+  y += 36;
 
   const cols = 3;
   const gap = Math.round(maxW * 0.04);
   const tileW = Math.round((maxW - gap * (cols - 1)) / cols);
-  const nameFontPx = Math.round(fontPx * 0.95);
+  const nameFontPx = 19;
   const shown = albums.slice(0, cols);
   for(let i = 0; i < shown.length; i++){
     const rec = shown[i];
@@ -142,7 +129,18 @@ async function drawTopAlbumsRow(ctx, kit, x, y, maxW, albums, fontPx){
     ctx.fillStyle = kit.sub;
     ctx.fillText(shareFitText(ctx, rec.name || '', tileW), tx, y + tileW + Math.round(nameFontPx * 1.3));
   }
-  return y + tileW + Math.round(nameFontPx * 1.3) + Math.round(fontPx * 0.8);
+  return y + tileW + Math.round(nameFontPx * 1.3) + 24;
+}
+
+// FS8 (docs/25_FROM_SCRATCH.md point 4): "the verdict as a sentence" --
+// rhythmVerdictLabel() reads "Lately, mostly after dark" for the profile
+// card's own inline use; this card wants it standing alone ("Mostly
+// after dark."), so the "Lately, " prefix is dropped and a period added.
+export function verdictSentence(verdict){
+  if(!verdict) return '';
+  const stripped = verdict.replace(/^Lately,\s*/, '');
+  const capped = stripped.charAt(0).toUpperCase() + stripped.slice(1);
+  return /[.!?]$/.test(capped) ? capped : capped + '.';
 }
 
 export async function composeSeasonShareImage(opts){
@@ -160,62 +158,54 @@ export async function composeSeasonShareImage(opts){
   const pad = Math.round(w * 0.055);
   const shares = data.shares || {};
   const total = data.total || 0;
+  const season = data.season || { name: 'This season', range: '' };
   const stacked = format === 'story';
 
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
-  // SH6 item 2: kicker + headline (sentence case, never uppercased)
-  // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
-  ctx.font = '600 ' + Math.round(w * 0.019) + 'px Archivo, sans-serif';
-  ctx.fillStyle = kit.accent;
-  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
-  ctx.fillText('THIS SEASON · LAST 90 DAYS', pad, dims.safeTop);
-  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-
-  // TY6: the season word (the verdict) is this card's one hand-lettered
-  // element -- Caveat, not Antonio.
-  const headlineSize = Math.round(w * (stacked ? 0.062 : 0.054));
-  ctx.font = '700 ' + headlineSize + 'px Caveat, cursive';
+  // FS8 point 4: season name Antonio 40, "Sep – Nov · N records" muted,
+  // on the same row.
+  ctx.font = '700 40px Antonio, sans-serif';
+  let y = dims.safeTop + 36;
   ctx.fillStyle = kit.ink;
-  let y = dims.safeTop + Math.round(w * 0.055);
-  const headline = shareFitText(ctx, data.verdict || 'This season', w - pad * 2);
-  ctx.fillText(headline, pad, y);
-  y += Math.round(w * 0.07);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
+  ctx.fillText(season.name, pad, y);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  const nameW = ctx.measureText(season.name).width;
 
-  const ringR = Math.round(w * (stacked ? 0.22 : 0.16));
-  const legendFontPx = Math.round(w * 0.022);
-  const legendRowH = Math.round(w * 0.044);
-
-  if(stacked){
-    const cx = w / 2, cy = y + ringR;
-    drawRing(ctx, kit, cx, cy, ringR, shares, total);
-    y = cy + ringR + Math.round(w * 0.05);
-    y = drawLegend(ctx, kit, pad, y, w - pad * 2, shares, legendRowH, Math.round(w * 0.012), legendFontPx) ;
-  } else {
-    const cx = pad + ringR, cy = y + ringR;
-    drawRing(ctx, kit, cx, cy, ringR, shares, total);
-    const legendX = pad + ringR * 2 + Math.round(w * 0.04);
-    drawLegend(ctx, kit, legendX, cy - ringR + legendFontPx, w - pad - legendX, shares, legendRowH, Math.round(w * 0.012), legendFontPx);
-    y = cy + ringR + Math.round(w * 0.04);
+  const rangeText = [season.range, data.recordCount != null ? (data.recordCount + (data.recordCount === 1 ? ' record' : ' records')) : null]
+    .filter(Boolean).join(' · ');
+  if(rangeText){
+    ctx.font = '400 20px Archivo, sans-serif';
+    ctx.fillStyle = kit.sub;
+    ctx.fillText(shareFitText(ctx, rangeText, w - pad*2 - nameW - 20), pad + nameW + 20, y);
   }
+  y += 64;
+
+  const ringR = Math.round(w * (stacked ? 0.19 : 0.145));
+  const cx = pad + ringR, cy = y + ringR + 20;
+  drawRing(ctx, kit, cx, cy, ringR, shares, total);
+  drawRingLabels(ctx, kit, cx, cy, ringR);
+
+  // FS8 point 4: the verdict sentence sits beside the ring, bold Archivo,
+  // not the old Caveat headline / mono kicker.
+  const sentence = verdictSentence(data.verdict);
+  const textX = cx + ringR + Math.round(w*0.045);
+  const textMaxW = w - pad - textX;
+  ctx.font = '700 32px Archivo, sans-serif';
+  ctx.fillStyle = kit.ink;
+  ctx.fillText(shareFitText(ctx, sentence, textMaxW), textX, cy - 4);
+
+  y = Math.max(cy + ringR, cy) + Math.round(w * 0.06);
 
   // QC2: top-albums row, omitted outright with nothing in the window
-  y = await drawTopAlbumsRow(ctx, kit, pad, y, w - pad * 2, data.topAlbums || [], Math.round(w * 0.019));
+  y = await drawTopAlbumsRow(ctx, kit, pad, y, w - pad * 2, data.topAlbums || []);
 
-  // SH6 item 5: footer, wordmark + [NAME]'S CRATE, bottom-right — the
-  // same off-centre shape SH5 gave crate-card.js's own wordmark
-  const wmFontPx = Math.round(w * 0.034);
-  const wmWidth = wordmarkWidth(ctx, wmFontPx);
+  // FS8 point 1: footer, wordmark bottom-left, "from the crate of NAME"
+  // bottom-right -- same shared helper every card now draws with.
   const showName = (S.shareSelectionByCard.season.name !== false) && !!data.ownerName;
-  const markY = Math.min(Math.max(y, dims.safeTop) + Math.round(h * 0.03), dims.safeBottom);
-  await drawShareWordmark(ctx, w - pad - wmWidth / 2, markY, wmFontPx, kit.ink, kit.accent);
-  if(showName){
-    // TY6: metadata is Archivo .num, not mono.
-    ctx.font = '600 ' + Math.round(w * 0.016) + 'px Archivo, sans-serif';
-    ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
-    ctx.fillText(data.ownerName.toUpperCase() + "'S CRATE", w - pad, markY + Math.round(w * 0.028));
-    ctx.textAlign = 'left';
-  }
+  const footerY = Math.max(y + 20, dims.safeBottom - 30);
+  await drawShareFooter(ctx, kit, w, pad, Math.min(footerY, dims.safeBottom), showName ? data.ownerName : null);
 
   return canvas;
 }

@@ -1,22 +1,11 @@
 import { albumKey, trackIdentityKey, selectVariant } from '../record-art/tiers.js';
 import { albumMetalFor, trackMetalFor } from '../record-art/metals.js';
-import { fmt } from '../util/text.js';
 import {
   SHARE_FORMATS, shareFitText, shareFitLines, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, resolveShareStyle, shareChip, drawDiagonalWordmark,
-  fillShareDisc, layoutChips, CHIP_FONT, CHIP_HEIGHT, CHIP_ROW_GAP,
+  roundRectPath, resolveShareStyle, nightSkyKit, drawDiagonalWordmark,
+  fillShareDisc, drawSunIcon, drawShareFooter,
 } from './styles.js';
-import { spinChipText } from '../sundown/spin-wording.js';
-
-// SH2 (docs/18_SHARE.md): fixed spacing constants, doubled from the
-// design README's own half-scale Now Playing board values — replacing
-// the h*/titleSize* fractions the card used to space itself with, none
-// of which tracked what was actually drawn.
-const TITLE_CLEARANCE_GAP = 20; // README "gap 10" under the title band
-const PROGRESS_GAP = { story: 80, square: 64, portrait: 72 }; // README "40 (story) / 32 (square)"; portrait has no board of its own
-const CLOCK_GAP = 20; // README "10 below the bar"
-const CHIPS_GAP = 60; // README "30 below the clock"
-const FOOTER_CLEARANCE = 0.05; // the footer's own fixed distance above safeBottom, as a fraction of h — unchanged from before SH2, just now a fixed position rather than one content could push further down
+import { spinPhaseWording } from '../sundown/spin-wording.js';
 
 // SH3 (docs/18_SHARE.md): the track-specific lookups fillShareDisc() itself
 // used to do are now this card's own job — the moved function (styles.js)
@@ -33,13 +22,31 @@ function discInfoFor(t, look){
   };
 }
 
+// FS8 (docs/25_FROM_SCRATCH.md point 2): "one line 'Spun at dusk · Vinyl ·
+// FLAC 16/44.1'" — sentence case, not the removed uppercase chip row.
+// Each part is omitted outright when its data is missing, same "no chip
+// for nothing" rule the old chip list followed.
+function spinSummaryLine(t, mode, phase, includePhase){
+  const parts = [];
+  const wording = includePhase !== false ? spinPhaseWording(phase) : null;
+  if(wording) parts.push('Spun ' + wording);
+  if(mode) parts.push(mode === 'vinyl' ? 'Vinyl' : 'Pure');
+  if(t.meta && t.meta.codec){
+    const rateB = [t.meta.rate ? (t.meta.rate/1000).toFixed(1) : null, t.meta.bits].filter(Boolean).join('/');
+    parts.push(rateB ? (t.meta.codec + ' ' + rateB) : t.meta.codec);
+  }
+  return parts.join(' · ');
+}
+
 /* ---- Now Playing card (composePlayerShareImage) — the record peeking from
    behind its sleeve (fillShareDisc), kicker + title (auto-shrink to 2
-   lines) + artist + album·year, a live progress line, spec chips, brand
-   footer. `opts`: {style, format, data}, data gathered by the caller
-   (sheet.js's own gatherNowPlayingData()) from current()/S.pos/
+   lines) + artist + album·year, one spin-summary line with a sun icon,
+   brand footer. `opts`: {style, format, data}, data gathered by the
+   caller (sheet.js's own gatherNowPlayingData()) from current()/S.pos/
    resolveLook() — the composer itself touches nothing but its
-   arguments. ---- */
+   arguments. FS8 (docs/25_FROM_SCRATCH.md point 2): no progress bar, no
+   clock, no spec-chip row, no slogan line — removed outright, not
+   hidden behind a flag. ---- */
 export async function composePlayerShareImage(opts){
   const style = opts.style || 'night', format = opts.format || 'story';
   const dim = SHARE_FORMATS[format] || SHARE_FORMATS.story;
@@ -52,12 +59,14 @@ export async function composePlayerShareImage(opts){
   if(!data || !data.track) return canvas;
   const t = data.track;
 
-  const kit = await resolveShareStyle(style, t.art || null);
+  // FS8 point 2: "the sky of the phase it was spun in" — only the Night
+  // style gets the phase tint; Cover (dominant art color) and Paper stay
+  // exactly what the user picked.
+  const kit = style === 'night' ? nightSkyKit(data.phase) : await resolveShareStyle(style, t.art || null);
   kit.paintBg(ctx, w, h);
 
   const pad = Math.round(w*0.06);
   let y = dim.safeTop;
-  const bottomY = dim.safeBottom;
   const look = data.look;
 
   if(look === 'rare'){
@@ -94,134 +103,52 @@ export async function composePlayerShareImage(opts){
   const titleMax = w - pad*2;
   const title = t.tags ? t.tags.title : (t.name || '');
   const artist = t.tags ? t.tags.artist : '';
-  const albumYearText = [t.tags ? t.tags.album : '', data.year || null].filter(Boolean).join(' · ').toUpperCase();
+  const albumYearText = [t.tags ? t.tags.album : '', data.year || null].filter(Boolean).join(' · ');
 
-  // spec chips: FLAC/sample-rate/bit-depth, plus the current mode — each
-  // omitted outright when its data is missing (spec §2)
-  const chips = [];
-  const specParts = [t.meta && t.meta.codec, t.meta && t.meta.rate ? (t.meta.rate/1000).toFixed(1)+' kHz' : null,
-    t.meta && t.meta.bits ? t.meta.bits+'-bit' : null].filter(Boolean);
-  if(specParts.length) chips.push({text: specParts.join(' · '), filled:false});
-  if(data.mode) chips.push({text: String(data.mode).toUpperCase(), filled:true});
-  // DA6 (docs/DAY_ARC.md): "SPUN AT DUSK" -- the same chip style as the
-  // spec/mode chips above, gated by the share sheet's own "Time of day"
-  // Include toggle (data.includePhase, default on).
-  const spinText = spinChipText(data.phase, data.includePhase);
-  if(spinText) chips.push({text: spinText, filled:false});
+  // FS8 point 2: title Antonio 56, artist Archivo 20/500, Album · Year
+  // Archivo 16 muted — literal px, not a fraction of w (every format
+  // shares the same 1080 canvas width).
+  const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, 56, '700', 'Antonio, sans-serif');
+  ctx.font = '700 ' + titleSize + 'px Antonio, sans-serif';
+  titleLines.forEach(line => {
+    y += Math.round(titleSize*1.08);
+    ctx.fillStyle = kit.ink;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
+    ctx.fillText(line, w/2, y);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  });
+  y += 20;
 
-  const footerTopY = bottomY - Math.round(h*FOOTER_CLEARANCE);
+  ctx.font = '500 20px Archivo, sans-serif';
+  const artistText = shareFitText(ctx, artist, titleMax);
+  ctx.fillStyle = kit.sub; ctx.fillText(artistText, w/2, y);
+  y += 32;
 
-  // SH2 item 1/2/3: the title band and progress line are laid out once,
-  // measurement-only (draw=false, no canvas side effects — fillText/fill/
-  // stroke all stay inside `if(draw)`), to find where the content would
-  // actually end up before a single pixel is painted. Item 4's own
-  // "content never grows into the footer" rule needs to know that final
-  // position *before* deciding whether to draw the chips/album·year line
-  // at all, which a single draw-as-you-go pass (the pre-SH2 shape) can't
-  // provide — there's nothing to "undo" once something is already drawn.
-  const startY = y;
-  function layoutBody(includeAlbumYear, includeChips, draw){
-    let yy = startY;
-    // TY6 (docs/22_TYPE.md): the kicker ("Now playing", "Spun at dusk") is
-    // Archivo caps --track-caps, not mono.
-    ctx.font = '700 ' + Math.round(w*0.024) + 'px Archivo, sans-serif';
-    if(draw){
-      ctx.fillStyle = kit.accent;
-      if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
-      ctx.fillText('NOW PLAYING', w/2, yy);
-      if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-    }
-    yy += Math.round(w*0.05);
-
-    // TY6: the title is Antonio --track-display, not Archivo.
-    const { lines: titleLines, fontSize: titleSize } = shareFitLines(ctx, title, titleMax, 2, Math.round(w*0.066), '700', 'Antonio, sans-serif');
-    ctx.font = '700 ' + titleSize + 'px Antonio, sans-serif';
-    titleLines.forEach(line => {
-      yy += Math.round(titleSize*1.08);
-      if(draw){
-        ctx.fillStyle = kit.ink;
-        if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
-        ctx.fillText(line, w/2, yy);
-        if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-      }
-    });
-    // SH2 item 1: measured title height plus one fixed gap, never h*0.055
-    // (or any other fraction of canvas height disconnected from the title
-    // actually drawn above it).
-    const lastTitleLine = titleLines[titleLines.length-1] || '';
-    const titleMetrics = ctx.measureText(lastTitleLine);
-    const titleDescent = titleMetrics.actualBoundingBoxDescent || Math.round(titleSize*0.22);
-    yy += titleDescent + TITLE_CLEARANCE_GAP;
-
-    ctx.font = '400 ' + Math.round(w*0.032) + 'px Archivo, sans-serif';
-    const artistText = shareFitText(ctx, artist, titleMax);
-    if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(artistText, w/2, yy); }
-    yy += Math.round(w*0.045);
-
-    if(includeAlbumYear && albumYearText){
-      // TY6: metadata is Archivo .num, not mono.
-      ctx.font = '600 ' + Math.round(w*0.021) + 'px Archivo, sans-serif';
-      const albumText = shareFitText(ctx, albumYearText, titleMax);
-      if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(albumText, w/2, yy); }
-    }
-    // SH2 item 2: the progress line always sits a fixed distance below
-    // the band, whether or not album·year is the line that ends it.
-    yy += PROGRESS_GAP[format] || PROGRESS_GAP.story;
-
-    if(typeof data.elapsed === 'number' && data.duration > 0){
-      const barW = w - pad*2, barY = yy, barH = 6;
-      const frac = Math.max(0, Math.min(1, data.elapsed / data.duration));
-      if(draw){
-        ctx.fillStyle = kit.chipBg; roundRectPath(ctx, pad, barY, barW, barH, barH/2); ctx.fill();
-        ctx.fillStyle = kit.accent; roundRectPath(ctx, pad, barY, Math.max(barH, barW*frac), barH, barH/2); ctx.fill();
-        ctx.beginPath(); ctx.arc(pad + barW*frac, barY + barH/2, barH*1.5, 0, Math.PI*2); ctx.fillStyle = kit.accent; ctx.fill();
-      }
-      // SH2 item 2: the clock sits under the line, not inside the chip row.
-      yy += CLOCK_GAP;
-      // TY6: elapsed/duration is Archivo .num, not mono.
-      ctx.font = '500 ' + Math.round(w*0.021) + 'px Archivo, sans-serif';
-      if(draw){
-        ctx.fillStyle = kit.sub;
-        ctx.textAlign = 'left'; ctx.fillText(fmt(data.elapsed), pad, yy);
-        ctx.textAlign = 'right'; ctx.fillText(fmt(data.duration), w - pad, yy);
-        ctx.textAlign = 'center';
-      }
-      yy += CHIPS_GAP;
-    }
-
-    if(includeChips && chips.length){
-      ctx.font = CHIP_FONT;
-      const layout = layoutChips(ctx, chips, w - pad*2);
-      if(draw){
-        layout.rows.forEach((row, ri) => {
-          const rowY = yy + ri*(CHIP_HEIGHT + CHIP_ROW_GAP);
-          row.forEach(c => shareChip(ctx, kit, c.text, w/2 + c.x, rowY, c.filled));
-        });
-      }
-      yy += layout.height;
-    }
-
-    return yy;
+  if(albumYearText){
+    ctx.font = '400 16px Archivo, sans-serif';
+    const albumText = shareFitText(ctx, albumYearText, titleMax);
+    ctx.fillStyle = kit.sub; ctx.fillText(albumText, w/2, y);
+    y += 44;
+  } else {
+    y += 20;
   }
 
-  // SH2 item 4: the footer never moves to make room — content does. Chips
-  // are dropped first, then ALBUM · YEAR, each only if the content would
-  // otherwise overlap the footer's own fixed position.
-  let includeAlbumYear = true, includeChips = true;
-  if(layoutBody(true, true, false) > footerTopY){
-    includeChips = false;
-    if(layoutBody(true, false, false) > footerTopY) includeAlbumYear = false;
+  const summary = spinSummaryLine(t, data.mode, data.phase, data.includePhase);
+  if(summary){
+    const iconR = 11;
+    ctx.font = '500 20px Archivo, sans-serif';
+    const textW = ctx.measureText(summary).width;
+    const gap = 12;
+    const totalW = iconR*2 + gap + textW;
+    const startX = w/2 - totalW/2;
+    drawSunIcon(ctx, startX + iconR, y - 7, iconR, kit.accent);
+    ctx.textAlign = 'left'; ctx.fillStyle = kit.ink;
+    ctx.fillText(summary, startX + iconR*2 + gap, y);
+    ctx.textAlign = 'center';
   }
-  layoutBody(includeAlbumYear, includeChips, true);
 
-  ctx.textAlign = 'center';
-  await drawShareWordmark(ctx, w/2, footerTopY, Math.round(w*0.03), kit.ink, kit.accent);
-  // TY6: the strapline is Archivo caps .1em, not mono.
-  ctx.font = '600 ' + Math.round(w*0.0165) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
-  const lossless = !(t.meta && t.meta.lossless === false);
-  if('letterSpacing' in ctx) ctx.letterSpacing = '.1em';
-  ctx.fillText('LOCAL · ' + (lossless ? 'LOSSLESS' : 'LOSSY') + ' · NO STREAMING', w/2, footerTopY + Math.round(h*0.026));
-  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  const footerY = dim.safeBottom - Math.round(h*0.05);
+  await drawShareFooter(ctx, kit, w, pad, footerY, data.ownerName || null);
 
   return canvas;
 }

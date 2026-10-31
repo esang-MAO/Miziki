@@ -58,6 +58,24 @@ export const RHYTHM_WINDOW_DAYS = 90;
 export const RHYTHM_PRUNE_KEEP_DAYS = 120;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// FS8 (docs/25_FROM_SCRATCH.md): the Season share card's own headline --
+// "Autumn" plus "Sep – Nov · 41 records" -- names the meteorological
+// season (Northern Hemisphere: Dec–Feb Winter, Mar–May Spring, Jun–Aug
+// Summer, Sep–Nov Autumn) the window's *end* (today) falls in, and the
+// month range the window itself spans. Pure: takes `now` and `windowDays`
+// rather than calling Date.now() itself, so it's directly testable.
+const SEASON_NAMES = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 'Summer', 'Summer', 'Autumn', 'Autumn', 'Autumn', 'Winter'];
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function seasonLabelFor(now, windowDays){
+  const end = now instanceof Date ? now : new Date(now);
+  const start = new Date(end.getTime() - windowDays * MS_PER_DAY);
+  const name = SEASON_NAMES[end.getMonth()];
+  const range = start.getMonth() === end.getMonth()
+    ? MONTH_ABBR[end.getMonth()]
+    : MONTH_ABBR[start.getMonth()] + ' – ' + MONTH_ABBR[end.getMonth()];
+  return { name, range };
+}
+
 // A local-calendar 'YYYY-MM-DD' string for `ts` (a Date or epoch ms) —
 // local time, not UTC, the same calendar day a person would name, and
 // consistent with realDayPosition()'s own local-solar-time basis (the
