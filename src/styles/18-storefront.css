@@ -101,6 +101,18 @@
   border-bottom:1px solid var(--line);color:var(--paper);font-size:var(--fs-body);text-align:left;min-height:44px}
 .store-listening-row .g-chev{color:var(--muted)}
 
+/* FS7 (docs/25_FROM_SCRATCH.md point 4): "one raised row with the last
+   record you played and 'Spun last night'/'Spun 3 hours ago'"
+   (storeLastSpunRow(), src/profile/storefront.js) -- never got a rule of
+   its own, so its cover <img> rendered at its natural (often huge) size
+   instead of as a thumbnail. Same "raised row" shape as .store-card below. */
+.store-last-spun{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:var(--sp-3)}
+.store-last-spun-cover{width:48px;height:48px;flex:none;border-radius:6px;overflow:hidden;background:var(--field)}
+.store-last-spun-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.store-last-spun-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.store-last-spun-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.store-last-spun-when{font-size:var(--fs-caption);color:var(--muted)}
+
 .store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:var(--sp-3)}
 .store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--cream);color:#1A1410;
   display:flex;align-items:center;justify-content:center;font-size:var(--fs-row);font-weight:700}

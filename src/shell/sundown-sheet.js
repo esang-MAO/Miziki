@@ -15,15 +15,18 @@
    comment for why that distinction matters: a direct call would leave a
    stale history entry for a later Back press to trip over).
 
-   Half/full height is a plain class toggle (.full on #sundownSheet) —
-   opening defaults to whichever of Day/Sound was last selected (Day →
-   half, Sound → full, matching the mockup's own "Day" and "Full height
-   (drag up, or Sound)" rule), tapping a tab re-syncs it to that view's
-   own default, and a drag on the grabber overrides it for the rest of
-   this open/close cycle. There is no pure, DOM-free core to unit-test
-   here, the same "not much here is pure" shape shell/put-away.js's own
-   choreography already has (see tests/unit/shell.test.js) — this is
-   covered by the Playwright device checklist instead. */
+   Half/full height is a plain class toggle (.full on #sundownSheet).
+   Both Day and Sound open full height by default (Ken, 2026-10-31: Day's
+   old half-height default cut the dial itself off at the bottom of the
+   sheet, where Sound's own full-height default showed its whole view —
+   Day should be able to fill the screen the same way). Tapping a tab
+   re-syncs to that same full default, and a drag on the grabber still
+   overrides it for the rest of this open/close cycle — dragging down
+   past the threshold collapses to half, dragging back up returns to
+   full. There is no pure, DOM-free core to unit-test here, the same
+   "not much here is pure" shape shell/put-away.js's own choreography
+   already has (see tests/unit/shell.test.js) — this is covered by the
+   Playwright device checklist instead. */
 import { $ } from '../util/dom.js';
 import { openLayer, closeLayer } from './nav-stack.js';
 import { selectSundownView, lastSundownView } from './routes.js';
@@ -33,11 +36,12 @@ const DRAG_OPEN_THRESHOLD = 60;   // px dragged up past half-height to snap to f
 const DRAG_CLOSE_THRESHOLD = 120; // px dragged down past half-height to dismiss
 
 // Called on open and on every explicit Day/Sound tab tap (src/wiring/
-// sundown.js) — the view's own default height, overridden only by an
-// in-progress drag.
-export function syncSundownSheetHeight(view){
+// sundown.js) — both views default to full height now, overridden only
+// by an in-progress drag. `view` is unused but kept so call sites don't
+// need to change if a future design wants the views to diverge again.
+export function syncSundownSheetHeight(_view){
   const sheet = $('#sundownSheet');
-  if(sheet) sheet.classList.toggle('full', view === 'sound');
+  if(sheet) sheet.classList.add('full');
 }
 
 // The teardown nav-stack calls on every close, however it started (the
