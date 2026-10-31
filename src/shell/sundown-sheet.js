@@ -27,6 +27,7 @@
 import { $ } from '../util/dom.js';
 import { openLayer, closeLayer } from './nav-stack.js';
 import { selectSundownView, lastSundownView } from './routes.js';
+import { eqStateLabel } from '../player/eq-label.js';
 
 const DRAG_OPEN_THRESHOLD = 60;   // px dragged up past half-height to snap to full
 const DRAG_CLOSE_THRESHOLD = 120; // px dragged down past half-height to dismiss
@@ -65,6 +66,13 @@ export function openSundownSheet(view){
   const v = view === 'sound' || view === 'day' ? view : lastSundownView();
   selectSundownView(v);
   syncSundownSheetHeight(v);
+  // FS12 (docs/25_FROM_SCRATCH.md point 3): the EQ row's own value
+  // (eqStateLabel(), src/player/eq-label.js) -- this markup is static,
+  // never rebuilt like profile/screens.js's own copy of this row, so it
+  // needs a fresh paint on every open rather than only at wireCharacter()
+  // time.
+  const eqValue = $('#soundEqRowValue');
+  if(eqValue) eqValue.textContent = eqStateLabel();
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   if(scrim) scrim.classList.add('open');

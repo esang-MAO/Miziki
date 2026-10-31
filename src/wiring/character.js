@@ -29,6 +29,7 @@ import { toggleLaunchIntro, attachLaunchSettingRow } from '../launch/intro.js';
 import { toggleBgAudio, bgUpdateUI, resolveBgOffer } from '../player/background.js';
 import { setTheme } from '../ui/theme.js';
 import { updateToneCurveVisibility } from '../sundown/dial-view.js';
+import { eqStateLabel } from '../player/eq-label.js';
 
 // "Decided" (docs/13_CRATE.md, CR7): the paper-label switch in Settings ›
 // Playback. Kept here rather than in record-art/looks.js itself, since
@@ -118,7 +119,8 @@ export function wireCharacter(){
   // RF28 ("what am I hearing"): press-and-hold audition. One handler for
   // both shapes -- each of the four per-stage buttons (inside a
   // [data-char-tune] card's own fine-tune panel) and the one whole-chain
-  // "Compare with Pure" button below the grid. Release listens on
+  // "Hear it without Vinyl" button at the end of the view (FS12, was
+  // "Compare with Pure"). Release listens on
   // `window`, not the button itself, so a finger sliding off the button
   // while still down still ends the hold (the same shape dial-gesture.js's
   // own drag release already uses) -- a stuck "bypassed forever" audition
@@ -182,6 +184,23 @@ export function wireCharacter(){
       const opening = advancedBody.hidden;
       advancedBody.hidden = !opening;
       advancedToggle.setAttribute('aria-expanded', String(opening));
+    });
+  }
+
+  // FS12 (docs/25_FROM_SCRATCH.md point 3): "EQ ›" opens the same sheet
+  // the player's own ··· menu does (player/eq-sheet.js), never a copy --
+  // same dynamic-import shape as profile/screens.js's own EQ row, so the
+  // sheet's heavier rendering code only loads once this row is tapped.
+  // Its value (eqStateLabel()) is repainted fresh on every sheet open too
+  // (shell/sundown-sheet.js's openSundownSheet()), since this markup is
+  // static rather than rebuilt per render.
+  const eqRow = $('#soundEqRow');
+  if(eqRow){
+    const eqValue = $('#soundEqRowValue');
+    if(eqValue) eqValue.textContent = eqStateLabel();
+    eqRow.addEventListener('click', async () => {
+      const { openEqSheet } = await import('../player/eq-sheet.js');
+      openEqSheet();
     });
   }
 

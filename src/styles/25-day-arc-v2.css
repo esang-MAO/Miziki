@@ -68,8 +68,10 @@
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   color:var(--on-accent); box-shadow:0 0 18px color-mix(in srgb, var(--amber) 55%, transparent);
 }
-.day-dial-label b{ font-family:var(--display); font-size:var(--fs-hero);letter-spacing:.02em; line-height:1; }
-.day-dial-label span{ font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.08em; margin-top:var(--sp-1); }
+/* FS12 point 2: "LIVE (mono 8) over the time (Antonio 15)" -- --fs-row
+   (16px) is the closest token to 15px on the scale (CLAUDE.md's no-
+   off-token-sizes rule), and .day-dial-live below carries the mono badge. */
+.day-dial-label b{ font-family:var(--display); font-size:var(--fs-row);letter-spacing:.02em; line-height:1; }
 
 /* RF12 (docs/12_REFINE.md, point 3): these used to sit 2% in from the
    dial's own edge -- squarely on the ring's conic-gradient band, which
@@ -77,16 +79,8 @@
    outright. Moved outside the ring entirely (negative offsets, clear of
    the 300px disc) at 11px/--paper instead, so they never sit on a
    colored segment regardless of which one is showing. */
-.day-dial-hourlabel{
-  position:absolute; font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em;
-  color:var(--paper);
-}
-.day-dial-hourlabel-top{ top:-18px; left:50%; transform:translateX(-50%); }
-.day-dial-hourlabel-right{ right:-22px; top:50%; transform:translateY(-50%); }
-.day-dial-hourlabel-bottom{ bottom:-18px; left:50%; transform:translateX(-50%); }
-.day-dial-hourlabel-left{ left:-22px; top:50%; transform:translateY(-50%); }
-
-/* The sun-record marker and the sunrise/sunset ticks are all positioned
+/* The sun-record marker and the four rim ticks (sunrise/sunset, dynamic;
+   noon/midnight, fixed at the dial's own top/bottom) are all positioned
    the same way: a zero-size anchor at the dial's own center, moved by
    dial-view.js's own inline transform:translate(x,y) to the ring's
    mid-radius at the right angle — see polarOffset() there. */
@@ -114,15 +108,54 @@
 }
 .day-dial-tick::before{
   content:''; position:absolute; left:-1px; top:-6px; width:2px; height:12px;
-  background:#fff; border-radius:1px; opacity:.85;
+  background:var(--cream); border-radius:1px; opacity:.85;
 }
 
+/* FS12: sentence case, Archivo 13 muted (the caps/mono look this row used
+   is gone -- #sdSunrise/#sdSunset's own "SUNRISE "/"SUNSET " prefixes are
+   now "Sunrise "/"Sunset ", dial-view.js's paintDayView()). */
 .sd-event-row{
   display:flex; align-items:center; justify-content:space-between;
-  font-family:var(--data); font-size:var(--fs-label); letter-spacing:.04em; text-transform:uppercase;
+  font-family:var(--body); font-size:var(--fs-caption); letter-spacing:0;
   color:var(--muted); margin-bottom:14px;
 }
 .sd-event-row em{ color:var(--cream); font-style:normal; font-weight:600; }
+
+/* FS12 point 2: the kicker row -- #sundownEyebrow (restyled above) on its
+   own line, then the big Antonio phase word with the trend/rate readout
+   at the right, at the same height. */
+.sd-phase-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-3);
+  margin-bottom:var(--sp-3);
+}
+.sd-phase-word{
+  margin:0; font-family:var(--display); font-size:var(--fs-hero); line-height:var(--lh-hero);
+  letter-spacing:var(--track-display); color:var(--paper);
+}
+.sd-trend-rate{ flex:none; text-align:right; }
+.sd-trend-word{
+  display:block; font-family:var(--body); font-size:var(--fs-caption); color:var(--muted);
+}
+.sd-trend-rate b{
+  display:block; font-family:var(--data); font-size:var(--fs-row); font-variant-numeric:tabular-nums;
+  color:var(--paper); font-weight:600;
+}
+
+/* FS12 point 2: the disc's own "LIVE" mono badge over the time -- hidden
+   while previewing (dial-view.js's paintDayView(), S.previewMin !== 0). */
+.day-dial-live{
+  display:block; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--on-accent); opacity:.8; margin-bottom:1px;
+}
+
+/* FS12 point 2: "Through the night" -- Antonio 20, a different treatment
+   from the shared mono section-label look below on purpose (it's a real
+   heading, not a caption), so it gets its own class rather than widening
+   .sd-heading's shared contract. */
+.sd-night-heading{
+  margin:22px 0 var(--sp-2); font-family:var(--display); font-size:var(--fs-title);
+  line-height:var(--lh-title); color:var(--paper);
+}
 
 /* RF9 (docs/12_REFINE.md) removed the three reading cards (Platter/Sound/
    Sky, PR 4) that used to sit here outright -- the dial above is already
@@ -143,17 +176,18 @@
 .sd-night-card-head span{ font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em; color:var(--paper); }
 .sd-night-card p{ margin:0; font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:color-mix(in srgb, var(--paper) 85%, transparent); }
 
-/* §4.2 item 4 (PR 5): the hint row + NOW button. */
+/* §4.2 item 4 (PR 5) / FS12 point 2: the hint row + the Now pill
+   (sentence case, Archivo -- replaces the caps "NOW" button and the
+   ↻ hint icon, which is gone outright). */
 .sd-hint-row{
   display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-4);
   font-family:var(--body); font-size:var(--fs-caption); color:var(--muted);
 }
-.sd-hint-icon{ font-size:var(--fs-body); line-height:1; }
 .sd-hint-text{ flex:1; }
 .sd-now-btn{
   flex:none; min-width:44px; min-height:28px; padding:0 var(--sp-3);
   border-radius:999px; border:1px solid var(--line); background:transparent;
-  color:var(--muted); font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em;
+  color:var(--muted); font-family:var(--body); font-size:var(--fs-caption); font-weight:500;
   touch-action:manipulation;
 }
 /* Filled amber while a preview is active (S.previewMin !== 0) — toggled
@@ -180,45 +214,69 @@
   margin:var(--sp-1) 0 6px;
 }
 
+/* FS12 point 3: everything below the Vinyl row only applies to Vinyl --
+   dimmed and inert (audio/mode.js's setMode()) while it's off. */
+.sd-sound-dim{ opacity:.4; }
+
+/* FS12 point 3: "Vinyl as the first row: Antonio 28 label" -- .row .k's
+   plain --fs-body text, upsized/restyled for just this one row. */
+.sd-vinyl-row .k{
+  font-family:var(--display); font-size:var(--fs-hero); line-height:var(--lh-hero);
+  letter-spacing:var(--track-display); color:var(--paper);
+}
+.sd-vinyl-row .k em{ font-family:var(--body); font-size:var(--fs-caption); letter-spacing:0; }
+
+/* FS12 point 3: the Fine-tune/EQ rows reuse .settings-link-row/
+   .settings-link-right/.settings-link-value/.g-chev as-is (src/styles/
+   17-profile.css) -- the same row shape Profile's own EQ row already
+   uses, not a second copy. */
+
 /* One section-label look for every tab (the design mocks' own ".sec":
    mono, 10px, .14em, uppercase, muted). Each rule below keeps its own
    margin/padding/border; only the type treatment is shared, so Library
    tools, Sundown, Sound, Settings and the Profile home read the same. */
 .lib-tools-caption,
-.sd-heading,
 .sd-section-label,
 .settings-section-head,
 .profile-section-head{
   font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
-/* §4.3 item 3: a full-width three-way segmented control — visually its
-   own thing (not the smaller pill-row .seg used by the Day view's
-   Auto/Manual and Pacing rows), scoped here so those rows are untouched.
-   .sd-preset-seg (the character presets, below the cards) shares this
-   exact look on purpose — same view, same "pick one of three" shape as
-   the drift control above the cards, so the tab reads as one style
-   rather than the drift control looking native and the presets looking
-   like a leftover from the old slider-era rectangular buttons. */
+/* §4.3 item 3 / FS12 point 1: a full-width segmented control (cream fill
+   on the selected segment) — visually its own thing (not the smaller
+   pill-row .seg used by the Day view's Auto/Manual and Pacing rows). One
+   shared look for every "pick one of N" group in the sheet: the Day|Sound
+   tabs (2), the depth control (4), and every 3-way group below, so none
+   of them read as a leftover from the old slider-era rectangular
+   buttons. .sd-tabs uses aria-selected (it's a tablist); the rest use
+   aria-pressed. */
+.sd-tabs,
 .sd-drift-seg,
-.sd-preset-seg{
+.sd-preset-seg,
+.sd-depth-seg,
+.sd-surface-noise-seg,
+.sd-runout-length-seg{
   display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
   border:1px solid var(--line); border-radius:12px; overflow:hidden;
   background:var(--panel); margin-bottom:18px; gap:0;
 }
+.sd-tabs{ grid-template-columns:repeat(2, minmax(0, 1fr)); margin-bottom:var(--sp-4); }
+.sd-depth-seg{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
+.sd-tabs button,
 .sd-drift-seg button,
-.sd-preset-seg button{
-  min-height:44px; border:0; background:transparent; color:var(--paper);
+.sd-preset-seg button,
+.sd-depth-seg button,
+.sd-surface-noise-seg button,
+.sd-runout-length-seg button{
+  min-height:44px; border:0; background:transparent; color:var(--paper); cursor:pointer;
   font-family:var(--body); font-size:var(--fs-caption); font-weight:500; padding:var(--sp-1) 6px;
 }
+.sd-tabs button[aria-selected="true"],
 .sd-drift-seg button[aria-pressed="true"],
-.sd-preset-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
-
-/* RF9 (docs/12_REFINE.md): one shared disclosure in front of the whole
-   charcards grid, instead of it sitting always-visible — the presets
-   below it stay the fast path; this is for the rare case a preset is
-   close but not quite right. */
-.sd-advanced-toggle{ margin-bottom:var(--sp-3); }
+.sd-preset-seg button[aria-pressed="true"],
+.sd-depth-seg button[aria-pressed="true"],
+.sd-surface-noise-seg button[aria-pressed="true"],
+.sd-runout-length-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
 
 /* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
    current (drifted) value; presets below are how they're set. */

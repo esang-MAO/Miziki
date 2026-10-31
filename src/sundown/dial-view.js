@@ -162,9 +162,19 @@ function paintDayView(dial, st) {
 
   updateSkyBackground(st.skyPhase, st.skyStops);
 
-  const time = $('#dayDialTime'), ampm = $('#dayDialAmPm');
+  // FS12 (docs/25_FROM_SCRATCH.md point 2): the center disc reads "LIVE"
+  // (mono) over the time while live, or just the previewed time while the
+  // dial is turned -- S.previewMin is the one existing flag every other
+  // Sundown readout (the eyebrow, the NOW button) already keys off.
+  const time = $('#dayDialTime'), live = $('#dayDialLive');
   if (time) time.textContent = st.timeBig;
-  if (ampm) ampm.textContent = st.timeAmPm + ' · ' + st.phaseLabel;
+  if (live) live.style.display = S.previewMin === 0 ? '' : 'none';
+
+  const phaseWordEl = $('#sdPhaseWord');
+  if (phaseWordEl) phaseWordEl.textContent = st.phaseWord;
+  const trendWordEl = $('#sdTrendWord'), rateWordEl = $('#sdRateWord');
+  if (trendWordEl) trendWordEl.textContent = st.trend;
+  if (rateWordEl) rateWordEl.textContent = st.rateText;
 
   // §4.4a: "the dial exposes role='slider' with aria-valuetext" — role
   // and the static valuemin/valuemax live on the element itself
@@ -176,10 +186,15 @@ function paintDayView(dial, st) {
   paintMarker($('#dayDialMarker'), dial, st.markerAngleDeg);
   paintMarker($('#dayDialSunriseTick'), dial, st.sunriseAngleDeg);
   paintMarker($('#dayDialSunsetTick'), dial, st.sunsetAngleDeg);
+  // FS12 point 2: "four small cream ticks at sunrise, noon, sunset and
+  // solar midnight" — noon/midnight sit at fixed angles (the dial's own
+  // "noon at the top" orientation, §4.1), unlike the sun-driven pair above.
+  paintMarker($('#dayDialNoonTick'), dial, 0);
+  paintMarker($('#dayDialMidnightTick'), dial, 180);
 
   const sunriseEl = $('#sdSunrise'), sunsetEl = $('#sdSunset'), nextEl = $('#sdNextEvent');
-  if (sunriseEl) sunriseEl.textContent = 'SUNRISE ' + st.sunriseLabel;
-  if (sunsetEl) sunsetEl.textContent = 'SUNSET ' + st.sunsetLabel;
+  if (sunriseEl) sunriseEl.textContent = 'Sunrise ' + st.sunriseLabel;
+  if (sunsetEl) sunsetEl.textContent = 'Sunset ' + st.sunsetLabel;
   if (nextEl) nextEl.textContent = st.nextEvent ? st.nextEvent.label + ' ' + st.nextEvent.text : '—';
   // RF9 (docs/12_REFINE.md): the three reading cards (Platter/Sound/Sky)
   // this function used to paint here are gone -- the dial above is

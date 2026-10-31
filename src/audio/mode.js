@@ -33,6 +33,15 @@ export function setMode(m){
   const barToggle = $('#barModeToggle'), barLabel = $('#barModeToggleLabel');
   if(barToggle) barToggle.setAttribute('aria-checked', String(vinyl));
   if(barLabel) barLabel.textContent = vinyl ? 'Vinyl' : 'Pure';
+  // FS12 (docs/25_FROM_SCRATCH.md point 3): "while Vinyl is off, everything
+  // below the Vinyl row is shown at 40% and inert, since it only applies
+  // to Vinyl" -- a plain UI mirror, the same shape as the aria-checked
+  // writes just above.
+  const soundBody = $('#sdSoundBody');
+  if(soundBody){
+    soundBody.classList.toggle('sd-sound-dim', !vinyl);
+    if(vinyl) soundBody.removeAttribute('inert'); else soundBody.setAttribute('inert', '');
+  }
   // AU2 (docs/16_AUDIO.md §2.2): the Pure/Vinyl toggle is a dip, never a
   // crossfade -- fade out, reroute, fade in -- rather than an instant
   // reconnect. The Vinyl path runs ~12ms behind Pure (n.wobble's own
