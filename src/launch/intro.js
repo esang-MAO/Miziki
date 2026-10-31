@@ -405,8 +405,7 @@ export async function runLaunchSequence(){
 export function attachLaunchSettingRow(){
   const b = $('#launchIntroBtn');
   if(!b) return;
-  b.textContent = S.launchIntro ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.launchIntro));
+  b.setAttribute('aria-checked', String(S.launchIntro));
 }
 export function toggleLaunchIntro(){
   S.launchIntro = !S.launchIntro;

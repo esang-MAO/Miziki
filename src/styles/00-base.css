@@ -169,6 +169,15 @@
      family -- --disc-b is now this exact plinth hex. */
   --plinth:#1C1A1F;
   --plinth-edge:#2A272C;
+  /* FS3 (docs/25_FROM_SCRATCH.md): the one switch component's two
+     theme-dependent pieces. The "on" track itself needs no token of its
+     own -- var(--paper) already gives dark theme the cream it wants (dark
+     --paper and --cream are the same hex) and light theme the ink it
+     wants (light --paper is CR8's own "ink #26202C"), for free. Only the
+     "off" track's rgba and the "on" knob's color actually differ by an
+     amount var(--paper)/--cream can't express alone. */
+  --switch-off-track:rgba(239,233,223,.16);
+  --switch-on-knob:#14110F;
 }
 /* TY5 (docs/22_TYPE.md): Settings → Appearance's "Larger text" switch
    (src/ui/theme.js's applyLargerText(), a class not an inline style) —

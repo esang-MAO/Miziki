@@ -73,22 +73,22 @@ export function wireLibraryView(){
     S.crate.pendingJumpKey = b.dataset.bin;
     renderTracks();
   });
-  document.querySelectorAll('#sidesToggle [data-sides]').forEach(b => b.addEventListener('click', ()=>{
-    S.albumSides = b.dataset.sides === 'on';
-    document.querySelectorAll('#sidesToggle [data-sides]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('#sidesToggle').addEventListener('click', ()=>{
+    S.albumSides = !S.albumSides;
+    $('#sidesToggle').setAttribute('aria-checked', String(S.albumSides));
     queueSave();
-  }));
-  document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b => b.addEventListener('click', ()=>{
-    S.sealedRecords = b.dataset.sealed === 'on';
-    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#sealedToggle').addEventListener('click', ()=>{
+    S.sealedRecords = !S.sealedRecords;
+    $('#sealedToggle').setAttribute('aria-checked', String(S.sealedRecords));
     queueSave();
     renderTracks();
-  }));
-  document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b => b.addEventListener('click', ()=>{
-    S.playInFullPlayer = b.dataset.playfull === 'on';
-    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  $('#playFullToggle').addEventListener('click', ()=>{
+    S.playInFullPlayer = !S.playInFullPlayer;
+    $('#playFullToggle').setAttribute('aria-checked', String(S.playInFullPlayer));
     queueSave();
-  }));
+  });
 
   // Library tools disclosure panel (S1 §5)
   $('#libToolsToggle').addEventListener('click', ()=>{

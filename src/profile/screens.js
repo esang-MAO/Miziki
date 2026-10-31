@@ -264,14 +264,14 @@ function renderAppSettingsScreen(body){
   // every render (this file's own header comment, just above).
   const largerTextRow = el('div','social-setting-row');
   largerTextRow.appendChild(el('h2', null, 'Larger text'));
-  largerTextRow.appendChild(storeSwitch('Larger text', S.largerText, v => setLargerText(v)));
+  largerTextRow.appendChild(storeSwitch('Larger text', S.largerText, v => setLargerText(v), largerTextRow));
   appearance.appendChild(largerTextRow);
   // RW6 (docs/23_RHYTHM_AND_WEAR.md): same row+note shape as the social
   // settings rows (src/profile/privacy.js) — a label/switch row, then a
   // sibling caption paragraph below it.
   const seasonalSkyRow = el('div','social-setting-row');
   seasonalSkyRow.appendChild(el('h2', null, 'Sky follows the seasons'));
-  seasonalSkyRow.appendChild(storeSwitch('Sky follows the seasons', S.seasonalSky, v => setSeasonalSky(v)));
+  seasonalSkyRow.appendChild(storeSwitch('Sky follows the seasons', S.seasonalSky, v => setSeasonalSky(v), seasonalSkyRow));
   appearance.appendChild(seasonalSkyRow);
   appearance.appendChild(el('p','note','The sky’s colors shift slightly through the year.'));
   // RW7: on by default -- off shows every record new, but the data
@@ -279,7 +279,7 @@ function renderAppSettingsScreen(body){
   // with no gap.
   const showWearRow = el('div','social-setting-row');
   showWearRow.appendChild(el('h2', null, 'Show wear'));
-  showWearRow.appendChild(storeSwitch('Show wear', S.showWear, v => setShowWear(v)));
+  showWearRow.appendChild(storeSwitch('Show wear', S.showWear, v => setShowWear(v), showWearRow));
   appearance.appendChild(showWearRow);
   appearance.appendChild(el('p','note','Records and sleeves look worn from play, alongside their metals.'));
   body.appendChild(appearance);

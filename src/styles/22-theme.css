@@ -68,6 +68,11 @@
      family and stay theme-invariant by design (CLAUDE.md: "the crate ...
      keep[s] [its] own colors in both themes"). */
   --stock-card:#FBF7EE;
+  /* FS3: the switch's "off" track and "on" knob -- see 00-base.css's own
+     comment on these two tokens for why the "on" track itself needs no
+     override here (var(--paper) already resolves to light's ink). */
+  --switch-off-track:rgba(38,32,44,.14);
+  --switch-on-knob:var(--cream);
   color-scheme:light;
 }
 
@@ -89,6 +94,8 @@
     --shadow:rgba(21,35,43,.22);
     --danger:#A2382C;
     --stock-card:#FBF7EE;
+    --switch-off-track:rgba(38,32,44,.14);
+    --switch-on-knob:var(--cream);
     color-scheme:light;
   }
 }
@@ -123,6 +130,8 @@
   --danger:#E8A196;
   --danger-line:#D9877C;
   --stock-card:#EFE6D2;
+  --switch-off-track:rgba(239,233,223,.16);
+  --switch-on-knob:#14110F;
   color-scheme:dark;
 }
 /* TY1 (audit point 7)/TY5: the explicit dark reassertion, same reasoning as

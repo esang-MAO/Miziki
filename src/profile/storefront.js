@@ -1,5 +1,6 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
+import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
 import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
@@ -63,20 +64,14 @@ export function storeAwning(handle){
   return wrap;
 }
 
-export function storeSwitch(label, checked, onToggle){
-  const sw = document.createElement('button');
-  sw.type = 'button'; sw.className = 'store-switch'; sw.setAttribute('role','switch');
-  sw.setAttribute('aria-label', label);
-  sw.setAttribute('aria-checked', String(!!checked));
-  const track = el('div','store-switch-track');
-  track.appendChild(document.createElement('i'));
-  sw.appendChild(track);
-  sw.addEventListener('click', ()=>{
-    const on = sw.getAttribute('aria-checked') !== 'true';
-    sw.setAttribute('aria-checked', String(on));
-    onToggle(on);
-  });
-  return sw;
+// FS3 (docs/25_FROM_SCRATCH.md): the one switch component for the whole
+// app now lives in ui/switch.js -- this stays as a thin wrapper so every
+// existing call site (profile/privacy.js, profile/screens.js,
+// profile/slipmat-editor.js, this file's own storefront/social rows)
+// keeps working unchanged. `row`, when passed, is the whole settings-row
+// element the switch sits in, so tapping the row's label also toggles it.
+export function storeSwitch(label, checked, onToggle, row){
+  return makeSwitch({checked, label, onChange: onToggle, row});
 }
 
 export function storeStat(label, value, accent){

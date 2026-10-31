@@ -94,8 +94,7 @@ export function scheduleMidnightRecompute(){
 export function toggleSleevePull(){
   S.sleevePullEnabled = !S.sleevePullEnabled;
   const b = $('#sleevePullBtn');
-  b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
+  b.setAttribute('aria-checked', String(S.sleevePullEnabled));
   queueSave();
 }
 

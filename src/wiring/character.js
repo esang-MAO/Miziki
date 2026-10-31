@@ -40,8 +40,7 @@ import { updateToneCurveVisibility } from '../sundown/dial-view.js';
 function togglePaperLabel(){
   S.paperLabelOnLossy = !S.paperLabelOnLossy;
   const b = $('#paperLabelBtn');
-  b.textContent = S.paperLabelOnLossy ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.paperLabelOnLossy));
+  b.setAttribute('aria-checked', String(S.paperLabelOnLossy));
   queueSave();
   const t = current();
   if(t) applyDiscVariant(t, true);
@@ -58,8 +57,7 @@ function togglePaperLabel(){
 function toggleZoetropes(){
   S.zoetropesEnabled = !S.zoetropesEnabled;
   const b = $('#zoetropesBtn');
-  b.textContent = S.zoetropesEnabled ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.zoetropesEnabled));
+  b.setAttribute('aria-checked', String(S.zoetropesEnabled));
   queueSave();
   const t = current();
   if(t) applyDiscVariant(t, true);
@@ -207,19 +205,17 @@ export function wireCharacter(){
   $('#surfaceNoiseUnderMusicBtn').addEventListener('click', () => {
     S.surfaceNoiseUnderMusic = !S.surfaceNoiseUnderMusic;
     const b = $('#surfaceNoiseUnderMusicBtn');
-    b.textContent = S.surfaceNoiseUnderMusic ? 'On' : 'Off';
-    b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic));
+    b.setAttribute('aria-checked', String(S.surfaceNoiseUnderMusic));
     queueSave();
   });
   // docs/15_SURFACE_NOISE.md §4: read fresh by maybeSideFlip() (shell/
-  // runout.js) at the next side turn -- same inline shape as the three
-  // settings just above.
-  document.querySelectorAll('[data-auto-flip]').forEach(b => b.addEventListener('click', () => {
-    S.autoFlip = b.dataset.autoFlip === 'on';
-    document.querySelectorAll('[data-auto-flip]').forEach(x =>
-      x.setAttribute('aria-pressed', String((x.dataset.autoFlip === 'on') === S.autoFlip)));
+  // runout.js) at the next side turn -- FS3 (docs/25_FROM_SCRATCH.md)
+  // turned this from a two-button on/off .seg into a single switch.
+  $('#autoFlipToggle').addEventListener('click', () => {
+    S.autoFlip = !S.autoFlip;
+    $('#autoFlipToggle').setAttribute('aria-checked', String(S.autoFlip));
     queueSave();
-  }));
+  });
   // AU5 (docs/16_AUDIO.md §4): same inline [data-*] seg + caption shape
   // as [data-depth] (sundown.js) — queueSave() persists it, and
   // applyLoudnessNorm() recomputes the gain for whatever's current right
@@ -248,8 +244,7 @@ export function wireCharacter(){
   $('#monoBtn').addEventListener('click', () => {
     S.mono = !S.mono;
     const b = $('#monoBtn');
-    b.textContent = S.mono ? 'On' : 'Off';
-    b.setAttribute('aria-pressed', String(S.mono));
+    b.setAttribute('aria-checked', String(S.mono));
     applyMonoBalance();
     queueSave();
   });

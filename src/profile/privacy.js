@@ -62,14 +62,14 @@ function renderSocialSection(body, status){
       const spinRow = el('div','social-setting-row');
       spinRow.appendChild(el('h2', null, 'Share what you’re spinning'));
       spinRow.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
-        on => MizikiSocial.setSetting('shareNowSpinning', on)));
+        on => MizikiSocial.setSetting('shareNowSpinning', on), spinRow));
       body.appendChild(spinRow);
       body.appendChild(el('p','note','Friends who follow you see the album and track while you listen. Off by default.'));
 
       const milestoneRow = el('div','social-setting-row');
       milestoneRow.appendChild(el('h2', null, 'Share rare-pressing milestones'));
       milestoneRow.appendChild(storeSwitch('Share rare-pressing milestones', settings.shareMilestones,
-        on => MizikiSocial.setSetting('shareMilestones', on)));
+        on => MizikiSocial.setSetting('shareMilestones', on), milestoneRow));
       body.appendChild(milestoneRow);
       body.appendChild(el('p','note','Off by default. When on, hitting a rare pressing posts to your activity for friends to see.'));
 
@@ -86,7 +86,7 @@ function renderSocialSection(body, status){
       rhythmRow.appendChild(storeSwitch('Share my listening rhythm', settings.shareListeningRhythm, on => {
         MizikiSocial.setSetting('shareListeningRhythm', on);
         pushOrClearListeningRhythm(on);
-      }));
+      }, rhythmRow));
       body.appendChild(rhythmRow);
       body.appendChild(el('p','note',
         'Off by default. When on, friends who can see your crate see your listening-rhythm verdict and the share for each part of the day — never your individual plays or times. Needs 20 counted plays to show anything.'));

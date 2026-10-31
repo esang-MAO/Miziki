@@ -49,14 +49,13 @@ export function wireSundown(){
   }));
   paintDepth();
 
-  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline text+aria-pressed
-  // toggle shape as character.js's surfaceNoiseUnderMusicBtn -- read
-  // fresh by advance() (src/player/queue.js) at the next album boundary.
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline aria-checked toggle
+  // shape as character.js's surfaceNoiseUnderMusicBtn -- read fresh by
+  // advance() (src/player/queue.js) at the next album boundary.
   $('#stopAtTurnsBtn').addEventListener('click', () => {
     S.stopAtTurns = !S.stopAtTurns;
     const b = $('#stopAtTurnsBtn');
-    b.textContent = S.stopAtTurns ? 'On' : 'Off';
-    b.setAttribute('aria-pressed', String(S.stopAtTurns));
+    b.setAttribute('aria-checked', String(S.stopAtTurns));
     queueSave();
   });
 

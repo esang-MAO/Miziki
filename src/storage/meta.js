@@ -115,10 +115,7 @@ function applyPrefs(p){
     S.char.scratch = p.char.scratch;
   }
   const scratchBtn = $('#scratchBtn');
-  if(scratchBtn){
-    scratchBtn.textContent = S.char.scratch ? 'On' : 'Off';
-    scratchBtn.setAttribute('aria-pressed', String(S.char.scratch));
-  }
+  if(scratchBtn) scratchBtn.setAttribute('aria-checked', String(S.char.scratch));
   if(typeof p.target === 'number') S.target = p.target;
   if(p.pace) S.pace = p.pace;
   if(typeof p.auto === 'boolean') S.auto = p.auto;
@@ -126,8 +123,7 @@ function applyPrefs(p){
   if(typeof p.sleevePullEnabled === 'boolean'){
     S.sleevePullEnabled = p.sleevePullEnabled;
     const b = $('#sleevePullBtn');
-    b.textContent = S.sleevePullEnabled ? 'On' : 'Off';
-    b.setAttribute('aria-pressed', String(S.sleevePullEnabled));
+    b.setAttribute('aria-checked', String(S.sleevePullEnabled));
   }
   if(typeof p.bgAudio === 'boolean'){ S.bgAudio = p.bgAudio; bgUpdateUI(); applyBgAudioSetting(); }
   if(typeof p.launchIntro === 'boolean'){ S.launchIntro = p.launchIntro; attachLaunchSettingRow(); }
@@ -145,18 +141,15 @@ function applyPrefs(p){
   if(p.crateAnchor) S.crateAnchor = p.crateAnchor;
   if(typeof p.albumSides === 'boolean'){
     S.albumSides = p.albumSides;
-    document.querySelectorAll('#sidesToggle [data-sides]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.sides === (S.albumSides ? 'on' : 'off'))));
+    const b = $('#sidesToggle'); if(b) b.setAttribute('aria-checked', String(S.albumSides));
   }
   if(typeof p.sealedRecords === 'boolean'){
     S.sealedRecords = p.sealedRecords;
-    document.querySelectorAll('#sealedToggle [data-sealed]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.sealed === (S.sealedRecords ? 'on' : 'off'))));
+    const b = $('#sealedToggle'); if(b) b.setAttribute('aria-checked', String(S.sealedRecords));
   }
   if(typeof p.playInFullPlayer === 'boolean'){
     S.playInFullPlayer = p.playInFullPlayer;
-    document.querySelectorAll('#playFullToggle [data-playfull]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.playfull === (S.playInFullPlayer ? 'on' : 'off'))));
+    const b = $('#playFullToggle'); if(b) b.setAttribute('aria-checked', String(S.playInFullPlayer));
   }
   if(p.shareStyle === 'night' || p.shareStyle === 'cover' || p.shareStyle === 'paper') S.shareStyle = p.shareStyle;
   // SH1 (docs/18_SHARE.md): merge onto the existing object, never replace
@@ -206,7 +199,7 @@ function applyPrefs(p){
   // just syncs the Settings switch's own aria-pressed, the same inline
   // shape sealedRecords/playInFullPlayer use above.
   if(typeof p.paperLabelOnLossy === 'boolean') S.paperLabelOnLossy = p.paperLabelOnLossy;
-  { const b = $('#paperLabelBtn'); if(b) b.setAttribute('aria-pressed', String(S.paperLabelOnLossy)); }
+  { const b = $('#paperLabelBtn'); if(b) b.setAttribute('aria-checked', String(S.paperLabelOnLossy)); }
   // docs/15_SURFACE_NOISE.md §1: no dedicated UI side effect of their own —
   // just sync each seg/switch's own aria-pressed, the same inline shape
   // charDrift/paperLabelOnLossy already use above.
@@ -217,16 +210,15 @@ function applyPrefs(p){
   document.querySelectorAll('[data-runout-length]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.runoutLength === S.runoutLength)));
   if(typeof p.surfaceNoiseUnderMusic === 'boolean') S.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
-  { const b = $('#surfaceNoiseUnderMusicBtn'); if(b){ b.textContent = S.surfaceNoiseUnderMusic ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.surfaceNoiseUnderMusic)); } }
+  { const b = $('#surfaceNoiseUnderMusicBtn'); if(b) b.setAttribute('aria-checked', String(S.surfaceNoiseUnderMusic)); }
   // docs/15_SURFACE_NOISE.md §4: same inline sync shape as the three above.
   if(typeof p.autoFlip === 'boolean') S.autoFlip = p.autoFlip;
-  document.querySelectorAll('[data-auto-flip]').forEach(b =>
-    b.setAttribute('aria-pressed', String((b.dataset.autoFlip === 'on') === S.autoFlip)));
-  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline text+aria-pressed sync
-  // shape as surfaceNoiseUnderMusicBtn above -- no dedicated UI side
-  // effect beyond the button's own label.
+  { const b = $('#autoFlipToggle'); if(b) b.setAttribute('aria-checked', String(S.autoFlip)); }
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline aria-checked sync shape
+  // as surfaceNoiseUnderMusicBtn above -- no dedicated UI side effect
+  // beyond the switch's own state.
   if(typeof p.stopAtTurns === 'boolean') S.stopAtTurns = p.stopAtTurns;
-  { const b = $('#stopAtTurnsBtn'); if(b){ b.textContent = S.stopAtTurns ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.stopAtTurns)); } }
+  { const b = $('#stopAtTurnsBtn'); if(b) b.setAttribute('aria-checked', String(S.stopAtTurns)); }
   // RW6: no dedicated UI sync of its own needed here, same reason as
   // largerText above — renderProfile() rebuilds the Settings screen's
   // switch fresh from S.seasonalSky on every open.
@@ -253,17 +245,17 @@ function applyPrefs(p){
   // as loudnessMode above — no dedicated UI side effect beyond reflecting
   // the restored value onto whichever control is currently in the DOM.
   if(typeof p.mono === 'boolean') S.mono = p.mono;
-  { const b = $('#monoBtn'); if(b){ b.textContent = S.mono ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.mono)); } }
+  { const b = $('#monoBtn'); if(b) b.setAttribute('aria-checked', String(S.mono)); }
   if(typeof p.balance === 'number') S.balance = p.balance;
   { const s = $('#balanceSlider'); if(s) s.value = String(S.balance);
     const d = $('#balanceDesc'); if(d) d.textContent = balanceCaptionFor(S.balance); }
   if(typeof p.deviceVolume === 'number') S.deviceVolume = p.deviceVolume;
   { const s = $('#barVolume'); if(s) s.value = String(S.deviceVolume); }
   // No dedicated UI side effect of its own beyond the switch's own
-  // text/aria-pressed — same inline sync shape as monoBtn/
+  // aria-checked — same inline sync shape as monoBtn/
   // surfaceNoiseUnderMusicBtn above.
   if(typeof p.zoetropesEnabled === 'boolean') S.zoetropesEnabled = p.zoetropesEnabled;
-  { const b = $('#zoetropesBtn'); if(b){ b.textContent = S.zoetropesEnabled ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(S.zoetropesEnabled)); } }
+  { const b = $('#zoetropesBtn'); if(b) b.setAttribute('aria-checked', String(S.zoetropesEnabled)); }
   // RF9 (docs/12_REFINE.md): [data-target]/[data-pace] were replaced by
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
