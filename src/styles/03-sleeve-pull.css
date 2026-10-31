@@ -189,8 +189,14 @@
 .resting-meta:empty{display:none}
 .resting-kicker{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
   color:var(--phase-color,var(--muted));text-transform:uppercase}
-.resting-body{font-family:var(--body);font-size:var(--fs-body);color:var(--paper);margin:var(--sp-1) 0 0}
-.resting-note{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin:var(--sp-1) 0 var(--sp-2)}
+.resting-body{font-family:var(--body);font-size:var(--fs-body);color:var(--paper);margin:0 0 var(--sp-2)}
+/* FS10 point 4, frame 16: "Play it again" (outlined) and "Back to your
+   queue" (plain text) stack below the body copy, replacing the old
+   #restingNote instructional line -- #restingFlipBtn sits above them
+   when it's showing (another side still queued), each getting its own
+   top margin so either can be hidden without leaving a double gap. */
+#restingFlipBtn,#restingPlayAgainBtn{margin-top:var(--sp-2);display:block;width:100%;box-sizing:border-box;text-align:center}
+#restingBackBtn{margin-top:var(--sp-2);display:block}
 
 
 /* ---------- ceremonies (docs/CEREMONY.md §2-§4) ---------- */

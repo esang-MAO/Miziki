@@ -9,7 +9,7 @@ import { bgPrime } from '../player/background.js';
 import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
 import { pause, play, seek, toggleTrackSpecState } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
-import { continueFromResting, flipFromResting, toggleFocus } from '../player/queue.js';
+import { continueFromResting, flipFromResting, playAgainFromResting, toggleFocus } from '../player/queue.js';
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
@@ -113,6 +113,11 @@ export function wireTransport(){
   $('#focusPill').addEventListener('click', toggleFocus);
   $('#focusDoneBtn').addEventListener('click', toggleFocus);
   $('#restingFlipBtn').addEventListener('click', flipFromResting);
+  // FS10 point 4, frame 16: the resting card's own explicit "Play it
+  // again" (restarts side A) and "Back to your queue" (continueFromResting)
+  // buttons, replacing the old #restingNote instructional text.
+  $('#restingPlayAgainBtn').addEventListener('click', playAgainFromResting);
+  $('#restingBackBtn').addEventListener('click', continueFromResting);
 
   // docs/15_SURFACE_NOISE.md §4: the player's own discoverable way to flip
   // a waiting record (#flipPrompt) or, for "Until I lift it" only, lift

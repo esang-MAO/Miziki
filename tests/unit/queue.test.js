@@ -228,7 +228,7 @@ const {
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
   queueRemoveAt, queueReorderTo, isAlbumBoundary, continueFromResting,
-  flipFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
+  flipFromResting, playAgainFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
@@ -853,6 +853,29 @@ test('continueFromResting is a quiet no-op when nothing is resting', () => {
   assert.equal(loadMock.mock.calls.length, 0);
 });
 
+// FS10 point 4, frame 16: "Play it again" always restarts side A, even
+// when another album is queued next -- the opposite of
+// continueFromResting()'s "go to whatever's queued next" ("Back to your
+// queue"), which is the real distinction between the two end-state buttons.
+test('playAgainFromResting restarts side A even when a different album is queued next', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B'), fakeAlbumTrack('Y','A')],
+    queue: [0,1,2], qpos: 1, index: 1,
+    resting: { reason: 'focus', pendingIndex: 2 },
+  });
+  playAgainFromResting();
+  assert.equal(S.resting, null);
+  assert.equal(S.qpos, 0);   // back to side A of album X, not pendingIndex 2 (album Y)
+  assert.equal(loadMock.mock.calls.length, 1);
+  assert.equal(playMock.mock.calls.length, 1);
+});
+
+test('playAgainFromResting is a quiet no-op when nothing is resting', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0, resting: null });
+  playAgainFromResting();   // must not throw
+  assert.equal(loadMock.mock.calls.length, 0);
+});
+
 test('flipFromResting jumps to the album\'s other side without disturbing the rest of the queue', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
@@ -876,7 +899,7 @@ test('flipFromResting is a no-op (clears resting, nothing to load) when the albu
   assert.equal(loadMock.mock.calls.length, 0);
 });
 
-test('paintRestingCard: queueEnd gets its own copy, note, and meta line, and hides the Flip button with no other side queued', () => {
+test('paintRestingCard: queueEnd gets its own copy and meta line, and hides the Flip button with no other side queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0,
@@ -885,12 +908,11 @@ test('paintRestingCard: queueEnd gets its own copy, note, and meta line, and hid
   paintRestingCard();
   assert.equal(elCache.get('#restingCard').style.display, '');
   assert.equal(elCache.get('#restingBody').textContent, "You've reached the end of your queue.");
-  assert.equal(elCache.get('#restingNote').textContent, 'Press play to start it again.');
   assert.ok(elCache.get('#restingMeta').textContent.includes('Side A'));
   assert.equal(elCache.get('#restingFlipBtn').style.display, 'none');
 });
 
-test('paintRestingCard: a RW3 stop keeps the "queue is still there" note and shows the Flip button when another side is queued', () => {
+test('paintRestingCard: a RW3 stop shows the Flip button when another side is queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
     queue: [0,1,2], qpos: 0, index: 0,
@@ -898,7 +920,6 @@ test('paintRestingCard: a RW3 stop keeps the "queue is still there" note and sho
   });
   paintRestingCard();
   assert.equal(elCache.get('#restingBody').textContent, 'Around sunset, playback stops between records.');
-  assert.equal(elCache.get('#restingNote').textContent, 'Your queue is still there. Press play to continue.');
   assert.equal(elCache.get('#restingFlipBtn').style.display, '');
 });
 

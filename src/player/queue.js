@@ -189,11 +189,6 @@ const RESTING_COPY = {
   midnight: 'Around midnight, playback stops between records.',
   queueEnd: "You've reached the end of your queue.",
 };
-const RESTING_NOTE = {
-  queueEnd: 'Press play to start it again.',
-};
-const DEFAULT_RESTING_NOTE = 'Your queue is still there. Press play to continue.';
-
 // RW3: the first entry in S.queue that's the same album as curT but a
 // different side -- what a manual "Flip to Side B" from the resting
 // card jumps to, without disturbing the rest of the queue (the same
@@ -230,11 +225,29 @@ export function paintRestingCard(){
   const kicker = $('#restingKicker');
   if(kicker) kicker.textContent = r.reason === 'queueEnd' ? 'Played through' : 'Paused after this record';
   const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.focus;
-  const note = $('#restingNote'); if(note) note.textContent = RESTING_NOTE[r.reason] || DEFAULT_RESTING_NOTE;
   const meta = $('#restingMeta');
   if(meta) meta.textContent = (r.side ? 'Side ' + r.side + ' · ' : '') + 'Ended ' + fmtEndedAt(r.endedAt);
   const flipBtn = $('#restingFlipBtn');
   if(flipBtn) flipBtn.style.display = otherSideQueuePos(current()) !== null ? '' : 'none';
+}
+
+// RW4: restarts the whole record from side A, not just wherever playback
+// happened to stop -- continueFromResting()'s own fallback when nothing
+// was queued next, and FS10 point 4's dedicated "Play it again" button.
+function restartAlbumFromSideA(){
+  const curT = S.tracks[S.queue[S.qpos]];
+  let startPos = S.qpos;
+  if(curT){
+    while(startPos > 0){
+      const prevT = S.tracks[S.queue[startPos - 1]];
+      if(!prevT || albumKey(prevT) !== albumKey(curT)) break;
+      startPos--;
+    }
+  }
+  S.qpos = startPos;
+  load(S.queue[S.qpos]);
+  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+  else play();
 }
 
 export function continueFromResting(){
@@ -243,25 +256,24 @@ export function continueFromResting(){
   S.resting = null;
   paintRestingCard();
   if(r.pendingIndex === null || r.pendingIndex === undefined){
-    // RW4: nothing was queued after this record -- "Play to start it
-    // again" restarts the whole record from side A, not just wherever
-    // playback happened to stop.
-    const curT = S.tracks[S.queue[S.qpos]];
-    let startPos = S.qpos;
-    if(curT){
-      while(startPos > 0){
-        const prevT = S.tracks[S.queue[startPos - 1]];
-        if(!prevT || albumKey(prevT) !== albumKey(curT)) break;
-        startPos--;
-      }
-    }
-    S.qpos = startPos;
+    restartAlbumFromSideA();
   } else {
     S.qpos = r.pendingIndex;
+    load(S.queue[S.qpos]);
+    if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+    else play();
   }
-  load(S.queue[S.qpos]);
-  if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
-  else play();
+}
+
+// FS10 point 4, frame 16: "Play it again" -- always restarts side A,
+// regardless of what (if anything) is queued next, distinct from
+// continueFromResting()'s "go to whatever's queued next" ("Back to your
+// queue").
+export function playAgainFromResting(){
+  if(!S.resting) return;
+  S.resting = null;
+  paintRestingCard();
+  restartAlbumFromSideA();
 }
 
 export function flipFromResting(){

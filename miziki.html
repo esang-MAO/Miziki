@@ -833,8 +833,14 @@
         <div class="resting-meta" id="restingMeta"></div>
         <div class="resting-kicker" id="restingKicker"></div>
         <p class="resting-body" id="restingBody"></p>
-        <p class="resting-note" id="restingNote">Your queue is still there. Press play to continue.</p>
+        <!-- FS10 (docs/25_FROM_SCRATCH.md) point 4, frame 16: "Play it
+             again (outlined, restarts side A)" and "Back to your queue
+             (continueFromResting())" -- replaces the old instructional
+             #restingNote text with two explicit buttons; the Flip prompt
+             stays for whichever resting reason still has another side queued. -->
         <button class="cta ghost" id="restingFlipBtn" style="display:none">Flip to Side B</button>
+        <button class="cta ghost" id="restingPlayAgainBtn">Play it again</button>
+        <button class="link-btn" id="restingBackBtn">Back to your queue</button>
       </div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
