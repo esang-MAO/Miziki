@@ -5,7 +5,7 @@ import { albumKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
-import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText } from '../record-art/format.js';
+import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr } from '../record-art/format.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -395,10 +395,11 @@ export function load(i){
   S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
   const arcText = $('#labelArcText');
   if(arcText) arcText.textContent = (S.recordFormat.speed * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
-  // AU10: the 7″ disc + three-spoke 45 adapter, shown only for a 7″ record
-  // — a plain class toggle, CSS (02-stage-platter.css) owns the sizing.
+  // SZ1 (docs/26_SIZES_AND_ZOETROPES.md): one size attribute, not a class
+  // per size — CSS (02-stage-platter.css) owns the per-size sizing/mat/
+  // adapter rules from [data-size] alone.
   const platterStage = $('#platterStage');
-  if(platterStage) platterStage.classList.toggle('format-7in', S.recordFormat.size === '7"');
+  if(platterStage) platterStage.setAttribute('data-size', platterSizeAttr(S.recordFormat));
   // AU10: the "7″ · 45" chip before the spec line.
   const fmtChip = $('#trackSpecFormat');
   if(fmtChip) fmtChip.textContent = S.recordFormat.speed === RPM_45 ? formatChipText(S.recordFormat) : '';

@@ -8,7 +8,7 @@ import {
   bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
   formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
-  formatWireCode, formatFromWireCode,
+  formatWireCode, formatFromWireCode, platterSizeAttr,
 } from '../../src/record-art/format.js';
 
 test('bestSideCut: fewer than two durations has no meaningful cut', () => {
@@ -158,4 +158,20 @@ test('formatWireCode/formatFromWireCode: round-trips every value formatForLonges
     const f = formatForLongestSide(longest);
     assert.deepEqual(formatFromWireCode(formatWireCode(f)), f);
   }
+});
+
+// SZ1 (docs/26_SIZES_AND_ZOETROPES.md): the one size attribute every
+// per-size platter/label/adapter CSS rule keys off, for each of the four
+// format cells.
+test('platterSizeAttr: bare digits, one per format cell', () => {
+  assert.equal(platterSizeAttr({size:'7"', speed:RPM_45}), '7');
+  assert.equal(platterSizeAttr({size:'10"', speed:RPM_45}), '10');
+  assert.equal(platterSizeAttr({size:'12"', speed:RPM_45}), '12');
+  assert.equal(platterSizeAttr({size:'12"', speed:RPM_33}), '12');
+});
+
+test('platterSizeAttr: a missing format reads as 12″, never a guess at a smaller size', () => {
+  assert.equal(platterSizeAttr(null), '12');
+  assert.equal(platterSizeAttr(undefined), '12');
+  assert.equal(platterSizeAttr({}), '12');
 });

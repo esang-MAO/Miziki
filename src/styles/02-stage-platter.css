@@ -97,7 +97,13 @@
   -webkit-mask-image:radial-gradient(circle,transparent 0,transparent 53%,white 55%,white 90%,transparent 92%,transparent 100%);
   opacity:0;transition:opacity .5s,background .5s}
 .disc-zoetrope-ring.on{opacity:1}
-.label{position:absolute;inset:29%;border-radius:50%;overflow:hidden;
+/* SZ1 (docs/26_SIZES_AND_ZOETROPES.md): label diameter as a share of the
+   record, by real pressing-plant label sizes -- 12″ (default) is a 100mm
+   label at 33% of the record (inset 33.5%); the 10″/7″ overrides sit with
+   the rest of the per-size rules below, keyed off .platter-stage's own
+   [data-size], set by player/transport.js's load(). Text keeps its own
+   sizes (16-edit-sheet.css etc.) and just moves in with the smaller inset. */
+.label{position:absolute;inset:33.5%;border-radius:50%;overflow:hidden;
   background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--accent) 78%,#fff 22%),color-mix(in srgb,var(--accent) 62%,#2A1608 38%));
   display:grid;place-content:center;text-align:center;color:#170D04;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);transition:background .5s}
@@ -123,7 +129,11 @@
 .label-title{font-family:var(--display);font-size:var(--fs-caption);font-weight:700;letter-spacing:var(--track-caps);
   text-transform:uppercase;line-height:1.15;max-width:76px;color:#170D04;
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.label-spindle{width:6px;height:6px;border-radius:3px;background:#170D04;opacity:.35}
+/* SZ1: the true small spindle hole, 2.4% of the 12″ platter (8px at
+   342px) -- shared by the 12″ and 10″ labels; the 7″ hides it in favour
+   of the large hole + 45 adapter below. */
+.label-spindle{width:8px;height:8px;border-radius:4px;background:#170D04;opacity:.35}
+.platter-stage[data-size="7"] .label-spindle{display:none}
 /* Pure means untouched (CLAUDE.md's own "Audio" rule) — the label's fixed
    Miziki-orange ring said otherwise even in Pure, so RF15 point 1 flattens
    it there: a plain hairline, same shape as the art-less label's own
@@ -157,26 +167,35 @@
 .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(170,240,160,.55)}
 :root[data-theme="dark"] .disc[data-variant="glow"]{box-shadow:0 22px 44px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06),0 0 28px rgba(170,240,160,.75)}
 
-/* AU10 (docs/16_AUDIO.md §5): "a 7″ disc on the platter, with the slipmat
-   showing around it" -- this felt mat sits behind the shrunk .platter-box,
-   only shown under .format-7in (player/transport.js's load() toggles the
-   class), reusing .slipmat-rest's own felt look rather than a second set
-   of tokens. Below .platter-box in DOM order, so no z-index needed. */
+/* SZ1 (docs/26_SIZES_AND_ZOETROPES.md): the platter around a smaller
+   record -- a warm felt mat, shown under 7″ and 10″ records only (a 12″
+   covers it entirely), keyed off .platter-stage's own [data-size]
+   (set by player/transport.js's load()). Below .platter-box in DOM
+   order, so no z-index needed. */
 .platter-mat{position:absolute;inset:0;border-radius:50%;display:none;
-  background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%)}
-.platter-stage.format-7in .platter-mat{display:block}
-/* "about 58% of the 12″ diameter" -- inset 21% on each side leaves a 58%
-   wide disc centered in the stage. */
-.platter-stage.format-7in .platter-box{inset:21%}
-/* "the label fills about half the disc" on a 7″ -- .label's own ordinary
-   inset:29% (above) is relative to the now-smaller .platter-box, so it
-   already reads as roughly half the 7″ disc with no separate override. */
-/* AU10: the three-spoke 45 adapter -- a big center hole holds it, and it
-   turns with the record since it's a child of #disc. Hidden by default;
-   dark like the label's own spindle dot. */
+  background:radial-gradient(circle,#241F20 0,#1E191A 62%,#181415 100%)}
+.platter-mat::after{
+  content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(rgba(241,233,217,.16) 0deg 1deg,transparent 1deg 5deg);
+  mask-image:radial-gradient(closest-side,transparent calc(100% - 5px),white calc(100% - 5px));
+  -webkit-mask-image:radial-gradient(closest-side,transparent calc(100% - 5px),white calc(100% - 5px))}
+.platter-stage[data-size="10"] .platter-mat,
+.platter-stage[data-size="7"] .platter-mat{display:block}
+/* record diameter as a share of the 12″ platter: 12″ is 100% (.platter-box's
+   plain inset:0, unchanged); 10″ is 82.8% (inset 8.6%); 7″ is 57.9%
+   (inset 21.05%). */
+.platter-stage[data-size="10"] .platter-box{inset:8.6%}
+.platter-stage[data-size="7"] .platter-box{inset:21.05%}
+/* label diameter as a share of the record: 10″ is 100mm/40% (inset 30%);
+   7″ is 90mm/51.5% (inset 24.25%). 12″ is .label's own default above. */
+.platter-stage[data-size="10"] .label{inset:30%}
+.platter-stage[data-size="7"] .label{inset:24.25%}
+/* the three-spoke 45 adapter -- the 7″'s own large centre hole, 21.7% of
+   the 7″ record, turning with the record since it's a child of #disc.
+   Hidden by default; warm dark grey over the mat colour. */
 .disc45-adapter{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none}
-.platter-stage.format-7in .disc45-adapter{display:block}
-.disc45-adapter circle,.disc45-adapter path{fill:#170D04;opacity:.82}
+.platter-stage[data-size="7"] .disc45-adapter{display:block}
+.disc45-adapter circle,.disc45-adapter path{fill:#3A3236}
 
 /* AU10 (docs/16_AUDIO.md §5, "the speed change"): "a 33⅓ | 45 switch clicks
    over" -- a passive indicator, never tappable itself (the format comes
