@@ -88,9 +88,9 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
         ctx.save(); roundRectPath(ctx, coverLeft, coverTop, coverSide, coverSide, Math.round(6*scale)); ctx.clip();
         drawCover(ctx, img, coverLeft, coverTop, coverSide, coverSide);
         ctx.restore();
-      }catch(_e){ drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide); }
+      }catch(_e){ await drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide); }
     } else {
-      drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide);
+      await drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide);
     }
   }
 

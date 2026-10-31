@@ -82,9 +82,9 @@ export async function composePlayerShareImage(opts){
         ctx.save(); roundRectPath(ctx, squareLeft, squareTop, side, side, 6); ctx.clip();
         drawCover(ctx, img, squareLeft, squareTop, side, side);
         ctx.restore();
-      }catch(_e){ drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
+      }catch(_e){ await drawDiagonalWordmark(ctx, squareLeft, squareTop, side); }
     } else {
-      drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
+      await drawDiagonalWordmark(ctx, squareLeft, squareTop, side);
     }
     y = squareTop + side + Math.round(h*0.06);
   }

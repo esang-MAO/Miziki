@@ -97,9 +97,9 @@ async function drawTile(ctx, kit, rec, x, y){
       ctx.save(); roundRectPath(ctx, coverLeft, coverTop, coverSide, coverSide, 6); ctx.clip();
       drawCover(ctx, img, coverLeft, coverTop, coverSide, coverSide);
       ctx.restore();
-    }catch(_e){ drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide); }
+    }catch(_e){ await drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide); }
   } else {
-    drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide);
+    await drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide);
   }
 
   const discR = 96, discCx = x + 104 + discR, discCy = y + TILE_ART_H/2;
