@@ -133,6 +133,17 @@ export function formatSpeedText(speed){
   return speed === RPM_45 ? '45' : '33⅓';
 }
 
+/* ================= SZ1 (docs/26_SIZES_AND_ZOETROPES.md): one size
+   attribute, not a class per size -- #platterStage's own [data-size],
+   set by player/transport.js's load(), drives every per-size platter/
+   label/adapter rule in src/styles/02-stage-platter.css and (SZ2) the
+   zoetrope ring's own band. Plain bare digits ('7'/'10'/'12'), not the
+   format table's own '7"'/'10"'/'12"' strings. */
+export function platterSizeAttr(format){
+  if(!format || !format.size) return '12';
+  return format.size.replace('"', '');
+}
+
 // Side capacity in seconds, per the doc's own three numbers ("about 7 min
 // for a 7″ at 45, 15 min for a 12″ at 45, 22 min for an LP"). Used only to
 // scale the dead-wax band's own radius -- never the format decision
