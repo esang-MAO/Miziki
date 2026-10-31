@@ -238,7 +238,8 @@
 .lib-tools-caption,
 .sd-section-label,
 .settings-section-head,
-.profile-section-head{
+.profile-section-head,
+.share-section-label{
   font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 

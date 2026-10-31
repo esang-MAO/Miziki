@@ -183,11 +183,14 @@
    phase colour via the global --phase-color (player/clock.js), never
    amber, per CLAUDE.md's "amber never signals state". */
 .resting-card{margin-top:10px}
-/* RW4: "Side A · ended 6:31 PM" */
-.resting-meta{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
+/* RW4: "Side A · ended 6:31 PM" -- FS15 (docs/25_FROM_SCRATCH.md): moved
+   off the mono/.06em kicker look onto the app's one shared Archivo-caps
+   section-kicker treatment (TY2, e.g. .queue-section-label), not a
+   leftover mono UI label. */
+.resting-meta{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   color:var(--muted);text-transform:uppercase;margin-bottom:2px}
 .resting-meta:empty{display:none}
-.resting-kicker{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
+.resting-kicker{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   color:var(--phase-color,var(--muted));text-transform:uppercase}
 .resting-body{font-family:var(--body);font-size:var(--fs-body);color:var(--paper);margin:0 0 var(--sp-2)}
 /* FS10 point 4, frame 16: "Play it again" (outlined) and "Back to your
