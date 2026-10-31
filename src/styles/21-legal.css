@@ -1,7 +1,12 @@
 /* ---------- Privacy Policy / Terms of use (step 08, P3) ---------- */
 #profileBody h2{margin:26px 0 var(--sp-2);font-family:var(--display);font-size:var(--fs-row);font-weight:400}
 #profileBody h2:first-of-type{margin-top:18px}
-.legal-list{margin:0 0 14px;padding-left:18px}
+/* FS14 (docs/25_FROM_SCRATCH.md): "legal text at a 34em measure, Archivo
+   16/1.5" -- --measure is already 34em (00-base.css); scoped to this
+   wrapper (legal.js's own legalBody()) rather than #profileBody, which
+   every other profile sub-screen shares too. */
+.legal-screen p{font-size:var(--fs-row);line-height:1.5;max-width:var(--measure)}
+.legal-list{margin:0 0 14px;padding-left:18px;max-width:var(--measure)}
 .legal-list li{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin-top:6px}
 .legal-links{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:10px}
 .link-btn{background:none;border:0;padding:0;color:var(--cream);font-size:var(--fs-caption);

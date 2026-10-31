@@ -1,6 +1,9 @@
 /* ---------- sign-in / settings (social layer §C) ---------- */
 .social-setting-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-top:26px}
-.social-setting-row h2{margin:0;font-family:var(--display);font-size:var(--fs-row);font-weight:400}
+/* FS14 (docs/25_FROM_SCRATCH.md): "rows ... with switches (FS3) and
+   chevrons, values muted" -- a one-line switch-row label, not a display
+   heading; was Antonio at this size. */
+.social-setting-row h2{margin:0;font-family:var(--body);font-size:var(--fs-row);font-weight:500}
 .social-stack{flex-direction:column}
 .social-stack .cta{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
 .social-vis-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}

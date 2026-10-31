@@ -403,7 +403,9 @@
 .home-feed-grid .store-pick{ width:auto; }
 .home-feed-grid .store-pick-cover{ width:100%; height:auto; aspect-ratio:1; }
 .home-feed-tile{ cursor:pointer; }
-.home-feed-caption{ font-family:var(--body); font-size:var(--fs-caption); color:var(--muted); }
+/* FS14 (docs/25_FROM_SCRATCH.md): "activity lines in Archivo 14" -- was
+   fs-caption (12px). */
+.home-feed-caption{ font-family:var(--body); font-size:var(--fs-body); color:var(--muted); }
 
 /* FS9 point 3: the caught-up line -- plain, no card, no border. */
 .home-feed-caughtup{ margin:var(--sp-3) 0 0; font-family:var(--body); font-size:var(--fs-caption); color:var(--muted); }
