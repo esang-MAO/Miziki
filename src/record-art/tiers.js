@@ -23,22 +23,37 @@ import { RPM_45 } from './format.js';
 // that plain Node (tests/unit/tiers.test.js's own node:test runner, no
 // Vite involved) can evaluate with no special loader, so these stay
 // .href strings rather than module imports.
-const wingbeatDiscLp = new URL('./zoetropes/wingbeat_disc_lp.svg', import.meta.url).href;
-const wingbeatDisc45 = new URL('./zoetropes/wingbeat_disc_45.svg', import.meta.url).href;
-const breakerDiscLp = new URL('./zoetropes/breaker_disc_lp.svg', import.meta.url).href;
-const breakerDisc45 = new URL('./zoetropes/breaker_disc_45.svg', import.meta.url).href;
-const bloomDiscLp = new URL('./zoetropes/bloom_disc_lp.svg', import.meta.url).href;
-const bloomDisc45 = new URL('./zoetropes/bloom_disc_45.svg', import.meta.url).href;
-const orbitDiscLp = new URL('./zoetropes/orbit_disc_lp.svg', import.meta.url).href;
-const orbitDisc45 = new URL('./zoetropes/orbit_disc_45.svg', import.meta.url).href;
-const breachDiscLp = new URL('./zoetropes/breach_disc_lp.svg', import.meta.url).href;
-const breachDisc45 = new URL('./zoetropes/breach_disc_45.svg', import.meta.url).href;
-const pulseDiscLp = new URL('./zoetropes/pulse_disc_lp.svg', import.meta.url).href;
-const pulseDisc45 = new URL('./zoetropes/pulse_disc_45.svg', import.meta.url).href;
-const rainfallDiscLp = new URL('./zoetropes/rainfall_disc_lp.svg', import.meta.url).href;
-const rainfallDisc45 = new URL('./zoetropes/rainfall_disc_45.svg', import.meta.url).href;
-const mothDiscLp = new URL('./zoetropes/moth_disc_lp.svg', import.meta.url).href;
-const mothDisc45 = new URL('./zoetropes/moth_disc_45.svg', import.meta.url).href;
+// SZ2 (docs/26_SIZES_AND_ZOETROPES.md): nine mandala zoetropes, each with
+// its own LP (12″, 33⅓), 45 (10″/12″ at 45) and 7″ art — disc7in fits
+// outside the 7″'s own larger label (SZ1), so it's a third asset, not a
+// re-fit of disc45.
+const lotusDiscLp = new URL('./zoetropes/lotus_disc_lp.svg', import.meta.url).href;
+const lotusDisc45 = new URL('./zoetropes/lotus_disc_45.svg', import.meta.url).href;
+const lotusDisc7in = new URL('./zoetropes/lotus_disc_7in.svg', import.meta.url).href;
+const sunwheelDiscLp = new URL('./zoetropes/sunwheel_disc_lp.svg', import.meta.url).href;
+const sunwheelDisc45 = new URL('./zoetropes/sunwheel_disc_45.svg', import.meta.url).href;
+const sunwheelDisc7in = new URL('./zoetropes/sunwheel_disc_7in.svg', import.meta.url).href;
+const tidepoolDiscLp = new URL('./zoetropes/tidepool_disc_lp.svg', import.meta.url).href;
+const tidepoolDisc45 = new URL('./zoetropes/tidepool_disc_45.svg', import.meta.url).href;
+const tidepoolDisc7in = new URL('./zoetropes/tidepool_disc_7in.svg', import.meta.url).href;
+const lanternDiscLp = new URL('./zoetropes/lantern_disc_lp.svg', import.meta.url).href;
+const lanternDisc45 = new URL('./zoetropes/lantern_disc_45.svg', import.meta.url).href;
+const lanternDisc7in = new URL('./zoetropes/lantern_disc_7in.svg', import.meta.url).href;
+const starseedDiscLp = new URL('./zoetropes/starseed_disc_lp.svg', import.meta.url).href;
+const starseedDisc45 = new URL('./zoetropes/starseed_disc_45.svg', import.meta.url).href;
+const starseedDisc7in = new URL('./zoetropes/starseed_disc_7in.svg', import.meta.url).href;
+const kaleidoDiscLp = new URL('./zoetropes/kaleido_disc_lp.svg', import.meta.url).href;
+const kaleidoDisc45 = new URL('./zoetropes/kaleido_disc_45.svg', import.meta.url).href;
+const kaleidoDisc7in = new URL('./zoetropes/kaleido_disc_7in.svg', import.meta.url).href;
+const unfurlDiscLp = new URL('./zoetropes/unfurl_disc_lp.svg', import.meta.url).href;
+const unfurlDisc45 = new URL('./zoetropes/unfurl_disc_45.svg', import.meta.url).href;
+const unfurlDisc7in = new URL('./zoetropes/unfurl_disc_7in.svg', import.meta.url).href;
+const emberDiscLp = new URL('./zoetropes/ember_disc_lp.svg', import.meta.url).href;
+const emberDisc45 = new URL('./zoetropes/ember_disc_45.svg', import.meta.url).href;
+const emberDisc7in = new URL('./zoetropes/ember_disc_7in.svg', import.meta.url).href;
+const moonwheelDiscLp = new URL('./zoetropes/moonwheel_disc_lp.svg', import.meta.url).href;
+const moonwheelDisc45 = new URL('./zoetropes/moonwheel_disc_45.svg', import.meta.url).href;
+const moonwheelDisc7in = new URL('./zoetropes/moonwheel_disc_7in.svg', import.meta.url).href;
 
 /* ================= record art: quality tiers + variant selection =================
    Tier read from the decoder's own bit depth / sample rate, never file extension.
@@ -266,54 +281,56 @@ export const VARIANT_DEFS = {
 
   // ---- Tier 5, zoetropes — session-earned only, same as rare (see this
   // file's own "static rendering" header comment below for what renders
-  // at rest vs. live). `colors` still carries the F() 3-tuple
-  // (body/ink/accent, read positionally by
-  // every generic consumer — chip swatches, shareSwatchGradient — the
-  // same compatibility reason every other family keeps it), even though
-  // the disc's own real art is the two `disc_lp`/`disc_45` imports above,
-  // not a CSS gradient built from these three colours. `frames_lp`/
-  // `frames_45` and the `sprite_lp`/`sprite_45` ids (data/pressings.json's
-  // own field names) are carried for PR6's strobe animation, unused here. ----
-  wingbeat: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#E6E2DA','#2B5586','#D4674F'),
-    discLp:wingbeatDiscLp, disc45:wingbeatDisc45, framesLp:12, frames45:16,
-    motif:'wing', spriteLp:'zoetropes/wingbeat_lp_12f.svg', sprite45:'zoetropes/wingbeat_45_16f.svg',
-    name:'Wingbeat', sub:null, note:'Chalk bird, Coral beak, on Prussian — a second bird trails out of phase.'},
-  breaker: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#A9E0DC','#2C5E68','#E6E2DA'),
-    discLp:breakerDiscLp, disc45:breakerDisc45, framesLp:12, frames45:16,
-    motif:'wave', spriteLp:'zoetropes/breaker_lp_12f.svg', sprite45:'zoetropes/breaker_45_16f.svg',
-    name:'Breaker', sub:null, note:'Aquamarine swell, Chalk foam, on Petrol — a back wave runs slower.'},
-  bloom: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#D97A96','#DCCDB0','#9A6E22'),
-    discLp:bloomDiscLp, disc45:bloomDisc45, framesLp:12, frames45:16,
-    motif:'bloom', spriteLp:'zoetropes/bloom_lp_12f.svg', sprite45:'zoetropes/bloom_45_16f.svg',
-    name:'Bloom', sub:null, note:'Rose petals, Ochre heart, on Isabelline — stem and leaves, bud to full.'},
-  orbit: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+  // at rest vs. live). SZ2 (docs/26_SIZES_AND_ZOETROPES.md): nine mandalas,
+  // replacing the eight figurative ids outright (nobody had earned one
+  // yet, so no OLD_VARIANT_ID_MAP entry). `colors` keeps the existing
+  // positional F(ink, body, accent) tuple, read by every generic consumer
+  // (chip swatches, shareSwatchGradient) — even though the disc's own
+  // real art is the `discLp`/`disc45`/`disc7in` imports above, not a CSS
+  // gradient built from these three colours. `framesLp`/`frames45` are
+  // PR6's strobe frame counts, the same for every id now (12/16) —
+  // rainfall's old 24/32 special case is gone along with rainfall itself.
+  // disc7in reuses the frames45 count (SZ1: every 45 — 7″, 10″, 12″ —
+  // shares one frame count; only the art differs per size). ----
+  lotus: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#C2566F','#E8DCC4','#3F8C7E'),
+    discLp:lotusDiscLp, disc45:lotusDisc45, disc7in:lotusDisc7in, framesLp:12, frames45:16,
+    name:'Lotus', sub:null, note:'Rose and verdigris on isabelline — three rings of petals open and close.'},
+  sunwheel: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#E6DCC8','#6E2925','#D9A441'),
+    discLp:sunwheelDiscLp, disc45:sunwheelDisc45, disc7in:sunwheelDisc7in, framesLp:12, frames45:16,
+    name:'Sunwheel', sub:null, note:'Bone and ochre on oxblood — the rays turn one way, the chevrons the other.'},
+  tidepool: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#8FD3CC','#1F4A55','#EFE9DF'),
+    discLp:tidepoolDiscLp, disc45:tidepoolDisc45, disc7in:tidepoolDisc7in, framesLp:12, frames45:16,
+    name:'Tidepool', sub:null, note:'Aquamarine and chalk on petrol — scalloped rings swell like ripples.'},
+  lantern: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#D19A5B','#2B2A2E','#B9D9EB'),
+    discLp:lanternDiscLp, disc45:lanternDisc45, disc7in:lanternDisc7in, framesLp:12, frames45:16,
+    name:'Lantern', sub:null, note:'Caramel and powder blue on graphite — lights stream out along spiral arms.'},
+  starseed: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#EFE9DF','#262B5C','#D2493A'),
+    discLp:starseedDiscLp, disc45:starseedDisc45, disc7in:starseedDisc7in, framesLp:12, frames45:16,
+    name:'Starseed', sub:null, note:'Chalk and vermilion on indigo — the star breathes; the stars twinkle.'},
+  kaleido: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#2B5586','#E6DCC8','#C4302B'),
+    discLp:kaleidoDiscLp, disc45:kaleidoDisc45, disc7in:kaleidoDisc7in, framesLp:12, frames45:16,
+    name:'Kaleido', sub:null, note:'Prussian and vermilion on bone — triangles and diamonds twist in place.'},
+  unfurl: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#CFE3B5','#23463F','#E07A5F'),
+    discLp:unfurlDiscLp, disc45:unfurlDisc45, disc7in:unfurlDisc7in, framesLp:12, frames45:16,
+    name:'Unfurl', sub:null, note:'Sage and coral on deep verdigris — fronds sway and curl.'},
+  // 'ember' is already a Tier-3 effect id (line 211 above) — this mandala
+  // keeps the plan's own "Ember" display name but needs its own, distinct
+  // catalogue key, since VARIANT_DEFS is one flat id space.
+  'ember-zoetrope': {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
+    colors:F('#E0563F','#1C1A1E','#E3B04B'),
+    discLp:emberDiscLp, disc45:emberDisc45, disc7in:emberDisc7in, framesLp:12, frames45:16,
+    name:'Ember', sub:null, note:'Vermilion and ochre on jet — flames flicker; sparks drift off the edge.'},
+  moonwheel: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
     colors:F('#DED7C7','#3B4080','#E6E2DA'),
-    discLp:orbitDiscLp, disc45:orbitDisc45, framesLp:12, frames45:16,
-    motif:'orbit', spriteLp:'zoetropes/orbit_lp_12f.svg', sprite45:'zoetropes/orbit_45_16f.svg',
-    name:'Orbit', sub:null, note:'Bone moon, Chalk stars, on Indigo — one full lunation with maria.'},
-  breach: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#1C1A1E','#9A6E22','#6B1F1C'),
-    discLp:breachDiscLp, disc45:breachDisc45, framesLp:12, frames45:16,
-    motif:'breach', spriteLp:'zoetropes/breach_lp_12f.svg', sprite45:'zoetropes/breach_45_16f.svg',
-    name:'Breach', sub:null, note:'Jet fish, Oxblood fins, on Ochre — rises, clears the water in an arc, re-enters with a splash.'},
-  pulse: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#C4302B','#E6E2DA','#2B5586'),
-    discLp:pulseDiscLp, disc45:pulseDisc45, framesLp:12, frames45:16,
-    motif:'pulse', spriteLp:'zoetropes/pulse_lp_12f.svg', sprite45:'zoetropes/pulse_45_16f.svg',
-    name:'Pulse', sub:null, note:'Vermilion rings, Prussian drop, on Chalk — a drop falls, three rings run out.'},
-  rainfall: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#B9D9EB','#3F4245','#E6E2DA'),
-    discLp:rainfallDiscLp, disc45:rainfallDisc45, framesLp:24, frames45:32,
-    motif:'rain', spriteLp:'zoetropes/rainfall_lp_24f.svg', sprite45:'zoetropes/rainfall_45_32f.svg',
-    name:'Rainfall', sub:null, note:'Powder Blue drops, Chalk cloud, on Graphite — four drops, each splashes on the line.'},
-  moth: {family:'zoetrope', finish:'opaque', band:null, pattern:'zoetrope',
-    colors:F('#C99458','#5B1A3C','#9A6E22'),
-    discLp:mothDiscLp, disc45:mothDisc45, framesLp:12, frames45:16,
-    motif:'moth', spriteLp:'zoetropes/moth_lp_12f.svg', sprite45:'zoetropes/moth_45_16f.svg',
-    name:'Moth', sub:null, note:'Caramel moth, Ochre eyespots, on Tyrian — drifts toward a lamp.'},
+    discLp:moonwheelDiscLp, disc45:moonwheelDisc45, disc7in:moonwheelDisc7in, framesLp:12, frames45:16,
+    name:'Moonwheel', sub:null, note:'Bone moons and chalk stars on indigo — one full lunation; the tide rises toward full.'},
 };
 
 // Old ids (pre-CR7) mapped onto the new catalogue, so a saved Collection
@@ -463,6 +480,10 @@ export function selectZoetropeVariant(t){
 // {size, speed} shape (the same check S.recordFormat.speed === RPM_45
 // already uses elsewhere) — anything else, including no format at all,
 // reads as the LP art, the format table's own unremarkable default.
+// SZ2 (docs/26_SIZES_AND_ZOETROPES.md): `format.size === '7"'` picks
+// disc7in ahead of the speed check, since a 7″ is always a 45 but needs
+// its own art (fitted outside the 7″'s own larger label, SZ1) rather
+// than the 10″/12″-at-45 art.
 export function variantBackground(def, format){
   if(!def) return '';
   const [a, b, c] = def.colors;
@@ -475,7 +496,8 @@ export function variantBackground(def, format){
       // animation logic belongs here (PR6's own job, a DOM-level rotation
       // of a separate ring layer, not a different value this function
       // returns).
-      const url = (format && format.speed === RPM_45) ? def.disc45 : def.discLp;
+      const url = (format && format.size === '7"') ? def.disc7in
+        : (format && format.speed === RPM_45) ? def.disc45 : def.discLp;
       return 'url("' + url + '") center/cover';
     }
     case 'split': {

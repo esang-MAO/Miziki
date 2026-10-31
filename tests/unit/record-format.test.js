@@ -8,7 +8,7 @@ import {
   bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
   formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
-  formatWireCode, formatFromWireCode, platterSizeAttr,
+  formatWireCode, formatFromWireCode, platterSizeAttr, platterSpeedAttr,
 } from '../../src/record-art/format.js';
 
 test('bestSideCut: fewer than two durations has no meaningful cut', () => {
@@ -174,4 +174,14 @@ test('platterSizeAttr: a missing format reads as 12″, never a guess at a small
   assert.equal(platterSizeAttr(null), '12');
   assert.equal(platterSizeAttr(undefined), '12');
   assert.equal(platterSizeAttr({}), '12');
+});
+
+// SZ2 (docs/26_SIZES_AND_ZOETROPES.md): the zoetrope ring's other key.
+test('platterSpeedAttr: 45 for any 45, 33 for a 33⅓ LP or a missing format', () => {
+  assert.equal(platterSpeedAttr({size:'7"', speed:RPM_45}), '45');
+  assert.equal(platterSpeedAttr({size:'10"', speed:RPM_45}), '45');
+  assert.equal(platterSpeedAttr({size:'12"', speed:RPM_45}), '45');
+  assert.equal(platterSpeedAttr({size:'12"', speed:RPM_33}), '33');
+  assert.equal(platterSpeedAttr(null), '33');
+  assert.equal(platterSpeedAttr(undefined), '33');
 });

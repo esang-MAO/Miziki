@@ -144,6 +144,13 @@ export function platterSizeAttr(format){
   return format.size.replace(/"/g, '');
 }
 
+// SZ2 (docs/26_SIZES_AND_ZOETROPES.md): #platterStage's own [data-speed],
+// the zoetrope ring's other key -- '45' or '33', never the raw RPM number
+// (keeps both platter attributes the same plain-digit shape).
+export function platterSpeedAttr(format){
+  return (format && format.speed === RPM_45) ? '45' : '33';
+}
+
 // Side capacity in seconds, per the doc's own three numbers ("about 7 min
 // for a 7″ at 45, 15 min for a 12″ at 45, 22 min for an LP"). Used only to
 // scale the dead-wax band's own radius -- never the format decision

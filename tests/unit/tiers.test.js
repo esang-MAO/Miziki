@@ -60,7 +60,7 @@ test('CR7 catalogue: every solid/effect has a band, jet/rares/zoetropes do not',
   for(const d of ZOETROPE_DEFS) assert.equal(d.band, null);
 });
 
-test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 rare, 8 zoetrope = 110)', () => {
+test('SZ2 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 rare, 9 zoetrope = 111)', () => {
   const countBand = (defs, band) => defs.filter(d => d.band === band).length;
   assert.equal(SOLID_DEFS.length, 40);
   assert.equal(countBand(SOLID_DEFS, 'common'), 20);
@@ -71,8 +71,8 @@ test('PRESSINGS_110 catalogue: counts hold (20/14/6 solids, 24/22/8 effects, 8 r
   assert.equal(countBand(EFFECT_DEFS, 'uncommon'), 22);
   assert.equal(countBand(EFFECT_DEFS, 'scarce'), 8);
   assert.equal(RARE_DEFS.length, 8);
-  assert.equal(ZOETROPE_DEFS.length, 8);
-  assert.equal(SOLID_DEFS.length + EFFECT_DEFS.length + RARE_DEFS.length + ZOETROPE_DEFS.length, 110);
+  assert.equal(ZOETROPE_DEFS.length, 9);
+  assert.equal(SOLID_DEFS.length + EFFECT_DEFS.length + RARE_DEFS.length + ZOETROPE_DEFS.length, 111);
 });
 
 test('CR7 draw: the same album always lands on the same variant', () => {
@@ -272,46 +272,42 @@ test('PRESSINGS_110: Nychthemeron switches to its night colours once phaseAt() r
   }
 });
 
-/* ================= PRESSINGS_110 PR5: zoetropes, static rendering
-   (docs/PRESSINGS_110.md §5) — the catalogue entries and selectZoetropeVariant()
-   are ported and tested here as pure primitives; neither is wired into any
-   live path yet (no earned/unlocked state exists until PR7), so these
-   tests exercise the functions directly rather than through
-   selectVariant()/discLook(). ================= */
+/* ================= SZ2 (docs/26_SIZES_AND_ZOETROPES.md): nine mandala
+   zoetropes, replacing the eight figurative ones outright — the catalogue
+   entries and selectZoetropeVariant() are tested here as pure primitives,
+   same as the PRESSINGS_110 PR5 tests they replace. ================= */
 
-test('PRESSINGS_110: zoetrope catalogue has all 8 named pressings, each with both frame counts and both disc URLs', () => {
+test('SZ2: zoetrope catalogue has all nine named mandalas, each with every frame count and disc URL (incl. 7″)', () => {
   const names = ZOETROPE_DEFS.map(d => d.name).sort();
-  assert.deepEqual(names, ['Bloom', 'Breach', 'Breaker', 'Moth', 'Orbit', 'Pulse', 'Rainfall', 'Wingbeat']);
+  assert.deepEqual(names, [
+    'Ember', 'Kaleido', 'Lantern', 'Lotus', 'Moonwheel', 'Starseed', 'Sunwheel', 'Tidepool', 'Unfurl',
+  ]);
   for(const d of ZOETROPE_DEFS){
     assert.equal(d.pattern, 'zoetrope');
     assert.equal(d.finish, 'opaque');
     assert.ok(typeof d.discLp === 'string' && d.discLp.length > 0, d.name + ' missing discLp');
     assert.ok(typeof d.disc45 === 'string' && d.disc45.length > 0, d.name + ' missing disc45');
+    assert.ok(typeof d.disc7in === 'string' && d.disc7in.length > 0, d.name + ' missing disc7in');
     assert.ok(Number.isInteger(d.framesLp) && d.framesLp > 0, d.name + ' missing framesLp');
     assert.ok(Number.isInteger(d.frames45) && d.frames45 > 0, d.name + ' missing frames45');
   }
 });
 
-test('PRESSINGS_110: Rainfall is the one zoetrope with 24/32 frames, every other is 12/16', () => {
+test('SZ2: every zoetrope shares the same 12/16 frame counts — no Rainfall-style special case', () => {
   for(const d of ZOETROPE_DEFS){
-    if(d.id === 'rainfall' || d.name === 'Rainfall'){
-      assert.equal(d.framesLp, 24);
-      assert.equal(d.frames45, 32);
-    } else {
-      assert.equal(d.framesLp, 12);
-      assert.equal(d.frames45, 16);
-    }
+    assert.equal(d.framesLp, 12);
+    assert.equal(d.frames45, 16);
   }
 });
 
-test('PRESSINGS_110: selectZoetropeVariant draws the same pressing for the same album every time', () => {
+test('SZ2: selectZoetropeVariant draws the same pressing for the same album every time', () => {
   const t = albumTrack('Zoetrope Repeat', { lossless: true, bits: 24, rate: 96000 });
   const first = selectZoetropeVariant(t);
   assert.ok(ZOETROPE_IDS.includes(first));
   for(let i=0;i<20;i++) assert.equal(selectZoetropeVariant(t), first);
 });
 
-test('PRESSINGS_110: selectZoetropeVariant draw never correlates with selectRareVariant for the same album', () => {
+test('SZ2: selectZoetropeVariant draw never correlates with selectRareVariant for the same album', () => {
   // not a proof of independence, just a sanity check that the two draws
   // use genuinely different hash salts, not the same one by copy-paste
   // accident — over enough albums they shouldn't always agree
@@ -326,7 +322,7 @@ test('PRESSINGS_110: selectZoetropeVariant draw never correlates with selectRare
   assert.ok(agree < N, 'rare and zoetrope draws should not always land on the same pool index');
 });
 
-test('PRESSINGS_110: zoetrope ids are disjoint from the rare pool and never drawn by selectVariant', () => {
+test('SZ2: zoetrope ids are disjoint from the rare pool and never drawn by selectVariant', () => {
   for(const id of ZOETROPE_IDS) assert.ok(!RARE_DEFS.some(d => d === VARIANT_DEFS[id]));
   // selectVariant()/the tier-mix draw never reaches 'rare' or 'zoetrope'
   // family defs at all — both pools are session-unlock-only, picked by
@@ -345,17 +341,21 @@ test('PRESSINGS_110: zoetrope ids are disjoint from the rare pool and never draw
   }
 });
 
-test('PRESSINGS_110: zoetrope renders as a disc background-image, LP by default, 45 art when the format says 45', () => {
-  const def = VARIANT_DEFS.wingbeat;
+test('SZ2: zoetrope art picker covers every format cell — disc7in for a 7″, disc45 for any other 45, discLp otherwise', () => {
+  const def = VARIANT_DEFS.lotus;
   const bgDefault = variantBackground(def);
   assert.equal(bgDefault, 'url("' + def.discLp + '") center/cover');
-  const bgLp = variantBackground(def, { speed: 33.333 });
-  assert.equal(bgLp, 'url("' + def.discLp + '") center/cover');
-  const bg45 = variantBackground(def, { speed: 45 });
-  assert.equal(bg45, 'url("' + def.disc45 + '") center/cover');
+  const bg1233 = variantBackground(def, { size: '12"', speed: 33.333 });
+  assert.equal(bg1233, 'url("' + def.discLp + '") center/cover');
+  const bg1245 = variantBackground(def, { size: '12"', speed: 45 });
+  assert.equal(bg1245, 'url("' + def.disc45 + '") center/cover');
+  const bg1045 = variantBackground(def, { size: '10"', speed: 45 });
+  assert.equal(bg1045, 'url("' + def.disc45 + '") center/cover');
+  const bg745 = variantBackground(def, { size: '7"', speed: 45 });
+  assert.equal(bg745, 'url("' + def.disc7in + '") center/cover');
 });
 
-test('PRESSINGS_110: every zoetrope def produces a non-empty background with no format given', () => {
+test('SZ2: every zoetrope def produces a non-empty background with no format given', () => {
   for(const d of ZOETROPE_DEFS){
     const bg = variantBackground(d);
     assert.ok(bg.includes(d.discLp), d.name + ' should render its LP disc art with no format given');

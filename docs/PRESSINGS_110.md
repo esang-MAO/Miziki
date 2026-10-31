@@ -91,6 +91,11 @@ New four, all clear- or sky-driven:
 
 ## 5. Zoetropes — 8 (session-earned)
 
+**The figurative set below is superseded by `docs/26_SIZES_AND_ZOETROPES.md` SZ2** — nine
+mandala zoetropes (`Lotus, Sunwheel, Tidepool, Lantern, Starseed, Kaleido, Unfurl, Ember,
+Moonwheel`), see that doc's own table for ids/colours/notes. The strobe model below (points 1-5)
+is unchanged.
+
 `Wingbeat, Breaker, Bloom, Orbit, Breach, Pulse, Rainfall, Moth`. All nature/animal motifs.
 Colours, accent ink and frame counts are in `zoetropes[]`; art is in `zoetropes/`.
 

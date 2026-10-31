@@ -134,7 +134,7 @@ for(const [cell, format] of [
   ['12-45', { size: '12"', speed: 45 }],
   ['12-33', { size: '12"', speed: 33.333 }],
 ]){
-  test(`SZ1: load() sets #platterStage data-size for the ${cell} format cell`, () => {
+  test(`SZ1/SZ2: load() sets #platterStage data-size and data-speed for the ${cell} format cell`, () => {
     resetState();
     nextFormat = format;
     const setAttribute = mock.fn();
@@ -145,6 +145,10 @@ for(const [cell, format] of [
     const sizeCalls = setAttribute.mock.calls.filter(c => c.arguments[0] === 'data-size');
     assert.equal(sizeCalls.length, 1);
     assert.equal(sizeCalls[0].arguments[1], format.size.replace(/"/g, ''));
+
+    const speedCalls = setAttribute.mock.calls.filter(c => c.arguments[0] === 'data-speed');
+    assert.equal(speedCalls.length, 1);
+    assert.equal(speedCalls[0].arguments[1], format.speed === 45 ? '45' : '33');
   });
 }
 
