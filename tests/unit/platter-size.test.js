@@ -144,7 +144,7 @@ for(const [cell, format] of [
 
     const sizeCalls = setAttribute.mock.calls.filter(c => c.arguments[0] === 'data-size');
     assert.equal(sizeCalls.length, 1);
-    assert.equal(sizeCalls[0].arguments[1], format.size.replace('"', ''));
+    assert.equal(sizeCalls[0].arguments[1], format.size.replace(/"/g, ''));
   });
 }
 

@@ -141,7 +141,7 @@ export function formatSpeedText(speed){
    format table's own '7"'/'10"'/'12"' strings. */
 export function platterSizeAttr(format){
   if(!format || !format.size) return '12';
-  return format.size.replace('"', '');
+  return format.size.replace(/"/g, '');
 }
 
 // Side capacity in seconds, per the doc's own three numbers ("about 7 min
