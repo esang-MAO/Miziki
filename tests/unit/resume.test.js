@@ -16,7 +16,7 @@ mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   namedExports: { setQueue(...args){ setQueueCalls.push(args); } },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 
 const { saveResumeNow, restoreResume, autosaveResumeTick } = await import('../../src/player/resume.js');

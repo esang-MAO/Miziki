@@ -75,7 +75,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
   namedExports: { runStartSequence(){}, isShrinkWrapTarget(){ return false; } },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){}, wakeEveningGlance(){} },
 });
 // CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
 // shell/runout.js, whose real chain reaches library/view.js — stop it here.
@@ -184,7 +184,7 @@ globalThis.document = {
   },
 };
 
-const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, crateLightColor } = await import('../../src/player/clock.js');
+const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, crateLightColor, focusEndsAtMs } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -698,5 +698,24 @@ test('crateLightColor: warm during Golden/Twilight, cool everywhere else', () =>
   assert.equal(twilight, 'rgba(255,235,200,.2)');
   assert.equal(night, 'rgba(205,214,230,.2)');
   assert.equal(midday, 'rgba(205,214,230,.2)');
+});
+
+// FS10 point 2: "the record ends around 10:42 pm" -- the remaining
+// duration of this album's tracks at the current rate (Sundown slows
+// Vinyl), so a slower rate pushes the end time later.
+test('focusEndsAtMs: at rate 1.0, the remaining seconds add straight onto now', () => {
+  const now = Date.UTC(2026, 9, 31, 12, 0, 0);
+  assert.equal(focusEndsAtMs(now, 600, 1), now + 600000);
+});
+
+test('focusEndsAtMs: at rate 0.8, remaining audio takes longer in wall-clock time', () => {
+  const now = Date.UTC(2026, 9, 31, 12, 0, 0);
+  assert.equal(focusEndsAtMs(now, 600, 0.8), now + Math.round((600 / 0.8) * 1000));
+});
+
+test('focusEndsAtMs: a zero or missing rate falls back to 1.0 rather than dividing by zero', () => {
+  const now = Date.UTC(2026, 9, 31, 12, 0, 0);
+  assert.equal(focusEndsAtMs(now, 600, 0), now + 600000);
+  assert.equal(focusEndsAtMs(now, 600, undefined), now + 600000);
 });
 

@@ -82,7 +82,7 @@ mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { closePlayer(){}, openPlayerViaSheet(){} },
+  namedExports: { closePlayer(){}, openPlayerViaSheet(){}, wakeEveningGlance(){} },
 });
 mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
   namedExports: { renderMiniPlayer(){} },
@@ -103,7 +103,7 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { stop(){}, load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { stopSleepState(){}, sleepStopPlayback(){} },

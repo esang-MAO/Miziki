@@ -45,13 +45,13 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { updateSleepUI(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){}, settleTrackEnd(){} },
+  namedExports: { drawTime(){}, settleTrackEnd(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { advance(){}, preloadNextTrack(){}, peekNextIndex(){ return null; }, updateRecordOnlyUI(){} },
+  namedExports: { advance(){}, preloadNextTrack(){}, peekNextIndex(){ return null; }, updateFocusUI(){} },
 });
 const ensureBufferMock = mock.fn(async () => true);
 mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {

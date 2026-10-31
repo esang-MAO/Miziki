@@ -9,7 +9,8 @@ import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
 import { applyWobbleRate } from '../audio/engine.js';
-import { maybeScheduleGaplessNext, cancelPendingGapless } from './transport.js';
+import { maybeScheduleGaplessNext, cancelPendingGapless, sideLetterFor } from './transport.js';
+import { albumKey } from '../record-art/tiers.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
@@ -210,6 +211,64 @@ export function drawTime(){
   if(barElapsed) barElapsed.textContent = fmt(S.pos);
   if(barTotal) barTotal.textContent = fmt(dur);
   if(!S.scrubbing){ const barScrub = $('#barScrub'); if(barScrub) barScrub.value = Math.round(p*1000); }
+  updateFocusStatusLine();
+}
+
+// FS10 (docs/25_FROM_SCRATCH.md point 2): the pure arithmetic behind
+// "the record ends around 10:42 pm" -- real time to finish
+// `remainingAudioSec` of audio at `rate` (Sundown can run Vinyl below
+// 1.0, which stretches that same audio over more real time), added to
+// `nowMs`. Exported/tested directly per point 9 ("'ends around'
+// arithmetic at rates 1.0 and 0.8"), independent of the DOM/S-reading
+// wrapper below.
+export function focusEndsAtMs(nowMs, remainingAudioSec, rate){
+  const r = rate > 0 ? rate : 1;
+  return nowMs + Math.round((remainingAudioSec / r) * 1000);
+}
+
+function fmtEndsAround(ms){
+  // "rounded to the minute" -- nearest, not floored, then formatted the
+  // same lowercase "10:42 pm" shape frame 14 shows (toLocaleTimeString's
+  // own AM/PM is always uppercase).
+  const rounded = new Date(Math.round(ms / 60000) * 60000);
+  return rounded.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+}
+
+// FS10 point 2/3: the one status line Focus shows under the artist,
+// replacing the ordinary format chip/spec lines (hidden by .focus-on,
+// 03-sleeve-pull.css) while Focus is on -- "Side A · the record ends
+// around 10:42 pm" normally, or "Side A is over." during the run-out's
+// between-sides wait (frame 15). S.runout is shell/runout.js's own
+// state, read directly rather than imported -- clock.js already sits
+// upstream of runout.js (runout.js imports drawTime from here), so this
+// file can't import back from it without a real cycle; reading the S
+// field it writes is the same "data, not a call" shape every other
+// cross-feature read in this app already uses. Called from drawTime()
+// (so it tracks a Sundown rate change every frame, per point 2's own
+// "recomputed when the rate changes") and from player/queue.js's
+// updateFocusUI() on enter/exit/track-load, so a toggle's own frame
+// shows the right text immediately.
+export function updateFocusStatusLine(){
+  const lineEl = $('#focusStatusLine');
+  if(!lineEl) return;
+  if(!S.focus){ lineEl.textContent = ''; return; }
+  const t = current();
+  if(!t){ lineEl.textContent = ''; return; }
+  const idx = S.queue[S.qpos];
+  const side = sideLetterFor(t, idx);
+  const label = side ? ('Side ' + side + ' · ') : '';
+  const r = S.runout;
+  if(r && r.kind === 'wait'){
+    lineEl.textContent = 'Side ' + (r.from || side) + ' is over.';
+    return;
+  }
+  let remaining = Math.max(0, (t.duration || 0) - S.pos);
+  for(let i = S.qpos + 1; i < S.queue.length; i++){
+    const nt = S.tracks[S.queue[i]];
+    if(!nt || albumKey(nt) !== albumKey(t)) break;
+    remaining += nt.duration || 0;
+  }
+  lineEl.textContent = label + 'the record ends around ' + fmtEndsAround(focusEndsAtMs(Date.now(), remaining, S.rate));
 }
 
 export function drawSun(){

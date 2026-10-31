@@ -96,7 +96,7 @@ mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
   namedExports: { renderMiniPlayer(){} },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { closePlayer(){}, openPlayerViaSheet(){} },
+  namedExports: { closePlayer(){}, openPlayerViaSheet(){}, wakeEveningGlance(){} },
 });
 mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute(){} },
@@ -125,7 +125,7 @@ mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 // Since step 06 (B3), sessions.js's touchBackupField and played.js's/
 // clear.js's scheduleBackupSync imports are real (storage/meta.js and

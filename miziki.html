@@ -779,21 +779,29 @@
         <button class="icon-btn" id="playerOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
           <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
         </button>
+        <!-- FS10 (docs/25_FROM_SCRATCH.md point 2): Focus's own top row --
+             shown instead of the pair above (03-sleeve-pull.css's
+             .focus-on rule) while S.focus is on. Done is the only way out
+             from inside Focus besides the swipe-down override
+             (wiring/swipe-close.js); both call the same toggleFocus()
+             the pill below does. -->
+        <span class="focus-top-kicker" id="focusTopKicker">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          Focus
+        </span>
+        <button type="button" class="focus-done-btn" id="focusDoneBtn">Done</button>
       </div>
       <div class="now-title-row">
         <h2 id="trackName">Nothing on the platter</h2>
       </div>
       <div class="by" id="trackBy"></div>
-      <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): a per-session toggle (S.recordOnly,
-           state.js) -- resets on relaunch, never saved. While on, the
-           overflow menu's Queue row hides (src/player/queue.js's
-           updateRecordOnlyUI()) and the queue sheet lists only the
-           current side's tracks. Hidden until a track is loaded, same
-           as #trackSpecFormat below. -->
-      <div class="row record-only-row" id="recordOnlyRow" style="display:none">
-        <div class="k">This record only<em>Your queue waits. When this side ends, playback stops.</em></div>
-        <div class="seg"><button id="recordOnlyBtn" aria-pressed="false">Off</button></div>
-      </div>
+      <!-- FS10 point 2/3: "Side A · the record ends around 10:42 pm" (or,
+           between sides, "Side A is over.") -- the one status line Focus
+           shows in place of the format chip/spec lines below (hidden by
+           .focus-on). Written by src/player/clock.js's
+           updateFocusStatusLine(); empty and hidden (:empty) the rest of
+           the time. -->
+      <p class="focus-status-line" id="focusStatusLine"></p>
       <!-- TY7b (docs/22_TYPE.md): the glance view's own artist/album·year
            lines, each its own size -- #trackBy stays a single combined
            line for every other state, so this is a separate pair filled
@@ -876,11 +884,13 @@
       </button>
     </div>
 
-    <!-- FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row -- the
+    <!-- FS5/FS10 (docs/25_FROM_SCRATCH.md point 6): the bottom row -- the
          Sundown phase pill left (sun icon + phase word in --amber, a
          fifth way into the Sundown sheet, src/shell/sundown-sheet.js);
-         the Focus pill (FS10 wires it -- drawn disabled-hidden here) and
-         the queue icon right. -->
+         the Focus pill (the way in -- src/player/queue.js's toggleFocus())
+         and the queue icon right. Hidden outright while Focus is already
+         on (03-sleeve-pull.css's .focus-on rule, point 2's "the tab bar
+         is hidden"/minimal top-row posture). -->
     <div class="now-bottom-row" id="nowBottomRow">
       <button type="button" class="now-phase-pill" id="nowPhasePill" aria-label="Sundown">
         <svg class="now-phase-glyph" id="nowPhaseSunGlyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
@@ -888,7 +898,10 @@
         <span id="nowPhaseWord"></span>
       </button>
       <div class="now-bottom-right">
-        <button type="button" class="now-focus-pill" id="focusPill" disabled style="display:none">Focus</button>
+        <button type="button" class="now-focus-pill" id="focusPill" style="display:none">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          Focus
+        </button>
         <button class="icon-btn" id="playerQueueBtn" aria-label="Queue" style="display:none">
           <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
         </button>

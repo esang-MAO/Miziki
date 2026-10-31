@@ -6,11 +6,11 @@ import { idOf } from '../library/model.js';
 import { sleepStopPlayback } from './sleep-timer.js';
 import { load, play, pause, seek, sideLetterFor, cancelPendingGapless } from './transport.js';
 import { turningPointAt } from '../sundown/arc.js';
-import { drawTime } from './clock.js';
+import { drawTime, updateFocusStatusLine } from './clock.js';
 import { ensureBuffer } from './buffers.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
 import { runStartSequence } from '../shell/start-sequence.js';
-import { openPlayerViaSheet } from '../shell/player-overlay.js';
+import { openPlayerViaSheet, wakeEveningGlance } from '../shell/player-overlay.js';
 import { endOfQueue, maybeSideFlip, stopAtRecordEndCeremony } from '../shell/runout.js';
 import { openLayer } from '../shell/nav-stack.js';
 import { REDUCED } from '../util/motion.js';
@@ -113,25 +113,32 @@ export function advance(dir, auto){
     const nextT = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
     if(curT && isAlbumBoundary(curT, nextT)){ sleepStopPlayback(); return; }
   }
-  // RW3: This record only / Stop between records at sunset and midnight
-  // -- both stop exactly where the sleep timer's own "end of album" stop
-  // just above does, never mid-album and never at a side flip (a side
-  // flip's nextT is the same album, so isAlbumBoundary() is false there).
-  // Checked only on a natural end (auto), same as the sleep-timer block.
-  if(auto && (S.recordOnly || S.stopAtTurns)){
+  // FS10 (docs/25_FROM_SCRATCH.md): Focus / Stop between records at sunset
+  // and midnight -- both stop exactly where the sleep timer's own "end of
+  // album" stop just above does, never mid-album and never at a side flip
+  // (a side flip's nextT is the same album, so isAlbumBoundary() is false
+  // there). Checked only on a natural end (auto), same as the sleep-timer
+  // block. Replaces RW3's "This record only" outright -- same boundary.
+  if(auto && (S.focus || S.stopAtTurns)){
     const curT = S.tracks[S.queue[S.qpos]];
     const n2 = S.qpos + dir;
     const atEnd = n2 >= S.queue.length && S.repeat !== 'all';
     const nextT = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
     if(curT && isAlbumBoundary(curT, nextT)){
       let reason = null;
-      if(S.recordOnly) reason = 'recordOnly';
+      if(S.focus) reason = 'focus';
       else {
         const tp = turningPointAt(Date.now(), S.sun);
         if(tp) reason = tp;
       }
       if(reason){
         pause(); S.pos = 0; drawTime();
+        // FS10 point 4: "Focus ends on its own at that moment" -- the UI
+        // mode (top row, idle-fade timing, hidden tab bar/sidebar, can't
+        // minimize) is over the instant the record stops; the held sleeve
+        // that follows is the same RW4 screen a plain queue-end or Stop
+        // between records lands on, no Focus chrome left to show it in.
+        if(reason === 'focus') exitFocus();
         // RW4 (docs/23_RHYTHM_AND_WEAR.md): same run-out/put-away ceremony
         // as a real finish just below, ending on the held sleeve instead
         // of the empty slipmat -- not a second stop mechanism.
@@ -174,7 +181,10 @@ export function advance(dir, auto){
    there, not here. This section is left with the UI (the card itself,
    Play/Flip) and the queue-side effects of leaving the resting state. */
 const RESTING_COPY = {
-  recordOnly: 'Playback stops after this record.',
+  // FS10 (docs/25_FROM_SCRATCH.md) point 10: "the resting copy 'Playback
+  // stops after this record.' is replaced by frame 16's" -- the reason
+  // key itself is also renamed, recordOnly -> focus, with the toggle.
+  focus: 'Focus ended when the record finished.',
   sunset: 'Around sunset, playback stops between records.',
   midnight: 'Around midnight, playback stops between records.',
   queueEnd: "You've reached the end of your queue.",
@@ -210,8 +220,8 @@ function fmtEndedAt(ms){
 
 // Exported: src/shell/runout.js calls this once it lands on the held
 // sleeve (S.resting already set there), and this module's own
-// continueFromResting()/flipFromResting()/toggleRecordOnly() call it
-// again whenever S.resting changes.
+// continueFromResting()/flipFromResting() call it again whenever
+// S.resting changes.
 export function paintRestingCard(){
   const card = $('#restingCard'); if(!card) return;
   const r = S.resting;
@@ -219,7 +229,7 @@ export function paintRestingCard(){
   if(!r) return;
   const kicker = $('#restingKicker');
   if(kicker) kicker.textContent = r.reason === 'queueEnd' ? 'Played through' : 'Paused after this record';
-  const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.recordOnly;
+  const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.focus;
   const note = $('#restingNote'); if(note) note.textContent = RESTING_NOTE[r.reason] || DEFAULT_RESTING_NOTE;
   const meta = $('#restingMeta');
   if(meta) meta.textContent = (r.side ? 'Side ' + r.side + ' · ' : '') + 'Ended ' + fmtEndedAt(r.endedAt);
@@ -266,29 +276,61 @@ export function flipFromResting(){
   else play();
 }
 
-// RW3: "This record only" -- a per-session player toggle (S.recordOnly,
-// never saved). Syncs the switch card's own aria-pressed/label and the
-// overflow menu's Queue row (hidden while on, per the plan's "the queue
-// button hides"); called on toggle and, from transport.js's load(), on
-// every track change so a freshly loaded track's row reflects it too.
-export function updateRecordOnlyUI(){
-  const btn = $('#recordOnlyBtn');
-  if(btn){ btn.textContent = S.recordOnly ? 'On' : 'Off'; btn.setAttribute('aria-pressed', String(S.recordOnly)); }
+// FS10 (docs/25_FROM_SCRATCH.md): Focus -- a per-session player toggle
+// (S.focus, never saved), replacing RW3's "This record only" switch
+// outright. Syncs the Focus pill (hidden while Focus is on -- the way
+// back out is Done/swipe, point 2 -- and, same as before, until a track
+// is loaded), the overflow menu's Queue row (still hidden while on, same
+// "nothing to navigate to" reasoning RW3 had), the .focus-on/focus-active
+// classes that drive the rest of the UI mode (CSS: 03-sleeve-pull.css,
+// 29-evening-glance.css, 23-desktop.css), and the status line under the
+// artist (clock.js's updateFocusStatusLine(), called here so a toggle's
+// own frame shows the right text immediately rather than waiting for the
+// next drawTime() tick). Called on toggle and, from transport.js's
+// load(), on every track change.
+export function updateFocusUI(){
+  const pill = $('#focusPill');
+  if(pill) pill.classList.toggle('focus-hidden', S.focus);
   // a dedicated class rather than style.display directly -- #queueBtn's
   // own display is also toggled independently (hidden until a track is
   // loaded, src/player/transport.js's load()), and the two reasons must
   // not stomp on each other.
   const queueBtn = $('#queueBtn');
-  if(queueBtn) queueBtn.classList.toggle('record-only-hidden', S.recordOnly);
+  if(queueBtn) queueBtn.classList.toggle('focus-hidden', S.focus);
   // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own queue
-  // icon follows the same record-only hide.
+  // icon follows the same hide -- moot in practice once .focus-on hides
+  // the whole bottom row below, but kept in step regardless.
   const playerQueueBtn = $('#playerQueueBtn');
-  if(playerQueueBtn) playerQueueBtn.classList.toggle('record-only-hidden', S.recordOnly);
+  if(playerQueueBtn) playerQueueBtn.classList.toggle('focus-hidden', S.focus);
+  const ov = $('#playerOverlay');
+  if(ov) ov.classList.toggle('focus-on', S.focus);
+  // Point 2 ("the tab bar is hidden") and point 7 ("the sidebar and
+  // library pane fold away" on desktop) -- one body class both of those
+  // CSS rules key off, the same shape .glance-active (player-overlay.js)
+  // already uses for the desktop glance view.
+  document.body.classList.toggle('focus-active', S.focus);
+  updateFocusStatusLine();
 }
 
-export function toggleRecordOnly(){
-  S.recordOnly = !S.recordOnly;
-  updateRecordOnlyUI();
+export function toggleFocus(){
+  S.focus = !S.focus;
+  updateFocusUI();
+  // Entering or leaving Focus changes the idle-fade timing/condition
+  // (RW5's eveningGlanceLevel() now reads S.focus too) -- wake it so the
+  // new rule applies from a fresh 0s idle rather than mid-countdown under
+  // whichever rule was running a moment ago.
+  if(S.playerOpen) wakeEveningGlance();
+}
+
+// FS10 point 4: "Focus ends on its own" the instant a record boundary
+// stops playback -- called from advance() below, never from a swipe/Done,
+// which both call toggleFocus() like the pill itself. Leaves S.resting
+// alone; the caller (advance()) sets that up separately via
+// stopAtRecordEndCeremony().
+export function exitFocus(){
+  if(!S.focus) return;
+  S.focus = false;
+  updateFocusUI();
 }
 
 /* ================= §3 (docs/15_SURFACE_NOISE.md): needle-lift skipping =================
@@ -674,18 +716,12 @@ export function renderQueueSheet(host){
     li.appendChild(name);
     ul.appendChild(li);
   }
-  // RW3: "only the current side's tracks are listed" while This record
-  // only is on -- cut the upcoming list at the first track that isn't
-  // the same album and side as what's currently playing.
-  let upcoming = S.queue.slice(S.qpos + 1);
-  if(S.recordOnly && curT){
-    const curSide = sideLetterFor(curT, curIdx);
-    const cut = upcoming.findIndex(idx => {
-      const t = S.tracks[idx];
-      return !t || albumKey(t) !== albumKey(curT) || sideLetterFor(t, idx) !== curSide;
-    });
-    if(cut !== -1) upcoming = upcoming.slice(0, cut);
-  }
+  // FS10 point 2: Focus "covers the current record, both sides. The
+  // queue isn't touched" -- replaces RW3's "only the current side's
+  // tracks are listed" cut outright, not just while Focus happens to be
+  // on (the queue sheet itself is unreachable during Focus anyway, since
+  // the bottom row/overflow menu that opens it are hidden).
+  const upcoming = S.queue.slice(S.qpos + 1);
   if(upcoming.length){
     const head = el('div','queue-section-head');
     head.appendChild(el('span', null, 'Up next · ' + upcoming.length));

@@ -9,7 +9,7 @@ import { bgPrime } from '../player/background.js';
 import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
 import { pause, play, seek, toggleTrackSpecState } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
-import { continueFromResting, flipFromResting, toggleRecordOnly } from '../player/queue.js';
+import { continueFromResting, flipFromResting, toggleFocus } from '../player/queue.js';
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
@@ -104,10 +104,14 @@ export function wireTransport(){
 
   $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
 
-  // RW3: This record only (per-session, never saved) and the resting
-  // card's own Flip to Side B -- both act straight on the current queue,
-  // no overflow menu involved.
-  $('#recordOnlyBtn').addEventListener('click', toggleRecordOnly);
+  // FS10 (docs/25_FROM_SCRATCH.md): Focus (per-session, never saved) --
+  // the pill is the way in, Done is the only way out from inside Focus
+  // (the swipe-down override lives in wiring/swipe-close.js, since it has
+  // to intercept the player's own swipe-to-close gesture) -- and the
+  // resting card's own Flip to Side B. All three act straight on the
+  // current queue, no overflow menu involved.
+  $('#focusPill').addEventListener('click', toggleFocus);
+  $('#focusDoneBtn').addEventListener('click', toggleFocus);
   $('#restingFlipBtn').addEventListener('click', flipFromResting);
 
   // docs/15_SURFACE_NOISE.md §4: the player's own discoverable way to flip

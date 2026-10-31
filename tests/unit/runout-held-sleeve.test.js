@@ -43,7 +43,7 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load: loadMock, play: playMock, pause: pauseMock },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { stopSleepState(){} },
@@ -142,10 +142,10 @@ test('endOfQueue: nothing currently loaded falls back to the genuinely-empty cle
   assert.equal(S.index, -1);   // clearToRest()'s own doing, not a side effect of holdSleeve
 });
 
-test('stopAtRecordEndCeremony: This record only lands on the held sleeve with the queue intact', async () => {
+test('stopAtRecordEndCeremony: Focus lands on the held sleeve with the queue intact', async () => {
   resetState({ tracks: [fakeTrack('X','A'), fakeTrack('Y','A')], queue: [0,1], qpos: 0, index: 0 });
-  await stopAtRecordEndCeremony('recordOnly', 1);
-  assert.equal(S.resting.reason, 'recordOnly');
+  await stopAtRecordEndCeremony('focus', 1);
+  assert.equal(S.resting.reason, 'focus');
   assert.equal(S.resting.pendingIndex, 1);
   assert.deepEqual(S.queue, [0,1]);   // untouched -- holding, not clearing
   assert.equal(S.qpos, 0);

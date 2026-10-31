@@ -124,9 +124,12 @@
 .now-phase-glyph{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round}
 .now-bottom-right{display:flex;align-items:center;gap:var(--sp-2)}
-/* FS10 (docs/25_FROM_SCRATCH.md) wires this; drawn disabled-hidden here. */
-.now-focus-pill{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--muted);
-  border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+/* FS10 (docs/25_FROM_SCRATCH.md point 1): "outlined (1px rgba(239,233,
+   223,.32), 6% fill), three-ring icon, 'Focus'." */
+.now-focus-pill{display:flex;align-items:center;gap:6px;font-family:var(--body);font-size:var(--fs-caption);
+  font-weight:500;color:var(--paper);border:1px solid rgba(239,233,223,.32);
+  background:rgba(239,233,223,.06);border-radius:999px;padding:6px 14px}
+.now-focus-pill svg{width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.5}
 
 /* FS5 point 8: "after dark" -- night only, the player's own cream/muted
    dim and the label loses ~20% brightness. A local override of the two
@@ -141,16 +144,39 @@
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
   font-size:var(--fs-row);color:var(--muted);margin-bottom:var(--sp-1)}
 
-/* RW3 (docs/23_RHYTHM_AND_WEAR.md): "This record only" -- a switch card
-   under the title, distinct from a plain settings .row (background
-   instead of a hairline, since it sits in running player chrome, not a
-   list). */
-.record-only-row{background:var(--panel);border-radius:var(--radius-card);
-  padding:var(--sp-3);margin-top:var(--sp-3);border-bottom:none;text-align:left}
-/* RW3: hides the overflow menu's Queue row while on, independent of its
-   own "hidden until a track is loaded" style.display toggle
-   (player/transport.js's load()). */
-#queueBtn.record-only-hidden{display:none}
+/* FS10: hides the overflow menu's/bottom row's own Queue affordances
+   while Focus is on, independent of their own "hidden until a track is
+   loaded" style.display toggle (player/transport.js's load()). */
+.focus-hidden{display:none}
+
+/* FS10 (docs/25_FROM_SCRATCH.md point 2): Focus's own screen --
+   .focus-on on #playerOverlay (src/player/queue.js's updateFocusUI()).
+   Swaps the ordinary top row for Focus's own (kicker left, Done right),
+   hides the bottom row (the pill that got you in, and the now-moot
+   Sundown/queue affordances), and replaces the format chip/spec lines
+   with the one status line (#focusStatusLine, clock.js). #nowActions
+   (Look/flip/lift) stays -- "between sides" (frame 15) still needs it,
+   restyled below -- and the resting card stays too (it only ever shows
+   once Focus has already ended, point 4). */
+.focus-top-kicker,.focus-done-btn{display:none}
+.player-overlay.focus-on .now-top-row #nowSideKicker,
+.player-overlay.focus-on .now-top-row #playerOverflowBtn{display:none}
+.player-overlay.focus-on .focus-top-kicker{display:flex;align-items:center;gap:6px;
+  font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--muted)}
+.player-overlay.focus-on .focus-top-kicker svg{width:18px;height:18px;flex:0 0 auto;
+  fill:none;stroke:currentColor;stroke-width:1.5}
+.player-overlay.focus-on .focus-done-btn{display:block;background:none;border:0;
+  font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--paper)}
+.player-overlay.focus-on #trackSpecFormat,
+.player-overlay.focus-on #trackSpec,
+.player-overlay.focus-on #trackSpecPhase,
+.player-overlay.focus-on #nowBottomRow{display:none}
+/* Point 3: "between sides" restyles the existing flip/lift actions
+   (docs/15_SURFACE_NOISE.md §4's own #flipPrompt/#liftNeedleBtn) rather
+   than adding new ones -- outlined, not the solid everyday .cta. */
+.player-overlay.focus-on #flipPrompt{background:none;border:1px solid rgba(239,233,223,.32);color:var(--paper)}
+.focus-status-line{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);margin:var(--sp-1) 0 0}
+.focus-status-line:empty{display:none}
 
 /* RW3: the resting card, in place of the ordinary spec/actions while
    paused at a record boundary (S.resting). Kicker takes the current

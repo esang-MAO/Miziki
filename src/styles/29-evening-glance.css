@@ -6,7 +6,7 @@
    away) and the return is quick. Phones only: the desktop glance view
    (23-desktop.css, TY7b) handles wide screens.
 
-   #recordOnlyRow/#restingCard (RW3/RW4) are controls/state copy, same
+   #focusStatusLine/#restingCard (FS10/RW4) are controls/state copy, same
    category as #nowActions -- they fade in layer 1 too, on whichever
    screens they happen to be visible. */
 @media (max-width:1023px){
@@ -15,7 +15,7 @@
   .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,
-  .player-overlay #recordOnlyRow,
+  .player-overlay #focusStatusLine,
   .player-overlay #restingCard,
   .player-overlay #nowActions,
   .player-overlay #scrub,
@@ -36,7 +36,7 @@
   .player-overlay.eve-glance #trackSpecFormat,
   .player-overlay.eve-glance #trackSpec,
   .player-overlay.eve-glance #trackSpecPhase,
-  .player-overlay.eve-glance #recordOnlyRow,
+  .player-overlay.eve-glance #focusStatusLine,
   .player-overlay.eve-glance #restingCard,
   .player-overlay.eve-glance #nowActions,
   .player-overlay.eve-glance .times,
@@ -48,6 +48,12 @@
   }
   .player-overlay.eve-glance #scrub{
     opacity:.35; pointer-events:none; transition:opacity 1.6s ease-in-out;
+  }
+  /* FS10 point 2: "the progress line at 40%" -- Focus's own layer-1
+     value, overriding the plain RW5 .35 above (one more class, so this
+     always wins on specificity regardless of source order). */
+  .player-overlay.focus-on.eve-glance #scrub{
+    opacity:.4;
   }
 
   /* layer 2 (night only): just the platter and a dimmed title */
@@ -66,7 +72,7 @@
   .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,
-  .player-overlay #recordOnlyRow,
+  .player-overlay #focusStatusLine,
   .player-overlay #restingCard,
   .player-overlay #nowActions,
   .player-overlay #scrub,

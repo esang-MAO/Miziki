@@ -12,20 +12,29 @@
 
 export const EVENING_GLANCE_FIRST_MS = 10000;
 export const EVENING_GLANCE_DEEP_MS = 25000;
+// FS10 (docs/25_FROM_SCRATCH.md point 2): "controls fade after 6s idle,
+// at any hour" while Focus is on -- RW5's first layer, just sooner and no
+// longer gated on phase. The deeper night layer is untouched: "RW5's
+// deeper night layer still applies only at night."
+export const FOCUS_GLANCE_FIRST_MS = 6000;
 
 // Phases (src/sundown/day.js's seven) that count as "after dark" here.
 // Dawn is left out: by then the platter is rising back toward the day.
 const FIRST_PHASES = new Set(['twilight', 'night']);
 const DEEP_PHASES = new Set(['night']);
 
-// eveningGlanceLevel(idleMs, phase, playing) -> 0 | 1 | 2.
+// eveningGlanceLevel(idleMs, phase, playing, focus) -> 0 | 1 | 2.
 // 0: normal player. 1: controls faded (title, platter and a dim progress
 // line stay). 2: only the platter and a dimmed title.
 // Only while a record is actually playing: a paused player keeps its
-// controls, since the next thing anyone wants there is Play.
-export function eveningGlanceLevel(idleMs, phase, playing){
-  if(!playing || !FIRST_PHASES.has(phase)) return 0;
+// controls, since the next thing anyone wants there is Play. `focus`
+// (S.focus) drops the first layer's own phase gate and shortens its
+// threshold to FOCUS_GLANCE_FIRST_MS; the deep layer keeps its own
+// night-only gate and threshold either way.
+export function eveningGlanceLevel(idleMs, phase, playing, focus){
+  if(!playing) return 0;
+  if(!focus && !FIRST_PHASES.has(phase)) return 0;
   if(idleMs >= EVENING_GLANCE_DEEP_MS && DEEP_PHASES.has(phase)) return 2;
-  if(idleMs >= EVENING_GLANCE_FIRST_MS) return 1;
+  if(idleMs >= (focus ? FOCUS_GLANCE_FIRST_MS : EVENING_GLANCE_FIRST_MS)) return 1;
   return 0;
 }
