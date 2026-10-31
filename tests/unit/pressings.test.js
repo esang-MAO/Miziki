@@ -79,6 +79,13 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
+// FS7 (docs/25_FROM_SCRATCH.md): storefront.js's new storeLastSpunRow()
+// imports crate/model.js, whose own real chain (storage/meta.js) reaches
+// launch/intro.js and from there a raw .svg import Vite handles but this
+// runner can't -- stopped at the door the same way as everything above.
+mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
+  namedExports: { mostRecentlySpunAlbum(){ return null; }, lastSpunPhrase(){ return ''; } },
+});
 
 const { renderPressingCard, storePicksSection, storeStat } = await import('../../src/profile/storefront.js');
 

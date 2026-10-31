@@ -14,6 +14,18 @@
 .hdr-wordmark{display:none}
 .top.on-profile .hdr-wordmark{display:block}
 .hdr-wordmark svg{width:22px;height:auto;display:block}
+/* FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
+   top-right" -- the wordmark and this pair now share one row, only on the
+   Profile route (same .top.on-profile gate). Replaces the gear-icon
+   dropdown renderStorefrontSection() used to build (src/profile/
+   storefront.js); #hdrProfileRefreshBtn keeps the keyboard-reachable
+   refresh trigger the old menu folded in, so it isn't lost. */
+.top.on-profile{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
+.hdr-profile-actions{display:none}
+.top.on-profile .hdr-profile-actions{display:flex;align-items:center;gap:var(--sp-4)}
+.hdr-text-btn{background:none;border:0;padding:0;font-family:var(--body);font-size:var(--fs-body);
+  font-weight:500;color:var(--muted)}
+#hdrProfileSettingsBtn{color:var(--cream)}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 /* FS6 (docs/25_FROM_SCRATCH.md point 1): 28px wide x 44px tall -- a real

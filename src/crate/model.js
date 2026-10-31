@@ -555,6 +555,52 @@ export function lastSpunLabel(ts){
   return (d.getMonth() + 1) + '/' + d.getDate();
 }
 
+const WEEKDAY_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// FS7 (docs/25_FROM_SCRATCH.md point 4): the storefront's own "Last spun"
+// row wants a human phrase ("Spun last night"/"Spun 3 hours ago"), not the
+// mono dead-wax weekday abbreviation lastSpunLabel() above feeds
+// playedLineFor() -- a separate function so that existing readout's own
+// format (and every other caller of it) stays untouched.
+export function lastSpunPhrase(ts){
+  if(!ts) return '';
+  const now = Date.now();
+  const diffMs = Math.max(0, now - ts);
+  const diffMin = Math.floor(diffMs / 60000);
+  if(diffMin < 1) return 'just now';
+  if(diffMin < 60) return diffMin + ' minute' + (diffMin === 1 ? '' : 's') + ' ago';
+  const played = new Date(ts), today = new Date(now);
+  if(played.toDateString() === today.toDateString()){
+    const diffHr = Math.floor(diffMin / 60);
+    return diffHr + ' hour' + (diffHr === 1 ? '' : 's') + ' ago';
+  }
+  const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+  if(played.toDateString() === yesterday.toDateString()){
+    // an evening/overnight play reads as "last night"; an earlier-yesterday
+    // one just as "yesterday" -- the night hours a played-while-listening
+    // session would plausibly have spanned (sundown/day.js's own phases
+    // run on sun position, not a fixed clock, so this stays a plain
+    // wall-clock check rather than reaching into that model for one word).
+    return (played.getHours() >= 17 || played.getHours() < 4) ? 'last night' : 'yesterday';
+  }
+  const diffDays = Math.floor(diffMs / (24 * 3600 * 1000));
+  if(diffDays < 7) return WEEKDAY_FULL[played.getDay()];
+  return (played.getMonth() + 1) + '/' + played.getDate();
+}
+
+// FS7 (docs/25_FROM_SCRATCH.md point 4): "the last record you played" --
+// the S.albumLastPlayed entry with the largest timestamp, restricted to
+// albums still in the library. Unlike launch/intro.js's
+// resolveLastPlayedAlbum() (a different job: "land on whatever's loaded,
+// falling back to most-recently-added so the intro always has something
+// to show"), this returns null rather than falling back, since a library
+// that's never actually been played has nothing to call "last spun."
+export function mostRecentlySpunAlbum(){
+  const ids = Object.keys(S.albumLastPlayed).filter(id => S.tracks.some(t => albumKey(t) === id));
+  if(!ids.length) return null;
+  const best = ids.reduce((b, id) => S.albumLastPlayed[id] > S.albumLastPlayed[b] ? id : b, ids[0]);
+  return {albumId: best, ts: S.albumLastPlayed[best]};
+}
+
 // CR3 point 3: "a second mono line... appears once the record has been
 // played." Reuses the same qualifying-session counter (and its RF4
 // cross-device merged total, when one exists) the metal ladder already

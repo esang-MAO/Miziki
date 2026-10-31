@@ -77,6 +77,13 @@
   <!-- hosts the expanded search field (see openSearchField) -->
   <header class="top" id="appHeader">
     <div class="hdr-wordmark" id="hdrWordmark"></div>
+    <!-- FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left,
+         Settings top-right" -- shown only on the Profile route, same
+         .top.on-profile gate as #hdrWordmark above. -->
+    <div class="hdr-profile-actions" id="hdrProfileActions">
+      <button class="hdr-text-btn" id="hdrProfileRefreshBtn">Refresh</button>
+      <button class="hdr-text-btn" id="hdrProfileSettingsBtn">Settings</button>
+    </div>
     <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
       <div class="hdr-search-field">
         <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>

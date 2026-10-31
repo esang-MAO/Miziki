@@ -9,9 +9,12 @@
    (.pull-refresh-btn, absolutely positioned) -- it collided with the
    Settings gear on Profile, since both sat at the same top-right corner.
    It's now a real in-flow element each route builds for itself (Home:
-   .route-refresh-btn below; Profile: a menu item inside the Settings
-   gear's own popup, src/profile/storefront.js), so .pull-refresh itself
-   carries only the dot and the live region now. */
+   .route-refresh-btn below; Profile: FS7 (docs/25_FROM_SCRATCH.md point 1)
+   moved it again, off the Settings gear's own popup and into the shared
+   #appHeader as #hdrProfileRefreshBtn, next to #hdrProfileSettingsBtn --
+   this indicator (centred, under the header) never shared that corner
+   with either), so .pull-refresh itself carries only the dot and the
+   live region now. */
 /* .route itself (07-routes.css) has no position of its own -- scoped here
    rather than widening that shared rule, since only these two routes ever
    get the indicator. */
