@@ -86,10 +86,16 @@
    now -- the kicker left, #playerOverflowBtn right. */
 .now-top-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-1);margin-bottom:var(--sp-1)}
 /* FS4's kicker style ("Side A", --muted, caps, --track-caps); :empty hides
-   it outright when there's no side to show (Sides off, or no album). */
+   it outright when there's no side to show (Sides off, or no album). When
+   it's hidden, #playerOverflowBtn is .now-top-row's only visible flex
+   child, and justify-content:space-between collapses a single child to
+   flex-start -- the button would land on the left instead of the right.
+   margin-left:auto keeps it pinned right either way, with no effect when
+   the kicker is showing (space-between already pushes it there). */
 .now-kicker{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted)}
 .now-kicker:empty{display:none}
+#playerOverflowBtn{margin-left:auto}
 /* title row is just the title now -- Credits/notes, Favorite and Share
    moved into the overflow menu (point 1). */
 .now-title-row{display:flex;align-items:center;justify-content:center}
