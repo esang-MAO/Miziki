@@ -1198,3 +1198,75 @@ Audio-plan follow-on item 4 (`docs/17_SINGLES.md`): a record with exactly one si
 - Playwright verification was skipped for this step (optional per the spec's own "Shared rules" section) — the unit-test coverage above (open/close path per card, per-card defaults) is the hard bar it names.
 - **Verified**: `npm run lint` — 0 errors, 0 warnings. `npm run test:unit` — 1099/1099. Both production builds (`npm run build`, `MIZIKI_BASE=/ npm run build`) succeed.
 - No migration — entirely client-side, no new server-side saved setting.
+
+### FS0: the from-scratch redesign plan (docs/25_FROM_SCRATCH.md, #285)
+
+Ken uploaded a from-scratch visual redesign: a full new type/palette/layout system (`docs/design/from-scratch/`, frames plus a README of rules) and an 18-PR plan, FS0-FS17, applying it to every screen one surface group at a time. `docs/25_FROM_SCRATCH.md` supersedes parts of `docs/13_CRATE.md`, `docs/22_TYPE.md`, `docs/23_RHYTHM_AND_WEAR.md` and `docs/CEREMONY.md`, each marked with a note pointing here. A follow-up upload filled in FS12 (the Sundown sheet) and FS13-FS16 (every other screen, restyled in place) that the first upload was missing. Ken approved every frame before any code was written; each PR below restyles in place per "Replace, don't layer" — no behavior change unless the PR says so.
+
+### FS1: the palette (tokens only, #286)
+
+Dark theme: `--amber` `#FF9E2C` → `#E9A24A`; `--accent-text` follows it instead of duplicating the hex. Deleted `--miziki-orange`, switching its two call sites onto `var(--amber)`. Tokens only — no selector changed yet.
+
+### FS2: amber never signals state (#287)
+
+Audited every `var(--accent)`/`var(--amber)`/`var(--sel)`/`--accent-text` use in `src/styles/` plus matching JS inline styles. Converted every state use (active tab, pressed/selected button, a toggled row) to `--cream`, leaving amber as the label/sun/wordmark-rings-only accent the design rules call for.
+
+### FS3: every on/off control is a switch (#288)
+
+Generalized `profile/storefront.js`'s old `.store-switch` into one `.switch` component for the whole app (`src/styles/31-switch.css`, `src/ui/switch.js`'s `makeSwitch({checked, label, onChange, row})` — a real `<button role="switch" aria-checked>`). Every on/off control in the app now shares this one component.
+
+### FS4: shared chrome — wordmark, tab bar, headers, popovers (#289)
+
+The real wordmark "A" cut now draws everywhere it appears, including two spots that still used plain tracked text (mini-player's empty-art square, the platter's empty slipmat) and the share-card fallback. Tab bar, headers and popovers restyled to the new rules (sentence case, hierarchy from grey not size, caps tracking only where the rules call for it).
+
+### FS5: Now Playing — layout and styling of the full player (#290)
+
+Top row: "Side A" kicker left, `#playerOverflowBtn` right. Credits/notes/Favorite/Share moved into the overflow menu (same ids, same hidden-until-loaded rule, different home). The full player restyled to the new type/palette rules throughout.
+
+### FS6: the crate (#291)
+
+Header, sort/count row, sections, kraft divider, catalog card and format stickers restyled in place per FS6's own spec — no new flags or shims.
+
+### FS7: your storefront (#292)
+
+Wordmark top-left, Settings top-right on the Profile route, replacing the old header. The storefront's six points (layout, typography, the staff-picks tile, etc.) restyled per the spec.
+
+### FS8: share cards (#293)
+
+All five share cards gained a shared `drawShareFooter()` (`src/share/styles.js`) plus the rest of FS8's five points — one consistent footer/typography treatment instead of five independent ones.
+
+### FS9: Home after sunset (#294)
+
+Restyled `social/screens/home.js` per the new rules — look only, RW2's fetch/live feed behavior unchanged. A judgment call on this PR (confirmed correct by Ken): where the spec implied pressing/side data a friend's realtime "now spinning" payload doesn't actually carry, substituted the closest honest existing data (phase wording) rather than fabricating it.
+
+### FS10: Focus, replacing "This record only" (#295)
+
+Renamed `S.recordOnly` to `S.focus` and built the real Focus UI mode: a Focus pill in the player's bottom row, a minimal top row (Focus/Done), a live "the record ends around" status, and an end card with both "Play it again" and "Back to your queue" per the approved frame.
+
+### FS11: Library tools in the library (#296)
+
+Added "Library tools ›" as a second row under Select in the library's "···" overflow menu — tapping it grows the same menu element in place into the full Library tools panel, replacing wherever those tools lived before.
+
+### FS12: the Sundown sheet (#297)
+
+Day/Sound views restyled per frames 19-20: a phase/trend/rate eyebrow row replacing the old title, sentence-case sunrise/sunset labels, fixed noon/midnight ticks added alongside the existing sun-driven sunrise/sunset ticks, the Sound view's sections reordered and an EQ row added, Vinyl-off dims everything below the Vinyl toggle. Behaviour, prefs and the dial gesture unchanged — look and wording only, per the spec's own framing.
+
+### FS13: library, everywhere else (#298)
+
+Songs/Artists/Playlists rows, artist/Connected shelf headings, the Edit sheet, search, import/duplicates/delete and the select mode bar restyled to the system (Archivo 16/500 titles + 14 muted secondary on rows, Antonio 20 shelf headings, `--field` with a 1px edge on form fields, pill-shaped select-bar buttons, `.cta.danger` for destructive actions). Most other spec bullets were already compliant from earlier TY/RF/CR/QC work, confirmed by grep rather than re-touched.
+
+### FS14: profile, records and social, everywhere else (#299)
+
+Records/Pressings letter dividers and shelf headings to Antonio 20, the rhythm card's verdict no longer forced into caps, friend's-crate activity rows and the home feed to plain Archivo, Account settings row labels, Legal screens to a 34em measure at Archivo 16/1.5, and the sign-in sheet's corner radius/field labels matched to FS12/FS13.
+
+### FS15: player sheets and overlays, everywhere else (#300)
+
+Queue, EQ sheet, share sheet, sleep timer, mini-player and the pull-to-refresh indicator restyled per the spec. Surfaced (not fixed, out of scope for a restyle PR) a pre-existing bug: the player's "···" overflow menu renders off-screen to the left whenever a track has no side label, since `.now-top-row`'s `justify-content:space-between` collapses with only one visible child — left for a dedicated fix PR if Ken wants one.
+
+### FS16: launch, desktop and the rest (#301)
+
+Launch intro, desktop layout (sidebar, player side panel) in both light and dark theme, wear/picture-sleeve/sealed-film surfaces, empty/first-run states and toasts restyled, plus a sweep for any remaining stragglers (literal colors instead of tokens, sub-12px mono sizes on plain UI controls) not named by an earlier FS step. Last implementation PR of the plan.
+
+### FS17: the sweep (cleanup only, no behaviour or visual change)
+
+Runs once FS0-FS16 have all merged. A uniformity pass across every FS5-FS16 route/sheet/overlay at phone and desktop widths, both themes, plus dead-code cleanup: orphaned `id`s in `miziki.html`, dead CSS selectors, dead design tokens, and a check that the plan's old literal values (the pre-FS1 amber hex, old class/id names, "NO STREAMING," literal On/Off segment text) are gone from live code. See this PR's own description for the specific counts and what was found.

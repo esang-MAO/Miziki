@@ -95,9 +95,9 @@
   --fs-numeral:64px; --lh-numeral:1;
 
   --fs-micro:var(--fs-caption);   --lh-micro:var(--lh-caption);
-  --fs-label:var(--fs-caption);   --lh-label:var(--lh-caption);
-  --fs-head:var(--fs-hero);       --lh-head:var(--lh-hero);
-  --fs-display:var(--fs-giant);   --lh-display:var(--lh-giant);
+  --fs-label:var(--fs-caption);
+  --fs-head:var(--fs-hero);
+  --fs-display:var(--fs-giant);
 
   /* TY1: the three tracking values every caps/Antonio rule in the app
      picks from -- see CLAUDE.md's "Tracking follows size" rule. No other
