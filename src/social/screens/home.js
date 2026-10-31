@@ -3,6 +3,10 @@ import { S } from '../../state.js';
 import { storeAwning, storeRequestsCard } from '../../profile/storefront.js';
 import { feedEventText } from './feed-text.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
+// FS9 (docs/25_FROM_SCRATCH.md point 1): "a small disc with the record's
+// pressing colour" -- import-free (see its own header), so pulling it in
+// here costs this file nothing new to mock.
+import { PHASE_COLOR } from '../../profile/rhythm-card.js';
 // Real circular import with profile/settings.js (the same shape as
 // engine.js/transport.js) -- settings.js already imports renderHome/
 // clearHomeFeedCache back from this file. Used only inside a click
@@ -67,37 +71,59 @@ export function updateHomeTabVisibility(){
 }
 
 /* ---- Home tab: feed, people search, now-spinning, follow requests ---- */
-export function groupFeedEvents(events){
-  const groups = [];
+
+// FS9 (docs/25_FROM_SCRATCH.md point 2): one sleeve tile per event --
+// "added by …"/"pinned by …" read straight off the event's own type;
+// anything else (a rating, a sleeve note with no pin, a rare-pressing
+// unlock) falls back to feedEventText()'s own phrase, read aloud rather
+// than captioned as "by handle". A pinned record's note comes from a
+// same-release 'review' feed_events row elsewhere in this same batch --
+// one crate_items row can produce both a 'pinned' row (payload '{}') and
+// a 'review' row (payload {rating, note}) for the identical release
+// (001_schema.sql's own trigger), so the two combine into the one tile
+// the spec asks for ("a pinned record with a sleeve note shows it as a
+// Caveat slip on the sleeve") instead of showing twice. Pure/exported,
+// same reasoning as groupFeedEvents() before it (replaced outright --
+// the old per-actor text list doesn't fit a tile grid).
+export function buildFeedTiles(events){
+  const notes = new Map();
   events.forEach(e => {
-    const last = groups[groups.length - 1];
-    if(last && last.actor_id === e.actor_id) last.events.push(e);
-    else groups.push({actor_id: e.actor_id, actor_handle: e.actor_handle, actor_name: e.actor_name, events: [e]});
+    if(e.type === 'review' && e.payload && e.payload.note){
+      notes.set(e.actor_id + '|' + e.release_id, e.payload.note);
+    }
   });
-  return groups;
+  return events.map(e => {
+    const handle = e.actor_handle || e.actor_name || '';
+    const caption = e.type === 'added' ? ('added by ' + handle)
+      : e.type === 'pinned' ? ('pinned by ' + handle)
+      : feedEventText(e);
+    const note = e.type === 'pinned' ? (notes.get(e.actor_id + '|' + e.release_id) || null) : null;
+    return { key: e.id, title: e.title || 'a record', caption, note, actor_handle: e.actor_handle };
+  });
 }
 
-function homeFeedGroupCard(group){
-  const card = el('div','store-card');
-  card.classList.add('home-feed-card');
-  const head = el('div','store-card-text home-feed-head');
-  head.appendChild(el('b', null, group.actor_name || group.actor_handle));
-  card.appendChild(head);
-  const shown = group.events.slice(0, 3);
-  shown.forEach(e => card.appendChild(el('div','store-activity-row', feedEventText(e))));
-  if(group.events.length > shown.length){
-    const more = el('div','store-activity-row home-feed-more', '+' + (group.events.length - shown.length) + ' more');
-    card.appendChild(more);
+function homeFeedTile(t){
+  const tile = el('div','store-pick home-feed-tile');
+  tile.appendChild(el('div','store-pick-cover'));
+  tile.appendChild(el('div','store-pick-name', t.title));
+  tile.appendChild(el('div','home-feed-caption', t.caption));
+  if(t.note){
+    const note = el('div','store-pick-note');
+    note.appendChild(el('div','store-pick-sleeve-note', t.note));
+    tile.appendChild(note);
   }
   // TR2 (docs/19_PLAYER.md): friend-store.js is real weight the home feed
-  // itself never needs until a card is actually tapped -- dynamically
-  // imported here and at this file's other two openFriendStore call
-  // sites below, same pattern as src/wiring/share.js.
-  card.addEventListener('click', async ()=> {
-    const { openFriendStore } = await import('./friend-store.js');
-    openFriendStore(group.actor_handle);
-  });
-  return card;
+  // itself never needs until a tile is actually tapped -- dynamically
+  // imported here and at this file's other openFriendStore call sites,
+  // same pattern as src/wiring/share.js.
+  if(t.actor_handle){
+    tile.classList.add('home-feed-tap');
+    tile.addEventListener('click', async ()=> {
+      const { openFriendStore } = await import('./friend-store.js');
+      openFriendStore(t.actor_handle);
+    });
+  }
+  return tile;
 }
 
 function homePeopleSearch(container){
@@ -154,7 +180,7 @@ function homeNowSpinningRow(container){
   section.style.display = 'none';
   const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Now spinning'));
   section.appendChild(head);
-  const row = el('div','store-picks-row');
+  const row = el('div','home-spin-list');
   row.id = 'homeSpinRow';
   section.appendChild(row);
   container.appendChild(section);
@@ -166,34 +192,42 @@ function homeNowSpinningRow(container){
     paintHomeSpinRow();
   });
 }
+// FS9 (docs/25_FROM_SCRATCH.md point 1): a vertical list of rows -- a
+// small disc, the title, a muted "handle · …" subline -- replacing the
+// old horizontal "♪ SPINNING" card row. The realtime now_spinning payload
+// (miziki-social.js's subscribeNowSpinning()) carries no pressing/variant
+// or side (A/B) for a *friend's* spin -- only release title/artist and
+// the DA6 day-arc phase it started in -- so the disc is tinted by that
+// phase (profile/rhythm-card.js's own PHASE_COLOR, already the dial's
+// color for "what phase was this") rather than a pressing colour that
+// isn't there to read, and the subline reuses the same phase wording
+// ("at dusk") the spec's literal "side B" example would have sat next to.
 function paintHomeSpinRow(){
   const section = $('#homeSpinSection'); if(!section) return;
   const row = $('#homeSpinRow'); row.innerHTML = '';
   const entries = [...homeSpinState.values()];
   section.style.display = entries.length ? '' : 'none';
   entries.forEach(evt => {
-    const tile = el('div','store-pick');
-    const cover = el('div','store-pick-cover');
-    cover.classList.add('home-spin-cover');
-    cover.textContent = '♪ SPINNING';
-    tile.appendChild(cover);
-    const note = el('div','store-pick-note');
-    note.appendChild(el('div','store-pick-name', (evt.release && evt.release.title) || evt.track || 'Now spinning'));
-    const artist = (evt.release && evt.release.artist) || '';
+    const item = el('div','home-spin-row');
+    const disc = el('div','home-spin-disc');
+    disc.style.background = PHASE_COLOR[evt.phase] || PHASE_COLOR.midday;
+    item.appendChild(disc);
+    const text = el('div','home-spin-text');
+    text.appendChild(el('div','home-spin-title', (evt.release && evt.release.title) || evt.track || 'Now spinning'));
+    const handle = homeFollowingHandles.get(evt.userId);
     // DA6 (docs/DAY_ARC.md): the phase wording ("at dusk") the publisher's
     // own set_now_spinning call sent -- never a clock time or location.
     const wording = spinPhaseWording(evt.phase);
-    note.appendChild(el('div', null, wording ? [artist, wording].filter(Boolean).join(' · ') : artist));
-    tile.appendChild(note);
-    const handle = homeFollowingHandles.get(evt.userId);
+    text.appendChild(el('div','home-spin-sub', [handle, wording].filter(Boolean).join(' · ')));
+    item.appendChild(text);
     if(handle){
-      tile.classList.add('home-spin-tap');
-      tile.addEventListener('click', async ()=> {
+      item.classList.add('home-spin-tap');
+      item.addEventListener('click', async ()=> {
         const { openFriendStore } = await import('./friend-store.js');
         openFriendStore(handle);
       });
     }
-    row.appendChild(tile);
+    row.appendChild(item);
   });
 }
 
@@ -258,30 +292,21 @@ export function homeBannerStateAt(nowMs, sun){
   return (nowMs >= riseT && nowMs < setT) ? 'morning' : 'caughtUp';
 }
 
-function fmtClock12(date){
-  const h24 = date.getHours(), m = date.getMinutes();
-  const h12 = h24 % 12 || 12;
-  return h12 + ':' + String(m).padStart(2, '0');
-}
-
-// paintHomeBanner(fetchedAt) -> the morning/caught-up card above the feed
-// (HomeMorning/HomeEvening frames, docs/design/rhythm-wear/), or clears
-// the host outside both states.
-function paintHomeBanner(fetchedAt){
+// paintHomeBanner(fetchedAt) -> the caught-up line below the feed (frame
+// `12-after-dark-home`), or clears the host outside that state. FS9 point
+// 3: "plain Archivo 14 muted" -- the old two-state card (a morning
+// "Updated this morning · time" banner plus a dashed caught-up card) is
+// gone; the section heading below ("This morning") already says when
+// this is, so the morning state needs no banner of its own, and the
+// caught-up state (most of the day, once sunset's passed -- this file's
+// own RW2 fetch gate keeps the feed's *data* on its once-a-day schedule
+// regardless) is now just the one line the spec asks for.
+function paintHomeBanner(_fetchedAt){
   if(!bannerHolderEl) return;
   bannerHolderEl.innerHTML = '';
   const state = homeBannerStateAt(Date.now(), S.sun);
-  if(state === 'morning'){
-    const card = el('div','home-feed-banner');
-    const when = fetchedAt ? fmtClock12(new Date(fetchedAt)) : (S.sun && S.sun.rise ? fmtClock12(S.sun.rise) : '');
-    card.appendChild(el('span','home-feed-banner-kicker', 'Updated this morning' + (when ? ' · ' + when : '')));
-    card.appendChild(el('p', null, 'Everything your friends added since yesterday. Home updates once a day.'));
-    bannerHolderEl.appendChild(card);
-  } else if(state === 'caughtUp'){
-    const card = el('div','home-feed-banner home-feed-banner-caughtup');
-    card.appendChild(el('span','home-feed-banner-title', "You're all caught up"));
-    card.appendChild(el('span','home-feed-banner-sub', 'New activity shows up tomorrow morning.'));
-    bannerHolderEl.appendChild(card);
+  if(state === 'caughtUp'){
+    bannerHolderEl.appendChild(el('p','home-feed-caughtup', "You're caught up."));
   }
 }
 
@@ -293,11 +318,11 @@ function paintRequests(reqs){
   }
 }
 
-// Builds the feed's own rendered list straight from `events`, in the exact
-// order given — this file never reorders them itself, so repainting the
-// same events (nothing new since the last refresh) always draws the same
-// order. groupFeedEvents() is pure/exported for this reason, so a test can
-// check that ordering claim without touching the DOM at all.
+// Builds the feed's own rendered tile grid straight from `events`, in the
+// exact order given — this file never reorders them itself, so repainting
+// the same events (nothing new since the last refresh) always draws the
+// same order. buildFeedTiles() is pure/exported for this reason, so a test
+// can check that ordering claim without touching the DOM at all.
 function paintFeed(events){
   if(!feedHolderEl) return;
   feedHolderEl.innerHTML = '';
@@ -305,7 +330,9 @@ function paintFeed(events){
     feedHolderEl.appendChild(el('p','store-loading','Nothing yet — follow some friends to see what they’re up to.'));
     return;
   }
-  groupFeedEvents(events).forEach(g => feedHolderEl.appendChild(homeFeedGroupCard(g)));
+  const grid = el('div','home-feed-grid');
+  buildFeedTiles(events).forEach(t => grid.appendChild(homeFeedTile(t)));
+  feedHolderEl.appendChild(grid);
 }
 
 // Builds #homeBody's own static shell once per sign-in: the people-search
@@ -323,9 +350,16 @@ function buildHomeShell(container){
   container.appendChild(requestsHolderEl);
   homeNowSpinningRow(container);
   const feedSection = el('div','store-section');
-  const feedHead = el('div','store-section-head');
-  feedHead.appendChild(el('h2', null, 'Activity'));
-  feedHead.appendChild(el('span','home-feed-today', 'Today'));
+  // FS9 (docs/25_FROM_SCRATCH.md point 2): "heading Antonio 20 +
+  // 'from friends' muted" -- #homeBody .store-section-head h2's own
+  // tabs-design-unify override (25-day-arc-v2.css) drops every section
+  // heading in this tab to the small mono label Settings/Library tools
+  // use; .home-section-head--display opts this one heading back into the
+  // display treatment the spec asks for, without touching "Now spinning"
+  // above, which the spec leaves alone.
+  const feedHead = el('div','store-section-head home-section-head--display');
+  feedHead.appendChild(el('h2', null, 'This morning'));
+  feedHead.appendChild(el('span','home-feed-kicker', 'from friends'));
   feedSection.appendChild(feedHead);
   bannerHolderEl = el('div');
   feedSection.appendChild(bannerHolderEl);
