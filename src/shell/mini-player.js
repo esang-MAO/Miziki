@@ -66,7 +66,9 @@ export function renderMiniPlayer(){
   const resuming = S.resumePending && !S.playing;
   mini.classList.toggle('resuming', resuming);
   if(resuming && t.duration){
-    $('#miniArtist').textContent = 'PAUSED AT ' + fmt(S.pos) + ' OF ' + fmt(t.duration);
+    // FS15 (docs/25_FROM_SCRATCH.md): sentence case, not the all-caps
+    // "PAUSED AT 2:14 OF 4:31" AU1's own mockup copy used.
+    $('#miniArtist').textContent = 'Paused at ' + fmt(S.pos) + ' of ' + fmt(t.duration);
     const bar = $('#miniProgressBar');
     if(bar) bar.style.width = clamp(S.pos / t.duration, 0, 1) * 100 + '%';
   } else {

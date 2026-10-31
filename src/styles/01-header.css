@@ -88,6 +88,10 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
 .overflow-menu.open{display:flex}
 .overflow-menu-row{display:flex;align-items:center;width:100%;min-height:48px;text-align:left;padding:0 10px;border-radius:6px;
   font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--paper)}
+/* FS15 (docs/25_FROM_SCRATCH.md): "remaining time Archivo tabular" --
+   #sleepTimerBtn is this same row style; its own digits ("Sleep: 15 min")
+   just need tabular figures, not a separate rule. */
+#sleepTimerBtn{font-variant-numeric:tabular-nums}
 .overflow-menu-row:active{background:var(--sel)}
 /* RF21 (docs/12_REFINE.md): the one menuitemcheckbox row in this menu
    (player "···" -> "Don't share this session") -- a plain circle that

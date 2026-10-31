@@ -108,6 +108,12 @@ input[type=file]{display:none}
 .tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .tracklist .t-idx{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:18px}
 .tracklist li[aria-current="true"] .t-idx{color:var(--cream)}
+/* FS15 (docs/25_FROM_SCRATCH.md): "the current track marked by weight and
+   a small disc, not amber" -- the queue's own current-track row (it has
+   no .t-idx to tint, unlike Songs' list rows just above), a small cream
+   dot rather than a new art treatment. */
+.tracklist li.queue-current::after{content:'';width:8px;height:8px;border-radius:50%;
+  background:var(--cream);flex:0 0 auto;margin-left:var(--sp-2)}
 .note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
 .warn{color:#FFB4A2}
 

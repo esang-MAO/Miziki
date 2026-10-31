@@ -720,7 +720,7 @@ export function renderQueueSheet(host){
   const curIdx = S.queue[S.qpos];
   const curT = S.tracks[curIdx];
   if(curT){
-    const li = el('li'); li.setAttribute('aria-current','true');
+    const li = el('li','queue-current'); li.setAttribute('aria-current','true');
     queueRowArt(curT, li);
     const name = el('span','t-name');
     name.appendChild(el('b', null, curT.tags.title));
