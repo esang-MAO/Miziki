@@ -82,9 +82,22 @@
 .platter-stage.putaway-out .sleeve{animation:putawaySleeveOut var(--putaway-out-duration,600ms) ease-in forwards}
 
 .now{text-align:center;margin-top:22px}
-.now-title-row{display:flex;align-items:center;justify-content:center;gap:var(--sp-1)}
-.now h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:.03em;margin:0 0 var(--sp-1);
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* FS5 (docs/25_FROM_SCRATCH.md point 1): the top row sits above the title
+   now -- the kicker left, #playerOverflowBtn right. */
+.now-top-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-1);margin-bottom:var(--sp-1)}
+/* FS4's kicker style ("Side A", --muted, caps, --track-caps); :empty hides
+   it outright when there's no side to show (Sides off, or no album). */
+.now-kicker{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted)}
+.now-kicker:empty{display:none}
+/* title row is just the title now -- Credits/notes, Favorite and Share
+   moved into the overflow menu (point 1). */
+.now-title-row{display:flex;align-items:center;justify-content:center}
+/* FS5 point 3: Antonio 44 (--fs-giant, was the one-release --fs-head
+   alias onto --fs-hero), tracking 0 (was .03em), text-wrap:balance so a
+   two-line title breaks evenly rather than leaving one lonely word. */
+.now h2{font-family:var(--display);font-weight:600;font-size:var(--fs-giant);letter-spacing:0;margin:0 0 var(--sp-1);
+        text-wrap:balance;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .now .spec{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
 /* PL8 item 10 (docs/19_PLAYER.md): #trackSpec alone is tappable (its own
    Untouched/Converted/Shaped state) -- #trackSpecPhase, the sibling .spec
@@ -97,18 +110,36 @@
 .format-chip{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
   color:var(--cream);margin-top:2px}
 .format-chip:empty{display:none}
+
+/* FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row -- phase pill
+   left, Focus pill + queue icon right. */
+.now-bottom-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-top:var(--sp-4)}
+/* --accent-text, not raw --amber: this is actual small text on the sky
+   background, and plain --amber doesn't clear 4.5:1 there at this size
+   (tests/unit/contrast.test.js) -- --accent-text is the amber family's
+   own small-text-safe variant, same reasoning RF12 already gives it
+   everywhere else amber-family text sits under 18px. */
+.now-phase-pill{display:flex;align-items:center;gap:6px;color:var(--accent-text);
+  font-family:var(--body);font-size:var(--fs-body);font-weight:500}
+.now-phase-glyph{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.now-bottom-right{display:flex;align-items:center;gap:var(--sp-2)}
+/* FS10 (docs/25_FROM_SCRATCH.md) wires this; drawn disabled-hidden here. */
+.now-focus-pill{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+
+/* FS5 point 8: "after dark" -- night only, the player's own cream/muted
+   dim and the label loses ~20% brightness. A local override of the two
+   tokens, not a new entry in player/clock.js's own mutedGradientStops()
+   blend (which this leaves completely alone) -- everything under the
+   overlay that already reads var(--cream)/var(--muted) picks this up for
+   free, the same "redefine the token locally" approach the theme-
+   transition rule elsewhere in this app already uses. */
+.player-overlay[data-phase="night"]{--cream:#DCD6CC;--muted:#A39A90}
+.player-overlay[data-phase="night"] .label{filter:brightness(.8)}
+
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;
   font-size:var(--fs-row);color:var(--muted);margin-bottom:var(--sp-1)}
-/* RF12 (docs/12_REFINE.md, point 1): a hardcoded literal equal to --amber's
-   own dark-mode hex, not a var() reference -- missed by the original
-   grep-for-var(--accent) sweep and caught instead by the point-4 contrast
-   test, since it never adapted for light theme at all (1.83:1 there). This
-   is a filled heart glyph under 24px, the same icon-as-text category
-   .icon-btn's own color:var(--muted) already uses, so it gets the same
-   --accent-text treatment as every other sub-24px text/glyph use. */
-.heart-btn[aria-pressed="true"]{color:var(--cream)}
-.heart-btn.pop{animation:heartPop .35s ease}
-@keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
 
 /* RW3 (docs/23_RHYTHM_AND_WEAR.md): "This record only" -- a switch card
    under the title, distinct from a plain settings .row (background

@@ -280,6 +280,10 @@ export function updateRecordOnlyUI(){
   // not stomp on each other.
   const queueBtn = $('#queueBtn');
   if(queueBtn) queueBtn.classList.toggle('record-only-hidden', S.recordOnly);
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own queue
+  // icon follows the same record-only hide.
+  const playerQueueBtn = $('#playerQueueBtn');
+  if(playerQueueBtn) playerQueueBtn.classList.toggle('record-only-hidden', S.recordOnly);
 }
 
 export function toggleRecordOnly(){

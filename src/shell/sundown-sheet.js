@@ -1,10 +1,12 @@
 /* ================= Sundown sheet (RF26, docs/12_REFINE.md) =================
    Sundown stopped being a tab-bar route in this step — its Day/Sound
    content (DA3/RF9's own, byte-for-byte unchanged markup and wiring,
-   src/wiring/sundown.js) now lives in a sheet opened from any of four
+   src/wiring/sundown.js) now lives in a sheet opened from any of five
    places: the sun knob on the platter (#sunKnob), the sun button on the
    mini-player (#miniSunBtn), the desktop sidebar's own Sundown summary
-   (#sidebarSundown), and Settings › Sundown (src/profile/screens.js).
+   (#sidebarSundown), the full player's own phase pill (#nowPhasePill,
+   FS5, docs/25_FROM_SCRATCH.md point 6), and Settings › Sundown
+   (src/profile/screens.js).
 
    Registered with the NV2 layer stack (src/shell/nav-stack.js) the same
    way every other sheet in the app is — Back/Escape/the scrim all close
@@ -132,6 +134,10 @@ export function wireSundownSheetEntryPoints(){
   // so the same open call works for both.
   const sidebarCard = $('#sidebarSundown');
   if(sidebarCard) sidebarCard.addEventListener('click', () => openSundownSheet());
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own sun
+  // icon + phase word, a fifth way in alongside the four above.
+  const phasePill = $('#nowPhasePill');
+  if(phasePill) phasePill.addEventListener('click', () => openSundownSheet());
   wireSundownSheetClose();
   wireSundownSheetDrag();
 }

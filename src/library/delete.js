@@ -122,6 +122,7 @@ export async function deleteTracks(idsToDelete){
       MizikiSocial.stopSpinning();
       $('#trackName').textContent = 'Nothing on the platter';
       $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
+      $('#nowSideKicker').textContent = '';
       $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
       $('#labelTitle').textContent = '';
       applyDeadWaxEtching(null, '');
@@ -133,6 +134,7 @@ export async function deleteTracks(idsToDelete){
       $('#platterBox').classList.add('disc-hidden');
       $('#playerShareIconBtn').style.display = 'none';
       $('#queueBtn').style.display = 'none';
+      $('#playerQueueBtn').style.display = 'none';
       $('#sleepTimerBtn').style.display = 'none';
       $('#trackInfoBtn').style.display = 'none';
       $('#playerFavBtn').style.display = 'none';
@@ -194,6 +196,7 @@ export async function forgetLibrary(){
   // were — see this function's own header comment
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
+  $('#nowSideKicker').textContent = '';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   $('#labelTitle').textContent = '';
   applyDeadWaxEtching(null, '');
@@ -207,6 +210,7 @@ export async function forgetLibrary(){
   $('#platterBox').classList.add('disc-hidden');
   $('#playerShareIconBtn').style.display = 'none';
   $('#queueBtn').style.display = 'none';
+  $('#playerQueueBtn').style.display = 'none';
   $('#sleepTimerBtn').style.display = 'none';
   $('#trackInfoBtn').style.display = 'none';
   $('#playerFavBtn').style.display = 'none';

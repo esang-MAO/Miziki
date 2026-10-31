@@ -55,12 +55,6 @@ export function wireTransport(){
   });
   wireSpinToScrub();
 
-  // CEREMONY (docs/CEREMONY.md, §1): one toggle, not a two-button group —
-  // flips between the two modes through the same setMode() either button
-  // used to call. A real switch (role="switch" in the markup), so Space/
-  // Enter on the focused button already toggles it, same as a click.
-  $('#modeToggle').addEventListener('click', ()=>{ setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
-
   // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own prev/next/
   // seek/mode controls — new ids (miziki.html), hidden below 1024px, but
   // wired unconditionally here since a hidden button's own listener

@@ -17,6 +17,11 @@ export function wireOverlays(){
   $('#lookBtn').addEventListener('click', openLookPicker);
   $('#queueBtn').addEventListener('click', openQueueSheet);
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own queue
+  // icon -- same opener, same hidden-until-a-track-loads rule as
+  // #queueBtn (player/transport.js's load()/library/delete.js/
+  // shell/runout.js all toggle both together).
+  $('#playerQueueBtn').addEventListener('click', openQueueSheet);
   $('#queueClose').addEventListener('click', () => closeLayer('queue'));
   // AU8 (docs/16_AUDIO.md §6): the queue sheet's own header action and its
   // shared undo toast — Clear Upcoming's own button is rendered fresh by
