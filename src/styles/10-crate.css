@@ -305,15 +305,28 @@
    record (dividers still render straight into .crate-info, untouched) —
    cream stock, a 4px aubergine head rule, --sh-1. */
 .crate-catalog-card{position:relative;background:var(--stock-card);color:#2A1B38;border-radius:2px;
-  box-shadow:var(--sh-1);padding:10px var(--sp-3) var(--sp-3);overflow:hidden}
+  box-shadow:var(--sh-1);padding:var(--sp-2) var(--sp-3);overflow:hidden}
 .crate-catalog-rule{position:absolute;top:0;left:0;right:0;height:4px;background:#2A1B38}
 .crate-catalog-body{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-3)}
-/* FS6 (docs/25_FROM_SCRATCH.md point 5): title Antonio 28 (up from 20);
+/* FS6 (docs/25_FROM_SCRATCH.md point 5) set title Antonio 28 (up from 20);
    artist Archivo 16/500 (up from an unweighted 14); "Label · Year ·
    Format" Archivo 13 in the paper's own muted #5E534B, not mono -- this
    line names the pressing in words, it isn't a readout off the record
-   like the dead-wax/EQ mono whitelist's own items. */
-.crate-catalog-card h3{font-family:var(--display);font-weight:700;font-size:var(--fs-hero);margin:0 0 2px;letter-spacing:.02em}
+   like the dead-wax/EQ mono whitelist's own items.
+   Ken, 2026-10-31: a long title at that size (plus this card's own
+   padding) grew tall enough to eat into applyCrateMiniInset()'s
+   (crate/view.js) available-height budget, clipping the front record's
+   own cover in .crate-stage above -- on a long enough title, or a short
+   enough screen, right out of view. One step back down to --fs-title
+   (20px, below --track-display's own 28px floor, so the hero-only
+   tracking token comes off too), this card's own tighter padding (10px
+   top -> --sp-2, --sp-3 bottom -> --sp-2), and a 2-line clamp on the
+   title itself (the same pattern storefront.js's own activity text and
+   the library sleeve's own title already use) together bound this
+   card's height regardless of how long a given album's title is, so the
+   stage can't be starved down to nothing by one unusually long one. */
+.crate-catalog-card h3{font-family:var(--display);font-weight:700;font-size:var(--fs-title);line-height:var(--lh-title);margin:0 0 2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .crate-catalog-card .crate-info-sub{font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:#2A1B38;margin:0 0 4px}
 .crate-catalog-card .crate-info-meta{font-family:var(--body);font-size:13px;letter-spacing:0;color:#5E534B}
 .crate-catalog-card .crate-now-chip{color:#2A1B38;border-color:#2A1B38;background:rgba(42,27,56,.08)}
