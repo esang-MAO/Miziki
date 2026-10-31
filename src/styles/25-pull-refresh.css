@@ -62,15 +62,17 @@
    desktop" rule). In normal document flow now, not floating over the
    route's own content -- the RF11 fix for the overlap this used to have
    with whatever sat at the top of the route. */
+/* FS16: was mono (--data) at a literal 11px -- a UI button, not an object,
+   so it takes the plain voice and the type floor (--fs-caption, 12px). */
 .route-refresh-btn{
   display: block;
   margin: 10px var(--sp-4) 0 auto;
   background: none;
   border: 1px solid var(--line);
   color: var(--muted);
-  font-family: var(--data);
-  font-size: 11px;
-  letter-spacing: .06em;
+  font-family: var(--body);
+  font-size: var(--fs-caption);
+  font-weight: 500;
   border-radius: 4px;
   padding: 7px var(--sp-3);
   /* hidden until keyboard focus (still reachable by Tab and screen readers) */

@@ -115,7 +115,9 @@ input[type=file]{display:none}
 .tracklist li.queue-current::after{content:'';width:8px;height:8px;border-radius:50%;
   background:var(--cream);flex:0 0 auto;margin-left:var(--sp-2)}
 .note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
-.warn{color:#FFB4A2}
+/* FS16: was a literal hex (#FFB4A2) that never reacted to theme -- the
+   token token every other destructive/warning surface already uses. */
+.warn{color:var(--danger)}
 
 /* AU10 (docs/16_AUDIO.md §5, png/06-EditSpeed.png): the resolved format's
    own small disc + "7″ SINGLE · 45 RPM" + one-line description -- written

@@ -184,8 +184,10 @@
     background:var(--line);box-shadow:inset 0 0 0 1px var(--line);transition:background .15s}
   .mode-toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
     background:var(--paper);transition:left .15s}
-  .mode-toggle-text{font-family:var(--display);font-size:var(--fs-caption);letter-spacing:.06em;font-weight:600;
-    text-transform:uppercase;min-width:44px;text-align:left}
+  /* FS16: was Antonio caps -- a state label ("Vinyl"/"Pure"), not a
+     kicker, so it takes the plain voice like every other switch label. */
+  .mode-toggle-text{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
+    min-width:44px;text-align:left}
   .mode-toggle-track-sm{width:36px;height:20px;border-radius:10px}
   .mode-toggle-thumb-sm{width:14px;height:14px;top:3px;left:3px}
   /* fixed along with the move: the checked-state rules were previously
@@ -400,14 +402,22 @@
     display:flex;flex-direction:column;flex:0 0 320px;min-width:0;
     height:100%;padding-left:var(--sp-5);border-left:1px solid var(--line);
   }
-  .player-side-tabs{display:flex;gap:6px;margin-bottom:14px;flex:0 0 auto}
+  /* FS16: was a caps/Antonio outlined-border tab row, the pre-FS12 segmented
+     look; matches the one shared "pick one of N" segmented-control style
+     every other tablist in the app now uses (25-day-arc-v2.css's
+     .sd-tabs/.sd-preset-seg/etc — cream fill on the selected segment,
+     plain Archivo, no caps), rather than reusing those classes directly
+     since this group lives in a different file/context. */
+  .player-side-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    background:var(--panel);margin-bottom:14px;flex:0 0 auto;gap:0}
   .player-side-tab{
-    flex:1 1 auto;border:1px solid var(--line);border-radius:3px;padding:var(--sp-2) 6px;
-    background:transparent;color:var(--muted);font-family:var(--display);
-    font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+    min-height:40px;border:0;background:transparent;color:var(--paper);cursor:pointer;
+    font-family:var(--body);font-size:var(--fs-caption);font-weight:500;padding:var(--sp-1) 6px;
   }
-  .player-side-tab[aria-selected="true"]{border-color:var(--cream);color:var(--cream)}
-  .player-side-tab:hover,.player-side-tab:focus-visible{color:var(--paper)}
+  .player-side-tab[aria-selected="true"]{background:var(--cream);color:var(--on-accent);font-weight:600}
+  .player-side-tab:not([aria-selected="true"]):hover,
+  .player-side-tab:not([aria-selected="true"]):focus-visible{color:var(--paper)}
   .player-side-body{flex:1 1 auto;overflow-y:auto;min-height:0}
 
   /* the side panel's own "Up next" tab is always visible whenever Now
