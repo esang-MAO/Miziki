@@ -659,7 +659,9 @@ function renderTracksBody(host){
   // own updateCrateGroupToggleUI()) is what turns this back on when
   // S.view.mode is actually 'crate'. Since RF8 (docs/12_REFINE.md), this is
   // the one home for crate grouping on every platform, not desktop-only.
-  $('#crateGroupToggleTab').style.display = 'none';
+  // FS6 (docs/25_FROM_SCRATCH.md point 2): the chip now lives inside
+  // #crateSortRow, so hiding that row is what hides the whole line.
+  $('#crateSortRow').style.display = 'none';
   if(!S.tracks.length){ setPathNote(); return; }
 
   // a live search takes over the whole body, grouped by type, regardless
