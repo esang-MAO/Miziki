@@ -283,7 +283,11 @@ function updateCrateGroupToggleUI(){
   // (crate mode's own re-render hook) that turns it back on.
   const tabToggle = $('#crateGroupToggleTab');
   if(tabToggle){
-    tabToggle.style.display = 'inline-flex';
+    // FS6 (docs/25_FROM_SCRATCH.md point 2): the chip's row is shown/hidden
+    // as a unit now (it also carries #crateRecordCount) rather than the
+    // chip alone.
+    const sortRow = $('#crateSortRow');
+    if(sortRow) sortRow.style.display = 'flex';
     const label = CRATE_GROUP_LABELS[S.crateGroup] || CRATE_GROUP_LABELS.az;
     $('#crateGroupCycleLabel').textContent = label;
     const next = CRATE_GROUP_LABELS[nextCrateGroup(S.crateGroup, hasGenres)];
@@ -344,6 +348,14 @@ function renderCrateFlat(host, model){
     }));
     listSlot.innerHTML = '';
     renderFlatList(listSlot, model, model.sections[activeIdx]);
+    // FS6 (docs/25_FROM_SCRATCH.md point 2): the shared sort-row's count
+    // (#crateRecordCount) is now outside this view's own markup, so the
+    // reduced-motion flat list has to keep it current too, same as the 3D
+    // stage's updateHeaderLeft() does on every section switch.
+    const section = model.sections[activeIdx];
+    const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
+    const countEl = $('#crateRecordCount');
+    if(countEl) countEl.textContent = count + (count === 1 ? ' record' : ' records');
   }
   renderList();
 }
@@ -587,16 +599,18 @@ export function renderCrate(host){
   // are in the bin and how it's grouped, and the (restyled) now-playing
   // indicator on the right, as plain phase-coloured text rather than a
   // bordered pill.
+  // FS6 (docs/25_FROM_SCRATCH.md point 2): "N records" now lives in the
+  // static sort row above the stage (#crateRecordCount, next to the sort
+  // chip) rather than as a header child here — this header holds only the
+  // now-playing indicator. CR14 (docs/14_CRATE_SECTIONS.md PR 2): the count
+  // is the active section's own record count, not the whole crate's —
+  // updateHeaderLeft() recomputes it on every section switch.
   const header = el('div','crate-header');
-  const groupLabel = model.group === 'genre' ? 'Genre' : model.group === 'decade' ? 'Decade' : 'A–Z';
-  // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the count is the active
-  // section's own record count, not the whole crate's — updateHeaderLeft()
-  // recomputes it on every section switch.
-  const headerLeft = el('div','crate-header-left');
   function updateHeaderLeft(){
     const section = curSection();
     const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
-    headerLeft.textContent = count + (count === 1 ? ' record' : ' records') + ' · ' + groupLabel;
+    const countEl = $('#crateRecordCount');
+    if(countEl) countEl.textContent = count + (count === 1 ? ' record' : ' records');
   }
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
@@ -610,7 +624,7 @@ export function renderCrate(host){
     if(targetSectionIdx >= 0 && targetSectionIdx !== activeSectionIdx) switchToSectionIndex(targetSectionIdx);
     snapTo(nowPlayingIdx);
   });
-  header.appendChild(headerLeft); header.appendChild(nowPlayingBtn);
+  header.appendChild(nowPlayingBtn);
   // CR14: previous/next section arrows, section name, one dot per section
   // — above the stage, kept in sync (which arrows are enabled, which dot
   // is current) by refreshSectionHeaderUI() on every section switch.
@@ -714,7 +728,28 @@ export function renderCrate(host){
       const art = item.kind === 'bin' ? dividerArtEl(item.key) : null;
       if(art){ art.setAttribute('aria-label', item.label); label.appendChild(art); label.classList.add('crate-divider-label-art'); }
       else label.textContent = item.label;
-      const meta = document.createElement('div'); meta.className = 'crate-divider-meta'; meta.textContent = item.meta;
+      // FS6 (docs/25_FROM_SCRATCH.md point 4): "the current letter's
+      // divider is a kraft card with the letter hand-lettered in Caveat
+      // 700 (~58px) and its range in Caveat 500, a strip of tape, -1.5deg."
+      // Scoped to kind:'letter' only -- genre/decade/bin/artist dividers
+      // keep the Antonio/mono treatment the spec doesn't touch. The same
+      // tab/label elements double as the neighbouring section's peek (this
+      // function is shared, see rebuildPeeks()), so hand-lettering the tab
+      // here covers that "peeks in with its name hand-lettered" case too.
+      if(item.kind === 'letter'){
+        d.classList.add('crate-divider-letter');
+        tab.classList.add('crate-divider-tab-hand');
+        label.classList.add('crate-divider-label-hand');
+        const tape = document.createElement('div'); tape.className = 'crate-divider-tape';
+        d.appendChild(tape);
+      }
+      const meta = document.createElement('div'); meta.className = 'crate-divider-meta';
+      if(item.kind === 'letter' && item.range){
+        meta.classList.add('crate-divider-meta-hand');
+        meta.textContent = item.range;
+      } else {
+        meta.textContent = item.meta;
+      }
       d.appendChild(tab); d.appendChild(label); d.appendChild(meta);
       card.appendChild(d);
     } else {

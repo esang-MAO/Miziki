@@ -285,6 +285,16 @@ function yearSpanLabel(recs){
   return lo === hi ? String(lo) : lo + '–' + hi;
 }
 
+// FS6 (docs/25_FROM_SCRATCH.md point 4): "its range in Caveat 500
+// ('Kelp → Kuti')" -- the first and last artist name inside this letter's
+// own bin, in the same order compareCrateArtists already sorted them, so
+// it always matches what the letter actually spans.
+function artistRangeLabel(recs){
+  if(!recs.length) return '';
+  const first = recs[0].artist, last = recs[recs.length - 1].artist;
+  return first === last ? first : first + ' → ' + last;
+}
+
 // CR2: new arrivals (addedAt within NEW_ARRIVAL_WINDOW_MS, newest first)
 // and staff picks (MizikiSocial's own pins, already in pin-rank order) —
 // virtual bins, one per crate section. CR14 (docs/14_CRATE_SECTIONS.md
@@ -437,6 +447,7 @@ function buildCrateModel(group){
         jumpIndex.set('key:' + g.key, items.length);
         items.push({type:'div', kind:'letter', label:g.key,
           meta: artistCount + ' ARTISTS · ' + g.records.length + ' ALBUMS' + (span ? ' · ' + span : ''),
+          range: artistRangeLabel(g.records),
           panelSub: g.key === '?' ? 'Unknown artist' : 'Artists beginning with ' + g.key, key:g.key,
           idx: flatIdx(g.records)});
       }

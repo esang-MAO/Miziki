@@ -16,7 +16,10 @@
 .hdr-wordmark svg{width:22px;height:auto;display:block}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
-.hdr-icon-btn{width:32px;height:32px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
+/* FS6 (docs/25_FROM_SCRATCH.md point 1): 28px wide x 44px tall -- a real
+   tap target, not a 32px circle -- so the icon column fits beside the tabs
+   on one line at 390px with nothing overlapping. */
+.hdr-icon-btn{width:28px;height:44px;display:grid;place-content:center;color:var(--paper)}
 .hdr-icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hdr-icon-btn[aria-expanded="true"],.hdr-icon-btn.active{color:var(--cream)}
 .hdr-icon-btn.add-open svg{transform:rotate(45deg);transition:transform .2s}
@@ -99,7 +102,9 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
 /* CR14 (docs/14_CRATE_SECTIONS.md, PR 1): the tab column ends where the
    icons begin — it no longer wraps under them, it scrolls sideways instead,
    so the narrowest phones (iPhone SE, 320px) never collide the two rows. */
-.lib-tabs-group{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0;min-height:32px;
+/* FS6 (docs/25_FROM_SCRATCH.md point 1): 16px apart, same as the header's
+   own icon-to-tab spacing, so the row reads as one evenly-spaced line. */
+.lib-tabs-group{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;min-width:0;min-height:32px;
   overflow-x:auto;scrollbar-width:none}
 .lib-tabs-group::-webkit-scrollbar{display:none}
 /* TY2: Library header tabs (Songs/Crate/Artists/Playlists) -- Archivo,
@@ -109,23 +114,28 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
   padding:var(--sp-2) 0;color:var(--muted);border-bottom:1.5px solid transparent;margin-bottom:-1px;flex:0 0 auto}
 .lib-tabs-group button[aria-pressed="true"]{color:var(--cream);font-weight:600;border-bottom-color:var(--cream)}
 .lib-tabs-group .lib-select-tab{color:var(--muted)}
-/* CR14: search/add/overflow and the crate-order chip now share one
-   right-hand column — flex, not a grid, so an empty library (no tabs at
-   all, #libNavTabs hidden) doesn't pull the icons into a column that no
-   longer has a sibling to share with. */
-.lib-tabs-right{display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-2);flex:0 0 auto;margin-left:auto}
-/* crate-order chip: replaces the A–Z/Genre/Decade pill row with one
-   tap-to-cycle control, set in the same voice as the tabs beside it. The
-   right-hand column above now places it, so it needs no margin of its own. */
-/* TY2: the A-Z chip -- Archivo, sentence case, no tracking. */
-.crate-group-cycle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
-  padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:none;
+/* FS6 (docs/25_FROM_SCRATCH.md point 1): the icons are the tab row's only
+   right-hand sibling now -- the sort chip/count moved out to their own row
+   below (#crateSortRow, below) -- so this is back to one line, no column. */
+.lib-tabs-right{display:flex;align-items:center;flex:0 0 auto;margin-left:auto}
+/* FS6 (docs/25_FROM_SCRATCH.md point 2): the crate's own sort-chip +
+   record-count row, under the tab row -- chip left, count right, nothing
+   else on it. */
+.crate-sort-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-top:var(--sp-2)}
+/* TY2: the A-Z chip -- Archivo, sentence case, no tracking. FS6: a real
+   36px pill, not an implicit height from padding. */
+.crate-group-cycle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;height:36px;
+  padding:0 12px;border:1px solid var(--line);border-radius:999px;background:none;
   font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   color:var(--paper);touch-action:manipulation;white-space:nowrap}
 .crate-group-cycle:active{background:var(--sel)}
 .crate-group-cycle-k{color:var(--muted)}
 .crate-group-cycle svg{width:12px;height:12px;fill:none;stroke:var(--muted);stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
+/* FS6 point 2: "N records" -- Archivo 13, --muted. 13px sits between the
+   --fs-caption (12) and --fs-body (14) tokens; the plan's own literal
+   figure, kept as-is rather than rounded to the nearest token. */
+.crate-record-count{font-family:var(--body);font-size:13px;color:var(--muted);white-space:nowrap}
 
 /* Profile > Library tools (S1 §5) */
 .lib-tools{margin-top:28px}

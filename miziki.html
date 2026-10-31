@@ -123,8 +123,9 @@
         <button data-view="artists" aria-pressed="false">Artists</button>
         <button data-view="playlists" aria-pressed="false">Playlists</button>
       </div>
-      <!-- icons + order chip share one column to avoid colliding with the
-           tab row at narrow widths (see .lib-tabs-group, 01-header.css) -->
+      <!-- FS6 (docs/25_FROM_SCRATCH.md point 1): icons sit beside the tabs
+           on this one line now -- the sort chip/count moved to their own
+           row below (#crateSortRow), so this column holds only the icons. -->
       <div class="lib-tabs-right">
         <div class="hdr-actions" id="hdrActions">
           <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
@@ -137,15 +138,6 @@
             <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
           </button>
         </div>
-        <!-- A-Z/Genre/Decade crate-grouping toggle, shown whenever crate
-             mode is active; Genre is skipped when the library has no genre
-             tags at all (updateCrateGroupToggleUI(), crate/view.js) -->
-        <button class="crate-group-cycle" id="crateGroupToggleTab" type="button" style="display:none"
-                aria-label="Crate order: A–Z. Tap to change.">
-          <span class="crate-group-cycle-k">Sort</span>
-          <span class="crate-group-cycle-v" id="crateGroupCycleLabel">A–Z</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
-        </button>
       </div>
     </div>
     <div class="overflow-scrim" id="libOverflowScrim"></div>
@@ -163,6 +155,20 @@
       </div>
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
+    <!-- FS6 (docs/25_FROM_SCRATCH.md point 2): the crate's own sort-chip +
+         record-count line -- sort chip left, "N records" right, nothing
+         else on it. Shown only in crate mode (updateCrateGroupToggleUI(),
+         crate/view.js); the A-Z/Genre/Decade cycle itself is the same
+         control CR14 wired, just relocated out of the tab-row column. -->
+    <div class="crate-sort-row" id="crateSortRow" style="display:none">
+      <button class="crate-group-cycle" id="crateGroupToggleTab" type="button"
+              aria-label="Crate order: A–Z. Tap to change.">
+        <span class="crate-group-cycle-k">Sort</span>
+        <span class="crate-group-cycle-v" id="crateGroupCycleLabel">A–Z</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
+      </button>
+      <span class="crate-record-count" id="crateRecordCount"></span>
+    </div>
     <div id="libBody"></div>
   </section>
 

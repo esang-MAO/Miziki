@@ -55,13 +55,12 @@
    there's nothing left for a page-level lock to actually fix — removed
    outright rather than re-scoped. */
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
-/* CR1: a header row above the stage — how many records are in the bin and
-   how it's grouped on the left, the (restyled) now-playing indicator on
-   the right. */
-.crate-header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+/* FS6 (docs/25_FROM_SCRATCH.md point 2): the record-count/sort-chip line
+   moved out to the shared static row above the stage (#crateSortRow,
+   01-header.css) -- this header is just the now-playing indicator's own
+   row now, right-aligned same as before. */
+.crate-header{display:flex;align-items:center;justify-content:flex-end;gap:var(--sp-3);
   margin-bottom:var(--sp-2)}
-/* TY2 (docs/22_TYPE.md): the record count/status line -- Archivo body. */
-.crate-header-left{font-family:var(--body);font-size:var(--fs-body);color:var(--muted-2)}
 /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): previous/next arrows, the active
    section's name, one dot per section — above the stage. Empty (no
    markup at all) whenever there's only one section, so it costs nothing
@@ -72,9 +71,9 @@
   font-family:var(--display);font-size:var(--fs-title);line-height:1;color:var(--muted-2)}
 .crate-section-arrow:disabled{opacity:.25;cursor:default}
 .crate-section-mid{display:flex;flex-direction:column;align-items:center;gap:4px}
-/* TY2: a section kicker -- Archivo caps, --track-caps. */
-.crate-section-name{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
-  text-transform:uppercase;color:var(--muted)}
+/* FS6 (docs/25_FROM_SCRATCH.md point 3): Archivo 14/600, sentence case --
+   a genre/decade name reads as a name here, not a caps kicker. */
+.crate-section-name{font-family:var(--body);font-size:var(--fs-body);font-weight:600;color:var(--paper)}
 .crate-section-dots{display:flex;align-items:center;gap:5px}
 .crate-section-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-2);opacity:.4}
 .crate-section-dot.current{background:var(--cream);opacity:1}
@@ -179,6 +178,25 @@
 .crate-divider-label-art svg{height:38px;width:auto;max-width:100%}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em}
+/* FS6 (docs/25_FROM_SCRATCH.md point 4): the A-Z letter divider only --
+   a kraft (manila) card, tilted -1.5deg, with a strip of tape at the top
+   same visual language as .artist-history-tape (27-library-sleeves.css). */
+/* scale(1.04) covers the sliver a plain rotate() would otherwise leave at
+   the (overflow:hidden) card's own corners, since this element is inset:0
+   to that same unrotated rect. */
+.crate-divider.crate-divider-letter{background:var(--stock-manila);transform:rotate(-1.5deg) scale(1.04)}
+.crate-divider-tape{position:absolute;top:-9px;left:50%;width:68px;height:18px;margin-left:-34px;
+  background:rgba(239,233,223,.8);transform:rotate(2deg);z-index:1}
+/* 18px/20px aren't spec'd literally like the label's ~58px -- sized by eye
+   against the hand-lettered label and the card's own 54x22px tab box/14px
+   inset, not tied to a token since Caveat's own cap-height runs small for
+   its point size. */
+.crate-divider-tab-hand{font-family:var(--hand);font-weight:500;font-size:18px;letter-spacing:0;
+  text-transform:none;background:none;opacity:1}
+.crate-divider-label-hand{font-family:var(--hand);font-weight:700;font-size:58px;letter-spacing:0;
+  line-height:1}
+.crate-divider-meta-hand{font-family:var(--hand);font-weight:500;font-size:20px;letter-spacing:0;
+  text-transform:none}
 /* CR2 point 4: the divider catalog card's own PLAY ALL button — outlined
    aubergine on cream, plays the bin/artist/letter/genre in order via the
    divider item's own flattened idx list (crate/model.js's flatIdx()). */
@@ -275,8 +293,10 @@
 /* AU10 (docs/16_AUDIO.md §5): the format sticker -- "7″ · 45"/"12″ · 45" --
    own slot, bottom left, independent of .crate-sticker's achievement slot
    (top right) above, since a card can carry both at once. */
+/* FS6 (docs/25_FROM_SCRATCH.md point 6): mono, 11px -- up from 8px, still
+   the mono whitelist's own format-chip item. */
 .crate-format-chip{position:absolute;left:8px;bottom:8px;z-index:60;
-  font-family:var(--data);font-weight:500;font-size:8px;letter-spacing:.08em;
+  font-family:var(--data);font-weight:500;font-size:11px;letter-spacing:.08em;
   text-transform:uppercase;background:var(--cream);color:#1A1410;
   box-shadow:0 1px 2px rgba(0,0,0,.35);padding:3px 6px;border-radius:2px;
   pointer-events:none;white-space:nowrap}
@@ -288,9 +308,14 @@
   box-shadow:var(--sh-1);padding:10px var(--sp-3) var(--sp-3);overflow:hidden}
 .crate-catalog-rule{position:absolute;top:0;left:0;right:0;height:4px;background:#2A1B38}
 .crate-catalog-body{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-3)}
-.crate-catalog-card h3{font-family:var(--display);font-weight:700;font-size:var(--fs-title);margin:0 0 2px;letter-spacing:.02em}
-.crate-catalog-card .crate-info-sub{font-size:var(--fs-body);color:#2A1B38;margin:0 0 4px}
-.crate-catalog-card .crate-info-meta{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;color:#5A4A52}
+/* FS6 (docs/25_FROM_SCRATCH.md point 5): title Antonio 28 (up from 20);
+   artist Archivo 16/500 (up from an unweighted 14); "Label · Year ·
+   Format" Archivo 13 in the paper's own muted #5E534B, not mono -- this
+   line names the pressing in words, it isn't a readout off the record
+   like the dead-wax/EQ mono whitelist's own items. */
+.crate-catalog-card h3{font-family:var(--display);font-weight:700;font-size:var(--fs-hero);margin:0 0 2px;letter-spacing:.02em}
+.crate-catalog-card .crate-info-sub{font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:#2A1B38;margin:0 0 4px}
+.crate-catalog-card .crate-info-meta{font-family:var(--body);font-size:13px;letter-spacing:0;color:#5E534B}
 .crate-catalog-card .crate-now-chip{color:#2A1B38;border-color:#2A1B38;background:rgba(42,27,56,.08)}
 .crate-info-played{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;color:#5A4A52;margin:2px 0 0}
 /* FS2 (docs/25_FROM_SCRATCH.md): "primary play buttons on paper" --
