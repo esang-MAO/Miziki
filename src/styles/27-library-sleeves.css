@@ -57,8 +57,11 @@ li.letter-head{list-style:none;padding:6px 0 4px}
    Your most spun, You & [artist], Your pressings — under the record
    shelf, above Connected. */
 .artist-section{padding:0 0 var(--sp-5)}
-.artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
-  letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);font-weight:500}
+/* FS13 (docs/25_FROM_SCRATCH.md): "shelf headings Antonio 20" -- was an
+   Archivo caps kicker, matching .artist-history-title's own Antonio
+   treatment just below instead. */
+.artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--display);font-weight:400;
+  font-size:var(--fs-title);line-height:var(--lh-title);color:var(--paper)}
 
 .most-spun-list{list-style:none;margin:0;padding:0}
 .most-spun-row{width:100%;min-height:48px;display:flex;align-items:center;gap:var(--sp-3);
@@ -105,8 +108,9 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .connected{padding:0 0 var(--sp-5)}
 .connected-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3);
   padding:0 0 var(--sp-2)}
-.connected-eyebrow{margin:0;font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
-  letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);font-weight:500}
+/* FS13: same Antonio-20 heading treatment as .artist-eyebrow above. */
+.connected-eyebrow{margin:0;font-family:var(--display);font-weight:400;
+  font-size:var(--fs-title);line-height:var(--lh-title);color:var(--paper)}
 .connected-list{list-style:none;margin:0;padding:0}
 .connected-row{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:var(--sp-1) 0}
 .connected-sleeve{flex:0 0 auto;width:44px;height:44px;border-radius:2px;background:var(--stock-manila);

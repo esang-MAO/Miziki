@@ -238,10 +238,16 @@
 .g-art{width:44px;height:44px;border-radius:2px;object-fit:cover;flex:0 0 auto;
   background:rgba(255,255,255,.06);display:grid;place-content:center;color:var(--muted);font-size:var(--fs-row)}
 .g-text{flex:1;min-width:0}
-.g-text b{display:block;font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.g-text em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted)}
+/* FS13 (docs/25_FROM_SCRATCH.md): same row typography as .tracklist's
+   .t-name (16-edit-sheet.css) -- title Archivo 16/500, secondary 14 muted. */
+.g-text b{display:block;font-weight:500;font-size:var(--fs-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-text em{font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .g-chev{color:var(--muted);font-size:var(--fs-title)}
-.pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+/* FS13 (docs/25_FROM_SCRATCH.md): "fields on --field with a 1px edge" --
+   was a literal rgba() white tint, not theme-reactive. Covers the Edit
+   sheet's own text fields and #librarySearch (focus ring cream is already
+   the app-wide :focus-visible rule, 20-friend-store.css). */
+.pl-input{flex:1;min-width:140px;background:var(--field);border:1px solid var(--line);
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:var(--fs-row);padding:10px var(--sp-3)}
 /* FS5 (docs/25_FROM_SCRATCH.md point 3): the artist line -- Archivo 16/500
    cream (was fs-caption/--muted). */

@@ -42,6 +42,11 @@
 .t-edit{width:26px;height:26px;color:var(--muted);font-size:var(--fs-row);flex:0 0 auto}
 .select-bar{display:flex;flex-direction:column;gap:var(--sp-2);padding:10px 0;border-bottom:1px solid var(--line)}
 .select-bar .stack{margin-top:0}
+/* FS13 (docs/25_FROM_SCRATCH.md): "ghost buttons as outlined pills, the
+   count in Archivo 14 tabular" -- scoped to this bar alone; .cta.ghost's
+   plain 3px radius stays the shared default everywhere else it's used. */
+.select-bar .cta.ghost{border-radius:999px}
+#selectCount{font-family:var(--body);font-size:var(--fs-body);font-variant-numeric:tabular-nums;color:var(--paper)}
 
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
@@ -60,6 +65,13 @@
 .slider-row:last-child{border-bottom:0}
 .slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
 .slider-head span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
+/* FS13 (docs/25_FROM_SCRATCH.md): "labels Archivo 14/500 above fields" --
+   plain sentence case, not the shared caps kicker look above; scoped to
+   the Edit track sheet alone (profile/settings.js's own Balance row keeps
+   today's look, FS14's surface to restyle). */
+#editOverlay .slider-head span{
+  font-size:var(--fs-body); font-weight:500; letter-spacing:0; text-transform:none;
+}
 .slider-head b{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}
 input[type=range]{width:100%;accent-color:var(--cream);height:22px}
 input[type=file]{display:none}
@@ -68,6 +80,11 @@ input[type=file]{display:none}
 .cta{display:inline-block;border:1px solid var(--cream);color:var(--cream);border-radius:3px;
   padding:11px var(--sp-4);font-family:var(--body);font-size:var(--fs-row);font-weight:500;transition:color .5s,border-color .5s}
 .cta.ghost{border-color:var(--line);color:var(--paper)}
+/* FS13 (docs/25_FROM_SCRATCH.md): a destructive confirm/replace action --
+   the dialog's own copy is the actual safeguard (no undo window), this is
+   just the one place amber would otherwise be tempting as a "danger"
+   color; --danger is the actual token for that, amber stays state-free. */
+.cta.danger{border-color:var(--danger-line);color:var(--danger)}
 .stack{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:14px}
 
 .empty{border:1px dashed var(--line);border-radius:4px;padding:20px;text-align:center}
@@ -80,8 +97,10 @@ input[type=file]{display:none}
    --sel tint (00-base.css) is what marks a row's boundary now. */
 .tracklist li{display:flex;align-items:center;gap:var(--sp-3);padding:11px 0}
 .tracklist .t-name{flex:1;min-width:0}
-.tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted)}
+/* FS13 (docs/25_FROM_SCRATCH.md): "title in Archivo 16/500, secondary
+   text in Archivo 14 muted" -- was 14/500 title, 12 secondary. */
+.tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .tracklist .t-idx{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:18px}
 .tracklist li[aria-current="true"] .t-idx{color:var(--cream)}
 .note{font-size:var(--fs-caption);color:var(--muted);line-height:1.55;margin:14px 0 0}
