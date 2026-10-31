@@ -189,7 +189,7 @@ async function openAdjust(host, blob, rerender){
   const switchRow = (label, on, set) => {
     const row = el('div', 'social-setting-row');
     row.appendChild(el('h2', null, label));
-    row.appendChild(storeSwitch(label, on, v => { set(v); draw(); }));
+    row.appendChild(storeSwitch(label, on, v => { set(v); draw(); }, row));
     box.appendChild(row);
   };
   switchRow('Show Miziki wordmark', wordmark, v => { wordmark = v; });

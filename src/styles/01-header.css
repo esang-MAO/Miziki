@@ -73,7 +73,7 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
 /* RF21 (docs/12_REFINE.md): the one menuitemcheckbox row in this menu
    (player "···" -> "Don't share this session") -- a plain circle that
    fills with a checkmark on aria-checked, the same attribute-driven
-   on/off look .mode-toggle/.store-switch already use elsewhere, just
+   on/off look .mode-toggle/.switch already use elsewhere, just
    drawn as a check instead of a sliding track since this is a row in a
    list, not a standalone switch component. */
 .overflow-menu-row-check{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}

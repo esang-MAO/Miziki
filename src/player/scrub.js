@@ -15,8 +15,7 @@ import { isShrinkWrapTarget } from '../shell/start-sequence.js';
 export function toggleScratch(){
   S.char.scratch = !S.char.scratch;
   const b = $('#scratchBtn');
-  b.textContent = S.char.scratch ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.char.scratch));
+  b.setAttribute('aria-checked', String(S.char.scratch));
   queueSave();
 }
 

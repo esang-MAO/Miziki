@@ -1,0 +1,18 @@
+/* FS3 (docs/25_FROM_SCRATCH.md): one switch component for every on/off
+   control in the app, generalized from the old .store-switch
+   (18-storefront.css) -- built by src/ui/switch.js's makeSwitch(). */
+.switch{width:44px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.switch-track{flex:none;width:44px;height:26px;border-radius:13px;background:var(--switch-off-track);
+  position:relative;transition:background .16s ease}
+.switch-track i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:11px;
+  background:var(--muted);transition:left .16s ease,background .16s ease;display:block}
+.switch[aria-checked="true"] .switch-track{background:var(--paper)}
+.switch[aria-checked="true"] .switch-track i{left:20px;background:var(--switch-on-knob)}
+/* The row a switch sits in gets the whole-row hit area (makeSwitch's own
+   `row` option) -- same "the label taps it too" rule as the switch
+   itself, just a cursor hint since the click listener is wired in JS. */
+.switch-row{cursor:pointer}
+@media (prefers-reduced-motion:reduce){
+  .switch-track, .switch-track i{transition:none}
+}

@@ -277,8 +277,7 @@ export function bgUpdateUI(){
     return;
   }
   b.style.display = '';
-  b.textContent = S.bgAudio ? 'On' : 'Off';
-  b.setAttribute('aria-pressed', String(S.bgAudio));
+  b.setAttribute('aria-checked', String(S.bgAudio));
   note.textContent = (S.bgAudio && S.bg.failed)
     ? "It couldn't start on this device this session, so Miziki is playing normally. Toggle it off and on to retry."
     : BG_NOTE;

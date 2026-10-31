@@ -86,13 +86,6 @@
 .store-chev{color:var(--muted);font-size:var(--fs-row);flex:none}
 .store-card-btn{background:none;border:0;padding:0;display:flex;align-items:center;gap:var(--sp-3);width:100%;text-align:left;color:inherit}
 
-.store-switch{width:52px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
-  display:flex;align-items:center;justify-content:center}
-.store-switch-track{flex:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative}
-.store-switch[aria-checked="true"] .store-switch-track{background:var(--cream)}
-.store-switch-track i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#14110F;transition:left .15s;display:block}
-.store-switch[aria-checked="true"] .store-switch-track i{left:21px}
-
 .store-section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 0}
 .store-section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.03em;text-transform:uppercase}
 .store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--cream);

@@ -56,6 +56,7 @@
 <link rel="stylesheet" href="/src/styles/28-picture-sleeve.css">
 <link rel="stylesheet" href="/src/styles/29-evening-glance.css">
 <link rel="stylesheet" href="/src/styles/30-wear.css">
+<link rel="stylesheet" href="/src/styles/31-switch.css">
 </head>
 <body>
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -196,24 +197,15 @@
           </div>
           <div class="lib-tools-row2" id="sidesRow">
             <span class="k">Sides A / B</span>
-            <div class="seg" id="sidesToggle">
-              <button data-sides="off" aria-pressed="true">Off</button>
-              <button data-sides="on" aria-pressed="false">On</button>
-            </div>
+            <button id="sidesToggle" class="switch" role="switch" aria-checked="false" aria-label="Sides A / B"><span class="switch-track"><i></i></span></button>
           </div>
           <div class="lib-tools-row2" id="sealedRow">
             <span class="k">Sealed records</span>
-            <div class="seg" id="sealedToggle">
-              <button data-sealed="on" aria-pressed="true">On</button>
-              <button data-sealed="off" aria-pressed="false">Off</button>
-            </div>
+            <button id="sealedToggle" class="switch" role="switch" aria-checked="true" aria-label="Sealed records"><span class="switch-track"><i></i></span></button>
           </div>
           <div class="lib-tools-row2" id="playFullRow">
             <span class="k">Play in full player</span>
-            <div class="seg" id="playFullToggle">
-              <button data-playfull="off" aria-pressed="true">Off</button>
-              <button data-playfull="on" aria-pressed="false">On</button>
-            </div>
+            <button id="playFullToggle" class="switch" role="switch" aria-checked="false" aria-label="Play in full player"><span class="switch-track"><i></i></span></button>
           </div>
 
           <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
@@ -247,34 +239,34 @@
       <div id="playbackSettings">
       <div class="row">
         <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record.</em> <details class="sd-info"><summary aria-label="More about Scratch">(i)</summary>Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</details></div>
-        <div class="seg"><button id="scratchBtn" aria-pressed="true">On</button></div>
+        <button id="scratchBtn" class="switch" role="switch" aria-checked="true" aria-label="Scratch"><span class="switch-track"><i></i></span></button>
       </div>
 
       <div class="row">
         <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes.</em> <details class="sd-info"><summary aria-label="More about Sleeve Pull">(i)</summary>Turn off to jump straight into playback.</details></div>
-        <div class="seg"><button id="sleevePullBtn" aria-pressed="true">On</button></div>
+        <button id="sleevePullBtn" class="switch" role="switch" aria-checked="true" aria-label="Sleeve Pull"><span class="switch-track"><i></i></span></button>
       </div>
 
       <div class="row">
         <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens.</em> <details class="sd-info"><summary aria-label="More about Launch intro">(i)</summary>Turn off to go straight to the library.</details></div>
-        <div class="seg"><button id="launchIntroBtn" aria-pressed="true">On</button></div>
+        <button id="launchIntroBtn" class="switch" role="switch" aria-checked="true" aria-label="Launch intro"><span class="switch-track"><i></i></span></button>
       </div>
 
       <div class="row">
         <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen.</em> <details class="sd-info"><summary aria-label="More about Background playback">(i)</summary>Adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</details></div>
-        <div class="seg"><button id="bgAudioBtn" aria-pressed="false">Off</button></div>
+        <button id="bgAudioBtn" class="switch" role="switch" aria-checked="false" aria-label="Background playback"><span class="switch-track"><i></i></span></button>
       </div>
 
       <div class="row">
         <div class="k">Paper label on lossy files<em>A lossy (MP3/AAC) record presses onto Jet, Miziki's one tier-1 pressing.</em> <details class="sd-info"><summary aria-label="More about paper label on lossy files">(i)</summary>Off shows the usual amber label on every Jet pressing; on swaps it for a paper label with an olive ring, so a lossy record reads differently at a glance.</details></div>
-        <div class="seg"><button id="paperLabelBtn" aria-pressed="false">Off</button></div>
+        <button id="paperLabelBtn" class="switch" role="switch" aria-checked="false" aria-label="Paper label on lossy files"><span class="switch-track"><i></i></span></button>
       </div>
 
       <!-- off freezes day-progress/unlocks (no data loss) and stops
            offering an earned zoetrope as the active look -->
       <div class="row">
         <div class="k">Zoetropes earned<em>Playing an album every side start-to-finish on 10 different days earns it a strobe-animated zoetrope pressing.</em> <details class="sd-info"><summary aria-label="More about zoetropes earned">(i)</summary>Off pauses new progress (nothing already earned is lost) and stops showing an earned zoetrope on the platter until turned back on.</details></div>
-        <div class="seg"><button id="zoetropesBtn" aria-pressed="true">On</button></div>
+        <button id="zoetropesBtn" class="switch" role="switch" aria-checked="true" aria-label="Zoetropes earned"><span class="switch-track"><i></i></span></button>
       </div>
 
       <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto -->
@@ -294,7 +286,7 @@
            'input', no full re-render mid-drag. -->
       <div class="row">
         <div class="k">Mono<em>Sends the same mix to both speakers or earbuds.</em> <details class="sd-info"><summary aria-label="More about Mono">(i)</summary>Helps one-earbud listening and hearing in one ear — a record mixed in stereo only sounds complete to a centered listener anyway.</details></div>
-        <div class="seg"><button id="monoBtn" aria-pressed="false">Off</button></div>
+        <button id="monoBtn" class="switch" role="switch" aria-checked="false" aria-label="Mono"><span class="switch-track"><i></i></span></button>
       </div>
       <div class="row">
         <div class="k">Balance<em>Left/right, with a center tick.</em></div>
@@ -511,7 +503,7 @@
            available per-session equivalent. -->
       <div class="row" style="margin-top:12px">
         <div class="k">Stop between records at sunset and midnight<em>For an hour around sunset and around midnight, playback stops when a record ends instead of moving on to your queue.</em></div>
-        <div class="seg"><button id="stopAtTurnsBtn" aria-pressed="false">Off</button></div>
+        <button id="stopAtTurnsBtn" class="switch" role="switch" aria-checked="false" aria-label="Stop between records at sunset and midnight"><span class="switch-track"><i></i></span></button>
       </div>
 
       <p class="note" id="locNote"></p>
@@ -647,17 +639,14 @@
 
       <div class="row" style="margin-top:12px">
         <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
-        <div class="seg"><button id="surfaceNoiseUnderMusicBtn" aria-pressed="false">Off</button></div>
+        <button id="surfaceNoiseUnderMusicBtn" class="switch" role="switch" aria-checked="false" aria-label="Under the music"><span class="switch-track"><i></i></span></button>
       </div>
 
       <!-- docs/15_SURFACE_NOISE.md §4: Off leaves it waiting in the
            run-out for the player's own flip gesture (shell/runout.js) -->
       <div class="row" style="margin-top:12px">
         <div class="k">Auto-flip sides<em>Off waits for you to flip side A over.</em></div>
-        <div class="seg" role="group" aria-label="Auto-flip sides">
-          <button data-auto-flip="on" aria-pressed="true">On</button>
-          <button data-auto-flip="off" aria-pressed="false">Off</button>
-        </div>
+        <button id="autoFlipToggle" class="switch" role="switch" aria-checked="true" aria-label="Auto-flip sides"><span class="switch-track"><i></i></span></button>
       </div>
     </div>
   </div>

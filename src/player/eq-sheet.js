@@ -15,6 +15,7 @@
    value label and redraw the canvas. This is what keeps a mid-drag
    native <input type="range"> from losing its own pointer capture. */
 import { $, el } from '../util/dom.js';
+import { makeSwitch } from '../ui/switch.js';
 import { queueSave } from '../storage/meta.js';
 import { openLayer } from '../shell/nav-stack.js';
 import { ensureEq, currentStateLabel } from './eq-label.js';
@@ -266,13 +267,10 @@ export function renderEqSheet(){
 
   const head = el('div','eq-head-row');
   head.appendChild(el('div','eq-head-sub', 'Pure and Vinyl'));
-  const switchBtn = el('button','eq-switch', eq.enabled ? 'ON' : 'OFF');
-  switchBtn.setAttribute('role','switch');
-  switchBtn.setAttribute('aria-checked', String(eq.enabled));
-  switchBtn.addEventListener('click', () => {
-    eq.enabled = !eq.enabled;
+  const switchBtn = makeSwitch({checked: eq.enabled, label: 'EQ', onChange: on => {
+    eq.enabled = on;
     queueSave(); applyEQ(); renderEqSheet();
-  });
+  }});
   head.appendChild(switchBtn);
   body.appendChild(head);
 
