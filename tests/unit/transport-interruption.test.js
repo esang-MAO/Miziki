@@ -33,7 +33,7 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
   namedExports: { routeSource(){}, applyLoudnessNorm(){}, applyWobbleRate(){}, applyCharacter(){} },
 });
 mock.module(new URL('../../src/record-art/format.js', import.meta.url).href, {
-  namedExports: { rotationHz(){ return 0.556; }, RPM_33: 33.333, RPM_45: 45, sideFullness(){ return 1; }, formatChipText(){ return ''; }, platterSizeAttr(){ return '12'; } },
+  namedExports: { rotationHz(){ return 0.556; }, RPM_33: 33.333, RPM_45: 45, sideFullness(){ return 1; }, formatChipText(){ return ''; }, platterSizeAttr(){ return '12'; }, platterSpeedAttr(){ return '33'; } },
 });
 mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
   namedExports: { hapticTick(){} },

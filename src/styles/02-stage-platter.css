@@ -80,23 +80,36 @@
   opacity:0;mix-blend-mode:soft-light;transition:opacity .5s,background .5s}
 .disc-metal-light.on{opacity:.85}
 /* PRESSINGS_110 follow-up (strobe-animation wiring, Ken, 2026-10-26): the
-   zoetrope frame ring. Every zoetrope disc shares the same template
-   geometry (viewBox -100..100, a ring stroke spanning radius 54 to 91 out
-   of a body radius of 100) -- a single fixed mask exposes just that
-   annulus, so the same full-disc image record-art/looks.js already points
-   #disc's own background at can be shown a second time here, clipped to
-   the ring alone, and given its own quantized rotation
+   zoetrope frame ring. The same full-disc image record-art/looks.js
+   already points #disc's own background at is shown a second time here,
+   clipped to an annulus by mask, and given its own quantized rotation
    (player/clock.js's frame(), via record-art/zoetrope-motion.js) that's
    independent of #disc's smoothly-spinning transform -- a sibling, not a
    child, for the exact same reason .disc-metal-light above is one.
    transition never covers transform: that's written every animation
-   frame by JS, never animated by CSS. */
+   frame by JS, never animated by CSS.
+   SZ2 (docs/26_SIZES_AND_ZOETROPES.md): the band now covers the whole
+   mandala, from the label edge to the record edge, in [data-size] +
+   data-speed]-keyed steps (SZ1's own two attributes, player/transport.js's
+   load()) rather than one fixed radius -- radial-gradient(closest-side,…)
+   so the percentages are fractions of the record's own radius, not the
+   stage box's corner-to-centre distance a bare `circle` would measure to.
+   Default here is the 33⅓ 12″ case (34-99%); [data-speed="45"] covers a
+   10″ or 12″ at 45 (41-99%), and [data-size="7"] -- always a 45, but with
+   its own larger label -- overrides that again to 52-99%, so it must come
+   after the data-speed rule in source order to win at equal specificity. */
 .disc-zoetrope-ring{position:absolute;inset:0;border-radius:50%;pointer-events:none;
   background-size:cover;background-position:center;
-  mask-image:radial-gradient(circle,transparent 0,transparent 53%,white 55%,white 90%,transparent 92%,transparent 100%);
-  -webkit-mask-image:radial-gradient(circle,transparent 0,transparent 53%,white 55%,white 90%,transparent 92%,transparent 100%);
+  mask-image:radial-gradient(closest-side,transparent 0,transparent 33%,white 34%,white 99%,transparent 100%);
+  -webkit-mask-image:radial-gradient(closest-side,transparent 0,transparent 33%,white 34%,white 99%,transparent 100%);
   opacity:0;transition:opacity .5s,background .5s}
 .disc-zoetrope-ring.on{opacity:1}
+.platter-stage[data-speed="45"] .disc-zoetrope-ring{
+  mask-image:radial-gradient(closest-side,transparent 0,transparent 40%,white 41%,white 99%,transparent 100%);
+  -webkit-mask-image:radial-gradient(closest-side,transparent 0,transparent 40%,white 41%,white 99%,transparent 100%)}
+.platter-stage[data-size="7"] .disc-zoetrope-ring{
+  mask-image:radial-gradient(closest-side,transparent 0,transparent 51%,white 52%,white 99%,transparent 100%);
+  -webkit-mask-image:radial-gradient(closest-side,transparent 0,transparent 51%,white 52%,white 99%,transparent 100%)}
 /* SZ1 (docs/26_SIZES_AND_ZOETROPES.md): label diameter as a share of the
    record, by real pressing-plant label sizes -- 12″ (default) is a 100mm
    label at 33% of the record (inset 33.5%); the 10″/7″ overrides sit with

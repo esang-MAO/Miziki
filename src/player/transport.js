@@ -5,7 +5,7 @@ import { albumKey } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
-import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr } from '../record-art/format.js';
+import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr, platterSpeedAttr } from '../record-art/format.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -333,6 +333,19 @@ export function load(i){
   cancelPendingOpening(0);
   S.pendingSideStart = isSideStart(t, i);
   sessionOnLoad(t);
+  // SZ2 (docs/26_SIZES_AND_ZOETROPES.md): S.recordFormat has to be this
+  // track's own format *before* applyDiscVariant() runs below — it's what
+  // picks a zoetrope's disc7in/disc45/discLp art (record-art/looks.js's
+  // discLook() reads S.recordFormat for the current track). Moved up from
+  // its old spot further down (where it's still read by the speed-ease/
+  // chip/dead-wax code that follows) so the art picked for the platter
+  // always matches the record that's actually loading, not the previous
+  // one.
+  let albumTrackIdx = t.tags && t.tags.album ? albumTracks(t.tags.album) : null;
+  const prevFormat = S.recordFormat;
+  S.recordFormat = albumTrackIdx
+    ? albumFormatFor(albumTrackIdx, S.tracks, (S.albumFormat && S.albumFormat[albumKey(t)]) || 'auto')
+    : { size:'12"', speed: RPM_33 };
   S.pendingShellInfo = updateShellAlbum(t);
   applyDiscVariant(t, S.pendingShellInfo.sameAlbum);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
@@ -348,9 +361,7 @@ export function load(i){
   // there's one source of truth for side letters, not a second one here.
   $('#labelTitle').textContent = t.tags ? (t.tags.album || t.tags.title) : t.name;
   let sideLabel = '';
-  let albumTrackIdx = null;
   if(t.tags && t.tags.album){
-    albumTrackIdx = albumTracks(t.tags.album);
     if(S.albumSides){
       const splits = splitSides(albumTrackIdx, S.tracks, S.albumSides);
       const found = splits && splits.find(s => s.idx.includes(i));
@@ -364,14 +375,6 @@ export function load(i){
   // "SIDE A ·").
   const kicker = $('#nowSideKicker');
   if(kicker) kicker.textContent = sideLabel ? 'Side ' + sideLabel.replace(' · ', '').replace('SIDE ', '') : '';
-  // AU9 (docs/16_AUDIO.md §5): the format table applies whether or not
-  // the Sides setting is on — albumFormatFor() never reads S.albumSides.
-  // Cached once per load so the audio graph (audio/engine.js) and the
-  // surface-noise/run-out code all read the one same value.
-  const prevFormat = S.recordFormat;
-  S.recordFormat = albumTrackIdx
-    ? albumFormatFor(albumTrackIdx, S.tracks, (S.albumFormat && S.albumFormat[albumKey(t)]) || 'auto')
-    : { size:'12"', speed: RPM_33 };
   // AU10 (docs/16_AUDIO.md §5, "the speed change"): when the player is open
   // and the new record's own speed differs from the last one, the platter
   // eases to it over 600ms with a tick + one haptic, rather than snapping —
@@ -397,9 +400,13 @@ export function load(i){
   if(arcText) arcText.textContent = (S.recordFormat.speed * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
   // SZ1 (docs/26_SIZES_AND_ZOETROPES.md): one size attribute, not a class
   // per size — CSS (02-stage-platter.css) owns the per-size sizing/mat/
-  // adapter rules from [data-size] alone.
+  // adapter rules from [data-size] alone. SZ2: data-speed alongside it
+  // keys the zoetrope ring's own band.
   const platterStage = $('#platterStage');
-  if(platterStage) platterStage.setAttribute('data-size', platterSizeAttr(S.recordFormat));
+  if(platterStage){
+    platterStage.setAttribute('data-size', platterSizeAttr(S.recordFormat));
+    platterStage.setAttribute('data-speed', platterSpeedAttr(S.recordFormat));
+  }
   // AU10: the "7″ · 45" chip before the spec line.
   const fmtChip = $('#trackSpecFormat');
   if(fmtChip) fmtChip.textContent = S.recordFormat.speed === RPM_45 ? formatChipText(S.recordFormat) : '';
