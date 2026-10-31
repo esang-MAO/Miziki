@@ -7,6 +7,7 @@ import { $ } from '../util/dom.js';
 import { persistProfile, renderProfile } from '../profile/screens.js';
 import { cropSquareImage } from '../library/edit.js';
 import { closeLayer } from '../shell/nav-stack.js';
+import { triggerProfileRefresh } from '../shell/pull-refresh.js';
 
 export function wireAccount(){
   $('#profilePicFile').addEventListener('change', async e=>{
@@ -33,4 +34,15 @@ export function wireAccount(){
     popSocialScreen();
   });
   $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
+
+  // FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
+  // top-right" -- replaces the gear-icon dropdown renderStorefrontSection()
+  // used to build fresh on every render (its Refresh item folded in only
+  // to avoid colliding with the pull-to-refresh indicator's own top-right
+  // spot, src/shell/pull-refresh.js). These two buttons are static markup
+  // in the shared #appHeader (same home as #hdrWordmark), so they're wired
+  // once here rather than rebuilt per render; the handlers themselves don't
+  // vary by render state.
+  $('#hdrProfileRefreshBtn').addEventListener('click', () => triggerProfileRefresh());
+  $('#hdrProfileSettingsBtn').addEventListener('click', () => { S.profileView.screen = 'settings'; renderProfile(); });
 }

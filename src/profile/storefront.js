@@ -4,11 +4,10 @@ import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
 import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
-import { groupBy } from '../library/model.js';
+import { mostRecentlySpunAlbum, lastSpunPhrase } from '../crate/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
-import { triggerProfileRefresh } from '../shell/pull-refresh.js';
 // The Records section (records + unlocked pressings/metals) — part of this
 // file's circular cluster with screens.js; see records.js's own header.
 import { storeRecordsSection } from './records.js';
@@ -38,14 +37,17 @@ function awningColorway(handle){
 
 // `handle` is omitted while there's no username yet (renderOpenStoreCard) —
 // the plain striped strip, no "Crate of" card, since there's no name to set
-// a colourway from or print on it.
-export function storeAwning(handle){
+// a colourway from or print on it. `isMe` (FS7, docs/25_FROM_SCRATCH.md
+// point 2): "your own crate defaults to the oxblood colourway" -- your own
+// three storefront states all pass it; a friend's crate (social/screens/
+// friend-store.js) doesn't, and keeps its own hash-picked colourway.
+export function storeAwning(handle, isMe){
   const wrap = el('div','store-awning-wrap');
   const awning = el('div','store-awning');
   // FS2 (docs/25_FROM_SCRATCH.md): the no-handle default is oxblood, not
   // amber -- amber never signals state, and this fallback is the one
   // place the awning has no username to hash a colourway from.
-  const stripe = handle ? awningColorway(handle) : '#7A2E2A';
+  const stripe = isMe ? '#7A2E2A' : handle ? awningColorway(handle) : '#7A2E2A';
   for(let i = 0; i < 10; i++){
     const div = el('div');
     div.style.background = (i % 2 === 0) ? stripe : (handle ? 'var(--cream)' : 'var(--stock-divider-1)');
@@ -79,6 +81,31 @@ export function storeStat(label, value, accent){
   s.appendChild(el('b', null, String(value)));
   s.appendChild(el('span', null, label));
   return s;
+}
+
+// FS7 (docs/25_FROM_SCRATCH.md point 4): "one raised row with the last
+// record you played and 'Spun last night'/'Spun 3 hours ago'" -- replaces
+// the stats row in every one of this own crate's three storefront states.
+// A friend's crate keeps its own stats row (Records/Staff picks/In common,
+// QC3) untouched -- social/screens/friend-store.js's own storeStat() calls
+// aren't this function's job. Returns null (nothing played yet) rather
+// than a placeholder, so the caller can skip the row entirely.
+export function storeLastSpunRow(){
+  const spun = mostRecentlySpunAlbum();
+  if(!spun) return null;
+  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
+  const info = adapter.albumInfo(spun.albumId);
+  if(!info) return null;
+  const row = el('div','store-last-spun');
+  const cover = el('div','store-last-spun-cover');
+  const art = localAlbumArt(info.title, info.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  row.appendChild(cover);
+  const text = el('div','store-last-spun-text');
+  text.appendChild(el('b', null, info.title));
+  text.appendChild(el('span','store-last-spun-when', 'Spun ' + lastSpunPhrase(spun.ts)));
+  row.appendChild(text);
+  return row;
 }
 
 // RF11 (docs/12_REFINE.md, "Profile is your crate"): the one row every
@@ -178,7 +205,7 @@ export function timeAgoShort(ms){
 // appendNameEditor() just above/below for the shared header pieces.
 export function renderOpenStoreCard(host, authState){
   host.innerHTML = '';
-  host.appendChild(storeAwning());
+  host.appendChild(storeAwning(undefined, true));
   const needsProfile = authState === 'needsProfile';
 
   const header = el('div','store-header');
@@ -188,9 +215,8 @@ export function renderOpenStoreCard(host, authState){
   header.appendChild(idBox);
   host.appendChild(header);
 
-  const stats = el('div','store-stats');
-  stats.appendChild(storeStat('Records', groupBy('album').length));
-  host.appendChild(stats);
+  const lastSpun = storeLastSpunRow();
+  if(lastSpun) host.appendChild(lastSpun);
   host.appendChild(storeListeningRow());
 
   const card = el('div','store-open-card');
@@ -268,50 +294,11 @@ export function renderStoreError(host, error, retry){
 
 export function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
-  // DA3 (docs/DAY_ARC.md, artboard ProfileSettings): a universal Settings
-  // entry point, added here rather than inside any one of the three
-  // branches below, since before this step only the signed-in
-  // renderStorefront() branch had its own gear button — the other two
-  // states (renderLocalStorefront, the common default; renderOpenStoreCard,
-  // "social enabled but not signed in yet") had no settings entry point
-  // at all, which would have made the Appearance control (now moved off
-  // the old Character tab onto a new screen reached from here)
-  // unreachable in either of them. One button at the very top of every
-  // state, rather than three separate additions.
-  // RF11 (docs/12_REFINE.md, point 4): the plain "Settings ›" button and
-  // NV4's own separately-floating, absolutely-positioned keyboard Refresh
-  // button (src/shell/pull-refresh.js) used to visually collide, both
-  // sitting at the top of this same screen. One menu button now covers
-  // both: a real popup (role="menu") with Refresh and Settings items. The
-  // pull gesture itself (src/wiring/pull-refresh.js) is unchanged — this
-  // menu's Refresh item calls the exact same debounced/throttled refresh
-  // function via triggerProfileRefresh(), it just doesn't duplicate the
-  // gesture's own separate floating button any more.
-  const menuWrap = el('div','profile-settings-wrap');
-  const menuBtn = el('button','profile-settings-btn','⚙');
-  menuBtn.setAttribute('aria-haspopup','menu');
-  menuBtn.setAttribute('aria-expanded','false');
-  menuBtn.setAttribute('aria-label','Profile menu');
-  const menu = el('div','profile-settings-menu');
-  menu.setAttribute('role','menu');
-  menu.hidden = true;
-  const closeMenu = ()=>{ menu.hidden = true; menuBtn.setAttribute('aria-expanded','false'); };
-  const refreshItem = el('button','profile-settings-menu-item','Refresh');
-  refreshItem.setAttribute('role','menuitem');
-  refreshItem.addEventListener('click', ()=>{ closeMenu(); triggerProfileRefresh(); });
-  const settingsItem = el('button','profile-settings-menu-item','Settings');
-  settingsItem.setAttribute('role','menuitem');
-  settingsItem.addEventListener('click', ()=>{ closeMenu(); S.profileView.screen = 'settings'; renderProfile(); });
-  menu.appendChild(refreshItem);
-  menu.appendChild(settingsItem);
-  menuBtn.addEventListener('click', ()=>{
-    const open = menu.hidden;
-    menu.hidden = !open;
-    menuBtn.setAttribute('aria-expanded', String(open));
-  });
-  menuWrap.appendChild(menuBtn);
-  menuWrap.appendChild(menu);
-  body.appendChild(menuWrap);
+  // FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
+  // top-right" moved this universal entry point into the shared #appHeader
+  // (#hdrProfileSettingsBtn/#hdrProfileRefreshBtn, wired once in
+  // src/wiring/account.js) -- the gear-icon dropdown this function used to
+  // build fresh on every render is gone; nothing to append here any more.
   // D7 (docs/DESKTOP_LAYOUT.md): wraps .store-host below so
   // src/styles/23-desktop.css's own desktop grid can reach it —
   // display:contents below 1024px, the same invisible-scaffolding pattern
@@ -366,18 +353,23 @@ function localStaffPicks(){
 
 function renderLocalStorefront(host){
   host.innerHTML = '';
-  host.appendChild(storeAwning(S.profile.username || ''));
-  const header = el('div','store-header');
-  header.appendChild(storeAvatarButton());
+  host.appendChild(storeAwning(S.profile.username || '', true));
 
-  const idBox = el('div','store-id');
+  // FS7 (docs/25_FROM_SCRATCH.md point 3): the awning above already prints
+  // "Crate of {username}" (point 2) -- this input still sets that same
+  // S.profile.username, just demoted out of the identity row's own
+  // primary text (the display name takes that spot now) into a small
+  // secondary line below the header, same "@handle" shape a social handle
+  // gets once one exists.
   const userIn = document.createElement('input');
-  userIn.className = 'store-handle-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
+  userIn.className = 'store-username-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
   userIn.setAttribute('aria-label','Your crate username');
   userIn.value = S.profile.username || '';
   userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
-  idBox.appendChild(userIn);
 
+  const header = el('div','store-header');
+  header.appendChild(storeAvatarButton());
+  const idBox = el('div','store-id');
   appendNameEditor(idBox);
   header.appendChild(idBox);
   const editBtn = el('button','store-edit-btn','Edit');
@@ -386,13 +378,18 @@ function renderLocalStorefront(host){
   header.appendChild(editBtn);
   host.appendChild(header);
 
-  const stats = el('div','store-stats');
-  stats.appendChild(storeStat('Records', groupBy('album').length));
-  stats.appendChild(storeStat('Staff picks', MizikiSocial.getPins().length));
-  host.appendChild(stats);
+  const userRow = el('div','store-username-row');
+  userRow.appendChild(el('span','store-username-at','@'));
+  userRow.appendChild(userIn);
+  host.appendChild(userRow);
+
+  const lastSpun = storeLastSpunRow();
+  if(lastSpun) host.appendChild(lastSpun);
   host.appendChild(storeListeningRow());
 
   host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
+  const found = storeRecentlyFoundSection();
+  if(found) host.appendChild(found);
   host.appendChild(storeRecordsSection());
 
   host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
@@ -462,6 +459,41 @@ export function storePicksSection(full){
   return section;
 }
 
+// FS7 (docs/25_FROM_SCRATCH.md point 6): "the three newest pressings
+// you've found, as discs (newest first, no count, no link to 'more' —
+// the full chart stays on Records)." S.collection (history/achievements.js's
+// upsertCollectionEntry()) already carries exactly what this needs --
+// variant/pattern to draw the disc, name/artist/discoveredAt -- with no
+// new tracking. Local-only data, so it's the same across all three
+// storefront states; returns null when nothing's been found yet, same
+// "skip the row entirely" shape storeLastSpunRow() uses.
+export function storeRecentlyFoundSection(){
+  const found = Object.values(S.collection)
+    .sort((a, b) => b.discoveredAt - a.discoveredAt)
+    .slice(0, 3);
+  if(!found.length) return null;
+  const section = el('div','store-section');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'Recently found'));
+  section.appendChild(head);
+  const row = el('div','store-found-row');
+  found.forEach(rec => {
+    const tile = el('div','store-found-tile');
+    const disc = el('div','store-found-disc');
+    const def = VARIANT_DEFS[rec.variant];
+    if(def) disc.style.background = variantBackground(def);
+    disc.setAttribute('aria-label', (def && def.name) || rec.name);
+    tile.appendChild(disc);
+    const label = el('div','store-found-label');
+    label.appendChild(el('b', null, rec.name));
+    label.appendChild(el('span', null, rec.artist));
+    tile.appendChild(label);
+    row.appendChild(tile);
+  });
+  section.appendChild(row);
+  return section;
+}
+
 function storeDiggingSection(full, host){
   // D7: the one modifier class this step adds, since store-section alone
   // (shared with storePicksSection/storeRecordsSection) gives
@@ -499,12 +531,19 @@ function storeDiggingSection(full, host){
 
 function renderStorefront(host, full, requests){
   host.innerHTML = '';
-  host.appendChild(storeAwning(full.profile.handle));
+  host.appendChild(storeAwning(full.profile.handle, true));
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
+  // FS7 (docs/25_FROM_SCRATCH.md point 3): "display name Archivo 20/600,
+  // then your own short line (bio/name field) in --muted — nothing when
+  // it's empty." The @handle moves out of this primary spot -- the awning
+  // above already prints "Crate of {handle}" (point 2), so repeating it
+  // here would be the second big heading this redesign's "one in one out"
+  // rule keeps dropping; it gets the same small "@handle" secondary line
+  // the local-only state's own username now does, right below the header.
   const idBox = el('div','store-id');
-  idBox.appendChild(el('h2','store-handle', full.profile.handle));
-  if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
+  idBox.appendChild(el('div','store-name', full.profile.display_name || full.profile.handle));
+  if(full.profile.bio) idBox.appendChild(el('p','store-bio', full.profile.bio));
   header.appendChild(idBox);
   // DA3: the signed-in storefront's own gear (which jumped straight to
   // Account) is gone — the new universal Settings button
@@ -517,21 +556,24 @@ function renderStorefront(host, full, requests){
   editBtn.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
   header.appendChild(editBtn);
   host.appendChild(header);
-  if(full.profile.bio) host.appendChild(el('p','store-bio', full.profile.bio));
+  const handleRow = el('div','store-username-row');
+  handleRow.appendChild(el('span','store-username-at','@'));
+  handleRow.appendChild(el('span', null, full.profile.handle));
+  host.appendChild(handleRow);
   const visRow = el('div','store-vis-row');
   const visChip = el('button','store-vis-chip', STORE_VIS_LABEL[full.profile.visibility] || 'Friends only');
   visChip.setAttribute('aria-label','Change who can see your crate — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));
   visChip.addEventListener('click', ()=> cycleStoreVisibility(full.profile, host));
   visRow.appendChild(visChip);
   host.appendChild(visRow);
-  const stats = el('div','store-stats');
-  stats.appendChild(storeStat('Records', full.summary.records));
-  stats.appendChild(storeStat('Staff picks', full.summary.pins));
-  host.appendChild(stats);
+  const lastSpun = storeLastSpunRow();
+  if(lastSpun) host.appendChild(lastSpun);
   host.appendChild(storeListeningRow());
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
   host.appendChild(storeNowSpinningCard(full, host));
   host.appendChild(storePicksSection(full));
+  const found = storeRecentlyFoundSection();
+  if(found) host.appendChild(found);
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
   host.appendChild(storeRecordsSection());
 }

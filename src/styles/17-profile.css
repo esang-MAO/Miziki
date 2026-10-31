@@ -55,25 +55,6 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .profile-share{width:100%;margin-top:0;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
 .profile-share.active{color:var(--cream);border-color:var(--cream)}
 
-/* DA3 (docs/DAY_ARC.md): the universal entry point at the top of every
-   profile-home state, and the Settings screen itself. RF11
-   (docs/12_REFINE.md, point 4): this one gear button now opens a small
-   popup menu (Refresh, Settings) instead of linking straight to Settings —
-   see src/profile/storefront.js's renderStorefrontSection() — so the
-   floating keyboard "Refresh" button NV4 used to render separately
-   (src/styles/25-pull-refresh.css) no longer collides with it. */
-.profile-settings-wrap{position:relative;display:flex;margin:0 0 14px auto;width:max-content}
-.profile-settings-btn{display:block;background:none;border:1px solid var(--line);
-  color:var(--muted);font-size:var(--fs-row);line-height:1;border-radius:4px;
-  padding:7px var(--sp-3)}
-.profile-settings-btn[aria-expanded="true"]{color:var(--paper);border-color:var(--cream)}
-.profile-settings-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:140px;z-index:5;
-  display:flex;flex-direction:column;gap:2px;padding:var(--sp-1);background:var(--panel);
-  border:1px solid var(--line);border-radius:8px;box-shadow:var(--sh-3)}
-.profile-settings-menu[hidden]{display:none}
-.profile-settings-menu-item{display:block;width:100%;text-align:left;background:none;border:0;
-  color:var(--paper);font-size:var(--fs-body);min-height:40px;padding:0 var(--sp-3);border-radius:6px}
-.profile-settings-menu-item:hover,.profile-settings-menu-item:focus-visible{background:var(--raised)}
 .settings-section{margin-top:22px}
 .settings-section-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:var(--sp-3)}
