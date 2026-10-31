@@ -8,9 +8,11 @@
 // socialNavOverlay -- those aren't in the plan's own named list, and an
 // accidental swipe dismissing a destructive confirmation or a duplicate-
 // scan screen would be a real regression, not a convenience.
+import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { closeLayer } from '../shell/nav-stack.js';
 import { wireSwipeToClose } from '../shell/swipe-close.js';
+import { toggleFocus } from '../player/queue.js';
 
 const SHEETS = [
   { sheet: '#queueSheetBox', layer: 'queue' },
@@ -34,7 +36,11 @@ export function wireSwipeClose(){
   const player = $('#playerOverlay');
   if(player){
     wireSwipeToClose(player, {
-      onClose: () => closeLayer('player'),
+      // FS10 (docs/25_FROM_SCRATCH.md point 2): "the player can't be
+      // minimised into the mini-bar" while Focus is on -- the same swipe
+      // that would otherwise minimize instead ends Focus, same as Done,
+      // and the player stays open at its ordinary (non-Focus) state.
+      onClose: () => { if(S.focus) toggleFocus(); else closeLayer('player'); },
       isValidStart: (ev) => !ev.target.closest('#platterStage'),
     });
   }

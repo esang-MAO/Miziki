@@ -246,15 +246,18 @@ export const S = {
   shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
   // sleep timer — session-only, never persisted (see SLEEP spec §5)
   sleep:{mode:null, at:null, timer:null, fading:false},
-  // RW3 (docs/23_RHYTHM_AND_WEAR.md): This record only -- a per-session
-  // player toggle, resets on relaunch, never saved to prefs/backup.
-  recordOnly:false,
-  // RW3: Stop between records at sunset and midnight (Sundown › Day).
-  // Saved, default off -- see storage/prefs.js's serializePrefs/parsePrefs.
+  // FS10 (docs/25_FROM_SCRATCH.md): Focus -- a per-session player toggle,
+  // resets on relaunch, never saved to prefs/backup. Replaces RW3's "This
+  // record only" outright (same boundary behavior in player/queue.js's
+  // advance(), plus the Focus screen/idle-fade/can't-minimize UI mode).
+  focus:false,
+  // RW3 (docs/23_RHYTHM_AND_WEAR.md): Stop between records at sunset and
+  // midnight (Sundown › Day). Saved, default off -- see storage/prefs.js's
+  // serializePrefs/parsePrefs.
   stopAtTurns:false,
-  // RW3/RW4: non-null while holding the sleeve at a record boundary (This
-  // record only, Stop between records, or a real end-of-queue finish) --
-  // {reason:'recordOnly'|'sunset'|'midnight'|'queueEnd', pendingIndex,
+  // RW3/RW4/FS10: non-null while holding the sleeve at a record boundary
+  // (Focus, Stop between records, or a real end-of-queue finish) --
+  // {reason:'focus'|'sunset'|'midnight'|'queueEnd', pendingIndex,
   // side, endedAt} for the resting card's own copy and for the Play
   // button to know where to continue (or restart) the queue from.
   // Runtime only, never saved -- set by src/shell/runout.js's

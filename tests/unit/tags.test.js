@@ -54,7 +54,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
   namedExports: { runStartSequence: async () => {} },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){}, wakeEveningGlance(){} },
 });
 // CEREMONY PR 3: player/queue.js and shell/start-sequence.js import
 // shell/runout.js, whose real chain reaches library/view.js — stop it here.
@@ -101,7 +101,7 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, stop(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){}, stopSleepState(){} },

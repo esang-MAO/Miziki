@@ -357,6 +357,14 @@
     transform:none;opacity:0;visibility:hidden;
     transition:opacity 180ms ease;
   }
+  /* FS10 (docs/25_FROM_SCRATCH.md point 7): "the sidebar and library pane
+     fold away while Focus is on" -- the sidebar rail hides and the
+     player (already covering the main content area whenever it's open)
+     expands to use the space, the same body.focus-active class the
+     phone tab bar hide (08-shell.css) and the desktop glance view
+     (.glance-active) already use. */
+  body.focus-active .sidebar{display:none}
+  body.focus-active .player-overlay{left:0}
   /* explicit, not left to a cascade coincidence: 13-player-overlay.css's
      own .player-overlay.open{transform:translateY(0)} (two classes) would
      already beat the bare .player-overlay{transform:none} above on

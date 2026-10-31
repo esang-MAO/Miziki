@@ -42,7 +42,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
   namedExports: { runStartSequence(){} },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { openPlayerViaSheet(){} },
+  namedExports: { openPlayerViaSheet(){}, wakeEveningGlance(){} },
 });
 mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
   namedExports: { runGatefoldHandoff(){} },

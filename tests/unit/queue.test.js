@@ -8,6 +8,21 @@ import assert from 'node:assert/strict';
 // player/queue.js chain reaches sealed.js before any mock of this module
 // would apply.
 globalThis.window = { matchMedia(){ return { matches: false }; } };
+// FS10 (docs/25_FROM_SCRATCH.md): updateFocusUI() toggles a class on
+// document.body (the same body.focus-active shape player-overlay.js's
+// own .glance-active already uses) -- this file has no real DOM, so a
+// minimal classList stub is enough for that one call to not throw.
+const bodyClasses = new Set();
+globalThis.document = {
+  body: {
+    classList: {
+      add(...cs){ cs.forEach(c => bodyClasses.add(c)); },
+      remove(...cs){ cs.forEach(c => bodyClasses.delete(c)); },
+      toggle(c, on){ if(on === undefined) on = !bodyClasses.has(c); if(on) bodyClasses.add(c); else bodyClasses.delete(c); return on; },
+      contains(c){ return bodyClasses.has(c); },
+    },
+  },
+};
 
 // Since step 5e, queue.js also has the visible-queue functions
 // (queueInsert/playNext/addToQueue, queueRemoveAt, queueMove,
@@ -105,7 +120,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
   namedExports: { runStartSequence(){} },
 });
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { openPlayerViaSheet(){}, closePlayer(){} },
+  namedExports: { openPlayerViaSheet(){}, closePlayer(){}, wakeEveningGlance(){} },
 });
 // NV2 (docs/11_SMOOTH_NAVIGATION.md): player/queue.js's openQueueSheet now
 // registers with the real history-based nav-stack layer stack, which reads
@@ -167,7 +182,7 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){} },
@@ -213,7 +228,7 @@ const {
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
   queueRemoveAt, queueReorderTo, isAlbumBoundary, continueFromResting,
-  flipFromResting, updateRecordOnlyUI, toggleRecordOnly, paintRestingCard,
+  flipFromResting, playAgainFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
@@ -225,7 +240,7 @@ function resetState(overrides){
     sleep: { mode: null }, lru: [], playerOpen: false,
     pendingShellInfo: null, sleevePullEnabled: true, sessionActive: null,
     playlists: [], queueUndo: null, queueUndoTimer: null, trackLastPlayed: {},
-    recordOnly: false, stopAtTurns: false, resting: null, sun: null,
+    focus: false, stopAtTurns: false, resting: null, sun: null,
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); pauseAndRestMock.mock.resetCalls();
@@ -653,61 +668,67 @@ test('isAlbumBoundary: nothing next (queue end) is a boundary', () => {
   assert.equal(isAlbumBoundary(fakeAlbumTrack('X','A'), null), true);
 });
 
-test('advance: This record only stops at a side flip exactly like a plain boundary check -- never mid-album', () => {
+test('advance: Focus stops at a side flip exactly like a plain boundary check -- never mid-album', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B')],
-    queue: [0,1], qpos: 0, index: 0, recordOnly: true,
+    queue: [0,1], qpos: 0, index: 0, focus: true,
   });
   advance(1, true);
   // same album, different side -- not a boundary, so playback just continues
   assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
   assert.equal(S.resting, null);
+  assert.equal(S.focus, true);   // still in Focus -- the record hasn't ended
 });
 
 // RW4 (docs/23_RHYTHM_AND_WEAR.md): the actual run-out/put-away ceremony
 // and the S.resting write both now live in shell/runout.js's
 // stopAtRecordEndCeremony() (mocked here as a spy) -- advance() itself is
 // only responsible for pausing and handing off the right reason/pendingIndex.
-test('advance: This record only stops and hands off to the ceremony when the next queued track is a different album', () => {
+// FS10 (docs/25_FROM_SCRATCH.md) point 4: "Focus ends on its own at that
+// moment" -- advance() clears S.focus itself before handing off.
+test('advance: Focus stops and hands off to the ceremony when the next queued track is a different album, and ends Focus', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
-    queue: [0,1], qpos: 0, index: 0, recordOnly: true,
+    queue: [0,1], qpos: 0, index: 0, focus: true,
   });
   advance(1, true);
   assert.equal(pauseMock.mock.calls.length, 1);
   assert.equal(S.pos, 0);
   assert.equal(S.qpos, 0);   // never moved onto the next album
-  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['recordOnly', 1]);
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['focus', 1]);
+  assert.equal(S.focus, false);
 });
 
-test('advance: This record only stops and hands off to the ceremony at the genuine end of the queue, with a null pendingIndex', () => {
+test('advance: Focus stops and hands off to the ceremony at the genuine end of the queue, with a null pendingIndex', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
-    queue: [0], qpos: 0, index: 0, recordOnly: true, repeat: 'off',
+    queue: [0], qpos: 0, index: 0, focus: true, repeat: 'off',
   });
   advance(1, true);
-  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['recordOnly', null]);
+  assert.deepEqual(stopAtRecordEndCeremonyMock.mock.calls[0].arguments, ['focus', null]);
+  assert.equal(S.focus, false);
 });
 
-test('advance: This record only off rolls on as usual past an album boundary', () => {
+test('advance: Focus off rolls on as usual past an album boundary', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
-    queue: [0,1], qpos: 0, index: 0, recordOnly: false,
+    queue: [0,1], qpos: 0, index: 0, focus: false,
   });
   advance(1, true);
   assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
 });
 
-test('advance: a manual skip (auto=false) never triggers This record only\'s stop', () => {
+test('advance: a manual skip (auto=false) never triggers Focus\'s stop', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
-    queue: [0,1], qpos: 0, index: 0, recordOnly: true,
+    queue: [0,1], qpos: 0, index: 0, focus: true,
   });
   advance(1, false);
   assert.equal(stopAtRecordEndCeremonyMock.mock.calls.length, 0);
   assert.equal(S.qpos, 1);
+  assert.equal(S.focus, true);
 });
 
 test('advance: Stop between records does nothing at midday (no turning point)', () => {
@@ -788,7 +809,7 @@ test('continueFromResting: Play continues the queue from where it stopped', () =
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
     queue: [0,1], qpos: 0, index: 0,
-    resting: { reason: 'recordOnly', pendingIndex: 1 },
+    resting: { reason: 'focus', pendingIndex: 1 },
   });
   continueFromResting();
   assert.equal(S.resting, null);
@@ -817,7 +838,7 @@ test('continueFromResting: a null pendingIndex with a single-track record just r
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0,
-    resting: { reason: 'recordOnly', pendingIndex: null },
+    resting: { reason: 'focus', pendingIndex: null },
   });
   continueFromResting();
   assert.equal(S.resting, null);
@@ -832,11 +853,34 @@ test('continueFromResting is a quiet no-op when nothing is resting', () => {
   assert.equal(loadMock.mock.calls.length, 0);
 });
 
+// FS10 point 4, frame 16: "Play it again" always restarts side A, even
+// when another album is queued next -- the opposite of
+// continueFromResting()'s "go to whatever's queued next" ("Back to your
+// queue"), which is the real distinction between the two end-state buttons.
+test('playAgainFromResting restarts side A even when a different album is queued next', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B'), fakeAlbumTrack('Y','A')],
+    queue: [0,1,2], qpos: 1, index: 1,
+    resting: { reason: 'focus', pendingIndex: 2 },
+  });
+  playAgainFromResting();
+  assert.equal(S.resting, null);
+  assert.equal(S.qpos, 0);   // back to side A of album X, not pendingIndex 2 (album Y)
+  assert.equal(loadMock.mock.calls.length, 1);
+  assert.equal(playMock.mock.calls.length, 1);
+});
+
+test('playAgainFromResting is a quiet no-op when nothing is resting', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0, resting: null });
+  playAgainFromResting();   // must not throw
+  assert.equal(loadMock.mock.calls.length, 0);
+});
+
 test('flipFromResting jumps to the album\'s other side without disturbing the rest of the queue', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
     queue: [0,1,2], qpos: 0, index: 0,
-    resting: { reason: 'recordOnly', pendingIndex: 1 },
+    resting: { reason: 'focus', pendingIndex: 1 },
   });
   flipFromResting();
   assert.equal(S.resting, null);
@@ -848,14 +892,14 @@ test('flipFromResting is a no-op (clears resting, nothing to load) when the albu
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A')],
     queue: [0,1], qpos: 0, index: 0,
-    resting: { reason: 'recordOnly', pendingIndex: 1 },
+    resting: { reason: 'focus', pendingIndex: 1 },
   });
   flipFromResting();
   assert.equal(S.resting, null);
   assert.equal(loadMock.mock.calls.length, 0);
 });
 
-test('paintRestingCard: queueEnd gets its own copy, note, and meta line, and hides the Flip button with no other side queued', () => {
+test('paintRestingCard: queueEnd gets its own copy and meta line, and hides the Flip button with no other side queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0,
@@ -864,12 +908,11 @@ test('paintRestingCard: queueEnd gets its own copy, note, and meta line, and hid
   paintRestingCard();
   assert.equal(elCache.get('#restingCard').style.display, '');
   assert.equal(elCache.get('#restingBody').textContent, "You've reached the end of your queue.");
-  assert.equal(elCache.get('#restingNote').textContent, 'Press play to start it again.');
   assert.ok(elCache.get('#restingMeta').textContent.includes('Side A'));
   assert.equal(elCache.get('#restingFlipBtn').style.display, 'none');
 });
 
-test('paintRestingCard: a RW3 stop keeps the "queue is still there" note and shows the Flip button when another side is queued', () => {
+test('paintRestingCard: a RW3 stop shows the Flip button when another side is queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
     queue: [0,1,2], qpos: 0, index: 0,
@@ -877,7 +920,6 @@ test('paintRestingCard: a RW3 stop keeps the "queue is still there" note and sho
   });
   paintRestingCard();
   assert.equal(elCache.get('#restingBody').textContent, 'Around sunset, playback stops between records.');
-  assert.equal(elCache.get('#restingNote').textContent, 'Your queue is still there. Press play to continue.');
   assert.equal(elCache.get('#restingFlipBtn').style.display, '');
 });
 
@@ -887,34 +929,64 @@ test('paintRestingCard: nothing resting hides the card', () => {
   assert.equal(elCache.get('#restingCard').style.display, 'none');
 });
 
-test('renderQueueSheet: This record only lists only the current side\'s upcoming tracks', () => {
+test('renderQueueSheet: Focus does not filter the queue -- both sides stay listed', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B'), fakeAlbumTrack('Y','A')],
-    queue: [0,1,2,3], qpos: 0, index: 0, recordOnly: true,
+    queue: [0,1,2,3], qpos: 0, index: 0, focus: true,
   });
-  // just confirming this doesn't throw and stops building rows at the
-  // side boundary -- the actual DOM assertions are covered by the fake
-  // element stubs elsewhere in this file; this test only needs to prove
-  // the filtering runs without error for a mixed-side, mixed-album queue
+  // FS10 point 2: "the queue isn't touched" -- confirms the old RW3 side
+  // filter is gone; this just proves rendering a mixed-side, mixed-album
+  // queue with Focus on doesn't throw. (No child-count tracking in this
+  // file's fake elements -- the filtering behavior itself lived in a
+  // source `if(S.recordOnly && curT){...}` block that has been removed
+  // outright, so there's nothing left to filter on.)
   renderQueueSheet();
   assert.ok(true);
 });
 
-test('updateRecordOnlyUI hides the Queue overflow row while This record only is on, restores it when off', () => {
+test('updateFocusUI hides the Queue overflow row while Focus is on, restores it when off', () => {
   resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0 });
-  toggleRecordOnly();
-  assert.equal(S.recordOnly, true);
-  assert.ok(elCache.get('#queueBtn').classList.contains('record-only-hidden'));
-  toggleRecordOnly();
-  assert.equal(S.recordOnly, false);
-  assert.ok(!elCache.get('#queueBtn').classList.contains('record-only-hidden'));
+  toggleFocus();
+  assert.equal(S.focus, true);
+  assert.ok(elCache.get('#queueBtn').classList.contains('focus-hidden'));
+  toggleFocus();
+  assert.equal(S.focus, false);
+  assert.ok(!elCache.get('#queueBtn').classList.contains('focus-hidden'));
 });
 
-test('updateRecordOnlyUI does not touch the Queue row\'s own "hidden until a track is loaded" style.display', () => {
+// FS10 point 2/9: "Done (top right) or a swipe down ends Focus; playback
+// carries on" -- toggleFocus() (the handler both Done and swipe-close
+// call, see src/wiring/transport.js and src/wiring/swipe-close.js) never
+// touches the transport itself.
+test('exitFocus is a no-op when Focus is already off', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0, focus: false });
+  exitFocus();
+  assert.equal(S.focus, false);
+  assert.equal(elCache.get('#playerOverlay'), undefined);   // updateFocusUI() never ran
+});
+
+test('exitFocus turns Focus off directly, the same way advance() ends it at a boundary', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0, focus: true });
+  exitFocus();
+  assert.equal(S.focus, false);
+  assert.ok(!elCache.get('#playerOverlay').classList.contains('focus-on'));
+});
+
+test('toggleFocus turning Focus off does not pause or restart playback', () => {
+  resetState({ tracks: [fakeAlbumTrack('X','A')], queue: [0], qpos: 0, index: 0 });
+  toggleFocus();
+  toggleFocus();
+  assert.equal(S.focus, false);
+  assert.equal(pauseMock.mock.calls.length, 0);
+  assert.equal(playMock.mock.calls.length, 0);
+  assert.equal(pauseAndRestMock.mock.calls.length, 0);
+});
+
+test('updateFocusUI does not touch the Queue row\'s own "hidden until a track is loaded" style.display', () => {
   resetState({ tracks: [], queue: [], qpos: 0, index: -1 });
   const queueBtn = elCache.get('#queueBtn') || (elCache.set('#queueBtn', { style:{ display:'none' }, classList: fakeEl().classList }), elCache.get('#queueBtn'));
   queueBtn.style.display = 'none';
-  S.recordOnly = false;
-  updateRecordOnlyUI();
+  S.focus = false;
+  updateFocusUI();
   assert.equal(queueBtn.style.display, 'none');   // untouched -- only the class changed
 });

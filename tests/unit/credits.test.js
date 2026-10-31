@@ -74,7 +74,7 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 // this file's mocks are, so shell/start-sequence.js never reaches library/
 // sealed.js's own circular main.js import.
 mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, {
-  namedExports: { closePlayer: closePlayerMock, openPlayerViaSheet(){} },
+  namedExports: { closePlayer: closePlayerMock, openPlayerViaSheet(){}, wakeEveningGlance(){} },
 });
 mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute: showRouteMock },
@@ -123,7 +123,7 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
-  namedExports: { drawTime(){} },
+  namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
   namedExports: { sleepStopPlayback(){} },

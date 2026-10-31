@@ -11,7 +11,7 @@ import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
 import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
-import { advance, preloadNextTrack, peekNextIndex, updateRecordOnlyUI } from './queue.js';
+import { advance, preloadNextTrack, peekNextIndex, updateFocusUI } from './queue.js';
 import { ensureBuffer } from './buffers.js';
 import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
@@ -429,8 +429,8 @@ export function load(i){
   $('#queueBtn').style.display = '';
   $('#playerQueueBtn').style.display = '';   // FS5 point 6: the bottom row's own queue icon, same rule
   $('#sleepTimerBtn').style.display = '';
-  $('#recordOnlyRow').style.display = '';   // RW3: hidden until a track is loaded, same as the row above
-  updateRecordOnlyUI();   // RW3: re-applies the Queue row's own hide-while-on state for the new track
+  $('#focusPill').style.display = '';   // FS10: hidden until a track is loaded, same as the row above
+  updateFocusUI();   // FS10: re-applies the Queue row's own hide-while-on state, and the status line, for the new track
   updateCreditsButtonForCurrent();
   updateFavoriteButtons();
   updateSleepUI();

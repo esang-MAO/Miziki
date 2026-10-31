@@ -69,6 +69,11 @@
   display:flex;background:var(--chrome);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-top:1px solid var(--line);border-left:1px solid var(--line);border-right:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
+/* FS10 (docs/25_FROM_SCRATCH.md point 2): "the tab bar is hidden" while
+   Focus is on -- body.focus-active, src/player/queue.js's
+   updateFocusUI(), same class shape player-overlay.js's own
+   .glance-active already uses for the desktop glance view. */
+body.focus-active .tabbar{display:none}
 /* FS4 (docs/25_FROM_SCRATCH.md point 2): tab bar labels -- Archivo 12,
    sentence case, no tracking. Active reads by weight and cream color
    alone, no top indicator line (removed here; frame 03-crate). */

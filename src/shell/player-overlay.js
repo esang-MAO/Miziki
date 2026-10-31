@@ -7,7 +7,7 @@ import { SLEEVE_ANIM } from './mini-player.js';
 import { runStartSequence, interruptStartSequence } from './start-sequence.js';
 import { openLayer } from './nav-stack.js';
 import { currentDayPosition } from '../sundown/solar.js';
-import { eveningGlanceLevel, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS } from '../player/evening-glance.js';
+import { eveningGlanceLevel, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS, FOCUS_GLANCE_FIRST_MS } from '../player/evening-glance.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
@@ -264,7 +264,7 @@ function setEveningGlanceLevel(level){
 
 function applyEveningGlance(){
   if(isDesktopShell() || !S.playerOpen || !current()){ setEveningGlanceLevel(0); return; }
-  setEveningGlanceLevel(eveningGlanceLevel(Date.now() - eveLastActivityAt, currentDayPosition().phase, S.playing));
+  setEveningGlanceLevel(eveningGlanceLevel(Date.now() - eveLastActivityAt, currentDayPosition().phase, S.playing, S.focus));
 }
 
 export function clearEveningGlance(){
@@ -277,8 +277,14 @@ export function wakeEveningGlance(){
   clearEveningGlance();
   eveLastActivityAt = Date.now();
   if(isDesktopShell() || !S.playerOpen || !current()) return;
-  // +50ms so Date.now() has definitely passed each threshold when it fires
-  eveTimers = [EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS].map(ms => setTimeout(applyEveningGlance, ms + 50));
+  // FS10 (docs/25_FROM_SCRATCH.md point 2): FOCUS_GLANCE_FIRST_MS is
+  // always armed alongside the other two, not just while S.focus happens
+  // to already be on -- Focus can turn on mid-countdown, and
+  // eveningGlanceLevel() itself (not this scheduling) is what actually
+  // decides whether a given firing does anything. +50ms so Date.now() has
+  // definitely passed each threshold when it fires.
+  eveTimers = [FOCUS_GLANCE_FIRST_MS, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS]
+    .map(ms => setTimeout(applyEveningGlance, ms + 50));
 }
 
 document.addEventListener('pointerdown', () => {
