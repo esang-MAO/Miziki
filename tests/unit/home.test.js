@@ -51,9 +51,8 @@ function fakeEl(tag){
     children: kids,
     className: '', textContent: '', type: '', placeholder: '', style: {}, id: '', dataset: {},
     // tabs-design-unify swapped a few inline-style writes in home.js for
-    // classList.add() (home-feed-card/home-feed-more/home-spin-cover/
-    // home-spin-tap) -- a real classList, same stub shape as
-    // favorites.test.js's fakeEl().
+    // classList.add() (home-feed-tap/home-spin-tap) -- a real classList,
+    // same stub shape as favorites.test.js's fakeEl().
     classList: {
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
@@ -109,7 +108,7 @@ globalThis.localStorage = (() => {
   };
 })();
 
-const { renderHome, refreshHome, clearHomeFeedCache, groupFeedEvents, updateHomeTabVisibility, shouldFetchHomeFeed, homeBannerStateAt, _resetHomeStateForTests } =
+const { renderHome, refreshHome, clearHomeFeedCache, buildFeedTiles, updateHomeTabVisibility, shouldFetchHomeFeed, homeBannerStateAt, _resetHomeStateForTests } =
   await import('../../src/social/screens/home.js');
 const { S } = await import('../../src/state.js');
 // TR2 (docs/19_PLAYER.md): feedEventText moved to the tiny, DOM-free
@@ -289,23 +288,36 @@ test('clearHomeFeedCache: removes the cache and forces the shell to rebuild on t
   assert.notEqual(homeBody.children[0], firstChild, 'the shell was rebuilt from scratch, not reused');
 });
 
-// --- groupFeedEvents: the feed's own ordering guarantee ------------------
+// --- buildFeedTiles: the feed's own tile shape ---------------------------
 
-test('groupFeedEvents: groups consecutive same-actor events, preserving input order (never reorders)', () => {
-  const events = [fakeEvent('1', { actor_id:'a' }), fakeEvent('2', { actor_id:'a' }), fakeEvent('3', { actor_id:'b' })];
-  const groups = groupFeedEvents(events);
-  assert.equal(groups.length, 2);
-  assert.equal(groups[0].actor_id, 'a');
-  assert.deepEqual(groups[0].events, [events[0], events[1]]);
-  assert.equal(groups[1].actor_id, 'b');
+test('buildFeedTiles: preserves input order (never reorders)', () => {
+  const events = [fakeEvent('1', { id:'1', actor_id:'a' }), fakeEvent('2', { id:'2', actor_id:'b' }), fakeEvent('3', { id:'3', actor_id:'a' })];
+  const tiles = buildFeedTiles(events);
+  assert.deepEqual(tiles.map(t => t.key), ['1', '2', '3']);
 });
 
-test('groupFeedEvents: calling it twice on the same events array gives byte-identical grouping', () => {
-  const events = [fakeEvent('1', { actor_id:'a' }), fakeEvent('2', { actor_id:'b' }), fakeEvent('3', { actor_id:'a' })];
-  const once = groupFeedEvents(events);
-  const twice = groupFeedEvents(events);
-  assert.deepEqual(once.map(g => g.actor_id), twice.map(g => g.actor_id));
-  assert.deepEqual(once.map(g => g.events.length), twice.map(g => g.events.length));
+test('buildFeedTiles: "added"/"pinned" caption by handle; everything else falls back to feedEventText', () => {
+  const tiles = buildFeedTiles([
+    fakeEvent('1', { type:'added', actor_handle:'kenspins' }),
+    fakeEvent('2', { type:'pinned', actor_handle:'kenspins' }),
+    fakeEvent('3', { type:'review', actor_handle:'kenspins', payload:{ rating:3 } }),
+  ]);
+  assert.equal(tiles[0].caption, 'added by kenspins');
+  assert.equal(tiles[1].caption, 'pinned by kenspins');
+  assert.equal(tiles[2].caption, feedEventText(fakeEvent('3', { type:'review', payload:{ rating:3 } })));
+});
+
+test('buildFeedTiles: a pinned record picks up its note from a same-release "review" event in the same batch', () => {
+  const tiles = buildFeedTiles([
+    fakeEvent('1', { type:'pinned', actor_id:'u1', release_id:'r1', actor_handle:'kenspins' }),
+    fakeEvent('2', { type:'review', actor_id:'u1', release_id:'r1', payload:{ note:'rainy-night favorite' } }),
+  ]);
+  assert.equal(tiles[0].note, 'rainy-night favorite');
+});
+
+test('buildFeedTiles: a pinned record with no matching review note has none', () => {
+  const tiles = buildFeedTiles([fakeEvent('1', { type:'pinned', actor_id:'u1', release_id:'r1' })]);
+  assert.equal(tiles[0].note, null);
 });
 
 test('feedEventText: "added" with a plural count says how many, singular says the title', () => {
@@ -374,8 +386,10 @@ test('refreshHome: a fresh cache (fetched this morning) skips the network fetch 
   assert.equal(fetchCalled, false, 'today\'s feed was already fetched this morning -- no network call');
   const feedSection = homeBody.children[homeBody.children.length - 1];
   const feedHolder = feedSection.children[2]; // [head, bannerHolder, feedHolder]
-  const card = feedHolder.children[0];
-  assert.equal(card.children[1].textContent, 'added Album cached', 'the cached event, not the network one');
+  const grid = feedHolder.children[0];
+  const tile = grid.children[0];
+  assert.equal(tile.children[1].textContent, 'Album cached', 'the cached event, not the network one');
+  assert.equal(tile.children[2].textContent, 'added by a');
 });
 
 test('refreshHome: a stale cache (fetched before sunrise) does fetch once sunrise has arrived', async () => {
@@ -401,12 +415,13 @@ test('refreshHome: after sunset, pull-to-refresh shows the same caught-up banner
   assert.equal(fetchCalled, false);
   const feedSection = homeBody.children[homeBody.children.length - 1];
   const bannerHolder = feedSection.children[1];
-  assert.equal(bannerHolder.children[0].className, 'home-feed-banner home-feed-banner-caughtup');
+  assert.equal(bannerHolder.children[0].className, 'home-feed-caughtup');
+  assert.equal(bannerHolder.children[0].textContent, "You're caught up.");
 
   // a second refreshHome() (what pull-to-refresh calls) stays caught up.
   await refreshHome();
   assert.equal(fetchCalled, false);
-  assert.equal(bannerHolder.children[0].className, 'home-feed-banner home-feed-banner-caughtup');
+  assert.equal(bannerHolder.children[0].className, 'home-feed-caughtup');
 });
 
 test('renderHome: follow requests and Now spinning stay live even when the feed itself skips its fetch', async () => {

@@ -322,37 +322,46 @@
 #homeBody .store-section-head h2{
   font-family:var(--data); font-size:var(--fs-micro); font-weight:400; letter-spacing:.14em; color:var(--muted);
 }
-.home-feed-card{ flex-direction:column; align-items:stretch; cursor:pointer; }
-.home-feed-head{ margin-bottom:6px; }
-.home-feed-more{ color:var(--cream); }
-/* RW2 (docs/23_RHYTHM_AND_WEAR.md): the right-aligned "Today" mono label
-   next to the Activity heading -- #homeBody .store-section-head above is
-   already a flex row with justify-content:space-between, so this is just
-   the label's own type treatment. */
-.home-feed-today{ font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em; color:var(--muted); }
-/* The morning/caught-up banner (HomeMorning/HomeEvening frames). Morning
-   gets the morning phase color on its kicker (RING_PHASE_COLOR.morning,
-   src/sundown/arc.js, matched here as a literal since this file has no
-   per-phase color tokens of its own); caught-up is the dashed "closes the
-   list" card instead. */
-.home-feed-banner{
-  display:flex; flex-direction:column; gap:4px; padding:var(--sp-3) var(--sp-4);
-  border-radius:var(--radius-card); background:var(--panel); margin-bottom:var(--sp-3);
+/* FS9 (docs/25_FROM_SCRATCH.md point 2): "This morning" opts back into
+   the display heading the line above takes away -- scoped to this one
+   section only (home.js's own home-section-head--display modifier). */
+#homeBody .store-section-head.home-section-head--display h2{
+  font-family:var(--display); font-weight:700; font-size:var(--fs-title); line-height:var(--lh-title);
+  letter-spacing:.01em; text-transform:none; color:var(--paper);
 }
-.home-feed-banner-kicker{
-  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.08em; text-transform:uppercase; color:#98C2CE;
+/* The "from friends" muted kicker beside it -- #homeBody .store-section-head
+   is already a flex row with justify-content:space-between. */
+.home-feed-kicker{ font-family:var(--body); font-size:var(--fs-body); color:var(--muted); }
+
+/* FS9 point 2: sleeve tiles replace the old per-actor text-row cards --
+   a plain grid (reflowing, not the horizontal scroller .store-picks-row
+   uses elsewhere), each tile reusing .store-pick/-cover/-name/-note/
+   -sleeve-note (the exact same "staff pick with a torn-paper note" parts
+   profile/storefront.js's own pick tiles already use) rather than a new
+   set of classes for the same shape. */
+.home-feed-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--sp-4) var(--sp-3); margin-top:10px;
 }
-.home-feed-banner p{ margin:0; font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:color-mix(in srgb, var(--paper) 85%, transparent); }
-.home-feed-banner-caughtup{
-  background:transparent; border:1px dashed var(--line); align-items:center; text-align:center; padding:var(--sp-5) var(--sp-4);
+.home-feed-grid .store-pick{ width:auto; }
+.home-feed-grid .store-pick-cover{ width:100%; height:auto; aspect-ratio:1; }
+.home-feed-tile{ cursor:pointer; }
+.home-feed-caption{ font-family:var(--body); font-size:var(--fs-caption); color:var(--muted); }
+
+/* FS9 point 3: the caught-up line -- plain, no card, no border. */
+.home-feed-caughtup{ margin:var(--sp-3) 0 0; font-family:var(--body); font-size:var(--fs-caption); color:var(--muted); }
+
+/* FS9 point 1: "Now spinning" rows -- a small phase-tinted disc, title,
+   muted "handle · …" subline, replacing the old horizontal card row. */
+.home-spin-list{ display:flex; flex-direction:column; margin-top:10px; }
+.home-spin-row{
+  display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--line);
 }
-.home-feed-banner-title{
-  font-family:var(--display); font-weight:600; font-size:var(--fs-title); line-height:var(--lh-title);
-  letter-spacing:var(--track-display); text-transform:uppercase; color:var(--paper);
+.home-spin-list .home-spin-row:last-child{ border-bottom:0; }
+.home-spin-disc{ width:28px; height:28px; border-radius:50%; flex:none; box-shadow:var(--sh-1); }
+.home-spin-text{ min-width:0; flex:1; }
+.home-spin-title{
+  font-family:var(--body); font-weight:500; font-size:var(--fs-row); line-height:var(--lh-row); color:var(--paper);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.home-feed-banner-sub{ font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:var(--muted); }
-.home-spin-cover{
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--cream);
-}
+.home-spin-sub{ font-family:var(--body); font-size:var(--fs-caption); color:var(--muted); }
 .home-spin-tap{ cursor:pointer; }
