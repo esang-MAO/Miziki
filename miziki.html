@@ -66,7 +66,7 @@
      before anything else — see runLaunchSequence(). Removed entirely once
      it finishes or is skipped. -->
 <div class="launch-overlay" id="launchOverlay" aria-hidden="true">
-  <div class="launch-stage" id="launchStage">
+  <div class="launch-stage">
     <div class="launch-wordmark" id="launchWordmark"></div>
     <div class="launch-stack" id="launchStack"></div>
   </div>
@@ -80,7 +80,7 @@
     <!-- FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left,
          Settings top-right" -- shown only on the Profile route, same
          .top.on-profile gate as #hdrWordmark above. -->
-    <div class="hdr-profile-actions" id="hdrProfileActions">
+    <div class="hdr-profile-actions">
       <button class="hdr-text-btn" id="hdrProfileRefreshBtn">Refresh</button>
       <button class="hdr-text-btn" id="hdrProfileSettingsBtn">Settings</button>
     </div>
@@ -134,7 +134,7 @@
            on this one line now -- the sort chip/count moved to their own
            row below (#crateSortRow), so this column holds only the icons. -->
       <div class="lib-tabs-right">
-        <div class="hdr-actions" id="hdrActions">
+        <div class="hdr-actions">
           <button class="hdr-icon-btn" id="hdrSearchBtn" aria-label="Search">
             <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
           </button>
@@ -160,7 +160,7 @@
           <span>Library tools</span><span class="g-chev">›</span>
         </button>
       </div>
-      <div class="lib-tools-menu-panel" id="libToolsMenuPanel">
+      <div class="lib-tools-menu-panel">
         <div class="lib-tools-menu-head">
           <h2>Library tools</h2>
           <button class="lib-tools-menu-close" id="libToolsMenuClose" aria-label="Close Library tools">×</button>
@@ -212,7 +212,7 @@
       <button class="lib-tools-row" id="libToolsToggle" aria-expanded="false" aria-controls="libToolsPanel">
         <span class="lib-tools-plus">+</span>
         <span class="lib-tools-label">Library tools</span>
-        <span class="lib-tools-preview" id="libToolsPreview">View · Duplicates · History</span>
+        <span class="lib-tools-preview">View · Duplicates · History</span>
       </button>
       <div class="lib-tools-panel" id="libToolsPanel">
         <div id="libToolsBody">
@@ -224,20 +224,20 @@
               <button data-layout="crate" aria-pressed="true">Crate</button>
             </div>
           </div>
-          <div class="lib-tools-row2" id="sidesRow">
+          <div class="lib-tools-row2">
             <span class="k">Sides A / B</span>
             <button id="sidesToggle" class="switch" role="switch" aria-checked="false" aria-label="Sides A / B"><span class="switch-track"><i></i></span></button>
           </div>
-          <div class="lib-tools-row2" id="sealedRow">
+          <div class="lib-tools-row2">
             <span class="k">Sealed records</span>
             <button id="sealedToggle" class="switch" role="switch" aria-checked="true" aria-label="Sealed records"><span class="switch-track"><i></i></span></button>
           </div>
-          <div class="lib-tools-row2" id="playFullRow">
+          <div class="lib-tools-row2">
             <span class="k">Play in full player</span>
             <button id="playFullToggle" class="switch" role="switch" aria-checked="false" aria-label="Play in full player"><span class="switch-track"><i></i></span></button>
           </div>
 
-          <p class="lib-tools-caption" id="libToolsMaintainCaption">Maintain</p>
+          <p class="lib-tools-caption">Maintain</p>
           <button class="lib-tools-row2" id="scanDuplicatesBtn" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left">
             <span class="k">Find duplicates</span>
             <span class="g-chev">›</span>
@@ -251,8 +251,8 @@
             <span class="g-chev">›</span>
           </button>
 
-          <p class="lib-tools-caption lib-tools-danger" id="libToolsDangerCaption">Danger</p>
-          <div class="lib-tools-row2 lib-tools-danger" id="forgetRow">
+          <p class="lib-tools-caption lib-tools-danger">Danger</p>
+          <div class="lib-tools-row2 lib-tools-danger">
             <span class="k">Forget library<em>Removes every song from Miziki. Your stats, playlists and settings stay, and reconnect if you add the songs again. Files on your device aren't touched — to reset stats instead, use Clear listening history above.</em></span>
             <button class="cta forget-btn" id="forget">FORGET</button>
           </div>
@@ -362,13 +362,13 @@
   <button class="mini-play tbtn" id="miniQueueBtn" aria-label="Queue" title="Queue">☰</button>
   <button class="mini-play tbtn" id="miniPlay" aria-label="Play">▶</button>
   <button class="mini-bar-btn" id="barNext" aria-label="Next track">▶▶</button>
-  <div class="mini-bar-seek" id="miniBarSeek">
+  <div class="mini-bar-seek">
     <span class="mini-bar-time" id="barElapsed">0:00</span>
     <input class="mini-bar-scrub" id="barScrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
     <span class="mini-bar-time" id="barTotal">0:00</span>
   </div>
   <!-- mirrors setMode(); a new id, never a clone of #modeToggle -->
-  <div class="mini-bar-modes" id="miniBarModes">
+  <div class="mini-bar-modes">
     <button class="mini-bar-mode-toggle" id="barModeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
       <span class="mode-toggle-track mode-toggle-track-sm"><i class="mode-toggle-thumb mode-toggle-thumb-sm"></i></span>
       <span class="mode-toggle-text" id="barModeToggleLabel">Vinyl</span>
@@ -405,7 +405,7 @@
     <span class="tabbar-label-desktop">Crate</span>
   </button>
 </nav>
-<div class="sidebar-extra" id="sidebarExtra">
+<div class="sidebar-extra">
   <!-- CR10: mirrors the crate's own virtual bins (crate/model.js's
        buildVirtualBins()), built by sidebar.js's renderSidebarBins() -->
   <div class="sidebar-section">
@@ -436,12 +436,12 @@
   <div class="sundown-sheet-grabber" id="sundownSheetGrabber" aria-hidden="true"></div>
   <div class="sundown-sheet-head">
       <div class="sd-tabs" role="tablist" aria-label="Sundown view">
-        <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
-        <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
+        <button type="button" role="tab" data-sundown-view="day" aria-selected="true">Day</button>
+        <button type="button" role="tab" data-sundown-view="sound" aria-selected="false">Sound</button>
       </div>
     <button type="button" class="icon-btn sundown-sheet-close" id="sundownSheetClose" aria-label="Close Sundown">&#10005;</button>
   </div>
-  <div class="sundown-sheet-body" id="sundownSheetBody">
+  <div class="sundown-sheet-body">
     <!-- DAY -->
     <div id="sundownDayView">
       <!-- clock.js's drawSun() (live) / dial-gesture.js's setPreviewMinutes()
@@ -453,7 +453,7 @@
            sundown/dial-view.js's renderDialView(), driven by dial.js's
            dialStateAt(). #sdSkyA/#sdSkyB crossfade whenever the sky phase
            changes, never hard-cutting. -->
-      <div class="sd-sky-bg" id="sdSkyBg" aria-hidden="true">
+      <div class="sd-sky-bg" aria-hidden="true">
         <div class="sd-sky-layer" id="sdSkyA"></div>
         <div class="sd-sky-layer" id="sdSkyB"></div>
       </div>
@@ -802,9 +802,9 @@
       </div>
     </div>
 
-    <div class="stage-info" id="stageInfo">
+    <div class="stage-info">
     <!-- CEREMONY §2: desktop rest state, shown only by .player-overlay.at-rest -->
-    <div class="rest-hint" id="restHint">
+    <div class="rest-hint">
       <div class="rest-eyebrow">Nothing spinning</div>
       <h2>Pick a record</h2>
       <p>Choose something from your Crate or Library and it will be pulled from its sleeve.</p>
@@ -829,7 +829,7 @@
              from inside Focus besides the swipe-down override
              (wiring/swipe-close.js); both call the same toggleFocus()
              the pill below does. -->
-        <span class="focus-top-kicker" id="focusTopKicker">
+        <span class="focus-top-kicker">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
           Focus
         </span>
@@ -852,7 +852,7 @@
            only on glance-enter (src/shell/player-overlay.js), not a
            restructuring of #trackBy's own rendering (player/transport.js's
            load(), the iOS-gesture-critical file CLAUDE.md rule 9 covers). -->
-      <div class="glance-meta" id="glanceMeta" aria-hidden="true">
+      <div class="glance-meta" aria-hidden="true">
         <div class="glance-artist" id="glanceArtist"></div>
         <div class="glance-albumyear" id="glanceAlbumYear"></div>
       </div>
@@ -981,7 +981,7 @@
 
 <!-- ghost element for the gatefold-to-player hand-off flight (Part 2 §1) -->
 <div class="gf-handoff-ghost" id="gfHandoffGhost" aria-hidden="true">
-  <div class="disc" id="gfHandoffDisc"><div class="label has-art" id="gfHandoffLabel"><img class="art" id="gfHandoffArt" alt=""></div></div>
+  <div class="disc"><div class="label has-art" id="gfHandoffLabel"><img class="art" id="gfHandoffArt" alt=""></div></div>
 </div>
 
 <!-- METADATA EDIT SHEET: single-track (from the full player or a library
@@ -1072,7 +1072,7 @@
 
 <!-- ROW MENU: overflow menu for a single library row -->
 <div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="rowMenuSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span id="rowMenuTitle">Track</span>
       <button class="edit-close" id="rowMenuClose" aria-label="Close">✕</button>
@@ -1105,7 +1105,7 @@
 <!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
      edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
 <div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="socialAuthSheet">
+  <div class="edit-sheet">
     <div class="edit-head">
       <span id="socialAuthTitle">Sign in</span>
       <button class="social-close" id="socialAuthClose" aria-label="Close">✕</button>
@@ -1153,7 +1153,7 @@
      shape as #sleepOverlay above -- JS (src/player/eq-sheet.js) renders
      #eqSheetBody fresh on every open/structural change. -->
 <div class="edit-overlay" id="eqOverlay" aria-hidden="true">
-  <div class="edit-sheet eq-sheet-box" id="eqSheetBox">
+  <div class="edit-sheet eq-sheet-box">
     <div class="edit-head">
       <span>EQ</span>
       <button class="edit-close" id="eqClose" aria-label="Close">✕</button>
@@ -1165,7 +1165,7 @@
 <!-- SORT MENU: collapsed behind a hamburger toggle in the sort bar so the
      library list isn't crowded by a always-visible row of sort buttons. -->
 <div class="edit-overlay" id="sortMenuOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="sortMenuSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span>Sort</span>
       <button class="edit-close" id="sortMenuClose" aria-label="Close">✕</button>
@@ -1179,7 +1179,7 @@
      available; switching is silent and immediate, no confirmation (see
      METAL spec §5). Options are built dynamically since the count varies. -->
 <div class="edit-overlay" id="lookOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="lookSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span>Look</span>
       <button class="edit-close" id="lookClose" aria-label="Close">✕</button>
@@ -1216,7 +1216,7 @@
      no undo window (see LIBRARY spec §4) — this dialog is the safeguard, so
      the copy must be unambiguous that files stay on disk. -->
 <div class="edit-overlay" id="confirmOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="confirmSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span id="confirmTitle">Remove from library</span>
       <button class="edit-close" id="confirmClose" aria-label="Close">✕</button>
@@ -1234,7 +1234,7 @@
      earned variants will be lost, matching the deletion dialog's precedent
      of no separate undo window. -->
 <div class="edit-overlay" id="clearHistoryOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="clearHistorySheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span>Clear listening history</span>
       <button class="edit-close" id="clearHistoryClose" aria-label="Close">✕</button>
@@ -1251,9 +1251,9 @@
 <!-- DUPLICATE IMPORT: surfaced, never auto-merged (see PLAYBACK/IMPORT spec §6).
      One track at a time, pausing the import loop until resolved. -->
 <div class="edit-overlay" id="dupOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="dupSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
-      <span id="dupTitle">Possible duplicate</span>
+      <span>Possible duplicate</span>
       <button class="edit-close" id="dupClose" aria-label="Close">✕</button>
     </div>
     <p class="note" id="dupBody" style="margin-top:0"></p>
@@ -1270,9 +1270,9 @@
      and Background playback is off — docs/design/refine/ReturnCard.dc.html
      is the design source for this card's wording and shape. -->
 <div class="edit-overlay" id="bgOfferCard" aria-hidden="true">
-  <div class="edit-sheet" id="bgOfferSheetBox" style="max-width:420px">
+  <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
-      <span id="bgOfferTitle">Music stopped when you left Miziki.</span>
+      <span>Music stopped when you left Miziki.</span>
     </div>
     <p class="note" style="margin-top:0">Keep it playing in the background, with controls on the lock screen? Audio then goes through the browser's player, which may change the sample rate.</p>
     <div class="stack">
@@ -1286,7 +1286,7 @@
 <!-- DUPLICATE SCAN: library-wide, catches duplicates that arise from
      metadata edits rather than just import (see PLAYBACK/IMPORT spec §6). -->
 <div class="edit-overlay" id="dupScanOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="dupScanSheetBox">
+  <div class="edit-sheet">
     <div class="edit-head">
       <span>Duplicate scan</span>
       <button class="edit-close" id="dupScanClose" aria-label="Close">✕</button>
@@ -1344,15 +1344,15 @@
   <button class="gf-back" id="gfBack" aria-label="Back to crate">‹ Crate</button>
   <div class="gf-stage" id="gfStage">
     <div class="gf-camera" id="gfCamera">
-      <div class="gf-right" id="gfRight">
+      <div class="gf-right">
         <div class="gf-tracklist" id="gfTracklist" tabindex="-1"></div>
         <div class="gf-tl-fade"></div>
         <div class="gf-shadow" id="gfShadow"></div>
       </div>
       <div class="gf-left-cue" id="gfLeftCue"></div>
       <div class="gf-cover" id="gfCover">
-        <div class="gf-face gf-face-front" id="gfFaceFront"><img id="gfCoverArt" alt=""></div>
-        <div class="gf-face gf-face-back" id="gfFaceBack">
+        <div class="gf-face gf-face-front"><img id="gfCoverArt" alt=""></div>
+        <div class="gf-face gf-face-back">
           <div class="gf-left" id="gfLeft" tabindex="-1"></div>
         </div>
       </div>
@@ -1372,7 +1372,7 @@
   <div class="gf-sleeve" id="gfSleeve" aria-hidden="true">
     <div class="gf-sleeve-paper"></div>
     <div class="gf-sleeve-disc-wrap" id="gfSleeveDiscWrap">
-      <div class="disc" id="gfDisc"><div class="label has-art" id="gfDiscLabel"><img class="art" id="gfDiscArt" alt=""></div></div>
+      <div class="disc" id="gfDisc"><div class="label has-art"><img class="art" id="gfDiscArt" alt=""></div></div>
     </div>
   </div>
   <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
@@ -1384,7 +1384,7 @@
 <!-- SEALED SHEET: a sealed album can't be opened into the gatefold — a
      plain tracklist sheet instead, until the first play (SEALED spec §5) -->
 <div class="seal-sheet" id="sealSheet" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
-  <div class="seal-sheet-box" id="sealSheetBox">
+  <div class="seal-sheet-box">
     <div class="seal-sheet-head">
       <div class="seal-sheet-cover" id="sealSheetCoverWrap">
         <img id="sealSheetCoverArt" alt="">
@@ -1406,9 +1406,9 @@
 <!-- PICTURE SLEEVE: a single — one side, one track — opens into this flat,
      fading sheet instead of the gatefold's two-panel swing (docs/17_SINGLES.md) -->
 <div class="picture-sleeve" id="pictureSleeve" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
-  <div class="picture-sleeve-box" id="pictureSleeveBox">
+  <div class="picture-sleeve-box">
     <button class="picture-sleeve-close" id="pictureSleeveClose" aria-label="Close">‹ Crate</button>
-    <div class="picture-sleeve-face" id="pictureSleeveFace">
+    <div class="picture-sleeve-face">
       <img id="pictureSleeveArt" alt="">
       <div class="picture-sleeve-peek" id="pictureSleevePeek"></div>
     </div>

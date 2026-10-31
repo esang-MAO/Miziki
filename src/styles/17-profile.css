@@ -93,15 +93,12 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
    rhythm"): the profile-home card — a 7-wedge phase ring (a plain CSS
    conic-gradient, see src/profile/rhythm-card.js's own comment on why
    this isn't a literal 24-hour/one-bar-per-hour clock), a legend, the
-   verdict, and "a record for each phase" rows. .rhythm-locked's dashed
-   border is the one deliberate exception to this screen's own usual "no
-   progress bars, no locked slots" rule (PROFILE spec §1) — DA5 asks for
-   it explicitly. */
+   verdict, and "a record for each phase" rows. QC3 (docs/24_QUIET_COUNTS.md)
+   removed the locked "N of 20 plays" card this rule used to style — below
+   the gate, nothing renders at all now. */
 .rhythm-card{margin-top:22px;border:1px solid var(--line);border-radius:6px;padding:var(--sp-4)}
 .rhythm-card-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.rhythm-locked{border-style:dashed}
-.rhythm-locked .note{margin:0;color:var(--muted);font-size:var(--fs-caption)}
 .rhythm-top{display:flex;align-items:center;gap:18px}
 .rhythm-ring{flex:0 0 auto;width:92px;height:92px;border-radius:50%;position:relative;
   display:grid;place-content:center}
