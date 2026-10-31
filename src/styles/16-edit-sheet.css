@@ -12,8 +12,11 @@
   display:flex;align-items:flex-end;justify-content:center;
   visibility:hidden;pointer-events:none;transition:visibility 0s linear .2s}
 .edit-overlay.open{visibility:visible;pointer-events:auto;transition:visibility 0s linear 0s}
+/* FS14 (docs/25_FROM_SCRATCH.md): "sheet per FS12's sheet style" -- the
+   16px top radius FS12 gave .sundown-sheet, shared here since every sheet
+   on .edit-overlay (Edit track, sign-in, record) uses this one shell. */
 .edit-sheet{width:100%;max-width:520px;max-height:86vh;overflow-y:auto;box-sizing:border-box;
-  background:var(--sky2);border-top:1px solid var(--line);border-radius:12px 12px 0 0;
+  background:var(--sky2);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
   padding:18px 20px calc(20px + env(safe-area-inset-bottom));
   transform:translateY(100%);transition:transform .2s ease-out}
 .edit-overlay.open .edit-sheet{transform:translateY(0)}
@@ -67,9 +70,11 @@
 .slider-head span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 /* FS13 (docs/25_FROM_SCRATCH.md): "labels Archivo 14/500 above fields" --
    plain sentence case, not the shared caps kicker look above; scoped to
-   the Edit track sheet alone (profile/settings.js's own Balance row keeps
-   today's look, FS14's surface to restyle). */
-#editOverlay .slider-head span{
+   the Edit track sheet and FS14's sign-in sheet (profile/settings.js's
+   own socialField() rows, the only other .slider-head user), which FS14
+   asks for the identical "fields per FS13's edit sheet" treatment on. */
+#editOverlay .slider-head span,
+#socialAuthOverlay .slider-head span{
   font-size:var(--fs-body); font-weight:500; letter-spacing:0; text-transform:none;
 }
 .slider-head b{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}

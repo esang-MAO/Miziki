@@ -36,8 +36,18 @@ function lastUpdatedNote(body){
   body.appendChild(el('p','note','Last updated: ' + LAST_UPDATED));
 }
 
-export function renderPrivacyPolicyScreen(body){
+// FS14 (docs/25_FROM_SCRATCH.md): "legal text at a 34em measure, Archivo
+// 16/1.5" -- a scoping class for 21-legal.css's own rule, since #profileBody
+// is shared by every other profile sub-screen too.
+function legalBody(body){
   body.innerHTML = '';
+  const wrap = el('div','legal-screen');
+  body.appendChild(wrap);
+  return wrap;
+}
+
+export function renderPrivacyPolicyScreen(host){
+  const body = legalBody(host);
   lastUpdatedNote(body);
   body.appendChild(el('p', null,
     'Miziki is a local-first music player. Your music never leaves your device. '
@@ -92,8 +102,8 @@ export function renderPrivacyPolicyScreen(body){
   ]);
 }
 
-export function renderTermsScreen(body){
-  body.innerHTML = '';
+export function renderTermsScreen(host){
+  const body = legalBody(host);
   lastUpdatedNote(body);
   body.appendChild(el('p', null,
     'By using Miziki, you agree to these terms. If you don’t agree, don’t use the app. '

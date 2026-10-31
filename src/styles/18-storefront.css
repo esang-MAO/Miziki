@@ -176,7 +176,9 @@
    social/screens/friend-store.js). */
 .pressing-card{margin-top:14px;background:var(--cream);color:#1A1410;border-radius:var(--radius-card);padding:13px 15px}
 .pressing-card-head-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-2)}
-.pressing-card-head{margin:0;font-family:var(--display);font-size:var(--fs-row);font-weight:600;letter-spacing:.02em}
+/* FS14 (docs/25_FROM_SCRATCH.md): "headings Antonio 20" -- was var(--fs-row)
+   (16px), the shared "look" kept for the Pressings screen's own card. */
+.pressing-card-head{margin:0;font-family:var(--display);font-size:var(--fs-title);font-weight:600;letter-spacing:.02em}
 .pressing-card-found{font-family:var(--hand);font-weight:500;font-size:var(--fs-title);line-height:1;color:#5A4A3A}
 .pressing-family-row{display:flex;flex-direction:column;gap:6px;margin-top:var(--sp-3)}
 .pressing-family-label{font-family:var(--data);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase}
@@ -245,6 +247,9 @@ button.pressing-chip{cursor:pointer}
 .records-tabs button{min-height:40px}
 /* SH1 (docs/18_SHARE.md): the Pressings tab's own Share entry point. */
 .store-records-share{width:100%;margin-top:var(--sp-3)}
-.records-letter{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);margin-top:var(--sp-5)}
+/* FS14: matches the library's own alpha divider (.letter-head,
+   27-library-sleeves.css) -- was a mono caps label, the one leftover
+   divider on this screen that TY1's library pass never reached. */
+.records-letter{font-family:var(--display);font-size:var(--fs-title);letter-spacing:.02em;color:var(--muted);margin-top:var(--sp-5)}
 .records-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--sp-5)}
 .records-group-head h3{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.02em}

@@ -45,7 +45,10 @@
   color:var(--cream);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:var(--fs-title)}
 .store-fresh-add.added{border-color:var(--line);color:var(--muted)}
 
-.store-spin-ago{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);flex:none}
+/* FS14 (docs/25_FROM_SCRATCH.md): "times muted" -- was mono caps tracked,
+   the one leftover on this row (the track title/sub-line beside it are
+   already Archivo). */
+.store-spin-ago{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);flex:none}
 
 .store-letter-bar{display:flex;flex-wrap:wrap;gap:6px;margin:var(--sp-4) 0 var(--sp-1)}
 .store-letter-btn{min-width:44px;height:44px;border-radius:8px;border:1px solid var(--line);
@@ -53,7 +56,8 @@
 .store-crate-letter-head{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--muted);
   grid-column:1/-1;margin:var(--sp-4) 0 -2px}
 
-.store-activity-row{padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--fs-caption);color:var(--paper)}
+/* FS14: "activity lines in Archivo 14" -- was fs-caption (12px). */
+.store-activity-row{padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--fs-body);color:var(--paper)}
 .store-activity-row em{font-style:normal;color:var(--muted)}
 
 .store-crate-cell{background:none;border:0;padding:0;text-align:left;color:inherit;display:block;width:100%}
