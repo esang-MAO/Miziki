@@ -174,9 +174,26 @@
      player's own #modeToggle does (src/wiring/transport.js). */
   .mini-bar-modes{display:flex}
   .mini-bar-mode-toggle{display:inline-flex;align-items:center;gap:var(--sp-2);min-height:36px;cursor:pointer}
+  /* FS5 (docs/25_FROM_SCRATCH.md point 7): the base track/thumb/text rules
+     moved here from the now-deleted 06-mode-switch.css -- #modeToggle (the
+     full player's own Vinyl/Pure control) moved into the Sundown sheet as
+     a plain .switch; #barModeToggle is the only remaining user of this
+     bespoke track/thumb switch, so its rules are desktop-only now, not a
+     shared base file. */
+  .mode-toggle-track{position:relative;flex:0 0 auto;width:44px;height:24px;border-radius:12px;
+    background:var(--line);box-shadow:inset 0 0 0 1px var(--line);transition:background .15s}
+  .mode-toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+    background:var(--paper);transition:left .15s}
+  .mode-toggle-text{font-family:var(--display);font-size:var(--fs-caption);letter-spacing:.06em;font-weight:600;
+    text-transform:uppercase;min-width:44px;text-align:left}
   .mode-toggle-track-sm{width:36px;height:20px;border-radius:10px}
   .mode-toggle-thumb-sm{width:14px;height:14px;top:3px;left:3px}
-  .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-thumb-sm{left:19px}
+  /* fixed along with the move: the checked-state rules were previously
+     scoped under .mode-toggle, a class #barModeToggle never had (it's
+     .mini-bar-mode-toggle), so the track never actually recolored on
+     check -- only the thumb position and label color did. */
+  .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-track{background:var(--cream)}
+  .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-thumb-sm{left:19px;background:var(--on-accent)}
   .mini-bar-mode-toggle .mode-toggle-text{font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
   .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-text{color:var(--paper)}
   .mini-bar-mode-toggle:hover .mode-toggle-text,
@@ -558,7 +575,7 @@
   .player-overlay.glance .transport,
   .player-overlay.glance .modes,
   .player-overlay.glance #nowActions,
-  .player-overlay.glance .now-title-row .icon-btn{
+  .player-overlay.glance .now-top-row .icon-btn{
     opacity:0;pointer-events:none;transition:opacity .25s ease-out;
   }
   /* the chrome dims rather than hides, so the layout doesn't jump when the

@@ -20,6 +20,7 @@ import { selectSundownView, lastSundownView } from '../shell/routes.js';
 import { wireDialGesture } from '../sundown/dial-gesture.js';
 import { DEPTH_TARGETS, depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
 import { syncSundownSheetHeight, wireSundownSheetEntryPoints } from '../shell/sundown-sheet.js';
+import { setMode } from '../audio/mode.js';
 
 function paintDepth(){
   const key = depthKeyFor(S.auto, S.target);
@@ -65,6 +66,11 @@ export function wireSundown(){
   // way back to live. The old 0..1440 range slider and its "Back to live"
   // button were a second copy of both and are gone.
   wireDialGesture();
+
+  // FS5 (docs/25_FROM_SCRATCH.md point 7): Pure/Vinyl's own switch,
+  // moved here from the player -- same setMode() the player's old
+  // #modeToggle and the desktop bar's #barModeToggle both already call.
+  $('#soundModeSwitch').addEventListener('click', () => { setMode(S.mode === 'vinyl' ? 'pure' : 'vinyl'); queueSave(); });
 
   wireSundownSheetEntryPoints();
 }

@@ -9,7 +9,6 @@
 import { S, current, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
-import { REDUCED } from '../util/motion.js';
 import { renderTracks } from './view.js';
 
 function findFavoritesPlaylist(){ return S.playlists.find(p => p.system === 'favorites'); }
@@ -39,11 +38,6 @@ export function toggleFavorite(id){
   touchBackupMembership(pl.name, id, at >= 0 ? 'removed' : 'added');
   touchBackupKey('playlistOrder', pl.name);
   updateFavoriteButtons();
-  const t = current();
-  if(!REDUCED && t && t.id === id){
-    const b = $('#playerFavBtn');
-    if(b){ b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
-  }
   // NV3 (docs/11_SMOOTH_NAVIGATION.md): songRow() never shows favorite
   // status at all, so toggling it changes nothing on screen except when
   // the visible list's own *membership* depends on it — the Favorites
@@ -68,6 +62,9 @@ export function updateFavoriteButtons(){
   if(b){
     b.style.display = t ? '' : 'none';
     b.setAttribute('aria-pressed', String(fav));
-    b.textContent = fav ? '♥' : '♡';
+    // FS5 (docs/25_FROM_SCRATCH.md point 1): a text row in the overflow
+    // menu now, not a standalone glyph button -- the heart still marks
+    // the state, just as a prefix on a real label.
+    b.textContent = (fav ? '♥ ' : '♡ ') + 'Favorite';
   }
 }

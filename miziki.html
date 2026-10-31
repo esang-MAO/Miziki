@@ -28,9 +28,7 @@
 <link rel="stylesheet" href="/src/styles/02-stage-platter.css">
 <link rel="stylesheet" href="/src/styles/03-sleeve-pull.css">
 <link rel="stylesheet" href="/src/styles/04-liner-notes.css">
-<link rel="stylesheet" href="/src/styles/05-transport.css">
-<link rel="stylesheet" href="/src/styles/06-mode-switch.css">
-<link rel="stylesheet" href="/src/styles/07-routes.css">
+<link rel="stylesheet" href="/src/styles/05-transport.css"><link rel="stylesheet" href="/src/styles/07-routes.css">
 <link rel="stylesheet" href="/src/styles/08-shell.css">
 <link rel="stylesheet" href="/src/styles/09-launch-intro.css">
 <link rel="stylesheet" href="/src/styles/10-crate.css">
@@ -512,6 +510,17 @@
 
     <!-- SOUND (was the Character route) -->
     <div id="sundownSoundView" style="display:none">
+      <!-- FS5 (docs/25_FROM_SCRATCH.md point 7): Pure/Vinyl moved here from
+           the player as the view's first row -- a real switch, on = Vinyl.
+           setMode() (src/audio/mode.js) sets this element's aria-checked
+           the same way it used to set the player's own #modeToggle; the
+           click handler lives in src/wiring/sundown.js and calls the same
+           setMode(). #barModeToggle (desktop mini-bar) is unaffected. -->
+      <div class="row" style="margin-top:0">
+        <div class="k">Vinyl<em>Pure is the reference signal; Vinyl adds wow &amp; flutter, saturation and Sundown's rate change.</em></div>
+        <button id="soundModeSwitch" class="switch" role="switch" aria-checked="true" aria-label="Vinyl mode"><span class="switch-track"><i></i></span></button>
+      </div>
+
       <!-- the Vinyl-drift seg + four character cards + Tone today curve;
            painted by dial-view.js's renderDialView(), driven by
            soundCardsAt()/toneCurveSamples() (sundown/dial.js) -->
@@ -748,19 +757,18 @@
       </div>
     </div>
     <div class="now">
-      <div class="now-title-row">
-        <h2 id="trackName">Nothing on the platter</h2>
-        <button class="icon-btn" id="trackInfoBtn" aria-label="Credits and notes" style="display:none">ⓘ</button>
-        <button class="icon-btn heart-btn" id="playerFavBtn" aria-label="Favorite" aria-pressed="false" style="display:none">♡</button>
-        <!-- SH1 (docs/18_SHARE.md): a visible Share entry point, not an
-             overflow row nobody found -- same hidden-until-a-track-loads
-             rule the old #playerShareBtn overflow row had. -->
-        <button class="icon-btn" id="playerShareIconBtn" aria-label="Share" style="display:none">↗</button>
-        <!-- Edit info/Queue/Sleep timer live in this one overflow; Look
-             stays put below; Share has its own icon button, above -->
+      <!-- FS5 (docs/25_FROM_SCRATCH.md point 1): the kicker left,
+           #playerOverflowBtn right -- Credits and notes, Favorite and
+           Share all moved into the overflow menu below, so the title
+           row underneath is just the title. -->
+      <div class="now-top-row">
+        <span class="now-kicker" id="nowSideKicker"></span>
         <button class="icon-btn" id="playerOverflowBtn" aria-label="More" aria-haspopup="menu" aria-expanded="false">
           <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
         </button>
+      </div>
+      <div class="now-title-row">
+        <h2 id="trackName">Nothing on the platter</h2>
       </div>
       <div class="by" id="trackBy"></div>
       <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): a per-session toggle (S.recordOnly,
@@ -822,6 +830,14 @@
     <div class="overflow-menu" id="playerOverflowMenu" role="menu">
       <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
       <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
+      <!-- FS5 point 1: Credits and notes, Favorite and Share, moved here
+           from the title row -- same hidden-until-a-track-loads rule they
+           had there, same ids, so player/transport.js, library/delete.js,
+           shell/runout.js and library/favorites.js/credits.js need no
+           change beyond the label text itself. -->
+      <button class="overflow-menu-row" id="trackInfoBtn" style="display:none" role="menuitem">Credits and notes</button>
+      <button class="overflow-menu-row" id="playerFavBtn" style="display:none" role="menuitem" aria-pressed="false">♡ Favorite</button>
+      <button class="overflow-menu-row" id="playerShareIconBtn" style="display:none" role="menuitem">Share</button>
       <!-- AU6: not gated behind a loaded track like #queueBtn/#sleepTimerBtn --
            EQ settings are meaningful with nothing playing -->
       <button class="overflow-menu-row" id="eqBtn" role="menuitem">EQ</button>
@@ -847,12 +863,23 @@
       </button>
     </div>
 
-    <!-- a real switch -- Space/Enter toggles it the same as a tap -->
-    <div class="modes">
-      <button class="mode-toggle" id="modeToggle" role="switch" aria-checked="true" aria-label="Vinyl mode">
-        <span class="mode-toggle-track"><i class="mode-toggle-thumb"></i></span>
-        <span class="mode-toggle-text" id="modeToggleLabel">Vinyl</span>
+    <!-- FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row -- the
+         Sundown phase pill left (sun icon + phase word in --amber, a
+         fifth way into the Sundown sheet, src/shell/sundown-sheet.js);
+         the Focus pill (FS10 wires it -- drawn disabled-hidden here) and
+         the queue icon right. -->
+    <div class="now-bottom-row" id="nowBottomRow">
+      <button type="button" class="now-phase-pill" id="nowPhasePill" aria-label="Sundown">
+        <svg class="now-phase-glyph" id="nowPhaseSunGlyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="4"/><path d="M3 18h18M6 9 4.6 7.6M18 9l1.4-1.4M12 5V3"/></svg>
+        <svg class="now-phase-glyph" id="nowPhaseNightGlyph" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span id="nowPhaseWord"></span>
       </button>
+      <div class="now-bottom-right">
+        <button type="button" class="now-focus-pill" id="focusPill" disabled style="display:none">Focus</button>
+        <button class="icon-btn" id="playerQueueBtn" aria-label="Queue" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+        </button>
+      </div>
     </div>
     </div>
   </section>

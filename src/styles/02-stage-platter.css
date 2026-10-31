@@ -8,8 +8,13 @@
    this value directly and nothing needed to change for the var alone to
    work. Default matches the literal this replaces exactly — no visible
    change at the phone width this token was always implicitly fixed at. */
-:root{--platter-size:min(72vw,278px)}
-.stage{padding:26px 0 6px}
+/* FS5 (docs/25_FROM_SCRATCH.md point 2): 342px on a 390px phone, scaling
+   with width below that (87.7vw = 342px at 390px) and capped at 342px
+   above it -- was 278px (a smaller fixed cap that under-filled wider
+   phones). */
+:root{--platter-size:min(87.7vw,342px)}
+/* point 2: "centred with 36px above" (was 26px). */
+.stage{padding:36px 0 6px}
 .platter-stage{position:relative;width:var(--platter-size);aspect-ratio:1;margin:0 auto}
 .platter-box{position:absolute;inset:0}
 /* the disc must never render unconditionally — a record sitting there
@@ -238,7 +243,9 @@
 .g-chev{color:var(--muted);font-size:var(--fs-title)}
 .pl-input{flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid var(--line);
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:var(--fs-row);padding:10px var(--sp-3)}
-.by{font-size:var(--fs-caption);color:var(--muted);margin-bottom:5px}
+/* FS5 (docs/25_FROM_SCRATCH.md point 3): the artist line -- Archivo 16/500
+   cream (was fs-caption/--muted). */
+.by{font-family:var(--body);font-weight:500;font-size:var(--fs-row);color:var(--cream);margin-bottom:5px}
 /* TY7b (docs/22_TYPE.md): filled and shown only by the desktop glance view
    (23-desktop.css, src/shell/player-overlay.js) -- never visible on phone
    or in any other desktop state, where #trackBy is the one by-line. */

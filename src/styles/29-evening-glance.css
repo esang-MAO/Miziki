@@ -11,7 +11,7 @@
    screens they happen to be visible. */
 @media (max-width:1023px){
   .player-overlay #playerDismiss,
-  .player-overlay .now-title-row .icon-btn,
+  .player-overlay .now-top-row .icon-btn,
   .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,
@@ -32,7 +32,7 @@
   /* layer 1: controls drift away; title, artist, platter and a dim
      progress line stay */
   .player-overlay.eve-glance #playerDismiss,
-  .player-overlay.eve-glance .now-title-row .icon-btn,
+  .player-overlay.eve-glance .now-top-row .icon-btn,
   .player-overlay.eve-glance #trackSpecFormat,
   .player-overlay.eve-glance #trackSpec,
   .player-overlay.eve-glance #trackSpecPhase,
@@ -62,7 +62,7 @@
 
 @media (max-width:1023px) and (prefers-reduced-motion:reduce){
   .player-overlay #playerDismiss,
-  .player-overlay .now-title-row .icon-btn,
+  .player-overlay .now-top-row .icon-btn,
   .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,

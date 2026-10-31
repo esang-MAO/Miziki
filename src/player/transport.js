@@ -357,6 +357,13 @@ export function load(i){
       if(found) sideLabel = found.label + ' · ';
     }
   }
+  // FS5 (docs/25_FROM_SCRATCH.md point 1): the top row's own "Side A"
+  // kicker -- empty (and hidden by CSS :empty) whenever Sides is off or
+  // the track isn't on an album, same condition sideLabel above already
+  // resolves; just titled differently ("Side A" vs the label arc's
+  // "SIDE A ·").
+  const kicker = $('#nowSideKicker');
+  if(kicker) kicker.textContent = sideLabel ? 'Side ' + sideLabel.replace(' · ', '').replace('SIDE ', '') : '';
   // AU9 (docs/16_AUDIO.md §5): the format table applies whether or not
   // the Sides setting is on — albumFormatFor() never reads S.albumSides.
   // Cached once per load so the audio graph (audio/engine.js) and the
@@ -420,6 +427,7 @@ export function load(i){
   drawTime();
   $('#playerShareIconBtn').style.display = '';   // hidden until a track is loaded (see LIBRARY spec §2)
   $('#queueBtn').style.display = '';
+  $('#playerQueueBtn').style.display = '';   // FS5 point 6: the bottom row's own queue icon, same rule
   $('#sleepTimerBtn').style.display = '';
   $('#recordOnlyRow').style.display = '';   // RW3: hidden until a track is loaded, same as the row above
   updateRecordOnlyUI();   // RW3: re-applies the Queue row's own hide-while-on state for the new track

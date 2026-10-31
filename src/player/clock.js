@@ -190,9 +190,15 @@ export function drawTime(){
   const t = current();
   const dur = t ? (t.duration || 0) : 0;
   $('#tElapsed').textContent = fmt(S.pos);
-  $('#tTotal').textContent = fmt(dur);
+  // FS5 (docs/25_FROM_SCRATCH.md point 4): the phone full player's right
+  // time reads remaining, not total ("−2:46") -- the desktop bar's own
+  // #barTotal (just below) is a separate pair of elements and keeps
+  // showing the total, since D4/desktop isn't part of this PR.
+  $('#tTotal').textContent = '−' + fmt(dur - S.pos);
   const p = dur ? S.pos/dur : 0;
-  if(!S.scrubbing) $('#scrub').value = Math.round(p*1000);
+  const scrubEl = $('#scrub');
+  scrubEl.style.setProperty('--scrub-pct', (p*100) + '%');
+  if(!S.scrubbing) scrubEl.value = Math.round(p*1000);
 
   // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own seek
   // readout mirrors this exact value, the same "reuse the readout
@@ -371,6 +377,26 @@ export function drawSun(){
   const knob = $('#sunKnob'), miniSun = $('#miniSunBtn');
   if(knob) knob.dataset.phase = dayPos.phase;
   if(miniSun) miniSun.dataset.phase = dayPos.phase;
+  // FS5 (docs/25_FROM_SCRATCH.md point 8): "after dark" -- the full
+  // player's own cream/muted dim and the label loses ~20% brightness,
+  // night only. A plain data attribute read by CSS (26-sundown-sheet.css
+  // and friends already use the same shape for the sun glyphs above),
+  // not a new entry in mutedGradientStops()'s own tested smoothstep
+  // blend, which this leaves completely untouched.
+  const overlay = $('#playerOverlay');
+  if(overlay) overlay.dataset.phase = dayPos.phase;
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own phase
+  // pill -- the same already-computed phase name/colour every other
+  // mirror above reads, plus a swap to the 24-hour ring glyph at night.
+  const phasePill = $('#nowPhasePill');
+  if(phasePill){
+    phasePill.dataset.phase = dayPos.phase;
+    const word = $('#nowPhaseWord'); if(word) word.textContent = name;
+    const sunGlyph = $('#nowPhaseSunGlyph'), nightGlyph = $('#nowPhaseNightGlyph');
+    const isNight = dayPos.phase === 'night';
+    if(sunGlyph) sunGlyph.style.display = isNight ? 'none' : '';
+    if(nightGlyph) nightGlyph.style.display = isNight ? '' : 'none';
+  }
   const knobTime = $('#sunKnobTime');
   if(knobTime) knobTime.textContent = nowClock().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const specPhase = $('#trackSpecPhase');

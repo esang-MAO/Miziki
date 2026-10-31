@@ -102,6 +102,7 @@ export function clearToRest(){
   S.privateSpin = false;
   $('#trackName').textContent = 'Nothing on the platter';
   $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
+  $('#nowSideKicker').textContent = '';
   $('#label').classList.remove('has-art'); $('#labelArt').removeAttribute('src');
   $('#labelTitle').textContent = '';
   applyDeadWaxEtching(null, '');
@@ -110,7 +111,7 @@ export function clearToRest(){
   $('#platterBox').classList.add('disc-hidden');
   $('#sleeve').style.display = 'none';
   S.platterEmpty = true;
-  ['#playerShareIconBtn', '#queueBtn', '#sleepTimerBtn', '#trackInfoBtn', '#playerFavBtn']
+  ['#playerShareIconBtn', '#queueBtn', '#playerQueueBtn', '#sleepTimerBtn', '#trackInfoBtn', '#playerFavBtn']
     .forEach(sel => { const b = $(sel); if(b) b.style.display = 'none'; });
   stopSleepState();
   renderMiniPlayer();

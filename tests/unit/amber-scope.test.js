@@ -29,6 +29,12 @@ const ALLOWLIST = [
   { why: 'paper record label', re: /\.label\b/ },
   // The Sundown dial's sun (ring glow, rising arc, sun label, sun marker).
   { why: "Sundown dial's sun", re: /\.day-dial-(ring|rising-arc|label|marker)\b/ },
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the Sundown knob's own third
+  // appearance -- the full player's bottom-row phase pill ("sun icon +
+  // phase word in amber"), a compact stand-in for the dial knob on a row
+  // that has no room for the platter's physical one. --accent-text, not
+  // raw --amber, since this is real small text (tests/unit/contrast.test.js).
+  { why: "Sundown dial's sun (full player phase pill)", re: /\.now-phase-(pill|glyph)\b/ },
 ];
 
 function stripComments(css) {

@@ -1,10 +1,14 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// favorites.js calls $('#playerFavBtn') (util/dom.js) for the "pop"
-// animation in toggleFavorite -- #miniFavBtn was dropped (RF8,
-// docs/12_REFINE.md: the mini-player no longer has its own favorite
-// button, since the player already has one) -- and renderTracks/REDUCED
+// favorites.js calls $('#playerFavBtn') (util/dom.js) for
+// updateFavoriteButtons()'s own display/label update -- FS5
+// (docs/25_FROM_SCRATCH.md point 1) moved this from a standalone heart
+// button into an overflow-menu-row text label, dropping the old "pop"
+// animation along with it (the menu closes on click before it could ever
+// play) -- #miniFavBtn was dropped earlier still (RF8, docs/12_REFINE.md:
+// the mini-player no longer has its own favorite button, since the
+// player already has one) -- and renderTracks/REDUCED
 // (circular, rule 8) from main.js -- both mocked to tiny stubs rather than
 // pulling in a real `document`, same approach as edit.test.js/delete.test.js.
 // Since step 7a, favorites.js's own queueSave import is real (from
@@ -16,6 +20,7 @@ import assert from 'node:assert/strict';
 // this file never needed to stop at the door before.
 function fakeEl(){
   const classes = new Set();
+  const attrs = {};
   return {
     offsetWidth: 0, style: {}, value: '',
     classList: {
@@ -23,15 +28,25 @@ function fakeEl(){
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
       contains(c){ return classes.has(c); },
     },
-    setAttribute(){}, textContent: '',
+    setAttribute(k, v){ attrs[k] = v; }, getAttribute(k){ return attrs[k]; }, textContent: '',
   };
 }
 // NV3 (docs/11_SMOOTH_NAVIGATION.md): #librarySearch's own fake element is
 // shared (not a fresh one per call), so a test can set .value on it to
 // exercise libraryShowsFavoriteMembership()'s "is:favorite" branch.
 const librarySearchEl = fakeEl();
+// FS5 (docs/25_FROM_SCRATCH.md point 1): #playerFavBtn is shared the same
+// way, so a test can read back the label updateFavoriteButtons() wrote.
+const playerFavBtnEl = fakeEl();
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
-  namedExports: { $(sel){ return sel === '#librarySearch' ? librarySearchEl : fakeEl(); }, el(){ return fakeEl(); } },
+  namedExports: {
+    $(sel){
+      if(sel === '#librarySearch') return librarySearchEl;
+      if(sel === '#playerFavBtn') return playerFavBtnEl;
+      return fakeEl();
+    },
+    el(){ return fakeEl(); },
+  },
 });
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
@@ -148,7 +163,13 @@ test('isFavorite reads S.playlists by track id directly', () => {
 test('updateFavoriteButtons reflects favorite state for the current track', () => {
   resetState({ index: 0 });
   assert.equal(isFavorite('a'), false);
-  updateFavoriteButtons();   // no track is favorited yet -- just confirms it runs without throwing
+  updateFavoriteButtons();
+  assert.equal(playerFavBtnEl.getAttribute('aria-pressed'), 'false');
+  assert.equal(playerFavBtnEl.textContent, '♡ Favorite');
   toggleFavorite('a');
   updateFavoriteButtons();
+  assert.equal(playerFavBtnEl.getAttribute('aria-pressed'), 'true');
+  // FS5 (docs/25_FROM_SCRATCH.md point 1): a real label now, not a bare
+  // glyph -- the menu row this moved into needs text, not an icon alone.
+  assert.equal(playerFavBtnEl.textContent, '♥ Favorite');
 });

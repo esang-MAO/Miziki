@@ -20,13 +20,12 @@ export function setMode(m){
   // platter's own label too, not just the colour swap above — see
   // .mode-pure .label.has-art in 02-stage-platter.css.
   document.documentElement.classList.toggle('mode-pure', !vinyl);
-  // CEREMONY (docs/CEREMONY.md, §1): one toggle, not a two-button group —
-  // a real switch (role="switch", aria-checked) whose own label text
-  // reads the current mode, same as the mockup's "Label reads the
-  // current mode" requirement.
-  const toggle = $('#modeToggle'), label = $('#modeToggleLabel');
-  if(toggle) toggle.setAttribute('aria-checked', String(vinyl));
-  if(label) label.textContent = vinyl ? 'Vinyl' : 'Pure';
+  // FS5 (docs/25_FROM_SCRATCH.md point 7): the player's own toggle moved
+  // into the Sundown sheet's Sound view as a plain labelled switch
+  // ("Vinyl", on = Vinyl) -- label text no longer swaps between "Vinyl"/
+  // "Pure", so only aria-checked needs setting here now.
+  const soundSwitch = $('#soundModeSwitch');
+  if(soundSwitch) soundSwitch.setAttribute('aria-checked', String(vinyl));
   // D4 (docs/DESKTOP_LAYOUT.md): the desktop player bar's own mode
   // toggle mirrors the same state — null-guarded the same way drawSun()
   // guards its sidebar mirror, since these ids exist only in the player
