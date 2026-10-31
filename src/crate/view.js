@@ -1237,18 +1237,23 @@ export function renderCrate(host){
     return {item, cardEl: pool.get(idx)};
   }
 
+  // Ken (2026-10-31): with the stack's own anchor raised (#306), the sleeve
+  // rising in lockstep with its record left the two nearly overlapping —
+  // the "slides out" effect barely read. The sleeve now moves opposite the
+  // record (cover down, record up) so the two halves visibly separate
+  // instead of travelling together.
   function setPullLift(ps, upPx){
     ps.lastUpPx = upPx;
-    ps.cardEl.style.transform = ps.baseTransform + ' translateY(' + (-upPx).toFixed(1) + 'px)';
+    ps.cardEl.style.transform = ps.baseTransform + ' translateY(' + upPx.toFixed(1) + 'px)';
     setPullPeek(ps, upPx);
   }
 
-  // The pressing peek (record-art/peek.js): as the front sleeve rises, its
-  // record rises faster and slides out of the top in the album's own
-  // pressing — the "record slides out of the sleeve as it rises" half of
-  // CR5's pull that the lift alone never drew. Built lazily on the first
-  // real pull frame, a sibling just behind the card (never a child: the
-  // card clips its own overflow), and dropped on every way a pull ends.
+  // The pressing peek (record-art/peek.js): as the front sleeve lowers, its
+  // record rises out of the top in the album's own pressing — the "record
+  // slides out of the sleeve as it rises" half of CR5's pull that the lift
+  // alone never drew. Built lazily on the first real pull frame, a sibling
+  // just behind the card (never a child: the card clips its own overflow),
+  // and dropped on every way a pull ends.
   function setPullPeek(ps, upPx){
     const size = currentCardSize();
     if(!ps.peekEl){
@@ -1288,7 +1293,7 @@ export function renderCrate(host){
       const p = clamp((now - start) / dur, 0, 1);
       const eased = 1 - Math.pow(1 - p, 3);
       const up = from * (1 - eased);
-      el.style.transform = base + ' translateY(' + (-up).toFixed(1) + 'px)';
+      el.style.transform = base + ' translateY(' + up.toFixed(1) + 'px)';
       if(ps.peekEl) ps.peekEl.style.transform = base + ' translateY(' + (-(up + cratePeekRise(up, currentCardSize()))).toFixed(1) + 'px)';
       if(p < 1) requestAnimationFrame(step);
       else { el.style.transform = base; dropPullPeek(ps); }
