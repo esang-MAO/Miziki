@@ -118,10 +118,53 @@ export function openLibOverflowMenu(){
   openLayer('lib-overflow-menu', closeLibOverflowMenu, { container: [menu, $('#libOverflowScrim')] });
 }
 export function closeLibOverflowMenu(){
+  closeLibraryToolsMenuPanel();
   $('#libOverflowScrim').classList.remove('open');
   $('#libOverflowMenu').classList.remove('open');
   $('#hdrOverflowBtn').setAttribute('aria-expanded', 'false');
 }
 export function isLibOverflowMenuOpen(){
   return $('#libOverflowMenu').classList.contains('open');
+}
+
+// FS11 (docs/25_FROM_SCRATCH.md): "Library tools" grows #libOverflowMenu
+// in place into the full panel -- same menu element, same 'lib-overflow-menu'
+// nav-stack layer (no second layer to push/pop), just a size/content swap.
+// Closing it (the panel's own ×, the scrim, Escape, or the back gesture)
+// always closes the whole menu, never collapses back to the small one --
+// closeLibOverflowMenu() above calls closeLibraryToolsMenuPanel() first on
+// every close, a no-op if the panel was never opened.
+export function openLibraryToolsMenuPanel(){
+  const menu = $('#libOverflowMenu');
+  const libTools = $('#libTools'), body = $('#libToolsMenuBody');
+  // reparent, never copy -- "whichever opens last owns the element" (point
+  // 3); profile/screens.js's own parkLibraryTools()/renderAppSettingsScreen()
+  // do the same unconditional re-grab shape on their side.
+  if(libTools && body && libTools.parentNode !== body) body.appendChild(libTools);
+  // the disclosure is Settings-only here -- always expanded in this panel
+  $('#libToolsPanel').classList.add('open');
+  $('#libToolsToggle').setAttribute('aria-expanded', 'true');
+  refreshLibraryTools();
+  const r = $('#libNav').getBoundingClientRect();
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.left = '12px';
+  menu.style.right = '12px';
+  menu.style.width = 'auto';
+  menu.style.maxHeight = 'calc(100dvh - 140px)';
+  menu.style.borderRadius = '14px';
+  menu.classList.add('lib-tools-open');
+}
+export function closeLibraryToolsMenuPanel(){
+  const menu = $('#libOverflowMenu');
+  if(!menu.classList.contains('lib-tools-open')) return;
+  const libTools = $('#libTools'), body = $('#libToolsMenuBody'), stash = $('#libToolsStash');
+  // only hand it back if this panel is still the one holding it -- if
+  // Settings already re-grabbed it (can't happen on the same route, but
+  // guarded per point 4 anyway), leave it where it is.
+  if(libTools && stash && libTools.parentNode === body) stash.appendChild(libTools);
+  $('#libToolsPanel').classList.remove('open');
+  $('#libToolsToggle').setAttribute('aria-expanded', 'false');
+  menu.classList.remove('lib-tools-open');
+  menu.style.top = ''; menu.style.left = ''; menu.style.right = '';
+  menu.style.width = ''; menu.style.maxHeight = ''; menu.style.borderRadius = '';
 }

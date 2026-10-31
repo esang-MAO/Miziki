@@ -148,8 +148,25 @@
       </div>
     </div>
     <div class="overflow-scrim" id="libOverflowScrim"></div>
+    <!-- FS11 (docs/25_FROM_SCRATCH.md): "Library tools" grows this same
+         menu in place into the full panel (shell/header.js's
+         openLibraryToolsMenuPanel()/closeLibraryToolsMenuPanel()) -- the
+         two rows and the panel are siblings here so the menu can swap
+         which one shows without swapping elements. -->
     <div class="overflow-menu" id="libOverflowMenu" role="menu">
-      <button class="overflow-menu-row lib-select-tab" id="selectToggle" role="menuitem">Select</button>
+      <div id="libOverflowMenuRows">
+        <button class="overflow-menu-row lib-select-tab" id="selectToggle" role="menuitem">Select</button>
+        <button class="overflow-menu-row overflow-menu-row-chev" id="libToolsMenuRow" role="menuitem">
+          <span>Library tools</span><span class="g-chev">›</span>
+        </button>
+      </div>
+      <div class="lib-tools-menu-panel" id="libToolsMenuPanel">
+        <div class="lib-tools-menu-head">
+          <h2>Library tools</h2>
+          <button class="lib-tools-menu-close" id="libToolsMenuClose" aria-label="Close Library tools">×</button>
+        </div>
+        <div class="lib-tools-menu-body" id="libToolsMenuBody"></div>
+      </div>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
       <span id="selectCount">0 selected</span>

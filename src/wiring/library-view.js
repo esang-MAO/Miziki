@@ -19,7 +19,7 @@ import { openEditSheet } from '../library/edit.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { toggleFavorite } from '../library/favorites.js';
 import { playNext, addToQueue } from '../player/queue.js';
-import { openLibOverflowMenu, isLibOverflowMenuOpen } from '../shell/header.js';
+import { openLibOverflowMenu, isLibOverflowMenuOpen, openLibraryToolsMenuPanel } from '../shell/header.js';
 import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 export function wireLibraryView(){
@@ -103,6 +103,12 @@ export function wireLibraryView(){
   // renderAppSettingsScreen()).
   $('#hdrOverflowBtn').addEventListener('click', ()=> isLibOverflowMenuOpen() ? closeLayer('lib-overflow-menu') : openLibOverflowMenu());
   $('#libOverflowScrim').addEventListener('click', () => closeLayer('lib-overflow-menu'));
+  // FS11 (docs/25_FROM_SCRATCH.md): "Library tools ›" grows the same menu
+  // in place -- closing it, from its own × or anything else, always closes
+  // the whole menu (shell/header.js's closeLibOverflowMenu()), never just
+  // collapses back to the small one.
+  $('#libToolsMenuRow').addEventListener('click', openLibraryToolsMenuPanel);
+  $('#libToolsMenuClose').addEventListener('click', () => closeLayer('lib-overflow-menu'));
 
   $('#selectToggle').addEventListener('click', ()=>{ forceCloseLayer('lib-overflow-menu'); enterSelectMode(); });
   $('#selectCancel').addEventListener('click', exitSelectMode);
