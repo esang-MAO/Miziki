@@ -26,11 +26,17 @@
    full. There is no pure, DOM-free core to unit-test here, the same
    "not much here is pure" shape shell/put-away.js's own choreography
    already has (see tests/unit/shell.test.js) — this is covered by the
-   Playwright device checklist instead. */
+   Playwright device checklist instead.
+
+   A plain downward swipe on the sheet's own card also closes it
+   (wireSundownSheetSwipeClose below), the same NV5 swipe-close every
+   other sheet already has — on top of, not instead of, the grabber's
+   own drag. */
 import { $ } from '../util/dom.js';
 import { openLayer, closeLayer } from './nav-stack.js';
 import { selectSundownView, lastSundownView } from './routes.js';
 import { eqStateLabel } from '../player/eq-label.js';
+import { wireSwipeToClose } from './swipe-close.js';
 
 const DRAG_OPEN_THRESHOLD = 60;   // px dragged up past half-height to snap to full
 const DRAG_CLOSE_THRESHOLD = 120; // px dragged down past half-height to dismiss
@@ -132,6 +138,35 @@ function wireSundownSheetDrag(){
   grabber.addEventListener('pointercancel', endDrag);
 }
 
+// A plain downward swipe anywhere on the sheet's own card closes it,
+// alongside the grabber's own drag (wireSundownSheetDrag) -- the same
+// swipe-close every other sheet in the app already has (NV5, docs/11
+// _SMOOTH_NAVIGATION.md). Reuses wireSwipeToClose's generic gesture math,
+// but its built-in "only starts at the sheet's own scroll top" gate
+// checks `sheetEl.scrollTop`, which is always 0 here -- #sundownSheet
+// itself never scrolls, only its separate .sundown-sheet-body child does
+// (unlike .edit-sheet/.share-sheet, where the same element is both the
+// sliding card and the scrollable one). isValidStart below does that
+// check manually against the real scrollable child instead, and also
+// excludes the day dial (its own pointer-drag preview gesture,
+// src/sundown/dial-gesture.js) and the grabber (its own pointer-drag
+// half/full toggle, wireSundownSheetDrag above) so neither gesture ever
+// competes with this one.
+function wireSundownSheetSwipeClose(){
+  const sheet = $('#sundownSheet');
+  if(!sheet) return;
+  wireSwipeToClose(sheet, {
+    onClose: () => closeLayer('sundown-sheet'),
+    isValidStart: ev => {
+      if(ev.target.closest('#dayDial')) return false;
+      if(ev.target.closest('#sundownSheetGrabber')) return false;
+      const body = $('.sundown-sheet-body');
+      if(body && body.scrollTop > 0) return false;
+      return true;
+    }
+  });
+}
+
 // Ways in — called once at boot (src/wiring/sundown.js), alongside that
 // file's own Day/Sound tab wiring.
 export function wireSundownSheetEntryPoints(){
@@ -152,4 +187,5 @@ export function wireSundownSheetEntryPoints(){
   if(phasePill) phasePill.addEventListener('click', () => openSundownSheet());
   wireSundownSheetClose();
   wireSundownSheetDrag();
+  wireSundownSheetSwipeClose();
 }
