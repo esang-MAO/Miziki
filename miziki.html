@@ -435,17 +435,18 @@
 <div class="sundown-sheet" id="sundownSheet" aria-hidden="true" role="dialog" aria-label="Sundown">
   <div class="sundown-sheet-grabber" id="sundownSheetGrabber" aria-hidden="true"></div>
   <div class="sundown-sheet-head">
-    <h2 class="sundown-sheet-title">Sundown</h2>
       <div class="sd-tabs" role="tablist" aria-label="Sundown view">
         <button type="button" role="tab" data-sundown-view="day" id="sdTabDay" aria-selected="true">Day</button>
         <button type="button" role="tab" data-sundown-view="sound" id="sdTabSound" aria-selected="false">Sound</button>
-        <span class="sd-tabs-indicator" aria-hidden="true"></span>
       </div>
     <button type="button" class="icon-btn sundown-sheet-close" id="sundownSheetClose" aria-label="Close Sundown">&#10005;</button>
   </div>
   <div class="sundown-sheet-body" id="sundownSheetBody">
     <!-- DAY -->
     <div id="sundownDayView">
+      <!-- clock.js's drawSun() (live) / dial-gesture.js's setPreviewMinutes()
+           (the instant the dial moves) own this text: "Now · 8:40 pm" or
+           "Previewing · 3:30 am". -->
       <p class="sd-eyebrow" id="sundownEyebrow">Now</p>
 
       <!-- the record-shaped dial, event row and reading cards; painted by
@@ -455,6 +456,14 @@
       <div class="sd-sky-bg" id="sdSkyBg" aria-hidden="true">
         <div class="sd-sky-layer" id="sdSkyA"></div>
         <div class="sd-sky-layer" id="sdSkyB"></div>
+      </div>
+
+      <div class="sd-phase-row">
+        <h2 class="sd-phase-word" id="sdPhaseWord">—</h2>
+        <div class="sd-trend-rate">
+          <span class="sd-trend-word" id="sdTrendWord">—</span>
+          <b id="sdRateWord">—</b>
+        </div>
       </div>
 
       <div class="day-dial-wrap">
@@ -468,26 +477,27 @@
                midnight to now, shown only while the platter is rising
                (dial-view.js's risingArcGradient(), driven by st.risingArc). -->
           <div class="day-dial-ring day-dial-rising-arc" id="dayDialRisingArc" aria-hidden="true"></div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-top" aria-hidden="true">12P</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-right" aria-hidden="true">6P</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-bottom" aria-hidden="true">12A</div>
-          <div class="day-dial-hourlabel day-dial-hourlabel-left" aria-hidden="true">6A</div>
+          <!-- FS12 point 2: four unlabeled rim ticks -- sunrise/sunset are
+               sun-driven (paintMarker() from st.sunrise/sunsetAngleDeg);
+               noon/midnight are fixed at the dial's own top/bottom. -->
+          <div class="day-dial-tick" id="dayDialNoonTick" aria-hidden="true"></div>
           <div class="day-dial-tick" id="dayDialSunriseTick" aria-hidden="true"></div>
+          <div class="day-dial-tick" id="dayDialMidnightTick" aria-hidden="true"></div>
           <div class="day-dial-tick" id="dayDialSunsetTick" aria-hidden="true"></div>
           <div class="day-dial-marker" id="dayDialMarker" aria-hidden="true"></div>
           <div class="day-dial-disc" aria-hidden="true">
             <div class="day-dial-label">
+              <span class="day-dial-live" id="dayDialLive">LIVE</span>
               <b id="dayDialTime">—</b>
-              <span id="dayDialAmPm">—</span>
             </div>
           </div>
         </div>
       </div>
 
       <div class="sd-event-row" aria-hidden="true">
-        <span id="sdSunrise">SUNRISE —</span>
+        <span id="sdSunset">Sunset —</span>
         <em id="sdNextEvent">—</em>
-        <span id="sdSunset">SUNSET —</span>
+        <span id="sdSunrise">Sunrise —</span>
       </div>
 
       <!-- RW1 (docs/23_RHYTHM_AND_WEAR.md): the one reading card the Night
@@ -502,13 +512,12 @@
         <p id="sdNightCardBody"></p>
       </div>
 
-      <!-- hint row + NOW button; dial-gesture.js wires the button
+      <!-- hint row + Now pill; dial-gesture.js wires the button
            (resetPreview()) and toggles the "previewing" class from
            dial-view.js's renderDialView() -->
       <div class="sd-hint-row">
-        <span class="sd-hint-icon" aria-hidden="true">↻</span>
-        <span class="sd-hint-text">Spin the record to preview any hour. Plays never count while previewing.</span>
-        <button type="button" class="sd-now-btn" id="sdNowBtn">NOW</button>
+        <span class="sd-hint-text">Spin the record to preview any hour.</span>
+        <button type="button" class="sd-now-btn" id="sdNowBtn">Now</button>
       </div>
 
 
@@ -516,7 +525,7 @@
            1.0 for everyone new); Gentle/Medium/Deep set S.auto=true and
            S.target to 0.85/0.80/0.75. Saved pacing (S.pace) other than
            the default 'window' keeps applying with no visible control. -->
-      <h3 class="sd-heading">Sundown</h3>
+      <h3 class="sd-night-heading">Through the night</h3>
       <div class="row">
         <div class="k">How deep the night goes<em id="depthDesc">Medium — 0.80× · 3.9 st</em></div>
         <div class="seg sd-depth-seg" role="group" aria-label="How deep the night goes">
@@ -531,7 +540,7 @@
            only (the player's own switch card, below) is the always-
            available per-session equivalent. -->
       <div class="row" style="margin-top:12px">
-        <div class="k">Stop between records at sunset and midnight<em>For an hour around sunset and around midnight, playback stops when a record ends instead of moving on to your queue.</em></div>
+        <div class="k">Stop between records at sunset and midnight<em>For an hour around each, playback stops when a record ends.</em></div>
         <button id="stopAtTurnsBtn" class="switch" role="switch" aria-checked="false" aria-label="Stop between records at sunset and midnight"><span class="switch-track"><i></i></span></button>
       </div>
 
@@ -546,26 +555,71 @@
            the same way it used to set the player's own #modeToggle; the
            click handler lives in src/wiring/sundown.js and calls the same
            setMode(). #barModeToggle (desktop mini-bar) is unaffected. -->
-      <div class="row" style="margin-top:0">
-        <div class="k">Vinyl<em>Pure is the reference signal; Vinyl adds wow &amp; flutter, saturation and Sundown's rate change.</em></div>
+      <div class="row sd-vinyl-row" style="margin-top:0">
+        <div class="k">Vinyl<em>Off plays every file untouched, at full speed.</em></div>
         <button id="soundModeSwitch" class="switch" role="switch" aria-checked="true" aria-label="Vinyl mode"><span class="switch-track"><i></i></span></button>
       </div>
 
-      <!-- the Vinyl-drift seg + four character cards + Tone today curve;
-           painted by dial-view.js's renderDialView(), driven by
-           soundCardsAt()/toneCurveSamples() (sundown/dial.js) -->
+      <!-- FS12 point 3: everything below only applies to Vinyl -- dimmed
+           and inert while it's off (audio/mode.js's setMode()). -->
+      <div id="sdSoundBody">
 
-      <p class="sd-section-label">Vinyl drift through the day</p>
+      <!-- the drift/preset/surface-noise seg controls + four character
+           cards + Tone today curve; painted by dial-view.js's
+           renderDialView(), driven by soundCardsAt()/toneCurveSamples()
+           (sundown/dial.js) -->
+
+      <p class="sd-section-label">Starting point</p>
+      <div class="seg sd-preset-seg" role="group" aria-label="Character preset">
+        <button data-preset="light" aria-pressed="false">Light dust</button>
+        <button data-preset="classic" aria-pressed="false">Classic press</button>
+        <button data-preset="worn" aria-pressed="false">Well-played</button>
+      </div>
+
+      <p class="sd-section-label">Through the day</p>
       <div class="seg sd-drift-seg" role="group" aria-label="Vinyl drift level">
         <button data-char-drift="off" aria-pressed="false">Off</button>
         <button data-char-drift="subtle" aria-pressed="true">Subtle</button>
         <button data-char-drift="full" aria-pressed="false">Full</button>
       </div>
 
+      <!-- docs/15_SURFACE_NOISE.md §1: needle drop, lead-in and run-out
+           noise, synthesised, never samples -- settings live here per that
+           doc's own "Settings live in: Sundown sheet -> Sound view". -->
+      <p class="sd-section-label">Surface noise</p>
+      <div class="seg sd-surface-noise-seg" role="group" aria-label="Surface Noise">
+        <button data-surface-noise="off" aria-pressed="false">Off</button>
+        <button data-surface-noise="subtle" aria-pressed="true">Subtle</button>
+        <button data-surface-noise="well-loved" aria-pressed="false">Well-loved</button>
+      </div>
+
+      <p class="note">Run-out length</p>
+      <div class="seg sd-runout-length-seg" role="group" aria-label="Run-out length">
+        <button data-runout-length="short" aria-pressed="false">Short</button>
+        <button data-runout-length="normal" aria-pressed="true">Normal</button>
+        <button data-runout-length="until-lift" aria-pressed="false">Until I lift it</button>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
+        <button id="surfaceNoiseUnderMusicBtn" class="switch" role="switch" aria-checked="false" aria-label="Under the music"><span class="switch-track"><i></i></span></button>
+      </div>
+
+      <!-- docs/15_SURFACE_NOISE.md §4: Off leaves it waiting in the
+           run-out for the player's own flip gesture (shell/runout.js) -->
+      <div class="row" style="margin-top:12px">
+        <div class="k">Auto-flip sides<em>Off waits for you to flip side A over.</em></div>
+        <button id="autoFlipToggle" class="switch" role="switch" aria-checked="true" aria-label="Auto-flip sides"><span class="switch-track"><i></i></span></button>
+      </div>
+
       <!-- drift + the three presets are the main controls; the per-value
-           cards and fine-tune sliders sit behind this one "Advanced"
-           disclosure (wireCharacter(), src/wiring/character.js) -->
-      <button type="button" class="cta ghost sd-advanced-toggle" id="soundAdvancedToggle" aria-expanded="false" aria-controls="soundAdvancedBody">Advanced ›</button>
+           cards and fine-tune sliders sit behind this one "Fine-tune"
+           disclosure (wireCharacter(), src/wiring/character.js) -- was
+           the "Advanced ›" cta.ghost button, same aria-controls. -->
+      <button type="button" class="settings-link-row" id="soundAdvancedToggle" aria-expanded="false" aria-controls="soundAdvancedBody">
+        <span>Fine-tune</span>
+        <span class="settings-link-right"><span class="settings-link-value">Wow, saturation, top end, compression</span><span class="g-chev">›</span></span>
+      </button>
       <div id="soundAdvancedBody" hidden>
         <div class="sd-charcards">
           <button class="sd-charcard" type="button" data-char-tune="wow" aria-expanded="false" aria-controls="sdCharWowFine">
@@ -617,10 +671,6 @@
             <button type="button" class="sd-audition-btn" data-audition-stage="comp" aria-pressed="false">Hear it alone</button>
           </div>
         </div>
-
-        <!-- RF28: held, every stage bypasses at once, so the chain reads
-             exactly as Pure would (wiring/character.js) -->
-        <button type="button" class="sd-audition-btn sd-audition-pure" data-audition-pure aria-pressed="false">Compare with Pure</button>
       </div>
 
       <!-- shown only once something is actually drifting
@@ -649,44 +699,21 @@
         </div>
       </div>
 
-      <p class="sd-section-label">Starting point</p>
-      <p class="note" style="margin-top:0">Pick a preset; Vinyl drift above moves it through the day. <details class="sd-info"><summary aria-label="More about Character">(i)</summary>Character runs only in Vinyl, in the order a record makes it: platter wobble, tube-ish saturation, a softer top end, then a gentle squeeze. Pure takes this chain out of the path entirely and always plays at full speed, so Sundown's rate change is Vinyl-only too.</details></p>
+      <!-- AU6 (docs/16_AUDIO.md §3): the same EQ sheet the player's own
+           ··· menu opens (src/player/eq-sheet.js) -- never a copy, same
+           shape as profile/screens.js's own EQ row. -->
+      <button type="button" class="settings-link-row" id="soundEqRow">
+        <span>EQ</span>
+        <span class="settings-link-right"><span class="settings-link-value" id="soundEqRowValue">Off</span><span class="g-chev">›</span></span>
+      </button>
 
-      <div class="seg sd-preset-seg" role="group" aria-label="Character preset">
-        <button data-preset="light" aria-pressed="false">Light dust</button>
-        <button data-preset="classic" aria-pressed="false">Classic press</button>
-        <button data-preset="worn" aria-pressed="false">Well-played</button>
-      </div>
+      <!-- RF28: held, every stage bypasses at once, so the chain reads
+           exactly as Pure would (wiring/character.js). FS12 point 4: "Hear
+           it without Vinyl" -- same button, same data-audition-pure/
+           aria-pressed path, relabeled and relocated out of the Fine-tune
+           disclosure to the end of the view, per frame 20. -->
+      <button type="button" class="sd-audition-btn sd-audition-pure" data-audition-pure aria-pressed="false" style="margin-top:var(--sp-3)">Hear it without Vinyl</button>
 
-      <!-- docs/15_SURFACE_NOISE.md §1: needle drop, lead-in and run-out
-           noise, synthesised, never samples -- settings live here per that
-           doc's own "Settings live in: Sundown sheet -> Sound view". -->
-      <p class="sd-section-label">Surface noise</p>
-
-      <p class="note" style="margin-top:0">Surface Noise</p>
-      <div class="seg sd-surface-noise-seg" role="group" aria-label="Surface Noise" style="margin-bottom:12px">
-        <button data-surface-noise="off" aria-pressed="false">Off</button>
-        <button data-surface-noise="subtle" aria-pressed="true">Subtle</button>
-        <button data-surface-noise="well-loved" aria-pressed="false">Well-loved</button>
-      </div>
-
-      <p class="note">Run-out length</p>
-      <div class="seg sd-runout-length-seg" role="group" aria-label="Run-out length">
-        <button data-runout-length="short" aria-pressed="false">Short</button>
-        <button data-runout-length="normal" aria-pressed="true">Normal</button>
-        <button data-runout-length="until-lift" aria-pressed="false">Until I lift it</button>
-      </div>
-
-      <div class="row" style="margin-top:12px">
-        <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
-        <button id="surfaceNoiseUnderMusicBtn" class="switch" role="switch" aria-checked="false" aria-label="Under the music"><span class="switch-track"><i></i></span></button>
-      </div>
-
-      <!-- docs/15_SURFACE_NOISE.md §4: Off leaves it waiting in the
-           run-out for the player's own flip gesture (shell/runout.js) -->
-      <div class="row" style="margin-top:12px">
-        <div class="k">Auto-flip sides<em>Off waits for you to flip side A over.</em></div>
-        <button id="autoFlipToggle" class="switch" role="switch" aria-checked="true" aria-label="Auto-flip sides"><span class="switch-track"><i></i></span></button>
       </div>
     </div>
   </div>

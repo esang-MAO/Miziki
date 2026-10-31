@@ -44,13 +44,6 @@ export function selectSundownView(view){
   if(currentSundownView && isNewView) saveScrollPosition('sundown-view:' + currentSundownView);
   document.querySelectorAll('[data-sundown-view]').forEach(b =>
     b.setAttribute('aria-selected', String(b.dataset.sundownView === view)));
-  // NV5 (docs/11_SMOOTH_NAVIGATION.md): the one attribute the shared
-  // sliding underline reads (src/styles/24-sundown-arc.css's
-  // .sd-tabs-indicator) -- mirrors the per-button aria-selected above onto
-  // the row itself, the same "mirror existing state" shape this file's own
-  // GF/showRoute() reads already use elsewhere.
-  const tabs = $('.sd-tabs');
-  if(tabs) tabs.setAttribute('data-selected', view);
   const dayEl = $('#sundownDayView'), soundEl = $('#sundownSoundView');
   if(dayEl) dayEl.style.display = view === 'day' ? '' : 'none';
   if(soundEl) soundEl.style.display = view === 'sound' ? '' : 'none';

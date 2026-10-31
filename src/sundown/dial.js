@@ -45,7 +45,7 @@ export function angleDeltaMinutes(a, b) {
 // formatRate(0.8) -> '0.80×', formatRate(0.8286) -> '0.829×' — three
 // decimals, trimmed to two when the third is a trailing zero (the "round
 // floor" case), matching the design frames' own "0.80×"/"0.805×" copy.
-function formatRate(rate) {
+export function formatRate(rate) {
   let s = rate.toFixed(3);
   if (s.endsWith('0')) s = s.slice(0, -1);
   return s + '×';
@@ -140,9 +140,17 @@ export function dialStateAt(now, sun, settings = {}) {
     : null;
   return {
     phase, phaseLabel: phase.toUpperCase(),
+    // FS12: the Day view's big Antonio-44 phase word ("Dusk") is sentence
+    // case, unlike phaseLabel above (kept all-caps for the night card's
+    // own existing title/aria-valuetext use).
+    phaseWord: phase.charAt(0).toUpperCase() + phase.slice(1),
     timeBig: big, timeAmPm: ampm,
     platterPct: clamp(Math.round(rate * 100), 0, 100),
-    trend, tone, paletteName,
+    // FS12 (docs/25_FROM_SCRATCH.md point 2): the Day view's own kicker
+    // row shows trend/rate at the right ("Slowing" over "0.93×") at every
+    // phase, not just Night's own nightCard below -- the same trend word
+    // and formatRate() this file already computes, just surfaced here too.
+    trend, rateText: formatRate(rate), tone, paletteName,
     skyPhase, skyStops: skyBackgroundStops(skyPhase), ringStops: skyRingStops(sun),
     sunriseLabel: sun && sun.rise ? fmtShortClock(sun.rise) : '—',
     sunsetLabel: sun && sun.set ? fmtShortClock(sun.set) : '—',

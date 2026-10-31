@@ -5,45 +5,17 @@
    file always appends at the end of the cascade in this project, and why
    that's safe here (nothing in this file's own selectors collides with
    23-desktop.css's). Any desktop-only sizing this file itself needs lives
-   in its own media query below, not in 23-desktop.css. */
+   in its own media query below, not in 23-desktop.css.
 
-.sd-tabs{
-  display:flex; gap:var(--sp-1); margin-bottom:14px; position:relative;
-  border-bottom:1px solid var(--line);
-}
-.sd-tabs button{
-  flex:1; height:44px; border:none; background:transparent; color:var(--muted);
-  font-family:var(--data); font-size:var(--fs-label); letter-spacing:.08em; text-transform:uppercase;
-  cursor:pointer; border-bottom:2px solid transparent;
-}
-.sd-tabs button[aria-selected="true"]{
-  color:var(--paper);
-  background:color-mix(in srgb, var(--cream) 8%, transparent);
-}
-/* NV5 (docs/11_SMOOTH_NAVIGATION.md): one shared underline that slides
-   between the two tabs' own halves, replacing each button's own static
-   border-bottom-color swap above (still present as a transparent spacer,
-   so neither button's own height/layout shifts when selected). Assumes
-   exactly two equal-width (flex:1) tabs, same as this row has always had
-   -- a third tab would need this generalized to read each button's own
-   offsetLeft/offsetWidth instead of a fixed 50%. */
-.sd-tabs-indicator{
-  position:absolute; left:0; bottom:-1px; width:50%; height:2px;
-  background:var(--cream); transform:translateX(0); transition:transform .2s ease;
-}
-.sd-tabs[data-selected="sound"] .sd-tabs-indicator{transform:translateX(100%)}
-@media (prefers-reduced-motion:reduce){
-  .sd-tabs-indicator{transition:none}
-}
+   FS12 (docs/25_FROM_SCRATCH.md): .sd-tabs is now a pill-fill segmented
+   control (cream selected), styled with the other sd-*-seg groups in
+   25-day-arc-v2.css rather than its own underline/indicator look -- NV5's
+   sliding .sd-tabs-indicator went with it (routes.js's
+   selectSundownView() no longer mirrors a data-selected attribute). */
 
 .sd-eyebrow{
-  font-family:var(--data); font-size:var(--fs-label); letter-spacing:.1em; text-transform:uppercase;
+  font-family:var(--body); font-size:var(--fs-caption); font-weight:500;
+  letter-spacing:var(--track-caps); text-transform:uppercase;
   color:var(--muted); margin:0 0 var(--sp-2);
 }
 .sd-eyebrow.sd-previewing{ color:var(--cream); }
-
-.sd-heading{
-  font-family:var(--data); font-size:var(--fs-label); letter-spacing:.12em; text-transform:uppercase;
-  color:var(--muted); margin:22px 0 var(--sp-1);
-}
-
