@@ -73,6 +73,12 @@
      override here (var(--paper) already resolves to light's ink). */
   --switch-off-track:rgba(38,32,44,.14);
   --switch-on-knob:var(--cream);
+  /* FS4 (docs/25_FROM_SCRATCH.md point 4): --popover had a dark value
+     (below) but no light one -- latent since FS1, never exercised until
+     the add/overflow menus adopted it here. Same lift as --stock-card
+     (FS1 point 2's "stickers and paper slips lift to #FBF7EE"), since a
+     popover is the same kind of paper-on-paper surface in light theme. */
+  --popover:#FBF7EE;
   color-scheme:light;
 }
 
@@ -96,6 +102,7 @@
     --stock-card:#FBF7EE;
     --switch-off-track:rgba(38,32,44,.14);
     --switch-on-knob:var(--cream);
+    --popover:#FBF7EE;
     color-scheme:light;
   }
 }

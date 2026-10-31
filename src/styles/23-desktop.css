@@ -99,14 +99,12 @@
   /* RF12 (docs/12_REFINE.md): 08-shell.css now colors the icon/label
      separately (see its own updated entry), so these hover/focus
      overrides retarget the svg directly rather than the button's own
-     `color`, which nothing here reads any more. The 2px top-edge accent
-     bar reads oddly on a vertical icon rail, so it's hidden at this
-     width -- the icon color plus (at 1280px+, below) the row's own
-     --sel background already mark the active tab without it. */
+     `color`, which nothing here reads any more. FS4 removed the base
+     rule's top-edge accent bar outright, so there's no ::before left
+     here to hide. */
   .tabbar-btn:hover svg,.tabbar-btn:focus-visible svg{color:var(--paper)}
   .tabbar-btn[aria-selected="true"]:hover svg,
   .tabbar-btn[aria-selected="true"]:focus-visible svg{color:var(--cream)}
-  .tabbar-btn[aria-selected="true"]::before{display:none}
 
   /* the playlists list and Sundown card need real width for their own
      text — cut below 1280px rather than crammed into a 76px icon rail,

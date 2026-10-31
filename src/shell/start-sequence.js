@@ -33,6 +33,17 @@ export function applySleeveWear(el, albumId){
 // static boot-time fill in this file's sibling modules.
 $('#sleeve .sleeve-mark').appendChild(wordmarkEl());
 $('#sleeveOut .sleeve-mark').appendChild(wordmarkEl());
+// FS4 (docs/25_FROM_SCRATCH.md): the mini-player's empty-art square and
+// the platter's empty slipmat used their own plain tracked-Antonio "MIZIKI"
+// text -- the -12deg tilt is reserved for the launch intro and empty
+// sleeves only, so these two get the real upright "A" cut instead, the
+// same one-time boot-time fill as the sleeve marks above.
+{ const m = $('.mini-mark'); if(m) m.appendChild(wordmarkEl()); }
+{ const r = document.querySelector('.slipmat-rest span'); if(r) r.appendChild(wordmarkEl()); }
+// FS4 point 1: Profile's own header shows the wordmark top-left, 22px --
+// shell/routes.js just toggles #appHeader's on-profile class, which this
+// fill makes visible.
+{ const h = $('#hdrWordmark'); if(h) h.appendChild(wordmarkEl()); }
 
 const STAGE_CLASSES =['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
 

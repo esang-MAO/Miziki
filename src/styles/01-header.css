@@ -8,6 +8,12 @@
    everything inside .top would sit under the status bar/notch. */
 .top{padding:calc(14px + env(safe-area-inset-top)) 0 10px;border-bottom:1px solid var(--line)}
 .top.no-border{border-bottom:none;padding-bottom:6px}
+/* FS4 (docs/25_FROM_SCRATCH.md point 1): Profile's header shows the
+   wordmark top-left, 22px -- filled once at boot (shell/start-sequence.js),
+   shown only on the Profile route (.top.on-profile, set by shell/routes.js). */
+.hdr-wordmark{display:none}
+.top.on-profile .hdr-wordmark{display:block}
+.hdr-wordmark svg{width:22px;height:auto;display:block}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 .hdr-icon-btn{width:32px;height:32px;display:grid;place-content:center;color:var(--paper);border-radius:50%}
@@ -31,29 +37,27 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
 .add-scrim{position:fixed;left:0;right:0;bottom:0;top:calc(72px + env(safe-area-inset-top));
   background:rgba(6,10,13,.55);z-index:60;display:none}
 .add-scrim.open{display:block}
-/* Ken, 2026-10-23: this and .overflow-menu below were a hardcoded navy
-   hex regardless of theme -- the same bug the gatefold backdrop had,
-   just on a popover instead of a full-screen overlay. Fixed to --chrome,
-   the token that's already the near-opaque "solid chrome surface" used
-   elsewhere (the tab bar/mini-player), so these popovers read as a crisp
-   card over the scrim and pick up Light/Dark/Auto/Nychthemeron the same
-   way every other piece of chrome does. The row text/icon colors were
-   already theme-reactive tokens (--paper/--muted/--accent-text) with
-   nothing to fix there. */
+/* FS4 (docs/25_FROM_SCRATCH.md point 4): #addMenu/#libOverflowMenu/
+   #playerOverflowMenu all share .add-menu/.overflow-menu's own look --
+   --popover background, 12px radius, 48px rows, Archivo 16/500. The
+   border stays var(--line) rather than the plan's literal dark-theme
+   rgba -- --line is already within a shade of that exact value in dark
+   (rgba(239,233,223,.14) vs .12) and, unlike a bare literal, adapts for
+   light theme the same way every other popover/menu border already does. */
 /* position:absolute with no positioned ancestor between it and .wrap
    (static) resolves against the true viewport top, not .top's own box --
    needs the same env(safe-area-inset-top) addition .top just picked up,
    or this now sits partly under the status bar/notch once the app runs
    fullscreen there (see miziki.html's apple-mobile-web-app meta tags). */
-.add-menu{position:absolute;right:20px;top:calc(64px + env(safe-area-inset-top));width:246px;border-radius:8px;background:var(--chrome);
+.add-menu{position:absolute;right:20px;top:calc(64px + env(safe-area-inset-top));width:246px;border-radius:12px;background:var(--popover);
   border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .add-menu.open{display:flex}
-.add-menu-row{display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) 10px;border-radius:6px;text-align:left;width:100%}
+.add-menu-row{display:flex;align-items:flex-start;gap:var(--sp-3);min-height:48px;padding:var(--sp-2) 10px;border-radius:6px;text-align:left;width:100%}
 .add-menu-row:active{background:var(--sel)}
 .add-menu-row svg{width:20px;height:20px;color:var(--cream);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.add-menu-row b{display:block;font-size:var(--fs-body);font-weight:500}
+.add-menu-row b{display:block;font-family:var(--body);font-size:var(--fs-row);font-weight:500}
 .add-menu-row em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px}
 
 /* RF8 (docs/12_REFINE.md): a generic popover for the new "···" overflow
@@ -63,12 +67,12 @@ mark.hl{background:none;color:var(--cream);font-weight:600}
    has) and single-line rows, since these actions need no description. */
 .overflow-scrim{position:fixed;inset:0;background:rgba(6,10,13,.55);z-index:60;display:none}
 .overflow-scrim.open{display:block}
-.overflow-menu{position:absolute;width:220px;border-radius:8px;background:var(--chrome);
+.overflow-menu{position:absolute;width:220px;border-radius:12px;background:var(--popover);
   border:1px solid var(--line);box-shadow:var(--sh-3);padding:6px;z-index:61;
   display:none;flex-direction:column}
 .overflow-menu.open{display:flex}
-.overflow-menu-row{display:block;width:100%;text-align:left;padding:var(--sp-3) 10px;border-radius:6px;
-  font-size:var(--fs-body);color:var(--paper)}
+.overflow-menu-row{display:flex;align-items:center;width:100%;min-height:48px;text-align:left;padding:0 10px;border-radius:6px;
+  font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--paper)}
 .overflow-menu-row:active{background:var(--sel)}
 /* RF21 (docs/12_REFINE.md): the one menuitemcheckbox row in this menu
    (player "···" -> "Don't share this session") -- a plain circle that

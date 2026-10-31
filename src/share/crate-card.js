@@ -126,8 +126,8 @@ export async function composeShareImage(opts){
   if(topAlbum){
     if(topAlbum.display.art){
       try{ const img = await loadImageEl(topAlbum.display.art); ctx.save(); roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.clip(); drawCover(ctx, img, heroX, y, heroW, heroH); ctx.restore(); }
-      catch(_e){ drawDiagonalWordmark(ctx, heroX, y, heroW); }
-    } else drawDiagonalWordmark(ctx, heroX, y, heroW);
+      catch(_e){ await drawDiagonalWordmark(ctx, heroX, y, heroW); }
+    } else await drawDiagonalWordmark(ctx, heroX, y, heroW);
   } else {
     ctx.fillStyle = kit.chipBg; roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.fill();
   }

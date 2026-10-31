@@ -132,9 +132,9 @@ async function drawTopAlbumsRow(ctx, kit, x, y, maxW, albums, fontPx){
       try{
         const img = await loadImageEl(rec.art);
         drawCover(ctx, img, tx, y, tileW, tileW);
-      }catch(_e){ drawDiagonalWordmark(ctx, tx, y, tileW); }
+      }catch(_e){ await drawDiagonalWordmark(ctx, tx, y, tileW); }
     } else {
-      drawDiagonalWordmark(ctx, tx, y, tileW);
+      await drawDiagonalWordmark(ctx, tx, y, tileW);
     }
     ctx.restore();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';

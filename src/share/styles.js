@@ -455,17 +455,32 @@ export function hexMix(hex, target, amt){
   return 'rgb(' + mix(16) + ',' + mix(8) + ',' + mix(0) + ')';
 }
 
-// Black square with "Miziki" written diagonally across it — the fallback
+// FS4 (docs/25_FROM_SCRATCH.md): was hand-drawn spaced "M I Z I K I" text —
+// one mark function draws every wordmark now, same as drawShareWordmark
+// above. A faint monochrome ghost of the real mark, tilted -12deg like
+// every other empty-sleeve/empty-art placeholder (CLAUDE.md's wordmark.js
+// comment).
+const diagonalWordmarkImg = (() => {
+  let p = null;
+  return () => {
+    if(!p){
+      const svg = wordmarkMarkup('rgba(239,233,223,.5)', 'rgba(239,233,223,.5)');
+      p = loadImageEl('data:image/svg+xml,' + encodeURIComponent(svg));
+    }
+    return p;
+  };
+})();
+
+// Black square with the mark tilted diagonally across it — the fallback
 // jacket when a track has no art at all (see LIBRARY spec §2)
-export function drawDiagonalWordmark(ctx, x, y, side){
+export async function drawDiagonalWordmark(ctx, x, y, side){
   ctx.save();
   ctx.fillStyle = '#0B0C0F'; ctx.fillRect(x, y, side, side);
   ctx.beginPath(); ctx.rect(x, y, side, side); ctx.clip();
+  const img = await diagonalWordmarkImg();
+  const w = side * 0.74, h = w * (WORDMARK_VB_H / WORDMARK_VB_W);
   ctx.translate(x + side/2, y + side/2);
-  ctx.rotate(-Math.PI/8);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = '700 ' + Math.round(side*0.16) + 'px Antonio, sans-serif';
-  ctx.fillStyle = 'rgba(239,233,223,.5)';
-  ctx.fillText('M I Z I K I', 0, 0);
+  ctx.rotate(-12 * Math.PI/180);
+  ctx.drawImage(img, -w/2, -h/2, w, h);
   ctx.restore();
 }
