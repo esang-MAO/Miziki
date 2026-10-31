@@ -1,13 +1,13 @@
 import { getVariantDef } from '../record-art/tiers.js';
 import {
-  SHARE_FORMATS, shareFitText, shareFitLines, roundRectPath, drawShareWordmark,
-  wordmarkWidth, resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc,
+  SHARE_FORMATS, shareFitText, shareFitLines, roundRectPath,
+  resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc, drawShareFooter,
 } from './styles.js';
 
 /* ---- Record card (composeRecordShareImage) — the sleeve with the record
    pulled part-way out, the pressing's own facts column, the record block
-   (title/artist·year/sleeve note) and a footer row (friends sticker,
-   wordmark + crate name). `opts`: {style, format, data}. `data` is
+   (title/artist·year/sleeve note on a taped paper slip) and a friends
+   sticker on the jacket itself. `opts`: {style, format, data}. `data` is
    gathered by the gatefold/record sheet: {album, artist, year, art,
    variant, metal, look, speed (33 | 45), rating, note, friendsCount,
    ownerName} — the composer reads nothing else (docs/18_SHARE.md, SH3
@@ -25,15 +25,17 @@ export function ratingTickCount(rating){
   return n > 0 ? Math.max(0, Math.min(5, n)) : 0;
 }
 
-// RF20: the friends sticker counts friends only (mutual follows) and is
-// gated by the owner's own "count me in friends' stickers" switch — both
-// already decided by whoever gathered `data` (the gatefold), per this
-// card's own "the composer reads nothing else" rule above. Here it's a
-// plain presence check: a sticker with nothing to say is no sticker.
+// FS8 (docs/25_FROM_SCRATCH.md point 3): the friends sticker's own text --
+// "3 friends" / "1 friend", the plain count the round sticker draws (the
+// number large on its own line, the word underneath it) -- replacing the
+// old "IN N FRIENDS' CRATES" chip copy. RF20: friends only (mutual
+// follows), gated by the owner's own "count me in friends' stickers"
+// switch, both already decided by whoever gathered `data` (the gatefold),
+// per this card's own "the composer reads nothing else" rule above.
 export function friendsStickerText(friendsCount){
   const n = Math.round(friendsCount || 0);
   if(n <= 0) return null;
-  return 'IN ' + n + (n === 1 ? " FRIEND'S CRATE" : " FRIENDS' CRATES");
+  return n + (n === 1 ? ' friend' : ' friends');
 }
 
 // No note → the block is omitted outright (item 4), not drawn empty.
@@ -60,15 +62,68 @@ function pressingFacts(data){
   return { name, sub: parts.join(' · ') };
 }
 
+// FS8: the round butter-yellow sticker on the jacket's own lower-left
+// corner, overlapping both edges slightly and tilted -- the friends count
+// as a physical sticker on the record, not a UI chip. Returns nothing;
+// purely decorative, so it never affects anything laid out after it.
+function drawFriendsSticker(ctx, text, coverLeft, coverBottom){
+  const r = 54;
+  const cx = coverLeft + 6, cy = coverBottom - 8;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-6 * Math.PI / 180);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.fillStyle = '#F2D14A';
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  const [num, word] = text.split(' ');
+  ctx.fillStyle = '#1C1816';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 28px Archivo, sans-serif';
+  ctx.fillText(num, 0, -2);
+  ctx.font = '500 16px Archivo, sans-serif';
+  ctx.fillText(word, 0, 18);
+  ctx.restore();
+}
+
+// FS8 point 3: the sleeve note sits on a taped paper slip, not directly
+// on the card's own background -- a cream rounded rect plus a small grey
+// tape strip overlapping its top-left corner, the same "paper object"
+// language the rest of the app's Caveat-on-paper surfaces use (CLAUDE.md's
+// three-voices rule). Returns the slip's own bottom y.
+function drawSleeveNoteSlip(ctx, note, x, y, maxW){
+  const padX = 28, padY = 22;
+  const { lines, fontSize } = shareFitLines(ctx, note, maxW - padX*2, 3, 30, '500', 'Caveat, cursive');
+  const lineH = Math.round(fontSize*1.15);
+  const slipH = padY*2 + lines.length*lineH - Math.round(lineH*0.2);
+  const slipW = maxW;
+
+  roundRectPath(ctx, x, y, slipW, slipH, 3);
+  ctx.fillStyle = '#EDE6D6'; ctx.fill();
+
+  // the tape strip, overlapping the slip's top edge
+  ctx.save();
+  ctx.translate(x + slipW*0.37, y);
+  ctx.rotate(-2 * Math.PI/180);
+  ctx.fillStyle = 'rgba(154,148,138,.55)';
+  ctx.fillRect(-46, -14, 92, 26);
+  ctx.restore();
+
+  ctx.font = '500 ' + fontSize + 'px Caveat, cursive';
+  ctx.fillStyle = '#2A2420';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  let ty = y + padY + Math.round(fontSize*0.85);
+  lines.forEach(line => { ctx.fillText(line, x + padX, ty); ty += lineH; });
+
+  return y + slipH;
+}
+
 // Runs the whole composition once as pure geometry (draw=false, no
 // fillText/fill/arc-fill/image-load side effects) to find the final y a
 // real pass would land on — the one thing this card needs to know before
 // it draws anything, so Story can centre the same layout in its taller
-// safe band (item 6) instead of always starting flush at the top. A
-// sequential layout (unlike Now Playing's SH2 footer-pinning) is enough
-// here: nothing is ever dropped for overlapping a fixed footer position —
-// the footer just flows wherever the content above it ends (item 4's "the
-// footer rises" when there's no note to push it down).
+// safe band (item 6) instead of always starting flush at the top.
 async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   let y = startY;
   const groupGap = Math.round(56*scale);
@@ -92,6 +147,8 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
     } else {
       await drawDiagonalWordmark(ctx, coverLeft, coverTop, coverSide);
     }
+    const friendsText = friendsStickerText(data.friendsCount);
+    if(friendsText) drawFriendsSticker(ctx, friendsText, coverLeft, coverTop + coverSide);
   }
 
   const factsX = Math.max(coverLeft + coverSide, discCx + discR) + groupGap;
@@ -102,36 +159,38 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
 
   let fy = coverTop;
   // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
-  ctx.font = '600 ' + Math.round(22*scale) + 'px Archivo, sans-serif';
-  fy += Math.round(22*scale);
+  ctx.font = '600 22px Archivo, sans-serif';
+  fy += 22;
   if(draw){
     ctx.fillStyle = kit.accent;
     if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
     ctx.fillText('PRESSING', factsX, fy);
     if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
-  fy += Math.round(30*scale);
+  fy += 30;
 
+  // FS8 point 3: the pressing name is Antonio 40, not the old 80*scale.
   const facts = pressingFacts(data);
-  const pressingSize = Math.round(80*scale);
+  const pressingSize = 40;
   ctx.font = '700 ' + pressingSize + 'px Antonio, sans-serif';
   const pressingName = shareFitText(ctx, facts.name, factsMaxW);
   fy += Math.round(pressingSize*0.95);
   if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(pressingName, factsX, fy); }
-  fy += Math.round(20*scale);
+  fy += 20;
 
-  ctx.font = '500 ' + Math.round(20*scale) + 'px "IBM Plex Mono", monospace';
+  ctx.font = '500 20px "IBM Plex Mono", monospace';
   const subText = shareFitText(ctx, facts.sub, factsMaxW);
   if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(subText, factsX, fy); }
-  fy += Math.round(24*scale);
+  fy += 24;
 
+  // FS8 point 3: rating ticks are cream, not the accent.
   const ticks = ratingTickCount(data.rating);
   if(ticks > 0){
-    const tickW = Math.round(6*scale), tickH = Math.round(28*scale), tickGap = Math.round(8*scale), tickR = Math.round(2*scale);
+    const tickW = 6, tickH = 28, tickGap = 8, tickR = 2;
     if(draw){
       for(let i = 0; i < 5; i++){
         const tx = factsX + i*(tickW + tickGap);
-        ctx.fillStyle = i < ticks ? kit.accent : 'rgba(239,233,223,.22)';
+        ctx.fillStyle = i < ticks ? '#EFE9DF' : 'rgba(239,233,223,.22)';
         roundRectPath(ctx, tx, fy, tickW, tickH, tickR); ctx.fill();
       }
     }
@@ -141,74 +200,38 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   y = Math.max(groupBottom, fy) + Math.round(56*scale);
 
   const titleMax = w - pad*2;
-  // TY6: the title is Antonio --track-display, not Archivo.
-  ctx.font = '700 ' + Math.round(52*scale) + 'px Antonio, sans-serif';
+  // FS8 point 3: the album title is Antonio 28.
+  ctx.font = '700 28px Antonio, sans-serif';
   const titleText = shareFitText(ctx, data.album || '', titleMax);
-  y += Math.round(52*scale*0.95);
+  y += Math.round(28*0.95);
   if(draw){
     ctx.fillStyle = kit.ink;
     if('letterSpacing' in ctx) ctx.letterSpacing = '-.01em';
     ctx.fillText(titleText, pad, y);
     if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
-  y += Math.round(20*scale);
+  y += 30;
 
-  ctx.font = '400 ' + Math.round(30*scale) + 'px Archivo, sans-serif';
+  ctx.font = '400 22px Archivo, sans-serif';
   const artistYear = [data.artist, data.year].filter(Boolean).join(' · ');
   const artistText = shareFitText(ctx, artistYear, titleMax);
-  if(draw){ ctx.fillStyle = '#B9C2C6'; ctx.fillText(artistText, pad, y); }
-  y += Math.round(22*scale);
+  if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(artistText, pad, y); }
+  y += 30;
 
   const note = recordNoteText(data.note);
   if(note){
-    // TY6: the sleeve note is this card's one hand-lettered element —
-    // Caveat, not italic Archivo.
-    y += Math.round(20*scale);
-    const noteSizeBase = Math.round(36*scale);
-    const { lines: noteLines, fontSize: noteSize } = shareFitLines(ctx, note, titleMax, 3, noteSizeBase, '500', 'Caveat, cursive');
-    ctx.font = '500 ' + noteSize + 'px Caveat, cursive';
-    noteLines.forEach(line => {
-      y += Math.round(noteSize*1.15);
-      if(draw){ ctx.fillStyle = '#D9D3C8'; ctx.fillText(line, pad, y); }
-    });
-  }
-
-  // footer row: friends sticker left, wordmark + crate name right
-  y += Math.round(60*scale);
-  const wordmarkPx = Math.round(36*scale), crateNamePx = Math.round(18*scale);
-  const rightEdge = w - pad;
-  const wmW = wordmarkWidth(ctx, wordmarkPx);
-  const wordmarkY = y + Math.round(wordmarkPx*0.78);
-  const crateNameY = wordmarkY + crateNamePx + Math.round(10*scale);
-
-  if(draw){
-    await drawShareWordmark(ctx, rightEdge - wmW/2, wordmarkY, wordmarkPx, kit.ink, kit.accent);
-    // TY6 (docs/22_TYPE.md): metadata is Archivo .num, not mono.
-    ctx.font = '600 ' + crateNamePx + 'px Archivo, sans-serif';
-    ctx.textAlign = 'right'; ctx.fillStyle = kit.sub;
-    const crateName = (data.ownerName ? data.ownerName.toUpperCase() + "'S CRATE" : 'MY CRATE');
-    ctx.fillText(crateName, rightEdge, crateNameY);
-  }
-
-  const friendsText = friendsStickerText(data.friendsCount);
-  if(friendsText){
-    const dotR = Math.round(7*scale);
-    const chipH = Math.round(40*scale), chipPadX = Math.round(16*scale);
-    ctx.font = '600 ' + Math.round(20*scale) + 'px "IBM Plex Mono", monospace';
-    const textW = ctx.measureText(friendsText).width;
-    const chipW = dotR*2 + Math.round(10*scale) + textW + chipPadX*2;
-    const chipX = pad, chipY = wordmarkY - chipH*0.72;
-    if(draw){
-      ctx.fillStyle = kit.chipBg;
-      roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH/2); ctx.fill();
-      ctx.beginPath(); ctx.arc(chipX + chipPadX + dotR, chipY + chipH/2, dotR, 0, Math.PI*2);
-      ctx.fillStyle = kit.accent; ctx.fill();
-      ctx.textAlign = 'left'; ctx.fillStyle = kit.ink;
-      ctx.fillText(friendsText, chipX + chipPadX + dotR*2 + Math.round(10*scale), chipY + chipH/2 + Math.round(7*scale));
+    if(draw) y = drawSleeveNoteSlip(ctx, note, pad, y, titleMax);
+    else{
+      const { lines, fontSize } = shareFitLines(ctx, note, titleMax - 56, 3, 30, '500', 'Caveat, cursive');
+      y += 44 + lines.length*Math.round(fontSize*1.15);
     }
   }
 
-  return Math.max(crateNameY, y + Math.round(40*scale));
+  y += Math.round(60*scale);
+  const footerY = y;
+  if(draw) await drawShareFooter(ctx, kit, w, pad, footerY, data.ownerName || null);
+
+  return footerY;
 }
 
 export async function composeRecordShareImage(opts){

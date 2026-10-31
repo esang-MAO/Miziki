@@ -2,7 +2,7 @@ import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow } from '../history/achievements.js';
+import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow, recordsInWindowCount } from '../history/achievements.js';
 import { metalBadge } from './badges.js';
 import { renderStorefrontSection, storeSwitch } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
@@ -20,7 +20,7 @@ import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
 import { eqStateLabel } from '../player/eq-label.js';
-import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, rhythmVerdictLabel } from '../sundown/rhythm.js';
+import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, rhythmVerdictLabel, seasonLabelFor } from '../sundown/rhythm.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -427,8 +427,14 @@ function renderListeningScreen(body){
       // 3 albums by plays in the card's own window, replacing the old
       // metals/"N records played through" figures (SH6 item 1, superseded).
       const { openShareSheet } = await import('../share/sheet.js');
+      // FS8 (docs/25_FROM_SCRATCH.md): season.name/range (seasonLabelFor)
+      // and recordCount (distinct albums in the window) are the card's
+      // new big headline + muted subline, replacing the old "THIS SEASON
+      // · LAST 90 DAYS" kicker -- the verdict sentence moves beside the
+      // ring instead of being the headline.
       openShareSheet({ card:'season', data:{
         verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
+        season: seasonLabelFor(Date.now(), RHYTHM_WINDOW_DAYS), recordCount: recordsInWindowCount(RHYTHM_WINDOW_DAYS),
         topAlbums: topAlbumsInWindow(3, RHYTHM_WINDOW_DAYS), ownerName: S.profile.name || null,
       } });
     });

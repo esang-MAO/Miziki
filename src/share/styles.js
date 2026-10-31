@@ -380,67 +380,80 @@ export async function resolveShareStyle(style, artURL){
   };
 }
 
-// one spec chip, e.g. "FLAC · 44.1 kHz · 16-bit" or "VINYL" — `filled`
-// renders it solid in the accent colour (used for the mode chip)
-export function shareChip(ctx, kit, text, x, y, filled){
-  ctx.font = '600 22px "IBM Plex Mono", monospace';
-  const padX = 22, h = 46;
-  const w = ctx.measureText(text).width + padX*2;
-  if(filled){
-    roundRectPath(ctx, x, y, w, h, h/2);
-    ctx.fillStyle = kit.accent; ctx.fill();
-    ctx.fillStyle = kit.name === 'paper' ? '#EDE6D6' : '#171310';
-  } else {
-    roundRectPath(ctx, x, y, w, h, h/2);
-    ctx.strokeStyle = kit.chipBorder; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = kit.ink;
-  }
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + w/2, y + h/2 + 1);
-  ctx.textBaseline = 'alphabetic';
-  return w;
+// FS8 (docs/25_FROM_SCRATCH.md): "the sky of the phase it was spun in" --
+// a muted, desaturated per-phase tint for the Now Playing card's Night
+// background (Cover/Paper stay exactly what resolveShareStyle already
+// gives them; this is a separate entry point, only ever called for
+// style === 'night'). The seven hues are profile/rhythm-card.js's own
+// PHASE_COLOR table, duplicated rather than imported -- same call
+// player/clock.js's own comment already makes for this exact table: a
+// few color strings aren't worth pulling rhythm-card.js's whole
+// DOM-touching import chain into this file, which has to stay safe to
+// import directly under Node (see the file-header comment above).
+const PHASE_SKY = {
+  night: '#8E7CC3', dawn: '#E7A7B8', morning: '#9FD8E8', midday: '#EFE9DF',
+  afternoon: '#D9C7A0', golden: '#F2B35C', twilight: '#B86A4A',
+};
+export function nightSkyKit(phase){
+  const base = PHASE_SKY[phase] || PHASE_SKY.midday;
+  const top = hexMix(base, '#07080C', 0.58);
+  return {
+    name:'night', ink:'#EFE9DF', sub:'#ABA298', accent:'#E9A24A',
+    chipBorder:'rgba(239,233,223,.32)', chipBg:'rgba(255,255,255,.05)',
+    paintBg(ctx, w, h){
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, top); g.addColorStop(0.5, SHARE_BG[1]); g.addColorStop(1, SHARE_BG[2]);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    }
+  };
 }
 
-// SH2 (docs/18_SHARE.md): the chip row's own layout math, pulled out of
-// composePlayerShareImage into a pure, directly-testable function — same
-// font/padding shareChip() itself draws with, so a decision made here
-// about what fits never disagrees with what actually gets drawn.
-export const CHIP_FONT = '600 22px "IBM Plex Mono", monospace';
-export const CHIP_HEIGHT = 46;
-export const CHIP_PAD_X = 22;
-export const CHIP_GAP = 16;
-export const CHIP_ROW_GAP = 16;
-
-// Wraps `chips` ({text, filled}) into left-to-right rows that each fit
-// within maxW. Each row's items carry `x` as an offset from 0 (the row's
-// own center) — the caller adds its real center-x when drawing. Three
-// chips (SH2 item 3's own test case) wrap to two rows once their combined
-// width — measured with shareChip()'s own font/padding — exceeds maxW.
-// Returns {rows, height}: rows is an array of arrays of
-// {text, filled, width, x}, height the total stacked height including
-// CHIP_ROW_GAP between rows (0 for an empty chip list).
-export function layoutChips(ctx, chips, maxW){
+// FS8: the small sunset glyph next to the Now Playing card's "Spun at
+// dusk" line -- a horizon, a half-sun sitting on it, three short rays.
+// Drawn rather than an image asset, same reasoning as every other canvas
+// glyph in this file (drawShareWordmark aside, which needs the real mark).
+export function drawSunIcon(ctx, cx, cy, r, color){
   ctx.save();
-  ctx.font = CHIP_FONT;
-  const widths = chips.map(c => Math.round(ctx.measureText(c.text).width) + CHIP_PAD_X*2);
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1.5, r*0.12);
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+  ctx.save();
+  ctx.beginPath(); ctx.rect(cx - r*1.4, cy - r*1.4, r*2.8, r*1.4); ctx.clip();
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.72, 0, Math.PI*2); ctx.fill();
   ctx.restore();
-  const rawRows = [];
-  let row = [], rowW = 0;
-  chips.forEach((c, i) => {
-    const w = widths[i];
-    const nextW = row.length ? rowW + CHIP_GAP + w : w;
-    if(row.length && nextW > maxW){ rawRows.push(row); row = []; rowW = 0; }
-    row.push({ text: c.text, filled: c.filled, width: w });
-    rowW = row.length === 1 ? w : rowW + CHIP_GAP + w;
+  [-0.55, 0, 0.55].forEach(t => {
+    const x = cx + t*r*1.6;
+    ctx.beginPath(); ctx.moveTo(x, cy - r*0.95); ctx.lineTo(x, cy - r*1.4); ctx.stroke();
   });
-  if(row.length) rawRows.push(row);
-  const rows = rawRows.map(r => {
-    const totalW = r.reduce((s, c) => s + c.width, 0) + CHIP_GAP * (r.length - 1);
-    let x = -totalW / 2;
-    return r.map(c => { const item = { ...c, x }; x += c.width + CHIP_GAP; return item; });
-  });
-  const height = rows.length ? rows.length * CHIP_HEIGHT + (rows.length - 1) * CHIP_ROW_GAP : 0;
-  return { rows, height };
+  ctx.restore();
+}
+
+// FS8 (docs/25_FROM_SCRATCH.md point 1): the one footer every share card
+// now draws -- the ring wordmark bottom-left, "from the crate of NAME"
+// bottom-right, both on the same baseline. `baselineY` is the wordmark's
+// own baseline (same convention drawShareWordmark already takes).
+// `ownerName` null/empty draws "from the crate" with no name.
+export async function drawShareFooter(ctx, kit, w, pad, baselineY, ownerName){
+  const wmFontPx = 26;
+  const wmW = wordmarkWidth(ctx, wmFontPx);
+  await drawShareWordmark(ctx, pad + wmW/2, baselineY, wmFontPx, kit.ink, kit.accent);
+
+  const crateFontPx = 14;
+  const prefix = ownerName ? 'from the crate of ' : 'from the crate';
+  ctx.font = '400 ' + crateFontPx + 'px Archivo, sans-serif';
+  const prefixW = ctx.measureText(prefix).width;
+  const nameW = ownerName ? (() => { ctx.font = '600 ' + crateFontPx + 'px Archivo, sans-serif'; return ctx.measureText(ownerName).width; })() : 0;
+  const rightEdge = w - pad;
+  const startX = rightEdge - prefixW - nameW;
+  const baseY = baselineY - Math.round((wmFontPx - crateFontPx) * 0.1);
+  ctx.textAlign = 'left';
+  ctx.font = '400 ' + crateFontPx + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+  ctx.fillText(prefix, startX, baseY);
+  if(ownerName){
+    ctx.font = '600 ' + crateFontPx + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
+    ctx.fillText(ownerName, startX + prefixW, baseY);
+  }
 }
 
 // Small color-math/fallback-jacket helpers used by both card composers

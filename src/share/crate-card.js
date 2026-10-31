@@ -1,11 +1,9 @@
 import { S } from '../state.js';
-import { albumKey } from '../record-art/tiers.js';
 import { topAlbums, topTracks } from '../history/achievements.js';
 import {
   SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
-  roundRectPath, drawShareWordmark, wordmarkWidth, resolveShareStyle, drawDiagonalWordmark,
+  roundRectPath, resolveShareStyle, drawDiagonalWordmark, drawShareFooter,
 } from './styles.js';
-import { fmtCount } from '../util/text.js';
 
 // Ken's 2026-10-30 ask: the "staff pick" sticker TY6 named as deferred
 // ("doesn't exist yet, new-art work out of scope for a type PR"). Local
@@ -49,16 +47,14 @@ function drawStaffPickSticker(ctx, heroX, heroY, heroW, w){
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
-// SH5 (docs/18_SHARE.md): the wordmark moved off-centre (bottom-right), so
-// its own width has to be measured ahead of drawShareWordmark's call
-// (which always centres on whatever x it's given) -- same font string,
-// measured and discarded before the real draw.
-/* ---- My Crate card (composeShareImage) — avatar/name/counts, hero = top
-   record, a grid of the next covers, top songs, brand wordmark. SH5
-   (docs/18_SHARE.md) dropped the metals/collection/rhythm sections this
-   card used to also carry -- that's the profile's own Listening screen
-   and share/season-card.js's job now, not every crate share. `opts`:
-   {style, format, sections}. Pure: no DOM reads, only the same
+/* ---- My Crate card (composeShareImage) — avatar/name, hero = top
+   record, a grid of the next covers, top songs, the shared footer
+   (styles.js's drawShareFooter). SH5 (docs/18_SHARE.md) dropped the
+   metals/collection/rhythm sections this card used to also carry -- that's
+   the profile's own Listening screen and share/season-card.js's job now,
+   not every crate share. FS8 (docs/25_FROM_SCRATCH.md point 5) dropped
+   the "N RECORDS · N TRACKS"/session-count figures too (no counts, QC2).
+   `opts`: {style, format, sections}. Pure: no DOM reads, only the same
    state-reading anchors the original drew from (topAlbums/topTracks/
    S.profile/S.tracks). ---- */
 export async function composeShareImage(opts){
@@ -104,19 +100,14 @@ export async function composeShareImage(opts){
   ctx.restore();
 
   const showName = sections.name !== false && !!S.profile.name;
-  // SH5 item 1: "records", not "albums" -- matching the crate's own
-  // header line (CR1), since this card is a picture of that same crate.
-  const recordCount = new Set(S.tracks.map(t => albumKey(t))).size;
-  const trackCount = S.tracks.length;
+  // FS8 (docs/25_FROM_SCRATCH.md point 5): "no counts" -- the old
+  // "N RECORDS · N TRACKS" line is dropped, same QC2 rule the Pressings
+  // and Season cards already follow.
   const textX = avX + avSize + Math.round(w*0.025);
   const headName = showName ? S.profile.name.toUpperCase() + "'S CRATE" : 'MY CRATE';
   ctx.font = '700 ' + Math.round(w*0.042) + 'px Antonio, sans-serif';
   ctx.fillStyle = kit.ink;
-  ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.42);
-  // TY6 (docs/22_TYPE.md): metadata is Archivo .num, not mono.
-  ctx.font = '500 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
-  ctx.fillStyle = kit.sub;
-  ctx.fillText(recordCount + ' RECORDS · ' + trackCount + ' TRACKS', textX, avY + avSize*0.42 + Math.round(w*0.03));
+  ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.5);
 
   let y = avY + avSize + Math.round(h*0.04);
   const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.56);
@@ -190,7 +181,8 @@ export async function composeShareImage(opts){
   y += Math.round(w*0.034);
   ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif';
   ctx.fillStyle = kit.sub;
-  const subLine = topAlbum ? (topAlbum.display.artist + ' · ' + fmtCount(topAlbum.count, 'session', 'sessions')) : '';
+  // FS8 point 5: no counts -- the session-count figure is dropped.
+  const subLine = topAlbum ? topAlbum.display.artist : '';
   ctx.fillText(shareFitText(ctx, subLine, w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
   y += Math.round(h*0.05);
 
@@ -251,13 +243,10 @@ export async function composeShareImage(opts){
     }
   }
 
-  // SH5 item 5: bottom-right, not centred -- measured ahead so the mark
-  // itself (which always centres on whatever x it's given) lands flush
-  // against the right-hand padding.
-  const wmFontPx = Math.round(w*0.034);
-  const wmWidth = wordmarkWidth(ctx, wmFontPx);
+  // FS8 (docs/25_FROM_SCRATCH.md point 1/5): the shared footer every card
+  // now draws, wordmark bottom-left + "from the crate of NAME" bottom-right.
   const markY = Math.min(Math.max(leftY, Math.round(h*0.02)) + Math.round(h*0.03), bottomY);
-  await drawShareWordmark(ctx, w - pad - wmWidth/2, markY, wmFontPx, kit.ink, kit.accent);
+  await drawShareFooter(ctx, kit, w, pad, markY, showName ? S.profile.name : null);
 
   return canvas;
 }

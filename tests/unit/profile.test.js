@@ -126,6 +126,9 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
     // top-albums pick — this file's own tests only care that the share
     // button exists and wires to openShareSheet, not what it's built from.
     topAlbumsInWindow(){ return []; },
+    // FS8 (docs/25_FROM_SCRATCH.md): the Season card's "N records"
+    // header figure — same posture as topAlbumsInWindow's own mock above.
+    recordsInWindowCount(){ return 0; },
     // CR11 point 3: ownedPressingIds() has its own coverage in
     // tests/unit/pressings.test.js — mocked here since this file's own
     // renderListeningScreen() tests only care that the card gets built,
