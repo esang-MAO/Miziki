@@ -31,6 +31,7 @@ import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
 import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
 import { openLayer } from '../shell/nav-stack.js';
+import { saveScrollPosition, restoreScrollPosition } from '../shell/scroll-memory.js';
 
 // NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
 // on a single screen (~400+), the first screenful renders synchronously —
@@ -615,6 +616,22 @@ export function updateLibBodyInset(){
   host.style.overflowY = 'auto';
 }
 
+// Ken, 2026-10-31: drilling into an artist/album/playlist/person from a
+// list view, then backing out via the crumb, used to always land back at
+// the top of that list — captureScrollAnchor()/restoreScrollAnchor() below
+// only re-finds a specific row across a same-view rebuild (an edit, a sort
+// change), not across navigating to a completely different view and back,
+// since the old row ids simply don't exist in the new view's rows. This
+// gives each distinct drill-down level its own remembered scrollTop
+// instead, the same per-key idea shell/scroll-memory.js already uses for
+// routes/Sundown views, just targeted at #libBody's own internal scroller
+// (saveScrollPosition/restoreScrollPosition's optional `target` param)
+// rather than window.scrollY.
+let lastLibViewKey = null;
+function libViewKey(v){
+  return [v.mode, v.group, v.artistAlbum, v.playlist, v.person, v.crateLooseArtist].join('\u0001');
+}
+
 export function renderTracks(){
   const host = $('#libBody');
   // NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather
@@ -625,9 +642,18 @@ export function renderTracks(){
   // otherwise tear down the very rows there'd be nothing left to filter.
   const query = $('#librarySearch').value.trim();
   if(query && filterSearchInPlace(host, query)) return;
-  const anchor = captureScrollAnchor(host);
+  const newKey = libViewKey(S.view);
+  // first render ever (lastLibViewKey is still null) is a fresh load, not
+  // a navigation — nothing to save, and the natural top position is right
+  const viewChanged = lastLibViewKey !== null && lastLibViewKey !== newKey;
+  if(viewChanged) saveScrollPosition('lib-view:' + lastLibViewKey, host);
+  const anchor = viewChanged ? null : captureScrollAnchor(host);
   try{ renderTracksBody(host); }
-  finally{ restoreScrollAnchor(host, anchor); }
+  finally{
+    if(viewChanged) restoreScrollPosition('lib-view:' + newKey, host);
+    else restoreScrollAnchor(host, anchor);
+    lastLibViewKey = newKey;
+  }
 }
 
 function renderTracksBody(host){
