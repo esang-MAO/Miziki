@@ -62,3 +62,19 @@ test('saveScrollPosition/restoreScrollPosition: never throw when window isn\'t a
   assert.doesNotThrow(() => restoreScrollPosition('route:library'));
   globalThis.window = realWindow;
 });
+
+test('saveScrollPosition/restoreScrollPosition: an element target round-trips its own scrollTop, not window.scrollY', () => {
+  globalThis.window.scrollY = 999;
+  const host = { scrollTop: 150 };
+  saveScrollPosition('lib-view:artists:Boygenius', host);
+  host.scrollTop = 0;
+  restoreScrollPosition('lib-view:artists:Boygenius', host);
+  assert.equal(host.scrollTop, 150);
+  assert.equal(globalThis.window.scrollY, 999);
+});
+
+test('restoreScrollPosition: an unseen key on an element target restores it to 0', () => {
+  const host = { scrollTop: 300 };
+  restoreScrollPosition('lib-view:never-visited', host);
+  assert.equal(host.scrollTop, 0);
+});

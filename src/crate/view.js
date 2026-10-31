@@ -647,7 +647,11 @@ export function renderCrate(host){
   const peekPrev = el('div','crate-peek crate-peek-prev');
   const peekNext = el('div','crate-peek crate-peek-next');
   stage.appendChild(peekPrev); stage.appendChild(peekNext);
-  const rail = el('div','crate-rail');
+  // Ken (2026-10-31): the rail is a scroll affordance, not a permanent
+  // fixture — hidden until the stack is actually moving, same debounce
+  // shape as applyMovingClass below. Starts idle on mount, since nothing
+  // has scrolled yet.
+  const rail = el('div','crate-rail crate-rail-idle');
   const info = el('div','crate-info');
   wrap.appendChild(header); wrap.appendChild(sectionHeaderSlot); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
 
@@ -945,6 +949,20 @@ export function renderCrate(host){
     }
   }
 
+  // Ken (2026-10-31): fades the rail back out ~150ms after the stack stops
+  // moving, same threshold/debounce as applyMovingClass above — independent
+  // of crate-rail-hidden (which stays the non-A-Z-section override and
+  // wins regardless of this class, since there's no rail content there).
+  let railIdleTimer = null;
+  function applyRailIdleClass(speed){
+    if(speed > 0.02){
+      clearTimeout(railIdleTimer); railIdleTimer = null;
+      rail.classList.remove('crate-rail-idle');
+    } else if(railIdleTimer == null){
+      railIdleTimer = setTimeout(() => { rail.classList.add('crate-rail-idle'); railIdleTimer = null; }, 150);
+    }
+  }
+
   function syncCards(position, speed){
     // CR14: the visible pool window never crosses into a neighbouring
     // section — cards from the next/prev crate must never show in this
@@ -970,6 +988,7 @@ export function renderCrate(host){
       else if(a > 2) clearCardImage(card);
     });
     applyMovingClass(speed);
+    applyRailIdleClass(speed);
     updateInfoPanel(Math.round(position));
     syncInfoReserve();
     updateRailUI(position);
