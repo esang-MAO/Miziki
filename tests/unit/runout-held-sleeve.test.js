@@ -75,8 +75,9 @@ mock.module(new URL('../../src/shell/mini-player.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/player-side-panel.js', import.meta.url).href, {
   namedExports: { renderPlayerSidePanel(){} },
 });
+const forceCloseLayerMock = mock.fn();
 mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
-  namedExports: { forceCloseLayer(){} },
+  namedExports: { forceCloseLayer: forceCloseLayerMock },
 });
 const putAwayInstantMock = mock.fn();
 let shouldPutAwayReturn = false;
@@ -113,18 +114,25 @@ function resetState(overrides){
   shouldPutAwayReturn = false;   // early-exit by default -- these tests target that path
   loadMock.mock.resetCalls(); playMock.mock.resetCalls(); pauseMock.mock.resetCalls();
   putAwayInstantMock.mock.resetCalls(); paintRestingCardMock.mock.resetCalls();
+  forceCloseLayerMock.mock.resetCalls();
   elCache.clear();
 }
 
-test('endOfQueue: a real finish lands on the held sleeve, not the empty slipmat', async () => {
+// The resting-card prompt (Flip to Side B / Play it again / Back to your
+// queue) is now Focus-only. A real end of queue is never reached while
+// Focus is on (advance() takes the 'focus' branch first), so landing here
+// means there's no choice to make -- the record lands on its cover (the
+// disc still visible beside its sleeve, same as before) and the player
+// closes behind it, same as the genuinely-empty platter already does.
+test('endOfQueue: a real finish lands the record on its cover and closes the player, with no resting-card prompt', async () => {
   resetState({ tracks: [fakeTrack('X','A')], queue: [0], qpos: 0, index: 0 });
   await endOfQueue(true);
   assert.equal(putAwayInstantMock.mock.calls.length, 0);   // never clears to empty
-  assert.equal(S.resting.reason, 'queueEnd');
-  assert.equal(S.resting.pendingIndex, null);
-  assert.equal(typeof S.resting.endedAt, 'number');
+  assert.equal(S.resting, null);   // no Focus-only prompt outside Focus
   assert.equal(S.platterEmpty, false);
-  assert.equal(paintRestingCardMock.mock.calls.length, 1);
+  assert.equal(paintRestingCardMock.mock.calls.length, 1);   // hides any stale card
+  assert.equal(forceCloseLayerMock.mock.calls.length, 1);
+  assert.equal(forceCloseLayerMock.mock.calls[0].arguments[0], 'player');
 });
 
 test('endOfQueue: a manual skip (auto=false) does nothing', async () => {
@@ -142,20 +150,22 @@ test('endOfQueue: nothing currently loaded falls back to the genuinely-empty cle
   assert.equal(S.index, -1);   // clearToRest()'s own doing, not a side effect of holdSleeve
 });
 
-test('stopAtRecordEndCeremony: Focus lands on the held sleeve with the queue intact', async () => {
+test('stopAtRecordEndCeremony: Focus lands on the held sleeve with the queue intact, player left open', async () => {
   resetState({ tracks: [fakeTrack('X','A'), fakeTrack('Y','A')], queue: [0,1], qpos: 0, index: 0 });
   await stopAtRecordEndCeremony('focus', 1);
   assert.equal(S.resting.reason, 'focus');
   assert.equal(S.resting.pendingIndex, 1);
   assert.deepEqual(S.queue, [0,1]);   // untouched -- holding, not clearing
   assert.equal(S.qpos, 0);
+  assert.equal(forceCloseLayerMock.mock.calls.length, 0);   // the prompt is on screen -- nothing closes
 });
 
-test('stopAtRecordEndCeremony: Stop between records (sunset) lands on the held sleeve with its own reason', async () => {
+test('stopAtRecordEndCeremony: Stop between records (sunset) lands on the held sleeve with its own reason, player left open', async () => {
   resetState({ tracks: [fakeTrack('X','A'), fakeTrack('Y','A')], queue: [0,1], qpos: 0, index: 0 });
   await stopAtRecordEndCeremony('sunset', 1);
   assert.equal(S.resting.reason, 'sunset');
   assert.equal(S.resting.pendingIndex, 1);
+  assert.equal(forceCloseLayerMock.mock.calls.length, 0);
 });
 
 // clearToRest() itself is otherwise untouched by this PR -- a quick smoke
