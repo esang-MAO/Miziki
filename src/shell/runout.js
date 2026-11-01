@@ -129,6 +129,14 @@ export function clearToRest(){
 // keep showing and current() keeps returning it -- that's also what
 // keeps .rest-hint's Open Crate/Open Library suggestions from showing,
 // with no extra guard needed, since that only ever triggers on !current().
+//
+// The flip/play-again/back-to-queue resting card itself is now a Focus-
+// mode ceremony: 'focus'/'sunset'/'midnight' (Focus, RW3's Stop between
+// records) still show it, with the player left open so the choice is
+// right there. A genuine queue end ('queueEnd' -- never reached while
+// Focus is on, since advance() takes the 'focus' branch first) has no
+// choice to make: the record lands on its cover and the player closes
+// behind it, same as a phone already does for the fully-empty platter.
 function holdSleeve(t, reason, pendingIndex){
   const stage = $('#platterStage');
   stage.classList.remove('runout','flipping','putaway-slide','putaway-out','sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
@@ -139,6 +147,14 @@ function holdSleeve(t, reason, pendingIndex){
   stage.classList.add('putaway-in');
   $('#platterBox').classList.remove('disc-hidden');
   S.platterEmpty = false;
+  if(reason === 'queueEnd'){
+    S.resting = null;
+    paintRestingCard();
+    renderMiniPlayer();
+    renderPlayerSidePanel();
+    if(S.playerOpen && !isDesktopShell()) forceCloseLayer('player');
+    return;
+  }
   S.resting = { reason, pendingIndex, side: currentSideLetter(t), endedAt: Date.now() };
   paintRestingCard();
   renderMiniPlayer();
