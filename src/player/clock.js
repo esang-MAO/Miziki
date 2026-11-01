@@ -422,19 +422,17 @@ export function drawSun(){
   if(sidePhaseName) sidePhaseName.textContent = name;
   if(sidePhaseSub) sidePhaseSub.textContent = sub;
 
-  // RF26 (docs/12_REFINE.md): the sheet's two ways-in on the player — the
-  // sun knob and the mini-player's sun button — are tinted by the current
-  // phase via a plain data attribute; CSS (src/styles/26-sundown-sheet.css)
-  // owns the actual colours, the same "write the phase, let CSS decide
-  // the colour" split src/profile/rhythm-card.js's own PHASE_COLOR table
-  // already uses elsewhere (duplicated there rather than imported, to
-  // avoid a new import edge into this already widely-imported render
-  // loop). The knob's own time readout and the player's format line's
-  // phase suffix (#trackSpecPhase) are two more small mirrors of this
-  // same already-computed `name`/`S.rate`, the same shape #sideRateWhy
-  // just above already uses.
-  const knob = $('#sunKnob'), miniSun = $('#miniSunBtn');
-  if(knob) knob.dataset.phase = dayPos.phase;
+  // RF26 (docs/12_REFINE.md): the mini-player's sun button, one of the
+  // sheet's ways-in, is tinted by the current phase via a plain data
+  // attribute; CSS (src/styles/26-sundown-sheet.css) owns the actual
+  // colours, the same "write the phase, let CSS decide the colour" split
+  // src/profile/rhythm-card.js's own PHASE_COLOR table already uses
+  // elsewhere (duplicated there rather than imported, to avoid a new
+  // import edge into this already widely-imported render loop). The
+  // player's format line's phase suffix (#trackSpecPhase) is another
+  // small mirror of this same already-computed `name`/`S.rate`, the
+  // same shape #sideRateWhy just above already uses.
+  const miniSun = $('#miniSunBtn');
   if(miniSun) miniSun.dataset.phase = dayPos.phase;
   // FS5 (docs/25_FROM_SCRATCH.md point 8): "after dark" -- the full
   // player's own cream/muted dim and the label loses ~20% brightness,
@@ -456,8 +454,6 @@ export function drawSun(){
     if(sunGlyph) sunGlyph.style.display = isNight ? 'none' : '';
     if(nightGlyph) nightGlyph.style.display = isNight ? '' : 'none';
   }
-  const knobTime = $('#sunKnobTime');
-  if(knobTime) knobTime.textContent = nowClock().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   const specPhase = $('#trackSpecPhase');
   if(specPhase){
     // RF27 (docs/12_REFINE.md): same percentage+semitone format as

@@ -1,9 +1,10 @@
 // FS2 (docs/25_FROM_SCRATCH.md, point 3): "a unit test that greps the built
 // CSS for --accent/--amber and fails on any selector outside an allowlist
-// (.label*, .sun-knob*, .wordmark*, .disc-label*, share-card label/wordmark
-// classes). Add to the allowlist only with a comment saying which of the
-// three objects it is." Miziki's own selector names for those three
-// allowed objects are .label* (the paper record label) and .day-dial-*
+// (.label*, .wordmark*, .disc-label*, share-card label/wordmark classes --
+// .sun-knob* was in this list too, until the knob itself was removed,
+// DEEP2 docs/28_PLATTER_KNOB.md). Add to the allowlist only with a comment
+// saying which of the three objects it is." Miziki's own selector names
+// for those three allowed objects are .label* (the paper record label) and .day-dial-*
 // (the Sundown dial's sun -- ring glow, rising arc, sun label, sun marker).
 // The wordmark and share-card label/wordmark cases are drawn in JS
 // (src/ui/wordmark.js, src/share/styles.js), not CSS, so they never reach
@@ -29,11 +30,12 @@ const ALLOWLIST = [
   { why: 'paper record label', re: /\.label\b/ },
   // The Sundown dial's sun (ring glow, rising arc, sun label, sun marker).
   { why: "Sundown dial's sun", re: /\.day-dial-(ring|rising-arc|label|marker)\b/ },
-  // FS5 (docs/25_FROM_SCRATCH.md point 6): the Sundown knob's own third
-  // appearance -- the full player's bottom-row phase pill ("sun icon +
-  // phase word in amber"), a compact stand-in for the dial knob on a row
-  // that has no room for the platter's physical one. --accent-text, not
-  // raw --amber, since this is real small text (tests/unit/contrast.test.js).
+  // FS5 (docs/25_FROM_SCRATCH.md point 6): the Sundown dial's sun, drawn
+  // again -- the full player's bottom-row phase pill ("sun icon + phase
+  // word in amber"), one of the ways into the Sundown sheet alongside the
+  // mini-player's sun button and the others listed in
+  // src/shell/sundown-sheet.js. --accent-text, not raw --amber, since this
+  // is real small text (tests/unit/contrast.test.js).
   { why: "Sundown dial's sun (full player phase pill)", re: /\.now-phase-(pill|glyph)\b/ },
 ];
 

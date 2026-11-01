@@ -205,19 +205,15 @@ export function angleDelta(a, b){
 
 export function wireSpinToScrub(){
   const disc = $('#disc');
-  // RF26 put the sun knob (#sunKnob) at the platter's lower right, a sibling
-  // of #disc, not a child -- but that's exactly where a hand naturally rests
-  // to spin/scratch a record, so a touch starting there never used to reach
-  // this gesture at all (it isn't inside #disc, so pointerdown never bubbled
-  // to a listener bound there). Binding to #platterStage instead -- the
-  // common ancestor of both #disc and #sunKnob -- lets a touch that starts
-  // on the knob still be considered for the gesture: a plain tap (under the
-  // claim threshold below) is never claimed, so the knob's own click still
-  // opens Sundown exactly as before; a touch that turns into real rotation
-  // is claimed the same way a touch starting on the bare disc always was.
-  // All angle math below still measures against #disc's own rect, since
-  // #disc/#platterBox/#platterStage share the same box (inset:0 all the way
-  // down) -- the knob never moves or visually reacts to this.
+  // Bound to #platterStage, not #disc -- #platterStage is the shared
+  // ancestor that also covers #sleeve's own shrink-wrap tab (see the
+  // exclusion just below) and the full lower-right corner of the platter
+  // (RF26 once put the now-removed sun knob there, DEEP2
+  // docs/28_PLATTER_KNOB.md; a bare tap there claims nothing and does
+  // nothing, the same as any other plain tap on the platter). All angle
+  // math below still measures against #disc's own rect, since
+  // #disc/#platterBox/#platterStage share the same box (inset:0 all the
+  // way down).
   const stage = $('#platterStage');
   stage.addEventListener('pointerdown', e => {
     // docs/15_SURFACE_NOISE.md §2: #sleeve (and the shrink-wrap tab
