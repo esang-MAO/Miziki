@@ -260,7 +260,7 @@ function applyPrefs(p){
   // one [data-depth] control -- this is the restore-time half of the
   // same depthKeyFor()/depthCaptionFor() sync src/wiring/sundown.js's
   // click handler already does, so a reload reflects a saved Off/Gentle/
-  // Medium/Deep choice. S.pace itself needs no sync call here any more --
+  // Medium/Deep/Deepest choice. S.pace itself needs no sync call here any more --
   // there's no [data-pace] control left to point its aria-pressed at.
   {
     const depthKey = depthKeyFor(S.auto, S.target);

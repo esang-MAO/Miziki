@@ -291,6 +291,8 @@ FS17, at the end, sweeps for anything the earlier PRs missed.
 
 **Preview focus:** open Sundown from the player at dusk and at 11 PM (dial preview): both views match frames `19` and `20`. Turn Vinyl off: the rest of Sound dims and nothing changes the audio. Fine-tune and EQ open what they opened before.
 
+*(Note, docs/27_DEEPEST.md: the depth segmented control above gained a fifth choice, Deepest, after this plan was written. See that doc for current behavior.)*
+
 ---
 
 ## FS13: library, everywhere else

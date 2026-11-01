@@ -262,7 +262,7 @@
   background:var(--panel); margin-bottom:18px; gap:0;
 }
 .sd-tabs{ grid-template-columns:repeat(2, minmax(0, 1fr)); margin-bottom:var(--sp-4); }
-.sd-depth-seg{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
+.sd-depth-seg{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
 .sd-tabs button,
 .sd-drift-seg button,
 .sd-preset-seg button,

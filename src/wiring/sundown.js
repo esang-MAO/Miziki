@@ -1,9 +1,9 @@
 /* ================= wiring: Sundown panel =================
    The Day/Sound tab switch (selectSundownView itself lives in
    src/shell/routes.js, not here — see that module's own comment for
-   why), the one "How deep the night goes" control ([data-depth], four
-   buttons: Off is Auto off; Gentle/Medium/Deep set Auto on and S.target
-   to one of three values), the preview slider's dial gesture, and the
+   why), the one "How deep the night goes" control ([data-depth], five
+   buttons: Off is Auto off; Gentle/Medium/Deep/Deepest set Auto on and
+   S.target to one of four values), the preview slider's dial gesture, and the
    sheet's own ways-in (the sun knob, the mini-player's sun button, the
    sidebar's Sundown card, the sheet's own close button/scrim/drag —
    src/shell/sundown-sheet.js).

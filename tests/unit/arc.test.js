@@ -47,6 +47,31 @@ test('rateInfoAt: recovery leg starts exactly at solar midnight, eased p^4, full
   assert.ok(Math.abs(rateAt(new Date(sampleT), SUN, s) - expected) < 1e-6, 'matches the p^4 formula 60% through the span');
 });
 
+// DEEP1 (docs/27_DEEPEST.md): the same recovery shape at a lower floor
+// (0.70 instead of 0.85) — the climb is bigger (0.30) but the curve and
+// its endpoints are unchanged.
+test('rateInfoAt: the Deepest floor (0.70) holds, recovers at solar midnight, and reaches full speed at sunrise', () => {
+  const rise = SUN.rise.getTime();
+  const s = settings({ target: 0.70 });
+  assert.equal(rateAt(new Date(SOLAR_MIDNIGHT - 60000), SUN, s), 0.70, 'still at the floor a minute before solar midnight');
+  assert.equal(rateAt(new Date(SOLAR_MIDNIGHT), SUN, s), 0.70, 'exactly the floor at solar midnight itself (p=0)');
+  assert.equal(rateAt(SUN.rise, SUN, s), 1, 'full speed exactly at sunrise');
+
+  const span = rise - SOLAR_MIDNIGHT;
+  const sampleT = SOLAR_MIDNIGHT + span * 0.6;
+  const expected = 0.70 + (1 - 0.70) * Math.pow(0.6, 4);
+  assert.ok(Math.abs(rateAt(new Date(sampleT), SUN, s) - expected) < 1e-6, 'matches the p^4 formula 60% through the span');
+
+  // continuity: adjacent per-minute samples never jump, same epsilon as
+  // the 48h sweep below.
+  let prev = null;
+  for (let t = SOLAR_MIDNIGHT - 5 * 60000; t <= rise + 5 * 60000; t += 60000) {
+    const r = rateAt(new Date(t), SUN, s);
+    if (prev !== null) assert.ok(Math.abs(r - prev) < 0.01, `no jump at ${new Date(t).toISOString()}`);
+    prev = r;
+  }
+});
+
 test('rateInfoAt: short-night fallback — solar midnight within 2h of sunrise, or after it, falls back to the fixed 2h window', () => {
   const rise = new Date('2025-06-21T02:30:00');
   const base = { rise, set: new Date('2025-06-20T22:00:00'), dusk: new Date('2025-06-20T22:30:00') };
