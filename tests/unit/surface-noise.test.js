@@ -164,21 +164,30 @@ test('skipScratchSamples rises then cuts off abruptly, deterministic by seed, no
   assert.ok(Math.abs(a[a.length - 1]) < peak(a) * 0.1);
 });
 
-test('playSkipDrop plays the pop regardless of scale, but the hiss layer only when scale > 0', () => {
+test('playSkipDrop plays the scratch regardless of scale, but the hiss layer only when scale > 0', () => {
   S.ctx = null; S.nodes = null;
   assert.doesNotThrow(() => playSkipDrop(7, 0));   // no audio graph -- must not throw
   S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
-  assert.doesNotThrow(() => playSkipDrop(7, 0));    // scale 0: pop only, no hiss buffer to start
-  assert.doesNotThrow(() => playSkipDrop(7, 1));    // scale > 0: pop + hiss
+  assert.doesNotThrow(() => playSkipDrop(7, 0));    // scale 0: scratch only, no hiss buffer to start
+  assert.doesNotThrow(() => playSkipDrop(7, 1));    // scale > 0: scratch + hiss
   S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
 });
 
-test('playSkipDrop plays the scratch when S.char.scratch is on, and the plain pop when off', () => {
+test('playSkipDrop plays the scratch when S.char.scratch is on, and is silent (no fallback sound) when off', () => {
   S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
+  const startCalls = [];
+  S.ctx.sampleRate = SR;
+  S.ctx.createBuffer = (_ch, len) => ({ getChannelData: () => new Float32Array(len) });
+  S.ctx.createBufferSource = () => { startCalls.push(1); return { playbackRate:{}, connect(){ return this; }, start(){}, stop(){} }; };
+  S.ctx.createGain = () => ({ connect(){ return this; }, gain:{ setValueAtTime(){}, linearRampToValueAtTime(){}, cancelScheduledValues(){}, value:1 } });
+  S.ctx.currentTime = 0;
   S.char.scratch = true;
-  assert.doesNotThrow(() => playSkipDrop(7, 1));
+  playSkipDrop(7, 1);
+  assert.ok(startCalls.length > 0, 'scratch on starts at least one buffer source');
+  startCalls.length = 0;
   S.char.scratch = false;
-  assert.doesNotThrow(() => playSkipDrop(7, 1));
+  playSkipDrop(7, 1);
+  assert.equal(startCalls.length, 0, 'scratch off starts nothing at all -- no fallback sound');
   S.char.scratch = true;
   S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
 });
