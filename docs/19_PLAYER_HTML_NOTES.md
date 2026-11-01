@@ -116,6 +116,12 @@ scratches exactly as it always has — the knob never moves the platter).
 the mini-player's sun button's is — CSS (`src/styles/26-sundown-sheet.css`)
 owns the ring colour per phase, not JS.
 
+**Removed** by DEEP2 (`docs/28_PLATTER_KNOB.md`): the full player's phase
+pill (`#nowPhasePill`) already opened the same Sundown sheet, so the knob
+was a duplicate way in. The platter now carries only the record; the ways
+into Sundown are the mini-player's sun button, the desktop sidebar's
+Sundown card, the full player's phase pill, and Settings › Sundown.
+
 ## `#dbStaleBanner` (the IndexedDB-upgrade reload banner)
 
 Shown when another tab upgrades the database (IndexedDB `onversionchange`)

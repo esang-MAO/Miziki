@@ -1,57 +1,23 @@
-/* RF26 (docs/12_REFINE.md): the Sundown sheet, its two platter/mini-player
-   ways in, and the phase tint both of those (plus the player's own format
-   line) pick up. Phase colours match docs/design/refine/README.md's own
-   "Dial ring" table (the sheet's own Day dial, src/sundown/dial-view.js,
-   keeps its separate, already-shipped Day Arc v2 palette — this table is
-   only for these new small phase-tinted surfaces). */
-
-.sun-knob, .mini-sun-btn{
-  --phase-color: var(--muted);
-}
-.sun-knob[data-phase="midday"], .mini-sun-btn[data-phase="midday"]{ --phase-color:#D8D3C9 }
-.sun-knob[data-phase="afternoon"], .mini-sun-btn[data-phase="afternoon"]{ --phase-color:#CBBD9C }
-.sun-knob[data-phase="golden"], .mini-sun-btn[data-phase="golden"]{ --phase-color:#E8B67A }
-.sun-knob[data-phase="twilight"], .mini-sun-btn[data-phase="twilight"]{ --phase-color:#D99A5A }
-.sun-knob[data-phase="night"], .mini-sun-btn[data-phase="night"]{ --phase-color:#8578AE }
-.sun-knob[data-phase="dawn"], .mini-sun-btn[data-phase="dawn"]{ --phase-color:#CFA0AD }
-.sun-knob[data-phase="morning"], .mini-sun-btn[data-phase="morning"]{ --phase-color:#98C2CE }
-
-/* the sun knob: "where a turntable's speed knob sits," the platter's
-   lower right. Positioned against .platter-stage, a sibling of
-   #platterBox/#disc — never overlapping the disc's own scratch/spin
-   pointer target (src/player/scrub.js). */
-.sun-knob{
-  position:absolute; right:4%; bottom:6%; width:64px; height:64px;
-  border-radius:50%; border:0; padding:0; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; z-index:4;
-  /* CR8 (docs/13_CRATE.md point 4): "platter plinth to warm black
-     #1C1A1F/#2A272C" -- docs/design/refine/README.md already called this
-     knob's own background "dark plinth fill" (point of a turntable's own
-     speed knob sitting in a plinth); this is where that fill gets the
-     README's own named --plinth/--plinth-edge pair instead of the flat,
-     unnamed #14110F it used before. */
-  background:var(--plinth);
-  box-shadow: inset 0 1px 0 var(--plinth-edge), var(--sh-2, 0 2px 4px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.35));
-}
-.sun-knob-ring{
-  position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
-}
-.sun-knob-ring circle{
-  fill:none; stroke:var(--phase-color); stroke-width:2;
-}
-.sun-knob-glyph{
-  width:20px; height:20px; fill:none; stroke:var(--phase-color); stroke-width:1.6;
-  stroke-linecap:round; stroke-linejoin:round;
-}
-.sun-knob-time{
-  position:absolute; bottom:6px; left:0; right:0; text-align:center;
-  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.05em; color:var(--paper);
-}
+/* RF26 (docs/12_REFINE.md): the Sundown sheet's mini-player way in, and
+   the phase tint it (plus the player's own format line) picks up. Phase
+   colours match docs/design/refine/README.md's own "Dial ring" table
+   (the sheet's own Day dial, src/sundown/dial-view.js, keeps its
+   separate, already-shipped Day Arc v2 palette — this table is only for
+   these new small phase-tinted surfaces). The platter's own sun knob
+   (.sun-knob*) was removed by DEEP2, docs/28_PLATTER_KNOB.md. */
 
 .mini-sun-btn{
+  --phase-color: var(--muted);
   width:44px; height:44px; display:flex; align-items:center; justify-content:center;
   background:none; border:0; cursor:pointer; flex:0 0 auto;
 }
+.mini-sun-btn[data-phase="midday"]{ --phase-color:#D8D3C9 }
+.mini-sun-btn[data-phase="afternoon"]{ --phase-color:#CBBD9C }
+.mini-sun-btn[data-phase="golden"]{ --phase-color:#E8B67A }
+.mini-sun-btn[data-phase="twilight"]{ --phase-color:#D99A5A }
+.mini-sun-btn[data-phase="night"]{ --phase-color:#8578AE }
+.mini-sun-btn[data-phase="dawn"]{ --phase-color:#CFA0AD }
+.mini-sun-btn[data-phase="morning"]{ --phase-color:#98C2CE }
 .mini-sun-btn svg{ width:20px; height:20px; fill:none; stroke:var(--phase-color); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
 
 /* the player's own format line, phase suffix — a sibling of #trackSpec,

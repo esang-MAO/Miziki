@@ -1270,3 +1270,11 @@ Launch intro, desktop layout (sidebar, player side panel) in both light and dark
 ### FS17: the sweep (cleanup only, no behaviour or visual change)
 
 Runs once FS0-FS16 have all merged. A uniformity pass across every FS5-FS16 route/sheet/overlay at phone and desktop widths, both themes, plus dead-code cleanup: orphaned `id`s in `miziki.html`, dead CSS selectors, dead design tokens, and a check that the plan's old literal values (the pre-FS1 amber hex, old class/id names, "NO STREAMING," literal On/Off segment text) are gone from live code. See this PR's own description for the specific counts and what was found.
+
+### DEEP1: a fifth Sundown night depth, Deepest (docs/27_DEEPEST.md)
+
+Added Deepest (target 0.70) as a fifth choice to "How deep the night goes," alongside Off/Gentle/Medium/Deep. `depthKeyFor()` (`src/sundown/solar.js`) now loops over `DEPTH_TARGETS` instead of a hand-written check per depth, so a saved value round-trips to the right button/caption on reload and a future depth can't repeat the bug a hand-written check would otherwise reintroduce.
+
+### DEEP2: remove the sun knob from the platter (docs/28_PLATTER_KNOB.md)
+
+`#sunKnob` removed entirely (markup, styles, paint code, listener) — the full player's phase pill already opened the same Sundown sheet, so the knob was a duplicate way in. The ways into Sundown are now the mini-player's sun button, the desktop sidebar's Sundown card, the full player's phase pill, and Settings › Sundown. Spin-to-scrub still binds to `#platterStage`, covering the same lower-right area the knob used to occupy. Focus mode has no Sundown way in on the full player now (accepted on purpose — Focus hides the bottom row entirely; turning Focus off, or the desktop sidebar, still reach it).
