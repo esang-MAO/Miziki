@@ -188,24 +188,29 @@ export function computeRate(){
 }
 
 /* (RF9, docs/12_REFINE.md) "How deep the night goes" (Off/Gentle/Medium/
-   Deep) collapses Auto/Manual, the full-night-rate setting and the
-   Window/Moment pacing row onto one choice. These two pure helpers are
-   the mapping both directions need — src/wiring/sundown.js's click
-   handler (S.auto/S.target -> the pressed button + its caption) and
-   src/storage/meta.js's restore-time sync (so a reload reflects a saved
-   choice). computeRate() above is a separate concern — UI only here. */
-export const DEPTH_TARGETS = { gentle: 0.85, medium: 0.80, deep: 0.75 };
-const DEPTH_LABELS = { gentle: 'Gentle', medium: 'Medium', deep: 'Deep' };
+   Deep/Deepest, DEEP1 docs/27_DEEPEST.md) collapses Auto/Manual, the
+   full-night-rate setting and the Window/Moment pacing row onto one
+   choice. These two pure helpers are the mapping both directions need —
+   src/wiring/sundown.js's click handler (S.auto/S.target -> the pressed
+   button + its caption) and src/storage/meta.js's restore-time sync (so
+   a reload reflects a saved choice). computeRate() above is a separate
+   concern — UI only here. */
+export const DEPTH_TARGETS = { gentle: 0.85, medium: 0.80, deep: 0.75, deepest: 0.70 };
+const DEPTH_LABELS = { gentle: 'Gentle', medium: 'Medium', deep: 'Deep', deepest: 'Deepest' };
 
-// Off is S.auto === false; among the three auto targets, a value within
-// half a hundredth of 0.85/0.75 is unambiguously Gentle/Deep (every write
-// this UI makes sets one of the three exactly) and anything else (0.80,
-// or a saved value that doesn't match either edge) reads as Medium — the
-// safest fallback for a value this control was never built to represent.
+// Off is S.auto === false; among the auto targets, a value within half a
+// hundredth of one of DEPTH_TARGETS's entries is unambiguously that depth
+// (every write this UI makes sets one of them exactly) and anything else
+// (a value between two depths, or a saved value that doesn't match any)
+// reads as Medium — the safest fallback for a value this control was
+// never built to represent. Looping over DEPTH_TARGETS (rather than a
+// hand-written check per depth) means a future depth added there is
+// recognized here automatically.
 export function depthKeyFor(auto, target){
   if(!auto) return 'off';
-  if(Math.abs(target - DEPTH_TARGETS.gentle) < 0.005) return 'gentle';
-  if(Math.abs(target - DEPTH_TARGETS.deep) < 0.005) return 'deep';
+  for(const key in DEPTH_TARGETS){
+    if(Math.abs(target - DEPTH_TARGETS[key]) < 0.005) return key;
+  }
   return 'medium';
 }
 

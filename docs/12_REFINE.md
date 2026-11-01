@@ -194,6 +194,8 @@ RF12 (light-theme contrast) is small and independent. It can jump the queue at a
 
 **Preview focus:** Sundown fits on one phone screen without scrolling past the dial's readouts.
 
+*(Note, docs/27_DEEPEST.md: a fifth choice, Deepest = 0.70, was added after this plan was written.)*
+
 ---
 
 ### RF10: share cards, one good default
