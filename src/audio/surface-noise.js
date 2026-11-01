@@ -212,6 +212,37 @@ export function needleLiftSamples(sampleRate, seed = 11){
   return out;
 }
 
+// The skip's own record-scratch burst: filtered noise rising over ~320ms
+// then cut off abruptly over the last ~30ms, modeled on a reference scratch
+// recording (Ken, 2026-11-01) — a rising, mid-bright noise texture (two-pole
+// lowpass after a highpass removes rumble, centroid ~3kHz) that stops hard
+// rather than decaying, like the record being dragged to a stop by hand.
+// Gated by the Scratch toggle (S.char.scratch), the same switch
+// hand-scratching itself uses (src/player/scrub.js) — off falls back to the
+// plain needle-drop pop in playSkipDrop() below instead of going silent.
+export const SKIP_SCRATCH_RISE_SEC = 0.32;
+export const SKIP_SCRATCH_CUT_SEC = 0.03;
+export function skipScratchSamples(sampleRate, seed, rateHz = 0.55){
+  const riseN = Math.max(0, Math.floor(sampleRate * SKIP_SCRATCH_RISE_SEC));
+  const n = riseN + Math.max(0, Math.floor(sampleRate * SKIP_SCRATCH_CUT_SEC));
+  const out = new Float32Array(n);
+  const rand = rng(seed + 13);
+  const level = db(-18);
+  let hp = 0, prev = 0, l1 = 0, l2 = 0;
+  for(let i = 0; i < n; i++){
+    const r = rand();
+    hp = r - prev + 0.9 * hp;
+    prev = r;
+    l1 += 0.12 * (hp - l1);
+    l2 += 0.12 * (l1 - l2);
+    const env = i < riseN
+      ? Math.pow(i / riseN, 1.5)
+      : Math.max(0, 1 - (i - riseN) / (n - riseN));
+    out[i] = l2 * env * level;
+  }
+  return applyWobble(out, sampleRate, rateHz);
+}
+
 // §3 (needle-lift skipping), the drop's own "~400 ms of band hiss" —
 // hiss only, no crackle (that belongs to the lead-in's own groove wear,
 // not a mid-side re-drop), scaled and seeded the same way every other
@@ -311,14 +342,17 @@ export function playNeedleLift(){
   startBuffer(sr => needleLiftSamples(sr));
 }
 
-// One-shot skip drop: the same soft pop as playNeedleDrop() (and its own
-// haptic tick), plus the ~400ms band hiss tail §3 calls for — two sources
-// started together rather than one mixed buffer, since the pop is a fixed
-// physical sound (not seeded/scaled) and the hiss is this side's own
-// seeded, scale-gated noise, same as every other layer here.
+// One-shot skip drop: the record-scratch burst (with its own haptic tick)
+// plus the ~400ms band hiss tail §3 calls for — separate sources started
+// together rather than one mixed buffer, since the scratch is a seeded,
+// fixed-level sound and the hiss is this side's own seeded, scale-gated
+// noise, same as every other layer here. Gated on the Scratch toggle
+// (S.char.scratch, the same switch hand-scratching itself uses) — off
+// means skip makes no sound at all, not a fallback pop.
 export function playSkipDrop(seed, scale, rateHz = 0.55){
-  if(!surfaceNoiseActive()) return;
-  playNeedleDrop();
+  if(!surfaceNoiseActive() || !S.char.scratch) return;
+  startBuffer(sr => skipScratchSamples(sr, seed, rateHz));
+  hapticTick();
   if(scale > 0) startBuffer(sr => skipDropHissSamples(sr, seed, scale, rateHz));
 }
 

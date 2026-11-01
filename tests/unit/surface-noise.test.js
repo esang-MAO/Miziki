@@ -6,8 +6,8 @@ import {
   rotationWobble, leadInSamples, runoutNoiseSamples, underMusicSamples,
   needleDropSamples, needleLiftSamples,
   startLeadIn, startRunoutNoise, startUnderMusicBed, playNeedleDrop, playNeedleLift,
-  skipDropHissSamples, playSkipDrop, fadeMusicTo, fadeMusicInAt,
-  SKIP_DROP_HISS_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
+  skipDropHissSamples, skipScratchSamples, playSkipDrop, fadeMusicTo, fadeMusicInAt,
+  SKIP_DROP_HISS_SEC, SKIP_SCRATCH_RISE_SEC, SKIP_SCRATCH_CUT_SEC, SKIP_LIFT_MS, SKIP_AIR_MS, SKIP_FADE_MS,
   crinkleBurstSamples, playCrinkleBurst,
   LEAD_IN_SEC, SEVEN_INCH_LEAD_IN_SEC, leadInSecFor,
 } from '../../src/audio/surface-noise.js';
@@ -151,12 +151,44 @@ test('§3 timing constants match the spec\'s own "total <= ~900ms" sequence', ()
   assert.ok(SKIP_LIFT_MS + SKIP_AIR_MS + SKIP_FADE_MS * 2 <= 900);
 });
 
-test('playSkipDrop plays the pop regardless of scale, but the hiss layer only when scale > 0', () => {
+test('skipScratchSamples rises then cuts off abruptly, deterministic by seed, non-empty', () => {
+  const totalSec = SKIP_SCRATCH_RISE_SEC + SKIP_SCRATCH_CUT_SEC;
+  const a = skipScratchSamples(SR, 7), b = skipScratchSamples(SR, 7), c = skipScratchSamples(SR, 9);
+  assert.equal(a.length, Math.floor(SR * totalSec));
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+  const peak = s => Math.max(...Array.from(s, Math.abs));
+  assert.equal(Math.abs(a[0]), 0, 'starts at silence, not a click');
+  assert.ok(peak(a.slice(0, Math.floor(SR * 0.05))) < peak(a), 'quiet at the very start, louder as it rises');
+  // cuts off hard over its last SKIP_SCRATCH_CUT_SEC rather than ringing out
+  assert.ok(Math.abs(a[a.length - 1]) < peak(a) * 0.1);
+});
+
+test('playSkipDrop plays the scratch regardless of scale, but the hiss layer only when scale > 0', () => {
   S.ctx = null; S.nodes = null;
   assert.doesNotThrow(() => playSkipDrop(7, 0));   // no audio graph -- must not throw
   S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
-  assert.doesNotThrow(() => playSkipDrop(7, 0));    // scale 0: pop only, no hiss buffer to start
-  assert.doesNotThrow(() => playSkipDrop(7, 1));    // scale > 0: pop + hiss
+  assert.doesNotThrow(() => playSkipDrop(7, 0));    // scale 0: scratch only, no hiss buffer to start
+  assert.doesNotThrow(() => playSkipDrop(7, 1));    // scale > 0: scratch + hiss
+  S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
+});
+
+test('playSkipDrop plays the scratch when S.char.scratch is on, and is silent (no fallback sound) when off', () => {
+  S.ctx = {}; S.nodes = { wobble: {} }; S.mode = 'vinyl'; S.surfaceNoise = 'subtle';
+  const startCalls = [];
+  S.ctx.sampleRate = SR;
+  S.ctx.createBuffer = (_ch, len) => ({ getChannelData: () => new Float32Array(len) });
+  S.ctx.createBufferSource = () => { startCalls.push(1); return { playbackRate:{}, connect(){ return this; }, start(){}, stop(){} }; };
+  S.ctx.createGain = () => ({ connect(){ return this; }, gain:{ setValueAtTime(){}, linearRampToValueAtTime(){}, cancelScheduledValues(){}, value:1 } });
+  S.ctx.currentTime = 0;
+  S.char.scratch = true;
+  playSkipDrop(7, 1);
+  assert.ok(startCalls.length > 0, 'scratch on starts at least one buffer source');
+  startCalls.length = 0;
+  S.char.scratch = false;
+  playSkipDrop(7, 1);
+  assert.equal(startCalls.length, 0, 'scratch off starts nothing at all -- no fallback sound');
+  S.char.scratch = true;
   S.ctx = null; S.nodes = null; S.surfaceNoise = 'subtle';
 });
 
