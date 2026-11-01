@@ -241,6 +241,7 @@ function resetState(overrides){
     pendingShellInfo: null, sleevePullEnabled: true, sessionActive: null,
     playlists: [], queueUndo: null, queueUndoTimer: null, trackLastPlayed: {},
     focus: false, stopAtTurns: false, resting: null, sun: null,
+    mode: 'vinyl', char: { wow: 0.30, sat: 0.35, soft: 0.40, comp: 0.35, scratch: false },
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); pauseAndRestMock.mock.resetCalls();
@@ -635,6 +636,19 @@ test('skipWithLift: Surface Noise Off/Pure is a plain fade, no lift/drop sounds'
   assert.equal(playSkipDropMock.mock.calls.length, 0);   // no drop sound
   assert.equal(S.qpos, 1);
   assert.deepEqual(fadeMusicToMock.mock.calls[1].arguments, [1, 0]);   // instant fade back in, no ramp
+});
+
+// Ken, 2026-11-01: with the Scratch toggle on, playSkipDrop() plays the
+// scratch itself -- the needle-lift scuff must not precede it, or skip
+// plays two different sounds back to back instead of "only the scratch."
+test('skipWithLift: with the Scratch toggle on, the needle-lift scuff is skipped -- only the scratch plays', async () => {
+  resetState({ tracks: [fakeTrack(), fakeTrack()], queue: [0,1], qpos: 0, index: 0, repeat: 'off', char: { scratch: true } });
+  skipWithLift(1);
+  assert.equal(playNeedleLiftMock.mock.calls.length, 0, 'no needle-lift scuff when the scratch will play');
+
+  await wait(30);
+  assert.equal(playSkipDropMock.mock.calls.length, 1);   // the scratch itself still plays
+  assert.equal(S.qpos, 1);
 });
 
 test('skipWithLift(0): restarts the current track (Previous past a few seconds in) rather than advancing', async () => {

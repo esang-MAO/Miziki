@@ -445,9 +445,14 @@ export function skipWithLift(dir){
   const active = surfaceNoiseActive() && scale > 0;
   const seed = t ? releaseSeed(albumKey(t), sideLetterFor(t, S.index)) : 0;
   const rateHz = rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, S.rate);
+  // With the Scratch toggle on, playSkipDrop() below plays the scratch
+  // itself -- skip the needle-lift scuff so the drop isn't preceded by a
+  // second, different sound (Ken, 2026-11-01: "it should only be the
+  // scratch"). The platter-lift animation still runs either way.
+  const scratchOn = S.mode === 'vinyl' && S.char.scratch;
   pendingSkip = { dir };
   fadeMusicTo(0, SKIP_FADE_MS);
-  if(active){ playNeedleLift(); if(!REDUCED) setPlatterLift(true); }
+  if(active){ if(!scratchOn) playNeedleLift(); if(!REDUCED) setPlatterLift(true); }
   const liftMs = active ? (SKIP_LIFT_MS + SKIP_AIR_MS) : SKIP_FADE_MS;
   setTimeout(() => {
     const d = pendingSkip ? pendingSkip.dir : dir;
