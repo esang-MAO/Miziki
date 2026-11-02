@@ -1,4 +1,4 @@
-import { albumKey, trackIdentityKey, selectVariant } from '../record-art/tiers.js';
+import { albumKey, trackIdentityKey, selectVariant, albumPressingTrack } from '../record-art/tiers.js';
 import { albumMetalFor, trackMetalFor } from '../record-art/metals.js';
 import {
   SHARE_FORMATS, shareFitText, shareFitLines, loadImageEl, drawCover,
@@ -14,11 +14,15 @@ import { spinPhaseWording } from '../sundown/spin-wording.js';
 // gatefold) doesn't need to pull in trackIdentityKey/albumKey/
 // selectVariant/albumMetalFor/trackMetalFor just to call it.
 function discInfoFor(t, look){
+  const albumId = albumKey(t);
   return {
     art: t.art || null,
     look,
-    variant: selectVariant(t).variant,
-    metal: trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t)),
+    // The album's own pressing, not whichever side is actually playing —
+    // see albumPressingTrack()'s comment (record-art/tiers.js) — so the
+    // shared card's disc always matches what the platter itself shows.
+    variant: selectVariant(albumPressingTrack(albumId) || t).variant,
+    metal: trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId),
   };
 }
 

@@ -86,6 +86,26 @@ export function trackIdentityKey(t){ return normKey(t.tags.artist) + '|' + album
 // array. Never the file id/path, which changes when a library is reorganized.
 function variantHashKey(t){ return albumKey(t); }
 
+// A pressing is one physical disc: trackTier() reads a single track's own
+// bit depth/sample rate, so two sides mastered at different rates (one
+// resampled hi-res, one not, say) can read as two different tiers even
+// though they're the same release — and since selectVariant() draws from a
+// tier-sized pool, that flips which *family* (solid vs. effect) the whole
+// album draws from depending on which side happens to be loaded. Every
+// caller that resolves "the album's own pressing" (as opposed to a track's
+// own playback quality, which stays genuinely per-track — surface noise,
+// the metal ladder, library search) needs one fixed track to read tier/
+// variant off of, not whichever side is actually on the platter. This is
+// the same "first occurrence in S.tracks" convention crate/model.js's
+// crateVariantJumpTarget() and history/sessions.js's migrateChartVersion()
+// already use for the same reason — named and exported here so every
+// other caller (record-art/looks.js, history/achievements.js, the share
+// cards) can share it instead of re-deriving it.
+export function albumPressingTrack(albumId){
+  for(const t of S.tracks){ if(albumKey(t) === albumId) return t; }
+  return null;
+}
+
 /* ================= CR7: pressings and finishes (docs/13_CRATE.md) =================
    The catalogue: 40 solids in nine families, 54 two-ink (three-ink for
    tri-split) effects across 11 techniques, four rare (session-unlock
