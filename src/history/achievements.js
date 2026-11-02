@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, selectRareVariant, selectZoetropeVariant, CHART_VERSION } from '../record-art/tiers.js';
+import { albumKey, trackTier, trackIdentityKey, VARIANT_DEFS, selectVariant, selectRareVariant, selectZoetropeVariant, albumPressingTrack, CHART_VERSION } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { albumExpectedOrder } from './sessions.js';
 import { windowedCounts, RHYTHM_WINDOW_DAYS } from '../sundown/rhythm.js';
@@ -58,9 +58,15 @@ export function checkAlbumAchievementAndCollection(t){
   const albumId = albumKey(t);
   const tier = S.rareUnlocked[albumId] ? 'rare' : albumMetalFor(albumId);
   if(tier) upsertAchievement(albumId, tier);
-  const tn = trackTier(t);
+  // The album's own pressing, not whichever track just finished and
+  // triggered this check — see albumPressingTrack()'s own comment
+  // (record-art/tiers.js) for why trackTier()/selectVariant() need one
+  // fixed track, the same one the crate/chart already read a pressing
+  // from, rather than whichever side completed the play-through.
+  const pressingTrack = albumPressingTrack(albumId) || t;
+  const tn = trackTier(pressingTrack);
   if((tn === 2 || tn === 3) && albumPlayedThrough(albumId)){
-    const {variant} = selectVariant(t);
+    const {variant} = selectVariant(pressingTrack);
     upsertCollectionEntry(albumId, tn, variant, VARIANT_DEFS[variant].pattern);
   }
 }

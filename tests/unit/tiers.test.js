@@ -18,7 +18,9 @@ mock.module(new URL('../../src/sundown/arc.js', import.meta.url).href, {
 const {
   trackTier, albumKey, VARIANT_DEFS, OLD_VARIANT_ID_MAP, BAND_NAMES, ZOETROPE_IDS,
   selectVariant, selectRareVariant, selectZoetropeVariant, resolveVariantId, getVariantDef, variantBackground,
+  albumPressingTrack,
 } = await import('../../src/record-art/tiers.js');
+const { S } = await import('../../src/state.js');
 
 function track(meta){ return { meta, tags: {} }; }
 function albumTrack(name, meta){ return { meta, tags: { album: name } }; }
@@ -399,4 +401,41 @@ test('CR7: albumKey-based hashing is untouched by the catalogue rewrite', () => 
   const b = albumTrack('Same Album', { lossless: true, bits: 24, rate: 96000 });
   assert.equal(albumKey(a), albumKey(b));
   assert.deepEqual(selectVariant(a), selectVariant(b));
+});
+
+test('albumPressingTrack: returns the first S.tracks entry for the album, or null', () => {
+  const prevTracks = S.tracks;
+  try {
+    S.tracks = [];
+    assert.equal(albumPressingTrack(albumKey(albumTrack('Nobody Has This', {}))), null);
+    const sideA = albumTrack('Mixed Rate Record', { lossless: true, bits: 16, rate: 48000 });
+    const sideB = albumTrack('Mixed Rate Record', { lossless: true, bits: 16, rate: 44100 });
+    S.tracks = [sideA, sideB];
+    assert.equal(albumPressingTrack(albumKey(sideA)), sideA);
+  } finally {
+    S.tracks = prevTracks;
+  }
+});
+
+test('selectVariant: two sides of the same record mastered at different sample rates still both resolve through the one pressing track, not their own differing tier', () => {
+  const prevTracks = S.tracks;
+  try {
+    // Reproduces the reported bug: Side A resampled from 48kHz (tier 3,
+    // hi-res) and Side B natively 44.1kHz (tier 2, lossless) are the same
+    // physical pressing. Looking the album's variant up through
+    // albumPressingTrack() (as record-art/looks.js/history/achievements.js/
+    // share/now-playing-card.js now all do) must land on one tier/variant
+    // regardless of which side is passed in, where looking it up straight
+    // off each track's own trackTier() would not.
+    const sideA = albumTrack('The Wonderful Prelude', { lossless: true, bits: 16, rate: 48000 });
+    const sideB = albumTrack('The Wonderful Prelude', { lossless: true, bits: 16, rate: 44100 });
+    assert.equal(trackTier(sideA), 3);
+    assert.equal(trackTier(sideB), 2);
+    S.tracks = [sideA, sideB];
+    const fromA = selectVariant(albumPressingTrack(albumKey(sideA)) || sideA);
+    const fromB = selectVariant(albumPressingTrack(albumKey(sideB)) || sideB);
+    assert.deepEqual(fromA, fromB);
+  } finally {
+    S.tracks = prevTracks;
+  }
 });

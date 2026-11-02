@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import {
   trackTier, albumKey, trackIdentityKey, selectVariant, selectRareVariant,
-  selectZoetropeVariant, getVariantDef, variantBackground,
+  selectZoetropeVariant, getVariantDef, variantBackground, albumPressingTrack,
 } from './tiers.js';
 import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
 import { persistAlbumLookPref } from '../history/sessions.js';
@@ -18,7 +18,11 @@ import { RPM_45 } from './format.js';
    METAL spec §5. */
 function availableLooks(t){
   const albumId = albumKey(t);
-  const tier = trackTier(t);
+  // The album's own pressing, not whichever side happens to be loaded —
+  // see albumPressingTrack()'s own comment (record-art/tiers.js) for why
+  // trackTier(t) on the literal playing track isn't safe here.
+  const pressingTrack = albumPressingTrack(albumId) || t;
+  const tier = trackTier(pressingTrack);
   const looks = [];
   // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §5/§8): an earned zoetrope is
   // a genuine look like rare/metal — the user can still opt back to
@@ -90,7 +94,7 @@ function buildLookOptionContent(kind, t){
     const name = m ? (m[0].toUpperCase() + m.slice(1) + ' Metal') : 'Metal';
     return { group: 'Metal', name, sub: null, note: 'Earned by a full, in-order play-through.' };
   }
-  const { variant } = selectVariant(t);
+  const { variant } = selectVariant(albumPressingTrack(albumKey(t)) || t);
   const def = getVariantDef(variant);
   return { group: familyGroupLabel(def), name: def.name, sub: def.sub, note: def.note };
 }
@@ -116,7 +120,7 @@ export function openLookPicker(){
   });
   // CR7 point 6: a lossy record only ever presses Jet — say so once, every
   // time the picker opens for one, rather than leaving it unexplained.
-  if(trackTier(t) === 1){
+  if(trackTier(albumPressingTrack(albumId) || t) === 1){
     host.appendChild(el('p', 'note look-lossy-hint', 'A lossless copy would press in colour.'));
   }
   $('#lookOverlay').classList.add('open');
@@ -182,7 +186,9 @@ export function discLook(t){
     }
     return { look, rare: true, rareId, tier: null, variant: null, metal: null, bg, lightOverlay: null, labelKind: 'amber', paperLabel: false };
   }
-  const {tier, variant} = selectVariant(t);
+  // The album's own pressing, not whichever side is loaded — see
+  // albumPressingTrack()'s comment (record-art/tiers.js).
+  const {tier, variant} = selectVariant(albumPressingTrack(albumId) || t);
   // track wins over album — see METAL spec §4. Grandfathered metals are
   // no longer gated to tier===1 here: a metal earned pre-upgrade stays
   // selectable regardless of the track's current tier, since it's the
