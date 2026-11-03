@@ -11,11 +11,19 @@
 import { $ } from '../util/dom.js';
 import { openQueueSheet, saveQueueAsPlaylist, undoQueueChange } from '../player/queue.js';
 import { openLookPicker } from '../record-art/looks.js';
-import { closeLayer } from '../shell/nav-stack.js';
+import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
 
 export function wireOverlays(){
   $('#lookBtn').addEventListener('click', openLookPicker);
-  $('#queueBtn').addEventListener('click', openQueueSheet);
+  // #queueBtn lives inside #playerOverflowMenu and opens 'queue' in its
+  // place -- closeLayerThen() (nav-stack.js) waits for the menu's own
+  // close to actually land before opening it, rather than racing that
+  // close's history.go() the way an immediate openLayer() call would.
+  // #miniQueueBtn/#playerQueueBtn below are outside that menu and need no
+  // such close.
+  $('#queueBtn').addEventListener('click', ()=>{
+    closeLayerThen('player-overflow-menu', openQueueSheet);
+  });
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
   // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own queue
   // icon -- same opener, same hidden-until-a-track-loads rule as

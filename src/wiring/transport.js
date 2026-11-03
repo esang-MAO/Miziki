@@ -26,7 +26,7 @@ import { gfHandoffInFlight, interruptGatefoldHandoff } from '../shell/handoff.js
 import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
-import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
 import { performPendingFlip, liftNeedleNow } from '../shell/runout.js';
 
 export function wireTransport(){
@@ -80,16 +80,25 @@ export function wireTransport(){
   });
   $('#barVolume').addEventListener('change', queueSave);
 
-  $('#sleepTimerBtn').addEventListener('click', openSleepSheet);
+  // RF8: this button lives inside #playerOverflowMenu and opens a
+  // different layer ('sleep') in its place -- closeLayerThen() (nav-
+  // stack.js) waits for the menu's own close to actually land before
+  // opening it, rather than racing that close's history.go() the way an
+  // immediate openLayer() call would.
+  $('#sleepTimerBtn').addEventListener('click', ()=>{
+    closeLayerThen('player-overflow-menu', openSleepSheet);
+  });
   $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
 
   // AU6 (docs/16_AUDIO.md §3): the EQ sheet, same overflow-menu entry
   // point as Sleep timer just above. TR2 (docs/19_PLAYER.md): dynamically
   // imported -- launch never needs the sheet's own rendering code, only
   // a tap on this button does.
-  $('#eqBtn').addEventListener('click', async () => {
-    const { openEqSheet } = await import('../player/eq-sheet.js');
-    openEqSheet();
+  $('#eqBtn').addEventListener('click', ()=>{
+    closeLayerThen('player-overflow-menu', async () => {
+      const { openEqSheet } = await import('../player/eq-sheet.js');
+      openEqSheet();
+    });
   });
   $('#eqClose').addEventListener('click', () => closeLayer('eq'));
 
@@ -102,7 +111,10 @@ export function wireTransport(){
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTrackSpecState(); }
   });
 
-  $('#playerFavBtn').addEventListener('click', ()=>{ const t = current(); if(t) toggleFavorite(t.id); });
+  $('#playerFavBtn').addEventListener('click', ()=>{
+    closeLayer('player-overflow-menu');
+    const t = current(); if(t) toggleFavorite(t.id);
+  });
 
   // FS10 (docs/25_FROM_SCRATCH.md): Focus (per-session, never saved) --
   // the pill is the way in, Done is the only way out from inside Focus
@@ -140,19 +152,27 @@ export function wireTransport(){
       S.privateSpin = !S.privateSpin;
       privateSpinBtn.setAttribute('aria-checked', String(S.privateSpin));
       if(S.privateSpin) MizikiSocial.stopSpinning();
+      closeLayer('player-overflow-menu');
     });
   }
 
   // RF8 (docs/12_REFINE.md): the player's own "···" overflow, beside the
-  // title. Edit info/Share/Queue/Sleep timer each keep their own existing
-  // click handler (src/wiring/edit.js/share.js/overlays.js, and
-  // #sleepTimerBtn just above) wherever they're wired — only the menu's
-  // own open/close/position is new here. Every row inside also closes the
-  // menu once clicked, since none of those other handlers know about it.
+  // title. Edit info/Share/Queue each keep their own existing click
+  // handler (src/wiring/edit.js/share.js/overlays.js) wherever they're
+  // wired — only the menu's own open/close/position is new here. Each
+  // row's handler closes the menu itself rather than a blanket listener
+  // on every button: a row that opens a different layer right after
+  // (Edit info/Credits and notes/Queue/Sleep timer above) needs
+  // {skipHistory:true} on that close, since a blanket forceCloseLayer
+  // firing *after* that row's own handler would otherwise close the
+  // layer it had just opened (it's stacked above the menu); one firing
+  // *before* it, with no skipHistory, would race the new layer's own
+  // pushState and silently corrupt Back navigation instead (nav-stack.js's
+  // own documented skipHistory rule). Favorite/EQ/Share/"Don't share this
+  // session" don't have that hazard (no layer, or one opened on a later
+  // task via dynamic import) and use a plain close at their own site.
   $('#playerOverflowBtn').addEventListener('click', ()=> isPlayerOverflowMenuOpen() ? closeLayer('player-overflow-menu') : openPlayerOverflowMenu());
   $('#playerOverflowScrim').addEventListener('click', () => closeLayer('player-overflow-menu'));
-  document.querySelectorAll('#playerOverflowMenu button').forEach(b =>
-    b.addEventListener('click', () => forceCloseLayer('player-overflow-menu')));
 
   // backgrounding is the last reliable moment before the OS can kill the tab —
   // write the in-progress session synchronously, not on a timer
