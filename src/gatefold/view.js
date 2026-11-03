@@ -12,7 +12,9 @@ import { $, el } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
-import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
+import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
+import { discLook } from '../record-art/looks.js';
+import { METAL_COLORS } from '../record-art/metals.js';
 import { wearStage, wearCopy } from '../record-art/wear.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, openPersonOrArtist } from '../library/credits.js';
@@ -415,10 +417,46 @@ function gatefoldInfoAndSleeveHTML(item){
   info.appendChild(el('p','gf-info-meta', metaBits.join(' · ')));
 }
 
+// The gatefold's own disc, pulled from the sleeve pocket, shows the same
+// pressing (color/pattern/rare/metal) the platter will once the record
+// rises into the full player — see record-art/looks.js's discLook() for
+// the shared precedence. Resolved off the album's own pressing, not
+// whichever side happens to be loaded — see albumPressingTrack()'s own
+// comment (record-art/tiers.js), same as discLook()'s other callers.
+function applyGatefoldDiscVariant(item){
+  const disc = $('#gfDisc'), label = $('#gfDisc .label');
+  const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+  if(!disc || !label || !t){
+    if(disc) disc.classList.remove('rare');
+    if(label) label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
+    if(disc) disc.style.background = '';
+    return;
+  }
+  const d = discLook(t);
+  disc.classList.toggle('rare', d.rare);
+  label.classList.toggle('rare', d.rare);
+  if(d.rare){
+    disc.dataset.variant = d.rareId;
+    delete disc.dataset.tier;
+  } else if(d.look === 'zoetrope'){
+    disc.dataset.variant = d.variant;
+    delete disc.dataset.tier;
+  } else {
+    disc.dataset.tier = d.tier;
+    disc.dataset.variant = d.metal ? 'metal-' + d.metal : d.variant;
+    if(d.metal && d.labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[d.metal].shadow);
+  }
+  label.classList.toggle('paper-label', d.paperLabel);
+  label.classList.toggle('metal-invert', d.labelKind === 'invert');
+  label.classList.toggle('metal-silver', d.labelKind === 'silver-ring');
+  disc.style.background = d.bg || '';
+}
+
 async function gatefoldSetCoverArt(item){
   const img = $('#gfCoverArt'), discArt = $('#gfDiscArt');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   if(fallback){ img.src = fallback; discArt.src = fallback; }
+  applyGatefoldDiscVariant(item);
   const url = await getCrateArtURL(item.albumId, 'L');
   if(url && GF && GF.item === item){ img.src = url; discArt.src = url; }
 }
