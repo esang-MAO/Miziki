@@ -9,11 +9,23 @@ import {
 } from '../library/edit.js';
 import { albumKey } from '../record-art/tiers.js';
 import { openCreditsSheet } from '../library/credits.js';
-import { closeLayer } from '../shell/nav-stack.js';
+import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
 
 export function wireEdit(){
-  $('#editCurrentBtn').addEventListener('click', ()=>{ const t = current(); if(t) openEditSheet([t.id]); });
-  $('#trackInfoBtn').addEventListener('click', ()=>{ const t = current(); if(t) openCreditsSheet(t); });
+  // Both rows live inside #playerOverflowMenu and open a different layer
+  // in its place -- closeLayerThen() (nav-stack.js) waits for the menu's
+  // own close to actually land before opening it, rather than racing that
+  // close's history.go() the way an immediate openLayer() call would.
+  $('#editCurrentBtn').addEventListener('click', ()=>{
+    closeLayerThen('player-overflow-menu', ()=>{
+      const t = current(); if(t) openEditSheet([t.id]);
+    });
+  });
+  $('#trackInfoBtn').addEventListener('click', ()=>{
+    closeLayerThen('player-overflow-menu', ()=>{
+      const t = current(); if(t) openCreditsSheet(t);
+    });
+  });
   $('#creditsClose').addEventListener('click', () => closeLayer('credits'));
 
   $('#editClose').addEventListener('click', () => closeLayer('edit'));

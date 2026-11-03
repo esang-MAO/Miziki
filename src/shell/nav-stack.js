@@ -230,6 +230,35 @@ export function forceCloseLayer(id, opts = {}){
   finishClose(closing, opts);
 }
 
+// Closes `id`, then calls `after` once the real navigation that close
+// triggers has actually finished, instead of calling `after` straight
+// away. For a caller that wants to immediately open a *different* layer
+// in `id`'s place, this is the safe alternative to `{skipHistory:true}`
+// (finishClose()'s own documented rule just above) whenever `id` isn't the
+// only thing open — i.e. it sits on top of another layer that must stay
+// open underneath (e.g. the player's own "···" overflow menu opening Edit
+// info/Credits and notes/Queue/Sleep timer over the still-open player).
+// skipHistory's "one harmless orphaned history entry" reasoning only holds
+// when closing `id` empties `layers` entirely — the next real/popstate
+// close then lands on the orphan with nothing left to close, a true no-op.
+// With something still open underneath, that same orphan instead sits
+// exactly where the *remaining* layer's own real history entry needs to
+// be, and a later close ends up one real `history.go()` step short,
+// popping back onto the orphan and closing the layer underneath too (seen
+// live: the player itself vanishing one Escape after opening Edit info
+// from its overflow menu). Waiting for the close's own real navigation to
+// land first, before pushing the replacement's entry, keeps one real
+// history entry per `layers` entry always, with no orphan ever created —
+// at the cost of `after` running a task later rather than in the same
+// synchronous tick (fine for opening a different sheet; never used for
+// anything iOS-gesture-sensitive, rule 9).
+export function closeLayerThen(id, after){
+  const hadLayer = layers.some(l => l.id === id);
+  closeLayer(id);
+  if(!hadLayer){ after(); return; }
+  window.addEventListener('popstate', () => after(), {once:true});
+}
+
 function handlePopstate(ev){
   const targetId = ev.state && ev.state.navLayer;
   const targetIds = targetId ? currentLayerIds().includes(targetId)

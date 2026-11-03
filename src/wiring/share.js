@@ -18,7 +18,7 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
-import { closeLayer } from '../shell/nav-stack.js';
+import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
 
 export function wireShare(){
   $('#shareClose').addEventListener('click', () => closeLayer('share'));
@@ -64,8 +64,14 @@ export function wireShare(){
   // old #playerShareBtn overflow row -- opens the sheet on the Now
   // Playing card. This is one of the module's own "first use" entry
   // points -- see this file's own header comment.
-  $('#playerShareIconBtn').addEventListener('click', async () => {
-    const { openPlayerShareSheet } = await import('../share/sheet.js');
-    openPlayerShareSheet();
+  // Lives inside #playerOverflowMenu and opens 'share' in its place --
+  // closeLayerThen() (nav-stack.js) waits for the menu's own close to
+  // actually land before opening it, rather than racing that close's
+  // history.go() the way an immediate open would.
+  $('#playerShareIconBtn').addEventListener('click', () => {
+    closeLayerThen('player-overflow-menu', async () => {
+      const { openPlayerShareSheet } = await import('../share/sheet.js');
+      openPlayerShareSheet();
+    });
   });
 }
