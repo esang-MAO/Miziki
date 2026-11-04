@@ -22,6 +22,8 @@ import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from '
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist, openCreditsSheet, trackHasCreditsContent } from '../library/credits.js';
 import { isFavorite, toggleFavorite } from '../library/favorites.js';
+import { bookletPageCount } from '../library/booklet.js';
+import { openBookletViewer, openAddBookletPagesPicker } from './booklet.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
 import { fmt } from '../util/text.js';
@@ -470,6 +472,30 @@ function buildLinerNotesHeading(item){
   return row;
 }
 
+// GF10 (docs/29_GATEFOLD.md): "Booklet · N pages" (opens the viewer),
+// shown only once pages exist (point 2) -- plus "Add booklet pages…",
+// always there, which is how a page gets there in the first place when it
+// didn't arrive as a sidecar at import (point 1). Same two-button-row
+// shape as buildLinerNotesHeading above.
+function buildBookletRow(item){
+  const n = bookletPageCount(item.albumId);
+  const row = el('div','gf-liner-head');
+  if(n){
+    const openBtn = el('button','gf-liner-label','Booklet · ' + n + (n === 1 ? ' page' : ' pages'));
+    openBtn.type = 'button';
+    openBtn.addEventListener('click', () => openBookletViewer(item));
+    row.appendChild(openBtn);
+  } else {
+    row.appendChild(el('p','gf-liner-label','Booklet'));
+  }
+  const addBtn = el('button', 'gf-liner-edit-btn', n ? 'Add pages' : 'Add booklet pages…');
+  addBtn.type = 'button';
+  addBtn.setAttribute('aria-label', 'Add booklet pages');
+  addBtn.addEventListener('click', () => openAddBookletPagesPicker(item));
+  row.appendChild(addBtn);
+  return row;
+}
+
 export function buildGatefoldLeftPanel(item){
   const host = el('div', 'gf-left-panel');
   host.appendChild(buildLinerNotesHeading(item));
@@ -488,6 +514,7 @@ export function buildGatefoldLeftPanel(item){
     // of whether it has liner notes/credits of its own.
     const minimalNote = albumDynamicsNote(item.album);
     if(minimalNote) host.appendChild(buildDynamicsNoteEl(minimalNote));
+    host.appendChild(buildBookletRow(item));
     host.appendChild(gatefoldSocialControlsHTML(item));
     return host;
   }
@@ -508,6 +535,7 @@ export function buildGatefoldLeftPanel(item){
   const metaBits = [item.year || null, item.genre || null,
     item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
   host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
+  host.appendChild(buildBookletRow(item));
   host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
 }
@@ -835,7 +863,9 @@ export function closeLinerEditSheet(){
 // mode flat body, or a picture sleeve) by replacing its .gf-left-panel
 // wrapper wholesale -- a DOM swap, not a rebuild of the host itself,
 // since #pictureSleeveBody has its own play-row sibling to leave alone.
-function refreshLinerPanel(item){
+// Also used by gatefold/booklet.js's openAddBookletPagesPicker() after a
+// page is added, same "rebuild-and-swap" refresh liner notes already use.
+export function refreshLinerPanel(item){
   const panelEl = document.querySelector('.gf-left-panel');
   if(panelEl) panelEl.replaceWith(buildGatefoldLeftPanel(item));
 }

@@ -29,6 +29,7 @@ import { healCrateArt } from '../crate/tiers.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
 import { analyzeTrack } from '../audio/analysis-client.js';
+import { isBookletPageCandidate, groupBookletCandidatesByAlbumFolder, addBookletPages } from './booklet.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -78,8 +79,21 @@ export function shouldSealOnImport(albumName, aid, isFirstImport, existingAlbumI
 }
 
 export async function addFiles(list){
-  const files = Array.from(list).filter(f => f.size > 0);
-  if(!files.length) return;
+  const allFiles = Array.from(list).filter(f => f.size > 0);
+  if(!allFiles.length) return;
+  // GF10 (docs/29_GATEFOLD.md): sidecar booklet-page images, picked up
+  // from a folder import or a folder dropped in, never reach the audio
+  // decode loop below (they'd just fail it as "could not decode") --
+  // pulled out first, matched to an album by shared folder once this
+  // batch's audio files are known, and stored as the album's booklet.
+  const bookletCandidates = [];
+  const files = allFiles.filter(f => {
+    if(!isBookletPageCandidate(f.name, f.webkitRelativePath)) return true;
+    bookletCandidates.push(f);
+    return false;
+  });
+  if(!files.length) return;   // booklet images with no audio sibling in this batch have no album to attach to
+  const folderAlbumIds = new Map();   // audio file's own folder -> the album it belongs to
   const failed = [];
   // an album not already in the library when this batch starts is "new" —
   // sealed once, regardless of how many of its files land in this same
@@ -168,6 +182,13 @@ export async function addFiles(list){
       {
         const aid = albumKey(t);
         if(shouldSealOnImport(tags.album, aid, isFirstImport, existingAlbumIds)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+        // GF10: this file's own folder (dirname of its webkitRelativePath,
+        // '' for a flat pick) is where a sidecar booklet/scans/artwork
+        // subfolder -- or a booklet-prefixed page right beside it -- would
+        // live, so the booklet group keyed by that same folder belongs to
+        // this track's album.
+        const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
+        folderAlbumIds.set(dir, aid);
       }
       if(await storeTrack(t, fileBlob)){
         t.stored = true;
@@ -180,6 +201,7 @@ export async function addFiles(list){
       failed.push(f.name);
     }
   }
+  await storeBookletCandidates(bookletCandidates, folderAlbumIds);
   rebuildPeopleIndex();
   invalidateCrateModel();
   renderTracks();
@@ -193,6 +215,22 @@ export async function addFiles(list){
       + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
   } else {
     setPathNote();
+  }
+}
+
+// GF10: matches each booklet-candidate group (by its shared folder) to
+// the album whose audio files landed in that same folder this batch, and
+// appends its pages in file-name order. A group with no matching folder
+// (its audio siblings weren't part of this import, or there were none)
+// is silently left unattached — nothing in this batch knows which album
+// it belongs to.
+async function storeBookletCandidates(candidates, folderAlbumIds){
+  if(!candidates.length) return;
+  const groups = groupBookletCandidatesByAlbumFolder(candidates.map(f => ({ name: f.name, relativePath: f.webkitRelativePath, file: f })));
+  for(const [folder, group] of groups){
+    const albumId = folderAlbumIds.get(folder);
+    if(!albumId) continue;
+    await addBookletPages(albumId, group.map(c => c.file));
   }
 }
 
