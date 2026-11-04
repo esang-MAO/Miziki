@@ -1,5 +1,7 @@
 # Miziki Desktop Layout: Claude Code Handoff
 
+**Superseded by docs/29_GATEFOLD.md:** the desktop crate detail panel this doc describes (D5/CR10) is replaced by the gatefold's own wide spread (GF12).
+
 Oct 13, 2026 · @Ken Ndiang
 
 ## Goal and scope

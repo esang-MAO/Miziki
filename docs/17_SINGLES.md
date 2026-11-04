@@ -1,5 +1,7 @@
 # The 7″ picture sleeve (for singles)
 
+**Superseded in part by docs/29_GATEFOLD.md:** the claim below that every non-single opens the 12″ gatefold no longer holds — a 10″ or 7″ record with more than one track now opens a smaller, format-true fold (GF3). The picture sleeve itself, and everything in this doc about it, is unchanged.
+
 A record with exactly one side and exactly one track — a single, per Ken's
 own definition ("a single should be one side with ≤1 track") — opens into a
 **picture sleeve** instead of the gatefold. Sealed records and loose tracks

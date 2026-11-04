@@ -1,5 +1,7 @@
 # 13 · The crate: a bin, not a stack
 
+**Superseded by docs/29_GATEFOLD.md:** the gatefold entry below is crate-only now — the Albums tab and an artist's album drill-down open the gatefold too (GF12). The sealed sheet described here (CR6) retires in GF8; a sealed record opens by peeling its wrap instead.
+
 **Goal:** the library should look and handle like a record store. The crate gets a bin to sit in, dividers that poke up, one sticker per sleeve, a catalog card, bins for new arrivals and staff picks, and a way to pull a record out. Sealed records get a film that does the talking. The disc variants and metals become pressings and finishes rather than crayons and pie charts. The rest of the library (artists, playlists, songs, search) picks up sleeves.
 
 **Mockups and exact values:** `docs/design/crate/README.md` (CR1–CR11) and the canvas files beside it ("Miziki Crate"). Where this doc and that README disagree on a value, the README wins.

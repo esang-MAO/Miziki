@@ -150,6 +150,8 @@ source → trackGain ─┬─ Pure ──────────────�
 
 ### Dynamics note (same pass)
 
+**Superseded by docs/29_GATEFOLD.md:** THE MASTER block is now delivered on the phone gatefold too, not desktop only (GF1).
+
 - While measuring, also count **clipping events** (runs of 3 or more consecutive samples at |x| ≥ 0.999) and the **peak-to-loudness ratio**.
 - Show it in the gatefold liner notes as a **THE MASTER** block under the sides (`png/05-LinerNotes.png`): one word (*Dynamic*, *Compressed* or *Clipped master*), a small meter, one plain sentence, and the applied gain on the right (`ALBUM GAIN −4.2 DB`). The sentences are "Plenty of room between the quiet and loud parts. No clipping found.", "Loud throughout, with less room between soft and loud." and "Peaks were cut flat in mastering; it can sound harsh turned up." It is informational only: it never ranks, sorts or changes a pressing tier. Crushed masters lose detail and tire the ear (McCarthy 5.1.1), and saying so plainly fits the record-store voice.
 - Repairing clipping (declipping, CSMT) is too heavy for a phone; detecting it is cheap.

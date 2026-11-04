@@ -1,0 +1,37 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-04T16:10:00Z"},
+  "title": "Miziki Gatefold",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "01 · Inside right — tracklist"},
+    "InsideLeft.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "02 · Inside left — notes, master, your copy"},
+    "ShareRecord.dc.html": {"x": 940, "y": 0, "w": 540, "h": 540, "title": "03 · Record share card, full payload"},
+    "LinerNotes.dc.html": {"x": 1560, "y": 0, "w": 390, "h": 844, "title": "02b · Liner notes you’ve edited"},
+    "LinerEdit.dc.html": {"x": 2030, "y": 0, "w": 390, "h": 844, "title": "02c · Editing the liner notes"},
+    "TenInch.dc.html": {"x": 0, "y": 1187, "w": 390, "h": 844, "title": "04 · 10″ EP — smaller fold"},
+    "DoubleLP.dc.html": {"x": 470, "y": 1187, "w": 390, "h": 844, "title": "05 · Double LP — two pockets"},
+    "BackCover.dc.html": {"x": 940, "y": 1187, "w": 390, "h": 844, "title": "06 · Back cover — turned over"},
+    "DefaultBack.dc.html": {"x": 1410, "y": 1187, "w": 390, "h": 844, "title": "06b · Miziki default back, with your own"},
+    "DefaultBackArt.dc.html": {"x": 1880, "y": 1187, "w": 600, "h": 600, "title": "06c · Default back cover art"},
+    "Unseal.dc.html": {"x": 0, "y": 2374, "w": 390, "h": 844, "title": "07 · First open is the unwrapping"},
+    "TrackActions.dc.html": {"x": 470, "y": 2374, "w": 390, "h": 844, "title": "08 · Long-press a track"},
+    "Booklet.dc.html": {"x": 940, "y": 2374, "w": 390, "h": 844, "title": "09 · Booklet"},
+    "AfterDark.dc.html": {"x": 1410, "y": 2374, "w": 390, "h": 844, "title": "10 · After sunset — less"},
+    "Desktop.dc.html": {"x": 0, "y": 3561, "w": 1280, "h": 800, "title": "11 · Desktop — the open spread"}
+  },
+  "order": ["Main.dc.html", "InsideLeft.dc.html", "ShareRecord.dc.html", "LinerNotes.dc.html", "LinerEdit.dc.html", "TenInch.dc.html", "DoubleLP.dc.html", "BackCover.dc.html", "DefaultBack.dc.html", "DefaultBackArt.dc.html", "Unseal.dc.html", "TrackActions.dc.html", "Booklet.dc.html", "AfterDark.dc.html", "Desktop.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Fixes to today’s gatefold", "kind": "title1", "maxW": 2420},
+    "t2": {"x": 0, "y": 887, "text": "Format-true sleeves", "kind": "title1", "maxW": 2480},
+    "t3": {"x": 0, "y": 2074, "text": "New ways to live with a record", "kind": "title1", "maxW": 1800},
+    "t4": {"x": 0, "y": 3261, "text": "One album view everywhere", "kind": "title1", "maxW": 1280},
+    "s5": {"x": 2500, "y": 500, "w": 320, "fill": "purple", "text": "02b/02c · Liner notes become editable. Your text replaces what the files carry, for your copy only: an album-keyed override (like the format override), backed up last-write-wins per album, never published to the social layer. Undo the change with Use the notes from the files. Separate from the 140-character sleeve note, which is the one friends can see."},
+    "s1": {"x": 2500, "y": 0, "w": 320, "fill": "orange", "text": "01 · Inside-left cue always shows (it hid on albums without liner notes, hiding Your copy). Rows move 12px → 16px/14px. Format line under the title. The pocket disc is the real pressing, with its dead wax.\n\n02 · THE MASTER block reaches the phone. Credits use tokens, not inline cream. First-spun phase joins the wear line.\n\n03 · Share record sends the whole payload: art, pressing, speed, rating, note, friends."},
+    "s2": {"x": 2560, "y": 1187, "w": 320, "fill": "teal", "text": "Size comes from albumFormatFor(): 12″ panel 350px, 10″ 292px, 7″ 204px (the picture sleeve stays for one-track singles). Disc and label sized like real records. Multi-disc gets one pocket per disc, lined up with splitSides(). Back cover: swipe the closed sleeve; sealed records show it through the wrap.\n\n06b/06c · Every record has a back. With no back image of its own, it gets the Miziki default: one ink on plain stock, filled from the tags (sides, times, catalogue, label/year when present). Add your own from the back itself or the edit sheet; Use Miziki default goes back. Stored and synced like a custom cover."},
+    "s3": {"x": 1880, "y": 2374, "w": 320, "fill": "green", "text": "07 · Peel replaces the sealed sheet as the way in.\n08 · Long-press (or swipe) a row: Play next, Add to queue, Favorite, the track’s own credits.\n09 · Booklet from a sidecar PDF or image folder, page-flip.\n10 · After sunset the inside panel keeps notes and the tracklist; Share and Pin wait for morning. Nothing announces it."},
+    "s4": {"x": 1360, "y": 3561, "w": 320, "fill": "blue", "text": "Desktop’s crate detail panel becomes the gatefold’s wide spread, and the Albums tab and artist drill-downs open the gatefold too. renderAlbumDetail() retires (one in, one out)."}
+  },
+  "designSystems": []
+}

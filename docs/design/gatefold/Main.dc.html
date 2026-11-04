@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gatefold — inside right</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Antonio';src:url(/_blob/585dc45325db4fb5854071db9c78a376) format('woff2');font-weight:100 700}
+@font-face{font-family:'Archivo';src:url(/_blob/8743631767b0a108de8776ce76e98669) format('woff2');font-weight:100 900}
+@font-face{font-family:'Caveat';src:url(/_blob/05149a74360c53c909afa06bb93bd16f) format('woff2');font-weight:400 700}
+@font-face{font-family:'IBM Plex Mono';src:url(/_blob/e5237619c7e70707876918173b2492b7) format('woff2');font-weight:400}
+@font-face{font-family:'IBM Plex Mono';src:url(/_blob/4645d2e22e61db32e265c0d7172062d1) format('woff2');font-weight:500}
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;box-sizing:border-box;border-radius:4px}
+.tn{font-family:'Archivo',sans-serif;font-size:14px;color:#ABA298;width:22px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.tt{flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:16px;font-weight:500;color:#EFE9DF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td{font-family:'Archivo',sans-serif;font-size:14px;color:#ABA298;font-variant-numeric:tabular-nums}
+.grooves{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 4px)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(170deg,#1D2F38 0%,#101A20 62%,#07080C 100%); font-family: 'Archivo', sans-serif; color: #EFE9DF">
+
+  <button style="position: absolute; left: 16px; top: 54px; font-size: 14px; font-weight: 500; padding: 6px 4px; min-height: 44px" aria-label="Back to crate">‹ Crate</button>
+
+  <!-- the inside-left cue: always shown now -->
+  <button style="position: absolute; left: 0px; top: 104px; width: 20px; height: 350px; background: linear-gradient(90deg,#140D1C,#1C1226); border-radius: 0 3px 3px 0; box-shadow: inset -6px 0 8px -6px rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center" aria-label="Inside left panel">
+    <span style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">‹ Inside</span>
+  </button>
+
+  <!-- the tracklist panel -->
+  <div style="position: absolute; left: 20px; top: 104px; width: 350px; height: 350px; border-radius: 4px; overflow: hidden; background: linear-gradient(160deg,#2A1B38,#1C1226); box-shadow: 0 1px 3px rgba(0,0,0,.45), 0 8px 20px rgba(0,0,0,.45)">
+    <div style="padding: 12px 14px; display: flex; flex-direction: column">
+      <p style="margin: 0 0 2px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">The Marram Grass</p>
+      <h2 style="margin: 0 0 10px; font-family: 'Antonio', sans-serif; font-size: 28px; font-weight: 700; line-height: 1.05; letter-spacing: -.01em">Low Tide Hymnal</h2>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin: 2px 0">
+        <b style="font-family: 'Antonio', sans-serif; font-size: 16px; letter-spacing: .08em">SIDE A</b>
+        <span style="font-size: 12px; color: #ABA298; font-variant-numeric: tabular-nums">5 tracks · 21:40</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0 6px">
+        <div style="flex: 1; height: 3px; border-radius: 2px; background: rgba(239,233,223,.14)"><div style="width: 62%; height: 3px; border-radius: 2px; background: rgba(239,233,223,.55)"></div></div>
+      </div>
+      <button class="row"><span class="tn">01</span><span class="tt">Salt Marsh Psalm</span><span class="td">4:12</span></button>
+      <button class="row"><span class="tn" style="display: flex; gap: 1px; align-items: flex-end; height: 12px"><span style="width: 2px; height: 6px; background: #EFE9DF"></span><span style="width: 2px; height: 11px; background: #EFE9DF"></span><span style="width: 2px; height: 4px; background: #EFE9DF"></span></span><span class="tt">Undertow</span><span class="td">3:58</span></button>
+      <button class="row"><span class="tn">03</span><span class="tt">Gull Choir</span><span class="td">4:40</span></button>
+      <button class="row"><span class="tn">04</span><span class="tt">The Breakwater</span><span class="td">5:02</span></button>
+      <button class="row"><span class="tn">05</span><span class="tt">Low Tide Hymnal</span><span class="td">3:48</span></button>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 28px; background: linear-gradient(rgba(28,18,38,0),#1C1226)"></div>
+  </div>
+
+  <!-- info strip (drag down to close, follows the finger) -->
+  <div style="position: absolute; left: 20px; right: 20px; top: 470px">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.22); margin: 0 auto 10px"></div>
+    <h3 style="margin: 0; font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600">Low Tide Hymnal</h3>
+    <p style="margin: 2px 0; font-size: 14px; color: #ABA298">The Marram Grass · 2024</p>
+    <p style="margin: 2px 0; font-size: 12px; color: #ABA298">Well loved · since March 2025 · first spun at dusk</p>
+    <p style="margin: 4px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #ABA298">12″ LP · 33⅓ · FLAC 24/96 · 9 tracks · 41:12</p>
+  </div>
+
+  <!-- the sleeve pocket: the album's real pressing, partway out -->
+  <div style="position: absolute; left: 20px; right: 20px; top: 588px; height: 256px; overflow: hidden" aria-hidden="true">
+    <div style="position: absolute; left: 50%; top: 0px; width: 176px; height: 176px; margin-left: -88px; border-radius: 50%; background: radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.45) 88%,rgba(0,0,0,.7) 100%), radial-gradient(circle,#8A2E2A 0 31%,#6B1F1C 31% 93%,#3E1210 93% 100%); box-shadow: 0 2px 4px rgba(0,0,0,.45), 0 16px 36px rgba(0,0,0,.45)">
+      <div class="grooves"></div>
+      <svg viewBox="0 0 200 200" style="position: absolute; inset: 0; width: 100%; height: 100%">
+        <defs><path id="dw" d="M100,100 m-40,0 a40,40 0 1,1 80,0 a40,40 0 1,1 -80,0"></path></defs>
+        <text style="font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: .5px" fill="rgba(239,233,223,.45)"><textPath href="#dw" startOffset="2%">MZK-7F3A2-A1  ·  cut at night</textPath></text>
+      </svg>
+      <div style="position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: #E9A24A; display: flex; align-items: center; justify-content: center">
+        <div style="width: 7px; height: 7px; border-radius: 50%; background: #07080C"></div>
+      </div>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; top: 96px; bottom: 0; background: linear-gradient(180deg,#E6DCC4,#CFC2A3); border-radius: 3px; box-shadow: 0 -10px 24px rgba(0,0,0,.35); -webkit-mask: radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px); mask: radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px)">
+      <p style="position: absolute; left: 16px; bottom: 18px; margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5246">Oxblood · Side A</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
