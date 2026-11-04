@@ -19,6 +19,7 @@ globalThis.document = { documentElement: { style: { setProperty(){} } } };
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: {
     albumLinerNotes(){ return ''; }, albumCreditRoll(){ return new Map(); },
+    albumDynamicsNote(){ return null; }, buildDynamicsNoteEl(){ return {}; },
     openPersonOrArtist(){},
   },
 });
@@ -64,7 +65,7 @@ mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
 
-const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen } = await import('../../src/gatefold/view.js');
+const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
@@ -84,6 +85,43 @@ test('gatefoldSideSplits: S.albumSides off never splits regardless of track coun
   S.albumSides = false;
   S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 600));
   assert.equal(gatefoldSideSplits([0, 1, 2, 3, 4]), null);
+});
+
+// GF1 (docs/29_GATEFOLD.md point 1): gatherRecordShareData() is always your
+// own copy -- friendsCount is always null -- and carries rating/note
+// straight through from MizikiSocial.getAlbumSocial(), null when unset.
+function fakeAlbumTrack(){
+  return { tags: { album: 'Low Tide', artist: 'The Shoals', title: 'Drift' },
+    duration: 200, art: null, meta: { codec: 'FLAC', rate: 44100, bits: 16, ch: 2, lossless: true } };
+}
+
+test('gatherRecordShareData: owned record never carries a friends sticker, unrated reads null', async () => {
+  globalThis.MizikiSocial = { getAlbumSocial(){ return { rating: null, note: '' }; } };
+  S.albumSides = true;
+  S.tracks = [fakeAlbumTrack()];
+  S.albumFormat = {};
+  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
+  S.index = -1;
+  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
+  const data = await gatherRecordShareData(item);
+  assert.equal(data.friendsCount, null);
+  assert.equal(data.rating, null);
+  assert.equal(data.note, null);
+  assert.equal(data.speed, 45);   // a 200s side falls in the 7" @45 band
+});
+
+test('gatherRecordShareData: a rating and note pass straight through', async () => {
+  globalThis.MizikiSocial = { getAlbumSocial(){ return { rating: 4, note: 'Side A at dusk' }; } };
+  S.albumSides = true;
+  S.tracks = [fakeAlbumTrack()];
+  S.albumFormat = {};
+  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
+  S.index = -1;
+  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
+  const data = await gatherRecordShareData(item);
+  assert.equal(data.rating, 4);
+  assert.equal(data.note, 'Side A at dusk');
+  assert.equal(data.friendsCount, null);
 });
 
 test('gatefoldSideSplits: a single disc of equal-length tracks balances by time', () => {

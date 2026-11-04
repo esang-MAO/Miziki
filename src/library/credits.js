@@ -251,7 +251,11 @@ export function albumDynamicsNote(album){
 }
 
 const DYNAMICS_METER_PCT = {'Dynamic': 100, 'Compressed': 55, 'Clipped master': 25};
-function buildDynamicsNoteEl(note){
+// Exported (GF1, docs/29_GATEFOLD.md point 3) so the gatefold's own inside-
+// left panel can show THE MASTER block too, reusing this builder rather
+// than a second copy -- same precedent as buildGatefoldLeftPanel's own
+// export for the picture sleeve.
+export function buildDynamicsNoteEl(note){
   const wrap = el('div', 'dynamics-note');
   const head = el('div', 'dynamics-head');
   head.appendChild(el('span', 'dynamics-label', note.label));

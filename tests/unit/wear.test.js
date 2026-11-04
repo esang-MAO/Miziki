@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { wearStage, wearCopy } from '../../src/record-art/wear.js';
+import { wearStage, wearCopy, wearPhaseWord } from '../../src/record-art/wear.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const YEAR = 365.25 * DAY;
@@ -68,4 +68,25 @@ test('wearCopy: the wear line carries no digits other than the year', () => {
   const copy = wearCopy('loved', firstPlayed);
   const yearStripped = copy.replace(/\b2025\b/, '');
   assert.ok(!/\d/.test(yearStripped), `expected no stray digits in "${copy}"`);
+});
+
+// GF1 (docs/29_GATEFOLD.md point 7): the phase this record has been played
+// in most, only once it has at least five counted plays -- still no count
+// on screen, just the winning phase's plain word.
+test('wearPhaseWord: null below the five-play threshold', () => {
+  assert.equal(wearPhaseWord(null), null);
+  assert.equal(wearPhaseWord({}), null);
+  assert.equal(wearPhaseWord({twilight: 4}), null);
+});
+
+test('wearPhaseWord: the phase with the most plays, once the record has five or more', () => {
+  assert.equal(wearPhaseWord({twilight: 5, morning: 1}), 'at dusk');
+  assert.equal(wearPhaseWord({morning: 2, midday: 1, golden: 6}), 'at golden hour');
+});
+
+test('wearCopy: appends the phase word for worn/loved, never for new/light', () => {
+  const firstPlayed = Date.UTC(2025, 2, 1);
+  assert.equal(wearCopy('worn', firstPlayed, 'at dusk'), 'Worn · since March 2025 · mostly spun at dusk');
+  assert.equal(wearCopy('loved', null, 'overnight'), 'Well loved · mostly spun overnight');
+  assert.equal(wearCopy('new', firstPlayed, 'at dusk'), null);
 });

@@ -12,6 +12,7 @@ export function wireGatefold(){
   $('#gfBack').addEventListener('click', () => closeLayer('gatefold'));
   $('#gfFlatBack').addEventListener('click', () => closeLayer('gatefold'));
   $('#gfLeftCue').addEventListener('click', () => gatefoldSwitchPanel('left'));
+  $('#gfRightCue').addEventListener('click', () => gatefoldSwitchPanel('right'));
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);

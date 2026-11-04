@@ -6,6 +6,16 @@
    when it differs... no upsampling claims, ever" (specRateSuffix) and
    "tapping it adds one plain-text state" (specState/specStateLabel). */
 
+// The file's own format/bit-depth/rate words -- "FLAC · 44.1 kHz · 16-bit ·
+// stereo" (TY3, docs/22_TYPE.md) -- factored out so the player's own spec
+// line and the gatefold's format line (GF1, docs/29_GATEFOLD.md) read the
+// one same wording rather than a second copy of it.
+export function fileSpecLine(m){
+  if(!m) return '';
+  return [m.codec, m.rate ? (m.rate/1000).toFixed(1)+' kHz' : null, m.bits ? m.bits+'-bit' : null,
+    m.ch===1?'mono':'stereo', m.lossless ? null : 'lossy'].filter(Boolean).join(' · ');
+}
+
 // Only non-empty when the engine rate actually differs from the source --
 // "no upsampling claims, ever" means never implying a conversion
 // happened when the two already match.
