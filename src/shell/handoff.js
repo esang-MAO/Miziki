@@ -8,6 +8,7 @@ import { isGatefoldOpen } from '../gatefold/view.js';
 import { play } from '../player/transport.js';
 import { forceCloseLayer, openLayer } from './nav-stack.js';
 import { closePlayer } from './player-overlay.js';
+import { discLook, paintDiscLook } from '../record-art/looks.js';
 
 /* ================= Part 2 §1: gatefold-to-player hand-off =================
    Replaces the sleeve pull specifically for a track picked inside an open
@@ -39,7 +40,8 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   S.platterEmpty = false;
   clearSpinDown();
 
-  const ghost = $('#gfHandoffGhost'), ghostArt = $('#gfHandoffArt'), ghostLabel = $('#gfHandoffLabel');
+  const ghost = $('#gfHandoffGhost'), ghostDisc = ghost.querySelector('.disc'),
+    ghostArt = $('#gfHandoffArt'), ghostLabel = $('#gfHandoffLabel');
   const ov = $('#playerOverlay'), stage = $('#platterStage'), discBox = $('#platterBox'), gf = $('#gatefold');
 
   const bufferReady = ensureBuffer(S.index);
@@ -57,6 +59,14 @@ export async function runGatefoldHandoff(startRect, t, info, startAudio){
   ghost.style.transform = 'rotate(0deg) scale(1)';
   if(gfArt) ghostArt.src = gfArt; else ghostArt.removeAttribute('src');
   ghostLabel.classList.toggle('has-art', !!gfArt);
+  // the flying disc shows the same pressing the gatefold's sleeve disc and
+  // the platter it's landing on both already agree on — discLook() (shared
+  // with gatefold/view.js and record-art/looks.js's own applyDiscVariant())
+  // is the one source of truth for that, so this never has to track tier/
+  // rare/metal/zoetrope state of its own.
+  const d = discLook(t);
+  paintDiscLook(ghostDisc, ghostLabel, d);
+  ghostDisc.style.background = d.bg || '';
   void ghost.offsetWidth;
   ghost.style.display = 'block';
 
