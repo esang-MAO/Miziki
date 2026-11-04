@@ -175,3 +175,22 @@ input[type=file]{display:none}
   text-transform:none;letter-spacing:normal;font-family:inherit}
 .look-lossy-hint{margin-top:10px}
 
+/* GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet (frame 02c) --
+   its own Cancel/title/Save header on the shared .edit-head shell, in
+   place of a single ✕ close. */
+#linerEditOverlay .edit-head .liner-edit-cancel,
+#linerEditOverlay .edit-head .liner-edit-save{padding:7px var(--sp-3);font-size:var(--fs-body)}
+.liner-edit-byline{margin:0 0 var(--sp-3)}
+.liner-edit-byline .liner-edit-artist{margin:0;font-size:var(--fs-caption);letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted)}
+.liner-edit-byline .liner-edit-album{margin:2px 0 0;font-family:var(--display);font-size:var(--fs-title);letter-spacing:var(--track-display)}
+.liner-edit-field{display:block}
+#linerEditText{box-sizing:border-box;width:100%;min-height:220px;resize:none;
+  background:rgba(239,233,223,.06);color:var(--paper);border:1px solid var(--line);border-radius:var(--radius-control);
+  padding:var(--sp-3) var(--sp-4);font-family:var(--body);font-size:var(--fs-row);line-height:1.5}
+.liner-edit-source{border-top:1px solid var(--line);margin-top:var(--sp-3);padding-top:var(--sp-2)}
+.liner-edit-source summary{min-height:44px;display:flex;align-items:center;font-size:var(--fs-body);font-weight:500;color:var(--paper);opacity:.85;cursor:pointer}
+.liner-edit-source p{margin:0 0 var(--sp-2);font-size:var(--fs-body);line-height:1.5;color:var(--muted)}
+.liner-edit-source-file{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted-2)}
+#linerEditRevert{width:100%;text-align:center;margin-top:var(--sp-3)}
+

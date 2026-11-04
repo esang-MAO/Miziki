@@ -199,6 +199,14 @@
 /* GF1 point 5: liner-note prose and credit rows move off the 12px caption
    floor to --fs-body (14px). */
 .gf-left .gf-liner, .picture-sleeve-body .gf-liner{font-size:var(--fs-body);color:var(--paper);opacity:.9;line-height:1.5;margin:0 0 14px;white-space:pre-wrap}
+/* GF7 (docs/29_GATEFOLD.md): the "Liner notes · yours" heading + Edit
+   button every buildGatefoldLeftPanel() home (gatefold, short-mode flat
+   body, picture sleeve) shows at the top of the panel. */
+.gf-liner-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin:0 0 6px}
+.gf-liner-label{margin:0;font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted)}
+.gf-liner-yours{font-family:var(--data);letter-spacing:0;text-transform:none}
+.gf-liner-edit-btn{min-height:32px;min-width:32px;padding:0 6px;font-size:var(--fs-body);font-weight:500;color:var(--paper);opacity:.9}
 .gf-left .gf-credit-row, .picture-sleeve-body .gf-credit-row{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-body);
   padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .gf-left .gf-credit-row em, .picture-sleeve-body .gf-credit-row em{font-style:normal;color:var(--muted)}

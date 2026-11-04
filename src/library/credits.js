@@ -19,6 +19,7 @@ import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { classifyDynamics, albumGainDb, formatGainDb } from '../audio/loudness.js';
 import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
+import { persistAlbumLinerNote } from '../history/sessions.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -184,7 +185,10 @@ export function updateCreditsButtonForCurrent(){
   $('#trackInfoBtn').style.display = (t && trackHasCreditsContent(t)) ? '' : 'none';
 }
 
-export function albumLinerNotes(album){
+// GF7 (docs/29_GATEFOLD.md): the longest-qualifying file comment -- what
+// albumLinerNotes() always returned before the override existed, and
+// still the fallback once a tombstone (revert) removes the override.
+function fileLinerNotes(album){
   let best = '';
   albumTracks(album).forEach(i => {
     const d = S.tracks[i].details;
@@ -192,6 +196,58 @@ export function albumLinerNotes(album){
     splitComments(d.comment).filter(commentQualifies).forEach(c => { if(c.length > best.length) best = c; });
   });
   return best;
+}
+
+// GF7: every reader (gatefold, desktop side panel, picture sleeve) goes
+// through this one function -- S.albumLinerNote's override, keyed by
+// normKey(album) the same way S.albumFormat is, wins when present;
+// otherwise the pick above. A tombstoned (reverted) key is absent from
+// the map entirely (sync/merge.js's mergeKeyedLastWriteWins drops it), so
+// there's no separate "tombstone" branch to check here.
+export function albumLinerNotes(album){
+  const override = S.albumLinerNote && S.albumLinerNote[normKey(album)];
+  return override != null ? override : fileLinerNotes(album);
+}
+
+// GF7: is today's text yours, or the file's own pick? Drives the "· yours"
+// label and the edit sheet's Save/"Use the notes from the files" state.
+export function albumLinerNoteIsOverride(album){
+  return !!(S.albumLinerNote && S.albumLinerNote[normKey(album)] != null);
+}
+
+// GF7: the file pick plus which track's comment it came from, for the
+// edit sheet's "From the files" disclosure -- always the file's own text,
+// regardless of whether an override is currently active. t.id is
+// '<filename>|<size>|<lastModified>' (library/import.js), so its first
+// segment is the original file name the design calls for.
+export function albumLinerNotesSource(album){
+  let best = '', track = null;
+  albumTracks(album).forEach(i => {
+    const d = S.tracks[i].details;
+    if(!d) return;
+    splitComments(d.comment).filter(commentQualifies).forEach(c => {
+      if(c.length > best.length){ best = c; track = S.tracks[i]; }
+    });
+  });
+  return best ? { text: best, fileName: track.id.split('|')[0] } : null;
+}
+
+const LINER_NOTE_MAX = 4000;
+// GF7: trims and caps to a generous length, same shape the design doc
+// calls for; '' (empty after trim) is treated as "nothing typed," not a
+// zero-length override, so it reverts rather than saving an empty claim.
+export function setAlbumLinerNoteOverride(album, text){
+  const key = normKey(album);
+  const trimmed = String(text || '').trim().slice(0, LINER_NOTE_MAX);
+  if(!trimmed){ clearAlbumLinerNoteOverride(album); return; }
+  S.albumLinerNote[key] = trimmed;
+  persistAlbumLinerNote(key);
+}
+export function clearAlbumLinerNoteOverride(album){
+  const key = normKey(album);
+  if(!(key in S.albumLinerNote)) return;
+  delete S.albumLinerNote[key];
+  persistAlbumLinerNote(key);
 }
 
 // D6 (docs/DESKTOP_LAYOUT.md): the desktop side panel's own "Liner notes"

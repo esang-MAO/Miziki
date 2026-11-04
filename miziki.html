@@ -1400,6 +1400,36 @@
   </div>
   <input id="gfBackCoverFile" type="file" accept="image/*" style="display:none">
   <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
+
+  <!-- GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet (frame
+       02c) -- reuses the one .edit-overlay/.edit-sheet/.edit-head shell
+       16-edit-sheet.css already gives every bottom sheet (Edit track,
+       sign-in, EQ), with its own Cancel/title/Save header row instead of
+       a single ✕ close. -->
+  <div class="edit-overlay" id="linerEditOverlay" aria-hidden="true">
+    <div class="edit-sheet" id="linerEditSheetBox">
+      <div class="edit-head">
+        <button class="cta ghost liner-edit-cancel" id="linerEditCancel">Cancel</button>
+        <span>Liner notes</span>
+        <button class="cta liner-edit-save" id="linerEditSave">Save</button>
+      </div>
+      <div class="liner-edit-byline">
+        <p class="liner-edit-artist" id="linerEditArtist"></p>
+        <p class="liner-edit-album" id="linerEditAlbum"></p>
+      </div>
+      <label class="liner-edit-field">
+        <span class="sr-only">Liner notes</span>
+        <textarea id="linerEditText" rows="10" placeholder="Add liner notes"></textarea>
+      </label>
+      <details class="liner-edit-source" id="linerEditSourceBox">
+        <summary>From the files</summary>
+        <p id="linerEditSourceText"></p>
+        <p class="liner-edit-source-file" id="linerEditSourceFile"></p>
+      </details>
+      <p class="note">Changes only your copy. The files stay as they are, and friends see your sleeve note, not these.</p>
+      <button class="cta danger" id="linerEditRevert" style="display:none">Use the notes from the files</button>
+    </div>
+  </div>
   <div class="gf-flat-tracks" id="gfFlatTracks">
     <div class="gf-flat-head">
       <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ Crate</button>
