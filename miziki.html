@@ -1402,6 +1402,17 @@
   <input id="gfBackCoverFile" type="file" accept="image/*" style="display:none">
   <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
 
+  <!-- GF11 (docs/29_GATEFOLD.md point 3): "Share and Pin stay reachable
+       at night from the record's ··· menu" -- the opener button is built
+       by gatefoldInfoAndSleeveHTML() (src/gatefold/view.js) only while
+       GF.night, same .overflow-menu/.overflow-scrim shape as
+       #gfBackCoverMenu above, positioned off that button's own rect. -->
+  <div class="overflow-scrim" id="gfNightMenuScrim"></div>
+  <div class="overflow-menu" id="gfNightMenu" role="menu">
+    <button class="overflow-menu-row" id="gfNightShareBtn" role="menuitem">Share record</button>
+    <button class="overflow-menu-row" id="gfNightPinBtn" role="menuitem">Pin to crate</button>
+  </div>
+
   <!-- GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet (frame
        02c) -- reuses the one .edit-overlay/.edit-sheet/.edit-head shell
        16-edit-sheet.css already gives every bottom sheet (Edit track,

@@ -273,9 +273,26 @@
 #gfLeftActions{position:absolute;left:20px;right:20px;top:440px;display:none;gap:8px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:494px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
+.gf-info-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-2)}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}
 .gf-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
 .gf-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
+/* GF11 (docs/29_GATEFOLD.md): the night-only "···" that forwards to the
+   now-hidden Share/Pin buttons below -- same plain circle shape as
+   .gf-back-cover-more, built only while GF.night (gatefoldInfoAndSleeveHTML(),
+   src/gatefold/view.js) so it needs no own show/hide toggle. */
+.gf-night-more-btn{flex:0 0 auto;width:28px;height:28px;border-radius:50%;
+  background:rgba(239,233,223,.12);color:var(--paper);font-family:var(--body);
+  font-size:var(--fs-row);line-height:1}
+/* GF11 point 1: "hides Share record, Pin ... and dims the sleeve paper
+   and label slightly" -- the Share/Pin buttons themselves stay in the DOM
+   (gatefoldSocialControlsHTML() keeps building them, the night menu above
+   just forwards to them), hidden here rather than left unbuilt, since the
+   same wrap/buttons are also what short mode's own flat body shows inline.
+   .86 matches the design mock's own dimming value (docs/design/gatefold/
+   AfterDark.dc.html) exactly. */
+.gatefold.gf-night .gf-share-btn, .gatefold.gf-night .gf-pin-btn{display:none}
+.gatefold.gf-night .gf-sleeve-paper, .gatefold.gf-night .gf-sleeve-disc-wrap .label{filter:brightness(.86)}
 .gf-sleeve{position:absolute;left:20px;right:20px;top:570px;height:252px;overflow:hidden;pointer-events:none;
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-sleeve{opacity:1}

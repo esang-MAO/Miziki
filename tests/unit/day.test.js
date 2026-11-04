@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayEvents, dayPosition, standInEvents } from '../../src/sundown/day.js';
+import { dayEvents, dayPosition, standInEvents, isAfterSunset } from '../../src/sundown/day.js';
 import { sunProgress, easedProgress, computeRate } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
@@ -302,4 +302,19 @@ test("standInEvents: a cache from another day, or a malformed one, falls back to
   assert.equal(stale.set.getHours(), 20);
   const bad = standInEvents(now, { date: now.toDateString(), rise: 'nope', set: 'nope' });
   assert.equal(bad.set.getHours(), 20);
+});
+
+// GF11 (docs/29_GATEFOLD.md): "from the day model's sunset phase until
+// sunrise" -- twilight (starts at sunset), night, and dawn (ends at
+// sunrise) read as after sunset; every daytime phase, plus the legacy
+// 'midday' fallback dayPosition() itself returns for partial/missing
+// data, does not.
+test('isAfterSunset: true for twilight, night and dawn; false for every daytime phase', () => {
+  assert.equal(isAfterSunset('twilight'), true);
+  assert.equal(isAfterSunset('night'), true);
+  assert.equal(isAfterSunset('dawn'), true);
+  assert.equal(isAfterSunset('morning'), false);
+  assert.equal(isAfterSunset('midday'), false);
+  assert.equal(isAfterSunset('afternoon'), false);
+  assert.equal(isAfterSunset('golden'), false);
 });

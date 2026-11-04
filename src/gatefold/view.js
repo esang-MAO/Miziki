@@ -33,6 +33,8 @@ import { play } from '../player/transport.js';
 import { hapticTick } from '../ui/haptic.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
+import { currentDayPosition } from '../sundown/solar.js';
+import { isAfterSunset } from '../sundown/day.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
@@ -719,10 +721,70 @@ function gatefoldFormatLine(item){
   return bits.join(' · ');
 }
 
+// GF11 (docs/29_GATEFOLD.md): "a ··· button" that forwards to the real
+// Share/Pin buttons buildGatefoldLeftPanel() already built -- those stay
+// in the DOM (hidden by .gatefold.gf-night in CSS below), so this menu
+// needs no rating/note/pin logic of its own, only a paint-and-forward.
+function openGatefoldNightMenu(btn){
+  const shareSrc = document.querySelector('.gf-share-btn');
+  const pinSrc = document.querySelector('.gf-pin-btn');
+  $('#gfNightShareBtn').style.display = shareSrc ? '' : 'none';
+  if(pinSrc){
+    $('#gfNightPinBtn').style.display = '';
+    $('#gfNightPinBtn').textContent = pinSrc.textContent;
+  } else $('#gfNightPinBtn').style.display = 'none';
+  const r = btn.getBoundingClientRect(), menu = $('#gfNightMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#gfNightMenuScrim').classList.add('open');
+  menu.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  openLayer('gf-night-menu', closeGatefoldNightMenu, { container: [menu, $('#gfNightMenuScrim')] });
+}
+export function closeGatefoldNightMenu(){
+  $('#gfNightMenuScrim').classList.remove('open');
+  $('#gfNightMenu').classList.remove('open');
+  const btn = document.querySelector('.gf-night-more-btn');
+  if(btn) btn.setAttribute('aria-expanded', 'false');
+}
+export function gatefoldNightMenuShare(){
+  closeLayer('gf-night-menu');
+  const btn = document.querySelector('.gf-share-btn');
+  if(btn) btn.click();
+}
+export function gatefoldNightMenuPin(){
+  closeLayer('gf-night-menu');
+  const btn = document.querySelector('.gf-pin-btn');
+  if(btn) btn.click();
+}
+
+function buildGatefoldNightMoreBtn(){
+  const btn = el('button', 'gf-night-more-btn', '⋯');
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Record options');
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.addEventListener('click', () => openGatefoldNightMenu(btn));
+  return btn;
+}
+
 function gatefoldInfoAndSleeveHTML(item){
   const info = $('#gfInfo'); info.innerHTML = '';
-  info.appendChild(el('h3','gf-info-title', item.album));
+  const night = !!(GF && GF.night);
+  const titleRow = el('div', 'gf-info-title-row');
+  titleRow.appendChild(el('h3','gf-info-title', item.album));
+  // GF11 point 3: "Share and Pin stay reachable at night from the
+  // record's ··· menu" -- the one way in once point 1 below has hidden
+  // their always-on buttons.
+  if(night) titleRow.appendChild(buildGatefoldNightMoreBtn());
+  info.appendChild(titleRow);
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  // GF11 point 1: "hides ... the format line and the wear line" after
+  // sunset -- "fewer lines under the panel: just the record" (the design
+  // mock's own wording). GF.night is computed once when the gatefold
+  // opens (point 2), not read live here, so it can't change out from
+  // under someone already looking at it.
+  if(night) return;
   // QC4 (docs/24_QUIET_COUNTS.md): "Worn · since Month YYYY" / "Well loved ·
   // since Month YYYY" under the artist line -- no play count, and nothing
   // at all for new/light (wearCopy returns null for those stages). GF1
@@ -1206,12 +1268,19 @@ export function openGatefold(item, opts){
   // pocket toggle, the handoff start rect) need it for as long as this
   // open lasts, the same lifetime GF.geom already has.
   const discGroups = discGroupsFor(trackIdx, S.tracks);
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false};
+  // GF11 point 2: "changes apply when the gatefold opens; an open
+  // gatefold doesn't change under the user mid-look" -- read once here,
+  // off the real wall-clock sky (currentDayPosition() folds in only the
+  // Sundown preview slider, never Pure/Vinyl or the playback rate --
+  // point 2's own "this is about time of day, not playback speed").
+  const night = isAfterSunset(currentDayPosition().phase);
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false, night};
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');
   overlay.setAttribute('aria-label', item.album);
   overlay.classList.toggle('gf-wide', mode === 'wide');
+  overlay.classList.toggle('gf-night', night);
   overlay.classList.remove('gf-chrome-in');
   overlay.style.opacity = '';
 
@@ -1284,7 +1353,7 @@ export async function closeGatefold(){
     overlay.style.opacity = '0';
     await sleep(Math.round(GATEFOLD_ANIM.closeMs * 0.4));
   }
-  overlay.classList.remove('open','gf-wide');
+  overlay.classList.remove('open','gf-wide','gf-night');
   $('#gfFlatTracks').classList.remove('show');
   overlay.style.opacity = ''; overlay.style.transition = '';
   overlay.setAttribute('aria-hidden','true');
@@ -1299,7 +1368,7 @@ export function closeGatefoldInstant(){
   GF = null;
   gatefoldTeardownGestures();
   const overlay = $('#gatefold');
-  overlay.classList.remove('open','gf-wide','gf-chrome-in');
+  overlay.classList.remove('open','gf-wide','gf-chrome-in','gf-night');
   $('#gfFlatTracks').classList.remove('show');
   overlay.style.opacity = ''; overlay.style.transition = '';
   overlay.setAttribute('aria-hidden','true');
