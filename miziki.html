@@ -1355,6 +1355,16 @@
       </div>
     </div>
   </div>
+  <!-- GF5: the record's own back, turned to from the front at any time --
+       sits outside #gfCamera on purpose, so it's never caught by that
+       element's own pan/scale (switching tracklist/inside-left panels) or
+       by #gfCover's own swing transform (see src/gatefold/view.js's
+       gatefoldSetTurnedOver()/11-gatefold.css's own comment on this). -->
+  <div class="gf-back-cover-stage" id="gfBackCoverStage" aria-hidden="true">
+    <div id="gfBackCover"></div>
+  </div>
+  <div class="gf-flip-dots" id="gfFlipDots" aria-hidden="true"><span class="active"></span><span></span></div>
+  <button type="button" class="gf-turn-over" id="gfTurnOver" aria-pressed="false">Turn over</button>
   <div class="gf-flat-tracks" id="gfFlatTracks">
     <div class="gf-flat-head">
       <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ Crate</button>

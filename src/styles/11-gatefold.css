@@ -105,6 +105,82 @@
 .gf-face-front::after{content:'';position:absolute;inset:0 0 0 0;pointer-events:none;
   box-shadow:inset 12px 0 10px -10px rgba(0,0,0,.45)}
 .gf-face-back{transform:rotateY(180deg);background:#1C1226;color:var(--paper)}
+/* GF5 (docs/29_GATEFOLD.md): turning the sleeve over. #gfBackCoverStage
+   sits OUTSIDE #gfCamera on purpose (miziki.html's own comment there says
+   why): #gfCover's swing is an inline rotateY set by view.js's own
+   runGatefoldOpen(), and #gfCamera's pan/zoom moves with whichever panel
+   is open (gatefoldSwitchPanel()) -- nesting the back cover inside either
+   would mean it's only reachable (or even on-screen at all, once
+   backface-visibility:hidden takes the swung-open cover's front face out
+   of view) for the brief moment before the swing finishes, which this
+   overlay's own auto-playing open sequence never leaves the user in. A
+   plain crossfade+scale card, independent of both, stays reachable (by
+   the button, or the swipe on #gfCover itself) at any time, matching the
+   spec's own "before the swing, or with the gatefold closed back up" as
+   "whenever you like" rather than one narrow instant. */
+.gf-back-cover-stage{position:absolute;left:50%;top:80px;
+  width:min(var(--gf-panel-size,350px), calc(100% - 40px));aspect-ratio:1 / 1;
+  transform:translateX(-50%) scale(.94);border-radius:4px;overflow:hidden;box-shadow:var(--sh-3);
+  opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;z-index:5}
+.gatefold.gf-turned-over .gf-back-cover-stage{opacity:1;transform:translateX(-50%) scale(1);pointer-events:auto}
+@media (prefers-reduced-motion:reduce){ .gf-back-cover-stage{transition:opacity .15s linear} }
+/* "Two dots under the sleeve show Front/Back" -- sits just past the
+   cover's own bottom edge. */
+.gf-flip-dots{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 14px);
+  transform:translateX(-50%);display:flex;justify-content:center;gap:6px;
+  opacity:0;transition:opacity .15s;pointer-events:none}
+.gatefold.gf-chrome-in .gf-flip-dots{opacity:1}
+.gf-flip-dots span{width:5px;height:5px;border-radius:50%;background:rgba(239,233,223,.3)}
+.gf-flip-dots span.active{background:var(--paper)}
+/* Keyboard: "a 'Turn over' control reachable by Tab" (GF5 point 1) -- a
+   small mono text button, same family as .gf-left-cue/.gf-right-cue. */
+.gf-turn-over{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 26px);
+  transform:translateX(-50%);text-align:center;font-family:var(--data);font-size:var(--fs-caption);
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-turn-over{opacity:1}
+/* GF5 point 2: one ink on plain stock, filled from the record's own data
+   -- a printed jacket back, not a themed panel, so it keeps its own fixed
+   colors (same reasoning as the dark sleeve-interior tokens just above,
+   just a light card instead of a dark one) rather than --paper/--muted. */
+.gf-back-cover{position:absolute;inset:0;background:var(--stock-card);color:#26202C;
+  font-family:var(--body)}
+.gf-back-cover::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,rgba(38,32,44,.018) 0 1px,rgba(0,0,0,0) 1px 3px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 1px,rgba(0,0,0,0) 1px 4px)}
+.gf-back-frame{position:absolute;inset:14px;border:1.5px solid rgba(38,32,44,.85);border-radius:2px;
+  padding:16px 14px;display:flex;flex-direction:column;overflow:hidden}
+.gf-back-artist{margin:0 0 2px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
+  letter-spacing:var(--track-caps);text-transform:uppercase;color:rgba(38,32,44,.75)}
+.gf-back-title{margin:0 0 12px;font-family:var(--display);font-size:var(--fs-title);font-weight:700;
+  line-height:1.05;letter-spacing:0}
+.gf-back-7 .gf-back-title{font-size:var(--fs-body)}
+.gf-back-10 .gf-back-title{font-size:var(--fs-row)}
+.gf-back-sides{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0 18px;overflow:hidden;min-height:0}
+.gf-back-side{display:flex;flex-direction:column;min-width:0}
+.gf-back-side-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px;
+  font-family:var(--display);font-size:var(--fs-caption);letter-spacing:var(--track-caps)}
+.gf-back-side-head span{font-family:var(--data);font-variant-numeric:tabular-nums;color:rgba(38,32,44,.65)}
+.gf-back-track{display:flex;align-items:baseline;gap:6px;margin:0 0 2px;font-family:var(--data);
+  font-size:var(--fs-caption);line-height:1.35}
+.gf-back-tn{color:rgba(38,32,44,.55);flex:0 0 auto}
+.gf-back-tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gf-back-td{color:rgba(38,32,44,.65);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.gf-back-more{margin:2px 0 0;font-family:var(--data);font-size:var(--fs-caption);color:rgba(38,32,44,.55)}
+.gf-back-footer{margin-top:auto;padding-top:10px;border-top:1.5px solid #26202C;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.gf-back-meta{font-family:var(--data);font-size:var(--fs-caption);line-height:1.5;color:rgba(38,32,44,.8)}
+.gf-back-catalog{margin:0;font-weight:500;color:#26202C}
+.gf-back-meta p{margin:0}
+.gf-back-wordmark{width:34px;height:auto;display:block;flex:0 0 auto}
+/* GF5 point 4: a worn record's back carries the same wear classes as its
+   sleeve (30-wear.css's own .sleeve.wear-* ring/edge rules) -- the front
+   cover face stays pristine, as today. */
+.gf-back-cover.wear-light::after, .gf-back-cover.wear-worn::after, .gf-back-cover.wear-loved::after{
+  content:'';position:absolute;inset:0;pointer-events:none}
+.gf-back-cover.wear-light::after{box-shadow:inset 0 0 0 1px rgba(214,196,160,.12),inset 0 0 40px rgba(38,32,44,.05)}
+.gf-back-cover.wear-worn::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.18),inset 0 0 60px rgba(38,32,44,.09)}
+.gf-back-cover.wear-loved::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.26),inset 0 0 80px rgba(38,32,44,.14)}
 .gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px;outline:none}
 .gf-left h3, .picture-sleeve-body h3{font-family:var(--display);font-size:var(--fs-title);margin:0 0 var(--sp-2)}
 /* GF1 point 5: liner-note prose and credit rows move off the 12px caption

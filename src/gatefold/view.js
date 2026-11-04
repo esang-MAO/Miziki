@@ -17,6 +17,7 @@ import { discLook, paintDiscLook } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
+import { buildBackCoverEl } from './back-cover.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
@@ -468,12 +469,14 @@ function updateGatefoldSleeveState(){
     wrap.classList.toggle('gf-disc-empty', onPlatter && Number(wrap.getAttribute('data-disc')) === playingDisc);
   });
   // RW7 (docs/23_RHYTHM_AND_WEAR.md): the gatefold's own sleeve/disc, the
-  // same CSS layer the crate card and player sleeve use.
-  const gfSleeve = $('#gfSleeve');
-  GF_WEAR_STAGES.forEach(s => gfSleeve.classList.remove('wear-' + s));
+  // same CSS layer the crate card and player sleeve use. GF5 point 4: the
+  // back cover carries the same stage too -- the front cover face stays
+  // pristine, so #gfCoverArt is never touched here.
+  const gfSleeve = $('#gfSleeve'), backCover = $('#gfBackCover .gf-back-cover');
+  GF_WEAR_STAGES.forEach(s => { gfSleeve.classList.remove('wear-' + s); if(backCover) backCover.classList.remove('wear-' + s); });
   if(S.showWear !== false){
     const stage = wearStage(S.sessionCounts[GF.item.albumId], S.albumFirstPlayed[GF.item.albumId], Date.now());
-    if(stage !== 'new') gfSleeve.classList.add('wear-' + stage);
+    if(stage !== 'new'){ gfSleeve.classList.add('wear-' + stage); if(backCover) backCover.classList.add('wear-' + stage); }
   }
 }
 
@@ -653,6 +656,36 @@ async function gatefoldSetCoverArt(item){
   if(url && GF && GF.item === item){ img.src = url; setDiscArt(url); }
 }
 
+// GF5 point 2: the Miziki default back, built fresh per open off the
+// album's own data (trackIdx/format), same lifetime as the tracklist.
+// GF6 ("your own back cover") will branch here to draw a stored image
+// instead when one exists -- not yet built, so every record gets the
+// default for now.
+function gatefoldSetBackCover(item, trackIdx, format){
+  const host = $('#gfBackCover');
+  if(!host) return;
+  host.innerHTML = '';
+  host.appendChild(buildBackCoverEl(item, trackIdx, format));
+}
+
+// GF5 point 1: "a horizontal swipe on the closed sleeve... turns it over
+// with a short Y-axis flip; two dots under the sleeve show Front/Back."
+// turnedOver lives on GF (reset on every open) since it's purely this
+// open's own transient view state, same lifetime as GF.panel.
+function gatefoldSetTurnedOver(on){
+  if(!GF) return;
+  GF.turnedOver = !!on;
+  $('#gatefold').classList.toggle('gf-turned-over', GF.turnedOver);
+  document.querySelectorAll('#gfFlipDots span').forEach((dot, i) =>
+    dot.classList.toggle('active', (i === 1) === GF.turnedOver));
+  const btn = $('#gfTurnOver');
+  if(btn) btn.setAttribute('aria-pressed', String(GF.turnedOver));
+}
+
+export function gatefoldToggleTurnedOver(){
+  if(GF) gatefoldSetTurnedOver(!GF.turnedOver);
+}
+
 export function gatefoldSwitchPanel(panel){
   if(!GF) return;
   GF.panel = panel;
@@ -799,7 +832,46 @@ function gatefoldWireGestures(){
   info.addEventListener('pointerup', onInfoUp);
   info.addEventListener('pointercancel', onInfoUp);
 
+  // GF5 point 1: "a horizontal swipe on the closed sleeve... turns it
+  // over" -- wired on #gfCover itself (the front, "closed sleeve" look at
+  // rest) and on #gfBackCoverStage (so swiping again while it's showing
+  // turns it back), direction-locked the same ~8px/dx-vs-dy way as the
+  // stage's own panel swipe above. stopPropagation() on #gfCover's down
+  // keeps this from also being read as that swipe, since #gfCover sits
+  // inside #gfStage; #gfBackCoverStage sits outside it, where there's
+  // nothing to conflict with. A short flick (>30px) in either direction
+  // just toggles -- which face lands next matters less than "it moved."
+  let flipStart = null;
+  const onFlipDown = e => { flipStart = {x:e.clientX, y:e.clientY, locked:null}; e.stopPropagation(); };
+  const onFlipMove = e => {
+    if(!flipStart) return;
+    e.stopPropagation();
+    const dx = e.clientX - flipStart.x, dy = e.clientY - flipStart.y;
+    if(!flipStart.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) flipStart.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  };
+  const onFlipUp = e => {
+    if(!flipStart) return;
+    e.stopPropagation();
+    const dx = e.clientX - flipStart.x;
+    const locked = flipStart.locked;
+    flipStart = null;
+    if(locked === 'h' && Math.abs(dx) > 30) gatefoldToggleTurnedOver();
+  };
+  const flipTargets = [$('#gfCover'), $('#gfBackCoverStage')];
+  flipTargets.forEach(t => {
+    t.addEventListener('pointerdown', onFlipDown);
+    t.addEventListener('pointermove', onFlipMove);
+    t.addEventListener('pointerup', onFlipUp);
+    t.addEventListener('pointercancel', onFlipUp);
+  });
+
   gfDragCleanup = () => {
+    flipTargets.forEach(t => {
+      t.removeEventListener('pointerdown', onFlipDown);
+      t.removeEventListener('pointermove', onFlipMove);
+      t.removeEventListener('pointerup', onFlipUp);
+      t.removeEventListener('pointercancel', onFlipUp);
+    });
     stage.removeEventListener('pointerdown', onDown);
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
@@ -914,7 +986,7 @@ export function openGatefold(item, opts){
   // pocket toggle, the handoff start rect) need it for as long as this
   // open lasts, the same lifetime GF.geom already has.
   const discGroups = discGroupsFor(trackIdx, S.tracks);
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups};
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false};
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');
@@ -932,6 +1004,8 @@ export function openGatefold(item, opts){
   $('#gfLeft').innerHTML = ''; $('#gfLeft').appendChild(buildGatefoldLeftPanel(item));
   gatefoldInfoAndSleeveHTML(item);
   gatefoldSetCoverArt(item).catch(() => {});
+  gatefoldSetBackCover(item, trackIdx, format);
+  gatefoldSetTurnedOver(false);
   updateGatefoldSleeveState();
   // docs/13_CRATE.md's pull gesture: "the record slides out of the sleeve
   // ... then the gatefold opens with the disc already out" — a committed
