@@ -64,6 +64,13 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
+// GF5: back-cover.js's own buildBackCoverEl imports ui/wordmark.js, a ?raw
+// asset import node:test can't resolve -- mocked here too, the usual "stop
+// the chain at the door" reasoning; back-cover.js's own data builder is
+// covered by tests/unit/gatefold-back-cover.test.js instead.
+mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
+  namedExports: { buildBackCoverEl(){ return {}; } },
+});
 
 const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');
 const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');

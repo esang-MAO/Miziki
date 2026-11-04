@@ -5,7 +5,7 @@
    single generic handler that closes whichever registered layer is
    topmost, for every overlay in the app — not here. */
 import { $ } from '../util/dom.js';
-import { gatefoldSwitchPanel, updateGatefoldScale } from '../gatefold/view.js';
+import { gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver } from '../gatefold/view.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
 export function wireGatefold(){
@@ -13,6 +13,7 @@ export function wireGatefold(){
   $('#gfFlatBack').addEventListener('click', () => closeLayer('gatefold'));
   $('#gfLeftCue').addEventListener('click', () => gatefoldSwitchPanel('left'));
   $('#gfRightCue').addEventListener('click', () => gatefoldSwitchPanel('right'));
+  $('#gfTurnOver').addEventListener('click', gatefoldToggleTurnedOver);
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);
