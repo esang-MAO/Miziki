@@ -175,6 +175,14 @@ export function dayPosition(now, events){
   return { phase: 'night', phaseProgress: 0, nightness: 1, rateProgress: 1, duskRampProgress: clamp((t - duskT) / DUSK_RAMP_MS, 0, 1) };
 }
 
+// GF11 (docs/29_GATEFOLD.md): "from the day model's sunset phase until
+// sunrise" -- twilight (which starts right at sunset), night, and dawn
+// (which ends right at sunrise). Pure; phase is whatever dayPosition()
+// above returned for `phase`.
+export function isAfterSunset(phase){
+  return phase === 'twilight' || phase === 'night' || phase === 'dawn';
+}
+
 // The stand-in day used before (or without) a real location fix: today's
 // real sunrise/sunset from the device-only sun-times cache when it was
 // written today (solar.js's persistSunTimesCache(), the same cache

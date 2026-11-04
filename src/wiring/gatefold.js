@@ -11,6 +11,7 @@ import {
   saveLinerEditSheet, revertLinerEditSheet,
   gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
+  gatefoldNightMenuShare, gatefoldNightMenuPin,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
@@ -106,4 +107,12 @@ export function wireGatefold(){
     e.target.value = '';
     handleBookletAddFileChange(files);
   });
+
+  // GF11 (docs/29_GATEFOLD.md): the night-only "···" menu's own rows --
+  // its opener button is built dynamically (gatefoldInfoAndSleeveHTML(),
+  // src/gatefold/view.js) only while GF.night, but the menu/scrim
+  // themselves are static like every other overflow menu, wired here once.
+  $('#gfNightMenuScrim').addEventListener('click', () => closeLayer('gf-night-menu'));
+  $('#gfNightShareBtn').addEventListener('click', gatefoldNightMenuShare);
+  $('#gfNightPinBtn').addEventListener('click', gatefoldNightMenuPin);
 }
