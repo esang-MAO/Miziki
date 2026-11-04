@@ -51,14 +51,15 @@ mock.module(new URL('../../src/shell/player-overlay.js', import.meta.url).href, 
 mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
   namedExports: { runGatefoldHandoff(){} },
 });
-// sealed-sheet.js's own buildSealOverlay/runBreakChoreography imports reach
+// picture-sleeve.js's own isSingleRecord/openPictureSleeve chain reaches
 // the real library/sealed.js, which in turn reaches the real
-// library/view.js — the step 7d hub module with seven real circular pairs —
-// just to satisfy two names this file never exercises (isSealedSheetOpen
-// only touches the module-private SEALSHEET). Mocked directly to stop that
-// chain at the door.
+// library/view.js — the step 7d hub module with seven real circular
+// pairs — just to satisfy names this file never exercises. Mocked
+// directly to stop that chain at the door. GF8 (docs/29_GATEFOLD.md):
+// also covers sealed.js's own new sealedQuietPlay/isAlbumSealed surface,
+// moved here from the retired gatefold/sealed-sheet.js.
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
-  namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {} },
+  namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {}, isAlbumSealed(){ return false; }, sealedQuietPlay(){} },
 });
 // SH1 (docs/18_SHARE.md): view.js's own new "Share record" button imports
 // openShareSheet from share/sheet.js, which would otherwise reach the real
@@ -81,7 +82,6 @@ mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
 });
 
 const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');
-const { isSealedSheetOpen } = await import('../../src/gatefold/sealed-sheet.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
 
@@ -164,10 +164,6 @@ test('gatefoldSideSplits: each disc splits into its own time-balanced sides', ()
 
 test('isGatefoldOpen reads the module-private GF state (null when closed)', () => {
   assert.equal(isGatefoldOpen(), false);
-});
-
-test('isSealedSheetOpen reads the module-private SEALSHEET state (null when closed)', () => {
-  assert.equal(isSealedSheetOpen(), false);
 });
 
 // docs/17_SINGLES.md: isSingleRecord() is a plain track-count check (exactly

@@ -1463,25 +1463,28 @@
   </div>
 </div>
 
-<!-- SEALED SHEET: a sealed album can't be opened into the gatefold — a
-     plain tracklist sheet instead, until the first play (SEALED spec §5) -->
-<div class="seal-sheet" id="sealSheet" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
-  <div class="seal-sheet-box">
-    <div class="seal-sheet-head">
-      <div class="seal-sheet-cover" id="sealSheetCoverWrap">
-        <img id="sealSheetCoverArt" alt="">
-      </div>
-      <div class="seal-sheet-text">
-        <div class="seal-sheet-artist" id="sealSheetArtist"></div>
-        <div class="seal-sheet-title" id="sealSheetTitle"></div>
-      </div>
-      <button class="seal-sheet-close" id="sealSheetClose" aria-label="Close">‹ CRATE</button>
-    </div>
-    <div class="seal-sheet-body" id="sealSheetBody" tabindex="-1"></div>
-    <div class="seal-sheet-foot">
-      <span>Still sealed. Play breaks the seal.</span>
-      <button class="seal-sheet-open-btn" id="sealSheetOpenBtn" type="button">Open</button>
-    </div>
+<!-- GF8 (docs/29_GATEFOLD.md): the sealed front -- a sealed album opens
+     here instead of the gatefold, until its wrap is peeled or it's first
+     played. Replaces the old plain tracklist sheet entirely (no
+     tracklist here at all; src/library/sealed.js's sealedQuietPlay() is
+     still how the crate's own Play affordance plays without peeling). -->
+<div class="sealed-front" id="sealedFront" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
+  <button class="sealed-front-close" id="sealedFrontCloseBtn" aria-label="Back to crate">‹ Crate</button>
+  <div class="sealed-front-cover" id="sealedFrontCover" role="img" aria-label="Cover art, still sealed"></div>
+  <div class="sealed-front-wrap" id="sealedFrontWrap" aria-hidden="true">
+    <div class="sealed-front-sheen"></div>
+    <div class="sealed-front-fold" id="sealedFrontFold"></div>
+  </div>
+  <div class="sealed-front-sticker" aria-hidden="true">NEW</div>
+  <button class="sealed-front-hotspot" id="sealedFrontHotspot" aria-label="Peel the corner to open it" type="button"></button>
+  <div class="sealed-front-text">
+    <h3 id="sealedFrontCoverTitle"></h3>
+    <p class="sealed-front-artist" id="sealedFrontArtist"></p>
+    <p class="sealed-front-format" id="sealedFrontFormat"></p>
+  </div>
+  <div class="sealed-front-actions">
+    <p class="sealed-front-hint">Peel from the corner to open it</p>
+    <button class="sealed-front-turn-btn" id="sealedFrontTurnBtn" type="button">Turn it over first</button>
   </div>
 </div>
 

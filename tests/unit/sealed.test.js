@@ -42,16 +42,26 @@ const renderTracksMock = mock.fn();
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks: renderTracksMock, songRow(){}, groupRow(){} },
 });
-// Since step 7e, sealed.js's updateSealedSheetAfterBreak import is real
-// (from src/gatefold/sealed-sheet.js) instead of main.js — mocked here,
-// since the real sealed-sheet.js would otherwise reach back into
-// gatefold/view.js's own wide real chain (shell/start-sequence.js,
-// shell/player-overlay.js, shell/handoff.js, player/transport.js and
-// more) just to satisfy this one name. sealed.js no longer imports
-// anything from main.js at all.
-const updateSealedSheetAfterBreakMock = mock.fn();
-mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href, {
-  namedExports: { updateSealedSheetAfterBreak: updateSealedSheetAfterBreakMock },
+// GF8 (docs/29_GATEFOLD.md): sealedQuietPlay() moved here from the
+// now-retired src/gatefold/sealed-sheet.js, bringing three real imports
+// (player/queue.js, player/transport.js, shell/start-sequence.js) whose
+// own chains are each wide (player/queue.js reaches player/buffers.js's
+// ensureContext and sundown/location.js's circular queueSave import;
+// shell/start-sequence.js alone reaches shell/player-overlay.js, shell/
+// handoff.js, audio/surface-noise.js and more) -- all mocked directly
+// here, the same "stop the chain at the door" reasoning as every other
+// mock in this file, so sealed.js's own tests stay DOM/chain-free.
+const setQueueMock = mock.fn();
+mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
+  namedExports: { setQueue: setQueueMock },
+});
+const playMock = mock.fn();
+mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
+  namedExports: { play: playMock },
+});
+const runStartSequenceMock = mock.fn();
+mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
+  namedExports: { runStartSequence: runStartSequenceMock },
 });
 // history/achievements.js's real import chain (via history/sessions.js)
 // reaches library/thumbs.js for thumbURL/persistable/restoreThumbs —
@@ -63,7 +73,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
 });
 
 const {
-  isAlbumSealed, breakSeal, restoreSealedAlbums, buildSealOverlay,
+  isAlbumSealed, breakSeal, restoreSealedAlbums, buildSealOverlay, sealedQuietPlay,
 } = await import('../../src/library/sealed.js');
 const { topAlbums, topTracks, topAlbumsInWindow } = await import('../../src/history/achievements.js');
 const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
@@ -81,8 +91,10 @@ function resetState(overrides){
     trackPlayCounts: {}, trackLastPlayed: {}, trackDisplay: {},
     mergedStats: null, metalEligibleSessions: {}, albumPlayCountsByDay: {},
   }, overrides);
-  updateSealedSheetAfterBreakMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
+  setQueueMock.mock.resetCalls();
+  playMock.mock.resetCalls();
+  runStartSequenceMock.mock.resetCalls();
 }
 
 test('isAlbumSealed is true right after import (the album id is in S.sealed)', () => {
@@ -96,20 +108,32 @@ test('isAlbumSealed is false for every album when the sealed-records feature is 
   assert.equal(isAlbumSealed('a1'), false);
 });
 
-test('breakSeal clears the seal once, updates the sheet and re-renders the library', () => {
+test('breakSeal clears the seal once and re-renders the library', () => {
   resetState({ sealed: new Set(['a1']) });
   breakSeal('a1');
   assert.equal(isAlbumSealed('a1'), false);
-  assert.equal(updateSealedSheetAfterBreakMock.mock.calls.length, 1);
-  assert.deepEqual(updateSealedSheetAfterBreakMock.mock.calls[0].arguments, ['a1']);
   assert.equal(renderTracksMock.mock.calls.length, 1);
 });
 
 test('breaking an already-broken seal does nothing', () => {
   resetState({ sealed: new Set() });   // a1 was never sealed, or already broken
   breakSeal('a1');
-  assert.equal(updateSealedSheetAfterBreakMock.mock.calls.length, 0);
   assert.equal(renderTracksMock.mock.calls.length, 0);
+});
+
+// GF8 (docs/29_GATEFOLD.md): sealedQuietPlay() -- the crate's own Play
+// affordance for a sealed record, moved here from the retired sealed-
+// sheet.js. "Quiet" means the platter/mini-player only, never the full
+// player sheet -- the same runStartSequence() every other play path uses,
+// just called directly rather than through the player overlay.
+test('sealedQuietPlay queues the given index and runs the start sequence', () => {
+  resetState();
+  const trackIdx = [5, 6, 7];
+  sealedQuietPlay(trackIdx, 6);
+  assert.equal(setQueueMock.mock.calls.length, 1);
+  assert.deepEqual(setQueueMock.mock.calls[0].arguments, [trackIdx, 1, false]);
+  assert.equal(runStartSequenceMock.mock.calls.length, 1);
+  assert.equal(runStartSequenceMock.mock.calls[0].arguments[2], playMock);
 });
 
 test('restoreSealedAlbums grandfathers to "none sealed" when storage has no saved row', async () => {

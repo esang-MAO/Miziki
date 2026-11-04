@@ -1,12 +1,13 @@
 /* ================= 7″ picture sleeve (docs/17_SINGLES.md) =================
    A single — one side, one track (isSingleRecord(), below) — opens into
    this flat, fading sheet instead of the gatefold's two-panel 3D swing.
-   Same shape as sealed-sheet.js (which this file sits beside, not inside,
-   for the same reason that one does: it needs GF/buildGatefoldTracklist/
-   gatefoldTrackIndices from view.js, and is its own small UI concern, not
-   library/sealed.js's sealed-records *data*). "Fade in open" (Ken) --
-   sealed-sheet.js's own open/close timing (sleep(REDUCED ? 150 : 250)),
-   reused verbatim rather than the gatefold's ~950ms swing, since there's
+   Same shape as gatefold/sealed-front.js (which this file sits beside,
+   not inside, for the same reason that one does: it needs GF/
+   buildGatefoldTracklist/gatefoldTrackIndices from view.js, and is its
+   own small UI concern, not library/sealed.js's sealed-records *data*).
+   "Fade in open" (Ken) -- the same open/close timing
+   (sleep(REDUCED ? 150 : 250)) sealed-front.js also uses, reused verbatim
+   rather than the gatefold's ~950ms swing, since there's
    no second panel for a flight to resolve into here either. "Keep all"
    (Ken) of the gatefold's own left-panel content -- buildGatefoldLeftPanel()
    (view.js) is exported and called wholesale, not reimplemented. */
@@ -65,7 +66,8 @@ function buildPlayRow(item, i){
   return row;
 }
 
-// mirrors sealed-sheet.js's own sealedHandoffPlay -- there's no sleeve-disc
+// mirrors the quiet-play shape library/sealed.js's sealedQuietPlay() uses
+// for a sealed album -- there's no sleeve-disc
 // flight target here any more than there is for a sealed single, so the
 // same reuse-the-ceremony-wholesale shape applies rather than a new flight.
 function sleeveHandoffPlay(item, i){

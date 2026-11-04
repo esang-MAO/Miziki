@@ -12,6 +12,7 @@ import {
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
+import { toggleSealedFrontTurnedOver } from '../gatefold/sealed-front.js';
 import { closeLayer, openLayer } from '../shell/nav-stack.js';
 
 // GF6 (docs/29_GATEFOLD.md): "a ··· button on the back opens a small
@@ -57,7 +58,8 @@ export function wireGatefold(){
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);
-  $('#sealSheetClose').addEventListener('click', () => closeLayer('sealed-sheet'));
+  $('#sealedFrontCloseBtn').addEventListener('click', () => closeLayer('sealed-front'));
+  $('#sealedFrontTurnBtn').addEventListener('click', toggleSealedFrontTurnedOver);
 
   // GF6
   $('#gfBackCoverMoreBtn').addEventListener('click', () => isBackCoverMenuOpen() ? closeLayer('gf-back-cover-menu') : openBackCoverMenu());

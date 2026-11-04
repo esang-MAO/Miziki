@@ -24,7 +24,7 @@ import { analyzeTrack } from '../audio/analysis-client.js';
    removed from the library, which is what orphaned stats need. */
 const ALBUM_THUMB_PX = 800, TRACK_THUMB_PX = 300;
 // 'album:<id>' / 'track:<key>' -> live object URL for this session. Exported
-// read-only: main.js's own crate/gatefold/sealed-sheet art fallbacks (none
+// read-only: main.js's own crate/gatefold/sealed-front art fallbacks (none
 // of which moved in this step) still read this map directly by key, the
 // same expression shape as before the move.
 export const thumbURL = {};

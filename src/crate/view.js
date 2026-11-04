@@ -11,7 +11,7 @@ import { REDUCED } from '../util/motion.js';
 import { isDesktopShell } from '../util/viewport.js';
 import { CRATE_ORIGIN_Y, CRATE_PALETTE, CRATE_VISIBLE_A, CRATE_DPR, CRATE_DEPTH_SPREAD } from './constants.js';
 import { flowPose, flowZIndex } from './geometry.js';
-import { isAlbumSealed, buildSealOverlay } from '../library/sealed.js';
+import { isAlbumSealed, buildSealOverlay, sealedQuietPlay } from '../library/sealed.js';
 import { thumbURL } from '../library/thumbs.js';
 import { setQueue } from '../player/queue.js';
 import { queueSave } from '../storage/meta.js';
@@ -32,7 +32,7 @@ import {
 import { resolveLastPlayedAlbum } from '../launch/intro.js';
 import { renderTracks } from '../library/view.js';
 import { openGatefold, buildGatefoldTracklist, gatefoldTrackIndices } from '../gatefold/view.js';
-import { openSealedSheet, sealedQuietPlay } from '../gatefold/sealed-sheet.js';
+import { openSealedFront } from '../gatefold/sealed-front.js';
 import { isSingleRecord, openPictureSleeve } from '../gatefold/picture-sleeve.js';
 import { openCreditsSheet } from '../library/credits.js';
 import { playNext, addToQueue } from '../player/queue.js';
@@ -99,11 +99,12 @@ function openCrateAlbum(item, opts){
     renderTracks();
     return;
   }
-  // a sealed record can't be opened — the gatefold and its left panel only
-  // unlock after the first play (SEALED spec §1, §5). Unchanged on desktop
-  // too — a sealed record still opens the sealed sheet there, same as on
-  // a phone.
-  if(isAlbumSealed(item.albumId)){ openSealedSheet(item); return; }
+  // GF8 (docs/29_GATEFOLD.md): a sealed record opens its sealed front
+  // instead of the gatefold — peeling the wrap there is what unlocks the
+  // real gatefold and its left panel. Unchanged on desktop too — a
+  // sealed record still opens the sealed front there, same as on a
+  // phone.
+  if(isAlbumSealed(item.albumId)){ openSealedFront(item); return; }
   // docs/17_SINGLES.md: a single — one side, one track — opens the flat,
   // fading picture sleeve instead of the gatefold's two-panel swing.
   // Sealing (above) takes precedence over this check.
