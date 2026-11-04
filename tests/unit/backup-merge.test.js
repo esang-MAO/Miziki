@@ -388,6 +388,43 @@ test('GF6: a doc with no albumBackCover field at all merges as an empty map, not
   assert.deepEqual(merged.itemWrites.albumBackCover, {});
 });
 
+// GF7 (docs/29_GATEFOLD.md): the liner-notes override -- plain text,
+// same per-key last-write-wins shape as albumFormat/albumBackCover above.
+test('GF7: albumLinerNote merges per album key, last write wins, same shape as albumFormat', () => {
+  const a = toDoc(baseLocal('a', {
+    albumLinerNote: { 'Album X': 'first draft' },
+    updatedAt: { albumLinerNote: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumLinerNote: { 'Album X': 'second draft', 'Album Y': 'notes for Y' },
+    updatedAt: { albumLinerNote: { 'Album X': { seq: 2, at: 500 }, 'Album Y': { seq: 1, at: 100 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.albumLinerNote, { 'Album X': 'second draft', 'Album Y': 'notes for Y' });
+});
+
+test('GF7: a later "Use the notes from the files" tombstone (value: null) beats an earlier liner-note override', () => {
+  const a = toDoc(baseLocal('a', {
+    albumLinerNote: { 'Album X': 'your own notes' },
+    updatedAt: { albumLinerNote: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumLinerNote: {},
+    updatedAt: { albumLinerNote: { 'Album X': { seq: 2, at: 500 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  // the tombstone wins and the key disappears entirely -- the same "use
+  // the notes from the files" result as if no override had ever existed.
+  assert.deepEqual(merged.itemWrites.albumLinerNote, {});
+});
+
+test('GF7: a doc with no albumLinerNote field at all merges as an empty map, not a throw', () => {
+  const a = toDoc(baseLocal('a'));
+  delete a.itemWrites.albumLinerNote;
+  const merged = mergeRows([a]);
+  assert.deepEqual(merged.itemWrites.albumLinerNote, {});
+});
+
 test('RF17: a later change to one key of a map field never clobbers an earlier change to a different key of the same field', () => {
   const a = toDoc(baseLocal('a', {
     albumSort: { 'Album X': 'manual' },

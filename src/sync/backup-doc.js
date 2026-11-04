@@ -326,6 +326,12 @@ export function toDoc(localState){
       // (see sync/backup.js's queueBackCoverUpload/applyBackCovers) --
       // this entry is only ever the claim, never the bytes.
       albumBackCover: itemWriteEntries(s.albumBackCover, updatedAt.albumBackCover, s.deviceId),
+      // GF7 (docs/29_GATEFOLD.md): the album-keyed liner-notes override --
+      // plain text | tombstoned to null on "Use the notes from the files"
+      // -- same per-key last-write-wins shape as albumFormat above, never
+      // part of the social payload (miziki-social.js's buildItems()
+      // doesn't read it).
+      albumLinerNote: itemWriteEntries(s.albumLinerNote, updatedAt.albumLinerNote, s.deviceId),
       prefs: itemWriteEntries(s.prefs, updatedAt.prefs, s.deviceId),
       playlistDefs: playlistParts.playlistDefs,
       playlistOrder: playlistParts.playlistOrder,
@@ -572,7 +578,7 @@ export function validateDoc(doc){
   if(!isStringArray(sealed.broken || [])) return false;
 
   const itemWrites = doc.itemWrites || {};
-  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'albumBackCover', 'prefs', 'playlistDefs', 'playlistOrder'];
+  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'albumBackCover', 'albumLinerNote', 'prefs', 'playlistDefs', 'playlistOrder'];
   if(!itemWriteFields.every(f => isItemWritesArray(itemWrites[f] || []))) return false;
 
   const playlistMembership = doc.playlistMembership || [];

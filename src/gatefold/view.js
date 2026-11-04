@@ -19,7 +19,7 @@ import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../r
 import { etchingFor } from '../record-art/etchings.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
 import { albumTracks } from '../library/model.js';
-import { albumLinerNotes, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
+import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
 import { fmt } from '../util/text.js';
@@ -359,8 +359,31 @@ export function gatefoldSocialControlsHTML(item){
 // Exported (docs/17_SINGLES.md) so the picture-sleeve view can reuse the
 // gatefold's own left-panel content wholesale (liner notes/credits, the
 // meta line, and the shared social controls) rather than a second copy.
+// GF7 (docs/29_GATEFOLD.md): the "Liner notes · yours" heading + Edit
+// button at the top of the panel, every reader's one entry point into
+// openLinerEditSheet() below. Lives inside buildGatefoldLeftPanel's own
+// .gf-left-panel wrapper, not a fixed row like gatefoldSocialControlsHTML
+// (GF1 point 6) -- it scrolls with the notes it labels.
+function buildLinerNotesHeading(item){
+  const row = el('div','gf-liner-head');
+  const label = el('p','gf-liner-label');
+  label.appendChild(document.createTextNode('Liner notes'));
+  if(albumLinerNoteIsOverride(item.album)){
+    label.appendChild(document.createTextNode(' · '));
+    label.appendChild(el('span','gf-liner-yours','yours'));
+  }
+  row.appendChild(label);
+  const editBtn = el('button', 'gf-liner-edit-btn', 'Edit');
+  editBtn.type = 'button';
+  editBtn.setAttribute('aria-label', 'Edit liner notes');
+  editBtn.addEventListener('click', () => openLinerEditSheet(item));
+  row.appendChild(editBtn);
+  return row;
+}
+
 export function buildGatefoldLeftPanel(item){
-  const host = document.createDocumentFragment();
+  const host = el('div', 'gf-left-panel');
+  host.appendChild(buildLinerNotesHeading(item));
   const liner = albumLinerNotes(item.album);
   const roll = albumCreditRoll(item.album);
   if(!liner && !roll.size){
@@ -368,7 +391,9 @@ export function buildGatefoldLeftPanel(item){
     const metaBits = [item.year || null, item.genre || null,
       item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
     host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
-    host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
+    // GF7: the same empty state, now a call to action since the heading
+    // right above it carries the one way in to add any.
+    host.appendChild(el('p','gf-minimal-note','Add liner notes.'));
     // GF1 (docs/29_GATEFOLD.md point 3): "THE MASTER block... now on the
     // phone too" -- shown whenever the album has been measured, regardless
     // of whether it has liner notes/credits of its own.
@@ -684,6 +709,60 @@ export function refreshGatefoldBackCover(){
 // no-op cleanly instead of guessing.
 export function currentGatefoldAlbumId(){
   return GF ? GF.item.albumId : null;
+}
+
+// GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet. `item` comes
+// straight from whichever buildLinerNotesHeading() Edit button was
+// tapped (the gatefold, its short-mode flat body, or a picture sleeve --
+// buildGatefoldLeftPanel() is shared by all three), not from GF, so this
+// works from any of them, not just the gatefold proper.
+let linerEditItem = null;
+export function openLinerEditSheet(item){
+  linerEditItem = item;
+  $('#linerEditArtist').textContent = item.artist;
+  $('#linerEditAlbum').textContent = item.album;
+  $('#linerEditText').value = albumLinerNotes(item.album);
+  const source = albumLinerNotesSource(item.album);
+  const box = $('#linerEditSourceBox');
+  if(source){
+    box.style.display = '';
+    $('#linerEditSourceText').textContent = source.text;
+    $('#linerEditSourceFile').textContent = 'COMMENT · ' + source.fileName;
+  } else {
+    box.style.display = 'none';
+  }
+  $('#linerEditRevert').style.display = albumLinerNoteIsOverride(item.album) ? '' : 'none';
+  const overlay = $('#linerEditOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  openLayer('liner-edit', closeLinerEditSheet, { container: overlay });
+}
+export function closeLinerEditSheet(){
+  $('#linerEditOverlay').classList.remove('open');
+  $('#linerEditOverlay').setAttribute('aria-hidden', 'true');
+  linerEditItem = null;
+}
+// re-draws whichever host currently shows the panel (#gfLeft, the short-
+// mode flat body, or a picture sleeve) by replacing its .gf-left-panel
+// wrapper wholesale -- a DOM swap, not a rebuild of the host itself,
+// since #pictureSleeveBody has its own play-row sibling to leave alone.
+function refreshLinerPanel(item){
+  const panelEl = document.querySelector('.gf-left-panel');
+  if(panelEl) panelEl.replaceWith(buildGatefoldLeftPanel(item));
+}
+export function saveLinerEditSheet(){
+  if(!linerEditItem) return;
+  const item = linerEditItem;
+  setAlbumLinerNoteOverride(item.album, $('#linerEditText').value);
+  refreshLinerPanel(item);
+  closeLayer('liner-edit');
+}
+export function revertLinerEditSheet(){
+  if(!linerEditItem) return;
+  const item = linerEditItem;
+  clearAlbumLinerNoteOverride(item.album);
+  refreshLinerPanel(item);
+  closeLayer('liner-edit');
 }
 function updateBackCoverMenuState(usingCustomImage){
   const btn = $('#gfBackCoverDefaultBtn');

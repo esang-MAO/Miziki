@@ -21,6 +21,9 @@ mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
     albumLinerNotes(){ return ''; }, albumCreditRoll(){ return new Map(); },
     albumDynamicsNote(){ return null; }, buildDynamicsNoteEl(){ return {}; },
     openPersonOrArtist(){},
+    // GF7 (docs/29_GATEFOLD.md)
+    albumLinerNoteIsOverride(){ return false; }, albumLinerNotesSource(){ return null; },
+    setAlbumLinerNoteOverride(){}, clearAlbumLinerNoteOverride(){},
   },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {

@@ -88,6 +88,12 @@ export async function persistAlbumBackCover(keys){
   await meta.put('albumBackCover', S.albumBackCover);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumBackCover', k));
 }
+// GF7 (docs/29_GATEFOLD.md): the album-keyed liner-notes override — same
+// per-key persist/stamp shape as persistAlbumFormat above.
+export async function persistAlbumLinerNote(keys){
+  await meta.put('albumLinerNote', S.albumLinerNote);
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumLinerNote', k));
+}
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): written once, the first time an album
 // completes a qualifying session — never overwritten after that, so it
@@ -346,6 +352,9 @@ export async function restoreSessions(){
   // GF6 (docs/29_GATEFOLD.md)
   const albumBackCoverPref = await meta.get('albumBackCover');
   if(albumBackCoverPref) S.albumBackCover = albumBackCoverPref;
+  // GF7 (docs/29_GATEFOLD.md)
+  const albumLinerNotePref = await meta.get('albumLinerNote');
+  if(albumLinerNotePref) S.albumLinerNote = albumLinerNotePref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
   const albumFirst = await meta.get('albumFirstPlayed');

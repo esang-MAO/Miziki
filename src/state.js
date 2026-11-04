@@ -200,6 +200,13 @@ export const S = {
   // themselves live in the artwork store under 'back:<albumKey>', never
   // here -- this map is only ever the sync claim, read by sync/backup.js.
   albumBackCover:{},
+  // GF7 (docs/29_GATEFOLD.md): the album-keyed "your own liner notes"
+  // override -- plain trimmed text (capped at 4,000 chars) once edited,
+  // same per-key last-write-wins shape as albumFormat above. Absent (or
+  // tombstoned by a revert) means "use today's longest-qualifying file
+  // comment," library/credits.js's albumLinerNotes() own existing pick.
+  // Never reaches the social layer.
+  albumLinerNote:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -487,7 +494,7 @@ S.sealedBroken = new Set();
 // different shape again — see touchBackupMembership()'s own comment).
 S.backupUpdatedAt = {
   albumOrder:{}, albumSort:{}, albumDisplay:{}, trackDisplay:{},
-  albumEdge:{}, albumLookPref:{}, albumFormat:{}, albumBackCover:{}, prefs:{},
+  albumEdge:{}, albumLookPref:{}, albumFormat:{}, albumBackCover:{}, albumLinerNote:{}, prefs:{},
   playlistDefs:{}, playlistOrder:{},
   profileName:0,
   picture:0,   // step 07, B4 — the profile picture / public avatar

@@ -146,6 +146,8 @@ const {
   trackHasCreditsContent, openPersonOrArtist, creditRow,
   openCreditsSheet, closeCreditsSheet, updateCreditsButtonForCurrent,
   albumLinerNotes, albumCreditRoll, albumCreditPairs, rebuildPeopleIndex, renderPersonView,
+  // GF7 (docs/29_GATEFOLD.md)
+  albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride,
 } = await import('../../src/library/credits.js');
 const { S } = await import('../../src/state.js');
 const { emptyDetails } = await import('../../src/library/tags/index.js');
@@ -161,7 +163,7 @@ function fakeTrack(id, overrides){
 function resetState(overrides){
   Object.assign(S, {
     tracks: [], index: -1, view: { mode: 'albums', group: null, artistAlbum: null, playlist: null, picking: false, person: null },
-    albumSort: {}, albumOrder: {},
+    albumSort: {}, albumOrder: {}, albumLinerNote: {},
   }, overrides);
   elCache.clear();
   songRowMock.mock.resetCalls();
@@ -267,6 +269,53 @@ test('albumLinerNotes picks the longest qualifying comment across the album', ()
 test('albumLinerNotes returns empty string when no track has qualifying notes', () => {
   resetState({ tracks: [fakeTrack('a')] });
   assert.equal(albumLinerNotes('Album'), '');
+});
+
+// GF7 (docs/29_GATEFOLD.md)
+test('GF7: albumLinerNotes returns your own override instead of the file pick once one is set', () => {
+  const d = emptyDetails(); d.comment = 'A file comment that is definitely long enough to qualify here.';
+  resetState({ tracks: [fakeTrack('a', { details: d })] });
+  setAlbumLinerNoteOverride('Album', 'Your own liner notes, typed by hand.');
+  assert.equal(albumLinerNotes('Album'), 'Your own liner notes, typed by hand.');
+  assert.ok(albumLinerNoteIsOverride('Album'));
+});
+
+test('GF7: clearAlbumLinerNoteOverride ("use the notes from the files") reverts to the file pick', () => {
+  const d = emptyDetails(); d.comment = 'A file comment that is definitely long enough to qualify here.';
+  resetState({ tracks: [fakeTrack('a', { details: d })] });
+  setAlbumLinerNoteOverride('Album', 'Your own liner notes, typed by hand.');
+  clearAlbumLinerNoteOverride('Album');
+  assert.equal(albumLinerNotes('Album'), d.comment);
+  assert.equal(albumLinerNoteIsOverride('Album'), false);
+});
+
+test('GF7: setAlbumLinerNoteOverride trims and caps at 4,000 characters', () => {
+  resetState({ tracks: [fakeTrack('a')] });
+  setAlbumLinerNoteOverride('Album', '  padded with space  ');
+  assert.equal(albumLinerNotes('Album'), 'padded with space');
+  setAlbumLinerNoteOverride('Album', 'x'.repeat(5000));
+  assert.equal(albumLinerNotes('Album').length, 4000);
+});
+
+test('GF7: saving an empty/whitespace-only override reverts instead of saving a blank claim', () => {
+  resetState({ tracks: [fakeTrack('a')] });
+  setAlbumLinerNoteOverride('Album', 'something');
+  setAlbumLinerNoteOverride('Album', '   ');
+  assert.equal(albumLinerNoteIsOverride('Album'), false);
+});
+
+test('GF7: albumLinerNotesSource names the track whose comment was picked, independent of any override', () => {
+  const d = emptyDetails(); d.comment = 'A file comment that is definitely long enough to qualify here.';
+  resetState({ tracks: [fakeTrack('01 Track One.flac|123|0', { details: d })] });
+  setAlbumLinerNoteOverride('Album', 'Your own liner notes.');
+  const source = albumLinerNotesSource('Album');
+  assert.equal(source.text, d.comment);
+  assert.equal(source.fileName, '01 Track One.flac');
+});
+
+test('GF7: albumLinerNotesSource is null when no file has a qualifying comment', () => {
+  resetState({ tracks: [fakeTrack('a')] });
+  assert.equal(albumLinerNotesSource('Album'), null);
 });
 
 test('albumCreditRoll de-duplicates the same person+role across every track on the album', () => {

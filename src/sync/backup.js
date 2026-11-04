@@ -194,6 +194,9 @@ function buildLocalState(){
     // GF6 (docs/29_GATEFOLD.md): the back-cover image claim — same
     // per-key last-write-wins shape as albumFormat just above.
     albumBackCover: S.albumBackCover,
+    // GF7 (docs/29_GATEFOLD.md): the liner-notes override — same per-key
+    // last-write-wins shape as albumFormat/albumBackCover just above.
+    albumLinerNote: S.albumLinerNote,
     // D2 (docs/DESKTOP_LAYOUT.md): theme is device-only by that doc's own
     // default -- stripped here, not in serializePrefs itself, since it's
     // still a perfectly normal local pref (saveMeta()'s own
@@ -728,6 +731,10 @@ async function applyMerged(merged, ownLocal, client, uid){
   S.albumBackCover = merged.itemWrites.albumBackCover;
   meta.put('albumBackCover', S.albumBackCover).catch(() => {});
   applyBackCovers(merged.itemWrites.albumBackCover, prevBackCovers, client, uid).catch(() => {});
+  // GF7 (docs/29_GATEFOLD.md): plain text, no bytes to fetch — a wholesale
+  // assign is the whole job, same as albumFormat above.
+  S.albumLinerNote = merged.itemWrites.albumLinerNote;
+  meta.put('albumLinerNote', S.albumLinerNote).catch(() => {});
   applyPrefsPatch(merged.itemWrites.prefs);
   applyLastWriteField('profileName', merged.lastWrite.profileName, v => { if(typeof v === 'string') S.profile.name = v; });
   // step 07, B4 — the picture itself is fetched lazily by

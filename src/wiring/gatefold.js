@@ -8,6 +8,7 @@ import { $ } from '../util/dom.js';
 import {
   gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver,
   currentGatefoldAlbumId, refreshGatefoldBackCover,
+  saveLinerEditSheet, revertLinerEditSheet,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
@@ -72,4 +73,12 @@ export function wireGatefold(){
     await clearAlbumBackCoverImage(albumId);
     refreshGatefoldBackCover();
   });
+
+  // GF7 (docs/29_GATEFOLD.md): the liner-notes sheet's own Cancel/Save/
+  // "Use the notes from the files" -- opened from buildLinerNotesHeading()'s
+  // Edit button (src/gatefold/view.js), wired here once like every other
+  // static gatefold control.
+  $('#linerEditCancel').addEventListener('click', () => closeLayer('liner-edit'));
+  $('#linerEditSave').addEventListener('click', saveLinerEditSheet);
+  $('#linerEditRevert').addEventListener('click', revertLinerEditSheet);
 }

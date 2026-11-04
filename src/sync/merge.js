@@ -390,6 +390,11 @@ export function mergeRows(rows){
       // (value: null, "Use Miziki default") drops the key from the
       // merged map entirely, same as every other keyed field here.
       albumBackCover: mergeKeyedLastWriteWins(rows, 'albumBackCover'),
+      // GF7 (docs/29_GATEFOLD.md): the liner-notes override — same
+      // per-key last-write-wins shape as albumFormat above; a tombstone
+      // (value: null, "Use the notes from the files") drops the key from
+      // the merged map entirely, same as every other keyed field here.
+      albumLinerNote: mergeKeyedLastWriteWins(rows, 'albumLinerNote'),
       prefs: mergeKeyedLastWriteWins(rows, 'prefs'),
       playlistDefs: mergeKeyedLastWriteWins(rows, 'playlistDefs'),
       playlistOrder: mergeKeyedLastWriteWins(rows, 'playlistOrder'),
