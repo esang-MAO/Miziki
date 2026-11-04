@@ -70,6 +70,11 @@
   font-family:var(--display);margin:10px 0 2px}
 .gf-side-head b{color:var(--cream);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
 .gf-side-head span{font-family:var(--body);color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
+/* GF4 point 2: "DISC N" eyebrow, same caps/track-caps voice as .gf-tl-head
+   above it, repeated once per disc rather than once for the whole album. */
+.gf-disc-eyebrow{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
+.gf-disc-eyebrow:first-child{margin-top:0}
 .gf-track-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   min-height:44px;padding-block:9px;border-radius:4px}
 .gf-track-row:active{background:var(--sel);transition:background .12s}
@@ -191,10 +196,27 @@
     transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2));
   -webkit-mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2) at 50% 0,
     transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2))}
+/* GF4 point 1/3: #gfSleevePockets wraps every pocket. A single disc (the
+   default, unchanged from GF3) needs no layout of its own -- display:contents
+   keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before.
+   Two or more discs (.gf-multi-disc, set by gatefoldBuildSleevePockets())
+   switch to a horizontally-scrolling row instead, one pocket per disc,
+   never shrinking below the single-disc size. */
+.gf-sleeve-pockets{display:contents}
+.gf-sleeve-pockets.gf-multi-disc{position:absolute;inset:0;display:flex;align-items:flex-start;
+  gap:var(--sp-5);overflow-x:auto;padding:0 calc(50% - var(--gf-disc-size,156px) / 2)}
 .gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:var(--gf-disc-size,156px);height:var(--gf-disc-size,156px);margin-left:calc(var(--gf-disc-size,156px) / -2);
   opacity:1;transition:transform .25s ease-out,opacity .3s}
+.gf-multi-disc .gf-sleeve-disc-wrap{position:relative;left:auto;top:auto;margin-left:0;flex:0 0 var(--gf-disc-size,156px)}
 .gf-sleeve-disc-wrap.gf-disc-out{transform:translateY(-96px)}
-.gf-sleeve-disc-wrap.gf-disc-empty{opacity:0}
+/* GF4 point 1: only the disc itself (and its dead wax, below) fades out
+   when a pocket is "on the platter" -- the pocket wrap stays opaque so
+   its own .gf-disc-on-platter label (next) can show in its place. */
+.gf-sleeve-disc-wrap.gf-disc-empty .disc{opacity:0}
+.gf-disc-on-platter{position:absolute;inset:8% 4%;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .3s;pointer-events:none}
+.gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-on-platter{opacity:1}
 /* GF3 point 2: the pocket disc's own label scales with the record's real
    size -- the same [data-size]-keyed ratios 02-stage-platter.css already
    uses for the big spinning platter ("the same ratios... a 7″ label

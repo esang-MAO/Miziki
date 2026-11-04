@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHANGE_TIMELINE, GROOVE, FLIP, changeLandsAt, grooveThumpTimes, splitSides, sideTurn,
-  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor,
+  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor, discGroupsFor,
 } from '../../src/shell/ceremony-timing.js';
 
 test('the change timeline: new sleeve arrives at 1200 ms over 700 ms, landing at 1900 ms', () => {
@@ -106,6 +106,30 @@ test('splitSides: a disc with fewer than two tracks of its own stays one side, n
   assert.deepEqual(s[0].idx, [0,1]);
   assert.deepEqual(s[1].idx, [2]);
   assert.deepEqual(s[2].idx, [3]);
+});
+
+// GF4 (docs/29_GATEFOLD.md point 1/2): one group per disc, each holding
+// every track index on that disc together (not split into sides) -- the
+// gatefold's own sleeve-pocket count and "Disc N" tracklist eyebrow both
+// read off this, independent of splitSides()'s own A/B/C/D side split.
+test('discGroupsFor: a single-disc album is one group holding every track', () => {
+  const t = [1,1,1].map(d => ({tags:{disc:d}}));
+  assert.deepEqual(discGroupsFor([0,1,2], t), [{disc:1, idx:[0,1,2]}]);
+});
+
+test('discGroupsFor: a double album is two groups, one per disc', () => {
+  const t = [1,1,2,2].map(d => ({tags:{disc:d}}));
+  assert.deepEqual(discGroupsFor([0,1,2,3], t), [{disc:1, idx:[0,1]}, {disc:2, idx:[2,3]}]);
+});
+
+test('discGroupsFor: a disc with a single track still gets its own group', () => {
+  const t = [...[1,1].map(d => ({tags:{disc:d}})), {tags:{disc:2}}];
+  assert.deepEqual(discGroupsFor([0,1,2], t), [{disc:1, idx:[0,1]}, {disc:2, idx:[2]}]);
+});
+
+test('discGroupsFor: no track indices returns no groups', () => {
+  assert.deepEqual(discGroupsFor(null, []), []);
+  assert.deepEqual(discGroupsFor([], []), []);
 });
 
 test('sideTurn: only the last track of a side onto the first of the next', () => {
