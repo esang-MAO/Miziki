@@ -29,6 +29,7 @@ import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { gatefoldGeometry } from './geometry.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -43,6 +44,28 @@ document.documentElement.style.setProperty('--gatefold-push-duration', GATEFOLD_
 document.documentElement.style.setProperty('--gatefold-close-duration', GATEFOLD_ANIM.closeMs + 'ms');
 document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_ANIM.swingEasing);
 
+// GF2 point 1: the drag-down-to-close thresholds -- past 120px of travel,
+// or a release velocity past 0.6px/ms (a short, sharp flick covers much
+// less than 120px but still clearly means "close"), commits; short of
+// both, the overlay springs back.
+const GF_CLOSE_DRAG_DISTANCE = 120;
+const GF_CLOSE_DRAG_VELOCITY = 0.6;
+
+// GF2 (docs/29_GATEFOLD.md point 2): the one place that reads
+// gatefoldGeometry() and publishes it as CSS custom properties, the same
+// "compute once, push as a var" shape GATEFOLD_ANIM already uses just
+// above -- 11-gatefold.css's .gf-camera/.gf-right/.gf-cover/.gf-left-cue/
+// .gf-right-cue/#gfLeftActions/.gf-sleeve-disc-wrap read these instead of
+// their own copies of the same literals, and every pan distance below
+// reads GF_GEOM.panDistance instead of a bare 175. format/viewport aren't
+// passed yet -- this PR's numbers don't vary by either.
+const GF_GEOM = gatefoldGeometry();
+document.documentElement.style.setProperty('--gf-ref-w', GF_GEOM.referenceWidth + 'px');
+document.documentElement.style.setProperty('--gf-ref-h', GF_GEOM.referenceHeight + 'px');
+document.documentElement.style.setProperty('--gf-panel-size', GF_GEOM.panelSize + 'px');
+document.documentElement.style.setProperty('--gf-pan', GF_GEOM.panDistance + 'px');
+document.documentElement.style.setProperty('--gf-disc-size', GF_GEOM.discDiameter + 'px');
+
 export let GF = null;   // ephemeral render state for the open gatefold; null when closed
 
 export function isGatefoldOpen(){ return !!GF; }
@@ -56,7 +79,7 @@ function gatefoldViewportMode(){
 
 export function updateGatefoldScale(){
   if(!GF) return;
-  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / 390, window.innerHeight / 740);
+  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / GF_GEOM.referenceWidth, window.innerHeight / GF_GEOM.referenceHeight);
   document.documentElement.style.setProperty('--gf-page-scale', s);
 }
 
@@ -525,7 +548,7 @@ export function gatefoldSwitchPanel(panel){
   const camera = $('#gfCamera');
   if(GF.mode !== 'wide'){
     camera.style.transition = 'transform ' + GATEFOLD_ANIM.leftPanelMs + 'ms ease';
-    camera.style.setProperty('--gf-cx', panel === 'left' ? '-175px' : '175px');
+    camera.style.setProperty('--gf-cx', (panel === 'left' ? -GF_GEOM.panDistance : GF_GEOM.panDistance) + 'px');
   }
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
@@ -567,8 +590,8 @@ function gatefoldWireGestures(){
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if(!start.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) start.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
     if(start.locked === 'h' && GF.mode !== 'wide'){
-      const base = GF.panel === 'left' ? -175 : 175;
-      const next = clamp(base + dx * 0.5, -175, 175);
+      const base = GF.panel === 'left' ? -GF_GEOM.panDistance : GF_GEOM.panDistance;
+      const next = clamp(base + dx * 0.5, -GF_GEOM.panDistance, GF_GEOM.panDistance);
       $('#gfCamera').style.transition = 'none';
       $('#gfCamera').style.setProperty('--gf-cx', next + 'px');
     }
@@ -611,18 +634,59 @@ function gatefoldWireGestures(){
   flatBody.addEventListener('pointerup', onFlatUp);
   flatBody.addEventListener('pointercancel', onFlatUp);
 
+  // GF2 point 1: drag the info strip down and the whole overlay follows the
+  // finger live (translateY + a matching opacity fade), with pointer
+  // capture so a fast drag that leaves #gfInfo's own bounds still delivers
+  // its move/up events here. Release past GF_CLOSE_DRAG_DISTANCE *or*
+  // GF_CLOSE_DRAG_VELOCITY (a flick, even a short one) commits: the drag
+  // transform clears and closeLayer('gatefold') takes over with its own
+  // close animation (the swing/fade §A3 already plays). Short of either
+  // threshold, it springs back to rest with a plain transition instead.
+  // REDUCED skips the live follow (no transform writes while dragging) but
+  // still decides commit-vs-spring-back on release from the same distance/
+  // velocity the finger actually moved, so it isn't just the old flat
+  // "any downward motion closes" check.
   let infoDrag = null;
-  const onInfoDown = e => { infoDrag = e.clientY; };
-  const onInfoMove = e => {
-    if(infoDrag == null) return;
-    const dy = e.clientY - infoDrag;
-    if(dy > 50) closeLayer('gatefold');
+  const onInfoDown = e => {
+    infoDrag = { startY: e.clientY, lastY: e.clientY, lastT: performance.now(), dy: 0, v: 0 };
+    info.setPointerCapture?.(e.pointerId);
   };
-  const onInfoUp = () => { infoDrag = null; };
+  const resetInfoDragTransform = () => {
+    const overlay = $('#gatefold');
+    overlay.style.transition = 'transform 200ms ease, opacity 200ms ease';
+    overlay.style.transform = '';
+    overlay.style.opacity = '';
+  };
+  const onInfoMove = e => {
+    if(!infoDrag) return;
+    const dy = Math.max(0, e.clientY - infoDrag.startY);
+    const now = performance.now();
+    const dt = now - infoDrag.lastT;
+    if(dt > 0) infoDrag.v = (e.clientY - infoDrag.lastY) / dt;
+    infoDrag.lastY = e.clientY; infoDrag.lastT = now; infoDrag.dy = dy;
+    if(REDUCED || !dy) return;
+    const overlay = $('#gatefold');
+    overlay.style.transition = 'none';
+    overlay.style.transform = 'translateY(' + dy + 'px)';
+    overlay.style.opacity = String(Math.max(0.4, 1 - dy / 500));
+  };
+  const onInfoUp = e => {
+    if(!infoDrag) return;
+    const { dy, v } = infoDrag;
+    infoDrag = null;
+    info.releasePointerCapture?.(e.pointerId);
+    if(dy > 0 && (dy > GF_CLOSE_DRAG_DISTANCE || v > GF_CLOSE_DRAG_VELOCITY)){
+      $('#gatefold').style.transform = ''; $('#gatefold').style.opacity = '';
+      closeLayer('gatefold');
+    } else if(dy > 0){
+      resetInfoDragTransform();
+    }
+  };
   const info = $('#gfInfo');
   info.addEventListener('pointerdown', onInfoDown);
   info.addEventListener('pointermove', onInfoMove);
   info.addEventListener('pointerup', onInfoUp);
+  info.addEventListener('pointercancel', onInfoUp);
 
   gfDragCleanup = () => {
     stage.removeEventListener('pointerdown', onDown);
@@ -636,6 +700,9 @@ function gatefoldWireGestures(){
     info.removeEventListener('pointerdown', onInfoDown);
     info.removeEventListener('pointermove', onInfoMove);
     info.removeEventListener('pointerup', onInfoUp);
+    info.removeEventListener('pointercancel', onInfoUp);
+    const overlay = $('#gatefold');
+    overlay.style.transform = ''; overlay.style.transition = ''; overlay.style.opacity = '';
   };
 }
 
@@ -643,7 +710,7 @@ function gatefoldSettledState(mode){
   const camera = $('#gfCamera'), cover = $('#gfCover');
   camera.style.transition = 'none';
   camera.style.setProperty('--gf-s', mode === 'wide' ? '1' : '.55');
-  camera.style.setProperty('--gf-cx', mode === 'wide' ? '175px' : '0px');
+  camera.style.setProperty('--gf-cx', mode === 'wide' ? GF_GEOM.panDistance + 'px' : '0px');
   cover.style.transition = 'none';
   cover.style.transform = 'rotateY(-180deg)';
   $('#gfShadow').style.opacity = '0';
@@ -675,7 +742,7 @@ async function runGatefoldOpen(mode){
   } else {
     camera.style.transition = 'none';
     camera.style.setProperty('--gf-s', '1');
-    camera.style.setProperty('--gf-cx', '175px');
+    camera.style.setProperty('--gf-cx', GF_GEOM.panDistance + 'px');
     cover.style.transition = 'none';
     cover.style.transform = 'rotateY(0deg)';
     overlay.style.opacity = '0';
@@ -701,7 +768,7 @@ async function runGatefoldOpen(mode){
 
     if(mode !== 'wide'){
       camera.style.transition = 'transform ' + GATEFOLD_ANIM.pushMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
-      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', '175px');
+      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', GF_GEOM.panDistance + 'px');
     }
     overlay.classList.add('gf-chrome-in');
     await sleep(GATEFOLD_ANIM.pushMs);
