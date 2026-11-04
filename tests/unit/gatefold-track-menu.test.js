@@ -58,6 +58,21 @@ mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {}, isAlbumSealed(){ return false; }, sealedQuietPlay(){} },
 });
+// GF12 (docs/29_GATEFOLD.md): view.js now also imports library/view.js
+// directly (for the "···" menu's own Remove album/Track order rows), plus
+// library/delete.js and storage/meta.js — same "stop the chain at the
+// door" reasoning as the library/sealed.js mock just above.
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: {
+    openConfirmDelete(){}, renderTracks(){}, moverCtl(){ return { tagName: 'SPAN' }; }, syncQueueOrder(){},
+  },
+});
+mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
+  namedExports: { countForAlbum(){ return 1; }, deleteAlbum(){} },
+});
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave(){} },
+});
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });

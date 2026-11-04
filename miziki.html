@@ -1402,15 +1402,19 @@
   <input id="gfBackCoverFile" type="file" accept="image/*" style="display:none">
   <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
 
-  <!-- GF11 (docs/29_GATEFOLD.md point 3): "Share and Pin stay reachable
-       at night from the record's ··· menu" -- the opener button is built
-       by gatefoldInfoAndSleeveHTML() (src/gatefold/view.js) only while
-       GF.night, same .overflow-menu/.overflow-scrim shape as
-       #gfBackCoverMenu above, positioned off that button's own rect. -->
-  <div class="overflow-scrim" id="gfNightMenuScrim"></div>
-  <div class="overflow-menu" id="gfNightMenu" role="menu">
-    <button class="overflow-menu-row" id="gfNightShareBtn" role="menuitem">Share record</button>
-    <button class="overflow-menu-row" id="gfNightPinBtn" role="menuitem">Pin to crate</button>
+  <!-- GF11 (docs/29_GATEFOLD.md point 3), generalized by GF12 into an
+       always-present "record options" menu: the opener button is built
+       by gatefoldInfoAndSleeveHTML() (src/gatefold/view.js) every open,
+       same .overflow-menu/.overflow-scrim shape as #gfBackCoverMenu
+       above, positioned off that button's own rect. Share record/Pin to
+       crate only show while GF.night (daytime already shows the real
+       inline buttons); Track order/Remove album always show. -->
+  <div class="overflow-scrim" id="gfMoreMenuScrim"></div>
+  <div class="overflow-menu" id="gfMoreMenu" role="menu">
+    <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
+    <button class="overflow-menu-row" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
+    <button class="overflow-menu-row" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
+    <button class="overflow-menu-row" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album</button>
   </div>
 
   <!-- GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet (frame
@@ -1490,6 +1494,13 @@
       </div>
     </div>
   </div>
+  <!-- GF12 (docs/29_GATEFOLD.md) point 3: desktop's wide spread's own
+       primary action, under the left info column -- replacing the
+       retired desktop detail panel's own Play affordance. Hidden outside
+       .gf-wide (11-gatefold.css), where every track row's own tap
+       already covers playing a track, and there's no room for a second,
+       redundant play button. -->
+  <button class="cta gf-play-record-btn" id="gfPlayRecordBtn" type="button">▶ Play the record</button>
   <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
     <button data-panel="right" aria-pressed="true">Tracks</button>
     <button data-panel="left" aria-pressed="false">Inside</button>

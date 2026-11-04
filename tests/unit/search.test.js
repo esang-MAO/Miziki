@@ -46,6 +46,7 @@ const groupRowMock = mock.fn((_label, _sub, _idx, _onTap) => fakeEl());
 const songRowMock = mock.fn((_i) => fakeEl());
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
+const openAlbumFromLibraryMock = mock.fn();
 // Since step 7d, search.js's renderTracks/groupRow/songRow imports are
 // real (from src/library/view.js) instead of main.js — mocked directly
 // here, same "stop the chain at the door" reasoning as the rest of this
@@ -57,6 +58,7 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: {
     renderTracks: renderTracksMock,
     groupRow: groupRowMock, songRow: songRowMock,
+    openAlbumFromLibrary: openAlbumFromLibraryMock,
   },
 });
 // Since step 7b, favorites.js's REDUCED, credits.js's closePlayer/showRoute
