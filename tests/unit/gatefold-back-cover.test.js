@@ -9,7 +9,32 @@ import assert from 'node:assert/strict';
 mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
   namedExports: { wordmarkEl(){ return { classList: { add(){} } }; } },
 });
-const { buildBackCoverData } = await import('../../src/gatefold/back-cover.js');
+// GF6: setAlbumBackCoverImage()/clearAlbumBackCoverImage()/
+// getAlbumBackCoverBlob() go through storage/repo.js's artwork store (real
+// IndexedDB) and sync/backup.js's upload/claim bookkeeping (network) --
+// both mocked here to an in-memory stand-in, the usual "stop the chain at
+// the door" reasoning; sync/backup.js's own merge/claim logic is covered
+// by tests/unit/backup-merge.test.js instead.
+const artworkStore = new Map();
+mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
+  namedExports: {
+    artwork: {
+      get(id){ return Promise.resolve(artworkStore.get(id) || null); },
+      put(rec){ artworkStore.set(rec.id, rec); return Promise.resolve(); },
+      del(id){ artworkStore.delete(id); return Promise.resolve(); },
+    },
+  },
+});
+const backupCalls = { uploads: [], clears: [] };
+mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
+  namedExports: {
+    queueBackCoverUpload(albumId, blob){ backupCalls.uploads.push({ albumId, blob }); },
+    clearBackCoverClaim(albumId){ backupCalls.clears.push(albumId); },
+  },
+});
+const {
+  buildBackCoverData, getAlbumBackCoverBlob, setAlbumBackCoverImage, clearAlbumBackCoverImage,
+} = await import('../../src/gatefold/back-cover.js');
 const { matrixTail } = await import('../../src/record-art/etchings.js');
 const { S } = await import('../../src/state.js');
 
@@ -90,4 +115,28 @@ test('buildBackCoverData: a 12″ back never caps -- every track is shown, no ov
   const totalShown = data.sides.reduce((s, side) => s + side.tracks.length, 0);
   assert.equal(totalShown, 10);
   assert.ok(data.sides.every(s => s.overflow === 0));
+});
+
+// GF6 (docs/29_GATEFOLD.md §GF6): the back-cover photo's own storage --
+// album-keyed ('back:<albumKey>'), no new store/schema bump.
+test('GF6: getAlbumBackCoverBlob reads nothing for an album with no stored image', async () => {
+  const blob = await getAlbumBackCoverBlob('no-such-album');
+  assert.equal(blob, null);
+});
+
+test('GF6: setAlbumBackCoverImage stores the blob and queues the sync claim', async () => {
+  backupCalls.uploads.length = 0;
+  const blob = { size: 1 };
+  await setAlbumBackCoverImage('album-set', blob);
+  assert.equal(await getAlbumBackCoverBlob('album-set'), blob);
+  assert.equal(backupCalls.uploads.length, 1);
+  assert.deepEqual(backupCalls.uploads[0], { albumId: 'album-set', blob });
+});
+
+test('GF6: clearAlbumBackCoverImage ("Use Miziki default") removes the stored image and tombstones the claim', async () => {
+  backupCalls.clears.length = 0;
+  await setAlbumBackCoverImage('album-clear', { size: 1 });
+  await clearAlbumBackCoverImage('album-clear');
+  assert.equal(await getAlbumBackCoverBlob('album-clear'), null);
+  assert.deepEqual(backupCalls.clears, ['album-clear']);
 });

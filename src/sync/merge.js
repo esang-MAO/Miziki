@@ -385,6 +385,11 @@ export function mergeRows(rows){
       // AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
       // same per-key last-write-wins shape as albumLookPref above.
       albumFormat: mergeKeyedLastWriteWins(rows, 'albumFormat'),
+      // GF6 (docs/29_GATEFOLD.md): the back-cover image claim — same
+      // per-key last-write-wins shape as albumFormat above; a tombstone
+      // (value: null, "Use Miziki default") drops the key from the
+      // merged map entirely, same as every other keyed field here.
+      albumBackCover: mergeKeyedLastWriteWins(rows, 'albumBackCover'),
       prefs: mergeKeyedLastWriteWins(rows, 'prefs'),
       playlistDefs: mergeKeyedLastWriteWins(rows, 'playlistDefs'),
       playlistOrder: mergeKeyedLastWriteWins(rows, 'playlistOrder'),

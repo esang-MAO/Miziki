@@ -5,8 +5,47 @@
    single generic handler that closes whichever registered layer is
    topmost, for every overlay in the app — not here. */
 import { $ } from '../util/dom.js';
-import { gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver } from '../gatefold/view.js';
-import { closeLayer } from '../shell/nav-stack.js';
+import {
+  gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver,
+  currentGatefoldAlbumId, refreshGatefoldBackCover,
+} from '../gatefold/view.js';
+import { cropSquareImage } from '../library/edit.js';
+import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
+import { closeLayer, openLayer } from '../shell/nav-stack.js';
+
+// GF6 (docs/29_GATEFOLD.md): "a ··· button on the back opens a small
+// menu" -- same popover-off-its-own-button shape as the player/library
+// headers' own "···" menus (src/shell/player-overlay.js's
+// openPlayerOverflowMenu()), reusing their .overflow-menu/.overflow-scrim
+// look rather than a new component.
+function openBackCoverMenu(){
+  const btn = $('#gfBackCoverMoreBtn'), r = btn.getBoundingClientRect();
+  const menu = $('#gfBackCoverMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#gfBackCoverMenuScrim').classList.add('open');
+  menu.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  openLayer('gf-back-cover-menu', closeBackCoverMenu, { container: [menu, $('#gfBackCoverMenuScrim')] });
+}
+function closeBackCoverMenu(){
+  $('#gfBackCoverMenuScrim').classList.remove('open');
+  $('#gfBackCoverMenu').classList.remove('open');
+  $('#gfBackCoverMoreBtn').setAttribute('aria-expanded', 'false');
+}
+function isBackCoverMenuOpen(){ return $('#gfBackCoverMenu').classList.contains('open'); }
+
+async function handleGfBackCoverFile(e){
+  const file = e.target.files[0];
+  e.target.value = '';
+  const albumId = currentGatefoldAlbumId();
+  if(!file || !albumId) return;
+  try{
+    const blob = await cropSquareImage(file, 800);
+    await setAlbumBackCoverImage(albumId, blob);
+    refreshGatefoldBackCover();
+  }catch(_err){ /* bad image -- leave whatever was already showing */ }
+}
 
 export function wireGatefold(){
   $('#gfBack').addEventListener('click', () => closeLayer('gatefold'));
@@ -18,4 +57,19 @@ export function wireGatefold(){
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);
   $('#sealSheetClose').addEventListener('click', () => closeLayer('sealed-sheet'));
+
+  // GF6
+  $('#gfBackCoverMoreBtn').addEventListener('click', () => isBackCoverMenuOpen() ? closeLayer('gf-back-cover-menu') : openBackCoverMenu());
+  $('#gfBackCoverMenuScrim').addEventListener('click', () => closeLayer('gf-back-cover-menu'));
+  $('#gfBackCoverChooseBtn').addEventListener('click', () => { closeLayer('gf-back-cover-menu'); $('#gfBackCoverFile').click(); });
+  $('#gfBackCoverPhotoBtn').addEventListener('click', () => { closeLayer('gf-back-cover-menu'); $('#gfBackCoverCameraFile').click(); });
+  $('#gfBackCoverFile').addEventListener('change', handleGfBackCoverFile);
+  $('#gfBackCoverCameraFile').addEventListener('change', handleGfBackCoverFile);
+  $('#gfBackCoverDefaultBtn').addEventListener('click', async () => {
+    const albumId = currentGatefoldAlbumId();
+    closeLayer('gf-back-cover-menu');
+    if(!albumId) return;
+    await clearAlbumBackCoverImage(albumId);
+    refreshGatefoldBackCover();
+  });
 }

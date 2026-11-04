@@ -25,7 +25,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 - `src/ui/` — `path-note.js`, `haptic.js`, `theme.js` (Auto/Light/Dark/Nychthemeron).
 - `src/theme-boot.js` — anti-flash head script: sets `data-theme` from a `localStorage` mirror before CSS applies.
 - `src/library/` — `model.js`; `tags/` (byte-level format parsers, pure); `import.js` (import loop, dup detection, loudness/hook measurement); `duplicates-ui.js`; `edit.js` (overlay edits, undo, format override); `delete.js` (deletion, Forget Library — clears only `tracks`/crate-art/thumbnails, never stats/settings); `duplicate-scan.js`; `credits.js`; `artist-shelves.js` (the artist page's local shelves — Your most spun, You & [artist], Your pressings — read-only over on-device stats, docs/21_ARTIST_PAGE.md); `connected.js` (the artist page's Connected shelf — related artists' records from the shared MusicBrainz cache, docs/20_CONNECTED.md); `favorites.js` (system playlist); `search.js`; `view.js` (library screen render/select, `renderTracks`); `sealed.js`; `thumbs.js` (thumbnail gen/healing).
-- `src/gatefold/` — `view.js` (open/close, tracklist, side splits, hand-off); `sealed-sheet.js`; `picture-sleeve.js` (single-track singles). Planned: docs/29_GATEFOLD.md.
+- `src/gatefold/` — `view.js` (open/close, tracklist, side splits, hand-off, the back-cover turn-over); `back-cover.js` (the Miziki default back's data/DOM builder, plus GF6's own back-cover photo storage/sync hooks); `sealed-sheet.js`; `picture-sleeve.js` (single-track singles). Ongoing plan: docs/29_GATEFOLD.md (GF0-GF6 done).
 - `src/history/` — the only place writing listening counters: `played.js`, `sessions.js`, `clear.js`, `achievements.js`.
 - `src/profile/` — `badges.js`; `records.js` (pressings & metals screen); `rhythm-card.js`; `storefront.js` (shared by the profile's own storefront and a friend's); `settings.js` (sign-in, Account screen, device list); `privacy.js`; `legal.js` (synced with `docs/PRIVACY_POLICY.md`/`docs/TERMS_OF_USE.md`); `screens.js` (`renderProfile`, Settings screen).
 - `src/social/screens/` — `friend-store.js` (social nav stack, a friend's storefront, the record sheet); `home.js`. `src/social/demo.js` — `?social=demo` fixtures, dynamically imported so they never ship to users.
@@ -66,10 +66,10 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   | `S.sealed` | backed up | broken anywhere stays broken everywhere |
   | `sessions` store (in-progress play-through) | device-only, excluded | merging two devices' in-progress sessions could corrupt the completion rule; nothing durable is lost since a session only affects anything persistent once it completes |
   | `overlays` (track edits, text only) | backed up | last write wins by timestamp; a revert is a tombstone that also wins by timestamp |
-  | `playlists`/Favorites, `albumOrder`, `albumSort`, `albumDisplay`, `trackDisplay`, `albumEdge`, `albumLookPref`, `albumFormat` override | backed up | last write wins **per key** (not per whole field) |
+  | `playlists`/Favorites, `albumOrder`, `albumSort`, `albumDisplay`, `trackDisplay`, `albumEdge`, `albumLookPref`, `albumFormat` override, `albumBackCover` claim (GF6, docs/29_GATEFOLD.md) | backed up | last write wins **per key** (not per whole field); `albumBackCover`'s `hash: null` tombstone ("Use Miziki default") wins by timestamp the same way |
   | playlist membership | backed up | add-wins CRDT per `(playlist, track identity)` pair |
   | `prefs`, profile display name, profile picture claim | backed up | last write wins per field |
-  | a custom cover's/the profile picture's own image bytes | backed up (Supabase Storage, not the sync doc) | last write wins per track identity/account; a revert is a `hash: null` tombstone |
+  | a custom cover's/the profile picture's/a back cover's (GF6) own image bytes | backed up (Supabase Storage, not the sync doc) | last write wins per track identity/album/account; a revert is a `hash: null` tombstone |
   | listening-rhythm shared snapshot (`{verdict, shares}` only) | opt-in, default off, needs ≥20 counted plays | single-writer; a separate `profiles.listening_rhythm` column, read via a visibility-gated RPC, not the sync doc |
   | `tracks` (audio, embedded art), crate-tier/thumbnail blobs, `t.details.replayGain`/`.loudness`/`.hookStart`/`.hookEnd` | excluded | re-derived locally from whatever's on the device |
   | social meta (ratings/notes/pins/follows) | excluded | already syncs through the social layer |
@@ -87,8 +87,8 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 
 | Server-side table/column | What it holds | Who can see it |
 |---|---|---|
-| `library_backup.doc` | Listening stats, achievements/Collection/rare-unlock/sealed state, track-edit text, playlists/ordering/display prefs, app settings, display name, a cover/picture *claim* (pointer only) | Only the owning account — owner-only RLS, no grant to `anon` |
-| Storage bucket `covers` | Re-encoded custom-cover image bytes | Only the owning account (private bucket, owner-only RLS) |
+| `library_backup.doc` | Listening stats, achievements/Collection/rare-unlock/sealed state, track-edit text, playlists/ordering/display prefs, app settings, display name, a cover/picture/back-cover (GF6) *claim* (pointer only) | Only the owning account — owner-only RLS, no grant to `anon` |
+| Storage bucket `covers` | Re-encoded custom-cover and back-cover (GF6) image bytes | Only the owning account (private bucket, owner-only RLS) |
 | Storage bucket `avatars` | Re-encoded profile-picture image bytes | **Anyone**, including signed out (it doubles as the public account avatar); only the owner can write |
 | `profiles` (handle, display name, avatar, bio) | The social-layer profile | Anyone the visibility setting (private/friends/public) and blocks allow |
 | `profiles.listening_rhythm` | Opt-in `{verdict, shares}` snapshot, never raw plays | Gated by its own visibility-checking RPC, not the blanket profile-select policy |

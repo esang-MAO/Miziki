@@ -17,7 +17,7 @@ import { discLook, paintDiscLook } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
-import { buildBackCoverEl } from './back-cover.js';
+import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
@@ -656,16 +656,38 @@ async function gatefoldSetCoverArt(item){
   if(url && GF && GF.item === item){ img.src = url; setDiscArt(url); }
 }
 
-// GF5 point 2: the Miziki default back, built fresh per open off the
-// album's own data (trackIdx/format), same lifetime as the tracklist.
-// GF6 ("your own back cover") will branch here to draw a stored image
-// instead when one exists -- not yet built, so every record gets the
-// default for now.
-function gatefoldSetBackCover(item, trackIdx, format){
+// GF5 point 2 / GF6: the back cover, built fresh per open off the album's
+// own data (trackIdx/format) -- or, once the user's set one, their own
+// stored photo instead (GF6 point 4: "a user back image replaces the
+// default everywhere the back shows"). Async (the artwork-store read),
+// same "fire from openGatefold(), re-check GF is still this open" guard
+// gatefoldSetCoverArt() already uses, since the gatefold can close (or
+// reopen on a different album) while this is still in flight.
+async function gatefoldSetBackCover(item, trackIdx, format){
   const host = $('#gfBackCover');
   if(!host) return;
+  const blob = await getAlbumBackCoverBlob(item.albumId).catch(() => null);
+  if(!GF || GF.item !== item) return;
   host.innerHTML = '';
-  host.appendChild(buildBackCoverEl(item, trackIdx, format));
+  host.appendChild(blob ? buildBackCoverImageEl(blob, item) : buildBackCoverEl(item, trackIdx, format));
+  updateBackCoverMenuState(!!blob);
+}
+// GF6: re-draws the currently-open gatefold's back cover -- called after
+// the "···" menu/edit-sheet row actually changes the stored image, so the
+// turned-over face updates in place without a full re-open.
+export function refreshGatefoldBackCover(){
+  if(!GF) return;
+  gatefoldSetBackCover(GF.item, GF.trackIdx, gatefoldItemFormat(GF.item)).catch(() => {});
+}
+// GF6: which album the open gatefold's back-cover menu/edit-sheet row acts
+// on -- null when no gatefold is open, so wiring/gatefold.js's handlers can
+// no-op cleanly instead of guessing.
+export function currentGatefoldAlbumId(){
+  return GF ? GF.item.albumId : null;
+}
+function updateBackCoverMenuState(usingCustomImage){
+  const btn = $('#gfBackCoverDefaultBtn');
+  if(btn) btn.setAttribute('aria-checked', String(!usingCustomImage));
 }
 
 // GF5 point 1: "a horizontal swipe on the closed sleeve... turns it over
@@ -1004,7 +1026,7 @@ export function openGatefold(item, opts){
   $('#gfLeft').innerHTML = ''; $('#gfLeft').appendChild(buildGatefoldLeftPanel(item));
   gatefoldInfoAndSleeveHTML(item);
   gatefoldSetCoverArt(item).catch(() => {});
-  gatefoldSetBackCover(item, trackIdx, format);
+  gatefoldSetBackCover(item, trackIdx, format).catch(() => {});
   gatefoldSetTurnedOver(false);
   updateGatefoldSleeveState();
   // docs/13_CRATE.md's pull gesture: "the record slides out of the sleeve

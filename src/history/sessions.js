@@ -79,6 +79,15 @@ export async function persistAlbumFormat(keys){
   await meta.put('albumFormat', S.albumFormat);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumFormat', k));
 }
+// GF6 (docs/29_GATEFOLD.md): the album-keyed "your own back cover" claim —
+// same per-key persist/stamp shape as persistAlbumFormat above. Called by
+// sync/backup.js's queueBackCoverUpload()/clearBackCoverClaim(), never
+// directly by UI code (same "apply immediately" posture as the format
+// override).
+export async function persistAlbumBackCover(keys){
+  await meta.put('albumBackCover', S.albumBackCover);
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumBackCover', k));
+}
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): written once, the first time an album
 // completes a qualifying session — never overwritten after that, so it
@@ -334,6 +343,9 @@ export async function restoreSessions(){
   // AU9 (docs/16_AUDIO.md §5)
   const albumFormatPref = await meta.get('albumFormat');
   if(albumFormatPref) S.albumFormat = albumFormatPref;
+  // GF6 (docs/29_GATEFOLD.md)
+  const albumBackCoverPref = await meta.get('albumBackCover');
+  if(albumBackCoverPref) S.albumBackCover = albumBackCoverPref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
   const albumFirst = await meta.get('albumFirstPlayed');
