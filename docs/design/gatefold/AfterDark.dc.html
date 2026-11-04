@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gatefold — after sunset</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Antonio';src:url(/_blob/585dc45325db4fb5854071db9c78a376) format('woff2');font-weight:100 700}
+@font-face{font-family:'Archivo';src:url(/_blob/8743631767b0a108de8776ce76e98669) format('woff2');font-weight:100 900}
+@font-face{font-family:'Caveat';src:url(/_blob/05149a74360c53c909afa06bb93bd16f) format('woff2');font-weight:400 700}
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.cr{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:5px 0}
+.cr em{font-style:normal;color:#ABA298}
+.cr button{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.grooves{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.04) 0 1px,rgba(0,0,0,0) 1px 4px)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(170deg,#0F1820 0%,#090D11 62%,#050608 100%); font-family: 'Archivo', sans-serif; color: #EFE9DF">
+
+  <button style="position: absolute; left: 16px; top: 54px; font-size: 14px; font-weight: 500; padding: 6px 4px; min-height: 44px; color: rgba(239,233,223,.85)" aria-label="Back to crate">‹ Crate</button>
+
+  <div style="position: absolute; left: 20px; top: 104px; width: 350px; height: 350px; border-radius: 4px; overflow: hidden; background: #1C1226; box-shadow: 0 1px 3px rgba(0,0,0,.45), 0 8px 20px rgba(0,0,0,.45)">
+    <div style="padding: 18px; display: flex; flex-direction: column">
+      <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: rgba(239,233,223,.9)">Recorded over four winter weekends in a boathouse on the estuary, with the doors open whenever the tide allowed. Most of what you hear is the first or second take.</p>
+      <div class="cr"><em>Composer</em><span><button>Mara Lind</button></span></div>
+      <div class="cr"><em>Producer</em><span><button>Ines Achterberg</button></span></div>
+      <div class="cr"><em>Engineer</em><span><button>Tomás Reyes</button>, <button>Dee Okafor</button></span></div>
+    </div>
+    <div style="position: absolute; left: 18px; right: 18px; bottom: 18px; background: #F4F1E9; border-radius: 2px; transform: rotate(-1.2deg); box-shadow: 0 2px 6px rgba(0,0,0,.4); filter: brightness(.86)">
+      <div style="position: absolute; left: 50%; top: -8px; width: 56px; height: 16px; margin-left: -28px; background: rgba(232,217,168,.85); transform: rotate(2deg)"></div>
+      <p style="margin: 0; padding: 12px 14px; font-family: 'Caveat', cursive; font-size: 22px; line-height: 1.1; color: #26202C">Play it when the tide’s out and the windows are open.</p>
+    </div>
+  </div>
+  <button style="position: absolute; right: 0px; top: 104px; width: 20px; height: 350px; background: linear-gradient(270deg,#1C1226,#2A1B38); border-radius: 3px 0 0 3px; display: flex; align-items: center; justify-content: center" aria-label="Back to tracklist">
+    <span style="writing-mode: vertical-rl; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">Tracks ›</span>
+  </button>
+
+  <!-- fewer lines under the panel: just the record -->
+  <div style="position: absolute; left: 20px; right: 20px; top: 470px">
+    <h3 style="margin: 0; font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600; color: rgba(239,233,223,.9)">Low Tide Hymnal</h3>
+    <p style="margin: 2px 0; font-size: 14px; color: #ABA298">The Marram Grass</p>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; top: 588px; height: 256px; overflow: hidden" aria-hidden="true">
+    <div style="position: absolute; left: 50%; top: 0px; width: 176px; height: 176px; margin-left: -88px; border-radius: 50%; background: radial-gradient(circle at 50% 50%,rgba(0,0,0,.2),rgba(0,0,0,.55) 88%,rgba(0,0,0,.78) 100%), radial-gradient(circle,#8A2E2A 0 31%,#6B1F1C 31% 93%,#3E1210 93% 100%)">
+      <div class="grooves"></div>
+      <div style="position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: #C47F1E"></div>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; top: 96px; bottom: 0; background: linear-gradient(180deg,#B5A684,#8C8279); border-radius: 3px; box-shadow: 0 -10px 24px rgba(0,0,0,.5); -webkit-mask: radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px); mask: radial-gradient(circle 66px at 50% 0,transparent 65px,#000 66px)"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

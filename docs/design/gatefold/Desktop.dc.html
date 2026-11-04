@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gatefold — desktop spread</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Antonio';src:url(/_blob/585dc45325db4fb5854071db9c78a376) format('woff2');font-weight:100 700}
+@font-face{font-family:'Archivo';src:url(/_blob/8743631767b0a108de8776ce76e98669) format('woff2');font-weight:100 900}
+@font-face{font-family:'Caveat';src:url(/_blob/05149a74360c53c909afa06bb93bd16f) format('woff2');font-weight:400 700}
+@font-face{font-family:'IBM Plex Mono';src:url(/_blob/e5237619c7e70707876918173b2492b7) format('woff2');font-weight:400}
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.nav{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:4px;font-size:16px;font-weight:500;color:rgba(239,233,223,.85)}
+.row{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;box-sizing:border-box}
+.tn{font-size:14px;color:#ABA298;width:22px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.tt{flex:1;min-width:0;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td{font-size:14px;color:#ABA298;font-variant-numeric:tabular-nums}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin:6px 0 0}
+.sh b{font-family:'Antonio',sans-serif;font-size:16px;letter-spacing:.08em}
+.sh span{font-size:12px;color:#ABA298}
+.cr{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0}
+.cr em{font-style:normal;color:#ABA298}
+.cr button{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.pill{min-height:40px;box-sizing:border-box;border:1px solid rgba(239,233,223,.14);border-radius:20px;padding:0 16px;font-size:14px;font-weight:500;display:inline-flex;align-items:center}
+.grooves{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 4px)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; position: relative; overflow: hidden; background: linear-gradient(170deg,#1D2F38 0%,#101A20 62%,#07080C 100%); font-family: 'Archivo', sans-serif; color: #EFE9DF; display: flex">
+
+  <!-- sidebar -->
+  <nav style="width: 200px; flex: 0 0 auto; background: rgba(12,10,9,.55); padding: 28px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px" aria-label="Main">
+    <p style="margin: 0 12px 20px; font-family: 'Antonio', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -.01em">Miziki</p>
+    <a class="nav" href="#" style="background: rgba(239,233,223,.10); color: #EFE9DF; text-decoration: none">Library</a>
+    <a class="nav" href="#" style="text-decoration: none">Home</a>
+    <a class="nav" href="#" style="text-decoration: none">Profile</a>
+  </nav>
+
+  <!-- crate, left -->
+  <section style="width: 330px; flex: 0 0 auto; position: relative" aria-label="Crate">
+    <div style="position: absolute; left: 40px; top: 60px; display: flex; gap: 16px; font-size: 16px; font-weight: 500">
+      <span style="color: #ABA298">Songs</span><span style="border-bottom: 2px solid #EFE9DF; padding-bottom: 4px">Crate</span><span style="color: #ABA298">Artists</span>
+    </div>
+    <div style="position: absolute; left: 60px; top: 150px; width: 230px; height: 230px; border-radius: 3px; background: linear-gradient(180deg,#9C6E72,#4F3337); transform: translateY(-38px) scale(.9); opacity: .55"></div>
+    <div style="position: absolute; left: 60px; top: 190px; width: 230px; height: 230px; border-radius: 3px; overflow: hidden; background: linear-gradient(180deg,#3F8C7E 0%,#2B5586 100%); box-shadow: 0 2px 4px rgba(0,0,0,.45), 0 16px 36px rgba(0,0,0,.45)" role="img" aria-label="Low Tide Hymnal, selected">
+      <div style="position: absolute; left: 66px; top: 86px; width: 100px; height: 100px; border-radius: 50%; background: #F4F1E9"></div>
+      <div style="position: absolute; left: 0; right: 0; top: 136px; bottom: 0; background: repeating-linear-gradient(180deg,#2B5586 0 6px,#1F3F66 6px 12px)"></div>
+    </div>
+    <div style="position: absolute; left: 60px; top: 430px; width: 230px; height: 230px; border-radius: 3px; background: linear-gradient(180deg,#6B6A3A,#3E3D22); transform: translateY(30px) scale(.9); opacity: .45"></div>
+  </section>
+
+  <!-- the open gatefold, flat: inside left + inside right -->
+  <section style="flex: 1; position: relative" aria-label="Low Tide Hymnal, open">
+    <div style="position: absolute; left: 20px; top: 60px; display: flex; gap: 0; box-shadow: 0 2px 4px rgba(0,0,0,.45), 0 16px 36px rgba(0,0,0,.45); border-radius: 4px; overflow: hidden">
+      <div style="width: 360px; height: 460px; background: #1C1226; padding: 20px; box-sizing: border-box; position: relative; box-shadow: inset -10px 0 12px -10px rgba(0,0,0,.6)">
+        <p style="margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: rgba(239,233,223,.9)">Recorded over four winter weekends in a boathouse on the estuary, with the doors open whenever the tide allowed.</p>
+        <div class="cr"><em>Producer</em><span><button>Ines Achterberg</button></span></div>
+        <div class="cr"><em>Engineer</em><span><button>Tomás Reyes</button></span></div>
+        <div style="border-top: 1px solid rgba(239,233,223,.14); margin-top: 10px; padding-top: 10px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">The master · <span style="font-family: 'Antonio', sans-serif; font-size: 16px; letter-spacing: 0; text-transform: none; color: #EFE9DF">Dynamic</span></span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #ABA298">ALBUM GAIN −4.2 DB</span>
+          </div>
+          <div style="height: 4px; border-radius: 2px; background: rgba(239,233,223,.6); margin: 6px 0"></div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px">
+          <button class="pill">Booklet · 12 pages</button>
+          <button class="pill">Share record</button>
+        </div>
+        <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; background: #F4F1E9; border-radius: 2px; transform: rotate(-1deg); box-shadow: 0 2px 6px rgba(0,0,0,.4)">
+          <p style="margin: 0; padding: 10px 14px; font-family: 'Caveat', cursive; font-size: 22px; line-height: 1.1; color: #26202C">Play it when the tide’s out and the windows are open.</p>
+        </div>
+      </div>
+      <div style="width: 360px; height: 460px; background: linear-gradient(160deg,#2A1B38,#1C1226); padding: 16px 18px; box-sizing: border-box">
+        <p style="margin: 0 0 2px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">The Marram Grass</p>
+        <h2 style="margin: 0 0 6px; font-family: 'Antonio', sans-serif; font-size: 28px; font-weight: 700; line-height: 1.05">Low Tide Hymnal</h2>
+        <div class="sh"><b>SIDE A</b><span>5 tracks · 21:40</span></div>
+        <button class="row"><span class="tn">01</span><span class="tt">Salt Marsh Psalm</span><span class="td">4:12</span></button>
+        <button class="row"><span class="tn">02</span><span class="tt">Undertow</span><span class="td">3:58</span></button>
+        <button class="row"><span class="tn">03</span><span class="tt">Gull Choir</span><span class="td">4:40</span></button>
+        <button class="row"><span class="tn">04</span><span class="tt">The Breakwater</span><span class="td">5:02</span></button>
+        <button class="row"><span class="tn">05</span><span class="tt">Low Tide Hymnal</span><span class="td">3:48</span></button>
+        <div class="sh"><b>SIDE B</b><span>4 tracks · 19:32</span></div>
+        <button class="row"><span class="tn">06</span><span class="tt">Dune Fence</span><span class="td">4:55</span></button>
+        <button class="row"><span class="tn">07</span><span class="tt">Spring Tide</span><span class="td">5:20</span></button>
+      </div>
+    </div>
+
+    <div style="position: absolute; left: 20px; top: 548px; width: 380px">
+      <h3 style="margin: 0; font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600">Low Tide Hymnal</h3>
+      <p style="margin: 2px 0; font-size: 14px; color: #ABA298">The Marram Grass · 2024 · Well loved · since March 2025</p>
+      <p style="margin: 4px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #ABA298">12″ LP · 33⅓ · FLAC 24/96 · 9 tracks · 41:12</p>
+      <button style="margin-top: 16px; min-height: 44px; padding: 0 22px; border-radius: 22px; background: #EFE9DF; color: #14110F; font-size: 16px; font-weight: 600">Play the record</button>
+    </div>
+
+    <!-- pocket, right of the info -->
+    <div style="position: absolute; left: 470px; top: 540px; width: 270px; height: 260px; overflow: hidden" aria-hidden="true">
+      <div style="position: absolute; left: 50%; top: 0px; width: 190px; height: 190px; margin-left: -95px; border-radius: 50%; background: radial-gradient(circle at 50% 50%,rgba(0,0,0,.12),rgba(0,0,0,.45) 88%,rgba(0,0,0,.7) 100%), radial-gradient(circle,#8A2E2A 0 31%,#6B1F1C 31% 93%,#3E1210 93% 100%)">
+        <div class="grooves"></div>
+        <div style="position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 50%; background: #E9A24A"></div>
+      </div>
+      <div style="position: absolute; left: 0; right: 0; top: 104px; bottom: 0; background: linear-gradient(180deg,#E6DCC4,#CFC2A3); border-radius: 3px; -webkit-mask: radial-gradient(circle 72px at 50% 0,transparent 71px,#000 72px); mask: radial-gradient(circle 72px at 50% 0,transparent 71px,#000 72px)"></div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gatefold — editing liner notes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Antonio';src:url(/_blob/585dc45325db4fb5854071db9c78a376) format('woff2');font-weight:100 700}
+@font-face{font-family:'Archivo';src:url(/_blob/8743631767b0a108de8776ce76e98669) format('woff2');font-weight:100 900}
+@font-face{font-family:'IBM Plex Mono';src:url(/_blob/e5237619c7e70707876918173b2492b7) format('woff2');font-weight:400}
+body{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+textarea{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(170deg,#1D2F38 0%,#101A20 62%,#07080C 100%); font-family: 'Archivo', sans-serif; color: #EFE9DF">
+
+  <!-- the gatefold behind -->
+  <div style="position: absolute; left: 20px; top: 104px; width: 350px; height: 350px; border-radius: 4px; background: #1C1226"></div>
+  <div style="position: absolute; inset: 0; background: rgba(7,8,12,.6)"></div>
+
+  <!-- the sheet -->
+  <div role="dialog" aria-label="Edit liner notes" style="position: absolute; left: 0; right: 0; top: 64px; bottom: 0; background: #2A2522; border-radius: 12px 12px 0 0; box-shadow: 0 -2px 4px rgba(0,0,0,.45), 0 -16px 36px rgba(0,0,0,.45); display: flex; flex-direction: column">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.22); margin: 8px auto 0"></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 12px 8px; border-bottom: 1px solid rgba(239,233,223,.14)">
+      <button style="min-height: 44px; padding: 0 8px; font-size: 16px; color: rgba(239,233,223,.85)">Cancel</button>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Liner notes</h2>
+      <button style="min-height: 36px; padding: 0 16px; border-radius: 18px; background: #EFE9DF; color: #14110F; font-size: 16px; font-weight: 600">Save</button>
+    </div>
+
+    <div style="padding: 16px 20px 0; display: flex; flex-direction: column; gap: 14px; flex: 1">
+      <div>
+        <p style="margin: 0 0 2px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ABA298">The Marram Grass</p>
+        <p style="margin: 0; font-family: 'Antonio', sans-serif; font-size: 20px; font-weight: 600">Low Tide Hymnal</p>
+      </div>
+
+      <label style="display: flex; flex-direction: column; gap: 6px">
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Liner notes</span>
+        <textarea rows="10" style="box-sizing: border-box; width: 100%; min-height: 250px; resize: none; background: rgba(239,233,223,.06); color: #EFE9DF; border: 1px solid #EFE9DF; border-radius: 4px; padding: 12px 14px; font-family: 'Archivo', sans-serif; font-size: 16px; line-height: 1.5; outline: none">Recorded over four winter weekends in a boathouse on the estuary, with the doors open whenever the tide allowed. Most of what you hear is the first or second take.
+
+Bought this at the Saturday market stall in Leith, the week it came out. The seller played side B twice before he let me pay.</textarea>
+      </label>
+
+      <details style="border-top: 1px solid rgba(239,233,223,.14); padding-top: 10px" open="">
+        <summary style="min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 500; color: rgba(239,233,223,.85); cursor: pointer">From the files</summary>
+        <p style="margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: #ABA298">Recorded over four winter weekends in a boathouse on the estuary, with the doors open whenever the tide allowed. Most of what you hear is the first or second take.</p>
+        <p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9A9187">COMMENT · 01 Salt Marsh Psalm.flac</p>
+      </details>
+
+      <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #ABA298">Changes only your copy. The files stay as they are, and friends see your sleeve note, not these.</p>
+
+      <button style="min-height: 44px; font-size: 16px; font-weight: 500; color: #E8A196">Use the notes from the files</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
