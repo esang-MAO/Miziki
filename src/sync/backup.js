@@ -29,7 +29,7 @@
    transition, or after an already-asynchronous storage write — none of
    it is reachable from play()/pause()/seek(), and nothing here is ever
    awaited by playback code. */
-import { S, touchBackupField } from '../state.js';
+import { S, touchBackupField, touchBackupKey } from '../state.js';
 import { meta, overlays as overlaysRepo, artwork as artworkRepo, profile as profileRepo } from '../storage/repo.js';
 import { serializePrefs, parsePrefs, rememberUnknownPrefsKeys } from '../storage/prefs.js';
 import { trackIdentityKey, albumKey } from '../record-art/tiers.js';
@@ -191,6 +191,9 @@ function buildLocalState(){
     // albumLookPref just above ("syncs in your backup" — friends seeing the
     // automatic format is AU11's own territory).
     albumFormat: S.albumFormat,
+    // GF6 (docs/29_GATEFOLD.md): the back-cover image claim — same
+    // per-key last-write-wins shape as albumFormat just above.
+    albumBackCover: S.albumBackCover,
     // D2 (docs/DESKTOP_LAYOUT.md): theme is device-only by that doc's own
     // default -- stripped here, not in serializePrefs itself, since it's
     // still a perfectly normal local pref (saveMeta()'s own
@@ -387,6 +390,30 @@ export async function queueCoverUpload(trackId, blob){
     scheduleBackupSync();
   }catch(_e){ /* a failed re-encode just means no cover backup claim this round */ }
 }
+// GF6 (docs/29_GATEFOLD.md): the album-keyed twin of queueCoverUpload()
+// above — stamps the claim immediately (local, fast), leaves the actual
+// network upload to flushPendingImages() same as every other image here.
+// The blob itself is already stored by the caller (gatefold/back-cover.js's
+// setAlbumBackCoverImage(), in the artwork store under 'back:<albumKey>')
+// before this is called — this only ever touches the claim.
+export async function queueBackCoverUpload(albumId, blob){
+  try{
+    const { hash } = await prepareCoverUpload(blob);
+    S.albumBackCover[albumId] = { hash, updatedAt: Date.now() };
+    await meta.put('albumBackCover', S.albumBackCover);
+    touchBackupKey('albumBackCover', albumId);
+    scheduleBackupSync();
+  }catch(_e){ /* a failed re-encode just means no back-cover claim this round */ }
+}
+// "Use Miziki default" (GF6 point 1's menu) — a tombstone, the same "wins
+// by timestamp" shape as revertTrack()'s cover:null above, just per-album
+// instead of per-track. The artwork row itself is deleted by the caller.
+export async function clearBackCoverClaim(albumId){
+  delete S.albumBackCover[albumId];
+  await meta.put('albumBackCover', S.albumBackCover);
+  touchBackupKey('albumBackCover', albumId);
+  scheduleBackupSync();
+}
 export async function queueAvatarUpload(blob){
   try{
     const { hash } = await prepareAvatarUpload(blob);
@@ -436,6 +463,20 @@ async function flushPendingImages(client, uid){
     if(hash !== o.cover.hash) continue;   // the stored art changed since the hash was stamped; next edit will restamp it
     await uploadOne(client, uid, 'covers', hash, blob);
   }
+  // GF6: one upload attempt per album with a back-cover claim — same
+  // "re-scan every push cycle" posture as the per-track loop just above,
+  // reusing the exact same 'covers' bucket (content-addressed by hash, so
+  // a back cover sharing bytes with an existing cover is just a shared
+  // file, never a second upload).
+  for(const albumId of Object.keys(S.albumBackCover || {})){
+    const claim = S.albumBackCover[albumId];
+    if(!claim || !claim.hash) continue;
+    const artRec = await artworkRepo.get('back:' + albumId);
+    if(!artRec || !artRec.blob) continue;
+    const { blob, hash } = await prepareCoverUpload(artRec.blob);
+    if(hash !== claim.hash) continue;
+    await uploadOne(client, uid, 'covers', hash, blob);
+  }
   const prof = await profileRepo.get('me');
   if(prof && prof.pictureHash && prof.pictureBlob){
     const { blob, hash } = await prepareAvatarUpload(prof.pictureBlob);
@@ -477,6 +518,10 @@ async function listBucketFiles(client, bucket, uid){
 async function cleanupOrphanedImages(client, uid, overlaysNow, prof){
   try{
     const coverHashes = new Set(overlaysNow.filter(o => o.cover && o.cover.hash).map(o => o.cover.hash));
+    // GF6: a back cover's hash lives in the same 'covers' bucket, so it
+    // has to count as referenced here too, or an orphan sweep would
+    // delete a back-cover image thinking no claim anywhere still wants it.
+    Object.values(S.albumBackCover || {}).forEach(c => { if(c && c.hash) coverHashes.add(c.hash); });
     const coverFiles = await listBucketFiles(client, 'covers', uid);
     const staleCovers = orphanedFiles(coverFiles, coverHashes, 0);
     if(staleCovers.length) await client.storage.from('covers').remove(staleCovers.map(n => uid + '/' + n));
@@ -674,6 +719,15 @@ async function applyMerged(merged, ownLocal, client, uid){
   S.albumLookPref = merged.itemWrites.albumLookPref;
   // AU9 (docs/16_AUDIO.md §5)
   S.albumFormat = merged.itemWrites.albumFormat;
+  // GF6 (docs/29_GATEFOLD.md): the back-cover claim merges the same
+  // wholesale-assign way as albumFormat above, but unlike a plain data
+  // field also needs the actual image bytes fetched for whatever changed
+  // -- captured here (prevBackCovers) before the overwrite so
+  // applyBackCovers() below can tell a real change from a no-op.
+  const prevBackCovers = S.albumBackCover;
+  S.albumBackCover = merged.itemWrites.albumBackCover;
+  meta.put('albumBackCover', S.albumBackCover).catch(() => {});
+  applyBackCovers(merged.itemWrites.albumBackCover, prevBackCovers, client, uid).catch(() => {});
   applyPrefsPatch(merged.itemWrites.prefs);
   applyLastWriteField('profileName', merged.lastWrite.profileName, v => { if(typeof v === 'string') S.profile.name = v; });
   // step 07, B4 — the picture itself is fetched lazily by
@@ -862,6 +916,32 @@ function applyCovers(coversMap, byIdentity, client, uid){
     queueCoverDownload(client, uid, t, entry).catch(() => {});
   });
   B.pending.covers = pending;
+}
+
+// GF6: the album-keyed twin of applyCovers()/queueCoverDownload() above --
+// no identity-key resolution needed (an album id is already portable, no
+// "doesn't exist on this device yet" case the way a track-keyed claim has),
+// so this fetches directly rather than queuing into B.pending. Only albums
+// whose hash actually changed from what prevMap already had are fetched --
+// prevMap is this device's S.albumBackCover *before* applyMerged() overwrote
+// it with the merged map, captured by the caller for exactly this comparison.
+async function applyBackCovers(coversMap, prevMap, client, uid){
+  if(!client) return;   // nothing to fetch from without a signed-in client
+  for(const albumId of Object.keys(coversMap || {})){
+    const entry = coversMap[albumId];
+    const prevHash = prevMap && prevMap[albumId] && prevMap[albumId].hash;
+    if(entry.hash === prevHash) continue;   // already have it locally
+    const { data, error } = await client.storage.from('covers').download(uid + '/' + entry.hash + '.jpg');
+    if(error || !data) continue;   // not uploaded yet, or offline -- retried on the next pull
+    await artworkRepo.put({ id: 'back:' + albumId, blob: data });
+  }
+  // a tombstoned key (present in prevMap, absent from the merged map --
+  // mergeKeyedLastWriteWins() drops a null-value winner entirely) means
+  // "Use Miziki default" won the merge, so the locally-stored photo (if
+  // any) has to go.
+  for(const albumId of Object.keys(prevMap || {})){
+    if(!(albumId in (coversMap || {}))) await artworkRepo.del('back:' + albumId);
+  }
 }
 
 /* ================= reconciliation: a file is imported later ================= */

@@ -64,12 +64,17 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },
 });
-// GF5: back-cover.js's own buildBackCoverEl imports ui/wordmark.js, a ?raw
-// asset import node:test can't resolve -- mocked here too, the usual "stop
-// the chain at the door" reasoning; back-cover.js's own data builder is
-// covered by tests/unit/gatefold-back-cover.test.js instead.
+// GF5/GF6: back-cover.js's own buildBackCoverEl imports ui/wordmark.js, a
+// ?raw asset import node:test can't resolve -- mocked here too, the usual
+// "stop the chain at the door" reasoning; back-cover.js's own data builder
+// (and GF6's image helpers) are covered by tests/unit/gatefold-back-
+// cover.test.js instead.
 mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
-  namedExports: { buildBackCoverEl(){ return {}; } },
+  namedExports: {
+    buildBackCoverEl(){ return {}; },
+    buildBackCoverImageEl(){ return {}; },
+    getAlbumBackCoverBlob(){ return Promise.resolve(null); },
+  },
 });
 
 const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');

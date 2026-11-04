@@ -317,6 +317,15 @@ export function toDoc(localState){
       // syncs in your backup" — friends seeing the automatic format is
       // AU11's own territory, not this field.
       albumFormat: itemWriteEntries(s.albumFormat, updatedAt.albumFormat, s.deviceId),
+      // GF6 (docs/29_GATEFOLD.md): the album-keyed "your own back cover"
+      // claim -- {hash, updatedAt} | tombstoned to null on "Use Miziki
+      // default" -- same per-key last-write-wins shape as albumFormat
+      // above, brand new (never existed pre-RF17, so no upconvertToV3
+      // case). The image bytes themselves travel through the same
+      // Supabase Storage 'covers' bucket a custom cover's own hash does
+      // (see sync/backup.js's queueBackCoverUpload/applyBackCovers) --
+      // this entry is only ever the claim, never the bytes.
+      albumBackCover: itemWriteEntries(s.albumBackCover, updatedAt.albumBackCover, s.deviceId),
       prefs: itemWriteEntries(s.prefs, updatedAt.prefs, s.deviceId),
       playlistDefs: playlistParts.playlistDefs,
       playlistOrder: playlistParts.playlistOrder,
@@ -563,7 +572,7 @@ export function validateDoc(doc){
   if(!isStringArray(sealed.broken || [])) return false;
 
   const itemWrites = doc.itemWrites || {};
-  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'prefs', 'playlistDefs', 'playlistOrder'];
+  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'albumBackCover', 'prefs', 'playlistDefs', 'playlistOrder'];
   if(!itemWriteFields.every(f => isItemWritesArray(itemWrites[f] || []))) return false;
 
   const playlistMembership = doc.playlistMembership || [];

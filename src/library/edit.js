@@ -360,6 +360,19 @@ export function openEditSheet(trackIds){
     paintEditFormatSeg(override);
     paintEditFormatResult(first, override);
   }
+  // GF6 (docs/29_GATEFOLD.md): same single-track/album-tagged gating as
+  // the format override above. The row's own preview/default-state paint
+  // is owned by wiring/edit.js (via gatefold/back-cover.js), not here --
+  // this module stays free of any gatefold import on purpose, the same
+  // reason sync/backup.js's own header gives for avoiding library/view.js:
+  // library/edit.js is imported far too widely for a `?raw` SVG import
+  // (ui/wordmark.js, reached through gatefold/back-cover.js) to ride along
+  // into every one of its callers' test files. A plain DOM event is the
+  // decoupling point instead.
+  $('#editBackCoverRow').style.display = showFormat ? '' : 'none';
+  document.dispatchEvent(new CustomEvent('miziki-edit-backcover-open', {
+    detail: { albumId: showFormat ? albumKey(first) : null },
+  }));
   if(batch) $('#editBatchNote').textContent = 'Artist, album, album artist, genre, year, and cover apply to all '
     + trackIds.length + ' selected tracks. Titles are left as they are.';
   renderEditArtPreview(batch ? null : first.art);

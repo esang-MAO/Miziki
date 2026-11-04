@@ -1026,6 +1026,23 @@
       <input class="pl-input" id="editYear" type="number" min="0" max="2100">
     </div>
 
+    <!-- GF6 (docs/29_GATEFOLD.md): "the same three choices appear in the
+         track edit sheet as a 'Back cover' row" -- album-keyed, same
+         show-only-for-a-single-tagged-album gating as the speed override
+         just below, and the same Choose/Photograph/Default three actions
+         as the gatefold's own "···" menu (src/wiring/gatefold.js). -->
+    <div class="slider-row" id="editBackCoverRow" style="display:none">
+      <div class="slider-head"><span>Back cover</span></div>
+      <div class="edit-art-preview" id="editBackCoverPreview"></div>
+      <div class="stack" style="margin-top:0">
+        <button class="cta ghost" id="editBackCoverPick">Choose an image…</button>
+        <button class="cta ghost" id="editBackCoverPhoto">Photograph your copy</button>
+        <button class="cta ghost" id="editBackCoverDefaultBtn" aria-pressed="true">Use Miziki default</button>
+      </div>
+      <input id="editBackCoverFile" type="file" accept="image/*">
+      <input id="editBackCoverCameraFile" type="file" accept="image/*" capture="environment">
+    </div>
+
     <!-- AU9: personal per-album speed override -- syncs in your backup,
          but friends always see the automatic format (AU11) -->
     <div class="slider-row" id="editFormatRow" style="display:none">
@@ -1362,9 +1379,27 @@
        gatefoldSetTurnedOver()/11-gatefold.css's own comment on this). -->
   <div class="gf-back-cover-stage" id="gfBackCoverStage" aria-hidden="true">
     <div id="gfBackCover"></div>
+    <!-- GF6: your own back cover -- lives on the stage itself (not inside
+         #gfBackCover, which gatefoldSetBackCover() clears and rebuilds on
+         every open) so it survives that rebuild untouched. -->
+    <button type="button" class="gf-back-cover-more" id="gfBackCoverMoreBtn" aria-label="Back cover options" aria-haspopup="true" aria-expanded="false">⋯</button>
   </div>
   <div class="gf-flip-dots" id="gfFlipDots" aria-hidden="true"><span class="active"></span><span></span></div>
   <button type="button" class="gf-turn-over" id="gfTurnOver" aria-pressed="false">Turn over</button>
+
+  <!-- GF6: "a ··· button on the back opens a small menu" -- reuses the
+       app's one overflow-menu component (01-header.css's .overflow-menu/
+       .overflow-scrim, the same shape the player/library headers' own
+       "···" menus already use), positioned off #gfBackCoverMoreBtn's own
+       rect in JS (src/wiring/gatefold.js). -->
+  <div class="overflow-scrim" id="gfBackCoverMenuScrim"></div>
+  <div class="overflow-menu" id="gfBackCoverMenu" role="menu">
+    <button class="overflow-menu-row" id="gfBackCoverChooseBtn" role="menuitem">Choose an image…</button>
+    <button class="overflow-menu-row" id="gfBackCoverPhotoBtn" role="menuitem">Photograph your copy</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfBackCoverDefaultBtn" role="menuitemcheckbox" aria-checked="true">Use Miziki default</button>
+  </div>
+  <input id="gfBackCoverFile" type="file" accept="image/*" style="display:none">
+  <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
   <div class="gf-flat-tracks" id="gfFlatTracks">
     <div class="gf-flat-head">
       <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ Crate</button>

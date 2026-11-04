@@ -346,6 +346,48 @@ test('AU9: a doc with no albumFormat field at all (pre-AU9) merges as an empty m
   assert.deepEqual(merged.itemWrites.albumFormat, {});
 });
 
+// GF6 (docs/29_GATEFOLD.md): the back-cover claim — same per-album-key
+// last-write-wins shape as albumFormat above, plus the "hash: null
+// tombstone wins by timestamp" rule the spec calls for explicitly ("Use
+// Miziki default").
+test('GF6: albumBackCover merges per album key, last write wins, same shape as albumFormat', () => {
+  const a = toDoc(baseLocal('a', {
+    albumBackCover: { 'Album X': { hash: 'aaa', updatedAt: 100 } },
+    updatedAt: { albumBackCover: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumBackCover: { 'Album X': { hash: 'bbb', updatedAt: 500 }, 'Album Y': { hash: 'ccc', updatedAt: 100 } },
+    updatedAt: { albumBackCover: { 'Album X': { seq: 2, at: 500 }, 'Album Y': { seq: 1, at: 100 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.albumBackCover, {
+    'Album X': { hash: 'bbb', updatedAt: 500 },
+    'Album Y': { hash: 'ccc', updatedAt: 100 },
+  });
+});
+
+test('GF6: a later "Use Miziki default" tombstone (hash: null) beats an earlier back-cover claim', () => {
+  const a = toDoc(baseLocal('a', {
+    albumBackCover: { 'Album X': { hash: 'aaa', updatedAt: 100 } },
+    updatedAt: { albumBackCover: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumBackCover: {},
+    updatedAt: { albumBackCover: { 'Album X': { seq: 2, at: 500 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  // the tombstone wins and the key disappears entirely -- the same "Use
+  // Miziki default" result as if the album had never had a claim at all.
+  assert.deepEqual(merged.itemWrites.albumBackCover, {});
+});
+
+test('GF6: a doc with no albumBackCover field at all merges as an empty map, not a throw', () => {
+  const a = toDoc(baseLocal('a'));
+  delete a.itemWrites.albumBackCover;
+  const merged = mergeRows([a]);
+  assert.deepEqual(merged.itemWrites.albumBackCover, {});
+});
+
 test('RF17: a later change to one key of a map field never clobbers an earlier change to a different key of the same field', () => {
   const a = toDoc(baseLocal('a', {
     albumSort: { 'Album X': 'manual' },

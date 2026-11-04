@@ -1,12 +1,20 @@
-/* ================= GF5 (docs/29_GATEFOLD.md): the Miziki default back
-   cover =================
-   Every record has a back. With no image of its own (GF6 lets a user add
-   one), a record gets this one: built as DOM from the record's own data,
-   not an image -- artist, title, both sides with track times and side
-   totals (splitSides(), same time-balanced split the gatefold's own
-   tracklist uses), the catalogue line (matches the dead wax's own
+/* ================= GF5/GF6 (docs/29_GATEFOLD.md): the back cover =========
+   Every record has a back. With no image of its own, a record gets the
+   Miziki default back (GF5): built as DOM from the record's own data, not
+   an image -- artist, title, both sides with track times and side totals
+   (splitSides(), same time-balanced split the gatefold's own tracklist
+   uses), the catalogue line (matches the dead wax's own
    matrixTail(releaseId)), the format/speed/channel/total-time line, and
-   "℗ year label" only when the tags actually carry them. */
+   "℗ year label" only when the tags actually carry them.
+
+   GF6 ("your own back cover") lets a photo stand in for that default,
+   album-keyed (the back is a property of the record, not any one track):
+   setAlbumBackCoverImage()/clearAlbumBackCoverImage() own the artwork-store
+   row ('back:<albumKey>') and hand the sync claim off to sync/backup.js,
+   getAlbumBackCoverBlob() is how a caller (gatefold/view.js, the edit
+   sheet) checks whether one exists, and buildBackCoverImageEl() draws it
+   -- same root structure/class as buildBackCoverEl() below (role="img",
+   .gf-back-cover) so wear classes and sizing apply to either one alike. */
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { fmt } from '../util/text.js';
@@ -14,6 +22,48 @@ import { splitSides } from '../shell/ceremony-timing.js';
 import { matrixTail } from '../record-art/etchings.js';
 import { formatSpeedText } from '../record-art/format.js';
 import { wordmarkEl } from '../ui/wordmark.js';
+import { artwork } from '../storage/repo.js';
+import { queueBackCoverUpload, clearBackCoverClaim } from '../sync/backup.js';
+
+// GF6: the artwork-store key a user's own back-cover photo for this album
+// lives under -- 'back:<albumKey>', no new store, no schema bump (CLAUDE.md's
+// GF6 storage note).
+function backCoverArtworkId(albumId){ return 'back:' + albumId; }
+
+export async function getAlbumBackCoverBlob(albumId){
+  const rec = await artwork.get(backCoverArtworkId(albumId));
+  return (rec && rec.blob) || null;
+}
+
+// blob is already square-cropped by the caller (cropSquareImage(), the
+// same step the edit sheet's own cover picker already takes) -- this just
+// owns the local artwork row and the sync claim, same split applyEdit()'s
+// own artBlob branch has between artwork.put() and queueCoverUpload().
+export async function setAlbumBackCoverImage(albumId, blob){
+  await artwork.put({ id: backCoverArtworkId(albumId), blob });
+  queueBackCoverUpload(albumId, blob);
+}
+// "Use Miziki default" -- GF6 point 1's menu, the edit sheet's own row.
+export async function clearAlbumBackCoverImage(albumId){
+  await artwork.del(backCoverArtworkId(albumId));
+  clearBackCoverClaim(albumId);
+}
+
+// GF5 point 4: a worn record's back carries the same wear classes as its
+// sleeve -- reusing .gf-back-cover here (rather than a new class) is what
+// lets updateGatefoldSleeveState()'s existing `#gfBackCover .gf-back-cover`
+// selector reach a photo back exactly the way it already reaches the
+// data-built one below.
+export function buildBackCoverImageEl(blob, item){
+  const root = el('div', 'gf-back-cover gf-back-cover-photo');
+  root.setAttribute('role', 'img');
+  root.setAttribute('aria-label', 'Back cover for ' + item.album);
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = URL.createObjectURL(blob);
+  root.appendChild(img);
+  return root;
+}
 
 // GF5 point 3: "a 10″ or 7″ back... when the tracklist still doesn't fit,
 // shows each side's first tracks plus 'and N more'." 12″ has the room to

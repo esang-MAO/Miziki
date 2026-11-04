@@ -194,6 +194,12 @@ export const S = {
   // "the override is personal: it syncs in your backup, but friends see
   // the automatic format" (AU11's own territory, not this field).
   albumFormat:{},
+  // GF6 (docs/29_GATEFOLD.md): the album-keyed "your own back cover" claim
+  // -- {hash, updatedAt} once a photo's been set, same per-key last-write-
+  // wins shape as albumFormat/albumLookPref above. The claimed image bytes
+  // themselves live in the artwork store under 'back:<albumKey>', never
+  // here -- this map is only ever the sync claim, read by sync/backup.js.
+  albumBackCover:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -481,7 +487,7 @@ S.sealedBroken = new Set();
 // different shape again — see touchBackupMembership()'s own comment).
 S.backupUpdatedAt = {
   albumOrder:{}, albumSort:{}, albumDisplay:{}, trackDisplay:{},
-  albumEdge:{}, albumLookPref:{}, albumFormat:{}, prefs:{},
+  albumEdge:{}, albumLookPref:{}, albumFormat:{}, albumBackCover:{}, prefs:{},
   playlistDefs:{}, playlistOrder:{},
   profileName:0,
   picture:0,   // step 07, B4 — the profile picture / public avatar
