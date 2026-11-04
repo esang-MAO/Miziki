@@ -88,6 +88,18 @@ mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
     getAlbumBackCoverBlob(){ return Promise.resolve(null); },
   },
 });
+// GF10: buildBookletRow() (view.js) reads bookletPageCount() and opens the
+// viewer/picker -- both mocked here, the usual "stop the chain at the
+// door" reasoning; library/booklet.js's own detection/storage functions
+// are covered by tests/unit/booklet.test.js instead, and mocking
+// gatefold/booklet.js entirely here also sidesteps its own (safe) circular
+// import of view.js's refreshLinerPanel.
+mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
+  namedExports: { bookletPageCount(){ return 0; } },
+});
+mock.module(new URL('../../src/gatefold/booklet.js', import.meta.url).href, {
+  namedExports: { openBookletViewer(){}, openAddBookletPagesPicker(){} },
+});
 
 const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');

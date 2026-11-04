@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/src/styles/29-evening-glance.css">
 <link rel="stylesheet" href="/src/styles/30-wear.css">
 <link rel="stylesheet" href="/src/styles/31-switch.css">
+<link rel="stylesheet" href="/src/styles/32-booklet.css">
 </head>
 <body>
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -1483,6 +1484,27 @@
     <button data-panel="left" aria-pressed="false">Inside</button>
   </div>
 </div>
+
+<!-- GF10 (docs/29_GATEFOLD.md): the booklet viewer -- a full-screen layer
+     over everything, opened from the gatefold's inside-left panel once an
+     album has any pages (src/gatefold/booklet.js). Page-turn on swipe,
+     pinch to zoom, a thumbnail strip, "N / M", Done. -->
+<div class="booklet-viewer" id="bookletViewer" role="dialog" aria-modal="true" aria-label="Booklet" aria-hidden="true">
+  <div class="booklet-head">
+    <div>
+      <p class="booklet-kicker">Booklet</p>
+      <p class="booklet-album" id="bookletViewerAlbum"></p>
+    </div>
+    <button class="booklet-done" id="bookletDoneBtn">Done</button>
+  </div>
+  <div class="booklet-page-stage" id="bookletPageStage">
+    <img class="booklet-page-img" id="bookletPageImg" alt="Booklet page">
+  </div>
+  <p class="booklet-page-count" id="bookletPageCount"></p>
+  <div class="booklet-thumb-strip" id="bookletThumbStrip"></div>
+  <p class="booklet-hint">Swipe to turn a page. Pinch to read up close.</p>
+</div>
+<input id="bookletAddFile" type="file" accept="image/*" multiple style="display:none">
 
 <!-- GF8 (docs/29_GATEFOLD.md): the sealed front -- a sealed album opens
      here instead of the gatefold, until its wrap is peeled or it's first

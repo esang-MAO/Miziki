@@ -15,6 +15,7 @@ import {
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
 import { toggleSealedFrontTurnedOver } from '../gatefold/sealed-front.js';
+import { handleBookletAddFileChange } from '../gatefold/booklet.js';
 import { closeLayer, openLayer } from '../shell/nav-stack.js';
 
 // GF6 (docs/29_GATEFOLD.md): "a ··· button on the back opens a small
@@ -94,4 +95,15 @@ export function wireGatefold(){
   $('#gfTrackMenuAddQueue').addEventListener('click', gatefoldTrackMenuAddToQueue);
   $('#gfTrackMenuFav').addEventListener('click', gatefoldTrackMenuToggleFavorite);
   $('#gfTrackMenuCredits').addEventListener('click', gatefoldTrackMenuOpenCredits);
+
+  // GF10 (docs/29_GATEFOLD.md): the booklet viewer's own Done button --
+  // opened from buildBookletRow() (src/gatefold/view.js) -- plus the
+  // hidden file input "Add booklet pages…" opens via
+  // openAddBookletPagesPicker() (src/gatefold/booklet.js).
+  $('#bookletDoneBtn').addEventListener('click', () => closeLayer('booklet-viewer'));
+  $('#bookletAddFile').addEventListener('change', e => {
+    const files = e.target.files;
+    e.target.value = '';
+    handleBookletAddFileChange(files);
+  });
 }

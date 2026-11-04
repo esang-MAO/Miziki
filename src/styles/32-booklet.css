@@ -1,0 +1,33 @@
+/* GF10 (docs/29_GATEFOLD.md): the booklet viewer -- a full-screen layer,
+   same dark-locked palette as 12-sealed-records.css's sealed front (this
+   screen's own background never follows Light/Nychthemeron either). */
+.booklet-viewer{position:fixed;inset:0;z-index:30;display:none;
+  background:#07080C;color:#EFE9DF}
+.booklet-viewer.open{display:flex}
+.booklet-viewer.show{opacity:1}
+.booklet-viewer:not(.show){opacity:0}
+.booklet-viewer{flex-direction:column;transition:opacity .25s ease-out}
+@media (prefers-reduced-motion:reduce){ .booklet-viewer{transition:opacity .15s} }
+
+.booklet-head{display:flex;align-items:center;justify-content:space-between;
+  padding:calc(var(--sp-4) + env(safe-area-inset-top)) var(--sp-4) var(--sp-2)}
+.booklet-kicker{margin:0;font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:#ABA298}
+.booklet-album{margin:0;font-family:var(--display);font-size:var(--fs-title);font-weight:600}
+.booklet-done{min-height:44px;min-width:44px;font-size:var(--fs-row);font-weight:500;color:#EFE9DF}
+
+.booklet-page-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+  padding:0 var(--sp-5);overflow:hidden;touch-action:none}
+.booklet-page-img{max-width:100%;max-height:100%;border-radius:2px;
+  box-shadow:0 2px 4px rgba(0,0,0,.45), 0 16px 36px rgba(0,0,0,.45);object-fit:contain}
+
+.booklet-page-count{margin:var(--sp-2) 0 0;text-align:center;font-family:var(--data);
+  font-size:var(--fs-caption);color:#ABA298}
+
+.booklet-thumb-strip{display:flex;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) 0;overflow-x:auto}
+.booklet-thumb{flex:0 0 auto;width:44px;height:44px;border-radius:2px;background-color:#E6DCC4;
+  background-size:cover;background-position:center;opacity:.55}
+.booklet-thumb.current{opacity:1;box-shadow:0 0 0 2px #EFE9DF}
+
+.booklet-hint{margin:var(--sp-2) 0 calc(var(--sp-5) + env(safe-area-inset-bottom));
+  text-align:center;font-size:var(--fs-body);color:#ABA298}
