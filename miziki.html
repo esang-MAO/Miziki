@@ -1430,6 +1430,27 @@
       <button class="cta danger" id="linerEditRevert" style="display:none">Use the notes from the files</button>
     </div>
   </div>
+
+  <!-- GF9 (docs/29_GATEFOLD.md): a long press on a gatefold track row opens
+       this small sheet instead of playing -- same .edit-overlay/.edit-sheet
+       shell as linerEditOverlay above, mirroring library/view.js's own
+       #rowMenuOverlay (Play Next/Add to Queue/Favorite/Credits), plus a
+       side-and-length meta line the row menu has no need for. -->
+  <div class="edit-overlay" id="gfTrackMenuOverlay" aria-hidden="true">
+    <div class="edit-sheet" style="max-width:420px">
+      <div class="edit-head">
+        <span id="gfTrackMenuTitle">Track</span>
+        <button class="edit-close" id="gfTrackMenuClose" aria-label="Close">✕</button>
+      </div>
+      <p class="note" id="gfTrackMenuMeta"></p>
+      <div class="stack">
+        <button class="cta ghost" id="gfTrackMenuPlayNext">Play Next</button>
+        <button class="cta ghost" id="gfTrackMenuAddQueue">Add to Queue</button>
+        <button class="cta ghost" id="gfTrackMenuFav">Add to Favorites</button>
+        <button class="cta ghost" id="gfTrackMenuCredits" style="display:none">This Track's Credits</button>
+      </div>
+    </div>
+  </div>
   <div class="gf-flat-tracks" id="gfFlatTracks">
     <div class="gf-flat-head">
       <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ Crate</button>

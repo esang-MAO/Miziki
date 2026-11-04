@@ -24,7 +24,15 @@ mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
     // GF7 (docs/29_GATEFOLD.md)
     albumLinerNoteIsOverride(){ return false; }, albumLinerNotesSource(){ return null; },
     setAlbumLinerNoteOverride(){}, clearAlbumLinerNoteOverride(){},
+    // GF9 (docs/29_GATEFOLD.md)
+    openCreditsSheet(){}, trackHasCreditsContent(){ return false; },
   },
+});
+mock.module(new URL('../../src/library/favorites.js', import.meta.url).href, {
+  namedExports: { isFavorite(){ return false; }, toggleFavorite(){} },
+});
+mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
+  namedExports: { hapticTick(){} },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   // restoreThumbs: picture-sleeve.js's real import of record-art/peek.js
@@ -37,7 +45,7 @@ mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
   namedExports: { getCrateArtURL: async () => null },
 });
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { setQueue(){} },
+  namedExports: { setQueue(){}, playNext(){}, addToQueue(){} },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { play(){} },

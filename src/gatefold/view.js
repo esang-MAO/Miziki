@@ -20,13 +20,15 @@ import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../r
 import { etchingFor } from '../record-art/etchings.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
 import { albumTracks } from '../library/model.js';
-import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
+import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist, openCreditsSheet, trackHasCreditsContent } from '../library/credits.js';
+import { isFavorite, toggleFavorite } from '../library/favorites.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
 import { fmt } from '../util/text.js';
 import { fileSpecLine } from '../player/track-spec.js';
-import { setQueue } from '../player/queue.js';
+import { setQueue, playNext, addToQueue } from '../player/queue.js';
 import { play } from '../player/transport.js';
+import { hapticTick } from '../ui/haptic.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
@@ -111,6 +113,38 @@ function gatefoldNowGlyph(){
   return span;
 }
 
+// GF9 (docs/29_GATEFOLD.md point 2): a long press (~450ms) opens the track
+// menu instead of playing; a tap still plays exactly as before. Direction-
+// locked the same ~8px way gatefoldWireGestures()'s own panel swipe is
+// below, so scrolling the tracklist never also starts (or interrupts) a
+// press. Exported for its own unit test, same precedent as angleDelta
+// (scrub.js) and computeFlickPosition (launch/intro.js).
+export const GF_LONG_PRESS_MS = 450;
+export function wireGatefoldTrackLongPress(row, i, trackIdx, playHandler){
+  let timer = null, start = null, longPressed = false;
+  const clearTimer = () => { if(timer){ clearTimeout(timer); timer = null; } };
+  row.addEventListener('pointerdown', e => {
+    longPressed = false;
+    start = { x: e.clientX, y: e.clientY };
+    clearTimer();
+    timer = setTimeout(() => {
+      timer = null; longPressed = true; start = null;
+      hapticTick();
+      openGatefoldTrackMenu(i, trackIdx);
+    }, GF_LONG_PRESS_MS);
+  });
+  row.addEventListener('pointermove', e => {
+    if(!start) return;
+    if(Math.abs(e.clientX - start.x) > 8 || Math.abs(e.clientY - start.y) > 8){ clearTimer(); start = null; }
+  });
+  row.addEventListener('pointerup', () => { clearTimer(); start = null; });
+  row.addEventListener('pointercancel', () => { clearTimer(); start = null; });
+  row.addEventListener('click', e => {
+    if(longPressed){ longPressed = false; if(e.preventDefault) e.preventDefault(); return; }
+    (playHandler || gatefoldPlayTrack)(trackIdx, i);
+  });
+}
+
 function gatefoldTrackRow(i, pos, trackIdx, playHandler){
   const t = S.tracks[i];
   const row = document.createElement('button');
@@ -124,8 +158,60 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler){
   row.appendChild(num);
   row.appendChild(el('span','gf-tt', t.tags.title));
   row.appendChild(el('span','gf-td', fmt(t.duration)));
-  row.addEventListener('click', () => (playHandler || gatefoldPlayTrack)(trackIdx, i));
+  wireGatefoldTrackLongPress(row, i, trackIdx, playHandler);
   return row;
+}
+
+// GF9: the small action sheet a long press opens — title, side and length,
+// then Play next/Add to queue/Favorite (player/queue.js's and library/
+// favorites.js's existing exports, nothing new in either) and this one
+// track's own read-only credits (library/credits.js's existing
+// openCreditsSheet/trackHasCreditsContent, same role rows/ISRC/person-view
+// links the full credits sheet already shows — no new builder needed).
+let gfTrackMenuCtx = null;
+export function openGatefoldTrackMenu(i, trackIdx){
+  const t = S.tracks[i];
+  if(!t) return;
+  gfTrackMenuCtx = { i, trackIdx };
+  $('#gfTrackMenuTitle').textContent = t.tags.title;
+  const sides = gatefoldSideSplits(trackIdx);
+  const side = sides && sides.find(s => s.idx.includes(i));
+  $('#gfTrackMenuMeta').textContent = (side ? side.label + ' · ' : '') + fmt(t.duration);
+  $('#gfTrackMenuFav').textContent = isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites';
+  $('#gfTrackMenuCredits').style.display = trackHasCreditsContent(t) ? '' : 'none';
+  const overlay = $('#gfTrackMenuOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('gf-track-menu', closeGatefoldTrackMenu, { container: overlay });
+}
+export function closeGatefoldTrackMenu(){
+  gfTrackMenuCtx = null;
+  $('#gfTrackMenuOverlay').classList.remove('open');
+  $('#gfTrackMenuOverlay').setAttribute('aria-hidden','true');
+}
+export function gatefoldTrackMenuPlayNext(){
+  if(!gfTrackMenuCtx) return;
+  const { i } = gfTrackMenuCtx;
+  closeLayer('gf-track-menu');
+  playNext(i);
+}
+export function gatefoldTrackMenuAddToQueue(){
+  if(!gfTrackMenuCtx) return;
+  const { i } = gfTrackMenuCtx;
+  closeLayer('gf-track-menu');
+  addToQueue(i);
+}
+export function gatefoldTrackMenuToggleFavorite(){
+  if(!gfTrackMenuCtx) return;
+  const t = S.tracks[gfTrackMenuCtx.i];
+  closeLayer('gf-track-menu');
+  if(t) toggleFavorite(t.id);
+}
+export function gatefoldTrackMenuOpenCredits(){
+  if(!gfTrackMenuCtx) return;
+  const t = S.tracks[gfTrackMenuCtx.i];
+  forceCloseLayer('gf-track-menu', {skipHistory: true});
+  if(t) openCreditsSheet(t);
 }
 
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): pure per-side play-count sums, from
