@@ -4,9 +4,10 @@
    at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
    every other album entry point keeps renderAlbumDetail() untouched.
 
-   Only the gatefold itself lives here — the sealed-record sheet, which
-   shares buildGatefoldTracklist/gatefoldTrackIndices with it, lives in the
-   sibling module src/gatefold/sealed-sheet.js. */
+   Only the gatefold itself lives here — a sealed record's own sealed
+   front (GF8, docs/29_GATEFOLD.md), which shares gatefoldTrackIndices/
+   gatefoldItemFormat with it, lives in the sibling module
+   src/gatefold/sealed-front.js. */
 import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { sleep } from '../util/async.js';
@@ -259,7 +260,9 @@ function sleeveNotePromptFor(albumId){
 // inline. Shared by gatherRecordShareData(), gatefoldFormatLine() and
 // openGatefold()'s own gatefoldGeometry()/platterSizeAttr() calls (GF3
 // point 1), so there's one override lookup, not three copies of it.
-function gatefoldItemFormat(item){
+// GF8 (docs/29_GATEFOLD.md): also used by sealed-front.js's own format
+// line, before the gatefold itself has ever opened for this album.
+export function gatefoldItemFormat(item){
   const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
   return albumFormatFor(item.idx, S.tracks, override);
 }

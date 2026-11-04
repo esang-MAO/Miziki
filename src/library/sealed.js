@@ -1,10 +1,12 @@
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { el } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { REDUCED } from '../util/motion.js';
 import { meta } from '../storage/repo.js';
 import { renderTracks } from './view.js';
-import { updateSealedSheetAfterBreak } from '../gatefold/sealed-sheet.js';
+import { setQueue } from '../player/queue.js';
+import { play } from '../player/transport.js';
+import { runStartSequence } from '../shell/start-sequence.js';
 
 /* ================= S5: sealed records =================
    S.sealed is its own saved list, independent of S.albumLastPlayed/session
@@ -36,8 +38,18 @@ export function breakSeal(albumId){
   S.sealedBroken.add(albumId);
   persistSealedAlbums();
   persistBrokenSeals();
-  updateSealedSheetAfterBreak(albumId);
   renderTracks();
+}
+
+// GF8 (docs/29_GATEFOLD.md): moved from the now-retired src/gatefold/
+// sealed-sheet.js -- a sealed album's first
+// play runs the normal ceremony (so the peel is actually seen) but on
+// the platter/mini-player only, never the full player sheet (SEALED
+// spec §5). Used by the crate's own Play affordances for a sealed record
+// (list/crate rows), unchanged by GF8.
+export function sealedQuietPlay(trackIdx, i){
+  setQueue(trackIdx, trackIdx.indexOf(i), false);
+  runStartSequence(current(), S.pendingShellInfo, play);
 }
 
 // CR6 (docs/13_CRATE.md): "SEALED · [date]", lower-left, on the film —
@@ -58,7 +70,7 @@ function sealedDateLabel(addedAt){
 // real (a sealed card re-renders as a plain one, picking up the butter
 // "NEW" tag on its own, same as it always has for a freshly-unsealed
 // album -- see stickerFor()/buildStickerEl(), crate/view.js).
-// exported for gatefold/sealed-sheet.js's own "Open" action
+// exported for the crate card's own tear-strip drag below
 // (docs/15_SURFACE_NOISE.md §2, "Accessibility: ...an Open action in the
 // record menu, to peel without the drag") — the same commit animation a
 // drag past the tear-strip's own threshold already runs, triggered without

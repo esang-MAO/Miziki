@@ -33,9 +33,6 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
   namedExports: { checkAlbumAchievementAndCollection: mock.fn() },
 });
-mock.module(new URL('../../src/gatefold/sealed-sheet.js', import.meta.url).href, {
-  namedExports: { updateSealedSheetAfterBreak(){} },
-});
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
