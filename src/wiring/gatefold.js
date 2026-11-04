@@ -9,6 +9,8 @@ import {
   gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver,
   currentGatefoldAlbumId, refreshGatefoldBackCover,
   saveLinerEditSheet, revertLinerEditSheet,
+  gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
+  gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
@@ -83,4 +85,13 @@ export function wireGatefold(){
   $('#linerEditCancel').addEventListener('click', () => closeLayer('liner-edit'));
   $('#linerEditSave').addEventListener('click', saveLinerEditSheet);
   $('#linerEditRevert').addEventListener('click', revertLinerEditSheet);
+
+  // GF9 (docs/29_GATEFOLD.md): the long-press track menu's own buttons --
+  // opened from wireGatefoldTrackLongPress() (src/gatefold/view.js), wired
+  // here once like every other static gatefold control.
+  $('#gfTrackMenuClose').addEventListener('click', () => closeLayer('gf-track-menu'));
+  $('#gfTrackMenuPlayNext').addEventListener('click', gatefoldTrackMenuPlayNext);
+  $('#gfTrackMenuAddQueue').addEventListener('click', gatefoldTrackMenuAddToQueue);
+  $('#gfTrackMenuFav').addEventListener('click', gatefoldTrackMenuToggleFavorite);
+  $('#gfTrackMenuCredits').addEventListener('click', gatefoldTrackMenuOpenCredits);
 }
