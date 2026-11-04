@@ -13,8 +13,7 @@ import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
-import { discLook } from '../record-art/looks.js';
-import { METAL_COLORS } from '../record-art/metals.js';
+import { discLook, paintDiscLook } from '../record-art/looks.js';
 import { wearStage, wearCopy } from '../record-art/wear.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, openPersonOrArtist } from '../library/credits.js';
@@ -433,22 +432,7 @@ function applyGatefoldDiscVariant(item){
     return;
   }
   const d = discLook(t);
-  disc.classList.toggle('rare', d.rare);
-  label.classList.toggle('rare', d.rare);
-  if(d.rare){
-    disc.dataset.variant = d.rareId;
-    delete disc.dataset.tier;
-  } else if(d.look === 'zoetrope'){
-    disc.dataset.variant = d.variant;
-    delete disc.dataset.tier;
-  } else {
-    disc.dataset.tier = d.tier;
-    disc.dataset.variant = d.metal ? 'metal-' + d.metal : d.variant;
-    if(d.metal && d.labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[d.metal].shadow);
-  }
-  label.classList.toggle('paper-label', d.paperLabel);
-  label.classList.toggle('metal-invert', d.labelKind === 'invert');
-  label.classList.toggle('metal-silver', d.labelKind === 'silver-ring');
+  paintDiscLook(disc, label, d);
   disc.style.background = d.bg || '';
 }
 

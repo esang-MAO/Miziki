@@ -227,6 +227,41 @@ export function discLook(t){
     bg: variantBackground(getVariantDef(variant)), lightOverlay: null, labelKind: 'amber', paperLabel: tier === 1 && S.paperLabelOnLossy };
 }
 
+// The class/dataset/background work discLook()'s result paints onto any
+// disc+label pair — shared by the full player's own #disc/#label
+// (applyDiscVariant() below), the gatefold's sleeve-pocket disc
+// (gatefold/view.js), and the gatefold-to-player hand-off's flying ghost
+// disc (shell/handoff.js), so the pressing a record shows never differs
+// across those three surfaces. Caller still owns setting disc's own
+// background (plain assignment or setDiscBackground()'s crossfade) since
+// only the full player ever crossfades.
+export function paintDiscLook(disc, label, d){
+  disc.classList.toggle('rare', d.rare);
+  label.classList.toggle('rare', d.rare);
+  if(d.rare){
+    disc.dataset.variant = d.rareId;
+    delete disc.dataset.tier;
+  } else if(d.look === 'zoetrope'){
+    // PR7: discLook() returns tier:null for a zoetrope, the same as rare —
+    // there's no tier-1/2/3 distinction once a pressing's been replaced by
+    // an earned zoetrope, so this mirrors the rare branch's own
+    // "delete, don't stringify null" handling instead of falling into the
+    // metal/variant branch below.
+    disc.dataset.variant = d.variant;
+    delete disc.dataset.tier;
+  } else {
+    disc.dataset.tier = d.tier;
+    disc.dataset.variant = d.metal ? 'metal-' + d.metal : d.variant;
+    // gold/platinum each invert to the same aubergine disc/amber mark,
+    // but with their own ring colour (the metal's own shadow stop) —
+    // one class can't carry two different colours, so it rides inline.
+    if(d.metal && d.labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[d.metal].shadow);
+  }
+  label.classList.toggle('paper-label', d.paperLabel);
+  label.classList.toggle('metal-invert', d.labelKind === 'invert');
+  label.classList.toggle('metal-silver', d.labelKind === 'silver-ring');
+}
+
 // Outside the full player the artwork travels as a plain circular label; the disc's
 // tier-derived surface is scoped to this renderer only (see spec §1).
 // `crossfade` should be true only for a same-album change with no sleeve
@@ -259,31 +294,8 @@ export function applyDiscVariant(t, crossfade){
   }
   $('#lookBtn').style.display = availableLooks(t).length > 1 ? '' : 'none';
   const d = discLook(t);
-  disc.classList.toggle('rare', d.rare);
-  label.classList.toggle('rare', d.rare);
-  if(d.rare){
-    disc.dataset.variant = d.rareId;
-    delete disc.dataset.tier;
-  } else if(d.look === 'zoetrope'){
-    // PR7: discLook() returns tier:null for a zoetrope, the same as rare —
-    // there's no tier-1/2/3 distinction once a pressing's been replaced by
-    // an earned zoetrope, so this mirrors the rare branch's own
-    // "delete, don't stringify null" handling instead of falling into the
-    // metal/variant branch below.
-    disc.dataset.variant = d.variant;
-    delete disc.dataset.tier;
-  } else {
-    disc.dataset.tier = d.tier;
-    disc.dataset.variant = d.metal ? 'metal-' + d.metal : d.variant;
-    // gold/platinum each invert to the same aubergine disc/amber mark,
-    // but with their own ring colour (the metal's own shadow stop) —
-    // one class can't carry two different colours, so it rides inline.
-    if(d.metal && d.labelKind === 'invert') label.style.setProperty('--metal-ring', METAL_COLORS[d.metal].shadow);
-  }
-  const bg = d.bg, paperLabel = d.paperLabel, labelKind = d.labelKind;
-  label.classList.toggle('paper-label', paperLabel);
-  label.classList.toggle('metal-invert', labelKind === 'invert');
-  label.classList.toggle('metal-silver', labelKind === 'silver-ring');
+  paintDiscLook(disc, label, d);
+  const bg = d.bg;
   setDiscBackground(disc, bg, crossfade);
   if(light){
     if(d.lightOverlay){ light.style.background = d.lightOverlay; light.classList.add('on'); }
