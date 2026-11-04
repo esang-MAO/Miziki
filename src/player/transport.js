@@ -35,7 +35,7 @@ import {
 } from '../audio/surface-noise.js';
 import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
-import { specRateSuffix, specState, specStateLabel } from './track-spec.js';
+import { fileSpecLine, specRateSuffix, specState, specStateLabel } from './track-spec.js';
 
 // AU2 (docs/16_AUDIO.md §2.2): every ordinary edge -- pause, stop, seek --
 // fades S.nodes.trackGain by this many ms before the source actually
@@ -60,9 +60,7 @@ function renderTrackSpecLine(t){
   if(!el || !t) return;
   const m = t.meta;
   const engineRate = S.ctx ? S.ctx.sampleRate : null;
-  const base = [m.codec, (m.rate/1000).toFixed(1)+' kHz', m.bits? m.bits+'-bit':null,
-    m.ch===1?'mono':'stereo', m.lossless? null : 'lossy'].filter(Boolean).join(' · ')
-    + specRateSuffix(m.rate, engineRate);
+  const base = fileSpecLine(m) + specRateSuffix(m.rate, engineRate);
   if(!specExpanded){ el.textContent = base; return; }
   const eq = S.eq || {};
   const state = specState({

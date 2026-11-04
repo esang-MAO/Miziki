@@ -32,12 +32,40 @@ export function wearStage(albumSessions, firstPlayedAt, now){
 // since Month YYYY" — the stage word and the first-played month, no play
 // count. Nothing for new/light, per the README table ("the first word
 // follows the stage: no word for New and Light, 'Worn' or 'Well loved'
-// after").
-export function wearCopy(stage, firstPlayedAt){
+// after"). phaseWord (GF1, docs/29_GATEFOLD.md) is wearPhaseWord()'s own
+// output below -- optional, and still no count, just the phase name.
+export function wearCopy(stage, firstPlayedAt, phaseWord){
   if(stage !== 'worn' && stage !== 'loved') return null;
   const label = stage === 'loved' ? 'Well loved' : 'Worn';
-  if(!firstPlayedAt) return label;
-  const d = new Date(firstPlayedAt);
-  const since = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-  return `${label} · since ${since}`;
+  let out = label;
+  if(firstPlayedAt){
+    const d = new Date(firstPlayedAt);
+    out += ` · since ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  if(phaseWord) out += ` · mostly spun ${phaseWord}`;
+  return out;
+}
+
+// GF1 (docs/29_GATEFOLD.md): "the phase this record has been played in
+// most... only once the record has at least five counted plays." Pure
+// over S.albumPhaseCounts[albumId] ({phase: count}, src/state.js) -- the
+// same per-phase map src/sundown/rhythm.js's bestAlbumPerPhase() reads,
+// here read the other direction (one album's own phase spread, not the
+// whole library's). Quiet counts (docs/24_QUIET_COUNTS.md): the number
+// itself never reaches the screen, only the winning phase's plain word.
+const PHASE_WEAR_MIN_PLAYS = 5;
+const PHASE_WEAR_WORDS = {
+  night: 'overnight', dawn: 'at dawn', morning: 'in the morning', midday: 'at midday',
+  afternoon: 'in the afternoon', golden: 'at golden hour', twilight: 'at dusk',
+};
+export function wearPhaseWord(albumPhaseCounts){
+  if(!albumPhaseCounts) return null;
+  let best = null, bestCount = 0, total = 0;
+  Object.keys(albumPhaseCounts).forEach(phase => {
+    const c = albumPhaseCounts[phase] || 0;
+    total += c;
+    if(c > bestCount){ bestCount = c; best = phase; }
+  });
+  if(total < PHASE_WEAR_MIN_PLAYS || !best) return null;
+  return PHASE_WEAR_WORDS[best] || null;
 }

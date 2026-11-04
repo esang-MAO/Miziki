@@ -14,18 +14,20 @@ import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
 import { discLook, paintDiscLook } from '../record-art/looks.js';
-import { wearStage, wearCopy } from '../record-art/wear.js';
+import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
+import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
 import { albumTracks } from '../library/model.js';
-import { albumLinerNotes, albumCreditRoll, openPersonOrArtist } from '../library/credits.js';
+import { albumLinerNotes, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
 import { fmt } from '../util/text.js';
+import { fileSpecLine } from '../player/track-spec.js';
 import { setQueue } from '../player/queue.js';
 import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
-import { splitSides } from '../shell/ceremony-timing.js';
+import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
@@ -152,9 +154,11 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
 
 // credit names close the gatefold before opening the person view, so the
 // crate underneath isn't left showing a stale position when it reopens
+// TY3 (docs/22_TYPE.md)/GF1 (docs/29_GATEFOLD.md point 5): a token class in
+// 11-gatefold.css, not an inline color/textDecoration write, for the same
+// underline every credit name uses.
 function gatefoldCreditLink(name){
-  const b = el('button','', name);
-  b.style.color = 'var(--cream)'; b.style.textDecoration = 'underline';
+  const b = el('button','gf-credit-link', name);
   b.addEventListener('click', () => { forceCloseLayer('gatefold'); openPersonOrArtist(name); });
   return b;
 }
@@ -197,6 +201,35 @@ function sleeveNotePromptFor(albumId){
 // field are this, not a new feature. src/styles/11-gatefold.css's
 // .gf-left-scoped rules were widened to also match .crate-detail-panel so
 // this renders with the same styling in its new home.
+// GF1 (docs/29_GATEFOLD.md point 1): the Record share card's whole payload,
+// gathered in one place so the gatefold and any later entry point (the
+// picture sleeve, a friend's record sheet) share it rather than each
+// building their own partial version — src/share/record-card.js's own doc
+// comment lists exactly this shape and reads nothing else. art: the
+// crate's own L tier, falling back to the thumbnail/track art the same way
+// gatefoldSetCoverArt() below does. variant/look/metal: the same
+// discLook() resolution applyGatefoldDiscVariant() already uses, off the
+// album's own pressing track. speed: the album's real format (33 or 45),
+// honoring the personal override the same way every other format reader
+// does. friendsCount: always null here — this is always your own copy.
+export async function gatherRecordShareData(item){
+  const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+  const d = t ? discLook(t) : null;
+  const fallbackArt = thumbURL['album:' + item.albumId] || (t && t.art) || null;
+  const art = (await getCrateArtURL(item.albumId, 'L').catch(() => null)) || fallbackArt;
+  const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
+  const format = albumFormatFor(item.idx, S.tracks, override);
+  const social = MizikiSocial.getAlbumSocial(item.albumId);
+  return {
+    album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
+    art, variant: d ? d.variant : null, look: d ? d.look : null, metal: d ? d.metal : null,
+    speed: format.speed === RPM_45 ? 45 : 33,
+    rating: social.rating != null ? social.rating : null,
+    note: social.note || null,
+    friendsCount: null,
+  };
+}
+
 export function gatefoldSocialControlsHTML(item){
   const wrap = el('div','gf-social');
   wrap.appendChild(el('p','gf-social-caption','Your copy'));
@@ -224,17 +257,15 @@ export function gatefoldSocialControlsHTML(item){
   wrap.appendChild(pinBtn);
 
   // SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record
-  // row." Minimal data for now -- SH3's own composer is still the stub
-  // in src/share/record-card.js; this just gets the entry point wired so
-  // it isn't dead once SH3 lands.
+  // row." GF1: the full payload, gathered by gatherRecordShareData() above.
   const shareBtn = document.createElement('button');
   shareBtn.type = 'button'; shareBtn.className = 'gf-share-btn';
   shareBtn.textContent = 'Share record';
   shareBtn.addEventListener('click', async () => {
-    const { openShareSheet } = await import('../share/sheet.js');
-    openShareSheet({ card:'record', data:{
-      album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
-    } });
+    const [{ openShareSheet }, data] = await Promise.all([
+      import('../share/sheet.js'), gatherRecordShareData(item),
+    ]);
+    openShareSheet({ card:'record', data });
   });
   wrap.appendChild(shareBtn);
 
@@ -287,6 +318,11 @@ export function buildGatefoldLeftPanel(item){
       item.trackCount + (item.trackCount===1?' track':' tracks'), fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
     host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
     host.appendChild(el('p','gf-minimal-note','No liner notes in these files.'));
+    // GF1 (docs/29_GATEFOLD.md point 3): "THE MASTER block... now on the
+    // phone too" -- shown whenever the album has been measured, regardless
+    // of whether it has liner notes/credits of its own.
+    const minimalNote = albumDynamicsNote(item.album);
+    if(minimalNote) host.appendChild(buildDynamicsNoteEl(minimalNote));
     host.appendChild(gatefoldSocialControlsHTML(item));
     return host;
   }
@@ -301,11 +337,29 @@ export function buildGatefoldLeftPanel(item){
       host.appendChild(row);
     });
   }
+  // GF1 point 3: THE MASTER block, under the credits.
+  const dynamicsNote = albumDynamicsNote(item.album);
+  if(dynamicsNote) host.appendChild(buildDynamicsNoteEl(dynamicsNote));
   const metaBits = [item.year || null, item.genre || null,
     item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
   host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
   host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
+}
+
+// GF1 point 6: moves the Pin/Share buttons buildGatefoldLeftPanel() built
+// (inside #gfLeft, via gatefoldSocialControlsHTML) into the fixed row just
+// under the panel -- a DOM move, not a rebuild, so their own listeners and
+// paint() closures keep working untouched. #gfLeft itself keeps scrolling
+// with just the rating/note/credits/liner content above them.
+function relocateGatefoldActions(){
+  const actions = $('#gfLeftActions');
+  if(!actions) return;
+  actions.innerHTML = '';
+  const pin = document.querySelector('#gfLeft .gf-pin-btn');
+  const share = document.querySelector('#gfLeft .gf-share-btn');
+  if(pin) actions.appendChild(pin);
+  if(share) actions.appendChild(share);
 }
 
 function gatefoldOnPlatter(item){
@@ -399,21 +453,41 @@ export function updateGatefoldNowPlaying(){
   if(num){ num.innerHTML = ''; num.appendChild(gatefoldNowGlyph()); }
 }
 
+// GF1 point 4: "format name, speed, the file's format/bit depth/rate as
+// the player's spec line already words it, track count and length." Not
+// shared with crate/model.js's catalogLineFor() -- that line is the crate
+// catalog card's own uppercase label/catalog-number wording, built from no
+// file-level data at all; this one is mixed-case and always includes the
+// file's own codec/rate/bit-depth, a different shape the two don't share.
+function gatefoldFormatLine(item){
+  const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
+  const format = albumFormatFor(item.idx, S.tracks, override);
+  const t = S.tracks[item.idx[0]];
+  const bits = [
+    formatRecordName(format) + ' · ' + formatSpeedText(format.speed) + ' RPM',
+    t ? fileSpecLine(t.meta) : null,
+    item.trackCount + (item.trackCount===1?' track':' tracks'),
+    fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0)),
+  ].filter(Boolean);
+  return bits.join(' · ');
+}
+
 function gatefoldInfoAndSleeveHTML(item){
   const info = $('#gfInfo'); info.innerHTML = '';
   info.appendChild(el('h3','gf-info-title', item.album));
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
   // QC4 (docs/24_QUIET_COUNTS.md): "Worn · since Month YYYY" / "Well loved ·
   // since Month YYYY" under the artist line -- no play count, and nothing
-  // at all for new/light (wearCopy returns null for those stages).
+  // at all for new/light (wearCopy returns null for those stages). GF1
+  // point 7: the phase this record has been played in most, from
+  // S.albumPhaseCounts, once it has at least five counted plays.
   if(S.showWear !== false){
     const stage = wearStage(S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId], Date.now());
-    const copy = wearCopy(stage, S.albumFirstPlayed[item.albumId]);
+    const phraseWord = wearPhaseWord(S.albumPhaseCounts[item.albumId]);
+    const copy = wearCopy(stage, S.albumFirstPlayed[item.albumId], phraseWord);
     if(copy) info.appendChild(el('p','gf-info-wear', copy));
   }
-  const metaBits = [item.genre || null, item.trackCount + (item.trackCount===1?' track':' tracks'),
-    fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0))].filter(Boolean);
-  info.appendChild(el('p','gf-info-meta', metaBits.join(' · ')));
+  info.appendChild(el('p','gf-info-meta', gatefoldFormatLine(item)));
 }
 
 // The gatefold's own disc, pulled from the sleeve pocket, shows the same
@@ -455,6 +529,14 @@ export function gatefoldSwitchPanel(panel){
   }
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
+  // GF1 point 6: Pin and Share live in #gfLeftActions, reached without
+  // scrolling the inside-left panel -- shown while that panel is the one
+  // open (or always, in wide mode, where both panels already sit side by
+  // side). Short mode keeps them inline in its own flat body instead
+  // (rebuilt by buildGatefoldLeftPanel just above), so #gfLeftActions
+  // stays empty and hidden there.
+  const actions = $('#gfLeftActions');
+  if(actions) actions.style.display = (GF.mode === 'wide' || (GF.mode !== 'short' && panel === 'left')) ? 'flex' : 'none';
   if(GF.mode === 'short'){
     $('#gfFlatBody').innerHTML = '';
     if(panel === 'left') $('#gfFlatBody').appendChild(buildGatefoldLeftPanel(GF.item));
@@ -660,16 +742,23 @@ export function openGatefold(item, opts){
   // has (§A6).
   if(opts && opts.discAlreadyOut) gatefoldSleeveFlourish();
 
-  const hasLeftContent = !!(albumLinerNotes(item.album) || albumCreditRoll(item.album).size);
-  $('#gfLeftCue').style.display = hasLeftContent ? '' : 'none';
-
   if(mode === 'short'){
     $('#gfFlatTracks').classList.add('show');
     $('#gfFlatBody').innerHTML = ''; $('#gfFlatBody').appendChild(buildGatefoldTracklist(item, trackIdx));
     document.querySelectorAll('#gfFlatSeg [data-panel]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.panel === 'right')));
+    const actions = $('#gfLeftActions'); if(actions){ actions.innerHTML = ''; actions.style.display = 'none'; }
   } else {
     $('#gfFlatTracks').classList.remove('show');
+    // GF1 point 6: Pin and Share move out of #gfLeft's own scroll area into
+    // the fixed row just under the panel -- moving the real nodes (not
+    // rebuilding them) keeps their own click handlers/closures intact.
+    relocateGatefoldActions();
+    const actions = $('#gfLeftActions');
+    if(actions) actions.style.display = mode === 'wide' ? 'flex' : 'none';   // GF.panel starts 'right'
   }
+  // GF1 point 2: the inside-left cue always shows now (no liner-notes/
+  // credits gate) -- it opens Your copy (rating, sleeve note, pin, share),
+  // which every record has, not just one with notes in its files.
 
   updateGatefoldScale();
   overlay.classList.add('open');
