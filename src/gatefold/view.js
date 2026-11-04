@@ -15,7 +15,8 @@ import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
 import { discLook, paintDiscLook } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
-import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
+import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
+import { etchingFor } from '../record-art/etchings.js';
 import { albumTracks } from '../library/model.js';
 import { albumLinerNotes, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist } from '../library/credits.js';
 import { thumbURL } from '../library/thumbs.js';
@@ -51,20 +52,25 @@ document.documentElement.style.setProperty('--gatefold-swing-easing', GATEFOLD_A
 const GF_CLOSE_DRAG_DISTANCE = 120;
 const GF_CLOSE_DRAG_VELOCITY = 0.6;
 
-// GF2 (docs/29_GATEFOLD.md point 2): the one place that reads
+// GF2/GF3 (docs/29_GATEFOLD.md point 2): the one place that reads
 // gatefoldGeometry() and publishes it as CSS custom properties, the same
 // "compute once, push as a var" shape GATEFOLD_ANIM already uses just
 // above -- 11-gatefold.css's .gf-camera/.gf-right/.gf-cover/.gf-left-cue/
-// .gf-right-cue/#gfLeftActions/.gf-sleeve-disc-wrap read these instead of
-// their own copies of the same literals, and every pan distance below
-// reads GF_GEOM.panDistance instead of a bare 175. format/viewport aren't
-// passed yet -- this PR's numbers don't vary by either.
-const GF_GEOM = gatefoldGeometry();
-document.documentElement.style.setProperty('--gf-ref-w', GF_GEOM.referenceWidth + 'px');
-document.documentElement.style.setProperty('--gf-ref-h', GF_GEOM.referenceHeight + 'px');
-document.documentElement.style.setProperty('--gf-panel-size', GF_GEOM.panelSize + 'px');
-document.documentElement.style.setProperty('--gf-pan', GF_GEOM.panDistance + 'px');
-document.documentElement.style.setProperty('--gf-disc-size', GF_GEOM.discDiameter + 'px');
+// #gfLeftActions/.gf-sleeve-disc-wrap/.gf-sleeve-paper read these instead
+// of their own copies of the same literals. Called once at module load
+// with the 12" fallback (so the vars exist before any gatefold has ever
+// opened) and again from openGatefold() with the open record's own
+// format (GF3) -- every GF_GEOM.* read elsewhere in this file was
+// replaced by GF.geom.*, the per-open record's own resolved geometry.
+function pushGatefoldGeometryVars(geom){
+  document.documentElement.style.setProperty('--gf-ref-w', geom.referenceWidth + 'px');
+  document.documentElement.style.setProperty('--gf-ref-h', geom.referenceHeight + 'px');
+  document.documentElement.style.setProperty('--gf-panel-size', geom.panelSize + 'px');
+  document.documentElement.style.setProperty('--gf-pan', geom.panDistance + 'px');
+  document.documentElement.style.setProperty('--gf-pocket-size', geom.pocketSize + 'px');
+  document.documentElement.style.setProperty('--gf-disc-size', geom.discDiameter + 'px');
+}
+pushGatefoldGeometryVars(gatefoldGeometry());
 
 export let GF = null;   // ephemeral render state for the open gatefold; null when closed
 
@@ -79,7 +85,7 @@ function gatefoldViewportMode(){
 
 export function updateGatefoldScale(){
   if(!GF) return;
-  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / GF_GEOM.referenceWidth, window.innerHeight / GF_GEOM.referenceHeight);
+  const s = GF.mode === 'wide' ? 1 : Math.min(window.innerWidth / GF.geom.referenceWidth, window.innerHeight / GF.geom.referenceHeight);
   document.documentElement.style.setProperty('--gf-page-scale', s);
 }
 
@@ -235,13 +241,23 @@ function sleeveNotePromptFor(albumId){
 // album's own pressing track. speed: the album's real format (33 or 45),
 // honoring the personal override the same way every other format reader
 // does. friendsCount: always null here — this is always your own copy.
+// GF3: the one place that resolves an open (or about-to-open) item's real
+// format -- the album's own track lengths through the personal Auto/33/45
+// override, exactly as every other format reader here already read it
+// inline. Shared by gatherRecordShareData(), gatefoldFormatLine() and
+// openGatefold()'s own gatefoldGeometry()/platterSizeAttr() calls (GF3
+// point 1), so there's one override lookup, not three copies of it.
+function gatefoldItemFormat(item){
+  const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
+  return albumFormatFor(item.idx, S.tracks, override);
+}
+
 export async function gatherRecordShareData(item){
   const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
   const d = t ? discLook(t) : null;
   const fallbackArt = thumbURL['album:' + item.albumId] || (t && t.art) || null;
   const art = (await getCrateArtURL(item.albumId, 'L').catch(() => null)) || fallbackArt;
-  const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
-  const format = albumFormatFor(item.idx, S.tracks, override);
+  const format = gatefoldItemFormat(item);
   const social = MizikiSocial.getAlbumSocial(item.albumId);
   return {
     album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
@@ -483,8 +499,7 @@ export function updateGatefoldNowPlaying(){
 // file-level data at all; this one is mixed-case and always includes the
 // file's own codec/rate/bit-depth, a different shape the two don't share.
 function gatefoldFormatLine(item){
-  const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
-  const format = albumFormatFor(item.idx, S.tracks, override);
+  const format = gatefoldItemFormat(item);
   const t = S.tracks[item.idx[0]];
   const bits = [
     formatRecordName(format) + ' · ' + formatSpeedText(format.speed) + ' RPM',
@@ -533,6 +548,26 @@ function applyGatefoldDiscVariant(item){
   disc.style.background = d.bg || '';
 }
 
+// GF3 point 3: "when the disc is out ... draw its run-out etching from
+// etchingFor(releaseId, side) along the dead-wax ring, in var(--data) at
+// the 11px physical-detail size." The pocket disc isn't committed to one
+// playing side the way the platter is (applyDeadWaxEtching's own caller,
+// player/transport.js's load(), reads whichever side is actually loaded)
+// -- it's the sleeve's generic look at the record, so side 'A' always,
+// same "every copy of an album shows the same etching" determinism
+// etchingFor() already gives. Shown only via CSS, keyed off
+// .gf-sleeve-disc-wrap.gf-disc-out -- this just needs the text in place
+// once per open, not re-applied on every flourish.
+function gatefoldApplyPocketDeadWax(item){
+  const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+  const matrixEl = $('#gfDiscDeadwaxMatrix'), messageEl = $('#gfDiscDeadwaxMessage');
+  if(!matrixEl || !messageEl) return;
+  if(!t){ matrixEl.textContent = ''; messageEl.textContent = ''; return; }
+  const { matrix, message } = etchingFor(albumKey(t), 'A');
+  matrixEl.textContent = matrix;
+  messageEl.textContent = message;
+}
+
 async function gatefoldSetCoverArt(item){
   const img = $('#gfCoverArt'), discArt = $('#gfDiscArt');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
@@ -548,7 +583,7 @@ export function gatefoldSwitchPanel(panel){
   const camera = $('#gfCamera');
   if(GF.mode !== 'wide'){
     camera.style.transition = 'transform ' + GATEFOLD_ANIM.leftPanelMs + 'ms ease';
-    camera.style.setProperty('--gf-cx', (panel === 'left' ? -GF_GEOM.panDistance : GF_GEOM.panDistance) + 'px');
+    camera.style.setProperty('--gf-cx', (panel === 'left' ? -GF.geom.panDistance : GF.geom.panDistance) + 'px');
   }
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
@@ -590,8 +625,8 @@ function gatefoldWireGestures(){
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if(!start.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) start.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
     if(start.locked === 'h' && GF.mode !== 'wide'){
-      const base = GF.panel === 'left' ? -GF_GEOM.panDistance : GF_GEOM.panDistance;
-      const next = clamp(base + dx * 0.5, -GF_GEOM.panDistance, GF_GEOM.panDistance);
+      const base = GF.panel === 'left' ? -GF.geom.panDistance : GF.geom.panDistance;
+      const next = clamp(base + dx * 0.5, -GF.geom.panDistance, GF.geom.panDistance);
       $('#gfCamera').style.transition = 'none';
       $('#gfCamera').style.setProperty('--gf-cx', next + 'px');
     }
@@ -710,7 +745,7 @@ function gatefoldSettledState(mode){
   const camera = $('#gfCamera'), cover = $('#gfCover');
   camera.style.transition = 'none';
   camera.style.setProperty('--gf-s', mode === 'wide' ? '1' : '.55');
-  camera.style.setProperty('--gf-cx', mode === 'wide' ? GF_GEOM.panDistance + 'px' : '0px');
+  camera.style.setProperty('--gf-cx', mode === 'wide' ? GF.geom.panDistance + 'px' : '0px');
   cover.style.transition = 'none';
   cover.style.transform = 'rotateY(-180deg)';
   $('#gfShadow').style.opacity = '0';
@@ -742,7 +777,7 @@ async function runGatefoldOpen(mode){
   } else {
     camera.style.transition = 'none';
     camera.style.setProperty('--gf-s', '1');
-    camera.style.setProperty('--gf-cx', GF_GEOM.panDistance + 'px');
+    camera.style.setProperty('--gf-cx', GF.geom.panDistance + 'px');
     cover.style.transition = 'none';
     cover.style.transform = 'rotateY(0deg)';
     overlay.style.opacity = '0';
@@ -768,7 +803,7 @@ async function runGatefoldOpen(mode){
 
     if(mode !== 'wide'){
       camera.style.transition = 'transform ' + GATEFOLD_ANIM.pushMs + 'ms ' + GATEFOLD_ANIM.swingEasing;
-      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', GF_GEOM.panDistance + 'px');
+      camera.style.setProperty('--gf-s', '1'); camera.style.setProperty('--gf-cx', GF.geom.panDistance + 'px');
     }
     overlay.classList.add('gf-chrome-in');
     await sleep(GATEFOLD_ANIM.pushMs);
@@ -787,13 +822,28 @@ export function openGatefold(item, opts){
   const mode = gatefoldViewportMode();
   const trackIdx = gatefoldTrackIndices(item);
   if(!trackIdx.length) return;
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement};
+  // GF3 point 1: the record's own format (12"/10"/7", through the
+  // personal Auto/33/45 override, same as gatefoldFormatLine()/
+  // gatherRecordShareData()) drives this open's own geometry -- panel/
+  // pan/pocket/disc sizes, pushed as CSS vars below -- and the pocket
+  // disc's own [data-size] label-inset scaling (point 2), the same
+  // [data-size]-keyed convention SZ1 already uses for the platter.
+  // isSingleRecord() routing to the picture sleeve instead of here is
+  // unchanged, upstream in crate/view.js's openCrateAlbum().
+  const format = gatefoldItemFormat(item);
+  const geom = gatefoldGeometry(format);
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom};
+  pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');
   overlay.setAttribute('aria-label', item.album);
   overlay.classList.toggle('gf-wide', mode === 'wide');
   overlay.classList.remove('gf-chrome-in');
   overlay.style.opacity = '';
+
+  const sleeveDiscWrap = $('#gfSleeveDiscWrap');
+  if(sleeveDiscWrap) sleeveDiscWrap.setAttribute('data-size', platterSizeAttr(format));
+  gatefoldApplyPocketDeadWax(item);
 
   $('#gfTracklist').innerHTML = ''; $('#gfTracklist').appendChild(buildGatefoldTracklist(item, trackIdx));
   $('#gfLeft').innerHTML = ''; $('#gfLeft').appendChild(buildGatefoldLeftPanel(item));

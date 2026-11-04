@@ -2,18 +2,35 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gatefoldGeometry } from '../../src/gatefold/geometry.js';
 
-// GF2 (docs/29_GATEFOLD.md point 2/3): this PR returns today's 12" numbers
-// for every format/viewport unchanged -- GF3 is the step that makes these
-// vary by format.
-test('gatefoldGeometry: the 12" case reproduces today\'s numbers exactly', () => {
-  const g = gatefoldGeometry({ size: '12"', speed: 33.333 }, { width: 390, height: 740 });
-  assert.deepEqual(g, {
+// GF2/GF3 (docs/29_GATEFOLD.md point 1/2): the 12" case must reproduce the
+// numbers every pre-GF3 gatefold literal already assumed (panel 350,
+// pan 175 [half the panel], disc 156, pocket cutout 132).
+test('gatefoldGeometry: 12" matches the numbers every panel/pan/disc literal already assumed', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '12"', speed: 33.333 }), {
     referenceWidth: 390, referenceHeight: 740,
     panelSize: 350, panDistance: 175,
-    pocketSize: 156, discDiameter: 156,
+    pocketSize: 132, discDiameter: 156,
   });
 });
 
-test('gatefoldGeometry: no format/viewport given still returns the same numbers', () => {
-  assert.deepEqual(gatefoldGeometry(), gatefoldGeometry({ size: '7"', speed: 45 }, { width: 800, height: 600 }));
+// GF3 point 1's exact panel sizes, with pan/pocket/disc scaled
+// proportionally off the same 12" ratios.
+test('gatefoldGeometry: 10" scales proportionally off the 350px panel\'s own ratios', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '10"', speed: 45 }), {
+    referenceWidth: 390, referenceHeight: 740,
+    panelSize: 292, panDistance: 146,
+    pocketSize: 110, discDiameter: 130,
+  });
+});
+
+test('gatefoldGeometry: 7" scales proportionally off the 350px panel\'s own ratios', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '7"', speed: 45 }), {
+    referenceWidth: 390, referenceHeight: 740,
+    panelSize: 204, panDistance: 102,
+    pocketSize: 77, discDiameter: 91,
+  });
+});
+
+test('gatefoldGeometry: no format given falls back to the 12" numbers', () => {
+  assert.deepEqual(gatefoldGeometry(), gatefoldGeometry({ size: '12"', speed: 33.333 }));
 });
