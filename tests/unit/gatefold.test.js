@@ -69,6 +69,31 @@ mock.module(new URL('../../src/shell/handoff.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { buildSealOverlay(){ return { }; }, runBreakChoreography: async () => {}, isAlbumSealed(){ return false; }, sealedQuietPlay(){} },
 });
+// GF12 (docs/29_GATEFOLD.md): view.js now also imports library/view.js
+// directly (openConfirmDelete/renderTracks/moverCtl/syncQueueOrder, for
+// the "···" menu's own Remove album/Track order rows), plus
+// library/delete.js and storage/meta.js — the exact same hub-module chain
+// the comment above already stops at the door via library/sealed.js, now
+// also reached this second way.
+const openConfirmDeleteMock = mock.fn((_kind, _n, _label, onConfirm) => onConfirm());
+const renderTracksMock = mock.fn();
+const moverCtlMock = mock.fn(() => ({ tagName: 'SPAN' }));
+const syncQueueOrderMock = mock.fn();
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: {
+    openConfirmDelete: openConfirmDeleteMock, renderTracks: renderTracksMock,
+    moverCtl: moverCtlMock, syncQueueOrder: syncQueueOrderMock,
+  },
+});
+const countForAlbumMock = mock.fn(() => 1);
+const deleteAlbumMock = mock.fn();
+mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
+  namedExports: { countForAlbum: countForAlbumMock, deleteAlbum: deleteAlbumMock },
+});
+const queueSaveMock = mock.fn();
+mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
+  namedExports: { queueSave: queueSaveMock },
+});
 // SH1 (docs/18_SHARE.md): view.js's own new "Share record" button imports
 // openShareSheet from share/sheet.js, which would otherwise reach the real
 // share composer chain (crate-card.js -> history/achievements.js, etc.) —

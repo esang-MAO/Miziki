@@ -119,6 +119,28 @@ function albumGenreFor(idx){
   return best.display;
 }
 
+// GF12 (docs/29_GATEFOLD.md): extracted out of buildCrateRecords() below so
+// library/view.js's own album entry points (the Albums tab and an artist's
+// album drill-down) resolve an album's artist the same way the crate
+// already does, rather than a second, looser guess — the two need to agree
+// since they can open the exact same gatefold for the exact same album.
+export function albumArtistFor(idx){
+  const tracks = idx.map(i => S.tracks[i]);
+  const artistSet = new Set(tracks.map(t => t.tags.artist));
+  const albumArtistSet = new Set(tracks.map(t => t.tags.albumArtist));
+  // Trap: when no track in the album carries an albumArtist tag at all (a
+  // common real-world case -- it's an optional tag many rippers never
+  // write), every track's tags.albumArtist is the same `undefined`, so the
+  // set still has size 1. Trusting that blindly picks undefined as the
+  // record's own artist, which reaches buildGatefoldTracklist()'s
+  // `item.artist.toUpperCase()` and throws. Guard: only trust the set's one
+  // value when it's a real, non-empty tag.
+  const [onlyAlbumArtist] = albumArtistSet;
+  if(albumArtistSet.size === 1 && onlyAlbumArtist) return onlyAlbumArtist;
+  if(artistSet.size > 1) return 'Various Artists';   // different artists, no consistent albumArtist
+  return tracks[0].tags.artist || 'Unknown Artist';
+}
+
 // an album's year is the most common non-zero t.details.year among its
 // tracks, ties going to the earliest (CRATE spec §2) — 0 means unknown
 export function albumYearFor(idx){
@@ -228,23 +250,7 @@ function buildCrateRecords(){
   const records = [];
   byAlbum.forEach((idx, albumId) => {
     const tracks = idx.map(i => S.tracks[i]);
-    const artistSet = new Set(tracks.map(t => t.tags.artist));
-    const albumArtistSet = new Set(tracks.map(t => t.tags.albumArtist));
-    let artist;
-    // Trap: when no track in the album carries an albumArtist tag at all
-    // (a common real-world case -- it's an optional tag many rippers never
-    // write), every track's tags.albumArtist is the same `undefined`, so
-    // the set still has size 1. Trusting that blindly picks undefined as
-    // the record's own artist, which reaches buildGatefoldTracklist()'s
-    // `item.artist.toUpperCase()` (via the desktop crate detail panel,
-    // gatefold/view.js) and throws -- synchronously inside
-    // restoreLibrary()'s renderTracks() call during boot, so everything
-    // after it silently never runs. Guard: only trust the set's one value
-    // when it's a real, non-empty tag.
-    const [onlyAlbumArtist] = albumArtistSet;
-    if(albumArtistSet.size === 1 && onlyAlbumArtist) artist = onlyAlbumArtist;
-    else if(artistSet.size > 1) artist = 'Various Artists';   // different artists, no consistent albumArtist
-    else artist = tracks[0].tags.artist || 'Unknown Artist';
+    const artist = albumArtistFor(idx);
     records.push({type:'rec', kind:'album', albumId, idx, artist, album: tracks[0].tags.album,
       year: albumYearFor(idx), trackCount: idx.length, genre: albumGenreFor(idx), addedAt: albumAddedFor(idx),
       label: firstNonEmpty(idx, 'label'), catalog: firstNonEmpty(idx, 'catalog'), durationSec: albumDurationFor(idx)});

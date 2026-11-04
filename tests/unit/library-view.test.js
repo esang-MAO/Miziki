@@ -181,8 +181,9 @@ mock.module(new URL('../../src/library/search.js', import.meta.url).href, {
 });
 const renderCrateMock = mock.fn();
 const centerEmptyStateMock = mock.fn();
+const openCrateAlbumMock = mock.fn();
 mock.module(new URL('../../src/crate/view.js', import.meta.url).href, {
-  namedExports: { centerEmptyState: centerEmptyStateMock, renderCrate: renderCrateMock },
+  namedExports: { centerEmptyState: centerEmptyStateMock, renderCrate: renderCrateMock, openCrateAlbum: openCrateAlbumMock },
 });
 // the artist page's local shelves (docs/21_ARTIST_PAGE.md)
 mock.module(new URL('../../src/library/artist-shelves.js', import.meta.url).href, {
@@ -201,7 +202,7 @@ const view = await import('../../src/library/view.js');
 const {
   songRow, groupRow, enterSelectMode, exitSelectMode, closeRowMenu,
   openConfirmDelete, closeConfirmDelete, renderTracks, updateTrackRow,
-  updateLibBodyInset, selectAllVisible,
+  updateLibBodyInset, selectAllVisible, moverCtl,
 } = view;
 const { S } = await import('../../src/state.js');
 const { $ } = await import('../../src/util/dom.js'); // the mocked, cached-by-selector stub above
@@ -217,7 +218,7 @@ function resetState(overrides){
   elCache.clear();
   setQueueMock.mock.resetCalls(); queueSaveMock.mock.resetCalls();
   renderCrateMock.mock.resetCalls(); centerEmptyStateMock.mock.resetCalls();
-  scrollByMock.mock.resetCalls();
+  scrollByMock.mock.resetCalls(); openCrateAlbumMock.mock.resetCalls();
   focusCalls.length = 0;
   globalThis.document.activeElement = null;
   Object.assign(S, {
@@ -344,6 +345,71 @@ test('renderTracks: crate mode delegates to renderCrate() and skips the songs li
   resetState({ tracks: [fakeTrack('a')], view: { mode: 'crate', group: null, playlist: null } });
   renderTracks();
   assert.equal(renderCrateMock.mock.callCount(), 1);
+});
+
+// GF12 (docs/29_GATEFOLD.md) point 1: the Albums tab's drill-down opens
+// the gatefold (via crate/view.js's openCrateAlbum()) instead of setting
+// v.group and rendering the retired renderAlbumDetail() in its place.
+test('renderTracks: the Albums tab opens the gatefold through openCrateAlbum() instead of drilling into v.group', () => {
+  resetState({
+    tracks: [fakeTrack('a', { tags: { title: 'a', artist: 'Artist', album: 'Album', albumArtist: 'Artist', track: 1, disc: 1 } })],
+    view: { mode: 'albums', group: null, playlist: null },
+  });
+  renderTracks();
+  const host = elCache.get('#libBody');
+  const row = queryAll(host, '.grouprow')[0];
+  assert.ok(row, 'the Albums tab should render one grouprow per album');
+  row.fire('click');
+  assert.equal(openCrateAlbumMock.mock.callCount(), 1);
+  const item = openCrateAlbumMock.mock.calls[0].arguments[0];
+  assert.equal(item.album, 'Album');
+  assert.equal(item.artist, 'Artist');
+  assert.deepEqual(item.idx, [0]);
+  assert.equal(S.view.group, null, 'v.group is never set from the Albums tab any more');
+});
+
+// GF12 (docs/29_GATEFOLD.md) point 2: moverCtl() is now the one move
+// implementation shared by playlist manual reordering and the gatefold's
+// own "Track order" mode (buildGatefoldTracklist()'s opts.reorder) — this
+// is what "manual order survives the move" rests on, so it's tested here
+// directly rather than only indirectly through either caller.
+test('moverCtl: moving an item down then back up leaves the list correctly reordered each time, and reports the mutated list to the caller', () => {
+  resetState({ tracks: [fakeTrack('a'), fakeTrack('b'), fakeTrack('c')] });
+  const list = ['a', 'b', 'c'];
+  let reported = null;
+  const ctl = moverCtl(list, 0, ord => { reported = ord.slice(); });
+  const [, downBtn] = ctl.children;
+  downBtn.fire('click', { stopPropagation(){} });
+  assert.deepEqual(list, ['b', 'a', 'c'], 'moving "a" down one swaps it with "b"');
+  assert.deepEqual(reported, ['b', 'a', 'c'], 'the caller is handed the same mutated order');
+  assert.equal(queueSaveMock.mock.callCount(), 1);
+
+  // "a" is now at index 1 -- move it back up, and the list should return
+  // to its original order (the move survives a full round trip).
+  const ctl2 = moverCtl(list, 1, ord => { reported = ord.slice(); });
+  const [upBtn2] = ctl2.children;
+  upBtn2.fire('click', { stopPropagation(){} });
+  assert.deepEqual(list, ['a', 'b', 'c'], 'moving it back up restores the original order');
+  assert.deepEqual(reported, ['a', 'b', 'c']);
+});
+
+// GF12 point 1: an artist's own album drill-down opens the gatefold the
+// same way, instead of setting v.artistAlbum.
+test('renderTracks: an artist\'s album shelf opens the gatefold through openCrateAlbum() instead of drilling into v.artistAlbum', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a', { tags: { title: 'a', artist: 'Artist', album: 'Album One', albumArtist: 'Artist', track: 1, disc: 1 } }),
+      fakeTrack('b', { tags: { title: 'b', artist: 'Artist', album: 'Album Two', albumArtist: 'Artist', track: 1, disc: 1 } }),
+    ],
+    view: { mode: 'artists', group: 'Artist', artistAlbum: null, playlist: null },
+  });
+  renderTracks();
+  const host = elCache.get('#libBody');
+  const sleeves = queryAll(host, '.shelf-sleeve');
+  assert.equal(sleeves.length, 2, 'an artist with multiple albums shows a shelf, one sleeve per album');
+  sleeves[0].fire('click');
+  assert.equal(openCrateAlbumMock.mock.callCount(), 1);
+  assert.equal(S.view.artistAlbum, null, 'v.artistAlbum is never set from the artist shelf any more');
 });
 
 // Ken, 2026-10-22: the Library scroll lock (shell/routes.js's showRoute())

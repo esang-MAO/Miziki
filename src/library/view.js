@@ -9,13 +9,13 @@ import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { fmt } from '../util/text.js';
 import { setQueue } from '../player/queue.js';
-import { trackHasCreditsContent, albumLinerNotes, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
+import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
 import { appendConnectedShelf } from './connected.js';
 import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-shelves.js';
-import { albumYearFor } from '../crate/model.js';
+import { albumYearFor, albumArtistFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
-import { byName, groupBy, allIdx, albumTracks, idOf, idxOf, trackSort } from './model.js';
+import { byName, groupBy, allIdx, idOf, idxOf, trackSort } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
 import { applyEdit, showUndoBanner } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './delete.js';
@@ -26,7 +26,7 @@ import { renderSidebarPlaylists, renderSidebarBins } from '../shell/sidebar.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
 } from './search.js';
-import { centerEmptyState, renderCrate } from '../crate/view.js';
+import { centerEmptyState, renderCrate, openCrateAlbum } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
 import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
@@ -356,6 +356,17 @@ export async function applyTrackNumbersInOrder(){
   exitSelectMode();
 }
 
+// GF12 (docs/29_GATEFOLD.md) point 1: the Albums tab's drill-down and an
+// artist's own album drill-down both open the gatefold now, via the same
+// sealed -> single -> gatefold routing crate/view.js's openCrateAlbum()
+// already does, rather than a second implementation of that branch.
+// albumArtistFor() (crate/model.js) resolves the artist the same way the
+// crate does, so the two agree on the exact same album.
+export function openAlbumFromLibrary(album, idx){
+  openCrateAlbum({kind:'album', albumId: albumKey(S.tracks[idx[0]]), album, artist: albumArtistFor(idx),
+    year: albumYearFor(idx), idx});
+}
+
 export function groupRow(label, sub, indices, onTap){
   const b = el('button','grouprow');
   const art = artFor(indices);
@@ -465,14 +476,18 @@ function moveIn(arr, pos, dir){
 }
 
 /* if the reordered list is the queue you are hearing, follow the change */
-function syncQueueOrder(order){
+export function syncQueueOrder(order){
   if(S.baseQueue.length !== order.length) return;
   if(!S.baseQueue.every(i => order.indexOf(i) >= 0)) return;
   S.baseQueue = order.slice();
   if(!S.shuffle){ S.queue = order.slice(); S.qpos = Math.max(0, S.queue.indexOf(S.index)); }
 }
 
-function moverCtl(list, pos, after){
+// GF12 (docs/29_GATEFOLD.md): exported so the gatefold's own "Track order"
+// reorder mode (src/gatefold/view.js) can reuse this mover control rather
+// than a second implementation — it's also still used below for playlist
+// manual reordering.
+export function moverCtl(list, pos, after){
   const box = el('span','movers');
   [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
     const b = el('button','mv',glyph);
@@ -484,60 +499,6 @@ function moverCtl(list, pos, after){
     box.appendChild(b);
   });
   return box;
-}
-
-function sortBar(album){
-  const bar = el('div','sortbar');
-  bar.appendChild(el('span', null, 'Order'));
-  const seg = el('div','seg');
-  const mode = S.albumSort[album] || 'auto';
-  [['auto','Track no.'],['title','Title'],['manual','Manual']].forEach(([k,label]) => {
-    const b = el('button', null, label);
-    b.setAttribute('aria-pressed', String(mode === k));
-    b.addEventListener('click', ()=>{
-      if(k === 'manual' && !S.albumOrder[album]){ S.albumOrder[album] = albumTracks(album); touchBackupKey('albumOrder', album); }
-      S.albumSort[album] = k;
-      touchBackupKey('albumSort', album);
-      syncQueueOrder(albumTracks(album));
-      queueSave();
-      renderTracks();
-    });
-    seg.appendChild(b);
-  });
-  bar.appendChild(seg);
-  return bar;
-}
-
-// Shared by the Albums tab's own drill-down and an artist's per-album
-// drill-down (see LIBRARY spec — artist view should pick an album first,
-// not flatten every song from every album into one list).
-function renderAlbumDetail(host, ul, album){
-  const mode = S.albumSort[album] || 'auto';
-  const liner = albumLinerNotes(album);
-  const roll = albumCreditRoll(album);
-  if(liner || roll.size){
-    const section = el('div','credit-section');
-    section.appendChild(el('h3', null, 'Liner notes'));
-    if(liner) section.appendChild(el('p','credit-note', liner));
-    roll.forEach((names, label) => section.appendChild(creditRow(label, names)));
-    host.appendChild(section);
-  }
-  host.appendChild(sortBar(album));
-  const q = albumTracks(album);
-  q.forEach((i,pos) => {
-    const row = songRow(i, q, pos);
-    if(mode === 'manual'){
-      // position within the saved (id-based) order, not within q — q
-      // only lists tracks currently present, so the two can diverge once
-      // a track in this album has been forgotten but not yet reconnected
-      const fullPos = S.albumOrder[album].indexOf(idOf(i));
-      row.appendChild(moverCtl(S.albumOrder[album], fullPos, ord => { touchBackupKey('albumOrder', album); syncQueueOrder(ord.map(idxOf).filter(x => x >= 0)); }));
-    }
-    ul.appendChild(row);
-  });
-  host.appendChild(ul);
-  if(mode === 'manual') host.appendChild(el('p','note',
-    'Your order for this album holds for the session. Tap a track to play the album in this order.'));
 }
 
 /* Library-wide search + sort, and tag-aware search (CREDITS spec §3),
@@ -804,19 +765,22 @@ function renderTracksBody(host){
   }
 
   else if(v.mode === 'albums'){
-    if(v.group === null){
-      const groups = sortAlbumGroups(groupBy('album'));
-      host.appendChild(librarySortBar(groups.length, groups.length === 1 ? 'Album' : 'Albums'));
-      appendRowsChunked(host, groups, ([album, idx]) => {
-        const artist = S.tracks[idx[0]].tags.albumArtist;
-        const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-          idx, ()=>{ v.group = album; renderTracks(); });
-        if(isAlbumSealed(albumKey(S.tracks[idx[0]]))) row.querySelector('.g-text b').appendChild(el('span','new-tag','NEW'));
-        return row;
-      });
-    } else {
-      renderAlbumDetail(host, ul, v.group);
-    }
+    // GF12 (docs/29_GATEFOLD.md): the album drill-down opens the gatefold
+    // directly (openAlbumFromLibrary(), same sealed -> single -> gatefold
+    // order the crate uses) instead of setting v.group and rendering
+    // renderAlbumDetail() in its place — v.group is never set from here,
+    // so this screen stays put underneath and regains focus on close for
+    // free, via the gatefold/sealed-front/picture-sleeve's own existing
+    // returnFocus handling.
+    const groups = sortAlbumGroups(groupBy('album'));
+    host.appendChild(librarySortBar(groups.length, groups.length === 1 ? 'Album' : 'Albums'));
+    appendRowsChunked(host, groups, ([album, idx]) => {
+      const artist = S.tracks[idx[0]].tags.albumArtist;
+      const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+        idx, () => openAlbumFromLibrary(album, idx));
+      if(isAlbumSealed(albumKey(S.tracks[idx[0]]))) row.querySelector('.g-text b').appendChild(el('span','new-tag','NEW'));
+      return row;
+    });
   }
 
   else if(v.mode === 'artists'){
@@ -826,11 +790,13 @@ function renderTracksBody(host){
       appendRowsChunked(host, artistGroups, ([artist, idx]) => artistRow(artist, idx, ()=>{ v.group = artist; renderTracks(); }),
         showArtistsRail ? { labelFor: ([artist]) => artist, headFor: letterHead } : null);
       if(showArtistsRail) attachLetterRail(host, buildLetterGroups(artistGroups, ([artist]) => artist));
-    } else if(v.artistAlbum === null){
-      // an artist with multiple albums lands here first — a shelf to pick
-      // an album from, same as the top-level Albums view, rather than
-      // dumping every song from every album in one flat list (CR9's own
-      // "Artist page" shelf, docs/13_CRATE.md)
+    } else {
+      // GF12 (docs/29_GATEFOLD.md): an artist's own album drill-down opens
+      // the gatefold directly too (v.artistAlbum is never set), same as
+      // the Albums tab above — a shelf to pick an album from, same as the
+      // top-level Albums view, rather than dumping every song from every
+      // album in one flat list (CR9's own "Artist page" shelf,
+      // docs/13_CRATE.md)
       const idx = allIdx().filter(i => S.tracks[i].tags.artist === v.group);
       const albums = new Map();
       idx.forEach(i => {
@@ -893,7 +859,7 @@ function renderTracksBody(host){
           btn.appendChild(im);
         } else btn.appendChild(el('span','g-art','◍'));
         btn.title = album;
-        btn.addEventListener('click', ()=>{ v.artistAlbum = album; renderTracks(); });
+        btn.addEventListener('click', () => openAlbumFromLibrary(album, aidx));
         item.appendChild(btn);
         const cap = el('span','shelf-caption');
         cap.appendChild(el('b', null, album));
@@ -911,8 +877,6 @@ function renderTracksBody(host){
       // Connected crate (docs/20_CONNECTED.md): related artists' records
       // under the shelf — stays hidden until the shared cache has some
       appendConnectedShelf(host, v.group);
-    } else {
-      renderAlbumDetail(host, ul, v.artistAlbum);
     }
   }
 

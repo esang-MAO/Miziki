@@ -21,7 +21,7 @@ import { setQueue } from '../player/queue.js';
 import { isFavorite } from './favorites.js';
 import { openPersonOrArtist, personEntryFor, PERSON_ROLE_KEYS } from './credits.js';
 import { queueSave } from '../storage/meta.js';
-import { renderTracks, groupRow, songRow } from './view.js';
+import { renderTracks, groupRow, songRow, openAlbumFromLibrary } from './view.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
@@ -384,7 +384,7 @@ function rebuildSearchResults(host, query){
       const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
       const artist = S.tracks[idx[0]].tags.albumArtist;
       const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-        idx, () => goto('albums', album));
+        idx, () => openAlbumFromLibrary(album, idx));
       host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
       rows.set(album, row);
     });

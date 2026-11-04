@@ -106,10 +106,12 @@ function fakeSongRow(i, queue, pos){
 const setQueueMock = mock.fn();
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
+const openAlbumFromLibraryMock = mock.fn();
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: {
     renderTracks: renderTracksMock,
     groupRow: fakeGroupRow, songRow: fakeSongRow,
+    openAlbumFromLibrary: openAlbumFromLibraryMock,
   },
 });
 mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {

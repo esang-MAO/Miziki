@@ -214,42 +214,41 @@
    writes for this class. */
 .gf-left .gf-credit-row .gf-credit-link, .picture-sleeve-body .gf-credit-row .gf-credit-link{color:var(--paper);
   text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
-/* .crate-detail-panel (src/crate/view.js) and .picture-sleeve-body
-   (src/gatefold/picture-sleeve.js, docs/17_SINGLES.md) both reuse
-   gatefoldSocialControlsHTML()/buildGatefoldLeftPanel() verbatim for
-   their own rating/sleeve-note/pin controls and left-panel content —
+/* .picture-sleeve-body (src/gatefold/picture-sleeve.js, docs/17_SINGLES.md)
+   reuses gatefoldSocialControlsHTML()/buildGatefoldLeftPanel() verbatim
+   for its own rating/sleeve-note/pin controls and left-panel content —
    same functions, so the same styling applies in every home rather than
    a second copy of these rules. */
 /* TY3: the format/sample-rate summary line -- stays mono (the whitelist's
    sample-rate item) but mixed case, not caps (see the matching JS change
    dropping .toUpperCase()). */
-.gf-left .gf-meta-line, .crate-detail-panel .gf-meta-line, .picture-sleeve-body .gf-meta-line{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);margin:10px 0}
+.gf-left .gf-meta-line, .picture-sleeve-body .gf-meta-line{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);margin:10px 0}
 .gf-left .gf-minimal-note, .picture-sleeve-body .gf-minimal-note{font-size:var(--fs-caption);color:var(--muted);margin-top:6px}
-.gf-left .gf-social, .crate-detail-panel .gf-social, .picture-sleeve-body .gf-social{margin-top:var(--sp-4);padding-top:14px;border-top:1px solid var(--line);
+.gf-left .gf-social, .picture-sleeve-body .gf-social{margin-top:var(--sp-4);padding-top:14px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:10px}
-.gf-left .gf-social-caption, .crate-detail-panel .gf-social-caption, .picture-sleeve-body .gf-social-caption{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
+.gf-left .gf-social-caption, .picture-sleeve-body .gf-social-caption{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted);margin:0}
-.gf-left .gf-stars, .crate-detail-panel .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
-.gf-left .gf-star-btn, .crate-detail-panel .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+.gf-left .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
+.gf-left .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:none;border:0;color:var(--muted);font-size:var(--fs-title);padding:0}
-.gf-left .gf-star-btn.on, .crate-detail-panel .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--cream)}
-.gf-left .gf-note-input, .crate-detail-panel .gf-note-input, .picture-sleeve-body .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
+.gf-left .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--cream)}
+.gf-left .gf-note-input, .picture-sleeve-body .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
-.gf-left .gf-note-input::placeholder, .crate-detail-panel .gf-note-input::placeholder, .picture-sleeve-body .gf-note-input::placeholder{color:var(--muted)}
+.gf-left .gf-note-input::placeholder, .picture-sleeve-body .gf-note-input::placeholder{color:var(--muted)}
 /* #gfLeftActions: GF1 point 6 -- the main gatefold relocates these two
    buttons there (relocateGatefoldActions(), gatefold/view.js), out of
-   .gf-left's own scroll area; .crate-detail-panel and .picture-sleeve-body
-   keep them inline, as built. */
-.gf-left .gf-pin-btn, .crate-detail-panel .gf-pin-btn, .picture-sleeve-body .gf-pin-btn, #gfLeftActions .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+   .gf-left's own scroll area; .picture-sleeve-body keeps them inline,
+   as built. */
+.gf-left .gf-pin-btn, .picture-sleeve-body .gf-pin-btn, #gfLeftActions .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
-.gf-left .gf-pin-btn[aria-pressed="true"], .crate-detail-panel .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"], #gfLeftActions .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
+.gf-left .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"], #gfLeftActions .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
   background:color-mix(in srgb,var(--cream) 12%,transparent)}
 /* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
    Same plain-pill shape as .gf-pin-btn just above, minus the pressed
    highlight -- it never toggles, it opens the share sheet. */
-.gf-left .gf-share-btn, .crate-detail-panel .gf-share-btn, .picture-sleeve-body .gf-share-btn, #gfLeftActions .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+.gf-left .gf-share-btn, .picture-sleeve-body .gf-share-btn, #gfLeftActions .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
 /* GF1 point 2: always shown now (no liner-notes/credits gate), drawn as a
@@ -376,4 +375,11 @@
    actions row sits under the left panel (left:420px, same as .gf-cover
    above) rather than under the title block. */
 .gatefold.gf-wide #gfLeftActions{left:420px;right:auto;width:var(--gf-panel-size,350px);top:450px}
+/* GF12 (docs/29_GATEFOLD.md) point 3: one primary "Play the record"
+   button under the left info column, replacing the retired desktop
+   detail panel's own Play affordance -- hidden entirely outside gf-wide,
+   where a phone/short viewport's own track rows already cover playing. */
+.gf-play-record-btn{display:none}
+.gatefold.gf-wide .gf-play-record-btn{display:block;position:absolute;left:20px;top:620px;width:380px;
+  min-height:44px;text-align:center;z-index:3}
 

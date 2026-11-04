@@ -1,14 +1,17 @@
 /* ================= S3: gatefold album view (opens from the crate) =========
    Three flat planes in one 3D stage (the cover, its own backface-hidden
    back face as the inside-left panel, and the tracklist sitting behind it
-   at the same spot) — see GATEFOLD spec §A2. Entry point is the crate only;
-   every other album entry point keeps renderAlbumDetail() untouched.
+   at the same spot) — see GATEFOLD spec §A2. GF12 (docs/29_GATEFOLD.md):
+   this is the one album view everywhere — the crate, the Albums tab and
+   an artist's own album drill-down (library/view.js's openAlbumFromLibrary())
+   all open it through the same sealed -> single -> gatefold routing
+   (crate/view.js's openCrateAlbum()).
 
    Only the gatefold itself lives here — a sealed record's own sealed
    front (GF8, docs/29_GATEFOLD.md), which shares gatefoldTrackIndices/
    gatefoldItemFormat with it, lives in the sibling module
    src/gatefold/sealed-front.js. */
-import { S, current } from '../state.js';
+import { S, current, touchBackupKey } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
@@ -19,7 +22,7 @@ import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
-import { albumTracks } from '../library/model.js';
+import { albumTracks, idOf, idxOf } from '../library/model.js';
 import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist, openCreditsSheet, trackHasCreditsContent } from '../library/credits.js';
 import { isFavorite, toggleFavorite } from '../library/favorites.js';
 import { bookletPageCount } from '../library/booklet.js';
@@ -39,6 +42,9 @@ import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { gatefoldGeometry } from './geometry.js';
+import { queueSave } from '../storage/meta.js';
+import { openConfirmDelete, renderTracks, moverCtl, syncQueueOrder } from '../library/view.js';
+import { countForAlbum, deleteAlbum } from '../library/delete.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -97,7 +103,7 @@ export function updateGatefoldScale(){
   document.documentElement.style.setProperty('--gf-page-scale', s);
 }
 
-// same ordering as renderAlbumDetail()/albumTracks() (spec §A4)
+// same ordering albumTracks() has always returned (spec §A4)
 export function gatefoldTrackIndices(item){ return albumTracks(item.album); }
 
 // null (no split) or an ordered list of {label, idx:[...]} — multi-disc
@@ -149,9 +155,14 @@ export function wireGatefoldTrackLongPress(row, i, trackIdx, playHandler){
   });
 }
 
-function gatefoldTrackRow(i, pos, trackIdx, playHandler){
+// GF12 (docs/29_GATEFOLD.md) point 2: in reorder mode the row is a plain
+// div, not a button -- a mover control (library/view.js's own moverCtl())
+// sits inside it, and a button can't nest another button. No play/long-
+// press wiring either; tapping a row does nothing until Track order is
+// left again.
+function gatefoldTrackRow(i, pos, trackIdx, playHandler, reorderCtl){
   const t = S.tracks[i];
-  const row = document.createElement('button');
+  const row = document.createElement(reorderCtl ? 'div' : 'button');
   row.className = 'gf-track-row';
   row.setAttribute('role','listitem');
   row.dataset.pos = pos;
@@ -161,8 +172,11 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler){
   if(isNow) num.appendChild(gatefoldNowGlyph()); else num.textContent = String(pos).padStart(2,'0');
   row.appendChild(num);
   row.appendChild(el('span','gf-tt', t.tags.title));
-  row.appendChild(el('span','gf-td', fmt(t.duration)));
-  wireGatefoldTrackLongPress(row, i, trackIdx, playHandler);
+  if(reorderCtl) row.appendChild(reorderCtl);
+  else{
+    row.appendChild(el('span','gf-td', fmt(t.duration)));
+    wireGatefoldTrackLongPress(row, i, trackIdx, playHandler);
+  }
   return row;
 }
 
@@ -236,11 +250,39 @@ export function gatefoldSideWearShares(sides){
 
 // playHandler lets the sealed sheet reuse this exact rendering (order, rows,
 // sides) while running a different play path (SEALED spec §5) — the
-// gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6)
-export function buildGatefoldTracklist(item, trackIdx, playHandler){
+// gatefold's own default stays fully quiet, no ceremony (GATEFOLD spec §A6).
+// GF12 (docs/29_GATEFOLD.md) point 2: opts.reorder turns this into the
+// "Track order" reorder mode -- a flat list (side splits don't make sense
+// once tracks can be dragged across them) with a mover control per row,
+// same moveIn()/queueSave()/renderTracks() path library/view.js's own
+// playlist reordering already uses (moverCtl(), reused rather than
+// duplicated), plus the album-order bookkeeping that path doesn't need:
+// S.albumOrder[item.album] is kept in id form (same as S.albumSort's
+// lazy seeding in library/model.js's albumTracks()), touchBackupKey'd and
+// synced into the live queue when this album is what's playing.
+export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
   const host = document.createDocumentFragment();
   host.appendChild(el('p','gf-tl-head', item.artist));
   host.appendChild(el('h2','gf-tl-title', item.album));
+  if(opts && opts.reorder){
+    const album = item.album;
+    const bar = el('div','gf-reorder-bar');
+    bar.appendChild(el('span', null, 'Reordering tracks'));
+    const done = el('button','gf-reorder-done','Done');
+    done.addEventListener('click', gatefoldExitReorderMode);
+    bar.appendChild(done);
+    host.appendChild(bar);
+    trackIdx.forEach((i, k) => {
+      const fullPos = S.albumOrder[album].indexOf(idOf(i));
+      const ctl = moverCtl(S.albumOrder[album], fullPos, ord => {
+        touchBackupKey('albumOrder', album);
+        syncQueueOrder(ord.map(idxOf).filter(x => x >= 0));
+        refreshGatefoldTracklist();
+      });
+      host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler, ctl));
+    });
+    return host;
+  }
   const sides = gatefoldSideSplits(trackIdx);
   if(sides){
     const showWear = S.showWear !== false;
@@ -326,13 +368,9 @@ function sleeveNotePromptFor(albumId){
 // the end of the gatefold's "Inside" panel — today's closest thing to an
 // album detail view — so it's reachable from both the normal left panel and
 // the short-viewport flat "Inside" tab, which both call this same builder.
-// Exported (design-layout polish pass, docs/DESKTOP_LAYOUT.md's own Library
-// mockup) so the desktop crate's inline detail panel (src/crate/view.js)
-// can reuse the exact same rating/sleeve-note/pin controls instead of a
-// second implementation — the mockup's own "RATING" dots and "SLEEVE NOTE"
-// field are this, not a new feature. src/styles/11-gatefold.css's
-// .gf-left-scoped rules were widened to also match .crate-detail-panel so
-// this renders with the same styling in its new home.
+// Exported so the picture sleeve (src/gatefold/picture-sleeve.js) can reuse
+// the exact same rating/sleeve-note/pin controls instead of a second
+// implementation.
 // GF1 (docs/29_GATEFOLD.md point 1): the Record share card's whole payload,
 // gathered in one place so the gatefold and any later entry point (the
 // picture sleeve, a friend's record sheet) share it rather than each
@@ -675,6 +713,15 @@ function gatefoldPlayTrack(trackIdx, i){
   runGatefoldHandoff(startRect, current(), S.pendingShellInfo, play);
 }
 
+// GF12 (docs/29_GATEFOLD.md) point 3: desktop's wide spread's own "Play
+// the record" primary button, under the pocket -- plays the album from
+// its first track, through the exact same gatefoldPlayTrack() hand-off
+// every track row already uses, rather than a second play path.
+export function gatefoldPlayRecord(){
+  if(!GF || !GF.trackIdx.length) return;
+  gatefoldPlayTrack(GF.trackIdx, GF.trackIdx[0]);
+}
+
 function gatefoldRestoreRowNumber(row){
   const num = row.querySelector('.gf-tn');
   if(num) num.textContent = String(row.dataset.pos).padStart(2,'0');
@@ -721,51 +768,108 @@ function gatefoldFormatLine(item){
   return bits.join(' · ');
 }
 
-// GF11 (docs/29_GATEFOLD.md): "a ··· button" that forwards to the real
-// Share/Pin buttons buildGatefoldLeftPanel() already built -- those stay
-// in the DOM (hidden by .gatefold.gf-night in CSS below), so this menu
-// needs no rating/note/pin logic of its own, only a paint-and-forward.
-function openGatefoldNightMenu(btn){
+// GF11 (docs/29_GATEFOLD.md); generalized by GF12 into an always-present
+// "record options" menu: "a ··· button" that forwards to the real
+// Share/Pin buttons buildGatefoldLeftPanel() already built (those stay in
+// the DOM, hidden by .gatefold.gf-night in CSS at night, so this menu
+// needs no rating/note/pin logic of its own, only a paint-and-forward by
+// day's own two rows), plus "Track order" and "Remove album", shown every
+// time -- the one home for both regardless of time of day.
+function openGatefoldMoreMenu(btn){
+  const night = !!(GF && GF.night);
   const shareSrc = document.querySelector('.gf-share-btn');
   const pinSrc = document.querySelector('.gf-pin-btn');
-  $('#gfNightShareBtn').style.display = shareSrc ? '' : 'none';
-  if(pinSrc){
-    $('#gfNightPinBtn').style.display = '';
-    $('#gfNightPinBtn').textContent = pinSrc.textContent;
-  } else $('#gfNightPinBtn').style.display = 'none';
-  const r = btn.getBoundingClientRect(), menu = $('#gfNightMenu');
+  $('#gfMoreShareBtn').style.display = (night && shareSrc) ? '' : 'none';
+  if(night && pinSrc){
+    $('#gfMorePinBtn').style.display = '';
+    $('#gfMorePinBtn').textContent = pinSrc.textContent;
+  } else $('#gfMorePinBtn').style.display = 'none';
+  const r = btn.getBoundingClientRect(), menu = $('#gfMoreMenu');
   menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
   menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
-  $('#gfNightMenuScrim').classList.add('open');
+  $('#gfMoreMenuScrim').classList.add('open');
   menu.classList.add('open');
   btn.setAttribute('aria-expanded', 'true');
-  openLayer('gf-night-menu', closeGatefoldNightMenu, { container: [menu, $('#gfNightMenuScrim')] });
+  openLayer('gf-more-menu', closeGatefoldMoreMenu, { container: [menu, $('#gfMoreMenuScrim')] });
 }
-export function closeGatefoldNightMenu(){
-  $('#gfNightMenuScrim').classList.remove('open');
-  $('#gfNightMenu').classList.remove('open');
-  const btn = document.querySelector('.gf-night-more-btn');
+export function closeGatefoldMoreMenu(){
+  $('#gfMoreMenuScrim').classList.remove('open');
+  $('#gfMoreMenu').classList.remove('open');
+  const btn = document.querySelector('.gf-more-btn');
   if(btn) btn.setAttribute('aria-expanded', 'false');
 }
-export function gatefoldNightMenuShare(){
-  closeLayer('gf-night-menu');
+export function gatefoldMoreMenuShare(){
+  closeLayer('gf-more-menu');
   const btn = document.querySelector('.gf-share-btn');
   if(btn) btn.click();
 }
-export function gatefoldNightMenuPin(){
-  closeLayer('gf-night-menu');
+export function gatefoldMoreMenuPin(){
+  closeLayer('gf-more-menu');
   const btn = document.querySelector('.gf-pin-btn');
   if(btn) btn.click();
 }
+// GF12 point 2: "Track order" turns the tracklist into the reorder mode
+// buildGatefoldTracklist()'s own opts.reorder builds -- seeding
+// S.albumOrder/S.albumSort through albumTracks()'s own lazy, id-based
+// seeding (library/model.js) rather than re-implementing that here, the
+// same bug-prone shortcut library/view.js's retired sortBar() took.
+export function gatefoldMoreMenuTrackOrder(){
+  closeLayer('gf-more-menu');
+  if(!GF) return;
+  const album = GF.item.album;
+  S.albumSort[album] = 'manual';
+  albumTracks(album); // seeds S.albumOrder[album] with ids if unset
+  touchBackupKey('albumSort', album);
+  touchBackupKey('albumOrder', album);
+  queueSave();
+  GF.reordering = true;
+  refreshGatefoldTracklist();
+}
+export function gatefoldExitReorderMode(){
+  if(!GF) return;
+  GF.reordering = false;
+  refreshGatefoldTracklist();
+}
+// GF12 point 4: "Remove Album" re-homed here now that the Albums-tab/
+// artist album-detail screens it used to live on (library/view.js) no
+// longer exist -- same openConfirmDelete()/countForAlbum()/deleteAlbum()
+// calls that crumb button made.
+export function gatefoldMoreMenuRemoveAlbum(){
+  closeLayer('gf-more-menu');
+  if(!GF) return;
+  const album = GF.item.album;
+  openConfirmDelete('album', countForAlbum(album), album, async () => {
+    deleteAlbum(album);
+    forceCloseLayer('gatefold');
+    renderTracks();
+  });
+}
 
-function buildGatefoldNightMoreBtn(){
-  const btn = el('button', 'gf-night-more-btn', '⋯');
+function buildGatefoldMoreBtn(){
+  const btn = el('button', 'gf-more-btn', '⋯');
   btn.type = 'button';
   btn.setAttribute('aria-label', 'Record options');
   btn.setAttribute('aria-haspopup', 'true');
   btn.setAttribute('aria-expanded', 'false');
-  btn.addEventListener('click', () => openGatefoldNightMenu(btn));
+  btn.addEventListener('click', () => openGatefoldMoreMenu(btn));
   return btn;
+}
+
+// GF12 point 2: rebuilds the tracklist in place -- #gfTracklist always,
+// plus #gfFlatBody when the short layout's flat tab is the tracklist
+// (not the left panel) -- after a reorder move or a Track order/Done
+// toggle. GF.trackIdx is re-read from gatefoldTrackIndices() since a
+// manual move (or entering manual mode fresh) changes the order itself.
+function refreshGatefoldTracklist(){
+  if(!GF) return;
+  GF.trackIdx = gatefoldTrackIndices(GF.item);
+  const opts = { reorder: GF.reordering };
+  $('#gfTracklist').innerHTML = '';
+  $('#gfTracklist').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx, undefined, opts));
+  if(GF.mode === 'short' && GF.panel === 'right'){
+    $('#gfFlatBody').innerHTML = '';
+    $('#gfFlatBody').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx, undefined, opts));
+  }
 }
 
 function gatefoldInfoAndSleeveHTML(item){
@@ -773,10 +877,11 @@ function gatefoldInfoAndSleeveHTML(item){
   const night = !!(GF && GF.night);
   const titleRow = el('div', 'gf-info-title-row');
   titleRow.appendChild(el('h3','gf-info-title', item.album));
-  // GF11 point 3: "Share and Pin stay reachable at night from the
-  // record's ··· menu" -- the one way in once point 1 below has hidden
-  // their always-on buttons.
-  if(night) titleRow.appendChild(buildGatefoldNightMoreBtn());
+  // GF11 point 3 (now GF12's always-on "record options" menu): Share and
+  // Pin stay reachable at night from here, since point 1 below hides
+  // their always-on buttons after sunset; Track order and Remove album
+  // are reachable from the same menu at any time of day.
+  titleRow.appendChild(buildGatefoldMoreBtn());
   info.appendChild(titleRow);
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
   // GF11 point 1: "hides ... the format line and the wear line" after
@@ -1274,7 +1379,7 @@ export function openGatefold(item, opts){
   // Sundown preview slider, never Pure/Vinyl or the playback rate --
   // point 2's own "this is about time of day, not playback speed").
   const night = isAfterSunset(currentDayPosition().phase);
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false, night};
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false, night, reordering: false};
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');

@@ -202,71 +202,33 @@
   .mini-bar-mode-toggle:focus-visible .mode-toggle-text{color:var(--paper)}
 }
 
-/* D5 (docs/DESKTOP_LAYOUT.md): the crate on desktop — a larger card (via
-   --crate-card-size, src/styles/10-crate.css; crate/view.js reads the
-   live value and scales flowPose()'s own vertical spacing to match, via
-   its existing opts.spread lever, so bigger neighbours never overlap any
-   more tightly than the 278px phone baseline already does) and the
-   inline record-detail panel beside it, which replaces the gatefold
-   overlay as the way in on a tap (src/crate/view.js's own
-   openCrateAlbum()) — the gatefold itself is untouched, still the
-   phone's own way in, and a sealed record still opens the sealed sheet
-   either way. .crate-layout is invisible scaffolding below this
-   breakpoint (display:contents, the same pattern .sidebar already
-   established in D3), so .crate-wrap lays out exactly as it always has
-   on a phone — confirmed as part of this step's own phone-regression
-   pass, the same as every prior desktop-layout PR. */
-.crate-layout{display:contents}
-.crate-detail-panel{display:none}
+/* D5 (docs/DESKTOP_LAYOUT.md); retired by GF12 (docs/29_GATEFOLD.md): the
+   crate on desktop — a larger card (via --crate-card-size,
+   src/styles/10-crate.css; crate/view.js reads the live value and scales
+   flowPose()'s own vertical spacing to match, via its existing
+   opts.spread lever, so bigger neighbours never overlap any more tightly
+   than the 278px phone baseline already does). The separate inline
+   record-detail panel beside it is gone — tapping a record opens the
+   gatefold's own wide spread (src/crate/view.js's own openCrateAlbum()),
+   the same entry point the phone already used, so the below-stage
+   .crate-info row (including its play button) is shown on desktop again
+   rather than hidden as redundant with a panel that no longer exists. */
 
 @media (min-width:1024px){
   :root{--crate-card-size:340px}
-  .crate-layout{display:flex;align-items:flex-start;gap:28px}
-  .crate-wrap{flex:1 1 auto}
-  .crate-detail-panel{
-    display:flex;flex-direction:column;flex:0 0 320px;min-width:0;
-    margin-top:10px;padding-left:var(--sp-5);border-left:1px solid var(--line);
-    max-height:calc(100vh - 160px);overflow-y:auto;
-  }
-  /* CR10 (docs/13_CRATE.md) point 1: the panel follows the front record on
-     its own (crate/view.js's onSettled()) — no placeholder, no album art
-     of its own (docs/design/crate/DesktopCrate.dc.html shows none), and
-     the below-stage .crate-info row (including its own play button) is
-     redundant with this panel's own catalog card, so it's hidden outright
-     rather than kept as a second, duplicate play affordance under the
-     stack. Hiding it also feeds point 2's "full height" for free —
-     applyCrateMiniInset() (src/crate/view.js) reads its measured height as
-     one of the stage's own height-budget reserves, and a display:none
-     element measures 0. */
-  .crate-info{display:none}
   /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): "the wider stage simply shows
      more of each peek" — a wider sliver to match the bigger 340px card,
      same ratio as the phone's own 46px/278px. */
   .crate-peek{width:70px;height:calc(var(--crate-card-size) * .78)}
   /* CR10 point 2: "the rail docked 16 px from the stage edge" — the
      mockup's own right:16px, vertically centred rather than pinned 10px
-     from the top, so it still reads centred against the taller stage
-     .crate-info{display:none} just freed up. The rail's own drag-to-scrub
-     pointer handling (crate/view.js) reads its live bounding rect, so a
-     CSS-only reposition changes nothing about that behavior.
+     from the top. The rail's own drag-to-scrub pointer handling
+     (crate/view.js) reads its live bounding rect, so a CSS-only
+     reposition changes nothing about that behavior.
      CR14 (docs/14_CRATE_SECTIONS.md PR 2) moved it to the left edge, to
      match the phone layout (10-crate.css) — the right edge is where a
      side-by-side section's own peek sits now. */
   .crate-rail{left:16px;right:auto;top:50%;transform:translateY(-50%)}
-  /* CR10 point 1: the lean CREDITS/PIN/SLEEVE NOTE text-action row and the
-     side-split tracklist, replacing the old Play-album/Credits .cta pill
-     pair and the album-art <img> this panel no longer builds. */
-  .crate-detail-textactions{display:flex;gap:2px;margin:2px 0 var(--sp-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  /* TY2: the CREDITS/PIN/SLEEVE NOTE row -- Archivo, sentence case. */
-  .crate-detail-textbtn{flex:1 1 auto;min-height:40px;padding:0 10px;border:0;background:transparent;
-    font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--muted);cursor:pointer}
-  .crate-detail-textbtn:hover,.crate-detail-textbtn:focus-visible{color:var(--paper)}
-  .crate-detail-textbtn[aria-pressed="true"]{color:var(--cream)}
-  .crate-detail-note{margin:0 0 var(--sp-3)}
-  .crate-detail-note[hidden]{display:none}
-  .crate-detail-tracklist{margin-top:var(--sp-2)}
-  .crate-detail-footnote{font-size:var(--fs-caption);color:var(--muted);margin:var(--sp-3) 0 0}
-  .crate-detail-playall{align-self:flex-start;margin-top:var(--sp-2)}
 }
 
 @media (min-width:1280px){
@@ -334,7 +296,7 @@
    (src/styles/02-stage-platter.css), and the side panel (Up next / Liner
    notes / Credits) in a third column. .player-layout/.stage-info are
    invisible scaffolding below this breakpoint (display:contents, the
-   same pattern .sidebar/.crate-layout already established in D3/D5), so
+   same pattern .sidebar already established in D3), so
    .stage's six wrapped children lay out exactly as they always have on
    a phone. .player-side-panel stays display:none until then. */
 .player-layout{display:contents}

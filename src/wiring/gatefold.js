@@ -11,7 +11,8 @@ import {
   saveLinerEditSheet, revertLinerEditSheet,
   gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
-  gatefoldNightMenuShare, gatefoldNightMenuPin,
+  gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
+  gatefoldPlayRecord,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
@@ -59,6 +60,7 @@ export function wireGatefold(){
   $('#gfLeftCue').addEventListener('click', () => gatefoldSwitchPanel('left'));
   $('#gfRightCue').addEventListener('click', () => gatefoldSwitchPanel('right'));
   $('#gfTurnOver').addEventListener('click', gatefoldToggleTurnedOver);
+  $('#gfPlayRecordBtn').addEventListener('click', gatefoldPlayRecord);
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);
@@ -108,11 +110,15 @@ export function wireGatefold(){
     handleBookletAddFileChange(files);
   });
 
-  // GF11 (docs/29_GATEFOLD.md): the night-only "···" menu's own rows --
-  // its opener button is built dynamically (gatefoldInfoAndSleeveHTML(),
-  // src/gatefold/view.js) only while GF.night, but the menu/scrim
-  // themselves are static like every other overflow menu, wired here once.
-  $('#gfNightMenuScrim').addEventListener('click', () => closeLayer('gf-night-menu'));
-  $('#gfNightShareBtn').addEventListener('click', gatefoldNightMenuShare);
-  $('#gfNightPinBtn').addEventListener('click', gatefoldNightMenuPin);
+  // GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
+  // "record options" menu: its opener button is built dynamically
+  // (gatefoldInfoAndSleeveHTML(), src/gatefold/view.js) every open, but the
+  // menu/scrim themselves are static like every other overflow menu,
+  // wired here once. Share/Pin only show while GF.night; Track order/
+  // Remove album show every time.
+  $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
+  $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
+  $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
+  $('#gfMoreTrackOrderBtn').addEventListener('click', gatefoldMoreMenuTrackOrder);
+  $('#gfMoreRemoveAlbumBtn').addEventListener('click', gatefoldMoreMenuRemoveAlbum);
 }
