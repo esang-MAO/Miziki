@@ -28,7 +28,7 @@ import { play } from '../player/transport.js';
 import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
-import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
+import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { gatefoldGeometry } from './geometry.js';
 
@@ -154,7 +154,18 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler){
     const showWear = S.showWear !== false;
     const shares = showWear ? gatefoldSideWearShares(sides) : null;
     const totalPlays = shares ? shares.reduce((s,x) => s + x.plays, 0) : 0;
+    // GF4 point 2: a "DISC N" eyebrow above each disc's own first side,
+    // only once this album actually spans more than one disc -- a
+    // single-disc album's sides (even A/B) stay exactly as before.
+    // Track numbers (gatefoldTrackRow's own k+1 below) keep counting
+    // straight through regardless.
+    const discGroups = discGroupsFor(trackIdx, S.tracks);
+    const discStartIdx = discGroups.length > 1 ? new Set(discGroups.map(g => g.idx[0])) : null;
     sides.forEach((side, si) => {
+      if(discStartIdx && discStartIdx.has(side.idx[0])){
+        const group = discGroups.find(g => g.idx[0] === side.idx[0]);
+        host.appendChild(el('div','gf-disc-eyebrow', 'DISC ' + group.disc));
+      }
       const total = side.idx.reduce((s,i) => s + (S.tracks[i].duration || 0), 0);
       const head = el('div','gf-side-head');
       head.appendChild(el('b', null, side.label));
@@ -405,10 +416,57 @@ function gatefoldOnPlatter(item){
   return S.shellAlbumId === item.albumId && !S.platterEmpty;
 }
 
+// GF4 point 1: which disc the currently-loaded track belongs to -- the
+// one disc whose pocket should read empty ("on the platter") while this
+// album is the one playing. Same default-to-0 convention
+// discGroupsFor()/splitSides() already use for an untagged disc number.
+function gatefoldDiscOf(trackIndex){
+  const t = S.tracks[trackIndex];
+  return (t && t.tags && t.tags.disc) || 0;
+}
+
+// GF4 point 1/3: every sleeve pocket currently in the DOM, pocket 1
+// (#gfSleeveDiscWrap, keeping its fixed id for shell/handoff.js's own
+// read and every other function below) first, each later disc's own
+// cloned pocket after it in the same order gatefoldBuildSleevePockets()
+// appended them.
+function gatefoldSleevePocketEls(){
+  return Array.from(document.querySelectorAll('#gfSleevePockets .gf-sleeve-disc-wrap'));
+}
+
+// GF4 point 1/3: one pocket per disc, side by side once an album spans
+// more than one -- built fresh on every open rather than kept around
+// between them, same as the tracklist/left-panel content just above.
+// Only #gfSleeveDiscWrap itself is real markup (miziki.html); every
+// later disc's pocket is a clone of it with its id (and every id of its
+// own descendants) stripped, found afterward through the shared
+// .gf-sleeve-disc-wrap class and its own [data-disc] instead.
+function gatefoldBuildSleevePockets(discGroups){
+  const pockets = $('#gfSleevePockets');
+  pockets.classList.toggle('gf-multi-disc', discGroups.length > 1);
+  pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
+  const first = $('#gfSleeveDiscWrap');
+  first.classList.remove('gf-disc-out');
+  first.setAttribute('data-disc', String(discGroups[0] ? discGroups[0].disc : 0));
+  for(let k = 1; k < discGroups.length; k++){
+    const clone = first.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    clone.classList.add('gf-sleeve-disc-wrap-extra');
+    clone.classList.remove('gf-disc-out', 'gf-disc-empty');
+    clone.setAttribute('data-disc', String(discGroups[k].disc));
+    pockets.appendChild(clone);
+  }
+}
+
 const GF_WEAR_STAGES = ['light', 'worn', 'loved'];
 function updateGatefoldSleeveState(){
   if(!GF) return;
-  $('#gfSleeveDiscWrap').classList.toggle('gf-disc-empty', gatefoldOnPlatter(GF.item));
+  const onPlatter = gatefoldOnPlatter(GF.item);
+  const playingDisc = onPlatter ? gatefoldDiscOf(S.index) : null;
+  gatefoldSleevePocketEls().forEach(wrap => {
+    wrap.classList.toggle('gf-disc-empty', onPlatter && Number(wrap.getAttribute('data-disc')) === playingDisc);
+  });
   // RW7 (docs/23_RHYTHM_AND_WEAR.md): the gatefold's own sleeve/disc, the
   // same CSS layer the crate card and player sleeve use.
   const gfSleeve = $('#gfSleeve');
@@ -421,9 +479,13 @@ function updateGatefoldSleeveState(){
 
 // decorative only: the disc peeks out as if pulled from the pocket, then the
 // pocket settles into its normal (now-empty, since this album is playing)
-// state — never touches S.shellAlbumId, the pull, or the full player (§A6)
-function gatefoldSleeveFlourish(){
-  const wrap = $('#gfSleeveDiscWrap');
+// state — never touches S.shellAlbumId, the pull, or the full player (§A6).
+// GF4: discNumber picks which disc's own pocket flourishes (the one the
+// played track is actually on); omitted, it falls back to the first.
+function gatefoldSleeveFlourish(discNumber){
+  const pockets = gatefoldSleevePocketEls();
+  const wrap = (discNumber != null && pockets.find(w => Number(w.getAttribute('data-disc')) === discNumber)) || pockets[0];
+  if(!wrap) return;
   wrap.classList.add('gf-disc-out');
   setTimeout(() => { wrap.classList.remove('gf-disc-out'); updateGatefoldSleeveState(); }, 400);
 }
@@ -442,10 +504,12 @@ function gatefoldPlayTrack(trackIdx, i){
   if(sameAlbum || !S.playInFullPlayer){
     setQueue(trackIdx, trackIdx.indexOf(i), false);
     play();
-    gatefoldSleeveFlourish();
+    gatefoldSleeveFlourish(gatefoldDiscOf(i));
     return;
   }
-  const startRect = $('#gfSleeveDiscWrap').getBoundingClientRect();
+  const playedDisc = gatefoldDiscOf(i);
+  const startWrap = gatefoldSleevePocketEls().find(w => Number(w.getAttribute('data-disc')) === playedDisc) || $('#gfSleeveDiscWrap');
+  const startRect = startWrap.getBoundingClientRect();
   setQueue(trackIdx, trackIdx.indexOf(i), false);
   if(REDUCED){
     // no flight — the player opens with the record already seated, then audio.
@@ -534,18 +598,24 @@ function gatefoldInfoAndSleeveHTML(item){
 // the shared precedence. Resolved off the album's own pressing, not
 // whichever side happens to be loaded — see albumPressingTrack()'s own
 // comment (record-art/tiers.js), same as discLook()'s other callers.
+// GF4 point 1: "the same pressing for every disc of one album" -- every
+// pocket (gatefoldSleevePocketEls()) gets the identical look, not just
+// the first disc's own.
 function applyGatefoldDiscVariant(item){
-  const disc = $('#gfDisc'), label = $('#gfDisc .label');
   const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
-  if(!disc || !label || !t){
-    if(disc) disc.classList.remove('rare');
-    if(label) label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
-    if(disc) disc.style.background = '';
-    return;
-  }
-  const d = discLook(t);
-  paintDiscLook(disc, label, d);
-  disc.style.background = d.bg || '';
+  const d = t ? discLook(t) : null;
+  gatefoldSleevePocketEls().forEach(wrap => {
+    const disc = wrap.querySelector('.disc'), label = wrap.querySelector('.label');
+    if(!disc || !label) return;
+    if(!d){
+      disc.classList.remove('rare');
+      label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
+      disc.style.background = '';
+      return;
+    }
+    paintDiscLook(disc, label, d);
+    disc.style.background = d.bg || '';
+  });
 }
 
 // GF3 point 3: "when the disc is out ... draw its run-out etching from
@@ -558,23 +628,29 @@ function applyGatefoldDiscVariant(item){
 // etchingFor() already gives. Shown only via CSS, keyed off
 // .gf-sleeve-disc-wrap.gf-disc-out -- this just needs the text in place
 // once per open, not re-applied on every flourish.
+// GF4: every pocket shows the same etching (same pressing, same record) --
+// one lookup, copied into each pocket's own text spans.
 function gatefoldApplyPocketDeadWax(item){
   const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
-  const matrixEl = $('#gfDiscDeadwaxMatrix'), messageEl = $('#gfDiscDeadwaxMessage');
-  if(!matrixEl || !messageEl) return;
-  if(!t){ matrixEl.textContent = ''; messageEl.textContent = ''; return; }
-  const { matrix, message } = etchingFor(albumKey(t), 'A');
-  matrixEl.textContent = matrix;
-  messageEl.textContent = message;
+  const text = t ? etchingFor(albumKey(t), 'A') : { matrix: '', message: '' };
+  gatefoldSleevePocketEls().forEach(wrap => {
+    const matrixEl = wrap.querySelector('.gf-deadwax-matrix'), messageEl = wrap.querySelector('.gf-deadwax-message');
+    if(matrixEl) matrixEl.textContent = text.matrix;
+    if(messageEl) messageEl.textContent = text.message;
+  });
 }
 
 async function gatefoldSetCoverArt(item){
-  const img = $('#gfCoverArt'), discArt = $('#gfDiscArt');
+  const img = $('#gfCoverArt');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
-  if(fallback){ img.src = fallback; discArt.src = fallback; }
+  const setDiscArt = src => gatefoldSleevePocketEls().forEach(wrap => {
+    const discArt = wrap.querySelector('.art');
+    if(discArt) discArt.src = src;
+  });
+  if(fallback){ img.src = fallback; setDiscArt(fallback); }
   applyGatefoldDiscVariant(item);
   const url = await getCrateArtURL(item.albumId, 'L');
-  if(url && GF && GF.item === item){ img.src = url; discArt.src = url; }
+  if(url && GF && GF.item === item){ img.src = url; setDiscArt(url); }
 }
 
 export function gatefoldSwitchPanel(panel){
@@ -832,7 +908,13 @@ export function openGatefold(item, opts){
   // unchanged, upstream in crate/view.js's openCrateAlbum().
   const format = gatefoldItemFormat(item);
   const geom = gatefoldGeometry(format);
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom};
+  // GF4 point 1/3: the discs this album actually spans -- one sleeve
+  // pocket each, built fresh below (gatefoldBuildSleevePockets()).
+  // Stored on GF since several later functions (flourish, the empty-
+  // pocket toggle, the handoff start rect) need it for as long as this
+  // open lasts, the same lifetime GF.geom already has.
+  const discGroups = discGroupsFor(trackIdx, S.tracks);
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups};
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');
@@ -841,8 +923,9 @@ export function openGatefold(item, opts){
   overlay.classList.remove('gf-chrome-in');
   overlay.style.opacity = '';
 
-  const sleeveDiscWrap = $('#gfSleeveDiscWrap');
-  if(sleeveDiscWrap) sleeveDiscWrap.setAttribute('data-size', platterSizeAttr(format));
+  gatefoldBuildSleevePockets(discGroups);
+  const sizeAttr = platterSizeAttr(format);
+  gatefoldSleevePocketEls().forEach(wrap => wrap.setAttribute('data-size', sizeAttr));
   gatefoldApplyPocketDeadWax(item);
 
   $('#gfTracklist').innerHTML = ''; $('#gfTracklist').appendChild(buildGatefoldTracklist(item, trackIdx));

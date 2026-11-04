@@ -87,6 +87,22 @@ export function splitSides(trackIdx, tracks, enabled){
   return groups.map((idx, k) => ({label: 'SIDE ' + String.fromCharCode(65 + k), idx}));
 }
 
+// GF4 (docs/29_GATEFOLD.md point 1/2): the discs a track list actually
+// spans, each with its own full set of track indices (every side of that
+// disc together, not split) -- the same discOf()/distinct-disc-list shape
+// splitSides() and sideLengthsFor() below already derive internally,
+// shared here once instead of a third copy in the gatefold, which needs
+// the plain per-disc grouping both to draw one sleeve pocket per disc and
+// to place the tracklist's own "Disc N" eyebrow above each disc's first
+// side. Disc numbers keep whatever order they first appear in trackIdx
+// (almost always ascending, since that's how an album's own tracks sort).
+export function discGroupsFor(trackIdx, tracks){
+  if(!trackIdx || !trackIdx.length) return [];
+  const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
+  const discs = [...new Set(trackIdx.map(discOf))];
+  return discs.map(disc => ({ disc, idx: trackIdx.filter(i => discOf(i) === disc) }));
+}
+
 // The record's own side lengths (seconds), independent of S.albumSides --
 // the same per-disc time-balanced split splitSides() now uses (one disc
 // with fewer than two tracks stays one length of its own; every other
