@@ -52,7 +52,7 @@ export function buildBackCoverData(item, trackIdx, format){
   const ch = t0 && t0.meta ? t0.meta.ch : null;
   const speed = formatSpeedText(format ? format.speed : undefined);
   const formatLine = [
-    size.replace('"', '″'), speed + ' RPM', ch === 1 ? 'MONO' : 'STEREO', fmt(totalSec),
+    size.replaceAll('"', '″'), speed + ' RPM', ch === 1 ? 'MONO' : 'STEREO', fmt(totalSec),
   ].join(' · ');
   const label = (t0 && t0.tags && t0.tags.label) || null;
   const year = item.year || (t0 && t0.tags && t0.tags.year) || null;
