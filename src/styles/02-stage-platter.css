@@ -63,13 +63,27 @@
      the variant background is, so it reads on every tier and pattern alike.
      Each streak is a soft triangular peak (ramping up to its own alpha, then
      back down), not a flat plateau with a hard-edged cut -- those hard edges,
-     crossing this layer's own dense concentric groove rings underneath, read
-     as a spiral/warped record rather than a true circle (Ken, 2026-11-05,
-     "an unintended optical illusion ... looking at it too closely" -- the
+     crossing this layer's own dense groove rings underneath, read as a
+     spiral/warped record rather than a true circle (Ken, 2026-11-05, "an
+     unintended optical illusion ... looking at it too closely" -- the
      classic Fraser-spiral setup: sharp radial edges over tight concentric
-     rings). Same peak alphas/approximate angular position as before, just
-     smoothed -- no two adjacent stops share an angle, so the browser always
-     interpolates between them instead of stepping. */
+     rings). No two adjacent stops share an angle, so the browser always
+     interpolates between them instead of stepping.
+     The groove rings themselves are the one flat, uniform-pitch pattern
+     below -- GS3 (docs/30_GROOVES_AND_SHELF.md) tried a per-track pattern
+     (one band per track, width from its own duration, pitch tighter for a
+     louder track, drawn via record-art/grooves.js's grooveBandsForSide()/
+     grooveBackgroundImage() into a --groove-rings custom property set once
+     per track load). Ken, 2026-11-05: "it looks like a faux generated image
+     whereas before it truly looked like a record spinning on a platter" --
+     reverted outright rather than retuned, since the complaint was the
+     pattern's whole premise (visibly different bands per track), not a
+     tunable detail. record-art/grooves.js's band-radius math (not the
+     texture it used to draw) is still live -- the needle ring and GS4's
+     drop-the-needle gesture (player/clock.js, player/scrub.js) still need
+     real per-track band boundaries, S.sideBands, to know where a track
+     starts/ends on the radius; only the visual rendering of those bands
+     as rings is gone. */
   background:
     conic-gradient(from 0deg,
       rgba(255,255,255,.10) .9deg, transparent 1.9deg,
@@ -81,28 +95,15 @@
       transparent 223deg,
       rgba(255,255,255,.035) 228deg, transparent 233deg,
       transparent 360deg),
-    var(--groove-rings, repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.16) 0 1px,rgba(0,0,0,0) 1px 5px));
+    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.16) 0 1px,rgba(0,0,0,0) 1px 5px);
   transition:opacity .6s;
 }
 .disc.rare::before{opacity:.3}
 /* GS4 (docs/30_GROOVES_AND_SHELF.md point 1): "the track gaps brighten"
    while a rim touch holds the record -- a plain filter boost on the
-   already-drawn ::before layer (the groove rings' own seam highlights,
-   grooveBackgroundImage() above, are the brightest thing in it), so no
-   second gradient is needed just for this. */
+   already-drawn ::before layer (the groove rings, the brightest thing in
+   it), so no second gradient is needed just for this. */
 .disc.disc-drop-active::before{filter:brightness(1.8) contrast(1.08)}
-/* GS3 (docs/30_GROOVES_AND_SHELF.md point 1): --groove-rings is set once
-   per track load (player/transport.js's load(), from record-art/
-   grooves.js's grooveBandsForSide()/grooveBackgroundImage()) -- one band
-   per track on this side, width proportional to the track's own duration,
-   groove pitch tighter for a louder track. The fallback above (today's
-   flat, uniform pitch) covers a disc with no bands yet (first paint,
-   before any track has loaded) and a custom property set to the empty
-   string (grooveBackgroundImage() returned null), both guaranteed-invalid
-   <image> values that trigger var()'s own fallback. A CSS custom property
-   set on #disc is inherited by its own ::before the same as any other
-   property would be -- no DOM restructuring needed to reach a pseudo-
-   element from JS. */
 /* point 3: the sky-tinted reflected light band -- static, no spin
    (a sibling of .disc, never a child or pseudo-element, the same reason
    .disc-metal-light below is one), crossfading with the sky because it

@@ -2,24 +2,27 @@
    30_GROOVES_AND_SHELF.md) =================
    Pure, zero-import leaf (besides util/math.js's clamp, itself pure/
    zero-import) -- same "directly unit-testable in Node" shape as
-   record-art/format.js right beside it. Three independent pieces:
+   record-art/format.js right beside it.
+   GS3 originally also drew this band geometry as the platter's own visible
+   groove texture (a per-track ring pattern, tighter pitch for a louder
+   track) -- reverted 2026-11-05 (Ken: "it looks like a faux generated
+   image whereas before it truly looked like a record spinning on a
+   platter"; see 02-stage-platter.css's own comment on .disc::before for
+   the full account). The band *radii* are still real, load-bearing
+   geometry -- GS4's needle ring and drop-the-needle gesture both need to
+   know where a track starts/ends on the radius -- so bandRadiiFromDurations()/
+   grooveBandsForSide() remain; only the texture-drawing half
+   (grooveBackgroundImage(), groovePitchForLoudness()) is gone.
    - bandRadiiFromDurations()/grooveBandsForSide(): one band per track on
      a side, outer (track 0) to inner (the last track), width proportional
      to the track's duration on that side -- the needle moves inward as a
      side plays, same direction a real record's groove does.
-   - groovePitchForLoudness(): louder -> a tighter (smaller) ring pitch;
-     an unmeasured track (t.details.loudness missing) takes the middle
-     pitch, same "always a de­fined, textable fallback" shape splitSides()'s
-     own tie-break gives every fully-tied cut.
+   - needleRadiusPct(): the needle ring's current radius (a percent of the
+     record's own radius, moving inward with playback, same clamp-to-the-
+     band shape as sideFullness() elsewhere in record-art/format.js).
    - sideMapSegments(): the side map replacing the player's plain elapsed/
      total time readout (point 4) -- one segment per track, the current
-     one filling, no numbers.
-   grooveBackgroundImage()/needleRadiusPct() turn the two geometry pieces
-   above into what the platter actually draws -- the CSS radial-gradient
-   string for #disc's own groove layer, and the needle ring's current
-   radius (a percent of the record's own radius, moving inward with
-   playback, same clamp-to-the-band shape as sideFullness() elsewhere in
-   record-art/format.js). */
+     one filling, no numbers. */
 import { clamp } from '../util/math.js';
 
 // The groove area's own inner/outer radius, as a percent of the record's
@@ -55,30 +58,6 @@ export function labelInnerPctForSize(size){
   return LABEL_INNER_PCT_BY_SIZE[size] || GROOVE_INNER_PCT;
 }
 
-// Ring pitch (the gap between adjacent texture rings), as a percent of the
-// record's own radius -- middle is today's flat pitch (1px line + 4px gap
-// at a ~171px platter radius, --platter-size's own 342px cap halved,
-// ~2.9% of that). Loud tracks read tighter (closer to vinyl's own real
-// "louder masters cut a narrower groove" behavior), quiet ones looser.
-export const GROOVE_PITCH_MIN_PCT = 1.8;
-export const GROOVE_PITCH_MAX_PCT = 4.0;
-export const GROOVE_PITCH_MIDDLE_PCT = 2.9;
-
-// The loudness range (BS.1770 LUFS, audio/loudness.js) this mapping spans
-// -- a typical loud/quiet master, not a hard technical limit; anything
-// outside it just clamps to the nearest end rather than reading as more
-// extreme than the range we've actually calibrated against.
-export const LOUDNESS_FLOOR_LUFS = -24;
-export const LOUDNESS_CEIL_LUFS = -6;
-
-// "Groove pitch per band from the track's measured loudness: louder ->
-// tighter. Unmeasured tracks use the middle pitch."
-export function groovePitchForLoudness(loudness){
-  if(loudness == null || !Number.isFinite(loudness)) return GROOVE_PITCH_MIDDLE_PCT;
-  const t = clamp((loudness - LOUDNESS_FLOOR_LUFS) / (LOUDNESS_CEIL_LUFS - LOUDNESS_FLOOR_LUFS), 0, 1);
-  return GROOVE_PITCH_MAX_PCT - t * (GROOVE_PITCH_MAX_PCT - GROOVE_PITCH_MIN_PCT);
-}
-
 // One band per track, decreasing radius in track order: band 0 starts at
 // outerPct (the needle drops there first) and ends wherever its own share
 // of the side's total duration runs out; the last band ends exactly at
@@ -100,25 +79,13 @@ export function bandRadiiFromDurations(durations, innerPct = GROOVE_INNER_PCT, o
   return bands;
 }
 
-// Combines the band radii above with each track's own measured loudness
-// -- tracks: an array of {duration, details:{loudness}} in side order
-// (the shape S.tracks entries already have). t.details.loudness is
-// audio/loudness.js's own analyze() result object ({lufs, truePeakDb,
-// clipRuns, plr, measured, truePeakVersion}, src/library/import.js's
-// storeTrack()), not a bare number -- its .lufs is what groovePitchFor
-// Loudness() actually wants; an unmeasured track (no loudness object
-// yet, or one whose own .lufs isn't a real number) still lands on
-// groovePitchForLoudness()'s own null/NaN branch below, same as before.
+// A thin wrapper over bandRadiiFromDurations() that takes the side's own
+// track list (the shape S.tracks entries already have) rather than a bare
+// duration array -- kept as its own function so transport.js's call site
+// reads "bands for this side's tracks," not "bands for these numbers."
 export function grooveBandsForSide(tracks, innerPct = GROOVE_INNER_PCT, outerPct = GROOVE_OUTER_PCT){
   const list = tracks || [];
-  const radii = bandRadiiFromDurations(list.map(t => (t && t.duration) || 0), innerPct, outerPct);
-  return radii.map((r, i) => {
-    const loudness = list[i] && list[i].details && list[i].details.loudness;
-    return {
-      startPct: r.startPct, endPct: r.endPct,
-      pitchPct: groovePitchForLoudness(loudness && loudness.lufs),
-    };
-  });
+  return bandRadiiFromDurations(list.map(t => (t && t.duration) || 0), innerPct, outerPct);
 }
 
 // The needle's current radius (a percent of the record's own radius),
@@ -183,9 +150,9 @@ export function bandIndexForRadius(bands, radiusPct){
   return radiusPct > bands[0].startPct ? 0 : bands.length - 1;
 }
 
-// "A small threshold" -- close to a typical ring's own pitch (the
-// GROOVE_PITCH_* constants above), so snapping feels like finding the
-// actual gap between tracks rather than a wide dead zone around it.
+// "A small threshold" -- a few percent of the record's own radius, so
+// snapping feels like finding the actual gap between tracks rather than
+// a wide dead zone around it.
 export const DROP_NEEDLE_SNAP_PCT = 2.5;
 
 // A slide's current target while dropping the needle: which track it's
@@ -193,8 +160,7 @@ export const DROP_NEEDLE_SNAP_PCT = 2.5;
 // whether it's close enough to that track's own start to snap, and the
 // radius to actually show the needle (and its tag) at -- the track's
 // own start once snapped, the raw (but in-bounds) touch radius
-// otherwise. Returns null for no bands at all, the same "nothing to
-// drop onto" shape grooveBackgroundImage() already uses.
+// otherwise. Returns null for no bands at all -- nothing to drop onto.
 export function dropNeedleTarget(bands, radiusPct, snapPct = DROP_NEEDLE_SNAP_PCT){
   if(!bands || !bands.length) return null;
   const clamped = clamp(radiusPct, bands[bands.length - 1].endPct, bands[0].startPct);
@@ -233,63 +199,4 @@ export function sideMapSegments(durations, activeIdx, playedFrac){
     }
     return { widthPct, fillPct };
   });
-}
-
-// The CSS radial-gradient string for #disc's own groove layer (read via
-// the --groove-rings custom property -- see 02-stage-platter.css), built
-// from grooveBandsForSide()'s own bands. Stops are emitted from the
-// innermost band outward (ascending radius), the order a CSS radial-
-// gradient's own stop list requires -- bands themselves run the other way
-// (outer track 0 to inner last track), so this walks them in reverse. A
-// thin, slightly brighter seam ring marks every boundary between one
-// track's band and the next (point 1's "a smooth, slightly lighter ring
-// between tracks"), skipped at the outermost edge where there's no
-// further-out track to mark a seam against. Returns null for no bands at
-// all, so a caller can fall back to the plain static pitch instead of
-// writing an empty gradient.
-export function grooveBackgroundImage(bands){
-  if(!bands || !bands.length) return null;
-  const stops = [];
-  // floor keeps every pushed stop at or past the last one, even across a
-  // seam ring that nudges slightly past a band's own boundary -- a CSS
-  // radial-gradient's stop list has to be non-decreasing, or the browser
-  // just clamps it itself, silently flattening the ring right after.
-  let floor = 0;
-  const push = (pct, color) => {
-    const p = Math.max(floor, Math.min(100, pct));
-    floor = p;
-    // CSS color-stop syntax is "<color> <position>", not the reverse --
-    // a position-first stop list parses as invalid and the whole
-    // background-image drops to `none`, which is why no groove texture
-    // rendered at all until this was caught with a live browser check.
-    stops.push(color + ' ' + p.toFixed(3) + '%');
-  };
-  // Line/seam alpha (Ken, 2026-11-05): "the render of the grooves ...
-  // should still be slightly visible while it is spinning. Maybe in a
-  // light gray" -- .05/.09 read as essentially invisible against a dark
-  // pressing (jet black and most other looks). Brighter here, but still
-  // well under the needle ring's own rgba(255,253,245,.4)/.9 (02-stage-
-  // platter.css's .needle-ring/::after) -- that stays the one "lit/white"
-  // marker for where playback actually is; this is just the record's own
-  // physical texture.
-  const ordered = bands.slice().reverse();
-  ordered.forEach((band, oi) => {
-    const { startPct, endPct, pitchPct } = band;
-    const lineWidth = Math.max(0.05, pitchPct * 0.2);
-    let r = Math.max(endPct, floor);
-    while(r < startPct){
-      const lineEnd = Math.min(startPct, r + lineWidth);
-      push(r, 'transparent');
-      push(r, 'rgba(255,255,255,.16)');
-      push(lineEnd, 'rgba(255,255,255,.16)');
-      push(lineEnd, 'transparent');
-      r += pitchPct;
-    }
-    if(oi < ordered.length - 1){
-      push(startPct, 'transparent');
-      push(Math.min(100, startPct + 0.3), 'rgba(255,255,255,.24)');
-      push(Math.min(100, startPct + 0.3), 'transparent');
-    }
-  });
-  return 'radial-gradient(circle at 50% 50%, ' + stops.join(', ') + ')';
 }
