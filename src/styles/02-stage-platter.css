@@ -13,6 +13,16 @@
    above it -- was 278px (a smaller fixed cap that under-filled wider
    phones). */
 :root{--platter-size:min(87.7vw,342px)}
+/* Fit full player controls on mobile without scrolling (short phones, e.g.
+   iPhone SE): bounds the platter by viewport height too, not just width,
+   so it shrinks to leave room for the title/controls below it. Gated on
+   max-height so taller phones (iPhone 13/14 and up), where the platter
+   already fits with room to spare, keep the full 342px disc untouched --
+   34vh only binds below ~700px tall (342px / .34 ≈ 1006px), well short of
+   any phone this media query's max-width:1023px companions also gate on. */
+@media (max-width:1023px) and (max-height:700px){
+  :root{--platter-size:min(87.7vw,342px,27vh)}
+}
 /* point 2: "centred with 36px above" (was 26px). */
 .stage{padding:36px 0 6px}
 .platter-stage{position:relative;width:var(--platter-size);aspect-ratio:1;margin:0 auto}
