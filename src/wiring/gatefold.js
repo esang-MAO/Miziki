@@ -11,6 +11,7 @@ import {
   saveLinerEditSheet, revertLinerEditSheet,
   gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
+  openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
   gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
   gatefoldMoreMenuKeepFor, gatefoldKeepForPick,
   gatefoldPlayRecord,
@@ -112,11 +113,12 @@ export function wireGatefold(){
   });
 
   // GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
-  // "record options" menu: its opener button is built dynamically
-  // (gatefoldInfoAndSleeveHTML(), src/gatefold/view.js) every open, but the
-  // menu/scrim themselves are static like every other overflow menu,
-  // wired here once. Share/Pin only show while GF.night; Track order/
-  // Remove album show every time.
+  // "record options" menu, then GF14: its opener (#gfMoreBtn) became a
+  // fixed top-corner button, same static-control wiring as every other
+  // gatefold control here, instead of being rebuilt into the info block
+  // every open. Share/Pin/Keep for…/Track order/Remove album all show
+  // every time now, day or night.
+  $('#gfMoreBtn').addEventListener('click', () => isGatefoldMoreMenuOpen() ? closeLayer('gf-more-menu') : openGatefoldMoreMenu());
   $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
   $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);

@@ -1411,6 +1411,15 @@
 <!-- GATEFOLD: opens from the crate's centre record (GATEFOLD spec) -->
 <div class="gatefold" id="gatefold" role="dialog" aria-modal="true" aria-label="" aria-hidden="true">
   <button class="gf-back" id="gfBack" aria-label="Back to crate">‹ Crate</button>
+  <!-- GF14: "record options" moved here from inline-in-the-info-block (its
+       old anchor sat ~500px down the screen, so the menu that dropped off
+       it landed mid-screen, overlapping the format line/disc below it --
+       Ken's "fix how the options for the ellipses menu appear" report).
+       Same fixed top-corner placement as #gfBack, its mirror on the right,
+       so the menu now opens from a sensible, predictable spot regardless
+       of which panel or mode is showing. Wired once in
+       src/wiring/gatefold.js, like every other static gatefold control. -->
+  <button type="button" class="gf-more-btn" id="gfMoreBtn" aria-label="Record options" aria-haspopup="true" aria-expanded="false">⋯</button>
   <div class="gf-stage" id="gfStage">
     <div class="gf-camera" id="gfCamera">
       <div class="gf-right">
@@ -1458,12 +1467,12 @@
   <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
 
   <!-- GF11 (docs/29_GATEFOLD.md point 3), generalized by GF12 into an
-       always-present "record options" menu: the opener button is built
-       by gatefoldInfoAndSleeveHTML() (src/gatefold/view.js) every open,
-       same .overflow-menu/.overflow-scrim shape as #gfBackCoverMenu
-       above, positioned off that button's own rect. Share record/Pin to
-       crate only show while GF.night (daytime already shows the real
-       inline buttons); Track order/Remove album always show. -->
+       always-present "record options" menu, then GF14: Share record/Pin
+       to crate moved in for good (previously only while GF.night, with
+       their own always-on pill buttons by day) -- one home for both,
+       day or night, rather than two. Same .overflow-menu/.overflow-scrim
+       shape as #gfBackCoverMenu above, positioned off #gfMoreBtn's own
+       rect (src/wiring/gatefold.js). -->
   <div class="overflow-scrim" id="gfMoreMenuScrim"></div>
   <div class="overflow-menu" id="gfMoreMenu" role="menu">
     <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
@@ -1549,7 +1558,6 @@
     </div>
     <div class="gf-flat-body" id="gfFlatBody"></div>
   </div>
-  <div class="gf-left-actions" id="gfLeftActions"></div>
   <div class="gf-info" id="gfInfo"></div>
   <div class="gf-sleeve" id="gfSleeve" aria-hidden="true">
     <div class="gf-sleeve-paper"></div>

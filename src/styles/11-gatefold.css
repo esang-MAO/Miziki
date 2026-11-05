@@ -40,6 +40,15 @@
   font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper);opacity:0;
   transition:opacity .15s;padding:6px var(--sp-1)}
 .gatefold.gf-chrome-in .gf-back{opacity:1}
+/* GF14: #gfBack's mirror on the right -- same fixed top-corner spot, same
+   fade-in, so "record options" opens from a predictable place regardless
+   of panel/mode instead of off a button buried mid-screen in the info
+   block (the old anchor; see the menu's own comment in miziki.html). */
+.gf-more-btn{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;z-index:6;
+  width:32px;height:32px;border-radius:50%;background:rgba(239,233,223,.12);
+  color:var(--paper);font-family:var(--body);font-size:var(--fs-row);line-height:1;opacity:0;
+  transition:opacity .15s}
+.gatefold.gf-chrome-in .gf-more-btn{opacity:1}
 .gf-stage{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 40%}
 /* GF2/GF3 (docs/29_GATEFOLD.md point 2): --gf-ref-w/--gf-ref-h, --gf-pan,
    --gf-panel-size, --gf-pocket-size and --gf-disc-size are pushed by
@@ -156,14 +165,11 @@
   transform:translateX(-50%);text-align:center;font-family:var(--data);font-size:var(--fs-caption);
   letter-spacing:.06em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-turn-over{opacity:1}
-/* GF13 fix 3: both sit below the cover's own bottom edge, which in
-   normal (non-wide) mode is also where #gfLeftActions (Share
-   record/Pin to crate, shown only while panel==='left') lands -- Ken's
-   "FLIP COVER text overlapping Share record" screenshot. Neither one
-   means anything while looking at the inside-left panel instead of the
-   cover, so hide both there, same visibility pattern (and the same
-   gf-wide/gf-panel-dragging exclusions) .gf-cover/.gf-right already use
-   just above. */
+/* GF13 fix 3: flipping to the back cover means nothing while looking at
+   the inside-left panel instead of the cover, so hide both there, same
+   visibility pattern (and the same gf-wide/gf-panel-dragging exclusions)
+   .gf-cover/.gf-right already use just above. (Originally fixed an
+   overlap with the old #gfLeftActions Share/Pin row, GF14 retired.) */
 .gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-turn-over,
 .gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-flip-dots{opacity:0;pointer-events:none}
 /* GF5 point 2: one ink on plain stock, filled from the record's own data
@@ -277,21 +283,28 @@
 .gf-anchor-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
   padding:10px 14px;font-family:var(--hand);font-weight:500;font-size:16px;line-height:1.25;
   margin:4px 0 8px 30px}
-/* #gfLeftActions: GF1 point 6 -- the main gatefold relocates these two
-   buttons there (relocateGatefoldActions(), gatefold/view.js), out of
-   .gf-left's own scroll area; .picture-sleeve-body keeps them inline,
-   as built. */
-.gf-left .gf-pin-btn, .picture-sleeve-body .gf-pin-btn, #gfLeftActions .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+/* .picture-sleeve-body (singles, docs/17_SINGLES.md) keeps Pin/Share
+   inline, as built -- only the main gatefold moved them into the "record
+   options" menu (GF14, below). */
+.picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
-.gf-left .gf-pin-btn[aria-pressed="true"], .picture-sleeve-body .gf-pin-btn[aria-pressed="true"], #gfLeftActions .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
+.picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
   background:color-mix(in srgb,var(--cream) 12%,transparent)}
 /* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
    Same plain-pill shape as .gf-pin-btn just above, minus the pressed
    highlight -- it never toggles, it opens the share sheet. */
-.gf-left .gf-share-btn, .picture-sleeve-body .gf-share-btn, #gfLeftActions .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+.picture-sleeve-body .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
+/* GF14 (docs/29_GATEFOLD.md): the main gatefold's own Pin/Share stay real
+   elements -- gatefoldSocialControlsHTML() still builds them, and the
+   "record options" menu (#gfMoreBtn, below) still just forwards clicks to
+   them -- but they're never shown inline here any more, in either layout
+   (.gf-left: normal/wide mode's scrolling panel; .gf-flat-body: short
+   mode's own copy of the same panel). Previously shown by day, hidden only
+   .gf-night; now the menu is their one home at any time. */
+.gf-left .gf-pin-btn, .gf-left .gf-share-btn, .gf-flat-body .gf-pin-btn, .gf-flat-body .gf-share-btn{display:none}
 /* GF1 point 2: always shown now (no liner-notes/credits gate), drawn as a
    real edge rather than an invisible hit-area -- a <button> in the markup,
    with its own aria-label. .gf-right-cue (the left panel's own mirror,
@@ -305,33 +318,18 @@
 .gf-left-cue span, .gf-right-cue span{writing-mode:vertical-rl;font-family:var(--body);font-size:var(--fs-caption);
   font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .gf-left-cue span{transform:rotate(180deg)}
-/* GF1 point 6: Pin and Share, reached without scrolling past the sleeve
-   note -- a fixed row between the panel and the title block, shown only
-   while the inside-left panel is the one open (always in wide mode, where
-   both panels already sit side by side). Hidden by default; toggled by
-   gatefoldSwitchPanel()/openGatefold(). */
-#gfLeftActions{position:absolute;left:20px;right:20px;top:440px;display:none;gap:8px;z-index:3}
 .gf-info{position:absolute;left:20px;right:20px;top:494px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
-.gf-info-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-2)}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}
 .gf-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
 .gf-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
-/* GF11 (docs/29_GATEFOLD.md): the night-only "···" that forwards to the
-   now-hidden Share/Pin buttons below -- same plain circle shape as
-   .gf-back-cover-more, built only while GF.night (gatefoldInfoAndSleeveHTML(),
-   src/gatefold/view.js) so it needs no own show/hide toggle. */
-.gf-night-more-btn{flex:0 0 auto;width:28px;height:28px;border-radius:50%;
-  background:rgba(239,233,223,.12);color:var(--paper);font-family:var(--body);
-  font-size:var(--fs-row);line-height:1}
 /* GF11 point 1: "hides Share record, Pin ... and dims the sleeve paper
-   and label slightly" -- the Share/Pin buttons themselves stay in the DOM
-   (gatefoldSocialControlsHTML() keeps building them, the night menu above
-   just forwards to them), hidden here rather than left unbuilt, since the
-   same wrap/buttons are also what short mode's own flat body shows inline.
-   .86 matches the design mock's own dimming value (docs/design/gatefold/
-   AfterDark.dc.html) exactly. */
-.gatefold.gf-night .gf-share-btn, .gatefold.gf-night .gf-pin-btn{display:none}
+   and label slightly" -- GF14 moved Share/Pin into the always-present
+   "record options" menu (so they're never shown inline any more, day or
+   night, see the .gf-left/.gf-flat-body rule above), leaving just the
+   sleeve/label dim as this phase's own remaining effect. .86 matches the
+   design mock's own dimming value (docs/design/gatefold/AfterDark.dc.html)
+   exactly. */
 .gatefold.gf-night .gf-sleeve-paper, .gatefold.gf-night .gf-sleeve-disc-wrap .label{filter:brightness(.86)}
 .gf-sleeve{position:absolute;left:20px;right:20px;top:570px;height:252px;overflow:hidden;pointer-events:none;
   opacity:0;transition:opacity .15s}
@@ -412,10 +410,6 @@
 .gatefold.gf-wide .gf-cover{left:420px}
 .gatefold.gf-wide .gf-sleeve,.gatefold.gf-wide .gf-left-cue,.gatefold.gf-wide .gf-right-cue{display:none}
 .gatefold.gf-wide .gf-info{left:20px;top:450px;right:auto;width:380px}
-/* GF1 point 6: in wide mode both panels already sit side by side, so the
-   actions row sits under the left panel (left:420px, same as .gf-cover
-   above) rather than under the title block. */
-.gatefold.gf-wide #gfLeftActions{left:420px;right:auto;width:var(--gf-panel-size,350px);top:450px}
 /* GF12 (docs/29_GATEFOLD.md) point 3: one primary "Play the record"
    button under the left info column, replacing the retired desktop
    detail panel's own Play affordance -- hidden entirely outside gf-wide,

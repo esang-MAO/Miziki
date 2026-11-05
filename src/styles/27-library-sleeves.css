@@ -7,7 +7,20 @@
    library (CR9)" section. */
 
 /* ---- Artists: fanned stack in place of groupRow's single disc icon ---- */
-.artist-row{min-height:72px}
+/* .grouprow (02-stage-platter.css) turns on content-visibility:auto as a
+   lazy-render perf opt-in for a long list -- fine for a plain song/album
+   row, but an artist row is heavier (three stacked, rotated cover images)
+   and on-device WebKit is known to leave a content-visibility:auto element
+   blank after it scrolls into view instead of promoting it to its real
+   rendered content, especially with a transform in play the way the
+   fanned artist-stack below uses (img:nth-child(2)/(3)'s rotate()) --
+   Chromium doesn't reproduce it, which is why this never showed up in
+   Playwright verification. That reads as exactly Ken's report: an empty
+   band opening up while scrolling the Artists tab (screenshot
+   IMG_6832.jpeg). Turning content-visibility back off for this one row
+   type trades a little of that lazy-render saving for rows that always
+   actually paint; .grouprow's own opt-in (Albums, Playlists) is untouched. */
+.artist-row{min-height:72px;content-visibility:visible}
 .artist-stack{position:relative;flex:0 0 auto;width:52px;height:44px}
 .artist-stack img,.artist-stack .g-art{position:absolute;top:0;left:4px;width:44px;height:44px;
   border-radius:2px;object-fit:cover;box-shadow:0 1px 2px var(--shadow)}

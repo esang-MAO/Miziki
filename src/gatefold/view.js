@@ -72,7 +72,7 @@ const GF_CLOSE_DRAG_VELOCITY = 0.6;
 // gatefoldGeometry() and publishes it as CSS custom properties, the same
 // "compute once, push as a var" shape GATEFOLD_ANIM already uses just
 // above -- 11-gatefold.css's .gf-camera/.gf-right/.gf-cover/.gf-left-cue/
-// #gfLeftActions/.gf-sleeve-disc-wrap/.gf-sleeve-paper read these instead
+// .gf-sleeve-disc-wrap/.gf-sleeve-paper read these instead
 // of their own copies of the same literals. Called once at module load
 // with the 12" fallback (so the vars exist before any gatefold has ever
 // opened) and again from openGatefold() with the open record's own
@@ -629,21 +629,6 @@ export function buildGatefoldLeftPanel(item){
   return host;
 }
 
-// GF1 point 6: moves the Pin/Share buttons buildGatefoldLeftPanel() built
-// (inside #gfLeft, via gatefoldSocialControlsHTML) into the fixed row just
-// under the panel -- a DOM move, not a rebuild, so their own listeners and
-// paint() closures keep working untouched. #gfLeft itself keeps scrolling
-// with just the rating/note/credits/liner content above them.
-function relocateGatefoldActions(){
-  const actions = $('#gfLeftActions');
-  if(!actions) return;
-  actions.innerHTML = '';
-  const pin = document.querySelector('#gfLeft .gf-pin-btn');
-  const share = document.querySelector('#gfLeft .gf-share-btn');
-  if(pin) actions.appendChild(pin);
-  if(share) actions.appendChild(share);
-}
-
 function gatefoldOnPlatter(item){
   return S.shellAlbumId === item.albumId && !S.platterEmpty;
 }
@@ -817,19 +802,21 @@ function gatefoldFormatLine(item){
   return bits.join(' · ');
 }
 
-// GF11 (docs/29_GATEFOLD.md); generalized by GF12 into an always-present
-// "record options" menu: "a ··· button" that forwards to the real
-// Share/Pin buttons buildGatefoldLeftPanel() already built (those stay in
-// the DOM, hidden by .gatefold.gf-night in CSS at night, so this menu
-// needs no rating/note/pin logic of its own, only a paint-and-forward by
-// day's own two rows), plus "Track order" and "Remove album", shown every
-// time -- the one home for both regardless of time of day.
-function openGatefoldMoreMenu(btn){
-  const night = !!(GF && GF.night);
+// GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
+// "record options" menu, then GF14: Share/Pin moved in for good (daytime
+// used to show their own always-on pill buttons instead) -- "a ··· button"
+// (#gfMoreBtn, a fixed top-corner control, miziki.html) that forwards to
+// the real Share/Pin buttons buildGatefoldLeftPanel() already built (those
+// stay in the DOM, just never shown inline any more -- see .gf-left/
+// .gf-flat-body in 11-gatefold.css -- so this menu needs no rating/note/
+// pin logic of its own, only a paint-and-forward), plus "Track order" and
+// "Remove album", every one of them shown every time, day or night.
+export function openGatefoldMoreMenu(){
+  const btn = $('#gfMoreBtn');
   const shareSrc = document.querySelector('.gf-share-btn');
   const pinSrc = document.querySelector('.gf-pin-btn');
-  $('#gfMoreShareBtn').style.display = (night && shareSrc) ? '' : 'none';
-  if(night && pinSrc){
+  $('#gfMoreShareBtn').style.display = shareSrc ? '' : 'none';
+  if(pinSrc){
     $('#gfMorePinBtn').style.display = '';
     $('#gfMorePinBtn').textContent = pinSrc.textContent;
   } else $('#gfMorePinBtn').style.display = 'none';
@@ -841,11 +828,11 @@ function openGatefoldMoreMenu(btn){
   btn.setAttribute('aria-expanded', 'true');
   openLayer('gf-more-menu', closeGatefoldMoreMenu, { container: [menu, $('#gfMoreMenuScrim')] });
 }
+export function isGatefoldMoreMenuOpen(){ return $('#gfMoreMenu').classList.contains('open'); }
 export function closeGatefoldMoreMenu(){
   $('#gfMoreMenuScrim').classList.remove('open');
   $('#gfMoreMenu').classList.remove('open');
-  const btn = document.querySelector('.gf-more-btn');
-  if(btn) btn.setAttribute('aria-expanded', 'false');
+  $('#gfMoreBtn').setAttribute('aria-expanded', 'false');
 }
 export function gatefoldMoreMenuShare(){
   closeLayer('gf-more-menu');
@@ -931,16 +918,6 @@ export function gatefoldMoreMenuRemoveAlbum(){
   });
 }
 
-function buildGatefoldMoreBtn(){
-  const btn = el('button', 'gf-more-btn', '⋯');
-  btn.type = 'button';
-  btn.setAttribute('aria-label', 'Record options');
-  btn.setAttribute('aria-haspopup', 'true');
-  btn.setAttribute('aria-expanded', 'false');
-  btn.addEventListener('click', () => openGatefoldMoreMenu(btn));
-  return btn;
-}
-
 // GF12 point 2: rebuilds the tracklist in place -- #gfTracklist always,
 // plus #gfFlatBody when the short layout's flat tab is the tracklist
 // (not the left panel) -- after a reorder move or a Track order/Done
@@ -961,14 +938,11 @@ function refreshGatefoldTracklist(){
 function gatefoldInfoAndSleeveHTML(item){
   const info = $('#gfInfo'); info.innerHTML = '';
   const night = !!(GF && GF.night);
-  const titleRow = el('div', 'gf-info-title-row');
-  titleRow.appendChild(el('h3','gf-info-title', item.album));
-  // GF11 point 3 (now GF12's always-on "record options" menu): Share and
-  // Pin stay reachable at night from here, since point 1 below hides
-  // their always-on buttons after sunset; Track order and Remove album
-  // are reachable from the same menu at any time of day.
-  titleRow.appendChild(buildGatefoldMoreBtn());
-  info.appendChild(titleRow);
+  // GF14: "record options" (Share, Pin, Keep for…, Track order, Remove
+  // album) is now a fixed top-corner button (#gfMoreBtn, miziki.html),
+  // wired once in src/wiring/gatefold.js -- not rebuilt into this title
+  // row every open the way it used to be.
+  info.appendChild(el('h3','gf-info-title', item.album));
   info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
   // GF11 point 1: "hides ... the format line and the wear line" after
   // sunset -- "fewer lines under the panel: just the record" (the design
@@ -1173,14 +1147,6 @@ export function gatefoldSwitchPanel(panel){
   }
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.panel === panel)));
-  // GF1 point 6: Pin and Share live in #gfLeftActions, reached without
-  // scrolling the inside-left panel -- shown while that panel is the one
-  // open (or always, in wide mode, where both panels already sit side by
-  // side). Short mode keeps them inline in its own flat body instead
-  // (rebuilt by buildGatefoldLeftPanel just above), so #gfLeftActions
-  // stays empty and hidden there.
-  const actions = $('#gfLeftActions');
-  if(actions) actions.style.display = (GF.mode === 'wide' || (GF.mode !== 'short' && panel === 'left')) ? 'flex' : 'none';
   if(GF.mode === 'short'){
     $('#gfFlatBody').innerHTML = '';
     if(panel === 'left') $('#gfFlatBody').appendChild(buildGatefoldLeftPanel(GF.item));
@@ -1487,15 +1453,8 @@ export function openGatefold(item, opts){
     $('#gfFlatTracks').classList.add('show');
     $('#gfFlatBody').innerHTML = ''; $('#gfFlatBody').appendChild(buildGatefoldTracklist(item, trackIdx));
     document.querySelectorAll('#gfFlatSeg [data-panel]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.panel === 'right')));
-    const actions = $('#gfLeftActions'); if(actions){ actions.innerHTML = ''; actions.style.display = 'none'; }
   } else {
     $('#gfFlatTracks').classList.remove('show');
-    // GF1 point 6: Pin and Share move out of #gfLeft's own scroll area into
-    // the fixed row just under the panel -- moving the real nodes (not
-    // rebuilding them) keeps their own click handlers/closures intact.
-    relocateGatefoldActions();
-    const actions = $('#gfLeftActions');
-    if(actions) actions.style.display = mode === 'wide' ? 'flex' : 'none';   // GF.panel starts 'right'
   }
   // GF1 point 2: the inside-left cue always shows now (no liner-notes/
   // credits gate) -- it opens Your copy (rating, sleeve note, pin, share),
