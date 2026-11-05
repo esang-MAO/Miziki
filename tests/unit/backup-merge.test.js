@@ -594,6 +594,42 @@ test('GF7: a doc with no albumLinerNote field at all merges as an empty map, not
   assert.deepEqual(merged.itemWrites.albumLinerNote, {});
 });
 
+// GS10 (docs/30_GROOVES_AND_SHELF.md): the "Keep for…" claim -- a phase
+// word, same per-key last-write-wins shape as albumFormat/albumLinerNote
+// above.
+test('GS10: albumKeptFor merges per album key, last write wins, same shape as albumFormat', () => {
+  const a = toDoc(baseLocal('a', {
+    albumKeptFor: { 'Album X': 'night' },
+    updatedAt: { albumKeptFor: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumKeptFor: { 'Album X': 'sundown', 'Album Y': 'morning' },
+    updatedAt: { albumKeptFor: { 'Album X': { seq: 2, at: 500 }, 'Album Y': { seq: 1, at: 100 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.albumKeptFor, { 'Album X': 'sundown', 'Album Y': 'morning' });
+});
+
+test('GS10: a later "Not kept" tombstone (value: null) beats an earlier Keep-for claim', () => {
+  const a = toDoc(baseLocal('a', {
+    albumKeptFor: { 'Album X': 'golden' },
+    updatedAt: { albumKeptFor: { 'Album X': { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    albumKeptFor: {},
+    updatedAt: { albumKeptFor: { 'Album X': { seq: 2, at: 500 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.albumKeptFor, {});
+});
+
+test('GS10: a doc with no albumKeptFor field at all merges as an empty map, not a throw', () => {
+  const a = toDoc(baseLocal('a'));
+  delete a.itemWrites.albumKeptFor;
+  const merged = mergeRows([a]);
+  assert.deepEqual(merged.itemWrites.albumKeptFor, {});
+});
+
 test('RF17: a later change to one key of a map field never clobbers an earlier change to a different key of the same field', () => {
   const a = toDoc(baseLocal('a', {
     albumSort: { 'Album X': 'manual' },

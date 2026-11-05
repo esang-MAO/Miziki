@@ -443,6 +443,11 @@ export function mergeRows(rows){
       // (value: null, "Use the notes from the files") drops the key from
       // the merged map entirely, same as every other keyed field here.
       albumLinerNote: mergeKeyedLastWriteWins(rows, 'albumLinerNote'),
+      // GS10 (docs/30_GROOVES_AND_SHELF.md): the "Keep for…" claim — same
+      // per-key last-write-wins shape as albumFormat above; a tombstone
+      // (value: null, "Not kept") drops the key from the merged map
+      // entirely, same as every other keyed field here.
+      albumKeptFor: mergeKeyedLastWriteWins(rows, 'albumKeptFor'),
       prefs: mergeKeyedLastWriteWins(rows, 'prefs'),
       playlistDefs: mergeKeyedLastWriteWins(rows, 'playlistDefs'),
       playlistOrder: mergeKeyedLastWriteWins(rows, 'playlistOrder'),

@@ -1455,8 +1455,25 @@
   <div class="overflow-menu" id="gfMoreMenu" role="menu">
     <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
     <button class="overflow-menu-row" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
+    <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
     <button class="overflow-menu-row" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
     <button class="overflow-menu-row" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album</button>
+  </div>
+
+  <!-- GS10 (docs/30_GROOVES_AND_SHELF.md point 1): "Keep for…" -- the
+       five fixed time-of-day slots (sundown/spin-wording.js's own
+       KEPT_FOR_PHASES order) plus "Not kept" to clear it, same
+       menuitemcheckbox/aria-checked shape as #gfBackCoverMenu's own
+       "Use Miziki default" row -- src/gatefold/view.js paints which one
+       is checked each time this opens. -->
+  <div class="overflow-scrim" id="gfKeepForMenuScrim"></div>
+  <div class="overflow-menu" id="gfKeepForMenu" role="menu">
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForFirstLightBtn" role="menuitemcheckbox" aria-checked="false">First light</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForMorningBtn" role="menuitemcheckbox" aria-checked="false">Morning</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForGoldenBtn" role="menuitemcheckbox" aria-checked="false">Golden hour</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForSundownBtn" role="menuitemcheckbox" aria-checked="false">Sundown</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForNightBtn" role="menuitemcheckbox" aria-checked="false">Night</button>
+    <button class="overflow-menu-row overflow-menu-row-check" id="gfKeepForNoneBtn" role="menuitemcheckbox" aria-checked="true">Not kept</button>
   </div>
 
   <!-- GF7 (docs/29_GATEFOLD.md): the liner-notes editing sheet (frame

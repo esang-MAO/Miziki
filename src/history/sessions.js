@@ -111,6 +111,12 @@ export async function persistAlbumLinerNote(keys){
   await meta.put('albumLinerNote', S.albumLinerNote);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumLinerNote', k));
 }
+// GS10 (docs/30_GROOVES_AND_SHELF.md): the album-keyed "Keep for…" claim —
+// same per-key persist/stamp shape as persistAlbumFormat above.
+export async function persistAlbumKeptFor(keys){
+  await meta.put('albumKeptFor', S.albumKeptFor);
+  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumKeptFor', k));
+}
 // GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page count --
 // device-only, same posture as phasePlayCountsByDay above (no per-key
 // stamp needed since it never reaches the backup doc at all).
@@ -409,6 +415,9 @@ export async function restoreSessions(){
   // GF7 (docs/29_GATEFOLD.md)
   const albumLinerNotePref = await meta.get('albumLinerNote');
   if(albumLinerNotePref) S.albumLinerNote = albumLinerNotePref;
+  // GS10 (docs/30_GROOVES_AND_SHELF.md)
+  const albumKeptForPref = await meta.get('albumKeptFor');
+  if(albumKeptForPref) S.albumKeptFor = albumKeptForPref;
   // GF10 (docs/29_GATEFOLD.md)
   const albumBookletPagesPref = await meta.get('albumBookletPages');
   if(albumBookletPagesPref) S.albumBookletPages = albumBookletPagesPref;

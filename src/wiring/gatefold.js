@@ -12,6 +12,7 @@ import {
   gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
   gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
+  gatefoldMoreMenuKeepFor, gatefoldKeepForPick,
   gatefoldPlayRecord,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
@@ -119,6 +120,18 @@ export function wireGatefold(){
   $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
   $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
+  $('#gfMoreKeepForBtn').addEventListener('click', gatefoldMoreMenuKeepFor);
   $('#gfMoreTrackOrderBtn').addEventListener('click', gatefoldMoreMenuTrackOrder);
   $('#gfMoreRemoveAlbumBtn').addEventListener('click', gatefoldMoreMenuRemoveAlbum);
+
+  // GS10 (docs/30_GROOVES_AND_SHELF.md point 1): the "Keep for…" submenu's
+  // own five slots + "Not kept" -- same static-menu wiring shape as the
+  // more-menu rows just above.
+  $('#gfKeepForMenuScrim').addEventListener('click', () => closeLayer('gf-keep-for-menu'));
+  $('#gfKeepForFirstLightBtn').addEventListener('click', () => gatefoldKeepForPick('firstLight'));
+  $('#gfKeepForMorningBtn').addEventListener('click', () => gatefoldKeepForPick('morning'));
+  $('#gfKeepForGoldenBtn').addEventListener('click', () => gatefoldKeepForPick('golden'));
+  $('#gfKeepForSundownBtn').addEventListener('click', () => gatefoldKeepForPick('sundown'));
+  $('#gfKeepForNightBtn').addEventListener('click', () => gatefoldKeepForPick('night'));
+  $('#gfKeepForNoneBtn').addEventListener('click', () => gatefoldKeepForPick(null));
 }

@@ -38,6 +38,8 @@ import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { currentDayPosition } from '../sundown/solar.js';
 import { isAfterSunset } from '../sundown/day.js';
+import { KEPT_FOR_PHASES } from '../sundown/spin-wording.js';
+import { persistAlbumKeptFor } from '../history/sessions.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
@@ -807,6 +809,43 @@ export function gatefoldMoreMenuPin(){
   closeLayer('gf-more-menu');
   const btn = document.querySelector('.gf-pin-btn');
   if(btn) btn.click();
+}
+// GS10 (docs/30_GROOVES_AND_SHELF.md point 1): "Keep for…" opens a second,
+// static overflow menu (miziki.html's #gfKeepForMenu) off the same button
+// the first menu's row closes -- same two-level pattern as the back-cover
+// menu's own Choose/Photograph rows opening a hidden file input, just a
+// second menu instead of a file picker. Paints which of the five slots
+// (or "Not kept") is currently checked each time it opens, since the
+// static rows have no other way to reflect S.albumKeptFor.
+export function gatefoldMoreMenuKeepFor(){
+  closeLayer('gf-more-menu');
+  if(!GF) return;
+  const kept = S.albumKeptFor[GF.item.album] || null;
+  KEPT_FOR_PHASES.forEach(p => $('#gfKeepFor' + keptForBtnSuffix(p) + 'Btn').setAttribute('aria-checked', String(p === kept)));
+  $('#gfKeepForNoneBtn').setAttribute('aria-checked', String(!kept));
+  const btn = document.querySelector('.gf-more-btn'), menu = $('#gfKeepForMenu');
+  if(btn){
+    const r = btn.getBoundingClientRect();
+    menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+    menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  }
+  $('#gfKeepForMenuScrim').classList.add('open');
+  menu.classList.add('open');
+  openLayer('gf-keep-for-menu', closeGatefoldKeepForMenu, { container: [menu, $('#gfKeepForMenuScrim')] });
+}
+export function closeGatefoldKeepForMenu(){
+  $('#gfKeepForMenuScrim').classList.remove('open');
+  $('#gfKeepForMenu').classList.remove('open');
+}
+// 'firstLight' -> 'FirstLight', matching the static button ids above
+function keptForBtnSuffix(phase){ return phase[0].toUpperCase() + phase.slice(1); }
+export function gatefoldKeepForPick(phase){
+  closeLayer('gf-keep-for-menu');
+  if(!GF) return;
+  const album = GF.item.album;
+  if(phase) S.albumKeptFor[album] = phase;
+  else delete S.albumKeptFor[album];
+  persistAlbumKeptFor(album);
 }
 // GF12 point 2: "Track order" turns the tracklist into the reorder mode
 // buildGatefoldTracklist()'s own opts.reorder builds -- seeding

@@ -27,6 +27,18 @@ export const PHASE_CAPS = {
   afternoon: 'AFTERNOON', golden: 'GOLDEN HOUR', twilight: 'DUSK',
 };
 
+// GS10 (docs/30_GROOVES_AND_SHELF.md): "Keep for…" is a manual tag the
+// person picks for a record ("I want this one for sundown listening"),
+// never a measured day-arc phase -- a smaller, separate five-slot
+// vocabulary (not SPIN_PHASE_WORDING's seven solar.js phases above), keyed
+// by these five fixed strings in S.albumKeptFor. KEPT_FOR_PHASES is the
+// fixed display order the gatefold's own picker and every reader of the
+// kept list (Home's once-a-day refresh, the Listening screen) use.
+export const KEPT_FOR_PHASES = ['firstLight', 'morning', 'golden', 'sundown', 'night'];
+export const KEPT_FOR_LABEL = {
+  firstLight: 'First light', morning: 'Morning', golden: 'Golden hour', sundown: 'Sundown', night: 'Night',
+};
+
 /** The bare wording for a phase ("at dusk"), or null for an unknown/missing
     phase (an older client's row that never sent one, or a stale/garbled
     value) -- callers render nothing rather than "undefined". */
