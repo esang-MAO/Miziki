@@ -432,7 +432,7 @@
      header itself (.store-header) is now the one place the avatar/name
      is edited in every state, so there's no separate editor section to
      order here any more. */
-  .store-awning{grid-column:1/-1;order:1}
+  .store-sign-wrap{grid-column:1/-1;order:1}
   .store-header{grid-column:1/-1;order:2}
   .store-bio{grid-column:1/-1;order:3}
   .store-vis-row{grid-column:1/-1;order:4}

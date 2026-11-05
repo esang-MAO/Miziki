@@ -1,6 +1,6 @@
 import { $, el } from '../../util/dom.js';
 import { S } from '../../state.js';
-import { storeAwning, storeRequestsCard } from '../../profile/storefront.js';
+import { storeSign, storeRequestsCard } from '../../profile/storefront.js';
 import { feedEventText } from './feed-text.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 // FS9 (docs/25_FROM_SCRATCH.md point 1): "a small disc with the record's
@@ -28,7 +28,7 @@ import { showRoute } from '../../shell/routes.js';
 // and a way in.
 function renderHomeSignInCard(host, authState){
   host.innerHTML = '';
-  host.appendChild(storeAwning());
+  host.appendChild(storeSign());
   const card = el('div','store-open-card');
   card.appendChild(el('h3', null, 'See what friends are spinning'));
   card.appendChild(el('p', null, authState === 'needsProfile'

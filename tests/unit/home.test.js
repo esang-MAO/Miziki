@@ -15,7 +15,7 @@ mock.module(new URL('../../src/social/screens/friend-store.js', import.meta.url)
 });
 mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
   namedExports: {
-    storeAwning(){ return el('div', 'store-awning', 'awning'); },
+    storeSign(){ return el('div', 'store-sign', 'sign'); },
     storeRequestsCard(){ return el('div', 'requests-card', 'requests'); },
   },
 });
@@ -187,7 +187,7 @@ test('renderHome: signed out shows its own sign-in card, never builds the shell,
   resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
   await renderHome();
   assert.equal(homeBody.children.length, 2);
-  assert.equal(homeBody.children[0].className, 'store-awning');
+  assert.equal(homeBody.children[0].className, 'store-sign');
   assert.equal(homeBody.children[1].className, 'store-open-card');
   // Home's own card, not a reuse of Profile's -- no avatar/name editor and
   // no crate grid of this device's own records, just what the feed is for.

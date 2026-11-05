@@ -145,7 +145,7 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
 // storage/meta.js import would otherwise reach player/background.js ->
 // player/transport.js -> library/view.js's own seven-circular-pair web
 // -> shell/header.js -> shell/routes.js -> social/screens/home.js ->
-// social/screens/friend-store.js, whose own real storeAwning import
+// social/screens/friend-store.js, whose own real storeSign import
 // would then fail against this file's already-narrow storefront.js mock.
 // CEREMONY §6: screens.js's Slipmat row; its real module reaches
 // storage/meta.js's wide chain, so it stops at the door like the rest.

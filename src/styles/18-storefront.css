@@ -10,26 +10,33 @@
 .store-loading,.store-error{font-size:var(--fs-caption);color:var(--muted);padding:var(--sp-4) 0}
 .store-error button{margin-top:10px}
 
-/* RF11 (docs/12_REFINE.md, point 3): "the awning shrinks to a 12px trim" —
-   was a 22px scalloped band; now a slim accent strip at the top of the
-   crate view. */
-.store-awning-wrap{margin:0 0 var(--sp-4)}
-.store-awning{display:flex;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
-.store-awning > div{flex:1;height:12px;border-radius:0 0 12px 12px}
-/* TY4 (docs/22_TYPE.md): "Crate of [name]," set in the same bones as the
-   wordmark, stock-card paper under the striped trim above it. */
-.store-awning-card{background:var(--stock-card);color:#26202C;padding:var(--sp-2) var(--sp-3) 11px;
-  text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.3)}
-/* FS7 (docs/25_FROM_SCRATCH.md point 2): "'Crate of' Archivo 12/600 caps
-   over the username in Archivo 700 32, caps, +.08em" -- both voices move
-   from Antonio to Archivo; +.08em is --track-caps's own value, so this
-   uses the token rather than repeating the literal. */
-.store-awning-kicker{font-family:var(--body);font-size:12px;font-weight:600;letter-spacing:var(--track-caps);
-  text-transform:uppercase;color:var(--warm-grey)}
-.store-awning-name{font-family:var(--body);font-weight:700;font-size:32px;letter-spacing:var(--track-caps);
-  line-height:1.05;text-transform:uppercase;white-space:nowrap;overflow:hidden}
-.store-awning-name--md{font-weight:600;font-size:24px;letter-spacing:.06em}
-.store-awning-name--sm{font-weight:500;font-size:20px;letter-spacing:.04em}
+/* GS7 (docs/30_GROOVES_AND_SHELF.md): the awning (striped trim + "Crate
+   of [name]" card) is gone -- replaced by a paper sign taped above the
+   crate, docs/design/grooves-shelf/HomeShelf.dc.html. Same stock-card
+   paper/tape language as .crate-divider-letter's kraft card
+   (10-crate.css), but centered and slightly tilted like a sign rather
+   than a bin label, with two tape strips (one per top corner) instead of
+   one centered strip. */
+.store-sign-wrap{display:flex;justify-content:center;margin:0 0 var(--sp-5)}
+.store-sign{position:relative;transform:rotate(-1.2deg);background:var(--stock-card);color:#26202C;
+  padding:14px 28px 12px;box-shadow:0 2px 4px rgba(0,0,0,.4),0 10px 22px rgba(0,0,0,.35);
+  display:flex;align-items:baseline;gap:4px;max-width:100%;box-sizing:border-box}
+.store-sign-tape{position:absolute;top:-9px;width:54px;height:18px;background:rgba(239,233,223,.82)}
+.store-sign-tape--1{left:18px;transform:rotate(-6deg)}
+.store-sign-tape--2{right:16px;top:-8px;width:50px;transform:rotate(5deg)}
+/* GS7 point 1: "~56px, the one hand-tuned size on this screen" -- sized
+   by eye against the sign's own padding/tilt, the same posture
+   .crate-divider-label-hand's ~58px already takes for the bin-label card;
+   not tied to a token since Caveat's own cap-height runs small for its
+   point size. A long handle steps down by font-size (the --md/--sm
+   modifiers) same as the old awning did; min-width:0 plus ellipsis is
+   just the backstop past the 30-char username cap, so the sign always
+   stays one line instead of wrapping into the suffix's column. */
+.store-sign-name{font-family:var(--hand);font-weight:700;font-size:56px;line-height:.9;
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-sign-name--md{font-size:40px}
+.store-sign-name--sm{font-size:30px}
+.store-sign-suffix{font-family:var(--hand);font-weight:500;font-size:30px;line-height:1;color:#4A4250;flex:none}
 
 .store-header{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap}
 /* FS7 (docs/25_FROM_SCRATCH.md point 3): "Edit as an outlined pill" --
