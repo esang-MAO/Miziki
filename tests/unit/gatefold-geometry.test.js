@@ -13,24 +13,18 @@ test('gatefoldGeometry: 12" matches the numbers every panel/pan/disc literal alr
   });
 });
 
-// GF3 point 1's exact panel sizes, with pan/pocket/disc scaled
-// proportionally off the same 12" ratios.
-test('gatefoldGeometry: 10" scales proportionally off the 350px panel\'s own ratios', () => {
-  assert.deepEqual(gatefoldGeometry({ size: '10"', speed: 45 }), {
-    referenceWidth: 390, referenceHeight: 740,
-    panelSize: 292, panDistance: 146,
-    pocketSize: 110, discDiameter: 130,
-  });
+// Ken, 2026-11-05 (GF13 fix 3): the gatefold's own display stays one
+// uniform size for every record regardless of format -- GF3's per-format
+// scaling (10"/7" smaller than 12") is gone; every format now resolves to
+// the same 12" numbers.
+test('gatefoldGeometry: 10" is uniform with the 12" numbers, not scaled down', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '10"', speed: 45 }), gatefoldGeometry({ size: '12"', speed: 33.333 }));
 });
 
-test('gatefoldGeometry: 7" scales proportionally off the 350px panel\'s own ratios', () => {
-  assert.deepEqual(gatefoldGeometry({ size: '7"', speed: 45 }), {
-    referenceWidth: 390, referenceHeight: 740,
-    panelSize: 204, panDistance: 102,
-    pocketSize: 77, discDiameter: 91,
-  });
+test('gatefoldGeometry: 7" is uniform with the 12" numbers, not scaled down', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '7"', speed: 45 }), gatefoldGeometry({ size: '12"', speed: 33.333 }));
 });
 
-test('gatefoldGeometry: no format given falls back to the 12" numbers', () => {
+test('gatefoldGeometry: no format given falls back to the same uniform numbers', () => {
   assert.deepEqual(gatefoldGeometry(), gatefoldGeometry({ size: '12"', speed: 33.333 }));
 });
