@@ -245,7 +245,12 @@ function renderSideMap(t, pos){
   const ring = $('#needleRing');
   if(ring){
     const r = needleRadiusPct(S.sideBands, activeIdx >= 0 ? activeIdx : 0, frac);
-    ring.style.inset = (50 - r) + '%';
+    // r is a percent of the record's own radius (0..100); #needleRing
+    // spans the whole platter box (its diameter is the box's own 100%),
+    // so a ring at radius r% needs an inset of (100-r)/2% on every side,
+    // not 50-r -- inset shrinks the box in from each edge, and a ring's
+    // own diameter is r% of the box's full diameter either way.
+    ring.style.inset = ((100 - r) / 2) + '%';
     ring.classList.toggle('on', !!t);
   }
 }
