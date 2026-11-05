@@ -153,7 +153,7 @@ export function openSealedFront(item){
   $('#sealedFrontCoverTitle').textContent = item.album;
   $('#sealedFrontArtist').textContent = item.artist + (item.year ? (' · ' + item.year) : '');
   $('#sealedFrontFormat').textContent = formatLine(item);
-  $('#sealedFrontTurnBtn').textContent = 'Turn it over first';
+  $('#sealedFrontTurnBtn').textContent = 'Flip cover';
   paintCover(item, false).catch(() => {});
 
   const hotspot = $('#sealedFrontHotspot');
@@ -168,7 +168,7 @@ export function openSealedFront(item){
 export function toggleSealedFrontTurnedOver(){
   if(!FRONT) return;
   FRONT.turnedOver = !FRONT.turnedOver;
-  $('#sealedFrontTurnBtn').textContent = FRONT.turnedOver ? 'Turn it back over' : 'Turn it over first';
+  $('#sealedFrontTurnBtn').textContent = 'Flip cover';
   paintCover(FRONT.item, FRONT.turnedOver).catch(() => {});
 }
 

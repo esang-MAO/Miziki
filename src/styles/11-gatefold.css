@@ -59,7 +59,11 @@
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
   overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
 .gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
-.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px;outline:none}
+/* GF13: left padding cleared to 26px (was 14px) so the title/track rows
+   never render under .gf-left-cue's own 20px-wide tab on this panel's
+   left edge -- Ken's "bunched up" tracklist text was this cue tab sitting
+   on top of the first few characters of every line. */
+.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px var(--sp-3) 26px;outline:none}
 /* TY3: an eyebrow over the album title -- Archivo caps, --track-caps. */
 .gf-tl-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);margin-bottom:2px}
@@ -98,6 +102,20 @@
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
   transform-style:preserve-3d;transform-origin:0 50%;transform:rotateY(0deg);
   box-shadow:var(--sh-2)}
+/* GF13 (docs/29_GATEFOLD.md): the swung-open .gf-cover (now showing the
+   liner notes on its back face) sits immediately beside .gf-right -- same
+   base `left`, its own width to the left of it once rotated -- so on a
+   viewport wider than the panel itself, the inactive side's edge always
+   peeks into view at rest (Ken's "text bleeding in from the left" bug).
+   Hiding the side that isn't current removes the peek outright; the
+   gf-panel-dragging class (set only while a live swipe is panning the
+   camera) lifts the hide so the sliding peek-through during the gesture
+   itself still reads as one continuous spread, same as before. Scoped to
+   gf-chrome-in (the settled/open state) so the opening swing animation,
+   which needs both faces visible throughout, is untouched; wide mode
+   shows both panels side by side on purpose, so it's excluded too. */
+.gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-right .gf-cover{visibility:hidden}
+.gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-right{visibility:hidden}
 .gf-face{position:absolute;inset:0;border-radius:4px;overflow:hidden;
   backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .gf-face-front{background:#1C1226}
@@ -194,7 +212,9 @@
 .gf-back-cover.wear-light::after{box-shadow:inset 0 0 0 1px rgba(214,196,160,.12),inset 0 0 40px rgba(38,32,44,.05)}
 .gf-back-cover.wear-worn::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.18),inset 0 0 60px rgba(38,32,44,.09)}
 .gf-back-cover.wear-loved::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.26),inset 0 0 80px rgba(38,32,44,.14)}
-.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px;outline:none}
+/* GF13: right padding cleared to 26px (was 18px, same gf-right-cue
+   overlap as .gf-tracklist's left edge above). */
+.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px 26px 18px 18px;outline:none}
 .gf-left h3, .picture-sleeve-body h3{font-family:var(--display);font-size:var(--fs-title);margin:0 0 var(--sp-2)}
 /* GF1 point 5: liner-note prose and credit rows move off the 12px caption
    floor to --fs-body (14px). */
@@ -379,7 +399,7 @@
    button under the left info column, replacing the retired desktop
    detail panel's own Play affordance -- hidden entirely outside gf-wide,
    where a phone/short viewport's own track rows already cover playing. */
-.gf-play-record-btn{display:none}
+.gatefold .gf-play-record-btn{display:none}
 .gatefold.gf-wide .gf-play-record-btn{display:block;position:absolute;left:20px;top:620px;width:380px;
   min-height:44px;text-align:center;z-index:3}
 
