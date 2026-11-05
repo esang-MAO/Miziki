@@ -60,6 +60,8 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   | Data | Class | Merge rule |
   |---|---|---|
   | Per-device play/session/metal/eligibility counters, `phasePlayCounts`/`albumPhaseCounts` | backed up | sum across devices (nested sum for the per-album map) |
+  | `phasePlayCountsByDay`, `albumPlayCountsByDay` (GS1, docs/30_GROOVES_AND_SHELF.md) | backed up | sum per day bucket across devices; the sum lands in `S.mergedStats`, never folded back into these per-device fields themselves |
+  | `S.seasonSummaries` (GS1) — day buckets older than the keep window, folded by season before they're pruned | backed up | sum per season across devices, same `S.mergedStats`-only rule |
   | `trackLastPlayed`, `albumLastPlayed` | backed up | max |
   | `albumFirstPlayed` | backed up | min |
   | `rareUnlocked`, `achievements`, `collection` | backed up | union; earliest earned date wins on overlap |
@@ -74,7 +76,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   | `tracks` (audio, embedded art), crate-tier/thumbnail blobs, `t.details.replayGain`/`.loudness`/`.hookStart`/`.hookEnd` | excluded | re-derived locally from whatever's on the device |
   | Booklet pages (GF10, docs/29_GATEFOLD.md) — the album-keyed image blobs in the artwork store | excluded | device-only like audio/embedded art above; only the page *count* (`S.albumBookletPages`) persists locally, purely so the gatefold panel can show it without an IndexedDB read |
   | social meta (ratings/notes/pins/follows) | excluded | already syncs through the social layer |
-  | `deviceId`, `theme`, `S.deviceVolume`, the custom-slipmat flags/image, the sun-times cache, the home-feed cache, `S.rhythmPushedAt`, `S.phasePlayCountsByDay`, `S.albumPlayCountsByDay` | device-only | stripped from the uploaded copy (or never read from it) — each follows the device, not the account, for a stated reason (appearance/volume/slipmat are device preferences; the caches and rhythm-push bookkeeping are pure local plumbing) |
+  | `deviceId`, `theme`, `S.deviceVolume`, the custom-slipmat flags/image, the sun-times cache, the home-feed cache, `S.rhythmPushedAt` | device-only | stripped from the uploaded copy (or never read from it) — each follows the device, not the account, for a stated reason (appearance/volume/slipmat are device preferences; the caches and rhythm-push bookkeeping are pure local plumbing) |
 
   **Rule: every new saved key goes into this table** (backed up, device-only, or excluded) when it's added. A key that rides inside `prefs`/an existing per-device counter with no special handling needs no new row — only a key that gets its *own* carve-out (like `theme`) does.
 

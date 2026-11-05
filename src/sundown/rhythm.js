@@ -55,7 +55,10 @@ export function computeRhythmShares(counts){
 // well past the window so a write never prunes a bucket the window
 // itself still needs to read.
 export const RHYTHM_WINDOW_DAYS = 90;
-export const RHYTHM_PRUNE_KEEP_DAYS = 120;
+// GS1 (docs/30_GROOVES_AND_SHELF.md): 120 → 400, so a season's day buckets
+// stay around long enough to browse back through roughly a year before
+// foldIntoSeasons() below has folded them into a summary instead.
+export const RHYTHM_PRUNE_KEEP_DAYS = 400;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // FS8 (docs/25_FROM_SCRATCH.md): the Season share card's own headline --
@@ -125,6 +128,56 @@ export function windowedCounts(byDay, now, windowDays){
     if(keyMs < cutoff) return;
     const bucket = map[key] || {};
     Object.keys(bucket).forEach(k => { out[k] = (out[k] || 0) + bucket[k]; });
+  });
+  return out;
+}
+
+// GS1 (docs/30_GROOVES_AND_SHELF.md): the meteorological season `ts` falls
+// in, keyed by year — the same four names/month boundaries seasonLabelFor()
+// above already uses (SEASON_NAMES), just read for a single instant rather
+// than a window. Winter is keyed by the year of its *December*, so Jan/Feb
+// of the following calendar year still fold into the same '2026-winter' a
+// December 2026 day would.
+export function seasonKeyFor(ts){
+  const d = ts instanceof Date ? ts : new Date(ts);
+  const month = d.getMonth();
+  let year = d.getFullYear();
+  let name;
+  if(month === 11){ name = 'winter'; }
+  else if(month <= 1){ name = 'winter'; year -= 1; }
+  else if(month <= 4){ name = 'spring'; }
+  else if(month <= 7){ name = 'summer'; }
+  else { name = 'autumn'; }
+  return year + '-' + name;
+}
+
+// GS1: before pruneDayBuckets() below drops a day bucket, fold it into a
+// running per-season summary instead of losing it outright, so a season
+// stays browsable (Listening ‹ ›) for good once its own day buckets have
+// aged past RHYTHM_PRUNE_KEEP_DAYS. Pure — returns a new `summaries` object,
+// shaped { [seasonKey]: { phases: {...}, albums: {...} } }. `field` picks
+// which of those two sub-maps this call folds into ('phases' for
+// phasePlayCountsByDay, 'albums' for albumPlayCountsByDay) — the two day-
+// bucketed maps are folded in separate calls (history/played.js) since each
+// is keyed by a different inner shape, but both land in the one summary
+// object per season.
+export function foldIntoSeasons(byDay, now, keepDays, summaries, field){
+  const map = byDay || {};
+  const cutoff = (now instanceof Date ? now.getTime() : now) - keepDays * MS_PER_DAY;
+  const out = {};
+  Object.keys(summaries || {}).forEach(season => {
+    const src = summaries[season] || {};
+    out[season] = { phases: Object.assign({}, src.phases), albums: Object.assign({}, src.albums) };
+  });
+  Object.keys(map).forEach(key => {
+    const parts = key.split('-');
+    const keyMs = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    if(keyMs >= cutoff) return; // pruneDayBuckets() is about to keep this one — nothing to fold yet
+    const season = seasonKeyFor(keyMs);
+    const bucket = map[key] || {};
+    const entry = out[season] || (out[season] = { phases: {}, albums: {} });
+    const target = entry[field] || (entry[field] = {});
+    Object.keys(bucket).forEach(k => { target[k] = (target[k] || 0) + (bucket[k] || 0); });
   });
   return out;
 }
