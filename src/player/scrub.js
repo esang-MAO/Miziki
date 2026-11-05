@@ -2,10 +2,12 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { drawTime } from './clock.js';
-import { pause, play, seek } from './transport.js';
+import { pause, play, seek, load } from './transport.js';
 import { queueSave } from '../storage/meta.js';
 import { setDeadWaxMagnified } from '../record-art/etchings.js';
-import { isShrinkWrapTarget } from '../shell/start-sequence.js';
+import { isShrinkWrapTarget, runStartSequence } from '../shell/start-sequence.js';
+import { isRimRadiusPct, radiusPctFromPoint, dropNeedleTarget } from '../record-art/grooves.js';
+import { hapticTick } from '../ui/haptic.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
 // alongside the sliders (not its own top-level S field) since it's saved
@@ -37,6 +39,35 @@ export const SCRUB_SEC_PER_ROTATION = 30;
 export const SCRATCH_SEC_PER_ROTATION = 1.8;
 const SCRUB_CLAIM_THRESHOLD_DEG = 8;
 let scrubGesture = null;
+
+/* ================= GS4: drop the needle =================
+   A touch starting on the outer rim (isRimRadiusPct(), record-art/
+   grooves.js) holds the record instead of claiming the normal rotation-
+   based scrub above -- the two gestures are mutually exclusive from the
+   very first pointerdown (whichever region the touch starts in), unlike
+   spin-to-scrub's own claimed/unclaimed distinction, which only tells
+   rotation apart from an ordinary tap/drag. Lives in its own gesture
+   object (needleGesture) rather than reusing scrubGesture's shape, since
+   it tracks a radius + snapped track index, not an angle. */
+let needleGesture = null;
+
+// GS4 point 2: "a Caveat tag ... follows the needle" -- side-relative
+// numbering, the same "Nth on this side, not Nth on the album" shape
+// player/clock.js's own renderSideMap() already uses for the side map's
+// current-track label, so the two readouts never disagree.
+function needleDropTagText(bandIdx){
+  const idx = S.sideTrackIdx && S.sideTrackIdx[bandIdx];
+  const t = idx != null ? S.tracks[idx] : null;
+  if(!t) return '';
+  return (bandIdx + 1) + ' · ' + (t.tags ? t.tags.title : t.name);
+}
+
+function endNeedleDrop(){
+  const disc = $('#disc'); if(disc) disc.classList.remove('disc-drop-active');
+  const tag = $('#needleDropTag'); if(tag) tag.classList.remove('on');
+  const ring = $('#needleRing'); if(ring) ring.classList.remove('on');
+  S.needleDrop = false;
+}
 
 // SURFACE_NOISE §5: long-press the disc to bring up a loupe over the
 // dead-wax etching. A plain timer, not part of scrubGesture's own state --
@@ -231,6 +262,21 @@ export function wireSpinToScrub(){
     // first and before any await
     if(S.ctx) S.ctx.resume();
     const rect = disc.getBoundingClientRect();
+    // GS4 point 1: a touch starting on the outer rim holds the record
+    // instead of claiming the normal rotation scrub below -- decided
+    // right here, at pointerdown, from where the touch itself started
+    // (never reassigned mid-gesture the way scrub/scratch's own claim
+    // is), so sliding back onto the grooves while holding still drops
+    // the needle rather than switching to a scratch.
+    if(isRimRadiusPct(radiusPctFromPoint(e.clientX, e.clientY, rect)) && S.sideBands && S.sideBands.length){
+      clearLongPressTimer();
+      if(S.playing) pause();   // "holds the record ... playback pauses"
+      S.needleDrop = true;
+      disc.classList.add('disc-drop-active');
+      needleGesture = {pointerId:e.pointerId, lastIndex:null, lastSnapped:false};
+      try{ disc.setPointerCapture(e.pointerId); }catch(_err){}
+      return;
+    }
     const ang = pointerAngle(e.clientX, e.clientY, rect);
     scrubGesture = {pointerId:e.pointerId, startAngle:ang, lastAngle:ang, claimed:false,
       wasPlaying:S.playing, hapticAccum:0, scratching:false};
@@ -238,6 +284,35 @@ export function wireSpinToScrub(){
     longPressTimer = setTimeout(() => { longPressTimer = null; setDeadWaxMagnified(true); }, DEAD_WAX_LONG_PRESS_MS);
   });
   window.addEventListener('pointermove', e => {
+    if(needleGesture && e.pointerId === needleGesture.pointerId){
+      const rect = disc.getBoundingClientRect();
+      const radiusPct = radiusPctFromPoint(e.clientX, e.clientY, rect);
+      const target = dropNeedleTarget(S.sideBands, radiusPct);
+      if(target){
+        needleGesture.lastIndex = target.index;
+        needleGesture.lastSnapped = target.snapped;
+        // point 4: a haptic tick on each snap -- only on the transition
+        // into a new snapped track, never once per move sample (a finger
+        // held still inside the threshold would otherwise buzz forever).
+        if(target.snapped && target.index !== needleGesture.hapticIndex){
+          needleGesture.hapticIndex = target.index;
+          hapticTick();
+        } else if(!target.snapped){
+          needleGesture.hapticIndex = null;
+        }
+        const ring = $('#needleRing');
+        if(ring){ ring.style.inset = ((100 - target.radiusPct) / 2) + '%'; ring.classList.add('on'); }
+        const tag = $('#needleDropTag');
+        if(tag){
+          tag.style.left = (e.clientX - rect.left) + 'px';
+          tag.style.top = (e.clientY - rect.top) + 'px';
+          tag.textContent = needleDropTagText(target.index);
+          tag.classList.add('on');
+        }
+      }
+      e.preventDefault();
+      return;
+    }
     if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
     const t = current(); if(!t){ scrubGesture = null; return; }
     const rect = disc.getBoundingClientRect();
@@ -281,6 +356,23 @@ export function wireSpinToScrub(){
     }
   }, {passive:false});
   const release = e => {
+    if(needleGesture && e.pointerId === needleGesture.pointerId){
+      const { lastIndex } = needleGesture;
+      needleGesture = null;
+      endNeedleDrop();
+      // point 2: "releasing drops the needle there and plays" -- always
+      // from that track's own beginning, the same way a real needle drop
+      // lands at the start of whichever groove it's over, never mid-song.
+      const trackIdx = lastIndex != null && S.sideTrackIdx ? S.sideTrackIdx[lastIndex] : null;
+      if(trackIdx != null){
+        const qpos = S.queue.indexOf(trackIdx);
+        if(qpos >= 0) S.qpos = qpos;
+        load(trackIdx);
+        if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
+        else play();
+      }
+      return;
+    }
     if(!scrubGesture || e.pointerId !== scrubGesture.pointerId) return;
     const {claimed, wasPlaying, scratching} = scrubGesture;
     scrubGesture = null;

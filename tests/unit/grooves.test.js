@@ -7,9 +7,10 @@ import assert from 'node:assert/strict';
 import {
   GROOVE_INNER_PCT, GROOVE_OUTER_PCT,
   GROOVE_PITCH_MIN_PCT, GROOVE_PITCH_MAX_PCT, GROOVE_PITCH_MIDDLE_PCT,
-  LOUDNESS_FLOOR_LUFS, LOUDNESS_CEIL_LUFS,
+  LOUDNESS_FLOOR_LUFS, LOUDNESS_CEIL_LUFS, RIM_INNER_PCT, DROP_NEEDLE_SNAP_PCT,
   groovePitchForLoudness, bandRadiiFromDurations, grooveBandsForSide,
   needleRadiusPct, sideMapSegments, grooveBackgroundImage,
+  isRimRadiusPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
 } from '../../src/record-art/grooves.js';
 
 // -- groovePitchForLoudness ---------------------------------------------
@@ -71,14 +72,20 @@ test('bandRadiiFromDurations: default bounds are the groove area\'s own constant
   assert.equal(bands[1].endPct, GROOVE_INNER_PCT);
 });
 
-test('grooveBandsForSide: pairs each band with its own track\'s measured loudness', () => {
+test('grooveBandsForSide: pairs each band with its own track\'s measured loudness (audio/loudness.js\'s own {lufs, measured, ...} shape, not a bare number)', () => {
   const tracks = [
-    { duration: 100, details: { loudness: LOUDNESS_CEIL_LUFS } },
+    { duration: 100, details: { loudness: { lufs: LOUDNESS_CEIL_LUFS, measured: true } } },
     { duration: 100, details: {} },
   ];
   const bands = grooveBandsForSide(tracks, 0, 100);
   assert.ok(Math.abs(bands[0].pitchPct - GROOVE_PITCH_MIN_PCT) < 1e-9);
   assert.equal(bands[1].pitchPct, GROOVE_PITCH_MIDDLE_PCT);
+});
+
+test('grooveBandsForSide: a loudness object whose own .lufs isn\'t a real number still takes the middle pitch', () => {
+  const tracks = [{ duration: 100, details: { loudness: { lufs: null, measured: false } } }];
+  const bands = grooveBandsForSide(tracks, 0, 100);
+  assert.equal(bands[0].pitchPct, GROOVE_PITCH_MIDDLE_PCT);
 });
 
 test('grooveBandsForSide: empty/missing tracks never throws', () => {
@@ -151,4 +158,101 @@ test('grooveBackgroundImage: a real band list produces a radial-gradient string 
   assert.ok(pcts.length > 4);
   for(const p of pcts) assert.ok(p >= 0 && p <= 100);
   for(let i = 1; i < pcts.length; i++) assert.ok(pcts[i] >= pcts[i-1] - 1e-6);
+});
+
+// -- GS4: drop the needle --------------------------------------------------
+
+// -- isRimRadiusPct ---------------------------------------------------------
+
+test('isRimRadiusPct: the outermost ~8% of the radius counts as the rim', () => {
+  assert.equal(isRimRadiusPct(RIM_INNER_PCT), true);
+  assert.equal(isRimRadiusPct(100), true);
+  assert.equal(isRimRadiusPct(RIM_INNER_PCT - 0.01), false);
+  assert.equal(isRimRadiusPct(GROOVE_OUTER_PCT), false);
+});
+
+// -- radiusPctFromPoint ------------------------------------------------------
+
+test('radiusPctFromPoint: the center is 0, the edge is 100', () => {
+  const rect = { left: 0, top: 0, width: 200, height: 200 };
+  assert.equal(radiusPctFromPoint(100, 100, rect), 0);
+  assert.equal(radiusPctFromPoint(200, 100, rect), 100); // rightmost edge
+  assert.equal(radiusPctFromPoint(100, 0, rect), 100);   // topmost edge
+});
+
+test('radiusPctFromPoint: works off-origin, and diagonally', () => {
+  const rect = { left: 50, top: 50, width: 100, height: 100 }; // center (100,100), radius 50
+  assert.ok(Math.abs(radiusPctFromPoint(100 + 50/Math.SQRT2, 100 + 50/Math.SQRT2, rect) - 100) < 1e-9);
+});
+
+test('radiusPctFromPoint: a zero-size rect never divides by zero', () => {
+  assert.equal(radiusPctFromPoint(10, 10, { left: 0, top: 0, width: 0, height: 0 }), 0);
+});
+
+// -- bandIndexForRadius ------------------------------------------------------
+
+test('bandIndexForRadius: resolves a radius to the band whose range contains it', () => {
+  const bands = bandRadiiFromDurations([100, 100], 0, 100); // [{100,50},{50,0}]
+  assert.equal(bandIndexForRadius(bands, 100), 0);
+  assert.equal(bandIndexForRadius(bands, 75), 0);
+  assert.equal(bandIndexForRadius(bands, 50), 0); // shared boundary -- the outer band owns it (checked first)
+  assert.equal(bandIndexForRadius(bands, 25), 1);
+  assert.equal(bandIndexForRadius(bands, 0), 1);
+});
+
+test('bandIndexForRadius: out-of-range radii clamp to the nearest real band', () => {
+  const bands = bandRadiiFromDurations([100, 100], 0, 100);
+  assert.equal(bandIndexForRadius(bands, 120), 0);   // past the rim -- outermost band
+  assert.equal(bandIndexForRadius(bands, -10), 1);   // past the spindle -- innermost band
+});
+
+test('bandIndexForRadius: no bands at all never throws', () => {
+  assert.equal(bandIndexForRadius(null, 50), 0);
+  assert.equal(bandIndexForRadius([], 50), 0);
+});
+
+// -- dropNeedleTarget ---------------------------------------------------------
+
+test('dropNeedleTarget: no bands at all returns null, the same "nothing to drop onto" shape grooveBackgroundImage() uses', () => {
+  assert.equal(dropNeedleTarget(null, 50), null);
+  assert.equal(dropNeedleTarget([], 50), null);
+});
+
+test('dropNeedleTarget: within the snap threshold of a track start, snaps to it exactly', () => {
+  const bands = bandRadiiFromDurations([100, 100, 100], 0, 100); // starts at 100, 66.67, 33.33
+  const target = dropNeedleTarget(bands, 100 - (DROP_NEEDLE_SNAP_PCT - 0.1));
+  assert.equal(target.snapped, true);
+  assert.equal(target.index, 0);
+  assert.equal(target.radiusPct, bands[0].startPct);
+});
+
+test('dropNeedleTarget: outside every track start\'s threshold, follows the raw (clamped) radius unsnapped', () => {
+  const bands = bandRadiiFromDurations([100, 100], 0, 100); // starts at 100, 50; ends at 50, 0
+  const target = dropNeedleTarget(bands, 75); // squarely mid-band, far from either start
+  assert.equal(target.snapped, false);
+  assert.equal(target.index, 0); // the band containing 75
+  assert.equal(target.radiusPct, 75);
+});
+
+test('dropNeedleTarget: a radius past the rim or the spindle clamps into range before resolving', () => {
+  const bands = bandRadiiFromDurations([100, 100], 0, 100);
+  const outer = dropNeedleTarget(bands, 150);
+  assert.equal(outer.snapped, true);
+  assert.equal(outer.index, 0);
+  const inner = dropNeedleTarget(bands, -50); // clamps to the spindle (0), far from any track start
+  assert.equal(inner.snapped, false);
+  assert.equal(inner.index, 1); // the innermost band
+  assert.equal(inner.radiusPct, 0);
+});
+
+test('dropNeedleTarget: picks whichever track start is nearest, even when that\'s not the containing band\'s own start', () => {
+  const bands = bandRadiiFromDurations([10, 100, 10], 0, 100); // band0 ends ~91.67, band1 starts there
+  // radius 93 is inside band0's own range (bandIndexForRadius would say 0),
+  // but it's much closer to band1's start (91.67, 1.33 away) than band0's
+  // own (100, 7 away) -- dropNeedleTarget should snap to band1, not band0.
+  assert.equal(bandIndexForRadius(bands, 93), 0);
+  const target = dropNeedleTarget(bands, 93);
+  assert.equal(target.snapped, true);
+  assert.equal(target.index, 1);
+  assert.ok(Math.abs(target.radiusPct - bands[1].startPct) < 1e-9);
 });
