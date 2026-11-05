@@ -99,6 +99,21 @@ export function unionFlags(rows, field){
   return out;
 }
 
+// ---- GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log — a
+// plain union keyed by each entry's own id (history/sessions.js's own id
+// scheme makes a genuine cross-device collision effectively impossible,
+// so unlike unionEarliest() below there's no tiebreak to make — any row
+// holding a given id holds the same entry). ----
+export function unionById(rows, field){
+  const out = {};
+  for(const row of rows){
+    const m = row[field];
+    if(!m) continue;
+    for(const id of Object.keys(m)) out[id] = m[id];
+  }
+  return out;
+}
+
 // ---- achievements / collection: union by key; on overlap, the record with
 // the earliest earned date wins (the tier was reached that early on some
 // device, regardless of which device's upload happens to be newest) ----
@@ -393,6 +408,10 @@ export function mergeRows(rows){
       // stale day-progress shouldn't keep counting toward an unlock).
       zoetropeUnlocked: unionFlags(fresh, 'zoetropeUnlocked'),
       zoetropeDayProgress: unionDaySets(fresh, 'zoetropeDayProgress'),
+      // GS2 (docs/30_GROOVES_AND_SHELF.md): same historyClearedAt-gated
+      // freshness as every other field in this group — a cleared
+      // device's own stale entries shouldn't resurrect on a merge.
+      playedThrough: unionById(fresh, 'playedThrough'),
     },
     sealed: mergeSealed(rows),
     overlays: mergeOverlays(rows),

@@ -182,6 +182,22 @@ export function foldIntoSeasons(byDay, now, keepDays, summaries, field){
   return out;
 }
 
+// GS2 (docs/30_GROOVES_AND_SHELF.md): the same bounded-retention idea as
+// pruneDayBuckets() above, for a map of individual timestamped records
+// (history/sessions.js's S.playedThrough, `{id: {..., at}}`) rather than
+// a map of calendar-day buckets -- each record's own `at` is compared
+// directly against the cutoff instead of a day key. Pure, never mutates.
+export function pruneRecordsByAge(records, now, keepDays){
+  const map = records || {};
+  const cutoff = (now instanceof Date ? now.getTime() : now) - keepDays * MS_PER_DAY;
+  const out = {};
+  Object.keys(map).forEach(id => {
+    const rec = map[id];
+    if(rec && (rec.at || 0) >= cutoff) out[id] = rec;
+  });
+  return out;
+}
+
 // Pure — returns a new object, never mutates `byDay`. Drops any bucket
 // older than `keepDays`, so the map a device persists never grows past a
 // bounded size no matter how long the library's been played.

@@ -243,6 +243,14 @@ function buildLocalState(){
     // rareUnlocked right above, its own independent milestone pool.
     zoetropeUnlocked: S.zoetropeUnlocked,
     zoetropeDayProgress: S.zoetropeDayProgress,
+    // GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log, same
+    // backed-up/union-by-id posture as zoetropeUnlocked just above —
+    // written back wholesale by applyMerged() below, the same "already
+    // idempotent, no mergedStats detour needed" reasoning rareUnlocked/
+    // achievements/collection already have (unlike a numeric per-device
+    // counter, re-uploading another device's own entries changes nothing
+    // on the next merge).
+    playedThrough: S.playedThrough,
     achievements: S.achievements,
     collection: S.collection,
     sealedIds: [...S.sealed],
@@ -685,6 +693,8 @@ async function applyMerged(merged, ownLocal, client, uid){
   Object.assign(S.zoetropeDayProgress, merged.totals.zoetropeDayProgress);
   Object.assign(S.achievements, merged.totals.achievements);
   Object.assign(S.collection, merged.totals.collection);
+  // GS2 (docs/30_GROOVES_AND_SHELF.md)
+  Object.assign(S.playedThrough, merged.totals.playedThrough);
   Object.keys(merged.totals.maxFields.trackLastPlayed).forEach(k => {
     S.trackLastPlayed[k] = Math.max(S.trackLastPlayed[k] || 0, merged.totals.maxFields.trackLastPlayed[k]);
   });

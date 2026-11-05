@@ -25,7 +25,17 @@ import { restoreThumbs, persistable } from '../library/thumbs.js';
 // dayKeyFor() is the already-established local-calendar-day-key helper
 // (RF22's own S.phasePlayCountsByDay bucketing), reused here rather than
 // a second date-keying scheme.
-import { dayKeyFor } from '../sundown/rhythm.js';
+import { dayKeyFor, pruneRecordsByAge, RHYTHM_PRUNE_KEEP_DAYS } from '../sundown/rhythm.js';
+// GS2 (docs/30_GROOVES_AND_SHELF.md): splitSides() is the gatefold's own
+// pure side-split model (shell/ceremony-timing.js) -- reused here, not
+// reimplemented, so the played-through log's own side letters always
+// agree with whatever the gatefold actually shows. sideBoundaryAt() is
+// its thin sibling, added alongside it for this same use.
+import { splitSides, sideBoundaryAt } from '../shell/ceremony-timing.js';
+// DA5 (docs/DAY_ARC.md): the real clock, never S.previewMin -- see
+// history/played.js's own incrementTrackPlay() for why realDayPosition(),
+// not currentDayPosition(), is the one this file uses too.
+import { realDayPosition } from '../sundown/solar.js';
 
 const FOUR_HOURS = 4 * 3600 * 1000;
 
@@ -70,6 +80,10 @@ export async function persistAlbumPlayCountsByDay(){ await meta.put('albumPlayCo
 // GS1 (docs/30_GROOVES_AND_SHELF.md) -- the per-season roll-up above, same
 // backed-up posture as its two source counters.
 export async function persistSeasonSummaries(){ await meta.put('seasonSummaries', S.seasonSummaries); }
+// GS2 (docs/30_GROOVES_AND_SHELF.md) -- the played-through log, backed up
+// the same way, written by sessionTrackComplete() below and patched by
+// history/played.js's checkTrackCompletion() when a pressing is found.
+export async function persistPlayedThrough(){ await meta.put('playedThrough', S.playedThrough); }
 // RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
 // changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
 export async function persistAlbumLookPref(keys){
@@ -181,14 +195,37 @@ export function sessionOnLoad(t){
 
 export function sessionTrackComplete(t){
   const albumId = albumKey(t);
-  if(S.sessionActive !== albumId) return;
+  if(S.sessionActive !== albumId) return null;
   const rec = S.sessions[albumId];
-  if(!rec) return;
+  if(!rec) return null;
   const nextIdx = rec.tracksCompleted.length;
-  if(rec.expectedOrder[nextIdx] !== t.id) return;
+  if(rec.expectedOrder[nextIdx] !== t.id) return null;
   rec.tracksCompleted.push(t.id);
   rec.lastActivityAt = Date.now();
-  if(rec.tracksCompleted.length >= rec.expectedOrder.length){
+  const completedCount = rec.tracksCompleted.length;
+  const wholeDone = completedCount >= rec.expectedOrder.length;
+
+  // GS2 (docs/30_GROOVES_AND_SHELF.md): "the played-through log" — one
+  // entry per completed side, at this exact qualifying-session gate (the
+  // same in-order/no-skip/S.sessionActive check sessions/metals already
+  // require above). A side completes either at a real side boundary
+  // (splitSides(), a multi-side release with Sides on) or, for a
+  // one-sided release (splitSides() returns null — 3 or fewer tracks,
+  // Sides off, or a disc with fewer than two tracks of its own), only
+  // once the whole record does.
+  const sides = splitSides(albumTracks(t.tags.album), S.tracks, S.albumSides);
+  const sideLabel = sides ? sideBoundaryAt(sides, completedCount) : (wholeDone ? '' : null);
+  let playedThroughEntry = null;
+  if(sideLabel !== null){
+    const at = Date.now();
+    const id = albumId + '\u0000' + at + '\u0000' + sideLabel;
+    playedThroughEntry = { id, albumId, side: sideLabel, whole: wholeDone, phase: realDayPosition().phase, at };
+    S.playedThrough[id] = playedThroughEntry;
+    S.playedThrough = pruneRecordsByAge(S.playedThrough, at, RHYTHM_PRUNE_KEEP_DAYS);
+    persistPlayedThrough();
+  }
+
+  if(wholeDone){
     delete S.sessions[albumId];
     sessions.put(rec);
     S.sessionActive = null;
@@ -219,6 +256,7 @@ export function sessionTrackComplete(t){
   } else {
     persistSession(rec);
   }
+  return playedThroughEntry;
 }
 
 // no indicator, no progress display — the unlock is silent by design
@@ -356,6 +394,10 @@ export async function restoreSessions(){
   // phaseCountsByDay right above.
   const seasonSummaries = await meta.get('seasonSummaries');
   if(seasonSummaries) S.seasonSummaries = seasonSummaries;
+  // GS2 (docs/30_GROOVES_AND_SHELF.md) -- same forward-compat shape: a
+  // device that hasn't written this yet just reads no log at all.
+  const playedThrough = await meta.get('playedThrough');
+  if(playedThrough) S.playedThrough = playedThrough;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
   // AU9 (docs/16_AUDIO.md §5)

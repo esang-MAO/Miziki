@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHANGE_TIMELINE, GROOVE, FLIP, changeLandsAt, grooveThumpTimes, splitSides, sideTurn,
-  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor, discGroupsFor,
+  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor, discGroupsFor, sideBoundaryAt,
 } from '../../src/shell/ceremony-timing.js';
 
 test('the change timeline: new sleeve arrives at 1200 ms over 700 ms, landing at 1900 ms', () => {
@@ -193,4 +193,30 @@ test('runoutWaitMs: short and normal are finite, until-lift waits forever', () =
 test('runoutWaitMs: an unrecognized value falls back to normal, the same default S.runoutLength has', () => {
   assert.equal(runoutWaitMs('bogus'), WAIT_TIMEOUT_MS.normal);
   assert.equal(runoutWaitMs(undefined), WAIT_TIMEOUT_MS.normal);
+});
+
+// GS2 (docs/30_GROOVES_AND_SHELF.md): sideBoundaryAt() finds which side (if
+// any) just finished, given the count of tracks completed so far.
+test('sideBoundaryAt: no sides (null) means never a boundary', () => {
+  assert.equal(sideBoundaryAt(null, 1), null);
+  assert.equal(sideBoundaryAt(null, 0), null);
+});
+
+test('sideBoundaryAt: a two-track album boundaries at 1 (A) and 2 (B)', () => {
+  const s = splitSides([0,1], durTracks([600, 60]), true);
+  assert.equal(sideBoundaryAt(s, 1), 'A');
+  assert.equal(sideBoundaryAt(s, 2), 'B');
+});
+
+test('sideBoundaryAt: a count strictly inside a side is not a boundary', () => {
+  const s = splitSides([0,1,2,3], durTracks([600,600,600,600]), true);
+  assert.equal(sideBoundaryAt(s, 1), null);
+  assert.equal(sideBoundaryAt(s, 2), 'A');
+  assert.equal(sideBoundaryAt(s, 3), null);
+  assert.equal(sideBoundaryAt(s, 4), 'B');
+});
+
+test('sideBoundaryAt: a count past the album\'s own last track is not a boundary', () => {
+  const s = splitSides([0,1], durTracks([600, 60]), true);
+  assert.equal(sideBoundaryAt(s, 3), null);
 });

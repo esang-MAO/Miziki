@@ -3,7 +3,7 @@
    the last interval in O(1); a merge only runs when coverage is asked for. ---- */
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
-import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries } from './sessions.js';
+import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries, persistPlayedThrough } from './sessions.js';
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
@@ -86,8 +86,19 @@ export function checkTrackCompletion(t){
   if(playedCoverage() >= 0.95 * t.duration){
     S.curTrackDone = true;
     incrementTrackPlay(t);
-    sessionTrackComplete(t);
+    // GS2 (docs/30_GROOVES_AND_SHELF.md): captured before
+    // checkAlbumAchievementAndCollection() below, which is the one place
+    // that can newly add this album to S.collection (a pressing found) —
+    // sessionTrackComplete() runs first and so can't know that yet when
+    // it writes its own playedThrough entry.
+    const albumId = albumKey(t);
+    const ownedBefore = !!S.collection[albumId];
+    const playedThroughEntry = sessionTrackComplete(t);
     checkAlbumAchievementAndCollection(t);
+    if(playedThroughEntry && !ownedBefore && S.collection[albumId]){
+      playedThroughEntry.found = S.collection[albumId].variant;
+      persistPlayedThrough();
+    }
     scheduleBackupSync();
   }
 }

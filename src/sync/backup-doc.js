@@ -45,6 +45,9 @@
        {albumId: [dayKey, ...]}, already keyed by a portable albumKey()
        string and plain local-calendar-day strings, no idToKey conversion
        needed, merged by sync/merge.js's unionDaySets())
+     playedThrough,  (GS2, docs/30_GROOVES_AND_SHELF.md — the played-
+       through log, same backed-up/union-by-id posture, already keyed by
+       a portable id, merged by sync/merge.js's unionById())
      sealedIds, brokenSealIds,       (S.sealed as an array, plus a *new*
        local list this device has ever broken — S doesn't track that today;
        see CLAUDE.md's step-03 note)
@@ -307,6 +310,11 @@ export function toDoc(localState){
     // rareUnlocked right above, a second, entirely independent pool.
     zoetropeUnlocked: s.zoetropeUnlocked || {},
     zoetropeDayProgress: s.zoetropeDayProgress || {},
+    // GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log, same
+    // backed-up/union-by-id posture as rareUnlocked/zoetropeUnlocked
+    // above — already keyed by a portable id (albumId + timestamp + side,
+    // all portable strings), no idToKey conversion needed.
+    playedThrough: s.playedThrough || {},
     achievements: stripArtMap(s.achievements),
     collection: stripArtMap(s.collection),
 
@@ -577,6 +585,23 @@ function isSeasonSummariesMap(v){
     return true;
   });
 }
+// GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log's own shape
+// — {id: {id, albumId, side, whole, phase, at, found?}}, each entry's own
+// `id` key matching its own `id` field (unionById() in merge.js keys
+// purely by the map key, but every real writer keeps the two in sync).
+function isBool(v){ return typeof v === 'boolean'; }
+function isPlayedThroughMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(key => {
+    const e = v[key];
+    if(!e || typeof e !== 'object' || Array.isArray(e)) return false;
+    if(!isStr(e.id) || !isStr(e.albumId) || !isStr(e.side) || !isStr(e.phase)) return false;
+    if(!isBool(e.whole)) return false;
+    if(!isNonNegInt(e.at)) return false;
+    if(e.found !== undefined && !isStr(e.found)) return false;
+    return true;
+  });
+}
 function isItemWritesArray(v){
   return Array.isArray(v) && v.every(e => e && typeof e === 'object'
     && isStr(e.key) && isNonNegInt(e.seq) && isNonNegInt(e.at)
@@ -609,6 +634,8 @@ export function validateDoc(doc){
   if(!isFlatMaxMap(minFields.albumFirstPlayed || {})) return false;
 
   if(doc.zoetropeDayProgress !== undefined && !isAlbumDaySetMap(doc.zoetropeDayProgress)) return false;
+  // GS2 (docs/30_GROOVES_AND_SHELF.md)
+  if(doc.playedThrough !== undefined && !isPlayedThroughMap(doc.playedThrough)) return false;
 
   const sealed = doc.sealed || {};
   if(!isStringArray(sealed.sealed || [])) return false;
