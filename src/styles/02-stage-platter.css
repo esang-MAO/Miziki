@@ -50,14 +50,27 @@
   position:absolute;inset:0;border-radius:50%;pointer-events:none;
   /* a groove seam plus light catching the pressing — these turn with the disc,
      so the eye can actually tell which way it is going. Layered over whatever
-     the variant background is, so it reads on every tier and pattern alike. */
+     the variant background is, so it reads on every tier and pattern alike.
+     Each streak is a soft triangular peak (ramping up to its own alpha, then
+     back down), not a flat plateau with a hard-edged cut -- those hard edges,
+     crossing this layer's own dense concentric groove rings underneath, read
+     as a spiral/warped record rather than a true circle (Ken, 2026-11-05,
+     "an unintended optical illusion ... looking at it too closely" -- the
+     classic Fraser-spiral setup: sharp radial edges over tight concentric
+     rings). Same peak alphas/approximate angular position as before, just
+     smoothed -- no two adjacent stops share an angle, so the browser always
+     interpolates between them instead of stepping. */
   background:
     conic-gradient(from 0deg,
-      rgba(255,255,255,.10) 0deg 1.2deg, rgba(0,0,0,.18) 1.2deg 2.6deg,
-      rgba(255,255,255,0) 2.6deg 48deg,
-      rgba(255,255,255,.045) 48deg 54deg, rgba(255,255,255,0) 54deg 137deg,
-      rgba(255,255,255,.055) 137deg 142deg, rgba(255,255,255,0) 142deg 225deg,
-      rgba(255,255,255,.035) 225deg 231deg, rgba(255,255,255,0) 231deg 360deg),
+      rgba(255,255,255,.10) .9deg, transparent 1.9deg,
+      rgba(0,0,0,.18) 2.9deg, transparent 3.9deg,
+      transparent 46deg,
+      rgba(255,255,255,.045) 51deg, transparent 56deg,
+      transparent 135deg,
+      rgba(255,255,255,.055) 139.5deg, transparent 144deg,
+      transparent 223deg,
+      rgba(255,255,255,.035) 228deg, transparent 233deg,
+      transparent 360deg),
     var(--groove-rings, repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.16) 0 1px,rgba(0,0,0,0) 1px 5px));
   transition:opacity .6s;
 }
