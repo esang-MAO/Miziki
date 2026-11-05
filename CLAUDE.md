@@ -98,6 +98,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 | `profiles.listening_rhythm` | Opt-in `{verdict, shares}` snapshot, never raw plays | Gated by its own visibility-checking RPC, not the blanket profile-select policy |
 | `now_spinning`, `crate_items`, `digging_list`, `verified_stats`, `release_credits` | The social layer's opt-in sharing surface, including per-record credits | Same visibility rule as `profiles`, enforced by RLS |
 | `follows`, `blocks` | Who follows/blocks whom | Visible only to the owner, via RLS; follow counts are exposed more broadly through an RPC |
+| `held_records` | "Held for you" (GS11, docs/30_GROOVES_AND_SHELF.md): up to 3 `release_key`s one friend set aside for another, a note, which have been handed back. Expires 30 days after creation. No feed event — found on the crate, never pushed | Only the two parties (`from_user`/`to_user`), via RLS; `to_user` can write only the `handed_back` column |
 | `feed_events` | The home-feed event log (never a milestone/metal unlock); rows expire 45 days after creation | Only where the underlying event is already visible |
 | `reports` | Filed reports against other accounts/content | Moderation-only |
 | `mb_artists`, `artist_connections` | Shared MusicBrainz cache for the Connected shelf: artist names/MBIDs, related artists, their release groups and buy links — public catalog data, no `user_id` | Anyone, signed in or out (read-only; only the `mb-connections` edge function writes, with the service role) |

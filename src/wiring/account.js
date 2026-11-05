@@ -34,6 +34,7 @@ export function wireAccount(){
     popSocialScreen();
   });
   $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
+  $('#heldClose').addEventListener('click', () => closeLayer('held-sheet'));
 
   // FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
   // top-right" -- replaces the gear-icon dropdown renderStorefrontSection()
