@@ -779,6 +779,20 @@
         <!-- zoetrope frame ring; see docs/19_PLAYER_HTML_NOTES.md#zoetroperring-platter -->
         <div class="disc-zoetrope-ring" id="discZoetropeRing" aria-hidden="true"></div>
         <div class="disc-metal-light" id="discMetalLight" aria-hidden="true"></div>
+        <!-- GS3 (docs/30_GROOVES_AND_SHELF.md point 3): one soft band of
+             reflected light across the grooves, tinted from the current
+             sky (--sky1, written every ~220ms by player/clock.js's
+             drawSun()) -- static, no spin, crossfading as the sky itself
+             does since it reads the same variable. A sibling of .disc,
+             not a child, the same reason .disc-metal-light just above is
+             one: it must never inherit #disc's own per-frame rotation. -->
+        <div class="disc-light-band" aria-hidden="true"></div>
+        <!-- GS3 point 2: the needle ring -- a thin cream ring plus a
+             small dot marking the needle's current radius, moving inward
+             with playback. Its own radius (an inset percent) is written
+             every tick by player/clock.js's drawTime(); also a sibling of
+             .disc so it never spins with the platter. -->
+        <div class="needle-ring" id="needleRing" aria-hidden="true"></div>
       </div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
         <img class="sleeve-art" id="sleeveArt" alt="">
@@ -916,7 +930,17 @@
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
-    <div class="times"><span id="tElapsed">0:00</span><span id="tTotal">0:00</span></div>
+    <!-- GS3 (docs/30_GROOVES_AND_SHELF.md point 4): replaces the plain
+         elapsed/total time readout -- a side map (one segment per track
+         on this side, the current one filling, no numbers) plus the
+         current track's own side-relative position and title. Built/
+         updated by player/clock.js's drawTime(); the lock screen's own
+         position/scrubber (mediaSession, player/background.js) is
+         untouched. -->
+    <div class="times">
+      <div class="side-map" id="sideMap" aria-hidden="true"></div>
+      <div class="side-map-track" id="sideMapTrack"></div>
+    </div>
 
     <div class="transport">
       <button class="tbtn mini" id="shuffle" aria-pressed="false" title="Shuffle off" aria-label="Shuffle">

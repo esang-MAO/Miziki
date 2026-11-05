@@ -32,6 +32,20 @@ export const S = {
   // recomputing it. Runtime only -- never saved, never a prefs field,
   // the same shape as labelSideFormat just above.
   recordFormat:{size:'12"', speed:33.333},
+  // GS3 (docs/30_GROOVES_AND_SHELF.md): the current track's own side,
+  // cached once per track load (player/transport.js's load()) the same
+  // "static half, read every tick without re-deriving it" shape
+  // labelSideFormat/recordFormat just above already use. sideTrackIdx is
+  // the side's own track indices into S.tracks, in side order -- what the
+  // side map (one segment per track) and the needle ring (this track's
+  // own band, by its position in this array) both read every tick
+  // (player/clock.js's drawTime()). sideBands is record-art/grooves.js's
+  // own grooveBandsForSide() output for that same list -- also what
+  // #disc's own --groove-rings custom property is set from, but kept
+  // here too since the needle ring reads the same band radii the groove
+  // texture does, not a second copy of the geometry. Runtime only --
+  // never saved, never a prefs field.
+  sideTrackIdx:null, sideBands:null,
   // AU10 (docs/16_AUDIO.md §5): "from 0 to 600ms the platter eases up to
   // the new speed" -- set by player/transport.js's load() only when the
   // player is open and the speed actually changed; null means "no ease in

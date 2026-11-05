@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 const elCache = new Map();
 function fakeEl(){
   return {
-    textContent: '', style: {}, src: '',
+    textContent: '', style: { setProperty(){} }, src: '',
     classList: { add(){}, remove(){}, contains(){ return false; }, toggle(){} },
     setAttribute(){}, removeAttribute(){}, getAttribute(){ return null; },
     querySelectorAll(){ return []; },

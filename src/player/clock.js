@@ -1,5 +1,6 @@
 import { S, current } from '../state.js';
-import { $ } from '../util/dom.js';
+import { $, el } from '../util/dom.js';
+import { needleRadiusPct, sideMapSegments } from '../record-art/grooves.js';
 import { clamp } from '../util/math.js';
 import { fmt } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
@@ -187,15 +188,72 @@ setInterval(() => {
   tick(performance.now(), 120);
 }, 1000);
 
+// GS3 (docs/30_GROOVES_AND_SHELF.md point 4): the side map's own DOM is
+// rebuilt only when the active side's own track list actually changes
+// (a new track load, a side turn) -- cached by a plain join() of
+// S.sideTrackIdx as the key, the same "rebuild only when the identity
+// changes, patch in place otherwise" shape NV3 already uses for the
+// library's now-playing row. Every other tick just patches each
+// segment's own width/fill, never touching the DOM it doesn't need to.
+let sideMapKey = null, sideMapEls = [];
+
+function renderSideMap(t, pos){
+  const mapEl = $('#sideMap'), trackEl = $('#sideMapTrack');
+  if(!mapEl || !trackEl) return;
+  const sideIdx = S.sideTrackIdx;
+  if(!sideIdx || !sideIdx.length){
+    if(sideMapKey !== null){ sideMapKey = null; sideMapEls = []; mapEl.textContent = ''; }
+    trackEl.textContent = '';
+    return;
+  }
+  const key = sideIdx.join(',');
+  if(key !== sideMapKey){
+    sideMapKey = key;
+    mapEl.textContent = '';
+    sideMapEls = sideIdx.map(() => {
+      const seg = el('span', 'side-map-seg');
+      const fill = el('span', 'side-map-fill');
+      seg.appendChild(fill);
+      mapEl.appendChild(seg);
+      return { seg, fill };
+    });
+  }
+  const activeIdx = sideIdx.indexOf(S.index);
+  const dur = t ? (t.duration || 0) : 0;
+  const frac = dur ? pos / dur : 0;
+  const durations = sideIdx.map(idx => (S.tracks[idx] && S.tracks[idx].duration) || 0);
+  const segs = sideMapSegments(durations, activeIdx >= 0 ? activeIdx : null, frac);
+  segs.forEach((s, i) => {
+    const entry = sideMapEls[i];
+    if(!entry) return;
+    entry.seg.style.width = s.widthPct + '%';
+    entry.fill.style.width = s.fillPct + '%';
+  });
+  // GS3 point 4: "the current track as '2 · Night Ferry'" -- the track's
+  // own 1-based position within this side, not its position in the whole
+  // album (a side B's first track reads "1 · ...", not its album-wide
+  // track number). t.tags.title is untrusted file metadata, so this goes
+  // through textContent (set just below), never innerHTML -- CLAUDE.md's
+  // own "Security" rule.
+  trackEl.textContent = (activeIdx >= 0 && t) ? ((activeIdx + 1) + ' · ' + (t.tags ? t.tags.title : t.name)) : '';
+
+  // point 2: "a thin cream ring plus a small dot marks the needle's
+  // current radius; it moves inward with playback" -- the same band
+  // radii the groove texture itself was drawn from (S.sideBands, written
+  // once per load() alongside S.sideTrackIdx), interpolated by how far
+  // into the active track playback has gotten.
+  const ring = $('#needleRing');
+  if(ring){
+    const r = needleRadiusPct(S.sideBands, activeIdx >= 0 ? activeIdx : 0, frac);
+    ring.style.inset = (50 - r) + '%';
+    ring.classList.toggle('on', !!t);
+  }
+}
+
 export function drawTime(){
   const t = current();
   const dur = t ? (t.duration || 0) : 0;
-  $('#tElapsed').textContent = fmt(S.pos);
-  // FS5 (docs/25_FROM_SCRATCH.md point 4): the phone full player's right
-  // time reads remaining, not total ("−2:46") -- the desktop bar's own
-  // #barTotal (just below) is a separate pair of elements and keeps
-  // showing the total, since D4/desktop isn't part of this PR.
-  $('#tTotal').textContent = '−' + fmt(dur - S.pos);
+  renderSideMap(t, S.pos);
   const p = dur ? S.pos/dur : 0;
   const scrubEl = $('#scrub');
   scrubEl.style.setProperty('--scrub-pct', (p*100) + '%');

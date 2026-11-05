@@ -58,10 +58,46 @@
       rgba(255,255,255,.045) 48deg 54deg, rgba(255,255,255,0) 54deg 137deg,
       rgba(255,255,255,.055) 137deg 142deg, rgba(255,255,255,0) 142deg 225deg,
       rgba(255,255,255,.035) 225deg 231deg, rgba(255,255,255,0) 231deg 360deg),
-    repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px);
+    var(--groove-rings, repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px));
   transition:opacity .6s;
 }
 .disc.rare::before{opacity:.3}
+/* GS3 (docs/30_GROOVES_AND_SHELF.md point 1): --groove-rings is set once
+   per track load (player/transport.js's load(), from record-art/
+   grooves.js's grooveBandsForSide()/grooveBackgroundImage()) -- one band
+   per track on this side, width proportional to the track's own duration,
+   groove pitch tighter for a louder track. The fallback above (today's
+   flat, uniform pitch) covers a disc with no bands yet (first paint,
+   before any track has loaded) and a custom property set to the empty
+   string (grooveBackgroundImage() returned null), both guaranteed-invalid
+   <image> values that trigger var()'s own fallback. A CSS custom property
+   set on #disc is inherited by its own ::before the same as any other
+   property would be -- no DOM restructuring needed to reach a pseudo-
+   element from JS. */
+/* point 3: the sky-tinted reflected light band -- static, no spin
+   (a sibling of .disc, never a child or pseudo-element, the same reason
+   .disc-metal-light below is one), crossfading with the sky because it
+   reads the same --sky1 player/clock.js's drawSun() already writes every
+   ~220ms, with no CSS transition of its own needed. soft-light so the
+   pressing's own rim/underglow still reads through, same blend mode
+   .disc-metal-light already uses for the same reason. */
+.disc-light-band{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:linear-gradient(105deg,transparent 32%,var(--sky1,#444) 48%,transparent 62%);
+  opacity:.16;mix-blend-mode:soft-light}
+/* point 2: the needle ring -- a thin cream ring plus a small dot marking
+   the needle's current radius. inset is written every tick by player/
+   clock.js's drawTime() (record-art/grooves.js's needleRadiusPct(), a
+   percent of the record's own radius) -- inset:X% on all four sides of
+   this full-size, sibling-of-.disc box shrinks it to a circle of exactly
+   that radius from the platter's own center, with no separate geometry
+   math needed here. .on (added once any track has loaded) is the only
+   thing that actually shows it -- aria-hidden plus a hard opacity:0 when
+   off, so an untouched platter (no track yet) shows no ring at all. */
+.needle-ring{position:absolute;inset:50%;border-radius:50%;pointer-events:none;
+  border:1px solid rgba(255,253,245,.4);opacity:0;transition:opacity .4s}
+.needle-ring.on{opacity:1}
+.needle-ring::after{content:'';position:absolute;top:-2px;left:50%;width:4px;height:4px;
+  margin-left:-2px;border-radius:50%;background:rgba(255,253,245,.9)}
 /* holds a snapshot of the disc's previous background and fades it out to
    reveal the new one underneath — used for same-album metal/tier changes
    that have no sleeve animation to cover an instant swap (see METAL spec §4) */
