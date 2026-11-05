@@ -212,6 +212,15 @@ export function renderOpenStoreCard(host, authState){
 
   host.appendChild(storeTurntableSection(storeLastSpunRow()));
 
+  // GS8 follow-up: the wall and shelves (local pins/crate, same data
+  // renderLocalStorefront() below reads) show here too -- social being
+  // configured but not yet signed into shouldn't hide what a never-
+  // configured profile already shows for free. Only the server-shaped
+  // pieces (followers, digging from others, sharing) stay behind sign-in.
+  const picks = localStaffPicks();
+  host.appendChild(storeWallSection(picks));
+  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id)));
+
   const card = el('div','store-open-card');
   card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
   card.appendChild(el('p', null, needsProfile
