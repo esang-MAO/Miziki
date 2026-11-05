@@ -170,7 +170,13 @@ test('isRimRadiusPct: the outermost ~8% of the radius counts as the rim', () => 
   assert.equal(isRimRadiusPct(RIM_INNER_PCT), true);
   assert.equal(isRimRadiusPct(100), true);
   assert.equal(isRimRadiusPct(RIM_INNER_PCT - 0.01), false);
-  assert.equal(isRimRadiusPct(GROOVE_OUTER_PCT), false);
+});
+
+// GROOVE_OUTER_PCT (2026-11-05, Ken) now sits past RIM_INNER_PCT on
+// purpose -- the rim is a touch-gesture zone (hold vs. spin), not a claim
+// about where the record's own groove texture stops being drawn.
+test('GROOVE_OUTER_PCT reaches past the rim\'s own inner edge -- grooves draw almost to the true edge', () => {
+  assert.ok(GROOVE_OUTER_PCT > RIM_INNER_PCT);
 });
 
 // -- radiusPctFromPoint ------------------------------------------------------
