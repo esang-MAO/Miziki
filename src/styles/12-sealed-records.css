@@ -135,7 +135,13 @@
 .sealed-front-actions{position:absolute;left:var(--sp-4);right:var(--sp-4);bottom:calc(var(--sp-5) + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;gap:10px}
 .sealed-front-hint{margin:0;font-size:var(--fs-body);color:rgba(239,233,223,.85);text-align:center}
-.sealed-front-turn-btn{min-height:44px;font-size:var(--fs-body);color:var(--muted);text-align:center}
+/* GF13 fix 2 follow-up: this is the one real button on the screen besides
+   the peel gesture itself -- plain muted text read as unclickable, the
+   same "no button" impression as the z-index bug above, just visual
+   instead of structural. Reuses .cta (16-edit-sheet.css), the app's one
+   primary-action button, same family GF12's "Play the record" button
+   uses for the same reason (never solid amber -- amber-scope.test.js). */
+.sealed-front-turn-btn{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
 
 /* ================= shrink-wrap peel (docs/15_SURFACE_NOISE.md §2) =================
    The sleeve of a Sealed record arrives wrapped: a milky sheen + a corner
