@@ -104,6 +104,13 @@
    two-line title breaks evenly rather than leaving one lonely word. */
 .now h2{font-family:var(--display);font-weight:600;font-size:var(--fs-giant);letter-spacing:0;margin:0 0 var(--sp-1);
         text-wrap:balance;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Fit full player controls on mobile without scrolling: 2px off the title
+   on phones only (desktop's side panel has its own layout, 23-desktop.css).
+   calc() off --fs-giant rather than a literal, so the "Larger text" switch
+   (:root.larger-text, 00-base.css) still scales this proportionally. */
+@media (max-width:1023px){
+  .now h2{font-size:calc(var(--fs-giant) - 2px)}
+}
 .now .spec{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
 /* PL8 item 10 (docs/19_PLAYER.md): #trackSpec alone is tappable (its own
    Untouched/Converted/Shaped state) -- #trackSpecPhase, the sibling .spec
