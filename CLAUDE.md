@@ -65,6 +65,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
   | `trackLastPlayed`, `albumLastPlayed` | backed up | max |
   | `albumFirstPlayed` | backed up | min |
   | `rareUnlocked`, `achievements`, `collection` | backed up | union; earliest earned date wins on overlap |
+  | `S.playedThrough` (GS2, docs/30_GROOVES_AND_SHELF.md) — one entry per completed side | backed up | union by the entry's own id; collisions are effectively impossible, so there's no tiebreak to make |
   | `S.sealed` | backed up | broken anywhere stays broken everywhere |
   | `sessions` store (in-progress play-through) | device-only, excluded | merging two devices' in-progress sessions could corrupt the completion rule; nothing durable is lost since a session only affects anything persistent once it completes |
   | `overlays` (track edits, text only) | backed up | last write wins by timestamp; a revert is a tombstone that also wins by timestamp |

@@ -5,7 +5,7 @@ import {
   RHYTHM_WINDOW_DAYS, RHYTHM_PRUNE_KEEP_DAYS,
   computeRhythmShares, rhythmVerdictLabel, bestAlbumPerPhase,
   dayKeyFor, windowedPhaseCounts, windowedCounts, pruneDayBuckets, seasonLabelFor,
-  seasonKeyFor, foldIntoSeasons,
+  seasonKeyFor, foldIntoSeasons, pruneRecordsByAge,
 } from '../../src/sundown/rhythm.js';
 
 // DA5 (docs/DAY_ARC.md) — pure functions over plain {phase: count} maps,
@@ -305,4 +305,34 @@ test('foldIntoSeasons: 400-day prune keeps a season\'s day buckets around for ro
 test('foldIntoSeasons: empty/missing input never throws', () => {
   assert.deepEqual(foldIntoSeasons(undefined, Date.now(), RHYTHM_PRUNE_KEEP_DAYS, undefined, 'phases'), {});
   assert.deepEqual(foldIntoSeasons({}, Date.now(), RHYTHM_PRUNE_KEEP_DAYS, {}, 'albums'), {});
+});
+
+// GS2 (docs/30_GROOVES_AND_SHELF.md): pruneRecordsByAge() is pruneDayBuckets's
+// twin for a flat, id-keyed map (S.playedThrough) where each record carries
+// its own `at` timestamp rather than a calendar-day key.
+test('pruneRecordsByAge: drops records older than keepDays, keeps the rest, never mutates the input', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const now = new Date(2026, 5, 15).getTime();
+  const oldAt = now - (RHYTHM_PRUNE_KEEP_DAYS + 10) * DAY_MS;
+  const recentAt = now - 14 * DAY_MS;
+  const records = {
+    old1: { id: 'old1', at: oldAt },
+    recent1: { id: 'recent1', at: recentAt },
+  };
+  const out = pruneRecordsByAge(records, now, RHYTHM_PRUNE_KEEP_DAYS);
+  assert.deepEqual(out, { recent1: { id: 'recent1', at: recentAt } });
+  assert.ok('old1' in records, 'input left untouched');
+});
+
+test('pruneRecordsByAge: a record exactly at the cutoff is kept', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const now = new Date(2026, 5, 15).getTime();
+  const edgeAt = now - RHYTHM_PRUNE_KEEP_DAYS * DAY_MS;
+  const out = pruneRecordsByAge({ edge: { id: 'edge', at: edgeAt } }, now, RHYTHM_PRUNE_KEEP_DAYS);
+  assert.deepEqual(out, { edge: { id: 'edge', at: edgeAt } });
+});
+
+test('pruneRecordsByAge: empty/missing input never throws', () => {
+  assert.deepEqual(pruneRecordsByAge(undefined, Date.now(), RHYTHM_PRUNE_KEEP_DAYS), {});
+  assert.deepEqual(pruneRecordsByAge({}, Date.now(), RHYTHM_PRUNE_KEEP_DAYS), {});
 });

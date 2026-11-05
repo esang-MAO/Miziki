@@ -12,7 +12,7 @@ import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
-  persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries,
+  persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries, persistPlayedThrough,
   // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
   // zoetropeDayProgress are session-derived milestone state, the exact
   // same class as rareUnlocked right above — both scopes below reset/prune
@@ -32,6 +32,15 @@ function currentTrackKeys(){ return new Set(S.tracks.map(trackIdentityKey)); }
 function filterKeep(dict, keepSet){
   const out = {};
   Object.keys(dict).forEach(k => { if(keepSet.has(k)) out[k] = dict[k]; });
+  return out;
+}
+// GS2 (docs/30_GROOVES_AND_SHELF.md): S.playedThrough's own entries are
+// keyed by their own id, not by albumId — filterKeep() above can't be
+// reused as-is, since it tests the dict's own key against keepSet. Same
+// idea, one field deeper.
+function filterKeepByAlbumId(dict, keepSet){
+  const out = {};
+  Object.keys(dict).forEach(k => { if(keepSet.has(dict[k].albumId)) out[k] = dict[k]; });
   return out;
 }
 
@@ -72,6 +81,9 @@ export async function resetLocalHistory(){
   // no-per-album/-track shape as albumPhaseCounts/phasePlayCountsByDay, so
   // a full clear is the only thing that ever resets it, same as those.
   S.seasonSummaries = {};
+  // GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log is history
+  // too — emptied on a full clear.
+  S.playedThrough = {};
   await achievements.clear(); await collection.clear(); await sessions.clear();
   await pruneThumbs();
   await Promise.all([
@@ -79,7 +91,8 @@ export async function resetLocalHistory(){
     persistZoetropeUnlocked(), persistZoetropeDayProgress(),
     persistAlbumLastPlayed(), persistAlbumFirstPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
     persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
-    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay(), persistAlbumPlayCountsByDay(), persistSeasonSummaries()
+    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay(), persistAlbumPlayCountsByDay(), persistSeasonSummaries(),
+    persistPlayedThrough()
   ]);
 }
 
@@ -121,6 +134,10 @@ export async function clearListeningHistory(orphanedOnly){
     // library identity either, so it's left alone here for the same
     // reason — a season has no per-album/per-track shape to prune by.
     S.albumPhaseCounts = filterKeep(S.albumPhaseCounts, albumIds);
+    // GS2 (docs/30_GROOVES_AND_SHELF.md): each entry carries its own
+    // albumId, the same identity shape as sessionCounts/achievements
+    // above — pruned the same orphaned-only way.
+    S.playedThrough = filterKeepByAlbumId(S.playedThrough, albumIds);
     for(const id of droppedAlbums) await achievements.del(id);
     for(const id of droppedCollection) await collection.del(id);
     for(const id of droppedSessions) await sessions.del(id);
@@ -130,7 +147,7 @@ export async function clearListeningHistory(orphanedOnly){
       persistZoetropeUnlocked(), persistZoetropeDayProgress(),
       persistAlbumLastPlayed(), persistAlbumFirstPlayed(), persistAlbumDisplay(droppedAlbumDisplay), persistAlbumLookPref(droppedAlbumLookPref),
       persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(droppedTrackDisplay),
-      persistPhasePlayCounts(), persistAlbumPhaseCounts()
+      persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPlayedThrough()
     ]);
   } else {
     await resetLocalHistory();

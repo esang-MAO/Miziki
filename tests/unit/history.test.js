@@ -169,6 +169,8 @@ function resetState(overrides){
     trackPlayCounts: {}, trackMetalEligiblePlays: {}, trackLastPlayed: {}, trackDisplay: {},
     // DA5 (docs/DAY_ARC.md); phasePlayCountsByDay added RF22 (docs/12_REFINE.md)
     phasePlayCounts: {}, phasePlayCountsByDay: {}, albumPhaseCounts: {}, previewMin: 0,
+    // GS2 (docs/30_GROOVES_AND_SHELF.md)
+    playedThrough: {}, albumSides: false, albumSort: {}, albumOrder: {},
   }, overrides);
   checkAlbumAchievementAndCollectionMock.mock.resetCalls();
   fakePhase = 'midday';
@@ -373,6 +375,122 @@ test('zoetrope unlock: a different album\'s day-progress is tracked independentl
   assert.deepEqual(Object.keys(S.zoetropeDayProgress).sort(), ['al', 'other']);
   assert.equal(S.zoetropeDayProgress.al.length, 1);
   assert.equal(S.zoetropeDayProgress.other.length, 1);
+});
+
+// -- GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log --------------
+
+test('sessionTrackComplete: one playedThrough entry per completed side, whole only at the end', () => {
+  resetState({ albumSides: true });
+  const t1 = fakeTrack({ id:'t1', duration:100, tags:{title:'T1', artist:'A', album:'Al', albumArtist:'A', track:1, disc:0} });
+  const t2 = fakeTrack({ id:'t2', duration:100, tags:{title:'T2', artist:'A', album:'Al', albumArtist:'A', track:2, disc:0} });
+  S.tracks = [t1, t2];
+  S.sessionActive = 'al';
+  S.sessions.al = { albumId:'al', tracksCompleted: [], expectedOrder: ['t1','t2'], startedAt: Date.now(), lastActivityAt: Date.now() };
+  fakePhase = 'golden';
+
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t1);
+  let ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 1);
+  assert.equal(S.playedThrough[ids[0]].side, 'A');
+  assert.equal(S.playedThrough[ids[0]].whole, false);
+  assert.equal(S.playedThrough[ids[0]].albumId, 'al');
+  assert.equal(S.playedThrough[ids[0]].phase, 'golden');
+
+  S.curTrackDone = false; S.curPlayed = [];
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t2);
+  ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 2);
+  const secondId = ids.find(id => S.playedThrough[id].side === 'B');
+  assert.ok(secondId);
+  assert.equal(S.playedThrough[secondId].whole, true);
+});
+
+test('sessionTrackComplete: a one-sided release (splitSides null) logs only once, at whole completion', () => {
+  resetState();
+  const t = fakeTrack({ id:'t1', duration:100 });
+  S.tracks = [t];
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  const ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 1);
+  assert.equal(S.playedThrough[ids[0]].side, '');
+  assert.equal(S.playedThrough[ids[0]].whole, true);
+});
+
+test('sessionTrackComplete: Sides off means no per-side entries, only the one at whole completion', () => {
+  resetState({ albumSides: false });
+  const t1 = fakeTrack({ id:'t1', duration:100, tags:{title:'T1', artist:'A', album:'Al', albumArtist:'A', track:1, disc:0} });
+  const t2 = fakeTrack({ id:'t2', duration:100, tags:{title:'T2', artist:'A', album:'Al', albumArtist:'A', track:2, disc:0} });
+  S.tracks = [t1, t2];
+  S.sessionActive = 'al';
+  S.sessions.al = { albumId:'al', tracksCompleted: [], expectedOrder: ['t1','t2'], startedAt: Date.now(), lastActivityAt: Date.now() };
+
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t1);
+  assert.equal(Object.keys(S.playedThrough).length, 0);
+
+  S.curTrackDone = false; S.curPlayed = [];
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t2);
+  const ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 1);
+  assert.equal(S.playedThrough[ids[0]].whole, true);
+});
+
+test('checkTrackCompletion: a pressing discovered on this very play patches the playedThrough entry\'s `found`', () => {
+  resetState();
+  const t = fakeTrack({ id:'t1', duration:100 });
+  S.tracks = [t];
+  completeAlbumSession(t, 'al');
+  checkAlbumAchievementAndCollectionMock.mock.mockImplementationOnce(() => {
+    S.collection.al = { albumId:'al', variant:'red-swirl' };
+  });
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  const ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 1);
+  assert.equal(S.playedThrough[ids[0]].found, 'red-swirl');
+});
+
+test('checkTrackCompletion: an already-owned pressing leaves `found` unset on the new entry', () => {
+  resetState({ collection: { al: { albumId:'al', variant:'red-swirl' } } });
+  const t = fakeTrack({ id:'t1', duration:100 });
+  S.tracks = [t];
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  const ids = Object.keys(S.playedThrough);
+  assert.equal(ids.length, 1);
+  assert.equal(S.playedThrough[ids[0]].found, undefined);
+});
+
+test('clearListeningHistory: full scope wipes playedThrough', async () => {
+  await openFresh();
+  resetState({
+    tracks: [fakeTrack({ id:'t1' })],
+    playedThrough: { x: { id:'x', albumId:'al', side:'A', whole:false, phase:'night', at:Date.now() } },
+  });
+  await clearListeningHistory(false);
+  assert.deepEqual(S.playedThrough, {});
+  DB.db.close();
+});
+
+test('clearListeningHistory: orphaned-only scope prunes playedThrough by its own albumId field', async () => {
+  await openFresh();
+  resetState({
+    tracks: [fakeTrack({ id:'t1', tags:{title:'T', artist:'A', album:'Al', albumArtist:'A', track:1, disc:0} })],
+    playedThrough: {
+      keep: { id:'keep', albumId:'al', side:'A', whole:false, phase:'night', at:Date.now() },
+      drop: { id:'drop', albumId:'goneAlbum', side:'B', whole:true, phase:'dawn', at:Date.now() },
+    },
+  });
+  await clearListeningHistory(true);
+  assert.ok('keep' in S.playedThrough);
+  assert.ok(!('drop' in S.playedThrough));
+  DB.db.close();
 });
 
 // -- DA5 (docs/DAY_ARC.md): phase-of-play counting ----------------------------

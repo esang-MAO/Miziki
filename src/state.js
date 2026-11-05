@@ -579,6 +579,26 @@ S.phasePlayCountsByDay = {};
 // sundown/rhythm.js's windowedCounts() and history/achievements.js's
 // topAlbumsInWindow().
 S.albumPlayCountsByDay = {};
+// GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log -- one entry
+// per completed side, `{id: {id, albumId, side, whole, phase, at,
+// found?}}`. `side` is the letter ('A', 'B', ...) from the gatefold's own
+// side split (shell/ceremony-timing.js's splitSides()), or '' for a
+// one-sided release; `whole` is true when this same completion also
+// finished the whole record; `phase` from sundown/solar.js's
+// realDayPosition() (never Preview the day); `found`, when present, is
+// the pressing variant id discovered during that same play (history/
+// played.js's checkTrackCompletion(), after history/sessions.js's
+// sessionTrackComplete() has already written the entry). Written only at
+// the same qualifying-session gate (in-order, no skip) sessions/metals
+// already require. Backed up, merged by union-by-id across devices
+// (src/sync/merge.js's unionById()) -- collisions are effectively
+// impossible since `id` is derived from the device's own album/side/
+// timestamp. Pruned the same 400-day way as phasePlayCountsByDay above
+// (sundown/rhythm.js's pruneRecordsByAge()). Reset by a full "Clear
+// listening history"; an orphaned-only clear drops only entries whose
+// album is no longer in the library, same as S.sessionCounts/
+// S.achievements above.
+S.playedThrough = {};
 // GS1 (docs/30_GROOVES_AND_SHELF.md): { [seasonKey]: { phases: {phase:
 // count}, albums: {albumId: count} } }, seasonKey from sundown/rhythm.js's
 // seasonKeyFor() ('2026-autumn', winter keyed by its December). Filled by

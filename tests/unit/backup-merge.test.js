@@ -22,6 +22,8 @@ function baseLocal(deviceId, overrides){
     trackLastPlayed: {}, albumLastPlayed: {}, albumFirstPlayed: {}, rareUnlocked: {}, achievements: {}, collection: {},
     // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8)
     zoetropeUnlocked: {}, zoetropeDayProgress: {},
+    // GS2 (docs/30_GROOVES_AND_SHELF.md)
+    playedThrough: {},
     sealedIds: [], brokenSealIds: [], overlaysRaw: [], updatedAt: {},
     // RF17 (docs/12_REFINE.md): add-wins playlist membership, local-id
     // keyed (state.js's S.playlistMembershipAt) — see toDoc()'s own
@@ -215,6 +217,70 @@ test('validateDoc: a missing phasePlayCountsByDay/albumPlayCountsByDay/seasonSum
   const doc = toDoc(baseLocal('a'));
   const bad = Object.assign({}, doc, { counters: Object.assign({}, doc.counters) });
   delete bad.counters.phasePlayCountsByDay; delete bad.counters.albumPlayCountsByDay; delete bad.counters.seasonSummaries;
+  assert.equal(validateDoc(bad), true);
+});
+
+// ---- GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log --------
+// unionById by the entry's own id, the same shape rareUnlocked/achievements/
+// collection above already get, just one level deeper (a flat id-keyed map
+// at the top of totals, not under totals.counters).
+
+function entry(overrides){
+  return Object.assign({ id:'x', albumId:'al1', side:'A', whole:false, phase:'night', at:1 }, overrides);
+}
+
+test('GS2: playedThrough unions by the entry\'s own id across devices', () => {
+  const a = baseLocal('a', { playedThrough: { e1: entry({ id:'e1' }) } });
+  const b = toDoc(baseLocal('b', { playedThrough: { e2: entry({ id:'e2', albumId:'al2', side:'B' }) } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.playedThrough, {
+    e1: entry({ id:'e1' }),
+    e2: entry({ id:'e2', albumId:'al2', side:'B' }),
+  });
+});
+
+test('GS2: repeated/duplicate syncs never duplicate a playedThrough entry (collisions are effectively impossible, but the union is id-keyed either way)', () => {
+  const a = baseLocal('a', { playedThrough: { e1: entry({ id:'e1' }) } });
+  const b = toDoc(baseLocal('b', { playedThrough: { e1: entry({ id:'e1' }) } }));
+  const first = fromDocs(a, [b]);
+  const second = fromDocs(a, [b, b]);
+  assert.deepEqual(first.totals.playedThrough, { e1: entry({ id:'e1' }) });
+  assert.deepEqual(second.totals.playedThrough, { e1: entry({ id:'e1' }) });
+});
+
+test('GS2: a doc from before playedThrough existed merges as empty, not thrown on', () => {
+  const a = baseLocal('a');
+  const b = toDoc(baseLocal('b'));
+  delete b.playedThrough;
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.playedThrough, {});
+});
+
+test('validateDoc: a real toDoc() output carrying playedThrough still validates, found included or omitted', () => {
+  const withFound = toDoc(baseLocal('a', { playedThrough: { e1: entry({ id:'e1', found:'red-swirl' }) } }));
+  const withoutFound = toDoc(baseLocal('a', { playedThrough: { e1: entry({ id:'e1' }) } }));
+  assert.equal(validateDoc(withFound), true);
+  assert.equal(validateDoc(withoutFound), true);
+});
+
+test('validateDoc: rejects a doc whose playedThrough entry is malformed', () => {
+  const base = toDoc(baseLocal('a', { playedThrough: { e1: entry({ id:'e1' }) } }));
+  const missingField = Object.assign({}, base, { playedThrough: { e1: { id:'e1', albumId:'al1', side:'A', phase:'night', at:1 } } }); // whole missing
+  const badWhole = Object.assign({}, base, { playedThrough: { e1: entry({ id:'e1', whole:'yes' }) } });
+  const badAt = Object.assign({}, base, { playedThrough: { e1: entry({ id:'e1', at:-1 }) } });
+  const badFound = Object.assign({}, base, { playedThrough: { e1: entry({ id:'e1', found:42 }) } });
+  const notAnObject = Object.assign({}, base, { playedThrough: { e1: 'nope' } });
+  assert.equal(validateDoc(missingField), false);
+  assert.equal(validateDoc(badWhole), false);
+  assert.equal(validateDoc(badAt), false);
+  assert.equal(validateDoc(badFound), false);
+  assert.equal(validateDoc(notAnObject), false);
+});
+
+test('validateDoc: a missing playedThrough field at all (pre-GS2 doc) still validates', () => {
+  const doc = toDoc(baseLocal('a'));
+  const bad = Object.assign({}, doc);
+  delete bad.playedThrough;
   assert.equal(validateDoc(bad), true);
 });
 

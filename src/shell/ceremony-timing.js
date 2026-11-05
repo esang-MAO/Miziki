@@ -87,6 +87,27 @@ export function splitSides(trackIdx, tracks, enabled){
   return groups.map((idx, k) => ({label: 'SIDE ' + String.fromCharCode(65 + k), idx}));
 }
 
+// GS2 (docs/30_GROOVES_AND_SHELF.md): "the played-through log" needs to
+// know, after the Nth track of an album's expected play order completes,
+// whether that N lands exactly on one of splitSides()'s own side
+// boundaries -- sides partition trackIdx contiguously in order, so this
+// is just a running total over each group's own length. Returns the
+// letter ('A', 'B', ...) of the side that just finished, or null when N
+// falls strictly inside a side (nothing finished yet) or past every
+// side (N larger than the album itself). `sides` is splitSides()'s own
+// return value (null is a valid input -- always returns null for it, the
+// caller's own cue to fall back to "one-sided release" instead).
+export function sideBoundaryAt(sides, n){
+  if(!sides) return null;
+  let cum = 0;
+  for(const s of sides){
+    cum += s.idx.length;
+    if(cum === n) return s.label.slice(-1);
+    if(cum > n) return null;
+  }
+  return null;
+}
+
 // GF4 (docs/29_GATEFOLD.md point 1/2): the discs a track list actually
 // spans, each with its own full set of track indices (every side of that
 // disc together, not split) -- the same discOf()/distinct-disc-list shape
