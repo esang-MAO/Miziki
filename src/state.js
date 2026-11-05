@@ -434,6 +434,15 @@ S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone
 // fight the user's own input value
 S.scrubbing = false;
 
+// GS4 (docs/30_GROOVES_AND_SHELF.md): true while a rim touch is holding
+// the record and sliding to drop the needle elsewhere -- player/scrub.js
+// owns the needle ring's position for the gesture's own duration (the
+// touch radius, not playback), so player/clock.js's drawTime() skips its
+// own per-tick ring write while this is true, the same "don't fight the
+// user's own input" reason S.scrubbing exists for the time slider above.
+// Runtime only -- never saved, never a prefs field.
+S.needleDrop = false;
+
 // D2 (docs/DESKTOP_LAYOUT.md): one of 'auto'/'light'/'dark'. Auto is the
 // default for new installs, and a saved prefs object without this field
 // (every device before D2) also loads as Auto — the doc's own stated

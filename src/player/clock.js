@@ -243,7 +243,7 @@ function renderSideMap(t, pos){
   // once per load() alongside S.sideTrackIdx), interpolated by how far
   // into the active track playback has gotten.
   const ring = $('#needleRing');
-  if(ring){
+  if(ring && !S.needleDrop){
     const r = needleRadiusPct(S.sideBands, activeIdx >= 0 ? activeIdx : 0, frac);
     // r is a percent of the record's own radius (0..100); #needleRing
     // spans the whole platter box (its diameter is the box's own 100%),

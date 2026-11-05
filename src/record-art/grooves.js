@@ -23,12 +23,29 @@
 import { clamp } from '../util/math.js';
 
 // The groove area's own inner/outer radius, as a percent of the record's
-// radius -- matches .disc's existing static background stops
-// (src/styles/02-stage-platter.css): the label sits inside 27%, the rim
-// starts at 90%. Independent of record size/speed -- a future per-size
-// refinement is left for later, same as the rest of this step.
-export const GROOVE_INNER_PCT = 27;
+// radius. GROOVE_OUTER_PCT (the rim) is the same for every record size.
+// GROOVE_INNER_PCT is the real .label element's own edge on a 12" record
+// (src/styles/02-stage-platter.css: "a 100mm label at 33% of the record",
+// inset:33.5% -- inset I% is radius (100-2*I)% of the disc's own full
+// radius, the same conversion player/clock.js's own needle-ring inset
+// comment uses) -- not record-art/tiers.js's static disc-background
+// gradient stop (27%), which this used to reuse on the mistaken assumption
+// that it matched the real label: it doesn't, so a side's innermost tracks
+// drew groove texture that rendered right under the label, "not realistic"
+// (Ken, 2026-11-05). LABEL_INNER_PCT_BY_SIZE below covers the two other
+// formats' own, larger real labels (10"/7", same CSS section) -- every
+// caller that knows the record's own S.recordFormat.size should resolve
+// through labelInnerPctForSize() rather than assuming the 12" default.
+export const GROOVE_INNER_PCT = 33;
 export const GROOVE_OUTER_PCT = 90;
+
+// 10″ is 100mm/40% of the record; 7″ is 90mm/51.5% (same CSS section's own
+// comment) -- a smaller record's label takes up proportionally more of it.
+export const LABEL_INNER_PCT_BY_SIZE = { '7"': 51.5, '10"': 40, '12"': GROOVE_INNER_PCT };
+
+export function labelInnerPctForSize(size){
+  return LABEL_INNER_PCT_BY_SIZE[size] || GROOVE_INNER_PCT;
+}
 
 // Ring pitch (the gap between adjacent texture rings), as a percent of the
 // record's own radius -- middle is today's flat pitch (1px line + 4px gap
@@ -77,14 +94,23 @@ export function bandRadiiFromDurations(durations, innerPct = GROOVE_INNER_PCT, o
 
 // Combines the band radii above with each track's own measured loudness
 // -- tracks: an array of {duration, details:{loudness}} in side order
-// (the shape S.tracks entries already have).
+// (the shape S.tracks entries already have). t.details.loudness is
+// audio/loudness.js's own analyze() result object ({lufs, truePeakDb,
+// clipRuns, plr, measured, truePeakVersion}, src/library/import.js's
+// storeTrack()), not a bare number -- its .lufs is what groovePitchFor
+// Loudness() actually wants; an unmeasured track (no loudness object
+// yet, or one whose own .lufs isn't a real number) still lands on
+// groovePitchForLoudness()'s own null/NaN branch below, same as before.
 export function grooveBandsForSide(tracks, innerPct = GROOVE_INNER_PCT, outerPct = GROOVE_OUTER_PCT){
   const list = tracks || [];
   const radii = bandRadiiFromDurations(list.map(t => (t && t.duration) || 0), innerPct, outerPct);
-  return radii.map((r, i) => ({
-    startPct: r.startPct, endPct: r.endPct,
-    pitchPct: groovePitchForLoudness(list[i] && list[i].details && list[i].details.loudness),
-  }));
+  return radii.map((r, i) => {
+    const loudness = list[i] && list[i].details && list[i].details.loudness;
+    return {
+      startPct: r.startPct, endPct: r.endPct,
+      pitchPct: groovePitchForLoudness(loudness && loudness.lufs),
+    };
+  });
 }
 
 // The needle's current radius (a percent of the record's own radius),
@@ -98,6 +124,83 @@ export function needleRadiusPct(bands, activeIdx, playedFrac){
   const band = bands[i];
   const frac = clamp(playedFrac || 0, 0, 1);
   return band.startPct + (band.endPct - band.startPct) * frac;
+}
+
+/* ================= GS4: drop the needle (docs/30_GROOVES_AND_SHELF.md)
+   =================
+   A touch starting on the outer rim -- the record's own edge, outside the
+   groove area entirely (GROOVE_OUTER_PCT and up) -- holds the record
+   rather than scrubbing/scratching it (player/scrub.js branches on
+   isRimRadiusPct() at pointerdown, before either gesture is claimed).
+   Sliding while holding moves a visual needle across the grooves; these
+   two helpers are the pure geometry behind that: converting a touch
+   point into a radius percent, and resolving that radius into the track
+   it's over plus whether it's close enough to that track's own start to
+   snap. */
+
+// "The outermost ~8% of the radius" -- a touch at or beyond this radius
+// (a percent of the record's own radius, the same 0..100 scale every
+// other radius in this module uses) starts a hold rather than a scrub.
+export const RIM_INNER_PCT = 92;
+
+export function isRimRadiusPct(radiusPct){
+  return radiusPct >= RIM_INNER_PCT;
+}
+
+// A touch point's distance from the disc's own center, as a percent of
+// its radius (0 at the spindle, 100 at the rim, past 100 outside the
+// disc entirely -- callers that need an in-bounds value clamp it
+// themselves, same as bandIndexForRadius()/dropNeedleTarget() below
+// already do). `rect` is any {left, top, width, height} box the disc
+// itself occupies -- a real DOMRect, or a plain object in a test.
+export function radiusPctFromPoint(clientX, clientY, rect){
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const dx = clientX - cx, dy = clientY - cy;
+  const radius = rect.width / 2;
+  return radius > 0 ? (Math.sqrt(dx * dx + dy * dy) / radius) * 100 : 0;
+}
+
+// Which band a given radius falls into -- clamps to the groove area's
+// own bounds first (so a radius still inside the rim, or past the
+// innermost band at the spindle, still resolves to a real, droppable
+// track), same "clamp to the nearest real band" shape needleRadiusPct()
+// above already uses.
+export function bandIndexForRadius(bands, radiusPct){
+  if(!bands || !bands.length) return 0;
+  for(let i = 0; i < bands.length; i++){
+    const b = bands[i];
+    if(radiusPct <= b.startPct && radiusPct >= b.endPct) return i;
+  }
+  return radiusPct > bands[0].startPct ? 0 : bands.length - 1;
+}
+
+// "A small threshold" -- close to a typical ring's own pitch (the
+// GROOVE_PITCH_* constants above), so snapping feels like finding the
+// actual gap between tracks rather than a wide dead zone around it.
+export const DROP_NEEDLE_SNAP_PCT = 2.5;
+
+// A slide's current target while dropping the needle: which track it's
+// over (index into `bands`, same order as the side's own track list),
+// whether it's close enough to that track's own start to snap, and the
+// radius to actually show the needle (and its tag) at -- the track's
+// own start once snapped, the raw (but in-bounds) touch radius
+// otherwise. Returns null for no bands at all, the same "nothing to
+// drop onto" shape grooveBackgroundImage() already uses.
+export function dropNeedleTarget(bands, radiusPct, snapPct = DROP_NEEDLE_SNAP_PCT){
+  if(!bands || !bands.length) return null;
+  const clamped = clamp(radiusPct, bands[bands.length - 1].endPct, bands[0].startPct);
+  const idx = bandIndexForRadius(bands, clamped);
+  let nearest = 0, nearestDist = Infinity;
+  bands.forEach((b, i) => {
+    const d = Math.abs(clamped - b.startPct);
+    if(d < nearestDist){ nearestDist = d; nearest = i; }
+  });
+  const snapped = nearestDist <= snapPct;
+  return {
+    index: snapped ? nearest : idx,
+    snapped,
+    radiusPct: snapped ? bands[nearest].startPct : clamped,
+  };
 }
 
 // The side map: one segment per track on this side, widthPct proportional

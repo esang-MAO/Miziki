@@ -793,6 +793,12 @@
              every tick by player/clock.js's drawTime(); also a sibling of
              .disc so it never spins with the platter. -->
         <div class="needle-ring" id="needleRing" aria-hidden="true"></div>
+        <!-- GS4 (docs/30_GROOVES_AND_SHELF.md point 2): the hand-lettered
+             tag that follows the needle while dropping it -- shown only
+             for the gesture's own duration (player/scrub.js toggles .on
+             and writes its position/text; a sibling of .disc for the
+             same reason .needle-ring is one). -->
+        <div class="needle-drop-tag" id="needleDropTag" aria-hidden="true"></div>
       </div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
         <img class="sleeve-art" id="sleeveArt" alt="">

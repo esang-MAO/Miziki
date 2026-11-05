@@ -62,6 +62,12 @@
   transition:opacity .6s;
 }
 .disc.rare::before{opacity:.3}
+/* GS4 (docs/30_GROOVES_AND_SHELF.md point 1): "the track gaps brighten"
+   while a rim touch holds the record -- a plain filter boost on the
+   already-drawn ::before layer (the groove rings' own seam highlights,
+   grooveBackgroundImage() above, are the brightest thing in it), so no
+   second gradient is needed just for this. */
+.disc.disc-drop-active::before{filter:brightness(1.8) contrast(1.08)}
 /* GS3 (docs/30_GROOVES_AND_SHELF.md point 1): --groove-rings is set once
    per track load (player/transport.js's load(), from record-art/
    grooves.js's grooveBandsForSide()/grooveBackgroundImage()) -- one band
@@ -98,6 +104,16 @@
 .needle-ring.on{opacity:1}
 .needle-ring::after{content:'';position:absolute;top:-2px;left:50%;width:4px;height:4px;
   margin-left:-2px;border-radius:50%;background:rgba(255,253,245,.9)}
+/* GS4 point 2: the Caveat tag that follows the needle while dropping it
+   -- positioned in JS (player/scrub.js writes left/top in pixels, the
+   finger's own position over #disc) since it tracks a touch, not a
+   fixed layout slot; the transform centers it above that point rather
+   than under the finger itself. */
+.needle-drop-tag{position:absolute;left:0;top:0;transform:translate(-50%,-160%);
+  opacity:0;pointer-events:none;white-space:nowrap;
+  font-family:var(--hand);font-size:var(--fs-row);color:var(--cream);
+  text-shadow:0 1px 3px rgba(0,0,0,.6);transition:opacity .15s}
+.needle-drop-tag.on{opacity:1}
 /* holds a snapshot of the disc's previous background and fades it out to
    reveal the new one underneath — used for same-album metal/tier changes
    that have no sleeve animation to cover an instant swap (see METAL spec §4) */
