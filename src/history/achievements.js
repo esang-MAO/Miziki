@@ -175,8 +175,12 @@ export function recordsInWindowCount(windowDays = RHYTHM_WINDOW_DAYS){
   return Object.keys(windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays)).length;
 }
 
-export function topAlbumsInWindow(n, windowDays = RHYTHM_WINDOW_DAYS){
-  const counts = windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays);
+// GS9 (docs/30_GROOVES_AND_SHELF.md point 2): "Most spun" needs the same
+// top-n-by-plays shape for an arbitrary {albumId: count} map, not just
+// the rolling window below -- a past calendar season's own counts
+// (sundown/rhythm.js's sumBucketsInRange()/mergeCounts(), src/profile/
+// screens.js) reuse this rather than a second copy of the mapping/sort.
+export function topAlbumsFromCounts(counts, n){
   return Object.keys(counts)
     .map(albumId => {
       const disp = S.albumDisplay[albumId] || {name:albumId, artist:'', art:null};
@@ -185,6 +189,10 @@ export function topAlbumsInWindow(n, windowDays = RHYTHM_WINDOW_DAYS){
     })
     .sort((a,b) => b.count - a.count || (S.albumLastPlayed[b.albumId] || 0) - (S.albumLastPlayed[a.albumId] || 0))
     .slice(0, n);
+}
+
+export function topAlbumsInWindow(n, windowDays = RHYTHM_WINDOW_DAYS){
+  return topAlbumsFromCounts(windowedCounts(S.albumPlayCountsByDay, Date.now(), windowDays), n);
 }
 
 // colors / splits / splatter as distinct groups, per PROFILE spec §9

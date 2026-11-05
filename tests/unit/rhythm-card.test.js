@@ -24,8 +24,8 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 globalThis.document = { createElement(){ return fakeEl(); } };
 
 const { S } = await import('../../src/state.js');
-const { renderRhythmCard, renderSharedRhythmCard } = await import('../../src/profile/rhythm-card.js');
-const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
+const { renderRhythmCard, renderSharedRhythmCard, renderBestPerPhaseList } = await import('../../src/profile/rhythm-card.js');
+const { dayKeyFor, seasonAtOffset } = await import('../../src/sundown/rhythm.js');
 
 // RF22 (docs/12_REFINE.md, "words that invite", point 3): renderRhythmCard
 // now reads a rolling window over S.phasePlayCountsByDay rather than the
@@ -53,6 +53,7 @@ function reset(){
   S.phasePlayCountsByDay = {};
   S.albumPhaseCounts = {};
   S.albumDisplay = {};
+  S.seasonSummaries = {};
 }
 
 // QC3 (docs/24_QUIET_COUNTS.md): below the gate, nothing is drawn at all
@@ -105,30 +106,78 @@ test('a play outside the 90-day window is not counted -- a stale season renders 
   assert.equal(findAll(host, 'rhythm-ring').length, 0);
 });
 
-test('a record row renders only for phases with a resolvable best album, using S.albumDisplay', () => {
+// GS9 (docs/30_GROOVES_AND_SHELF.md point 3): the per-phase "best record"
+// list moved out of renderRhythmCard() itself into its own function,
+// shown separately ("below a divider, not season-scoped") on the
+// Listening screen -- these two tests now target that function directly.
+test('renderBestPerPhaseList: a record row renders only for phases with a resolvable best album, using S.albumDisplay', () => {
   reset();
-  seedToday({ night: 15, dawn: 10 });   // 25 total -- past the gate
-  // bestAlbumPerPhase() still reads lifetime S.albumPhaseCounts, not the
-  // windowed day buckets -- RF22 only windows the ring/verdict, never the
-  // per-phase "best record" list (it isn't part of the shared payload).
+  // bestAlbumPerPhase() still reads lifetime S.albumPhaseCounts, never
+  // windowed/season-scoped -- see this file's own header comment for why.
   S.albumPhaseCounts = { alb1: { night: 5 }, alb2: { dawn: 3 } };
   S.albumDisplay = { alb1: { name: 'Night Album', artist: 'Band A', art: null }, alb2: { name: 'Dawn Album', artist: '', art: null } };
   const host = fakeEl();
-  renderRhythmCard(host);
+  const shown = renderBestPerPhaseList(host);
+  assert.equal(shown, true);
   const rows = findAll(host, 'rhythm-record-row');
   assert.equal(rows.length, 2);   // one per phase that actually has a best album
   const texts = rows.map(r => r.childNodes[1].childNodes[1].textContent).sort();
   assert.deepEqual(texts, ['Dawn Album', 'Night Album — Band A']);
 });
 
-test('no plays at all for any album is simply no record rows -- not a crash', () => {
+test('renderBestPerPhaseList: no plays at all for any album returns false and renders nothing -- not a crash', () => {
+  reset();
+  // S.albumPhaseCounts left empty
+  const host = fakeEl();
+  const shown = renderBestPerPhaseList(host);
+  assert.equal(shown, false);
+  assert.equal(findAll(host, 'rhythm-record-row').length, 0);
+  assert.equal(findAll(host, 'rhythm-records').length, 0);
+});
+
+test('renderRhythmCard no longer renders any record row itself -- that moved to renderBestPerPhaseList', () => {
   reset();
   seedToday({ night: 25 });
-  // S.albumPhaseCounts left empty
+  S.albumPhaseCounts = { alb1: { night: 5 } };
+  S.albumDisplay = { alb1: { name: 'Night Album', artist: '', art: null } };
   const host = fakeEl();
   renderRhythmCard(host);
   assert.equal(findAll(host, 'rhythm-record-row').length, 0);
   assert.equal(findAll(host, 'rhythm-records').length, 0);
+});
+
+// ================= renderRhythmCard with a nonzero offset (GS9, docs/30_GROOVES_AND_SHELF.md point 1-2) =================
+test('offset reads a past calendar season from day buckets still in range', () => {
+  reset();
+  const season = seasonAtOffset(Date.now(), 1);   // the one calendar season before this one
+  const midSeason = dayKeyFor(season.startMs + 24 * 60 * 60 * 1000);
+  S.phasePlayCountsByDay = { [midSeason]: { golden: 25 } };
+  const host = fakeEl();
+  renderRhythmCard(host, -1);
+  assert.equal(findAll(host, 'rhythm-ring').length, 1);
+  assert.equal(findAll(host, 'rhythm-verdict')[0].textContent, 'Lately, leaning golden hour');
+});
+
+test('offset also reads an already-folded S.seasonSummaries entry, merged with any remaining day buckets', () => {
+  reset();
+  const season = seasonAtOffset(Date.now(), 1);
+  S.seasonSummaries = { [season.key]: { phases: { night: 18 } } };
+  const midSeason = dayKeyFor(season.startMs + 24 * 60 * 60 * 1000);
+  S.phasePlayCountsByDay = { [midSeason]: { night: 4 } };   // 18 + 4 = 22, past the gate
+  const host = fakeEl();
+  renderRhythmCard(host, -1);
+  assert.equal(findAll(host, 'rhythm-ring').length, 1);
+  const center = findAll(host, 'rhythm-ring-center')[0];
+  assert.equal(center.childNodes[0].textContent, '22');
+});
+
+test('a day bucket outside the requested season is not counted', () => {
+  reset();
+  const season = seasonAtOffset(Date.now(), 1);
+  S.phasePlayCountsByDay = { [dayKeyFor(Date.now())]: { night: 99 } };   // this season, not the one asked for
+  const host = fakeEl();
+  renderRhythmCard(host, -1);
+  assert.equal(host.childNodes.length, 0, 'a different season\'s own plays never leak into this one; ' + season.key + ' stays empty');
 });
 
 // ================= renderSharedRhythmCard (a friend's own shared snapshot) =================

@@ -269,7 +269,13 @@ export const S = {
   albumFirstPlayed:{},
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
-  profileView:{screen:'home', recordsFilter:'all'},
+  // GS9 (docs/30_GROOVES_AND_SHELF.md): seasonOffset is the Listening
+  // screen's own ‹ › position -- 0 is the current rolling-90-day window,
+  // a negative integer is that many calendar seasons back (sundown/
+  // rhythm.js's seasonAtOffset()). Runtime-only like the rest of this
+  // object; reset to 0 whenever the screen is entered fresh (storefront.js's
+  // storeListeningRow()).
+  profileView:{screen:'home', recordsFilter:'all', seasonOffset:0},
   // SH1 (docs/18_SHARE.md): one sheet, five cards -- Include toggles are
   // per card now (`shareSelectionByCard`), replacing the old shareSelection/
   // playerShareSelection pair. SH5 removed crate-card.js's metals/

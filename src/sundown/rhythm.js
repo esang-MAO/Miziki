@@ -151,6 +151,71 @@ export function seasonKeyFor(ts){
   return year + '-' + name;
 }
 
+// GS9 (docs/30_GROOVES_AND_SHELF.md point 1): "earlier seasons are
+// calendar seasons" -- the Listening screen's ‹ › navigation steps back
+// one meteorological season at a time from the one `now` falls in
+// (seasonKeyFor()'s own four names/boundaries), independent of the
+// current season's own rolling-90-day window (offset 0, which stays
+// seasonLabelFor()'s own definition and never calls this). `stepsBack`
+// is always a positive integer -- the caller supplies `-offset` once
+// `offset` (0 = current, negative = earlier) has already ruled out 0.
+// Returns {name, range, key, startMs, endMs} -- `key` matches
+// seasonKeyFor()'s own format, directly indexing S.seasonSummaries;
+// [startMs, endMs) is the season's exact calendar span, for summing
+// whatever day buckets haven't been folded into that summary yet.
+// Chronological order *within a given seasonKeyFor() year* -- Winter(Y)'s
+// own December falls after Spring/Summer/Autumn(Y)'s Mar-Nov, so Winter
+// has to sort last here despite being spoken of first, or consecutive
+// integers wouldn't stay chronological across a year boundary.
+const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'];
+const SEASON_START_MONTH = {spring: 2, summer: 5, autumn: 8, winter: 11};
+export function seasonAtOffset(now, stepsBack){
+  const [y0, name0] = seasonKeyFor(now).split('-');
+  const index0 = Number(y0) * 4 + SEASON_ORDER.indexOf(name0);
+  const index = index0 - stepsBack;
+  const year = Math.floor(index / 4), ord = ((index % 4) + 4) % 4;
+  const name = SEASON_ORDER[ord];
+  // Winter's own boundary starts in December of `year` (seasonKeyFor()'s
+  // own "keyed by the year of its December" convention) and runs into
+  // March of `year + 1`; every other season starts and ends within `year`.
+  const start = new Date(year, SEASON_START_MONTH[name], 1).getTime();
+  const end = new Date(year, SEASON_START_MONTH[name] + 3, 1).getTime();
+  const rangeStartMonth = SEASON_START_MONTH[name] % 12;
+  const rangeEndMonth = (SEASON_START_MONTH[name] + 2) % 12;
+  return {
+    name: name[0].toUpperCase() + name.slice(1),
+    range: MONTH_ABBR[rangeStartMonth] + ' – ' + MONTH_ABBR[rangeEndMonth],
+    key: year + '-' + name, startMs: start, endMs: end,
+  };
+}
+
+// GS9: the generic sibling of windowedCounts() above, for an explicit
+// [startMs, endMs) span rather than "the last windowDays up to now" --
+// a past calendar season's own exact boundaries (seasonAtOffset() above),
+// not a rolling window. Works for either day-bucket shape (phases or
+// albums), same as windowedCounts().
+export function sumBucketsInRange(byDay, startMs, endMs){
+  const map = byDay || {};
+  const out = {};
+  Object.keys(map).forEach(key => {
+    const parts = key.split('-');
+    const keyMs = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    if(keyMs < startMs || keyMs >= endMs) return;
+    const bucket = map[key] || {};
+    Object.keys(bucket).forEach(k => { out[k] = (out[k] || 0) + (bucket[k] || 0); });
+  });
+  return out;
+}
+
+// GS9: merges two plain {key: count} maps (a past season's own already-
+// folded S.seasonSummaries entry plus whatever of its day buckets haven't
+// aged into one yet) -- pure, never mutates either input.
+export function mergeCounts(a, b){
+  const out = Object.assign({}, a);
+  Object.keys(b || {}).forEach(k => { out[k] = (out[k] || 0) + b[k]; });
+  return out;
+}
+
 // GS1: before pruneDayBuckets() below drops a day bucket, fold it into a
 // running per-season summary instead of losing it outright, so a season
 // stays browsable (Listening ‹ ›) for good once its own day buckets have

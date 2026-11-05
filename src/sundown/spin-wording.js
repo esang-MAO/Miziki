@@ -17,6 +17,16 @@ export const SPIN_PHASE_WORDING = {
   twilight: 'at dusk',
 };
 
+// GS8/GS9 (docs/30_GROOVES_AND_SHELF.md): a short, all-caps single word
+// for a mono readout (the profile wall's "recently found" line, the
+// Listening screen's played-through log's own mono line) -- the same
+// seven phases as SPIN_PHASE_WORDING above, just the bare noun rather
+// than its "at dusk"/"this morning" sentence form.
+export const PHASE_CAPS = {
+  night: 'NIGHT', dawn: 'DAWN', morning: 'MORNING', midday: 'MIDDAY',
+  afternoon: 'AFTERNOON', golden: 'GOLDEN HOUR', twilight: 'DUSK',
+};
+
 /** The bare wording for a phase ("at dusk"), or null for an unknown/missing
     phase (an older client's row that never sent one, or a stale/garbled
     value) -- callers render nothing rather than "undefined". */

@@ -1,12 +1,11 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// src/profile/badges.js's metalBadge/collectionBadge build small DOM trees
-// (el()/document.createElement) around otherwise-pure background-color
-// helpers (metalBackground/variantBackground, both real here — pure CSS
-// string generators, no DOM) — mocked to a tiny stub element, the same
-// shape favorites.test.js/queue.test.js already use, rather than pulling
-// in a real document.
+// src/profile/badges.js's collectionBadge builds a small DOM tree (el()/
+// document.createElement) around an otherwise-pure background-color
+// helper (variantBackground, real here — a pure CSS string generator, no
+// DOM) — mocked to a tiny stub element, the same shape favorites.test.js/
+// queue.test.js already use, rather than pulling in a real document.
 function fakeEl(){
   const children = [];
   const node = {
@@ -17,6 +16,7 @@ function fakeEl(){
     // outside of badges.js's own narrower needs — harmless no-ops here, since
     // no test in this file ever fires a click.
     addEventListener(){},
+    setAttribute(){},
     classList: { add(){}, contains(){ return false; }, toggle(){}, remove(){} },
   };
   Object.defineProperty(node, 'innerHTML', {
@@ -91,7 +91,11 @@ mock.module(new URL('../../src/profile/records.js', import.meta.url).href, {
 });
 mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, {
   namedExports: {
-    renderRhythmCard(host){ rhythmCalls.push(host); },
+    renderRhythmCard(host, offset){ rhythmCalls.push({host, offset}); },
+    // GS9: the per-phase "best record" list, now its own call (split off
+    // renderRhythmCard) -- this file's own tests only care it's invoked,
+    // not what it draws (rhythm-card.test.js covers that directly).
+    renderBestPerPhaseList(){ return false; },
   },
 });
 mock.module(new URL('../../src/profile/settings.js', import.meta.url).href, {
@@ -136,6 +140,11 @@ mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, 
     // test below can exercise the one case where a pressing chart shows
     // even though every play-driven stat is empty.
     ownedPressingIds(){ return mockOwnedPressingIds; },
+    // GS9 (docs/30_GROOVES_AND_SHELF.md): the Listening screen's "Most
+    // spun" row reads this directly for both the current and a past
+    // season's album counts -- this file's own tests only care that the
+    // section renders from whatever it returns, not the real sort/mapping.
+    topAlbumsFromCounts(){ return []; },
   },
 });
 // DA3 (docs/DAY_ARC.md): screens.js's new setTheme import (for the new
@@ -200,7 +209,7 @@ mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
 const { renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
 const { fmtCount } = await import('../../src/util/text.js');
 const { S } = await import('../../src/state.js');
-const { metalBadge, collectionBadge } = await import('../../src/profile/badges.js');
+const { collectionBadge } = await import('../../src/profile/badges.js');
 const { METAL_COLORS } = await import('../../src/record-art/metals.js');
 const { VARIANT_DEFS } = await import('../../src/record-art/tiers.js');
 
@@ -213,35 +222,6 @@ test('fmtCount: picks the singular word for exactly 1, the plural word otherwise
   assert.equal(fmtCount(0, 'session', 'sessions'), '0 sessions');
   assert.equal(fmtCount(2, 'session', 'sessions'), '2 sessions');
   assert.equal(fmtCount(999, 'play', 'plays'), '999 plays');
-});
-
-test('metalBadge: rare tier with art uses the art as a background image, labeled "Rare"', () => {
-  const cell = metalBadge({tier: 'rare', art: 'blob:fake-art'});
-  const badge = cell.childNodes[0];
-  assert.equal(badge.style.background, 'url("blob:fake-art") center/cover');
-  const label = cell.childNodes[1];
-  assert.equal(label.textContent, 'Rare');
-});
-
-test('metalBadge: rare tier without art falls back to a plain gradient', () => {
-  const cell = metalBadge({tier: 'rare', art: null});
-  const badge = cell.childNodes[0];
-  assert.equal(badge.style.background, 'linear-gradient(155deg,#2A2018,#171310)');
-});
-
-test('metalBadge: a metal tier (e.g. gold) uses metalBackground() and a capitalized label', () => {
-  const cell = metalBadge({tier: 'gold', art: null});
-  const badge = cell.childNodes[0];
-  assert.ok(badge.style.background, 'metalBackground(\'gold\') should produce some CSS background value');
-  const label = cell.childNodes[1];
-  assert.equal(label.textContent, 'Gold');
-});
-
-test('metalBadge: a metal tier with art appends an <img> to the badge', () => {
-  const cell = metalBadge({tier: 'bronze', art: 'blob:fake-bronze'});
-  const badge = cell.childNodes[0];
-  assert.equal(badge.childNodes.length, 1);
-  assert.equal(badge.childNodes[0].src, 'blob:fake-bronze');
 });
 
 test('collectionBadge: uses variantBackground() for the given variant and the record\'s own name as the label', () => {
@@ -269,6 +249,10 @@ function resetProfileState(){
   storefrontCalls.length = 0;
   rhythmCalls.length = 0;
   S.profileView.screen = 'home';
+  S.profileView.seasonOffset = 0;
+  S.playedThrough = {};
+  S.seasonSummaries = {};
+  S.albumPlayCountsByDay = {};
 }
 
 // RF11 (docs/12_REFINE.md, "Profile is your crate") moved the rhythm card
@@ -376,12 +360,28 @@ test('renderProfile(records): renders the Records screen', () => {
   S.profileView.screen = 'home';
 });
 
-test('renderProfile(listening): once anything exists, the full breakdown (top row, rhythm, achievements, collection, share) renders', () => {
+test('renderProfile(listening): once anything exists, the season header/rhythm/Most spun/Played through/share sections render', () => {
   resetProfileState();
   mockTopAlbums = [{display:{name:'A', artist:'B', art:null}}]; mockTopTracks = []; mockAchievements = []; S.collection = {};
   S.profileView.screen = 'listening';
   renderProfile();
   assert.equal(rhythmCalls.length, 1, 'the rhythm card renders once anything is present, not only a brand-new profile');
+  assert.equal(rhythmCalls[0].offset, 0, 'a fresh entry into Listening always starts on the current season');
   const wrap = profileHosts['#profileBody'].children[0];
   assert.ok(wrap.childNodes.length > 1, 'more than just the empty card once there is something to show');
+});
+
+// GS9 (docs/30_GROOVES_AND_SHELF.md point 1): "the later button is
+// disabled on the current season" -- the one piece of the ‹ › nav this
+// file's fakeEl() (a no-op addEventListener, no real click dispatch) can
+// assert on directly; the nav's own back/forward offset stepping is
+// exercised live in Playwright, per this PR's own verification notes.
+test('renderProfile(listening): the season header\'s forward button starts disabled on the current season', () => {
+  resetProfileState();
+  mockTopAlbums = [{display:{name:'A', artist:'B', art:null}}]; mockTopTracks = []; mockAchievements = []; S.collection = {};
+  S.profileView.screen = 'listening';
+  renderProfile();
+  const header = profileHosts['#profileBody'].children[0].childNodes[0];
+  const fwdBtn = header.childNodes[2];
+  assert.equal(fwdBtn.disabled, true, 'the current season has no later season to step to');
 });

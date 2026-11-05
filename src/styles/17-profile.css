@@ -5,22 +5,19 @@
    .store-id in 18-storefront.css) — there is deliberately no second
    .profile-header/.profile-pic editor here any more; one identity, shown
    and edited once, in every state (local, open-store, signed-in). */
-/* Top Album/Top Song tiles, and the Achievements/Collection empty states,
-   predate the storefront card redesign (PR #109/#110) and the Day Arc v2
-   Sound tab (sd-charcard) — both since settled on the same card family
-   (14px radius, var(--panel)/var(--raised) fill, 1px var(--line) border;
-   a dashed var(--line) border at a flatter 8px radius for an empty/not-
-   yet-filled state, matching .store-open-card/.store-pick-empty). These
-   were left on an older, flatter 4px-radius/translucent-white look —
-   brought in line here so the whole Profile tab reads as one style. */
-.profile-top-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin:20px 0 0}
-.profile-top-tile{border:1px solid var(--line);border-radius:14px;padding:var(--sp-3);text-align:left;background:var(--panel)}
-.profile-top-cover{display:block;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:9px;
-  background:var(--raised);position:relative}
-.profile-top-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.profile-top-tile b{display:block;font-weight:500;font-size:var(--fs-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.profile-top-tile em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);
-  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+/* The Achievements/Collection empty states predate the storefront card
+   redesign (PR #109/#110) and the Day Arc v2 Sound tab (sd-charcard) —
+   both since settled on the same card family (14px radius, var(--panel)/
+   var(--raised) fill, 1px var(--line) border; a dashed var(--line) border
+   at a flatter 8px radius for an empty/not-yet-filled state, matching
+   .store-open-card/.store-pick-empty). These were left on an older,
+   flatter 4px-radius/translucent-white look — brought in line here so the
+   whole Profile tab reads as one style. GS9 (docs/30_GROOVES_AND_SHELF.md
+   point 4) removed the Top Album/Top Song tiles themselves (and their
+   .profile-top-row/-tile/-cover rules) along with the old Achievements
+   grid -- metals live on the wall now (18-storefront.css's
+   .store-found-*), and "Most spun"/"Top records ›"/"Top songs ›" replace
+   the tiles on the Listening screen (below). */
 
 .profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
   font-size:var(--fs-head);opacity:.6}
@@ -54,6 +51,44 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .profile-share-stack{display:flex;flex-direction:column;gap:var(--sp-2);margin-top:28px}
 .profile-share{width:100%;margin-top:0;color:var(--muted);border-color:var(--line);transition:color .4s,border-color .4s}
 .profile-share.active{color:var(--cream);border-color:var(--cream)}
+
+/* GS9 (docs/30_GROOVES_AND_SHELF.md): the Listening screen's own season
+   nav -- "‹ › (44px circle buttons)". Disabled (the current season's own
+   forward button) fades rather than hides, so the row's width never
+   shifts as someone browses back and forward through it. */
+.listening-season-header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-top:20px}
+.listening-season-nav{width:44px;height:44px;flex:0 0 auto;border-radius:50%;border:1px solid var(--line);
+  background:var(--panel);color:var(--paper);font-family:var(--body);font-size:var(--fs-title);line-height:1}
+.listening-season-nav:disabled{opacity:.3}
+.listening-season-title{flex:1;min-width:0;text-align:center}
+.listening-season-title b{display:block;font-family:var(--display);font-size:var(--fs-hero);line-height:var(--lh-hero)}
+.listening-season-title span{display:block;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
+
+/* "Most spun": the same three-sleeve-row shape as the wall's own recently-
+   found row (18-storefront.css's .store-found-row/-tile), reused here as
+   plain CSS rather than imported, since this card lives on the app's
+   ordinary (non-dark-card) background, not the storefront's own chrome. */
+.listening-spun-row{display:flex;gap:var(--sp-4);margin-top:10px}
+.listening-spun-tile{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.listening-spun-tile img{width:64px;height:64px;border-radius:4px;object-fit:cover;box-shadow:var(--sh-1)}
+.listening-spun-tile .profile-empty-cover{width:64px;height:64px;border-radius:4px;background:var(--raised)}
+.listening-spun-name{font-size:var(--fs-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.listening-nav-link{margin-top:var(--sp-2)}
+
+.listening-divider{border-top:1px solid var(--line);margin:28px 0 0}
+
+/* "Played through": the mono readout line is the one place on this
+   screen that carries the app's data/mono voice (CLAUDE.md's "mono
+   whitelist") -- everything else on the row stays the ordinary body/
+   display type the rest of .tracklist already uses. */
+.listening-played-mono{font-family:var(--data) !important;font-size:var(--fs-micro) !important;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-top:2px}
+/* Same "found [pressing]" hand-written color as the pressing-peek card's
+   own sticker (18-storefront.css's .pressing-card-found) -- a "paper
+   sticker," per the spec, never the app's one reserved accent (--amber
+   never signals state, CLAUDE.md). */
+.listening-played-sticker{display:inline-block;font-family:var(--hand);font-size:var(--fs-body);
+  color:#5A4A3A;margin-top:4px}
 
 .settings-section{margin-top:22px}
 .settings-section-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;

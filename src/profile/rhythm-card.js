@@ -42,7 +42,7 @@ import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import {
   PHASES, RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, rhythmVerdictLabel,
-  bestAlbumPerPhase, windowedPhaseCounts,
+  bestAlbumPerPhase, windowedPhaseCounts, seasonAtOffset, sumBucketsInRange, mergeCounts,
 } from '../sundown/rhythm.js';
 
 export const PHASE_LABEL = {
@@ -176,35 +176,59 @@ function buildCard(verdict, shares, centerLines){
   return card;
 }
 
-// Called from profile/screens.js's renderProfileHome(), right alongside
-// the existing storefront section — host is a plain container, cleared
-// and rebuilt on every render the same way every other profile section
-// already is.
+// Called from profile/screens.js's Listening screen (renderListeningScreen,
+// GS9 docs/30_GROOVES_AND_SHELF.md point 2) — host is a plain container,
+// cleared and rebuilt on every render the same way every other profile
+// section already is. `offset` is the screen's own season-nav position
+// (0 = current, negative = `-offset` calendar seasons back, GS9 point 1)
+// -- offset 0 keeps RF22's original rolling-90-day window verbatim;
+// anything else reads seasonAtOffset()'s exact calendar span instead,
+// summing whatever day buckets haven't aged into S.seasonSummaries yet
+// with that summary's own already-folded totals (sundown/rhythm.js).
 //
 // RF22 (docs/12_REFINE.md, "words that invite", point 3): "listening
-// rhythm as a season" — windowed to the last RHYTHM_WINDOW_DAYS, not a
-// lifetime total, so the 20-play gate below is also a 20-plays-*lately*
-// gate: a device that hasn't played anything in a season reads as not
-// enough yet. QC3 (docs/24_QUIET_COUNTS.md): below the gate, nothing is
-// drawn at all — no locked card, no "N of 20 plays" progress line. The
-// card appears, complete, the moment there's enough data.
-export function renderRhythmCard(host){
+// rhythm as a season" — windowed, not a lifetime total, so the 20-play
+// gate below is also a 20-plays-*that season* gate: a season with too
+// few plays reads as not enough yet (GS9 point 5). QC3 (docs/
+// 24_QUIET_COUNTS.md): below the gate, nothing is drawn at all — no
+// locked card, no "N of 20 plays" progress line. The card appears,
+// complete, the moment there's enough data. GS9 point 3 moved the old
+// per-phase "best record" list (renderBestPerPhaseList() below) out of
+// this card into its own, not-season-scoped place on the screen -- this
+// function now only ever builds the ring/legend/verdict.
+export function renderRhythmCard(host, offset = 0){
   host.innerHTML = '';
-  const { total, shares } = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
+  let counts;
+  if(offset === 0){
+    counts = windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS);
+  } else {
+    const season = seasonAtOffset(Date.now(), -offset);
+    const summary = (S.seasonSummaries[season.key] && S.seasonSummaries[season.key].phases) || {};
+    counts = mergeCounts(sumBucketsInRange(S.phasePlayCountsByDay, season.startMs, season.endMs), summary);
+  }
+  const { total, shares } = computeRhythmShares(counts);
   if(total < RHYTHM_MIN_PLAYS) return;
 
-  const card = buildCard(rhythmVerdictLabel(shares), shares,
-    [['b', String(total)], ['span', total === 1 ? 'play' : 'plays']]);
+  host.appendChild(buildCard(rhythmVerdictLabel(shares), shares,
+    [['b', String(total)], ['span', total === 1 ? 'play' : 'plays']]));
+}
 
+// GS9 point 3: "a record for each part of the day (existing
+// bestAlbumPerPhase, phases with plays only)" — lifetime S.albumPhaseCounts,
+// never windowed/season-scoped (see this file's own header comment for
+// why), shown "below a divider" on the Listening screen rather than
+// inside the season ring card above. Returns false when there's nothing
+// to show (no phase has a best album yet) so the caller can skip the
+// divider too, the same "skip the row entirely" shape storeLastSpunRow()
+// uses elsewhere.
+export function renderBestPerPhaseList(host){
   const best = bestAlbumPerPhase(S.albumPhaseCounts);
   const withRecords = PHASES.filter(p => best[p]);
-  if(withRecords.length){
-    const list = el('div', 'rhythm-records');
-    withRecords.forEach(p => list.appendChild(recordRow(p, best[p])));
-    card.appendChild(list);
-  }
-
-  host.appendChild(card);
+  if(!withRecords.length) return false;
+  const list = el('div', 'rhythm-records');
+  withRecords.forEach(p => list.appendChild(recordRow(p, best[p])));
+  host.appendChild(list);
+  return true;
 }
 
 // A friend's own shared rhythm, read straight off whatever
