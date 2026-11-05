@@ -41,6 +41,28 @@ export function sumNestedCounters(rows, field){
   return out;
 }
 
+// ---- GS1 (docs/30_GROOVES_AND_SHELF.md): seasonSummaries, one level
+// deeper again than sumNestedCounters above -- {season: {phases: {phase:
+// count}, albums: {albumId: count}}}. Sums both sub-maps independently per
+// season, the same additive rule every other per-device counter here uses.
+export function sumSeasonSummaries(rows, field){
+  const out = {};
+  for(const row of rows){
+    const c = row.counters && row.counters[field];
+    if(!c) continue;
+    for(const season of Object.keys(c)){
+      const inner = c[season];
+      if(!inner) continue;
+      const dest = out[season] || (out[season] = { phases: {}, albums: {} });
+      const srcPhases = inner.phases || {};
+      Object.keys(srcPhases).forEach(p => { dest.phases[p] = (dest.phases[p] || 0) + (srcPhases[p] || 0); });
+      const srcAlbums = inner.albums || {};
+      Object.keys(srcAlbums).forEach(a => { dest.albums[a] = (dest.albums[a] || 0) + (srcAlbums[a] || 0); });
+    }
+  }
+  return out;
+}
+
 // ---- trackLastPlayed / albumLastPlayed: max() across devices ----
 export function maxField(rows, field){
   const out = {};
@@ -345,6 +367,13 @@ export function mergeRows(rows){
         // other row in this object
         phasePlayCounts: sumCounters(fresh, 'phasePlayCounts'),
         albumPhaseCounts: sumNestedCounters(fresh, 'albumPhaseCounts'),
+        // GS1 (docs/30_GROOVES_AND_SHELF.md): the day-bucketed twins are
+        // the same {outerKey: {innerKey: count}} shape sumNestedCounters
+        // already sums (dayKey in place of albumId); seasonSummaries is
+        // its own one-level-deeper primitive just above.
+        phasePlayCountsByDay: sumNestedCounters(fresh, 'phasePlayCountsByDay'),
+        albumPlayCountsByDay: sumNestedCounters(fresh, 'albumPlayCountsByDay'),
+        seasonSummaries: sumSeasonSummaries(fresh, 'seasonSummaries'),
       },
       maxFields: {
         trackLastPlayed: maxField(fresh, 'trackLastPlayed'),

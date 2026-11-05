@@ -60,13 +60,16 @@ export async function persistTrackMetalEligiblePlays(){ await meta.put('trackMet
 // sibling of (the same split this module already has for trackPlayCounts).
 export async function persistPhasePlayCounts(){ await meta.put('phasePlayCounts', S.phasePlayCounts); }
 export async function persistAlbumPhaseCounts(){ await meta.put('albumPhaseCounts', S.albumPhaseCounts); }
-// RF22 (docs/12_REFINE.md) -- device-only, never in the backup doc (see
-// state.js's own S.phasePlayCountsByDay entry); persisted/restored the
-// same way as every sibling counter in this file regardless.
+// RF22 (docs/12_REFINE.md) -- persisted/restored the same way as every
+// sibling counter in this file; GS1 (docs/30_GROOVES_AND_SHELF.md) made it
+// backed up too (see state.js's own S.phasePlayCountsByDay entry).
 export async function persistPhasePlayCountsByDay(){ await meta.put('phasePlayCountsByDay', S.phasePlayCountsByDay); }
-// QC2 (docs/24_QUIET_COUNTS.md) -- the per-album twin above, same
-// device-only posture as phasePlayCountsByDay.
+// QC2 (docs/24_QUIET_COUNTS.md) -- the per-album twin above, same posture
+// as phasePlayCountsByDay.
 export async function persistAlbumPlayCountsByDay(){ await meta.put('albumPlayCountsByDay', S.albumPlayCountsByDay); }
+// GS1 (docs/30_GROOVES_AND_SHELF.md) -- the per-season roll-up above, same
+// backed-up posture as its two source counters.
+export async function persistSeasonSummaries(){ await meta.put('seasonSummaries', S.seasonSummaries); }
 // RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
 // changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
 export async function persistAlbumLookPref(keys){
@@ -348,6 +351,11 @@ export async function restoreSessions(){
   if(phaseCountsByDay) S.phasePlayCountsByDay = phaseCountsByDay;
   const albumCountsByDay = await meta.get('albumPlayCountsByDay');
   if(albumCountsByDay) S.albumPlayCountsByDay = albumCountsByDay;
+  // GS1 (docs/30_GROOVES_AND_SHELF.md) -- a device that hasn't written this
+  // yet just reads no seasons at all, the same forward-compat shape as
+  // phaseCountsByDay right above.
+  const seasonSummaries = await meta.get('seasonSummaries');
+  if(seasonSummaries) S.seasonSummaries = seasonSummaries;
   const lookPref = await meta.get('albumLookPref');
   if(lookPref) S.albumLookPref = lookPref;
   // AU9 (docs/16_AUDIO.md §5)

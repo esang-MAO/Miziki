@@ -225,6 +225,13 @@ function buildLocalState(){
     // trackPlayCounts above
     phasePlayCounts: S.phasePlayCounts,
     albumPhaseCounts: S.albumPhaseCounts,
+    // GS1 (docs/30_GROOVES_AND_SHELF.md): same per-device-counter rule as
+    // phasePlayCounts/albumPhaseCounts above — the cross-device sum lands
+    // in S.mergedStats (applyMerged() below), never folded back into these
+    // fields themselves.
+    phasePlayCountsByDay: S.phasePlayCountsByDay,
+    albumPlayCountsByDay: S.albumPlayCountsByDay,
+    seasonSummaries: S.seasonSummaries,
     trackLastPlayed: S.trackLastPlayed,
     albumLastPlayed: S.albumLastPlayed,
     // RW7 (docs/23_RHYTHM_AND_WEAR.md): min merge, the mirror of

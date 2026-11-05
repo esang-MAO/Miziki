@@ -12,7 +12,7 @@ import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
   persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
-  persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay,
+  persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries,
   // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
   // zoetropeDayProgress are session-derived milestone state, the exact
   // same class as rareUnlocked right above — both scopes below reset/prune
@@ -68,6 +68,10 @@ export async function resetLocalHistory(){
   // same full-scope-only treatment, same reason (calendar-day keyed, not
   // identity keyed, so an orphaned-only clear has nothing to prune by).
   S.albumPlayCountsByDay = {};
+  // GS1 (docs/30_GROOVES_AND_SHELF.md): the season roll-up has the same
+  // no-per-album/-track shape as albumPhaseCounts/phasePlayCountsByDay, so
+  // a full clear is the only thing that ever resets it, same as those.
+  S.seasonSummaries = {};
   await achievements.clear(); await collection.clear(); await sessions.clear();
   await pruneThumbs();
   await Promise.all([
@@ -75,7 +79,7 @@ export async function resetLocalHistory(){
     persistZoetropeUnlocked(), persistZoetropeDayProgress(),
     persistAlbumLastPlayed(), persistAlbumFirstPlayed(), persistAlbumDisplay(albumDisplayKeys), persistAlbumLookPref(albumLookPrefKeys),
     persistTrackPlayCounts(), persistTrackMetalEligiblePlays(), persistTrackLastPlayed(), persistTrackDisplay(trackDisplayKeys),
-    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay(), persistAlbumPlayCountsByDay()
+    persistPhasePlayCounts(), persistAlbumPhaseCounts(), persistPhasePlayCountsByDay(), persistAlbumPlayCountsByDay(), persistSeasonSummaries()
   ]);
 }
 

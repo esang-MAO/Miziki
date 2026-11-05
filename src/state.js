@@ -561,23 +561,35 @@ S.albumPhaseCounts = {};
 // local-calendar 'YYYY-MM-DD' string (sundown/rhythm.js's dayKeyFor()) --
 // kept so the profile's listening-rhythm card can read "a season" (a
 // rolling RHYTHM_WINDOW_DAYS-day window, sundown/rhythm.js's
-// windowedPhaseCounts()) instead of a lifetime total. Device-only: unlike
-// phasePlayCounts/albumPhaseCounts, this is never in the backup doc and
-// never merged across devices -- a season is "what this device has heard
-// lately," the same posture S.theme/S.rhythmPushedAt already have, not
-// one more per-device counter to sum. Pruned on every write
+// windowedPhaseCounts()) instead of a lifetime total. GS1 (docs/
+// 30_GROOVES_AND_SHELF.md): backed up, merged by summing each day bucket
+// across devices (src/sync/merge.js's sumNestedCounters(), same shape it
+// already uses for albumPhaseCounts) -- the cross-device sum lands in
+// S.mergedStats, same as every other per-device counter below, never
+// written back into this field itself. Pruned on every write
 // (history/played.js's incrementTrackPlay(), via pruneDayBuckets()) to a
-// generous multiple of the window so it never grows without bound.
+// generous multiple of the window so it never grows without bound; a day
+// about to be dropped is folded into S.seasonSummaries first (below).
 S.phasePlayCountsByDay = {};
 // QC2 (docs/24_QUIET_COUNTS.md): the per-album twin of phasePlayCountsByDay
 // above -- {dayKey: {albumId: count}} -- for the Season share card's "most
 // played this season" row (top 3 albums by plays in the window, replacing
-// the old metals/"N records played through" figures). Same device-only
-// posture and pruning as phasePlayCountsByDay (history/played.js's
-// incrementTrackPlay(), sundown/rhythm.js's pruneDayBuckets()); read via
+// the old metals/"N records played through" figures). Same backed-up
+// posture and pruning as phasePlayCountsByDay above (GS1); read via
 // sundown/rhythm.js's windowedCounts() and history/achievements.js's
 // topAlbumsInWindow().
 S.albumPlayCountsByDay = {};
+// GS1 (docs/30_GROOVES_AND_SHELF.md): { [seasonKey]: { phases: {phase:
+// count}, albums: {albumId: count} } }, seasonKey from sundown/rhythm.js's
+// seasonKeyFor() ('2026-autumn', winter keyed by its December). Filled by
+// foldIntoSeasons() (sundown/rhythm.js) just before pruneDayBuckets() would
+// otherwise drop a day bucket from phasePlayCountsByDay/albumPlayCountsByDay
+// above, so a season stays browsable (Listening ‹ ›) for good once its own
+// day buckets have aged out. Backed up, merged by summing per season
+// (src/sync/merge.js's sumSeasonSummaries()). Reset only by a full "Clear
+// listening history" (history/clear.js) -- like albumPhaseCounts, it has no
+// per-album/per-track shape to prune an orphaned-only clear by.
+S.seasonSummaries = {};
 // device-only sync bookkeeping -- the last time this device actually
 // pushed a listening-rhythm snapshot to the account (src/sync/backup.js's
 // pushBackup(), "updated at most daily" per the doc) -- never itself

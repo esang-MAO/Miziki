@@ -33,6 +33,11 @@
      phasePlayCounts, albumPhaseCounts,  (DA5, docs/DAY_ARC.md — per-device
        counters, same rule as trackPlayCounts/sessionCounts; already keyed
        by a portable string, no idToKey conversion needed)
+     phasePlayCountsByDay, albumPlayCountsByDay, seasonSummaries,  (GS1,
+       docs/30_GROOVES_AND_SHELF.md — same per-device-counter rule, summed
+       across devices into merged.totals.counters like every field in this
+       group; never written back into S's own per-device copy, see
+       sync/backup.js's applyMerged() comment)
      trackLastPlayed, albumLastPlayed, rareUnlocked, achievements, collection,
      zoetropeUnlocked, zoetropeDayProgress,  (PRESSINGS_110 PR7,
        docs/PRESSINGS_110.md §8 — zoetropeUnlocked is the same union-of-
@@ -278,6 +283,14 @@ export function toDoc(localState){
       // same reason).
       phasePlayCounts: s.phasePlayCounts || {},
       albumPhaseCounts: s.albumPhaseCounts || {},
+      // GS1 (docs/30_GROOVES_AND_SHELF.md): both day-bucketed maps, plus
+      // their folded-season roll-up, are backed up now too — already
+      // keyed by portable strings (a calendar-day key, a season key, a
+      // phase name, or albumKey()), so none needs idToKey conversion
+      // either, same as phasePlayCounts/albumPhaseCounts above.
+      phasePlayCountsByDay: s.phasePlayCountsByDay || {},
+      albumPlayCountsByDay: s.albumPlayCountsByDay || {},
+      seasonSummaries: s.seasonSummaries || {},
     },
     maxFields: {
       trackLastPlayed: s.trackLastPlayed || {},
@@ -544,6 +557,26 @@ function isAlbumDaySetMap(v){
   if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
   return Object.keys(v).every(k => isStringArray(v[k] || []));
 }
+// GS1 (docs/30_GROOVES_AND_SHELF.md): the generic one-level-deeper shape
+// phasePlayCountsByDay/albumPlayCountsByDay/albumPhaseCounts all share —
+// {outerKey: {innerKey: nonNegInt}} — factored out of albumPhaseCounts'
+// own inline check below so the two new day-bucketed fields can reuse it.
+function isNestedCounterMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(k => isFlatCounterMap(v[k]));
+}
+// GS1: seasonSummaries is one level deeper still — {season: {phases: {...},
+// albums: {...}}}, each sub-map the same flat counter shape as above.
+function isSeasonSummariesMap(v){
+  if(!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.keys(v).every(season => {
+    const entry = v[season];
+    if(!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    if(entry.phases !== undefined && !isFlatCounterMap(entry.phases)) return false;
+    if(entry.albums !== undefined && !isFlatCounterMap(entry.albums)) return false;
+    return true;
+  });
+}
 function isItemWritesArray(v){
   return Array.isArray(v) && v.every(e => e && typeof e === 'object'
     && isStr(e.key) && isNonNegInt(e.seq) && isNonNegInt(e.at)
@@ -561,6 +594,10 @@ export function validateDoc(doc){
   const albumPhaseCounts = counters.albumPhaseCounts || {};
   if(typeof albumPhaseCounts !== 'object' || Array.isArray(albumPhaseCounts)) return false;
   if(!Object.keys(albumPhaseCounts).every(k => isFlatCounterMap(albumPhaseCounts[k]))) return false;
+  // GS1 (docs/30_GROOVES_AND_SHELF.md)
+  if(!isNestedCounterMap(counters.phasePlayCountsByDay || {})) return false;
+  if(!isNestedCounterMap(counters.albumPlayCountsByDay || {})) return false;
+  if(!isSeasonSummariesMap(counters.seasonSummaries || {})) return false;
 
   const maxFields = doc.maxFields || {};
   if(!isFlatMaxMap(maxFields.trackLastPlayed || {})) return false;
