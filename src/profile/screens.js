@@ -2,13 +2,12 @@ import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow, recordsInWindowCount } from '../history/achievements.js';
-import { metalBadge } from './badges.js';
+import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow, recordsInWindowCount, topAlbumsFromCounts } from '../history/achievements.js';
 import { renderStorefrontSection, storeSwitch } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
 // pressing chart moved there; see records.js's own header.
 import { renderRecordsScreen } from './records.js';
-import { renderRhythmCard } from './rhythm-card.js';
+import { renderRhythmCard, renderBestPerPhaseList } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
@@ -20,7 +19,15 @@ import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
 import { eqStateLabel } from '../player/eq-label.js';
-import { RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, rhythmVerdictLabel, seasonLabelFor } from '../sundown/rhythm.js';
+import {
+  RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, windowedCounts,
+  rhythmVerdictLabel, seasonLabelFor, seasonAtOffset, sumBucketsInRange, mergeCounts,
+} from '../sundown/rhythm.js';
+import { PHASE_CAPS } from '../sundown/spin-wording.js';
+import { albumKey, getVariantDef } from '../record-art/tiers.js';
+import { albumTracks } from '../library/model.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { RPM_45 } from '../record-art/format.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -60,23 +67,6 @@ export function formatDisplayName(name){
   return parts[0] + ' ' + parts[parts.length - 1][0].toUpperCase() + '.';
 }
 
-export function topTile(label, art, title, subtitle, emptyText, onTap){
-  const b = el('button','profile-top-tile');
-  const cover = el('span','profile-top-cover');
-  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
-  else cover.appendChild(el('span','profile-empty-cover', title ? '◍' : '—'));
-  b.appendChild(cover);
-  if(title){
-    b.appendChild(el('b', null, title));
-    if(subtitle) b.appendChild(el('em', null, subtitle));
-  } else {
-    b.appendChild(el('b', null, label));
-    b.appendChild(el('em', null, emptyText));
-  }
-  b.addEventListener('click', onTap);
-  return b;
-}
-
 // NV4 (docs/11_SMOOTH_NAVIGATION.md): "build once; on later visits, update
 // only the parts whose data changed" for the Profile home screen.
 // profileHomeHosts persists the storefront's own host element across
@@ -101,7 +91,8 @@ let lastProfileScreen = null;
 export function renderProfile(opts = {}){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {listening:'Listening', topAlbums:'Top Albums', topSongs:'Top Songs', records:'Records', collection:'Records', socialSettings:'Account', privacy:'Privacy',
+  const labels = {listening:'Listening', topAlbums:'Top Albums', topSongs:'Top Songs', playedThrough:'Played through',
+    records:'Records', collection:'Records', socialSettings:'Account', privacy:'Privacy',
     privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use', settings:'Settings'};
   crumb.style.display = screen === 'home' ? 'none' : 'flex';
   if(screen !== 'home'){
@@ -119,6 +110,7 @@ export function renderProfile(opts = {}){
   if(screen === 'listening') renderListeningScreen(body);
   else if(screen === 'topAlbums') renderTopAlbumsScreen(body);
   else if(screen === 'topSongs') renderTopSongsScreen(body);
+  else if(screen === 'playedThrough') renderPlayedThroughScreen(body);
   else if(screen === 'records') renderRecordsScreen(body);
   // the old Collection screen's route now opens Records on its Pressings tab
   else if(screen === 'collection'){ S.profileView.screen = 'records'; S.profileView.recordsFilter = 'pressings'; renderRecordsScreen(body); }
@@ -344,6 +336,115 @@ function renderAppSettingsScreen(body){
   body.appendChild(legalLinksRow(renderProfile));
 }
 
+// GS9 (docs/30_GROOVES_AND_SHELF.md): the season a given ‹ › position names
+// -- 0 is the current rolling-90-day window (unchanged from RF22/QC2: the
+// same window renderRhythmCard()'s own offset-0 branch and the Share
+// season button already read), a negative offset is that many calendar
+// seasons back (sundown/rhythm.js's seasonAtOffset()), merging whatever of
+// that season's day buckets haven't aged into S.seasonSummaries yet with
+// the summary itself. S.playedThrough is filtered by entry.at against the
+// same window either way, never a third counting scheme.
+function seasonDataFor(offset){
+  const now = Date.now();
+  if(!offset){
+    const label = seasonLabelFor(now, RHYTHM_WINDOW_DAYS);
+    const cutoff = now - RHYTHM_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    return {
+      name: label.name, range: label.range + ' · this season', canGoForward: false,
+      albumCounts: windowedCounts(S.albumPlayCountsByDay, now, RHYTHM_WINDOW_DAYS),
+      playedThrough: Object.values(S.playedThrough).filter(e => e.at >= cutoff),
+    };
+  }
+  const season = seasonAtOffset(now, -offset);
+  const summary = S.seasonSummaries[season.key] || {};
+  return {
+    name: season.name, range: season.range, canGoForward: true,
+    albumCounts: mergeCounts(sumBucketsInRange(S.albumPlayCountsByDay, season.startMs, season.endMs), summary.albums),
+    playedThrough: Object.values(S.playedThrough).filter(e => e.at >= season.startMs && e.at < season.endMs),
+  };
+}
+
+const WEEKDAY_CAPS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MONTH_CAPS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function playedThroughDateCaps(ms){
+  const d = new Date(ms);
+  return WEEKDAY_CAPS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_CAPS[d.getMonth()];
+}
+
+// whole && a side letter both set means the completed track landed exactly
+// on the album's own last side boundary -- true of any multi-side release
+// played straight through, but only a two-sided 7" single (RPM_45, "7\"")
+// gets the narrower "BOTH SIDES" wording the spec asks for; every other
+// multi-side release (an LP's two sides, a multi-disc set) still reads as
+// one whole record. A sample track that's since left the library (the
+// entry outlives the file, same as every other playedThrough field) just
+// falls back to the plain "WHOLE RECORD" wording rather than guessing.
+function playedThroughLabel(entry){
+  if(entry.whole){
+    if(entry.side){
+      const sample = S.tracks.find(t => albumKey(t) === entry.albumId);
+      if(sample && sample.tags && sample.tags.album){
+        const idx = albumTracks(sample.tags.album);
+        const format = albumFormatFor(idx, S.tracks, (S.albumFormat && S.albumFormat[entry.albumId]) || 'auto');
+        if(format && format.size === '7"' && format.speed === RPM_45) return '7″ · BOTH SIDES';
+      }
+    }
+    return 'WHOLE RECORD';
+  }
+  return 'SIDE ' + (entry.side || '');
+}
+
+// The played-through log's own mono line -- "WHOLE RECORD · DUSK · TUE 3
+// NOV" / "SIDE B · NIGHT · …" / "7″ · BOTH SIDES · …" (GS9 point 2).
+export function playedThroughLine(entry){
+  return [playedThroughLabel(entry), PHASE_CAPS[entry.phase] || '', playedThroughDateCaps(entry.at)]
+    .filter(Boolean).join(' · ');
+}
+
+function navLink(label, onTap){
+  const b = el('button','settings-link-row listening-nav-link');
+  b.appendChild(el('span', null, label));
+  b.addEventListener('click', onTap);
+  return b;
+}
+
+function spunTile(a){
+  const tile = el('div','listening-spun-tile');
+  if(a.art){ const im = document.createElement('img'); im.src = a.art; im.alt = ''; tile.appendChild(im); }
+  else tile.appendChild(el('span','profile-empty-cover', '◍'));
+  tile.appendChild(el('span','listening-spun-name', a.name));
+  return tile;
+}
+
+// GS9 point 2: "a 'found [pressing]' paper sticker or 'from [handle]'
+// when present" -- entry.found is a VARIANT_DEFS key (history/played.js's
+// checkTrackCompletion(), patched on only when a pressing was newly found
+// this same play-through); entry.from (a friend's handle, GS11's "held
+// stack") is never written yet -- handled defensively so this doesn't
+// throw once GS11 starts populating it.
+function playedThroughSticker(entry){
+  if(entry.found){
+    const def = getVariantDef(entry.found);
+    return el('span','listening-played-sticker', 'found ' + (def ? def.name : entry.found));
+  }
+  if(entry.from) return el('span','listening-played-sticker', 'from ' + entry.from);
+  return null;
+}
+
+function playedThroughRow(entry){
+  const li = el('li','listening-played-row');
+  const disp = S.albumDisplay[entry.albumId] || {name: entry.albumId, artist: '', art: null};
+  if(disp.art){ const im = el('img','t-art'); im.src = disp.art; im.alt = ''; li.appendChild(im); }
+  else li.appendChild(el('span','t-art'));
+  const info = el('span','t-name');
+  info.appendChild(el('b', null, disp.name));
+  info.appendChild(el('em','listening-played-mono', playedThroughLine(entry)));
+  const sticker = playedThroughSticker(entry);
+  if(sticker) info.appendChild(sticker);
+  li.appendChild(info);
+  return li;
+}
+
 // RF11 (docs/12_REFINE.md, "Profile is your crate"): formerly
 // renderProfileExtras(), appended directly below the storefront's own
 // identity header on every profile-home render. Point 1 ("a Listening
@@ -353,6 +454,18 @@ function renderAppSettingsScreen(body){
 // storefront state (local-only, open-store card, signed-in) — the avatar/
 // name identity itself stays exactly where it was, inline in whichever
 // store-header is already showing.
+//
+// GS9 (docs/30_GROOVES_AND_SHELF.md): reworked around S.profileView.
+// seasonOffset's own ‹ › browsing -- the season-scoped ring/verdict, Most
+// spun and Played through (point 2) swap with the season; the per-phase
+// "record for each part of the day" and the two Share buttons, below a
+// divider (point 3), stay lifetime/unwindowed regardless of which season
+// is showing. Point 4: the old Achievements grid (metals live on the
+// wall, storefront.js's storeWallSection()) and the Top Album/Top Song
+// tiles are gone outright, not relocated. "Kept for a time of day" (point
+// 3's last item, GS10) is deliberately not built here yet -- GS10 hasn't
+// landed, and S.albumKeptFor doesn't exist, so there's nothing yet for it
+// to read; see this PR's own description.
 function renderListeningScreen(body){
   const wrap = el('div','profile-extras');
 
@@ -360,10 +473,12 @@ function renderListeningScreen(body){
   const achList = achievementsList();
   const collList = Object.values(S.collection);
   // RF11 point 2: "a new profile with no stats shows one card... instead
-  // of several 'nothing yet' boxes." Only for a genuinely fresh profile —
-  // once anything exists, each section still shows its own ordinary state
-  // (including its own, more specific empty copy, e.g. achievements earned
-  // but no collection pressing yet).
+  // of several 'nothing yet' boxes." Only for a genuinely fresh profile --
+  // a lifetime-activity check, independent of whichever season is being
+  // browsed (a real profile can browse back to a season with nothing in
+  // it without being "new"). Once anything exists, each section still
+  // shows its own ordinary state (including its own, more specific empty
+  // copy).
   if(!albums.length && !tracks.length && !achList.length && !collList.length){
     const empty = el('div','profile-empty profile-empty-first');
     empty.appendChild(el('p', null, 'Play an album start to finish to earn your first metal.'));
@@ -372,34 +487,73 @@ function renderListeningScreen(body){
     return;
   }
 
-  const row = el('div','profile-top-row');
-  row.appendChild(topTile('Top Album', albums[0] ? albums[0].display.art : null,
-    albums[0] ? albums[0].display.name : null, albums[0] ? albums[0].display.artist : null,
-    'nothing in the crate yet', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
-  row.appendChild(topTile('Top Song', tracks[0] ? tracks[0].art : null,
-    tracks[0] ? tracks[0].title : null, tracks[0] ? tracks[0].artist : null,
-    'nothing in the sleeve yet', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
-  wrap.appendChild(row);
+  const offset = S.profileView.seasonOffset || 0;
+  const season = seasonDataFor(offset);
+
+  const header = el('div','listening-season-header');
+  const backBtn = el('button','listening-season-nav','‹');
+  backBtn.setAttribute('aria-label','Earlier season');
+  backBtn.addEventListener('click', () => { S.profileView.seasonOffset = offset - 1; renderProfile(); });
+  header.appendChild(backBtn);
+  const titleWrap = el('div','listening-season-title');
+  titleWrap.appendChild(el('b', null, season.name));
+  titleWrap.appendChild(el('span','listening-season-range', season.range));
+  header.appendChild(titleWrap);
+  const fwdBtn = el('button','listening-season-nav','›');
+  fwdBtn.setAttribute('aria-label','Later season');
+  fwdBtn.disabled = offset === 0;
+  fwdBtn.addEventListener('click', () => { if(offset < 0){ S.profileView.seasonOffset = offset + 1; renderProfile(); } });
+  header.appendChild(fwdBtn);
+  wrap.appendChild(header);
 
   // DA5 (docs/DAY_ARC.md): local to this device, visible regardless of
   // sign-in state. The *sharing* switch is the social-only half (Privacy
-  // screen, src/profile/privacy.js) and stays separate.
+  // screen, src/profile/privacy.js) and stays separate. QC rule (point 5):
+  // below the 20-play gate, renderRhythmCard() itself renders nothing --
+  // Most spun/Played through below show regardless, per that same point.
   const rhythmHost = el('div', null);
   wrap.appendChild(rhythmHost);
-  renderRhythmCard(rhythmHost);
+  renderRhythmCard(rhythmHost, offset);
 
-  const achSection = el('div','profile-section');
-  const achHead = el('div','profile-section-head'); achHead.appendChild(el('span', null, 'Achievements'));
-  achSection.appendChild(achHead);
-  if(achList.length){
-    const grid = el('div','profile-grid');
-    achList.forEach(rec => grid.appendChild(metalBadge(rec)));
-    achSection.appendChild(grid);
+  const spunSection = el('div','profile-section');
+  const spunHead = el('div','profile-section-head'); spunHead.appendChild(el('span', null, 'Most spun'));
+  spunSection.appendChild(spunHead);
+  const spunAlbums = topAlbumsFromCounts(season.albumCounts, 3);
+  if(spunAlbums.length){
+    const spunRow = el('div','listening-spun-row');
+    spunAlbums.forEach(a => spunRow.appendChild(spunTile(a)));
+    spunSection.appendChild(spunRow);
   } else {
-    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing earned yet.'));
-    achSection.appendChild(empty);
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing played this season yet.'));
+    spunSection.appendChild(empty);
   }
-  wrap.appendChild(achSection);
+  spunSection.appendChild(navLink('Top records ›', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
+  spunSection.appendChild(navLink('Top songs ›', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
+  wrap.appendChild(spunSection);
+
+  const playedSection = el('div','profile-section');
+  const playedHead = el('div','profile-section-head'); playedHead.appendChild(el('span', null, 'Played through'));
+  playedSection.appendChild(playedHead);
+  const playedList = season.playedThrough.slice().sort((a, b) => b.at - a.at);
+  if(playedList.length){
+    const ul = el('ul','tracklist listening-played-list');
+    playedList.slice(0, 4).forEach(entry => ul.appendChild(playedThroughRow(entry)));
+    playedSection.appendChild(ul);
+    if(playedList.length > 4){
+      playedSection.appendChild(navLink('All of ' + season.name + ' ›', ()=>{ S.profileView.screen = 'playedThrough'; renderProfile(); }));
+    }
+  } else {
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing played through this season yet.'));
+    playedSection.appendChild(empty);
+  }
+  wrap.appendChild(playedSection);
+
+  // ---- below a divider: not season-scoped (point 3) ----
+  wrap.appendChild(el('div','listening-divider'));
+
+  const bestHost = el('div', null);
+  wrap.appendChild(bestHost);
+  renderBestPerPhaseList(bestHost);
 
   // Collection (unlocked pressings) and the pressing chart moved to the
   // profile's Records section/screen (records.js), alongside the records
@@ -409,7 +563,8 @@ function renderListeningScreen(body){
   // becomes two rows, 'Share crate' and 'Share season' (the second only
   // once the rhythm card is unlocked, >= 20 plays in the 90-day window)."
   // Same gate renderRhythmCard() itself uses (rhythm-card.js) -- windowed,
-  // not the lifetime phasePlayCounts.
+  // not the lifetime phasePlayCounts, and always the *current* season
+  // regardless of which one the ‹ › nav above is browsing.
   const shareStack = el('div','profile-share-stack');
   const shareCrateBtn = el('button','cta ghost profile-share','Share crate');
   shareCrateBtn.classList.toggle('active', crateFilled());
@@ -443,6 +598,25 @@ function renderListeningScreen(body){
   wrap.appendChild(shareStack);
 
   body.appendChild(wrap);
+}
+
+// GS9 point 2: "All of [season] ›" -- the full season's played-through
+// log, past the home screen's own 4-row preview. Reads the same
+// S.profileView.seasonOffset the Listening screen left behind (not reset
+// on this sub-screen's own entry, unlike storeListeningRow()'s reset on a
+// fresh entry into Listening itself), so it always lists the season the
+// person actually tapped through from.
+function renderPlayedThroughScreen(body){
+  const season = seasonDataFor(S.profileView.seasonOffset || 0);
+  const list = season.playedThrough.slice().sort((a, b) => b.at - a.at);
+  if(!list.length){
+    const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing played through this season yet.'));
+    body.appendChild(empty);
+    return;
+  }
+  const ul = el('ul','tracklist listening-played-list');
+  list.forEach(entry => ul.appendChild(playedThroughRow(entry)));
+  body.appendChild(ul);
 }
 
 function renderTopAlbumsScreen(body){

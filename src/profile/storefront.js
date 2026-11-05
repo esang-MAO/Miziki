@@ -12,6 +12,7 @@ import { beginSocialSignIn } from './settings.js';
 // file's circular cluster with screens.js; see records.js's own header.
 import { storeRecordsSection, metalDisc, pressingDisc } from './records.js';
 import { achievementsList } from '../history/achievements.js';
+import { PHASE_CAPS } from '../sundown/spin-wording.js';
 // CR11 point 3: "tapping a chip jumps the crate to the first record in
 // that pressing" — a real, one-directional import each (neither imports
 // anything back from this file), widening the already-circular
@@ -26,14 +27,6 @@ import { renderTracks } from '../library/view.js';
 export const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
 export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
 
-// GS8 (docs/30_GROOVES_AND_SHELF.md point 2): the wall's "recently found"
-// mono line ("DUSK · 14 NOV") spells out the day-arc phase a pressing was
-// found in -- sundown/spin-wording.js's own table is worded as a sentence
-// ("at dusk"), so this is its own short-caps table for the mono readout,
-// not a second source of phase names (the phase string itself still only
-// ever comes from history/achievements.js's realDayPosition() read).
-const WALL_PHASE_CAPS = {night:'NIGHT', dawn:'DAWN', morning:'MORNING', midday:'MIDDAY',
-  afternoon:'AFTERNOON', golden:'GOLDEN HOUR', twilight:'DUSK'};
 function wallDayMonth(ms){
   const d = new Date(ms);
   return d.getDate() + ' ' + d.toLocaleDateString('en-US', {month:'short'}).toUpperCase();
@@ -120,7 +113,7 @@ export function storeListeningRow(){
   const row = el('button','store-listening-row');
   row.appendChild(el('span', null, 'Listening'));
   row.appendChild(el('span','g-chev','›'));
-  row.addEventListener('click', ()=>{ S.profileView.screen = 'listening'; renderProfile(); });
+  row.addEventListener('click', ()=>{ S.profileView.screen = 'listening'; S.profileView.seasonOffset = 0; renderProfile(); });
   return row;
 }
 
@@ -495,7 +488,7 @@ function storeWallFoundRow(){
     label.appendChild(el('b', null, rec.name));
     label.appendChild(el('span','store-found-mono', kind === 'metal'
       ? 'METAL · ' + wallMonth(date)
-      : (WALL_PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
+      : (PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
     tile.appendChild(label);
     row.appendChild(tile);
   });
