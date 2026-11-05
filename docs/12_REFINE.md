@@ -210,6 +210,8 @@ RF12 (light-theme contrast) is small and independent. It can jump the queue at a
 
 **Superseded by docs/24_QUIET_COUNTS.md:** pressings and metals are shown as found, never counted (no "N of M", blanks or missing lists).
 
+**Superseded by docs/30_GROOVES_AND_SHELF.md:** the awning and "Crate of [name]" header are gone (a taped paper sign instead), and the Listening screen's contents (point 1 below) are replaced.
+
 > Read CLAUDE.md first.
 >
 > 1. **Split Profile** into what a friend sees (the awning, staff picks, all records) and a **Listening** sub-screen (top album/song, metals, collection, achievements, listening rhythm), linked from one row. The settings gear stays.
