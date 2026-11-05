@@ -37,7 +37,15 @@ import { clamp } from '../util/math.js';
 // caller that knows the record's own S.recordFormat.size should resolve
 // through labelInnerPctForSize() rather than assuming the 12" default.
 export const GROOVE_INNER_PCT = 33;
-export const GROOVE_OUTER_PCT = 90;
+// Was 90 -- left a visible 10%-of-radius gap of bare disc before the
+// first track's own groove band even started, reading as "too far from
+// the edge" (Ken, 2026-11-05). 96 leaves only the thin un-grooved edge
+// strip a real pressing has. This now sits *past* RIM_INNER_PCT (92,
+// below) on purpose: the rim's own outermost ~8% is a touch-gesture zone
+// (hold vs. spin, GS4), not a claim about where groove texture stops
+// being drawn -- a real record's grooves run almost to the edge you'd
+// hold it by.
+export const GROOVE_OUTER_PCT = 96;
 
 // 10″ is 100mm/40% of the record; 7″ is 90mm/51.5% (same CSS section's own
 // comment) -- a smaller record's label takes up proportionally more of it.
@@ -128,15 +136,16 @@ export function needleRadiusPct(bands, activeIdx, playedFrac){
 
 /* ================= GS4: drop the needle (docs/30_GROOVES_AND_SHELF.md)
    =================
-   A touch starting on the outer rim -- the record's own edge, outside the
-   groove area entirely (GROOVE_OUTER_PCT and up) -- holds the record
-   rather than scrubbing/scratching it (player/scrub.js branches on
-   isRimRadiusPct() at pointerdown, before either gesture is claimed).
-   Sliding while holding moves a visual needle across the grooves; these
-   two helpers are the pure geometry behind that: converting a touch
-   point into a radius percent, and resolving that radius into the track
-   it's over plus whether it's close enough to that track's own start to
-   snap. */
+   A touch starting on the outer rim -- the record's own outermost ~8%
+   (RIM_INNER_PCT and up), a touch-gesture zone, not a claim about where
+   groove texture itself stops being drawn (GROOVE_OUTER_PCT now reaches
+   past it, see its own comment above) -- holds the record rather than
+   scrubbing/scratching it (player/scrub.js branches on isRimRadiusPct()
+   at pointerdown, before either gesture is claimed). Sliding while
+   holding moves a visual needle across the grooves; these two helpers
+   are the pure geometry behind that: converting a touch point into a
+   radius percent, and resolving that radius into the track it's over
+   plus whether it's close enough to that track's own start to snap. */
 
 // "The outermost ~8% of the radius" -- a touch at or beyond this radius
 // (a percent of the record's own radius, the same 0..100 scale every
@@ -249,8 +258,20 @@ export function grooveBackgroundImage(bands){
   const push = (pct, color) => {
     const p = Math.max(floor, Math.min(100, pct));
     floor = p;
-    stops.push(p.toFixed(3) + '% ' + color);
+    // CSS color-stop syntax is "<color> <position>", not the reverse --
+    // a position-first stop list parses as invalid and the whole
+    // background-image drops to `none`, which is why no groove texture
+    // rendered at all until this was caught with a live browser check.
+    stops.push(color + ' ' + p.toFixed(3) + '%');
   };
+  // Line/seam alpha (Ken, 2026-11-05): "the render of the grooves ...
+  // should still be slightly visible while it is spinning. Maybe in a
+  // light gray" -- .05/.09 read as essentially invisible against a dark
+  // pressing (jet black and most other looks). Brighter here, but still
+  // well under the needle ring's own rgba(255,253,245,.4)/.9 (02-stage-
+  // platter.css's .needle-ring/::after) -- that stays the one "lit/white"
+  // marker for where playback actually is; this is just the record's own
+  // physical texture.
   const ordered = bands.slice().reverse();
   ordered.forEach((band, oi) => {
     const { startPct, endPct, pitchPct } = band;
@@ -259,14 +280,14 @@ export function grooveBackgroundImage(bands){
     while(r < startPct){
       const lineEnd = Math.min(startPct, r + lineWidth);
       push(r, 'transparent');
-      push(r, 'rgba(255,255,255,.05)');
-      push(lineEnd, 'rgba(255,255,255,.05)');
+      push(r, 'rgba(255,255,255,.16)');
+      push(lineEnd, 'rgba(255,255,255,.16)');
       push(lineEnd, 'transparent');
       r += pitchPct;
     }
     if(oi < ordered.length - 1){
       push(startPct, 'transparent');
-      push(Math.min(100, startPct + 0.3), 'rgba(255,255,255,.09)');
+      push(Math.min(100, startPct + 0.3), 'rgba(255,255,255,.24)');
       push(Math.min(100, startPct + 0.3), 'transparent');
     }
   });

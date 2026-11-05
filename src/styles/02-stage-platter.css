@@ -58,7 +58,7 @@
       rgba(255,255,255,.045) 48deg 54deg, rgba(255,255,255,0) 54deg 137deg,
       rgba(255,255,255,.055) 137deg 142deg, rgba(255,255,255,0) 142deg 225deg,
       rgba(255,255,255,.035) 225deg 231deg, rgba(255,255,255,0) 231deg 360deg),
-    var(--groove-rings, repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,0) 1px 5px));
+    var(--groove-rings, repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.16) 0 1px,rgba(0,0,0,0) 1px 5px));
   transition:opacity .6s;
 }
 .disc.rare::before{opacity:.3}
