@@ -256,6 +256,17 @@
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
 .gf-left .gf-note-input::placeholder, .picture-sleeve-body .gf-note-input::placeholder{color:var(--muted)}
+/* GS12 (docs/30_GROOVES_AND_SHELF.md): "optionally pin it to a side and
+   track" -- a plain select, same visual family as .gf-note-input. */
+.gf-left .gf-note-anchor-select, .picture-sleeve-body .gf-note-anchor-select{width:100%;box-sizing:border-box;
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:9px 11px;
+  font-family:var(--body);font-size:var(--fs-body);color:var(--paper);min-height:44px}
+/* TY6 (docs/22_TYPE.md): same hand-lettered paper-note treatment as
+   .record-note/.held-note/.store-pick-sleeve-note -- the one place in the
+   tracklist a note like this shows up. */
+.gf-anchor-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
+  padding:10px 14px;font-family:var(--hand);font-weight:500;font-size:16px;line-height:1.25;
+  margin:4px 0 8px 30px}
 /* #gfLeftActions: GF1 point 6 -- the main gatefold relocates these two
    buttons there (relocateGatefoldActions(), gatefold/view.js), out of
    .gf-left's own scroll area; .picture-sleeve-body keeps them inline,

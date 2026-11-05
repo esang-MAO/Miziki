@@ -285,6 +285,14 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
     });
     return host;
   }
+  // GS12 (docs/30_GROOVES_AND_SHELF.md): a sleeve note pinned to a track
+  // (side.idx's own 1-based position within its side, not gatefoldTrackRow's
+  // global pos badge -- see MizikiSocial.setNoteAnchor()'s own comment).
+  // Sides off (or too few tracks to split) still needs a side to match
+  // against -- "SIDE A" for the whole album, same fallback
+  // gatefoldSocialControlsHTML()'s own anchor picker already uses.
+  const anchorSocial = MizikiSocial.getAlbumSocial(item.albumId);
+  const anchor = anchorSocial.noteAnchor;
   const sides = gatefoldSideSplits(trackIdx);
   if(sides){
     const showWear = S.showWear !== false;
@@ -320,10 +328,21 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
         wrap.appendChild(bar);
         host.appendChild(wrap);
       }
-      side.idx.forEach(i => host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler)));
+      const sideLetter = side.label.replace('SIDE ', '');
+      side.idx.forEach((i, k) => {
+        host.appendChild(gatefoldTrackRow(i, trackIdx.indexOf(i) + 1, trackIdx, playHandler));
+        if(anchor && anchor.side === sideLetter && anchor.track === k + 1){
+          host.appendChild(el('div','gf-anchor-note', anchorSocial.note));
+        }
+      });
     });
   } else {
-    trackIdx.forEach((i,k) => host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler)));
+    trackIdx.forEach((i,k) => {
+      host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler));
+      if(anchor && anchor.side === 'A' && anchor.track === k + 1){
+        host.appendChild(el('div','gf-anchor-note', anchorSocial.note));
+      }
+    });
   }
   return host;
 }
@@ -436,6 +455,33 @@ export function gatefoldSocialControlsHTML(item){
   note.addEventListener('change', () => MizikiSocial.setNote(item.albumId, note.value));
   wrap.appendChild(note);
 
+  // GS12 (docs/30_GROOVES_AND_SHELF.md): "optionally pin it to a side and
+  // track" -- track is 1-based *within its side* (B1, B2... the physical
+  // vinyl convention), not the tracklist's own global pos badge.
+  const trackIdx = gatefoldTrackIndices(item);
+  const anchorSides = gatefoldSideSplits(trackIdx) || (trackIdx.length ? [{label:'SIDE A', idx: trackIdx}] : []);
+  const anchorSel = document.createElement('select');
+  anchorSel.className = 'gf-note-anchor-select';
+  anchorSel.setAttribute('aria-label','Pin this note to a track');
+  const noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'Not pinned to a track';
+  anchorSel.appendChild(noneOpt);
+  anchorSides.forEach(side => {
+    const sideLetter = side.label.replace('SIDE ', '');
+    side.idx.forEach((i, k) => {
+      const opt = document.createElement('option');
+      opt.value = sideLetter + ':' + (k + 1);
+      opt.textContent = side.label + ' · ' + (k + 1) + ' — ' + S.tracks[i].tags.title;
+      anchorSel.appendChild(opt);
+    });
+  });
+  anchorSel.addEventListener('change', () => {
+    if(!anchorSel.value){ MizikiSocial.setNoteAnchor(item.albumId, null); return; }
+    const [side, track] = anchorSel.value.split(':');
+    MizikiSocial.setNoteAnchor(item.albumId, {side, track: Number(track)});
+  });
+  wrap.appendChild(anchorSel);
+
   const pinBtn = document.createElement('button');
   pinBtn.type = 'button'; pinBtn.className = 'gf-pin-btn';
   wrap.appendChild(pinBtn);
@@ -462,6 +508,7 @@ export function gatefoldSocialControlsHTML(item){
       b.setAttribute('aria-pressed', String(on));
     });
     if(document.activeElement !== note) note.value = s.note || '';
+    if(document.activeElement !== anchorSel) anchorSel.value = s.noteAnchor ? (s.noteAnchor.side + ':' + s.noteAnchor.track) : '';
     const pinned = s.pinRank != null;
     pinBtn.setAttribute('aria-pressed', String(pinned));
     pinBtn.textContent = pinned ? 'Pinned to crate · #' + s.pinRank : 'Pin to crate';

@@ -477,13 +477,13 @@ const getListeningRhythm = userId => guarded(async () => ({
       (lives on this device; published by the sync engine)
    ==================================================================== */
 function entry(albumId) {
-  return (X.state.items[albumId] = X.state.items[albumId] || { rating: null, note: null, vis: null });
+  return (X.state.items[albumId] = X.state.items[albumId] || { rating: null, note: null, vis: null, anchor: null });
 }
 function tidy(albumId) {
   const e = X.state.items[albumId];
-  if (e && e.rating == null && e.note == null && e.vis == null && !e.pendingClear && !hasDirty(e)) delete X.state.items[albumId];
+  if (e && e.rating == null && e.note == null && e.vis == null && e.anchor == null && !e.pendingClear && !hasDirty(e)) delete X.state.items[albumId];
 }
-function hasDirty(e) { return !!(e.dirty && (e.dirty.rating || e.dirty.note || e.dirty.vis)); }
+function hasDirty(e) { return !!(e.dirty && (e.dirty.rating || e.dirty.note || e.dirty.vis || e.dirty.anchor)); }
 function touched() { persistSoon(); scheduleSync(); }
 
 // RF3 (docs/12_REFINE.md): a field this device hasn't itself edited since
@@ -539,6 +539,25 @@ function setNote(albumId, text) {
   markDirty(albumId, 'note');
   tidy(albumId); touched(); return true;
 }
+// GS11 follow-up (GS12, docs/30_GROOVES_AND_SHELF.md): "a note pinned to a
+// place on the record" -- {side, track} or null, same RF3-shaped local
+// state (entry/markDirty/markClear/tidy) rating/note already use, so it
+// merges across devices the same safe way. side/track bounds mirror
+// migration 026's own check constraint.
+function setNoteAnchor(albumId, anchor) {
+  let clean = null;
+  if (anchor != null) {
+    const side = String(anchor.side || '').slice(0, 8);
+    const track = Math.round(Number(anchor.track));
+    if (!side || !(track >= 1 && track <= 200)) return false;
+    clean = { side, track };
+  }
+  const e = entry(albumId);
+  markClear(albumId, 'anchor', clean == null && e.anchor != null);
+  e.anchor = clean;
+  markDirty(albumId, 'anchor');
+  tidy(albumId); touched(); return true;
+}
 function setVisibility(albumId, vis) {
   if (vis != null && !['private', 'friends', 'public'].includes(vis)) return false;
   const e = entry(albumId);
@@ -568,7 +587,8 @@ const getPins = () => X.state.pins.slice();
 function getAlbumSocial(albumId) {
   const e = X.state.items[albumId] || {};
   const i = X.state.pins.indexOf(albumId);
-  return { rating: e.rating == null ? null : e.rating, note: e.note || null, visibility: e.vis || null, pinRank: i < 0 ? null : i + 1 };
+  return { rating: e.rating == null ? null : e.rating, note: e.note || null, visibility: e.vis || null,
+    noteAnchor: e.anchor || null, pinRank: i < 0 ? null : i + 1 };
 }
 const getSettings = () => ({ ...X.state.settings });
 function setSetting(key, value) {
@@ -606,6 +626,7 @@ function buildItems(albums) {
     // have to be wire-distinguishable. See markClear()/mergeFromServer().
     const clearRating = !!(m.pendingClear && m.pendingClear.rating);
     const clearNote = !!(m.pendingClear && m.pendingClear.note);
+    const clearAnchor = !!(m.pendingClear && m.pendingClear.anchor);
     const item = {
       release_key: key,
       title: String(a.title).slice(0, 200),
@@ -619,6 +640,7 @@ function buildItems(albums) {
       record_format: a.format || null,
       rating: clearRating ? 0 : (m.rating == null ? null : m.rating),
       sleeve_note: clearNote ? '' : (m.note || null),
+      note_anchor: clearAnchor ? {} : (m.anchor || null),
       pin_rank: rankOf.get(a.id) || null,
       visibility: m.vis || null,
       added_at: a.addedAt ? new Date(a.addedAt).toISOString() : null
@@ -635,7 +657,7 @@ function buildItems(albums) {
     const prior = items.get(key);
     if (prior) {                               // two local albums collapse to one release
       skipped.collisions++;
-      const keep = (prior.rating != null || prior.sleeve_note || prior.pin_rank) ? prior : item;
+      const keep = (prior.rating != null || prior.sleeve_note || prior.note_anchor || prior.pin_rank) ? prior : item;
       const other = keep === prior ? item : prior;
       if (keep.pin_rank == null && other.pin_rank != null) keep.pin_rank = other.pin_rank;
       items.set(key, keep);
@@ -648,7 +670,7 @@ function buildItems(albums) {
   const pinned = [...items.values()].filter(i => i.pin_rank != null).sort((a, b) => a.pin_rank - b.pin_rank);
   pinned.forEach((i, n) => { i.pin_rank = n + 1; });
   for (const it of items.values()) {
-    it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.record_format, it.rating, it.sleeve_note, it.pin_rank, it.visibility, it.credits || null])).slice(0, 12);
+    it.fp = sha256hex(JSON.stringify([it.title, it.artist, it.year, it.quality_tier, it.record_format, it.rating, it.sleeve_note, it.note_anchor, it.pin_rank, it.visibility, it.credits || null])).slice(0, 12);
   }
   return { items, skipped, idByKey };
 }
@@ -695,11 +717,13 @@ async function mergeFromServer(albums) {
       const serverRating = r.rating == null ? null : r.rating;
       const serverNote = r.sleeve_note || null;
       const serverVis = r.visibility || null;
+      const serverAnchor = r.note_anchor || null;
       const rating = dirty.rating ? (local ? local.rating : null) : serverRating;
       const note = dirty.note ? (local ? local.note : null) : serverNote;
       const vis = dirty.vis ? (local ? local.vis : null) : serverVis;
-      if (rating != null || note != null || vis != null || hasDirty(local || {}) || (local && local.pendingClear)) {
-        X.state.items[a.id] = { rating, note, vis };
+      const anchor = dirty.anchor ? (local ? local.anchor : null) : serverAnchor;
+      if (rating != null || note != null || vis != null || anchor != null || hasDirty(local || {}) || (local && local.pendingClear)) {
+        X.state.items[a.id] = { rating, note, vis, anchor };
         if (local && local.dirty) X.state.items[a.id].dirty = local.dirty;
         if (local && local.pendingClear) X.state.items[a.id].pendingClear = local.pendingClear;
       } else if (local) {
@@ -748,6 +772,7 @@ async function pushCrate(items, quiet, toUpsert, idByKey) {
         if (e && e.dirty) delete e.dirty;
         if (it.rating === 0) markClear(albumId, 'rating', false);
         if (it.sleeve_note === '') markClear(albumId, 'note', false);
+        if (it.note_anchor && Object.keys(it.note_anchor).length === 0) markClear(albumId, 'anchor', false);
         tidy(albumId);
       }
     }
@@ -1260,7 +1285,7 @@ root.MizikiSocial = {
   getMyProfile, checkHandle, createProfile, updateProfile,
   setListeningRhythm, getListeningRhythm,
   // local social metadata
-  setRating, setNote, setVisibility, pin, unpin, movePin, getPins, getAlbumSocial, getSettings, setSetting,
+  setRating, setNote, setNoteAnchor, setVisibility, pin, unpin, movePin, getPins, getAlbumSocial, getSettings, setSetting,
   // sync
   syncNow, confirmRemovals,
   // people

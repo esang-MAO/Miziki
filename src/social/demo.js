@@ -38,7 +38,9 @@ export function installSocialDemo(){
     june: {
       profile: {id:'june', handle:'june', display_name:'June Okafor', bio:'Jazz & soul digger. Mostly vinyl, some cassette.', visibility:'public', show_digging_list:true},
       staffPicks: [
-        {release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', quality_tier:3, rating:5, sleeve_note:'Side A on repeat this whole month, genuinely cannot stop.', pin_rank:1},
+        // GS12 (docs/30_GROOVES_AND_SHELF.md): a note pinned to a track,
+        // so the "SIDE A · 1" mono line can be reviewed in demo mode.
+        {release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', quality_tier:3, rating:5, sleeve_note:'Side A on repeat this whole month, genuinely cannot stop.', note_anchor:{side:'A', track:1}, pin_rank:1},
         {release_id:'june-r1', title:'A Supremely Long Album Title That Should Wrap Onto Several Lines Without Ever Breaking The Layout', artist:'An Artist With An Unusually Long Name, For Testing Purposes Only', quality_tier:2, rating:4, sleeve_note: longWords(30), pin_rank:2},
         {release_id:'june-r2', title:'Head Hunters', artist:'Herbie Hancock', quality_tier:2, rating:4, sleeve_note:null, pin_rank:3}
       ],

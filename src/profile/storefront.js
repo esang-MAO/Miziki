@@ -182,6 +182,12 @@ export function storePickTile(pick){
   note.appendChild(el('div','store-pick-stars', pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : ''));
   note.appendChild(el('div','store-pick-name', pick.title));
   if(pick.sleeve_note) note.appendChild(el('div', 'store-pick-sleeve-note', pick.sleeve_note));
+  // GS12 (docs/30_GROOVES_AND_SHELF.md): a note pinned to a track shows
+  // this one extra mono line -- side.label already has "SIDE " baked in
+  // (gatefoldSideSplits(), src/gatefold/view.js), note_anchor.side is that
+  // same label with it stripped, so it's added back here to read "SIDE B · 4".
+  if(pick.sleeve_note && pick.note_anchor) note.appendChild(el('div','store-pick-anchor',
+    'SIDE ' + pick.note_anchor.side + ' · ' + pick.note_anchor.track));
   tile.appendChild(note);
   return tile;
 }
@@ -320,7 +326,7 @@ function localStaffPicks(){
     if(!info) return null;
     const social = MizikiSocial.getAlbumSocial(albumId);
     return {release_id: albumId, title: info.title, artist: info.artist, quality_tier: info.tier,
-      rating: social.rating, sleeve_note: social.note, pin_rank: social.pinRank};
+      rating: social.rating, sleeve_note: social.note, note_anchor: social.noteAnchor, pin_rank: social.pinRank};
   }).filter(Boolean);
 }
 
