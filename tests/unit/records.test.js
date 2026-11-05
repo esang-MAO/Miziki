@@ -147,33 +147,41 @@ test('libraryRecords: one entry per album, A-Z, preferring the album thumbnail o
   assert.equal(recs[0].art, null);
 });
 
-test('storeRecordsSection: ten records, discs only where something is unlocked, and a Show all button past ten', () => {
+// GS11 (docs/30_GROOVES_AND_SHELF.md, Ken: "'the shelves' should replace
+// the 'records' menu on the profile"): storeRecordsSection()'s own
+// records-preview grid is gone -- storeShelvesSection() (storefront.js,
+// covered in profile.test.js) is the one crate-browsing entry point on
+// the profile home now, with its own "Browse all" opening into this same
+// screen via the openRecords() export below. storePressingsTeaserRow() is
+// the one piece of the old section still drawn on the profile home.
+test('openRecords: sets the records screen and filter, then re-renders', () => {
   reset();
-  const names = 'ABCDEFGHIJKL'.split('').map(c => c + ' album');
-  S.tracks = names.map(n => track(n, 'Artist'));
-  const first = albumKey(S.tracks[0]);
-  S.collection[first] = {albumId: first, variant: 'woad-madder', pattern: 'swirl', name: 'A album'};
-  const section = R.storeRecordsSection();
-  const grid = byClass(section, 'records-grid')[0];
-  assert.equal(grid.childNodes.length, R.RECORDS_PREVIEW_COUNT);
-  assert.equal(byClass(grid, 'rec-disc').length, 1);
-  assert.equal(byClass(section, 'store-records-note').length, 1);
-  const more = byClass(section, 'store-records-more')[0];
-  assert.match(more.textContent, /12 records/);
-  more.click();
+  R.openRecords('pressings');
   assert.equal(S.profileView.screen, 'records');
-  assert.equal(S.profileView.recordsFilter, 'all');
+  assert.equal(S.profileView.recordsFilter, 'pressings');
+  assert.equal(renderProfileCalls, 1);
 });
 
-test('storeRecordsSection: no Show all button or note with ten or fewer records and nothing unlocked', () => {
+test('storePressingsTeaserRow: counts both pressings and metals, and opens the Pressings tab', () => {
   reset();
-  S.tracks = [track('Only', 'One')];
-  const section = R.storeRecordsSection();
-  assert.equal(byClass(section, 'store-records-more').length, 0);
-  assert.equal(byClass(section, 'store-records-note').length, 0);
-  const row = byClass(section, 'store-records-pressings')[0];
+  S.collection.a = {albumId: 'a', variant: 'woad-madder', pattern: 'swirl', name: 'A album'};
+  mockAchievements = [{albumId: 'b', tier: 'gold', name: 'B', artist: '', updatedAt: 1}];
+  const row = R.storePressingsTeaserRow();
+  const text = byClass(row, 'store-records-pressings-text')[0];
+  const small = text.childNodes.find(n => n.tag === 'small');
+  assert.match(small.textContent, /1 pressing/);
+  assert.match(small.textContent, /1 metal/);
   row.click();
+  assert.equal(S.profileView.screen, 'records');
   assert.equal(S.profileView.recordsFilter, 'pressings');
+});
+
+test('storePressingsTeaserRow: a quiet prompt when nothing is unlocked yet', () => {
+  reset();
+  const row = R.storePressingsTeaserRow();
+  const text = byClass(row, 'store-records-pressings-text')[0];
+  const small = text.childNodes.find(n => n.tag === 'small');
+  assert.match(small.textContent, /unlock its pressing/);
 });
 
 test('renderRecordsScreen(all): letter heads group the records', () => {
