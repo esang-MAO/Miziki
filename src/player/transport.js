@@ -6,7 +6,7 @@ import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
 import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr, platterSpeedAttr } from '../record-art/format.js';
-import { grooveBandsForSide, grooveBackgroundImage, labelInnerPctForSize } from '../record-art/grooves.js';
+import { grooveBandsForSide, labelInnerPctForSize } from '../record-art/grooves.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -380,10 +380,12 @@ export function load(i){
   // the real label's own edge, not the disc background gradient's -- see
   // labelInnerPctForSize()'s own comment (record-art/grooves.js) for why
   // these can differ, and by how much on a 10"/7" record's own larger label.
+  // Band *radii* only -- the needle ring and GS4's drop-the-needle gesture
+  // still need real per-track boundaries; the groove texture itself is the
+  // one flat, uniform-pitch pattern every record shows now (02-stage-
+  // platter.css's own comment on .disc::before, Ken 2026-11-05).
   S.sideBands = grooveBandsForSide(S.sideTrackIdx.map(idx => S.tracks[idx]),
     labelInnerPctForSize(S.recordFormat && S.recordFormat.size));
-  const discEl = $('#disc');
-  if(discEl) discEl.style.setProperty('--groove-rings', grooveBackgroundImage(S.sideBands) || '');
   // FS5 (docs/25_FROM_SCRATCH.md point 1): the top row's own "Side A"
   // kicker -- empty (and hidden by CSS :empty) whenever Sides is off or
   // the track isn't on an album, same condition sideLabel above already

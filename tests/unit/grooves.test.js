@@ -6,40 +6,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GROOVE_INNER_PCT, GROOVE_OUTER_PCT,
-  GROOVE_PITCH_MIN_PCT, GROOVE_PITCH_MAX_PCT, GROOVE_PITCH_MIDDLE_PCT,
-  LOUDNESS_FLOOR_LUFS, LOUDNESS_CEIL_LUFS, RIM_INNER_PCT, DROP_NEEDLE_SNAP_PCT,
+  RIM_INNER_PCT, DROP_NEEDLE_SNAP_PCT,
   LABEL_INNER_PCT_BY_SIZE,
-  groovePitchForLoudness, bandRadiiFromDurations, grooveBandsForSide,
-  needleRadiusPct, sideMapSegments, grooveBackgroundImage,
+  bandRadiiFromDurations, grooveBandsForSide,
+  needleRadiusPct, sideMapSegments,
   isRimRadiusPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
   labelInnerPctForSize,
 } from '../../src/record-art/grooves.js';
-
-// -- groovePitchForLoudness ---------------------------------------------
-
-test('groovePitchForLoudness: an unmeasured track takes the middle pitch', () => {
-  assert.equal(groovePitchForLoudness(null), GROOVE_PITCH_MIDDLE_PCT);
-  assert.equal(groovePitchForLoudness(undefined), GROOVE_PITCH_MIDDLE_PCT);
-  assert.equal(groovePitchForLoudness(NaN), GROOVE_PITCH_MIDDLE_PCT);
-});
-
-test('groovePitchForLoudness: louder means a tighter (smaller) pitch', () => {
-  const loud = groovePitchForLoudness(LOUDNESS_CEIL_LUFS);
-  const quiet = groovePitchForLoudness(LOUDNESS_FLOOR_LUFS);
-  assert.ok(Math.abs(loud - GROOVE_PITCH_MIN_PCT) < 1e-9);
-  assert.equal(quiet, GROOVE_PITCH_MAX_PCT);
-  assert.ok(loud < quiet);
-});
-
-test('groovePitchForLoudness: out-of-range values clamp to the nearest end', () => {
-  assert.ok(Math.abs(groovePitchForLoudness(LOUDNESS_CEIL_LUFS + 10) - GROOVE_PITCH_MIN_PCT) < 1e-9);
-  assert.equal(groovePitchForLoudness(LOUDNESS_FLOOR_LUFS - 10), GROOVE_PITCH_MAX_PCT);
-});
-
-test('groovePitchForLoudness: monotonic between the two ends', () => {
-  const mid = groovePitchForLoudness((LOUDNESS_FLOOR_LUFS + LOUDNESS_CEIL_LUFS) / 2);
-  assert.ok(mid > GROOVE_PITCH_MIN_PCT && mid < GROOVE_PITCH_MAX_PCT);
-});
 
 // -- bandRadiiFromDurations / grooveBandsForSide -------------------------
 
@@ -74,24 +47,20 @@ test('bandRadiiFromDurations: default bounds are the groove area\'s own constant
   assert.equal(bands[1].endPct, GROOVE_INNER_PCT);
 });
 
-test('grooveBandsForSide: pairs each band with its own track\'s measured loudness (audio/loudness.js\'s own {lufs, measured, ...} shape, not a bare number)', () => {
-  const tracks = [
-    { duration: 100, details: { loudness: { lufs: LOUDNESS_CEIL_LUFS, measured: true } } },
-    { duration: 100, details: {} },
-  ];
+test('grooveBandsForSide: one band per track, same radii bandRadiiFromDurations would give its durations', () => {
+  const tracks = [{ duration: 300 }, { duration: 100 }];
   const bands = grooveBandsForSide(tracks, 0, 100);
-  assert.ok(Math.abs(bands[0].pitchPct - GROOVE_PITCH_MIN_PCT) < 1e-9);
-  assert.equal(bands[1].pitchPct, GROOVE_PITCH_MIDDLE_PCT);
+  assert.deepEqual(bands, bandRadiiFromDurations([300, 100], 0, 100));
 });
 
-test('grooveBandsForSide: a loudness object whose own .lufs isn\'t a real number still takes the middle pitch', () => {
-  const tracks = [{ duration: 100, details: { loudness: { lufs: null, measured: false } } }];
+test('grooveBandsForSide: a track missing its own duration counts as zero, not a throw', () => {
+  const tracks = [{ duration: 100 }, {}];
   const bands = grooveBandsForSide(tracks, 0, 100);
-  assert.equal(bands[0].pitchPct, GROOVE_PITCH_MIDDLE_PCT);
+  assert.equal(bands.length, 2);
 });
 
 test('grooveBandsForSide: empty/missing tracks never throws', () => {
-  assert.deepEqual(grooveBandsForSide(null, 0, 100), [{ startPct: 100, endPct: 0, pitchPct: GROOVE_PITCH_MIDDLE_PCT }]);
+  assert.deepEqual(grooveBandsForSide(null, 0, 100), [{ startPct: 100, endPct: 0 }]);
 });
 
 // -- needleRadiusPct ------------------------------------------------------
@@ -142,24 +111,6 @@ test('sideMapSegments: an empty duration list still returns one even segment, ne
   assert.equal(segs[0].widthPct, 50);
   assert.equal(segs[1].widthPct, 50);
   assert.equal(segs[0].fillPct, 50);
-});
-
-// -- grooveBackgroundImage -------------------------------------------------
-
-test('grooveBackgroundImage: no bands returns null rather than an empty gradient', () => {
-  assert.equal(grooveBackgroundImage(null), null);
-  assert.equal(grooveBackgroundImage([]), null);
-});
-
-test('grooveBackgroundImage: a real band list produces a radial-gradient string with ascending, in-range stops', () => {
-  const bands = grooveBandsForSide([{ duration: 100 }, { duration: 100 }], 0, 100);
-  const css = grooveBackgroundImage(bands);
-  assert.ok(css.startsWith('radial-gradient(circle at 50% 50%,'));
-  const stopList = css.slice(css.indexOf('%,') + 2);
-  const pcts = [...stopList.matchAll(/(-?\d+(?:\.\d+)?)%/g)].map(m => Number(m[1]));
-  assert.ok(pcts.length > 4);
-  for(const p of pcts) assert.ok(p >= 0 && p <= 100);
-  for(let i = 1; i < pcts.length; i++) assert.ok(pcts[i] >= pcts[i-1] - 1e-6);
 });
 
 // -- GS4: drop the needle --------------------------------------------------
@@ -221,7 +172,7 @@ test('bandIndexForRadius: no bands at all never throws', () => {
 
 // -- dropNeedleTarget ---------------------------------------------------------
 
-test('dropNeedleTarget: no bands at all returns null, the same "nothing to drop onto" shape grooveBackgroundImage() uses', () => {
+test('dropNeedleTarget: no bands at all returns null -- nothing to drop onto', () => {
   assert.equal(dropNeedleTarget(null, 50), null);
   assert.equal(dropNeedleTarget([], 50), null);
 });
