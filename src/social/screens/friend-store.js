@@ -1,6 +1,6 @@
 import { $, el } from '../../util/dom.js';
 import {
-  storeAwning, storeStat, storePickTile, localAlbumArt, timeAgoShort,
+  storeSign, storeStat, storePickTile, localAlbumArt, timeAgoShort,
   renderStoreError, STORE_TIER_LABEL, renderPressingCard,
 } from '../../profile/storefront.js';
 // CR11 point 1-2: the pressing is derived locally from the shared album
@@ -94,7 +94,7 @@ function friendStoreHeader(full, extraBtn){
 }
 
 function renderLockedFriendStore(body, full){
-  body.appendChild(storeAwning(full.profile.handle));
+  body.appendChild(storeSign(full.profile.handle));
   body.appendChild(friendStoreHeader(full));
   if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
 
@@ -395,7 +395,7 @@ function friendActivitySection(full){
 }
 
 function renderFriendStoreContent(body, full){
-  body.appendChild(storeAwning(full.profile.handle));
+  body.appendChild(storeSign(full.profile.handle));
   const share = el('button','store-share-icon','↗');
   share.setAttribute('aria-label','Share this crate');
   share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));

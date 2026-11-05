@@ -25,44 +25,29 @@ import { renderTracks } from '../library/view.js';
 export const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
 export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
 
-// TY4 (docs/22_TYPE.md): four colourways from the CR8 palette, picked by a
-// hash of the username rather than anything about the account, so friends'
-// storefronts differ from each other by colour alone, never by type.
-const AWNING_COLORWAYS = ['var(--olive)', 'var(--verdigris)', 'var(--prussian)', 'var(--puce)'];
-function awningColorway(handle){
-  let h = 0;
-  for(let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) | 0;
-  return AWNING_COLORWAYS[Math.abs(h) % AWNING_COLORWAYS.length];
-}
-
-// `handle` is omitted while there's no username yet (renderOpenStoreCard) —
-// the plain striped strip, no "Crate of" card, since there's no name to set
-// a colourway from or print on it. `isMe` (FS7, docs/25_FROM_SCRATCH.md
-// point 2): "your own crate defaults to the oxblood colourway" -- your own
-// three storefront states all pass it; a friend's crate (social/screens/
-// friend-store.js) doesn't, and keeps its own hash-picked colourway.
-export function storeAwning(handle, isMe){
-  const wrap = el('div','store-awning-wrap');
-  const awning = el('div','store-awning');
-  // FS2 (docs/25_FROM_SCRATCH.md): the no-handle default is oxblood, not
-  // amber -- amber never signals state, and this fallback is the one
-  // place the awning has no username to hash a colourway from.
-  const stripe = isMe ? '#7A2E2A' : handle ? awningColorway(handle) : '#7A2E2A';
-  for(let i = 0; i < 10; i++){
-    const div = el('div');
-    div.style.background = (i % 2 === 0) ? stripe : (handle ? 'var(--cream)' : 'var(--stock-divider-1)');
-    awning.appendChild(div);
-  }
-  wrap.appendChild(awning);
-  if(handle){
-    const card = el('div','store-awning-card');
-    card.appendChild(el('div','store-awning-kicker','Crate of'));
-    // TY4: a long name drops a weight/tracking step rather than condensing,
-    // wrapping or ellipsizing — see 18-storefront.css's own three size rules.
-    const nameSize = handle.length > 22 ? 'sm' : handle.length > 14 ? 'md' : 'lg';
-    card.appendChild(el('div', 'store-awning-name store-awning-name--' + nameSize, handle));
-    wrap.appendChild(card);
-  }
+// GS7 (docs/30_GROOVES_AND_SHELF.md): replaces the old striped awning +
+// "Crate of [name]" card (and its colourway hash) with a paper sign taped
+// above the crate, matching docs/design/grooves-shelf/HomeShelf.dc.html --
+// stock-card paper, two tape strips, the handle in var(--hand) and "'s
+// crate" in var(--hand) at a smaller weight/size. A friend's crate
+// (social/screens/friend-store.js) gets the same sign with their handle --
+// there's no colourway left to tell them apart by.
+// `handle` is omitted while there's no username yet (renderOpenStoreCard,
+// the signed-out Home card) -- nothing to letter onto a sign, so this
+// returns an empty wrap.
+export function storeSign(handle){
+  const wrap = el('div','store-sign-wrap');
+  if(!handle) return wrap;
+  const sign = el('div','store-sign');
+  const tape1 = el('span','store-sign-tape store-sign-tape--1'); tape1.setAttribute('aria-hidden','true');
+  const tape2 = el('span','store-sign-tape store-sign-tape--2'); tape2.setAttribute('aria-hidden','true');
+  sign.appendChild(tape1); sign.appendChild(tape2);
+  // TY4-style step-down for a long handle -- same three-size ladder the
+  // old .store-awning-name used, just against the hand-lettered sizes.
+  const nameSize = handle.length > 22 ? 'sm' : handle.length > 14 ? 'md' : 'lg';
+  sign.appendChild(el('span', 'store-sign-name store-sign-name--' + nameSize, handle));
+  sign.appendChild(el('span','store-sign-suffix','’s crate'));
+  wrap.appendChild(sign);
   return wrap;
 }
 
@@ -205,7 +190,7 @@ export function timeAgoShort(ms){
 // appendNameEditor() just above/below for the shared header pieces.
 export function renderOpenStoreCard(host, authState){
   host.innerHTML = '';
-  host.appendChild(storeAwning(undefined, true));
+  host.appendChild(storeSign(undefined));
   const needsProfile = authState === 'needsProfile';
 
   const header = el('div','store-header');
@@ -353,11 +338,12 @@ function localStaffPicks(){
 
 function renderLocalStorefront(host){
   host.innerHTML = '';
-  host.appendChild(storeAwning(S.profile.username || '', true));
+  host.appendChild(storeSign(S.profile.username || ''));
 
-  // FS7 (docs/25_FROM_SCRATCH.md point 3): the awning above already prints
-  // "Crate of {username}" (point 2) -- this input still sets that same
-  // S.profile.username, just demoted out of the identity row's own
+  // FS7 (docs/25_FROM_SCRATCH.md point 3): the sign above already shows
+  // "{username}'s crate" (GS7 superseded the old "Crate of {username}"
+  // wording) -- this input still sets that same S.profile.username, just
+  // demoted out of the identity row's own
   // primary text (the display name takes that spot now) into a small
   // secondary line below the header, same "@handle" shape a social handle
   // gets once one exists.
@@ -531,14 +517,14 @@ function storeDiggingSection(full, host){
 
 function renderStorefront(host, full, requests){
   host.innerHTML = '';
-  host.appendChild(storeAwning(full.profile.handle, true));
+  host.appendChild(storeSign(full.profile.handle));
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
   // FS7 (docs/25_FROM_SCRATCH.md point 3): "display name Archivo 20/600,
   // then your own short line (bio/name field) in --muted — nothing when
-  // it's empty." The @handle moves out of this primary spot -- the awning
-  // above already prints "Crate of {handle}" (point 2), so repeating it
-  // here would be the second big heading this redesign's "one in one out"
+  // it's empty." The @handle moves out of this primary spot -- the sign
+  // above already shows "{handle}'s crate" (GS7), so repeating it here
+  // would be the second big heading this redesign's "one in one out"
   // rule keeps dropping; it gets the same small "@handle" secondary line
   // the local-only state's own username now does, right below the header.
   const idBox = el('div','store-id');
