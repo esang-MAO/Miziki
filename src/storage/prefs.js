@@ -33,7 +33,7 @@ const KNOWN_PREF_KEYS = new Set([
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
   'surfaceNoise', 'surfaceNoiseUnderMusic',
-  'autoFlip', 'stopAtTurns', 'seasonalSky', 'showWear',
+  'autoFlip', 'nightPitch', 'stopAtTurns', 'seasonalSky', 'showWear',
   'loudnessMode',
   'eq',
   'mono', 'balance', 'deviceVolume',
@@ -81,6 +81,7 @@ export function serializePrefs(S){
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    nightPitch: S.nightPitch,
     stopAtTurns: S.stopAtTurns,
     seasonalSky: S.seasonalSky,
     showWear: S.showWear,
@@ -166,6 +167,10 @@ export function parsePrefs(raw){
   // docs/15_SURFACE_NOISE.md §4: a saved object without this (every device
   // before this PR) loads as On, the stated default and today's behavior.
   if(typeof p.autoFlip === 'boolean') out.autoFlip = p.autoFlip;
+  // GS6 (docs/30_GROOVES_AND_SHELF.md): a saved object without this (every
+  // device before this PR) loads as 'slowed', the stated default and
+  // today's behavior.
+  if(p.nightPitch === 'slowed' || p.nightPitch === 'true') out.nightPitch = p.nightPitch;
   // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
   // device before this PR) loads as off, the stated default.
   if(typeof p.stopAtTurns === 'boolean') out.stopAtTurns = p.stopAtTurns;

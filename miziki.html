@@ -538,6 +538,19 @@
         </div>
       </div>
 
+      <!-- GS6 (docs/30_GROOVES_AND_SHELF.md): Slowed is today's behavior
+           (the music itself slows and deepens); Keep pitch leaves the
+           audio at rate 1 while the platter still visually slows --
+           no time-stretching, since that would blur the sound. -->
+      <div class="row" style="margin-top:12px">
+        <div class="k">At night, the music<em id="nightPitchDesc">At night, the music itself slows and deepens along with the platter.</em></div>
+        <div class="seg sd-night-pitch-seg" role="group" aria-label="At night, the music">
+          <button data-night-pitch="slowed" aria-pressed="true">Slowed</button>
+          <button data-night-pitch="true" aria-pressed="false">Keep pitch</button>
+        </div>
+      </div>
+      <p class="note" id="nightPitchMono"></p>
+
       <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): off by default; This record
            only (the player's own switch card, below) is the always-
            available per-session equivalent. -->

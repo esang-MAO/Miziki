@@ -256,19 +256,21 @@
 .sd-preset-seg,
 .sd-depth-seg,
 .sd-surface-noise-seg,
-.sd-runout-length-seg{
+.sd-night-pitch-seg{
   display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
   border:1px solid var(--line); border-radius:12px; overflow:hidden;
   background:var(--panel); margin-bottom:18px; gap:0;
 }
-.sd-tabs{ grid-template-columns:repeat(2, minmax(0, 1fr)); margin-bottom:var(--sp-4); }
+.sd-tabs,
+.sd-night-pitch-seg{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.sd-tabs{ margin-bottom:var(--sp-4); }
 .sd-depth-seg{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
 .sd-tabs button,
 .sd-drift-seg button,
 .sd-preset-seg button,
 .sd-depth-seg button,
 .sd-surface-noise-seg button,
-.sd-runout-length-seg button{
+.sd-night-pitch-seg button{
   min-height:44px; border:0; background:transparent; color:var(--paper); cursor:pointer;
   font-family:var(--body); font-size:var(--fs-caption); font-weight:500; padding:var(--sp-1) 6px;
 }
@@ -277,7 +279,16 @@
 .sd-preset-seg button[aria-pressed="true"],
 .sd-depth-seg button[aria-pressed="true"],
 .sd-surface-noise-seg button[aria-pressed="true"],
-.sd-runout-length-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
+.sd-night-pitch-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
+
+/* GS6 (docs/30_GROOVES_AND_SHELF.md): the mono rate-change line under the
+   night-pitch row -- same small mono readout look as .sd-section-label's
+   family, but sentence case (it's a value, not a heading) and not
+   uppercased. */
+#nightPitchMono{
+  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.04em; color:var(--muted);
+  margin:-10px 0 18px;
+}
 
 /* §4.3 item 4: four character cards, 2x2 — read-only readouts of the
    current (drifted) value; presets below are how they're set. */

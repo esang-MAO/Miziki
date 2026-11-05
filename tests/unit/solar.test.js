@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarEvent, computeRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS } from '../../src/sundown/solar.js';
+import { solarEvent, computeRate, computePlatterRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS, nightPitchCaptionFor, nightPitchMonoLine } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
 // Columbia, MD (39.20, -76.86). Published sunset for Jun 21, 2025 is 8:38 pm
@@ -57,6 +57,43 @@ test('computeRate: Vinyl with auto on still follows Sundown, unchanged', () => {
   // past dusk -> fully settled at the target rate
   S.sun = { lat: 39.20, lon: -76.86, ...pastDusk };
   assert.equal(computeRate(), 0.80);
+});
+
+// GS6 (docs/30_GROOVES_AND_SHELF.md): the rate split. computePlatterRate()
+// always follows the Sundown curve -- it's the platter's own on-screen
+// spin, never the real audio -- while computeRate() (the real audio rate)
+// goes to 1 in Keep-pitch mode even though the platter keeps slowing.
+test('computePlatterRate: Pure is always 1, same as computeRate', () => {
+  S.mode = 'pure'; S.auto = true; S.target = 0.80; S.pace = 'window'; S.previewMin = 0; S.nightPitch = 'slowed';
+  S.sun = { lat: 39.20, lon: -76.86, ...pastDusk };
+  assert.equal(computePlatterRate(), 1);
+  assert.equal(computeRate(), 1);
+});
+
+test('computeRate/computePlatterRate: Keep pitch keeps audio at 1 while the platter still follows the curve', () => {
+  S.mode = 'vinyl'; S.auto = true; S.target = 0.80; S.pace = 'window'; S.previewMin = 0;
+  S.sun = { lat: 39.20, lon: -76.86, ...pastDusk };
+  S.nightPitch = 'true';
+  assert.equal(computeRate(), 1);
+  assert.equal(computePlatterRate(), 0.80);
+});
+
+test('computeRate/computePlatterRate: Slowed (default) keeps both equal to the curve', () => {
+  S.mode = 'vinyl'; S.auto = true; S.target = 0.80; S.pace = 'window'; S.previewMin = 0;
+  S.sun = { lat: 39.20, lon: -76.86, ...pastDusk };
+  S.nightPitch = 'slowed';
+  assert.equal(computeRate(), 0.80);
+  assert.equal(computePlatterRate(), 0.80);
+});
+
+test('nightPitchCaptionFor: each mode names its own behavior', () => {
+  assert.match(nightPitchCaptionFor('slowed'), /music itself slows/);
+  assert.match(nightPitchCaptionFor('true'), /true speed and pitch/);
+});
+
+test('nightPitchMonoLine: Keep pitch reads as unchanged, Slowed names the rate (RF27)', () => {
+  assert.equal(nightPitchMonoLine('true', 0.80), 'pitch unchanged');
+  assert.equal(nightPitchMonoLine('slowed', 0.80), formatRateChange(0.80) + ' at full depth');
 });
 
 // RF9 (docs/12_REFINE.md): "Sundown, set once" collapsed Auto/Manual, the

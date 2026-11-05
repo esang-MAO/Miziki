@@ -19,7 +19,11 @@ import { albumKey } from '../record-art/tiers.js';
 // a real finish.
 export function shouldPutAway(auto){ return auto && S.sleevePullEnabled && !REDUCED; }
 
-export function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.rate}; }
+// GS6 (docs/30_GROOVES_AND_SHELF.md): from S.platterRate, not S.rate --
+// the spin-down animation (player/clock.js's frame()) is the platter's
+// own visual speed, which still follows the Sundown curve in Keep-pitch
+// night-pitch mode even though the audio itself stayed at rate 1.
+export function startSpinDown(ms){ S.spinDown = {start: performance.now(), ms, from: S.platterRate}; }
 export function clearSpinDown(){ S.spinDown = null; }
 
 // No player open, or the page is hidden (background playback) — nothing

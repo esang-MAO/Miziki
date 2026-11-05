@@ -4,7 +4,7 @@ import { needleRadiusPct, sideMapSegments } from '../record-art/grooves.js';
 import { clamp } from '../util/math.js';
 import { fmt } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
-import { computeRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
+import { computeRate, computePlatterRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
 import { seasonTint } from '../sundown/season.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
@@ -85,9 +85,6 @@ export function tick(now, maxDt){
     const pos = currentPos();
     S.rate = r;
     if(S.source) S.source.playbackRate.setTargetAtTime(r, S.ctx.currentTime, 0.08);
-    // AU3 (docs/16_AUDIO.md §2.3): "updated wherever S.rate changes" —
-    // this is the one place it ever is.
-    applyWobbleRate(r);
     if(S.anchor && S.ctx) S.anchor = { ctxTime: S.ctx.currentTime, offset: pos, rate: r };
     // PL3 (docs/19_PLAYER.md, item 3): a rate change moves the boundary
     // any already-armed gapless source was scheduled against — cancel and
@@ -101,6 +98,17 @@ export function tick(now, maxDt){
     // in step through the slowdown (PL7 item 3); outside a ramp S.rate
     // never changes, so this never runs at a plain per-tick rate.
     bgPosition();
+  }
+  // GS6 (docs/30_GROOVES_AND_SHELF.md): the platter's own rate -- tracked
+  // separately from S.rate (the real audio rate) since Keep-pitch night
+  // pitch holds the audio at 1 while this keeps following the Sundown
+  // curve. AU3's "updated wherever the rate changes" now means this one:
+  // wow is a physical-platter effect, so it follows the platter, not
+  // whatever the audio itself is doing.
+  const pr = computePlatterRate();
+  if(Math.abs(pr - S.platterRate) > 0.0001){
+    S.platterRate = pr;
+    applyWobbleRate(pr);
   }
 
   const t = current();
@@ -137,7 +145,8 @@ export function frame(now){
   if(!REDUCED){
     let spin;
     // the run-out groove keeps the platter turning with no track playing (CEREMONY §2/§3)
-    if(S.playing || (S.runout && S.runout.turning)) spin = S.rate;
+    // GS6: the platter's own rate, not the (possibly pitch-kept-at-1) audio rate.
+    if(S.playing || (S.runout && S.runout.turning)) spin = S.platterRate;
     else if(S.spinDown){
       const p = clamp((now - S.spinDown.start) / S.spinDown.ms, 0, 1);
       spin = S.spinDown.from * (1 - easeOutCubic(p));
@@ -151,7 +160,7 @@ export function frame(now){
     // (record-art/zoetrope-motion.js) so each figure appears to animate in
     // place rather than merely spin. `spin` above is already the fraction
     // of full speed in effect right now (0 while stopped/spun-down, up to
-    // S.rate while playing) — the same number frame()'s own S.angle advance
+    // S.platterRate while playing) — the same number frame()'s own S.angle advance
     // already multiplies by — so actualRps is just nominalRps*spin, with
     // no separate Sundown lookup needed here. reducedMotion is always
     // false at this call site: REDUCED is already checked by the
@@ -356,7 +365,7 @@ export function drawSun(){
   // record's own format (S.recordFormat.speed), not a fixed 33.333, so a
   // 45 reads "45.0 RPM..." the same way a 33⅓ record already did.
   const arcText = $('#labelArcText');
-  if(arcText) arcText.textContent = (currentBaseRpm() * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  if(arcText) arcText.textContent = (currentBaseRpm() * S.platterRate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
 
   // Pure means untouched — Sundown only ever reaches the recording in Vinyl.
   // The settings below stay live and usable in Pure anyway, since they

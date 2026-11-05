@@ -18,7 +18,7 @@ import { $ } from '../util/dom.js';
 import { queueSave } from '../storage/meta.js';
 import { selectSundownView, lastSundownView } from '../shell/routes.js';
 import { wireDialGesture } from '../sundown/dial-gesture.js';
-import { DEPTH_TARGETS, depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+import { DEPTH_TARGETS, depthKeyFor, depthCaptionFor, nightPitchCaptionFor, nightPitchMonoLine } from '../sundown/solar.js';
 import { syncSundownSheetHeight, wireSundownSheetEntryPoints } from '../shell/sundown-sheet.js';
 import { setMode } from '../audio/mode.js';
 
@@ -28,6 +28,16 @@ function paintDepth(){
     b.setAttribute('aria-pressed', String(b.dataset.depth === key)));
   const desc = $('#depthDesc');
   if(desc) desc.textContent = depthCaptionFor(key, S.target);
+}
+
+// GS6 (docs/30_GROOVES_AND_SHELF.md): the Slowed/Keep pitch row.
+function paintNightPitch(){
+  document.querySelectorAll('[data-night-pitch]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.nightPitch === S.nightPitch)));
+  const desc = $('#nightPitchDesc');
+  if(desc) desc.textContent = nightPitchCaptionFor(S.nightPitch);
+  const mono = $('#nightPitchMono');
+  if(mono) mono.textContent = nightPitchMonoLine(S.nightPitch, S.target);
 }
 
 export function wireSundown(){
@@ -47,8 +57,16 @@ export function wireSundown(){
     else { S.auto = true; S.target = DEPTH_TARGETS[key]; }
     queueSave();
     paintDepth();
+    paintNightPitch();   // GS6: its mono line names this same target
   }));
   paintDepth();
+
+  document.querySelectorAll('[data-night-pitch]').forEach(b => b.addEventListener('click', ()=>{
+    S.nightPitch = b.dataset.nightPitch;
+    queueSave();
+    paintNightPitch();
+  }));
+  paintNightPitch();
 
   // RW3 (docs/23_RHYTHM_AND_WEAR.md): same inline aria-checked toggle
   // shape as character.js's surfaceNoiseUnderMusicBtn -- read fresh by
