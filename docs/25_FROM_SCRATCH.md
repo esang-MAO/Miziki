@@ -130,6 +130,8 @@ FS17, at the end, sweeps for anything the earlier PRs missed.
 
 ## FS5: Now Playing
 
+**Superseded by docs/30_GROOVES_AND_SHELF.md**, for point 4's elapsed/remaining time readout: it's replaced by a numberless side map plus the current track's name.
+
 > Read CLAUDE.md (rule 9 especially) and the README (frames `01-now-playing`, `11-after-dark-midnight`, `13b-focus-button-closeup`). Layout and styling of the full player (`src/styles/02-stage-platter.css`, `05-transport.css`, `06-mode-switch.css`, `13-player-overlay.css`, `shell/player-overlay.js`). **No change to anything on the play path.**
 >
 > 1. **Top row:** the kicker "Side A" (`--muted`, FS4's kicker style) left; `#playerOverflowBtn` right. **Credits and notes, Favorite and Share move into the player's ··· menu** (beside EQ), so the title row is just the title.
@@ -172,6 +174,8 @@ FS17, at the end, sweeps for anything the earlier PRs missed.
 ---
 
 ## FS7: your storefront
+
+**Superseded by docs/30_GROOVES_AND_SHELF.md:** the awning (point 2) is gone, replaced by a taped paper sign; Staff picks (point 5) becomes "in rotation" at 5 pins, on the wall and face-out on the shelves; Recently found (point 6) moves to the wall too.
 
 > Read CLAUDE.md, docs/24 (QC3) and the README (frame `04-storefront`). `profile/storefront.js`, `src/styles/17-profile.css`, `18-storefront.css`.
 >

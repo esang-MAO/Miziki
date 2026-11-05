@@ -74,6 +74,8 @@ Follows CLAUDE.md's **How Miziki behaves** rules (PR #269). The reasons stay off
 
 ## QC3: profile and crate without scores
 
+**Superseded by docs/30_GROOVES_AND_SHELF.md**, for point 2's cap: Staff picks (now "in rotation") drops from 8 pins to 5. Its owned-only, no-counts rules elsewhere in this doc (QC1) are unchanged.
+
 > Read CLAUDE.md and the README (frames `Rhythm`, `CrateOwn`, `CrateFriend`).
 >
 > 1. **Rhythm card** (`src/profile/rhythm-card.js`): remove the locked state. Below `RHYTHM_MIN_PLAYS`, render nothing at all. The card appears, complete, once there's enough data.

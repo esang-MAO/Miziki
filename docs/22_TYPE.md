@@ -98,6 +98,8 @@ The crate's stacked bin labels (`45s · 7″ & 12″`, `THIS WEEK`) are the one 
 
 ## TY4: the wordmark and the awning (`09-launch-intro`, `18-storefront`, `20-friend-store`, `share/styles.js`, `data/wordmark.svg`)
 
+**Superseded by docs/30_GROOVES_AND_SHELF.md**, for the awning: it's replaced by a taped paper sign. The wordmark itself is unaffected.
+
 The mark is **A** from the canvas: Antonio Bold skeleton, lowercase after the cap M, letter-spaced `−.01em`, the three i-dots replaced by spindle rings (stroke ≈ 0.28 × dot diameter, ring diameter ≈ 1.2 × the original dot, centred on the stem, sitting 1 dot-height above x-height). Orange rings, paper letters; in light theme and on stock-card, aubergine letters (`#26202C`) with amber-shade rings; reversed on the orange label, `--on-accent` letters with paper rings. Minimum size 16px; below that, use the A-with-filled-dots cut (C on the canvas) which holds at favicon size.
 
 **F** is the display cut: the same drawing rotated `−12°`, used in exactly two places — the launch intro's Miziki sleeve (the default cover until the library fills) and the empty-sleeve state. It is never used upright anywhere F appears, and A is never used tilted.

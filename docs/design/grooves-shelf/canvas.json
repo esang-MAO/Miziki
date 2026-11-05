@@ -1,0 +1,22 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-04T20:45:00Z"},
+  "title": "Miziki Grooves & Home Shelf",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Player — grooves drawn from the audio"},
+    "DropNeedle.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Drop the needle — rim vs grooves"},
+    "RunOut.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "End of side — locked run-out + etching"},
+    "NightDepth.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Sundown › Day — Slowed or Keep pitch", "is_interactive": true},
+    "HomeShelf.dc.html": {"x": 0, "y": 1300, "w": 390, "h": 1480, "title": "Profile — your Crate as home shelving", "is_interactive": true},
+    "FriendShelf.dc.html": {"x": 470, "y": 1300, "w": 390, "h": 1240, "title": "A friend's Crate — held for you"},
+    "Listening.dc.html": {"x": 940, "y": 1300, "w": 390, "h": 1720, "title": "Profile › Listening", "is_interactive": true}
+  },
+  "order": ["Main.dc.html", "DropNeedle.dc.html", "RunOut.dc.html", "NightDepth.dc.html", "HomeShelf.dc.html", "FriendShelf.dc.html", "Listening.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "The platter", "kind": "title1", "maxW": 1800},
+    "t2": {"x": 0, "y": 1000, "text": "The home shelf & listening", "kind": "title1", "maxW": 1330}
+  },
+  "designSystems": []
+}
