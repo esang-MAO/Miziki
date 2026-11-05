@@ -206,9 +206,6 @@ function applyPrefs(p){
   if(p.surfaceNoise === 'off' || p.surfaceNoise === 'subtle' || p.surfaceNoise === 'well-loved') S.surfaceNoise = p.surfaceNoise;
   document.querySelectorAll('[data-surface-noise]').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.surfaceNoise === S.surfaceNoise)));
-  if(p.runoutLength === 'short' || p.runoutLength === 'normal' || p.runoutLength === 'until-lift') S.runoutLength = p.runoutLength;
-  document.querySelectorAll('[data-runout-length]').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.runoutLength === S.runoutLength)));
   if(typeof p.surfaceNoiseUnderMusic === 'boolean') S.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
   { const b = $('#surfaceNoiseUnderMusicBtn'); if(b) b.setAttribute('aria-checked', String(S.surfaceNoiseUnderMusic)); }
   // docs/15_SURFACE_NOISE.md §4: same inline sync shape as the three above.

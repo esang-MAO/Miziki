@@ -114,7 +114,7 @@ export const S = {
   // run-out noise floor, the run-out's own length, and whether a faint bed
   // sits under playback. Defaults per that doc's own settings table —
   // Subtle for new users, Normal run-out, under-the-music off.
-  surfaceNoise:'subtle', runoutLength:'normal', surfaceNoiseUnderMusic:false,
+  surfaceNoise:'subtle', surfaceNoiseUnderMusic:false,
   // docs/15_SURFACE_NOISE.md §4: On (default) keeps today's behavior --
   // the record flips itself at the end of side A. Off leaves it waiting in
   // the run-out for the user to flip it (see shell/runout.js's runSideWait()).

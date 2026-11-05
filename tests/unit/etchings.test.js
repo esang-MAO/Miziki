@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEAD_WAX_MESSAGES, matrixTail, matrixLineFor, messageFor, etchingFor, glyphJitter,
-  deadWaxEtchRadius, deadWaxArcPath,
+  deadWaxEtchRadius, deadWaxArcPath, etchThirdLine,
 } from '../../src/record-art/etchings.js';
 
 test('matrixTail is the same for the same release id, different for a different one', () => {
@@ -83,4 +83,27 @@ test('deadWaxEtchRadius: clamps to 0..1', () => {
 test('deadWaxArcPath: an SVG arc centered on the 200×200 viewBox, radius reflected in the path', () => {
   const p = deadWaxArcPath(50);
   assert.match(p, /^M 50 100 A 50 50 0 1 1 150 100$/);
+});
+
+// GS5 (docs/30_GROOVES_AND_SHELF.md): etchThirdLine -- format alone before
+// a pressing's found, format + phase/date once one has.
+test('etchThirdLine: format alone with no collection entry', () => {
+  const m = { codec: 'FLAC', rate: 96000, bits: 24 };
+  assert.equal(etchThirdLine(m, undefined), 'FLAC 24/96');
+});
+
+test('etchThirdLine: adds "PRESSED AT [phase] · [date]" once a pressing is found', () => {
+  const m = { codec: 'FLAC', rate: 96000, bits: 24 };
+  const entry = { discoveredAt: new Date(2026, 10, 14).getTime(), phase: 'twilight' };
+  assert.equal(etchThirdLine(m, entry), 'FLAC 24/96 · PRESSED AT DUSK · 14 NOV');
+});
+
+test('etchThirdLine: an older entry without a stamped phase shows the date alone', () => {
+  const m = { codec: 'MP3' };
+  const entry = { discoveredAt: new Date(2026, 0, 3).getTime() };
+  assert.equal(etchThirdLine(m, entry), 'MP3 · PRESSED 3 JAN');
+});
+
+test('etchThirdLine: no entry, no meta -- empty', () => {
+  assert.equal(etchThirdLine(null, undefined), '');
 });

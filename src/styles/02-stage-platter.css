@@ -288,6 +288,11 @@
 .dead-wax.magnified{opacity:1;transform:scale(1.9)}
 .dead-wax text{font-family:var(--data);font-size:5.5px;letter-spacing:.08em;fill:rgba(255,255,255,.4)}
 .dead-wax #deadWaxMessageText{font-size:5px}
+/* GS5 (docs/30_GROOVES_AND_SHELF.md): the format/pressing line -- smaller
+   again and a touch dimmer, the least important of the three stamps. */
+.dead-wax #deadWaxThirdText{font-size:4.2px;fill:rgba(255,255,255,.3)}
+.disc[data-variant="ultra-clear"] .dead-wax #deadWaxThirdText,
+.disc[data-variant="picture-disc"] .dead-wax #deadWaxThirdText{fill:rgba(0,0,0,.3)}
 .disc[data-variant="ultra-clear"] .dead-wax text,
 .disc[data-variant="picture-disc"] .dead-wax text{fill:rgba(0,0,0,.4)}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}

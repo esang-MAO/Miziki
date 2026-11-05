@@ -32,7 +32,7 @@ const KNOWN_PREF_KEYS = new Set([
   'theme', 'charDrift',
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
-  'surfaceNoise', 'runoutLength', 'surfaceNoiseUnderMusic',
+  'surfaceNoise', 'surfaceNoiseUnderMusic',
   'autoFlip', 'stopAtTurns', 'seasonalSky', 'showWear',
   'loudnessMode',
   'eq',
@@ -79,7 +79,7 @@ export function serializePrefs(S){
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
     paperLabelOnLossy: S.paperLabelOnLossy,
-    surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
+    surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     stopAtTurns: S.stopAtTurns,
     seasonalSky: S.seasonalSky,
@@ -162,7 +162,6 @@ export function parsePrefs(raw){
   // Normal, and the under-the-music bed off — the same "missing means the
   // default" shape charDrift's own DA2 addition already established.
   if(p.surfaceNoise === 'off' || p.surfaceNoise === 'subtle' || p.surfaceNoise === 'well-loved') out.surfaceNoise = p.surfaceNoise;
-  if(p.runoutLength === 'short' || p.runoutLength === 'normal' || p.runoutLength === 'until-lift') out.runoutLength = p.runoutLength;
   if(typeof p.surfaceNoiseUnderMusic === 'boolean') out.surfaceNoiseUnderMusic = p.surfaceNoiseUnderMusic;
   // docs/15_SURFACE_NOISE.md §4: a saved object without this (every device
   // before this PR) loads as On, the stated default and today's behavior.

@@ -27,7 +27,7 @@ import { renderPlayerSidePanel } from '../shell/player-side-panel.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
 import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
-import { performPendingFlip, liftNeedleNow } from '../shell/runout.js';
+import { performPendingFlip, putAwayFromWait } from '../shell/runout.js';
 
 export function wireTransport(){
   $('#play').addEventListener('click', async ()=>{
@@ -131,12 +131,13 @@ export function wireTransport(){
   $('#restingPlayAgainBtn').addEventListener('click', playAgainFromResting);
   $('#restingBackBtn').addEventListener('click', continueFromResting);
 
-  // docs/15_SURFACE_NOISE.md §4: the player's own discoverable way to flip
-  // a waiting record (#flipPrompt) or, for "Until I lift it" only, lift
-  // the needle without flipping (#liftNeedleBtn) -- both only ever shown
-  // while S.runout.kind === 'wait' (shell/runout.js's own updateWaitUI()).
+  // docs/15_SURFACE_NOISE.md §4 / GS5 (docs/30_GROOVES_AND_SHELF.md): the
+  // player's own discoverable way to flip a waiting record (#flipPrompt,
+  // shown only when there's a next side to turn to) or put it away
+  // (#runoutPutAwayBtn, always shown while waiting) -- both only ever
+  // shown while S.runout.kind === 'wait' (shell/runout.js's updateWaitUI()).
   $('#flipPrompt').addEventListener('click', performPendingFlip);
-  $('#liftNeedleBtn').addEventListener('click', liftNeedleNow);
+  $('#runoutPutAwayBtn').addEventListener('click', putAwayFromWait);
 
   // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
   // session" -- a menuitemcheckbox in the player's own "···" menu, not a

@@ -37,12 +37,11 @@ A real record makes sound before the music starts and after it stops, and handli
 - The run-out plays after the **last track of a side** and ends one of three ways:
   - **Flip:** needle lift, then a new needle drop and lead-in on side B.
   - **Queue ends:** needle lift, then the put-away animation.
-  - **Timeout:** needle lift; the record stays on the platter (see §4).
+  - **Auto-flip off:** the record stays on the platter, waiting for Turn to side B or Put away — no timeout (see §4, superseded by docs/30_GROOVES_AND_SHELF.md GS5).
 - Surface noise isn't added under the music by default. The music itself is never altered.
 
 ### Settings (Sundown → Sound)
 - **Surface Noise:** `Off` · `Subtle` · `Well-loved`. **Default: `Subtle`, on for new users.**
-- **Run-out length:** `Short (8 s)` · `Normal (20 s, default)` · `Until I lift it`
 - **Under the music:** off by default. When on, a very faint hiss bed at about −55 dBFS sits under playback.
 
 ### Ties to the rest of Miziki
@@ -113,6 +112,8 @@ Skipping mid-side lifts and re-drops the needle instead of cutting silently. You
 
 ## 4. Auto-Flip Toggle
 
+**Superseded by docs/30_GROOVES_AND_SHELF.md (GS5):** the Run-out length setting (Short/Normal/Until I lift it) and its timeout are gone — the run-out wait never times out now, and "Lift needle" is replaced by an explicit **Put away**, shown alongside **Turn to side B** (or alone, on the record's own last side). See that plan for the current behavior.
+
 ### Setting (Sundown → Sound)
 - **Auto-flip sides:** `On` (default) · `Off`
 
@@ -121,10 +122,9 @@ On keeps today's behavior: side A's run-out plays (if Surface Noise is on), then
 ### When Auto-flip is Off
 1. The last track on side A ends, and the run-out plays.
 2. The record stays on the platter, spinning in the run-out, until one of these:
-   - **You flip it** with the existing side A/B flip gesture. Side B then gets a needle drop and lead-in.
-   - **The run-out timeout passes** (per Run-out length). The needle lifts, the platter spins down, and the player waits, showing a small **"Flip to Side B"** prompt on the platter.
+   - **You flip it** with the existing side A/B flip gesture, or the player's own **Turn to side B** button. Side B then gets a needle drop and lead-in.
+   - **You put it away** with the player's own **Put away** button — no timeout.
    - **You pull a different record.** The current one is put away first.
-3. If `Until I lift it` is chosen, the run-out continues until you flip, lift (tap the platter → **Lift needle**), or pull another record.
 
 ### Background and lock screen
 - Now Playing shows **"Side A finished · Flip to continue."**
@@ -133,8 +133,8 @@ On keeps today's behavior: side A's run-out plays (if Surface Noise is on), then
 
 ### Edge cases
 - **Single-sided records, or albums with one defined side:** after the run-out, the queue continues or the put-away plays, as today.
-- **Last side of the record:** the flip setting doesn't apply; the run-out, then put-away, as today.
-- **Surface Noise Off with Auto-flip Off:** the record still waits to be flipped. The run-out is just silent, with the platter visually spinning in the dead wax until the timeout.
+- **Last side of the record:** the record still waits in the run-out with auto-flip off, showing only **Put away** (no side to turn to) — see docs/30_GROOVES_AND_SHELF.md GS5.
+- **Surface Noise Off with Auto-flip Off:** the record still waits to be flipped or put away. The run-out is just silent, with the platter visually spinning in the dead wax.
 
 ---
 
