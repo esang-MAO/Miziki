@@ -20,7 +20,7 @@ mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/sundown/spin-wording.js', import.meta.url).href, {
-  namedExports: { spinPhaseWording(){ return null; } },
+  namedExports: { spinPhaseWording(){ return null; }, KEPT_FOR_LABEL: { sundown: 'Sundown' } },
 });
 // home.js's own real circular pair with profile/settings.js (settings.js
 // already imports renderHome/clearHomeFeedCache back from here) -- mocked

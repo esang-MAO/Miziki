@@ -2,7 +2,7 @@ import { $, el } from '../../util/dom.js';
 import { S } from '../../state.js';
 import { storeSign, storeRequestsCard } from '../../profile/storefront.js';
 import { feedEventText } from './feed-text.js';
-import { spinPhaseWording } from '../../sundown/spin-wording.js';
+import { spinPhaseWording, KEPT_FOR_LABEL } from '../../sundown/spin-wording.js';
 // FS9 (docs/25_FROM_SCRATCH.md point 1): "a small disc with the record's
 // pressing colour" -- import-free (see its own header), so pulling it in
 // here costs this file nothing new to mock.
@@ -126,6 +126,40 @@ function homeFeedTile(t){
   return tile;
 }
 
+// GS10 point 2: "Tidewater · sundown" -- same name/caption tile shape as
+// homeFeedTile() above, just a plain album lookup (S.albumDisplay)
+// instead of a feed event; KEPT_FOR_LABEL's capitalized picker wording
+// ("Sundown") reads lowercase here, matching the spec's own example.
+function keptForTile(albumId){
+  const disp = S.albumDisplay[albumId] || { name: albumId, artist: '', art: null };
+  const tile = el('div','store-pick home-feed-tile');
+  const cover = el('div','store-pick-cover');
+  if(disp.art){ const im = document.createElement('img'); im.src = disp.art; im.alt = ''; cover.appendChild(im); }
+  tile.appendChild(cover);
+  tile.appendChild(el('div','store-pick-name', disp.name));
+  tile.appendChild(el('div','home-feed-caption', (KEPT_FOR_LABEL[S.albumKeptFor[albumId]] || '').toLowerCase()));
+  return tile;
+}
+
+// Paints from `albumIds` (the frozen once-a-day snapshot, re-filtered
+// against the live S.albumKeptFor so a since-cleared "Not kept" drops out
+// immediately rather than lingering until tomorrow). No section at all
+// when nothing's kept -- CLAUDE.md's "never asks for attention": this is
+// a quiet list for what's already there, never an empty-state prompt to
+// go keep something.
+function paintKeptForToday(albumIds){
+  if(!keptHolderEl) return;
+  keptHolderEl.innerHTML = '';
+  const ids = albumIds.filter(id => S.albumKeptFor[id]);
+  if(!ids.length) return;
+  const head = el('div','store-section-head home-section-head--display');
+  head.appendChild(el('h2', null, 'Kept for today'));
+  keptHolderEl.appendChild(head);
+  const grid = el('div','home-feed-grid');
+  ids.forEach(id => grid.appendChild(keptForTile(id)));
+  keptHolderEl.appendChild(grid);
+}
+
 function homePeopleSearch(container){
   const row = el('div','slider-row');
   const input = el('input','pl-input');
@@ -244,10 +278,18 @@ function paintHomeSpinRow(){
 // shouldFetchHomeFeed()/homeBannerStateAt() below to decide whether
 // today's once-a-day fetch is still owed.
 const HOME_FEED_CACHE_KEY = 'miziki-home-feed-cache';
+// GS10 (docs/30_GROOVES_AND_SHELF.md point 2): "today's kept records,"
+// frozen at the same once-a-day sunrise gate as the feed cache above --
+// S.albumKeptFor itself is live, device-local data (never fetched), but
+// the *list this section shows* still has to be a once-a-day snapshot, or
+// a record kept in the evening would appear right away instead of in
+// tomorrow's morning refresh ("nothing new appears after sunset").
+const HOME_KEPT_CACHE_KEY = 'miziki-home-kept-cache';
 let homeShellBuilt = false;
 let feedHolderEl = null;
 let requestsHolderEl = null;
 let bannerHolderEl = null;
+let keptHolderEl = null;
 
 function loadFeedCache(){
   try{
@@ -264,6 +306,22 @@ function saveFeedCache(events){
 export function clearHomeFeedCache(){
   homeShellBuilt = false;
   try{ localStorage.removeItem(HOME_FEED_CACHE_KEY); }catch(_e){}
+}
+
+function loadKeptCache(){
+  try{
+    const raw = localStorage.getItem(HOME_KEPT_CACHE_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    return (data && Array.isArray(data.albumIds)) ? { albumIds: data.albumIds, fetchedAt: data.fetchedAt || null } : null;
+  }catch(_e){ return null; }
+}
+function saveKeptCache(albumIds){
+  try{ localStorage.setItem(HOME_KEPT_CACHE_KEY, JSON.stringify({ albumIds, fetchedAt: Date.now() })); }
+  catch(_e){}
+}
+export function clearHomeKeptCache(){
+  try{ localStorage.removeItem(HOME_KEPT_CACHE_KEY); }catch(_e){}
 }
 
 // shouldFetchHomeFeed(cachedFetchedAt, sunriseMs, nowMs) -> RW2's own
@@ -349,6 +407,12 @@ function buildHomeShell(container){
   requestsHolderEl = el('div');
   container.appendChild(requestsHolderEl);
   homeNowSpinningRow(container);
+  // GS10 (docs/30_GROOVES_AND_SHELF.md point 2): its own stable host,
+  // painted by refreshHome() below -- sits between Now spinning and the
+  // friends feed, same "today's own crate first" ordering Now spinning
+  // already has over the feed.
+  keptHolderEl = el('div');
+  container.appendChild(keptHolderEl);
   const feedSection = el('div','store-section');
   // FS9 (docs/25_FROM_SCRATCH.md point 2): "heading Antonio 20 +
   // 'from friends' muted" -- #homeBody .store-section-head h2's own
@@ -387,8 +451,23 @@ export async function refreshHome(){
     if(f.status === 'accepted' && f.profiles) homeFollowingHandles.set(f.followee_id, f.profiles.handle);
   });
 
-  const cache = loadFeedCache();
   const sunriseMs = S.sun && S.sun.rise ? S.sun.rise.getTime() : null;
+
+  // GS10 point 2: the exact same once-a-day-at-sunrise gate as the feed
+  // below, just snapshotting S.albumKeptFor's own keys instead of
+  // fetching anything -- shouldFetchHomeFeed() is a plain "is the cache
+  // stale and has this morning's window opened" decision with no feed-
+  // specific logic in it, so this reuses it rather than a second copy.
+  const keptCache = loadKeptCache();
+  if(shouldFetchHomeFeed(keptCache ? keptCache.fetchedAt : null, sunriseMs, Date.now())){
+    const ids = Object.keys(S.albumKeptFor);
+    saveKeptCache(ids);
+    paintKeptForToday(ids);
+  } else {
+    paintKeptForToday(keptCache ? keptCache.albumIds : []);
+  }
+
+  const cache = loadFeedCache();
   if(shouldFetchHomeFeed(cache ? cache.fetchedAt : null, sunriseMs, Date.now())){
     const feed = await MizikiSocial.homeFeed({limit:50});
     if(feed.ok){

@@ -353,6 +353,11 @@ export function toDoc(localState){
       // part of the social payload (miziki-social.js's buildItems()
       // doesn't read it).
       albumLinerNote: itemWriteEntries(s.albumLinerNote, updatedAt.albumLinerNote, s.deviceId),
+      // GS10 (docs/30_GROOVES_AND_SHELF.md): the album-keyed "Keep for…"
+      // claim -- a phase word | tombstoned to null on "Not kept" -- same
+      // per-key last-write-wins shape as albumFormat above, never part of
+      // the social payload.
+      albumKeptFor: itemWriteEntries(s.albumKeptFor, updatedAt.albumKeptFor, s.deviceId),
       prefs: itemWriteEntries(s.prefs, updatedAt.prefs, s.deviceId),
       playlistDefs: playlistParts.playlistDefs,
       playlistOrder: playlistParts.playlistOrder,
@@ -642,7 +647,7 @@ export function validateDoc(doc){
   if(!isStringArray(sealed.broken || [])) return false;
 
   const itemWrites = doc.itemWrites || {};
-  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'albumBackCover', 'albumLinerNote', 'prefs', 'playlistDefs', 'playlistOrder'];
+  const itemWriteFields = ['albumOrder', 'albumSort', 'albumDisplay', 'trackDisplay', 'albumEdge', 'albumLookPref', 'albumFormat', 'albumBackCover', 'albumLinerNote', 'albumKeptFor', 'prefs', 'playlistDefs', 'playlistOrder'];
   if(!itemWriteFields.every(f => isItemWritesArray(itemWrites[f] || []))) return false;
 
   const playlistMembership = doc.playlistMembership || [];

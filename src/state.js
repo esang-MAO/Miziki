@@ -231,6 +231,14 @@ export const S = {
   // comment," library/credits.js's albumLinerNotes() own existing pick.
   // Never reaches the social layer.
   albumLinerNote:{},
+  // GS10 (docs/30_GROOVES_AND_SHELF.md): the album-keyed "Keep for…" claim
+  // -- a phase word (first-light/morning/golden/sundown/night) once set from
+  // the gatefold's own "Keep for…" menu item, same per-key last-write-wins
+  // shape as albumFormat/albumLinerNote above. Absent (or tombstoned by
+  // "Not kept") means the album isn't on anyone's kept list. Read by
+  // Home's once-a-day sunrise refresh and the Listening screen's own kept
+  // list (GS9).
+  albumKeptFor:{},
   // GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page *count* --
   // {albumId: N}, device-only (like the pages themselves: real image bytes
   // live in the artwork store under 'booklet:<albumId>:<NNNN>', excluded
@@ -547,7 +555,7 @@ S.sealedBroken = new Set();
 // different shape again — see touchBackupMembership()'s own comment).
 S.backupUpdatedAt = {
   albumOrder:{}, albumSort:{}, albumDisplay:{}, trackDisplay:{},
-  albumEdge:{}, albumLookPref:{}, albumFormat:{}, albumBackCover:{}, albumLinerNote:{}, prefs:{},
+  albumEdge:{}, albumLookPref:{}, albumFormat:{}, albumBackCover:{}, albumLinerNote:{}, albumKeptFor:{}, prefs:{},
   playlistDefs:{}, playlistOrder:{},
   profileName:0,
   picture:0,   // step 07, B4 — the profile picture / public avatar

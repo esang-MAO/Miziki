@@ -23,7 +23,7 @@ import {
   RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, windowedCounts,
   rhythmVerdictLabel, seasonLabelFor, seasonAtOffset, sumBucketsInRange, mergeCounts,
 } from '../sundown/rhythm.js';
-import { PHASE_CAPS } from '../sundown/spin-wording.js';
+import { PHASE_CAPS, KEPT_FOR_PHASES, KEPT_FOR_LABEL } from '../sundown/spin-wording.js';
 import { albumKey, getVariantDef } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { albumFormatFor } from '../shell/ceremony-timing.js';
@@ -416,6 +416,41 @@ function spunTile(a){
   return tile;
 }
 
+// GS10 point 3: "Listening shows the kept list" -- lifetime, not
+// season-scoped, like the per-phase best-record list it sits beside;
+// grouped by KEPT_FOR_PHASES' own fixed five slots, a manual tag kept
+// separate from PHASES' seven measured day-arc phases above. No section
+// when nothing's kept, same quiet-list rule as Home's own "Kept for
+// today" (CLAUDE.md, "Miziki never asks for attention"). Reuses
+// rhythm-card.js's recordRow() styling (rhythm-records/rhythm-record-*)
+// rather than a near-duplicate set of classes.
+function renderKeptForList(host){
+  const entries = KEPT_FOR_PHASES
+    .map(phase => ({ phase, albums: Object.keys(S.albumKeptFor).filter(id => S.albumKeptFor[id] === phase) }))
+    .filter(e => e.albums.length);
+  if(!entries.length) return;
+  const section = el('div','profile-section');
+  const head = el('div','profile-section-head'); head.appendChild(el('span', null, 'Kept for a time of day'));
+  section.appendChild(head);
+  const list = el('div','rhythm-records');
+  entries.forEach(({phase, albums}) => albums.forEach(id => list.appendChild(keptForRow(phase, id))));
+  section.appendChild(list);
+  host.appendChild(section);
+}
+
+function keptForRow(phase, albumId){
+  const disp = S.albumDisplay[albumId] || { name: albumId, artist: '', art: null };
+  const row = el('div', 'rhythm-record-row');
+  const art = el('span', 'rhythm-record-art');
+  if(disp.art){ const im = document.createElement('img'); im.src = disp.art; im.alt = ''; art.appendChild(im); }
+  row.appendChild(art);
+  const text = el('div', 'rhythm-record-text');
+  text.appendChild(el('b', null, KEPT_FOR_LABEL[phase]));
+  text.appendChild(el('span', null, disp.name + (disp.artist ? ' — ' + disp.artist : '')));
+  row.appendChild(text);
+  return row;
+}
+
 // GS9 point 2: "a 'found [pressing]' paper sticker or 'from [handle]'
 // when present" -- entry.found is a VARIANT_DEFS key (history/played.js's
 // checkTrackCompletion(), patched on only when a pressing was newly found
@@ -463,9 +498,9 @@ function playedThroughRow(entry){
 // is showing. Point 4: the old Achievements grid (metals live on the
 // wall, storefront.js's storeWallSection()) and the Top Album/Top Song
 // tiles are gone outright, not relocated. "Kept for a time of day" (point
-// 3's last item, GS10) is deliberately not built here yet -- GS10 hasn't
-// landed, and S.albumKeptFor doesn't exist, so there's nothing yet for it
-// to read; see this PR's own description.
+// 3's last item, GS10) lists every album in S.albumKeptFor, grouped by its
+// own five-slot vocabulary (KEPT_FOR_PHASES) -- lifetime/unwindowed like
+// the per-phase best-record list just above it.
 function renderListeningScreen(body){
   const wrap = el('div','profile-extras');
 
@@ -554,6 +589,10 @@ function renderListeningScreen(body){
   const bestHost = el('div', null);
   wrap.appendChild(bestHost);
   renderBestPerPhaseList(bestHost);
+
+  const keptHost = el('div', null);
+  wrap.appendChild(keptHost);
+  renderKeptForList(keptHost);
 
   // Collection (unlocked pressings) and the pressing chart moved to the
   // profile's Records section/screen (records.js), alongside the records
