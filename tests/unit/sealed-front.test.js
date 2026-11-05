@@ -171,17 +171,17 @@ test('a drag released short of the threshold does not break the seal', async () 
   assert.equal(isSealedFrontOpen(), true);
 });
 
-// GF8 point 3: "Turn it over first" shows the back through the same wrap,
-// without breaking anything.
-test('toggleSealedFrontTurnedOver flips the button label and reads the back cover, without breaking the seal', async () => {
+// GF13 (docs/29_GATEFOLD.md): "Flip cover" shows the back through the same
+// wrap, without breaking anything -- a tap button, not a swipe.
+test('toggleSealedFrontTurnedOver reads the back cover without breaking the seal', async () => {
   await resetAll();
   openSealedFront(fakeItem());
   toggleSealedFrontTurnedOver();
-  assert.equal(elCache.get('#sealedFrontTurnBtn').textContent, 'Turn it back over');
+  assert.equal(elCache.get('#sealedFrontTurnBtn').textContent, 'Flip cover');
   assert.equal(getAlbumBackCoverBlobMock.mock.calls.length, 1);
   assert.equal(breakSealMock.mock.calls.length, 0);
   toggleSealedFrontTurnedOver();
-  assert.equal(elCache.get('#sealedFrontTurnBtn').textContent, 'Turn it over first');
+  assert.equal(elCache.get('#sealedFrontTurnBtn').textContent, 'Flip cover');
 });
 
 test('closeSealedFront (the Crate back button) never breaks the seal or opens the gatefold', async () => {

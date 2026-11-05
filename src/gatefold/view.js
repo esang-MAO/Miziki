@@ -1076,6 +1076,10 @@ export function gatefoldToggleTurnedOver(){
 export function gatefoldSwitchPanel(panel){
   if(!GF) return;
   GF.panel = panel;
+  const overlay = $('#gatefold');
+  overlay.classList.toggle('gf-panel-left', panel === 'left');
+  overlay.classList.toggle('gf-panel-right', panel === 'right');
+  overlay.classList.remove('gf-panel-dragging');
   const camera = $('#gfCamera');
   if(GF.mode !== 'wide'){
     camera.style.transition = 'transform ' + GATEFOLD_ANIM.leftPanelMs + 'ms ease';
@@ -1121,6 +1125,7 @@ function gatefoldWireGestures(){
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if(!start.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) start.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
     if(start.locked === 'h' && GF.mode !== 'wide'){
+      $('#gatefold').classList.add('gf-panel-dragging');
       const base = GF.panel === 'left' ? -GF.geom.panDistance : GF.geom.panDistance;
       const next = clamp(base + dx * 0.5, -GF.geom.panDistance, GF.geom.panDistance);
       $('#gfCamera').style.transition = 'none';
@@ -1387,6 +1392,8 @@ export function openGatefold(item, opts){
   overlay.classList.toggle('gf-wide', mode === 'wide');
   overlay.classList.toggle('gf-night', night);
   overlay.classList.remove('gf-chrome-in');
+  overlay.classList.add('gf-panel-right');
+  overlay.classList.remove('gf-panel-left', 'gf-panel-dragging');
   overlay.style.opacity = '';
 
   gatefoldBuildSleevePockets(discGroups);
