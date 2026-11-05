@@ -1,6 +1,13 @@
 import { $ } from '../util/dom.js';
+import { S } from '../state.js';
 import { releaseSeed } from '../audio/surface-noise.js';
 import { albumKey } from './tiers.js';
+// GS5 (docs/30_GROOVES_AND_SHELF.md): the new third line's two pieces --
+// the file's own short format stamp, and the phase a found pressing was
+// discovered in, worded the same way the home-feed/share-card "SPUN AT
+// DUSK" line already is.
+import { compactFormatLabel } from '../player/track-spec.js';
+import { spinPhaseWording } from '../sundown/spin-wording.js';
 
 /* ================= dead-wax etchings (docs/15_SURFACE_NOISE.md §5) =================
    Tiny hand-scratched text in the run-out area, between the last groove and
@@ -103,6 +110,29 @@ export function deadWaxArcPath(radius){
   return 'M ' + (100 - radius) + ' 100 A ' + radius + ' ' + radius + ' 0 1 1 ' + (100 + radius) + ' 100';
 }
 
+// "14 NOV" -- a hand-stamped date reads the same regardless of locale, so
+// this is spelled out rather than left to toLocaleDateString().
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+function pressedAtDateText(ts){
+  const d = new Date(ts);
+  return d.getDate() + ' ' + MONTHS[d.getMonth()];
+}
+
+// GS5 (docs/30_GROOVES_AND_SHELF.md): the dead-wax etching's new third
+// line -- the album's own format, and (once a pressing's been found for
+// it) when and in what phase. `collectionEntry` is S.collection[albumId]
+// (undefined before a pressing's found); its `phase` is only ever set
+// from here on (upsertCollectionEntry, history/achievements.js) -- an
+// older entry without one just shows the date alone.
+export function etchThirdLine(m, collectionEntry){
+  const format = compactFormatLabel(m);
+  if(!collectionEntry || !collectionEntry.discoveredAt) return format;
+  const date = pressedAtDateText(collectionEntry.discoveredAt);
+  const wording = collectionEntry.phase ? spinPhaseWording(collectionEntry.phase) : null;
+  const pressed = wording ? ('PRESSED ' + wording).toUpperCase() + ' · ' + date : 'PRESSED ' + date;
+  return format ? format + ' · ' + pressed : pressed;
+}
+
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 // Writes `str` into `textPathEl` as one <tspan> per character, each nudged
@@ -130,12 +160,20 @@ function writeEtchingGlyphs(textPathEl, str, seed){
 export function applyDeadWaxEtching(t, side, fullness){
   const matrixEl = $('#deadWaxMatrixText');
   const messageEl = $('#deadWaxMessageText');
+  const thirdEl = $('#deadWaxThirdText');
+  const radius = deadWaxEtchRadius(fullness);
   const pathEl = $('#deadWaxPath');
-  if(pathEl) pathEl.setAttribute('d', deadWaxArcPath(deadWaxEtchRadius(fullness)));
+  if(pathEl) pathEl.setAttribute('d', deadWaxArcPath(radius));
+  // GS5: the third line rides its own, slightly smaller concentric arc --
+  // same shape a real pressing's matrix/hand-etch/spec stamp often takes,
+  // rather than packing a third string onto the matrix/message arc above.
+  const pathEl2 = $('#deadWaxPath2');
+  if(pathEl2) pathEl2.setAttribute('d', deadWaxArcPath(Math.max(radius - 7, DEAD_WAX_MIN_RADIUS - 7)));
   if(!matrixEl || !messageEl) return;
   if(!t){
     writeEtchingGlyphs(matrixEl, '', 1);
     writeEtchingGlyphs(messageEl, '', 1);
+    if(thirdEl) writeEtchingGlyphs(thirdEl, '', 1);
     return;
   }
   const releaseId = albumKey(t);
@@ -143,6 +181,7 @@ export function applyDeadWaxEtching(t, side, fullness){
   const seed = releaseSeed(releaseId, side);
   writeEtchingGlyphs(matrixEl, matrix, seed);
   writeEtchingGlyphs(messageEl, message, seed + 1);
+  if(thirdEl) writeEtchingGlyphs(thirdEl, etchThirdLine(t.meta, S.collection[releaseId]), seed + 2);
 }
 
 // The long-press loupe (player/scrub.js's own long-press timer calls this

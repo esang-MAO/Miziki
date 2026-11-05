@@ -215,12 +215,6 @@ export function wireCharacter(){
       x.setAttribute('aria-pressed', String(x.dataset.surfaceNoise === S.surfaceNoise)));
     queueSave();
   }));
-  document.querySelectorAll('[data-runout-length]').forEach(b => b.addEventListener('click', () => {
-    S.runoutLength = b.dataset.runoutLength;
-    document.querySelectorAll('[data-runout-length]').forEach(x =>
-      x.setAttribute('aria-pressed', String(x.dataset.runoutLength === S.runoutLength)));
-    queueSave();
-  }));
   $('#surfaceNoiseUnderMusicBtn').addEventListener('click', () => {
     S.surfaceNoiseUnderMusic = !S.surfaceNoiseUnderMusic;
     const b = $('#surfaceNoiseUnderMusicBtn');

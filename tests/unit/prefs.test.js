@@ -15,7 +15,7 @@ function fakeS(overrides = {}){
     charDrift: 'subtle',
     slipmatCustom: false, slipmatWordmark: true, slipmatDim: true,
     paperLabelOnLossy: false,
-    surfaceNoise: 'subtle', runoutLength: 'normal', surfaceNoiseUnderMusic: false,
+    surfaceNoise: 'subtle', surfaceNoiseUnderMusic: false,
     autoFlip: true,
     stopAtTurns: false,
     loudnessMode: 'auto',
@@ -42,7 +42,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     charDrift: S.charDrift,
     slipmatCustom: S.slipmatCustom, slipmatWordmark: S.slipmatWordmark, slipmatDim: S.slipmatDim,
     paperLabelOnLossy: S.paperLabelOnLossy,
-    surfaceNoise: S.surfaceNoise, runoutLength: S.runoutLength, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
+    surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
@@ -285,29 +285,33 @@ test('pace, librarySort and crateAnchor are truthy-checked only, same as applyPr
 // before this feature) loads as the stated defaults -- Subtle, Normal and
 // the under-the-music bed off -- the same "missing means the default"
 // shape charDrift's own DA2 addition already established above.
-test('round trip: surfaceNoise/runoutLength/surfaceNoiseUnderMusic survive every valid value', () => {
-  const p1 = parsePrefs(serializePrefs(fakeS({ surfaceNoise: 'off', runoutLength: 'short', surfaceNoiseUnderMusic: true })));
+test('round trip: surfaceNoise/surfaceNoiseUnderMusic survive every valid value', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ surfaceNoise: 'off', surfaceNoiseUnderMusic: true })));
   assert.equal(p1.surfaceNoise, 'off');
-  assert.equal(p1.runoutLength, 'short');
   assert.equal(p1.surfaceNoiseUnderMusic, true);
-  const p2 = parsePrefs(serializePrefs(fakeS({ surfaceNoise: 'well-loved', runoutLength: 'until-lift' })));
+  const p2 = parsePrefs(serializePrefs(fakeS({ surfaceNoise: 'well-loved' })));
   assert.equal(p2.surfaceNoise, 'well-loved');
-  assert.equal(p2.runoutLength, 'until-lift');
 });
 
-test('old saved data: no surfaceNoise/runoutLength/surfaceNoiseUnderMusic field at all leaves them out, so the defaults stay in place', () => {
+test('old saved data: no surfaceNoise/surfaceNoiseUnderMusic field at all leaves them out, so the defaults stay in place', () => {
   const raw = serializePrefs(fakeS());
-  delete raw.surfaceNoise; delete raw.runoutLength; delete raw.surfaceNoiseUnderMusic;
+  delete raw.surfaceNoise; delete raw.surfaceNoiseUnderMusic;
   const parsed = parsePrefs(raw);
   assert.equal('surfaceNoise' in parsed, false);
-  assert.equal('runoutLength' in parsed, false);
   assert.equal('surfaceNoiseUnderMusic' in parsed, false);
 });
 
-test('bad values are ignored: an unlisted surfaceNoise/runoutLength value, a non-boolean surfaceNoiseUnderMusic', () => {
-  const parsed = parsePrefs({ surfaceNoise: 'deafening', runoutLength: 'forever', surfaceNoiseUnderMusic: 'yes' });
-  assert.equal('surfaceNoise' in parsed, false);
+// GS5 (docs/30_GROOVES_AND_SHELF.md): runoutLength itself is gone -- a
+// saved object from before this PR still carries the old field, and
+// parsePrefs now just ignores it rather than reading it back into S.
+test('old runoutLength value is ignored, never resurfacing as a live field', () => {
+  const parsed = parsePrefs({ surfaceNoise: 'subtle', runoutLength: 'short', surfaceNoiseUnderMusic: false });
   assert.equal('runoutLength' in parsed, false);
+});
+
+test('bad values are ignored: an unlisted surfaceNoise value, a non-boolean surfaceNoiseUnderMusic', () => {
+  const parsed = parsePrefs({ surfaceNoise: 'deafening', surfaceNoiseUnderMusic: 'yes' });
+  assert.equal('surfaceNoise' in parsed, false);
   assert.equal('surfaceNoiseUnderMusic' in parsed, false);
 });
 

@@ -188,6 +188,9 @@ const RESTING_COPY = {
   sunset: 'Around sunset, playback stops between records.',
   midnight: 'Around midnight, playback stops between records.',
   queueEnd: "You've reached the end of your queue.",
+  // GS5 (docs/30_GROOVES_AND_SHELF.md): auto-flip off, the record's own
+  // last side just ended and "Put away" was tapped from the run-out wait.
+  sideEnd: 'The record finished.',
 };
 // RW3: the first entry in S.queue that's the same album as curT but a
 // different side -- what a manual "Flip to Side B" from the resting

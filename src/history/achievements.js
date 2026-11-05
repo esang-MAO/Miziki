@@ -6,6 +6,10 @@ import { windowedCounts, RHYTHM_WINDOW_DAYS } from '../sundown/rhythm.js';
 import { idxOf } from '../library/model.js';
 import { achievements, collection } from '../storage/repo.js';
 import { thumbURL, persistable } from '../library/thumbs.js';
+// GS5 (docs/30_GROOVES_AND_SHELF.md): the dead-wax etching's third line
+// reads this phase, same "real clock, never Preview the day" rule
+// GS2's playedThrough entries already follow (history/sessions.js).
+import { realDayPosition } from '../sundown/solar.js';
 
 /* ================= profile tab =================
    Everything here reads from existing counters — session records, track
@@ -33,7 +37,8 @@ async function upsertCollectionEntry(albumId, tier, variant, pattern){
   // tiers.js's own CHART_VERSION entry) can tell a stale tier-3 draw apart
   // from a fresh one and re-draw only the stale ones, once.
   const rec = {albumId, tier, variant, pattern, name:disp.name || albumId, artist:disp.artist || '',
-    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now(), chartVersion:CHART_VERSION};
+    art:thumbURL['album:' + albumId] || null, discoveredAt:Date.now(), chartVersion:CHART_VERSION,
+    phase: realDayPosition().phase};
   S.collection[albumId] = rec;
   await collection.put(persistable(rec));
 }

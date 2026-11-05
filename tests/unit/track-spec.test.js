@@ -1,6 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { specRateSuffix, specState, specStateLabel } from '../../src/player/track-spec.js';
+import { specRateSuffix, specState, specStateLabel, compactFormatLabel } from '../../src/player/track-spec.js';
+
+// GS5 (docs/30_GROOVES_AND_SHELF.md): the dead-wax etching's short "FLAC
+// 24/96" stamp.
+test('compactFormatLabel: codec plus bit-depth/kHz', () => {
+  assert.equal(compactFormatLabel({ codec: 'FLAC', rate: 96000, bits: 24 }), 'FLAC 24/96');
+  assert.equal(compactFormatLabel({ codec: 'ALAC', rate: 44100, bits: 16 }), 'ALAC 16/44.1');
+});
+
+test('compactFormatLabel: a lossy codec with no bit-depth shows the codec alone', () => {
+  assert.equal(compactFormatLabel({ codec: 'MP3', rate: 44100 }), 'MP3');
+});
+
+test('compactFormatLabel: missing meta is empty', () => {
+  assert.equal(compactFormatLabel(null), '');
+  assert.equal(compactFormatLabel({}), '');
+});
 
 test('specRateSuffix: empty when rates match, missing, or engine rate unknown', () => {
   assert.equal(specRateSuffix(44100, 44100), '');

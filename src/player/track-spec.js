@@ -16,6 +16,22 @@ export function fileSpecLine(m){
     m.ch===1?'mono':'stereo', m.lossless ? null : 'lossy'].filter(Boolean).join(' · ');
 }
 
+// GS5 (docs/30_GROOVES_AND_SHELF.md): the dead-wax etching's third line
+// wants a real pressing's own short stamp -- "FLAC 24/96" -- not
+// fileSpecLine()'s full "FLAC · 48.0 kHz · 24-bit · stereo". Codec plus
+// bit-depth/sample-rate (kHz, trimmed to a whole number when it is one)
+// only; a lossy file with no meaningful bit-depth shows the codec alone.
+export function compactFormatLabel(m){
+  if(!m) return '';
+  // bits/kHz reads as one pair (24/96) -- a bare kHz with no bit-depth
+  // (every lossy codec) would look like a random number, so it's left
+  // off entirely rather than shown alone.
+  if(!m.bits || !m.rate) return m.codec || '';
+  const khz = m.rate / 1000;
+  const khzText = Number.isInteger(khz) ? khz : Math.round(khz * 10) / 10;
+  return [m.codec, m.bits + '/' + khzText].filter(Boolean).join(' ');
+}
+
 // Only non-empty when the engine rate actually differs from the source --
 // "no upsampling claims, ever" means never implying a conversion
 // happened when the two already match.

@@ -595,13 +595,6 @@
         <button data-surface-noise="well-loved" aria-pressed="false">Well-loved</button>
       </div>
 
-      <p class="note">Run-out length</p>
-      <div class="seg sd-runout-length-seg" role="group" aria-label="Run-out length">
-        <button data-runout-length="short" aria-pressed="false">Short</button>
-        <button data-runout-length="normal" aria-pressed="true">Normal</button>
-        <button data-runout-length="until-lift" aria-pressed="false">Until I lift it</button>
-      </div>
-
       <div class="row" style="margin-top:12px">
         <div class="k">Under the music<em>A very faint hiss bed under playback.</em></div>
         <button id="surfaceNoiseUnderMusicBtn" class="switch" role="switch" aria-checked="false" aria-label="Under the music"><span class="switch-track"><i></i></span></button>
@@ -755,9 +748,15 @@
                long-press loupe (player/scrub.js). Generated client-side
                from the release id at track load (record-art/etchings.js). -->
           <svg class="dead-wax" id="deadWax" viewBox="0 0 200 200" aria-hidden="true">
-            <defs><path id="deadWaxPath" d="M 50 100 A 50 50 0 1 1 150 100"></path></defs>
+            <defs>
+              <path id="deadWaxPath" d="M 50 100 A 50 50 0 1 1 150 100"></path>
+              <!-- GS5 (docs/30_GROOVES_AND_SHELF.md): the format/pressing
+                   line, its own slightly smaller concentric arc. -->
+              <path id="deadWaxPath2" d="M 57 100 A 43 43 0 1 1 143 100"></path>
+            </defs>
             <text><textPath href="#deadWaxPath" startOffset="18%" id="deadWaxMatrixText"></textPath></text>
             <text><textPath href="#deadWaxPath" startOffset="60%" id="deadWaxMessageText"></textPath></text>
+            <text><textPath href="#deadWaxPath2" startOffset="30%" id="deadWaxThirdText"></textPath></text>
           </svg>
           <!-- RF15: shown only without embedded art (.label.has-art hides
                this group). #labelArcText/#labelTitle are written at
@@ -909,8 +908,8 @@
              run-out for the user to flip (shell/runout.js's
              S.runout.kind === 'wait'); Lift needle only for "Until I
              lift it," and only before that timeout -->
-        <button class="cta" id="flipPrompt" style="display:none">Flip to Side B</button>
-        <button class="cta ghost" id="liftNeedleBtn" style="display:none">Lift needle</button>
+        <button class="cta pill" id="flipPrompt" style="display:none">Turn to side B</button>
+        <button class="link-btn" id="runoutPutAwayBtn" style="display:none">Put away</button>
       </div>
     </div>
 

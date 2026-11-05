@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHANGE_TIMELINE, GROOVE, FLIP, changeLandsAt, grooveThumpTimes, splitSides, sideTurn,
-  WAIT_TIMEOUT_MS, runoutWaitMs, sideLengthsFor, albumFormatFor, discGroupsFor, sideBoundaryAt,
+  sideLengthsFor, albumFormatFor, discGroupsFor, sideBoundaryAt, isLastSideEnd,
 } from '../../src/shell/ceremony-timing.js';
 
 test('the change timeline: new sleeve arrives at 1200 ms over 700 ms, landing at 1900 ms', () => {
@@ -181,18 +181,24 @@ test('albumFormatFor: a long LP side reads as a 12" at 33⅓, override skips tha
   assert.deepEqual(albumFormatFor(trackIdx, t, '33'), { size: '12"', speed: 33.333 });
 });
 
-// docs/15_SURFACE_NOISE.md §4, Auto-flip Off: how long the record waits
-// before the needle lifts on its own.
-test('runoutWaitMs: short and normal are finite, until-lift waits forever', () => {
-  assert.equal(runoutWaitMs('short'), WAIT_TIMEOUT_MS.short);
-  assert.equal(runoutWaitMs('normal'), WAIT_TIMEOUT_MS.normal);
-  assert.equal(runoutWaitMs('until-lift'), null);
-  assert.ok(WAIT_TIMEOUT_MS.short < WAIT_TIMEOUT_MS.normal);
+// GS5 (docs/30_GROOVES_AND_SHELF.md): isLastSideEnd() -- is curIdx the
+// very last track of the album's own last side.
+test('isLastSideEnd: null splits is never a last-side end', () => {
+  assert.equal(isLastSideEnd(null, 5), false);
+  assert.equal(isLastSideEnd([], 5), false);
 });
 
-test('runoutWaitMs: an unrecognized value falls back to normal, the same default S.runoutLength has', () => {
-  assert.equal(runoutWaitMs('bogus'), WAIT_TIMEOUT_MS.normal);
-  assert.equal(runoutWaitMs(undefined), WAIT_TIMEOUT_MS.normal);
+test('isLastSideEnd: true only at the last track of the final side', () => {
+  const splits = [{label:'SIDE A', idx:[0,1,2]}, {label:'SIDE B', idx:[3,4]}];
+  assert.equal(isLastSideEnd(splits, 4), true);   // last track, side B
+  assert.equal(isLastSideEnd(splits, 3), false);  // side B's first track
+  assert.equal(isLastSideEnd(splits, 2), false);  // side A's own last track
+});
+
+test('isLastSideEnd: a one-side release is its own last side', () => {
+  const splits = [{label:'SIDE A', idx:[0,1,2]}];
+  assert.equal(isLastSideEnd(splits, 2), true);
+  assert.equal(isLastSideEnd(splits, 0), false);
 });
 
 // GS2 (docs/30_GROOVES_AND_SHELF.md): sideBoundaryAt() finds which side (if

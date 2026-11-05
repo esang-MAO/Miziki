@@ -15,7 +15,7 @@ import { startRunout } from '../audio/runout.js';
 import { releaseSeed, noiseFloorScale, surfaceNoiseActive, startRunoutNoise, playNeedleLift } from '../audio/surface-noise.js';
 import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 import { updateGatefoldNowPlaying } from '../gatefold/view.js';
-import { GROOVE, FLIP, splitSides, sideTurn, runoutWaitMs } from './ceremony-timing.js';
+import { GROOVE, FLIP, splitSides, sideTurn, isLastSideEnd } from './ceremony-timing.js';
 import { renderMiniPlayer } from './mini-player.js';
 import { renderPlayerSidePanel } from './player-side-panel.js';
 import { forceCloseLayer } from './nav-stack.js';
@@ -168,6 +168,29 @@ function holdSleeve(t, reason, pendingIndex){
 // into the empty slipmat. Pure, the setting off, the player closed, or
 // the page hidden skip the animation but land on the exact same final
 // state, same as today's early-exit already does.
+// Shared tail of "lift the needle, spin down, slide into the sleeve, rest
+// there" -- used both by a real run-out groove (runToHeldSleeve, which
+// plays the groove itself first) and by GS5's run-out wait (the groove's
+// already been playing for however long the wait lasted, so there's
+// nothing left to replay before lifting).
+async function landOnHeldSleeve(t, reason, pendingIndex, token, cancelled){
+  stopGroove(GROOVE.spinDownMs);
+  stopNoiseLayer(GROOVE.spinDownMs);
+  playNeedleLift();
+  startSpinDown(GROOVE.spinDownMs);
+  const stage = $('#platterStage');
+  if(stage) stage.classList.remove('runout');
+  await sleep(GROOVE.spinDownMs);
+  if(cancelled()) return;
+  // holdAfterArrive: stop right where the sleeve has arrived and the disc
+  // is still fully visible beside it -- never run the rest of the put-away
+  // (the disc sliding in and disappearing, the sleeve itself then hiding).
+  await runPutAwaySequence(t, {skipSpin:true, token, holdAfterArrive:true});
+  if(cancelled()) return;
+  S.runout = null;
+  holdSleeve(t, reason, pendingIndex);
+}
+
 async function runToHeldSleeve(t, reason, pendingIndex){
   if(S.mode === 'pure' || !shouldPutAway(true) || !S.playerOpen || document.hidden){
     holdSleeve(t, reason, pendingIndex);
@@ -186,21 +209,8 @@ async function runToHeldSleeve(t, reason, pendingIndex){
   startNoiseLayer(t, (GROOVE.ms + GROOVE.spinDownMs) / 1000);
   await sleep(GROOVE.ms);
   if(cancelled()) return;
-  stopGroove(GROOVE.spinDownMs);
-  stopNoiseLayer(GROOVE.spinDownMs);
-  playNeedleLift();
   S.runout.turning = false;
-  startSpinDown(GROOVE.spinDownMs);
-  stage.classList.remove('runout');
-  await sleep(GROOVE.spinDownMs);
-  if(cancelled()) return;
-  // holdAfterArrive: stop right where the sleeve has arrived and the disc
-  // is still fully visible beside it -- never run the rest of the put-away
-  // (the disc sliding in and disappearing, the sleeve itself then hiding).
-  await runPutAwaySequence(t, {skipSpin:true, token, holdAfterArrive:true});
-  if(cancelled()) return;
-  S.runout = null;
-  holdSleeve(t, reason, pendingIndex);
+  await landOnHeldSleeve(t, reason, pendingIndex, token, cancelled);
 }
 
 // advance()'s end-of-queue branch, after it has already paused. A manual
@@ -234,16 +244,37 @@ export function sideFlipTurnAt(n){
   return sideTurn(splitSides(albumTracks(cur.tags.album), S.tracks, S.albumSides), S.index, S.queue[n]);
 }
 
-// §3: true (and the flip started) when an automatic advance moves from the
-// last track of one side straight onto the first of the next, in Vinyl,
-// with the player open and visible. advance() then does nothing more.
+// GS5 (docs/30_GROOVES_AND_SHELF.md): with auto-flip off, true when
+// advancing to queue index n would leave the current album's own last
+// side -- the record itself is done, whatever n turns out to be (the
+// next side of a different album, or just the next queued track). Mirrors
+// sideFlipTurnAt()'s own guards, but (deliberately) never checks what's
+// at n: unlike a mid-album flip, there's no "same album" requirement for
+// the record itself to be finished.
+function lastSideEndsAt(){
+  if(S.mode === 'pure' || S.autoFlip || !S.albumSides || !S.playerOpen || document.hidden || REDUCED) return false;
+  if(!S.sleevePullEnabled || S.shuffle) return false;
+  const cur = current();
+  if(!cur || !cur.tags || !cur.tags.album) return false;
+  const splits = splitSides(albumTracks(cur.tags.album), S.tracks, S.albumSides);
+  return isLastSideEnd(splits, S.index);
+}
+
+// §3: true (and the flip/wait started) when an automatic advance moves
+// from the last track of one side straight onto the first of the next, in
+// Vinyl, with the player open and visible, or (GS5) off the very last
+// side of the record. advance() then does nothing more.
 export function maybeSideFlip(n){
   const turn = sideFlipTurnAt(n);
-  if(!turn) return false;
-  // docs/15_SURFACE_NOISE.md §4: On (the default) keeps the record flipping
-  // itself, same as always; Off leaves it waiting in the run-out instead.
-  if(S.autoFlip) runSideFlip(n, turn); else runSideWait(n, turn);
-  return true;
+  if(turn){
+    // docs/15_SURFACE_NOISE.md §4: On (the default) keeps the record
+    // flipping itself, same as always; Off leaves it waiting in the
+    // run-out instead.
+    if(S.autoFlip) runSideFlip(n, turn); else runSideWait(n, turn);
+    return true;
+  }
+  if(lastSideEndsAt()){ runSideWait(n, null); return true; }
+  return false;
 }
 
 async function runSideFlip(n, turn){
@@ -283,14 +314,16 @@ async function runSideFlip(n, turn){
   play();
 }
 
-// docs/15_SURFACE_NOISE.md §4, Auto-flip Off: the record stays on the
-// platter, spinning in the run-out, until the user flips it, the run-out
-// times out (the needle lifts on its own), or a different record is pulled
+// docs/15_SURFACE_NOISE.md §4 / GS5 (docs/30_GROOVES_AND_SHELF.md): the
+// record stays on the platter, spinning in the run-out, until the user
+// turns it over or puts it away, or a different record is pulled
 // (start-sequence.js's own cancelRunout() call). S.runout.kind === 'wait'.
-// One bounded chunk of groove/noise at a time (WAIT_LOOP_SEC) rather than
-// one unbounded buffer, since audio/runout.js's startRunout() allocates a
-// single fixed-duration buffer and "Until I lift it" has no duration at
-// all -- the loop just re-arms itself until the deadline (or forever).
+// No timeout -- GS5 dropped the old short/normal auto-lift settings, so
+// this is the one shape the wait ever takes now. One bounded chunk of
+// groove/noise at a time (WAIT_LOOP_SEC) rather than one unbounded buffer,
+// since audio/runout.js's startRunout() allocates a single fixed-duration
+// buffer and an indefinite wait has no duration at all -- the loop just
+// re-arms itself forever.
 const WAIT_LOOP_SEC = 20;
 
 // Saved so the "Side A finished - Flip to continue" status can be put back
@@ -309,36 +342,17 @@ function setFlipWaitStatus(on, fromLetter){
   }
 }
 
-// Shows/hides the player's own "Flip to Side B"/"Lift needle" buttons
-// (miziki.html's #flipPrompt/#liftNeedleBtn, inside #nowActions). Lift
-// needle only makes sense for "Until I lift it" -- short/normal already
-// lift on their own once the timeout passes -- and only before that's
-// already happened.
+// Shows/hides the player's own "Turn to side B"/"Put away" buttons
+// (miziki.html's #flipPrompt/#runoutPutAwayBtn, inside #nowActions).
+// GS5: Turn to side B only makes sense when there's a next side to turn
+// to (r.to set) -- the last side's own wait (r.to null) shows Put away
+// alone, same as the spec's "on the last side, only Put away."
 function updateWaitUI(){
   const r = S.runout;
   const waiting = !!(r && r.kind === 'wait');
-  const flipBtn = $('#flipPrompt'), liftBtn = $('#liftNeedleBtn');
-  if(flipBtn) flipBtn.style.display = waiting ? '' : 'none';
-  if(liftBtn) liftBtn.style.display = (waiting && !r.lifted && S.runoutLength === 'until-lift') ? '' : 'none';
-}
-
-// The needle comes up on its own (a timed-out wait) or because the user
-// asked it to ("Lift needle", shown only for "Until I lift it"). The
-// record keeps waiting either way -- this never clears S.runout, only
-// stops the groove/noise and the platter's own spin.
-export function liftNeedleNow(){
-  const r = S.runout;
-  if(!r || r.kind !== 'wait' || r.lifted) return false;
-  stopGroove(150);
-  stopNoiseLayer(150);
-  playNeedleLift();
-  r.turning = false;
-  r.lifted = true;
-  startSpinDown(GROOVE.spinDownMs);
-  const stage = $('#platterStage');
-  if(stage) stage.classList.remove('runout');
-  updateWaitUI();
-  return true;
+  const flipBtn = $('#flipPrompt'), putAwayBtn = $('#runoutPutAwayBtn');
+  if(flipBtn) flipBtn.style.display = (waiting && r.to) ? '' : 'none';
+  if(putAwayBtn) putAwayBtn.style.display = waiting ? '' : 'none';
 }
 
 async function runSideWait(n, turn){
@@ -351,33 +365,47 @@ async function runSideWait(n, turn){
     if(S.runout && S.runout.kind === 'wait') cancelRunout();
     return true;
   };
-  S.runout = {kind:'wait', turning:true, n, from:turn.from, to:turn.to, lifted:false};
+  const from = turn ? turn.from : currentSideLetter(t);
+  S.runout = {kind:'wait', turning:true, n, from, to: turn ? turn.to : null};
   stage.classList.add('runout');
   // #sideLetter is a brief, giant overlay meant only for the ~700 ms flip
-  // animation itself (runSideFlip, above) -- a wait can run for seconds or
-  // (Until I lift it) indefinitely, so it stays empty/hidden here (its own
-  // CSS, :empty{display:none}) and the status line below is the one
-  // on-screen "waiting" indicator.
-  setFlipWaitStatus(true, turn.from);
+  // animation itself (runSideFlip, above) -- a wait can run indefinitely,
+  // so it stays empty/hidden here (its own CSS, :empty{display:none}) and
+  // the status line below is the one on-screen "waiting" indicator.
+  setFlipWaitStatus(true, from);
   updateWaitUI();
 
-  const timeoutMs = runoutWaitMs(S.runoutLength);
-  const deadline = timeoutMs == null ? null : Date.now() + timeoutMs;
+  // GS5: no timeout -- the record waits in the run-out until Turn to side
+  // B, Put away, or a new pull cancels it, re-arming this bounded chunk
+  // of groove/noise forever in the meantime.
   for(;;){
-    const remainMs = deadline == null ? WAIT_LOOP_SEC * 1000 : Math.min(WAIT_LOOP_SEC * 1000, deadline - Date.now());
-    if(remainMs <= 0) break;
     stopGroove(0);
     stopNoiseLayer(0);
-    groove = startRunout(remainMs / 1000);
-    startNoiseLayer(t, remainMs / 1000);
-    await sleep(remainMs);
+    groove = startRunout(WAIT_LOOP_SEC);
+    startNoiseLayer(t, WAIT_LOOP_SEC);
+    await sleep(WAIT_LOOP_SEC * 1000);
     if(cancelled()) return;
   }
-  if(cancelled()) return;
-  // the timeout passed with nobody flipping it: the needle lifts on its
-  // own and the platter spins down (§4's second bullet) -- the record
-  // keeps waiting, just silently now, until a flip or a new pull.
-  liftNeedleNow();
+}
+
+// GS5: "Put away" from the run-out wait -- the record's already been
+// turning in the run-out for however long the wait lasted, so this skips
+// straight to lift/spin-down/held-sleeve (landOnHeldSleeve) rather than
+// replaying a fresh run-out groove the way a real end-of-queue/Stop-
+// between-records finish does (runToHeldSleeve).
+export async function putAwayFromWait(){
+  const r = S.runout;
+  if(!r || r.kind !== 'wait') return false;
+  const t = current();
+  const pendingIndex = r.n;
+  const token = ++S.sleeveSeq;
+  const cancelled = () => token !== S.sleeveSeq;
+  S.runout = null;
+  setFlipWaitStatus(false);
+  updateWaitUI();
+  if(!t){ putAwayInstant(); clearToRest(); return true; }
+  await landOnHeldSleeve(t, 'sideEnd', pendingIndex, token, cancelled);
+  return true;
 }
 
 // The flip itself, whether it comes from the player's own "Flip to Side B"
@@ -413,15 +441,15 @@ export function performPendingFlip(){
 // shortcut -- a wait can last indefinitely, and this is reached from the
 // player overlay's own generic pointerdown handler (wiring/transport.js),
 // which fires on every tap anywhere in the overlay, including the player's
-// own "Flip to Side B"/"Lift needle" buttons themselves: pointerdown always
+// own "Turn to side B"/"Put away" buttons themselves: pointerdown always
 // precedes a button's own click, so without this guard, tapping either
 // button (or the scrub bar, or anything else on the open player) would
 // perform the flip right here, out from under the button's own handler,
 // before that handler ever runs. A wait only ever ends through
-// performPendingFlip() (the Flip button, or a lock-screen/headphone Next
-// or Play), liftNeedleNow() (the Lift needle button), or a new pull
-// (runStartSequence()'s own unconditional cancelRunout() call) -- never a
-// stray tap.
+// performPendingFlip() (the Turn to side B button, or a lock-screen/
+// headphone Next or Play), putAwayFromWait() (the Put away button), or a
+// new pull (runStartSequence()'s own unconditional cancelRunout() call)
+// -- never a stray tap.
 export function interruptRunout(){
   const r = S.runout;
   if(!r || r.kind === 'wait') return false;

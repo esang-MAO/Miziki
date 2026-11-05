@@ -177,9 +177,11 @@
 .player-overlay.focus-on #trackSpec,
 .player-overlay.focus-on #trackSpecPhase,
 .player-overlay.focus-on #nowBottomRow{display:none}
-/* Point 3: "between sides" restyles the existing flip/lift actions
-   (docs/15_SURFACE_NOISE.md §4's own #flipPrompt/#liftNeedleBtn) rather
-   than adding new ones -- outlined, not the solid everyday .cta. */
+/* Point 3: "between sides" restyles the existing flip action
+   (docs/15_SURFACE_NOISE.md §4's own #flipPrompt, now GS5's
+   docs/30_GROOVES_AND_SHELF.md) rather than adding a new one -- outlined,
+   not the solid everyday .cta. #runoutPutAwayBtn is already a borderless
+   .link-btn, so it needs no Focus-mode override of its own. */
 .player-overlay.focus-on #flipPrompt{background:none;border:1px solid rgba(239,233,223,.32);color:var(--paper)}
 .focus-status-line{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);margin:var(--sp-1) 0 0}
 .focus-status-line:empty{display:none}
