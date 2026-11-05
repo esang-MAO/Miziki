@@ -9,6 +9,14 @@
    own motion via the ghost disc rather than the sheet's slide transition */
 .player-overlay.instant{transition:none}
 .player-overlay .stage{max-width:480px;margin:0 auto;padding:44px 0 6px}
+/* Fit full player controls on mobile without scrolling (short phones):
+   less air above the platter so the space 02-stage-platter.css's
+   --platter-size query frees up actually reaches the controls below,
+   instead of being spent on a gap sized for taller screens. */
+@media (max-width:1023px) and (max-height:700px){
+  .player-overlay .stage{padding-top:20px}
+  .player-overlay{padding-bottom:calc(var(--sp-3) + env(safe-area-inset-bottom))}
+}
 .player-dismiss{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
   width:44px;height:28px;color:var(--muted);font-size:var(--fs-title);line-height:1;display:grid;place-content:center;z-index:1}
 @media (prefers-reduced-motion:reduce){.player-overlay{transition:none}}

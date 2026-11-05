@@ -111,6 +111,14 @@
 @media (max-width:1023px){
   .now h2{font-size:calc(var(--fs-giant) - 2px)}
 }
+/* Short phones (iPhone SE and similar, ~700px tall or under): the platter
+   shrinks via --platter-size's own max-height query (02-stage-platter.css),
+   and these rows tighten to match so the saved space actually reaches the
+   transport controls instead of being eaten by now-unnecessarily-generous
+   gaps. Taller phones keep every value above untouched. */
+@media (max-width:1023px) and (max-height:700px){
+  .now-bottom-row{margin-top:var(--sp-2)}
+}
 .now .spec{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
 /* PL8 item 10 (docs/19_PLAYER.md): #trackSpec alone is tappable (its own
    Untouched/Converted/Shaped state) -- #trackSpecPhase, the sibling .spec
