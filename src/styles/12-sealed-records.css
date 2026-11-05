@@ -79,7 +79,15 @@
    used to need (Light theme's --paper/--muted otherwise resolve to dark
    ink meant for a light page): this screen keeps its own dark look in
    every theme, like the gatefold itself. */
-.sealed-front{position:fixed;inset:0;z-index:30;display:none;
+/* GF13 fix 2: z-index 41, not .gatefold's 30 -- this screen's own
+   "Flip cover" button/hint sit bottom-pinned (.sealed-front-actions
+   below), right where .mini-player/.tabbar (08-shell.css, z-index:40)
+   always render, and neither is ever hidden while a layer is open. At
+   30 they lost that stacking fight outright: both the button and its
+   hint were fully painted over, unreachable regardless of hit-area --
+   Ken's "no button" report. .gatefold itself stays at 30 since none of
+   its own controls sit in that strip. */
+.sealed-front{position:fixed;inset:0;z-index:41;display:none;
   background:linear-gradient(170deg,#1D2F38 0%,#101A20 62%,#07080C 100%);
   color:#EFE9DF; --paper:#EFE9DF; --muted:#ABA298}
 .sealed-front.open{display:block}

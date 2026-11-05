@@ -1100,7 +1100,18 @@ export function gatefoldSwitchPanel(panel){
     if(panel === 'left') $('#gfFlatBody').appendChild(buildGatefoldLeftPanel(GF.item));
     else $('#gfFlatBody').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx));
   } else {
-    (panel === 'left' ? $('#gfLeft') : $('#gfTracklist')).focus();
+    // GF13 fix 2: preventScroll -- #gfLeft/#gfTracklist sit inside
+    // #gfCamera's live 3D perspective transform (translate+scale, this
+    // function's own --gf-cx write above), so a plain .focus() has the
+    // browser try to scroll the focused element into view using its
+    // static (pre-transform) layout box, which it judges off-screen --
+    // that permanently sets #gatefold's own scrollLeft (it's
+    // overflow:hidden, not overflow:visible, so it's still a real
+    // scroll container) and visibly shifts every sibling positioned off
+    // #gatefold itself (#gfSleeve, #gfBack, ...), not just the camera's
+    // own contents. This was Ken's "the paper sleeve still shifts
+    // position" report: the camera pan itself was never the bug.
+    (panel === 'left' ? $('#gfLeft') : $('#gfTracklist')).focus({ preventScroll: true });
   }
 }
 
@@ -1224,46 +1235,15 @@ function gatefoldWireGestures(){
   info.addEventListener('pointerup', onInfoUp);
   info.addEventListener('pointercancel', onInfoUp);
 
-  // GF5 point 1: "a horizontal swipe on the closed sleeve... turns it
-  // over" -- wired on #gfCover itself (the front, "closed sleeve" look at
-  // rest) and on #gfBackCoverStage (so swiping again while it's showing
-  // turns it back), direction-locked the same ~8px/dx-vs-dy way as the
-  // stage's own panel swipe above. stopPropagation() on #gfCover's down
-  // keeps this from also being read as that swipe, since #gfCover sits
-  // inside #gfStage; #gfBackCoverStage sits outside it, where there's
-  // nothing to conflict with. A short flick (>30px) in either direction
-  // just toggles -- which face lands next matters less than "it moved."
-  let flipStart = null;
-  const onFlipDown = e => { flipStart = {x:e.clientX, y:e.clientY, locked:null}; e.stopPropagation(); };
-  const onFlipMove = e => {
-    if(!flipStart) return;
-    e.stopPropagation();
-    const dx = e.clientX - flipStart.x, dy = e.clientY - flipStart.y;
-    if(!flipStart.locked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) flipStart.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
-  };
-  const onFlipUp = e => {
-    if(!flipStart) return;
-    e.stopPropagation();
-    const dx = e.clientX - flipStart.x;
-    const locked = flipStart.locked;
-    flipStart = null;
-    if(locked === 'h' && Math.abs(dx) > 30) gatefoldToggleTurnedOver();
-  };
-  const flipTargets = [$('#gfCover'), $('#gfBackCoverStage')];
-  flipTargets.forEach(t => {
-    t.addEventListener('pointerdown', onFlipDown);
-    t.addEventListener('pointermove', onFlipMove);
-    t.addEventListener('pointerup', onFlipUp);
-    t.addEventListener('pointercancel', onFlipUp);
-  });
+  // GF13 point 3: the back-cover flip is reachable only via the
+  // "Flip cover" button (#gfTurnOver, wired in src/wiring/gatefold.js) --
+  // a swipe here used to also trigger it, which collided with the
+  // tracklist/inside-left panel swipe wired on #gfStage/#gfFlatBody
+  // above. #gfCover sits inside #gfStage, so any drag starting there is
+  // already handled (and correctly ignored while on the cover) by that
+  // gesture; no separate listener is wired here anymore.
 
   gfDragCleanup = () => {
-    flipTargets.forEach(t => {
-      t.removeEventListener('pointerdown', onFlipDown);
-      t.removeEventListener('pointermove', onFlipMove);
-      t.removeEventListener('pointerup', onFlipUp);
-      t.removeEventListener('pointercancel', onFlipUp);
-    });
     stage.removeEventListener('pointerdown', onDown);
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
@@ -1298,7 +1278,7 @@ function gatefoldSkipToSettled(mode){
   overlay.style.transition = 'opacity ' + GATEFOLD_ANIM.skipMs + 'ms linear';
   gatefoldSettledState(mode);
   overlay.classList.add('gf-chrome-in');
-  requestAnimationFrame(() => { $('#gfTracklist').focus(); });
+  requestAnimationFrame(() => { $('#gfTracklist').focus({ preventScroll: true }); });
 }
 
 async function runGatefoldOpen(mode){
@@ -1352,7 +1332,7 @@ async function runGatefoldOpen(mode){
   overlay.removeEventListener('pointerdown', skip, {capture:true});
   gfSkipHandler = null;
   overlay.classList.add('gf-chrome-in');
-  $('#gfTracklist').focus();
+  $('#gfTracklist').focus({ preventScroll: true });
 }
 
 let gfSeqCounter = 0;
