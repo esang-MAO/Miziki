@@ -23,7 +23,7 @@ import { showRoute } from '../../shell/routes.js';
 // RF7 (docs/12_REFINE.md) asks for "one card (what friends' crates are,
 // and a sign-in button)," not a copy of the Profile screen's own identity
 // editor -- so this is Home's own card, deliberately distinct from
-// profile/storefront.js's renderOpenStoreCard(): no avatar, no username,
+// profile/storefront.js's renderLocalStorefront(): no avatar, no username,
 // no crate grid of this device's own records, just what the feed is for
 // and a way in.
 function renderHomeSignInCard(host, authState){

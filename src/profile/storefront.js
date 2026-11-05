@@ -42,9 +42,9 @@ function wallMonth(ms){
 // crate" in var(--hand) at a smaller weight/size. A friend's crate
 // (social/screens/friend-store.js) gets the same sign with their handle --
 // there's no colourway left to tell them apart by.
-// `handle` is omitted while there's no username yet (renderOpenStoreCard,
-// the signed-out Home card) -- nothing to letter onto a sign, so this
-// returns an empty wrap.
+// `handle` is omitted while there's no username yet (renderLocalStorefront,
+// before S.profile.username is set) -- nothing to letter onto a sign, so
+// this returns an empty wrap.
 export function storeSign(handle){
   const wrap = el('div','store-sign-wrap');
   if(!handle) return wrap;
@@ -193,47 +193,6 @@ export function timeAgoShort(ms){
   return d + ' day' + (d === 1 ? '' : 's') + ' ago';
 }
 
-// The identity (avatar + name) and the local crate stats/preview are shown
-// here exactly the way renderLocalStorefront shows them — signing in adds
-// the social features (staff picks, followers, digging, sharing), it
-// doesn't replace this view with a different one. See storeAvatarButton()/
-// appendNameEditor() just above/below for the shared header pieces.
-export function renderOpenStoreCard(host, authState){
-  host.innerHTML = '';
-  host.appendChild(storeSign(undefined));
-  const needsProfile = authState === 'needsProfile';
-
-  const header = el('div','store-header');
-  header.appendChild(storeAvatarButton());
-  const idBox = el('div','store-id');
-  appendNameEditor(idBox);
-  header.appendChild(idBox);
-  host.appendChild(header);
-
-  host.appendChild(storeTurntableSection(storeLastSpunRow()));
-
-  // GS8 follow-up: the wall and shelves (local pins/crate, same data
-  // renderLocalStorefront() below reads) show here too -- social being
-  // configured but not yet signed into shouldn't hide what a never-
-  // configured profile already shows for free. Only the server-shaped
-  // pieces (followers, digging from others, sharing) stay behind sign-in.
-  const picks = localStaffPicks();
-  host.appendChild(storeWallSection(picks));
-  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id)));
-
-  const card = el('div','store-open-card');
-  card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
-  card.appendChild(el('p', null, needsProfile
-    ? 'Pick a handle to start your crate — friends will find you there.'
-    : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
-  const btn = el('button','cta', needsProfile ? 'Finish setup' : 'Sign in');
-  btn.addEventListener('click', beginSocialSignIn);
-  card.appendChild(btn);
-  host.appendChild(card);
-
-  host.appendChild(storeRecordsSection());
-}
-
 // The one avatar button, reused by every storefront state (local-only,
 // not-yet-signed-in, signed-in) so there's exactly one identity picture
 // shown and edited — never a second one further down the page. Always
@@ -309,7 +268,7 @@ export function renderStorefrontSection(body){
   // your crate") moved the Top Album/Achievements/Collection/Share content
   // (formerly renderProfileExtras(), appended into this same grid) out to
   // its own routed Listening screen (src/profile/screens.js), reached by
-  // the storeListeningRow() every one of the three storefront states below
+  // the storeListeningRow() every one of the storefront states below
   // appends right after its own stats row — so this grid now wraps just
   // the one piece.
   const grid = el('div','profile-desktop-grid');
@@ -322,17 +281,22 @@ export function renderStorefrontSection(body){
   // with only the genuinely server-shaped pieces (followers, friend
   // requests, digging from others, sharing now-spinning) gated behind a
   // configured + signed-in account. This is the WHOLE profile screen, one
-  // continuous view in every state — local-only, not-yet-signed-in, and
-  // signed-in all share the same single identity header (storeAvatarButton()/
-  // appendNameEditor()); signing in only adds the extra social pieces
-  // (staff picks, followers, digging, requests, now spinning) into that
-  // one view, never a second "profile" section of its own.
+  // continuous view in every state. GS8 follow-up (Ken: "the profile view
+  // [should be] uniform whether signed in or out"): local-only and
+  // not-yet-signed-in are now the exact same renderLocalStorefront() call
+  // (its own `cta` argument is the only thing that varies between them),
+  // so there's no longer a separate renderOpenStoreCard() to drift out of
+  // sync. Signed-in (renderStorefront()) keeps the same
+  // turntable/wall/shelves/records order and shares the one identity
+  // header (storeAvatarButton()/appendNameEditor()); signing in only adds
+  // the extra server-shaped pieces into that same view, never a second
+  // "profile" section of its own.
   if(!soc.enabled){
     renderLocalStorefront(host);
   } else if(soc.auth === 'ready'){
     loadAndRenderStorefront(host);
   } else {
-    renderOpenStoreCard(host, soc.auth);
+    renderLocalStorefront(host, soc.auth);
   }
 }
 
@@ -353,7 +317,22 @@ function localStaffPicks(){
   }).filter(Boolean);
 }
 
-function renderLocalStorefront(host){
+// GS8 follow-up: the one signed-out storefront, shown identically whether
+// social is configured at all or not -- Ken: "the profile view [should be]
+// uniform whether signed in or out." Used to be two near-duplicate
+// functions (a "local preview" with no account configured, and a bare
+// turntable + sign-in card once social was configured but not signed into)
+// that drifted out of sync with each other and with the signed-in layout
+// below. Now it's the one function, with `cta` the only thing that varies:
+// null (social never configured) shows the quiet "local preview" note;
+// 'signIn'/'needsProfile' (social configured, not signed in) shows the
+// sign-in prompt in that same footer spot instead. Everything else --
+// identity header, the editable @username row (S.profile.username, local
+// regardless of sign-in state), turntable, wall, shelves, records -- is
+// identical either way, same order the signed-in storefront
+// (renderStorefront() below) uses for its own turntable/wall/shelves/records
+// run.
+function renderLocalStorefront(host, cta){
   host.innerHTML = '';
   host.appendChild(storeSign(S.profile.username || ''));
 
@@ -368,7 +347,7 @@ function renderLocalStorefront(host){
   userIn.className = 'store-username-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
   userIn.setAttribute('aria-label','Your crate username');
   userIn.value = S.profile.username || '';
-  userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host); });
+  userIn.addEventListener('change', ()=>{ S.profile.username = userIn.value.trim(); persistProfile(); renderLocalStorefront(host, cta); });
 
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
@@ -393,7 +372,20 @@ function renderLocalStorefront(host){
   host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id)));
   host.appendChild(storeRecordsSection());
 
-  host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
+  if(cta){
+    const needsProfile = cta === 'needsProfile';
+    const card = el('div','store-open-card');
+    card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
+    card.appendChild(el('p', null, needsProfile
+      ? 'Pick a handle to start your crate — friends will find you there.'
+      : 'Sign in to pin staff picks, see what friends are spinning, and share your crate.'));
+    const btn = el('button','cta', needsProfile ? 'Finish setup' : 'Sign in');
+    btn.addEventListener('click', beginSocialSignIn);
+    card.appendChild(btn);
+    host.appendChild(card);
+  } else {
+    host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
+  }
 }
 
 async function loadAndRenderStorefront(host){
@@ -401,7 +393,7 @@ async function loadAndRenderStorefront(host){
   host.appendChild(el('div','store-loading','Loading your crate…'));
   const me = await MizikiSocial.getMyProfile();
   if(!me.ok){ renderStoreError(host, me.error, ()=>loadAndRenderStorefront(host)); return; }
-  if(!me.profile){ renderOpenStoreCard(host, 'needsProfile'); return; }
+  if(!me.profile){ renderLocalStorefront(host, 'needsProfile'); return; }
   const [full, reqs] = await Promise.all([
     MizikiSocial.loadProfile(me.profile.handle),
     MizikiSocial.listRequests()
