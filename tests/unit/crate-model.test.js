@@ -26,6 +26,7 @@ const {
   CRATE_HORIZONTAL_MIN_PX, CRATE_HORIZONTAL_RATIO,
   CRATE_SECTION_COMMIT_PX, CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS,
   cratePeekRise, CRATE_PEEK_RISE_RATE, CRATE_PEEK_MAX_FRACTION,
+  crateAlbumJumpTarget, crateFlatAlbumOrder,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -41,7 +42,7 @@ function resetState(overrides){
   Object.assign(S, {
     tracks: [], index: -1,
     crate: {pos: null, model: null, modelGroup: null, modelDirty: true, coldStartDone: false,
-      pendingJumpKey: null, pendingJumpVariant: null, sectionPos: {}},
+      pendingJumpKey: null, pendingJumpVariant: null, pendingJumpAlbum: null, sectionPos: {}},
     crateGroup: 'az', crateAnchor: null,
   }, overrides);
 }
@@ -627,4 +628,36 @@ test('catalogLineFor: names the format up front only for a 45', () => {
 test('catalogLineFor: a synthetic record with no idx at all (existing fixtures above) is unaffected by the format prefix', () => {
   const record = {label:'ABC Records', catalog:'ABC-123', year:1999, trackCount:10, durationSec: 41*60 + 12};
   assert.equal(catalogLineFor(record), 'ABC RECORDS · ABC-123 · 1999 · 10 TRACKS · 41:12');
+});
+
+/* ---- GS8 (docs/30_GROOVES_AND_SHELF.md point 4): "the shelves" needs the
+   crate's own flat album order without disturbing S.crate.model/pos --
+   crateFlatAlbumOrder()/crateAlbumJumpTarget() below. ---- */
+
+test('crateFlatAlbumOrder: the crate\'s own album-kind records, in order, with no loose-track pseudo-records', () => {
+  resetState({
+    tracks: [
+      fakeTrack('b1', { tags: { title:'B1', artist:'Bravo', album:'Album B', albumArtist:'Bravo', track:1, disc:1 } }),
+      fakeTrack('a1', { tags: { title:'A1', artist:'Alpha', album:'Album A', albumArtist:'Alpha', track:1, disc:1 } }),
+      fakeTrack('u1', { tags: { title:'U1', artist:'Zed', album:'Unknown Album', albumArtist:'Zed', track:1, disc:1 } }),
+    ],
+  });
+  const flat = crateFlatAlbumOrder(S.crateGroup);
+  assert.deepEqual(flat.map(it => it.album), ['Album A', 'Album B'], 'alphabetical, no loose pseudo-record');
+  assert.equal(S.crate.model, null, 'never touches S.crate.model');
+  assert.equal(S.crate.pos, null, 'never touches S.crate.pos');
+});
+
+test('crateAlbumJumpTarget: resolves an album id to its index in the model, or null when absent', () => {
+  resetState({
+    tracks: [
+      fakeTrack('b1', { tags: { title:'B1', artist:'Bravo', album:'Album B', albumArtist:'Bravo', track:1, disc:1 } }),
+      fakeTrack('a1', { tags: { title:'A1', artist:'Alpha', album:'Album A', albumArtist:'Alpha', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const target = model.items.findIndex(it => it.type === 'rec' && it.album === 'Album B');
+  const bAlbumId = model.items[target].albumId;
+  assert.equal(crateAlbumJumpTarget(model, bAlbumId), target);
+  assert.equal(crateAlbumJumpTarget(model, 'no-such-album'), null);
 });

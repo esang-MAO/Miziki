@@ -272,3 +272,50 @@ button.pressing-chip{cursor:pointer}
 .records-letter{font-family:var(--display);font-size:var(--fs-title);letter-spacing:.02em;color:var(--muted);margin-top:var(--sp-5)}
 .records-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--sp-5)}
 .records-group-head h3{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.02em}
+
+/* GS8 (docs/30_GROOVES_AND_SHELF.md): "On the wall" -- pins 1-3 framed
+   (black frame, paper mat), "in rotation" hand-lettered under the
+   heading, docs/design/grooves-shelf/HomeShelf.dc.html. */
+.store-wall-caption{margin:2px 0 0;font-family:var(--hand);font-weight:600;font-size:22px;color:var(--muted)}
+.store-wall-frames{display:flex;gap:var(--sp-4);margin-top:var(--sp-3)}
+.store-frame{flex:1;min-width:0;background:#141210;border-radius:3px;padding:7px;box-shadow:var(--sh-2)}
+.store-frame-mat{background:#EFE6D2;padding:9px}
+.store-frame-cover{aspect-ratio:1;background:var(--panel);overflow:hidden}
+.store-frame-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.store-frame-name{display:block;margin-top:7px;font-size:var(--fs-caption);font-weight:600;color:var(--paper);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+/* the wall's own "recently found" row reuses .store-found-row/-tile/-disc/
+   -label verbatim (the old storeRecentlyFoundSection's own styling,
+   10-crate.css §peek-disc companion) -- only the mono readout line below
+   is new, off the mono whitelist's own uppercase-caps pattern. */
+.store-found-mono{font-family:var(--data) !important;font-size:var(--fs-micro) !important;letter-spacing:.08em;text-transform:uppercase}
+.store-wall-found{margin-top:var(--sp-4)}
+.store-wall-all{display:block;width:100%;margin-top:var(--sp-3);background:none;border:0;
+  font-family:var(--data);font-size:var(--fs-label);color:var(--cream);letter-spacing:.08em;text-transform:uppercase;
+  text-align:right;padding:var(--sp-2) 0;min-height:44px}
+
+/* GS8 point 3: "the existing now-spinning/last-spun row, restyled as a
+   console shelf; under it a Listening › row" -- one dark card holding
+   both, .store-last-spun/.store-card inside unchanged (own margin zeroed
+   so they sit flush against this card's own padding), the listening row
+   sharing its bottom border instead of getting its own top one. */
+.store-turntable{margin-top:14px;background:#2A2622;border-radius:16px;padding:0 15px;overflow:hidden}
+.store-turntable-shelf{padding:13px 0}
+.store-turntable-shelf .store-last-spun,.store-turntable-shelf .store-card{margin-top:0;background:none;padding:0}
+.store-turntable-empty{margin:0;font-size:var(--fs-caption);color:var(--muted)}
+.store-turntable .store-listening-row{border-top:1px solid rgba(239,233,223,.12);border-bottom:0;margin:0}
+
+/* GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
+   spines-out by the crate's current order; pins 4-5 face-out" -- shared
+   by this own crate (storeShelvesSection(), profile/storefront.js) and a
+   friend's (social/screens/friend-store.js's own loadFriendCrate()). */
+.store-shelves-holder{margin-top:0}
+.shelf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);margin-top:var(--sp-3)}
+.cube{background:#2A2622;border-radius:10px;height:156px;padding:10px;display:flex;align-items:flex-end;gap:3px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.45);overflow:hidden}
+.sp{flex:1 0 auto;width:10px;height:88%;border:0;border-radius:2px 2px 0 0;padding:0;box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.shelf-face{flex:none;width:64px;height:100%;border:0;border-radius:4px;padding:0;background:var(--panel);
+  box-shadow:0 2px 6px rgba(0,0,0,.4);transform:rotate(-3deg)}
+.shelf-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.cube-empty{align-items:center;justify-content:center}
+.cube-empty-label{font-family:var(--hand);font-weight:600;font-size:22px;color:rgba(239,233,223,.45)}
