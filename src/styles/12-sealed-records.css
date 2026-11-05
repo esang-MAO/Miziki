@@ -79,7 +79,15 @@
    used to need (Light theme's --paper/--muted otherwise resolve to dark
    ink meant for a light page): this screen keeps its own dark look in
    every theme, like the gatefold itself. */
-.sealed-front{position:fixed;inset:0;z-index:30;display:none;
+/* GF13 fix 2: z-index 41, not .gatefold's 30 -- this screen's own
+   "Flip cover" button/hint sit bottom-pinned (.sealed-front-actions
+   below), right where .mini-player/.tabbar (08-shell.css, z-index:40)
+   always render, and neither is ever hidden while a layer is open. At
+   30 they lost that stacking fight outright: both the button and its
+   hint were fully painted over, unreachable regardless of hit-area --
+   Ken's "no button" report. .gatefold itself stays at 30 since none of
+   its own controls sit in that strip. */
+.sealed-front{position:fixed;inset:0;z-index:41;display:none;
   background:linear-gradient(170deg,#1D2F38 0%,#101A20 62%,#07080C 100%);
   color:#EFE9DF; --paper:#EFE9DF; --muted:#ABA298}
 .sealed-front.open{display:block}
@@ -127,7 +135,13 @@
 .sealed-front-actions{position:absolute;left:var(--sp-4);right:var(--sp-4);bottom:calc(var(--sp-5) + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;gap:10px}
 .sealed-front-hint{margin:0;font-size:var(--fs-body);color:rgba(239,233,223,.85);text-align:center}
-.sealed-front-turn-btn{min-height:44px;font-size:var(--fs-body);color:var(--muted);text-align:center}
+/* GF13 fix 2 follow-up: this is the one real button on the screen besides
+   the peel gesture itself -- plain muted text read as unclickable, the
+   same "no button" impression as the z-index bug above, just visual
+   instead of structural. Reuses .cta (16-edit-sheet.css), the app's one
+   primary-action button, same family GF12's "Play the record" button
+   uses for the same reason (never solid amber -- amber-scope.test.js). */
+.sealed-front-turn-btn{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
 
 /* ================= shrink-wrap peel (docs/15_SURFACE_NOISE.md §2) =================
    The sleeve of a Sealed record arrives wrapped: a milky sheen + a corner
