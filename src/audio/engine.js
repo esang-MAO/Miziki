@@ -15,13 +15,17 @@ import {
 import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 import { handleContextInterruption } from '../player/transport.js';
 
-// AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × S.rate" —
+// AU3 (docs/16_AUDIO.md §2.3): "wowOsc.frequency = (rpm / 60) × rate" —
 // 0.556 Hz at 33⅓ and full speed. Matches the 33.333 RPM readout constant
 // player/transport.js's own arc-text line already uses. AU9 (§5) widened
 // this from a fixed 33⅓ to whichever record is actually loaded —
 // S.recordFormat.speed, set once per track by transport.js's load() from
 // the record's own format (§5's table, or a personal override) — falling
-// back to 33⅓ for the moment before any track has ever loaded.
+// back to 33⅓ for the moment before any track has ever loaded. GS6
+// (docs/30_GROOVES_AND_SHELF.md) passes S.platterRate, not S.rate: wow is
+// a physical-platter effect, so it keeps following the Sundown curve even
+// in Keep-pitch night-pitch mode, where S.rate (the real audio rate)
+// stays at 1.
 const wowHzFor = rate => rotationHz((S.recordFormat && S.recordFormat.speed) || RPM_33, rate);
 
 // AU7 (docs/16_AUDIO.md §6): balance is a plain -1..1 (full left .. full
@@ -91,7 +95,7 @@ export async function buildGraph(ctx){
   const n = {};
   // mechanical: platter wobble as modulated delay -> real pitch variation
   n.wobble = ctx.createDelay(0.05); n.wobble.delayTime.value = 0.012;
-  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.rate);
+  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.platterRate);
   n.wowAmt = ctx.createGain();
   n.flutOsc = ctx.createOscillator(); n.flutOsc.frequency.value = 6.3;
   n.flutAmt = ctx.createGain();
@@ -657,7 +661,7 @@ export function rebuildVinylChain(){
   const n = S.nodes;
   if(!n || !n.pad || !S.ctx || !n.vinylChainIdle) return;
   const ctx = S.ctx;
-  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.rate);
+  n.wowOsc = ctx.createOscillator(); n.wowOsc.frequency.value = wowHzFor(S.platterRate);
   n.flutOsc = ctx.createOscillator(); n.flutOsc.frequency.value = 6.3;
   n.wowOsc.connect(n.wowAmt);
   n.flutOsc.connect(n.flutAmt);

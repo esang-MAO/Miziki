@@ -5,7 +5,7 @@ import { serializePrefs, parsePrefs } from './prefs.js';
 import { setMode } from '../audio/mode.js';
 import { applyCharacter, applyLoudnessNorm, applyEQ, applyMonoBalance, applyDeviceVolume, balanceCaptionFor } from '../audio/engine.js';
 import { applyVolume } from '../sundown/location.js';
-import { depthKeyFor, depthCaptionFor } from '../sundown/solar.js';
+import { depthKeyFor, depthCaptionFor, nightPitchCaptionFor, nightPitchMonoLine } from '../sundown/solar.js';
 import { loudnessCaptionFor } from '../audio/loudness.js';
 import { updateToneCurveVisibility } from '../sundown/dial-view.js';
 import { toggleShuffle, cycleRepeat } from '../player/controls.js';
@@ -266,6 +266,14 @@ function applyPrefs(p){
     const depthDesc = $('#depthDesc');
     if(depthDesc) depthDesc.textContent = depthCaptionFor(depthKey, S.target);
   }
+  // GS6 (docs/30_GROOVES_AND_SHELF.md): the night-pitch row's own
+  // restore-time sync, same shape as the depth block just above (its
+  // mono line also names S.target).
+  if(p.nightPitch === 'slowed' || p.nightPitch === 'true') S.nightPitch = p.nightPitch;
+  document.querySelectorAll('[data-night-pitch]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.nightPitch === S.nightPitch)));
+  { const d = $('#nightPitchDesc'); if(d) d.textContent = nightPitchCaptionFor(S.nightPitch); }
+  { const m = $('#nightPitchMono'); if(m) m.textContent = nightPitchMonoLine(S.nightPitch, S.target); }
   if(p.mode) setMode(p.mode);
   applyCharacter();
   applyVolume();

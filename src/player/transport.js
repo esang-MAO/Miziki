@@ -409,11 +409,11 @@ export function load(i){
   } else {
     S.rpmEase = null;
   }
-  applyWobbleRate(S.rate);
+  applyWobbleRate(S.platterRate);
   applyCharacter();
   S.labelSideFormat = sideLabel + (m.ch === 1 ? 'MONO' : 'STEREO');
   const arcText = $('#labelArcText');
-  if(arcText) arcText.textContent = (S.recordFormat.speed * S.rate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
+  if(arcText) arcText.textContent = (S.recordFormat.speed * S.platterRate).toFixed(1) + ' RPM · ' + S.labelSideFormat;
   // SZ1 (docs/26_SIZES_AND_ZOETROPES.md): one size attribute, not a class
   // per size — CSS (02-stage-platter.css) owns the per-size sizing/mat/
   // adapter rules from [data-size] alone. SZ2: data-speed alongside it

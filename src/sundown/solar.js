@@ -181,10 +181,27 @@ export function easedProgress(){
 // tests/unit/arc.test.js's join tests) plus a fixed-window recovery leg
 // before sunrise (§3.3). nowClock() (not a bare `new Date()`) is what
 // makes Preview the day audible here.
-export function computeRate(){
+//
+// GS6 (docs/30_GROOVES_AND_SHELF.md): this curve value is the platter's
+// own rate -- computePlatterRate() always returns it, Pure included.
+// computeRate() (the real audio rate) is the same value, except in
+// Keep-pitch night-pitch mode (S.nightPitch === 'true'), where the audio
+// stays at exactly 1 while the platter keeps following the curve. One
+// place for the rule either way: both are thin wrappers over this.
+function sundownCurveRate(){
   if(S.mode === 'pure') return 1;
   if(!S.auto) return S.manualRate;
   return rateAt(nowClock(), S.sun, { target: S.target, paceMode: S.pace });
+}
+
+export function computePlatterRate(){
+  return sundownCurveRate();
+}
+
+export function computeRate(){
+  if(S.mode === 'pure') return 1;
+  if(S.nightPitch === 'true') return 1;
+  return sundownCurveRate();
 }
 
 /* (RF9, docs/12_REFINE.md) "How deep the night goes" (Off/Gentle/Medium/
@@ -243,4 +260,21 @@ export function formatRateChange(rate){
 export function depthCaptionFor(key, target){
   if(key === 'off') return 'Off — full speed, no change at night.';
   return (DEPTH_LABELS[key] || 'Medium') + ' — ' + formatRateChange(target);
+}
+
+// GS6: the night-pitch row's own one-line caption, beside its Slowed/Keep
+// pitch segmented control.
+export function nightPitchCaptionFor(nightPitch){
+  return nightPitch === 'true'
+    ? 'The platter slows on screen; the music plays at true speed and pitch.'
+    : 'At night, the music itself slows and deepens along with the platter.';
+}
+
+// GS6: the mono number line underneath -- formatRateChange()'s own
+// percentage+semitone wording (RF27, "the number next to the sound"),
+// reused rather than a second copy of it, for what Slowed would do to the
+// audio at full depth; "pitch unchanged" when Keep pitch means it never
+// does.
+export function nightPitchMonoLine(nightPitch, target){
+  return nightPitch === 'true' ? 'pitch unchanged' : formatRateChange(target) + ' at full depth';
 }

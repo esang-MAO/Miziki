@@ -288,7 +288,7 @@ export function setAlbumFormatOverride(albumId, override){
   if(t && albumKey(t) === albumId){
     const idx = albumTracks(t.tags.album);
     S.recordFormat = albumFormatFor(idx, S.tracks, override);
-    applyWobbleRate(S.rate);
+    applyWobbleRate(S.platterRate);
     applyCharacter();
   }
   const first = S.tracks[idxOf(S.editTarget && S.editTarget.trackIds[0])];

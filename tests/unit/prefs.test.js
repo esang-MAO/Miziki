@@ -17,6 +17,7 @@ function fakeS(overrides = {}){
     paperLabelOnLossy: false,
     surfaceNoise: 'subtle', surfaceNoiseUnderMusic: false,
     autoFlip: true,
+    nightPitch: 'slowed',
     stopAtTurns: false,
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
@@ -44,6 +45,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     paperLabelOnLossy: S.paperLabelOnLossy,
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
+    nightPitch: S.nightPitch,
     stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
@@ -336,6 +338,28 @@ test('old saved data: no autoFlip field at all leaves it out, so the default (On
 test('bad values are ignored: a non-boolean autoFlip', () => {
   const parsed = parsePrefs({ autoFlip: 'on' });
   assert.equal('autoFlip' in parsed, false);
+});
+
+// GS6 (docs/30_GROOVES_AND_SHELF.md): a saved object without this (every
+// device before this PR) loads as 'slowed' -- the stated default and
+// today's behavior -- same "missing means the default" shape as autoFlip.
+test('round trip: nightPitch survives both Slowed and Keep pitch', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ nightPitch: 'slowed' })));
+  assert.equal(p1.nightPitch, 'slowed');
+  const p2 = parsePrefs(serializePrefs(fakeS({ nightPitch: 'true' })));
+  assert.equal(p2.nightPitch, 'true');
+});
+
+test('old saved data: no nightPitch field at all leaves it out, so the default (Slowed) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.nightPitch;
+  const parsed = parsePrefs(raw);
+  assert.equal('nightPitch' in parsed, false);
+});
+
+test('bad values are ignored: a nightPitch outside Slowed/Keep pitch', () => {
+  const parsed = parsePrefs({ nightPitch: 'kept' });
+  assert.equal('nightPitch' in parsed, false);
 });
 
 // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every

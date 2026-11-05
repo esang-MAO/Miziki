@@ -15,6 +15,12 @@ export const SOCIAL_SUPABASE_ANON_KEY = 'sb_publishable_g7Ywv3lxDfwqxuAyCUSojg_w
 export const S = {
   ctx:null, nodes:null, source:null, gen:0,
   tracks:[], index:-1, playing:false, pos:0, rate:1,
+  // GS6 (docs/30_GROOVES_AND_SHELF.md): the platter's own on-screen spin
+  // rate -- always follows the Sundown curve (sundown/solar.js's
+  // computePlatterRate()), even in Keep-pitch night-pitch mode where
+  // `rate` (the real audio rate, S.source.playbackRate) stays at 1.
+  // Runtime only -- never saved, re-derived from nightPitch/the curve.
+  platterRate:1,
   // RF15 (docs/12_REFINE.md): the platter label's mono arc text is built
   // from two pieces that change at different rates — the RPM (every
   // drawSun() tick, src/player/clock.js, since Sundown keeps it moving)
@@ -58,6 +64,10 @@ export const S = {
   editSelection: new Set(),
   albumSort:{}, albumOrder:{}, lru:[], librarySort:'artist',
   mode:'vinyl', auto:true, manualRate:1, target:0.80, pace:'window',
+  // GS6: 'slowed' (today's behavior, default) plays the night-slowed rate
+  // for real; 'true' keeps the audio at rate 1 while the platter still
+  // visually slows (computePlatterRate()) -- see sundown/solar.js.
+  nightPitch:'slowed',
   previewMin:0, live:true,
   // DA1 (docs/DAY_ARC.md): dawn/rise/noon alongside the original set/dusk
   // — dayPosition() (src/sundown/day.js) reads all five, plus
