@@ -86,7 +86,6 @@ const recordsCalls = [];
 mock.module(new URL('../../src/profile/records.js', import.meta.url).href, {
   namedExports: {
     renderRecordsScreen(host){ recordsCalls.push({host, filter: S.profileView.recordsFilter}); },
-    storeRecordsSection(){ return el('div','records-marker'); },
   },
 });
 mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, {

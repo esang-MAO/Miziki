@@ -8,9 +8,13 @@ import { mostRecentlySpunAlbum, lastSpunPhrase, crateFlatAlbumOrder } from '../c
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
-// The Records section (records + unlocked pressings/metals) — part of this
+// The Records screen (records + unlocked pressings/metals) — part of this
 // file's circular cluster with screens.js; see records.js's own header.
-import { storeRecordsSection, metalDisc, pressingDisc } from './records.js';
+// storeShelvesSection's own "Browse all" (GS11) opens straight into it via
+// openRecords(); storePressingsTeaserRow() is the one other entry point
+// this file still draws on the profile home.
+import { openRecords, storePressingsTeaserRow, metalDisc, pressingDisc } from './records.js';
+import { thumbURL } from '../library/thumbs.js';
 import { achievementsList } from '../history/achievements.js';
 import { PHASE_CAPS } from '../sundown/spin-wording.js';
 // CR11 point 3: "tapping a chip jumps the crate to the first record in
@@ -290,7 +294,10 @@ export function renderStorefrontSection(body){
   // turntable/wall/shelves/records order and shares the one identity
   // header (storeAvatarButton()/appendNameEditor()); signing in only adds
   // the extra server-shaped pieces into that same view, never a second
-  // "profile" section of its own.
+  // "profile" section of its own. GS11 (Ken: "'the shelves' should replace
+  // the 'records' menu on the profile"): the shelves cube grid is now the
+  // one crate-browsing entry point here -- see storeShelvesSection()'s own
+  // header for what replaced the old records-preview-grid section.
   if(!soc.enabled){
     renderLocalStorefront(host);
   } else if(soc.auth === 'ready'){
@@ -369,8 +376,9 @@ function renderLocalStorefront(host, cta){
 
   const picks = localStaffPicks();
   host.appendChild(storeWallSection(picks));
-  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id)));
-  host.appendChild(storeRecordsSection());
+  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id),
+    null, {maxCubes: SHELF_PREVIEW_CUBES, onBrowseAll: ()=> openRecords('all')}));
+  host.appendChild(storePressingsTeaserRow());
 
   if(cta){
     const needsProfile = cta === 'needsProfile';
@@ -528,8 +536,17 @@ function storeTurntableSection(spinContent){
 // the wall). `onTapAlbum`, when given, replaces the default "open the
 // library crate at that spot" tap with the caller's own (a friend's shelf
 // opens the record sheet instead).
+// GS11 (docs/30_GROOVES_AND_SHELF.md, Ken: "the shelves should replace the
+// records menu on the profile... limited to 6 shelves and when a user
+// clicks browse all it then shows all the records they own"): `opts.
+// maxCubes`, when given, caps how many cube rows this draws and appends a
+// "Browse all" button calling `opts.onBrowseAll` once there's more than
+// that to show -- used by this file's own two profile-home call sites
+// only; friend-store.js's call (no opts) is untouched, since it already
+// has its own paged "Browse all N records" button outside this function.
 const SHELF_CUBE_CAPACITY = 10, SHELF_FACE_WIDTH = 3;
-export function storeShelvesSection(items, pinIds, onTapAlbum){
+export const SHELF_PREVIEW_CUBES = 6;
+export function storeShelvesSection(items, pinIds, onTapAlbum, opts = {}){
   const faceOut = new Set((pinIds || []).slice(3, 5));
   const section = el('div','store-section store-shelves');
   const head = el('div','store-section-head');
@@ -539,9 +556,9 @@ export function storeShelvesSection(items, pinIds, onTapAlbum){
     section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
     return section;
   }
-  const grid = el('div','shelf-grid');
+  const cubes = [];
   let cube = el('div','cube'), used = 0;
-  const pushCube = ()=>{ grid.appendChild(cube); cube = el('div','cube'); used = 0; };
+  const pushCube = ()=>{ cubes.push(cube); cube = el('div','cube'); used = 0; };
   items.forEach(item => {
     const isFace = faceOut.has(item.id);
     const width = isFace ? SHELF_FACE_WIDTH : 1;
@@ -550,12 +567,21 @@ export function storeShelvesSection(items, pinIds, onTapAlbum){
     used += width;
   });
   if(used) pushCube();
-  if(grid.childElementCount % 2 === 1){
+  const truncated = opts.maxCubes && cubes.length > opts.maxCubes;
+  const shown = truncated ? cubes.slice(0, opts.maxCubes) : cubes;
+  const grid = el('div','shelf-grid');
+  shown.forEach(c => grid.appendChild(c));
+  if(!truncated && grid.childElementCount % 2 === 1){
     const empty = el('div','cube cube-empty');
     empty.appendChild(el('span','cube-empty-label','room to grow'));
     grid.appendChild(empty);
   }
   section.appendChild(grid);
+  if(truncated && opts.onBrowseAll){
+    const browseAll = el('button','cta ghost store-shelves-browse-all','Browse all');
+    browseAll.addEventListener('click', opts.onBrowseAll);
+    section.appendChild(browseAll);
+  }
   return section;
 }
 
@@ -568,9 +594,20 @@ function shelfAlbumTap(albumId, onTapAlbum){
   renderTracks();
 }
 
+// GS11 (Ken: "cover art should be rendered for the shelves as well"): a
+// spine is only 10px wide (18-storefront.css's own .sp), too narrow for
+// its cover to read as a picture, but cropped-and-stretched real art still
+// reads as that record's own color rather than an arbitrary per-id hash --
+// falls back to the old hashed label color only for an item with no art at
+// all (a friend's crate row this device has no local file for).
 function shelfSpine(item, onTapAlbum){
   const sp = el('button','sp');
-  sp.style.background = MizikiSocial.labelColor(item.id);
+  // Quoted, not a bare url(...) -- a real track's art is always a simple
+  // blob: URL with nothing CSS would choke on, but an unquoted value still
+  // breaks (silently, same failure shape as grooves.js's own CSS-stops
+  // bug, PR #346) the moment any art URL ever contains a "(" or ")".
+  if(item.art) sp.style.backgroundImage = 'url("' + item.art + '")';
+  else sp.style.background = MizikiSocial.labelColor(item.id);
   sp.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
   sp.addEventListener('click', ()=> shelfAlbumTap(item.id, onTapAlbum));
   return sp;
@@ -592,12 +629,12 @@ function shelfFaceCover(item, onTapAlbum){
 // never has to know this file's crate-model-specific shape at all.
 function shelfItemsFromCrate(crateItems){
   return crateItems.map(it => ({id: it.albumId, name: it.album, artist: it.artist,
-    art: (S.tracks[it.idx[0]] || {}).art || null}));
+    art: thumbURL['album:' + it.albumId] || (S.tracks[it.idx[0]] || {}).art || null}));
 }
 
 function storeDiggingSection(full, host){
   // D7: the one modifier class this step adds, since store-section alone
-  // (shared with storePicksSection/storeRecordsSection) gives
+  // (shared with the wall/shelves sections) gives
   // src/styles/23-desktop.css's own two-column grid no way to place this
   // one section differently from its siblings — "digging list" goes in
   // the left column, per the mockup's own mapping; the other two stay
@@ -670,9 +707,10 @@ function renderStorefront(host, full, requests){
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
   host.appendChild(storeTurntableSection(storeNowSpinningCard(full, host)));
   host.appendChild(storeWallSection(full.staffPicks));
-  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id)));
+  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id),
+    null, {maxCubes: SHELF_PREVIEW_CUBES, onBrowseAll: ()=> openRecords('all')}));
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
-  host.appendChild(storeRecordsSection());
+  host.appendChild(storePressingsTeaserRow());
 }
 
 // QC1 (docs/24_QUIET_COUNTS.md): pressings are found, never counted toward

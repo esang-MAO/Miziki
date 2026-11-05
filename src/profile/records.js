@@ -7,24 +7,27 @@ import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
 import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } from '../history/achievements.js';
 // Part of the profile's own circular cluster (storefront.js/screens.js,
-// see CLAUDE.md's src/profile/ entry): storefront.js imports
-// storeRecordsSection() from here, screens.js imports renderRecordsScreen(),
-// and this file reaches both back only from inside functions.
+// see CLAUDE.md's src/profile/ entry): storefront.js imports openRecords()/
+// storePressingsTeaserRow() from here, screens.js imports
+// renderRecordsScreen(), and this file reaches both back only from inside
+// functions.
 import { renderPressingCard } from './storefront.js';
 import { renderProfile } from './screens.js';
 
 /* ================= profile records + pressings =================
-   One section for the crate and what it has earned. The profile home shows
-   the first ten records (A–Z); a record with an unlocked pressing (the
-   Collection) or an earned metal has its disc peeking out of the top of
-   its sleeve, in that pressing — the same drawing as the crate's pull and
-   the launch intro (record-art/peek.js's .peek-disc). "See all" opens the
-   Records screen: All (every record, A–Z) or Pressings (the pressing
-   chart, then unlocked Colors, Effects and Metals). This replaced both the
-   storefront's old 60-cover "All records" grid and the Listening screen's
-   separate Collection section/screen. */
+   The Records screen itself: All (every record, A–Z) or Pressings (the
+   pressing chart, then unlocked Colors, Effects and Metals). A record with
+   an unlocked pressing (the Collection) or an earned metal has its disc
+   peeking out of the top of its sleeve, in that pressing — the same
+   drawing as the crate's pull and the launch intro (record-art/peek.js's
+   .peek-disc). GS11 (docs/30_GROOVES_AND_SHELF.md, Ken: "'the shelves'
+   should replace the 'records' menu on the profile"): the profile home no
+   longer shows its own records preview grid here — storeShelvesSection()
+   (storefront.js) is the one crate-browsing entry point there now, with
+   its own "Browse all" opening straight into this screen's All tab. This
+   screen is still the one place a record's earned pressing/metal, and the
+   pressing chart, are actually shown. */
 
-export const RECORDS_PREVIEW_COUNT = 10;
 const METAL_NAME = {rare:'Rare', platinum:'Platinum', gold:'Gold', silver:'Silver', bronze:'Bronze'};
 const RARE_FALLBACK_BG = 'linear-gradient(155deg,#2A2018,#171310)';
 
@@ -132,7 +135,10 @@ async function pressingsShareData(owned){
   };
 }
 
-function openRecords(filter){
+// Exported so storeShelvesSection's own "Browse all" (storefront.js) can
+// open straight into this screen's All tab without duplicating the three
+// lines that do it.
+export function openRecords(filter){
   S.profileView.screen = 'records';
   S.profileView.recordsFilter = filter;
   renderProfile();
@@ -184,45 +190,16 @@ function recordCell(opts){
   return cell;
 }
 
-/* ---------- the profile home's section ---------- */
-export function storeRecordsSection(){
-  const records = libraryRecords();
+// GS11 (docs/30_GROOVES_AND_SHELF.md, Ken: "'the shelves' should replace
+// the 'records' menu on the profile"): the old storeRecordsSection() here
+// -- a second, 10-record preview grid with its own "See all," right below
+// the shelves cube grid storefront.js already draws -- was a duplicate
+// entry point into this same screen. One in, one out: that preview grid
+// is gone (storeShelvesSection()'s own "Browse all" opens the All tab in
+// its place); this row is the one piece of it worth keeping on its own --
+// nothing else on the profile home points at the pressing chart/metals.
+export function storePressingsTeaserRow(){
   const counts = pressingCounts();
-  const section = el('div','store-section store-records');
-
-  const head = el('div','store-section-head store-records-head');
-  const title = el('div','store-records-title');
-  title.appendChild(el('h2', null, 'Records'));
-  title.appendChild(el('span','store-records-count', recordsCountLine(records.length)));
-  head.appendChild(title);
-  if(records.length || counts.pressings || counts.metals){
-    const seeAll = el('button', null, 'See all ›');
-    seeAll.setAttribute('aria-label','See all records');
-    seeAll.addEventListener('click', ()=> openRecords('all'));
-    head.appendChild(seeAll);
-  }
-  section.appendChild(head);
-
-  if(!records.length){
-    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
-  } else {
-    const grid = el('div','records-grid preview');
-    let anyDisc = false;
-    records.slice(0, RECORDS_PREVIEW_COUNT).forEach(r => {
-      const earned = earnedFor(r.albumId);
-      if(earned) anyDisc = true;
-      grid.appendChild(recordCell({name:r.name, artist:r.artist, art:r.art,
-        disc: earned ? earned.bg : null, label: earned ? earned.label : null}));
-    });
-    section.appendChild(grid);
-    if(anyDisc) section.appendChild(el('p','store-records-note','A record peeking out of its sleeve has an unlocked pressing or metal.'));
-    if(records.length > RECORDS_PREVIEW_COUNT){
-      const more = el('button','store-records-more','Show all ' + plural(records.length, 'record', 'records') + ' ▾');
-      more.addEventListener('click', ()=> openRecords('all'));
-      section.appendChild(more);
-    }
-  }
-
   const row = el('button','store-records-pressings');
   const chips = el('span','store-records-chips');
   chips.setAttribute('aria-hidden','true');
@@ -241,8 +218,7 @@ export function storeRecordsSection(){
   row.appendChild(text);
   row.appendChild(el('span','g-chev','›'));
   row.addEventListener('click', ()=> openRecords('pressings'));
-  section.appendChild(row);
-  return section;
+  return row;
 }
 
 /* ---------- the Records screen ---------- */

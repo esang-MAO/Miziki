@@ -226,11 +226,8 @@ button.pressing-chip{cursor:pointer}
    cell reserves the same headroom so sleeves line up whether or not a
    disc is showing; % padding is of the cell's width, and the disc's own
    negative % top is of the (square) art box, so the two match. */
-.store-records-head{align-items:flex-end;gap:var(--sp-3)}
-.store-records-title{display:flex;flex-direction:column;gap:var(--sp-1);min-width:0}
 .store-records-count{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);text-transform:uppercase}
 .records-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-4) var(--sp-3);margin-top:var(--sp-2)}
-.records-grid.preview{grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--sp-2);margin-top:var(--sp-3)}
 .rec-cell{min-width:0;display:flex;flex-direction:column;gap:2px;padding-top:14%}
 .rec-cell.pulled{padding-top:30%}
 .rec-art{position:relative}
@@ -250,9 +247,6 @@ button.pressing-chip{cursor:pointer}
 .rec-label > span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-cell.pulled .rec-label{margin-top:6px}
 .rec-dot{width:8px;height:8px;border-radius:50%;flex:none}
-.store-records-note{margin:var(--sp-3) 0 0;font-size:var(--fs-caption);color:var(--muted)}
-.store-records-more{width:100%;min-height:44px;margin-top:var(--sp-3);border:1px solid var(--line);border-radius:var(--radius-card);
-  background:var(--raised);color:var(--paper);font-family:var(--data);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .store-records-pressings{width:100%;min-height:56px;margin-top:var(--sp-3);padding:var(--sp-2) var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);
   border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel);color:var(--paper);text-align:left;cursor:pointer}
 .store-records-chips{display:flex;gap:var(--sp-1);flex:none}
@@ -313,9 +307,18 @@ button.pressing-chip{cursor:pointer}
 .shelf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);margin-top:var(--sp-3)}
 .cube{background:#2A2622;border-radius:10px;height:156px;padding:10px;display:flex;align-items:flex-end;gap:3px;
   box-shadow:inset 0 2px 6px rgba(0,0,0,.45);overflow:hidden}
-.sp{flex:1 0 auto;width:10px;height:88%;border:0;border-radius:2px 2px 0 0;padding:0;box-shadow:0 1px 0 rgba(0,0,0,.3)}
+/* GS11: a spine's own background-image (storefront.js's shelfSpine()) is
+   the album's real cover art, cropped down to this 10px sliver -- cover
+   so it fills the whole spine with no letterboxing, center so the crop
+   favors the art's own middle rather than a corner. */
+.sp{flex:1 0 auto;width:10px;height:88%;border:0;border-radius:2px 2px 0 0;padding:0;box-shadow:0 1px 0 rgba(0,0,0,.3);
+  background-size:cover;background-position:center}
 .shelf-face{flex:none;width:64px;height:100%;border:0;border-radius:4px;padding:0;background:var(--panel);
   box-shadow:0 2px 6px rgba(0,0,0,.4);transform:rotate(-3deg)}
 .shelf-face img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 .cube-empty{align-items:center;justify-content:center}
 .cube-empty-label{font-family:var(--hand);font-weight:600;font-size:22px;color:rgba(239,233,223,.45)}
+/* GS11: the shelves' own "Browse all," shown once storeShelvesSection()
+   truncates to its 6-cube preview -- same full-width ghost-button treatment
+   the records screen's old "Show all N records" row used. */
+.store-shelves-browse-all{width:100%;box-sizing:border-box;min-height:44px;margin-top:var(--sp-3);text-align:center}
