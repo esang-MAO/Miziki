@@ -6,7 +6,7 @@ import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
 import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr, platterSpeedAttr } from '../record-art/format.js';
-import { grooveBandsForSide, grooveBackgroundImage } from '../record-art/grooves.js';
+import { grooveBandsForSide, grooveBackgroundImage, labelInnerPctForSize } from '../record-art/grooves.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -377,7 +377,11 @@ export function load(i){
   // (clock.js's drawTime()); recomputed here, once per load(), not every
   // tick, since it only ever changes on a track/side change.
   S.sideTrackIdx = sideFound ? sideFound.idx : (albumTrackIdx || [i]);
-  S.sideBands = grooveBandsForSide(S.sideTrackIdx.map(idx => S.tracks[idx]));
+  // the real label's own edge, not the disc background gradient's -- see
+  // labelInnerPctForSize()'s own comment (record-art/grooves.js) for why
+  // these can differ, and by how much on a 10"/7" record's own larger label.
+  S.sideBands = grooveBandsForSide(S.sideTrackIdx.map(idx => S.tracks[idx]),
+    labelInnerPctForSize(S.recordFormat && S.recordFormat.size));
   const discEl = $('#disc');
   if(discEl) discEl.style.setProperty('--groove-rings', grooveBackgroundImage(S.sideBands) || '');
   // FS5 (docs/25_FROM_SCRATCH.md point 1): the top row's own "Side A"

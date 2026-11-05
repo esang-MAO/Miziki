@@ -23,12 +23,29 @@
 import { clamp } from '../util/math.js';
 
 // The groove area's own inner/outer radius, as a percent of the record's
-// radius -- matches .disc's existing static background stops
-// (src/styles/02-stage-platter.css): the label sits inside 27%, the rim
-// starts at 90%. Independent of record size/speed -- a future per-size
-// refinement is left for later, same as the rest of this step.
-export const GROOVE_INNER_PCT = 27;
+// radius. GROOVE_OUTER_PCT (the rim) is the same for every record size.
+// GROOVE_INNER_PCT is the real .label element's own edge on a 12" record
+// (src/styles/02-stage-platter.css: "a 100mm label at 33% of the record",
+// inset:33.5% -- inset I% is radius (100-2*I)% of the disc's own full
+// radius, the same conversion player/clock.js's own needle-ring inset
+// comment uses) -- not record-art/tiers.js's static disc-background
+// gradient stop (27%), which this used to reuse on the mistaken assumption
+// that it matched the real label: it doesn't, so a side's innermost tracks
+// drew groove texture that rendered right under the label, "not realistic"
+// (Ken, 2026-11-05). LABEL_INNER_PCT_BY_SIZE below covers the two other
+// formats' own, larger real labels (10"/7", same CSS section) -- every
+// caller that knows the record's own S.recordFormat.size should resolve
+// through labelInnerPctForSize() rather than assuming the 12" default.
+export const GROOVE_INNER_PCT = 33;
 export const GROOVE_OUTER_PCT = 90;
+
+// 10″ is 100mm/40% of the record; 7″ is 90mm/51.5% (same CSS section's own
+// comment) -- a smaller record's label takes up proportionally more of it.
+export const LABEL_INNER_PCT_BY_SIZE = { '7"': 51.5, '10"': 40, '12"': GROOVE_INNER_PCT };
+
+export function labelInnerPctForSize(size){
+  return LABEL_INNER_PCT_BY_SIZE[size] || GROOVE_INNER_PCT;
+}
 
 // Ring pitch (the gap between adjacent texture rings), as a percent of the
 // record's own radius -- middle is today's flat pitch (1px line + 4px gap

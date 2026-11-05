@@ -8,9 +8,11 @@ import {
   GROOVE_INNER_PCT, GROOVE_OUTER_PCT,
   GROOVE_PITCH_MIN_PCT, GROOVE_PITCH_MAX_PCT, GROOVE_PITCH_MIDDLE_PCT,
   LOUDNESS_FLOOR_LUFS, LOUDNESS_CEIL_LUFS, RIM_INNER_PCT, DROP_NEEDLE_SNAP_PCT,
+  LABEL_INNER_PCT_BY_SIZE,
   groovePitchForLoudness, bandRadiiFromDurations, grooveBandsForSide,
   needleRadiusPct, sideMapSegments, grooveBackgroundImage,
   isRimRadiusPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
+  labelInnerPctForSize,
 } from '../../src/record-art/grooves.js';
 
 // -- groovePitchForLoudness ---------------------------------------------
@@ -55,7 +57,7 @@ test('bandRadiiFromDurations: bands are contiguous -- each one\'s end is the nex
   assert.equal(bands[0].startPct, GROOVE_OUTER_PCT);
   assert.equal(bands[0].endPct, bands[1].startPct);
   assert.equal(bands[1].endPct, bands[2].startPct);
-  assert.equal(bands[2].endPct, GROOVE_INNER_PCT);
+  assert.ok(Math.abs(bands[2].endPct - GROOVE_INNER_PCT) < 1e-9);
 });
 
 test('bandRadiiFromDurations: an all-silent/empty duration list splits evenly, never divides by zero', () => {
@@ -255,4 +257,36 @@ test('dropNeedleTarget: picks whichever track start is nearest, even when that\'
   assert.equal(target.snapped, true);
   assert.equal(target.index, 1);
   assert.ok(Math.abs(target.radiusPct - bands[1].startPct) < 1e-9);
+});
+
+// -- labelInnerPctForSize ----------------------------------------------------
+// Ken, 2026-11-05: tracks near the end of a side drew groove texture under
+// the paper label -- GROOVE_INNER_PCT used to reuse the disc's own static
+// background gradient stop (27%), not the real .label element's own edge
+// (src/styles/02-stage-platter.css: 33%/40%/51.5% for 12"/10"/7").
+
+test('labelInnerPctForSize: matches the real .label element\'s own edge per record size', () => {
+  assert.equal(labelInnerPctForSize('12"'), 33);
+  assert.equal(labelInnerPctForSize('10"'), 40);
+  assert.equal(labelInnerPctForSize('7"'), 51.5);
+});
+
+test('labelInnerPctForSize: an unknown/missing size falls back to the 12" default', () => {
+  assert.equal(labelInnerPctForSize(undefined), GROOVE_INNER_PCT);
+  assert.equal(labelInnerPctForSize(null), GROOVE_INNER_PCT);
+  assert.equal(labelInnerPctForSize('8-track'), GROOVE_INNER_PCT);
+});
+
+test('labelInnerPctForSize: GROOVE_INNER_PCT is itself the 12" value, and every smaller format\'s label is proportionally larger', () => {
+  assert.equal(LABEL_INNER_PCT_BY_SIZE['12"'], GROOVE_INNER_PCT);
+  assert.ok(LABEL_INNER_PCT_BY_SIZE['10"'] > LABEL_INNER_PCT_BY_SIZE['12"']);
+  assert.ok(LABEL_INNER_PCT_BY_SIZE['7"'] > LABEL_INNER_PCT_BY_SIZE['10"']);
+});
+
+test('grooveBandsForSide: a 7" record\'s own larger label keeps every band\'s own inner edge outside it', () => {
+  const tracks = [{ duration: 60 }, { duration: 60 }, { duration: 60 }];
+  const innerPct = labelInnerPctForSize('7"');
+  const bands = grooveBandsForSide(tracks, innerPct, GROOVE_OUTER_PCT);
+  assert.ok(Math.abs(bands[bands.length - 1].endPct - innerPct) < 1e-9);
+  for(const b of bands) assert.ok(b.endPct >= innerPct - 1e-9);
 });
