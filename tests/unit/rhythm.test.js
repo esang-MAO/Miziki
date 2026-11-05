@@ -5,6 +5,7 @@ import {
   RHYTHM_WINDOW_DAYS, RHYTHM_PRUNE_KEEP_DAYS,
   computeRhythmShares, rhythmVerdictLabel, bestAlbumPerPhase,
   dayKeyFor, windowedPhaseCounts, windowedCounts, pruneDayBuckets, seasonLabelFor,
+  seasonKeyFor, foldIntoSeasons,
 } from '../../src/sundown/rhythm.js';
 
 // DA5 (docs/DAY_ARC.md) — pure functions over plain {phase: count} maps,
@@ -149,8 +150,9 @@ test('windowedPhaseCounts: feeds straight into computeRhythmShares/rhythmVerdict
 });
 
 test('pruneDayBuckets: drops buckets older than keepDays, keeps the rest, never mutates the input', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
   const now = new Date(2026, 5, 15).getTime();
-  const oldKey = dayKeyFor(new Date(2026, 0, 1));   // well past 120 days
+  const oldKey = dayKeyFor(now - (RHYTHM_PRUNE_KEEP_DAYS + 10) * DAY_MS); // well past the keep window
   const recentKey = dayKeyFor(new Date(2026, 5, 1)); // 14 days ago
   const byDay = { [oldKey]: { night: 1 }, [recentKey]: { night: 2 } };
   const frozen = JSON.parse(JSON.stringify(byDay));
@@ -216,4 +218,91 @@ test('seasonLabelFor: the range spans the window\'s start month to its end month
 
 test('seasonLabelFor: a window that never leaves the current month gives one month, not a range', () => {
   assert.equal(seasonLabelFor(new Date(2026, 9, 2), 1).range, 'Oct');
+});
+
+// ================= GS1 (docs/30_GROOVES_AND_SHELF.md) =================
+// "keep a year of listening" — seasonKeyFor()/foldIntoSeasons(), the
+// season roll-up written just before pruneDayBuckets() would otherwise
+// drop a day bucket for good.
+
+test('seasonKeyFor: names the same meteorological season as seasonLabelFor, keyed by year', () => {
+  assert.equal(seasonKeyFor(new Date(2026, 9, 31)), '2026-autumn'); // Oct 31
+  assert.equal(seasonKeyFor(new Date(2026, 3, 1)), '2026-spring'); // Apr 1
+  assert.equal(seasonKeyFor(new Date(2026, 6, 4)), '2026-summer'); // Jul 4
+});
+
+test('seasonKeyFor: winter is keyed by the year of its December, not the calendar year', () => {
+  assert.equal(seasonKeyFor(new Date(2026, 11, 25)), '2026-winter'); // Dec 25, 2026
+  assert.equal(seasonKeyFor(new Date(2027, 0, 15)), '2026-winter');  // Jan 15, 2027 -- same winter
+  assert.equal(seasonKeyFor(new Date(2027, 1, 20)), '2026-winter');  // Feb 20, 2027 -- same winter
+  assert.equal(seasonKeyFor(new Date(2027, 2, 1)), '2027-spring');   // Mar 1, 2027 -- the next season
+});
+
+test('seasonKeyFor: accepts either a Date or epoch ms', () => {
+  const d = new Date(2026, 5, 1);
+  assert.equal(seasonKeyFor(d), seasonKeyFor(d.getTime()));
+});
+
+test('foldIntoSeasons: folds a bucket older than keepDays into its season, leaves a recent bucket alone', () => {
+  const now = new Date(2026, 5, 15).getTime(); // June 15, 2026 (summer)
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const oldKey = dayKeyFor(now - (RHYTHM_PRUNE_KEEP_DAYS + 10) * DAY_MS); // well before keepDays
+  const recentKey = dayKeyFor(new Date(2026, 5, 1)); // 14 days ago -- kept, not folded
+  const byDay = { [oldKey]: { night: 3, morning: 1 }, [recentKey]: { night: 5 } };
+  const out = foldIntoSeasons(byDay, now, RHYTHM_PRUNE_KEEP_DAYS, {}, 'phases');
+  const season = seasonKeyFor(oldKey);
+  assert.deepEqual(out[season].phases, { night: 3, morning: 1 });
+  assert.deepEqual(out[season].albums, {});
+});
+
+test('foldIntoSeasons: accumulates onto an existing summary rather than replacing it', () => {
+  const now = new Date(2026, 5, 15).getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const oldKey = dayKeyFor(now - (RHYTHM_PRUNE_KEEP_DAYS + 10) * DAY_MS);
+  const season = seasonKeyFor(oldKey);
+  const existing = { [season]: { phases: { night: 10 }, albums: { alb1: 2 } } };
+  const byDay = { [oldKey]: { night: 1, dawn: 2 } };
+  const out = foldIntoSeasons(byDay, now, RHYTHM_PRUNE_KEEP_DAYS, existing, 'phases');
+  assert.deepEqual(out[season].phases, { night: 11, dawn: 2 });
+  // the 'albums' sub-map, untouched by this 'phases' call, survives unchanged
+  assert.deepEqual(out[season].albums, { alb1: 2 });
+  // the input summary object is never mutated
+  assert.deepEqual(existing[season].phases, { night: 10 });
+});
+
+test('foldIntoSeasons: a bucket within the keep window is left for pruneDayBuckets to keep, not folded yet', () => {
+  const now = new Date(2026, 5, 15).getTime();
+  const recentKey = dayKeyFor(new Date(2026, 5, 1)); // 14 days ago
+  const out = foldIntoSeasons({ [recentKey]: { night: 5 } }, now, RHYTHM_PRUNE_KEEP_DAYS, {}, 'phases');
+  assert.deepEqual(out, {});
+});
+
+test('foldIntoSeasons: fold-then-prune keeps the day bucket\'s total intact, just relocated', () => {
+  const now = new Date(2026, 5, 15).getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const oldKey = dayKeyFor(now - (RHYTHM_PRUNE_KEEP_DAYS + 10) * DAY_MS);
+  const recentKey = dayKeyFor(new Date(2026, 5, 1));
+  const byDay = { [oldKey]: { night: 4, morning: 2 }, [recentKey]: { night: 1 } };
+  const totalBefore = Object.values(byDay).reduce((sum, bucket) =>
+    sum + Object.values(bucket).reduce((s, n) => s + n, 0), 0);
+
+  const folded = foldIntoSeasons(byDay, now, RHYTHM_PRUNE_KEEP_DAYS, {}, 'phases');
+  const pruned = pruneDayBuckets(byDay, now, RHYTHM_PRUNE_KEEP_DAYS);
+
+  const seasonTotal = Object.values(folded).reduce((sum, entry) =>
+    sum + Object.values(entry.phases || {}).reduce((s, n) => s + n, 0), 0);
+  const prunedTotal = Object.values(pruned).reduce((sum, bucket) =>
+    sum + Object.values(bucket).reduce((s, n) => s + n, 0), 0);
+
+  assert.equal(seasonTotal + prunedTotal, totalBefore);
+  assert.deepEqual(pruned, { [recentKey]: { night: 1 } });
+});
+
+test('foldIntoSeasons: 400-day prune keeps a season\'s day buckets around for roughly a year', () => {
+  assert.equal(RHYTHM_PRUNE_KEEP_DAYS, 400);
+});
+
+test('foldIntoSeasons: empty/missing input never throws', () => {
+  assert.deepEqual(foldIntoSeasons(undefined, Date.now(), RHYTHM_PRUNE_KEEP_DAYS, undefined, 'phases'), {});
+  assert.deepEqual(foldIntoSeasons({}, Date.now(), RHYTHM_PRUNE_KEEP_DAYS, {}, 'albums'), {});
 });

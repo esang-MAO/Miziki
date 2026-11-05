@@ -115,6 +115,109 @@ test('DA5: albumPhaseCounts repeated/duplicate syncs never inflate the total', (
   assert.deepEqual(second.totals.counters.albumPhaseCounts, { alb1: { night: 3 } });
 });
 
+// ---- GS1 (docs/30_GROOVES_AND_SHELF.md): phasePlayCountsByDay/
+// albumPlayCountsByDay are the day-bucketed twins of phasePlayCounts/
+// albumPhaseCounts above, the exact same {outerKey: {innerKey: count}}
+// shape sumNestedCounters already sums (dayKey in place of albumId);
+// seasonSummaries is one level deeper still (sumSeasonSummaries) ----
+
+test('GS1: phasePlayCountsByDay sums per day bucket, per phase, across devices', () => {
+  const a = baseLocal('a', { phasePlayCountsByDay: { '2026-06-01': { night: 2 }, '2026-06-02': { morning: 1 } } });
+  const b = toDoc(baseLocal('b', { phasePlayCountsByDay: { '2026-06-01': { night: 1, dawn: 1 } } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.phasePlayCountsByDay, {
+    '2026-06-01': { night: 3, dawn: 1 },
+    '2026-06-02': { morning: 1 },
+  });
+});
+
+test('GS1: albumPlayCountsByDay sums per day bucket, per album, across devices', () => {
+  const a = baseLocal('a', { albumPlayCountsByDay: { '2026-06-01': { alb1: 2 } } });
+  const b = toDoc(baseLocal('b', { albumPlayCountsByDay: { '2026-06-01': { alb1: 1, alb2: 1 } } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.albumPlayCountsByDay, { '2026-06-01': { alb1: 3, alb2: 1 } });
+});
+
+test('GS1: seasonSummaries sums both phases and albums, per season, across devices', () => {
+  const a = baseLocal('a', { seasonSummaries: { '2026-spring': { phases: { night: 4 }, albums: { alb1: 2 } } } });
+  const b = toDoc(baseLocal('b', { seasonSummaries: { '2026-spring': { phases: { night: 1, dawn: 1 }, albums: { alb1: 1 } } } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.seasonSummaries, {
+    '2026-spring': { phases: { night: 5, dawn: 1 }, albums: { alb1: 3 } },
+  });
+});
+
+test('GS1: seasonSummaries keeps independent seasons separate and never cross-contaminates', () => {
+  const a = baseLocal('a', { seasonSummaries: { '2026-spring': { phases: { night: 2 }, albums: {} } } });
+  const b = toDoc(baseLocal('b', { seasonSummaries: { '2026-winter': { phases: { morning: 3 }, albums: {} } } }));
+  const result = fromDocs(a, [b]);
+  assert.deepEqual(result.totals.counters.seasonSummaries, {
+    '2026-spring': { phases: { night: 2 }, albums: {} },
+    '2026-winter': { phases: { morning: 3 }, albums: {} },
+  });
+});
+
+test('GS1: repeated/duplicate syncs never inflate phasePlayCountsByDay/albumPlayCountsByDay/seasonSummaries', () => {
+  const a = baseLocal('a', {
+    phasePlayCountsByDay: { '2026-06-01': { night: 2 } },
+    albumPlayCountsByDay: { '2026-06-01': { alb1: 2 } },
+    seasonSummaries: { '2026-spring': { phases: { night: 2 }, albums: { alb1: 2 } } },
+  });
+  const b = toDoc(baseLocal('b', {
+    phasePlayCountsByDay: { '2026-06-01': { night: 1 } },
+    albumPlayCountsByDay: { '2026-06-01': { alb1: 1 } },
+    seasonSummaries: { '2026-spring': { phases: { night: 1 }, albums: { alb1: 1 } } },
+  }));
+  const first = fromDocs(a, [b]);
+  const second = fromDocs(a, [b, b]);
+  assert.deepEqual(first.totals.counters.phasePlayCountsByDay, { '2026-06-01': { night: 3 } });
+  assert.deepEqual(second.totals.counters.phasePlayCountsByDay, { '2026-06-01': { night: 3 } });
+  assert.deepEqual(first.totals.counters.seasonSummaries, { '2026-spring': { phases: { night: 3 }, albums: { alb1: 3 } } });
+  assert.deepEqual(second.totals.counters.seasonSummaries, { '2026-spring': { phases: { night: 3 }, albums: { alb1: 3 } } });
+});
+
+test('GS1: a doc from before these fields existed merges as empty, not thrown on', () => {
+  const a = baseLocal('a');
+  const b = toDoc(baseLocal('b'));
+  delete b.counters.phasePlayCountsByDay; delete b.counters.albumPlayCountsByDay; delete b.counters.seasonSummaries;
+  const merged = fromDocs(a, [b]);
+  assert.deepEqual(merged.totals.counters.phasePlayCountsByDay, {});
+  assert.deepEqual(merged.totals.counters.albumPlayCountsByDay, {});
+  assert.deepEqual(merged.totals.counters.seasonSummaries, {});
+});
+
+test('validateDoc: a real toDoc() output carrying phasePlayCountsByDay/albumPlayCountsByDay/seasonSummaries still validates', () => {
+  const doc = toDoc(baseLocal('a', {
+    phasePlayCountsByDay: { '2026-06-01': { night: 2 } },
+    albumPlayCountsByDay: { '2026-06-01': { alb1: 2 } },
+    seasonSummaries: { '2026-spring': { phases: { night: 2 }, albums: { alb1: 2 } } },
+  }));
+  assert.equal(validateDoc(doc), true);
+});
+
+test('validateDoc: rejects a doc whose phasePlayCountsByDay/albumPlayCountsByDay holds a negative or non-integer count', () => {
+  const base = toDoc(baseLocal('a', { phasePlayCountsByDay: { '2026-06-01': { night: 1 } } }));
+  const negative = Object.assign({}, base, { counters: Object.assign({}, base.counters, { phasePlayCountsByDay: { '2026-06-01': { night: -1 } } }) });
+  const fractional = Object.assign({}, base, { counters: Object.assign({}, base.counters, { albumPlayCountsByDay: { '2026-06-01': { alb1: 1.5 } } }) });
+  assert.equal(validateDoc(negative), false);
+  assert.equal(validateDoc(fractional), false);
+});
+
+test('validateDoc: rejects a doc whose seasonSummaries entry is malformed', () => {
+  const base = toDoc(baseLocal('a'));
+  const badPhases = Object.assign({}, base, { counters: Object.assign({}, base.counters, { seasonSummaries: { '2026-spring': { phases: { night: -1 }, albums: {} } } }) });
+  const notAnObject = Object.assign({}, base, { counters: Object.assign({}, base.counters, { seasonSummaries: { '2026-spring': 'nope' } }) });
+  assert.equal(validateDoc(badPhases), false);
+  assert.equal(validateDoc(notAnObject), false);
+});
+
+test('validateDoc: a missing phasePlayCountsByDay/albumPlayCountsByDay/seasonSummaries field at all (pre-GS1 doc) still validates', () => {
+  const doc = toDoc(baseLocal('a'));
+  const bad = Object.assign({}, doc, { counters: Object.assign({}, doc.counters) });
+  delete bad.counters.phasePlayCountsByDay; delete bad.counters.albumPlayCountsByDay; delete bad.counters.seasonSummaries;
+  assert.equal(validateDoc(bad), true);
+});
+
 test('counter invariant: syncing any number of times by itself never changes the total', () => {
   const a = baseLocal('a', { trackPlayCounts: { k1: 3 } });
   const b = toDoc(baseLocal('b', { trackPlayCounts: { k1: 2 } }));
