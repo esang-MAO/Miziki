@@ -156,6 +156,11 @@
    card. */
 .store-pick-sleeve-note{font-family:var(--hand);font-weight:500;font-size:18px;line-height:1.1;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* GS12 (docs/30_GROOVES_AND_SHELF.md): "SIDE B · 4" -- the mono whitelist
+   (catalogue numbers/format chips/etc.), caps-tracked same as every other
+   mono kicker in the app. */
+.store-pick-anchor{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--muted)}
 
 /* FS7 (docs/25_FROM_SCRATCH.md point 6): "the three newest pressings
    you've found, as discs" -- plain finished circles (the metals-row
