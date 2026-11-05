@@ -156,6 +156,16 @@
   transform:translateX(-50%);text-align:center;font-family:var(--data);font-size:var(--fs-caption);
   letter-spacing:.06em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-turn-over{opacity:1}
+/* GF13 fix 3: both sit below the cover's own bottom edge, which in
+   normal (non-wide) mode is also where #gfLeftActions (Share
+   record/Pin to crate, shown only while panel==='left') lands -- Ken's
+   "FLIP COVER text overlapping Share record" screenshot. Neither one
+   means anything while looking at the inside-left panel instead of the
+   cover, so hide both there, same visibility pattern (and the same
+   gf-wide/gf-panel-dragging exclusions) .gf-cover/.gf-right already use
+   just above. */
+.gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-turn-over,
+.gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-flip-dots{opacity:0;pointer-events:none}
 /* GF5 point 2: one ink on plain stock, filled from the record's own data
    -- a printed jacket back, not a themed panel, so it keeps its own fixed
    colors (same reasoning as the dark sleeve-interior tokens just above,

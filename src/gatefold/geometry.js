@@ -3,27 +3,29 @@
    size and disc diameter -- replacing literals that used to be scattered
    independently through gatefold/view.js and 11-gatefold.css (view.js's
    own updateGatefoldScale() duplicated the CSS's 390/740 rather than
-   sharing it). GF2 made this one function; GF3 is the step that makes it
-   actually vary by format (point 1's panel sizes: 12" 350px, 10" 292px,
-   7" 204px) instead of always returning the 12" numbers. Pan distance,
-   pocket size (the sleeve paper's thumb-cut cutout) and disc diameter
-   all scale proportionally off the panel size, at the same ratio the 12"
-   case already used -- a 156px disc and a 132px cutout against a 350px
-   panel (point 2: "drawn at true relative size"). viewport is accepted
-   but unused so far (leading underscore, CLAUDE.md's deliberately-
-   unused-argument convention) -- nothing here varies by viewport. */
-const PANEL_SIZE_BY_RECORD_SIZE = { '7"': 204, '10"': 292, '12"': 350 };
-const DISC_TO_PANEL_RATIO = 156 / 350;
-const POCKET_TO_PANEL_RATIO = 132 / 350;
+   sharing it).
 
-export function gatefoldGeometry(format, _viewport){
-  const panelSize = (format && PANEL_SIZE_BY_RECORD_SIZE[format.size]) || PANEL_SIZE_BY_RECORD_SIZE['12"'];
+   GF3 briefly made this vary by format (12" 350px, 10" 292px, 7" 204px),
+   mirroring real relative record sizes the way the platter's own SZ1
+   to-scale drawing does. Ken, 2026-11-05: the gatefold's own display
+   should stay one uniform size for every record regardless of format --
+   unlike the platter (which draws a record actually spinning, where the
+   size difference is part of what's being shown), the gatefold is a
+   browsing view, and a 7" single shrinking the whole spread read as
+   broken rather than intentional. format is kept as a parameter (callers
+   still pass it) so a future format-aware layout tweak doesn't need a
+   new call shape, but it no longer changes the numbers below. */
+const PANEL_SIZE = 350;
+const DISC_DIAMETER = 156;
+const POCKET_SIZE = 132;
+
+export function gatefoldGeometry(_format, _viewport){
   return {
     referenceWidth: 390,
     referenceHeight: 740,
-    panelSize,
-    panDistance: panelSize / 2,
-    pocketSize: Math.round(panelSize * POCKET_TO_PANEL_RATIO),
-    discDiameter: Math.round(panelSize * DISC_TO_PANEL_RATIO),
+    panelSize: PANEL_SIZE,
+    panDistance: PANEL_SIZE / 2,
+    pocketSize: POCKET_SIZE,
+    discDiameter: DISC_DIAMETER,
   };
 }
