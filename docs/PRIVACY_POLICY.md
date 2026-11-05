@@ -1,6 +1,6 @@
 # Miziki privacy policy
 
-**Last updated: October 20, 2026**
+**Last updated: November 5, 2026**
 
 This is the canonical source for the Privacy Policy shown inside the app
 (`src/profile/legal.js`'s `renderPrivacyPolicyScreen`). The two must say the
@@ -39,6 +39,11 @@ optional account features (sign-in, backup, social).
   they're never posted to a friend's feed. Anything that *is* posted to
   the feed (a record added, pinned, or reviewed) is automatically removed
   after 45 days.
+- **Records held for you** — if a mutual friend sets aside up to 3 records
+  from their own crate for you, with a short note, that's stored so it
+  shows up on their crate when you visit ("Held for you"). Nobody is
+  notified — it's found, not pushed. It disappears automatically 30 days
+  after it's set aside, or sooner as you hand records back one at a time.
 - **Your private listening backup** — play counts, session counts,
   achievements and your Collection, sealed/broken-record state, the
   text of any track edits you've made (title/artist/album — never the
@@ -80,6 +85,8 @@ optional account features (sign-in, backup, social).
   milestones, listening rhythm — follows your visibility setting
   (private, friends, or everyone; **friends by default**), found in the
   Privacy screen.
+- A record held for you — and its note — is visible only to the two of
+  you, whichever way it was set aside.
 
 ## Where your data lives, and for how long
 

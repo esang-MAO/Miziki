@@ -1,4 +1,6 @@
 import { $, el } from '../../util/dom.js';
+import { S } from '../../state.js';
+import { crateFlatAlbumOrder } from '../../crate/model.js';
 import {
   storeSign, storeStat, storePickTile, localAlbumArt, timeAgoShort,
   renderStoreError, STORE_TIER_LABEL, renderPressingCard, storeShelvesSection,
@@ -290,6 +292,139 @@ function friendDiggingPreview(full){
   return section;
 }
 
+// GS11 (docs/30_GROOVES_AND_SHELF.md): "held for you" -- what this friend
+// has set aside for the signed-in user (full.heldForYou, loadProfile()'s
+// own p_from-scoped held_for_me() call) and the reverse, giving them up
+// to three of your own records. Both live here, not on your own profile:
+// the design mockup (docs/design/grooves-shelf/png/FriendShelf.png) draws
+// them together on the one friend's-crate frame, with the note signed by
+// the friend being viewed ("For Ken... -- J."), so a hold's from_user is
+// always that friend and its to_user is always the viewer here.
+function friendHeldStack(hold){
+  const stack = el('div','held-stack');
+  hold.releases.slice(0, 3).forEach(r => {
+    const sleeve = el('div','held-sleeve' + (r.handed_back ? ' handed-back' : ''));
+    const art = localAlbumArt(r.title, r.artist);
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; sleeve.appendChild(im); }
+    stack.appendChild(sleeve);
+  });
+  return stack;
+}
+
+function friendHeldSection(full){
+  if(!full.heldForYou || !full.heldForYou.length) return null;
+  const section = el('div','store-section');
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Held for you'));
+  section.appendChild(head);
+  full.heldForYou.forEach(hold => {
+    const card = el('div','store-card held-card');
+    card.appendChild(friendHeldStack(hold));
+    const text = el('div','store-card-text');
+    if(hold.note) text.appendChild(el('p','held-note', hold.note));
+    text.appendChild(storeRuleCaption(
+      hold.releases.length + ' record' + (hold.releases.length === 1 ? '' : 's') + ' · hand back any you pass on'));
+    card.appendChild(text);
+    const look = el('button','cta ghost','Look through');
+    look.addEventListener('click', ()=> openHeldSheet('look', full, hold));
+    card.appendChild(look);
+    section.appendChild(card);
+  });
+  return section;
+}
+
+// The give side of GS11: pick up to 3 of your own crate records + a short
+// note for this friend. mutual-follow/not-blocked/actually-in-your-crate
+// is re-checked server-side (held_records_before_insert, migration 025)
+// regardless of what this picker lets you select.
+function heldPickerAlbums(){
+  return crateFlatAlbumOrder(S.crateGroup).map(it => ({
+    title: it.album, artist: it.artist, releaseKey: MizikiSocial.releaseKey(it.artist, it.album)
+  }));
+}
+
+function renderHeldSetAsideBody(full, onDone){
+  const body = $('#heldBody'); body.innerHTML = '';
+  body.appendChild(storeRuleCaption('Pick up to 3 records from your own crate for ' + full.profile.handle + '.'));
+  const selected = new Set();
+  const grid = el('div','store-crate-grid held-pick-grid');
+  heldPickerAlbums().forEach(({title, artist, releaseKey}) => {
+    const cell = document.createElement('button');
+    cell.type = 'button'; cell.className = 'store-crate-cell held-pick-cell';
+    const art = localAlbumArt(title, artist);
+    const cover = el('div','store-crate-cover');
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    cell.appendChild(cover);
+    cell.appendChild(el('div','store-crate-name', title));
+    cell.appendChild(el('div','store-crate-artist', artist));
+    cell.addEventListener('click', ()=>{
+      if(selected.has(releaseKey)){ selected.delete(releaseKey); cell.classList.remove('on'); }
+      else{
+        if(selected.size >= 3) return;
+        selected.add(releaseKey); cell.classList.add('on');
+      }
+      submit.disabled = !selected.size;
+    });
+    grid.appendChild(cell);
+  });
+  body.appendChild(grid);
+  const note = document.createElement('textarea');
+  note.className = 'held-pick-note'; note.maxLength = 140;
+  note.placeholder = 'A short note (optional)';
+  note.setAttribute('aria-label','Note for ' + full.profile.handle);
+  body.appendChild(note);
+  const submit = el('button','cta','Set aside');
+  submit.disabled = true;
+  submit.addEventListener('click', async ()=>{
+    submit.disabled = true; submit.textContent = 'Setting aside…';
+    const r = await MizikiSocial.setAside(full.profile.id, Array.from(selected), note.value);
+    if(!r.ok){ submit.disabled = false; submit.textContent = 'Set aside'; return; }
+    closeHeldSheet();
+    onDone();
+  });
+  body.appendChild(submit);
+}
+
+function renderHeldLookBody(hold){
+  const body = $('#heldBody'); body.innerHTML = '';
+  if(hold.note) body.appendChild(el('p','held-note', hold.note));
+  hold.releases.forEach(r => {
+    const row = el('div','held-look-row');
+    const art = localAlbumArt(r.title, r.artist);
+    const cover = el('div','held-look-cover');
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    row.appendChild(cover);
+    const text = el('div','held-look-text');
+    text.appendChild(el('b', null, r.title));
+    text.appendChild(el('em', null, r.artist));
+    row.appendChild(text);
+    const btn = el('button','cta ghost', r.handed_back ? 'Handed back' : 'Hand back');
+    if(r.handed_back) btn.disabled = true;
+    else btn.addEventListener('click', async ()=>{
+      btn.disabled = true; btn.textContent = 'Handed back';
+      r.handed_back = true;
+      await MizikiSocial.handBack(hold.id, r.release_key);
+    });
+    row.appendChild(btn);
+    body.appendChild(row);
+  });
+}
+
+function openHeldSheet(mode, full, hold, onDone){
+  $('#heldKicker').textContent = mode === 'look'
+    ? full.profile.handle.toUpperCase() + ' · HELD FOR YOU'
+    : 'SET ASIDE FOR ' + full.profile.handle.toUpperCase();
+  if(mode === 'look') renderHeldLookBody(hold);
+  else renderHeldSetAsideBody(full, onDone);
+  const overlay = $('#heldOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  openLayer('held-sheet', closeHeldSheet, { container: overlay });
+}
+export function closeHeldSheet(){
+  $('#heldOverlay').classList.remove('open');
+  $('#heldOverlay').setAttribute('aria-hidden','true');
+}
+
 // GS8 (docs/30_GROOVES_AND_SHELF.md point 5): "a friend's crate: same
 // layout" -- the one part of the home shelf's layout a friend's crate
 // genuinely shares is the shelves cube grid (storeShelvesSection(),
@@ -386,6 +521,15 @@ function renderFriendStoreContent(body, full){
     loadAndRenderFriendStore(body, full.profile.handle);
   });
   row.appendChild(btn);
+  // GS11: giving records only makes sense once you're mutual followers --
+  // the server enforces this too (held_records_before_insert), this just
+  // keeps the button from ever being a guaranteed error.
+  if(isFollowing && full.relationship.followsYou){
+    const setAside = el('button','store-follow-btn ghost','Set aside for ' + full.profile.handle);
+    setAside.addEventListener('click', ()=> openHeldSheet('setAside', full, null,
+      ()=> loadAndRenderFriendStore(body, full.profile.handle)));
+    row.appendChild(setAside);
+  }
   body.appendChild(row);
 
   const stats = el('div','store-stats');
@@ -406,6 +550,12 @@ function renderFriendStoreContent(body, full){
     body.appendChild(rhythmHost);
     renderSharedRhythmCard(rhythmHost, full.listeningRhythm);
   }
+  // GS11: "Held for you" sits right after the identity/stats area, ahead
+  // of even "You both have" -- per the design mockup (FriendShelf.png),
+  // this friend set it aside for the viewer specifically, so it reads
+  // before anything rule-chosen.
+  const held = friendHeldSection(full);
+  if(held) body.appendChild(held);
   // RF20 point 3: overlap first, then Fresh, then everything else.
   if(full.inCommon && full.inCommon.length) body.appendChild(friendInCommonSection(full));
   if(full.staffPicks.length) body.appendChild(friendPicksSection(full));

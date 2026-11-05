@@ -19,7 +19,7 @@
    builds its DOM. */
 import { el } from '../util/dom.js';
 
-const LAST_UPDATED = 'October 20, 2026';
+const LAST_UPDATED = 'November 5, 2026';
 
 function section(body, heading, paragraphs){
   if(heading) body.appendChild(el('h2', null, heading));
@@ -60,6 +60,7 @@ export function renderPrivacyPolicyScreen(host){
     'Handle, display name, bio and avatar — the profile you choose to show once signed in.',
     'Social activity you choose to share — your crate, ratings and notes, what you’re currently spinning, and your listening rhythm (a one-line verdict and the percentage of your plays in each part of the day — never your individual plays or the times you played them). Sharing “now spinning” and listening rhythm is off by default — you turn each on yourself in the Privacy screen. Listening rhythm also needs at least 20 counted plays before there’s anything to show. A “Don’t share this session” switch in the player lets you skip sharing “now spinning” for one listening session without changing the setting itself. A shared “now spinning” tag like “at golden hour” says roughly what time of day it is where you are, which implies an approximate time zone; a shared listening rhythm says which part of the day you tend to listen in, which implies something about your daily routine. Neither ever reveals exact times, a location, or individual plays.',
     'Milestones (hitting a rare pressing) show on your own disc, share card and crate — never on a friend’s feed. Anything that is posted to the feed (a record added, pinned, or reviewed) is removed automatically after 45 days.',
+    'Records held for you — if a mutual friend sets aside up to 3 records from their own crate for you, with a short note, that’s stored so it shows up on their crate when you visit (“Held for you”). Nobody is notified. It disappears automatically 30 days after it’s set aside, or sooner as you hand records back one at a time.',
     'Your private listening backup — play counts, session counts, achievements and your Collection, sealed/broken-record state, the text of any track edits you’ve made (never the audio itself), playlists, and your app settings. This is private to your account.',
     'Uploaded custom covers and your profile picture — a resized copy (with photo metadata like location stripped out) is stored so it can appear on your other devices. Custom covers are private to your account; your profile picture is public, since it doubles as your account’s avatar once you’re signed in.',
   ]);
@@ -77,6 +78,7 @@ export function renderPrivacyPolicyScreen(host){
     'Your listening backup and your custom covers are private to your account — nobody else ever reads them in the ordinary course of running the app.',
     'Your handle, display name and avatar are visible to other signed-in users, except anyone you’ve blocked.',
     'Anything you choose to share — including listening rhythm — follows your visibility setting (private, friends, or everyone — friends by default), found in the Privacy screen.',
+    'A record held for you — and its note — is visible only to the two of you, whichever way it was set aside.',
   ]);
 
   section(body, 'Where your data lives, and for how long', [
