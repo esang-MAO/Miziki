@@ -423,9 +423,9 @@
   .profile-extras{display:contents}
 
   /* every piece not named in the doc's own two-column mapping, full
-     width, in a fixed reading order — covers renderLocalStorefront
-     (signed out), renderOpenStoreCard (social enabled, not signed in yet)
-     and renderStorefront (signed in), which don't share every element:
+     width, in a fixed reading order — covers renderLocalStorefront (the
+     one signed-out view, social configured or not, GS8 follow-up) and
+     renderStorefront (signed in), which don't share every element:
      .store-bio/.store-vis-row/.store-requests-wrap only ever exist signed
      in, .store-open-card only while not yet signed in — a missing one
      just means that order slot has nothing to fill it. The identity
