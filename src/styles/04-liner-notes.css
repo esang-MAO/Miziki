@@ -62,6 +62,18 @@
 /* FS5 point 4: times Archivo (was mono/data) -- no 13px token exists, so
    this takes --fs-body (14px), the closest step, with tabular-nums so the
    two sides of the row don't jitter as digits change. */
-.times{display:flex;justify-content:space-between;font-family:var(--body);font-size:var(--fs-body);
+.times{display:flex;align-items:center;gap:var(--sp-3);font-family:var(--body);font-size:var(--fs-body);
   font-variant-numeric:tabular-nums;color:var(--muted)}
+/* GS3 (docs/30_GROOVES_AND_SHELF.md point 4): the side map replacing the
+   plain elapsed/total time readout above -- one segment per track on
+   this side (widthPct), the active one filling as it plays (fillPct),
+   built/updated by player/clock.js's drawTime() (record-art/
+   grooves.js's sideMapSegments()). No numbers of its own; widths and
+   fills are written as inline style.width percentages, not CSS vars, the
+   same "a plain style write is enough for something this simple" call
+   NV3's own row-patch already makes elsewhere. */
+.side-map{flex:1 1 auto;display:flex;gap:2px;height:3px;min-width:0}
+.side-map-seg{position:relative;height:100%;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.12)}
+.side-map-fill{display:block;height:100%;background:var(--cream);border-radius:2px}
+.side-map-track{flex:0 0 auto;white-space:nowrap;max-width:45%;overflow:hidden;text-overflow:ellipsis}
 

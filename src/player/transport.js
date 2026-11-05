@@ -6,6 +6,7 @@ import { albumTracks } from '../library/model.js';
 import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
 import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr, platterSpeedAttr } from '../record-art/format.js';
+import { grooveBandsForSide, grooveBackgroundImage } from '../record-art/grooves.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -359,13 +360,26 @@ export function load(i){
   // there's one source of truth for side letters, not a second one here.
   $('#labelTitle').textContent = t.tags ? (t.tags.album || t.tags.title) : t.name;
   let sideLabel = '';
+  let sideFound = null;
   if(t.tags && t.tags.album){
     if(S.albumSides){
       const splits = splitSides(albumTrackIdx, S.tracks, S.albumSides);
-      const found = splits && splits.find(s => s.idx.includes(i));
-      if(found) sideLabel = found.label + ' · ';
+      sideFound = splits && splits.find(s => s.idx.includes(i));
+      if(sideFound) sideLabel = sideFound.label + ' · ';
     }
   }
+  // GS3 (docs/30_GROOVES_AND_SHELF.md): the side this track is actually on
+  // right now -- sideFound.idx when Sides is on and this album really
+  // splits into sides, the whole album's own track order when it doesn't
+  // (Sides off, or splitSides() returned null for this release), or just
+  // this one track for a bare file with no album at all. Everything the
+  // platter's groove bands, the side map and the needle ring draw off of
+  // (clock.js's drawTime()); recomputed here, once per load(), not every
+  // tick, since it only ever changes on a track/side change.
+  S.sideTrackIdx = sideFound ? sideFound.idx : (albumTrackIdx || [i]);
+  S.sideBands = grooveBandsForSide(S.sideTrackIdx.map(idx => S.tracks[idx]));
+  const discEl = $('#disc');
+  if(discEl) discEl.style.setProperty('--groove-rings', grooveBackgroundImage(S.sideBands) || '');
   // FS5 (docs/25_FROM_SCRATCH.md point 1): the top row's own "Side A"
   // kicker -- empty (and hidden by CSS :empty) whenever Sides is off or
   // the track isn't on an album, same condition sideLabel above already
