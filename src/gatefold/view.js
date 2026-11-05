@@ -476,7 +476,7 @@ export function gatefoldSocialControlsHTML(item){
     const pinned = MizikiSocial.getAlbumSocial(item.albumId).pinRank != null;
     if(pinned) MizikiSocial.unpin(item.albumId);
     else if(!MizikiSocial.pin(item.albumId)){
-      pinBtn.textContent = 'Staff picks full — unpin one first';
+      pinBtn.textContent = 'In rotation full — unpin one first';
       setTimeout(paint, 1800);
       return;
     }

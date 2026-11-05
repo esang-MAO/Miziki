@@ -448,7 +448,13 @@
      common signed-out/local-only case) just leaves that cell empty —
      grid auto-placement needs no row-span bookkeeping for that. */
   .profile-top-row{grid-column:1;order:10}
-  .store-card{grid-column:2;order:10}
+  /* GS8 (docs/30_GROOVES_AND_SHELF.md point 3): storeNowSpinningCard()'s
+     own .store-card is now nested inside .store-turntable's console-shelf
+     wrapper, which is the real grid item here now -- this rule moved onto
+     it so the pairing with .profile-top-row (the Listening screen's own,
+     mutually-exclusive route) still holds the same column/order it always
+     did. */
+  .store-turntable{grid-column:2;order:10}
   .store-section-digging{grid-column:1;order:11}
   button.profile-section{grid-column:2;order:11}
 

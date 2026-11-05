@@ -13,7 +13,7 @@ export function feedEventText(e){
     const n = (e.payload && e.payload.count) || 1;
     return n > 1 ? ('added ' + n + ' records') : ('added ' + title);
   }
-  if(e.type === 'pinned') return 'pinned ' + title + ' to staff picks';
+  if(e.type === 'pinned') return 'pinned ' + title + ' to in rotation';
   if(e.type === 'review'){
     const p = e.payload || {};
     if(p.rating) return 'rated ' + title + ' ' + '★'.repeat(p.rating);

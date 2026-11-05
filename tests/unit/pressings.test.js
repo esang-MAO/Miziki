@@ -84,10 +84,10 @@ mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
 // launch/intro.js and from there a raw .svg import Vite handles but this
 // runner can't -- stopped at the door the same way as everything above.
 mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
-  namedExports: { mostRecentlySpunAlbum(){ return null; }, lastSpunPhrase(){ return ''; } },
+  namedExports: { mostRecentlySpunAlbum(){ return null; }, lastSpunPhrase(){ return ''; }, crateFlatAlbumOrder(){ return []; } },
 });
 
-const { renderPressingCard, storePicksSection, storeStat } = await import('../../src/profile/storefront.js');
+const { renderPressingCard, storeWallSection, storeStat } = await import('../../src/profile/storefront.js');
 
 // friend-store.js's own pressingLineFor() — point 1's "Both Verdigris" /
 // "Yours: X · Friend's: Y" line, exercised against the real
@@ -307,10 +307,12 @@ test('CR11 point 2: a missing tier on either side (an old, unmigrated row) shows
   assert.equal(pressingLineFor({ title: 'No Tiers Yet', my_quality_tier: 2, their_quality_tier: null }, 'ken'), null);
 });
 
-/* ---- QC3 (docs/24_QUIET_COUNTS.md): staff picks and stat rows without
-   counts-as-progress -- storePicksSection's own "N of 8"/empty-slot
-   removal, and storeStat's accent flag, the one mechanism that put
-   "Followers"/"In common" in amber on the stats row above both crates. ---- */
+/* ---- QC3 (docs/24_QUIET_COUNTS.md), GS8 (docs/30_GROOVES_AND_SHELF.md
+   point 1-2): staff picks ("in rotation" now, caps at 5) and stat rows
+   without counts-as-progress -- storeWallSection's own no-count heading/
+   empty-slot removal, and storeStat's accent flag, the one mechanism that
+   put "Followers"/"In common" in amber on the stats row above both
+   crates. ---- */
 
 test('QC3 point 3-4: storeStat never carries the accent class unless explicitly asked -- the mechanism every stats row above now relies on', () => {
   assert.equal(storeStat('Records', 12).className, 'store-stat');
@@ -318,19 +320,21 @@ test('QC3 point 3-4: storeStat never carries the accent class unless explicitly 
   assert.equal(storeStat('In common', 5, true).className, 'store-stat accent', 'the flag itself still works -- nothing left in storefront.js/friend-store.js passes it anymore');
 });
 
-test('QC3 point 2: storePicksSection heading has no "of 8", and real picks render with no empty slot', () => {
-  const pick = { title: 'A Real Pick' };
-  const section = storePicksSection({ staffPicks: [pick] });
+test('GS8 point 1-2: storeWallSection heading has no "of 5", and real picks render framed with no empty slot', () => {
+  const pick = { title: 'A Real Pick', artist: 'Someone', release_id: 'a1' };
+  const section = storeWallSection([pick]);
   const head = section.kids.find(k => k.className === 'store-section-head');
-  assert.equal(head.kids[0].textContent, 'Staff picks');
-  const row = section.kids.find(k => k.className === 'store-picks-row');
-  assert.equal(row.kids.length, 1, 'no empty "Pin a record" slot alongside the one real pick');
+  assert.equal(head.kids[0].textContent, 'On the wall');
+  const caption = section.kids.find(k => k.className === 'store-wall-caption');
+  assert.equal(caption.textContent, 'in rotation');
+  const frames = section.kids.find(k => k.className === 'store-wall-frames');
+  assert.equal(frames.kids.length, 1, 'no empty frame alongside the one real pick');
 });
 
-test('QC3 point 2: zero picks shows one plain line, no empty-slot tile', () => {
-  const section = storePicksSection({ staffPicks: [] });
-  assert.equal(section.kids.find(k => k.className === 'store-picks-row'), undefined);
-  assert.equal(section.kids.find(k => k.className === 'store-pick-empty'), undefined);
+test('GS8 point 2: zero picks shows one plain line, no empty frame', () => {
+  const section = storeWallSection([]);
+  assert.equal(section.kids.find(k => k.className === 'store-wall-frames'), undefined);
+  assert.equal(section.kids.find(k => k.className === 'store-wall-caption'), undefined);
   const line = section.kids.find(k => k.className === 'store-loading');
-  assert.equal(line.textContent, 'Pin a record to put it here.');
+  assert.equal(line.textContent, 'Pin a record to put it on the wall.');
 });

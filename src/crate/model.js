@@ -349,7 +349,15 @@ function buildVirtualBins(records){
   const staffPicks = localStaffPickIds().map(id => byId.get(id)).filter(Boolean);
   if(staffPicks.length){
     // CR14: Staff picks is always last, whatever else is present.
-    bins.push({key:'picks', label:'STAFF PICKS', panelSub:'Staff picks',
+    // GS8 (docs/30_GROOVES_AND_SHELF.md point 1): renamed "in rotation"
+    // everywhere it's shown as plain text -- the data/dividers/staff-
+    // picks.svg art this bin's own divider tab draws when art exists
+    // (crate/divider-art.js, crate/view.js) still spells out "Staff picks"
+    // as pre-drawn glyph outlines; regenerating it needs a font-outline
+    // toolchain (fontTools) not present in this repo, so it's left as a
+    // known, flagged visual gap -- every text label here (including the
+    // art's own aria-label) still reads "in rotation".
+    bins.push({key:'picks', label:'IN ROTATION', panelSub:'In rotation',
       meta: staffPicks.length + (staffPicks.length === 1 ? ' ALBUM' : ' ALBUMS'), records: staffPicks});
   }
   return bins;
@@ -665,6 +673,18 @@ export function stickerFor(record, sealed){
   return null;
 }
 
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 4): "the shelves" draws spines
+// in the crate's own current order, without touching S.crate.model/pos
+// (ensureCrateModel()'s own cache is owned by the crate screen itself —
+// calling it from the profile screen would re-resolve the crate's
+// position out from under it the next time it's opened). buildCrateModel()
+// is already a pure read of S.tracks/the group given, so this just
+// flattens its album-kind 'rec' items, the same shape
+// crateAlbumJumpTarget() above scans.
+export function crateFlatAlbumOrder(group){
+  return buildCrateModel(group).items.filter(it => it.type === 'rec' && it.kind === 'album');
+}
+
 export function ensureCrateModel(){
   if(!S.crate.model || S.crate.modelGroup !== S.crateGroup || S.crate.modelDirty){
     S.crate.model = buildCrateModel(S.crateGroup);
@@ -714,6 +734,22 @@ export function crateVariantJumpTarget(model, variantId){
     const t = S.tracks[it.idx[0]];
     if(!t) continue;
     if(selectVariant(t).variant === variantId) return i;
+  }
+  return null;
+}
+
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 4): "tapping a cube opens the
+// library crate at that spot" — same one-shot jump shape as
+// crateVariantJumpTarget() just above, keyed on the album identity
+// (albumKey()) a shelf cube's spine/face-out cover was drawn for, rather
+// than a pressing variant.
+export function crateAlbumJumpTarget(model, albumId){
+  for(let i = 0; i < model.items.length; i++){
+    const it = model.items[i];
+    if(it.type !== 'rec' || it.kind !== 'album' || !it.idx.length) continue;
+    const t = S.tracks[it.idx[0]];
+    if(!t) continue;
+    if(albumKey(t) === albumId) return i;
   }
   return null;
 }

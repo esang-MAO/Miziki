@@ -25,7 +25,7 @@ import { buildRailTicks } from '../ui/letter-rail.js';
 import { dividerArtEl } from './divider-art.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, crateVariantJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
+  crateRailJumpTarget, crateVariantJumpTarget, crateAlbumJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, cratePeekRise, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
 } from './model.js';
@@ -125,7 +125,7 @@ export function openCrateAlbum(item, opts){
 // (updateInfoPanel, inside renderCrate()).
 function dividerDescFor(item){
   return item.kind === 'bin' && item.key === 'new' ? 'Added in the last two weeks'
-    : item.kind === 'bin' && item.key === 'picks' ? 'Pinned to staff picks'
+    : item.kind === 'bin' && item.key === 'picks' ? 'Pinned to in rotation'
     : (item.panelSub || '');
 }
 
@@ -442,6 +442,14 @@ export function renderCrate(host){
     const variantTarget = crateVariantJumpTarget(model, S.crate.pendingJumpVariant);
     S.crate.pendingJumpVariant = null;
     if(variantTarget != null) startPos = variantTarget;
+  }
+  // GS8 (docs/30_GROOVES_AND_SHELF.md point 4): the shelves' cube grid
+  // sets pendingJumpAlbum the same one-shot way — "tapping a cube opens
+  // the library crate at that spot."
+  if(S.crate.pendingJumpAlbum){
+    const albumTarget = crateAlbumJumpTarget(model, S.crate.pendingJumpAlbum);
+    S.crate.pendingJumpAlbum = null;
+    if(albumTarget != null) startPos = albumTarget;
   }
   if(startPos == null || isNaN(startPos) || startPos < 0 || startPos >= model.items.length){
     // cold start: the last-played album wins, falling back to the saved
@@ -1307,7 +1315,7 @@ export function renderCrate(host){
     // local-first, same as the gatefold's own pin button (gatefold/view.js's
     // gatefoldSocialControlsHTML) — works with no server configured at all.
     const pinned = MizikiSocial.getAlbumSocial(item.albumId).pinRank != null;
-    action(pinned ? 'Unpin from staff picks' : 'Pin to staff picks', () => {
+    action(pinned ? 'Unpin from in rotation' : 'Pin to in rotation', () => {
       if(pinned) MizikiSocial.unpin(item.albumId);
       else MizikiSocial.pin(item.albumId);
     });

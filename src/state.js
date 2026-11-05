@@ -439,7 +439,12 @@ S.playInFullPlayer = true;
 // scratch every time the model is. Restored on returning to a section;
 // the A–Z section's own first visit still uses the cold-start/anchor logic
 // above instead of this map (nothing to restore there yet).
-S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null, sectionPos:{}};
+// pendingJumpAlbum (GS8, docs/30_GROOVES_AND_SHELF.md point 4): the same
+// one-shot shape as pendingJumpVariant above, for "tapping a cube opens
+// the library crate at that spot" — an albumKey() rather than a
+// VARIANT_DEFS id, resolved by crateAlbumJumpTarget() (crate/model.js).
+// Set by the profile's shelves cube grid (src/profile/storefront.js).
+S.crate = {pos:null, model:null, modelGroup:null, modelDirty:true, coldStartDone:false, pendingJumpKey:null, pendingJumpVariant:null, pendingJumpAlbum:null, sectionPos:{}};
 // true while the #scrub time slider is being dragged, so drawTime() doesn't
 // fight the user's own input value
 S.scrubbing = false;

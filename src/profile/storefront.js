@@ -4,13 +4,14 @@ import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
 import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
-import { mostRecentlySpunAlbum, lastSpunPhrase } from '../crate/model.js';
+import { mostRecentlySpunAlbum, lastSpunPhrase, crateFlatAlbumOrder } from '../crate/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
 // The Records section (records + unlocked pressings/metals) — part of this
 // file's circular cluster with screens.js; see records.js's own header.
-import { storeRecordsSection } from './records.js';
+import { storeRecordsSection, metalDisc, pressingDisc } from './records.js';
+import { achievementsList } from '../history/achievements.js';
 // CR11 point 3: "tapping a chip jumps the crate to the first record in
 // that pressing" — a real, one-directional import each (neither imports
 // anything back from this file), widening the already-circular
@@ -24,6 +25,22 @@ import { renderTracks } from '../library/view.js';
 // drawn with the same stats/picks/awning/time-ago vocabulary as your own.
 export const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
 export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
+
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 2): the wall's "recently found"
+// mono line ("DUSK · 14 NOV") spells out the day-arc phase a pressing was
+// found in -- sundown/spin-wording.js's own table is worded as a sentence
+// ("at dusk"), so this is its own short-caps table for the mono readout,
+// not a second source of phase names (the phase string itself still only
+// ever comes from history/achievements.js's realDayPosition() read).
+const WALL_PHASE_CAPS = {night:'NIGHT', dawn:'DAWN', morning:'MORNING', midday:'MIDDAY',
+  afternoon:'AFTERNOON', golden:'GOLDEN HOUR', twilight:'DUSK'};
+function wallDayMonth(ms){
+  const d = new Date(ms);
+  return d.getDate() + ' ' + d.toLocaleDateString('en-US', {month:'short'}).toUpperCase();
+}
+function wallMonth(ms){
+  return new Date(ms).toLocaleDateString('en-US', {month:'short'}).toUpperCase();
+}
 
 // GS7 (docs/30_GROOVES_AND_SHELF.md): replaces the old striped awning +
 // "Crate of [name]" card (and its colourway hash) with a paper sign taped
@@ -200,9 +217,7 @@ export function renderOpenStoreCard(host, authState){
   header.appendChild(idBox);
   host.appendChild(header);
 
-  const lastSpun = storeLastSpunRow();
-  if(lastSpun) host.appendChild(lastSpun);
-  host.appendChild(storeListeningRow());
+  host.appendChild(storeTurntableSection(storeLastSpunRow()));
 
   const card = el('div','store-open-card');
   card.appendChild(el('h3', null, needsProfile ? 'Finish setting up your crate' : 'Add social features'));
@@ -369,13 +384,11 @@ function renderLocalStorefront(host){
   userRow.appendChild(userIn);
   host.appendChild(userRow);
 
-  const lastSpun = storeLastSpunRow();
-  if(lastSpun) host.appendChild(lastSpun);
-  host.appendChild(storeListeningRow());
+  host.appendChild(storeTurntableSection(storeLastSpunRow()));
 
-  host.appendChild(storePicksSection({staffPicks: localStaffPicks()}));
-  const found = storeRecentlyFoundSection();
-  if(found) host.appendChild(found);
+  const picks = localStaffPicks();
+  host.appendChild(storeWallSection(picks));
+  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id)));
   host.appendChild(storeRecordsSection());
 
   host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
@@ -422,62 +435,170 @@ function storeNowSpinningCard(full, _host){
   return card;
 }
 
-// QC3 (docs/24_QUIET_COUNTS.md): staff picks are shown as found, never
-// counted toward their cap — heading has no "— N of 8", and there is no
-// empty "Pin a record" slot (pinning itself happens from a record's own
-// gatefold/crate menu, src/gatefold/view.js and src/crate/view.js's own
-// MizikiSocial.pin() calls — never from a tile in this section). The cap
-// of 8 is still enforced as a rule by MizikiSocial.pin() itself; this
-// section just stops displaying it. Zero picks gets one plain line
-// instead of a placeholder tile.
-export function storePicksSection(full){
-  const section = el('div','store-section');
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 2): "On the wall" -- replaces
+// storePicksSection()/storeRecentlyFoundSection() (point 6's removals).
+// Pins 1-3 hang framed, "in rotation" hand-lettered under the heading
+// (QC3's own "found, never counted toward a cap" rule carries over --
+// still no "— N of 5"); below them, the last three pressings or metals
+// found (S.collection + history/achievements.js's achievementsList(),
+// merged and sorted by their own date, newest first) as small discs with
+// a name and a mono line, then "All found ›" into the existing Records
+// screen (QC1: owned-only, no counts). `picks` is the caller's own
+// pin-rank-ordered staffPicks list (localStaffPicks() or full.staffPicks)
+// -- only picks[0..2] hang on the wall; picks[3]/[4] are drawn face-out on
+// the shelves instead (storeShelvesSection() below).
+export function storeWallSection(picks){
+  const section = el('div','store-section store-wall');
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'Staff picks'));
+  head.appendChild(el('h2', null, 'On the wall'));
   section.appendChild(head);
-  if(!full.staffPicks.length){
-    section.appendChild(el('p','store-loading','Pin a record to put it here.'));
-    return section;
+  if(picks.length){
+    section.appendChild(el('p','store-wall-caption','in rotation'));
+    const frames = el('div','store-wall-frames');
+    picks.slice(0, 3).forEach(p => frames.appendChild(storeFrameTile(p)));
+    section.appendChild(frames);
+  } else {
+    section.appendChild(el('p','store-loading','Pin a record to put it on the wall.'));
   }
-  const row = el('div','store-picks-row');
-  full.staffPicks.forEach(p => row.appendChild(storePickTile(p)));
-  section.appendChild(row);
+  const found = storeWallFoundRow();
+  if(found) section.appendChild(found);
   return section;
 }
 
-// FS7 (docs/25_FROM_SCRATCH.md point 6): "the three newest pressings
-// you've found, as discs (newest first, no count, no link to 'more' —
-// the full chart stays on Records)." S.collection (history/achievements.js's
-// upsertCollectionEntry()) already carries exactly what this needs --
-// variant/pattern to draw the disc, name/artist/discoveredAt -- with no
-// new tracking. Local-only data, so it's the same across all three
-// storefront states; returns null when nothing's been found yet, same
-// "skip the row entirely" shape storeLastSpunRow() uses.
-export function storeRecentlyFoundSection(){
-  const found = Object.values(S.collection)
-    .sort((a, b) => b.discoveredAt - a.discoveredAt)
-    .slice(0, 3);
+function storeFrameTile(pick){
+  const frame = el('div','store-frame');
+  const mat = el('div','store-frame-mat');
+  const cover = el('div','store-frame-cover');
+  const art = localAlbumArt(pick.title, pick.artist);
+  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  mat.appendChild(cover);
+  frame.appendChild(mat);
+  frame.appendChild(el('span','store-frame-name', pick.title));
+  return frame;
+}
+
+function storeWallFoundRow(){
+  const found = [
+    ...Object.values(S.collection).map(rec => ({rec, kind:'pressing', date: rec.discoveredAt})),
+    ...achievementsList().map(rec => ({rec, kind:'metal', date: rec.updatedAt})),
+  ].sort((a, b) => b.date - a.date).slice(0, 3);
   if(!found.length) return null;
-  const section = el('div','store-section');
-  const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'Recently found'));
-  section.appendChild(head);
+  const wrap = el('div','store-wall-found');
   const row = el('div','store-found-row');
-  found.forEach(rec => {
+  found.forEach(({rec, kind, date}) => {
     const tile = el('div','store-found-tile');
     const disc = el('div','store-found-disc');
-    const def = VARIANT_DEFS[rec.variant];
-    if(def) disc.style.background = variantBackground(def);
-    disc.setAttribute('aria-label', (def && def.name) || rec.name);
+    disc.style.background = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
+    disc.setAttribute('aria-label', rec.name);
     tile.appendChild(disc);
     const label = el('div','store-found-label');
     label.appendChild(el('b', null, rec.name));
-    label.appendChild(el('span', null, rec.artist));
+    label.appendChild(el('span','store-found-mono', kind === 'metal'
+      ? 'METAL · ' + wallMonth(date)
+      : (WALL_PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
     tile.appendChild(label);
     row.appendChild(tile);
   });
-  section.appendChild(row);
+  wrap.appendChild(row);
+  const link = el('button','store-wall-all','All found ›');
+  link.addEventListener('click', ()=>{ S.profileView.screen = 'records'; S.profileView.recordsFilter = 'all'; renderProfile(); });
+  wrap.appendChild(link);
+  return wrap;
+}
+
+// GS8 point 3: "the existing now-spinning/last-spun row, restyled as a
+// console shelf; under it a Listening › row." Wraps whatever the caller's
+// own state already builds (storeLastSpunRow()'s row, or
+// storeNowSpinningCard()'s live card) in the shelf's own dark card chrome
+// -- no change to either row's own data/logic -- then appends
+// storeListeningRow() directly beneath it inside the same card.
+function storeTurntableSection(spinContent){
+  const section = el('div','store-turntable');
+  const shelf = el('div','store-turntable-shelf');
+  shelf.appendChild(spinContent || el('p','store-turntable-empty','Nothing on the turntable right now.'));
+  section.appendChild(shelf);
+  section.appendChild(storeListeningRow());
   return section;
+}
+
+// GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
+// spines-out by the crate's current order; pins 4-5 face-out... A friend's
+// crate: same layout." The one shared shelf component, reused by both
+// this file's own profile (fed crateFlatAlbumOrder()'s local, idx-based
+// items) and a friend's (social/screens/friend-store.js's own
+// MizikiSocial.crate() rows, which carry no idx into S.tracks at all) --
+// so `items` is each caller's own small, already-resolved {id, name,
+// artist, art} list, never either source's own richer shape. `pinIds` is
+// the same pin-rank-ordered id list storeWallSection() takes (only ranks
+// 4-5, i.e. pinIds[3]/[4], are drawn face-out here -- 1-3 already hang on
+// the wall). `onTapAlbum`, when given, replaces the default "open the
+// library crate at that spot" tap with the caller's own (a friend's shelf
+// opens the record sheet instead).
+const SHELF_CUBE_CAPACITY = 10, SHELF_FACE_WIDTH = 3;
+export function storeShelvesSection(items, pinIds, onTapAlbum){
+  const faceOut = new Set((pinIds || []).slice(3, 5));
+  const section = el('div','store-section store-shelves');
+  const head = el('div','store-section-head');
+  head.appendChild(el('h2', null, 'The shelves'));
+  section.appendChild(head);
+  if(!items.length){
+    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return section;
+  }
+  const grid = el('div','shelf-grid');
+  let cube = el('div','cube'), used = 0;
+  const pushCube = ()=>{ grid.appendChild(cube); cube = el('div','cube'); used = 0; };
+  items.forEach(item => {
+    const isFace = faceOut.has(item.id);
+    const width = isFace ? SHELF_FACE_WIDTH : 1;
+    if(used && used + width > SHELF_CUBE_CAPACITY) pushCube();
+    cube.appendChild(isFace ? shelfFaceCover(item, onTapAlbum) : shelfSpine(item, onTapAlbum));
+    used += width;
+  });
+  if(used) pushCube();
+  if(grid.childElementCount % 2 === 1){
+    const empty = el('div','cube cube-empty');
+    empty.appendChild(el('span','cube-empty-label','room to grow'));
+    grid.appendChild(empty);
+  }
+  section.appendChild(grid);
+  return section;
+}
+
+function shelfAlbumTap(albumId, onTapAlbum){
+  if(onTapAlbum) return onTapAlbum(albumId);
+  S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+  S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+  S.crate.pendingJumpAlbum = albumId;
+  showRoute('library');
+  renderTracks();
+}
+
+function shelfSpine(item, onTapAlbum){
+  const sp = el('button','sp');
+  sp.style.background = MizikiSocial.labelColor(item.id);
+  sp.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
+  sp.addEventListener('click', ()=> shelfAlbumTap(item.id, onTapAlbum));
+  return sp;
+}
+
+function shelfFaceCover(item, onTapAlbum){
+  const face = el('button','shelf-face');
+  if(item.art){ const im = document.createElement('img'); im.src = item.art; im.alt = ''; face.appendChild(im); }
+  face.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
+  face.addEventListener('click', ()=> shelfAlbumTap(item.id, onTapAlbum));
+  return face;
+}
+
+// GS8 point 4: crateFlatAlbumOrder()'s own item shape (albumId/idx/album/
+// artist, see crate/model.js) resolved down to storeShelvesSection()'s
+// generic {id, name, artist, art} -- kept here rather than inside
+// storeShelvesSection so a friend's shelf (which resolves its own items
+// from social/screens/friend-store.js's MizikiSocial.crate() rows instead)
+// never has to know this file's crate-model-specific shape at all.
+function shelfItemsFromCrate(crateItems){
+  return crateItems.map(it => ({id: it.albumId, name: it.album, artist: it.artist,
+    art: (S.tracks[it.idx[0]] || {}).art || null}));
 }
 
 function storeDiggingSection(full, host){
@@ -552,14 +673,10 @@ function renderStorefront(host, full, requests){
   visChip.addEventListener('click', ()=> cycleStoreVisibility(full.profile, host));
   visRow.appendChild(visChip);
   host.appendChild(visRow);
-  const lastSpun = storeLastSpunRow();
-  if(lastSpun) host.appendChild(lastSpun);
-  host.appendChild(storeListeningRow());
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
-  host.appendChild(storeNowSpinningCard(full, host));
-  host.appendChild(storePicksSection(full));
-  const found = storeRecentlyFoundSection();
-  if(found) host.appendChild(found);
+  host.appendChild(storeTurntableSection(storeNowSpinningCard(full, host)));
+  host.appendChild(storeWallSection(full.staffPicks));
+  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id)));
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
   host.appendChild(storeRecordsSection());
 }

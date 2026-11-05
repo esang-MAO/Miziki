@@ -1,7 +1,7 @@
 import { $, el } from '../../util/dom.js';
 import {
   storeSign, storeStat, storePickTile, localAlbumArt, timeAgoShort,
-  renderStoreError, STORE_TIER_LABEL, renderPressingCard,
+  renderStoreError, STORE_TIER_LABEL, renderPressingCard, storeShelvesSection,
 } from '../../profile/storefront.js';
 // CR11 point 1-2: the pressing is derived locally from the shared album
 // key (selectVariantForAlbum), never a new server column — see that
@@ -153,14 +153,14 @@ function friendNowSpinningRow(full){
 
 function friendPicksSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Staff picks'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'in rotation'));
   section.appendChild(head);
   const row = el('div','store-picks-row');
   full.staffPicks.forEach((p, i) => {
     const tile = storePickTile(p);
     tile.style.cursor = 'pointer';
     tile.addEventListener('click', ()=> openRecordSheet(full, p,
-      full.profile.handle.toUpperCase() + ' · STAFF PICK ' + (p.pin_rank || i + 1) + ' OF ' + full.staffPicks.length));
+      full.profile.handle.toUpperCase() + ' · IN ROTATION ' + (p.pin_rank || i + 1) + ' OF ' + full.staffPicks.length));
     row.appendChild(tile);
   });
   section.appendChild(row);
@@ -290,50 +290,28 @@ function friendDiggingPreview(full){
   return section;
 }
 
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 5): "a friend's crate: same
+// layout" -- the one part of the home shelf's layout a friend's crate
+// genuinely shares is the shelves cube grid (storeShelvesSection(),
+// profile/storefront.js), fed from this same MizikiSocial.crate() fetch
+// the old plain "All records" letter-grid used; a cube tap opens the
+// record sheet instead of storeShelvesSection's own default "jump the
+// local library crate" tap, since a friend's records aren't in this
+// device's own crate. No friend-count sticker on a face-out pin here --
+// there's no real cross-friend ownership count anywhere in the schema or
+// client to back one; see the PR description.
 async function loadFriendCrate(full, holder, limit){
   const r = await MizikiSocial.crate(full.profile.id, {offset: 0, limit});
   holder.innerHTML = '';
-  if(!r.ok || !r.items.length){
-    holder.appendChild(el('p','store-loading','Nothing in the crate yet.'));
-    return;
-  }
-  const letters = [];
-  const grid = el('div','store-crate-grid');
-  let lastLetter = null;
-  r.items.forEach(item => {
-    const letter = (item.artist || '#').trim().charAt(0).toUpperCase();
-    if(letter !== lastLetter){
-      lastLetter = letter;
-      letters.push(letter);
-      grid.appendChild(el('div','store-crate-letter-head', letter));
-    }
-    const cell = document.createElement('button');
-    cell.type = 'button'; cell.className = 'store-crate-cell';
-    const art = localAlbumArt(item.title, item.artist);
-    const cover = el('div','store-crate-cover');
-    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
-    cell.appendChild(cover);
-    cell.appendChild(el('div','store-crate-name', item.title));
-    cell.appendChild(el('div','store-crate-artist', item.artist));
-    cell.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · CRATE'));
-    grid.appendChild(cell);
-  });
-  if(letters.length > 1){
-    const bar = el('div','store-letter-bar');
-    const heads = Array.from(grid.querySelectorAll('.store-crate-letter-head'));
-    letters.forEach(l => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'store-letter-btn'; b.textContent = l;
-      b.addEventListener('click', ()=>{
-        const target = heads.find(h => h.textContent === l);
-        if(target) target.scrollIntoView({block:'start'});
-      });
-      bar.appendChild(b);
-    });
-    holder.appendChild(bar);
-  }
-  holder.appendChild(grid);
-  if(r.items.length < full.summary.records && limit < full.summary.records){
+  const items = (r.ok && r.items) || [];
+  const pinIds = full.staffPicks.map(p => p.release_id);
+  const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
+    art: localAlbumArt(item.title, item.artist)}));
+  holder.appendChild(storeShelvesSection(shelfItems, pinIds, albumId => {
+    const item = items.find(i => i.release_id === albumId);
+    if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
+  }));
+  if(items.length && items.length < full.summary.records && limit < full.summary.records){
     const more = el('button','cta ghost','Browse all ' + full.summary.records + ' records');
     more.style.cssText = 'width:100%;margin-top:14px;box-sizing:border-box';
     more.addEventListener('click', ()=> loadFriendCrate(full, holder, Math.min(full.summary.records, 200)));
@@ -342,14 +320,10 @@ async function loadFriendCrate(full, holder, limit){
 }
 
 function friendCrateSection(full){
-  const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'All records'));
-  section.appendChild(head);
-  const holder = el('div');
+  const holder = el('div','store-shelves-holder');
   holder.appendChild(el('p','store-loading','Loading crate…'));
-  section.appendChild(holder);
   loadFriendCrate(full, holder, 60);
-  return section;
+  return holder;
 }
 
 // CR11 point 3-4, QC1: a friend's own pressing chart — found chips only,
@@ -416,7 +390,7 @@ function renderFriendStoreContent(body, full){
 
   const stats = el('div','store-stats');
   stats.appendChild(storeStat('Records', full.summary.records));
-  stats.appendChild(storeStat('Staff picks', full.summary.pins));
+  stats.appendChild(storeStat('In rotation', full.summary.pins));
   stats.appendChild(storeStat('In common', full.summary.in_common || 0));
   body.appendChild(stats);
 

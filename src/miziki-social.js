@@ -122,7 +122,10 @@ const DEFAULT_TIMING = {
   syncDebounce: 5000, backoff: [15000, 30000, 60000, 120000, 300000],
   spinDebounce: 3000, spinHeartbeat: 240000, spinPausedClear: 120000, spinTtlSeconds: 600
 };
-const MAX_PINS = 8, CHUNK = 200, GUARD_MIN = 10, GUARD_RATIO = 0.25;
+// GS8 (docs/30_GROOVES_AND_SHELF.md): "in rotation" caps at 5 (pins 1-3
+// framed on the wall, 4-5 face-out on the shelves) -- was 8. Matches
+// migration 024's tightened pin_rank check constraint.
+const MAX_PINS = 5, CHUNK = 200, GUARD_MIN = 10, GUARD_RATIO = 0.25;
 const HANDLE_RX = /^[a-z0-9_]{3,24}$/;
 // Nobody should be able to claim a handle that impersonates the app.
 // Keep this list in sync with the matching trigger in
