@@ -6,7 +6,7 @@ import { pause, play, seek, load } from './transport.js';
 import { queueSave } from '../storage/meta.js';
 import { setDeadWaxMagnified } from '../record-art/etchings.js';
 import { isShrinkWrapTarget, runStartSequence } from '../shell/start-sequence.js';
-import { isRimRadiusPct, radiusPctFromPoint, dropNeedleTarget } from '../record-art/grooves.js';
+import { isRimRadiusPct, radiusPctFromPoint, dropNeedleTarget, rimThresholdPct } from '../record-art/grooves.js';
 import { hapticTick } from '../ui/haptic.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
@@ -268,7 +268,7 @@ export function wireSpinToScrub(){
     // (never reassigned mid-gesture the way scrub/scratch's own claim
     // is), so sliding back onto the grooves while holding still drops
     // the needle rather than switching to a scratch.
-    if(isRimRadiusPct(radiusPctFromPoint(e.clientX, e.clientY, rect)) && S.sideBands && S.sideBands.length){
+    if(isRimRadiusPct(radiusPctFromPoint(e.clientX, e.clientY, rect), rimThresholdPct(rect.width / 2)) && S.sideBands && S.sideBands.length){
       clearLongPressTimer();
       if(S.playing) pause();   // "holds the record ... playback pauses"
       S.needleDrop = true;
