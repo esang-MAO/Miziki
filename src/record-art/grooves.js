@@ -119,8 +119,27 @@ export function needleRadiusPct(bands, activeIdx, playedFrac){
 // other radius in this module uses) starts a hold rather than a scrub.
 export const RIM_INNER_PCT = 92;
 
-export function isRimRadiusPct(radiusPct){
-  return radiusPct >= RIM_INNER_PCT;
+// 8% of a full 342px disc's radius is already a tight ~14px-wide ring to
+// land a finger on; the short-viewport platter (02-stage-platter.css can
+// shrink it to ~180px) narrows that to under 8px -- well under a
+// comfortable touch target, and the likely cause of "it works every once
+// in a while" (Ken, GS4, 2026-11-06). rimThresholdPct() keeps
+// RIM_INNER_PCT's own 92% on a full-size disc but widens the band (lowers
+// the threshold) on a smaller one so it always covers at least
+// RIM_MIN_PX, never widening past RIM_FLOOR_PCT even on the smallest
+// platter (so a tiny disc doesn't lose most of its scrub/scratch area to
+// the rim zone).
+export const RIM_MIN_PX = 28;
+export const RIM_FLOOR_PCT = 75;
+
+export function rimThresholdPct(discRadiusPx){
+  if(!discRadiusPx || discRadiusPx <= 0) return RIM_INNER_PCT;
+  const pct = 100 - (RIM_MIN_PX / discRadiusPx) * 100;
+  return clamp(pct, RIM_FLOOR_PCT, RIM_INNER_PCT);
+}
+
+export function isRimRadiusPct(radiusPct, threshold = RIM_INNER_PCT){
+  return radiusPct >= threshold;
 }
 
 // A touch point's distance from the disc's own center, as a percent of

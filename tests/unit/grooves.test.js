@@ -6,11 +6,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GROOVE_INNER_PCT, GROOVE_OUTER_PCT,
-  RIM_INNER_PCT, DROP_NEEDLE_SNAP_PCT,
+  RIM_INNER_PCT, RIM_MIN_PX, RIM_FLOOR_PCT, DROP_NEEDLE_SNAP_PCT,
   LABEL_INNER_PCT_BY_SIZE,
   bandRadiiFromDurations, grooveBandsForSide,
   needleRadiusPct, sideMapSegments,
-  isRimRadiusPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
+  isRimRadiusPct, rimThresholdPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
   labelInnerPctForSize,
 } from '../../src/record-art/grooves.js';
 
@@ -121,6 +121,40 @@ test('isRimRadiusPct: the outermost ~8% of the radius counts as the rim', () => 
   assert.equal(isRimRadiusPct(RIM_INNER_PCT), true);
   assert.equal(isRimRadiusPct(100), true);
   assert.equal(isRimRadiusPct(RIM_INNER_PCT - 0.01), false);
+});
+
+test('isRimRadiusPct: an explicit threshold overrides RIM_INNER_PCT', () => {
+  assert.equal(isRimRadiusPct(80, 75), true);
+  assert.equal(isRimRadiusPct(70, 75), false);
+});
+
+// GS4 fix (Ken, 2026-11-06: "it works every once in a while") -- a purely
+// percent-based rim band shrinks to an unreliable sliver on a small
+// platter, so rimThresholdPct() widens it to cover a real minimum pixel
+// width, without ever eating more than RIM_FLOOR_PCT of the radius.
+test('rimThresholdPct: keeps RIM_INNER_PCT when the disc is big enough that it already covers RIM_MIN_PX', () => {
+  // 92% band of a 342px-radius disc is 0.08*342 ≈ 27.4px, just under
+  // RIM_MIN_PX (28) -- so it should widen very slightly, not stay at 92.
+  const pct = rimThresholdPct(342);
+  assert.ok(pct <= RIM_INNER_PCT);
+  assert.ok(pct > RIM_FLOOR_PCT);
+});
+
+test('rimThresholdPct: widens (lowers the threshold) on a small disc to keep a real touch target', () => {
+  const discRadiusPx = 90; // short-viewport platter, ~180px disc
+  const pct = rimThresholdPct(discRadiusPx);
+  assert.ok(pct < RIM_INNER_PCT);
+  const bandWidthPx = discRadiusPx * (100 - pct) / 100;
+  assert.ok(bandWidthPx >= RIM_MIN_PX - 0.01 || pct === RIM_FLOOR_PCT);
+});
+
+test('rimThresholdPct: never widens past RIM_FLOOR_PCT, even on a tiny disc', () => {
+  assert.equal(rimThresholdPct(10), RIM_FLOOR_PCT);
+});
+
+test('rimThresholdPct: a zero or missing radius falls back to RIM_INNER_PCT', () => {
+  assert.equal(rimThresholdPct(0), RIM_INNER_PCT);
+  assert.equal(rimThresholdPct(), RIM_INNER_PCT);
 });
 
 // GROOVE_OUTER_PCT (2026-11-05, Ken) now sits past RIM_INNER_PCT on
