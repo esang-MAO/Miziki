@@ -142,6 +142,10 @@
    primary-action button, same family GF12's "Play the record" button
    uses for the same reason (never solid amber -- amber-scope.test.js). */
 .sealed-front-turn-btn{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
+/* GF15: "Break the seal" -- a plain tap alternative to the corner-drag
+   gesture above, same .cta family, right where the only other action
+   (Flip cover) already sits. */
+.sealed-front-action-btn{width:100%;text-align:center;box-sizing:border-box;min-height:44px}
 
 /* ================= shrink-wrap peel (docs/15_SURFACE_NOISE.md §2) =================
    The sleeve of a Sealed record arrives wrapped: a milky sheen + a corner

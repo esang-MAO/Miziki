@@ -46,7 +46,8 @@ import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { gatefoldGeometry } from './geometry.js';
 import { queueSave } from '../storage/meta.js';
 import { openConfirmDelete, renderTracks, moverCtl, syncQueueOrder } from '../library/view.js';
-import { countForAlbum, deleteAlbum } from '../library/delete.js';
+import { countForAlbum, deleteAlbum, deleteTracks } from '../library/delete.js';
+import { openEditSheet } from '../library/edit.js';
 
 // GATEFOLD spec §A3 — total ~950ms open, ~600ms close, independent of
 // SLEEVE_ANIM (opening the gatefold never touches playback or the sleeve)
@@ -161,8 +162,10 @@ export function wireGatefoldTrackLongPress(row, i, trackIdx, playHandler){
 // div, not a button -- a mover control (library/view.js's own moverCtl())
 // sits inside it, and a button can't nest another button. No play/long-
 // press wiring either; tapping a row does nothing until Track order is
-// left again.
-function gatefoldTrackRow(i, pos, trackIdx, playHandler, reorderCtl){
+// left again. GF15: select mode stays a button (no nested control) --
+// tapping toggles the pick (gatefoldToggleTrackSelect()) instead of
+// playing, same "one interaction while a mode is active" shape.
+function gatefoldTrackRow(i, pos, trackIdx, playHandler, reorderCtl, selecting){
   const t = S.tracks[i];
   const row = document.createElement(reorderCtl ? 'div' : 'button');
   row.className = 'gf-track-row';
@@ -170,11 +173,13 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler, reorderCtl){
   row.dataset.pos = pos;
   const isNow = i === S.index;
   row.classList.toggle('gf-now-playing', isNow);
+  if(selecting) row.classList.toggle('picked', GF && GF.selection.has(t.id));
   const num = el('span','gf-tn');
   if(isNow) num.appendChild(gatefoldNowGlyph()); else num.textContent = String(pos).padStart(2,'0');
   row.appendChild(num);
   row.appendChild(el('span','gf-tt', t.tags.title));
   if(reorderCtl) row.appendChild(reorderCtl);
+  else if(selecting) row.addEventListener('click', () => gatefoldToggleTrackSelect(t.id));
   else{
     row.appendChild(el('span','gf-td', fmt(t.duration)));
     wireGatefoldTrackLongPress(row, i, trackIdx, playHandler);
@@ -282,6 +287,31 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
         refreshGatefoldTracklist();
       });
       host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler, ctl));
+    });
+    return host;
+  }
+  // GF15: "Select" -- a flat list, same reasoning as Track order's own
+  // flattening just above (a batch selection spanning sides doesn't need
+  // the side splits at all), with a bar of its own (count + Edit/Remove/
+  // Done) standing in for the library header's own #selectBar, which
+  // sits behind the gatefold and so can't be reused directly.
+  if(opts && opts.select){
+    const bar = el('div','gf-select-bar');
+    bar.appendChild(el('span','gf-select-count', GF.selection.size + ' selected'));
+    const stack = el('div','gf-select-bar-stack');
+    const editBtn = el('button','cta small','Edit');
+    editBtn.disabled = GF.selection.size === 0;
+    editBtn.addEventListener('click', gatefoldSelectEdit);
+    const removeBtn = el('button','cta ghost small','Remove');
+    removeBtn.disabled = GF.selection.size === 0;
+    removeBtn.addEventListener('click', gatefoldSelectDelete);
+    const done = el('button','cta ghost small','Done');
+    done.addEventListener('click', gatefoldExitSelectMode);
+    stack.appendChild(editBtn); stack.appendChild(removeBtn); stack.appendChild(done);
+    bar.appendChild(stack);
+    host.appendChild(bar);
+    trackIdx.forEach((i, k) => {
+      host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler, null, true));
     });
     return host;
   }
@@ -903,6 +933,50 @@ export function gatefoldExitReorderMode(){
   GF.reordering = false;
   refreshGatefoldTracklist();
 }
+// GF15: "Select" re-homed from the retired renderAlbumDetail() (which
+// read the library header's own global S.view.editSelecting/
+// S.editSelection) into its own, album-scoped state on GF -- picking a
+// track here never touches the library screen's own select mode
+// underneath. Edit/Remove hand the picked ids straight to the existing
+// batch paths (library/edit.js's openEditSheet(), library/delete.js's
+// deleteTracks()) -- the same two things the old select bar's own
+// Edit/Remove buttons called.
+export function gatefoldMoreMenuSelect(){
+  closeLayer('gf-more-menu');
+  if(!GF) return;
+  GF.selecting = true;
+  GF.selection.clear();
+  refreshGatefoldTracklist();
+}
+export function gatefoldExitSelectMode(){
+  if(!GF) return;
+  GF.selecting = false;
+  GF.selection.clear();
+  refreshGatefoldTracklist();
+}
+function gatefoldToggleTrackSelect(id){
+  if(!GF) return;
+  if(GF.selection.has(id)) GF.selection.delete(id); else GF.selection.add(id);
+  refreshGatefoldTracklist();
+}
+export function gatefoldSelectEdit(){
+  if(!GF) return;
+  const ids = Array.from(GF.selection);
+  if(!ids.length) return;
+  gatefoldExitSelectMode();
+  openEditSheet(ids);
+}
+export function gatefoldSelectDelete(){
+  if(!GF) return;
+  const ids = Array.from(GF.selection);
+  if(!ids.length) return;
+  const album = GF.item.album;
+  openConfirmDelete('batch', ids.length, null, async () => {
+    await deleteTracks(ids);
+    if(countForAlbum(album) === 0){ forceCloseLayer('gatefold'); renderTracks(); return; }
+    gatefoldExitSelectMode();
+  });
+}
 // GF12 point 4: "Remove Album" re-homed here now that the Albums-tab/
 // artist album-detail screens it used to live on (library/view.js) no
 // longer exist -- same openConfirmDelete()/countForAlbum()/deleteAlbum()
@@ -923,10 +997,12 @@ export function gatefoldMoreMenuRemoveAlbum(){
 // (not the left panel) -- after a reorder move or a Track order/Done
 // toggle. GF.trackIdx is re-read from gatefoldTrackIndices() since a
 // manual move (or entering manual mode fresh) changes the order itself.
+// GF15: also re-read after a select-mode pick or a batch delete, so a
+// shrunk album (or a picked/unpicked row) repaints from the real list.
 function refreshGatefoldTracklist(){
   if(!GF) return;
   GF.trackIdx = gatefoldTrackIndices(GF.item);
-  const opts = { reorder: GF.reordering };
+  const opts = { reorder: GF.reordering, select: GF.selecting };
   $('#gfTracklist').innerHTML = '';
   $('#gfTracklist').appendChild(buildGatefoldTracklist(GF.item, GF.trackIdx, undefined, opts));
   if(GF.mode === 'short' && GF.panel === 'right'){
@@ -1416,7 +1492,7 @@ export function openGatefold(item, opts){
   // Sundown preview slider, never Pure/Vinyl or the playback rate --
   // point 2's own "this is about time of day, not playback speed").
   const night = isAfterSunset(currentDayPosition().phase);
-  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false, night, reordering: false};
+  GF = {item, trackIdx, panel:'right', seq: ++gfSeqCounter, mode, returnFocus: document.activeElement, geom, discGroups, turnedOver: false, night, reordering: false, selecting: false, selection: new Set()};
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');

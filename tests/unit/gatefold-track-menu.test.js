@@ -68,10 +68,16 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
-  namedExports: { countForAlbum(){ return 1; }, deleteAlbum(){} },
+  namedExports: { countForAlbum(){ return 1; }, deleteAlbum(){}, deleteTracks: async () => {} },
 });
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave(){} },
+});
+// GF15: view.js's own "Select" imports openEditSheet from library/edit.js,
+// the same wide, DOM-heavy import graph library/view.js's own mock above
+// already stops at the door for — mocked here too.
+mock.module(new URL('../../src/library/edit.js', import.meta.url).href, {
+  namedExports: { openEditSheet(){} },
 });
 mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
   namedExports: { openShareSheet(){} },

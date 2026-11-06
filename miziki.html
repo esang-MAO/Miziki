@@ -1472,13 +1472,18 @@
        their own always-on pill buttons by day) -- one home for both,
        day or night, rather than two. Same .overflow-menu/.overflow-scrim
        shape as #gfBackCoverMenu above, positioned off #gfMoreBtn's own
-       rect (src/wiring/gatefold.js). -->
+       rect (src/wiring/gatefold.js). GF15: "Select" re-homed here too --
+       the batch-edit/delete selection the old renderAlbumDetail() used
+       to reach through the library header's own Select toggle, now that
+       the gatefold is the one album view (GF12) and that header isn't
+       behind it any more. -->
   <div class="overflow-scrim" id="gfMoreMenuScrim"></div>
   <div class="overflow-menu" id="gfMoreMenu" role="menu">
     <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
     <button class="overflow-menu-row" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
     <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
     <button class="overflow-menu-row" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
+    <button class="overflow-menu-row" id="gfMoreSelectBtn" role="menuitem">Select</button>
     <button class="overflow-menu-row" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album</button>
   </div>
 
@@ -1629,7 +1634,8 @@
   </div>
   <div class="sealed-front-actions">
     <p class="sealed-front-hint">Peel from the corner to open it</p>
-    <button class="cta sealed-front-turn-btn" id="sealedFrontTurnBtn" type="button">Flip cover</button>
+    <button class="cta sealed-front-action-btn" id="sealedFrontUnsealBtn" type="button">Break the seal</button>
+    <button class="cta ghost sealed-front-action-btn" id="sealedFrontTurnBtn" type="button">Flip cover</button>
   </div>
 </div>
 

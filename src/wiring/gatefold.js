@@ -13,12 +13,12 @@ import {
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
   openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
   gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
-  gatefoldMoreMenuKeepFor, gatefoldKeepForPick,
+  gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect,
   gatefoldPlayRecord,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
-import { toggleSealedFrontTurnedOver } from '../gatefold/sealed-front.js';
+import { toggleSealedFrontTurnedOver, commitPeel } from '../gatefold/sealed-front.js';
 import { handleBookletAddFileChange } from '../gatefold/booklet.js';
 import { closeLayer, openLayer } from '../shell/nav-stack.js';
 
@@ -68,6 +68,7 @@ export function wireGatefold(){
   window.addEventListener('resize', updateGatefoldScale);
   $('#sealedFrontCloseBtn').addEventListener('click', () => closeLayer('sealed-front'));
   $('#sealedFrontTurnBtn').addEventListener('click', toggleSealedFrontTurnedOver);
+  $('#sealedFrontUnsealBtn').addEventListener('click', commitPeel);
 
   // GF6
   $('#gfBackCoverMoreBtn').addEventListener('click', () => isBackCoverMenuOpen() ? closeLayer('gf-back-cover-menu') : openBackCoverMenu());
@@ -116,14 +117,15 @@ export function wireGatefold(){
   // "record options" menu, then GF14: its opener (#gfMoreBtn) became a
   // fixed top-corner button, same static-control wiring as every other
   // gatefold control here, instead of being rebuilt into the info block
-  // every open. Share/Pin/Keep for…/Track order/Remove album all show
-  // every time now, day or night.
+  // every open. Share/Pin/Keep for…/Track order/Select/Remove album all
+  // show every time now, day or night.
   $('#gfMoreBtn').addEventListener('click', () => isGatefoldMoreMenuOpen() ? closeLayer('gf-more-menu') : openGatefoldMoreMenu());
   $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
   $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
   $('#gfMoreKeepForBtn').addEventListener('click', gatefoldMoreMenuKeepFor);
   $('#gfMoreTrackOrderBtn').addEventListener('click', gatefoldMoreMenuTrackOrder);
+  $('#gfMoreSelectBtn').addEventListener('click', gatefoldMoreMenuSelect);
   $('#gfMoreRemoveAlbumBtn').addEventListener('click', gatefoldMoreMenuRemoveAlbum);
 
   // GS10 (docs/30_GROOVES_AND_SHELF.md point 1): the "Keep for…" submenu's

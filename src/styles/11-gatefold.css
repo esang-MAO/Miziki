@@ -99,6 +99,15 @@
 .gf-track-row .gf-td{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
 .gf-track-row.gf-now-playing .gf-tt{color:var(--cream)}
 .gf-track-row.gf-now-playing .gf-tn{color:var(--cream)}
+/* GF15: a picked row in select mode -- same tint + checkmark the
+   library's own .tracklist li.picked uses (02-stage-platter.css), so a
+   "picked" row reads the same whichever list it's in. */
+.gf-track-row.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
+.gf-track-row.picked .gf-tn::after{content:'✓';color:var(--cream);margin-left:2px}
+.gf-select-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+  flex-wrap:wrap;margin-bottom:var(--sp-2);padding-bottom:var(--sp-2);border-bottom:1px solid var(--line)}
+.gf-select-count{font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
+.gf-select-bar-stack{display:flex;gap:var(--sp-2)}
 .gf-now-glyph{display:inline-block;width:10px}
 .gf-now-glyph span{display:inline-block;width:2px;background:var(--cream);margin-right:1px;
   animation:gfbar 1s ease-in-out infinite}
