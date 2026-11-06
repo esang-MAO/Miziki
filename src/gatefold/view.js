@@ -1412,7 +1412,11 @@ function gatefoldSkipToSettled(mode){
 async function runGatefoldOpen(mode){
   const overlay = $('#gatefold'), camera = $('#gfCamera'), cover = $('#gfCover');
   const seq = GF.seq;
-  const skip = e => { e.stopPropagation(); e.preventDefault(); gatefoldSkipToSettled(mode); };
+  // GF9 fix: no stopPropagation -- this only jumps the opening animation to
+  // its settled state; the same tap must still reach the track row under it
+  // so a long-press started during the opening swing still arms its timer
+  // instead of silently eating that first touch.
+  const skip = () => { gatefoldSkipToSettled(mode); };
   gfSkipHandler = skip;
   overlay.addEventListener('pointerdown', skip, {capture:true, once:true});
 
