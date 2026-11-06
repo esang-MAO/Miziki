@@ -299,6 +299,13 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
     const bar = el('div','gf-select-bar');
     bar.appendChild(el('span','gf-select-count', GF.selection.size + ' selected'));
     const stack = el('div','gf-select-bar-stack');
+    // GF16 (Ken, 2026-11-06): the library's own select bar has a Select
+    // all/Select none toggle (library/view.js's selectAllVisible()) --
+    // this mirrors it for the gatefold's own GF.selection, scoped to this
+    // album's trackIdx rather than the library's visibleTrackIds().
+    const allPicked = trackIdx.length > 0 && trackIdx.every(i => GF.selection.has(S.tracks[i].id));
+    const allBtn = el('button','cta ghost small', allPicked ? 'Select none' : 'Select all');
+    allBtn.addEventListener('click', () => gatefoldToggleSelectAll(trackIdx));
     const editBtn = el('button','cta small','Edit');
     editBtn.disabled = GF.selection.size === 0;
     editBtn.addEventListener('click', gatefoldSelectEdit);
@@ -307,7 +314,7 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
     removeBtn.addEventListener('click', gatefoldSelectDelete);
     const done = el('button','cta ghost small','Done');
     done.addEventListener('click', gatefoldExitSelectMode);
-    stack.appendChild(editBtn); stack.appendChild(removeBtn); stack.appendChild(done);
+    stack.appendChild(allBtn); stack.appendChild(editBtn); stack.appendChild(removeBtn); stack.appendChild(done);
     bar.appendChild(stack);
     host.appendChild(bar);
     trackIdx.forEach((i, k) => {
@@ -957,6 +964,17 @@ export function gatefoldExitSelectMode(){
 function gatefoldToggleTrackSelect(id){
   if(!GF) return;
   if(GF.selection.has(id)) GF.selection.delete(id); else GF.selection.add(id);
+  refreshGatefoldTracklist();
+}
+// GF16: Select all/Select none, the same toggle-the-whole-list shape
+// library/view.js's own selectAllVisible() already uses -- a second tap
+// undoes the first. Scoped to this album's own trackIdx (every track the
+// select bar is currently showing), not the library's visible tracks.
+function gatefoldToggleSelectAll(trackIdx){
+  if(!GF || !trackIdx.length) return;
+  const allPicked = trackIdx.every(i => GF.selection.has(S.tracks[i].id));
+  if(allPicked) trackIdx.forEach(i => GF.selection.delete(S.tracks[i].id));
+  else trackIdx.forEach(i => GF.selection.add(S.tracks[i].id));
   refreshGatefoldTracklist();
 }
 export function gatefoldSelectEdit(){
