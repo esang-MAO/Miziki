@@ -87,8 +87,18 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 });
 const countForAlbumMock = mock.fn(() => 1);
 const deleteAlbumMock = mock.fn();
+const deleteTracksMock = mock.fn(async () => {});
 mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
-  namedExports: { countForAlbum: countForAlbumMock, deleteAlbum: deleteAlbumMock },
+  namedExports: { countForAlbum: countForAlbumMock, deleteAlbum: deleteAlbumMock, deleteTracks: deleteTracksMock },
+});
+// GF15: view.js's own "Select" now imports openEditSheet from
+// library/edit.js, which would otherwise reach the same wide, DOM-heavy
+// import graph (sync/backup.js, shell/mini-player.js, etc.) library/
+// view.js's own mock above already stops at the door for -- same
+// reasoning, mocked here too.
+const openEditSheetMock = mock.fn();
+mock.module(new URL('../../src/library/edit.js', import.meta.url).href, {
+  namedExports: { openEditSheet: openEditSheetMock },
 });
 const queueSaveMock = mock.fn();
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {

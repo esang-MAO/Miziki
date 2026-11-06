@@ -8,6 +8,14 @@
    photo) through the same wrap sheen, without breaking anything -- a
    look, not a commitment.
 
+   GF15: the corner drag (or, under Reduced Motion, a tap on that same
+   hotspot) was the only way to break the seal -- a user who didn't find
+   or couldn't complete the gesture had no way to unseal short of closing
+   back to the crate and trying its own tear-strip affordance there
+   instead. "Break the seal" (#sealedFrontUnsealBtn) runs the exact same
+   commitPeel() the drag commits into, as a plain tap, right on this
+   screen.
+
    Retires src/gatefold/sealed-sheet.js (GF8 point 4, "one in, one out"):
    that plain tracklist sheet, and its own "tap a track to play" handler,
    are gone -- this screen has no tracklist of its own at all. Playing
@@ -71,7 +79,7 @@ async function paintCover(item, turnedOver){
 // and hand-off into the gatefold, same "the choreography is purely
 // visual, breakSeal() takes over for real" split library/sealed.js's own
 // runBreakChoreography() uses.
-async function commitPeel(){
+export async function commitPeel(){
   if(!FRONT) return;
   const item = FRONT.item;
   if(peelGesture){ peelGesture.cancel(); peelGesture = null; }
