@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The wall in five finishes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.name{margin:0;font-family:'Antonio',sans-serif;font-weight:700;font-size:28px;line-height:1.05;letter-spacing:-.01em}
+</style>
+</helmet>
+<div style="width: 2030px; height: 600px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(180deg, #1D2F38 0%, #142028 100%)">
+  <div style="position: absolute; top: 48px; left: 64px; display: flex; gap: 48px">
+    <div style="width: 342px; height: 420px"><dc-import name="WallCombo" finish="walnut" hint-size="342px,420px"></dc-import></div>
+    <div style="width: 342px; height: 420px"><dc-import name="WallCombo" finish="oak" hint-size="342px,420px"></dc-import></div>
+    <div style="width: 342px; height: 420px"><dc-import name="WallCombo" finish="teak" hint-size="342px,420px"></dc-import></div>
+    <div style="width: 342px; height: 420px"><dc-import name="WallCombo" finish="ash" hint-size="342px,420px"></dc-import></div>
+    <div style="width: 342px; height: 420px"><dc-import name="WallCombo" finish="black" hint-size="342px,420px"></dc-import></div>
+  </div>
+  <div style="position: absolute; top: 500px; left: 64px; display: flex; gap: 48px">
+    <h2 class="name" style="width: 342px">Walnut</h2>
+    <h2 class="name" style="width: 342px">Oak</h2>
+    <h2 class="name" style="width: 342px">Teak</h2>
+    <h2 class="name" style="width: 342px">Ash</h2>
+    <h2 class="name" style="width: 342px">Black ash</h2>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2030,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paper labels on pressings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.h{margin:0;font-family:'Antonio',sans-serif;font-weight:700;font-size:28px;line-height:1.05;letter-spacing:-.01em}
+.sub{font-size:14px;color:#ABA298}
+.disc{position:relative;border-radius:50%;flex:none;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.grooves{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,.13) 0px,rgba(0,0,0,.13) 1px,rgba(0,0,0,0) 1px,rgba(0,0,0,0) 3px)}
+.paper{position:absolute;border-radius:50%;background:radial-gradient(circle at 38% 32%,#F4EFE4,#DCD3BE);box-shadow:inset 0 0 0 1px #3E3D22,inset 0 0 0 3px rgba(244,239,228,.9),inset 0 0 0 4px rgba(62,61,34,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#26202C;overflow:hidden}
+.hole{position:absolute;left:50%;top:50%;border-radius:50%;background:#14110F;transform:translate(-50%,-50%)}
+.mini{position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#14110F 0,#14110F 7%,rgba(0,0,0,0) 8%),
+    linear-gradient(#26202C,#26202C) 50% 30% / 54% 7% no-repeat,
+    linear-gradient(rgba(38,32,44,.55),rgba(38,32,44,.55)) 50% 72% / 38% 5% no-repeat,
+    radial-gradient(circle at 38% 32%,#F4EFE4,#DCD3BE);
+  box-shadow:inset 0 0 0 1px #3E3D22,inset 0 0 0 2px rgba(244,239,228,.9)}
+.cap{font-size:12px;color:rgba(239,233,223,.85);text-align:center;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1240px; height: 720px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(175deg, #1D2F38 0%, #121C22 60%, #0C1115 100%); padding: 48px 64px; display: flex; gap: 72px">
+
+  <div style="display: flex; flex-direction: column; gap: 24px; width: 380px">
+    <div style="display: flex; flex-direction: column; gap: 4px"><h2 class="h">Share card disc</h2><span class="sub">Record, Now Playing and Pressings cards. The label is printed with the album.</span></div>
+    <div class="disc" style="width: 340px; height: 340px; background: radial-gradient(circle at 35% 30%, #5BAA99 0%, #3F8C7E 45%, #2A5E54 100%)">
+      <div class="grooves"></div>
+      <div class="paper" style="left: 113px; top: 113px; width: 114px; height: 114px">
+        <span style="position: absolute; top: 18px; left: 0; right: 0; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: .1em; color: #6B6258">MIZIKI · 33⅓</span>
+        <span style="position: absolute; top: 31px; left: 10px; right: 10px; text-align: center; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 14px; line-height: 1; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">HARBOR LIGHTS</span>
+        <span style="position: absolute; top: 66px; left: 14px; right: 14px; text-align: center; font-size: 9px; color: #4A4250; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Ines Okafor</span>
+        <span style="position: absolute; top: 82px; left: 0; right: 0; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: .1em; color: #6B6258">SIDE A</span>
+      </div>
+      <span class="hole" style="width: 8px; height: 8px"></span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 24px; width: 300px">
+    <div style="display: flex; flex-direction: column; gap: 4px"><h2 class="h">Pressings card grid</h2><span class="sub">The found grid becomes small labelled discs instead of square chips.</span></div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #5BAA99 0%, #3F8C7E 45%, #2A5E54 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Verdigris</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #B5433A 0%, #6B1F1C 60%, #3E1210 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Oxblood</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: linear-gradient(180deg, #2B5586 0%, #2B5586 50%, #C9A27A 50%, #C9A27A 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Prussian &amp; Bone</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: conic-gradient(#7E555A, #DAD3C4, #7E555A, #DAD3C4, #7E555A, #DAD3C4, #7E555A)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Mauve</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #E8EFF2 0%, #A9A9B4 50%, #4D5259 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Silver</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #3A3540 0%, #1A161C 70%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Jet</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #F2B35C 0%, #C9A27A 55%, #8A6228 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Ochre</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div class="disc" style="width: 60px; height: 60px; background: radial-gradient(circle at 35% 30%, #9FB6D8 0%, #4E6C9A 55%, #22344F 100%)"><div class="grooves"></div><span class="mini" style="left: 20px; top: 20px; width: 20px; height: 20px"></span></div><span class="cap">Cobalt</span></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 24px; width: 260px">
+    <div style="display: flex; flex-direction: column; gap: 4px"><h2 class="h">On the wall</h2><span class="sub">The same paper label, simplified to printed lines at small sizes.</span></div>
+    <div style="display: flex; gap: 20px; align-items: flex-end">
+      <div class="disc" style="width: 84px; height: 84px; background: radial-gradient(circle at 35% 30%, #B5433A 0%, #6B1F1C 60%, #3E1210 100%)"><div class="grooves"></div><span class="mini" style="left: 27px; top: 27px; width: 30px; height: 30px"></span></div>
+      <div class="disc" style="width: 84px; height: 84px; background: radial-gradient(circle at 35% 30%, #E8EFF2 0%, #A9A9B4 50%, #4D5259 100%)"><div class="grooves"></div><span class="mini" style="left: 27px; top: 27px; width: 30px; height: 30px"></span></div>
+    </div>
+    <span class="sub">Label: cream paper (#F4EFE4 → #DCD3BE), olive ring #3E3D22, ink #26202C — the Jet paper label already in 02-stage-platter.css. About a third of the disc.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

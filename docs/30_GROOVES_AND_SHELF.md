@@ -155,7 +155,7 @@ Grounded in a reading of *In the Groove*, *Practical Musicology*, *Retromania*, 
 > Read CLAUDE.md, the README (frames `HomeShelf`, `FriendShelf`) and `docs/24_QUIET_COUNTS.md` first.
 >
 > 1. **In rotation, 5 pins:** rename Staff picks → "in rotation" everywhere it's shown (sticker text "must hear" stays). New migration: `pin_rank between 1 and 5` (never edit `001_schema.sql`). Client limit 5.
-> 2. **On the wall:** pins 1–3 as framed covers (black frame, paper mat), with "in rotation" hand-lettered under the heading. Below, **the last three pressings or metals found** (newest first) as small discs with name and a mono line (`DUSK · 14 NOV`, `METAL · OCT`), then "All found ›" → the existing Records screen (owned-only, no counts, per QC1).
+> 2. **On the wall:** **Wall shelving superseded by docs/33_WALL_AND_LABELS.md** (ledge for in rotation, cubby for pressings). Pins 1–3 as framed covers (black frame, paper mat), with "in rotation" hand-lettered under the heading. Below, **the last three pressings or metals found** (newest first) as small discs with name and a mono line (`DUSK · 14 NOV`, `METAL · OCT`), then "All found ›" → the existing Records screen (owned-only, no counts, per QC1).
 > 3. **On the turntable:** the existing now-spinning/last-spun row, restyled as a console shelf; under it a **Listening ›** row.
 > 4. **The shelves:** a cube-shelving view of your crate (2 columns), records spines-out by the crate's current order; pins 4–5 face-out. Tapping a cube opens the library crate at that spot. An unfilled last cube reads "room to grow" (hand).
 > 5. A friend's crate: same layout; friend-count stickers on face-out records you don't own, as today.
