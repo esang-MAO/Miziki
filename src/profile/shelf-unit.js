@@ -78,8 +78,14 @@ function emptyCell(note){
   return cell;
 }
 
-// `turntableInfo`: {hasRecord, art, spinning} for the record on the
-// platter; `sleeveArt`/`sleeveName` for the stand beside it (null when
+// `turntableInfo`: {hasRecord, art, spinning, turnSeconds} for the record
+// on the platter -- `art` is the album's own resolved pressing background
+// (record-art/looks.js's discLook(t).bg, as storefront.js's
+// shelfUnitTurntableInfo() resolves it -- see renderTurntable()'s own
+// header comment), not a raw image URL; `turnSeconds` (ST5, docs/32_
+// SHELF_AND_TURNTABLES.md point 2) is seconds per revolution, only
+// meaningful while `spinning`; `sleeveArt`/`sleeveName` for the stand
+// beside it (null when
 // nothing's ever been loaded — ST2 point 3's "nothing on: the turntable
 // stands empty, no stand"). `finish` (ST3, docs/32_SHELF_AND_TURNTABLES.
 // md): one of SHELF_FINISHES' ids (src/profile/shelf-finish.js), default
@@ -94,7 +100,7 @@ export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntable
   const top = el('div', 'shelf-unit-top');
   top.appendChild(el('div', 'shelf-unit-tt-shadow'));
   const ttHolder = el('div', 'shelf-unit-tt-holder');
-  ttHolder.appendChild(renderTurntable(model || 'standard', !!turntableInfo.hasRecord, turntableInfo.art, !!turntableInfo.spinning));
+  ttHolder.appendChild(renderTurntable(model || 'standard', !!turntableInfo.hasRecord, turntableInfo.art, !!turntableInfo.spinning, turntableInfo.turnSeconds));
   top.appendChild(ttHolder);
   if(sleeveArt || sleeveName){
     top.appendChild(el('div', 'shelf-unit-sleeve-shadow'));
