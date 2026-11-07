@@ -121,7 +121,7 @@ export async function composePlayerShareImage(opts){
     ctx.fillText(line, w/2, y);
     if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   });
-  y += 20;
+  y += 34;
 
   ctx.font = '500 20px Archivo, sans-serif';
   const artistText = shareFitText(ctx, artist, titleMax);

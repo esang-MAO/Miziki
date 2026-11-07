@@ -110,7 +110,7 @@ export async function composeShareImage(opts){
   ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.5);
 
   let y = avY + avSize + Math.round(h*0.04);
-  const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.56);
+  const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.46);
   const heroX = twoCol ? pad : Math.round((w-heroW)/2);
   const heroH = heroW;
 
@@ -184,7 +184,7 @@ export async function composeShareImage(opts){
   // FS8 point 5: no counts -- the session-count figure is dropped.
   const subLine = topAlbum ? topAlbum.display.artist : '';
   ctx.fillText(shareFitText(ctx, subLine, w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
-  y += Math.round(h*0.05);
+  y += Math.round(h*(twoCol ? 0.05 : 0.03));
 
   // SH5 item 4/5: metals, collection and the rhythm chip are gone -- TOP
   // SONGS is now the one thing below the album block, full width, so it
@@ -201,10 +201,13 @@ export async function composeShareImage(opts){
     ctx.fillText('TOP SONGS', leftX, leftY);
     if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     leftY += Math.round(w*0.036);
-    // SH5 item 3: three rows in Square (and portrait, which has no board
-    // of its own), five in Story -- matching the design README's own
-    // "Three rows in Square, five in Story" line for this section.
-    const songRows = format === 'story' ? 5 : 3;
+    // SH5 item 3: three rows in Square, five in Story -- matching the
+    // design README's own "Three rows in Square, five in Story" line for
+    // this section (portrait had no board of its own and was dropped in
+    // WS4). Also capped by whatever vertical space is actually left above
+    // the footer, for a crowded collection.
+    const rowH = Math.round(w*0.042), footerReserve = 64;
+    const songRows = Math.min(format === 'story' ? 5 : 3, Math.max(0, Math.floor((bottomY - footerReserve - leftY) / rowH) + 1));
     const list = topTracks(songRows);
     if(list.length){
       list.forEach((t, i) => {

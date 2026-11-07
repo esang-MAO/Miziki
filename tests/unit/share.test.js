@@ -39,10 +39,9 @@ const { SHARE_FORMATS, resolveShareStyle, shareFitLines } = await import('../../
 test('SHARE_FORMATS: all three formats have the documented pixel dimensions', () => {
   assert.deepEqual(
     Object.keys(SHARE_FORMATS).sort(),
-    ['portrait', 'square', 'story'],
+    ['square', 'story'],
   );
   assert.deepEqual(SHARE_FORMATS.story, {w:1080, h:1920, safeTop:250, safeBottom:1670});
-  assert.deepEqual(SHARE_FORMATS.portrait, {w:1080, h:1350, safeTop:90, safeBottom:1270});
   assert.deepEqual(SHARE_FORMATS.square, {w:1080, h:1080, safeTop:70, safeBottom:1010});
 });
 
@@ -58,8 +57,8 @@ test('SHARE_FORMATS: every format\'s safe zone is a sane band inside the canvas'
 const STYLES = ['night', 'cover', 'paper'];
 const FORMATS = Object.keys(SHARE_FORMATS);
 
-test('resolveShareStyle x SHARE_FORMATS: every one of the nine style/format pairs resolves to a valid combination', async () => {
-  assert.equal(STYLES.length * FORMATS.length, 9);
+test('resolveShareStyle x SHARE_FORMATS: every one of the six style/format pairs resolves to a valid combination', async () => {
+  assert.equal(STYLES.length * FORMATS.length, 6);
   for(const style of STYLES){
     // 'cover' needs art; without a real DOM Image constructor the lookup
     // inside resolveShareStyle rejects and it falls through to Night by
@@ -182,6 +181,15 @@ test('tileCountFor: an unrecognized format falls back to Square\'s own tile coun
   assert.equal(tileCountFor('not-a-real-format'), 6);
 });
 
+// WS4: a crowded footer leaves room for fewer rows than the format's own
+// cap allows -- maxRows caps it further, never raises it past the format.
+test('tileCountFor: maxRows caps the tile count below the format\'s own row count', () => {
+  assert.equal(tileCountFor('story', 2), 6);
+  assert.equal(tileCountFor('square', 1), 3);
+  assert.equal(tileCountFor('story', 99), 12, 'a roomy maxRows never exceeds the format\'s own cap');
+  assert.equal(tileCountFor('square', 0), 0);
+});
+
 test('moreCountText: nothing shown once the collection fits the grid', () => {
   const sixRecords = Array.from({length: 6}, (_, i) => ({ albumId: String(i) }));
   assert.equal(moreCountText(sixRecords, 'square'), null);
@@ -193,6 +201,14 @@ test('moreCountText: counts exactly how many are left off, newest-first framing'
   const eightRecords = Array.from({length: 8}, (_, i) => ({ albumId: String(i) }));
   assert.equal(moreCountText(eightRecords, 'square'), '+ 2 MORE · NEWEST FIRST');
   assert.equal(moreCountText(eightRecords, 'story'), null);
+});
+
+// WS4: "+N MORE" counts what's actually shown once the footer leaves room
+// for fewer rows than the format would otherwise allow.
+test('moreCountText: maxRows narrows the grid further, so more records count as "more"', () => {
+  const eightRecords = Array.from({length: 8}, (_, i) => ({ albumId: String(i) }));
+  assert.equal(moreCountText(eightRecords, 'story', 2), '+ 2 MORE · NEWEST FIRST');
+  assert.equal(moreCountText(eightRecords, 'square', 1), '+ 5 MORE · NEWEST FIRST');
 });
 
 // QC2 (docs/24_QUIET_COUNTS.md) removed familyCountsLine() along with the
@@ -250,6 +266,20 @@ test('shareFitLines: a short title never shrinks or truncates', () => {
   const { lines, fontSize } = shareFitLines(ctx, 'Short Title', 1000, 2, 60, '700', 'Archivo, sans-serif');
   assert.equal(fontSize, 60);
   assert.deepEqual(lines, ['Short Title']);
+});
+
+// WS4 fix B: a single unbreakable word (no spaces -- a no-space or
+// Japanese title) that wrap() can never split still has to respect
+// maxWidth. Before the fix, wrap() returning a line count within
+// maxLines made the loop return early without ever checking that the
+// one line it kept actually fits, so it ran off both edges.
+test('shareFitLines: an unbreakable 40-char word fits maxWidth, not just the line count', () => {
+  const ctx = makeFakeCtx();
+  const unbreakable = 'X'.repeat(40);
+  const { lines, fontSize } = shareFitLines(ctx, unbreakable, 200, 2, 60, '700', 'Archivo, sans-serif');
+  assert.equal(lines.length, 1);
+  ctx.font = fontSize + 'px sans-serif';
+  assert.ok(ctx.measureText(lines[0]).width <= 200, 'the kept line must fit maxWidth at the fontSize returned');
 });
 
 /* ===================== SH6 (docs/18_SHARE.md) =====================

@@ -28,9 +28,12 @@ import { wordmarkMarkup } from '../ui/wordmark.js';
 
 export const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
 
+// WS4: the share sheet only ever offers Story and Square (#shareFormatSeg,
+// miziki.html) -- portrait never had its own picker chip, so it's dropped
+// here too. A previously-saved 'portrait' default is mapped to 'square'
+// by parsePrefs (src/storage/prefs.js).
 export const SHARE_FORMATS = {
   story:    {w:1080, h:1920, safeTop:250, safeBottom:1670},
-  portrait: {w:1080, h:1350, safeTop:90,  safeBottom:1270},
   square:   {w:1080, h:1080, safeTop:70,  safeBottom:1010}
 };
 
@@ -58,11 +61,12 @@ export function shareFitLines(ctx, text, maxWidth, maxLines, baseSize, weight, f
   };
   for(let size = baseSize; size >= Math.round(baseSize*0.55); size -= 2){
     const lines = wrap(size);
-    if(lines.length <= maxLines) return { lines, fontSize: size };
+    if(lines.length <= maxLines && lines.every(l => ctx.measureText(l).width <= maxWidth)) return { lines, fontSize: size };
   }
   const size = Math.round(baseSize*0.55);
   const lines = wrap(size).slice(0, maxLines);
   if(lines.length) lines[lines.length-1] = shareFitText(ctx, lines[lines.length-1], maxWidth);
+  for(let i = 0; i < lines.length; i++) lines[i] = shareFitText(ctx, lines[i], maxWidth);
   return { lines, fontSize: size };
 }
 

@@ -151,13 +151,15 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
     if(friendsText) drawFriendsSticker(ctx, friendsText, coverLeft, coverTop + coverSide);
   }
 
-  const factsX = Math.max(coverLeft + coverSide, discCx + discR) + groupGap;
-  const factsMaxW = Math.max(40, w - pad - factsX);
+  let factsX = Math.max(coverLeft + coverSide, discCx + discR) + groupGap;
+  let factsMaxW = Math.max(40, w - pad - factsX);
+  const stackFacts = factsMaxW < 220;
+  if(stackFacts){ factsX = pad; factsMaxW = w - pad*2; }
   const groupBottom = Math.max(coverTop + coverSide, discCy + discR);
 
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
-  let fy = coverTop;
+  let fy = stackFacts ? groupBottom + groupGap : coverTop;
   // TY6 (docs/22_TYPE.md): the kicker is Archivo caps --track-caps, not mono.
   ctx.font = '600 22px Archivo, sans-serif';
   fy += 22;
@@ -171,14 +173,14 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
 
   // FS8 point 3: the pressing name is Antonio 40, not the old 80*scale.
   const facts = pressingFacts(data);
-  const pressingSize = 40;
+  const { lines: nameLines, fontSize: pressingSize } = shareFitLines(ctx, facts.name, factsMaxW, 2, 40, '700', 'Antonio, sans-serif');
   ctx.font = '700 ' + pressingSize + 'px Antonio, sans-serif';
-  const pressingName = shareFitText(ctx, facts.name, factsMaxW);
-  fy += Math.round(pressingSize*0.95);
-  if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(pressingName, factsX, fy); }
-  fy += 20;
+  nameLines.forEach(line => { fy += Math.round(pressingSize*0.95); if(draw){ ctx.fillStyle = kit.ink; ctx.fillText(line, factsX, fy); } fy += 6; });
+  fy += 22;
 
+  let subPx = 20;
   ctx.font = '500 20px "IBM Plex Mono", monospace';
+  while(subPx > 15 && ctx.measureText(facts.sub).width > factsMaxW){ subPx -= 1; ctx.font = '500 ' + subPx + 'px "IBM Plex Mono", monospace'; }
   const subText = shareFitText(ctx, facts.sub, factsMaxW);
   if(draw){ ctx.fillStyle = kit.sub; ctx.fillText(subText, factsX, fy); }
   fy += 24;
