@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit crate — turntable</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#EFE9DF}a:hover{color:#FFFFFF}
+.tile{position:relative;height:100px;border-radius:12px;border:0;cursor:pointer;background:rgba(239,233,223,.04);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;padding:0 0 10px;font-family:'Archivo',sans-serif;color:#EFE9DF}
+.thumb{position:absolute;left:50%;top:6px;width:120px;height:67px;margin-left:-60px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(175deg, #1D2F38 0%, #121C22 55%, #0C1115 100%)">
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 368px; height: 40px; background: linear-gradient(180deg, #171310 0%, #0F0C0A 100%)"></div>
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 362px; height: 6px; background: linear-gradient(180deg, #22303A, #1A242C)"></div>
+
+  <div style="position: absolute; top: 20px; left: 101px; width: 188px; height: 352px">
+    <div style="width: 342px; height: 640px; transform: scale(.55); transform-origin: 0 0">
+      <dc-import name="ShelfUnit" finish="walnut" model="{{pick}}" hint-size="342px,640px"></dc-import>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 452px; border-radius: 24px 24px 0 0; background: #1E1A1C; box-shadow: 0 -10px 30px rgba(0,0,0,.45); padding: 10px 20px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+    <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.22)"></span>
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600">Turntable</h2>
+      <button style="min-height: 44px; padding: 0 4px; background: none; border: 0; color: #EFE9DF; font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 600">Done</button>
+    </div>
+
+    <div role="radiogroup" aria-label="Turntable" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{tables}}" as="t" hint-placeholder-count="6">
+        <button class="tile" role="radio" aria-checked="{{t.on}}" onClick="{{t.choose}}" style="box-shadow: {{t.ring}}">
+          <span class="thumb"><span style="display: block; width: 200px; height: 112px; transform: scale(.6); transform-origin: 0 0"><dc-import name="Turntable" model="{{t.id}}" hint-size="200px,112px"></dc-import></span></span>
+          <span style="font-size: 14px; color: {{t.text}}">{{t.name}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <span style="font-size: 14px; color: #ABA298">{{note}}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pick: 'standard' };
+  }
+  renderVals() {
+    const T = [
+      { id: 'standard', name: 'Standard', note: 'The everyday deck. Everyone starts here.' },
+      { id: 'console', name: 'Console', note: 'Wood plinth, silver trim, smoked lid up. Came with Deluxe.' },
+      { id: 'linear', name: 'Linear', note: 'A silver slab; the arm tracks straight across. Came with Deluxe.' },
+      { id: 'deck', name: 'Deck', note: 'Direct drive, strobe dots, a target light.' },
+      { id: 'clear', name: 'Clear', note: 'Acrylic on cone feet, the belt and motor in view.' },
+      { id: 'suitcase', name: 'Suitcase', note: 'A portable in red leatherette, speaker in the case.' }
+    ];
+    const cur = T.find((t) => t.id === this.state.pick) || T[0];
+    return {
+      pick: cur.id,
+      note: cur.note,
+      tables: T.map((t) => ({
+        id: t.id,
+        name: t.name,
+        on: t.id === cur.id ? 'true' : 'false',
+        ring: t.id === cur.id ? '0 0 0 2px #EFE9DF' : '0 0 0 1px rgba(239,233,223,.14)',
+        text: t.id === cur.id ? '#EFE9DF' : '#ABA298',
+        choose: () => this.setState({ pick: t.id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The twelve turntables</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.row{position:absolute;left:90px;display:flex;gap:80px}
+.tt{width:200px;height:112px}
+.col{display:flex;flex-direction:column;gap:4px;width:200px}
+.name{margin:0;font-family:'Antonio',sans-serif;font-weight:700;font-size:28px;line-height:1.05;letter-spacing:-.01em}
+.note{font-size:14px;line-height:1.45;color:rgba(239,233,223,.85)}
+.how{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.45;color:#9A9187}
+.tag{align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#14110F;background:#EFE6D2;padding:1px 6px;border-radius:4px}
+.top{position:absolute;left:0;right:0;height:14px;background:repeating-linear-gradient(179.5deg,rgba(28,14,6,.45) 0px,rgba(28,14,6,.45) 1px,transparent 1px,transparent 4px),linear-gradient(180deg,#46301E 0%,#7C5838 100%)}
+.edge{position:absolute;left:0;right:0;height:16px;background:repeating-linear-gradient(179deg,rgba(28,14,6,.45) 0px,rgba(28,14,6,.45) 1px,transparent 1px,transparent 5px),linear-gradient(180deg,#6E4A30 0%,#5A3A24 50%,#46301E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 6px 14px rgba(0,0,0,.45)}
+</style>
+</helmet>
+<div style="width: 1780px; height: 860px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(180deg, #1D2F38 0%, #142028 100%)">
+
+  <div class="top" style="top: 206px"></div><div class="edge" style="top: 220px"></div>
+  <div class="top" style="top: 596px"></div><div class="edge" style="top: 610px"></div>
+
+  <div class="row" style="top: 100px">
+    <div class="tt"><dc-import name="Turntable" model="standard" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="console" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="linear" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="deck" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="clear" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="suitcase" hint-size="200px,112px"></dc-import></div>
+  </div>
+  <div class="row" style="top: 252px">
+    <div class="col"><h2 class="name">Standard</h2><span class="note">The everyday deck.</span><span class="how">Everyone starts here.</span></div>
+    <div class="col"><h2 class="name">Console</h2><span class="tag">DELUXE</span><span class="note">Wood plinth, silver trim, smoked lid up.</span><span class="how">Or: your first full season of listening.</span></div>
+    <div class="col"><h2 class="name">Linear</h2><span class="tag">DELUXE</span><span class="note">A silver slab; the arm tracks straight across.</span><span class="how">Or: sides played straight through, no lifts.</span></div>
+    <div class="col"><h2 class="name">Deck</h2><span class="note">Direct drive, strobe dots, a target light.</span><span class="how">Found by scratching.</span></div>
+    <div class="col"><h2 class="name">Clear</h2><span class="note">Acrylic on cone feet, belt and motor in view.</span><span class="how">Whole records played in hi-res.</span></div>
+    <div class="col"><h2 class="name">Suitcase</h2><span class="note">Red leatherette portable, speaker in the case.</span><span class="how">Comes in a friend's held-for-you stack.</span></div>
+  </div>
+
+  <div class="row" style="top: 490px">
+    <div class="tt"><dc-import name="Turntable" model="broadcast" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="upright" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="radiogram" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="slate" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="lathe" hint-size="200px,112px"></dc-import></div>
+    <div class="tt"><dc-import name="Turntable" model="horn" hint-size="200px,112px"></dc-import></div>
+  </div>
+  <div class="row" style="top: 642px">
+    <div class="col"><h2 class="name">Broadcast</h2><span class="note">A heavy radio-station table, long arm.</span><span class="how">Records finished after midnight.</span></div>
+    <div class="col"><h2 class="name">Upright</h2><span class="note">The record stands on edge, like a clock.</span><span class="how">Records kept in rotation a whole season.</span></div>
+    <div class="col"><h2 class="name">Radiogram</h2><span class="note">A cabinet with a radio dial and a lid that lifts.</span><span class="how">Listening in every part of the day in one season.</span></div>
+    <div class="col"><h2 class="name">Slate</h2><span class="note">Stone plinth, heavy platter, motor apart.</span><span class="how">A full year of listening.</span></div>
+    <div class="col"><h2 class="name">Lathe</h2><span class="note">A cutting lathe with its microscope. Rare.</span><span class="how">Comes with your first rare pressing.</span></div>
+    <div class="col"><h2 class="name">Horn</h2><span class="note">A wind-up gramophone, brass horn. Rare.</span><span class="how">Pre-1955 recordings, once 78s exist.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1780,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

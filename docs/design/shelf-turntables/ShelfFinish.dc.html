@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit crate — shelf finish</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#EFE9DF}a:hover{color:#FFFFFF}
+.sw{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;color:#EFE9DF;font-family:'Archivo',sans-serif;width:60px}
+.chip{display:block;width:52px;height:52px;border-radius:50%;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,0,0,.45)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(175deg, #1D2F38 0%, #121C22 55%, #0C1115 100%)">
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 432px; height: 60px; background: linear-gradient(180deg, #171310 0%, #0F0C0A 100%)"></div>
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 426px; height: 6px; background: linear-gradient(180deg, #22303A, #1A242C)"></div>
+
+  <div style="position: absolute; top: 36px; left: 89px; width: 212px; height: 397px">
+    <div style="width: 342px; height: 640px; transform: scale(.62); transform-origin: 0 0">
+      <dc-import name="ShelfUnit" finish="{{finish}}" hint-size="342px,640px"></dc-import>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 380px; border-radius: 24px 24px 0 0; background: #1E1A1C; box-shadow: 0 -10px 30px rgba(0,0,0,.45); padding: 10px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(239,233,223,.22)"></span>
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600">Shelf finish</h2>
+      <button style="min-height: 44px; padding: 0 4px; background: none; border: 0; color: #EFE9DF; font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 600">Done</button>
+    </div>
+
+    <div role="radiogroup" aria-label="Shelf finish" style="display: flex; justify-content: space-between">
+      <sc-for list="{{finishes}}" as="f" hint-placeholder-count="5">
+        <button class="sw" role="radio" aria-checked="{{f.on}}" onClick="{{f.pick}}">
+          <span style="display: block; padding: 3px; border-radius: 50%; box-shadow: {{f.ring}}">
+            <span class="chip" style="background: {{f.wood}}"></span>
+          </span>
+          <span style="font-size: 14px; color: {{f.text}}">{{f.name}}</span>
+          <sc-if value="{{f.deluxe}}" hint-placeholder-val="{{ false }}">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #14110F; background: #EFE6D2; padding: 1px 5px; border-radius: 4px; margin-top: -4px">DELUXE</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 16px">{{current.name}}</span>
+      <span style="font-size: 14px; color: #ABA298">{{current.note}}</span>
+    </div>
+
+    <span style="font-size: 14px; color: #ABA298; border-top: 1px solid rgba(239,233,223,.14); padding-top: 16px">Walnut and Oak come with Miziki; Teak, Ash and Black ash come with Deluxe. Friends who visit your crate see it in your finish.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pick: 'walnut' };
+  }
+  renderVals() {
+    const L = [
+      { id: 'walnut', name: 'Walnut', note: 'Deep and warm, with a dark grain. The default.', base: '#5A3A24', hi: '#7C5838', line: 'rgba(28,14,6,.45)' },
+      { id: 'oak', name: 'Oak', note: 'Honey-gold with an open, lively grain.', base: '#B8894F', hi: '#D7AE73', line: 'rgba(96,60,24,.34)' },
+      { id: 'teak', name: 'Teak', note: 'Mid-century orange-brown.', base: '#8F5A2E', hi: '#B57A45', line: 'rgba(56,28,8,.40)' },
+      { id: 'ash', name: 'Ash', note: 'Pale and light, with a fine straight grain.', base: '#D8C6A4', hi: '#EEE2C8', line: 'rgba(130,104,70,.32)' },
+      { id: 'black', name: 'Black ash', note: 'Stained near-black; the grain still shows through.', base: '#2B2623', hi: '#3F3833', line: 'rgba(0,0,0,.50)' }
+    ];
+    const cur = L.find((x) => x.id === this.state.pick) || L[0];
+    return {
+      finish: cur.id,
+      current: cur,
+      finishes: L.map((x) => ({
+        name: x.name,
+        deluxe: ['teak', 'ash', 'black'].includes(x.id),
+        on: x.id === cur.id ? 'true' : 'false',
+        ring: x.id === cur.id ? '0 0 0 2px #EFE9DF' : '0 0 0 1px rgba(239,233,223,.18)',
+        text: x.id === cur.id ? '#EFE9DF' : '#ABA298',
+        wood: 'repeating-linear-gradient(178deg, ' + x.line + ' 0px, ' + x.line + ' 1px, transparent 1px, transparent 5px), linear-gradient(160deg, ' + x.hi + ' 0%, ' + x.base + ' 100%)',
+        pick: () => this.setState({ pick: x.id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

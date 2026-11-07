@@ -150,6 +150,8 @@ Grounded in a reading of *In the Groove*, *Practical Musicology*, *Retromania*, 
 
 ## GS8: the wall and the shelves
 
+**The cube shelving's look is superseded by docs/32_SHELF_AND_TURNTABLES.md** (rendered unit, turntable on top).
+
 > Read CLAUDE.md, the README (frames `HomeShelf`, `FriendShelf`) and `docs/24_QUIET_COUNTS.md` first.
 >
 > 1. **In rotation, 5 pins:** rename Staff picks → "in rotation" everywhere it's shown (sticker text "must hear" stays). New migration: `pin_rank between 1 and 5` (never edit `001_schema.sql`). Client limit 5.

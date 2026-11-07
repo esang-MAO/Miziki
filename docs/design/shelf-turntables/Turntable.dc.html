@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Turntable</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.a{position:absolute}
+.rec{position:absolute;border-radius:50%;background:radial-gradient(ellipse at 50% 50%,#2A272C 0%,#141216 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.lab{position:absolute;border-radius:50%;background:#E9A24A}
+.chrome{background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
+.lab{display:none}
+.rec{background:none !important;box-shadow:none !important;overflow:visible}
+.rec::before{content:'';position:absolute;left:0;top:50%;width:100%;aspect-ratio:1;border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%,#14110F 0,#14110F 2.2%,rgba(0,0,0,0) 2.6%),
+    linear-gradient(#2A1B38,#2A1B38) 60% 45% / 13% 3.5% no-repeat,
+    linear-gradient(#2A1B38,#2A1B38) 38% 58% / 7% 2.5% no-repeat,
+    radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
+    repeating-radial-gradient(circle at 50% 50%,#141216 0px,#141216 1px,#24212A 1px,#24212A 3px);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06);
+  transform:translateY(-50%) scaleY(.11) rotate(0deg);
+  animation:mz-spin 1.8s linear infinite}
+@keyframes mz-spin{from{transform:translateY(-50%) scaleY(.11) rotate(0deg)}to{transform:translateY(-50%) scaleY(.11) rotate(360deg)}}
+.uplab{background:
+    linear-gradient(#2A1B38,#2A1B38) 64% 38% / 26% 9% no-repeat,
+    linear-gradient(#2A1B38,#2A1B38) 30% 66% / 16% 7% no-repeat,
+    #E9A24A !important;animation:mz-turn 1.8s linear infinite}
+@keyframes mz-turn{to{transform:rotate(360deg)}}
+.paused .rec::before,.paused .uplab{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.rec::before,.uplab{animation:none}}
+</style>
+</helmet>
+<div class="{{pc}}" style="width: 200px; height: 112px; position: relative">
+
+  <sc-if value="{{is.standard}}" hint-placeholder-val="{{ true }}">
+    <div class="a" style="left: 14px; top: 107px; width: 16px; height: 6px; border-radius: 2px; background: #111"></div>
+    <div class="a" style="left: 152px; top: 107px; width: 16px; height: 6px; border-radius: 2px; background: #111"></div>
+    <div class="a" style="left: 4px; top: 78px; width: 176px; height: 30px; border-radius: 3px; background: linear-gradient(180deg, #3A3735 0%, #1E1C1B 18%, #171514 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.14)"></div>
+    <div class="a" style="left: 14px; top: 92px; width: 6px; height: 6px; border-radius: 50%; background: #E9A24A; opacity: .8"></div>
+    <div class="a chrome" style="left: 18px; top: 70px; width: 148px; height: 9px; border-radius: 2px"></div>
+    <div class="rec" style="left: 19px; top: 61px; width: 146px; height: 16px"></div>
+    <div class="lab" style="left: 69px; top: 66px; width: 46px; height: 6px"></div>
+    <div class="a chrome" style="left: 157px; top: 48px; width: 7px; height: 31px; border-radius: 2px"></div>
+    <div class="a" style="left: 164px; top: 46px; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #CFCAC3, #55524E)"></div>
+    <div class="a" style="left: 110px; top: 66px; width: 54px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #E6E1DA, #8A857F); transform: rotate(-17deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 104px; top: 64px; width: 12px; height: 6px; border-radius: 1px; background: #2B2826; transform: rotate(-17deg)"></div>
+  </sc-if>
+
+  <sc-if value="{{is.console}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 6px; top: 2px; width: 188px; height: 70px; border-radius: 4px 4px 0 0; background: linear-gradient(170deg, rgba(120,104,96,.42) 0%, rgba(50,42,38,.30) 60%, rgba(30,26,24,.38) 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.35)"></div>
+    <div class="a" style="left: 24px; top: 8px; width: 60px; height: 50px; background: linear-gradient(120deg, rgba(255,255,255,.14), rgba(255,255,255,0) 60%)"></div>
+    <div class="a" style="left: 0; top: 74px; width: 196px; height: 34px; border-radius: 2px; background: repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #7C5838 0%, #5A3A24 60%, #46301E 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.18)"></div>
+    <div class="a chrome" style="left: 0; top: 74px; width: 196px; height: 3px"></div>
+    <div class="a" style="left: 14px; top: 88px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)"></div>
+    <div class="a" style="left: 30px; top: 88px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)"></div>
+    <div class="a" style="left: 6px; top: 108px; width: 184px; height: 4px; background: #21160E"></div>
+    <div class="a chrome" style="left: 22px; top: 66px; width: 140px; height: 9px; border-radius: 2px"></div>
+    <div class="rec" style="left: 23px; top: 57px; width: 138px; height: 15px"></div>
+    <div class="lab" style="left: 70px; top: 62px; width: 44px; height: 6px"></div>
+    <div class="a chrome" style="left: 170px; top: 52px; width: 6px; height: 23px; border-radius: 2px"></div>
+    <div class="a" style="left: 112px; top: 60px; width: 60px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #F0EBE4, #8A857F); transform: rotate(-6deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 106px; top: 59px; width: 11px; height: 6px; border-radius: 1px; background: #C9C4BD"></div>
+  </sc-if>
+
+  <sc-if value="{{is.deck}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 8px; top: 102px; width: 26px; height: 10px; border-radius: 3px 3px 6px 6px; background: linear-gradient(180deg, #2A2827, #0C0B0B)"></div>
+    <div class="a" style="left: 166px; top: 102px; width: 26px; height: 10px; border-radius: 3px 3px 6px 6px; background: linear-gradient(180deg, #2A2827, #0C0B0B)"></div>
+    <div class="a" style="left: 0; top: 78px; width: 200px; height: 26px; border-radius: 4px; background: linear-gradient(180deg, #4A4846 0%, #262423 20%, #1A1918 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.18)"></div>
+    <div class="a" style="left: 10px; top: 86px; width: 26px; height: 10px; border-radius: 2px; background: linear-gradient(180deg, #5A5856, #2E2C2B); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08)"></div>
+    <div class="a" style="left: 10px; top: 54px; width: 4px; height: 26px; background: linear-gradient(90deg, #9C978F, #E3DED7, #8A857F)"></div>
+    <div class="a" style="left: 8px; top: 50px; width: 8px; height: 6px; border-radius: 2px; background: #EFE9DF; box-shadow: 0 0 6px rgba(239,233,223,.55)"></div>
+    <div class="a" style="left: 22px; top: 68px; width: 150px; height: 11px; border-radius: 2px; background: repeating-linear-gradient(90deg, #C9C4BD 0px, #C9C4BD 3px, #6E6A66 3px, #6E6A66 6px)"></div>
+    <div class="rec" style="left: 23px; top: 59px; width: 148px; height: 16px"></div>
+    <div class="lab" style="left: 74px; top: 64px; width: 46px; height: 6px"></div>
+    <div class="a" style="left: 170px; top: 50px; width: 8px; height: 30px; border-radius: 2px; background: linear-gradient(90deg, #2A2827, #5A5856, #1E1C1B)"></div>
+    <div class="a" style="left: 176px; top: 46px; width: 14px; height: 10px; border-radius: 3px; background: linear-gradient(180deg, #3A3836, #141312)"></div>
+    <div class="a" style="left: 140px; top: 52px; width: 34px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #E6E1DA, #8A857F); transform: rotate(12deg); transform-origin: 100% 50%"></div>
+    <div class="a" style="left: 112px; top: 58px; width: 32px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #E6E1DA, #8A857F); transform: rotate(-10deg); transform-origin: 100% 50%"></div>
+    <div class="a" style="left: 106px; top: 60px; width: 12px; height: 6px; border-radius: 1px; background: #1A1918"></div>
+  </sc-if>
+
+  <sc-if value="{{is.clear}}" hint-placeholder-val="{{ false }}">
+    <div class="a chrome" style="left: 14px; top: 98px; width: 10px; height: 14px; clip-path: polygon(0 0, 100% 0, 50% 100%)"></div>
+    <div class="a chrome" style="left: 160px; top: 98px; width: 10px; height: 14px; clip-path: polygon(0 0, 100% 0, 50% 100%)"></div>
+    <div class="a" style="left: 2px; top: 82px; width: 182px; height: 16px; border-radius: 2px; background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(200,220,230,.10) 50%, rgba(255,255,255,.18) 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), inset 0 1px 0 rgba(255,255,255,.6)"></div>
+    <div class="a" style="left: 2px; top: 60px; width: 22px; height: 22px; border-radius: 3px; background: linear-gradient(90deg, #6E6A66, #D6D1CA 35%, #8E8984 70%, #5A5652)"></div>
+    <div class="a" style="left: 18px; top: 72px; width: 20px; height: 1px; background: #1A1816"></div>
+    <div class="a" style="left: 34px; top: 66px; width: 130px; height: 14px; border-radius: 2px; background: linear-gradient(180deg, rgba(255,255,255,.32), rgba(210,225,235,.14)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4)"></div>
+    <div class="rec" style="left: 35px; top: 58px; width: 128px; height: 14px"></div>
+    <div class="lab" style="left: 79px; top: 62px; width: 40px; height: 5px"></div>
+    <div class="a" style="left: 168px; top: 52px; width: 5px; height: 31px; background: linear-gradient(90deg, #8E8984, #E3DED7, #77736E)"></div>
+    <div class="a" style="left: 120px; top: 60px; width: 50px; height: 2px; background: #141210; transform: rotate(-9deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 114px; top: 58px; width: 10px; height: 5px; border-radius: 1px; background: #141210"></div>
+  </sc-if>
+
+  <sc-if value="{{is.suitcase}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 8px; top: 0; width: 184px; height: 60px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #E8DFCC, #CFC4AE); box-shadow: inset 0 0 0 5px #8E2F2A"></div>
+    <div class="a" style="left: 20px; top: 10px; width: 160px; height: 42px; border-radius: 3px; background: repeating-radial-gradient(circle at 50% 50%, rgba(80,60,40,.0) 0px, rgba(80,60,40,0) 3px, rgba(80,60,40,.22) 3px, rgba(80,60,40,.22) 4px)"></div>
+    <div class="a" style="left: 8px; top: 60px; width: 184px; height: 6px; background: #6E2420"></div>
+    <div class="a chrome" style="left: 30px; top: 58px; width: 126px; height: 8px; border-radius: 2px"></div>
+    <div class="rec" style="left: 31px; top: 50px; width: 124px; height: 14px"></div>
+    <div class="lab" style="left: 74px; top: 54px; width: 38px; height: 5px"></div>
+    <div class="a" style="left: 160px; top: 46px; width: 5px; height: 16px; background: #EFE9DF"></div>
+    <div class="a" style="left: 112px; top: 52px; width: 50px; height: 3px; border-radius: 2px; background: #EFE9DF; transform: rotate(-8deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 4px; top: 66px; width: 192px; height: 42px; border-radius: 0 0 6px 6px; background: repeating-linear-gradient(135deg, rgba(0,0,0,.05) 0px, rgba(0,0,0,.05) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #B5483F, #8E2F2A); box-shadow: inset 0 1px 0 rgba(255,255,255,.22)"></div>
+    <div class="a" style="left: 64px; top: 74px; width: 72px; height: 26px; border-radius: 3px; background: repeating-radial-gradient(circle, #2A1B18 0px, #2A1B18 1px, #4A2420 1px, #4A2420 3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.4)"></div>
+    <div class="a chrome" style="left: 20px; top: 82px; width: 14px; height: 8px; border-radius: 2px"></div>
+    <div class="a chrome" style="left: 166px; top: 82px; width: 14px; height: 8px; border-radius: 2px"></div>
+    <div class="a" style="left: 4px; top: 107px; width: 192px; height: 5px; background: #3A1512"></div>
+  </sc-if>
+
+  <sc-if value="{{is.broadcast}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 6px; top: 104px; width: 188px; height: 8px; background: #1A1C1E"></div>
+    <div class="a" style="left: 0; top: 66px; width: 200px; height: 40px; border-radius: 3px; background: repeating-radial-gradient(circle at 30% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #8D949A 0%, #6A7177 30%, #555B60 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.3)"></div>
+    <div class="a" style="left: 12px; top: 78px; width: 28px; height: 14px; border-radius: 2px; background: #1C1E20; box-shadow: inset 0 0 0 1px rgba(255,255,255,.15)"></div>
+    <div class="a" style="left: 16px; top: 82px; width: 8px; height: 6px; background: #E9A24A; opacity: .75"></div>
+    <div class="a" style="left: 156px; top: 76px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #2A2C2E, #0E0F10)"></div>
+    <div class="a chrome" style="left: 10px; top: 54px; width: 160px; height: 13px; border-radius: 2px"></div>
+    <div class="rec" style="left: 18px; top: 46px; width: 144px; height: 16px"></div>
+    <div class="lab" style="left: 68px; top: 51px; width: 44px; height: 6px"></div>
+    <div class="a" style="left: 178px; top: 22px; width: 9px; height: 46px; border-radius: 2px; background: linear-gradient(90deg, #3A3D40, #8D949A, #2E3134)"></div>
+    <div class="a" style="left: 182px; top: 18px; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #8D949A, #2E3134)"></div>
+    <div class="a" style="left: 104px; top: 50px; width: 82px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #2E3134, #0E0F10); transform: rotate(-20deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 98px; top: 48px; width: 12px; height: 7px; border-radius: 1px; background: #0E0F10"></div>
+  </sc-if>
+
+  <sc-if value="{{is.horn}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 92px; top: 2px; width: 100px; height: 72px; border-radius: 50%; background: radial-gradient(ellipse at 50% 55%, #1C120A 0%, #3E2812 28%, #8A6228 55%, #D9AE5C 80%, #8A6228 100%); box-shadow: 0 2px 6px rgba(0,0,0,.45)"></div>
+    <div class="a" style="left: 118px; top: 58px; width: 16px; height: 22px; background: linear-gradient(90deg, #8A6228, #D9AE5C, #6E4C1E); transform: rotate(-30deg)"></div>
+    <div class="a" style="left: 20px; top: 74px; width: 130px; height: 34px; border-radius: 2px; background: repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #8A5C34 0%, #5A3A24 70%, #46301E 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 3px rgba(0,0,0,.18)"></div>
+    <div class="a" style="left: 30px; top: 82px; width: 110px; height: 18px; border: 1px solid rgba(217,174,92,.45)"></div>
+    <div class="a" style="left: 6px; top: 86px; width: 16px; height: 4px; background: linear-gradient(180deg, #D9AE5C, #8A6228)"></div>
+    <div class="a" style="left: 2px; top: 80px; width: 6px; height: 14px; border-radius: 2px; background: #2B1A0E"></div>
+    <div class="a" style="left: 28px; top: 68px; width: 112px; height: 7px; border-radius: 2px; background: #2E2014"></div>
+    <div class="rec" style="left: 32px; top: 60px; width: 104px; height: 12px"></div>
+    <div class="lab" style="left: 69px; top: 63px; width: 30px; height: 5px"></div>
+    <div class="a" style="left: 104px; top: 62px; width: 26px; height: 5px; border-radius: 2px; background: linear-gradient(180deg, #D9AE5C, #8A6228); transform: rotate(-20deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 18px; top: 108px; width: 134px; height: 4px; background: #24170D"></div>
+  </sc-if>
+
+  <sc-if value="{{is.linear}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 6px; top: 106px; width: 188px; height: 6px; background: #121212"></div>
+    <div class="a" style="left: 0; top: 82px; width: 200px; height: 25px; border-radius: 2px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #E4E1DC 0%, #B9B5AF 40%, #8E8A85 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7)"></div>
+    <div class="a" style="left: 10px; top: 90px; width: 64px; height: 9px; border-radius: 1px; background: #1A1A1A"></div>
+    <div class="a" style="left: 14px; top: 93px; width: 4px; height: 3px; background: #D9534A"></div>
+    <div class="a" style="left: 140px; top: 90px; width: 12px; height: 9px; border-radius: 1px; background: #2A2A2A"></div>
+    <div class="a" style="left: 156px; top: 90px; width: 12px; height: 9px; border-radius: 1px; background: #2A2A2A"></div>
+    <div class="a" style="left: 172px; top: 90px; width: 12px; height: 9px; border-radius: 1px; background: #2A2A2A"></div>
+    <div class="a" style="left: 28px; top: 76px; width: 144px; height: 7px; border-radius: 2px; background: #1C1C1C"></div>
+    <div class="rec" style="left: 29px; top: 67px; width: 142px; height: 15px"></div>
+    <div class="lab" style="left: 78px; top: 71px; width: 44px; height: 6px"></div>
+    <div class="a" style="left: 10px; top: 44px; width: 180px; height: 8px; border-radius: 2px; background: linear-gradient(180deg, #D6D2CC, #8E8A85)"></div>
+    <div class="a" style="left: 4px; top: 40px; width: 10px; height: 44px; border-radius: 2px; background: linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)"></div>
+    <div class="a" style="left: 186px; top: 40px; width: 10px; height: 44px; border-radius: 2px; background: linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)"></div>
+    <div class="a" style="left: 92px; top: 50px; width: 18px; height: 10px; border-radius: 2px; background: #1C1C1C"></div>
+    <div class="a" style="left: 99px; top: 58px; width: 4px; height: 12px; background: #2A2A2A"></div>
+  </sc-if>
+
+  <sc-if value="{{is.upright}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 46px; top: 100px; width: 108px; height: 12px; border-radius: 2px; background: linear-gradient(180deg, #F2EEE8, #C9C4BD); box-shadow: 0 2px 4px rgba(0,0,0,.35)"></div>
+    <div class="a" style="left: 96px; top: 88px; width: 8px; height: 14px; background: linear-gradient(90deg, #C9C4BD, #F2EEE8, #A9A49D)"></div>
+    <div class="a" style="left: 52px; top: 0; width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #F2EEE8, #BDB8B1); box-shadow: 0 2px 6px rgba(0,0,0,.4)"></div>
+    <div class="a" style="left: 57px; top: 5px; width: 86px; height: 86px; border-radius: 50%; background: repeating-radial-gradient(circle, #141216 0px, #141216 1px, #222026 1px, #222026 2.5px); box-shadow: inset 0 1px 0 rgba(255,255,255,.12)"></div>
+    <div class="a uplab" style="left: 86px; top: 34px; width: 28px; height: 28px; border-radius: 50%"></div>
+    <div class="a" style="left: 97px; top: 45px; width: 6px; height: 6px; border-radius: 50%; background: #14110F"></div>
+    <div class="a" style="left: 150px; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: #8A857F"></div>
+    <div class="a" style="left: 116px; top: 12px; width: 38px; height: 3px; border-radius: 2px; background: linear-gradient(180deg, #E6E1DA, #8A857F); transform: rotate(150deg); transform-origin: 100% 50%"></div>
+  </sc-if>
+
+  <sc-if value="{{is.slate}}" hint-placeholder-val="{{ false }}">
+    <div class="a chrome" style="left: 14px; top: 104px; width: 14px; height: 8px; clip-path: polygon(0 0, 100% 0, 70% 100%, 30% 100%)"></div>
+    <div class="a chrome" style="left: 172px; top: 104px; width: 14px; height: 8px; clip-path: polygon(0 0, 100% 0, 70% 100%, 30% 100%)"></div>
+    <div class="a" style="left: 0; top: 72px; width: 200px; height: 33px; border-radius: 2px; background: repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,.03) 0px, rgba(255,255,255,.03) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(176deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 2px, transparent 2px, transparent 9px), linear-gradient(180deg, #4E545A 0%, #3A3F44 40%, #2C3034 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.18)"></div>
+    <div class="a" style="left: 20px; top: 60px; width: 150px; height: 13px; border-radius: 2px; background: linear-gradient(180deg, #2A2A2C, #121214); box-shadow: inset 0 1px 0 rgba(255,255,255,.12)"></div>
+    <div class="rec" style="left: 21px; top: 52px; width: 148px; height: 16px"></div>
+    <div class="lab" style="left: 72px; top: 57px; width: 46px; height: 6px"></div>
+    <div class="a" style="left: 176px; top: 44px; width: 8px; height: 30px; border-radius: 2px; background: linear-gradient(90deg, #1E1E20, #4A4A4E, #141416)"></div>
+    <div class="a" style="left: 116px; top: 52px; width: 64px; height: 3px; border-radius: 2px; background: #0E0E10; transform: rotate(-12deg); transform-origin: 0 50%"></div>
+    <div class="a" style="left: 110px; top: 51px; width: 11px; height: 6px; border-radius: 1px; background: #0E0E10"></div>
+  </sc-if>
+
+  <sc-if value="{{is.radiogram}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 14px; top: 100px; width: 6px; height: 12px; background: #2E1D11; transform: skewX(8deg)"></div>
+    <div class="a" style="left: 180px; top: 100px; width: 6px; height: 12px; background: #2E1D11; transform: skewX(-8deg)"></div>
+    <div class="a" style="left: 92px; top: 0; width: 108px; height: 58px; border-radius: 2px 2px 0 0; background: repeating-linear-gradient(90.5deg, rgba(28,14,6,.35) 0px, rgba(28,14,6,.35) 1px, transparent 1px, transparent 6px), linear-gradient(90deg, #4A301E, #6E4A30); box-shadow: inset 0 0 0 2px rgba(0,0,0,.25)"></div>
+    <div class="a" style="left: 0; top: 56px; width: 200px; height: 46px; border-radius: 2px; background: repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #7C5838 0%, #5A3A24 60%, #46301E 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.2)"></div>
+    <div class="a" style="left: 8px; top: 64px; width: 84px; height: 32px; border-radius: 2px; background: repeating-linear-gradient(45deg, #A88A5A 0px, #A88A5A 1px, #7A6240 1px, #7A6240 3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.3)"></div>
+    <div class="a" style="left: 102px; top: 66px; width: 88px; height: 12px; border-radius: 2px; background: linear-gradient(180deg, #F3E7C8, #D8C59A); box-shadow: 0 0 8px rgba(243,231,200,.35)"></div>
+    <div class="a" style="left: 140px; top: 66px; width: 2px; height: 12px; background: #8E2F2A"></div>
+    <div class="a" style="left: 112px; top: 84px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)"></div>
+    <div class="a" style="left: 170px; top: 84px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)"></div>
+    <div class="rec" style="left: 10px; top: 46px; width: 104px; height: 12px"></div>
+    <div class="lab" style="left: 47px; top: 49px; width: 30px; height: 5px"></div>
+    <div class="a" style="left: 70px; top: 49px; width: 40px; height: 3px; background: #C9C4BD; transform: rotate(-8deg); transform-origin: 0 50%"></div>
+  </sc-if>
+
+  <sc-if value="{{is.lathe}}" hint-placeholder-val="{{ false }}">
+    <div class="a" style="left: 0; top: 76px; width: 200px; height: 36px; border-radius: 3px; background: repeating-radial-gradient(circle at 60% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #7C8A7A 0%, #5E6B5E 35%, #48534A 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.3)"></div>
+    <div class="a" style="left: 10px; top: 86px; width: 40px; height: 16px; border-radius: 2px; background: #1C201D; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12)"></div>
+    <div class="a" style="left: 14px; top: 90px; width: 30px; height: 8px; background: linear-gradient(90deg, #EFE6D2 0%, #EFE6D2 60%, #3A403B 60%)"></div>
+    <div class="a chrome" style="left: 12px; top: 66px; width: 150px; height: 11px; border-radius: 2px"></div>
+    <div class="rec" style="left: 13px; top: 57px; width: 148px; height: 16px; background: radial-gradient(ellipse, #3A3540 0%, #1A161C 70%)"></div>
+    <div class="lab" style="left: 64px; top: 62px; width: 46px; height: 6px"></div>
+    <div class="a" style="left: 40px; top: 30px; width: 156px; height: 8px; border-radius: 2px; background: linear-gradient(180deg, #A9B3A8, #5E6B5E)"></div>
+    <div class="a" style="left: 186px; top: 30px; width: 10px; height: 48px; border-radius: 2px; background: linear-gradient(90deg, #48534A, #A9B3A8, #3A433B)"></div>
+    <div class="a" style="left: 96px; top: 36px; width: 26px; height: 20px; border-radius: 3px; background: linear-gradient(180deg, #3A403B, #1C201D)"></div>
+    <div class="a" style="left: 106px; top: 54px; width: 4px; height: 8px; background: #C9C4BD"></div>
+    <div class="a" style="left: 118px; top: 8px; width: 10px; height: 30px; border-radius: 3px; background: linear-gradient(90deg, #1C201D, #4A524C, #141714); transform: rotate(-22deg)"></div>
+    <div class="a" style="left: 128px; top: 4px; width: 12px; height: 8px; border-radius: 2px; background: #1C201D; transform: rotate(-22deg)"></div>
+    <div class="a" style="left: 74px; top: 14px; width: 28px; height: 28px; border-radius: 50% 50% 0 0; border: 3px solid #2A2F2B; border-bottom: 0; transform: rotate(-30deg)"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"model":{"editor":"enum","options":["standard","console","deck","clear","suitcase","broadcast","horn","linear","upright","slate","radiogram","lathe"],"default":"standard"},"spinning":{"editor":"boolean","default":true},"$preview":{"width":200,"height":112}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.model || 'standard';
+    const ids = ['standard', 'console', 'deck', 'clear', 'suitcase', 'broadcast', 'horn', 'linear', 'upright', 'slate', 'radiogram', 'lathe'];
+    const is = {};
+    ids.forEach((id) => { is[id] = id === m; });
+    if (!ids.includes(m)) is.standard = true;
+    const s = this.props.spinning;
+    return { is, pc: (s === false || s === 'false') ? 'paused' : 'playing' };
+  }
+}
+</script>
+</body>
+</html>

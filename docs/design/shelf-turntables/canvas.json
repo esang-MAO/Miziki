@@ -1,0 +1,21 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-07T16:50:00Z"},
+  "title": "Miziki Shelf Finishes",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 1560, "title": "Profile — record spins while playing (tap the mini-player); finish and turntable are Tweaks", "is_interactive": true},
+    "ShelfFinish.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Edit crate › Shelf finish (Deluxe)", "is_interactive": true},
+    "ShelfUnit.dc.html": {"x": 940, "y": 0, "w": 342, "h": 640, "title": "Shelf unit (component)"},
+    "FinishLineup.dc.html": {"x": 0, "y": 1680, "w": 2030, "h": 800, "title": "The five finishes"},
+    "TurntableLineup.dc.html": {"x": 0, "y": 2900, "w": 1780, "h": 860, "title": "The twelve turntables — how each is found (spec; never shown in the app)"},
+    "TurntablePick.dc.html": {"x": 0, "y": 3880, "w": 390, "h": 844, "title": "Edit crate › Turntable (a Deluxe listener who has found three more)", "is_interactive": true},
+    "Turntable.dc.html": {"x": 470, "y": 3880, "w": 200, "h": 112, "title": "Turntable (component)"}
+  },
+  "order": ["Main.dc.html", "ShelfFinish.dc.html", "ShelfUnit.dc.html", "FinishLineup.dc.html", "TurntableLineup.dc.html", "TurntablePick.dc.html", "Turntable.dc.html"],
+  "notes": {
+    "t1": {"x": 0, "y": 2620, "text": "Turntables", "kind": "title1", "maxW": 1780}
+  },
+  "designSystems": []
+}
