@@ -82,18 +82,23 @@ const MODEL_PARTS = {
   lathe: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'rec'},{c:'s6'},{c:'s7'},{c:'s8'},{c:'s9'},{c:'s10'},{c:'s11'},{c:'s12'}],
 };
 
-// `hasRecord` draws the record on the platter (art as its background, so
-// it reads as that album rather than a generic disc); `spinning` toggles
-// the CSS animation (ST5, docs/32_SHELF_AND_TURNTABLES.md) that turns the
-// `.tt-rec`/`.tt-rec-uplab` disc continuously while playing -- paused,
-// `.tt-paused` (18-storefront.css) keeps it stopped exactly where it is,
-// the same "pause in place, not reset to 0deg" rule the main platter's
-// own #disc transform already follows. `turnSeconds` is seconds per
-// revolution (60 / rpm, already rate-adjusted by the caller -- storefront.
-// js's shelfUnitTurntableInfo()); only meaningful while spinning, so a
-// default covers every caller (both sheets' own static previews) that
-// never passes one.
-export function renderTurntable(model, hasRecord, art, spinning, turnSeconds){
+// `hasRecord` draws the record on the platter; `discBg` is the album's
+// own resolved pressing -- record-art/looks.js's discLook(t).bg, the same
+// shared surface the full player's #disc, the gatefold's sleeve-pocket
+// disc, and the gatefold-to-player hand-off ghost disc all already paint
+// with, so a record's color/pattern/rare pressing/metal never differs
+// here from what the library actually shows (storefront.js's
+// shelfUnitTurntableInfo() resolves it; both sheets' own static previews
+// pass null for a plain generic disc instead, same as before). `spinning`
+// toggles the CSS animation (ST5, docs/32_SHELF_AND_TURNTABLES.md) that
+// turns the `.tt-rec`/`.tt-rec-uplab` disc continuously while playing --
+// paused, `.tt-paused` (18-storefront.css) keeps it stopped exactly where
+// it is, the same "pause in place, not reset to 0deg" rule the main
+// platter's own #disc transform already follows. `turnSeconds` is seconds
+// per revolution (60 / rpm, already rate-adjusted by the caller); only
+// meaningful while spinning, so a default covers every caller that never
+// passes one.
+export function renderTurntable(model, hasRecord, discBg, spinning, turnSeconds){
   const m = MODEL_PARTS[model] ? model : 'standard';
   const wrap = el('div', 'tt tt-' + m);
   wrap.setAttribute('aria-hidden', 'true');
@@ -104,7 +109,7 @@ export function renderTurntable(model, hasRecord, art, spinning, turnSeconds){
     if(part.c === 'rec' || part.c === 'uplab'){
       const rec = el('span', 'tt-rec' + (part.c === 'uplab' ? ' tt-rec-uplab' : ''));
       if(hasRecord){
-        if(art) rec.style.backgroundImage = 'url("' + art + '")';
+        if(discBg) rec.style.background = discBg;
         else rec.classList.add('tt-rec--blank');
       } else {
         rec.classList.add('tt-rec--empty');

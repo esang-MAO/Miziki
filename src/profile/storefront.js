@@ -2,8 +2,9 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
-import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
+import { albumKey, trackTier, albumPressingTrack, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
+import { discLook } from '../record-art/looks.js';
 import { mostRecentlySpunAlbum, crateFlatAlbumOrder } from '../crate/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
@@ -502,8 +503,14 @@ function shelfUnitTurntableInfo(){
     // animation (ST5 point 5's "one CSS animation"), not a second rAF loop.
     const rpm = (S.recordFormat && S.recordFormat.speed) || RPM_33;
     const turnSeconds = 60 / (rpm * (S.platterRate || 1));
+    // ST5 follow-up (Ken, 2026-11-07): the shelf turntable's own record
+    // must show the album's actual pressing -- the same shared
+    // discLook().bg every other disc-showing surface (the full player's
+    // #disc, the gatefold's sleeve-pocket disc, the gatefold-to-player
+    // hand-off ghost) already paints with, not a plain album-art image.
+    const discBg = pressingBgFor(t);
     return {
-      hasRecord: true, art: t.art, spinning: playing, turnSeconds,
+      hasRecord: true, art: discBg, spinning: playing, turnSeconds,
       sleeveArt: t.art, sleeveName: album,
       caption: playing ? 'Now spinning: ' + album + ' · ' + title : 'On the turntable: ' + album + ' · paused',
     };
@@ -515,10 +522,27 @@ function shelfUnitTurntableInfo(){
   const info = adapter.albumInfo(spun.albumId);
   if(!info) return none;
   const art = localAlbumArt(info.title, info.artist);
+  // Same pressing-look resolution as the playing branch above, off
+  // whatever track of this album is still in the library (it may well be
+  // a different physical file than whatever was last spun, but it's the
+  // same pressing either way -- albumPressingTrack()'s own "one pressing
+  // per album" rule, record-art/tiers.js).
+  const repTrack = albumPressingTrack(spun.albumId);
+  const discBg = repTrack ? pressingBgFor(repTrack) : null;
   return {
-    hasRecord: true, art, spinning: false, sleeveArt: art, sleeveName: info.title,
+    hasRecord: true, art: discBg, spinning: false, sleeveArt: art, sleeveName: info.title,
     caption: 'On the turntable: ' + info.title + ' · paused',
   };
+}
+
+// discLook() can throw for a track missing fields a never-played, oddly-
+// tagged file might lack (format/tier lookups it assumes are already
+// resolved) -- caught the same defensive way record-art/peek.js's own
+// peekBackgroundFor() already guards the identical call, so a resolution
+// miss falls back to no background (renderTurntable()'s plain generic
+// disc) rather than breaking the whole shelf unit's render.
+function pressingBgFor(t){
+  try{ return discLook(t).bg; }catch(_e){ return null; }
 }
 
 // ST2 point 2-4: the one rendered shelf unit, replacing both
