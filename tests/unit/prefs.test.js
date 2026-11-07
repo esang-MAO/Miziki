@@ -26,6 +26,7 @@ function fakeS(overrides = {}){
     largerText: false,
     seasonalSky: true,
     showWear: true,
+    deluxe: false,
   }, overrides);
 }
 
@@ -54,6 +55,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     largerText: S.largerText,
     seasonalSky: S.seasonalSky,
     showWear: S.showWear,
+    deluxe: S.deluxe,
   });
 });
 
@@ -546,6 +548,28 @@ test('old saved data: no zoetropesEnabled field at all leaves it out, so the def
   delete raw.zoetropesEnabled;
   const parsed = parsePrefs(raw);
   assert.equal('zoetropesEnabled' in parsed, false);
+});
+
+// ST1 (docs/32_SHELF_AND_TURNTABLES.md): the Deluxe entitlement rides
+// inside prefs with no device-only carve-out — same three-test shape as
+// every other boolean toggle in this file.
+test('round trip: deluxe survives a non-default value', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ deluxe: true })));
+  assert.equal(parsed.deluxe, true);
+});
+
+test('old saved data: no deluxe field at all leaves it out, so the default (off) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.deluxe;
+  const parsed = parsePrefs(raw);
+  assert.equal('deluxe' in parsed, false);
+});
+
+test('bad value: a non-boolean deluxe is dropped, so the default stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  raw.deluxe = 'yes';
+  const parsed = parsePrefs(raw);
+  assert.equal('deluxe' in parsed, false);
 });
 
 test('bad values are ignored: a non-boolean zoetropesEnabled', () => {

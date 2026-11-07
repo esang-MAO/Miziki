@@ -39,6 +39,7 @@ const KNOWN_PREF_KEYS = new Set([
   'mono', 'balance', 'deviceVolume',
   'zoetropesEnabled',
   'largerText',
+  'deluxe',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -90,6 +91,7 @@ export function serializePrefs(S){
     mono: S.mono, balance: S.balance, deviceVolume: S.deviceVolume,
     zoetropesEnabled: S.zoetropesEnabled,
     largerText: S.largerText,
+    deluxe: S.deluxe,
   }, unknownPrefKeys || {});
 }
 
@@ -239,6 +241,11 @@ export function parsePrefs(raw){
   // TY5 (docs/22_TYPE.md): a saved object without this loads as off, the
   // stated default — the same "missing means the default" shape as above.
   if(typeof p.largerText === 'boolean') out.largerText = p.largerText;
+  // ST1 (docs/32_SHELF_AND_TURNTABLES.md): a saved object without this
+  // loads as off, the stated default — the same "missing means the
+  // default" shape as above. A local `?deluxe=` URL switch applies after
+  // this (main.js), so it always wins over whatever was saved/synced.
+  if(typeof p.deluxe === 'boolean') out.deluxe = p.deluxe;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

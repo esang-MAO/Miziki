@@ -524,6 +524,22 @@ test('RF17: an unrelated, later change to one field never clobbers an earlier ch
   assert.deepEqual(merged.itemWrites.albumSort, { 'Album X': 'manual' });
 });
 
+// ST1 (docs/32_SHELF_AND_TURNTABLES.md): S.deluxe rides inside prefs with
+// no carve-out of its own, so it merges via the same per-key last-write-wins
+// rule RF17 established above — last write wins, by timestamp.
+test('ST1: deluxe (inside prefs) merges last write wins, by timestamp', () => {
+  const a = toDoc(baseLocal('a', {
+    prefs: { deluxe: true },
+    updatedAt: { prefs: { deluxe: { seq: 1, at: 100 } } },
+  }));
+  const b = toDoc(baseLocal('b', {
+    prefs: { deluxe: false },
+    updatedAt: { prefs: { deluxe: { seq: 2, at: 500 } } },
+  }));
+  const merged = mergeRows([a, b]);
+  assert.deepEqual(merged.itemWrites.prefs, { deluxe: false });
+});
+
 // AU9 (docs/16_AUDIO.md §5): the personal per-album format override —
 // same per-key last-write-wins shape as albumLookPref/albumSort, just a
 // brand-new field (never existed pre-RF17, so no upconvertToV3 case).

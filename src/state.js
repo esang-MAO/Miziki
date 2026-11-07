@@ -503,6 +503,13 @@ S.paperLabelOnLossy = false;
 // `prefs` with no device-only carve-out — it should follow the account.
 S.largerText = false;
 
+// ST1 (docs/32_SHELF_AND_TURNTABLES.md): the Deluxe entitlement. No
+// purchase exists yet — set only by main.js's dev-only `?deluxe=` URL
+// switch (src/deluxe.js). Follows the account like `theme`'s opposite:
+// it's not a device preference, so unlike `theme` it rides inside `prefs`
+// with no device-only carve-out.
+S.deluxe = false;
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist
