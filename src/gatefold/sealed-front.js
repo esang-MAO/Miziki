@@ -93,7 +93,19 @@ export async function commitPeel(){
   }
   if(!FRONT || FRONT.item !== item) return;
   breakSeal(item.albumId);
-  closeLayer('sealed-front');
+  // {skipHistory:true}: openGatefold()'s own openLayer() pushes a new
+  // history entry in this same synchronous tick, before closeLayer()'s
+  // history.go(-1) (queued, asynchronous -- nav-stack.js's own documented
+  // skipHistory rule) actually lands. Without it, that go(-1) resolves
+  // against the *new* gatefold entry instead of the one it was computed
+  // against, popping back past it onto sealed-front's own now-stale entry
+  // and closing the gatefold that just replaced it -- seen live as the
+  // gatefold opening and then immediately snapping back to the crate.
+  // Safe here the same way the row-menu -> edit/credits hand-off
+  // (src/wiring/library-view.js) is: sealed-front sits directly on a
+  // route, not nested over another open layer, so closing it always
+  // empties the stack.
+  closeLayer('sealed-front', {skipHistory: true});
   openGatefold(item, {});
 }
 
