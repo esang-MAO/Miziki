@@ -33,7 +33,8 @@ import { scheduleDriftRecompute } from './audio/engine.js';
 import { drawSun, frame } from './player/clock.js';
 import { DB } from './storage/idb.js';
 import { storage, tracks } from './storage/repo.js';
-import { restoreMeta } from './storage/meta.js';
+import { restoreMeta, queueSave } from './storage/meta.js';
+import { applyDeluxeUrlSwitch } from './deluxe.js';
 import { restoreResume } from './player/resume.js';
 import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
@@ -183,6 +184,10 @@ async function restoreLibrary(){
   await loadOverlaysBatch(newTracks);
   for(const t of newTracks) S.tracks.push(t);
   await restoreMeta();
+  // ST1 (docs/32_SHELF_AND_TURNTABLES.md): a dev-only URL switch, applied
+  // after the saved value restores so it always wins; queueSave() persists
+  // the override like any other setting change.
+  if(applyDeluxeUrlSwitch(location.search)) queueSave();
   await restoreSessions();
   await restoreSealedAlbums();
   rebuildPeopleIndex();

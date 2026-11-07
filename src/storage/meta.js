@@ -177,6 +177,11 @@ function applyPrefs(p){
   // (document.querySelectorAll) but this one doesn't.
   if(typeof p.largerText === 'boolean') S.largerText = p.largerText;
   applyLargerText();
+  // ST1 (docs/32_SHELF_AND_TURNTABLES.md): no UI side effect here — nothing
+  // visible reads S.deluxe yet (hasDeluxe(), src/deluxe.js, is the only
+  // reader until ST3/ST4 land). main.js's applyDeluxeUrlSwitch() runs after
+  // this and overrides whatever was just restored.
+  if(typeof p.deluxe === 'boolean') S.deluxe = p.deluxe;
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own
   // aria-pressed state here, the same inline shape sleevePullEnabled's own
