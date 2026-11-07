@@ -8,6 +8,7 @@
 // `.tt-rec--blank`'s own centered gradient instead of a second element,
 // the same simplification Standard already shipped with in ST2.
 import { el } from '../util/dom.js';
+import { RPM_33 } from '../record-art/format.js';
 
 export const TURNTABLE_LINEUP = [
   {id: 'standard', label: 'Standard', note: 'The everyday deck.', deluxe: false},
@@ -83,13 +84,20 @@ const MODEL_PARTS = {
 
 // `hasRecord` draws the record on the platter (art as its background, so
 // it reads as that album rather than a generic disc); `spinning` toggles
-// the CSS animation (ST5 wires this to the real play/pause state — until
-// then this file's one caller always passes it paused, since nothing here
-// animates yet).
-export function renderTurntable(model, hasRecord, art, spinning){
+// the CSS animation (ST5, docs/32_SHELF_AND_TURNTABLES.md) that turns the
+// `.tt-rec`/`.tt-rec-uplab` disc continuously while playing -- paused,
+// `.tt-paused` (18-storefront.css) keeps it stopped exactly where it is,
+// the same "pause in place, not reset to 0deg" rule the main platter's
+// own #disc transform already follows. `turnSeconds` is seconds per
+// revolution (60 / rpm, already rate-adjusted by the caller -- storefront.
+// js's shelfUnitTurntableInfo()); only meaningful while spinning, so a
+// default covers every caller (both sheets' own static previews) that
+// never passes one.
+export function renderTurntable(model, hasRecord, art, spinning, turnSeconds){
   const m = MODEL_PARTS[model] ? model : 'standard';
   const wrap = el('div', 'tt tt-' + m);
   wrap.setAttribute('aria-hidden', 'true');
+  wrap.style.setProperty('--tt-turn-dur', (turnSeconds || 60 / RPM_33) + 's');
   if(!spinning) wrap.classList.add('tt-paused');
 
   MODEL_PARTS[m].forEach(part => {

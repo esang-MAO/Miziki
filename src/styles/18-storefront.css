@@ -438,9 +438,28 @@ button.pressing-chip{cursor:pointer}
 .tt-chrome{background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
 .tt-rec{position:absolute;border-radius:50%;
   background:radial-gradient(ellipse at 50% 50%,#2A272C 0%,#141216 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);background-size:cover;background-position:center}
-.tt-rec--blank{background-image:radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
+.tt-rec--blank{background-image:
+    conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.08) 0deg 5deg,rgba(0,0,0,0) 5deg 360deg),
+    radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
     repeating-radial-gradient(circle at 50% 50%,#141216 0px,#141216 1px,#24212A 1px,#24212A 3px)}
 .tt-rec--empty{background:none;box-shadow:none}
+
+/* ST5 (docs/32_SHELF_AND_TURNTABLES.md): "while playing it rotates
+   continuously; paused, the animation pauses in place" -- one plain CSS
+   animation (point 5's own cost model, no second rAF loop), duration set
+   per render as --tt-turn-dur (turntable.js's renderTurntable()) from the
+   same live rpm/Sundown-rate numbers the main platter's own #disc
+   transform already uses. `.tt-paused` (same class renderTurntable()
+   already adds whenever `spinning` is false) stops it exactly where it
+   is -- animation-play-state, not removing the animation, so there's no
+   snap back to 0deg on the next pause/resume. Point 4: no rotation at
+   all under reduced motion. */
+.tt-rec{animation:tt-spin var(--tt-turn-dur, 1.8s) linear infinite}
+.tt-paused .tt-rec{animation-play-state:paused}
+@keyframes tt-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){
+  .tt-rec{animation:none}
+}
 
 .tt-standard .tt-s0{left:7%;top:95.536%;width:8%;height:5.357%;border-radius:1%;background:#111}
 .tt-standard .tt-s1{left:76%;top:95.536%;width:8%;height:5.357%;border-radius:1%;background:#111}

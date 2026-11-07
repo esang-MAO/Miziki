@@ -27,6 +27,7 @@ import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from './shelf-unit.
 import { displayShelfFinish } from './shelf-finish.js';
 import { displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
+import { RPM_33 } from '../record-art/format.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -493,8 +494,16 @@ function shelfUnitTurntableInfo(){
     const playing = !!S.playing;
     const album = t.tags.album || '';
     const title = t.tags.title || '';
+    // ST5 (docs/32_SHELF_AND_TURNTABLES.md point 2): the exact same live
+    // rate/format the main player's own platter already tracks (player/
+    // clock.js's currentBaseRpm()/S.platterRate — already bakes in
+    // Sundown's Slowed-vs-Keep-pitch rule), just read once per render
+    // rather than every frame, since the shelf's own spin is a plain CSS
+    // animation (ST5 point 5's "one CSS animation"), not a second rAF loop.
+    const rpm = (S.recordFormat && S.recordFormat.speed) || RPM_33;
+    const turnSeconds = 60 / (rpm * (S.platterRate || 1));
     return {
-      hasRecord: true, art: t.art, spinning: false,
+      hasRecord: true, art: t.art, spinning: playing, turnSeconds,
       sleeveArt: t.art, sleeveName: album,
       caption: playing ? 'Now spinning: ' + album + ' · ' + title : 'On the turntable: ' + album + ' · paused',
     };
@@ -540,7 +549,7 @@ function storeShelfUnitSection(items, pinIds, onTapAlbum){
   section.appendChild(renderShelfUnit({
     items, faceOutIds, onTapAlbum: id => shelfAlbumTap(id, onTapAlbum),
     model: displayTurntable(S.turntable, S.turntablesFound, hasDeluxe()),
-    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
+    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning, turnSeconds: info.turnSeconds},
     sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
     finish: displayShelfFinish(S.shelfFinish, hasDeluxe()),
   }));
@@ -559,7 +568,7 @@ export function shelfUnitRenderProps(){
   const info = shelfUnitTurntableInfo();
   return {
     items, faceOutIds,
-    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
+    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning, turnSeconds: info.turnSeconds},
     sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
   };
 }
