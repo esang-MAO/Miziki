@@ -222,6 +222,16 @@ test('bad values are ignored: shareFormatByCard not an object at all', () => {
   assert.deepEqual(parsed, {});
 });
 
+// WS4 (docs/33_WALL_AND_LABELS.md): the share sheet dropped the portrait
+// format chip -- a value saved before that change lands on Square, the
+// nearer of the two, rather than being dropped outright.
+test('shareFormatByCard: a previously-saved "portrait" value maps to Square', () => {
+  const parsed = parsePrefs({
+    shareFormatByCard: { nowPlaying: 'portrait', crate: 'story' },
+  });
+  assert.deepEqual(parsed, { shareFormatByCard: { nowPlaying: 'square', crate: 'story' } });
+});
+
 // docs/DESKTOP_LAYOUT.md's own required test case, almost verbatim: "an
 // unlisted value such as 'sepia' is ignored."
 test('bad values are ignored: an unlisted theme value (e.g. "sepia") is ignored', () => {

@@ -67,7 +67,9 @@ function drawRing(ctx, kit, cx, cy, r, shares, total){
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = kit.ink;
-  ctx.font = '700 ' + Math.round(r * 0.5) + 'px Antonio, sans-serif';
+  let numPx = Math.round(r * 0.5);
+  ctx.font = '700 ' + numPx + 'px Antonio, sans-serif';
+  while(numPx > 20 && ctx.measureText(String(total)).width > r * 0.95){ numPx -= 2; ctx.font = '700 ' + numPx + 'px Antonio, sans-serif'; }
   ctx.fillText(String(total), cx, cy - r * 0.06);
   // TY6: metadata is Archivo .num, not mono.
   ctx.font = '500 ' + Math.round(r * 0.14) + 'px Archivo, sans-serif';

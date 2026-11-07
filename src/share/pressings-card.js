@@ -37,14 +37,18 @@ export function sortPressingsNewestFirst(records){
   return [...(records || [])].sort((a, b) => (b.discoveredAt || 0) - (a.discoveredAt || 0));
 }
 
-export function tileCountFor(format){
-  return GRID_COLS * (GRID_ROWS[format] || GRID_ROWS.square);
+// `maxRows`, when given, further caps the format's own row count — WS4:
+// the footer can leave room for fewer rows than the format allows, so the
+// card passes how many rows actually fit above it.
+export function tileCountFor(format, maxRows = Infinity){
+  const rows = Math.max(0, Math.min(GRID_ROWS[format] || GRID_ROWS.square, maxRows));
+  return GRID_COLS * rows;
 }
 
 // null (not an empty string) when everything already fits — the line is
 // omitted outright, per the doc's own "only when there are more."
-export function moreCountText(records, format){
-  const extra = Math.max(0, (records ? records.length : 0) - tileCountFor(format));
+export function moreCountText(records, format, maxRows = Infinity){
+  const extra = Math.max(0, (records ? records.length : 0) - tileCountFor(format, maxRows));
   return extra > 0 ? ('+ ' + extra + ' MORE · NEWEST FIRST') : null;
 }
 
@@ -110,9 +114,12 @@ async function drawTile(ctx, kit, rec, x, y){
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
   let ty = y + TILE_ART_H + TILE_TEXT_GAP + Math.round(TILE_NAME_FONT*0.95);
-  ctx.font = '600 ' + TILE_NAME_FONT + 'px "IBM Plex Mono", monospace';
+  const pname = (def ? def.name : 'Pressing').toUpperCase();
+  let npx = TILE_NAME_FONT;
+  ctx.font = '600 ' + npx + 'px "IBM Plex Mono", monospace';
+  while(npx > 16 && ctx.measureText(pname).width > TILE_W){ npx -= 1; ctx.font = '600 ' + npx + 'px "IBM Plex Mono", monospace'; }
   ctx.fillStyle = scarce ? kit.accent : kit.ink;
-  ctx.fillText(shareFitText(ctx, ((def ? def.name : 'Pressing')).toUpperCase(), TILE_W), x, ty);
+  ctx.fillText(shareFitText(ctx, pname, TILE_W), x, ty);
 
   ty += TILE_TEXT_GAP + Math.round(TILE_TITLE_FONT*0.95);
   ctx.font = '400 ' + TILE_TITLE_FONT + 'px Archivo, sans-serif';
@@ -150,7 +157,10 @@ export async function composePressingsShareImage(opts){
   y += 24;
 
   const records = data.records || [];
-  const shownCount = Math.min(records.length, tileCountFor(format));
+  const FOOTER_RESERVE = 90;
+  const rowsFit = Math.max(1, Math.floor((dim.safeBottom - FOOTER_RESERVE - y + GRID_ROW_GAP) / (TILE_H + GRID_ROW_GAP)));
+  const maxTiles = tileCountFor(format, rowsFit);
+  const shownCount = Math.min(records.length, maxTiles);
   const gridW = GRID_COLS*TILE_W + (GRID_COLS-1)*GRID_COL_GAP;
   const gridLeft = Math.round((w - gridW)/2);
 
@@ -162,7 +172,7 @@ export async function composePressingsShareImage(opts){
   const rowsUsed = Math.ceil(shownCount / GRID_COLS);
   y += rowsUsed*(TILE_H + GRID_ROW_GAP);
 
-  const more = moreCountText(records, format);
+  const more = moreCountText(records, format, rowsFit);
   if(more){
     ctx.textAlign = 'center';
     // TY6: metadata is Archivo .num, not mono.

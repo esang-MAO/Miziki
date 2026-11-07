@@ -140,7 +140,10 @@ export function parsePrefs(raw){
     const sfbc = {};
     ['nowPlaying', 'record', 'pressings', 'crate', 'season'].forEach(card => {
       const v = p.shareFormatByCard[card];
-      if(v === 'story' || v === 'portrait' || v === 'square') sfbc[card] = v;
+      // WS4: the sheet dropped the portrait format chip -- a value saved
+      // before that change lands on Square, the nearer of the two.
+      if(v === 'story' || v === 'square') sfbc[card] = v;
+      else if(v === 'portrait') sfbc[card] = 'square';
     });
     if(Object.keys(sfbc).length) out.shareFormatByCard = sfbc;
   }
