@@ -320,20 +320,33 @@ test('QC3 point 3-4: storeStat never carries the accent class unless explicitly 
   assert.equal(storeStat('In common', 5, true).className, 'store-stat accent', 'the flag itself still works -- nothing left in storefront.js/friend-store.js passes it anymore');
 });
 
-test('GS8 point 1-2: storeWallSection heading has no "of 5", and real picks render framed with no empty slot', () => {
+test('WS1 point 1: storeWallSection heading has no "of 5", and real picks stand on the ledge with no empty pin', () => {
   const pick = { title: 'A Real Pick', artist: 'Someone', release_id: 'a1' };
   const section = storeWallSection([pick]);
   const head = section.kids.find(k => k.className === 'store-section-head');
   assert.equal(head.kids[0].textContent, 'On the wall');
   const caption = section.kids.find(k => k.className === 'store-wall-caption');
   assert.equal(caption.textContent, 'in rotation');
-  const frames = section.kids.find(k => k.className === 'store-wall-frames');
-  assert.equal(frames.kids.length, 1, 'no empty frame alongside the one real pick');
+  const ledge = section.kids.find(k => k.className === 'store-wall-ledge');
+  const pins = ledge.kids.find(k => k.className === 'store-ledge-pins');
+  assert.equal(pins.kids.length, 1, 'no empty pin alongside the one real pick');
 });
 
-test('GS8 point 2: zero picks shows one plain line, no empty frame', () => {
+test('WS1 point 1: only the first pin keeps the "must hear" sticker', () => {
+  const picks = [
+    { title: 'First', artist: 'A', release_id: 'a1' },
+    { title: 'Second', artist: 'B', release_id: 'a2' },
+  ];
+  const section = storeWallSection(picks);
+  const pins = section.kids.find(k => k.className === 'store-wall-ledge')
+    .kids.find(k => k.className === 'store-ledge-pins').kids;
+  assert.ok(pins[0].kids.some(k => k.className === 'store-ledge-sticker'));
+  assert.ok(!pins[1].kids.some(k => k.className === 'store-ledge-sticker'));
+});
+
+test('WS1 point 4: zero picks shows one plain line, no ledge at all', () => {
   const section = storeWallSection([]);
-  assert.equal(section.kids.find(k => k.className === 'store-wall-frames'), undefined);
+  assert.equal(section.kids.find(k => k.className === 'store-wall-ledge'), undefined);
   assert.equal(section.kids.find(k => k.className === 'store-wall-caption'), undefined);
   const line = section.kids.find(k => k.className === 'store-loading');
   assert.equal(line.textContent, 'Pin a record to put it on the wall.');

@@ -424,74 +424,111 @@ async function cycleStoreVisibility(profile, host){
 // "Share what you're spinning" setting it also carried already has its
 // own home on the Privacy screen (src/profile/privacy.js), unchanged.
 
-// GS8 (docs/30_GROOVES_AND_SHELF.md point 2): "On the wall" -- replaces
-// storePicksSection()/storeRecentlyFoundSection() (point 6's removals).
-// Pins 1-3 hang framed, "in rotation" hand-lettered under the heading
-// (QC3's own "found, never counted toward a cap" rule carries over --
-// still no "— N of 5"); below them, the last three pressings or metals
-// found (S.collection + history/achievements.js's achievementsList(),
-// merged and sorted by their own date, newest first) as small discs with
-// a name and a mono line, then "All found ›" into the existing Records
-// screen (QC1: owned-only, no counts). `picks` is the caller's own
-// pin-rank-ordered staffPicks list (localStaffPicks() or full.staffPicks)
-// -- only picks[0..2] hang on the wall; picks[3]/[4] are drawn face-out on
-// the shelves instead (storeShelvesSection() below).
+// WS1 (docs/33_WALL_AND_LABELS.md), superseding GS8 (docs/30_GROOVES_AND_
+// SHELF.md point 2): "On the wall" -- a floating picture ledge for "in
+// rotation" (storeLedge() below, replacing the framed covers) and a wall
+// cubby for the last three pressings/metals found (storeWallCubby(),
+// replacing the loose discs), both built from the shelf unit's own wood
+// finish (--wood-* custom properties, src/profile/shelf-unit.js/
+// 18-storefront.css) via the one `data-finish` attribute set on the
+// section itself. `picks` is the caller's own pin-rank-ordered staffPicks
+// list (localStaffPicks() or full.staffPicks) -- only picks[0..2] stand
+// on the ledge; picks[3]/[4] are drawn face-out on the shelves instead
+// (storeShelvesSection() below).
 export function storeWallSection(picks){
   const section = el('div','store-section store-wall');
+  section.setAttribute('data-finish', displayShelfFinish(S.shelfFinish, hasDeluxe()));
   const head = el('div','store-section-head');
   head.appendChild(el('h2', null, 'On the wall'));
   section.appendChild(head);
   if(picks.length){
     section.appendChild(el('p','store-wall-caption','in rotation'));
-    const frames = el('div','store-wall-frames');
-    picks.slice(0, 3).forEach(p => frames.appendChild(storeFrameTile(p)));
-    section.appendChild(frames);
+    section.appendChild(storeLedge(picks.slice(0, 3)));
   } else {
     section.appendChild(el('p','store-loading','Pin a record to put it on the wall.'));
   }
-  const found = storeWallFoundRow();
-  if(found) section.appendChild(found);
+  const cubby = storeWallCubby();
+  if(cubby) section.appendChild(cubby);
   return section;
 }
 
-function storeFrameTile(pick){
-  const frame = el('div','store-frame');
-  const mat = el('div','store-frame-mat');
-  const cover = el('div','store-frame-cover');
-  const art = localAlbumArt(pick.title, pick.artist);
-  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
-  mat.appendChild(cover);
-  frame.appendChild(mat);
-  frame.appendChild(el('span','store-frame-name', pick.title));
-  return frame;
+// The picture ledge: a full-width wood shelf with a front lip, pins
+// standing behind it tilted back slightly. Pin 1 keeps the "must hear"
+// sticker. Empty pins (fewer than 3 picks) just leave the ledge bare --
+// no placeholders, per docs/24_QUIET_COUNTS.md.
+function storeLedge(picks){
+  const ledge = el('div','store-wall-ledge');
+  ledge.appendChild(el('div','store-ledge-top'));
+  const pins = el('div','store-ledge-pins');
+  picks.forEach((pick, i) => {
+    const pin = el('div','store-ledge-pin');
+    const cover = el('div','store-ledge-cover');
+    const art = localAlbumArt(pick.title, pick.artist);
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    pin.appendChild(cover);
+    if(i === 0) pin.appendChild(el('span','store-ledge-sticker','must hear'));
+    pins.appendChild(pin);
+  });
+  ledge.appendChild(pins);
+  ledge.appendChild(el('div','store-ledge-lip'));
+  // names sit below the lip, outside its overlap band entirely --
+  // "cover text sits clear of the lip" (WS1 point 1).
+  const names = el('div','store-ledge-names');
+  picks.forEach(pick => names.appendChild(el('span','store-ledge-name', pick.title)));
+  ledge.appendChild(names);
+  return ledge;
 }
 
-function storeWallFoundRow(){
+// The wall cubby: one long, three-section shelf (posts, rails, grained
+// back panels, inner shadow -- the same construction as the shelf unit,
+// src/profile/shelf-unit.js), one disc per section on a clear stand, for
+// the last three pressings or metals found (S.collection + history/
+// achievements.js's achievementsList(), merged and sorted by their own
+// date, newest first). Fewer than three found just leaves the remaining
+// sections empty, per docs/24_QUIET_COUNTS.md.
+function storeWallCubby(){
   const found = [
     ...Object.values(S.collection).map(rec => ({rec, kind:'pressing', date: rec.discoveredAt})),
     ...achievementsList().map(rec => ({rec, kind:'metal', date: rec.updatedAt})),
   ].sort((a, b) => b.date - a.date).slice(0, 3);
   if(!found.length) return null;
-  const wrap = el('div','store-wall-found');
-  const row = el('div','store-found-row');
-  found.forEach(({rec, kind, date}) => {
-    const tile = el('div','store-found-tile');
-    const disc = el('div','store-found-disc');
-    disc.style.background = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
-    disc.setAttribute('aria-label', rec.name);
-    tile.appendChild(disc);
-    const label = el('div','store-found-label');
-    label.appendChild(el('b', null, rec.name));
-    label.appendChild(el('span','store-found-mono', kind === 'metal'
-      ? 'METAL · ' + wallMonth(date)
-      : (PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
-    tile.appendChild(label);
-    row.appendChild(tile);
-  });
-  wrap.appendChild(row);
+
+  const wrap = el('div','store-wall-cubby-wrap');
+  const headRow = el('div','store-wall-cubby-head');
+  headRow.appendChild(el('span','store-wall-caption','pressings, found while listening'));
   const link = el('button','store-wall-all','All found ›');
   link.addEventListener('click', ()=>{ S.profileView.screen = 'records'; S.profileView.recordsFilter = 'all'; renderProfile(); });
-  wrap.appendChild(link);
+  headRow.appendChild(link);
+  wrap.appendChild(headRow);
+
+  const cubby = el('div','store-wall-cubby');
+  const captions = el('div','store-wall-cubby-captions');
+  found.forEach(({rec, kind, date}) => {
+    const section = el('div','store-cubby-section');
+    section.appendChild(el('div','store-cubby-back'));
+    const disc = el('div','store-cubby-disc');
+    disc.style.background = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
+    disc.setAttribute('aria-label', rec.name);
+    section.appendChild(disc);
+    section.appendChild(el('div','store-cubby-stand'));
+    section.appendChild(el('div','store-cubby-depth'));
+    cubby.appendChild(section);
+
+    const cap = el('div','store-cubby-caption');
+    cap.appendChild(el('b', null, rec.name));
+    cap.appendChild(el('span','store-found-mono', kind === 'metal'
+      ? 'METAL · ' + wallMonth(date)
+      : (PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
+    captions.appendChild(cap);
+  });
+  cubby.appendChild(el('div','store-cubby-post store-cubby-post--l'));
+  cubby.appendChild(el('div','store-cubby-post store-cubby-post--m1'));
+  cubby.appendChild(el('div','store-cubby-post store-cubby-post--m2'));
+  cubby.appendChild(el('div','store-cubby-post store-cubby-post--r'));
+  cubby.appendChild(el('div','store-cubby-rail store-cubby-rail--top'));
+  cubby.appendChild(el('div','store-cubby-rail store-cubby-rail--bottom'));
+  wrap.appendChild(cubby);
+  wrap.appendChild(captions);
   return wrap;
 }
 
