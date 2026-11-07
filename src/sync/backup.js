@@ -256,6 +256,13 @@ function buildLocalState(){
     playedThrough: S.playedThrough,
     achievements: S.achievements,
     collection: S.collection,
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntablesFound/
+    // turntableProgress are the same posture as achievements/
+    // zoetropeDayProgress above; firstEverPlayedAt is the Slate
+    // turntable's own single account-wide min-merged timestamp.
+    turntablesFound: S.turntablesFound,
+    turntableProgress: S.turntableProgress,
+    firstEverPlayedAt: S.firstEverPlayedAt,
     sealedIds: [...S.sealed],
     brokenSealIds: [...S.sealedBroken],
     overlaysRaw: B.overlaysRawCache || [],
@@ -698,6 +705,10 @@ async function applyMerged(merged, ownLocal, client, uid){
   Object.assign(S.collection, merged.totals.collection);
   // GS2 (docs/30_GROOVES_AND_SHELF.md)
   Object.assign(S.playedThrough, merged.totals.playedThrough);
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntablesFound/turntableProgress
+  // adopt the same way achievements/zoetropeDayProgress do just above.
+  Object.assign(S.turntablesFound, merged.totals.turntablesFound);
+  Object.assign(S.turntableProgress, merged.totals.turntableProgress);
   Object.keys(merged.totals.maxFields.trackLastPlayed).forEach(k => {
     S.trackLastPlayed[k] = Math.max(S.trackLastPlayed[k] || 0, merged.totals.maxFields.trackLastPlayed[k]);
   });
@@ -711,6 +722,11 @@ async function applyMerged(merged, ownLocal, client, uid){
     const incoming = merged.totals.minFields.albumFirstPlayed[k];
     S.albumFirstPlayed[k] = (S.albumFirstPlayed[k] != null) ? Math.min(S.albumFirstPlayed[k], incoming) : incoming;
   });
+  // ST4: firstEverPlayedAt is albumFirstPlayed's scalar twin -- same
+  // min-wins rule, no per-key map to walk.
+  if(merged.totals.firstEverPlayedAt != null){
+    S.firstEverPlayedAt = (S.firstEverPlayedAt != null) ? Math.min(S.firstEverPlayedAt, merged.totals.firstEverPlayedAt) : merged.totals.firstEverPlayedAt;
+  }
   // RF4 (docs/12_REFINE.md): the cross-device counter sums, kept as their
   // own value rather than folded into the per-device counters above (see
   // state.js's own S.mergedStats comment for why, and the readers that use
@@ -1257,6 +1273,10 @@ export function collectLocalDownloadData(){
       zoetropeDayProgress: local.zoetropeDayProgress,
       achievements: local.achievements,
       collection: local.collection,
+      // ST4 (docs/32_SHELF_AND_TURNTABLES.md)
+      turntablesFound: local.turntablesFound,
+      turntableProgress: local.turntableProgress,
+      firstEverPlayedAt: local.firstEverPlayedAt,
       sealedIds: local.sealedIds,
       historyClearedAt: local.historyClearedAt,
       overlays: local.overlaysRaw,

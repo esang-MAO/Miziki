@@ -1,16 +1,85 @@
-// docs/32_SHELF_AND_TURNTABLES.md, ST2: the turntable that sits on top of
-// the shelf unit. Only the Standard model exists until ST4 adds the other
-// eleven (found by listening) plus the picker — any other id falls back to
-// Standard, the same "missing means the default" shape every other saved
-// enum in this app follows. CSS only, drawn at a fixed 200×112 (design
-// `Turntable.dc.html`), scaled by the shelf unit's own container.
+// docs/32_SHELF_AND_TURNTABLES.md, ST2 + ST4: the turntable on top of the
+// shelf unit. ST2 shipped only Standard; ST4 adds the other eleven (found
+// by listening, src/history/achievements.js) plus the picker. CSS only,
+// drawn at a fixed 200×112 (design `Turntable.dc.html`), scaled by the
+// shelf unit's own container. Every model's geometry below is that design
+// file's own px values, converted to percentages of the 200×112 box; the
+// `.lab` (center label) div the design draws separately is folded into
+// `.tt-rec--blank`'s own centered gradient instead of a second element,
+// the same simplification Standard already shipped with in ST2.
 import { el } from '../util/dom.js';
 
-const TURNTABLE_LABEL = { standard: 'Standard' };
+export const TURNTABLE_LINEUP = [
+  {id: 'standard', label: 'Standard', note: 'The everyday deck.', deluxe: false},
+  {id: 'console', label: 'Console', note: 'Wood plinth, silver trim, smoked lid up.', deluxe: true},
+  {id: 'linear', label: 'Linear', note: 'A silver slab; the arm tracks straight across.', deluxe: true},
+  {id: 'deck', label: 'Deck', note: 'Direct drive, strobe dots, a target light.', deluxe: false},
+  {id: 'clear', label: 'Clear', note: 'Acrylic on cone feet, belt and motor in view.', deluxe: false},
+  {id: 'suitcase', label: 'Suitcase', note: "Red leatherette portable, speaker in the case.", deluxe: false},
+  {id: 'broadcast', label: 'Broadcast', note: 'A heavy radio-station table, long arm.', deluxe: false},
+  {id: 'upright', label: 'Upright', note: 'The record stands on edge, like a clock.', deluxe: false},
+  {id: 'radiogram', label: 'Radiogram', note: 'A cabinet with a radio dial and a lid that lifts.', deluxe: false},
+  {id: 'slate', label: 'Slate', note: 'Stone plinth, heavy platter, motor apart.', deluxe: false},
+  {id: 'lathe', label: 'Lathe', note: 'A cutting lathe with its microscope. Rare.', deluxe: false},
+  {id: 'horn', label: 'Horn', note: 'A wind-up gramophone, brass horn. Rare.', deluxe: false},
+];
+const BY_ID = Object.fromEntries(TURNTABLE_LINEUP.map(m => [m.id, m]));
+export const TURNTABLE_IDS = TURNTABLE_LINEUP.map(m => m.id);
 
-export function turntableModelLabel(model){
-  return TURNTABLE_LABEL[model] || TURNTABLE_LABEL.standard;
+export function turntableInfo(id){
+  return BY_ID[id] || BY_ID.standard;
 }
+export function turntableModelLabel(model){
+  return turntableInfo(model).label;
+}
+
+// ST4 point 3: "Deluxe (hasDeluxe()): Console and Linear count as had
+// without being in the found list. If they're also earned, they're
+// recorded as found [too]." -- these two are reachable purely by paying
+// for Deluxe, with no listening milestone required. Derived from the
+// lineup's own `deluxe` flag rather than listed again by hand.
+const DELUXE_COUNTS_AS_HAD = TURNTABLE_LINEUP.filter(m => m.deluxe).map(m => m.id);
+
+// Every id this account currently has: whatever's in the found map, plus
+// Console/Linear while Deluxe is on, regardless of whether they've also
+// been separately earned. Standard is always in `found` (state.js's own
+// default), so it never needs a special case here.
+export function turntablesHad(found, hasDeluxeNow){
+  const had = new Set(Object.keys(found || {}));
+  if(hasDeluxeNow) DELUXE_COUNTS_AS_HAD.forEach(id => had.add(id));
+  return had;
+}
+
+// The id a saved `S.turntable` should actually display/draw as: falls
+// back to Standard the same way displayShelfFinish() does for a finish
+// that's no longer available (Deluxe turned back off after Console/Linear
+// was selected purely via the Deluxe carve-out, or a stale value from a
+// build that had fewer models) -- the saved id itself is left untouched.
+export function displayTurntable(savedId, found, hasDeluxeNow){
+  return turntablesHad(found, hasDeluxeNow).has(savedId) ? savedId : 'standard';
+}
+
+// Per-model static parts (everything except the one spinning disc, which
+// every model has exactly one of): `chrome` parts share the one `.tt-chrome`
+// gradient (18-storefront.css) instead of repeating it per model. `rec`
+// is the disc itself (Standard/most models); `uplab` is Upright's own
+// smaller, upright-standing label circle, the one part of its drawing that
+// reacts to hasRecord/art -- the big grooved disc behind it is static
+// furniture, always drawn the same way.
+const MODEL_PARTS = {
+  standard: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4',x:1},{c:'rec'},{c:'s7',x:1},{c:'s8'},{c:'s9'},{c:'s10'}],
+  console: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'s4'},{c:'s5'},{c:'s6'},{c:'s7',x:1},{c:'rec'},{c:'s10',x:1},{c:'s11'},{c:'s12'}],
+  deck: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'rec'},{c:'s9'},{c:'s10'},{c:'s11'},{c:'s12'},{c:'s13'}],
+  clear: [{c:'s0',x:1},{c:'s1',x:1},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'rec'},{c:'s8'},{c:'s9'},{c:'s10'}],
+  suitcase: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'rec'},{c:'s6'},{c:'s7'},{c:'s8'},{c:'s9'},{c:'s10',x:1},{c:'s11',x:1},{c:'s12'}],
+  broadcast: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5',x:1},{c:'rec'},{c:'s8'},{c:'s9'},{c:'s10'},{c:'s11'}],
+  horn: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'rec'},{c:'s9'},{c:'s10'}],
+  linear: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'s7'},{c:'rec'},{c:'s10'},{c:'s11'},{c:'s12'},{c:'s13'},{c:'s14'}],
+  upright: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'uplab'},{c:'s5'},{c:'s6'},{c:'s7'}],
+  slate: [{c:'s0',x:1},{c:'s1',x:1},{c:'s2'},{c:'s3'},{c:'rec'},{c:'s6'},{c:'s7'},{c:'s8'}],
+  radiogram: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'s7'},{c:'s8'},{c:'rec'},{c:'s11'}],
+  lathe: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'rec'},{c:'s6'},{c:'s7'},{c:'s8'},{c:'s9'},{c:'s10'},{c:'s11'},{c:'s12'}],
+};
 
 // `hasRecord` draws the record on the platter (art as its background, so
 // it reads as that album rather than a generic disc); `spinning` toggles
@@ -18,26 +87,24 @@ export function turntableModelLabel(model){
 // then this file's one caller always passes it paused, since nothing here
 // animates yet).
 export function renderTurntable(model, hasRecord, art, spinning){
-  const wrap = el('div', 'tt tt-' + (TURNTABLE_LABEL[model] ? model : 'standard'));
+  const m = MODEL_PARTS[model] ? model : 'standard';
+  const wrap = el('div', 'tt tt-' + m);
   wrap.setAttribute('aria-hidden', 'true');
   if(!spinning) wrap.classList.add('tt-paused');
 
-  wrap.appendChild(el('span', 'tt-foot tt-foot--l'));
-  wrap.appendChild(el('span', 'tt-foot tt-foot--r'));
-  wrap.appendChild(el('span', 'tt-plinth'));
-  wrap.appendChild(el('span', 'tt-light'));
-  wrap.appendChild(el('span', 'tt-platter'));
-  const rec = el('span', 'tt-rec');
-  if(hasRecord){
-    if(art) rec.style.backgroundImage = 'url("' + art + '")';
-    else rec.classList.add('tt-rec--blank');
-  } else {
-    rec.classList.add('tt-rec--empty');
-  }
-  wrap.appendChild(rec);
-  wrap.appendChild(el('span', 'tt-arm'));
-  wrap.appendChild(el('span', 'tt-arm-base'));
-  wrap.appendChild(el('span', 'tt-headshell'));
-  wrap.appendChild(el('span', 'tt-counterweight'));
+  MODEL_PARTS[m].forEach(part => {
+    if(part.c === 'rec' || part.c === 'uplab'){
+      const rec = el('span', 'tt-rec' + (part.c === 'uplab' ? ' tt-rec-uplab' : ''));
+      if(hasRecord){
+        if(art) rec.style.backgroundImage = 'url("' + art + '")';
+        else rec.classList.add('tt-rec--blank');
+      } else {
+        rec.classList.add('tt-rec--empty');
+      }
+      wrap.appendChild(rec);
+    } else {
+      wrap.appendChild(el('span', 'tt-p tt-' + part.c + (part.x ? ' tt-chrome' : '')));
+    }
+  });
   return wrap;
 }

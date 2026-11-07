@@ -58,7 +58,7 @@ mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {
   namedExports: { ensureBuffer: ensureBufferMock },
 });
 mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
-  namedExports: { sessionOnLoad(){}, touchActiveSession(){} },
+  namedExports: { sessionOnLoad(){}, touchActiveSession(){}, markSessionSeek(){} },
 });
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: { updateCreditsButtonForCurrent(){} },

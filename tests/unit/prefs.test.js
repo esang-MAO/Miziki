@@ -28,6 +28,7 @@ function fakeS(overrides = {}){
     showWear: true,
     deluxe: false,
     shelfFinish: 'walnut',
+    turntable: 'standard',
   }, overrides);
 }
 
@@ -58,6 +59,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     showWear: S.showWear,
     deluxe: S.deluxe,
     shelfFinish: S.shelfFinish,
+    turntable: S.turntable,
   });
 });
 
@@ -595,6 +597,29 @@ test('bad value: an unrecognized shelfFinish is dropped, so the default stays in
   raw.shelfFinish = 'mahogany';
   const parsed = parsePrefs(raw);
   assert.equal('shelfFinish' in parsed, false);
+});
+
+// ST4 (docs/32_SHELF_AND_TURNTABLES.md): the selected turntable -- same
+// three-test shape as shelfFinish above.
+test('round trip: turntable survives each of its twelve valid values', () => {
+  for(const v of ['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast', 'upright', 'radiogram', 'slate', 'lathe', 'horn']){
+    const parsed = parsePrefs(serializePrefs(fakeS({ turntable: v })));
+    assert.equal(parsed.turntable, v);
+  }
+});
+
+test('old saved data: no turntable field at all leaves it out, so the default (standard) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.turntable;
+  const parsed = parsePrefs(raw);
+  assert.equal('turntable' in parsed, false);
+});
+
+test('bad value: an unrecognized turntable is dropped, so the default stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  raw.turntable = 'jukebox';
+  const parsed = parsePrefs(raw);
+  assert.equal('turntable' in parsed, false);
 });
 
 test('bad values are ignored: a non-boolean zoetropesEnabled', () => {

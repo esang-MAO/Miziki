@@ -20,6 +20,7 @@ import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
 import { eqStateLabel } from '../player/eq-label.js';
 import { shelfFinishInfo, displayShelfFinish } from './shelf-finish.js';
+import { turntableInfo, displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
 import {
   RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, windowedCounts,
@@ -311,6 +312,22 @@ function renderAppSettingsScreen(body){
     openShelfFinishSheet();
   });
   library.appendChild(finishRow);
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): "Edit crate › Turntable" --
+  // same row/dynamic-import shape as Shelf finish just above. The value
+  // shown is what actually displays (displayTurntable()'s own fallback to
+  // Standard), not necessarily the saved id.
+  const ttRow = el('button','settings-link-row');
+  ttRow.appendChild(el('span', null, 'Turntable'));
+  const ttRowRight = el('span','settings-link-right');
+  ttRowRight.appendChild(el('span','settings-link-value',
+    turntableInfo(displayTurntable(S.turntable, S.turntablesFound, hasDeluxe())).label));
+  ttRowRight.appendChild(el('span','g-chev','›'));
+  ttRow.appendChild(ttRowRight);
+  ttRow.addEventListener('click', async () => {
+    const { openTurntableSheet } = await import('./turntable-sheet.js');
+    openTurntableSheet();
+  });
+  library.appendChild(ttRow);
   body.appendChild(library);
 
   const playback = el('div','settings-section');

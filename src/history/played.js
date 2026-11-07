@@ -3,7 +3,7 @@
    the last interval in O(1); a merge only runs when coverage is asked for. ---- */
 import { S, current } from '../state.js';
 import { trackIdentityKey, trackTier, albumKey } from '../record-art/tiers.js';
-import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries, persistPlayedThrough } from './sessions.js';
+import { sessionTrackComplete, persistTrackPlayCounts, persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts, persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries, persistPlayedThrough, checkTurntableSeasonProgress, persistFirstEverPlayedAt } from './sessions.js';
 import { snapshotAlbumDisplay, snapshotTrackDisplay } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { checkAlbumAchievementAndCollection } from './achievements.js';
@@ -45,6 +45,14 @@ export function incrementTrackPlay(t){
   // create or change this stat.
   const phase = realDayPosition().phase;
   S.phasePlayCounts[phase] = (S.phasePlayCounts[phase] || 0) + 1;
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Slate turntable's own
+  // "365 days since your first play ever" -- written once, same == null
+  // rule as albumFirstPlayed's own per-album write (sessions.js).
+  if(S.firstEverPlayedAt == null){
+    S.firstEverPlayedAt = Date.now();
+    persistFirstEverPlayedAt();
+  }
+  checkTurntableSeasonProgress(phase);
   const albumId = albumKey(t);
   const perAlbum = S.albumPhaseCounts[albumId] || (S.albumPhaseCounts[albumId] = {});
   perAlbum[phase] = (perAlbum[phase] || 0) + 1;

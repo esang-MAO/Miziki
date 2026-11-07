@@ -423,32 +423,156 @@ button.pressing-chip{cursor:pointer}
     linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
 .shelf-unit-plinth{position:absolute;left:1.754%;right:1.754%;top:97.1875%;height:1.5625%;background:var(--wood-plinth)}
 
-/* docs/design/shelf-turntables/Turntable.dc.html, Standard model only --
-   ST4 adds the other eleven. Drawn at its own 200x112 ratio, percentages
-   relative to the .tt box itself (set to 100%x100% of .shelf-unit-tt-
-   holder above, which is already sized/positioned in the unit's own
-   percentage space). */
+/* docs/design/shelf-turntables/Turntable.dc.html, all twelve models (ST2
+   shipped Standard only; ST4 added the rest, found by listening --
+   src/history/achievements.js -- or, for Console/Linear, by Deluxe).
+   Drawn at the design's own 200x112 ratio, percentages relative to the
+   .tt box itself (set to 100%x100% of .shelf-unit-tt-holder above, which
+   is already sized/positioned in the unit's own percentage space). Every
+   model has exactly one `.tt-rec` (the spinning disc/label combo, folded
+   into one element the same way Standard's always has -- see turntable.js's
+   own header comment); everything else is a static `.tt-p` part, scoped
+   per model since each model's own geometry is unrelated to the others'. */
 .tt{position:relative}
-.tt-foot{position:absolute;top:95.54%;width:8%;height:5.36%;border-radius:2px;background:#111}
-.tt-foot--l{left:7%}
-.tt-foot--r{left:76%}
-.tt-plinth{position:absolute;left:2%;top:69.64%;width:88%;height:26.79%;border-radius:3px;
-  background:linear-gradient(180deg,#3A3735 0%,#1E1C1B 18%,#171514 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
-.tt-light{position:absolute;left:7%;top:82.14%;width:3%;height:5.36%;border-radius:50%;background:#E9A24A;opacity:.8}
-.tt-platter{position:absolute;left:9%;top:62.5%;width:74%;height:8.04%;border-radius:2px;
-  background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
-.tt-rec{position:absolute;left:9.5%;top:54.46%;width:73%;height:14.29%;border-radius:50%;
+.tt-p{position:absolute}
+.tt-chrome{background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
+.tt-rec{position:absolute;border-radius:50%;
   background:radial-gradient(ellipse at 50% 50%,#2A272C 0%,#141216 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);background-size:cover;background-position:center}
 .tt-rec--blank{background-image:radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
     repeating-radial-gradient(circle at 50% 50%,#141216 0px,#141216 1px,#24212A 1px,#24212A 3px)}
 .tt-rec--empty{background:none;box-shadow:none}
-.tt-arm-base{position:absolute;left:78.5%;top:42.86%;width:3.5%;height:27.68%;border-radius:2px;
-  background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
-.tt-counterweight{position:absolute;left:82%;top:41.07%;width:6%;height:10.71%;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#CFCAC3,#55524E)}
-.tt-arm{position:absolute;left:55%;top:58.93%;width:27%;height:2.68%;border-radius:2px;
-  background:linear-gradient(180deg,#E6E1DA,#8A857F);transform:rotate(-17deg);transform-origin:0 50%}
-.tt-headshell{position:absolute;left:52%;top:57.14%;width:6%;height:5.36%;border-radius:1px;background:#2B2826;transform:rotate(-17deg)}
+
+.tt-standard .tt-s0{left:7%;top:95.536%;width:8%;height:5.357%;border-radius:1%;background:#111}
+.tt-standard .tt-s1{left:76%;top:95.536%;width:8%;height:5.357%;border-radius:1%;background:#111}
+.tt-standard .tt-s2{left:2%;top:69.643%;width:88%;height:26.786%;border-radius:1.5%;background:linear-gradient(180deg, #3A3735 0%, #1E1C1B 18%, #171514 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.tt-standard .tt-s3{left:7%;top:82.143%;width:3%;height:5.357%;border-radius:50%;background:#E9A24A;opacity:.8}
+.tt-standard .tt-s4{left:9%;top:62.5%;width:74%;height:8.036%;border-radius:1%}
+.tt-standard .tt-rec{left:9.5%;top:54.464%;width:73%;height:14.286%}
+.tt-standard .tt-s7{left:78.5%;top:42.857%;width:3.5%;height:27.679%;border-radius:1%}
+.tt-standard .tt-s8{left:82%;top:41.071%;width:6%;height:10.714%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #CFCAC3, #55524E)}
+.tt-standard .tt-s9{left:55%;top:58.929%;width:27%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(-17deg);transform-origin:0 50%}
+.tt-standard .tt-s10{left:52%;top:57.143%;width:6%;height:5.357%;border-radius:0.5%;background:#2B2826;transform:rotate(-17deg)}
+.tt-console .tt-s0{left:3%;top:1.786%;width:94%;height:62.5%;border-radius:2% 2% 0 0;background:linear-gradient(170deg, rgba(120,104,96,.42) 0%, rgba(50,42,38,.30) 60%, rgba(30,26,24,.38) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.35)}
+.tt-console .tt-s1{left:12%;top:7.143%;width:30%;height:44.643%;background:linear-gradient(120deg, rgba(255,255,255,.14), rgba(255,255,255,0) 60%)}
+.tt-console .tt-s2{left:0%;top:66.071%;width:98%;height:30.357%;border-radius:1%;background:repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #7C5838 0%, #5A3A24 60%, #46301E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.tt-console .tt-s3{left:0%;top:66.071%;width:98%;height:2.679%}
+.tt-console .tt-s4{left:7%;top:78.571%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
+.tt-console .tt-s5{left:15%;top:78.571%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
+.tt-console .tt-s6{left:3%;top:96.429%;width:92%;height:3.571%;background:#21160E}
+.tt-console .tt-s7{left:11%;top:58.929%;width:70%;height:8.036%;border-radius:1%}
+.tt-console .tt-rec{left:11.5%;top:50.893%;width:69%;height:13.393%}
+.tt-console .tt-s10{left:85%;top:46.429%;width:3%;height:20.536%;border-radius:1%}
+.tt-console .tt-s11{left:56%;top:53.571%;width:30%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #F0EBE4, #8A857F);transform:rotate(-6deg);transform-origin:0 50%}
+.tt-console .tt-s12{left:53%;top:52.679%;width:5.5%;height:5.357%;border-radius:0.5%;background:#C9C4BD}
+.tt-deck .tt-s0{left:4%;top:91.071%;width:13%;height:8.929%;border-radius:1.5% 1.5% 3% 3%;background:linear-gradient(180deg, #2A2827, #0C0B0B)}
+.tt-deck .tt-s1{left:83%;top:91.071%;width:13%;height:8.929%;border-radius:1.5% 1.5% 3% 3%;background:linear-gradient(180deg, #2A2827, #0C0B0B)}
+.tt-deck .tt-s2{left:0%;top:69.643%;width:100%;height:23.214%;border-radius:2%;background:linear-gradient(180deg, #4A4846 0%, #262423 20%, #1A1918 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.tt-deck .tt-s3{left:5%;top:76.786%;width:13%;height:8.929%;border-radius:1%;background:linear-gradient(180deg, #5A5856, #2E2C2B);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.tt-deck .tt-s4{left:5%;top:48.214%;width:2%;height:23.214%;background:linear-gradient(90deg, #9C978F, #E3DED7, #8A857F)}
+.tt-deck .tt-s5{left:4%;top:44.643%;width:4%;height:5.357%;border-radius:1%;background:#EFE9DF;box-shadow:0 0 6px rgba(239,233,223,.55)}
+.tt-deck .tt-s6{left:11%;top:60.714%;width:75%;height:9.821%;border-radius:1%;background:repeating-linear-gradient(90deg, #C9C4BD 0px, #C9C4BD 3px, #6E6A66 3px, #6E6A66 6px)}
+.tt-deck .tt-rec{left:11.5%;top:52.679%;width:74%;height:14.286%}
+.tt-deck .tt-s9{left:85%;top:44.643%;width:4%;height:26.786%;border-radius:1%;background:linear-gradient(90deg, #2A2827, #5A5856, #1E1C1B)}
+.tt-deck .tt-s10{left:88%;top:41.071%;width:7%;height:8.929%;border-radius:1.5%;background:linear-gradient(180deg, #3A3836, #141312)}
+.tt-deck .tt-s11{left:70%;top:46.429%;width:17%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(12deg);transform-origin:100% 50%}
+.tt-deck .tt-s12{left:56%;top:51.786%;width:16%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(-10deg);transform-origin:100% 50%}
+.tt-deck .tt-s13{left:53%;top:53.571%;width:6%;height:5.357%;border-radius:0.5%;background:#1A1918}
+.tt-clear .tt-s0{left:7%;top:87.5%;width:5%;height:12.5%;clip-path:polygon(0 0, 100% 0, 50% 100%)}
+.tt-clear .tt-s1{left:80%;top:87.5%;width:5%;height:12.5%;clip-path:polygon(0 0, 100% 0, 50% 100%)}
+.tt-clear .tt-s2{left:1%;top:73.214%;width:91%;height:14.286%;border-radius:1%;background:linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(200,220,230,.10) 50%, rgba(255,255,255,.18) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35), inset 0 1px 0 rgba(255,255,255,.6)}
+.tt-clear .tt-s3{left:1%;top:53.571%;width:11%;height:19.643%;border-radius:1.5%;background:linear-gradient(90deg, #6E6A66, #D6D1CA 35%, #8E8984 70%, #5A5652)}
+.tt-clear .tt-s4{left:9%;top:64.286%;width:10%;height:0.893%;background:#1A1816}
+.tt-clear .tt-s5{left:17%;top:58.929%;width:65%;height:12.5%;border-radius:1%;background:linear-gradient(180deg, rgba(255,255,255,.32), rgba(210,225,235,.14));box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.tt-clear .tt-rec{left:17.5%;top:51.786%;width:64%;height:12.5%}
+.tt-clear .tt-s8{left:84%;top:46.429%;width:2.5%;height:27.679%;background:linear-gradient(90deg, #8E8984, #E3DED7, #77736E)}
+.tt-clear .tt-s9{left:60%;top:53.571%;width:25%;height:1.786%;background:#141210;transform:rotate(-9deg);transform-origin:0 50%}
+.tt-clear .tt-s10{left:57%;top:51.786%;width:5%;height:4.464%;border-radius:0.5%;background:#141210}
+.tt-suitcase .tt-s0{left:4%;top:0%;width:92%;height:53.571%;border-radius:3% 3% 0 0;background:linear-gradient(180deg, #E8DFCC, #CFC4AE);box-shadow:inset 0 0 0 5px #8E2F2A}
+.tt-suitcase .tt-s1{left:10%;top:8.929%;width:80%;height:37.5%;border-radius:1.5%;background:repeating-radial-gradient(circle at 50% 50%, rgba(80,60,40,.0) 0px, rgba(80,60,40,0) 3px, rgba(80,60,40,.22) 3px, rgba(80,60,40,.22) 4px)}
+.tt-suitcase .tt-s2{left:4%;top:53.571%;width:92%;height:5.357%;background:#6E2420}
+.tt-suitcase .tt-s3{left:15%;top:51.786%;width:63%;height:7.143%;border-radius:1%}
+.tt-suitcase .tt-rec{left:15.5%;top:44.643%;width:62%;height:12.5%}
+.tt-suitcase .tt-s6{left:80%;top:41.071%;width:2.5%;height:14.286%;background:#EFE9DF}
+.tt-suitcase .tt-s7{left:56%;top:46.429%;width:25%;height:2.679%;border-radius:1%;background:#EFE9DF;transform:rotate(-8deg);transform-origin:0 50%}
+.tt-suitcase .tt-s8{left:2%;top:58.929%;width:96%;height:37.5%;border-radius:0 0 3% 3%;background:repeating-linear-gradient(135deg, rgba(0,0,0,.05) 0px, rgba(0,0,0,.05) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #B5483F, #8E2F2A);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+.tt-suitcase .tt-s9{left:32%;top:66.071%;width:36%;height:23.214%;border-radius:1.5%;background:repeating-radial-gradient(circle, #2A1B18 0px, #2A1B18 1px, #4A2420 1px, #4A2420 3px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
+.tt-suitcase .tt-s10{left:10%;top:73.214%;width:7%;height:7.143%;border-radius:1%}
+.tt-suitcase .tt-s11{left:83%;top:73.214%;width:7%;height:7.143%;border-radius:1%}
+.tt-suitcase .tt-s12{left:2%;top:95.536%;width:96%;height:4.464%;background:#3A1512}
+.tt-broadcast .tt-s0{left:3%;top:92.857%;width:94%;height:7.143%;background:#1A1C1E}
+.tt-broadcast .tt-s1{left:0%;top:58.929%;width:100%;height:35.714%;border-radius:1.5%;background:repeating-radial-gradient(circle at 30% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #8D949A 0%, #6A7177 30%, #555B60 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.tt-broadcast .tt-s2{left:6%;top:69.643%;width:14%;height:12.5%;border-radius:1%;background:#1C1E20;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.tt-broadcast .tt-s3{left:8%;top:73.214%;width:4%;height:5.357%;background:#E9A24A;opacity:.75}
+.tt-broadcast .tt-s4{left:78%;top:67.857%;width:8%;height:14.286%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #2A2C2E, #0E0F10)}
+.tt-broadcast .tt-s5{left:5%;top:48.214%;width:80%;height:11.607%;border-radius:1%}
+.tt-broadcast .tt-rec{left:9%;top:41.071%;width:72%;height:14.286%}
+.tt-broadcast .tt-s8{left:89%;top:19.643%;width:4.5%;height:41.071%;border-radius:1%;background:linear-gradient(90deg, #3A3D40, #8D949A, #2E3134)}
+.tt-broadcast .tt-s9{left:91%;top:16.071%;width:7%;height:12.5%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #8D949A, #2E3134)}
+.tt-broadcast .tt-s10{left:52%;top:44.643%;width:41%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #2E3134, #0E0F10);transform:rotate(-20deg);transform-origin:0 50%}
+.tt-broadcast .tt-s11{left:49%;top:42.857%;width:6%;height:6.25%;border-radius:0.5%;background:#0E0F10}
+.tt-horn .tt-s0{left:46%;top:1.786%;width:50%;height:64.286%;border-radius:50%;background:radial-gradient(ellipse at 50% 55%, #1C120A 0%, #3E2812 28%, #8A6228 55%, #D9AE5C 80%, #8A6228 100%);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.tt-horn .tt-s1{left:59%;top:51.786%;width:8%;height:19.643%;background:linear-gradient(90deg, #8A6228, #D9AE5C, #6E4C1E);transform:rotate(-30deg)}
+.tt-horn .tt-s2{left:10%;top:66.071%;width:65%;height:30.357%;border-radius:1%;background:repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #8A5C34 0%, #5A3A24 70%, #46301E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 3px rgba(0,0,0,.18)}
+.tt-horn .tt-s3{left:15%;top:73.214%;width:55%;height:16.071%;border:1px solid rgba(217,174,92,.45)}
+.tt-horn .tt-s4{left:3%;top:76.786%;width:8%;height:3.571%;background:linear-gradient(180deg, #D9AE5C, #8A6228)}
+.tt-horn .tt-s5{left:1%;top:71.429%;width:3%;height:12.5%;border-radius:1%;background:#2B1A0E}
+.tt-horn .tt-s6{left:14%;top:60.714%;width:56%;height:6.25%;border-radius:1%;background:#2E2014}
+.tt-horn .tt-rec{left:16%;top:53.571%;width:52%;height:10.714%}
+.tt-horn .tt-s9{left:52%;top:55.357%;width:13%;height:4.464%;border-radius:1%;background:linear-gradient(180deg, #D9AE5C, #8A6228);transform:rotate(-20deg);transform-origin:0 50%}
+.tt-horn .tt-s10{left:9%;top:96.429%;width:67%;height:3.571%;background:#24170D}
+.tt-linear .tt-s0{left:3%;top:94.643%;width:94%;height:5.357%;background:#121212}
+.tt-linear .tt-s1{left:0%;top:73.214%;width:100%;height:22.321%;border-radius:1%;background:repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #E4E1DC 0%, #B9B5AF 40%, #8E8A85 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.tt-linear .tt-s2{left:5%;top:80.357%;width:32%;height:8.036%;border-radius:0.5%;background:#1A1A1A}
+.tt-linear .tt-s3{left:7%;top:83.036%;width:2%;height:2.679%;background:#D9534A}
+.tt-linear .tt-s4{left:70%;top:80.357%;width:6%;height:8.036%;border-radius:0.5%;background:#2A2A2A}
+.tt-linear .tt-s5{left:78%;top:80.357%;width:6%;height:8.036%;border-radius:0.5%;background:#2A2A2A}
+.tt-linear .tt-s6{left:86%;top:80.357%;width:6%;height:8.036%;border-radius:0.5%;background:#2A2A2A}
+.tt-linear .tt-s7{left:14%;top:67.857%;width:72%;height:6.25%;border-radius:1%;background:#1C1C1C}
+.tt-linear .tt-rec{left:14.5%;top:59.821%;width:71%;height:13.393%}
+.tt-linear .tt-s10{left:5%;top:39.286%;width:90%;height:7.143%;border-radius:1%;background:linear-gradient(180deg, #D6D2CC, #8E8A85)}
+.tt-linear .tt-s11{left:2%;top:35.714%;width:5%;height:39.286%;border-radius:1%;background:linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)}
+.tt-linear .tt-s12{left:93%;top:35.714%;width:5%;height:39.286%;border-radius:1%;background:linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)}
+.tt-linear .tt-s13{left:46%;top:44.643%;width:9%;height:8.929%;border-radius:1%;background:#1C1C1C}
+.tt-linear .tt-s14{left:49.5%;top:51.786%;width:2%;height:10.714%;background:#2A2A2A}
+.tt-upright .tt-s0{left:23%;top:89.286%;width:54%;height:10.714%;border-radius:1%;background:linear-gradient(180deg, #F2EEE8, #C9C4BD);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.tt-upright .tt-s1{left:48%;top:78.571%;width:4%;height:12.5%;background:linear-gradient(90deg, #C9C4BD, #F2EEE8, #A9A49D)}
+.tt-upright .tt-s2{left:26%;top:0%;width:48%;height:85.714%;border-radius:50%;background:linear-gradient(135deg, #F2EEE8, #BDB8B1);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tt-upright .tt-s3{left:28.5%;top:4.464%;width:43%;height:76.786%;border-radius:50%;background:repeating-radial-gradient(circle, #141216 0px, #141216 1px, #222026 1px, #222026 2.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.tt-upright .tt-rec{left:43%;top:30.357%;width:14%;height:25%}
+.tt-upright .tt-s5{left:48.5%;top:40.179%;width:3%;height:5.357%;border-radius:50%;background:#14110F}
+.tt-upright .tt-s6{left:75%;top:8.929%;width:3%;height:5.357%;border-radius:50%;background:#8A857F}
+.tt-upright .tt-s7{left:58%;top:10.714%;width:19%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(150deg);transform-origin:100% 50%}
+.tt-slate .tt-s0{left:7%;top:92.857%;width:7%;height:7.143%;clip-path:polygon(0 0, 100% 0, 70% 100%, 30% 100%)}
+.tt-slate .tt-s1{left:86%;top:92.857%;width:7%;height:7.143%;clip-path:polygon(0 0, 100% 0, 70% 100%, 30% 100%)}
+.tt-slate .tt-s2{left:0%;top:64.286%;width:100%;height:29.464%;border-radius:1%;background:repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,.03) 0px, rgba(255,255,255,.03) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(176deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 2px, transparent 2px, transparent 9px), linear-gradient(180deg, #4E545A 0%, #3A3F44 40%, #2C3034 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.tt-slate .tt-s3{left:10%;top:53.571%;width:75%;height:11.607%;border-radius:1%;background:linear-gradient(180deg, #2A2A2C, #121214);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.tt-slate .tt-rec{left:10.5%;top:46.429%;width:74%;height:14.286%}
+.tt-slate .tt-s6{left:88%;top:39.286%;width:4%;height:26.786%;border-radius:1%;background:linear-gradient(90deg, #1E1E20, #4A4A4E, #141416)}
+.tt-slate .tt-s7{left:58%;top:46.429%;width:32%;height:2.679%;border-radius:1%;background:#0E0E10;transform:rotate(-12deg);transform-origin:0 50%}
+.tt-slate .tt-s8{left:55%;top:45.536%;width:5.5%;height:5.357%;border-radius:0.5%;background:#0E0E10}
+.tt-radiogram .tt-s0{left:7%;top:89.286%;width:3%;height:10.714%;background:#2E1D11;transform:skewX(8deg)}
+.tt-radiogram .tt-s1{left:90%;top:89.286%;width:3%;height:10.714%;background:#2E1D11;transform:skewX(-8deg)}
+.tt-radiogram .tt-s2{left:46%;top:0%;width:54%;height:51.786%;border-radius:1% 1% 0 0;background:repeating-linear-gradient(90.5deg, rgba(28,14,6,.35) 0px, rgba(28,14,6,.35) 1px, transparent 1px, transparent 6px), linear-gradient(90deg, #4A301E, #6E4A30);box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+.tt-radiogram .tt-s3{left:0%;top:50%;width:100%;height:41.071%;border-radius:1%;background:repeating-linear-gradient(179deg, rgba(28,14,6,.4) 0px, rgba(28,14,6,.4) 1px, transparent 1px, transparent 5px), linear-gradient(180deg, #7C5838 0%, #5A3A24 60%, #46301E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.tt-radiogram .tt-s4{left:4%;top:57.143%;width:42%;height:28.571%;border-radius:1%;background:repeating-linear-gradient(45deg, #A88A5A 0px, #A88A5A 1px, #7A6240 1px, #7A6240 3px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.tt-radiogram .tt-s5{left:51%;top:58.929%;width:44%;height:10.714%;border-radius:1%;background:linear-gradient(180deg, #F3E7C8, #D8C59A);box-shadow:0 0 8px rgba(243,231,200,.35)}
+.tt-radiogram .tt-s6{left:70%;top:58.929%;width:1%;height:10.714%;background:#8E2F2A}
+.tt-radiogram .tt-s7{left:56%;top:75%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
+.tt-radiogram .tt-s8{left:85%;top:75%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
+.tt-radiogram .tt-rec{left:5%;top:41.071%;width:52%;height:10.714%}
+.tt-radiogram .tt-s11{left:35%;top:43.75%;width:20%;height:2.679%;background:#C9C4BD;transform:rotate(-8deg);transform-origin:0 50%}
+.tt-lathe .tt-s0{left:0%;top:67.857%;width:100%;height:32.143%;border-radius:1.5%;background:repeating-radial-gradient(circle at 60% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #7C8A7A 0%, #5E6B5E 35%, #48534A 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.tt-lathe .tt-s1{left:5%;top:76.786%;width:20%;height:14.286%;border-radius:1%;background:#1C201D;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.tt-lathe .tt-s2{left:7%;top:80.357%;width:15%;height:7.143%;background:linear-gradient(90deg, #EFE6D2 0%, #EFE6D2 60%, #3A403B 60%)}
+.tt-lathe .tt-s3{left:6%;top:58.929%;width:75%;height:9.821%;border-radius:1%}
+.tt-lathe .tt-rec{left:6.5%;top:50.893%;width:74%;height:14.286%}
+.tt-lathe .tt-s6{left:20%;top:26.786%;width:78%;height:7.143%;border-radius:1%;background:linear-gradient(180deg, #A9B3A8, #5E6B5E)}
+.tt-lathe .tt-s7{left:93%;top:26.786%;width:5%;height:42.857%;border-radius:1%;background:linear-gradient(90deg, #48534A, #A9B3A8, #3A433B)}
+.tt-lathe .tt-s8{left:48%;top:32.143%;width:13%;height:17.857%;border-radius:1.5%;background:linear-gradient(180deg, #3A403B, #1C201D)}
+.tt-lathe .tt-s9{left:53%;top:48.214%;width:2%;height:7.143%;background:#C9C4BD}
+.tt-lathe .tt-s10{left:59%;top:7.143%;width:5%;height:26.786%;border-radius:1.5%;background:linear-gradient(90deg, #1C201D, #4A524C, #141714);transform:rotate(-22deg)}
+.tt-lathe .tt-s11{left:64%;top:3.571%;width:6%;height:7.143%;border-radius:1%;background:#1C201D;transform:rotate(-22deg)}
+.tt-lathe .tt-s12{left:37%;top:12.5%;width:14%;height:25%;border-radius:50% 50% 0 0;border:3px solid #2A2F2B;border-bottom:0;transform:rotate(-30deg)}
 
 /* docs/design/shelf-turntables/ShelfFinish.dc.html, ST3: Edit crate ›
    Shelf finish sheet -- live preview, five swatches, the selected finish's
@@ -468,3 +592,17 @@ button.pressing-chip{cursor:pointer}
 .shelf-finish-current-name{font-size:var(--fs-row);color:var(--paper)}
 .shelf-finish-current-note{font-size:var(--fs-caption);color:var(--muted)}
 .shelf-finish-caption{border-top:1px solid var(--line);padding-top:var(--sp-4);margin-top:var(--sp-4)}
+
+/* ST4 (docs/32_SHELF_AND_TURNTABLES.md): Edit crate › Turntable sheet --
+   same live-preview + current-note pattern as the shelf finish sheet
+   above, but a 2-column grid of the turntables you have (a model you
+   don't have yet is never shown, so there's no preview-without-saving
+   tile like the shelf finish's unowned swatches). Selected = a cream
+   ring, same rule as shelf finish. */
+.turntable-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-3)}
+.turntable-pick-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:var(--sp-2);border-radius:var(--radius-card)}
+.turntable-pick-tile.selected{box-shadow:0 0 0 2px var(--cream)}
+.turntable-pick-swatch{display:block;width:100%;aspect-ratio:200/112;position:relative;border-radius:var(--radius-control);overflow:hidden;background:var(--stock-card)}
+.turntable-pick-swatch .tt{width:100%;height:100%}
+.turntable-pick-label{font-size:var(--fs-body);color:var(--muted)}
+.turntable-pick-tile.selected .turntable-pick-label{color:var(--paper)}

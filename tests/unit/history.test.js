@@ -156,7 +156,12 @@ const { S } = await import('../../src/state.js');
 // RF22 (docs/12_REFINE.md): played.js's own real sundown/rhythm.js import
 // (a pure, zero-import leaf -- no mocking needed) is where dayKeyFor lives.
 const { dayKeyFor } = await import('../../src/sundown/rhythm.js');
-const { ZOETROPE_DAYS_TO_EARN } = await import('../../src/history/sessions.js');
+const {
+  ZOETROPE_DAYS_TO_EARN,
+  checkTurntableSeasonProgress, markTurntableScratchDay,
+  CLEAR_HIRES_ALBUMS_TO_EARN, BROADCAST_NIGHT_ALBUMS_TO_EARN,
+  CONSOLE_MONTHS_TO_EARN, RADIOGRAM_PHASES_TO_EARN, DECK_SCRATCH_DAYS_TO_EARN,
+} = await import('../../src/history/sessions.js');
 
 function resetState(overrides){
   Object.assign(S, {
@@ -171,6 +176,8 @@ function resetState(overrides){
     phasePlayCounts: {}, phasePlayCountsByDay: {}, albumPhaseCounts: {}, previewMin: 0,
     // GS2 (docs/30_GROOVES_AND_SHELF.md)
     playedThrough: {}, albumSides: false, albumSort: {}, albumOrder: {},
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md)
+    turntablesFound: {}, turntableProgress: {}, firstEverPlayedAt: null,
   }, overrides);
   checkAlbumAchievementAndCollectionMock.mock.resetCalls();
   fakePhase = 'midday';
@@ -375,6 +382,154 @@ test('zoetrope unlock: a different album\'s day-progress is tracked independentl
   assert.deepEqual(Object.keys(S.zoetropeDayProgress).sort(), ['al', 'other']);
   assert.equal(S.zoetropeDayProgress.al.length, 1);
   assert.equal(S.zoetropeDayProgress.other.length, 1);
+});
+
+// -- ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntable found-by-listening ----
+// rules reached through a real whole-record session (Clear/Broadcast/
+// Lathe) or through checkTurntableSeasonProgress()/markTurntableScratchDay()
+// directly (Console/Radiogram/Slate/Deck), the same split those functions'
+// own call sites use in production (played.js for the season-progress
+// trio, player/scrub.js for Deck).
+
+test('Clear: unlocks once CLEAR_HIRES_ALBUMS_TO_EARN distinct hi-res albums are played through whole', () => {
+  resetState();
+  for(let i = 1; i <= CLEAR_HIRES_ALBUMS_TO_EARN; i++){
+    const albumId = 'al' + i;
+    const t = fakeTrack({ id: 't' + i, meta: { lossless: true, bits: 24, rate: 48000 },
+      tags: { title: 'T', artist: 'A', album: albumId, albumArtist: 'A', track: 1, disc: 0 } });
+    S.curTrackDone = false; S.curPlayed = [];
+    completeAlbumSession(t, albumId);
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+    assert.equal(S.turntableProgress.clear.length, i);
+    if(i < CLEAR_HIRES_ALBUMS_TO_EARN) assert.equal(S.turntablesFound.clear, undefined);
+  }
+  assert.ok(S.turntablesFound.clear);
+});
+
+test('Clear: a CD-quality track never counts toward the hi-res progress', () => {
+  resetState();
+  const t = fakeTrack({ meta: { lossless: true, bits: 16, rate: 44100 } });
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.equal(S.turntableProgress.clear, undefined);
+});
+
+test('Broadcast: unlocks once BROADCAST_NIGHT_ALBUMS_TO_EARN distinct albums are played through whole in the night phase', () => {
+  resetState();
+  fakePhase = 'night';
+  for(let i = 1; i <= BROADCAST_NIGHT_ALBUMS_TO_EARN; i++){
+    const albumId = 'al' + i;
+    const t = fakeTrack({ id: 't' + i, tags: { title: 'T', artist: 'A', album: albumId, albumArtist: 'A', track: 1, disc: 0 } });
+    S.curTrackDone = false; S.curPlayed = [];
+    completeAlbumSession(t, albumId);
+    addPlayedRange(0, 95);
+    checkTrackCompletion(t);
+  }
+  assert.ok(S.turntablesFound.broadcast);
+});
+
+test('Broadcast: a whole record finished outside the night phase never counts', () => {
+  resetState();
+  fakePhase = 'midday';
+  const t = fakeTrack();
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.equal(S.turntableProgress.broadcast, undefined);
+});
+
+test('Lathe: unlocks the moment a whole record completes with any rare pressing already unlocked', () => {
+  resetState({ rareUnlocked: { somealbum: true } });
+  const t = fakeTrack();
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.ok(S.turntablesFound.lathe);
+});
+
+test('Lathe: never unlocks from a whole record alone, with no rare pressing', () => {
+  resetState();
+  const t = fakeTrack();
+  completeAlbumSession(t, 'al');
+  addPlayedRange(0, 95);
+  checkTrackCompletion(t);
+  assert.equal(S.turntablesFound.lathe, undefined);
+});
+
+test('Console: unlocks once plays land in CONSOLE_MONTHS_TO_EARN distinct months of one season', () => {
+  resetState();
+  // Pinned to a fixed start well inside spring (months 2-4) so three
+  // ~32-day ticks land in three distinct months without crossing into
+  // the next season -- using the real "now" would make this test's
+  // outcome depend on which day of the year it happens to run.
+  mock.timers.enable({ apis: ['Date'], now: new Date(2030, 2, 1).getTime() });
+  try {
+    for(let m = 1; m <= CONSOLE_MONTHS_TO_EARN; m++){
+      if(m > 1) mock.timers.tick(32 * 24 * 3600 * 1000);
+      checkTurntableSeasonProgress('midday');
+    }
+    assert.ok(S.turntablesFound.console);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test('Radiogram: unlocks once every one of RADIOGRAM_PHASES_TO_EARN phases is hit within one season', () => {
+  resetState();
+  const phases = ['night', 'dawn', 'morning', 'midday', 'afternoon', 'golden', 'twilight'];
+  assert.equal(phases.length, RADIOGRAM_PHASES_TO_EARN);
+  phases.forEach(phase => checkTurntableSeasonProgress(phase));
+  assert.ok(S.turntablesFound.radiogram);
+});
+
+test('Radiogram: repeating the same phase never advances progress', () => {
+  resetState();
+  checkTurntableSeasonProgress('night');
+  checkTurntableSeasonProgress('night');
+  checkTurntableSeasonProgress('night');
+  assert.equal(S.turntableProgress['radiogram:' + Object.keys(S.turntableProgress).find(k => k.startsWith('radiogram:')).slice(10)].length, 1);
+});
+
+test('Slate: needs all four season names AND 365 days since firstEverPlayedAt', () => {
+  // Pinned to a fixed start (mid-winter) for the same reason Console's
+  // test is pinned above -- each tick below is sized to land in the
+  // next meteorological season without depending on the real "now".
+  const start = new Date(2030, 0, 15).getTime();
+  resetState({ firstEverPlayedAt: start });
+  mock.timers.enable({ apis: ['Date'], now: start });
+  try {
+    checkTurntableSeasonProgress('midday'); // winter -- 1st name
+    mock.timers.tick(95 * 24 * 3600 * 1000);
+    checkTurntableSeasonProgress('midday'); // spring -- 2nd
+    mock.timers.tick(95 * 24 * 3600 * 1000);
+    checkTurntableSeasonProgress('midday'); // summer -- 3rd
+    mock.timers.tick(95 * 24 * 3600 * 1000);
+    checkTurntableSeasonProgress('midday'); // autumn -- 4th name, but only ~285 days elapsed
+    assert.equal(S.turntablesFound.slate, undefined);
+    mock.timers.tick(100 * 24 * 3600 * 1000); // now ~385 days since firstEverPlayedAt
+    checkTurntableSeasonProgress('midday'); // all 4 names already in, elapsed now clears 365
+    assert.ok(S.turntablesFound.slate);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test('Deck: unlocks once scratching happens on DECK_SCRATCH_DAYS_TO_EARN distinct calendar days', () => {
+  resetState();
+  mock.timers.enable({ apis: ['Date'] });
+  try {
+    for(let day = 1; day <= DECK_SCRATCH_DAYS_TO_EARN; day++){
+      if(day > 1) mock.timers.tick(24 * 3600 * 1000);
+      markTurntableScratchDay();
+      markTurntableScratchDay(); // a second scratch the same day must not double-count
+      assert.equal(S.turntableProgress.scratch.length, day);
+    }
+    assert.ok(S.turntablesFound.deck);
+  } finally {
+    mock.timers.reset();
+  }
 });
 
 // -- GS2 (docs/30_GROOVES_AND_SHELF.md): the played-through log --------------

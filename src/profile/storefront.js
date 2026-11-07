@@ -25,6 +25,7 @@ import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
 import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from './shelf-unit.js';
 import { displayShelfFinish } from './shelf-finish.js';
+import { displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
@@ -538,7 +539,7 @@ function storeShelfUnitSection(items, pinIds, onTapAlbum){
   if(info.caption) section.appendChild(el('span','store-shelf-caption', info.caption));
   section.appendChild(renderShelfUnit({
     items, faceOutIds, onTapAlbum: id => shelfAlbumTap(id, onTapAlbum),
-    model: 'standard',
+    model: displayTurntable(S.turntable, S.turntablesFound, hasDeluxe()),
     turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
     sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
     finish: displayShelfFinish(S.shelfFinish, hasDeluxe()),
