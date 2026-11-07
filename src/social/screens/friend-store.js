@@ -5,6 +5,15 @@ import {
   storeSign, storeStat, storePickTile, localAlbumArt, timeAgoShort,
   renderStoreError, STORE_TIER_LABEL, renderPressingCard, storeShelvesSection,
 } from '../../profile/storefront.js';
+// ST6 (docs/32_SHELF_AND_TURNTABLES.md): the default crate view here is
+// now the same ST2 shelf unit the local profile home draws (renderShelfUnit()),
+// shown in the friend's own published finish/turntable (full.profile.
+// shelf_finish/turntable, migration 027) instead of always Walnut/Standard
+// -- replacing storeShelvesSection()'s own flat grid for this one default
+// view. storeShelvesSection() stays imported above: "Browse all N records"
+// still switches to it for anything past the unit's fixed six cubes, same
+// shape loadFriendCrate() already had before this PR.
+import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from '../../profile/shelf-unit.js';
 // CR11 point 1-2: the pressing is derived locally from the shared album
 // key (selectVariantForAlbum), never a new server column — see that
 // function's own comment in tiers.js for why a title+tier pair is enough.
@@ -425,39 +434,90 @@ export function closeHeldSheet(){
   $('#heldOverlay').setAttribute('aria-hidden','true');
 }
 
-// GS8 (docs/30_GROOVES_AND_SHELF.md point 5): "a friend's crate: same
-// layout" -- the one part of the home shelf's layout a friend's crate
-// genuinely shares is the shelves cube grid (storeShelvesSection(),
-// profile/storefront.js), fed from this same MizikiSocial.crate() fetch
-// the old plain "All records" letter-grid used; a cube tap opens the
-// record sheet instead of storeShelvesSection's own default "jump the
-// local library crate" tap, since a friend's records aren't in this
-// device's own crate. No friend-count sticker on a face-out pin here --
-// there's no real cross-friend ownership count anywhere in the schema or
-// client to back one; see the PR description.
-async function loadFriendCrate(full, holder, limit){
-  const r = await MizikiSocial.crate(full.profile.id, {offset: 0, limit});
-  holder.innerHTML = '';
-  const items = (r.ok && r.items) || [];
-  const pinIds = full.staffPicks.map(p => p.release_id);
-  const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
-    art: localAlbumArt(item.title, item.artist)}));
-  holder.appendChild(storeShelvesSection(shelfItems, pinIds, albumId => {
-    const item = items.find(i => i.release_id === albumId);
-    if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
-  }));
-  if(items.length && items.length < full.summary.records && limit < full.summary.records){
-    const more = el('button','cta ghost','Browse all ' + full.summary.records + ' records');
-    more.style.cssText = 'width:100%;margin-top:14px;box-sizing:border-box';
-    more.addEventListener('click', ()=> loadFriendCrate(full, holder, Math.min(full.summary.records, 200)));
-    holder.appendChild(more);
+// ST6: hasRecord/sleeveArt/caption only, from the now_spinning row
+// loadProfile() already fetched for friendNowSpinningRow() above --
+// `spinning` stays false and `art` stays null deliberately. Actually
+// animating the disc while this friend is playing (ST5 point 3, "a
+// friend's turntable follows their now_spinning row") and resolving
+// their track's real pressing color both need data this fetch doesn't
+// carry (a live play/pause signal, and a per-track quality_tier for
+// whatever's on the platter right now) -- left for a follow-up, same
+// deferral this plan's own PR history already flagged. The record still
+// shows paused on the platter rather than the turntable standing empty,
+// matching what `renderTurntable()`'s `hasRecord` false/true split draws.
+function friendTurntableInfo(full){
+  const spin = full.nowSpinning;
+  if(!spin || !spin.track_title){
+    return {turntableInfo: {hasRecord: false, art: null, spinning: false}, sleeveArt: null, sleeveName: null};
   }
+  const rel = spin.releases || {};
+  return {
+    turntableInfo: {hasRecord: true, art: null, spinning: false},
+    sleeveArt: localAlbumArt(rel.title, rel.artist), sleeveName: rel.title || null,
+  };
+}
+
+// GS8 (docs/30_GROOVES_AND_SHELF.md point 5): "a friend's crate: same
+// layout". ST6 (docs/32_SHELF_AND_TURNTABLES.md point 2): the default
+// view is now the same rendered ST2 shelf unit the local profile home
+// draws, in this friend's own published finish/turntable -- null reads
+// as Walnut/Standard, same fallback renderShelfUnit()'s own callers
+// already rely on locally. A cube tap opens the record sheet instead of
+// storeShelvesSection's own default "jump the local library crate" tap,
+// since a friend's records aren't in this device's own crate.
+function loadFriendShelfUnit(full, holder){
+  MizikiSocial.crate(full.profile.id, {offset: 0, limit: 60}).then(r => {
+    holder.innerHTML = '';
+    const items = (r.ok && r.items) || [];
+    if(!items.length){ holder.appendChild(el('p','store-loading','Nothing in the crate yet.')); return; }
+    const pinIds = full.staffPicks.map(p => p.release_id);
+    const faceOutIds = pinIds.slice(3, 5);
+    const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
+      art: localAlbumArt(item.title, item.artist)}));
+    const truncated = shelfUnitCubes(shelfItems, faceOutIds).length > SHELF_UNIT_CUBES
+      || items.length < full.summary.records;
+    holder.appendChild(renderShelfUnit({
+      items: shelfItems, faceOutIds,
+      onTapAlbum: albumId => {
+        const item = items.find(i => i.release_id === albumId);
+        if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
+      },
+      model: full.profile.turntable || 'standard',
+      finish: full.profile.shelf_finish || 'walnut',
+      ...friendTurntableInfo(full),
+    }));
+    if(truncated){
+      const more = el('button','cta ghost','Browse all ' + full.summary.records + ' records');
+      more.style.cssText = 'width:100%;margin-top:14px;box-sizing:border-box';
+      more.addEventListener('click', ()=> loadFriendCrateGrid(full, holder));
+      holder.appendChild(more);
+    }
+  });
+}
+
+// "Browse all": the un-truncated flat grid, same storeShelvesSection()
+// every friend's crate used exclusively before this PR, now reached by
+// the shelf unit's own "Browse all" link instead -- no limit on this
+// call means no further "Browse all" link of its own (storeShelvesSection
+// takes no opts here, same as this file's pre-ST6 call).
+function loadFriendCrateGrid(full, holder){
+  MizikiSocial.crate(full.profile.id, {offset: 0, limit: Math.min(full.summary.records, 200)}).then(r => {
+    holder.innerHTML = '';
+    const items = (r.ok && r.items) || [];
+    const pinIds = full.staffPicks.map(p => p.release_id);
+    const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
+      art: localAlbumArt(item.title, item.artist)}));
+    holder.appendChild(storeShelvesSection(shelfItems, pinIds, albumId => {
+      const item = items.find(i => i.release_id === albumId);
+      if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
+    }));
+  });
 }
 
 function friendCrateSection(full){
   const holder = el('div','store-shelves-holder');
   holder.appendChild(el('p','store-loading','Loading crate…'));
-  loadFriendCrate(full, holder, 60);
+  loadFriendShelfUnit(full, holder);
   return holder;
 }
 

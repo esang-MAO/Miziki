@@ -8,7 +8,7 @@ import { queueSave } from '../storage/meta.js';
 import { hasDeluxe } from '../deluxe.js';
 import { SHELF_FINISHES, shelfFinishInfo, displayShelfFinish } from './shelf-finish.js';
 import { renderShelfUnit } from './shelf-unit.js';
-import { shelfUnitRenderProps } from './storefront.js';
+import { shelfUnitRenderProps, pushShelfChoice } from './storefront.js';
 
 // The sheet's own transient pick, separate from S.shelfFinish: tapping a
 // Deluxe finish without Deluxe (point 3) previews it here without saving,
@@ -46,6 +46,7 @@ function pickFinish(id){
     previewId = null;
     S.shelfFinish = id;
     queueSave();
+    pushShelfChoice({shelfFinish: id});
   }
   renderShelfFinishSheet();
 }

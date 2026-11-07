@@ -1,6 +1,6 @@
 # Miziki privacy policy
 
-**Last updated: November 5, 2026**
+**Last updated: November 7, 2026**
 
 This is the canonical source for the Privacy Policy shown inside the app
 (`src/profile/legal.js`'s `renderPrivacyPolicyScreen`). The two must say the
@@ -17,6 +17,9 @@ optional account features (sign-in, backup, social).
   other users and never used for anything else.
 - **Handle, display name, bio and avatar** — the profile you choose to
   show once signed in.
+- **Your shelf finish and turntable** — the cosmetic wood finish and
+  turntable model you've picked for your shelf, published so a friend
+  sees your crate's shelf in the same wood and turntable you see it in.
 - **Social activity you choose to share** — your crate (the records
   you've picked to show), ratings and notes, what you're currently
   spinning, and your listening rhythm (a one-line verdict — "Mostly a
@@ -81,6 +84,9 @@ optional account features (sign-in, backup, social).
   in the ordinary course of running the app.
 - Your handle, display name and avatar are visible to other signed-in
   users, except anyone you've blocked.
+- Your shelf finish and turntable are visible to whoever can already
+  see your crate (the same private/friends/public setting), never to
+  anyone your crate itself is closed to.
 - Anything you choose to share — your crate, notes, now-spinning status,
   milestones, listening rhythm — follows your visibility setting
   (private, friends, or everyone; **friends by default**), found in the

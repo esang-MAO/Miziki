@@ -428,6 +428,14 @@ const updateProfile = patch => guarded(async () => {
     allowed.visibility = patch.visibility;
   }
   if ('showDiggingList' in patch) allowed.show_digging_list = !!patch.showDiggingList;
+  // ST6 (docs/32_SHELF_AND_TURNTABLES.md): two purely cosmetic choices,
+  // same posture as visibility above -- the DB's own check constraint
+  // (migration 027) is the one place valid ids are enforced, so this
+  // file (deliberately decoupled from src/profile/shelf-finish.js's/
+  // turntable.js's own id lists, see this file's header) doesn't
+  // duplicate them; an invalid id just surfaces as a normal failed write.
+  if ('shelfFinish' in patch) allowed.shelf_finish = patch.shelfFinish || null;
+  if ('turntable' in patch) allowed.turntable = patch.turntable || null;
   if ('listeningRhythm' in patch) {
     const lr = patch.listeningRhythm;
     if (lr !== null && (typeof lr !== 'object' || typeof lr.verdict !== 'string' || typeof lr.shares !== 'object' || lr.shares === null)) {

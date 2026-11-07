@@ -11,7 +11,7 @@ import { queueSave } from '../storage/meta.js';
 import { hasDeluxe } from '../deluxe.js';
 import { TURNTABLE_LINEUP, turntableInfo, turntablesHad, displayTurntable, renderTurntable } from './turntable.js';
 import { renderShelfUnit } from './shelf-unit.js';
-import { shelfUnitRenderProps } from './storefront.js';
+import { shelfUnitRenderProps, pushShelfChoice } from './storefront.js';
 
 function turntableTile(model, current){
   const btn = el('button', 'turntable-pick-tile');
@@ -30,6 +30,7 @@ function turntableTile(model, current){
 function pickTurntable(id){
   S.turntable = id;
   queueSave();
+  pushShelfChoice({turntable: id});
   renderTurntableSheet();
 }
 
