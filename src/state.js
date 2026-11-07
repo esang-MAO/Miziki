@@ -510,6 +510,14 @@ S.largerText = false;
 // with no device-only carve-out.
 S.deluxe = false;
 
+// ST3 (docs/32_SHELF_AND_TURNTABLES.md): the profile shelf's wood finish.
+// Walnut and Oak ship with Miziki; Teak/Ash/Black ash need Deluxe
+// (src/profile/shelf-finish.js's displayShelfFinish() is the one place
+// that gating is applied for display -- the saved value itself is kept
+// regardless, so it's ready the moment Deluxe comes back on). Follows the
+// account, so it rides inside `prefs` with no device-only carve-out.
+S.shelfFinish = 'walnut';
+
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,
    step 03) needs but nothing wrote yet, per that step's own "doesn't exist

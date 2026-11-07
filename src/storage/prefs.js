@@ -40,6 +40,7 @@ const KNOWN_PREF_KEYS = new Set([
   'zoetropesEnabled',
   'largerText',
   'deluxe',
+  'shelfFinish',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -92,6 +93,7 @@ export function serializePrefs(S){
     zoetropesEnabled: S.zoetropesEnabled,
     largerText: S.largerText,
     deluxe: S.deluxe,
+    shelfFinish: S.shelfFinish,
   }, unknownPrefKeys || {});
 }
 
@@ -246,6 +248,12 @@ export function parsePrefs(raw){
   // default" shape as above. A local `?deluxe=` URL switch applies after
   // this (main.js), so it always wins over whatever was saved/synced.
   if(typeof p.deluxe === 'boolean') out.deluxe = p.deluxe;
+  // ST3: a saved object without this (every device before this PR) loads
+  // as 'walnut', the stated default. Deluxe gating (whether a saved Teak/
+  // Ash/Black ash actually displays) is applied at display time, not
+  // here -- the raw saved value round-trips either way.
+  if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
+    || p.shelfFinish === 'ash' || p.shelfFinish === 'black') out.shelfFinish = p.shelfFinish;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

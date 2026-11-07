@@ -19,6 +19,8 @@ import { nowClock } from '../sundown/solar.js';
 import { phaseAt } from '../sundown/arc.js';
 import { openSundownSheet } from '../shell/sundown-sheet.js';
 import { eqStateLabel } from '../player/eq-label.js';
+import { shelfFinishInfo, displayShelfFinish } from './shelf-finish.js';
+import { hasDeluxe } from '../deluxe.js';
 import {
   RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, windowedCounts,
   rhythmVerdictLabel, seasonLabelFor, seasonAtOffset, sumBucketsInRange, mergeCounts,
@@ -289,6 +291,26 @@ function renderAppSettingsScreen(body){
   library.appendChild(el('div','settings-section-head', 'Library'));
   const libPanel = $('#libTools');
   if(libPanel) library.appendChild(libPanel);
+  // ST3 (docs/32_SHELF_AND_TURNTABLES.md): "Edit crate › Shelf finish" --
+  // the one way in, same settings-link-row shape the EQ row below uses.
+  // The value shown is what actually displays (displayShelfFinish()'s own
+  // Deluxe-off fallback to Walnut), not necessarily the saved id.
+  const finishRow = el('button','settings-link-row');
+  finishRow.appendChild(el('span', null, 'Shelf finish'));
+  const finishRowRight = el('span','settings-link-right');
+  finishRowRight.appendChild(el('span','settings-link-value',
+    shelfFinishInfo(displayShelfFinish(S.shelfFinish, hasDeluxe())).label));
+  finishRowRight.appendChild(el('span','g-chev','›'));
+  finishRow.appendChild(finishRowRight);
+  // Dynamically imported like the EQ row's own openEqSheet() above --
+  // shelf-finish-sheet.js reaches storage/meta.js's own queueSave(),
+  // real weight (the audio engine, Sundown, the launch intro) nobody
+  // needs until this one row is actually tapped.
+  finishRow.addEventListener('click', async () => {
+    const { openShelfFinishSheet } = await import('./shelf-finish-sheet.js');
+    openShelfFinishSheet();
+  });
+  library.appendChild(finishRow);
   body.appendChild(library);
 
   const playback = el('div','settings-section');

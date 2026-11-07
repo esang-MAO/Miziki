@@ -177,11 +177,16 @@ function applyPrefs(p){
   // (document.querySelectorAll) but this one doesn't.
   if(typeof p.largerText === 'boolean') S.largerText = p.largerText;
   applyLargerText();
-  // ST1 (docs/32_SHELF_AND_TURNTABLES.md): no UI side effect here — nothing
-  // visible reads S.deluxe yet (hasDeluxe(), src/deluxe.js, is the only
-  // reader until ST3/ST4 land). main.js's applyDeluxeUrlSwitch() runs after
-  // this and overrides whatever was just restored.
+  // ST1 (docs/32_SHELF_AND_TURNTABLES.md): no UI side effect here — the
+  // shelf-finish picker (ST3) and the earning rules (ST4) are the readers,
+  // both via hasDeluxe() (src/deluxe.js) at the point they need it.
+  // main.js's applyDeluxeUrlSwitch() runs after this and overrides
+  // whatever was just restored.
   if(typeof p.deluxe === 'boolean') S.deluxe = p.deluxe;
+  // ST3: no UI side effect here either -- the profile screen/shelf unit
+  // read S.shelfFinish fresh every time they render.
+  if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
+    || p.shelfFinish === 'ash' || p.shelfFinish === 'black') S.shelfFinish = p.shelfFinish;
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own
   // aria-pressed state here, the same inline shape sleevePullEnabled's own

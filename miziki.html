@@ -1158,6 +1158,21 @@
   </div>
 </div>
 
+<!-- SHELF FINISH (docs/32_SHELF_AND_TURNTABLES.md, ST3): a live preview of
+     the unit, the five wood swatches, the selected finish's own note, and
+     the Deluxe caption -- reuses the edit-overlay sheet pattern. Body is
+     rebuilt by openShelfFinishSheet()/renderShelfFinishSheet()
+     (src/profile/shelf-finish-sheet.js). -->
+<div class="edit-overlay" id="shelfFinishOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="shelfFinishSheetBox">
+    <div class="edit-head">
+      <span>Shelf finish</span>
+      <button class="edit-close" id="shelfFinishClose" aria-label="Close">✕</button>
+    </div>
+    <div id="shelfFinishBody"></div>
+  </div>
+</div>
+
 <!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
      edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
 <div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">
