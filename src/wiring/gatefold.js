@@ -13,7 +13,7 @@ import {
   gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
   openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
   gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
-  gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect,
+  gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect, gatefoldMoreMenuLook,
   gatefoldPlayRecord,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
@@ -124,6 +124,7 @@ export function wireGatefold(){
   $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
   $('#gfMoreKeepForBtn').addEventListener('click', gatefoldMoreMenuKeepFor);
+  $('#gfMoreLookBtn').addEventListener('click', gatefoldMoreMenuLook);
   $('#gfMoreTrackOrderBtn').addEventListener('click', gatefoldMoreMenuTrackOrder);
   $('#gfMoreSelectBtn').addEventListener('click', gatefoldMoreMenuSelect);
   $('#gfMoreRemoveAlbumBtn').addEventListener('click', gatefoldMoreMenuRemoveAlbum);

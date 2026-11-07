@@ -14,7 +14,11 @@ import { openLookPicker } from '../record-art/looks.js';
 import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
 
 export function wireOverlays(){
-  $('#lookBtn').addEventListener('click', openLookPicker);
+  // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 1):
+  // openLookPicker(t, opts) now takes real arguments (t defaults to
+  // current()) -- wrapped so the click Event addEventListener would
+  // otherwise pass as `t` can't leak in.
+  $('#lookBtn').addEventListener('click', () => openLookPicker());
   // #queueBtn lives inside #playerOverflowMenu and opens 'queue' in its
   // place -- closeLayerThen() (nav-stack.js) waits for the menu's own
   // close to actually land before opening it, rather than racing that

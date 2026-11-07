@@ -206,6 +206,8 @@ Follows CLAUDE.md's **How Miziki behaves** rules. The reasons stay off screen: c
 >
 > 1. The Albums tab's drill-down and an artist's album drill-down (`library/view.js`, the two `renderAlbumDetail()` callers) open the gatefold instead, following the same sealed → single → gatefold order `crate/view.js`'s `openCrateAlbum()` uses. Closing returns focus to the row that opened it.
 > 2. **Track order moves into the gatefold:** `renderAlbumDetail()` holds the Auto/Title/Manual sort bar and the manual mover controls. They move to the gatefold's ··· menu as "Track order", which turns the tracklist into a reorder mode in place. Saved through the same `S.albumOrder`/`S.albumSort` paths and `touchBackupKey('albumOrder', …)`.
+>
+>    **Later (docs/31_PRESSINGS_AND_LOOKS.md, PR B):** the ··· menu also gained a "Record look…" row, after "Keep for…" and before "Track order" — opens the same look picker the full player's own `#lookBtn` does, for this album rather than whatever's on the platter, shown only once the album has earned more than one look.
 > 3. **Desktop:** the crate detail panel is replaced by the gatefold's wide spread (both panels flat, THE MASTER and booklet in the inside-left, the pocket and a single "Play the record" primary button under it). The gatefold's existing `gf-wide` mode is the starting point.
 > 4. **One in, one out:** `renderAlbumDetail()` and the separate desktop detail-panel layout retire. Update CLAUDE.md and docs/DESKTOP_LAYOUT.md's description of current state.
 > 5. **Tests:** both library entry points open the gatefold; manual order survives the move (same saved order before and after).

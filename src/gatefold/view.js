@@ -17,7 +17,7 @@ import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
-import { discLook, paintDiscLook } from '../record-art/looks.js';
+import { discLook, paintDiscLook, hasLookChoice, openLookPicker } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
@@ -42,7 +42,7 @@ import { KEPT_FOR_PHASES } from '../sundown/spin-wording.js';
 import { persistAlbumKeptFor } from '../history/sessions.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
-import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { openLayer, closeLayer, closeLayerThen, forceCloseLayer } from '../shell/nav-stack.js';
 import { gatefoldGeometry } from './geometry.js';
 import { queueSave } from '../storage/meta.js';
 import { openConfirmDelete, renderTracks, moverCtl, syncQueueOrder } from '../library/view.js';
@@ -857,6 +857,16 @@ export function openGatefoldMoreMenu(){
     $('#gfMorePinBtn').style.display = '';
     $('#gfMorePinBtn').textContent = pinSrc.textContent;
   } else $('#gfMorePinBtn').style.display = 'none';
+  // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.3 point 1):
+  // re-checked fresh every time the menu opens -- earning a rare/metal/
+  // zoetrope mid-listen makes the row (and its swatch) show with no reload.
+  const pressingTrack = GF ? (albumPressingTrack(GF.item.albumId) || S.tracks[GF.item.idx[0]]) : null;
+  const lookBtn = $('#gfMoreLookBtn');
+  lookBtn.style.display = (pressingTrack && hasLookChoice(pressingTrack)) ? '' : 'none';
+  if(pressingTrack){
+    const d = discLook(pressingTrack);
+    lookBtn.querySelector('.look-row-disc').style.background = d.bg || '';
+  }
   const r = btn.getBoundingClientRect(), menu = $('#gfMoreMenu');
   menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
   menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
@@ -923,6 +933,28 @@ export function gatefoldKeepForPick(phase){
 // S.albumOrder/S.albumSort through albumTracks()'s own lazy, id-based
 // seeding (library/model.js) rather than re-implementing that here, the
 // same bug-prone shortcut library/view.js's retired sortBar() took.
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.3 point 2): the
+// gatefold's own way into the look picker, for this album rather than
+// whatever's on the platter. Uses closeLayerThen(), not a bare
+// closeLayer()-then-openLayer() two-step -- opening 'look' in the very
+// same tick as closing 'gf-more-menu' would push its own history entry
+// before 'gf-more-menu's own closing history.go(-1) actually lands
+// (finishClose()'s own documented hazard, nav-stack.js), which pops the
+// just-opened look sheet shut again moments later instead of the stale
+// menu entry (confirmed live: the sheet built its options then closed
+// itself within the same tick). closeLayerThen() waits for that real
+// navigation to finish first. onPicked crossfades the pocket disc (and
+// the platter, if this album happens to be loaded) the moment a choice is
+// made, same "applies immediately, no confirmation" rule the picker has
+// always followed.
+export function gatefoldMoreMenuLook(){
+  const item = GF && GF.item;
+  closeLayerThen('gf-more-menu', () => {
+    if(!item) return;
+    const pressingTrack = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+    openLookPicker(pressingTrack, { onPicked: () => GF && applyGatefoldDiscVariant(item, true) });
+  });
+}
 export function gatefoldMoreMenuTrackOrder(){
   closeLayer('gf-more-menu');
   if(!GF) return;
@@ -1067,20 +1099,38 @@ function gatefoldInfoAndSleeveHTML(item){
 // GF4 point 1: "the same pressing for every disc of one album" -- every
 // pocket (gatefoldSleevePocketEls()) gets the identical look, not just
 // the first disc's own.
-function applyGatefoldDiscVariant(item){
+// `crossfade` (PRESSING_DRAW, PR B.3.3 point 3): true only when a look is
+// actually being switched by the user (gatefoldMoreMenuLook()'s onPicked,
+// above) -- every other caller (initial open, cover-art resolving) wants
+// the instant paint it's always had, since there's nothing yet for a
+// crossfade to cover. A plain opacity fade on each pocket's own disc, not
+// setDiscBackground()'s #discFade (that element is the platter's alone,
+// and a multi-disc album has more than one pocket to fade at once).
+function applyGatefoldDiscVariant(item, crossfade){
   const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
   const d = t ? discLook(t) : null;
   gatefoldSleevePocketEls().forEach(wrap => {
     const disc = wrap.querySelector('.disc'), label = wrap.querySelector('.label');
     if(!disc || !label) return;
-    if(!d){
-      disc.classList.remove('rare');
-      label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
-      disc.style.background = '';
-      return;
+    const paint = () => {
+      if(!d){
+        disc.classList.remove('rare');
+        label.classList.remove('rare', 'paper-label', 'metal-invert', 'metal-silver');
+        disc.style.background = '';
+        return;
+      }
+      paintDiscLook(disc, label, d);
+      disc.style.background = d.bg || '';
+    };
+    const bg = d ? (d.bg || '') : '';
+    if(crossfade && !REDUCED && disc.style.background && disc.style.background !== bg){
+      disc.style.transition = 'opacity .18s ease';
+      disc.style.opacity = '0';
+      setTimeout(() => { paint(); disc.style.opacity = '1'; }, 180);
+    } else {
+      disc.style.transition = '';
+      paint();
     }
-    paintDiscLook(disc, label, d);
-    disc.style.background = d.bg || '';
   });
 }
 
