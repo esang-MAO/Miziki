@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The wall — ledges and cubes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#EFE9DF}a:hover{color:#FFFFFF}
+.wx-cover{position:absolute;top:34px;width:104px;height:104px;transform:perspective(500px) rotateX(7deg);transform-origin:50% 100%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.45)}
+.wx-shadow{position:absolute;left:4px;right:4px;height:20px;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,0))}
+.wx-box{position:absolute;box-shadow:0 8px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.16)}
+.wx-in{position:absolute;overflow:hidden}
+.wx-depth{position:absolute;inset:0;box-shadow:inset 0 12px 14px -6px rgba(0,0,0,.6),inset 9px 0 12px -8px rgba(0,0,0,.45),inset -9px 0 12px -8px rgba(0,0,0,.45)}
+.wx-disc{position:absolute;bottom:4px;width:72px;height:72px;border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,.45)}
+.wx-label{position:absolute;bottom:27px;width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#14110F 0,#14110F 7%,rgba(0,0,0,0) 8%),
+    linear-gradient(#26202C,#26202C) 50% 30% / 54% 7% no-repeat,
+    linear-gradient(rgba(38,32,44,.55),rgba(38,32,44,.55)) 50% 72% / 38% 5% no-repeat,
+    radial-gradient(circle at 38% 32%,#F4EFE4,#DCD3BE);
+  box-shadow:inset 0 0 0 1px #3E3D22,inset 0 0 0 2.5px rgba(244,239,228,.9),inset 0 0 0 3.5px rgba(62,61,34,.5)}
+.wx-stand{position:absolute;bottom:0;width:40px;height:8px;border-radius:2px;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.12));box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+.wx-cap{position:absolute;top:350px;width:104px;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 342px; height: 420px; position: relative; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF">
+
+  <span style="position: absolute; left: 0; top: 0; font-family: 'Caveat', cursive; font-weight: 500; font-size: 22px; line-height: 1; color: rgba(239,233,223,.7)">in rotation</span>
+
+  <div style="position: absolute; left: 0; right: 0; top: 134px; height: 8px; background: {{w.top}}"></div>
+  <div class="wx-cover" style="left: 6px; background: #B5483F">
+    <span style="position: absolute; inset: 26px; border-radius: 50%; border: 6px solid rgba(239,233,223,.85)"></span>
+    <span style="position: absolute; left: 8px; top: 8px; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 12px; color: rgba(239,233,223,.92)">HARBOR LIGHTS</span>
+  </div>
+  <div class="wx-cover" style="left: 119px; background: #3F8C7E">
+    <span style="position: absolute; left: 20px; right: 20px; top: 46px; height: 12px; background: rgba(239,233,223,.75)"></span>
+    <span style="position: absolute; left: 8px; top: 8px; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 12px; color: rgba(239,233,223,.92)">SLOW WEATHER</span>
+  </div>
+  <div class="wx-cover" style="left: 232px; background: #7E555A">
+    <span style="position: absolute; left: 22px; top: 20px; width: 60px; height: 60px; border-radius: 50%; background: rgba(239,233,223,.2)"></span>
+    <span style="position: absolute; left: 8px; top: 8px; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 12px; color: rgba(239,233,223,.92)">LANTERNS</span>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; top: 126px; height: 22px; background: {{w.rail}}; box-shadow: inset 0 2px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.3)"></div>
+  <div class="wx-shadow" style="top: 148px"></div>
+  <span style="position: absolute; left: -2px; top: 104px; transform: rotate(-5deg); background: #EFE6D2; color: #26202C; padding: 2px 8px 3px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 20px; line-height: 1; box-shadow: 0 1px 2px rgba(0,0,0,.45); white-space: nowrap">must hear</span>
+
+  <div style="position: absolute; left: 0; right: 0; top: 176px; display: flex; justify-content: space-between; align-items: center">
+    <span style="font-family: 'Caveat', cursive; font-weight: 500; font-size: 22px; line-height: 1; color: rgba(239,233,223,.7)">pressings, found while listening</span>
+    <a href="#" style="min-height: 44px; display: flex; align-items: center; font-size: 14px; color: #ABA298; text-decoration: none">All found ›</a>
+  </div>
+
+  <div class="wx-box" style="left: 0; top: 228px; width: 342px; height: 108px; background: {{w.rail}}">
+    <div class="wx-in" style="left: 8px; top: 8px; width: 104px; height: 92px; background: {{w.back}}">
+      <span class="wx-disc" style="left: 16px; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.14) 0px, rgba(0,0,0,.14) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 3px), radial-gradient(circle at 35% 30%, #5BAA99 0%, #3F8C7E 45%, #2A5E54 100%)"></span>
+      <span class="wx-label" style="left: 39px"></span>
+      <span class="wx-stand" style="left: 32px"></span>
+      <div class="wx-depth"></div>
+    </div>
+    <div class="wx-in" style="left: 120px; top: 8px; width: 102px; height: 92px; background: {{w.back}}">
+      <span class="wx-disc" style="left: 15px; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.14) 0px, rgba(0,0,0,.14) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 3px), radial-gradient(circle at 35% 30%, #B5433A 0%, #6B1F1C 60%, #3E1210 100%)"></span>
+      <span class="wx-label" style="left: 38px"></span>
+      <span class="wx-stand" style="left: 31px"></span>
+      <div class="wx-depth"></div>
+    </div>
+    <div class="wx-in" style="left: 230px; top: 8px; width: 104px; height: 92px; background: {{w.back}}">
+      <span class="wx-disc" style="left: 16px; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.10) 0px, rgba(0,0,0,.10) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 3px), radial-gradient(circle at 35% 30%, #E8EFF2 0%, #A9A9B4 50%, #4D5259 100%)"></span>
+      <span class="wx-label" style="left: 39px"></span>
+      <span class="wx-stand" style="left: 32px"></span>
+      <div class="wx-depth"></div>
+    </div>
+    <div style="position: absolute; left: 0; top: 0; width: 8px; height: 108px; background: {{w.post}}"></div>
+    <div style="position: absolute; left: 112px; top: 0; width: 8px; height: 108px; background: {{w.post}}"></div>
+    <div style="position: absolute; left: 222px; top: 0; width: 8px; height: 108px; background: {{w.post}}"></div>
+    <div style="position: absolute; left: 334px; top: 0; width: 8px; height: 108px; background: {{w.post}}"></div>
+  </div>
+
+  <div class="wx-cap" style="left: 5px"><span style="font-size: 12px; color: rgba(239,233,223,.85)">Verdigris</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">DUSK · 14 NOV</span></div>
+  <div class="wx-cap" style="left: 119px"><span style="font-size: 12px; color: rgba(239,233,223,.85)">Oxblood</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">NIGHT · 9 NOV</span></div>
+  <div class="wx-cap" style="left: 233px"><span style="font-size: 12px; color: rgba(239,233,223,.85)">Silver</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">METAL · OCT</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"finish":{"editor":"enum","options":["walnut","oak","teak","ash","black"],"default":"walnut"},"$preview":{"width":342,"height":420}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const F = {
+      walnut: { base: '#5A3A24', hi: '#6E4A30', lo: '#46301E', line: 'rgba(28,14,6,.45)', line2: 'rgba(140,96,60,.28)', back: '#2E1D11', top: '#7C5838' },
+      oak:    { base: '#B8894F', hi: '#CC9F63', lo: '#9F7340', line: 'rgba(96,60,24,.34)', line2: 'rgba(240,200,140,.30)', back: '#6E4C24', top: '#D7AE73' },
+      teak:   { base: '#8F5A2E', hi: '#A66B38', lo: '#784A24', line: 'rgba(56,28,8,.40)', line2: 'rgba(210,140,80,.24)', back: '#4E3016', top: '#B57A45' },
+      ash:    { base: '#D8C6A4', hi: '#E7D8BA', lo: '#C6B28C', line: 'rgba(130,104,70,.32)', line2: 'rgba(255,248,230,.40)', back: '#8C7A58', top: '#EEE2C8' },
+      black:  { base: '#2B2623', hi: '#37312D', lo: '#211D1B', line: 'rgba(0,0,0,.50)', line2: 'rgba(120,104,92,.26)', back: '#151210', top: '#3F3833' }
+    };
+    const f = F[this.props.finish] || F.walnut;
+    const fig = 'linear-gradient(90deg, rgba(0,0,0,.07) 0%, rgba(255,255,255,.05) 21%, rgba(0,0,0,.05) 46%, rgba(255,255,255,.06) 69%, rgba(0,0,0,.07) 100%)';
+    const figV = 'linear-gradient(0deg, rgba(0,0,0,.07) 0%, rgba(255,255,255,.05) 27%, rgba(0,0,0,.05) 52%, rgba(255,255,255,.06) 77%, rgba(0,0,0,.07) 100%)';
+    const lines = (a, b, l1, l2, p1, p2) => 'repeating-linear-gradient(' + a + 'deg, ' + l1 + ' 0px, ' + l1 + ' 1px, transparent 1px, transparent ' + p1 + 'px), repeating-linear-gradient(' + b + 'deg, ' + l2 + ' 0px, ' + l2 + ' 1px, transparent 1px, transparent ' + p2 + 'px)';
+    return {
+      w: {
+        rail: lines(179, 181.5, f.line, f.line2, 5, 11) + ', ' + fig + ', linear-gradient(180deg, ' + f.hi + ' 0%, ' + f.base + ' 50%, ' + f.lo + ' 100%)',
+        post: lines(89, 91.5, f.line, f.line2, 5, 11) + ', ' + figV + ', linear-gradient(90deg, ' + f.hi + ' 0%, ' + f.base + ' 50%, ' + f.lo + ' 100%)',
+        top: lines(179.5, 180.7, f.line, f.line2, 3, 7) + ', linear-gradient(180deg, ' + f.lo + ' 0%, ' + f.top + ' 100%)',
+        back: lines(90.6, 89.2, 'rgba(0,0,0,.22)', 'rgba(255,255,255,.04)', 7, 13) + ', ' + f.back
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-07T22:55:00Z"},
+  "title": "Miziki Wall Shelving",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 1734, "title": "Profile — in rotation on ledges, pressings in wall cubes (Tweak: finish)", "is_interactive": true},
+    "WallCombo.dc.html": {"x": 470, "y": 0, "w": 342, "h": 420, "title": "The wall (component) — chosen"},
+    "PaperLabels.dc.html": {"x": 470, "y": 540, "w": 1240, "h": 720, "title": "Paper labels — share cards, Pressings grid, the wall"},
+    "WallFinishes.dc.html": {"x": 0, "y": 1854, "w": 2030, "h": 600, "title": "The wall in the five finishes"},
+    "WallOptions.dc.html": {"x": 0, "y": 2574, "w": 892, "h": 1040, "title": "Explored — ledges only vs cubes only"},
+    "WallLedges.dc.html": {"x": 972, "y": 2574, "w": 342, "h": 420, "title": "Explored — ledges (component)"},
+    "WallCubes.dc.html": {"x": 1394, "y": 2574, "w": 342, "h": 420, "title": "Explored — cubes (component)"},
+    "ShelfUnit.dc.html": {"x": 892, "y": 0, "w": 342, "h": 640, "title": "Shelf unit (from plan 32)"},
+    "Turntable.dc.html": {"x": 1314, "y": 0, "w": 200, "h": 112, "title": "Turntable (from plan 32)"}
+  },
+  "order": ["Main.dc.html", "WallCombo.dc.html", "PaperLabels.dc.html", "WallFinishes.dc.html", "WallOptions.dc.html", "WallLedges.dc.html", "WallCubes.dc.html", "ShelfUnit.dc.html", "Turntable.dc.html"],
+  "notes": {},
+  "designSystems": []
+}
