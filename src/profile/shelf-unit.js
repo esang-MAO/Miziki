@@ -81,9 +81,13 @@ function emptyCell(note){
 // `turntableInfo`: {hasRecord, art, spinning} for the record on the
 // platter; `sleeveArt`/`sleeveName` for the stand beside it (null when
 // nothing's ever been loaded — ST2 point 3's "nothing on: the turntable
-// stands empty, no stand").
-export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntableInfo, sleeveArt, sleeveName}){
+// stands empty, no stand"). `finish` (ST3, docs/32_SHELF_AND_TURNTABLES.
+// md): one of SHELF_FINISHES' ids (src/profile/shelf-finish.js), default
+// 'walnut' -- sets the one `data-finish` attribute 18-storefront.css keys
+// its --wood-* custom properties off.
+export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntableInfo, sleeveArt, sleeveName, finish}){
   const unit = el('div', 'shelf-unit');
+  unit.setAttribute('data-finish', finish || 'walnut');
 
   unit.appendChild(el('div', 'shelf-unit-floor-shadow'));
 

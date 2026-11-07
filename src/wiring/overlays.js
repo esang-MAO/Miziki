@@ -1,7 +1,10 @@
 /* ================= wiring: small sheet toggles =================
-   Three small, single-button sheet openers/closers that don't belong to
-   any of the other wiring areas' own files: the queue sheet, the look
-   picker, and the library sort menu.
+   Small, single-button sheet openers/closers that don't belong to any of
+   the other wiring areas' own files: the queue sheet, the look picker,
+   the library sort menu, and (ST3, docs/32_SHELF_AND_TURNTABLES.md) the
+   shelf finish sheet -- its own opener is a dynamically-built Settings
+   row (src/profile/screens.js), wired inline there like every other
+   settings row, so only its close button belongs here.
 
    NV2 (docs/11_SMOOTH_NAVIGATION.md) registers each of these with the
    nav-stack layer stack (openQueueSheet()/openLookPicker()/openSortMenu()
@@ -42,4 +45,5 @@ export function wireOverlays(){
   $('#queueUndoBtn').addEventListener('click', undoQueueChange);
   $('#lookClose').addEventListener('click', () => closeLayer('look'));
   $('#sortMenuClose').addEventListener('click', () => closeLayer('sort-menu'));
+  $('#shelfFinishClose').addEventListener('click', () => closeLayer('shelf-finish'));
 }

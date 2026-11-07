@@ -27,6 +27,7 @@ function fakeS(overrides = {}){
     seasonalSky: true,
     showWear: true,
     deluxe: false,
+    shelfFinish: 'walnut',
   }, overrides);
 }
 
@@ -56,6 +57,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     seasonalSky: S.seasonalSky,
     showWear: S.showWear,
     deluxe: S.deluxe,
+    shelfFinish: S.shelfFinish,
   });
 });
 
@@ -570,6 +572,29 @@ test('bad value: a non-boolean deluxe is dropped, so the default stays in place'
   raw.deluxe = 'yes';
   const parsed = parsePrefs(raw);
   assert.equal('deluxe' in parsed, false);
+});
+
+// ST3 (docs/32_SHELF_AND_TURNTABLES.md): the shelf finish -- same
+// three-test shape as every other saved enum in this file (theme, pace).
+test('round trip: shelfFinish survives each of its five valid values', () => {
+  for(const v of ['walnut', 'oak', 'teak', 'ash', 'black']){
+    const parsed = parsePrefs(serializePrefs(fakeS({ shelfFinish: v })));
+    assert.equal(parsed.shelfFinish, v);
+  }
+});
+
+test('old saved data: no shelfFinish field at all leaves it out, so the default (walnut) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.shelfFinish;
+  const parsed = parsePrefs(raw);
+  assert.equal('shelfFinish' in parsed, false);
+});
+
+test('bad value: an unrecognized shelfFinish is dropped, so the default stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  raw.shelfFinish = 'mahogany';
+  const parsed = parsePrefs(raw);
+  assert.equal('shelfFinish' in parsed, false);
 });
 
 test('bad values are ignored: a non-boolean zoetropesEnabled', () => {

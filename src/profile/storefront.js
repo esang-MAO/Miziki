@@ -24,6 +24,8 @@ import { PHASE_CAPS } from '../sundown/spin-wording.js';
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
 import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from './shelf-unit.js';
+import { displayShelfFinish } from './shelf-finish.js';
+import { hasDeluxe } from '../deluxe.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -539,8 +541,26 @@ function storeShelfUnitSection(items, pinIds, onTapAlbum){
     model: 'standard',
     turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
     sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
+    finish: displayShelfFinish(S.shelfFinish, hasDeluxe()),
   }));
   return section;
+}
+
+// ST3 (docs/32_SHELF_AND_TURNTABLES.md): the Shelf finish sheet's own live
+// preview (src/profile/shelf-finish-sheet.js) wants the same real crate/
+// turntable data the home unit renders, just with its own finish/model
+// overrides -- exported rather than duplicated so both stay in sync with
+// whatever the crate actually holds. Always reads the local crate (not a
+// friend's), since the sheet only ever edits this account's own finish.
+export function shelfUnitRenderProps(){
+  const items = shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup));
+  const faceOutIds = localStaffPicks().map(p => p.release_id).slice(3, 5);
+  const info = shelfUnitTurntableInfo();
+  return {
+    items, faceOutIds,
+    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
+    sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
+  };
 }
 
 // GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
