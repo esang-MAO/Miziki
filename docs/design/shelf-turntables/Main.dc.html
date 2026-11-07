@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile — rendered shelving</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#EFE9DF}a:hover{color:#FFFFFF}
+.frame{background:#0F0D0C;padding:6px;box-shadow:0 2px 4px rgba(0,0,0,.5),0 8px 20px rgba(0,0,0,.45)}
+.mat{background:#EFE6D2;padding:8px}
+.found{display:flex;flex-direction:column;align-items:center;gap:6px;width:104px;white-space:nowrap}
+.disc{position:relative;width:64px;height:64px;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.45),0 8px 16px rgba(0,0,0,.4)}
+.lbl{position:absolute;inset:23px;border-radius:50%;background:#E9A24A}
+</style>
+</helmet>
+<div style="width: 390px; height: 1560px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(175deg, #1D2F38 0%, #121C22 50%, #0C1115 100%)">
+
+  <div style="position: absolute; top: 24px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: center">
+    <span style="font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 28px; letter-spacing: -.01em">Miziki</span>
+    <button aria-label="Settings" style="width: 44px; height: 44px; background: none; border: 0; color: #ABA298; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M11 1.5v3M11 17.5v3M1.5 11h3M17.5 11h3M4.3 4.3l2.1 2.1M15.6 15.6l2.1 2.1M4.3 17.7l2.1-2.1M15.6 6.4l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+    </button>
+  </div>
+
+  <div style="position: absolute; top: 92px; left: 24px; right: 24px; display: flex; justify-content: center">
+    <div style="position: relative; transform: rotate(-1.2deg); background: #EFE6D2; color: #26202C; padding: 14px 28px 12px; box-shadow: 0 2px 4px rgba(0,0,0,.4), 0 10px 22px rgba(0,0,0,.35); display: flex; align-items: baseline; gap: 4px">
+      <span aria-hidden="true" style="position: absolute; top: -9px; left: 18px; width: 54px; height: 18px; background: rgba(232,217,168,.82); transform: rotate(-6deg)"></span>
+      <span aria-hidden="true" style="position: absolute; top: -8px; right: 16px; width: 50px; height: 18px; background: rgba(232,217,168,.82); transform: rotate(5deg)"></span>
+      <span style="font-family: 'Caveat', cursive; font-weight: 700; font-size: 56px; line-height: .9">kenspins</span>
+      <span style="font-family: 'Caveat', cursive; font-weight: 500; font-size: 30px; line-height: 1; color: #4A4250">’s crate</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 212px; left: 24px; right: 24px; display: flex; align-items: center; gap: 16px">
+    <div aria-hidden="true" style="width: 64px; height: 64px; border-radius: 50%; flex: none; position: relative; background: repeating-radial-gradient(circle, #0B0908 0px, #0B0908 2px, #17140F 2px, #17140F 3px); box-shadow: 0 1px 3px rgba(0,0,0,.45), 0 8px 20px rgba(0,0,0,.45)">
+      <span style="position: absolute; inset: 22px; border-radius: 50%; background: #2B5586"></span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+      <span style="font-size: 20px; font-weight: 600">Ken</span>
+      <span style="font-size: 14px; color: #ABA298">Mostly spins after dark</span>
+    </div>
+    <a href="ShelfFinish.dc.html" style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(239,233,223,.28); color: #EFE9DF; font-size: 14px; display: flex; align-items: center; text-decoration: none">Edit</a>
+  </div>
+
+  <div style="position: absolute; top: 308px; left: 24px; right: 24px; display: flex; flex-direction: column; gap: 14px">
+    <h2 style="margin: 0; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.05; letter-spacing: -.01em">On the wall</h2>
+    <span style="font-family: 'Caveat', cursive; font-weight: 500; font-size: 22px; line-height: 1; color: rgba(239,233,223,.7); margin-top: -6px">in rotation</span>
+    <div style="display: flex; gap: 14px; align-items: flex-start">
+      <div class="frame" style="position: relative; transform: rotate(-.6deg)"><div class="mat"><div style="width: 74px; height: 74px; background: #B5483F"></div></div><span style="position: absolute; bottom: 4px; left: -10px; transform: rotate(-4deg); background: #EFE6D2; color: #26202C; padding: 2px 8px 3px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 20px; line-height: 1; box-shadow: 0 1px 2px rgba(0,0,0,.45); white-space: nowrap">must hear</span></div>
+      <div class="frame" style="margin-top: 10px"><div class="mat"><div style="width: 74px; height: 74px; background: #3F8C7E"></div></div></div>
+      <div class="frame" style="transform: rotate(.7deg)"><div class="mat"><div style="width: 74px; height: 74px; background: #7E555A"></div></div></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px">
+      <span style="font-family: 'Caveat', cursive; font-weight: 500; font-size: 22px; line-height: 1; color: rgba(239,233,223,.7)">pressings, found while listening</span>
+      <a href="#" style="min-height: 44px; display: flex; align-items: center; font-size: 14px; color: #ABA298; text-decoration: none">All found ›</a>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <div class="found"><span class="disc" style="background: radial-gradient(circle at 35% 30%, #5BAA99 0%, #3F8C7E 45%, #2A5E54 100%)"><span class="lbl"></span></span><span style="font-size: 12px; color: rgba(239,233,223,.85)">Verdigris</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">DUSK · 14 NOV</span></div>
+      <div class="found"><span class="disc" style="background: radial-gradient(circle at 35% 30%, #B5433A 0%, #6B1F1C 60%, #3E1210 100%)"><span class="lbl"></span></span><span style="font-size: 12px; color: rgba(239,233,223,.85)">Oxblood</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">NIGHT · 9 NOV</span></div>
+      <div class="found"><span class="disc" style="background: radial-gradient(circle at 35% 30%, #E8EFF2 0%, #A9A9B4 50%, #4D5259 100%)"><span class="lbl"></span></span><span style="font-size: 12px; color: rgba(239,233,223,.85)">Silver</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9A9187">METAL · OCT</span></div>
+    </div>
+  </div>
+
+  <a href="#" style="position: absolute; top: 676px; left: 24px; right: 24px; min-height: 52px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(239,233,223,.14); border-bottom: 1px solid rgba(239,233,223,.14); font-size: 16px; color: #EFE9DF; text-decoration: none">
+    <span>Listening</span><span style="color: #ABA298">›</span>
+  </a>
+
+  <div style="position: absolute; top: 736px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: baseline">
+    <h2 style="margin: 0; font-family: 'Antonio', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.05; letter-spacing: -.01em">The shelves</h2>
+    <a href="#" style="font-size: 14px; color: #ABA298; text-decoration: none">Browse all ›</a>
+  </div>
+  <span style="position: absolute; top: 778px; left: 24px; font-size: 14px; color: #ABA298">{{caption}}</span>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 1420px; height: 66px; background: linear-gradient(180deg, #171310 0%, #0F0C0A 100%)"></div>
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 1412px; height: 8px; background: linear-gradient(180deg, #22303A, #1A242C); box-shadow: 0 1px 0 rgba(0,0,0,.4)"></div>
+
+  <div style="position: absolute; top: 800px; left: 24px; width: 342px; height: 640px">
+    <dc-import name="ShelfUnit" finish="{{finish}}" model="{{model}}" spinning="{{playing}}" hint-size="342px,640px"></dc-import>
+  </div>
+
+  <div style="position: absolute; top: 1422px; left: 0; right: 0; height: 64px; background: rgba(30,26,28,.97); box-shadow: 0 -1px 0 rgba(239,233,223,.08); display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; box-sizing: border-box">
+    <span aria-hidden="true" style="width: 44px; height: 44px; flex: none; background: #B5483F; box-shadow: 0 1px 3px rgba(0,0,0,.45)"></span>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+      <span style="font-size: 16px">Night Ferry</span>
+      <span style="font-size: 14px; color: #ABA298">Ines Okafor · Harbor Lights</span>
+    </div>
+    <button aria-label="{{btnLabel}}" onClick="{{toggle}}" style="width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid #EFE9DF; background: none; color: #EFE9DF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+        <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><rect x="1" y="1" width="4" height="14" rx="1" fill="currentColor"></rect><rect x="9" y="1" width="4" height="14" rx="1" fill="currentColor"></rect></svg>
+      </sc-if>
+      <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+        <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><path d="M2 1l11 7-11 7z" fill="currentColor"></path></svg>
+      </sc-if>
+    </button>
+  </div>
+
+  <div style="position: absolute; top: 1486px; left: 0; right: 0; height: 74px; background: rgba(12,10,9,.94); display: flex; justify-content: space-around; align-items: center">
+    <span style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ABA298; font-size: 14px">
+      <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><path d="M2 2v16M6 2v16M10 2v16M14 3l4 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>Library</span>
+    <span style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ABA298; font-size: 14px">
+      <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><path d="M2 9 11 2l9 7v9H2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>Home</span>
+    <span style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: #EFE9DF; font-size: 14px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9" fill="none" stroke="currentColor" stroke-width="1.8"></circle><circle cx="11" cy="11" r="2.5" fill="currentColor"></circle></svg>Profile</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"finish":{"editor":"enum","options":["walnut","oak","teak","ash","black"],"default":"walnut"},"model":{"editor":"enum","options":["standard","console","deck","clear","suitcase","broadcast","horn","linear","upright","slate","radiogram","lathe"],"default":"standard"},"$preview":{"width":390,"height":1560}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { playing: true };
+  }
+  renderVals() {
+    const p = this.state.playing;
+    return {
+      finish: this.props.finish ?? 'walnut',
+      model: this.props.model ?? 'standard',
+      playing: p,
+      paused: !p,
+      btnLabel: p ? 'Pause' : 'Play',
+      caption: p ? 'Now spinning: Harbor Lights · Night Ferry' : 'On the turntable: Harbor Lights · paused',
+      toggle: () => this.setState({ playing: !p })
+    };
+  }
+}
+</script>
+</body>
+</html>

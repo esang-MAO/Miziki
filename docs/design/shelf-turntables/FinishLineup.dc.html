@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The five shelf finishes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&amp;family=Archivo:wght@400;500;600;700&amp;family=Caveat:wght@500;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.col{display:flex;flex-direction:column;gap:20px;width:342px}
+.name{margin:0;font-family:'Antonio',sans-serif;font-weight:700;font-size:28px;line-height:1.05;letter-spacing:-.01em}
+.note{font-size:14px;color:#ABA298}
+</style>
+</helmet>
+<div style="width: 2030px; height: 800px; box-sizing: border-box; position: relative; overflow: hidden; font-family: 'Archivo', system-ui, sans-serif; color: #EFE9DF; background: linear-gradient(180deg, #1D2F38 0%, #142028 85%)">
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 684px; height: 116px; background: linear-gradient(180deg, #171310 0%, #0F0C0A 100%)"></div>
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 676px; height: 8px; background: linear-gradient(180deg, #22303A, #1A242C)"></div>
+
+  <div style="position: absolute; top: 56px; left: 64px; display: flex; gap: 48px">
+    <div class="col">
+      <div style="width: 342px; height: 640px"><dc-import name="ShelfUnit" finish="walnut" hint-size="342px,640px"></dc-import></div>
+    </div>
+    <div class="col">
+      <div style="width: 342px; height: 640px"><dc-import name="ShelfUnit" finish="oak" hint-size="342px,640px"></dc-import></div>
+    </div>
+    <div class="col">
+      <div style="width: 342px; height: 640px"><dc-import name="ShelfUnit" finish="teak" hint-size="342px,640px"></dc-import></div>
+    </div>
+    <div class="col">
+      <div style="width: 342px; height: 640px"><dc-import name="ShelfUnit" finish="ash" hint-size="342px,640px"></dc-import></div>
+    </div>
+    <div class="col">
+      <div style="width: 342px; height: 640px"><dc-import name="ShelfUnit" finish="black" hint-size="342px,640px"></dc-import></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 712px; left: 64px; display: flex; gap: 48px">
+    <div class="col" style="gap: 4px"><h2 class="name">Walnut</h2><span class="note">Deep and warm, with a dark grain. The default.</span></div>
+    <div class="col" style="gap: 4px"><h2 class="name">Oak</h2><span class="note">Honey-gold with an open, lively grain.</span></div>
+    <div class="col" style="gap: 4px"><h2 class="name">Teak</h2><span class="note">Mid-century orange-brown.</span></div>
+    <div class="col" style="gap: 4px"><h2 class="name">Ash</h2><span class="note">Pale and light, with a fine straight grain.</span></div>
+    <div class="col" style="gap: 4px"><h2 class="name">Black ash</h2><span class="note">Stained near-black; the grain still shows through.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2030,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
