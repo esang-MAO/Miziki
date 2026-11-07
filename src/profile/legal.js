@@ -19,7 +19,7 @@
    builds its DOM. */
 import { el } from '../util/dom.js';
 
-const LAST_UPDATED = 'November 5, 2026';
+const LAST_UPDATED = 'November 7, 2026';
 
 function section(body, heading, paragraphs){
   if(heading) body.appendChild(el('h2', null, heading));
@@ -58,6 +58,7 @@ export function renderPrivacyPolicyScreen(host){
   bulletList(body, [
     'Email — only to send you a 6-digit sign-in code. It’s never shown to other users and never used for anything else.',
     'Handle, display name, bio and avatar — the profile you choose to show once signed in.',
+    'Your shelf finish and turntable — the cosmetic wood finish and turntable model you’ve picked for your shelf, published so a friend sees your crate’s shelf in the same wood and turntable you see it in.',
     'Social activity you choose to share — your crate, ratings and notes, what you’re currently spinning, and your listening rhythm (a one-line verdict and the percentage of your plays in each part of the day — never your individual plays or the times you played them). Sharing “now spinning” and listening rhythm is off by default — you turn each on yourself in the Privacy screen. Listening rhythm also needs at least 20 counted plays before there’s anything to show. A “Don’t share this session” switch in the player lets you skip sharing “now spinning” for one listening session without changing the setting itself. A shared “now spinning” tag like “at golden hour” says roughly what time of day it is where you are, which implies an approximate time zone; a shared listening rhythm says which part of the day you tend to listen in, which implies something about your daily routine. Neither ever reveals exact times, a location, or individual plays.',
     'Milestones (hitting a rare pressing) show on your own disc, share card and crate — never on a friend’s feed. Anything that is posted to the feed (a record added, pinned, or reviewed) is removed automatically after 45 days.',
     'Records held for you — if a mutual friend sets aside up to 3 records from their own crate for you, with a short note, that’s stored so it shows up on their crate when you visit (“Held for you”). Nobody is notified. It disappears automatically 30 days after it’s set aside, or sooner as you hand records back one at a time.',
@@ -77,6 +78,7 @@ export function renderPrivacyPolicyScreen(host){
   bulletList(body, [
     'Your listening backup and your custom covers are private to your account — nobody else ever reads them in the ordinary course of running the app.',
     'Your handle, display name and avatar are visible to other signed-in users, except anyone you’ve blocked.',
+    'Your shelf finish and turntable are visible to whoever can already see your crate (the same private/friends/public setting), never to anyone your crate itself is closed to.',
     'Anything you choose to share — including listening rhythm — follows your visibility setting (private, friends, or everyone — friends by default), found in the Privacy screen.',
     'A record held for you — and its note — is visible only to the two of you, whichever way it was set aside.',
   ]);

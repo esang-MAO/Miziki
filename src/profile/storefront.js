@@ -396,6 +396,22 @@ async function loadAndRenderStorefront(host){
   renderStorefront(host, full, (reqs.ok && reqs.requests) || []);
 }
 
+// ST6 (docs/32_SHELF_AND_TURNTABLES.md point 2): "the client writes them
+// when S.shelfFinish/S.turntable change (signed in only)." Exported so
+// shelf-finish-sheet.js/turntable-sheet.js (where the only two picks
+// actually happen) can call it right after their own local S.*/queueSave()
+// write, without either sheet needing its own MizikiSocial.status() gate
+// -- fire-and-forget, same as this file's cycleStoreVisibility() above:
+// a failed/offline push leaves the local choice intact (it just stays
+// unpublished until the next successful pick or sign-in), never blocks
+// the sheet's own instant-apply UI.
+export function pushShelfChoice(patch){
+  if(typeof MizikiSocial === 'undefined') return;
+  const soc = MizikiSocial.status();
+  if(!soc.enabled || soc.auth !== 'ready') return;
+  MizikiSocial.updateProfile(patch);
+}
+
 async function cycleStoreVisibility(profile, host){
   const order = ['private','friends','public'];
   const next = order[(order.indexOf(profile.visibility) + 1) % order.length];
