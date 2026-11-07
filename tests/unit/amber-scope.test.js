@@ -28,6 +28,12 @@ const STYLES_DIR = path.join(__dirname, '..', '..', 'src', 'styles');
 const ALLOWLIST = [
   // The paper record label (platter, gatefold face, run-out glow).
   { why: 'paper record label', re: /\.label\b/ },
+  // ST5 (docs/32_SHELF_AND_TURNTABLES.md): the shelf-unit turntable's own
+  // paper label (`.tt-label`/`.tt-label-mark`, 18-storefront.css) -- a
+  // separate element/name from `.label` above since it lives on a
+  // differently-shaped disc (a flattened ellipse, not a circle), but the
+  // same object: the paper record label.
+  { why: 'paper record label (shelf turntable)', re: /\.tt-label\b/ },
   // The Sundown dial's sun (ring glow, rising arc, sun label, sun marker).
   { why: "Sundown dial's sun", re: /\.day-dial-(ring|rising-arc|label|marker)\b/ },
   // FS5 (docs/25_FROM_SCRATCH.md point 6): the Sundown dial's sun, drawn

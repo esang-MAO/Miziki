@@ -439,26 +439,46 @@ button.pressing-chip{cursor:pointer}
 .tt-rec{position:absolute;border-radius:50%;
   background:radial-gradient(ellipse at 50% 50%,#2A272C 0%,#141216 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);background-size:cover;background-position:center}
 .tt-rec--blank{background-image:
-    conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.08) 0deg 5deg,rgba(0,0,0,0) 5deg 360deg),
-    radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
     repeating-radial-gradient(circle at 50% 50%,#141216 0px,#141216 1px,#24212A 1px,#24212A 3px)}
 .tt-rec--empty{background:none;box-shadow:none}
 
 /* ST5 (docs/32_SHELF_AND_TURNTABLES.md): "while playing it rotates
-   continuously; paused, the animation pauses in place" -- one plain CSS
-   animation (point 5's own cost model, no second rAF loop), duration set
-   per render as --tt-turn-dur (turntable.js's renderTurntable()) from the
-   same live rpm/Sundown-rate numbers the main platter's own #disc
-   transform already uses. `.tt-paused` (same class renderTurntable()
-   already adds whenever `spinning` is false) stops it exactly where it
-   is -- animation-play-state, not removing the animation, so there's no
-   snap back to 0deg on the next pause/resume. Point 4: no rotation at
-   all under reduced motion. */
-.tt-rec{animation:tt-spin var(--tt-turn-dur, 1.8s) linear infinite}
-.tt-paused .tt-rec{animation-play-state:paused}
-@keyframes tt-spin{to{transform:rotate(360deg)}}
+   continuously; paused, the animation pauses in place", point 1's "label
+   print marks, so a turn is visible". Bug found live (Ken, 2026-11-07):
+   the first cut of this animated `.tt-rec` itself (`transform:rotate()`
+   on the whole disc span) -- `.tt-rec` is drawn as a flat ellipse (every
+   model's own width/height below give it a ~5-10:1 aspect, the same
+   flattened-isometric convention the rest of this illustration uses), and
+   rigidly rotating a non-circular shape swings its long axis through
+   every angle, so mid-turn it reads as a giant diagonal blade sweeping
+   across the whole turntable rather than a disc spinning in place.
+   `.tt-rec` itself now never rotates -- its ellipse stays exactly as
+   drawn. Only `.tt-label-mark` below (the paper label's own print mark,
+   point 1) turns, using the one correct way to spin a shape that's
+   flattened to match a non-circular silhouette: an element whose own
+   un-transformed box is a true square (`width:100%;aspect-ratio:1`, so
+   it ignores its non-square parent's height) first rotates as a real
+   circle (a circle's silhouette is unchanged by rotation, so this part
+   is always geometrically safe), then gets squashed by `scaleY(--tt-
+   label-ratio)` into the label's own flattened shape -- squashing a
+   circle always gives the same fixed ellipse regardless of the rotation
+   angle, so the outline never moves, only the mark drawn on it does.
+   `--tt-label-ratio` (one of the per-model `.tt-X .tt-rec` rules below)
+   is each model's own exact height:width ratio in rendered px -- not the
+   bare CSS percentages, which are of a 200x112 box, not a square one. */
+.tt-label{position:absolute;left:50%;top:50%;width:28%;height:28%;transform:translate(-50%,-50%);
+  border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--amber) 78%,#fff 22%),color-mix(in srgb,var(--amber) 62%,#2A1608 38%));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.tt-rec--empty .tt-label{display:none}
+.tt-label-mark{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:1;
+  transform:translate(-50%,-50%) scaleY(var(--tt-label-ratio,1)) rotate(0deg);
+  background:conic-gradient(from 0deg,rgba(0,0,0,.22) 0deg 10deg,transparent 10deg 360deg);
+  animation:tt-label-spin var(--tt-turn-dur, 1.8s) linear infinite}
+.tt-paused .tt-label-mark{animation-play-state:paused}
+@keyframes tt-label-spin{to{transform:translate(-50%,-50%) scaleY(var(--tt-label-ratio,1)) rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){
-  .tt-rec{animation:none}
+  .tt-label-mark{animation:none}
 }
 
 .tt-standard .tt-s0{left:7%;top:95.536%;width:8%;height:5.357%;border-radius:1%;background:#111}
@@ -466,7 +486,7 @@ button.pressing-chip{cursor:pointer}
 .tt-standard .tt-s2{left:2%;top:69.643%;width:88%;height:26.786%;border-radius:1.5%;background:linear-gradient(180deg, #3A3735 0%, #1E1C1B 18%, #171514 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
 .tt-standard .tt-s3{left:7%;top:82.143%;width:3%;height:5.357%;border-radius:50%;background:#E9A24A;opacity:.8}
 .tt-standard .tt-s4{left:9%;top:62.5%;width:74%;height:8.036%;border-radius:1%}
-.tt-standard .tt-rec{left:9.5%;top:54.464%;width:73%;height:14.286%}
+.tt-standard .tt-rec{left:9.5%;top:54.464%;width:73%;height:14.286%;--tt-label-ratio:.10959}
 .tt-standard .tt-s7{left:78.5%;top:42.857%;width:3.5%;height:27.679%;border-radius:1%}
 .tt-standard .tt-s8{left:82%;top:41.071%;width:6%;height:10.714%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #CFCAC3, #55524E)}
 .tt-standard .tt-s9{left:55%;top:58.929%;width:27%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(-17deg);transform-origin:0 50%}
@@ -479,7 +499,7 @@ button.pressing-chip{cursor:pointer}
 .tt-console .tt-s5{left:15%;top:78.571%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
 .tt-console .tt-s6{left:3%;top:96.429%;width:92%;height:3.571%;background:#21160E}
 .tt-console .tt-s7{left:11%;top:58.929%;width:70%;height:8.036%;border-radius:1%}
-.tt-console .tt-rec{left:11.5%;top:50.893%;width:69%;height:13.393%}
+.tt-console .tt-rec{left:11.5%;top:50.893%;width:69%;height:13.393%;--tt-label-ratio:.10870}
 .tt-console .tt-s10{left:85%;top:46.429%;width:3%;height:20.536%;border-radius:1%}
 .tt-console .tt-s11{left:56%;top:53.571%;width:30%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #F0EBE4, #8A857F);transform:rotate(-6deg);transform-origin:0 50%}
 .tt-console .tt-s12{left:53%;top:52.679%;width:5.5%;height:5.357%;border-radius:0.5%;background:#C9C4BD}
@@ -490,7 +510,7 @@ button.pressing-chip{cursor:pointer}
 .tt-deck .tt-s4{left:5%;top:48.214%;width:2%;height:23.214%;background:linear-gradient(90deg, #9C978F, #E3DED7, #8A857F)}
 .tt-deck .tt-s5{left:4%;top:44.643%;width:4%;height:5.357%;border-radius:1%;background:#EFE9DF;box-shadow:0 0 6px rgba(239,233,223,.55)}
 .tt-deck .tt-s6{left:11%;top:60.714%;width:75%;height:9.821%;border-radius:1%;background:repeating-linear-gradient(90deg, #C9C4BD 0px, #C9C4BD 3px, #6E6A66 3px, #6E6A66 6px)}
-.tt-deck .tt-rec{left:11.5%;top:52.679%;width:74%;height:14.286%}
+.tt-deck .tt-rec{left:11.5%;top:52.679%;width:74%;height:14.286%;--tt-label-ratio:.10811}
 .tt-deck .tt-s9{left:85%;top:44.643%;width:4%;height:26.786%;border-radius:1%;background:linear-gradient(90deg, #2A2827, #5A5856, #1E1C1B)}
 .tt-deck .tt-s10{left:88%;top:41.071%;width:7%;height:8.929%;border-radius:1.5%;background:linear-gradient(180deg, #3A3836, #141312)}
 .tt-deck .tt-s11{left:70%;top:46.429%;width:17%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(12deg);transform-origin:100% 50%}
@@ -502,7 +522,7 @@ button.pressing-chip{cursor:pointer}
 .tt-clear .tt-s3{left:1%;top:53.571%;width:11%;height:19.643%;border-radius:1.5%;background:linear-gradient(90deg, #6E6A66, #D6D1CA 35%, #8E8984 70%, #5A5652)}
 .tt-clear .tt-s4{left:9%;top:64.286%;width:10%;height:0.893%;background:#1A1816}
 .tt-clear .tt-s5{left:17%;top:58.929%;width:65%;height:12.5%;border-radius:1%;background:linear-gradient(180deg, rgba(255,255,255,.32), rgba(210,225,235,.14));box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
-.tt-clear .tt-rec{left:17.5%;top:51.786%;width:64%;height:12.5%}
+.tt-clear .tt-rec{left:17.5%;top:51.786%;width:64%;height:12.5%;--tt-label-ratio:.10938}
 .tt-clear .tt-s8{left:84%;top:46.429%;width:2.5%;height:27.679%;background:linear-gradient(90deg, #8E8984, #E3DED7, #77736E)}
 .tt-clear .tt-s9{left:60%;top:53.571%;width:25%;height:1.786%;background:#141210;transform:rotate(-9deg);transform-origin:0 50%}
 .tt-clear .tt-s10{left:57%;top:51.786%;width:5%;height:4.464%;border-radius:0.5%;background:#141210}
@@ -510,7 +530,7 @@ button.pressing-chip{cursor:pointer}
 .tt-suitcase .tt-s1{left:10%;top:8.929%;width:80%;height:37.5%;border-radius:1.5%;background:repeating-radial-gradient(circle at 50% 50%, rgba(80,60,40,.0) 0px, rgba(80,60,40,0) 3px, rgba(80,60,40,.22) 3px, rgba(80,60,40,.22) 4px)}
 .tt-suitcase .tt-s2{left:4%;top:53.571%;width:92%;height:5.357%;background:#6E2420}
 .tt-suitcase .tt-s3{left:15%;top:51.786%;width:63%;height:7.143%;border-radius:1%}
-.tt-suitcase .tt-rec{left:15.5%;top:44.643%;width:62%;height:12.5%}
+.tt-suitcase .tt-rec{left:15.5%;top:44.643%;width:62%;height:12.5%;--tt-label-ratio:.11290}
 .tt-suitcase .tt-s6{left:80%;top:41.071%;width:2.5%;height:14.286%;background:#EFE9DF}
 .tt-suitcase .tt-s7{left:56%;top:46.429%;width:25%;height:2.679%;border-radius:1%;background:#EFE9DF;transform:rotate(-8deg);transform-origin:0 50%}
 .tt-suitcase .tt-s8{left:2%;top:58.929%;width:96%;height:37.5%;border-radius:0 0 3% 3%;background:repeating-linear-gradient(135deg, rgba(0,0,0,.05) 0px, rgba(0,0,0,.05) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #B5483F, #8E2F2A);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
@@ -524,7 +544,7 @@ button.pressing-chip{cursor:pointer}
 .tt-broadcast .tt-s3{left:8%;top:73.214%;width:4%;height:5.357%;background:#E9A24A;opacity:.75}
 .tt-broadcast .tt-s4{left:78%;top:67.857%;width:8%;height:14.286%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #2A2C2E, #0E0F10)}
 .tt-broadcast .tt-s5{left:5%;top:48.214%;width:80%;height:11.607%;border-radius:1%}
-.tt-broadcast .tt-rec{left:9%;top:41.071%;width:72%;height:14.286%}
+.tt-broadcast .tt-rec{left:9%;top:41.071%;width:72%;height:14.286%;--tt-label-ratio:.11111}
 .tt-broadcast .tt-s8{left:89%;top:19.643%;width:4.5%;height:41.071%;border-radius:1%;background:linear-gradient(90deg, #3A3D40, #8D949A, #2E3134)}
 .tt-broadcast .tt-s9{left:91%;top:16.071%;width:7%;height:12.5%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #8D949A, #2E3134)}
 .tt-broadcast .tt-s10{left:52%;top:44.643%;width:41%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #2E3134, #0E0F10);transform:rotate(-20deg);transform-origin:0 50%}
@@ -536,7 +556,7 @@ button.pressing-chip{cursor:pointer}
 .tt-horn .tt-s4{left:3%;top:76.786%;width:8%;height:3.571%;background:linear-gradient(180deg, #D9AE5C, #8A6228)}
 .tt-horn .tt-s5{left:1%;top:71.429%;width:3%;height:12.5%;border-radius:1%;background:#2B1A0E}
 .tt-horn .tt-s6{left:14%;top:60.714%;width:56%;height:6.25%;border-radius:1%;background:#2E2014}
-.tt-horn .tt-rec{left:16%;top:53.571%;width:52%;height:10.714%}
+.tt-horn .tt-rec{left:16%;top:53.571%;width:52%;height:10.714%;--tt-label-ratio:.11538}
 .tt-horn .tt-s9{left:52%;top:55.357%;width:13%;height:4.464%;border-radius:1%;background:linear-gradient(180deg, #D9AE5C, #8A6228);transform:rotate(-20deg);transform-origin:0 50%}
 .tt-horn .tt-s10{left:9%;top:96.429%;width:67%;height:3.571%;background:#24170D}
 .tt-linear .tt-s0{left:3%;top:94.643%;width:94%;height:5.357%;background:#121212}
@@ -547,7 +567,7 @@ button.pressing-chip{cursor:pointer}
 .tt-linear .tt-s5{left:78%;top:80.357%;width:6%;height:8.036%;border-radius:0.5%;background:#2A2A2A}
 .tt-linear .tt-s6{left:86%;top:80.357%;width:6%;height:8.036%;border-radius:0.5%;background:#2A2A2A}
 .tt-linear .tt-s7{left:14%;top:67.857%;width:72%;height:6.25%;border-radius:1%;background:#1C1C1C}
-.tt-linear .tt-rec{left:14.5%;top:59.821%;width:71%;height:13.393%}
+.tt-linear .tt-rec{left:14.5%;top:59.821%;width:71%;height:13.393%;--tt-label-ratio:.10563}
 .tt-linear .tt-s10{left:5%;top:39.286%;width:90%;height:7.143%;border-radius:1%;background:linear-gradient(180deg, #D6D2CC, #8E8A85)}
 .tt-linear .tt-s11{left:2%;top:35.714%;width:5%;height:39.286%;border-radius:1%;background:linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)}
 .tt-linear .tt-s12{left:93%;top:35.714%;width:5%;height:39.286%;border-radius:1%;background:linear-gradient(90deg, #8E8A85, #D6D2CC, #77736E)}
@@ -557,7 +577,7 @@ button.pressing-chip{cursor:pointer}
 .tt-upright .tt-s1{left:48%;top:78.571%;width:4%;height:12.5%;background:linear-gradient(90deg, #C9C4BD, #F2EEE8, #A9A49D)}
 .tt-upright .tt-s2{left:26%;top:0%;width:48%;height:85.714%;border-radius:50%;background:linear-gradient(135deg, #F2EEE8, #BDB8B1);box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .tt-upright .tt-s3{left:28.5%;top:4.464%;width:43%;height:76.786%;border-radius:50%;background:repeating-radial-gradient(circle, #141216 0px, #141216 1px, #222026 1px, #222026 2.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
-.tt-upright .tt-rec{left:43%;top:30.357%;width:14%;height:25%}
+.tt-upright .tt-rec{left:43%;top:30.357%;width:14%;height:25%;--tt-label-ratio:1}
 .tt-upright .tt-s5{left:48.5%;top:40.179%;width:3%;height:5.357%;border-radius:50%;background:#14110F}
 .tt-upright .tt-s6{left:75%;top:8.929%;width:3%;height:5.357%;border-radius:50%;background:#8A857F}
 .tt-upright .tt-s7{left:58%;top:10.714%;width:19%;height:2.679%;border-radius:1%;background:linear-gradient(180deg, #E6E1DA, #8A857F);transform:rotate(150deg);transform-origin:100% 50%}
@@ -565,7 +585,7 @@ button.pressing-chip{cursor:pointer}
 .tt-slate .tt-s1{left:86%;top:92.857%;width:7%;height:7.143%;clip-path:polygon(0 0, 100% 0, 70% 100%, 30% 100%)}
 .tt-slate .tt-s2{left:0%;top:64.286%;width:100%;height:29.464%;border-radius:1%;background:repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,.03) 0px, rgba(255,255,255,.03) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(176deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 2px, transparent 2px, transparent 9px), linear-gradient(180deg, #4E545A 0%, #3A3F44 40%, #2C3034 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
 .tt-slate .tt-s3{left:10%;top:53.571%;width:75%;height:11.607%;border-radius:1%;background:linear-gradient(180deg, #2A2A2C, #121214);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
-.tt-slate .tt-rec{left:10.5%;top:46.429%;width:74%;height:14.286%}
+.tt-slate .tt-rec{left:10.5%;top:46.429%;width:74%;height:14.286%;--tt-label-ratio:.10811}
 .tt-slate .tt-s6{left:88%;top:39.286%;width:4%;height:26.786%;border-radius:1%;background:linear-gradient(90deg, #1E1E20, #4A4A4E, #141416)}
 .tt-slate .tt-s7{left:58%;top:46.429%;width:32%;height:2.679%;border-radius:1%;background:#0E0E10;transform:rotate(-12deg);transform-origin:0 50%}
 .tt-slate .tt-s8{left:55%;top:45.536%;width:5.5%;height:5.357%;border-radius:0.5%;background:#0E0E10}
@@ -578,13 +598,13 @@ button.pressing-chip{cursor:pointer}
 .tt-radiogram .tt-s6{left:70%;top:58.929%;width:1%;height:10.714%;background:#8E2F2A}
 .tt-radiogram .tt-s7{left:56%;top:75%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
 .tt-radiogram .tt-s8{left:85%;top:75%;width:5%;height:8.929%;border-radius:50%;background:radial-gradient(circle at 35% 35%, #EDE8E1, #7A766F)}
-.tt-radiogram .tt-rec{left:5%;top:41.071%;width:52%;height:10.714%}
+.tt-radiogram .tt-rec{left:5%;top:41.071%;width:52%;height:10.714%;--tt-label-ratio:.11538}
 .tt-radiogram .tt-s11{left:35%;top:43.75%;width:20%;height:2.679%;background:#C9C4BD;transform:rotate(-8deg);transform-origin:0 50%}
 .tt-lathe .tt-s0{left:0%;top:67.857%;width:100%;height:32.143%;border-radius:1.5%;background:repeating-radial-gradient(circle at 60% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #7C8A7A 0%, #5E6B5E 35%, #48534A 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
 .tt-lathe .tt-s1{left:5%;top:76.786%;width:20%;height:14.286%;border-radius:1%;background:#1C201D;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .tt-lathe .tt-s2{left:7%;top:80.357%;width:15%;height:7.143%;background:linear-gradient(90deg, #EFE6D2 0%, #EFE6D2 60%, #3A403B 60%)}
 .tt-lathe .tt-s3{left:6%;top:58.929%;width:75%;height:9.821%;border-radius:1%}
-.tt-lathe .tt-rec{left:6.5%;top:50.893%;width:74%;height:14.286%}
+.tt-lathe .tt-rec{left:6.5%;top:50.893%;width:74%;height:14.286%;--tt-label-ratio:.10811}
 .tt-lathe .tt-s6{left:20%;top:26.786%;width:78%;height:7.143%;border-radius:1%;background:linear-gradient(180deg, #A9B3A8, #5E6B5E)}
 .tt-lathe .tt-s7{left:93%;top:26.786%;width:5%;height:42.857%;border-radius:1%;background:linear-gradient(90deg, #48534A, #A9B3A8, #3A433B)}
 .tt-lathe .tt-s8{left:48%;top:32.143%;width:13%;height:17.857%;border-radius:1.5%;background:linear-gradient(180deg, #3A403B, #1C201D)}

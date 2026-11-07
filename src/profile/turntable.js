@@ -3,10 +3,13 @@
 // by listening, src/history/achievements.js) plus the picker. CSS only,
 // drawn at a fixed 200×112 (design `Turntable.dc.html`), scaled by the
 // shelf unit's own container. Every model's geometry below is that design
-// file's own px values, converted to percentages of the 200×112 box; the
-// `.lab` (center label) div the design draws separately is folded into
-// `.tt-rec--blank`'s own centered gradient instead of a second element,
-// the same simplification Standard already shipped with in ST2.
+// file's own px values, converted to percentages of the 200×112 box.
+// The `.lab` (center label) the design draws is its own element
+// (`.tt-label`, 18-storefront.css), appended inside `rec` whenever a
+// record's actually on the platter -- not folded into `rec`'s own
+// background the way ST2 first shipped it, since that can't survive a
+// real pressing color's own inline `background` (see renderTurntable()'s
+// own comment at the `rec`/`uplab` branch below).
 import { el } from '../util/dom.js';
 import { RPM_33 } from '../record-art/format.js';
 
@@ -111,6 +114,15 @@ export function renderTurntable(model, hasRecord, discBg, spinning, turnSeconds)
       if(hasRecord){
         if(discBg) rec.style.background = discBg;
         else rec.classList.add('tt-rec--blank');
+        // the paper/center label (18-storefront.css's .tt-label/.tt-label-
+        // mark) -- its own element, not part of `rec`'s background, so the
+        // `discBg` assignment just above (a plain CSS property, always
+        // winning over the stylesheet's rule) can never paint over it the
+        // way it used to when the label was baked into .tt-rec--blank's
+        // own background-image.
+        const label = el('span', 'tt-label');
+        label.appendChild(el('span', 'tt-label-mark'));
+        rec.appendChild(label);
       } else {
         rec.classList.add('tt-rec--empty');
       }
