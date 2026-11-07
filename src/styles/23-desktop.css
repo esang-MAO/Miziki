@@ -440,18 +440,17 @@
   .store-requests-wrap{grid-column:1/-1;order:6}
   .store-open-card{grid-column:1/-1;order:7}
 
-  /* "now spinning" and "digging list"/"collection" share the row below
+  /* "the shelf unit" and "digging list"/"collection" share the row below
      the stats header — left/right via grid-column, paired via order. A
-     missing piece (now-spinning/digging-list are both social-only,
-     absent in the common signed-out/local-only case) just leaves that
-     cell empty — grid auto-placement needs no row-span bookkeeping for
-     that. GS8 (docs/30_GROOVES_AND_SHELF.md point 3): storeNowSpinningCard()'s
-     own .store-card is now nested inside .store-turntable's console-shelf
-     wrapper, which is the real grid item here. GS9 (point 4) removed the
-     Top Album/Top Song tiles this grid used to pair it against
-     (.profile-top-row, now gone along with the tiles themselves) —
-     .store-turntable keeps its own column/order regardless. */
-  .store-turntable{grid-column:2;order:10}
+     missing piece (digging-list is social-only, absent in the common
+     signed-out/local-only case) just leaves that cell empty — grid auto-
+     placement needs no row-span bookkeeping for that. GS9 (point 4)
+     removed the Top Album/Top Song tiles this grid used to pair it
+     against (.profile-top-row, now gone along with the tiles
+     themselves) — the shelf unit (ST2, docs/32_SHELF_AND_TURNTABLES.md,
+     replaces GS8's own .store-turntable console-shelf) keeps the same
+     column/order regardless. */
+  .store-shelf-unit-section{grid-column:2;order:10}
   .store-section-digging{grid-column:1;order:11}
   button.profile-section{grid-column:2;order:11}
 
