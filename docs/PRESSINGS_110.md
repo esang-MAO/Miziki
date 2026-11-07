@@ -1,5 +1,7 @@
 # PRESSINGS_110 — grow the pressing chart from 76 to 110, add zoetropes, redo metals
 
+**Note (docs/31_PRESSINGS_AND_LOOKS.md, PR A):** until that PR, the band and colour draws below were correlated — a hash bug meant over half the chart could never be drawn. That PR fixed the draw itself, not the rule described here. The chart is 111 pressings as of Moonwheel (the ninth zoetrope); the rest of this file is left as history.
+
 Build spec for Claude Code in the Miziki repo (`esang-MAO/Miziki`).
 Design source: the "Profile records + pressings" canvas, artboard 4 ("Pressing chart: the 110").
 Everything in this folder is meant to be dropped into the repo as reference:

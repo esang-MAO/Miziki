@@ -116,7 +116,16 @@ export function unionById(rows, field){
 
 // ---- achievements / collection: union by key; on overlap, the record with
 // the earliest earned date wins (the tier was reached that early on some
-// device, regardless of which device's upload happens to be newest) ----
+// device, regardless of which device's upload happens to be newest).
+//
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, A.3.4): a chart-version
+// migration deliberately leaves discoveredAt unchanged, so a stale,
+// not-yet-migrated copy of a collection record and a freshly re-drawn one
+// tie on dateField, and whichever row happened to come first would win.
+// On an exact tie, prefer the higher chartVersion instead (missing reads
+// as 1) so a stale copy can never beat an already-migrated one — true for
+// any future version bump, not just this one. achievements records carry
+// no chartVersion, so this tiebreak is a no-op there.
 export function unionEarliest(rows, field, dateField){
   const out = {};
   for(const row of rows){
@@ -126,6 +135,7 @@ export function unionEarliest(rows, field, dateField){
       const rec = m[k];
       const prev = out[k];
       if(!prev || (rec[dateField] || 0) < (prev[dateField] || 0)) out[k] = rec;
+      else if((rec[dateField] || 0) === (prev[dateField] || 0) && (rec.chartVersion || 1) > (prev.chartVersion || 1)) out[k] = rec;
     }
   }
   return out;

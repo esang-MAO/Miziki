@@ -147,7 +147,13 @@ const F = (ring, body, rim) => [ring, body, rim];
 // from before this field existed) once on first launch after the upgrade.
 // Lossy/lossless draws (Jet, the 40 solids) are untouched by this bump —
 // nothing about their own pools changed — so only tier 3 is ever re-drawn.
-export const CHART_VERSION = 2;
+//
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR A): bumped 2 -> 3
+// because frac32()'s fix below moves every draw, not just the tier-3
+// shelf — a tier-2 record's band/colour was just as correlated as tier
+// 3's, so this version re-draws tier 2 as well (migrateChartVersion()'s
+// own `rec.tier === 1` guard, not `rec.tier !== 3`).
+export const CHART_VERSION = 3;
 
 export const VARIANT_DEFS = {
   // ---- tier 1: the one lossy pressing ----
@@ -421,14 +427,30 @@ const EFFECT_BY_BAND = {common: poolByBand(EFFECT_IDS, 'common'), uncommon: pool
 // hash slices, one for the band, one for the colour inside it, so adding
 // a colour to one band never reshuffles another (and the same album
 // always draws the same band+colour, since both slices are pure
-// functions of the album's own identity key).
+// functions of the album's own identity key) — true only after the
+// PRESSING_DRAW fix below; before it, the band and colour draws were
+// nearly the same number (see frac32()'s own comment).
 function pickBand(frac){
   if(frac < 0.6) return 'common';
   if(frac < 0.9) return 'uncommon';
   return 'scarce';
 }
 function pickFromPool(pool, frac){ return pool[Math.min(pool.length - 1, Math.floor(frac * pool.length))]; }
-function frac32(key, salt){ return hash32(key + salt) / 4294967296; }
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md): FNV-1a alone barely moves
+// when only the last character changes, so `key + salt` gave five
+// near-identical draws — all five salts are one byte, appended to the end
+// of the same key, and hash32's last step is `(h ^ c) * 16777619`, so the
+// finished hash for two inputs differing only in that final byte lands
+// within about 1% of each other. Putting the salt in front changes the
+// whole running hash state from the very first byte, and running the
+// result through murmur3's fmix32 avalanche finishes the job, so every
+// salt is now a genuinely independent draw.
+function fmix32(h){
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16; return h >>> 0;
+}
+function frac32(key, salt){ return fmix32(hash32(salt + key)) / 4294967296; }
 
 function drawFromCatalogue(key, byBand){
   const band = pickBand(frac32(key, '\u0001'));

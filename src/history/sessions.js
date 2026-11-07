@@ -313,24 +313,45 @@ function checkZoetropeUnlock(albumId){
 // (or one below the current CHART_VERSION); re-run selectVariant() against
 // a still-in-library sample track and overwrite the stored variant/pattern
 // — discoveredAt is untouched, since this isn't a new discovery, just the
-// one-time re-draw the spec calls for. Tier 2 (solid) records are left
-// alone: the 40-solid pool/mix is unchanged by this growth, so recomputing
-// one would always be a no-op. An album with no track left in the library
-// (forgotten, not deleted) keeps its stale record, same as any other
-// "nothing to recompute against" case elsewhere in this codebase — it'll
-// be picked up the next time this runs, once a matching file reappears.
+// one-time re-draw the spec calls for. An album with no track left in the
+// library (forgotten, not deleted) keeps its stale record, same as any
+// other "nothing to recompute against" case elsewhere in this codebase —
+// it'll be picked up the next time this runs, once a matching file
+// reappears.
+//
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR A): v3 moves every
+// draw, tier 2 (solid) included — the band/colour draw was just as
+// correlated for a lossless album as it was for a hi-res one — so this
+// only skips tier 1 (always Jet, nothing to re-draw) rather than skipping
+// everything but tier 3. Also writes `rec.tier` alongside `rec.variant`/
+// `.pattern` so a record's stored tier and pressing can never disagree,
+// and (PRESSING_DRAW A.3.3) carries any played-through "found" sticker
+// for this album over to its new variant, so the Listening screen never
+// names a pressing the record no longer has.
 export async function migrateChartVersion(){
   for(const albumId of Object.keys(S.collection)){
     const rec = S.collection[albumId];
-    if(rec.tier !== 3) continue;
+    if(rec.tier === 1) continue;
     if((rec.chartVersion || 1) >= CHART_VERSION) continue;
     const sample = S.tracks.find(t => albumKey(t) === albumId);
     if(!sample) continue;
-    const {variant} = selectVariant(sample);
+    const oldVariant = rec.variant;
+    const {tier, variant} = selectVariant(sample);
+    rec.tier = tier;
     rec.variant = variant;
     rec.pattern = VARIANT_DEFS[variant].pattern;
     rec.chartVersion = CHART_VERSION;
     await collection.put(persistable(rec));
+    if(variant !== oldVariant){
+      let touched = false;
+      for(const entry of Object.values(S.playedThrough)){
+        if(entry.albumId === albumId && entry.found === oldVariant){
+          entry.found = variant;
+          touched = true;
+        }
+      }
+      if(touched) await persistPlayedThrough();
+    }
   }
 }
 

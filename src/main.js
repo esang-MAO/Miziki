@@ -15,7 +15,7 @@ import { albumFormatFor as computeAlbumFormat } from './shell/ceremony-timing.js
 import { applyDiscVariant } from './record-art/looks.js';
 import { allIdx } from './library/model.js';
 import { setQueue } from './player/queue.js';
-import { restoreSessions } from './history/sessions.js';
+import { restoreSessions, migrateChartVersion } from './history/sessions.js';
 import { loadOverlaysBatch } from './library/edit.js';
 import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
 import { renderSearchChips } from './library/search.js';
@@ -238,7 +238,19 @@ async function restoreLibrary(){
   // sync/backup.js deliberately doesn't import library/view.js itself (see
   // its own applyMerged() comment) — main.js already has renderTracks for
   // the boot sequence, so it's the one place that connects the two.
-  onBackup('applied', ()=>{
+  //
+  // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, A.3.4): migrateChartVersion()
+  // lives in history/sessions.js, which imports record-art/looks.js — one
+  // of the exact modules sync/backup.js's own header comment says it must
+  // never import. A pulled-down Collection row can restore a stale,
+  // not-yet-migrated chartVersion (the merge's own tiebreak above keeps a
+  // fresher local row from losing to it, but a genuinely stale remote row
+  // with no local copy at all needs this to actually re-draw), so this
+  // listener re-runs the same migration restoreMeta() already runs once at
+  // launch, same place onBackup('reset', ...) below reaches into
+  // history/clear.js for the same kind of reason.
+  onBackup('applied', async ()=>{
+    await migrateChartVersion();
     renderTracks();
     const t = current();
     if(t) applyDiscVariant(t, true);
