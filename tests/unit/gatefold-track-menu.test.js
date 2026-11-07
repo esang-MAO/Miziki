@@ -131,6 +131,12 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
     openLayer(_id, onClose){ registeredClose = onClose; },
     closeLayer(){ if(registeredClose){ const fn = registeredClose; registeredClose = null; fn(); } },
     forceCloseLayer(){ if(registeredClose){ const fn = registeredClose; registeredClose = null; fn(); } },
+    // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): gatefoldMoreMenuLook()
+    // uses closeLayerThen() instead of closeLayer()-then-openLayer() (see
+    // its own comment, src/gatefold/view.js) -- this file's subject is the
+    // track long-press menu, not that function, so a synchronous stand-in
+    // is enough.
+    closeLayerThen(_id, after){ if(registeredClose){ const fn = registeredClose; registeredClose = null; fn(); } after(); },
   },
 });
 

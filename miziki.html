@@ -1243,10 +1243,16 @@
   </div>
 </div>
 
-<!-- LOOK PICKER: switch between whatever looks the current album has earned
-     (rare / metal / format variant). Only opened when more than one is
-     available; switching is silent and immediate, no confirmation (see
-     METAL spec §5). Options are built dynamically since the count varies. -->
+<!-- LOOK PICKER: switch between whatever looks an album has earned
+     (zoetrope / rare / metal / format variant). Only opened when more than
+     one is available; switching is silent and immediate, no confirmation
+     (see METAL spec §5). Options are built dynamically since the count
+     varies. PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): opened
+     either from the full player's own #lookBtn (current()'s album) or from
+     the gatefold's "···" menu (that album, whether or not it's playing) --
+     each option now carries a small disc swatch of its own art. Dims the
+     screen behind it less than every other sheet (.35 instead of .72, see
+     16-edit-sheet.css) so the record stays visible while choosing. -->
 <div class="edit-overlay" id="lookOverlay" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
@@ -1482,6 +1488,19 @@
     <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
     <button class="overflow-menu-row" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
     <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
+    <!-- PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): opens the
+         same #lookOverlay sheet the full player's #lookBtn does, for this
+         album rather than whatever's on the platter -- shown only once
+         there's a real choice (src/gatefold/view.js's hasLookChoice()
+         check, re-run every time this menu opens). The small disc swatch
+         before the chevron previews the album's current look. -->
+    <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreLookBtn" role="menuitem" style="display:none">
+      <span>Record look…</span>
+      <span class="gf-more-look-end">
+        <span class="look-row-disc" aria-hidden="true"><span class="label"></span></span>
+        <span class="g-chev">›</span>
+      </span>
+    </button>
     <button class="overflow-menu-row" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
     <button class="overflow-menu-row" id="gfMoreSelectBtn" role="menuitem">Select</button>
     <button class="overflow-menu-row" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album</button>
