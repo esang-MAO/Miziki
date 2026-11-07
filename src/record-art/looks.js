@@ -36,7 +36,14 @@ function availableLooks(t){
   // zoetropeUnlocked/zoetropeDayProgress) is untouched either way.
   if(S.zoetropesEnabled && S.zoetropeUnlocked[albumId]) looks.push('zoetrope');
   if(S.rareUnlocked[albumId] && t.art) looks.push('rare');
-  const metal = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId);
+  // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 5): album
+  // first, then the specific track — a record's look is an album-level
+  // choice, and this is the order the gatefold's own pressing track (the
+  // album's first track, not necessarily the one with the metal) needs to
+  // still offer a metal earned on a different track. discLook()'s own
+  // metal lookup below uses the same order, so the swatch, the chosen
+  // look and the painted disc never disagree.
+  const metal = albumMetalFor(albumId) || trackMetalFor(trackIdentityKey(t));
   if(metal) looks.push('metal');
   // tier 1 with nothing earned has no real alternative to fall back to, so
   // the plain format variant only counts as a genuine "look" once there's
@@ -46,7 +53,15 @@ function availableLooks(t){
   return looks;
 }
 
-export function resolveLook(t){
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 2): the
+// gatefold's "···" menu uses this to decide whether "Record look…" even
+// has anything to offer — "discovered naturally, no placeholders" means
+// the row only shows once there's a real choice, same cheap check
+// applyDiscVariant()'s own #lookBtn line already makes inline.
+export function hasLookChoice(t){ return availableLooks(t).length > 1; }
+
+export function resolveLook(t, forceLook){
+  if(forceLook) return forceLook;
   const looks = availableLooks(t);
   const pref = S.albumLookPref[albumKey(t)];
   if(pref && looks.includes(pref)) return pref;
@@ -90,7 +105,7 @@ function buildLookOptionContent(kind, t){
     return { group: 'Rare', name: def.name, sub: def.sub, note: def.note };
   }
   if(kind === 'metal'){
-    const m = trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t));
+    const m = albumMetalFor(albumKey(t)) || trackMetalFor(trackIdentityKey(t));
     const name = m ? (m[0].toUpperCase() + m.slice(1) + ' Metal') : 'Metal';
     return { group: 'Metal', name, sub: null, note: 'Earned by a full, in-order play-through.' };
   }
@@ -99,8 +114,23 @@ function buildLookOptionContent(kind, t){
   return { group: familyGroupLabel(def), name: def.name, sub: def.sub, note: def.note };
 }
 
-export function openLookPicker(){
-  const t = current(); if(!t) return;
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 4): a
+// still, un-saved preview of what `kind` would look like for `t` — the
+// same disc art discLook() would return if that look were actually
+// chosen, via its forceLook argument. Nothing is written to
+// S.albumLookPref; metal shows static (no light overlay) and a zoetrope
+// shows its still art (no strobe ring), the same "painted, not animated"
+// swatch every other row already gets.
+export function lookPreview(t, kind){ return discLook(t, kind); }
+
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 1): `t` is
+// now whichever album's picker is opening — the full player's own
+// #lookBtn still passes nothing (current() by default); the gatefold
+// passes its own album's pressing track. `onPicked` lets the caller react
+// to the pick (the gatefold crossfades its pocket disc) without this
+// function needing to know who's calling.
+export function openLookPicker(t = current(), { onPicked } = {}){
+  if(!t) return;
   const albumId = albumKey(t);
   const looks = availableLooks(t);
   const current_ = resolveLook(t);
@@ -110,12 +140,29 @@ export function openLookPicker(){
     const content = buildLookOptionContent(kind, t);
     const b = el('button', 'cta look-option' + (kind === current_ ? '' : ' ghost'));
     b.type = 'button';
-    if(content.group) b.appendChild(el('span', 'look-option-group', content.group));
-    b.appendChild(el('span', 'look-option-name', content.name));
-    if(content.sub) b.appendChild(el('span', 'look-option-sub', content.sub));
-    if(content.note) b.appendChild(el('span', 'look-option-note', content.note));
+    // Reuses the real .disc/.label classes (scoped down by .look-option-disc,
+    // src/styles/16-edit-sheet.css) so paintDiscLook()'s rare/paper-label/
+    // metal-invert/metal-silver toggles — each a compound selector keyed to
+    // those base classes — paint exactly as they do on a real disc, just at
+    // swatch size. No rotation/drag listeners live on these, so there's
+    // nothing to disable.
+    const swatchWrap = el('span', 'look-option-disc');
+    const swatchDisc = el('span', 'disc');
+    const swatchLabel = el('span', 'label');
+    swatchWrap.appendChild(swatchDisc);
+    swatchWrap.appendChild(swatchLabel);
+    const preview = lookPreview(t, kind);
+    paintDiscLook(swatchDisc, swatchLabel, preview);
+    swatchDisc.style.background = preview.bg || '';
+    b.appendChild(swatchWrap);
+    const text = el('span', 'look-option-text');
+    if(content.group) text.appendChild(el('span', 'look-option-group', content.group));
+    text.appendChild(el('span', 'look-option-name', content.name));
+    if(content.sub) text.appendChild(el('span', 'look-option-sub', content.sub));
+    if(content.note) text.appendChild(el('span', 'look-option-note', content.note));
+    b.appendChild(text);
     // silent and immediate — no confirmation, no animation (see METAL spec §5)
-    b.addEventListener('click', () => { setLookPref(albumId, kind); closeLayer('look'); });
+    b.addEventListener('click', () => { setLookPref(albumId, kind); onPicked?.(kind); closeLayer('look'); });
     host.appendChild(b);
   });
   // CR7 point 6: a lossy record only ever presses Jet — say so once, every
@@ -141,8 +188,12 @@ export function closeLookPicker(){
 // the platter uses. Shared by applyDiscVariant()
 // below and record-art/peek.js, so the record that peeks out of a sleeve
 // (launch intro, crate pull) is always the same pressing the platter shows.
-export function discLook(t){
-  const look = resolveLook(t);
+// `forceLook` (PRESSING_DRAW, PR B.3.1 point 4): resolves the disc art for
+// a specific look kind without touching S.albumLookPref — the one thing
+// lookPreview() below needs to paint a swatch of a look the user hasn't
+// actually picked yet.
+export function discLook(t, forceLook){
+  const look = resolveLook(t, forceLook);
   const albumId = albumKey(t);
   // PRESSINGS_110 PR7 (§5/§8): resolved once per call so both the
   // 'zoetrope' look itself and the "metal lays over a zoetrope" case
@@ -194,7 +245,7 @@ export function discLook(t){
   // selectable regardless of the track's current tier, since it's the
   // resolveLook() call above (via availableLooks()) that decides whether
   // 'metal' is even a candidate in the first place.
-  const metal = look === 'metal' ? (trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumKey(t))) : null;
+  const metal = look === 'metal' ? (albumMetalFor(albumKey(t)) || trackMetalFor(trackIdentityKey(t))) : null;
   if(metal){
     // PRESSINGS_110 PR4 (docs/PRESSINGS_110.md §6): "the pressing still
     // shows" — the metal's rotating layer reads its rim/underglow off the
