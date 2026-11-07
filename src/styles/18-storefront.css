@@ -108,18 +108,6 @@
   border-bottom:1px solid var(--line);color:var(--paper);font-size:var(--fs-body);text-align:left;min-height:44px}
 .store-listening-row .g-chev{color:var(--muted)}
 
-/* FS7 (docs/25_FROM_SCRATCH.md point 4): "one raised row with the last
-   record you played and 'Spun last night'/'Spun 3 hours ago'"
-   (storeLastSpunRow(), src/profile/storefront.js) -- never got a rule of
-   its own, so its cover <img> rendered at its natural (often huge) size
-   instead of as a thumbnail. Same "raised row" shape as .store-card below. */
-.store-last-spun{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:var(--sp-3)}
-.store-last-spun-cover{width:48px;height:48px;flex:none;border-radius:6px;overflow:hidden;background:var(--field)}
-.store-last-spun-cover img{width:100%;height:100%;object-fit:cover;display:block}
-.store-last-spun-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.store-last-spun-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.store-last-spun-when{font-size:var(--fs-caption);color:var(--muted)}
-
 .store-card{margin-top:14px;background:var(--panel);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:var(--sp-3)}
 .store-card-count{width:38px;height:38px;border-radius:50%;flex:none;background:var(--cream);color:#1A1410;
   display:flex;align-items:center;justify-content:center;font-size:var(--fs-row);font-weight:700}
@@ -293,17 +281,6 @@ button.pressing-chip{cursor:pointer}
   font-family:var(--data);font-size:var(--fs-label);color:var(--cream);letter-spacing:.08em;text-transform:uppercase;
   text-align:right;padding:var(--sp-2) 0;min-height:44px}
 
-/* GS8 point 3: "the existing now-spinning/last-spun row, restyled as a
-   console shelf; under it a Listening › row" -- one dark card holding
-   both, .store-last-spun/.store-card inside unchanged (own margin zeroed
-   so they sit flush against this card's own padding), the listening row
-   sharing its bottom border instead of getting its own top one. */
-.store-turntable{margin-top:14px;background:#2A2622;border-radius:16px;padding:0 15px;overflow:hidden}
-.store-turntable-shelf{padding:13px 0}
-.store-turntable-shelf .store-last-spun,.store-turntable-shelf .store-card{margin-top:0;background:none;padding:0}
-.store-turntable-empty{margin:0;font-size:var(--fs-caption);color:var(--muted)}
-.store-turntable .store-listening-row{border-top:1px solid rgba(239,233,223,.12);border-bottom:0;margin:0}
-
 /* GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
    spines-out by the crate's current order; pins 4-5 face-out" -- shared
    by this own crate (storeShelvesSection(), profile/storefront.js) and a
@@ -327,3 +304,135 @@ button.pressing-chip{cursor:pointer}
    truncates to its 6-cube preview -- same full-width ghost-button treatment
    the records screen's old "Show all N records" row used. */
 .store-shelves-browse-all{width:100%;box-sizing:border-box;min-height:44px;margin-top:var(--sp-3);text-align:center}
+
+/* docs/32_SHELF_AND_TURNTABLES.md, ST2: the rendered shelf unit on the
+   profile home -- replaces GS8's own console-shelf (.store-turntable) and
+   the flat .shelf-grid preview for this one spot. storeShelvesSection()'s
+   own .shelf-grid/.cube/.sp/.shelf-face above are untouched -- friend-
+   store.js's unbounded crate browsing still uses them. */
+.store-shelf-head{display:flex;justify-content:space-between;align-items:baseline;margin-top:var(--sp-5)}
+.store-shelf-head h2{margin:0}
+.store-chev-link{background:none;border:0;padding:0;min-height:44px;font-size:var(--fs-body);color:var(--muted);font-family:var(--body)}
+.store-shelf-caption{display:block;font-size:var(--fs-caption);color:var(--muted);margin:var(--sp-2) 0 var(--sp-3)}
+
+/* All layout below is a straight percentage conversion of the design's
+   fixed 342x640 mock (docs/design/shelf-turntables/ShelfUnit.dc.html) --
+   percent-of-container instead of px, so the unit scales with its column
+   (phone width, or a wider desktop column) while keeping that 342:640
+   aspect ratio. --wood-* tokens are Walnut's own values (ShelfUnit.dc.
+   html's finish table F.walnut); ST3 overrides them per S.shelfFinish via
+   a data-finish attribute. */
+.shelf-unit{--wood-base:#5A3A24;--wood-hi:#6E4A30;--wood-lo:#46301E;
+  --wood-line:rgba(28,14,6,.45);--wood-line2:rgba(140,96,60,.28);
+  --wood-back:#2E1D11;--wood-top:#7C5838;--wood-plinth:#2A1A0F;
+  position:relative;width:100%;max-width:342px;margin:0 auto;aspect-ratio:342/640;
+  font-family:var(--body);color:var(--cream)}
+
+.shelf-unit-floor-shadow{position:absolute;left:1.754%;right:1.754%;bottom:0;height:2.1875%;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 70%)}
+
+.shelf-unit-top{position:absolute;inset:0}
+.shelf-unit-tt-shadow{position:absolute;left:2.924%;top:17.5%;width:52.63%;height:1.25%;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 70%)}
+.shelf-unit-tt-holder{position:absolute;left:2.339%;top:.9375%;width:58.48%;height:17.5%}
+.shelf-unit-tt-holder .tt{width:100%;height:100%}
+.shelf-unit-sleeve-shadow{position:absolute;left:64.91%;top:16.875%;width:30.41%;height:1.25%;border-radius:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,.10));box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.shelf-unit-sleeve{position:absolute;left:66.08%;top:1.875%;width:28.07%;height:15%;overflow:hidden;background:#B5483F;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 4px 10px rgba(0,0,0,.45);
+  transform:perspective(400px) rotateX(6deg);transform-origin:50% 100%}
+.shelf-unit-sleeve img{width:100%;height:100%;object-fit:cover;display:block}
+
+.shelf-unit-topcap{position:absolute;left:0;right:0;top:17.5%;height:1.875%;box-shadow:inset 0 1px 0 rgba(0,0,0,.25);
+  background-image:repeating-linear-gradient(179.5deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 4px),
+    repeating-linear-gradient(180.7deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 9px),
+    linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
+    linear-gradient(180deg,var(--wood-lo) 0%,var(--wood-top) 100%)}
+
+.shelf-unit-post{position:absolute;top:19.375%;height:77.8125%;
+  background-image:repeating-linear-gradient(89deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(91.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
+    linear-gradient(0deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 27%,rgba(0,0,0,.05) 52%,rgba(255,255,255,.06) 77%,rgba(0,0,0,.07) 100%),
+    linear-gradient(90deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%);
+  box-shadow:inset -1px 0 0 rgba(0,0,0,.25),inset 1px 0 0 rgba(255,255,255,.10)}
+.shelf-unit-post--l{left:0;width:4.09%}
+.shelf-unit-post--m{left:48.538%;width:2.924%}
+.shelf-unit-post--r{left:95.906%;width:4.09%}
+
+.shelf-unit-fullrail{position:absolute;left:0;right:0;height:2.1875%;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
+  background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
+    linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
+    linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
+.shelf-unit-fullrail--top{top:19.375%}
+.shelf-unit-fullrail--bottom{top:95%}
+
+.shelf-unit-rail{position:absolute;left:0;right:0;height:1.5625%;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
+.shelf-unit-rail[data-rail="0"]{top:45%}
+.shelf-unit-rail[data-rail="1"]{top:70%}
+.shelf-unit-rail-half{flex:1 1 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
+  background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
+    linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
+    linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
+
+.shelf-unit-frame{position:absolute;inset:0}
+.shelf-unit-row{position:absolute;left:0;right:0;height:23.4375%;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
+.shelf-unit-row[data-row="0"]{top:21.5625%}
+.shelf-unit-row[data-row="1"]{top:46.5625%}
+.shelf-unit-row[data-row="2"]{top:71.5625%}
+
+.shelf-cell{position:relative;flex:1 1 0;height:100%;overflow:hidden;
+  background-image:repeating-linear-gradient(90.6deg,rgba(0,0,0,.22) 0px,rgba(0,0,0,.22) 1px,transparent 1px,transparent 7px),
+    repeating-linear-gradient(89.2deg,rgba(255,255,255,.04) 0px,rgba(255,255,255,.04) 1px,transparent 1px,transparent 13px),
+    linear-gradient(var(--wood-back),var(--wood-back))}
+.shelf-cell-recs{position:absolute;left:5.921%;right:5.921%;bottom:3.333%;top:6.667%;display:flex;align-items:flex-end;gap:1px}
+.shelf-cell-strip{position:absolute;left:0;right:0;bottom:0;height:6%;
+  background-image:repeating-linear-gradient(179.5deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 3px),
+    repeating-linear-gradient(180.8deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 7px),
+    linear-gradient(180deg,var(--wood-back) 0%,var(--wood-top) 100%)}
+.shelf-cell-depth{position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 16px 18px -6px rgba(0,0,0,.6),inset 12px 0 14px -8px rgba(0,0,0,.45),inset -12px 0 14px -8px rgba(0,0,0,.45)}
+.shelf-cell .sp{display:block;flex:none;border:0;padding:0;border-radius:1px 1px 0 0;box-shadow:0 1px 0 rgba(0,0,0,.3);
+  width:11px;height:88%;background-size:cover;background-position:center}
+.shelf-cell .sp--blank{background-color:var(--panel)}
+.shelf-cell .shelf-face{display:block;flex:none;width:72px;height:92%;border:0;padding:0;border-radius:1px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18),6px 2px 10px rgba(0,0,0,.45);background:var(--panel);overflow:hidden}
+.shelf-cell .shelf-face img{width:100%;height:100%;object-fit:cover;display:block}
+.shelf-cell-empty{display:flex;align-items:center;justify-content:center}
+.shelf-cell-note{position:absolute;right:10.53%;top:26.67%;transform:rotate(4deg);background:var(--stock-card);color:#26202C;
+  padding:4px 10px 5px;box-shadow:0 1px 3px rgba(0,0,0,.45);font-family:var(--hand);font-weight:500;font-size:18px;line-height:1}
+
+.shelf-unit-bottomrail{position:absolute;left:0;right:0;top:95%;height:2.1875%;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
+  background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
+    repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
+    linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
+    linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
+.shelf-unit-plinth{position:absolute;left:1.754%;right:1.754%;top:97.1875%;height:1.5625%;background:var(--wood-plinth)}
+
+/* docs/design/shelf-turntables/Turntable.dc.html, Standard model only --
+   ST4 adds the other eleven. Drawn at its own 200x112 ratio, percentages
+   relative to the .tt box itself (set to 100%x100% of .shelf-unit-tt-
+   holder above, which is already sized/positioned in the unit's own
+   percentage space). */
+.tt{position:relative}
+.tt-foot{position:absolute;top:95.54%;width:8%;height:5.36%;border-radius:2px;background:#111}
+.tt-foot--l{left:7%}
+.tt-foot--r{left:76%}
+.tt-plinth{position:absolute;left:2%;top:69.64%;width:88%;height:26.79%;border-radius:3px;
+  background:linear-gradient(180deg,#3A3735 0%,#1E1C1B 18%,#171514 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.tt-light{position:absolute;left:7%;top:82.14%;width:3%;height:5.36%;border-radius:50%;background:#E9A24A;opacity:.8}
+.tt-platter{position:absolute;left:9%;top:62.5%;width:74%;height:8.04%;border-radius:2px;
+  background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
+.tt-rec{position:absolute;left:9.5%;top:54.46%;width:73%;height:14.29%;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%,#2A272C 0%,#141216 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);background-size:cover;background-position:center}
+.tt-rec--blank{background-image:radial-gradient(circle at 50% 50%,#E9A24A 0,#E9A24A 16%,#1C1A1F 16.6%,#1C1A1F 18%,rgba(0,0,0,0) 18.4%),
+    repeating-radial-gradient(circle at 50% 50%,#141216 0px,#141216 1px,#24212A 1px,#24212A 3px)}
+.tt-rec--empty{background:none;box-shadow:none}
+.tt-arm-base{position:absolute;left:78.5%;top:42.86%;width:3.5%;height:27.68%;border-radius:2px;
+  background:linear-gradient(90deg,#6E6A66 0%,#D6D1CA 30%,#8E8984 60%,#5A5652 100%)}
+.tt-counterweight{position:absolute;left:82%;top:41.07%;width:6%;height:10.71%;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#CFCAC3,#55524E)}
+.tt-arm{position:absolute;left:55%;top:58.93%;width:27%;height:2.68%;border-radius:2px;
+  background:linear-gradient(180deg,#E6E1DA,#8A857F);transform:rotate(-17deg);transform-origin:0 50%}
+.tt-headshell{position:absolute;left:52%;top:57.14%;width:6%;height:5.36%;border-radius:1px;background:#2B2826;transform:rotate(-17deg)}

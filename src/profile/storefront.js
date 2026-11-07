@@ -1,10 +1,10 @@
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
 import { albumKey, trackTier, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
-import { mostRecentlySpunAlbum, lastSpunPhrase, crateFlatAlbumOrder } from '../crate/model.js';
+import { mostRecentlySpunAlbum, crateFlatAlbumOrder } from '../crate/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
@@ -23,6 +23,7 @@ import { PHASE_CAPS } from '../sundown/spin-wording.js';
 // screens.js pair above rather than creating a new one.
 import { showRoute } from '../shell/routes.js';
 import { renderTracks } from '../library/view.js';
+import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from './shelf-unit.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -82,30 +83,6 @@ export function storeStat(label, value, accent){
   return s;
 }
 
-// FS7 (docs/25_FROM_SCRATCH.md point 4): "one raised row with the last
-// record you played and 'Spun last night'/'Spun 3 hours ago'" -- replaces
-// the stats row in every one of this own crate's three storefront states.
-// A friend's crate keeps its own stats row (Records/Staff picks/In common,
-// QC3) untouched -- social/screens/friend-store.js's own storeStat() calls
-// aren't this function's job. Returns null (nothing played yet) rather
-// than a placeholder, so the caller can skip the row entirely.
-export function storeLastSpunRow(){
-  const spun = mostRecentlySpunAlbum();
-  if(!spun) return null;
-  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
-  const info = adapter.albumInfo(spun.albumId);
-  if(!info) return null;
-  const row = el('div','store-last-spun');
-  const cover = el('div','store-last-spun-cover');
-  const art = localAlbumArt(info.title, info.artist);
-  if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
-  row.appendChild(cover);
-  const text = el('div','store-last-spun-text');
-  text.appendChild(el('b', null, info.title));
-  text.appendChild(el('span','store-last-spun-when', 'Spun ' + lastSpunPhrase(spun.ts)));
-  row.appendChild(text);
-  return row;
-}
 
 // RF11 (docs/12_REFINE.md, "Profile is your crate"): the one row every
 // storefront state links into the new Listening sub-screen (top album/song,
@@ -378,12 +355,10 @@ function renderLocalStorefront(host, cta){
   userRow.appendChild(userIn);
   host.appendChild(userRow);
 
-  host.appendChild(storeTurntableSection(storeLastSpunRow()));
-
   const picks = localStaffPicks();
   host.appendChild(storeWallSection(picks));
-  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id),
-    null, {maxCubes: SHELF_PREVIEW_CUBES, onBrowseAll: ()=> openRecords('all')}));
+  host.appendChild(storeShelfUnitSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id), null));
+  host.appendChild(storeListeningRow());
   host.appendChild(storePressingsTeaserRow());
 
   if(cta){
@@ -423,25 +398,10 @@ async function cycleStoreVisibility(profile, host){
   if(r.ok) loadAndRenderStorefront(host);
 }
 
-function storeNowSpinningCard(full, _host){
-  const settings = MizikiSocial.getSettings();
-  const card = el('div','store-card');
-  const count = el('div','store-card-count','♪');
-  card.appendChild(count);
-  const text = el('div','store-card-text');
-  if(full.nowSpinning && full.nowSpinning.track_title){
-    const rel = full.nowSpinning.releases || {};
-    text.appendChild(el('b', null, full.nowSpinning.track_title));
-    text.appendChild(el('em', null, [rel.artist, rel.title].filter(Boolean).join(' · ') || 'Now spinning'));
-  } else {
-    text.appendChild(el('b', null, 'Nothing spinning right now'));
-    text.appendChild(el('em', null, 'Shows here while you listen'));
-  }
-  card.appendChild(text);
-  card.appendChild(storeSwitch('Share what you’re spinning', settings.shareNowSpinning,
-    on => MizikiSocial.setSetting('shareNowSpinning', on)));
-  return card;
-}
+// ST2: storeNowSpinningCard() is removed -- the shelf unit's own caption
+// (shelfUnitTurntableInfo() above) now shows what's spinning, and the
+// "Share what you're spinning" setting it also carried already has its
+// own home on the Privacy screen (src/profile/privacy.js), unchanged.
 
 // GS8 (docs/30_GROOVES_AND_SHELF.md point 2): "On the wall" -- replaces
 // storePicksSection()/storeRecentlyFoundSection() (point 6's removals).
@@ -514,18 +474,72 @@ function storeWallFoundRow(){
   return wrap;
 }
 
-// GS8 point 3: "the existing now-spinning/last-spun row, restyled as a
-// console shelf; under it a Listening › row." Wraps whatever the caller's
-// own state already builds (storeLastSpunRow()'s row, or
-// storeNowSpinningCard()'s live card) in the shelf's own dark card chrome
-// -- no change to either row's own data/logic -- then appends
-// storeListeningRow() directly beneath it inside the same card.
-function storeTurntableSection(spinContent){
-  const section = el('div','store-turntable');
-  const shelf = el('div','store-turntable-shelf');
-  shelf.appendChild(spinContent || el('p','store-turntable-empty','Nothing on the turntable right now.'));
-  section.appendChild(shelf);
-  section.appendChild(storeListeningRow());
+// ST2 (docs/32_SHELF_AND_TURNTABLES.md point 2): "this absorbs plan 30's
+// 'On the turntable' row: one caption line above the shelves remains."
+// Replaces GS8 point 3's storeTurntableSection() (removed) — follows the
+// player (current(), src/state.js) when something's loaded this session,
+// falling back to the last album ever spun (mostRecentlySpunAlbum(),
+// same source storeLastSpunRow() used) so the turntable/sleeve-stand/
+// caption still show something after a fresh launch. null fields mean
+// "nothing on" (ST2 point 3: empty library, or nothing ever played) —
+// renderShelfUnit() reads hasRecord/sleeveArt as the "stand empty, no
+// stand" signal.
+function shelfUnitTurntableInfo(){
+  const t = current();
+  if(t){
+    const playing = !!S.playing;
+    const album = t.tags.album || '';
+    const title = t.tags.title || '';
+    return {
+      hasRecord: true, art: t.art, spinning: false,
+      sleeveArt: t.art, sleeveName: album,
+      caption: playing ? 'Now spinning: ' + album + ' · ' + title : 'On the turntable: ' + album + ' · paused',
+    };
+  }
+  const spun = mostRecentlySpunAlbum();
+  const none = {hasRecord: false, art: null, spinning: false, sleeveArt: null, sleeveName: null, caption: null};
+  if(!spun) return none;
+  const adapter = MizikiSocial.mizikiAdapter({S, DB, albumKey, trackTier, albumMetalFor});
+  const info = adapter.albumInfo(spun.albumId);
+  if(!info) return none;
+  const art = localAlbumArt(info.title, info.artist);
+  return {
+    hasRecord: true, art, spinning: false, sleeveArt: art, sleeveName: info.title,
+    caption: 'On the turntable: ' + info.title + ' · paused',
+  };
+}
+
+// ST2 point 2-4: the one rendered shelf unit, replacing both
+// storeTurntableSection() and storeShelvesSection()'s own maxCubes preview
+// for this file's two profile-home call sites (friend-store.js's own
+// unbounded "browse all" crate grid keeps calling storeShelvesSection()
+// below, untouched). `pinIds` is the same pin-rank-ordered id list
+// storeWallSection() takes -- only ranks 4-5 (pinIds[3]/[4]) draw face-out
+// here, same as storeShelvesSection() always did.
+function storeShelfUnitSection(items, pinIds, onTapAlbum){
+  const section = el('div','store-section store-shelf-unit-section');
+  const head = el('div','store-shelf-head');
+  head.appendChild(el('h2', null, 'The shelves'));
+  const faceOutIds = (pinIds || []).slice(3, 5);
+  const truncated = shelfUnitCubes(items, faceOutIds).length > SHELF_UNIT_CUBES;
+  if(truncated){
+    const browseAll = el('button','store-chev-link','Browse all ›');
+    browseAll.addEventListener('click', ()=> openRecords('all'));
+    head.appendChild(browseAll);
+  }
+  section.appendChild(head);
+  const info = shelfUnitTurntableInfo();
+  if(!items.length && !info.hasRecord){
+    section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
+    return section;
+  }
+  if(info.caption) section.appendChild(el('span','store-shelf-caption', info.caption));
+  section.appendChild(renderShelfUnit({
+    items, faceOutIds, onTapAlbum: id => shelfAlbumTap(id, onTapAlbum),
+    model: 'standard',
+    turntableInfo: {hasRecord: info.hasRecord, art: info.art, spinning: info.spinning},
+    sleeveArt: info.sleeveArt, sleeveName: info.sleeveName,
+  }));
   return section;
 }
 
@@ -711,10 +725,9 @@ function renderStorefront(host, full, requests){
   visRow.appendChild(visChip);
   host.appendChild(visRow);
   if(requests && requests.length) host.appendChild(storeRequestsCard(requests, ()=> loadAndRenderStorefront(host)));
-  host.appendChild(storeTurntableSection(storeNowSpinningCard(full, host)));
   host.appendChild(storeWallSection(full.staffPicks));
-  host.appendChild(storeShelvesSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id),
-    null, {maxCubes: SHELF_PREVIEW_CUBES, onBrowseAll: ()=> openRecords('all')}));
+  host.appendChild(storeShelfUnitSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id), null));
+  host.appendChild(storeListeningRow());
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
   host.appendChild(storePressingsTeaserRow());
 }
