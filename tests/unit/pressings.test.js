@@ -344,6 +344,25 @@ test('WS1 point 1: only the first pin keeps the "must hear" sticker', () => {
   assert.ok(!pins[1].kids.some(k => k.className === 'store-ledge-sticker'));
 });
 
+// WS2 (docs/33_WALL_AND_LABELS.md): the wall cubby's discs carry the
+// shared paper label, except a zoetrope, which keeps its own artwork
+// (variantBackground()'s only `url(...)` case, record-art/tiers.js).
+test('WS2: an ordinary found pressing\'s cubby disc carries the paper label; a zoetrope does not', () => {
+  S.collection.solid = {albumId: 'solid', variant: 'oxblood', pattern: 'solid', name: 'Solid One', discoveredAt: 200};
+  S.collection.zoe = {albumId: 'zoe', variant: 'lotus', pattern: 'zoetrope', name: 'Zoetrope One', discoveredAt: 100};
+  const section = storeWallSection([]);
+  const cubby = section.kids.find(k => k.className === 'store-wall-cubby-wrap')
+    .kids.find(k => k.className === 'store-wall-cubby');
+  const sections = cubby.kids.filter(k => k.className === 'store-cubby-section');
+  const discOf = sec => sec.kids.find(k => k.className === 'store-cubby-disc');
+  const solidDisc = discOf(sections.find(s => discOf(s).attrs['aria-label'] === 'Solid One'));
+  const zoeDisc = discOf(sections.find(s => discOf(s).attrs['aria-label'] === 'Zoetrope One'));
+  assert.ok(solidDisc.kids.some(k => k.className === 'paper-label-sm'));
+  assert.ok(zoeDisc.style.background.includes('url('), 'sanity: this variant really does resolve to an image background');
+  assert.ok(!zoeDisc.kids.some(k => k.className === 'paper-label-sm'), 'no label covers a zoetrope\'s own artwork');
+  delete S.collection.solid; delete S.collection.zoe;
+});
+
 test('WS1 point 4: zero picks shows one plain line, no ledge at all', () => {
   const section = storeWallSection([]);
   assert.equal(section.kids.find(k => k.className === 'store-wall-ledge'), undefined);

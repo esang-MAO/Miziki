@@ -150,6 +150,15 @@ function buildDisc(bg){
   d.style.background = bg;
   d.appendChild(el('span','peek-disc-grooves'));
   d.appendChild(el('span','peek-disc-sheen'));
+  // WS2 (docs/33_WALL_AND_LABELS.md): this screen's own disc -- a pressing
+  // or metal shown as a disc, same as the wall cubby -- gets the shared
+  // paper label (18-storefront.css's .paper-label-sm). The crate pull/
+  // launch-intro .peek-disc (record-art/peek.js's own buildPeekDisc(),
+  // a live preview of whatever's loaded, not a specific pressing/metal
+  // being shown off) stays bare. A zoetrope's own background is its
+  // disc artwork itself (variantBackground()'s only `url(...)` case,
+  // record-art/tiers.js) -- it keeps that art, no label on top of it.
+  if(typeof bg !== 'string' || !bg.includes('url(')) d.appendChild(el('span','paper-label-sm'));
   return d;
 }
 
