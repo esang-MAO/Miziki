@@ -403,6 +403,38 @@ test('history clear: achievements/Collection/rareUnlocked from a stale row are i
   assert.deepEqual(merged.totals.collection, {});
 });
 
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, A.3.4): a chartVersion
+// migration deliberately leaves discoveredAt unchanged, so a stale,
+// not-yet-migrated collection row and a freshly re-drawn one tie on
+// discoveredAt -- unionEarliest() must prefer the higher chartVersion on
+// that tie, in either row order, rather than letting row order decide.
+test('unionEarliest (collection): on an equal discoveredAt, the higher chartVersion wins, regardless of row order', () => {
+  const a = baseLocal('a', {
+    collection: { al1: { tier: 2, variant: 'jet', pattern: 'solid', discoveredAt: 100, chartVersion: 2 } },
+  });
+  const b = toDoc(baseLocal('b', {
+    collection: { al1: { tier: 2, variant: 'oxblood', pattern: 'solid', discoveredAt: 100, chartVersion: 3 } },
+  }));
+  const forward = fromDocs(a, [b]);
+  assert.equal(forward.totals.collection.al1.chartVersion, 3);
+  assert.equal(forward.totals.collection.al1.variant, 'oxblood');
+
+  const reversed = fromDocs(b, [toDoc(a)]);
+  assert.equal(reversed.totals.collection.al1.chartVersion, 3);
+  assert.equal(reversed.totals.collection.al1.variant, 'oxblood');
+});
+
+test('unionEarliest (collection): a missing chartVersion reads as 1, so a stamped row still beats it on a discoveredAt tie', () => {
+  const a = baseLocal('a', {
+    collection: { al1: { tier: 2, variant: 'jet', pattern: 'solid', discoveredAt: 50 } },
+  });
+  const b = toDoc(baseLocal('b', {
+    collection: { al1: { tier: 2, variant: 'oxblood', pattern: 'solid', discoveredAt: 50, chartVersion: 2 } },
+  }));
+  const merged = fromDocs(a, [b]);
+  assert.equal(merged.totals.collection.al1.variant, 'oxblood');
+});
+
 test('history clear: zoetropeUnlocked/zoetropeDayProgress from a stale row are ignored the same way as rareUnlocked', () => {
   const a = baseLocal('a', {
     historyClearedAt: 0,

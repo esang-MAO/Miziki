@@ -86,9 +86,14 @@ test('migrateChartVersion: a record already at the current version is left alone
   assert.equal(rec.discoveredAt, 999);
 });
 
-test('migrateChartVersion: a tier-2 (solid) record is never touched, even if stale', async () => {
+// PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR A): v3 re-draws tier 2
+// as well as tier 3 -- the band/colour correlation bug applied just as
+// much to a lossless album's solid draw. Only tier 1 (always Jet) is
+// skipped now.
+test('migrateChartVersion: a stale tier-2 (solid) record is re-drawn and re-stamped, discoveredAt untouched', async () => {
   const t = { meta: { lossless: true, bits: 16, rate: 44100 }, tags: { album: 'Plain Lossless Album' } };
   const id = keyFor(t);
+  const fresh = selectVariant(t);
   resetState({
     tracks: [t],
     collection: {
@@ -97,8 +102,46 @@ test('migrateChartVersion: a tier-2 (solid) record is never touched, even if sta
   });
   await migrateChartVersion();
   const rec = S.collection[id];
-  assert.equal(rec.chartVersion, 1, 'tier-2 records are not stamped forward -- the solid pool never changed');
+  assert.equal(rec.chartVersion, CHART_VERSION);
+  assert.equal(rec.tier, fresh.tier);
+  assert.equal(rec.variant, fresh.variant);
+  assert.equal(rec.pattern, VARIANT_DEFS[fresh.variant].pattern);
+  assert.equal(rec.discoveredAt, 5, 'discoveredAt must not change -- this is a re-draw, not a new discovery');
+});
+
+test('migrateChartVersion: a tier-1 record is left alone, even if stale -- Jet is always Jet', async () => {
+  const t = { meta: { lossless: false }, tags: { album: 'Lossy Album' } };
+  const id = keyFor(t);
+  resetState({
+    tracks: [t],
+    collection: {
+      [id]: { albumId: id, tier: 1, variant: 'jet', pattern: 'solid', discoveredAt: 3, chartVersion: 1 },
+    },
+  });
+  await migrateChartVersion();
+  const rec = S.collection[id];
+  assert.equal(rec.chartVersion, 1, 'tier-1 records are never re-stamped -- nothing about Jet could change');
   assert.equal(rec.variant, 'jet');
+});
+
+test('migrateChartVersion: a played-through "found" entry for a re-drawn album is rewritten to the new variant; another album\'s entry is untouched', async () => {
+  const t = hiResTrack('Found Sticker Album');
+  const id = keyFor(t);
+  const fresh = selectVariant(t);
+  const otherId = 'some other album';
+  resetState({
+    tracks: [t],
+    collection: {
+      [id]: { albumId: id, tier: 3, variant: 'jet', pattern: 'solid', discoveredAt: 9, chartVersion: 1 },
+    },
+    playedThrough: {
+      'a\u0000111\u0000A': { id: 'a\u0000111\u0000A', albumId: id, found: 'jet', side: 'A', at: 111 },
+      'b\u0000222\u0000A': { id: 'b\u0000222\u0000A', albumId: otherId, found: 'jet', side: 'A', at: 222 },
+    },
+  });
+  await migrateChartVersion();
+  assert.equal(S.playedThrough['a\u0000111\u0000A'].found, fresh.variant, 'the re-drawn album\'s found sticker follows the new variant');
+  assert.equal(S.playedThrough['b\u0000222\u0000A'].found, 'jet', 'an unrelated album\'s entry is untouched');
 });
 
 test('migrateChartVersion: a stale record with no matching track left in the library is left alone', async () => {
