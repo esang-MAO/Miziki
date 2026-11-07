@@ -187,6 +187,10 @@ function applyPrefs(p){
   // read S.shelfFinish fresh every time they render.
   if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
     || p.shelfFinish === 'ash' || p.shelfFinish === 'black') S.shelfFinish = p.shelfFinish;
+  // ST4: same no-UI-side-effect posture as shelfFinish just above -- the
+  // shelf unit reads S.turntable fresh via displayTurntable() every render.
+  if(['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast',
+    'upright', 'radiogram', 'slate', 'lathe', 'horn'].includes(p.turntable)) S.turntable = p.turntable;
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own
   // aria-pressed state here, the same inline shape sleevePullEnabled's own

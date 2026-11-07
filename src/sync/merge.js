@@ -88,6 +88,20 @@ export function minField(rows, field){
   return out;
 }
 
+// ---- ST4 (docs/32_SHELF_AND_TURNTABLES.md): firstEverPlayedAt -- the
+// Slate turntable's own milestone is a single account-wide timestamp, not
+// a per-album map, so minField's map shape doesn't fit; this is its
+// scalar twin, min() across whichever devices have ever set it.
+export function minScalarField(rows, field){
+  let out = null;
+  for(const row of rows){
+    const v = row[field];
+    if(v == null) continue;
+    out = (out == null) ? v : Math.min(out, v);
+  }
+  return out;
+}
+
 // ---- rareUnlocked: union of {albumKey: true} maps ----
 export function unionFlags(rows, field){
   const out = {};
@@ -422,6 +436,15 @@ export function mergeRows(rows){
       // freshness as every other field in this group — a cleared
       // device's own stale entries shouldn't resurrect on a merge.
       playedThrough: unionById(fresh, 'playedThrough'),
+      // ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntablesFound is the same
+      // union-by-key/earliest-date-wins shape as achievements/collection
+      // above; turntableProgress is the same {key: [dayKey,...]} union-of-
+      // sets shape as zoetropeDayProgress; firstEverPlayedAt is a single
+      // account-wide scalar, so it merges with minScalarField rather than
+      // minField's per-key map shape.
+      turntablesFound: unionEarliest(fresh, 'turntablesFound', 'foundAt'),
+      turntableProgress: unionDaySets(fresh, 'turntableProgress'),
+      firstEverPlayedAt: minScalarField(fresh, 'firstEverPlayedAt'),
     },
     sealed: mergeSealed(rows),
     overlays: mergeOverlays(rows),

@@ -25,7 +25,7 @@ import { restoreThumbs, persistable } from '../library/thumbs.js';
 // dayKeyFor() is the already-established local-calendar-day-key helper
 // (RF22's own S.phasePlayCountsByDay bucketing), reused here rather than
 // a second date-keying scheme.
-import { dayKeyFor, pruneRecordsByAge, RHYTHM_PRUNE_KEEP_DAYS } from '../sundown/rhythm.js';
+import { dayKeyFor, pruneRecordsByAge, RHYTHM_PRUNE_KEEP_DAYS, seasonKeyFor } from '../sundown/rhythm.js';
 // GS2 (docs/30_GROOVES_AND_SHELF.md): splitSides() is the gatefold's own
 // pure side-split model (shell/ceremony-timing.js) -- reused here, not
 // reimplemented, so the played-through log's own side letters always
@@ -131,15 +131,40 @@ export async function persistAlbumFirstPlayed(){ await meta.put('albumFirstPlaye
 // union-of-flags backed-up shape, same persist-on-every-change posture.
 export async function persistZoetropeUnlocked(){ await meta.put('zoetropeUnlocked', S.zoetropeUnlocked); }
 export async function persistZoetropeDayProgress(){ await meta.put('zoetropeDayProgress', S.zoetropeDayProgress); }
+// ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntables found by
+// listening — their own milestone pool, same union-by-id/progress-set
+// shapes and persist-on-every-change posture as rareUnlocked/zoetrope*
+// above. See checkTurntableUnlocks() below.
+export async function persistTurntablesFound(){ await meta.put('turntablesFound', S.turntablesFound); }
+export async function persistTurntableProgress(){ await meta.put('turntableProgress', S.turntableProgress); }
+// ST4: the Slate turntable's own "365 days since your first play ever"
+// milestone — written once, same posture as persistAlbumFirstPlayed above.
+export async function persistFirstEverPlayedAt(){ await meta.put('firstEverPlayedAt', S.firstEverPlayedAt); }
 
 function startSession(albumId){
   const order = albumExpectedOrder(albumId);
   if(!order.length) return null;
   const rec = {albumId, startedAt:Date.now(), lastActivityAt:Date.now(),
-    tracksCompleted:[], expectedOrder:order, invalidated:false};
+    tracksCompleted:[], expectedOrder:order, invalidated:false,
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Linear turntable's own
+    // "clean" side -- set by markSessionSeek() below, read (and reset for
+    // the next side) by sessionTrackComplete()'s own playedThroughEntry.
+    // Not itself persisted/restored across a restart — a resumed session
+    // simply starts its next side counted as clean, the same forgiving
+    // posture a 4-hour resume gap already has for everything else here.
+    seeked:false};
   persistSession(rec);
   return rec;
 }
+
+// transport.js's seek() calls this on every seek (spin-to-scrub, drop the
+// needle, the scrubber) -- a no-op with no active session, so it costs
+// nothing outside a qualifying play-through.
+export function markSessionSeek(){
+  const rec = S.sessionActive && S.sessions[S.sessionActive];
+  if(rec) rec.seeked = true;
+}
+
 
 // skip, shuffle-on, and out-of-order jumps are all "invalidating events" —
 // write the flag (per spec §8), then drop it from the active set
@@ -225,10 +250,27 @@ export function sessionTrackComplete(t){
   if(sideLabel !== null){
     const at = Date.now();
     const id = albumId + '\u0000' + at + '\u0000' + sideLabel;
-    playedThroughEntry = { id, albumId, side: sideLabel, whole: wholeDone, phase: realDayPosition().phase, at };
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Linear turntable's own
+    // "no skip, lift or seek" bar — this gate already requires no skip
+    // (sequential tracksCompleted, checked above); rec.seeked (set by
+    // markSessionSeek(), transport.js's seek()) is the only one of the
+    // three it doesn't already guarantee, so `clean` just adds that.
+    // Reset for the next side either way, so one seeky side doesn't
+    // disqualify every side after it.
+    playedThroughEntry = { id, albumId, side: sideLabel, whole: wholeDone, phase: realDayPosition().phase, at, clean: !rec.seeked };
+    rec.seeked = false;
     S.playedThrough[id] = playedThroughEntry;
     S.playedThrough = pruneRecordsByAge(S.playedThrough, at, RHYTHM_PRUNE_KEEP_DAYS);
     persistPlayedThrough();
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md): Linear -- 10 clean sides,
+    // same side-level grain as the played-through log itself, independent
+    // of whether this particular side also completed the whole record.
+    if(playedThroughEntry.clean && !S.turntablesFound.linear){
+      const cleanSides = S.turntableProgress.linear || (S.turntableProgress.linear = []);
+      cleanSides.push(id);
+      if(cleanSides.length >= LINEAR_CLEAN_SIDES_TO_EARN) markTurntableFound('linear', playedThroughEntry.phase);
+      else persistTurntableProgress();
+    }
   }
 
   if(wholeDone){
@@ -254,6 +296,7 @@ export function sessionTrackComplete(t){
     // is rather than resetting it, so turning it back on resumes with
     // zero progress lost. rareUnlock above is unaffected either way.
     if(S.zoetropesEnabled) checkZoetropeUnlock(albumId);
+    checkTurntableWholeRecordUnlocks(t, albumId, realDayPosition().phase);
     MizikiSocial.listeningChanged();
     // the album metal (if any) is a pure function of the count that just
     // changed — re-render the platter if this album is still what's showing
@@ -304,6 +347,102 @@ function checkZoetropeUnlock(albumId){
     const t = current();
     if(t && albumKey(t) === albumId) applyDiscVariant(t, true);
   }
+}
+
+// ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntables found by
+// listening. Nine of the plan's eleven listening-earned models are
+// implemented here (Lathe reuses rareUnlocked outright, with no progress
+// counter of its own); Suitcase (a friend's held-for-you stack) and
+// Upright (90 days pinned, played each of those months) both need a
+// signal this pass doesn't yet have a reliable source for -- the social
+// client's held-for-you cache shape, and a local pin-start timestamp --
+// and are left for a follow-up rather than guessed at. Horn stays
+// dormant until the 78 format exists, per the plan's own note.
+export const LINEAR_CLEAN_SIDES_TO_EARN = 10;
+export const CLEAR_HIRES_ALBUMS_TO_EARN = 5;
+export const BROADCAST_NIGHT_ALBUMS_TO_EARN = 7;
+export const CONSOLE_MONTHS_TO_EARN = 3;
+export const RADIOGRAM_PHASES_TO_EARN = 7; // every phase in sundown/rhythm.js's own PHASES list
+export const SLATE_DAYS_TO_EARN = 365;
+
+function markTurntableFound(id, phase){
+  if(S.turntablesFound[id]) return;
+  S.turntablesFound[id] = {foundAt: Date.now(), phase};
+  persistTurntablesFound();
+}
+
+// Clear (5 whole hi-res records), Broadcast (7 whole records finished in
+// the 'night' phase -- solar midnight to first light, sundown/day.js's own
+// definition of that phase), Lathe (your first rare pressing, reusing
+// rareUnlocked outright) -- all whole-record-level, called only once
+// sessionTrackComplete() above already knows wholeDone is true.
+function checkTurntableWholeRecordUnlocks(t, albumId, phase){
+  let progressChanged = false;
+  if(!S.turntablesFound.clear && trackTier(t) === 3){
+    const albums = S.turntableProgress.clear || (S.turntableProgress.clear = []);
+    if(!albums.includes(albumId)){ albums.push(albumId); progressChanged = true; }
+    if(albums.length >= CLEAR_HIRES_ALBUMS_TO_EARN) markTurntableFound('clear', phase);
+  }
+  if(!S.turntablesFound.broadcast && phase === 'night'){
+    const albums = S.turntableProgress.broadcast || (S.turntableProgress.broadcast = []);
+    if(!albums.includes(albumId)){ albums.push(albumId); progressChanged = true; }
+    if(albums.length >= BROADCAST_NIGHT_ALBUMS_TO_EARN) markTurntableFound('broadcast', phase);
+  }
+  if(!S.turntablesFound.lathe && Object.keys(S.rareUnlocked).length > 0) markTurntableFound('lathe', phase);
+  if(progressChanged) persistTurntableProgress();
+}
+
+// Console (plays across all three months of one calendar season) and
+// Radiogram (plays across every one of the seven day phases within one
+// season) both read every counted play, not a qualifying session --
+// history/played.js's incrementTrackPlay() calls this directly. Slate
+// (365 days since the very first counted play, with a play in every one
+// of the four season names along the way) rides along here too, since
+// it's the same "every counted play" grain. A season's own progress entry
+// is simply never touched again once that season has closed -- nothing
+// prunes it, since nothing ever re-reads an old season's key either.
+export function checkTurntableSeasonProgress(phase){
+  const now = Date.now();
+  let progressChanged = false;
+  const seasonKey = seasonKeyFor(now);
+  if(!S.turntablesFound.console){
+    const key = 'console:' + seasonKey;
+    const months = S.turntableProgress[key] || (S.turntableProgress[key] = []);
+    const month = new Date(now).getMonth();
+    if(!months.includes(month)){ months.push(month); progressChanged = true; }
+    if(months.length >= CONSOLE_MONTHS_TO_EARN) markTurntableFound('console', phase);
+  }
+  if(!S.turntablesFound.radiogram){
+    const key = 'radiogram:' + seasonKey;
+    const phases = S.turntableProgress[key] || (S.turntableProgress[key] = []);
+    if(!phases.includes(phase)){ phases.push(phase); progressChanged = true; }
+    if(phases.length >= RADIOGRAM_PHASES_TO_EARN) markTurntableFound('radiogram', phase);
+  }
+  if(!S.turntablesFound.slate){
+    const names = S.turntableProgress.slate || (S.turntableProgress.slate = []);
+    const name = seasonKey.split('-')[1];
+    if(!names.includes(name)){ names.push(name); progressChanged = true; }
+    if(names.length >= 4 && S.firstEverPlayedAt != null && now - S.firstEverPlayedAt >= SLATE_DAYS_TO_EARN * 24 * 3600 * 1000){
+      markTurntableFound('slate', phase);
+    }
+  }
+  if(progressChanged) persistTurntableProgress();
+}
+
+// Deck (scratching used on 3 different days) -- player/scrub.js's
+// startScratch() calls this the moment a gesture is claimed as a real
+// scratch (Vinyl + Scratch on), the same "the moment it actually
+// happens" grain checkZoetropeUnlock() above uses for its own day-set.
+export const DECK_SCRATCH_DAYS_TO_EARN = 3;
+export function markTurntableScratchDay(){
+  if(S.turntablesFound.deck) return;
+  const days = S.turntableProgress.scratch || (S.turntableProgress.scratch = []);
+  const today = dayKeyFor(Date.now());
+  if(!days.includes(today)){
+    days.push(today);
+    persistTurntableProgress();
+  }
+  if(days.length >= DECK_SCRATCH_DAYS_TO_EARN) markTurntableFound('deck', realDayPosition().phase);
 }
 
 // PRESSINGS_110 (docs/PRESSINGS_110.md §8, point 1): the effects shelf grew
@@ -394,6 +533,13 @@ export async function restoreSessions(){
   if(zoetropeUnlocked) S.zoetropeUnlocked = zoetropeUnlocked;
   const zoetropeDayProgress = await meta.get('zoetropeDayProgress');
   if(zoetropeDayProgress) S.zoetropeDayProgress = zoetropeDayProgress;
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md)
+  const turntablesFound = await meta.get('turntablesFound');
+  if(turntablesFound) S.turntablesFound = turntablesFound;
+  const turntableProgress = await meta.get('turntableProgress');
+  if(turntableProgress) S.turntableProgress = turntableProgress;
+  const firstEverPlayedAt = await meta.get('firstEverPlayedAt');
+  if(firstEverPlayedAt != null) S.firstEverPlayedAt = firstEverPlayedAt;
   const plays = await meta.get('trackPlayCounts');
   if(plays) S.trackPlayCounts = plays;
   // fall back to a copy of the true lifetime counters if this is the first

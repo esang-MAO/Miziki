@@ -41,6 +41,7 @@ const KNOWN_PREF_KEYS = new Set([
   'largerText',
   'deluxe',
   'shelfFinish',
+  'turntable',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -94,6 +95,7 @@ export function serializePrefs(S){
     largerText: S.largerText,
     deluxe: S.deluxe,
     shelfFinish: S.shelfFinish,
+    turntable: S.turntable,
   }, unknownPrefKeys || {});
 }
 
@@ -254,6 +256,13 @@ export function parsePrefs(raw){
   // here -- the raw saved value round-trips either way.
   if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
     || p.shelfFinish === 'ash' || p.shelfFinish === 'black') out.shelfFinish = p.shelfFinish;
+  // ST4: a saved object without this loads as 'standard', the stated
+  // default. The twelve ids are duplicated here rather than imported from
+  // src/profile/turntable.js (this module stays a leaf, same reasoning as
+  // mono/balance's clamps above) -- found/Deluxe gating is applied at
+  // display time (turntable.js's displayTurntable()), not here.
+  if(['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast',
+    'upright', 'radiogram', 'slate', 'lathe', 'horn'].includes(p.turntable)) out.turntable = p.turntable;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved
   // repeat mode, turning shuffle on if it was saved on) — that's a runtime

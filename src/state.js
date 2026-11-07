@@ -175,6 +175,18 @@ export const S = {
   // day-progress with the account backup") so progress isn't stranded on
   // one device.
   zoetropeUnlocked:{}, zoetropeDayProgress:{},
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntables found by
+  // listening -- {id: {foundAt, phase}}, the same union-by-id/earliest-
+  // wins shape as achievements (below). Standard is always present
+  // (foundAt 0, a sentinel earliest value no real find can beat, so a
+  // merge never drops it) -- everyone starts there, same as achievements'
+  // own "no indicator" posture, nothing here is ever shown as a toast.
+  // turntableProgress holds the small per-rule counters feeding the other
+  // eleven unlocks (a day-set, an album-set, or a season-scoped set of
+  // months/phases) -- one flat {key: [item, ...]} object, the same union-
+  // of-sets shape zoetropeDayProgress above already has, so a single
+  // unionDaySets() merge (src/sync/merge.js) covers all of them at once.
+  turntablesFound:{standard:{foundAt:0, phase:'night'}}, turntableProgress:{},
   // "Include an option in the settings to turn off zoetropes earned." A
   // saved boolean, same persisted-setting shape as paperLabelOnLossy
   // (docs/13_CRATE.md CR7) — default true (every
@@ -275,6 +287,12 @@ export const S = {
   // the earliest first-play across devices wins, unlike albumLastPlayed's
   // max merge.
   albumFirstPlayed:{},
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Slate turntable's own
+  // milestone needs "365 days since your first play ever," not any one
+  // album's -- global, written once (== null, the same "not a bare
+  // falsy check" rule albumFirstPlayed's per-album writes use), merged
+  // with a min across devices the same way.
+  firstEverPlayedAt:null,
   albumLastPlayed:{}, trackLastPlayed:{}, albumDisplay:{}, trackDisplay:{},
   achievements:{}, collection:{}, albumEdge:{},
   // GS9 (docs/30_GROOVES_AND_SHELF.md): seasonOffset is the Listening
@@ -517,6 +535,15 @@ S.deluxe = false;
 // regardless, so it's ready the moment Deluxe comes back on). Follows the
 // account, so it rides inside `prefs` with no device-only carve-out.
 S.shelfFinish = 'walnut';
+
+// ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntable to show --
+// one of src/profile/turntable.js's TURNTABLE_IDS, default 'standard'.
+// Follows the account like shelfFinish above, so it rides inside `prefs`
+// with no device-only carve-out. displayTurntable() (turntable.js) is the
+// one place that falls back to Standard when this id isn't actually
+// available (not found, and not covered by Deluxe) -- the saved value
+// itself is kept regardless, ready the moment it's available again.
+S.turntable = 'standard';
 
 /* ================= account backup (step 06, B3) =================
    Local state the merge logic (src/sync/merge.js, src/sync/backup-doc.js,

@@ -1173,6 +1173,20 @@
   </div>
 </div>
 
+<!-- ST4 (docs/32_SHELF_AND_TURNTABLES.md): Edit crate -> Turntable, same
+     generic edit-overlay sheet pattern as the shelf finish sheet above.
+     Body is rebuilt by openTurntableSheet()/renderTurntableSheet()
+     (src/profile/turntable-sheet.js). -->
+<div class="edit-overlay" id="turntableOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="turntableSheetBox">
+    <div class="edit-head">
+      <span>Turntable</span>
+      <button class="edit-close" id="turntableClose" aria-label="Close">✕</button>
+    </div>
+    <div id="turntableBody"></div>
+  </div>
+</div>
+
 <!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
      edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
 <div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">

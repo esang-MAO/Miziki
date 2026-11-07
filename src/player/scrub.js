@@ -8,6 +8,7 @@ import { setDeadWaxMagnified } from '../record-art/etchings.js';
 import { isShrinkWrapTarget, runStartSequence } from '../shell/start-sequence.js';
 import { isRimRadiusPct, radiusPctFromPoint, dropNeedleTarget, rimThresholdPct } from '../record-art/grooves.js';
 import { hapticTick } from '../ui/haptic.js';
+import { markTurntableScratchDay } from '../history/sessions.js';
 
 // F2: real scratch audio in spin-to-scrub, Vinyl only. Lives in S.char
 // alongside the sliders (not its own top-level S field) since it's saved
@@ -202,6 +203,9 @@ async function startScratch(t){
   scratchGain.gain.cancelScheduledValues(now);
   scratchGain.gain.setValueAtTime(scratchGain.gain.value, now);
   scratchGain.gain.linearRampToValueAtTime(1, now + SCRATCH_RAMP_SEC);
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Deck turntable's own
+  // milestone -- a real scratch gesture, confirmed and about to play.
+  markTurntableScratchDay();
   return true;
 }
 

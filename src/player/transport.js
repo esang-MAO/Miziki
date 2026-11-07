@@ -14,7 +14,7 @@ import { drawTime, settleTrackEnd } from './clock.js';
 import { setPathNote } from '../ui/path-note.js';
 import { advance, preloadNextTrack, peekNextIndex, updateFocusUI } from './queue.js';
 import { ensureBuffer } from './buffers.js';
-import { sessionOnLoad, touchActiveSession } from '../history/sessions.js';
+import { sessionOnLoad, touchActiveSession, markSessionSeek } from '../history/sessions.js';
 import { updateCreditsButtonForCurrent } from '../library/credits.js';
 import { updateFavoriteButtons } from '../library/favorites.js';
 import { applyDiscVariant } from '../record-art/looks.js';
@@ -701,6 +701,10 @@ export function seek(sec){
   const t = current(); if(!t) return;
   cancelPendingGapless();   // AU4: a seek invalidates whatever end-of-track time was pre-armed against
   cancelPendingOpening();
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the Linear turntable's own
+  // "no skip, lift or seek" side -- a no-op outside an active qualifying
+  // session, so this costs nothing the rest of the time.
+  markSessionSeek();
   S.pos = clamp(sec, 0, t.duration || 0);
   if(S.playing){
     if(S.source){

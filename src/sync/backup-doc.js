@@ -317,6 +317,16 @@ export function toDoc(localState){
     playedThrough: s.playedThrough || {},
     achievements: stripArtMap(s.achievements),
     collection: stripArtMap(s.collection),
+    // ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntablesFound is the same
+    // union-by-key/earliest-date-wins shape as achievements/collection
+    // above (foundAt in place of discoveredAt/updatedAt); turntableProgress
+    // is the same {key: [dayKey,...]} union-of-sets shape as
+    // zoetropeDayProgress; firstEverPlayedAt is the Slate turntable's own
+    // single account-wide timestamp, min-merged like albumFirstPlayed but
+    // as a bare scalar rather than a per-album map.
+    turntablesFound: s.turntablesFound || {},
+    turntableProgress: s.turntableProgress || {},
+    firstEverPlayedAt: s.firstEverPlayedAt || null,
 
     sealed: { sealed: s.sealedIds || [], broken: s.brokenSealIds || [] },
 
@@ -641,6 +651,12 @@ export function validateDoc(doc){
   if(doc.zoetropeDayProgress !== undefined && !isAlbumDaySetMap(doc.zoetropeDayProgress)) return false;
   // GS2 (docs/30_GROOVES_AND_SHELF.md)
   if(doc.playedThrough !== undefined && !isPlayedThroughMap(doc.playedThrough)) return false;
+  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): turntableProgress is the same
+  // {key: [dayKey,...]} shape as zoetropeDayProgress above; turntablesFound
+  // (like achievements/collection) gets no shape check, same precedent;
+  // firstEverPlayedAt is a bare nullable timestamp.
+  if(doc.turntableProgress !== undefined && !isAlbumDaySetMap(doc.turntableProgress)) return false;
+  if(doc.firstEverPlayedAt != null && !isNonNegInt(doc.firstEverPlayedAt)) return false;
 
   const sealed = doc.sealed || {};
   if(!isStringArray(sealed.sealed || [])) return false;
