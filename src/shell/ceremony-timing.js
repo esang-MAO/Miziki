@@ -12,7 +12,31 @@
    multi-disc album applies that same per-disc time-balance to each disc,
    so a two-disc album with at least two tracks per disc reads as four
    sides, A-D, not two. */
-import { bestSideCut, sideLengthsFromDurations, albumRecordFormat } from '../record-art/format.js';
+import { bestSideCut, bestSideCuts, sideLengthsFromDurations, albumRecordFormat, DOUBLE_LP_SIDE_CAP_SEC } from '../record-art/format.js';
+
+// CC5 (docs/34_CARE_AND_CONTROL.md): a single real disc's own track
+// list, split into either its normal 2 time-balanced sides, or, when
+// that 2-way split would put either side over DOUBLE_LP_SIDE_CAP_SEC, 4
+// sides via bestSideCuts() -- "a single-disc album whose two-side split
+// puts either side over 22 min becomes a double LP." Needs at least 4
+// tracks to actually produce 4 groups (can't split further than one
+// track per side); with fewer, the over-length 2-way split stands --
+// "with no side over 22 min where avoidable," and a handful of very long
+// tracks isn't avoidable this way. Returns an array of 1, 2 or 4 index
+// groups, never empty for a non-empty discIdx.
+function splitSingleDiscGroups(discIdx, durOf){
+  if(discIdx.length < 2) return [discIdx];
+  const cut = bestSideCut(discIdx.map(durOf));
+  const a = discIdx.slice(0, cut).reduce((s, i) => s + durOf(i), 0);
+  const b = discIdx.slice(cut).reduce((s, i) => s + durOf(i), 0);
+  if(discIdx.length < 4 || Math.max(a, b) <= DOUBLE_LP_SIDE_CAP_SEC) return [discIdx.slice(0, cut), discIdx.slice(cut)];
+  const cuts = bestSideCuts(discIdx.map(durOf), 4);
+  const groups = [];
+  let prev = 0;
+  for(const c of cuts){ groups.push(discIdx.slice(prev, c)); prev = c; }
+  groups.push(discIdx.slice(prev));
+  return groups;
+}
 
 // §4, change records. Milliseconds from the moment the next record is asked
 // for. The outgoing sleeve's own exit and the incoming sleeve's arrival
@@ -70,8 +94,7 @@ export function splitSides(trackIdx, tracks, enabled){
       groups.push(discIdx.slice(0, cut), discIdx.slice(cut));
     }
   } else {
-    const cut = bestSideCut(trackIdx.map(durOf));
-    groups = [trackIdx.slice(0, cut), trackIdx.slice(cut)];
+    groups = splitSingleDiscGroups(trackIdx, durOf);
   }
   return groups.map((idx, k) => ({label: 'SIDE ' + String.fromCharCode(65 + k), idx}));
 }
@@ -106,11 +129,26 @@ export function sideBoundaryAt(sides, n){
 // to place the tracklist's own "Disc N" eyebrow above each disc's first
 // side. Disc numbers keep whatever order they first appear in trackIdx
 // (almost always ascending, since that's how an album's own tracks sort).
+// CC5 point 4: a computed double LP (the single-real-disc case, split
+// into 4 groups by splitSingleDiscGroups() above) is reported as two
+// virtual discs here -- disc 1 (sides A/B) and disc 2 (sides C/D) -- the
+// same numbers a real tagged 2-disc album's own "DISC 1"/"DISC 2"
+// eyebrows already use, so the gatefold needs no separate code path for
+// "computed" vs. "tagged" once it has this list.
 export function discGroupsFor(trackIdx, tracks){
   if(!trackIdx || !trackIdx.length) return [];
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
+  const durOf = i => (tracks[i] && tracks[i].duration) || 0;
   const discs = [...new Set(trackIdx.map(discOf))];
-  return discs.map(disc => ({ disc, idx: trackIdx.filter(i => discOf(i) === disc) }));
+  if(discs.length > 1) return discs.map(disc => ({ disc, idx: trackIdx.filter(i => discOf(i) === disc) }));
+  const groups = splitSingleDiscGroups(trackIdx, durOf);
+  if(groups.length === 4){
+    return [
+      { disc: 1, idx: [...groups[0], ...groups[1]] },
+      { disc: 2, idx: [...groups[2], ...groups[3]] },
+    ];
+  }
+  return [{ disc: discs[0], idx: trackIdx }];
 }
 
 // The record's own side lengths (seconds), independent of S.albumSides --
@@ -132,7 +170,7 @@ export function sideLengthsFor(trackIdx, tracks){
     }
     return out;
   }
-  return sideLengthsFromDurations(trackIdx.map(durOf));
+  return splitSingleDiscGroups(trackIdx, durOf).map(idx => idx.reduce((s, i) => s + durOf(i), 0));
 }
 
 // The record's own format (size/speed) -- §5's table applied to the

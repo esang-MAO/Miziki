@@ -95,11 +95,16 @@ test('buildBackCoverData: mono reads MONO off the first track\'s own channel cou
 });
 
 test('buildBackCoverData: an oversized 7″ side caps at 4 tracks and folds the rest into "and N more"', () => {
-  // one very long track pulls bestSideCut()'s balance point to put every
+  // one longer track pulls bestSideCut()'s balance point to put every
   // other (short, equal) track on the opposite side -- side A ends up
   // with 5 tracks, side B with just the one long one (same "very uneven
   // track" shape ceremony-timing.test.js's own splitSides tests use).
-  S.tracks = [...Array.from({length: 5}, (_, i) => track('Track ' + i, 60)), track('The Long One', 6000)];
+  // 700s, not 6000s: long enough to still win that balance, short enough
+  // that neither side crosses CC5's 22-min double-LP cap -- this test is
+  // about the back cover's own 4-track-per-side display cap, not about
+  // whether the album becomes a double LP (that's covered in
+  // ceremony-timing.test.js).
+  S.tracks = [...Array.from({length: 5}, (_, i) => track('Track ' + i, 60)), track('The Long One', 700)];
   const item = { albumId: 'r', artist: 'A', album: 'B', year: null };
   const data = buildBackCoverData(item, [0,1,2,3,4,5], { size: '7"', speed: 45 });
   const capped = data.sides.find(s => s.overflow > 0);
