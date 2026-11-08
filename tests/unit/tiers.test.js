@@ -85,7 +85,7 @@ test('CR7 draw: the same album always lands on the same variant', () => {
   for(let i=0;i<20;i++) assert.equal(selectRareVariant(t), r1);
 });
 
-test('CR7 draw: band shares converge to 60/30/10 over a large synthetic library', () => {
+test('CR7 draw: band shares converge to 50/35/15 over a large synthetic library (CC6)', () => {
   const tally = { common: 0, uncommon: 0, scarce: 0 };
   const N = 6000;
   for(let i=0;i<N;i++){
@@ -96,9 +96,9 @@ test('CR7 draw: band shares converge to 60/30/10 over a large synthetic library'
   }
   const total = tally.common + tally.uncommon + tally.scarce;
   assert.ok(total > N * 0.9, 'most hi-res draws should land in a banded pool');
-  assert.ok(Math.abs(tally.common / total - 0.6) < 0.04);
-  assert.ok(Math.abs(tally.uncommon / total - 0.3) < 0.04);
-  assert.ok(Math.abs(tally.scarce / total - 0.1) < 0.03);
+  assert.ok(Math.abs(tally.common / total - 0.5) < 0.04);
+  assert.ok(Math.abs(tally.uncommon / total - 0.35) < 0.04);
+  assert.ok(Math.abs(tally.scarce / total - 0.15) < 0.03);
 });
 
 test('CR7 tier mixes: lossy is always Jet, lossless/hi-res mixes sum to 100', () => {
@@ -119,7 +119,7 @@ test('CR7 tier mixes: lossy is always Jet, lossless/hi-res mixes sum to 100', ()
   assert.ok(Math.abs(jet2 / N - 0.15) < 0.03);
   assert.ok(Math.abs(solid2 / N - 0.85) < 0.03);
   assert.equal(jet2 + solid2, N);
-  // tier 3: 70% effect / 25% solid / 5% Jet
+  // tier 3: 55% effect / 40% solid / 5% Jet (CC6, was 70/25/5)
   let jet3 = 0, solid3 = 0, effect3 = 0;
   for(let i=0;i<N;i++){
     const t = albumTrack('HiRes ' + i, { lossless: true, bits: 24, rate: 96000 });
@@ -130,8 +130,8 @@ test('CR7 tier mixes: lossy is always Jet, lossless/hi-res mixes sum to 100', ()
     else solid3++;
   }
   assert.ok(Math.abs(jet3 / N - 0.05) < 0.02);
-  assert.ok(Math.abs(solid3 / N - 0.25) < 0.03);
-  assert.ok(Math.abs(effect3 / N - 0.70) < 0.03);
+  assert.ok(Math.abs(solid3 / N - 0.40) < 0.03);
+  assert.ok(Math.abs(effect3 / N - 0.55) < 0.03);
   assert.equal(jet3 + solid3 + effect3, N);
 });
 

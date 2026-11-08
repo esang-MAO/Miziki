@@ -85,6 +85,15 @@ export function trackIdentityKey(t){ return normKey(t.tags.artist) + '|' + album
 // track on the same body of work lands on the same index into its tier's
 // array. Never the file id/path, which changes when a library is reorganized.
 function variantHashKey(t){ return albumKey(t); }
+// CC6 (docs/34_CARE_AND_CONTROL.md): the file-drawn pressing's own hash
+// input — artist+album, not album alone, so two different artists' albums
+// that happen to share a title draw independently instead of colliding on
+// the same pressing. Album artist when the tag carries one, else the track
+// artist (the same fallback library/tags/index.js's own parser already
+// applies when it fills tags.albumArtist). Only selectVariant() uses this —
+// selectRareVariant()/selectZoetropeVariant() keep variantHashKey() so an
+// already-earned rare/zoetrope never changes kind.
+export function pressingKey(t){ return normKey(t.tags.albumArtist || t.tags.artist) + '|' + albumKey(t); }
 
 // A pressing is one physical disc: trackTier() reads a single track's own
 // bit depth/sample rate, so two sides mastered at different rates (one
@@ -153,7 +162,15 @@ const F = (ring, body, rim) => [ring, body, rim];
 // shelf — a tier-2 record's band/colour was just as correlated as tier
 // 3's, so this version re-draws tier 2 as well (migrateChartVersion()'s
 // own `rec.tier === 1` guard, not `rec.tier !== 3`).
-export const CHART_VERSION = 3;
+//
+// CC6 (docs/34_CARE_AND_CONTROL.md): bumped 3 -> 4 for two independent
+// reasons that both move every tier-2/tier-3 draw at once: the hash input
+// is now pressingKey() (artist+album) instead of the album title alone,
+// and the odds themselves changed (tier-3 mix 70/25/5 -> 55/40/5 effect/
+// solid/Jet, pickBand() 60/30/10 -> 50/35/15). Same `rec.tier === 1` guard
+// as before — lossy stays Jet-only regardless of key or odds, so it's
+// still the one tier this redraw skips.
+export const CHART_VERSION = 4;
 
 export const VARIANT_DEFS = {
   // ---- tier 1: the one lossy pressing ----
@@ -430,9 +447,11 @@ const EFFECT_BY_BAND = {common: poolByBand(EFFECT_IDS, 'common'), uncommon: pool
 // functions of the album's own identity key) — true only after the
 // PRESSING_DRAW fix below; before it, the band and colour draws were
 // nearly the same number (see frac32()'s own comment).
+// CC6 (decision 5): 60/30/10 -> 50/35/15 — pickBand() is shared across
+// every tier, so lossless solids get the gentler bands too.
 function pickBand(frac){
-  if(frac < 0.6) return 'common';
-  if(frac < 0.9) return 'uncommon';
+  if(frac < 0.5) return 'common';
+  if(frac < 0.85) return 'uncommon';
   return 'scarce';
 }
 function pickFromPool(pool, frac){ return pool[Math.min(pool.length - 1, Math.floor(frac * pool.length))]; }
@@ -459,8 +478,9 @@ function drawFromCatalogue(key, byBand){
 }
 
 // Tier mixes (README): lossy = Jet only; lossless = 85% solid / 15% Jet;
-// hi-res = 70% effect / 25% solid / 5% Jet. A third, independent hash
-// slice decides the mix so it never correlates with the band/colour draw.
+// hi-res = 55% effect / 40% solid / 5% Jet (CC6, decision 5 — was 70/25/5).
+// A third, independent hash slice decides the mix so it never correlates
+// with the band/colour draw.
 //
 // Split out of selectVariant() (CR11, docs/13_CRATE.md point 1) so a
 // pressing can be drawn from a bare tier + identity key, not just from a
@@ -478,22 +498,29 @@ function selectVariantForTierKey(tier, key){
   }
   // tier 3
   if(mixFrac < 0.05) return {tier, variant: 'jet'};
-  if(mixFrac < 0.30) return {tier, variant: drawFromCatalogue(key, SOLID_BY_BAND)};
+  if(mixFrac < 0.45) return {tier, variant: drawFromCatalogue(key, SOLID_BY_BAND)};
   return {tier, variant: drawFromCatalogue(key, EFFECT_BY_BAND)};
 }
+// CC6: draws from pressingKey() (artist+album), not variantHashKey()
+// (album title alone) — two different artists' albums that happen to
+// share a title now draw independently instead of colliding on the same
+// pressing. selectRareVariant()/selectZoetropeVariant() below are
+// unaffected: they still use variantHashKey(), so an already-earned rare
+// pressing or zoetrope never changes kind.
 export function selectVariant(t){
-  return selectVariantForTierKey(trackTier(t), variantHashKey(t));
+  return selectVariantForTierKey(trackTier(t), pressingKey(t));
 }
 // CR11 point 1: "the pressing is derived locally from the shared album
 // key, so no new column" — albumTitle is the same string both sides'
 // clients already agree on (what sync_crate stores as releases.title,
 // itself a local track's own t.tags.album), normalized the same way
-// albumKey()/variantHashKey() always have been, so a friend's own copy
-// of an album a viewer also owns draws from the identical pool their own
-// local selectVariant() would, differing only when the two quality_tier
-// values actually differ.
-export function selectVariantForAlbum(albumTitle, tier){
-  return selectVariantForTierKey(tier, normKey(albumTitle));
+// albumKey() always has been. CC6: now takes the artist too (releases.
+// artist, already synced), normalized and joined the same way
+// pressingKey() does, so a friend's copy draws from the exact same key
+// selectVariant() would compute locally for that album — differing only
+// when the two quality_tier values actually differ.
+export function selectVariantForAlbum(artist, albumTitle, tier){
+  return selectVariantForTierKey(tier, normKey(artist) + '|' + normKey(albumTitle));
 }
 
 // Rare pressings draw among the four session-unlock-only kinds, same

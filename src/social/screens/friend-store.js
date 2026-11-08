@@ -14,9 +14,9 @@ import {
 // still switches to it for anything past the unit's fixed six cubes, same
 // shape loadFriendCrate() already had before this PR.
 import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from '../../profile/shelf-unit.js';
-// CR11 point 1-2: the pressing is derived locally from the shared album
-// key (selectVariantForAlbum), never a new server column — see that
-// function's own comment in tiers.js for why a title+tier pair is enough.
+// CR11 point 1-2 / CC6: the pressing is derived locally from the shared
+// artist+album key (selectVariantForAlbum), never a new server column —
+// see that function's own comment in tiers.js.
 import { selectVariantForAlbum, getVariantDef } from '../../record-art/tiers.js';
 // TR2 (docs/19_PLAYER.md): feedEventText used to be home.js's own, with
 // a real circular import back the other way (home.js imported
@@ -223,8 +223,8 @@ function storeRuleCaption(text){
 export function pressingLineFor(item, friendHandle){
   const myTier = item.my_quality_tier, theirTier = item.their_quality_tier;
   if(myTier == null || theirTier == null) return null;
-  const mine = getVariantDef(selectVariantForAlbum(item.title, myTier).variant);
-  const theirs = getVariantDef(selectVariantForAlbum(item.title, theirTier).variant);
+  const mine = getVariantDef(selectVariantForAlbum(item.artist, item.title, myTier).variant);
+  const theirs = getVariantDef(selectVariantForAlbum(item.artist, item.title, theirTier).variant);
   if(!mine || !theirs) return null;
   if(mine.name === theirs.name) return 'Both ' + mine.name;
   return 'Yours: ' + mine.name + ' · ' + friendHandle + '’s: ' + theirs.name;
@@ -579,7 +579,7 @@ function friendPressingSection(full){
     const owned = new Set();
     r.items.forEach(item => {
       if(item.quality_tier == null) return;
-      const {variant} = selectVariantForAlbum(item.title, item.quality_tier);
+      const {variant} = selectVariantForAlbum(item.artist, item.title, item.quality_tier);
       if(variant !== 'jet') owned.add(variant);
     });
     holder.appendChild(renderPressingCard(owned, {interactive: false}));
@@ -702,12 +702,12 @@ function renderRecordSheetBody(full, item){
   }
   // CR11 point 2: name the pressing and its note, and — for an in-common
   // record whose two quality_tiers differ — one extra line saying so.
-  const theirPressing = theirTier ? getVariantDef(selectVariantForAlbum(item.title, theirTier).variant) : null;
+  const theirPressing = theirTier ? getVariantDef(selectVariantForAlbum(item.artist, item.title, theirTier).variant) : null;
   if(theirPressing){
     body.appendChild(el('div','record-pressing-name', theirPressing.name));
     if(theirPressing.note) body.appendChild(el('p','record-pressing-note', theirPressing.note));
     if(item.my_quality_tier != null && item.my_quality_tier !== theirTier){
-      const minePressing = getVariantDef(selectVariantForAlbum(item.title, item.my_quality_tier).variant);
+      const minePressing = getVariantDef(selectVariantForAlbum(item.artist, item.title, item.my_quality_tier).variant);
       if(minePressing && minePressing.name !== theirPressing.name){
         body.appendChild(el('p','record-pressing-diff', 'Your own copy is ' + minePressing.name + '.'));
       }
