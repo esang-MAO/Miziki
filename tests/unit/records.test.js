@@ -211,6 +211,31 @@ test('renderRecordsScreen(pressings): the chart, then Colors, Effects and Metals
   assert.equal(byClass(body, 'pulled').length, 3);
 });
 
+// WS2 (docs/33_WALL_AND_LABELS.md): every pressing/metal disc on this
+// screen gets the shared paper label (18-storefront.css's .paper-label-
+// sm) -- except a zoetrope, which keeps its own disc artwork (variant
+// Background()'s only `url(...)` case).
+test('renderRecordsScreen(pressings): an ordinary pressing disc carries the paper label', () => {
+  reset();
+  S.profileView.recordsFilter = 'pressings';
+  S.collection.a = {albumId: 'a', variant: 'oxblood', pattern: 'solid', name: 'A', artist: ''};
+  const body = fakeEl();
+  R.renderRecordsScreen(body);
+  const disc = byClass(body, 'rec-disc')[0];
+  assert.ok(byClass(disc, 'paper-label-sm').length, 'an ordinary pressing disc gets the label');
+});
+
+test('renderRecordsScreen(pressings): a zoetrope disc keeps its own artwork, no label on top', () => {
+  reset();
+  S.profileView.recordsFilter = 'pressings';
+  S.collection.a = {albumId: 'a', variant: 'lotus', pattern: 'zoetrope', name: 'A', artist: ''};
+  const body = fakeEl();
+  R.renderRecordsScreen(body);
+  const disc = byClass(body, 'rec-disc')[0];
+  assert.ok(disc.style.background.includes('url('), 'sanity: this variant really does resolve to an image background');
+  assert.equal(byClass(disc, 'paper-label-sm').length, 0, 'no label covers a zoetrope\'s own artwork');
+});
+
 test('renderRecordsScreen(pressings): empty state when nothing is unlocked', () => {
   reset();
   S.profileView.recordsFilter = 'pressings';

@@ -507,8 +507,12 @@ function storeWallCubby(){
     const section = el('div','store-cubby-section');
     section.appendChild(el('div','store-cubby-back'));
     const disc = el('div','store-cubby-disc');
-    disc.style.background = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
+    const discBg = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
+    disc.style.background = discBg;
     disc.setAttribute('aria-label', rec.name);
+    // WS2: zoetropes keep their own artwork (variantBackground()'s only
+    // `url(...)` case, record-art/tiers.js) -- no label on top of it.
+    if(!discBg.includes('url(')) disc.appendChild(el('span','paper-label-sm'));
     section.appendChild(disc);
     section.appendChild(el('div','store-cubby-stand'));
     section.appendChild(el('div','store-cubby-depth'));
