@@ -24,7 +24,7 @@ import { selectVariantForAlbum, getVariantDef } from '../../record-art/tiers.js'
 // ./feed-text.js leaf so this file no longer has any static edge back to
 // home.js, letting it move into its own lazy chunk (see the open*/pop*
 // call sites below's own entry-point comment).
-import { feedEventText } from './feed-text.js';
+import { feedEventText, freshReason, freshCaption } from './feed-text.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 import { openLayer, closeLayer } from '../../shell/nav-stack.js';
@@ -249,13 +249,13 @@ function friendFreshSection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Fresh for you'));
   section.appendChild(head);
-  section.appendChild(storeRuleCaption(
-    'Records ' + full.profile.handle + ' pinned or wrote about that you don’t have, newest first.'));
+  section.appendChild(storeRuleCaption(freshCaption(full.profile.handle)));
   full.fresh.forEach(item => {
     const row = el('div','store-fresh-row');
     const text = el('div','store-fresh-text');
     text.appendChild(el('b', null, item.title));
     text.appendChild(el('em', null, item.artist));
+    text.appendChild(el('div','store-fresh-reason', freshReason(item)));
     row.appendChild(text);
     const add = document.createElement('button');
     add.type = 'button'; add.className = 'store-fresh-add' + (item.in_digging ? ' added' : '');

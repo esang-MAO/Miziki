@@ -114,7 +114,7 @@ const { S } = await import('../../src/state.js');
 // TR2 (docs/19_PLAYER.md): feedEventText moved to the tiny, DOM-free
 // social/screens/feed-text.js (it used to be home.js's own half of a real
 // circular import with friend-store.js) -- imported from there directly.
-const { feedEventText } = await import('../../src/social/screens/feed-text.js');
+const { feedEventText, freshReason, freshCaption } = await import('../../src/social/screens/feed-text.js');
 
 function fakeEvent(id, overrides){
   return Object.assign({ type:'added', title:'Album ' + id, actor_id:'a1', actor_handle:'a', actor_name:'A' }, overrides);
@@ -323,6 +323,22 @@ test('buildFeedTiles: a pinned record with no matching review note has none', ()
 test('feedEventText: "added" with a plural count says how many, singular says the title', () => {
   assert.equal(feedEventText(fakeEvent('1', { type:'added', title:'Thriller', payload:{count:1} })), 'added Thriller');
   assert.equal(feedEventText(fakeEvent('1', { type:'added', title:'Thriller', payload:{count:3} })), 'added 3 records');
+});
+
+// --- CC1 (docs/34_CARE_AND_CONTROL.md) ----------------------------------
+
+test('freshCaption: names the handle and the pins-first-then-newest order', () => {
+  assert.equal(freshCaption('kenspins'),
+    'Records kenspins pinned or wrote about that you don’t have — pins first, then newest.');
+});
+
+test('freshReason: no sleeve_note means the row only qualified by being pinned', () => {
+  assert.equal(freshReason({ sleeve_note: null }), 'pinned');
+  assert.equal(freshReason({}), 'pinned');
+});
+
+test('freshReason: any sleeve_note means the row is a sleeve note, pinned or not', () => {
+  assert.equal(freshReason({ sleeve_note: 'rainy-night favorite' }), 'sleeve note');
 });
 
 // --- RW2 (docs/23_RHYTHM_AND_WEAR.md): Home updates once a day ----------

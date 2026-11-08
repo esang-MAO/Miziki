@@ -41,6 +41,7 @@
 .store-fresh-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-fresh-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-fresh-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
+.store-fresh-reason{font-size:var(--fs-caption);color:var(--muted)}
 .store-fresh-add{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--cream);
   color:var(--cream);background:none;flex:none;display:flex;align-items:center;justify-content:center;font-size:var(--fs-title)}
 .store-fresh-add.added{border-color:var(--line);color:var(--muted)}
