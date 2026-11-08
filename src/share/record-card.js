@@ -136,7 +136,13 @@ async function layoutRecord(ctx, kit, data, w, h, pad, scale, startY, draw){
   const discCx = coverCx + discOffsetX, discCy = coverCy;
 
   if(draw){
-    await fillShareDisc(ctx, {art: data.art || null, look: data.look, variant: data.variant, metal: data.metal}, discCx, discCy, discR, true);
+    // WS3 (docs/33_WALL_AND_LABELS.md): printed once the disc is large
+    // enough to read (fillShareDisc()'s own 90px floor) -- speedText uses
+    // this card's own speedLabel() (its one existing vinyl-format source);
+    // side isn't resolved here (no side-length data to derive one from),
+    // so the label's own "Side A" default stands in.
+    await fillShareDisc(ctx, {art: data.art || null, look: data.look, variant: data.variant, metal: data.metal,
+      label: {album: data.album || '', artist: data.artist || '', speedText: speedLabel(data.speed)}}, discCx, discCy, discR, true);
     if(data.art){
       try{
         const img = await loadImageEl(data.art);

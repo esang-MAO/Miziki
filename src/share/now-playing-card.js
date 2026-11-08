@@ -23,6 +23,13 @@ function discInfoFor(t, look){
     // shared card's disc always matches what the platter itself shows.
     variant: selectVariant(albumPressingTrack(albumId) || t).variant,
     metal: trackMetalFor(trackIdentityKey(t)) || albumMetalFor(albumId),
+    // WS3 (docs/33_WALL_AND_LABELS.md): printed only once the disc is
+    // large enough to read (fillShareDisc()'s own 90px floor) -- today
+    // that's the rare "full disc, standing alone" Story layout below.
+    // Speed/side aren't resolved here (this card has no side-length data
+    // to derive a real vinyl format from), so the label's own defaults
+    // (33⅓, Side A) stand in rather than guessing.
+    label: { album: t.tags ? t.tags.album : '', artist: t.tags ? t.tags.artist : '' },
   };
 }
 
