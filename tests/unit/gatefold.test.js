@@ -157,16 +157,25 @@ test('gatefoldSideSplits: S.albumSides off never splits regardless of track coun
   assert.equal(gatefoldSideSplits([0, 1, 2, 3, 4]), null);
 });
 
-// GF1 (docs/29_GATEFOLD.md point 1): gatherRecordShareData() is always your
-// own copy -- friendsCount is always null -- and carries rating/note
-// straight through from MizikiSocial.getAlbumSocial(), null when unset.
+// GF1 (docs/29_GATEFOLD.md point 1) / CC3 point 4 (docs/34_CARE_AND_
+// CONTROL.md): gatherRecordShareData() is always your own copy, and
+// carries rating/note straight through from MizikiSocial.getAlbumSocial(),
+// null when unset. friendsCount is now wired to the real RPC (through
+// releaseKey()/friendsStickerCountsByKeys()) rather than hardcoded --
+// resolves to whatever that call returns, null when it can't resolve a
+// key or the call fails, which in real use is always the case for an
+// owned copy (friends_sticker() excludes releases the caller owns).
 function fakeAlbumTrack(){
   return { tags: { album: 'Low Tide', artist: 'The Shoals', title: 'Drift' },
     duration: 200, art: null, meta: { codec: 'FLAC', rate: 44100, bits: 16, ch: 2, lossless: true } };
 }
 
 test('gatherRecordShareData: owned record never carries a friends sticker, unrated reads null', async () => {
-  globalThis.MizikiSocial = { getAlbumSocial(){ return { rating: null, note: '' }; } };
+  globalThis.MizikiSocial = {
+    getAlbumSocial(){ return { rating: null, note: '' }; },
+    releaseKey(){ return 'v1:fake'; },
+    friendsStickerCountsByKeys: async () => ({ ok: true, counts: {} }),
+  };
   S.albumSides = true;
   S.tracks = [fakeAlbumTrack()];
   S.albumFormat = {};
@@ -181,7 +190,11 @@ test('gatherRecordShareData: owned record never carries a friends sticker, unrat
 });
 
 test('gatherRecordShareData: a rating and note pass straight through', async () => {
-  globalThis.MizikiSocial = { getAlbumSocial(){ return { rating: 4, note: 'Side A at dusk' }; } };
+  globalThis.MizikiSocial = {
+    getAlbumSocial(){ return { rating: 4, note: 'Side A at dusk' }; },
+    releaseKey(){ return null; },   // no key resolvable -- stays null, never throws
+    friendsStickerCountsByKeys: async () => ({ ok: false }),
+  };
   S.albumSides = true;
   S.tracks = [fakeAlbumTrack()];
   S.albumFormat = {};
@@ -192,6 +205,27 @@ test('gatherRecordShareData: a rating and note pass straight through', async () 
   assert.equal(data.rating, 4);
   assert.equal(data.note, 'Side A at dusk');
   assert.equal(data.friendsCount, null);
+});
+
+// CC3 point 6: "share-card gating" -- the real RPC is the thing
+// friendsCount reflects, not a hardcoded value, proven here with a non-
+// zero result (never actually returned for an owned copy in production,
+// but the plumbing itself has to carry a real number through when the
+// RPC gives it one).
+test('gatherRecordShareData: friendsCount reflects whatever the RPC resolves', async () => {
+  globalThis.MizikiSocial = {
+    getAlbumSocial(){ return { rating: null, note: '' }; },
+    releaseKey(){ return 'v1:fake'; },
+    friendsStickerCountsByKeys: async () => ({ ok: true, counts: { 'v1:fake': 2 } }),
+  };
+  S.albumSides = true;
+  S.tracks = [fakeAlbumTrack()];
+  S.albumFormat = {};
+  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
+  S.index = -1;
+  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
+  const data = await gatherRecordShareData(item);
+  assert.equal(data.friendsCount, 2);
 });
 
 test('gatefoldSideSplits: a single disc of equal-length tracks balances by time', () => {

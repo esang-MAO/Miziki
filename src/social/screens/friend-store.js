@@ -28,6 +28,7 @@ import { feedEventText, freshReason, freshCaption } from './feed-text.js';
 import { renderSharedRhythmCard } from '../../profile/rhythm-card.js';
 import { spinPhaseWording } from '../../sundown/spin-wording.js';
 import { openLayer, closeLayer } from '../../shell/nav-stack.js';
+import { stickerBadge } from '../sticker.js';
 // AU11 (docs/16_AUDIO.md §5): the record's own automatic format, same
 // "decode what the server published, never a second guess of it" shape
 // pressingLineFor() below already uses for a friend's quality_tier.
@@ -162,6 +163,10 @@ function friendNowSpinningRow(full){
   return card;
 }
 
+// CC3 (docs/34_CARE_AND_CONTROL.md): "a friend's crate shelves and
+// face-out pins" -- these tiles are exactly that. One batched
+// friends_sticker call for every pin shown, patched onto each tile's
+// cover once it resolves, rather than blocking the row on the network.
 function friendPicksSection(full){
   const section = el('div','store-section');
   const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'in rotation'));
@@ -175,6 +180,16 @@ function friendPicksSection(full){
     row.appendChild(tile);
   });
   section.appendChild(row);
+  const releaseIds = full.staffPicks.map(p => p.release_id).filter(Boolean);
+  if(releaseIds.length) MizikiSocial.friendsStickerCounts(releaseIds).then(r => {
+    if(!r.ok) return;
+    row.querySelectorAll('.store-pick').forEach((tile, i) => {
+      const owners = r.counts[full.staffPicks[i].release_id];
+      const badge = stickerBadge(full.staffPicks[i].release_id, owners);
+      const cover = tile.querySelector('.store-pick-cover');
+      if(badge && cover) cover.appendChild(badge);
+    });
+  });
   if(full.staffPicks.length > 1){
     const dots = el('div','store-picks-dots');
     full.staffPicks.forEach((_, i) => dots.appendChild(el('span', i === 0 ? 'on' : null)));
@@ -252,6 +267,7 @@ function friendFreshSection(full){
   section.appendChild(storeRuleCaption(freshCaption(full.profile.handle)));
   full.fresh.forEach(item => {
     const row = el('div','store-fresh-row');
+    row.dataset.releaseId = item.release_id;
     const text = el('div','store-fresh-text');
     text.appendChild(el('b', null, item.title));
     text.appendChild(el('em', null, item.artist));
@@ -271,6 +287,18 @@ function friendFreshSection(full){
     row.style.cursor = 'pointer';
     row.addEventListener('click', ()=> openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · FRESH FOR YOU'));
     section.appendChild(row);
+  });
+  // CC3 (docs/34_CARE_AND_CONTROL.md): "Fresh for you rows" -- every row
+  // here is already a record the viewer doesn't have, so a sticker is
+  // valid on all of them; one batched call, patched onto each row's text
+  // block once it resolves.
+  const releaseIds = full.fresh.map(item => item.release_id).filter(Boolean);
+  if(releaseIds.length) MizikiSocial.friendsStickerCounts(releaseIds).then(r => {
+    if(!r.ok) return;
+    section.querySelectorAll('.store-fresh-row').forEach(row => {
+      const badge = stickerBadge(row.dataset.releaseId, r.counts[row.dataset.releaseId], {inline: true});
+      if(badge) row.querySelector('.store-fresh-text').appendChild(badge);
+    });
   });
   return section;
 }
@@ -466,18 +494,26 @@ function friendTurntableInfo(full){
 // storeShelvesSection's own default "jump the local library crate" tap,
 // since a friend's records aren't in this device's own crate.
 function loadFriendShelfUnit(full, holder){
-  MizikiSocial.crate(full.profile.id, {offset: 0, limit: 60}).then(r => {
-    holder.innerHTML = '';
+  MizikiSocial.crate(full.profile.id, {offset: 0, limit: 60}).then(async r => {
     const items = (r.ok && r.items) || [];
-    if(!items.length){ holder.appendChild(el('p','store-loading','Nothing in the crate yet.')); return; }
+    if(!items.length){ holder.innerHTML = ''; holder.appendChild(el('p','store-loading','Nothing in the crate yet.')); return; }
     const pinIds = full.staffPicks.map(p => p.release_id);
     const faceOutIds = pinIds.slice(3, 5);
     const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
       art: localAlbumArt(item.title, item.artist)}));
     const truncated = shelfUnitCubes(shelfItems, faceOutIds).length > SHELF_UNIT_CUBES
       || items.length < full.summary.records;
+    // CC3 (docs/34_CARE_AND_CONTROL.md): "a friend's crate shelves and
+    // face-out pins" -- only the face-out ids can ever show a sticker
+    // (shelf-unit.js's cubeFace() is the one thing a `stickers` map
+    // reaches), so this only ever needs those few ids, fetched before the
+    // unit is built rather than patched on afterward.
+    const stickers = faceOutIds.length
+      ? (await MizikiSocial.friendsStickerCounts(faceOutIds)).counts || {}
+      : {};
+    holder.innerHTML = '';
     holder.appendChild(renderShelfUnit({
-      items: shelfItems, faceOutIds,
+      items: shelfItems, faceOutIds, stickers,
       onTapAlbum: albumId => {
         const item = items.find(i => i.release_id === albumId);
         if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
@@ -501,16 +537,20 @@ function loadFriendShelfUnit(full, holder){
 // call means no further "Browse all" link of its own (storeShelvesSection
 // takes no opts here, same as this file's pre-ST6 call).
 function loadFriendCrateGrid(full, holder){
-  MizikiSocial.crate(full.profile.id, {offset: 0, limit: Math.min(full.summary.records, 200)}).then(r => {
-    holder.innerHTML = '';
+  MizikiSocial.crate(full.profile.id, {offset: 0, limit: Math.min(full.summary.records, 200)}).then(async r => {
     const items = (r.ok && r.items) || [];
     const pinIds = full.staffPicks.map(p => p.release_id);
     const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
       art: localAlbumArt(item.title, item.artist)}));
+    const faceOutIds = pinIds.slice(3, 5);
+    const stickers = faceOutIds.length
+      ? (await MizikiSocial.friendsStickerCounts(faceOutIds)).counts || {}
+      : {};
+    holder.innerHTML = '';
     holder.appendChild(storeShelvesSection(shelfItems, pinIds, albumId => {
       const item = items.find(i => i.release_id === albumId);
       if(item) openRecordSheet(full, item, full.profile.handle.toUpperCase() + ' · THE SHELVES');
-    }));
+    }, {stickers}));
   });
 }
 
@@ -680,7 +720,23 @@ function renderRecordSheetBody(full, item){
   if(item.sleeve_note) body.appendChild(el('div','record-note', item.sleeve_note));
   const owned = 'in_my_crate' in item ? item.in_my_crate : false;
   const inDigging = 'in_my_digging' in item ? item.in_my_digging : false;
-  body.appendChild(el('p','record-owned', owned ? 'Already in your crate.' : 'Not in your crate yet.'));
+  // CC3 point 5 (docs/34_CARE_AND_CONTROL.md): the old plain "Already in
+  // your crate."/"Not in your crate yet." line is gone -- absorbed into
+  // the sticker itself, which already only ever shows on a record you
+  // don't own (the "Add to digging list" button just below carries the
+  // same not-owned information for the case the sticker stays hidden at
+  // 0 friends).
+  if(!owned && item.release_id){
+    MizikiSocial.friendsStickerCounts([item.release_id]).then(r => {
+      if(!r.ok) return;
+      const badge = stickerBadge(item.release_id, r.counts[item.release_id]);
+      // `cover` is this call's own element, detached automatically if the
+      // sheet repaints (body.innerHTML = '' above) before this resolves --
+      // appending to it then is a harmless no-op, never a stale badge on
+      // whatever record the sheet now shows.
+      if(badge) cover.appendChild(badge);
+    });
+  }
   const stack = el('div','stack social-stack');
   if(!owned){
     const addBtn = el('button','cta', inDigging ? 'In your digging list' : 'Add to digging list');

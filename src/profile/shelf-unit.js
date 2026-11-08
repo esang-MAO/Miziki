@@ -16,6 +16,7 @@
 // short crate pads out with "room to grow" cubes rather than shrinking.
 import { el } from '../util/dom.js';
 import { renderTurntable } from './turntable.js';
+import { stickerBadge } from '../social/sticker.js';
 
 export const SHELF_UNIT_CUBES = 6;
 export const SHELF_UNIT_COLS = 2;
@@ -69,22 +70,31 @@ function cubeSpine(item, onTapAlbum){
   return sp;
 }
 
-function cubeFace(item, onTapAlbum){
+// CC3 (docs/34_CARE_AND_CONTROL.md): `stickers` -- a {releaseId: owners}
+// map, only ever passed for a friend's own shelf (never this device's
+// own, where every item is already owned) -- draws the badge over the
+// face cover only; a spine is 10px wide, too narrow for the sticker to
+// read (same reasoning as shelfSpine()'s own art-vs-color fallback).
+function cubeFace(item, onTapAlbum, stickers){
   const face = el('button', 'shelf-face');
   if(item.art){ const im = document.createElement('img'); im.src = item.art; im.alt = ''; face.appendChild(im); }
   face.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
   face.addEventListener('click', () => onTapAlbum(item.id));
+  if(stickers){
+    const badge = stickerBadge(item.id, stickers[item.id]);
+    if(badge) face.appendChild(badge);
+  }
   return face;
 }
 
-function shelfCell(cubeEntries, onTapAlbum){
+function shelfCell(cubeEntries, onTapAlbum, stickers){
   // A face-out cube always holds exactly one entry (shelfUnitCubes() never
   // shares one with spines) -- the modifier lets it fill the whole square
   // instead of sitting at its old fixed spine-row width.
   const isFaceCube = cubeEntries.length === 1 && cubeEntries[0].isFace;
   const cell = el('div', isFaceCube ? 'shelf-cell shelf-cell--face' : 'shelf-cell');
   const recs = el('div', 'shelf-cell-recs');
-  cubeEntries.forEach(({item, isFace}) => recs.appendChild(isFace ? cubeFace(item, onTapAlbum) : cubeSpine(item, onTapAlbum)));
+  cubeEntries.forEach(({item, isFace}) => recs.appendChild(isFace ? cubeFace(item, onTapAlbum, stickers) : cubeSpine(item, onTapAlbum)));
   cell.appendChild(recs);
   cell.appendChild(el('div', 'shelf-cell-strip'));
   cell.appendChild(el('div', 'shelf-cell-depth'));
@@ -112,7 +122,7 @@ function emptyCell(note){
 // md): one of SHELF_FINISHES' ids (src/profile/shelf-finish.js), default
 // 'walnut' -- sets the one `data-finish` attribute 18-storefront.css keys
 // its --wood-* custom properties off.
-export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntableInfo, sleeveArt, sleeveName, finish}){
+export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntableInfo, sleeveArt, sleeveName, finish, stickers}){
   const unit = el('div', 'shelf-unit');
   unit.setAttribute('data-finish', finish || 'walnut');
 
@@ -148,7 +158,7 @@ export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntable
     row.setAttribute('data-row', String(r));
     for(let c = 0; c < SHELF_UNIT_COLS; c++){
       const i = r * SHELF_UNIT_COLS + c;
-      row.appendChild(slots[i] ? shelfCell(slots[i], onTapAlbum) : emptyCell(i === emptyFromIdx));
+      row.appendChild(slots[i] ? shelfCell(slots[i], onTapAlbum, stickers) : emptyCell(i === emptyFromIdx));
     }
     frame.appendChild(row);
     if(r < rowCount - 1){

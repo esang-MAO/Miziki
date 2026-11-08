@@ -141,6 +141,10 @@ function resetHome(opts = {}){
     subscribeNowSpinning(){ return () => {}; },
     searchProfiles: async () => ({ ok:true, profiles:[] }),
     labelColor(){ return '#000'; },
+    // CC3 (docs/34_CARE_AND_CONTROL.md): paintFeed() batches one of these
+    // per feed repaint -- grep any mock of MizikiSocial before adding a
+    // new named export it reaches, per this repo's own standing lesson.
+    friendsStickerCounts: async () => ({ ok:true, counts:{} }),
   }, opts.social);
 }
 
@@ -318,6 +322,14 @@ test('buildFeedTiles: a pinned record picks up its note from a same-release "rev
 test('buildFeedTiles: a pinned record with no matching review note has none', () => {
   const tiles = buildFeedTiles([fakeEvent('1', { type:'pinned', actor_id:'u1', release_id:'r1' })]);
   assert.equal(tiles[0].note, null);
+});
+
+// CC3 (docs/34_CARE_AND_CONTROL.md): "Home feed tiles" -- paintFeed()
+// batches a friends_sticker call off each tile's own release_id, so the
+// tile shape has to carry it through from the event.
+test('buildFeedTiles: carries the event\'s release_id through, for the friends-sticker batch', () => {
+  const tiles = buildFeedTiles([fakeEvent('1', { type:'added', release_id:'r9', actor_handle:'kenspins' })]);
+  assert.equal(tiles[0].release_id, 'r9');
 });
 
 test('feedEventText: "added" with a plural count says how many, singular says the title', () => {
