@@ -76,15 +76,20 @@ export function shareSwatchGradient(ctx, cx, cy, r, colors){
   return g;
 }
 
-// QC1/QC2 (docs/24_QUIET_COUNTS.md): a small rounded-square pressing chip,
-// the canvas counterpart of record-art/tiers.js's own CSS
-// variantBackground() — used by the Pressings share card to draw the same
-// found-chips grid the profile's own pressing-chart card shows, at chip
-// rather than full-disc size, so no groove rings or label hole.
-export function fillVariantSwatch(ctx, def, x, y, size, radius){
+// QC1/QC2 (docs/24_QUIET_COUNTS.md): a small pressing chip, the canvas
+// counterpart of record-art/tiers.js's own CSS variantBackground() — used
+// by the Pressings share card to draw the same found-chips grid the
+// profile's own pressing-chart card shows. WS3 (docs/33_WALL_AND_
+// LABELS.md): these were rounded squares (`radius`, now unused and kept
+// only so this signature doesn't change) — now discs, same footprint,
+// with faint groove rings and the small paper label (drawPaperLabelBase()
+// below) so they read as tiny records. A zoetrope keeps its own look
+// plain underneath, the same exemption the wall's own small discs and
+// the full share disc below give it.
+export function fillVariantSwatch(ctx, def, x, y, size, _radius){
+  const cx = x + size/2, cy = y + size/2, r = size/2;
   ctx.save();
-  roundRectPath(ctx, x, y, size, size, radius);
-  ctx.clip();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
   const [a, b, c] = def.colors;
   if(def.pattern === 'split'){
     const [i1, i2] = def.inks || [a, c];
@@ -92,7 +97,7 @@ export function fillVariantSwatch(ctx, def, x, y, size, radius){
     ctx.fillStyle = i2; ctx.fillRect(x, y + size/2, size, size/2);
   } else if(def.pattern === 'swirl'){
     const [i1, i2] = def.inks || [a, b];
-    const g = ctx.createConicGradient(0, x + size/2, y + size/2);
+    const g = ctx.createConicGradient(0, cx, cy);
     [i1, i2, i1, i2, i1, i2, i1].forEach((col, i) => g.addColorStop(i/6, col));
     ctx.fillStyle = g; ctx.fillRect(x, y, size, size);
   } else if(def.pattern === 'splatter'){
@@ -102,10 +107,15 @@ export function fillVariantSwatch(ctx, def, x, y, size, radius){
       ctx.fillStyle = i % 2 ? b : a; ctx.fill();
     });
   } else {
-    ctx.fillStyle = shareSwatchGradient(ctx, x + size/2, y + size/2, size/2, def.colors);
+    ctx.fillStyle = shareSwatchGradient(ctx, cx, cy, r, def.colors);
     ctx.fillRect(x, y, size, size);
   }
   ctx.restore();
+
+  ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.62, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.stroke();
+  if(def.pattern !== 'zoetrope') drawPaperLabelBase(ctx, cx, cy, r*0.42);
 }
 
 // waits for decode() too, not just the load event, so the first draw never
@@ -147,14 +157,89 @@ export function drawCover(ctx, img, x, y, w, h){
 // track; record-card.js's own `data` already carries all four
 // pre-resolved by the gatefold) — this function itself does no
 // track/album lookups of its own, which is what keeps it safe to import
+// WS2/WS3 (docs/33_WALL_AND_LABELS.md): the paper label's own base look --
+// gradient, ring (a solid olive edge, a thin paper-coloured gap, then a
+// faint second olive ring, the same three-step treatment 18-storefront.
+// css's .paper-label-sm/02-stage-platter.css's .label.paper-label use as
+// a layered box-shadow), and the spindle hole. Shared by every disc this
+// file draws a centre label on -- the full share disc below and the
+// Pressings card's own chip-grid discs (fillVariantSwatch above). Printed
+// text (paperLabelTextLayout()'s own job) is drawn separately, only once
+// the disc is large enough to read.
+function drawPaperLabelBase(ctx, cx, cy, lr){
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  const paperGrad = ctx.createRadialGradient(cx - lr*0.24, cy - lr*0.36, 0, cx, cy, lr*1.3);
+  paperGrad.addColorStop(0, '#F4EFE4'); paperGrad.addColorStop(1, '#DCD3BE');
+  ctx.fillStyle = paperGrad;
+  ctx.fillRect(cx - lr, cy - lr, lr*2, lr*2);
+  ctx.restore();
+  ctx.lineWidth = Math.max(1, lr*0.05);
+  ctx.beginPath(); ctx.arc(cx, cy, lr - ctx.lineWidth/2, 0, Math.PI*2); ctx.strokeStyle = '#3E3D22'; ctx.stroke();
+  ctx.lineWidth = Math.max(1, lr*0.07);
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(0, lr - lr*0.12), 0, Math.PI*2); ctx.strokeStyle = 'rgba(244,239,228,.9)'; ctx.stroke();
+  ctx.lineWidth = Math.max(1, lr*0.05);
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(0, lr - lr*0.2), 0, Math.PI*2); ctx.strokeStyle = 'rgba(62,61,34,.5)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, lr*0.08), 0, Math.PI*2);
+  ctx.fillStyle = '#14110F'; ctx.fill();
+}
+
+// WS3: the label's own printed text layout -- MIZIKI · speed above the
+// title, the album title above the hole, the artist below it, the side
+// near the bottom. Pure (only measures/fits with the given ctx, never
+// draws or touches the DOM) so the "nothing crosses the hole" rule and
+// the fit-at-size behaviour (lr 90/140/200) are unit-testable without a
+// real canvas. `label`: {album, artist, speedText, sideText}, all
+// optional. Returns null below the 90px floor the plan sets -- the label
+// is too small to print on, so the caller falls back to two plain ink
+// bars instead. Every y below is an offset from the label's own centre,
+// not an absolute canvas position.
+export function paperLabelTextLayout(ctx, lr, label){
+  if(lr < 90 || !label) return null;
+  const titleMax = lr * 1.6, subMax = lr * 1.4;
+  const kickerSize = Math.max(8, Math.round(lr * 0.11));
+  const titleSize = Math.round(lr * 0.26);
+  const subSize = Math.round(lr * 0.16);
+  const sideSize = Math.max(7, Math.round(lr * 0.1));
+
+  ctx.font = '600 ' + kickerSize + 'px "IBM Plex Mono", monospace';
+  const kicker = shareFitText(ctx, 'MIZIKI · ' + (label.speedText || '33⅓'), titleMax);
+
+  ctx.font = '700 ' + titleSize + 'px Antonio, sans-serif';
+  const title = shareFitText(ctx, label.album || '', titleMax);
+
+  ctx.font = '500 ' + subSize + 'px Archivo, sans-serif';
+  const artist = shareFitText(ctx, label.artist || '', subMax);
+
+  ctx.font = '600 ' + sideSize + 'px "IBM Plex Mono", monospace';
+  const side = shareFitText(ctx, 'SIDE ' + (label.sideText || 'A'), titleMax);
+
+  // the title's baseline sits at -lr*0.22 (at or above the plan's own
+  // -lr*0.18 ceiling) and the artist's top sits at lr*0.22 (at or below
+  // the plan's own lr*0.12 floor) -- a fixed margin past each rule so
+  // neither ever reaches into the hole band between those two lines.
+  const titleY = -lr * 0.22;
+  const kickerY = titleY - Math.round(titleSize * 0.85);
+  const artistTopY = lr * 0.22;
+  const artistY = artistTopY + Math.round(subSize * 0.8);
+  const sideY = lr * 0.84;
+
+  return { kicker, kickerY, kickerSize, title, titleY, titleSize, artist, artistY, artistTopY, subSize, side, sideY, sideSize };
+}
+
 // at this module's own top level (see the file-header comment above).
 // `half` is true for the normal composition, where only the left
 // semicircle ends up visible once the art square is drawn on top:
 // asymmetric patterns need to orient themselves so both their colors
 // land in that visible half instead of reading as one flat color (see
-// LIBRARY spec §2, disc rendering).
+// LIBRARY spec §2, disc rendering). `info.label` ({album, artist,
+// speedText, sideText}, all optional): when present and the label is
+// large enough to read, the real printed text draws (paperLabelText
+// Layout() above); otherwise two plain ink bars stand in for it. Rare
+// pressings always draw their own art inside the label instead (no
+// text), same as before WS3.
 export async function fillShareDisc(ctx, info, cx, cy, r, half){
-  const { art, look, variant, metal } = info;
+  const { art, look, variant, metal, label } = info;
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
   ctx.fillStyle = '#1C1A1F'; ctx.fillRect(cx - r, cy - r, r*2, r*2);
@@ -207,17 +292,45 @@ export async function fillShareDisc(ctx, info, cx, cy, r, half){
     ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
   }
   ctx.restore();
-  // label
+  // label -- WS3: the real paper centre label (drawPaperLabelBase() above)
+  // instead of a flat swatch. Rare pressings keep their own art label,
+  // untouched from before WS3.
   const lr = r * 0.32;
-  ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
-  ctx.fillStyle = '#3A2007'; ctx.fill();
   if(look === 'rare'){
+    ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2);
+    ctx.fillStyle = '#3A2007'; ctx.fill();
     try{
       const limg = await loadImageEl(art);
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
       drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
       ctx.restore();
     }catch(_e){}
+    return;
+  }
+  drawPaperLabelBase(ctx, cx, cy, lr);
+  const textLayout = paperLabelTextLayout(ctx, lr, label);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  if(textLayout){
+    ctx.fillStyle = '#26202C';
+    ctx.font = '600 ' + textLayout.kickerSize + 'px "IBM Plex Mono", monospace';
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+    ctx.fillText(textLayout.kicker, cx, cy + textLayout.kickerY);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    ctx.font = '700 ' + textLayout.titleSize + 'px Antonio, sans-serif';
+    ctx.fillText(textLayout.title, cx, cy + textLayout.titleY);
+    ctx.font = '500 ' + textLayout.subSize + 'px Archivo, sans-serif';
+    ctx.fillText(textLayout.artist, cx, cy + textLayout.artistY);
+    ctx.font = '600 ' + textLayout.sideSize + 'px "IBM Plex Mono", monospace';
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.06em';
+    ctx.fillText(textLayout.side, cx, cy + textLayout.sideY);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  } else {
+    // below the printable floor: two plain ink bars, same shape as the
+    // wall's own .paper-label-sm at small sizes (18-storefront.css).
+    ctx.fillStyle = '#26202C';
+    ctx.fillRect(cx - lr*0.28, cy - lr*0.34, lr*0.56, lr*0.09);
+    ctx.fillStyle = 'rgba(38,32,44,.55)';
+    ctx.fillRect(cx - lr*0.2, cy + lr*0.2, lr*0.4, lr*0.07);
   }
 }
 

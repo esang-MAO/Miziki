@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
   namedExports: { wordmarkMarkup(){ return '<svg></svg>'; } },
 });
-const { SHARE_FORMATS, resolveShareStyle, shareFitLines } = await import('../../src/share/styles.js');
+const { SHARE_FORMATS, resolveShareStyle, shareFitLines, paperLabelTextLayout } = await import('../../src/share/styles.js');
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this
 // file sticks to the two genuinely pure parts of the share-image code:
@@ -280,6 +280,44 @@ test('shareFitLines: an unbreakable 40-char word fits maxWidth, not just the lin
   assert.equal(lines.length, 1);
   ctx.font = fontSize + 'px sans-serif';
   assert.ok(ctx.measureText(lines[0]).width <= 200, 'the kept line must fit maxWidth at the fontSize returned');
+});
+
+/* ===================== WS3 (docs/33_WALL_AND_LABELS.md) =====================
+   paperLabelTextLayout() -- the share-disc paper label's own printed-text
+   layout: pure (measures/fits with the given ctx, never draws), so the
+   "nothing crosses the hole" rule and the fit-at-size behaviour are
+   testable without a real canvas, the same makeFakeCtx() the shareFitLines
+   tests above already use. */
+
+test('paperLabelTextLayout: null below the 90px floor, with or without a label', () => {
+  const ctx = makeFakeCtx();
+  assert.equal(paperLabelTextLayout(ctx, 89, {album: 'A', artist: 'B'}), null);
+  assert.equal(paperLabelTextLayout(ctx, 200, null), null);
+});
+
+test('paperLabelTextLayout: nothing crosses the hole, at every size the plan names (90/140/200)', () => {
+  const ctx = makeFakeCtx();
+  for(const lr of [90, 140, 200]){
+    const layout = paperLabelTextLayout(ctx, lr, {album: 'Harbor Lights', artist: 'Someone', speedText: '45', sideText: 'B'});
+    assert.ok(layout, 'lr=' + lr + ' is at/above the floor, so a layout must come back');
+    assert.ok(layout.titleY <= -lr * 0.18, 'lr=' + lr + ': title baseline must sit at or above -lr*0.18');
+    assert.ok(layout.artistTopY >= lr * 0.12, 'lr=' + lr + ': artist top must sit at or below lr*0.12 -- i.e. not higher than it');
+    assert.ok(layout.kickerY < layout.titleY, 'lr=' + lr + ': the kicker sits above the title, never overlapping it');
+  }
+});
+
+test('paperLabelTextLayout: each line fits its own stated max width (title/kicker/side to lr*1.6, artist to lr*1.4)', () => {
+  const ctx = makeFakeCtx();
+  const longAlbum = 'A Genuinely Extremely Long Album Title That Keeps Going';
+  const longArtist = 'An Equally Long Artist Name That Also Keeps Going On';
+  const lr = 140;
+  const layout = paperLabelTextLayout(ctx, lr, {album: longAlbum, artist: longArtist, speedText: '33⅓', sideText: 'A'});
+  ctx.font = '700 ' + layout.titleSize + 'px Antonio, sans-serif';
+  assert.ok(ctx.measureText(layout.title).width <= lr * 1.6 + 0.5);
+  ctx.font = '500 ' + layout.subSize + 'px Archivo, sans-serif';
+  assert.ok(ctx.measureText(layout.artist).width <= lr * 1.4 + 0.5);
+  assert.ok(layout.title.endsWith('…'), 'sanity: this title really was too long to fit as-is');
+  assert.ok(layout.artist.endsWith('…'), 'sanity: this artist really was too long to fit as-is');
 });
 
 /* ===================== SH6 (docs/18_SHARE.md) =====================
