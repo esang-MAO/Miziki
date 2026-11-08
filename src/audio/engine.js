@@ -256,6 +256,40 @@ export async function buildGraph(ctx){
   if(n.limiter) n.monoMerge.connect(n.limiter).connect(n.deviceVolume).connect(n.out);
   else n.monoMerge.connect(n.deviceVolume).connect(n.out);
   n.out.connect(ctx.destination);
+
+  // Anti-denormal floor (Ken, 2026-11-08: "hissing when music is played
+  // for a while, goes away the instant I pause and play again"): a
+  // biquad filter's internal state decays toward zero through a long
+  // quiet passage, and can linger in the subnormal float range on the
+  // way down rather than settling at a clean zero. Subnormal arithmetic
+  // is many times slower on real hardware, and this chain has a lot of
+  // always-connected biquads in series (wobbleTilt/dc/tone in Vinyl;
+  // eqTiltLow/eqTiltHigh/every eqGraphic/eqParametric band in both
+  // modes, per AU6/AU7's own "output stage applies in both modes" rule)
+  // — a CPU-starved audio thread is exactly what a building hiss/crackle
+  // that instantly clears on pause (silence flushes the state back to
+  // true zero) would look like. A tiny, inaudible, always-on tone — one
+  // oscillator/gain pair, well below any real noise floor — keeps every
+  // one of those filters' internal state away from the subnormal range
+  // for good, with nothing to hear: -180dBFS is ~40dB under the
+  // quietest signal a 24-bit file can even represent. Fed into n.wobble
+  // (every Vinyl-only filter downstream of it) and straight into
+  // n.master (the EQ/balance/limiter chain both modes always run) —
+  // the two points every always-connected filter in this graph sits
+  // downstream of. Never stopped or touched by disconnectVinylChain()/
+  // rebuildVinylChain(): in Pure, n.wobble's own downstream is already
+  // unreachable from ctx.destination (PL5 item 6), so that leg costs
+  // nothing there, exactly like the real Vinyl chain it's guarding.
+  const ANTI_DENORMAL_DB = -180;
+  n.antiDenormalOsc = ctx.createOscillator();
+  n.antiDenormalOsc.frequency.value = 7.3; // arbitrary, inaudible regardless of rate
+  n.antiDenormalGain = ctx.createGain();
+  n.antiDenormalGain.gain.value = dbToLinear(ANTI_DENORMAL_DB);
+  n.antiDenormalOsc.connect(n.antiDenormalGain);
+  n.antiDenormalGain.connect(n.wobble);
+  n.antiDenormalGain.connect(n.master);
+  n.antiDenormalOsc.start();
+
   return n;
 }
 
