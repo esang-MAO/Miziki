@@ -229,3 +229,6 @@ Grounded in a reading of *In the Groove*, *Practical Musicology*, *Retromania*, 
 - A friend's weekly pick from your own crate; a "dollar bin" shelf for unloved records.
 - Inner-groove top-end roll-off in Vinyl mode (only if it never costs clarity).
 - The year-end wrap, built on GS1/GS2.
+  - Built from the listener's own words and choices: sleeve notes, pins, liner notes, kept-for, pressings and turntables found (with `foundAt`/`phase`), and played-through sides.
+  - Never from inferred genre labels or a "your listening personality" verdict.
+  - It's a flip-through booklet, not a story sequence.

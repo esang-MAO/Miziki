@@ -47,11 +47,23 @@ Shaped / RSD-style pressings are **out of scope** (saved for artist pages later)
   the mockup uses to paint each one. Treat `css_layers` as a visual reference; port to whatever the
   disc renderer uses (CSS, canvas or SVG), matching the frames.
 - `rare[]`, `zoetropes[]`, `metals[]` as described below.
-- `draw`: tier weights and rarity banding (unchanged from today):
+- `draw`: tier weights and rarity banding (rebalanced in docs/34_CARE_AND_CONTROL.md, decision 5):
   - lossy → Jet 100%
   - lossless → solid 85%, Jet 15%
-  - hi-res → effect 70%, solid 25%, Jet 5%
-  - inside a tier, band first: common 60%, uncommon 30%, scarce 10%; then a pressing inside the band
+  - hi-res → **effect 55%, solid 40%, Jet 5%** (was effect 70%, solid 25%, Jet 5%)
+  - inside a tier, band first: **common 50%, uncommon 35%, scarce 15%** (was 60 / 30 / 10); then a pressing inside the band
+  - the bands are shared across tiers, so lossless solids get the gentler bands too; the lossless/lossy tier mixes themselves are unchanged
+
+### Completing the chart — old odds vs. new odds
+
+Measured by simulating `selectVariantForTierKey()` over thousands of synthetic hi-res-only libraries, completing all 94 file-drawn pressings (40 solids, 54 effects):
+
+| | Albums to complete (median) | Most libraries | Seen at 170 albums | Seen at 300 albums |
+|---|---|---|---|---|
+| Old odds (70/25/5, 60/30/10) | about 730 | 520–1,110 | about 73 of 94 | about 85 of 94 |
+| **New odds (55/40/5, 50/35/15)** | **about 500** | 390–700 | about 77 of 94 | about 89 of 94 |
+
+The bottleneck under the old odds was the scarce band (10% of draws, spread over 14 items), which hit solids hardest since solids were only 25% of hi-res draws. About 500 is close to the floor for one pressing per album — even perfectly even odds land around 490. Scarce pressings stay rarer than common ones under the new odds, just less extreme: each scarce pressing is about three-quarters as likely as each common one, down from about a quarter.
 
 ### Determinism (unchanged rule)
 The album hash alone picks the pressing, so the same album has the same pressing in everyone's
