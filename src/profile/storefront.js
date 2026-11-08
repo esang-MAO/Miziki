@@ -479,13 +479,15 @@ function storeLedge(picks){
   return ledge;
 }
 
-// The wall cubby: one long, three-section shelf (posts, rails, grained
-// back panels, inner shadow -- the same construction as the shelf unit,
-// src/profile/shelf-unit.js), one disc per section on a clear stand, for
-// the last three pressings or metals found (S.collection + history/
-// achievements.js's achievementsList(), merged and sorted by their own
-// date, newest first). Fewer than three found just leaves the remaining
-// sections empty, per docs/24_QUIET_COUNTS.md.
+// Wall & Labels follow-up (Ken, 2026-11-08): replaces the wall cubby (a
+// continuous wood shelf with posts/rails/stands, the shelf unit's own
+// construction) with individual wood-framed squares, one per pressing or
+// metal found -- each its own small picture frame rather than a shared
+// shelf, so there's no shelf/rail reading as "shelving sitting over" the
+// disc. For the last three pressings or metals found (S.collection +
+// history/achievements.js's achievementsList(), merged and sorted by
+// their own date, newest first). Fewer than three found just leaves the
+// remaining frames out, per docs/24_QUIET_COUNTS.md.
 function storeWallCubby(){
   const found = [
     ...Object.values(S.collection).map(rec => ({rec, kind:'pressing', date: rec.discoveredAt})),
@@ -493,44 +495,38 @@ function storeWallCubby(){
   ].sort((a, b) => b.date - a.date).slice(0, 3);
   if(!found.length) return null;
 
-  const wrap = el('div','store-wall-cubby-wrap');
-  const headRow = el('div','store-wall-cubby-head');
+  const wrap = el('div','store-wall-frames-wrap');
+  const headRow = el('div','store-wall-frames-head');
   headRow.appendChild(el('span','store-wall-caption','pressings, found while listening'));
   const link = el('button','store-wall-all','All found ›');
   link.addEventListener('click', ()=>{ S.profileView.screen = 'records'; S.profileView.recordsFilter = 'all'; renderProfile(); });
   headRow.appendChild(link);
   wrap.appendChild(headRow);
 
-  const cubby = el('div','store-wall-cubby');
-  const captions = el('div','store-wall-cubby-captions');
+  const frames = el('div','store-wall-frames');
+  const captions = el('div','store-wall-frames-captions');
   found.forEach(({rec, kind, date}) => {
-    const section = el('div','store-cubby-section');
-    section.appendChild(el('div','store-cubby-back'));
-    const disc = el('div','store-cubby-disc');
+    const frame = el('div','store-pressing-frame');
+    const mat = el('div','store-pressing-frame-mat');
+    const disc = el('div','store-pressing-disc');
     const discBg = kind === 'metal' ? metalDisc(rec) : pressingDisc(rec);
     disc.style.background = discBg;
     disc.setAttribute('aria-label', rec.name);
     // WS2: zoetropes keep their own artwork (variantBackground()'s only
     // `url(...)` case, record-art/tiers.js) -- no label on top of it.
     if(!discBg.includes('url(')) disc.appendChild(el('span','paper-label-sm'));
-    section.appendChild(disc);
-    section.appendChild(el('div','store-cubby-stand'));
-    section.appendChild(el('div','store-cubby-depth'));
-    cubby.appendChild(section);
+    mat.appendChild(disc);
+    frame.appendChild(mat);
+    frames.appendChild(frame);
 
-    const cap = el('div','store-cubby-caption');
+    const cap = el('div','store-pressing-caption');
     cap.appendChild(el('b', null, rec.name));
     cap.appendChild(el('span','store-found-mono', kind === 'metal'
       ? 'METAL · ' + wallMonth(date)
       : (PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
     captions.appendChild(cap);
   });
-  cubby.appendChild(el('div','store-cubby-post store-cubby-post--l'));
-  cubby.appendChild(el('div','store-cubby-post store-cubby-post--m1'));
-  cubby.appendChild(el('div','store-cubby-post store-cubby-post--m2'));
-  cubby.appendChild(el('div','store-cubby-post store-cubby-post--r'));
-  cubby.appendChild(el('div','store-cubby-rail store-cubby-rail--bottom'));
-  wrap.appendChild(cubby);
+  wrap.appendChild(frames);
   wrap.appendChild(captions);
   return wrap;
 }
