@@ -22,7 +22,7 @@ function fakeTrack(name){ return { tags: { album: name } }; }
 test('pressing draw: every solid is reachable at tier 2', () => {
   const seen = new Set();
   for(const name of NAMES){
-    const { variant } = selectVariantForAlbum(name, 2);
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 2);
     seen.add(variant);
   }
   const missing = SOLID_IDS.filter(id => !seen.has(id));
@@ -32,7 +32,7 @@ test('pressing draw: every solid is reachable at tier 2', () => {
 test('pressing draw: every effect is reachable at tier 3', () => {
   const seen = new Set();
   for(const name of NAMES){
-    const { variant } = selectVariantForAlbum(name, 3);
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 3);
     seen.add(variant);
   }
   const missing = EFFECT_IDS.filter(id => !seen.has(id));
@@ -61,36 +61,36 @@ function withinTolerance(actual, expected, tolerancePct){
 test('pressing draw: tier-2 mix is ~15% Jet / 85% solid', () => {
   let jet = 0;
   for(const name of NAMES){
-    if(selectVariantForAlbum(name, 2).variant === 'jet') jet++;
+    if(selectVariantForAlbum('Fixed Artist', name, 2).variant === 'jet') jet++;
   }
   withinTolerance(jet / N, 0.15, 0.02);
 });
 
-test('pressing draw: tier-3 mix is ~5% Jet / 25% solid / 70% effect', () => {
+test('pressing draw: tier-3 mix is ~5% Jet / 40% solid / 55% effect', () => {
   let jet = 0, solid = 0, effect = 0;
   for(const name of NAMES){
-    const { variant } = selectVariantForAlbum(name, 3);
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 3);
     if(variant === 'jet') jet++;
     else if(SOLID_IDS.includes(variant)) solid++;
     else effect++;
   }
   withinTolerance(jet / N, 0.05, 0.02);
-  withinTolerance(solid / N, 0.25, 0.02);
-  withinTolerance(effect / N, 0.70, 0.02);
+  withinTolerance(solid / N, 0.40, 0.02);
+  withinTolerance(effect / N, 0.55, 0.02);
 });
 
-test('pressing draw: among non-Jet tier-2 draws, bands split ~60/30/10', () => {
+test('pressing draw: among non-Jet tier-2 draws, bands split ~50/35/15', () => {
   const counts = { common: 0, uncommon: 0, scarce: 0 };
   let total = 0;
   for(const name of NAMES){
-    const { variant } = selectVariantForAlbum(name, 2);
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 2);
     if(variant === 'jet') continue;
     counts[VARIANT_DEFS[variant].band]++;
     total++;
   }
-  withinTolerance(counts.common / total, 0.60, 0.02);
-  withinTolerance(counts.uncommon / total, 0.30, 0.02);
-  withinTolerance(counts.scarce / total, 0.10, 0.02);
+  withinTolerance(counts.common / total, 0.50, 0.02);
+  withinTolerance(counts.uncommon / total, 0.35, 0.02);
+  withinTolerance(counts.scarce / total, 0.15, 0.02);
 });
 
 test('pressing draw: band and colour draws are independent -- the whole common list is reachable, not a slice of it', () => {
@@ -99,7 +99,7 @@ test('pressing draw: band and colour draws are independent -- the whole common l
   const lastCommon = commonIds[commonIds.length - 1];
   let firstCount = 0, lastCount = 0, commonTotal = 0;
   for(const name of NAMES){
-    const { variant } = selectVariantForAlbum(name, 2);
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 2);
     if(VARIANT_DEFS[variant] && VARIANT_DEFS[variant].band === 'common'){
       commonTotal++;
       if(variant === firstCommon) firstCount++;
@@ -115,15 +115,15 @@ test('pressing draw: band and colour draws are independent -- the whole common l
 
 test('pressing draw: deterministic -- the same album name draws the same variant every time', () => {
   for(const name of ['Repeat Me', 'Another Album', 'Zzz']){
-    const a = selectVariantForAlbum(name, 3);
-    const b = selectVariantForAlbum(name, 3);
+    const a = selectVariantForAlbum('Fixed Artist', name, 3);
+    const b = selectVariantForAlbum('Fixed Artist', name, 3);
     assert.deepEqual(a, b);
   }
 });
 
 test('pressing draw: two keys that normalize the same way draw the same variant', () => {
-  const a = selectVariantForAlbum('  The Album  ', 3);
-  const b = selectVariantForAlbum('the album', 3);
+  const a = selectVariantForAlbum('  The Artist  ', '  The Album  ', 3);
+  const b = selectVariantForAlbum('the artist', 'the album', 3);
   assert.deepEqual(a, b);
   assert.equal(albumKey({ tags: { album: '  The Album  ' } }), albumKey({ tags: { album: 'the album' } }));
 });

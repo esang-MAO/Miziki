@@ -263,26 +263,42 @@ test('QC1: renderPressingCard draws a Metals row only for tiers reached, none wh
    of its own to mock around. ---- */
 
 test('CR11 point 1: same tier on both sides always draws the same pressing', () => {
-  const a = selectVariantForAlbum('Shared Album Title', 2);
-  const b = selectVariantForAlbum('Shared Album Title', 2);
+  const a = selectVariantForAlbum('Shared Artist', 'Shared Album Title', 2);
+  const b = selectVariantForAlbum('Shared Artist', 'Shared Album Title', 2);
   assert.deepEqual(a, b);
 });
 
-test('CR11 point 1: selectVariantForAlbum agrees with selectVariant for a real track of the same album+tier', () => {
-  const t = albumTrack('Agreement Check', { lossless: true, bits: 24, rate: 96000 });
-  assert.deepEqual(selectVariantForAlbum('Agreement Check', 3), selectVariant(t));
+test('CC6: two albums with the same title but different artists draw independently', () => {
+  // same shape as the point-2 "guaranteed real difference" test below --
+  // walk fixed candidate artists until one actually draws a different
+  // pressing than the first, rather than asserting on a pair that might
+  // coincidentally match.
+  const first = selectVariantForAlbum('Artist Alpha', 'Same Title', 3);
+  let found = null;
+  for(const artist of ['Artist Bravo', 'Artist Charlie', 'Artist Delta', 'Artist Echo']){
+    const other = selectVariantForAlbum(artist, 'Same Title', 3);
+    if(!deepEqualVariant(other, first)){ found = other; break; }
+  }
+  assert.ok(found, 'at least one candidate artist draws a different pressing than Artist Alpha');
 });
 
-test('CR11 point 1: a lossy-tier copy always draws Jet regardless of album', () => {
-  assert.equal(selectVariantForAlbum('Any Album At All', 1).variant, 'jet');
+function deepEqualVariant(a, b){ return a.tier === b.tier && a.variant === b.variant; }
+
+test('CR11 point 1: selectVariantForAlbum agrees with selectVariant for a real track of the same artist+album+tier', () => {
+  const t = albumTrack('Agreement Check', { lossless: true, bits: 24, rate: 96000 });
+  assert.deepEqual(selectVariantForAlbum(t.tags.artist, 'Agreement Check', 3), selectVariant(t));
+});
+
+test('CR11 point 1: a lossy-tier copy always draws Jet regardless of artist/album', () => {
+  assert.equal(selectVariantForAlbum('Any Artist', 'Any Album At All', 1).variant, 'jet');
 });
 
 /* ---- point 2: the in-common line, same-tier vs. different-tier ---- */
 
 test('CR11 point 2: same tier on both sides reads "Both <name>"', () => {
-  const item = { title: 'Common Ground', my_quality_tier: 2, their_quality_tier: 2 };
+  const item = { artist: 'Common Artist', title: 'Common Ground', my_quality_tier: 2, their_quality_tier: 2 };
   const line = pressingLineFor(item, 'ken');
-  const def = getVariantDef(selectVariantForAlbum('Common Ground', 2).variant);
+  const def = getVariantDef(selectVariantForAlbum('Common Artist', 'Common Ground', 2).variant);
   assert.equal(line, 'Both ' + def.name);
 });
 
@@ -293,12 +309,12 @@ test('CR11 point 2: different tiers that happen to draw different pressings read
   // visible difference without any retry loop.
   let title = null;
   for(const candidate of ['Alpha Pressing','Beta Pressing','Gamma Pressing','Delta Pressing']){
-    if(selectVariantForAlbum(candidate, 3).variant !== 'jet'){ title = candidate; break; }
+    if(selectVariantForAlbum('Diff Artist', candidate, 3).variant !== 'jet'){ title = candidate; break; }
   }
   assert.ok(title, 'at least one of the four candidates draws a non-Jet tier-3 pressing');
-  const item = { title, my_quality_tier: 3, their_quality_tier: 1 };
+  const item = { artist: 'Diff Artist', title, my_quality_tier: 3, their_quality_tier: 1 };
   const line = pressingLineFor(item, 'ken');
-  const mine = getVariantDef(selectVariantForAlbum(title, 3).variant);
+  const mine = getVariantDef(selectVariantForAlbum('Diff Artist', title, 3).variant);
   assert.equal(line, 'Yours: ' + mine.name + ' · ken’s: Jet');
 });
 
