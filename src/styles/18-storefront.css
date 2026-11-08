@@ -356,7 +356,6 @@ button.pressing-chip{cursor:pointer}
   background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
     repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
     linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
-.store-cubby-rail--top{top:0}
 .store-cubby-rail--bottom{bottom:0}
 .store-wall-cubby-captions{display:flex;gap:var(--sp-4);margin-top:var(--sp-2)}
 .store-cubby-caption{flex:1;min-width:0;text-align:center}
