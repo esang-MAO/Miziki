@@ -11,6 +11,8 @@
 import { el } from '../util/dom.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { friendsStickerText } from '../share/sticker-text.js';
+import { isAfterSunset } from '../sundown/day.js';
+import { currentDayPosition } from '../sundown/solar.js';
 
 // CR3 (docs/25_FROM_SCRATCH.md) sticker palette: the existing round butter
 // sticker, reusing .crate-sticker/.crate-sticker-friends (10-crate.css) --
@@ -23,12 +25,18 @@ import { friendsStickerText } from '../share/sticker-text.js';
 // box to anchor against (Fresh for you's text-only rows) -- same wording/
 // background, just not .crate-sticker's own position:absolute corner
 // placement.
+// CC3's own preview note ("night ... shows them dimmed, consistent with
+// GF11"): the same isAfterSunset() read GF11 (gatefold/view.js) already
+// takes once at open time -- "less after dark" (CLAUDE.md), applied the
+// same way everywhere this sticker can appear, not only inside the
+// gatefold.
 export function stickerBadge(releaseId, owners, {inline} = {}){
   const text = friendsStickerText(owners);
   if(!text) return null;
+  const night = isAfterSunset(currentDayPosition().phase);
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'crate-sticker crate-sticker-friends' + (inline ? ' crate-sticker-friends--inline' : '');
+  btn.className = 'crate-sticker crate-sticker-friends' + (inline ? ' crate-sticker-friends--inline' : '') + (night ? ' crate-sticker--night' : '');
   btn.textContent = text;
   btn.setAttribute('aria-label', text + ' have this');
   btn.addEventListener('click', e => {
@@ -58,10 +66,14 @@ function groupLabel(verb, handles, noun){
 // Reuses crate/view.js's own "crate-hold" scrim+card action-sheet shape
 // (crate-hold-scrim/-card/-title/-btn, 10-crate.css) -- a dynamically
 // built overlay, not a static miziki.html sheet, since this is a small,
-// read-only list that opens from several different screens.
+// read-only list that opens from several different screens. The extra
+// `friends-sticker-sheet` class only raises the stacking context
+// (10-crate.css): unlike crate/view.js's own menu, this one has to open
+// from on top of the record sheet (#recordSheetOverlay, z-index:128) too,
+// a context crate-hold-card's own z-index:60 was never meant to clear.
 export async function openFriendsStickerSheet(releaseId){
-  const scrim = el('div', 'crate-hold-scrim');
-  const card = el('div', 'crate-hold-card');
+  const scrim = el('div', 'crate-hold-scrim friends-sticker-sheet');
+  const card = el('div', 'crate-hold-card friends-sticker-sheet');
   card.setAttribute('role', 'menu');
   card.appendChild(el('p', 'crate-hold-title', 'Loading…'));
   function teardown(){ scrim.remove(); card.remove(); }

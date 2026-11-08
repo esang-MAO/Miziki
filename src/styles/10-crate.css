@@ -289,8 +289,18 @@
 /* CC3 (docs/34_CARE_AND_CONTROL.md): for a row with no cover-art box to
    anchor against (Fresh for you) -- same wording/background, laid out
    in flow instead of pinned to a corner. */
-.crate-sticker-friends--inline{position:static;display:inline-block;margin-top:2px;
+.crate-sticker-friends--inline{position:static;display:inline-block;align-self:flex-start;margin-top:2px;
   transform:rotate(1deg);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+/* GF11-consistent night dimming (CC3's own preview note) -- "less after
+   dark," applied wherever the sticker shows, not only inside the
+   gatefold. */
+.crate-sticker--night{opacity:.55}
+/* CC3: the sticker's own tap sheet can open from on top of the record
+   sheet (#recordSheetOverlay, 20-friend-store.css, z-index:128) -- higher
+   than crate-hold-scrim/-card's own z-index:60 above, which only ever
+   needs to clear the plain crate screen. */
+.crate-hold-scrim.friends-sticker-sheet{z-index:135}
+.crate-hold-card.friends-sticker-sheet{z-index:136}
 .crate-sticker-hires{background:var(--sticker-blue);color:#fff}
 /* the metal dot carries no text — a plain finished circle, per the design
    doc's own "none" ink column for that row */
