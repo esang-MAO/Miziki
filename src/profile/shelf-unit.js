@@ -27,12 +27,25 @@ const CUBE_CAPACITY = 10, FACE_WIDTH = 3;
 // -- every one of them, not capped, so a caller can tell whether the
 // crate is bigger than the unit's own fixed SHELF_UNIT_CUBES and needs a
 // "Browse all" link; renderShelfUnit() below does its own capping.
+//
+// Wall & Labels follow-up (Ken, 2026-11-08): renderShelfUnit()'s own cap
+// only keeps the first SHELF_UNIT_CUBES cubes, built in the crate's
+// natural order -- a face-out item (pin rank 4-5) sitting later in that
+// order than the cap could get truncated away entirely, so a record the
+// user explicitly pinned would just never show up on the fixed, 6-cube
+// home-screen unit. Floating face-out items to the front (in rank order,
+// everything else following in its original order) guarantees they
+// always land in a kept cube.
 export function shelfUnitCubes(items, faceOutIds){
   const faceOut = new Set(faceOutIds || []);
+  const ordered = faceOut.size
+    ? [...(faceOutIds || []).map(id => items.find(it => it.id === id)).filter(Boolean),
+       ...items.filter(it => !faceOut.has(it.id))]
+    : items;
   const cubes = [];
   let cube = [], used = 0;
   const push = () => { cubes.push(cube); cube = []; used = 0; };
-  items.forEach(item => {
+  ordered.forEach(item => {
     const isFace = faceOut.has(item.id);
     const width = isFace ? FACE_WIDTH : 1;
     if(used && used + width > CUBE_CAPACITY) push();

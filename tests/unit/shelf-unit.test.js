@@ -20,3 +20,19 @@ test('shelfUnitCubes: a face-out item counts as 3 spines worth of capacity', () 
 test('shelfUnitCubes: an empty crate returns no cubes', () => {
   assert.deepEqual(shelfUnitCubes([], []), []);
 });
+
+// Wall & Labels follow-up (Ken, 2026-11-08): renderShelfUnit() only keeps
+// the first SHELF_UNIT_CUBES cubes -- a pinned face-out item sitting deep
+// in a large crate's natural order must not get truncated away, so it's
+// floated to the front instead of staying wherever the crate order put it.
+test('shelfUnitCubes: a face-out item floats to the front, even deep in a large crate', () => {
+  const items = [...Array.from({length: 70}, (_, i) => item('t' + i)), item('pinned')];
+  const cubes = shelfUnitCubes(items, ['pinned']);
+  assert.equal(cubes[0].some(e => e.item.id === 'pinned'), true);
+});
+
+test('shelfUnitCubes: several face-out items float in rank order, plain spines keep their relative order after them', () => {
+  const items = [item('a'), item('rank4'), item('b'), item('rank5'), item('c')];
+  const cubes = shelfUnitCubes(items, ['rank4', 'rank5']);
+  assert.deepEqual(cubes[0].map(e => e.item.id), ['rank4', 'rank5', 'a', 'b', 'c']);
+});
