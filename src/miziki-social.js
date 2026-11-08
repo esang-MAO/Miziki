@@ -1150,6 +1150,51 @@ const listDigging = () => guarded(async () => {
   return { ok: true, items: rows || [] };
 });
 
+/* ---- friends sticker (CC3, docs/34_CARE_AND_CONTROL.md) ----
+   friends_sticker()/friends_sticker_detail() (migration 028) already
+   exclude a release the caller owns and anyone blocked/opted-out/not
+   mutual -- nothing here re-checks any of that client-side. */
+const friendsStickerCounts = releaseIds => guarded(async () => {
+  const ids = Array.from(new Set((releaseIds || []).filter(Boolean)));
+  const counts = {};
+  if (!ids.length) return { ok: true, counts };
+  (await rpc('friends_sticker', { p_release_ids: ids }) || []).forEach(r => { counts[r.release_id] = r.owners; });
+  return { ok: true, counts };
+});
+const friendsStickerDetail = releaseId => guarded(async () => ({
+  ok: true, people: (await rpc('friends_sticker_detail', { p_release_id: releaseId })) || []
+}));
+// The Record share card (gatefold/view.js's gatherRecordShareData()) only
+// ever has this device's own release_key, never a server release_id --
+// resolves it through the `releases` table (releases_select lets any
+// authenticated caller read it) before calling the same RPC above. Always
+// your own copy, so the RPC's own "not owned by the caller" filter means
+// this resolves to an empty counts map in practice -- wired to the real
+// data source per CC3 point 4, rather than a second hand-maintained
+// hardcode.
+const friendsStickerCountsByKeys = releaseKeys => guarded(async () => {
+  const keys = Array.from(new Set((releaseKeys || []).filter(Boolean)));
+  const counts = {};
+  if (!keys.length) return { ok: true, counts };
+  const rows = await q(X.sb.from('releases').select('id, release_key').in('release_key', keys));
+  const byId = {};
+  ((rows || []).length ? await rpc('friends_sticker', { p_release_ids: rows.map(r => r.id) }) : []).forEach(r => { byId[r.release_id] = r.owners; });
+  (rows || []).forEach(r => { counts[r.release_key] = byId[r.id] || 0; });
+  return { ok: true, counts };
+});
+// "Count me in friends' stickers" (Privacy screen) -- its own table
+// (public.sticker_privacy, migration 028), never a profiles column: see
+// that migration's own header for why a column grant can't make this
+// owner-only. Missing row reads as the default, on.
+const getCountInStickers = () => guarded(async () => {
+  const row = await q(X.sb.from('sticker_privacy').select('count_in_stickers').eq('user_id', X.userId).maybeSingle());
+  return { ok: true, on: row ? row.count_in_stickers !== false : true };
+});
+const setCountInStickers = on => guarded(async () => {
+  await q(X.sb.from('sticker_privacy').upsert({ user_id: X.userId, count_in_stickers: !!on }, { onConflict: 'user_id' }));
+  return { ok: true };
+});
+
 /* ---- held for you (GS11, docs/30_GROOVES_AND_SHELF.md) ---- */
 // "Set aside for [name]": up to 3 of this device's own crate records,
 // by release_key -- the server (held_records_before_insert, migration
@@ -1302,6 +1347,7 @@ root.MizikiSocial = {
   // reading
   loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
   setAside, heldForMe, handBack,
+  friendsStickerCounts, friendsStickerDetail, friendsStickerCountsByKeys, getCountInStickers, setCountInStickers,
   // helpers (also used by tests / UI)
   releaseKey, labelColor, sha256hex, mizikiAdapter,
   _internals: { X, buildItems, normAlbum, normArtist, cleanNote }

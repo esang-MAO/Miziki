@@ -3,6 +3,12 @@ import {
   SHARE_FORMATS, shareFitText, shareFitLines, roundRectPath,
   resolveShareStyle, drawDiagonalWordmark, loadImageEl, drawCover, fillShareDisc, drawShareFooter,
 } from './styles.js';
+// CC3 (docs/34_CARE_AND_CONTROL.md): friendsStickerText() itself moved to
+// this tiny leaf (see its own header) -- re-exported here so every
+// existing caller/import of it from this file (including this file's own
+// drawFriendsSticker() below and tests/unit/share.test.js) is unaffected.
+export { friendsStickerText } from './sticker-text.js';
+import { friendsStickerText } from './sticker-text.js';
 
 /* ---- Record card (composeRecordShareImage) — the sleeve with the record
    pulled part-way out, the pressing's own facts column, the record block
@@ -25,18 +31,6 @@ export function ratingTickCount(rating){
   return n > 0 ? Math.max(0, Math.min(5, n)) : 0;
 }
 
-// FS8 (docs/25_FROM_SCRATCH.md point 3): the friends sticker's own text --
-// "3 friends" / "1 friend", the plain count the round sticker draws (the
-// number large on its own line, the word underneath it) -- replacing the
-// old "IN N FRIENDS' CRATES" chip copy. RF20: friends only (mutual
-// follows), gated by the owner's own "count me in friends' stickers"
-// switch, both already decided by whoever gathered `data` (the gatefold),
-// per this card's own "the composer reads nothing else" rule above.
-export function friendsStickerText(friendsCount){
-  const n = Math.round(friendsCount || 0);
-  if(n <= 0) return null;
-  return n + (n === 1 ? ' friend' : ' friends');
-}
 
 // No note → the block is omitted outright (item 4), not drawn empty.
 export function recordNoteText(note){

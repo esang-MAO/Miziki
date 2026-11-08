@@ -115,6 +115,7 @@ module.exports = [
       'src/social/screens/friend-store.js',
       'src/social/screens/home.js',
       'src/social/demo.js',
+      'src/social/sticker.js',
       'src/sync/backup.js',
       'src/profile/account.js',
       'src/profile/privacy.js',

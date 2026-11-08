@@ -91,6 +91,21 @@ function renderSocialSection(body, status){
       body.appendChild(el('p','note',
         'Off by default. When on, friends who can see your crate see your listening-rhythm verdict and the share for each part of the day — never your individual plays or times. Needs 20 counted plays to show anything.'));
 
+      // CC3 (docs/34_CARE_AND_CONTROL.md): its own server row
+      // (public.sticker_privacy, migration 028), never S.social/prefs --
+      // see getCountInStickers()'s own header in miziki-social.js for why
+      // a plain profiles column can't be owner-only here. Defaults to on
+      // (a missing row reads as opted in) while this loads.
+      const stickerRow = el('div','social-setting-row');
+      stickerRow.appendChild(el('h2', null, 'Count me in friends’ stickers'));
+      MizikiSocial.getCountInStickers().then(sr => {
+        const on = !sr.ok || sr.on;
+        stickerRow.appendChild(storeSwitch('Count me in friends’ stickers', on,
+          v => MizikiSocial.setCountInStickers(v), stickerRow));
+      });
+      body.appendChild(stickerRow);
+      body.appendChild(el('p','note','Friends see a count of who has a record — never what you play.'));
+
       const requests = (reqRes.ok && reqRes.requests) || [];
       body.appendChild(el('h2', null, 'Follow requests'));
       if(!requests.length) body.appendChild(el('p','note','No pending requests.'));

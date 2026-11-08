@@ -453,6 +453,14 @@ export function gatefoldItemFormat(item){
   return albumFormatFor(item.idx, S.tracks, override);
 }
 
+// CC3 point 4 (docs/34_CARE_AND_CONTROL.md): reads from the real RPC now
+// instead of a hardcode -- MizikiSocial.friendsStickerCountsByKeys()
+// resolves this device's own release_key through the `releases` table
+// (the client never has a release_id for its own crate, CC2's own note).
+// This is always your own copy, and friends_sticker() always excludes a
+// release the caller owns, so the resolved count is, in practice, always
+// 0/null here -- wired to the same data source as every other sticker
+// rather than a second hand-maintained hardcode, with no behavior change.
 export async function gatherRecordShareData(item){
   const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
   const d = t ? discLook(t) : null;
@@ -460,13 +468,19 @@ export async function gatherRecordShareData(item){
   const art = (await getCrateArtURL(item.albumId, 'L').catch(() => null)) || fallbackArt;
   const format = gatefoldItemFormat(item);
   const social = MizikiSocial.getAlbumSocial(item.albumId);
+  const key = MizikiSocial.releaseKey(item.artist, item.album);
+  let friendsCount = null;
+  if(key){
+    const r = await MizikiSocial.friendsStickerCountsByKeys([key]);
+    if(r.ok && r.counts[key] != null) friendsCount = r.counts[key];
+  }
   return {
     album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
     art, variant: d ? d.variant : null, look: d ? d.look : null, metal: d ? d.metal : null,
     speed: format.speed === RPM_45 ? 45 : 33,
     rating: social.rating != null ? social.rating : null,
     note: social.note || null,
-    friendsCount: null,
+    friendsCount,
   };
 }
 

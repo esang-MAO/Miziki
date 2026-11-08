@@ -29,6 +29,7 @@ import { displayShelfFinish } from './shelf-finish.js';
 import { displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
 import { RPM_33 } from '../record-art/format.js';
+import { stickerBadge } from '../social/sticker.js';
 
 // Shared card-building primitives (frame 01/04 of the social spec) — each
 // is used both here, in "my own storefront," and in the friend-store
@@ -153,12 +154,22 @@ export function localAlbumArt(title, artist){
   return t ? t.art : null;
 }
 
-export function storePickTile(pick){
+// CC3 (docs/34_CARE_AND_CONTROL.md): `owners`, when given, is this
+// record's own friends-sticker count (release_id -> owners, resolved by
+// the caller) -- `pick` is always a face-out "in rotation" pin here (a
+// friend's crate) or a Fresh-for-you row, both in the plan's "face-out
+// pins" wiring list; the local profile home's own staff-pick tiles never
+// pass one, since those are always already-owned records.
+export function storePickTile(pick, owners){
   const tile = el('div','store-pick');
   const cover = el('div','store-pick-cover');
   const art = localAlbumArt(pick.title, pick.artist);
   if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
   cover.appendChild(el('span','store-pick-tier', STORE_TIER_LABEL[pick.quality_tier] || ''));
+  if(owners){
+    const badge = stickerBadge(pick.release_id, owners);
+    if(badge) cover.appendChild(badge);
+  }
   tile.appendChild(cover);
   const note = el('div','store-pick-note');
   note.appendChild(el('div','store-pick-stars', pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : ''));
@@ -689,7 +700,7 @@ export function storeShelvesSection(items, pinIds, onTapAlbum, opts = {}){
     const isFace = faceOut.has(item.id);
     const width = isFace ? SHELF_FACE_WIDTH : 1;
     if(used && used + width > SHELF_CUBE_CAPACITY) pushCube();
-    cube.appendChild(isFace ? shelfFaceCover(item, onTapAlbum) : shelfSpine(item, onTapAlbum));
+    cube.appendChild(isFace ? shelfFaceCover(item, onTapAlbum, opts.stickers) : shelfSpine(item, onTapAlbum));
     used += width;
   });
   if(used) pushCube();
@@ -739,11 +750,20 @@ function shelfSpine(item, onTapAlbum){
   return sp;
 }
 
-function shelfFaceCover(item, onTapAlbum){
+// CC3 (docs/34_CARE_AND_CONTROL.md): `stickers` -- a {releaseId: owners}
+// map -- only ever passed by friend-store.js's own "Browse all" grid
+// (storeShelvesSection's one other caller, the local profile home, never
+// has one: every item there is already owned). Same face-only reasoning
+// as shelf-unit.js's own cubeFace().
+function shelfFaceCover(item, onTapAlbum, stickers){
   const face = el('button','shelf-face');
   if(item.art){ const im = document.createElement('img'); im.src = item.art; im.alt = ''; face.appendChild(im); }
   face.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
   face.addEventListener('click', ()=> shelfAlbumTap(item.id, onTapAlbum));
+  if(stickers){
+    const badge = stickerBadge(item.id, stickers[item.id]);
+    if(badge) face.appendChild(badge);
+  }
   return face;
 }
 

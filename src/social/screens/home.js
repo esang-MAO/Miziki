@@ -19,6 +19,7 @@ import { beginSocialSignIn } from '../../profile/settings.js';
 // updateHomeTabVisibility() below, to leave Home if it just disappeared
 // out from under whoever was on it.
 import { showRoute } from '../../shell/routes.js';
+import { stickerBadge } from '../sticker.js';
 
 // RF7 (docs/12_REFINE.md) asks for "one card (what friends' crates are,
 // and a sign-in button)," not a copy of the Profile screen's own identity
@@ -98,13 +99,23 @@ export function buildFeedTiles(events){
       : e.type === 'pinned' ? ('pinned by ' + handle)
       : feedEventText(e);
     const note = e.type === 'pinned' ? (notes.get(e.actor_id + '|' + e.release_id) || null) : null;
-    return { key: e.id, title: e.title || 'a record', caption, note, actor_handle: e.actor_handle };
+    return { key: e.id, title: e.title || 'a record', caption, note, actor_handle: e.actor_handle, release_id: e.release_id };
   });
 }
 
+// CC3 (docs/34_CARE_AND_CONTROL.md): returns {tile, setSticker} rather
+// than a bare element -- paintFeed() keeps its own array of these (not a
+// DOM query) to patch each tile's cover once the batched friends_sticker
+// call resolves, since the test harness's own lightweight DOM stub (tests/
+// unit/home.test.js) has no querySelectorAll to walk back with.
 function homeFeedTile(t){
   const tile = el('div','store-pick home-feed-tile');
-  tile.appendChild(el('div','store-pick-cover'));
+  const cover = el('div','store-pick-cover');
+  tile.appendChild(cover);
+  tile.setSticker = owners => {
+    const badge = t.release_id && stickerBadge(t.release_id, owners);
+    if(badge) cover.appendChild(badge);
+  };
   tile.appendChild(el('div','store-pick-name', t.title));
   tile.appendChild(el('div','home-feed-caption', t.caption));
   if(t.note){
@@ -389,8 +400,20 @@ function paintFeed(events){
     return;
   }
   const grid = el('div','home-feed-grid');
-  buildFeedTiles(events).forEach(t => grid.appendChild(homeFeedTile(t)));
+  const items = buildFeedTiles(events);
+  const tiles = items.map(t => homeFeedTile(t));
+  tiles.forEach(tile => grid.appendChild(tile));
   feedHolderEl.appendChild(grid);
+  // CC3 (docs/34_CARE_AND_CONTROL.md): "Home feed tiles" -- one batched
+  // call for every tile shown (an 'added'/'pinned' tile is always a
+  // record this viewer doesn't have in the feed sense, but the RPC's own
+  // "not owned by the caller" filter is still the real gate, same as
+  // everywhere else this sticker appears).
+  const releaseIds = items.map(t => t.release_id).filter(Boolean);
+  if(releaseIds.length) MizikiSocial.friendsStickerCounts(releaseIds).then(r => {
+    if(!r.ok) return;
+    items.forEach((t, i) => tiles[i].setSticker(r.counts[t.release_id]));
+  });
 }
 
 // Builds #homeBody's own static shell once per sign-in: the people-search
