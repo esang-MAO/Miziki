@@ -529,7 +529,6 @@ function storeWallCubby(){
   cubby.appendChild(el('div','store-cubby-post store-cubby-post--m1'));
   cubby.appendChild(el('div','store-cubby-post store-cubby-post--m2'));
   cubby.appendChild(el('div','store-cubby-post store-cubby-post--r'));
-  cubby.appendChild(el('div','store-cubby-rail store-cubby-rail--top'));
   cubby.appendChild(el('div','store-cubby-rail store-cubby-rail--bottom'));
   wrap.appendChild(cubby);
   wrap.appendChild(captions);
