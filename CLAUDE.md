@@ -160,6 +160,13 @@ These shape behavior, not copy: the reasons behind them are never surfaced to th
 - **One in, one out.** Every feature PR's description names what it removes, absorbs or simplifies. A feature that adds a control retires one where it can; if nothing goes, the description says why.
 - **Motion flows.** Prefer a continuous gesture (drag, spin, swipe) over a new button. Animations ease evenly with no bursts, and visible changes over time (sky, light, speed, tone) move in small steps — crossfade, never hard-cut.
 - **Less after dark.** As the evening goes on, the app shows less, never more: no new content is pushed after sunset, and an idle player sheds controls rather than adding them.
+- **Miziki keeps no engagement numbers.** No analytics, telemetry, dwell time, daily-active or retention tracking, on the device or the server. Listening stats exist only for the listener's own screens and for what they choose to share.
+- **Deluxe is a fair trade.**
+  - One price, the same for everyone.
+  - Never an offer, discount or prompt triggered by what someone did or didn't do (no "you're close", no lapsed-listener deals).
+  - Deluxe grants only what it lists. It never speeds up earning anything else, and earning thresholds are never tightened after release.
+  - The purchase lives in one fixed place (Settings) and is never shown at a moment of frustration.
+  - Every turntable stays earnable without Deluxe.
 
 ## Security
 
