@@ -19,14 +19,15 @@ import { renderTurntable } from './turntable.js';
 
 export const SHELF_UNIT_CUBES = 6;
 export const SHELF_UNIT_COLS = 2;
-const CUBE_CAPACITY = 10, FACE_WIDTH = 3;
+const CUBE_CAPACITY = 10;
 
-// Splits a flat {id,name,artist,art} list (already pin-rank-aware: a
-// face-out item counts for FACE_WIDTH of a cube's capacity, same rule
-// storeShelvesSection() in profile/storefront.js uses) into cube buckets
-// -- every one of them, not capped, so a caller can tell whether the
-// crate is bigger than the unit's own fixed SHELF_UNIT_CUBES and needs a
-// "Browse all" link; renderShelfUnit() below does its own capping.
+// Splits a flat {id,name,artist,art} list (already pin-rank-aware) into
+// cube buckets -- every one of them, not capped, so a caller can tell
+// whether the crate is bigger than the unit's own fixed SHELF_UNIT_CUBES
+// and needs a "Browse all" link; renderShelfUnit() below does its own
+// capping. A face-out item (pin rank 4-5) always gets a whole cube of its
+// own -- "each record being put in its own square" (Ken, 2026-11-08) --
+// rather than sharing a cube's row with ordinary spines.
 //
 // Wall & Labels follow-up (Ken, 2026-11-08): renderShelfUnit()'s own cap
 // only keeps the first SHELF_UNIT_CUBES cubes, built in the crate's
@@ -46,11 +47,14 @@ export function shelfUnitCubes(items, faceOutIds){
   let cube = [], used = 0;
   const push = () => { cubes.push(cube); cube = []; used = 0; };
   ordered.forEach(item => {
-    const isFace = faceOut.has(item.id);
-    const width = isFace ? FACE_WIDTH : 1;
-    if(used && used + width > CUBE_CAPACITY) push();
-    cube.push({item, isFace});
-    used += width;
+    if(faceOut.has(item.id)){
+      if(cube.length) push();
+      cubes.push([{item, isFace: true}]);
+      return;
+    }
+    if(used && used + 1 > CUBE_CAPACITY) push();
+    cube.push({item, isFace: false});
+    used += 1;
   });
   if(cube.length) push();
   return cubes;
@@ -74,7 +78,11 @@ function cubeFace(item, onTapAlbum){
 }
 
 function shelfCell(cubeEntries, onTapAlbum){
-  const cell = el('div', 'shelf-cell');
+  // A face-out cube always holds exactly one entry (shelfUnitCubes() never
+  // shares one with spines) -- the modifier lets it fill the whole square
+  // instead of sitting at its old fixed spine-row width.
+  const isFaceCube = cubeEntries.length === 1 && cubeEntries[0].isFace;
+  const cell = el('div', isFaceCube ? 'shelf-cell shelf-cell--face' : 'shelf-cell');
   const recs = el('div', 'shelf-cell-recs');
   cubeEntries.forEach(({item, isFace}) => recs.appendChild(isFace ? cubeFace(item, onTapAlbum) : cubeSpine(item, onTapAlbum)));
   cell.appendChild(recs);

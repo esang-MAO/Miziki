@@ -10,11 +10,21 @@ test('shelfUnitCubes: packs plain spines ten to a cube', () => {
   assert.deepEqual(cubes.map(c => c.length), [10, 10, 3]);
 });
 
-test('shelfUnitCubes: a face-out item counts as 3 spines worth of capacity', () => {
+// Wall & Labels follow-up (Ken, 2026-11-08): "each record being put in its
+// own square" -- a face-out item gets a whole cube to itself, never
+// shared with spines, so it fills the cell instead of sitting squeezed
+// alongside other covers.
+test('shelfUnitCubes: a face-out item gets a whole cube to itself, breaking the spine run around it', () => {
   const items = [item('a'), item('face'), item('b'), item('c')];
   const cubes = shelfUnitCubes(items, ['face']);
-  assert.equal(cubes.length, 1);
-  assert.equal(cubes[0].find(e => e.item.id === 'face').isFace, true);
+  assert.deepEqual(cubes.map(c => c.map(e => e.item.id)), [['face'], ['a', 'b', 'c']]);
+  assert.equal(cubes[0][0].isFace, true);
+});
+
+test('shelfUnitCubes: two face-out items each get their own cube, never share one', () => {
+  const items = [item('face1'), item('face2'), item('a')];
+  const cubes = shelfUnitCubes(items, ['face1', 'face2']);
+  assert.deepEqual(cubes.map(c => c.map(e => e.item.id)), [['face1'], ['face2'], ['a']]);
 });
 
 test('shelfUnitCubes: an empty crate returns no cubes', () => {
@@ -31,8 +41,8 @@ test('shelfUnitCubes: a face-out item floats to the front, even deep in a large 
   assert.equal(cubes[0].some(e => e.item.id === 'pinned'), true);
 });
 
-test('shelfUnitCubes: several face-out items float in rank order, plain spines keep their relative order after them', () => {
+test('shelfUnitCubes: several face-out items float to the front cubes in rank order, plain spines keep their relative order after', () => {
   const items = [item('a'), item('rank4'), item('b'), item('rank5'), item('c')];
   const cubes = shelfUnitCubes(items, ['rank4', 'rank5']);
-  assert.deepEqual(cubes[0].map(e => e.item.id), ['rank4', 'rank5', 'a', 'b', 'c']);
+  assert.deepEqual(cubes.map(c => c.map(e => e.item.id)), [['rank4'], ['rank5'], ['a', 'b', 'c']]);
 });
