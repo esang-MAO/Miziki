@@ -22,3 +22,21 @@ export function feedEventText(e){
   if(e.type === 'unlock') return 'unlocked a ' + ((e.payload && e.payload.variant) || 'rare') + ' pressing of ' + title;
   return 'updated ' + title;
 }
+
+// CC1 (docs/34_CARE_AND_CONTROL.md): fresh_for_you (migration
+// 015_fresh_from_pins_notes.sql) qualifies a record by pin_rank OR
+// sleeve_note, but its return row never carries pin_rank itself -- only
+// sleeve_note (text, null when there isn't one). That's enough to call
+// the reason correctly without a schema change: the RPC's own where
+// clause guarantees at least one of the two is set, so a null
+// sleeve_note means the record must be pinned, and a non-null one is
+// truly a sleeve note whether or not the record also happens to be
+// pinned (pins already sort first, so the row's position already shows
+// that).
+export function freshReason(item){
+  return item && item.sleeve_note ? 'sleeve note' : 'pinned';
+}
+
+export function freshCaption(handle){
+  return 'Records ' + handle + ' pinned or wrote about that you don’t have — pins first, then newest.';
+}
