@@ -1035,5 +1035,95 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const rows = asUser(CF_B, `select record_format from crate_page(p_user=>'${CF_A}'::uuid) q where title='AU11 Album'`);
    assert.equal(rows, '12-45'); });
 
+ // CC2 (docs/34_CARE_AND_CONTROL.md, migration 028_friends_sticker.sql):
+ // friends_sticker()/friends_sticker_detail() count mutual, non-blocked,
+ // opted-in followers who have a release the caller doesn't already own.
+ // Fresh fixture users, not FUID_A/FUID_B etc. -- same "nothing above can
+ // collide with these" reasoning the RF2/DA5/DA6 sections already give
+ // for their own fixtures.
+ const CC_VIEWER='a7a7a7a7-a7a7-a7a7-a7a7-a7a7a7a7a7a7',
+       CC_FRIEND='a8a8a8a8-a8a8-a8a8-a8a8-a8a8a8a8a8a8',
+       CC_STRANGER='a9a9a9a9-a9a9-a9a9-a9a9-a9a9a9a9a9a9',
+       CC_BLOCKED='c7c7c7c7-c7c7-c7c7-c7c7-c7c7c7c7c7c7';
+ psql(`insert into auth.users values ('${CC_VIEWER}'),('${CC_FRIEND}'),('${CC_STRANGER}'),('${CC_BLOCKED}') on conflict do nothing;
+   insert into profiles(id,handle,display_name,visibility) values
+     ('${CC_VIEWER}','ccviewer','CC Viewer','friends'),
+     ('${CC_FRIEND}','ccfriend','CC Friend','friends'),
+     ('${CC_STRANGER}','ccstranger','CC Stranger','friends'),
+     ('${CC_BLOCKED}','ccblocked','CC Blocked','friends')
+   on conflict do nothing;
+   insert into follows(follower_id,followee_id) values
+     ('${CC_VIEWER}','${CC_FRIEND}'),('${CC_FRIEND}','${CC_VIEWER}'),
+     ('${CC_VIEWER}','${CC_BLOCKED}'),('${CC_BLOCKED}','${CC_VIEWER}')
+   on conflict do nothing;
+   update follows set status='accepted'
+     where follower_id in ('${CC_VIEWER}','${CC_FRIEND}','${CC_BLOCKED}');
+   insert into blocks(blocker_id,blocked_id) values ('${CC_VIEWER}','${CC_BLOCKED}') on conflict do nothing;
+   insert into releases(release_key,title,artist) values
+     ('cc-rel-1','CC Album','CC Artist'),
+     ('cc-rel-2','CC Album Private','CC Artist'),
+     ('cc-rel-3','CC Album Wants','CC Artist')
+   on conflict do nothing`);
+ const ccRel1 = asUser(CC_VIEWER, `select id from releases where release_key='cc-rel-1'`);
+ const ccRel2 = asUser(CC_VIEWER, `select id from releases where release_key='cc-rel-2'`);
+ const ccRel3 = asUser(CC_VIEWER, `select id from releases where release_key='cc-rel-3'`);
+ asUser(CC_FRIEND, `insert into crate_items(user_id,release_id,visibility) values ('${CC_FRIEND}','${ccRel1}','public')
+   on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+ asUser(CC_BLOCKED, `insert into crate_items(user_id,release_id,visibility) values ('${CC_BLOCKED}','${ccRel1}','public')
+   on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+
+ await t('CC2: mutual, opted-in follower counts; a non-mutual stranger sees nobody',()=>{
+   assert.equal(asUser(CC_VIEWER, `select owners from friends_sticker(array['${ccRel1}']::uuid[]) where release_id='${ccRel1}'`), '1',
+     'the mutual friend (opted in by default) must count, the blocked follower must not');
+   assert.equal(asUser(CC_STRANGER, `select owners from friends_sticker(array['${ccRel1}']::uuid[]) where release_id='${ccRel1}'`), '0',
+     'a non-mutual stranger has no one to count'); });
+
+ await t('CC2: blocked excluded even though they have the release too',()=>{
+   // Already implied by the owners=1 assertion above (friend+blocked both
+   // have ccRel1, only 1 counted) -- this test isolates it by removing
+   // the friend's copy and checking the blocked user alone counts for 0.
+   asUser(CC_FRIEND, `delete from crate_items where user_id='${CC_FRIEND}' and release_id='${ccRel1}'`);
+   assert.equal(asUser(CC_VIEWER, `select owners from friends_sticker(array['${ccRel1}']::uuid[]) where release_id='${ccRel1}'`), '0',
+     'a blocked account must never be counted, even with an accepted follow and a matching crate item');
+   asUser(CC_FRIEND, `insert into crate_items(user_id,release_id,visibility) values ('${CC_FRIEND}','${ccRel1}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`); });
+
+ await t('CC2: opt-out excluded from the count, and not detectable by anyone but the owner',()=>{
+   asUser(CC_FRIEND, `insert into sticker_privacy(user_id,count_in_stickers) values ('${CC_FRIEND}', false)
+     on conflict (user_id) do update set count_in_stickers=excluded.count_in_stickers`);
+   assert.equal(asUser(CC_VIEWER, `select owners from friends_sticker(array['${ccRel1}']::uuid[]) where release_id='${ccRel1}'`), '0',
+     'an opted-out friend must not be counted');
+   assert.equal(asUser(CC_FRIEND, `select count_in_stickers from sticker_privacy where user_id='${CC_FRIEND}'`), 'f',
+     'the owner can always read their own setting back');
+   assert.equal(asUser(CC_VIEWER, `select count(*) from sticker_privacy where user_id='${CC_FRIEND}'`), '0',
+     'nobody else can select the row at all -- not even to see it is false, only that there is nothing to see');
+   asUser(CC_FRIEND, `update sticker_privacy set count_in_stickers=true where user_id='${CC_FRIEND}'`); });
+
+ await t('CC2: a release the viewer already owns is excluded entirely',()=>{
+   asUser(CC_VIEWER, `insert into crate_items(user_id,release_id,visibility) values ('${CC_VIEWER}','${ccRel1}','public')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   assert.equal(asUser(CC_VIEWER, `select count(*) from friends_sticker(array['${ccRel1}']::uuid[])`), '0',
+     'friends_sticker must return nothing for a release already in the caller\'s own crate');
+   asUser(CC_VIEWER, `delete from crate_items where user_id='${CC_VIEWER}' and release_id='${ccRel1}'`); });
+
+ await t('CC2: a private crate item is excluded, same as any other visibility check',()=>{
+   asUser(CC_FRIEND, `insert into crate_items(user_id,release_id,visibility) values ('${CC_FRIEND}','${ccRel2}','private')
+     on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
+   assert.equal(asUser(CC_VIEWER, `select owners from friends_sticker(array['${ccRel2}']::uuid[]) where release_id='${ccRel2}'`), '0',
+     'a private crate item must never be counted, mutual follow or not'); });
+
+ await t('CC2: friends_sticker_detail lists owners by handle, same filtering as the count',()=>{
+   assert.equal(asUser(CC_VIEWER, `select handle||'|'||kind from friends_sticker_detail('${ccRel1}')`), 'ccfriend|owns',
+     'only the mutual, opted-in friend shows, never the blocked account'); });
+
+ await t('CC2: friends_sticker_detail adds a visible digging-list entry as "wants"',()=>{
+   asUser(CC_FRIEND, `insert into digging_list(user_id,release_id) values ('${CC_FRIEND}','${ccRel3}') on conflict (user_id,release_id) do nothing`);
+   assert.equal(asUser(CC_VIEWER, `select handle||'|'||kind from friends_sticker_detail('${ccRel3}')`), 'ccfriend|wants'); });
+
+ await t('CC2: friends_sticker_detail hides "wants" once show_digging_list is off',()=>{
+   asUser(CC_FRIEND, `update profiles set show_digging_list=false where id='${CC_FRIEND}'`);
+   assert.equal(asUser(CC_VIEWER, `select coalesce(string_agg(handle||'|'||kind,','),'none') from friends_sticker_detail('${ccRel3}')`), 'none');
+   asUser(CC_FRIEND, `update profiles set show_digging_list=true where id='${CC_FRIEND}'`); });
+
  console.log(pass+' passed'); setTimeout(()=>process.exit(),100);
 })();
