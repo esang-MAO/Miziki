@@ -50,6 +50,72 @@ export function bestSideCut(durations){
   return bestK;
 }
 
+// CC5 (docs/34_CARE_AND_CONTROL.md): a side over this length (seconds)
+// triggers the "becomes a double LP" rule -- the same 22-min figure
+// sideCapacitySec() already uses as the 12" LP @33⅓ band's own capacity,
+// named here as its own constant since bestSideCuts()/the double-LP
+// decision need it before a format has even been picked.
+export const DOUBLE_LP_SIDE_CAP_SEC = 22 * 60;
+
+// The cut points (sides-1 of them, increasing indexes into durations)
+// that split the list, keeping track order, into `sides` contiguous
+// groups -- a generalization of bestSideCut() to more than two sides.
+// Minimizing Σ(side_sum)² is the same thing as minimizing Σ(side − mean)²
+// once the total is fixed (expand the square: the cross term is
+// -2·mean·total, constant across every split), so the DP below optimizes
+// the simpler sum-of-squares form: dp[s][i] = the best cost of splitting
+// the first i tracks into s sides, tried over every earlier cut j.
+// O(sides·n²), trivial for the track counts an album actually has.
+// A side over DOUBLE_LP_SIDE_CAP_SEC adds a penalty proportional to how
+// far over it runs, scaled (CAP_PENALTY_SCALE) far above any possible
+// sum-of-squares difference -- so the *total amount* a split runs over
+// the cap always dominates raw balance, and a split with less total
+// overage always wins, however much better-balanced a worse-overage
+// split might otherwise look. That matters: a flat per-violation penalty
+// would instead minimize the *count* of over-cap sides, which on an
+// unavoidably-long album could pick a wildly lopsided split (one huge
+// side, one tiny side: one violation) over the properly balanced one
+// (two sides, each only a little over: nominally "two violations") --
+// exactly backwards from "no side over 22 min where avoidable," which
+// still means *as balanced as possible* once a violation can't be
+// avoided at all. `sides` is clamped down to durations.length when
+// there aren't enough tracks for that many sides (can't split further
+// than one side per track); fewer than 2 sides or an empty list returns
+// no cuts at all.
+export function bestSideCuts(durations, sides){
+  const n = durations.length;
+  if(!(sides > 1) || n === 0) return [];
+  const k = Math.min(sides, n);
+  const prefix = [0];
+  for(let i = 0; i < n; i++) prefix.push(prefix[i] + (durations[i] || 0));
+  const CAP_PENALTY_SCALE = 1e10;
+  const segCost = (j, i) => {
+    const sum = prefix[i] - prefix[j];
+    const excess = Math.max(0, sum - DOUBLE_LP_SIDE_CAP_SEC);
+    return sum * sum + CAP_PENALTY_SCALE * excess;
+  };
+  const dp = Array.from({length: k + 1}, () => new Array(n + 1).fill(Infinity));
+  const choice = Array.from({length: k + 1}, () => new Array(n + 1).fill(-1));
+  dp[0][0] = 0;
+  for(let s = 1; s <= k; s++){
+    for(let i = s; i <= n; i++){
+      for(let j = s - 1; j < i; j++){
+        if(dp[s - 1][j] === Infinity) continue;
+        const cost = dp[s - 1][j] + segCost(j, i);
+        if(cost < dp[s][i]){ dp[s][i] = cost; choice[s][i] = j; }
+      }
+    }
+  }
+  const cuts = [];
+  let i = n, s = k;
+  while(s > 1){
+    const j = choice[s][i];
+    cuts.unshift(j);
+    i = j; s--;
+  }
+  return cuts;
+}
+
 // The side lengths (seconds) a plain, single-disc track list splits into:
 // one side for a single track (no flip) or an empty list, otherwise the
 // two time-balanced sides bestSideCut() picks (always exactly two sides --

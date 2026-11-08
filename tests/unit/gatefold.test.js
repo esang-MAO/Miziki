@@ -230,7 +230,11 @@ test('gatherRecordShareData: friendsCount reflects whatever the RPC resolves', a
 
 test('gatefoldSideSplits: a single disc of equal-length tracks balances by time', () => {
   S.albumSides = true;
-  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 600));
+  // 60s each, not 600s: five 600s tracks' own 2-way split puts side B at
+  // 30 minutes, over CC5's 22-min double-LP cap, which is exactly the
+  // behavior that test now covers below -- this one stays about the
+  // plain time-balanced split, so it stays well under the cap.
+  S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 60));
   const sides = gatefoldSideSplits([0, 1, 2, 3, 4]);
   assert.equal(sides.length, 2);
   assert.deepEqual(sides[0], {label:'SIDE A', idx:[0,1]});

@@ -686,9 +686,17 @@ function gatefoldOnPlatter(item){
 
 // GF4 point 1: which disc the currently-loaded track belongs to -- the
 // one disc whose pocket should read empty ("on the platter") while this
-// album is the one playing. Same default-to-0 convention
-// discGroupsFor()/splitSides() already use for an untagged disc number.
+// album is the one playing. CC5 point 4: reads the same discGroupsFor()
+// mapping gatefoldBuildSleevePockets() built the pockets from, rather
+// than the raw tag, so a computed double LP's virtual disc 1/2 numbers
+// line up too -- an untagged single-disc track has no group to match
+// (discGroupsFor() returns one entry whose own `disc` already falls
+// back to 0 the same way), so the plain tag read below still covers it.
 function gatefoldDiscOf(trackIndex){
+  if(GF && GF.trackIdx && GF.trackIdx.length){
+    const group = discGroupsFor(GF.trackIdx, S.tracks).find(g => g.idx.includes(trackIndex));
+    if(group) return group.disc;
+  }
   const t = S.tracks[trackIndex];
   return (t && t.tags && t.tags.disc) || 0;
 }
@@ -709,9 +717,18 @@ function gatefoldSleevePocketEls(){
 // later disc's pocket is a clone of it with its id (and every id of its
 // own descendants) stripped, found afterward through the shared
 // .gf-sleeve-disc-wrap class and its own [data-disc] instead.
+// CC5 point 5: exactly two discs (computed or tagged) sit side by side,
+// fully visible, no scroll -- .gf-two-disc, toggled on both the pockets
+// row (for its own flex layout) and #gfSleeve (so .gf-sleeve-paper, a
+// sibling of #gfSleevePockets rather than a descendant, can get its own
+// two-cutout mask). Three or more discs keep gf-multi-disc's existing
+// scrolling row untouched.
 function gatefoldBuildSleevePockets(discGroups){
   const pockets = $('#gfSleevePockets');
+  const twoDisc = discGroups.length === 2;
   pockets.classList.toggle('gf-multi-disc', discGroups.length > 1);
+  pockets.classList.toggle('gf-two-disc', twoDisc);
+  $('#gfSleeve').classList.toggle('gf-two-disc', twoDisc);
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
   const first = $('#gfSleeveDiscWrap');
   first.classList.remove('gf-disc-out');

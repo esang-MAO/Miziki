@@ -357,6 +357,27 @@
     transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2));
   -webkit-mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2) at 50% 0,
     transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2))}
+/* CC5 point 5: "the sleeve paper's mask gets two thumb cuts, one centered
+   over each pocket" -- .gf-sleeve-paper is #gfSleevePockets' own sibling
+   (not a descendant), so this reads .gf-two-disc off their shared parent
+   #gfSleeve instead. Each cutout's x-offset matches the two-disc flex
+   row's own cell centers: half the gap plus half a disc's width out from
+   50% on either side -- the same --sp-4/--gf-disc-size numbers
+   .gf-sleeve-pockets.gf-two-disc above lays the pockets out with. */
+.gf-sleeve.gf-two-disc .gf-sleeve-paper{
+  mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
+      at calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2) 0,
+      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2)),
+    radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
+      at calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2) 0,
+      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2));
+  -webkit-mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
+      at calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2) 0,
+      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2)),
+    radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
+      at calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2) 0,
+      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2))
+}
 /* GF4 point 1/3: #gfSleevePockets wraps every pocket. A single disc (the
    default, unchanged from GF3) needs no layout of its own -- display:contents
    keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before.
@@ -366,6 +387,14 @@
 .gf-sleeve-pockets{display:contents}
 .gf-sleeve-pockets.gf-multi-disc{position:absolute;inset:0;display:flex;align-items:flex-start;
   gap:var(--sp-5);overflow-x:auto;padding:0 calc(50% - var(--gf-disc-size,156px) / 2)}
+/* CC5 (docs/34_CARE_AND_CONTROL.md point 5): exactly two discs -- a
+   computed double LP or a real tagged 2-disc album -- sit side by side
+   and fully visible instead of the scrolling row above: two discs at
+   full --gf-disc-size plus a --sp-4 gap already fit the 350px sleeve
+   (2 × 156 + 16 = 328px), so this only needs centering, a smaller gap,
+   and no scroll -- never a size reduction. Three or more discs (box
+   sets) are untouched, still .gf-multi-disc alone. */
+.gf-sleeve-pockets.gf-two-disc{justify-content:center;gap:var(--sp-4);overflow-x:visible;padding:0}
 .gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:var(--gf-disc-size,156px);height:var(--gf-disc-size,156px);margin-left:calc(var(--gf-disc-size,156px) / -2);
   opacity:1;transition:transform .25s ease-out,opacity .3s}
 .gf-multi-disc .gf-sleeve-disc-wrap{position:relative;left:auto;top:auto;margin-left:0;flex:0 0 var(--gf-disc-size,156px)}

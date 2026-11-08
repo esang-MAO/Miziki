@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   RPM_33, RPM_45, SEVEN_INCH_MAX_SEC, TEN_INCH_MAX_SEC, TWELVE_SINGLE_MAX_SEC,
-  bestSideCut, sideLengthsFromDurations, formatForLongestSide, recordFormat,
+  bestSideCut, bestSideCuts, DOUBLE_LP_SIDE_CAP_SEC, sideLengthsFromDurations, formatForLongestSide, recordFormat,
   albumRecordFormat, rotationHz,
   formatRecordName, formatChipText, formatSpeedText, sideCapacitySec, sideFullness,
   formatWireCode, formatFromWireCode, platterSizeAttr, platterSpeedAttr,
@@ -38,6 +38,57 @@ test('bestSideCut: a very uneven set of lengths still finds the closest split', 
 test('bestSideCut: an exact tie keeps the earlier cut', () => {
   // five equal tracks: k=2 and k=3 both give a diff of one unit
   assert.equal(bestSideCut([1, 1, 1, 1, 1]), 2);
+});
+
+// CC5 (docs/34_CARE_AND_CONTROL.md point 1/6): bestSideCuts() generalizes
+// bestSideCut() to more than two sides, minimizing Σ(side − mean)² while
+// keeping track order, with a heavy penalty on any side over
+// DOUBLE_LP_SIDE_CAP_SEC so the DP avoids one wherever a split can.
+test('bestSideCuts: two sides gives the identical cut bestSideCut() picks', () => {
+  assert.deepEqual(bestSideCuts([100, 100, 300], 2), [bestSideCut([100, 100, 300])]);
+  assert.deepEqual(bestSideCuts([10, 500, 10, 10], 2), [bestSideCut([10, 500, 10, 10])]);
+  assert.deepEqual(bestSideCuts([1, 1, 1, 1, 1], 2), [bestSideCut([1, 1, 1, 1, 1])]);
+});
+
+test('bestSideCuts: four sides balance by time, keeping track order', () => {
+  // eight equal 300s tracks: the balanced 4-way split is two tracks a side.
+  const cuts = bestSideCuts(new Array(8).fill(300), 4);
+  assert.deepEqual(cuts, [2, 4, 6]);
+});
+
+test('bestSideCuts: an empty list or fewer than two sides returns no cuts', () => {
+  assert.deepEqual(bestSideCuts([], 4), []);
+  assert.deepEqual(bestSideCuts([100, 200], 1), []);
+  assert.deepEqual(bestSideCuts([100, 200], 0), []);
+});
+
+function sideSums(durations, cuts){
+  const sums = [];
+  let prev = 0;
+  for(const c of [...cuts, durations.length]){
+    sums.push(durations.slice(prev, c).reduce((s, d) => s + d, 0));
+    prev = c;
+  }
+  return sums;
+}
+
+test('bestSideCuts: avoids a side over the cap whenever a split can', () => {
+  // 70 minutes over 4 roughly-equal tracks: an even 4-way split keeps
+  // every side at ~17.5 min, under DOUBLE_LP_SIDE_CAP_SEC (22 min) --
+  // the DP should land there rather than on some other partition.
+  const durations = [17.5 * 60, 17.5 * 60, 17.5 * 60, 17.5 * 60];
+  assert.ok(sideSums(durations, bestSideCuts(durations, 4)).every(s => s <= DOUBLE_LP_SIDE_CAP_SEC));
+});
+
+test("bestSideCuts: unavoidable overage still picks the balanced split, not fewer-but-bigger violations", () => {
+  // Four equal 700s tracks split 2 ways: total 2800s, so *some* side has
+  // to be at least 1400s -- over the 1320s cap either way, unavoidably.
+  // The balanced cut (1400/1400, two sides a little over) must still
+  // beat an unbalanced one (700/2100, one side a lot over, the other
+  // comfortably under) -- a flat per-violation penalty would get this
+  // backwards, since 700/2100 has only one violating side.
+  const durations = [700, 700, 700, 700];
+  assert.deepEqual(bestSideCuts(durations, 2), [2]);
 });
 
 test('sideLengthsFromDurations: empty, one, two and several tracks', () => {

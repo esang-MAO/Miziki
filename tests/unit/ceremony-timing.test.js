@@ -75,8 +75,11 @@ test('splitSides: a very uneven track still finds the closest balance', () => {
 
 test('splitSides: an exact tie keeps the earlier cut, deterministically', () => {
   // five equal-length tracks: k=2 and k=3 both give a diff of 1 unit --
-  // the first one found (k=2) wins.
-  const s = splitSides([0,1,2,3,4], durTracks([600,600,600,600,600]), true);
+  // the first one found (k=2) wins. 60s each (not 600s): a two-side split
+  // of this album stays well under CC5's 22-min double-LP cap, so this
+  // keeps testing the tie-break itself rather than tripping into a
+  // computed double LP -- that's its own test below.
+  const s = splitSides([0,1,2,3,4], durTracks([60,60,60,60,60]), true);
   assert.deepEqual(s[0].idx, [0,1]);
   assert.deepEqual(s[1].idx, [2,3,4]);
 });
@@ -130,6 +133,61 @@ test('discGroupsFor: a disc with a single track still gets its own group', () =>
 test('discGroupsFor: no track indices returns no groups', () => {
   assert.deepEqual(discGroupsFor(null, []), []);
   assert.deepEqual(discGroupsFor([], []), []);
+});
+
+// CC5 (docs/34_CARE_AND_CONTROL.md): "a single-disc album whose two-side
+// split puts either side over 22 min becomes a double LP" -- 4 sides,
+// two virtual discs, computed the same way for everyone from the track
+// lengths alone, same as every other format decision in this file.
+test('splitSides: a 70-minute single disc becomes a computed double LP, four sides', () => {
+  // eight equal 525s (8:45) tracks, 4200s (70 min) total. The plain
+  // 2-way split (four tracks a side) would put each side at 2100s
+  // (35 min), over the 22-min cap -- so this becomes 4 sides instead,
+  // two tracks each (1050s/17:30, comfortably under the cap).
+  const t = durTracks(new Array(8).fill(525));
+  const s = splitSides([0,1,2,3,4,5,6,7], t, true);
+  assert.deepEqual(s.map(x => x.label), ['SIDE A', 'SIDE B', 'SIDE C', 'SIDE D']);
+  assert.deepEqual(s.map(x => x.idx), [[0,1],[2,3],[4,5],[6,7]]);
+});
+
+test('splitSides: a 40-minute single disc stays at two sides, no double LP', () => {
+  // four equal 600s (10 min) tracks, 2400s (40 min) total -- the plain
+  // 2-way split puts each side at 1200s (20 min), under the cap, so this
+  // stays the ordinary two sides.
+  const s = splitSides([0,1,2,3], durTracks([600,600,600,600]), true);
+  assert.deepEqual(s.map(x => x.label), ['SIDE A', 'SIDE B']);
+  assert.deepEqual(s.map(x => x.idx), [[0,1],[2,3]]);
+});
+
+test('splitSides: a computed double LP keeps track order even with uneven side lengths', () => {
+  // One dominating 3000s track plus seven short ones: the plain 2-way
+  // split puts it on an over-the-cap side regardless, so this becomes a
+  // computed double LP with real, unevenly-spaced cut points rather
+  // than an even 2-tracks-a-side split -- every index must still appear
+  // exactly once, in its original order, and the sides must still sum
+  // to the album's own total duration.
+  const durs = [100,300,3000,300,100,100,300,100];
+  const s = splitSides([0,1,2,3,4,5,6,7], durTracks(durs), true);
+  assert.equal(s.length, 4);
+  assert.deepEqual(s.flatMap(x => x.idx), [0,1,2,3,4,5,6,7]);
+  assert.equal(s.reduce((sum, side) => sum + side.idx.reduce((a, i) => a + durs[i], 0), 0), durs.reduce((a, d) => a + d, 0));
+});
+
+test('discGroupsFor: a computed double LP reports two virtual discs, 1 and 2', () => {
+  const t = durTracks(new Array(8).fill(525));
+  assert.deepEqual(discGroupsFor([0,1,2,3,4,5,6,7], t), [
+    { disc: 1, idx: [0,1,2,3] },
+    { disc: 2, idx: [4,5,6,7] },
+  ]);
+});
+
+test('discGroupsFor: an under-cap single disc stays one group, not a double LP', () => {
+  assert.deepEqual(discGroupsFor([0,1,2,3], durTracks([600,600,600,600])), [{ disc: 0, idx: [0,1,2,3] }]);
+});
+
+test('sideLengthsFor: a computed double LP gives four time-balanced lengths', () => {
+  const t = durTracks(new Array(8).fill(525));
+  assert.deepEqual(sideLengthsFor([0,1,2,3,4,5,6,7], t), [1050, 1050, 1050, 1050]);
 });
 
 test('sideTurn: only the last track of a side onto the first of the next', () => {
