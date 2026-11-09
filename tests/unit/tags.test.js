@@ -413,6 +413,25 @@ test('truncated or garbage bytes never throw, and return the empty/default resul
   assert.doesNotThrow(() => findArtworkBlob(truncatedFlac));
 });
 
+// LI7 (docs/35_LEAD_IN.md): readHeader() walks RIFF/WAVE chunks with a raw
+// DataView, which throws a RangeError (unlike every other reader here,
+// which uses plain byte indexing or the bounds-checked u32be()/txt()
+// helpers) when a file is cut off partway through the 'fmt ' chunk's own
+// body -- a real truncated-download/truncated-export shape, not only
+// garbage bytes. readHeader() itself has no try/catch at all, so this
+// reached callers uncaught.
+test('a WAV file truncated partway through its "fmt " chunk never throws', () => {
+  const b = new Uint8Array(21);
+  const view = new DataView(b.buffer);
+  b.set(asciiBytes('RIFF'), 0);
+  view.setUint32(4, 100, true);
+  b.set(asciiBytes('WAVE'), 8);
+  b.set(asciiBytes('fmt '), 12);
+  view.setUint32(16, 16, true);   // declares a 16-byte fmt body, but the buffer ends at byte 21
+  assert.doesNotThrow(() => readHeader(b.buffer));
+  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true});
+});
+
 // -- tests: duplicate detection ----------------------------------------------
 
 test('findDuplicateTrack matches within the duration tolerance and not outside it', () => {

@@ -28,8 +28,19 @@ function readHeader(buf){
     let i = 12;
     while(i < Math.min(b.length - 8, 100000)){
       const id = txt(b,i,4), size = dv.getUint32(i+4, true);
-      if(id === 'fmt ') return {codec:'WAV', lossless:true,
-        ch:dv.getUint16(i+10,true), rate:dv.getUint32(i+12,true), bits:dv.getUint16(i+22,true)};
+      // LI7 (docs/35_LEAD_IN.md): a file truncated partway through the
+      // 'fmt ' chunk's own body declares a chunk id/size that read fine,
+      // but the rate/channels/bits fields past it fall outside the real
+      // buffer -- DataView throws a RangeError there (unlike u32be()/txt()
+      // elsewhere in this module, which are bounds-checked), so this one
+      // read is guarded the same way every other truncation case here
+      // already falls back to "codec known, details unknown."
+      if(id === 'fmt '){
+        try{
+          return {codec:'WAV', lossless:true,
+            ch:dv.getUint16(i+10,true), rate:dv.getUint32(i+12,true), bits:dv.getUint16(i+22,true)};
+        }catch(_e){ return {codec:'WAV', lossless:true}; }
+      }
       i += 8 + size + (size % 2);
     }
     return {codec:'WAV', lossless:true};
