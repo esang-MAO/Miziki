@@ -102,6 +102,21 @@ export function isAlbumBoundary(curT, nextT){
   return !nextT || albumKey(nextT) !== albumKey(curT);
 }
 
+// LI3 (docs/35_LEAD_IN.md): true when curIdx is the last track of its own
+// side -- the sleep timer's "End of side" stop. End of album is always
+// end of its last side too, so this defers to isAlbumBoundary() first
+// (also covers the "a one-track single (no flip) behaves like end of
+// track" rule: a single's only track has no other track to share a side
+// with, so its next track is always a different album). Otherwise it's a
+// side boundary exactly when sideLetterFor() -- the same side model the
+// gatefold and surface-noise seeding already share -- disagrees between
+// curIdx and nextIdx.
+export function isSideBoundary(curT, curIdx, nextT, nextIdx){
+  if(!curT) return false;
+  if(isAlbumBoundary(curT, nextT)) return true;
+  return sideLetterFor(curT, curIdx) !== sideLetterFor(nextT, nextIdx);
+}
+
 export function advance(dir, auto){
   if(!S.queue.length) return;
   if(auto && S.repeat === 'one'){ seek(0); if(!S.playing) play(); return; }
@@ -112,6 +127,15 @@ export function advance(dir, auto){
     const atEnd = n2 >= S.queue.length && S.repeat !== 'all';
     const nextT = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.tracks[S.queue[n2]] : null;
     if(curT && isAlbumBoundary(curT, nextT)){ sleepStopPlayback(); return; }
+  }
+  if(auto && S.sleep.mode === 'side'){
+    const curIdx = S.queue[S.qpos];
+    const curT = S.tracks[curIdx];
+    const n2 = S.qpos + dir;
+    const atEnd = n2 >= S.queue.length && S.repeat !== 'all';
+    const nextIdx = (!atEnd && n2 >= 0 && n2 < S.queue.length) ? S.queue[n2] : null;
+    const nextT = nextIdx !== null ? S.tracks[nextIdx] : null;
+    if(curT && isSideBoundary(curT, curIdx, nextT, nextIdx)){ sleepStopPlayback(); return; }
   }
   // FS10 (docs/25_FROM_SCRATCH.md): Focus / Stop between records at sunset
   // and midnight -- both stop exactly where the sleep timer's own "end of
