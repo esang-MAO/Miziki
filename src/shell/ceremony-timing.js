@@ -129,16 +129,12 @@ export function sideBoundaryAt(sides, n){
 // to place the tracklist's own "Disc N" eyebrow above each disc's first
 // side. Disc numbers keep whatever order they first appear in trackIdx
 // (almost always ascending, since that's how an album's own tracks sort).
-// CC5 point 4, box-set follow-up (Ken, 2026-11-09, "2 in the front and 2
-// in the back... cap the number of discs to 4"): a computed double LP
-// (the single-real-disc case, split into 4 groups by
-// splitSingleDiscGroups() above) is reported as four virtual discs here
-// -- one per side, A through D -- the same shape a real tagged 4-disc
-// box set's own "DISC 1".."DISC 4" eyebrows already use, so the gatefold
-// needs no separate code path for "computed" vs. "tagged" once it has
-// this list: both feed gatefoldBuildSleevePockets()'s row layout
-// identically, and a computed LP can never exceed 4 virtual discs since
-// splitSingleDiscGroups() itself never produces more than 4 groups.
+// CC5 point 4: a computed double LP (the single-real-disc case, split
+// into 4 groups by splitSingleDiscGroups() above) is reported as two
+// virtual discs here -- disc 1 (sides A/B) and disc 2 (sides C/D) -- the
+// same numbers a real tagged 2-disc album's own "DISC 1"/"DISC 2"
+// eyebrows already use, so the gatefold needs no separate code path for
+// "computed" vs. "tagged" once it has this list.
 export function discGroupsFor(trackIdx, tracks){
   if(!trackIdx || !trackIdx.length) return [];
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
@@ -147,7 +143,10 @@ export function discGroupsFor(trackIdx, tracks){
   if(discs.length > 1) return discs.map(disc => ({ disc, idx: trackIdx.filter(i => discOf(i) === disc) }));
   const groups = splitSingleDiscGroups(trackIdx, durOf);
   if(groups.length === 4){
-    return groups.map((idx, i) => ({ disc: i + 1, idx }));
+    return [
+      { disc: 1, idx: [...groups[0], ...groups[1]] },
+      { disc: 2, idx: [...groups[2], ...groups[3]] },
+    ];
   }
   return [{ disc: discs[0], idx: trackIdx }];
 }

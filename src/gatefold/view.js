@@ -688,7 +688,7 @@ function gatefoldOnPlatter(item){
 // one disc whose pocket should read empty ("on the platter") while this
 // album is the one playing. CC5 point 4: reads the same discGroupsFor()
 // mapping gatefoldBuildSleevePockets() built the pockets from, rather
-// than the raw tag, so a computed double/quad LP's virtual disc numbers
+// than the raw tag, so a computed double LP's virtual disc 1/2 numbers
 // line up too -- an untagged single-disc track has no group to match
 // (discGroupsFor() returns one entry whose own `disc` already falls
 // back to 0 the same way), so the plain tag read below still covers it.
