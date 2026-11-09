@@ -106,6 +106,8 @@ LI0, LI1, LI5, LI6 and LI7 change nothing on screen.
 
 **Preview focus (iPhone):** hold a few crate cards across genres. Does the lead-in feel like arriving at the hook rather than starting early? Try 4 s and 8 s too and write the chosen value into this doc.
 
+**Listening check done (Ken, 2026-11-09): 5s confirmed.** `LEAD_IN_SEC` stays at 5.
+
 ---
 
 ## LI3: sleep timer, "End of side" (UI)
@@ -219,4 +221,4 @@ LI0, LI1, LI5, LI6 and LI7 change nothing on screen.
 
 LI0–LI7 are all merged. Nothing from this plan reached Ken's iPhone broken — LI7's one real bug (`readHeader()` throwing on a WAV file truncated mid `fmt ` chunk) was caught by its own truncation sweep before merge, not by a device report, so no new CLAUDE.md rule came out of this plan the way rule 9 (iOS audio-gesture) or rule 11 (audio offline-render tests) came out of earlier ones. Refactor rules 12 (failing test first) and 13 (function/file size caps) were added in LI0 at the plan's own start, from the reading pass rather than from an incident during it, and LI7 is the first PR in this plan to actually exercise rule 12 (the WAV fix's failing case was committed before its fix).
 
-LI2's lead-in length (`LEAD_IN_SEC = 5`, `src/audio/hook-preview.js`) and listening checks L1/L2 are still waiting on Ken's own on-device listening; see `docs/CHANGELOG.md`/project memory for whether a follow-up value ever got written back into LI2's section above.
+LI2's lead-in length (`LEAD_IN_SEC = 5`, `src/audio/hook-preview.js`) is confirmed — Ken listened and kept 5s, noted in LI2's section above. Listening checks L1/L2 are still outstanding, whenever Ken gets to them.
