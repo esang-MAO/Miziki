@@ -14,7 +14,20 @@
    "sleeve interior" color in both themes on purpose -- the same rule
    CLAUDE.md states for the disc/sleeve art/metal tiers -- only this
    backdrop, which is chrome rather than sleeve art, needed to change. */
+/* Ken, design-mockup follow-up (2026-11-09): "The gatefold should start
+   right underneath the back to crate button/ellipses menu line" -- the
+   cover/tracklist panel's own top anchor (was a flat 80px, leaving a
+   34px gap below the header row at a 0-safe-area viewport) moves up to
+   58px, and every sibling anchored off it (the back-cover stage, the
+   flip dots/icon, the left/right panel cues, and -- not variable-driven,
+   but kept at the same 64px gap below the panel it always had -- .gf-info
+   below) shifts up by the same 22px. The real payoff is downstream: the
+   sleeve rack's own budget (gatefoldSleeveRowBudget(), view.js) measures
+   .gf-info's real rendered bottom edge at runtime, so this one change
+   hands the box-set sleeve rows 22px more real room with no code change
+   needed there at all. */
 .gatefold{position:fixed;inset:0;z-index:30;display:none;overflow:hidden;
+  --gf-cover-top:58px;
   background:linear-gradient(170deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%)}
 .gatefold.open{display:block}
 /* Ken, 2026-10-23 (follow-up): the sleeve-interior panels' fixed dark
@@ -64,7 +77,7 @@
   transform:scale(var(--gf-page-scale,1))
     translate(calc(var(--gf-ref-w,390px) / 2),calc(var(--gf-ref-h,740px) / 2)) scale(var(--gf-s,1))
     translate(calc(-1 * var(--gf-cx, var(--gf-pan,175px))),calc(-1 * var(--gf-ref-h,740px) / 2))}
-.gf-right{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:80px;
+.gf-right{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:var(--gf-cover-top,58px);
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
   overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
 .gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
@@ -116,7 +129,7 @@
 @keyframes gfbar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
 .gf-tl-fade{position:absolute;left:0;right:0;bottom:0;height:22px;pointer-events:none;
   background:linear-gradient(transparent,#1C1226)}
-.gf-cover{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:80px;
+.gf-cover{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:var(--gf-cover-top,58px);
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
   transform-style:preserve-3d;transform-origin:0 50%;transform:rotateY(0deg);
   box-shadow:var(--sh-2)}
@@ -154,7 +167,7 @@
    the button, or the swipe on #gfCover itself) at any time, matching the
    spec's own "before the swing, or with the gatefold closed back up" as
    "whenever you like" rather than one narrow instant. */
-.gf-back-cover-stage{position:absolute;left:50%;top:80px;
+.gf-back-cover-stage{position:absolute;left:50%;top:var(--gf-cover-top,58px);
   width:min(var(--gf-panel-size,350px), calc(100% - 40px));aspect-ratio:1 / 1;
   transform:translateX(-50%) scale(.94);border-radius:4px;overflow:hidden;box-shadow:var(--sh-3);
   opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;z-index:5}
@@ -162,7 +175,7 @@
 @media (prefers-reduced-motion:reduce){ .gf-back-cover-stage{transition:opacity .15s linear} }
 /* "Two dots under the sleeve show Front/Back" -- sits just past the
    cover's own bottom edge. */
-.gf-flip-dots{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 14px);
+.gf-flip-dots{position:absolute;left:50%;top:calc(var(--gf-cover-top,58px) + var(--gf-panel-size,350px) + 14px);
   transform:translateX(-50%);display:flex;justify-content:center;gap:6px;
   opacity:0;transition:opacity .15s;pointer-events:none}
 .gatefold.gf-chrome-in .gf-flip-dots{opacity:1}
@@ -172,7 +185,7 @@
    plain icon button (Ken, 2026-11-09: "the flip cover button should just
    be a flip icon," not a labeled pill), same reachable-by-Tab role as
    before, just drawn as a circle. */
-.gf-turn-over{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 20px);
+.gf-turn-over{position:absolute;left:50%;top:calc(var(--gf-cover-top,58px) + var(--gf-panel-size,350px) + 20px);
   transform:translateX(-50%);width:34px;height:34px;border-radius:50%;
   border:1px solid rgba(239,233,223,.3);background:transparent;color:var(--muted);
   display:flex;align-items:center;justify-content:center;padding:0;
@@ -322,7 +335,7 @@
    real edge rather than an invisible hit-area -- a <button> in the markup,
    with its own aria-label. .gf-right-cue (the left panel's own mirror,
    "‹ Inside" reversed to "Tracks ›") is its twin, going back. */
-.gf-left-cue, .gf-right-cue{position:absolute;top:80px;width:20px;height:var(--gf-panel-size,350px);z-index:3;
+.gf-left-cue, .gf-right-cue{position:absolute;top:var(--gf-cover-top,58px);width:20px;height:var(--gf-panel-size,350px);z-index:3;
   display:flex;align-items:center;justify-content:center;border:0;padding:0}
 .gf-left-cue{left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);background:linear-gradient(90deg,#140D1C,#1C1226);border-radius:0 3px 3px 0;
   box-shadow:inset -6px 0 8px -6px rgba(0,0,0,.6)}
@@ -331,7 +344,7 @@
 .gf-left-cue span, .gf-right-cue span{writing-mode:vertical-rl;font-family:var(--body);font-size:var(--fs-caption);
   font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .gf-left-cue span{transform:rotate(180deg)}
-.gf-info{position:absolute;left:20px;right:20px;top:494px;opacity:0;transition:opacity .15s}
+.gf-info{position:absolute;left:20px;right:20px;top:472px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}
 .gf-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
