@@ -3,6 +3,7 @@ import { $ } from '../util/dom.js';
 import { clamp } from '../util/math.js';
 import { drawTime } from './clock.js';
 import { pause, play, seek, load } from './transport.js';
+import { setQpos } from './queue.js';
 import { queueSave } from '../storage/meta.js';
 import { setDeadWaxMagnified } from '../record-art/etchings.js';
 import { isShrinkWrapTarget, runStartSequence } from '../shell/start-sequence.js';
@@ -370,7 +371,7 @@ export function wireSpinToScrub(){
       const trackIdx = lastIndex != null && S.sideTrackIdx ? S.sideTrackIdx[lastIndex] : null;
       if(trackIdx != null){
         const qpos = S.queue.indexOf(trackIdx);
-        if(qpos >= 0) S.qpos = qpos;
+        if(qpos >= 0) setQpos(qpos);
         load(trackIdx);
         if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
         else play();

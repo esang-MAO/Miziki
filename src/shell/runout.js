@@ -26,7 +26,7 @@ import { sleeveArtFor, applySleeveWear } from './start-sequence.js';
 // imports endOfQueue/stopAtRecordEndCeremony from here, and this file
 // calls back into queue.js's paintRestingCard() once a ceremony lands on
 // the held sleeve.
-import { paintRestingCard } from '../player/queue.js';
+import { paintRestingCard, setQueueList, setQpos } from '../player/queue.js';
 
 /* ================= run-out groove, rest, side flip (docs/CEREMONY.md §2, §3) =================
    §2: the last record of the queue ends, the needle rides the run-out groove
@@ -90,7 +90,7 @@ export function cancelRunout(){
 // forgetLibrary()'s empty-library branch already uses (library/delete.js).
 // Desktop keeps the player open on the empty slipmat; a phone slides it shut.
 export function clearToRest(){
-  S.queue = []; S.baseQueue = []; S.qpos = 0;
+  setQueueList([]); S.baseQueue = []; setQpos(0);
   S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null;
   S.outgoingArt = null; S.outgoingHasArt = false;
   if(typeof MizikiSocial !== 'undefined') MizikiSocial.stopSpinning();
@@ -309,7 +309,7 @@ async function runSideFlip(n, turn){
   stage.classList.remove('flipping');
   if(letter) letter.textContent = '';
   S.runout = null;
-  S.qpos = n;
+  setQpos(n);
   load(S.queue[n]);
   play();
 }
@@ -426,7 +426,7 @@ export function performPendingFlip(){
   cancelRunout();
   S.sleeveSeq++;
   $('#platterBox').classList.remove('disc-hidden');
-  S.qpos = n;
+  setQpos(n);
   load(S.queue[n]);
   play();
   return true;
@@ -465,7 +465,7 @@ export function interruptRunout(){
     else { putAwayInstant(); clearToRest(); }
   } else {
     $('#platterBox').classList.remove('disc-hidden');
-    S.qpos = r.n;
+    setQpos(r.n);
     load(S.queue[r.n]);
     play();
   }

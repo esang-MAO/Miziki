@@ -9,6 +9,45 @@ const globals = require('globals');
 // used it; a missing import inside an ES module doesn't fail the build, it
 // throws only when that line runs), not a style linter. No formatting
 // rules here on purpose.
+// security hardening, step 01: innerHTML/outerHTML/insertAdjacentHTML with
+// anything but a plain string literal is how song-tag text (an artist/
+// title the user doesn't control) turns into runnable markup — see
+// CLAUDE.md's "Security" notes. A literal like 'Mi<span>zi</span>ki' or ''
+// is fine; concatenating or interpolating any variable into one is not —
+// build the DOM with textContent/createElement/createTextNode instead.
+const DOM_INJECTION_RESTRICTIONS = [
+  {
+    selector: "AssignmentExpression[left.type='MemberExpression'][left.computed=false][left.property.name=/^(innerHTML|outerHTML)$/][right.type!='Literal']",
+    message: 'Assigning to innerHTML/outerHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
+  },
+  {
+    selector: "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='insertAdjacentHTML'][arguments.1.type!='Literal']",
+    message: 'Calling insertAdjacentHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
+  },
+];
+
+// LI6 (docs/35_LEAD_IN.md): "the queue has one writer" — S.queue/S.qpos
+// get assigned only from player/queue.js's own setQueueList()/setQpos(),
+// everywhere else routes through those two instead of touching the
+// fields directly. Applied to every src/ file except player/queue.js
+// itself (see the SAFETY_NET_RULES_FOR_QUEUE_MODULE override below), which
+// is exactly where those two setters live.
+const QUEUE_WRITE_RESTRICTIONS = [
+  {
+    selector: "AssignmentExpression[left.type='MemberExpression'][left.object.name='S'][left.property.name='queue']",
+    message: "S.queue is written only from player/queue.js's setQueueList() (LI6, docs/35_LEAD_IN.md) — import and call that instead of assigning S.queue directly.",
+  },
+  {
+    selector: "AssignmentExpression[left.type='MemberExpression'][left.object.name='S'][left.property.name='qpos']",
+    message: "S.qpos is written only from player/queue.js's setQpos() (LI6, docs/35_LEAD_IN.md) — import and call that instead of assigning S.qpos directly.",
+  },
+];
+
+// A small, focused rule set (step 6a) — a safety net against the idOf class
+// of bug (step 5d: an import dropped from main.js while a function still
+// used it; a missing import inside an ES module doesn't fail the build, it
+// throws only when that line runs), not a style linter. No formatting
+// rules here on purpose.
 const SAFETY_NET_RULES = {
   'no-undef': 'error',
   // step 7g: caughtErrorsIgnorePattern added alongside args/vars — a
@@ -26,23 +65,15 @@ const SAFETY_NET_RULES = {
   'no-unreachable': 'error',
   'no-const-assign': 'error',
   'no-import-assign': 'error',   // catches reassigning an imported `let` — refactor rule 7 in CLAUDE.md
-  // security hardening, step 01: innerHTML/outerHTML/insertAdjacentHTML
-  // with anything but a plain string literal is how song-tag text (an
-  // artist/title the user doesn't control) turns into runnable markup —
-  // see CLAUDE.md's "Security" notes. A literal like 'Mi<span>zi</span>ki'
-  // or '' is fine; concatenating or interpolating any variable into one is
-  // not — build the DOM with textContent/createElement/createTextNode
-  // instead.
-  'no-restricted-syntax': ['error',
-    {
-      selector: "AssignmentExpression[left.type='MemberExpression'][left.computed=false][left.property.name=/^(innerHTML|outerHTML)$/][right.type!='Literal']",
-      message: 'Assigning to innerHTML/outerHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
-    },
-    {
-      selector: "CallExpression[callee.type='MemberExpression'][callee.computed=false][callee.property.name='insertAdjacentHTML'][arguments.1.type!='Literal']",
-      message: 'Calling insertAdjacentHTML with anything other than a plain string literal can run untrusted text (e.g. a song tag) as markup. Use textContent/createElement/createTextNode to build the DOM instead.',
-    },
-  ],
+  'no-restricted-syntax': ['error', ...DOM_INJECTION_RESTRICTIONS, ...QUEUE_WRITE_RESTRICTIONS],
+};
+
+// player/queue.js is where setQueueList()/setQpos() themselves live, so it
+// alone is exempt from QUEUE_WRITE_RESTRICTIONS above — everything else in
+// SAFETY_NET_RULES still applies.
+const SAFETY_NET_RULES_FOR_QUEUE_MODULE = {
+  ...SAFETY_NET_RULES,
+  'no-restricted-syntax': ['error', ...DOM_INJECTION_RESTRICTIONS],
 };
 
 module.exports = [
@@ -64,6 +95,20 @@ module.exports = [
       globals: { ...globals.browser },
     },
     rules: SAFETY_NET_RULES,
+  },
+
+  // LI6: player/queue.js itself is where setQueueList()/setQpos() live, so
+  // it's the one file QUEUE_WRITE_RESTRICTIONS doesn't apply to — this
+  // block matches after the general one above, so its own rules win for
+  // this one file (everything else in SAFETY_NET_RULES still applies).
+  {
+    files: ['src/player/queue.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.browser },
+    },
+    rules: SAFETY_NET_RULES_FOR_QUEUE_MODULE,
   },
 
   // src/theme-boot.js — a plain classic script (no import/export). Loads

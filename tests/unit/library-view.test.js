@@ -126,7 +126,10 @@ globalThis.window = { scrollBy: scrollByMock, scrollTo(){}, innerHeight: 800 };
 
 const setQueueMock = mock.fn();
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { setQueue: setQueueMock },
+  // LI6 (docs/35_LEAD_IN.md): view.js's syncQueueOrder() now also calls
+  // setQueueList()/setQpos() — not exercised by any test in this file, so
+  // no-op stubs are enough just to satisfy the static import.
+  namedExports: { setQueue: setQueueMock, setQueueList(){}, setQpos(){} },
 });
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: {
