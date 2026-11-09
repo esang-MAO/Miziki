@@ -724,11 +724,41 @@ function gatefoldSleevePocketEls(){
 // two-cutout mask). Three or more discs use gatefoldRowLayout() below
 // instead, rows of 2 straight back, via .gf-row-disc.
 // Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
-// 2026-11-09): #gfSleeve's default CSS height (11-gatefold.css), tall
-// enough for one row -- grown below, one GF_SLEEVE_ROW_STEP per extra
-// row, so a box set's extra rows of 2 don't clip.
+// 2026-11-09): #gfSleeve's default CSS position/height (11-gatefold.css,
+// top:570px/height:252px, bottom edge at 822px within the gatefold's own
+// 390x740 reference frame -- gatefoldGeometry()'s referenceWidth/Height).
+// Ken, 2026-11-09 (caught live on a real phone): growing *only* the
+// height, keeping that same fixed top, pushes the bottom edge further
+// down the reference frame for each extra row -- past 740 and, for 2+
+// extra rows, past a real phone's own viewport height too (the gatefold
+// overlay clips at its real screen bounds, not at the 740 reference
+// line; 822 already relies on the slack most phones have beyond 740 at
+// the gatefold's usual width-bound scale). Anchoring the BOTTOM edge at
+// its original 822px instead, and growing upward (shrinking `top`) for
+// each extra row, keeps every row inside that same already-proven-safe
+// bottom bound -- the sleeve grows into the gap above it (520-570px
+// headroom below the tracklist/cover panel's own 430px bottom) instead
+// of past the screen's bottom edge.
+const GF_SLEEVE_TOP = 570;
 const GF_SLEEVE_BASE_HEIGHT = 252;
+const GF_SLEEVE_ANCHOR_BOTTOM = GF_SLEEVE_TOP + GF_SLEEVE_BASE_HEIGHT;
 const GF_SLEEVE_ROW_STEP = 78; // gatefoldGeometry()'s uniform discDiameter (156) / 2
+const GF_SLEEVE_DISC_SIZE = 156;
+// Ken, 2026-11-09 (follow-up to the bottom-anchor fix above): rows 0-1
+// (3-4 discs) sit well clear of .gf-info's album-name/artist text
+// (11-gatefold.css, top:494px/height:44px -- its text ends at 538px;
+// row 1's disc top lands at 588px, a proven ~50px gap). A real *tagged*
+// box set has no disc cap though, and row 2+ (5+ discs) used the same
+// uncapped 78px-per-row step, which reaches the info text's own
+// bounding box (row 2's disc top: 510px, 28px into it). Past row 1,
+// each further row steps by a shrinking amount instead (18px, capped
+// at 2 extra steps) so the deepest disc's top never passes 552px --
+// 14px clear of the text -- however many discs a box set has; rows 0-1
+// are untouched (identical px as before this follow-up).
+function gfRowOffsetPx(row){
+  if(row <= 1) return row * GF_SLEEVE_ROW_STEP;
+  return GF_SLEEVE_ROW_STEP + Math.min((row - 1) * 18, 36);
+}
 
 function gatefoldBuildSleevePockets(discGroups){
   const pockets = $('#gfSleevePockets');
@@ -741,7 +771,9 @@ function gatefoldBuildSleevePockets(discGroups){
   gfSleeve.classList.toggle('gf-row-disc', rowDisc);
   const layout = gatefoldRowLayout(discGroups.length);
   const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
-  gfSleeve.style.height = rowDisc ? (GF_SLEEVE_BASE_HEIGHT + rows * GF_SLEEVE_ROW_STEP) + 'px' : '';
+  const sleeveHeight = GF_SLEEVE_DISC_SIZE + gfRowOffsetPx(rows);
+  gfSleeve.style.height = rowDisc ? sleeveHeight + 'px' : '';
+  gfSleeve.style.top = rowDisc ? (GF_SLEEVE_ANCHOR_BOTTOM - sleeveHeight) + 'px' : '';
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
   const first = $('#gfSleeveDiscWrap');
   first.classList.remove('gf-disc-out');
@@ -749,9 +781,10 @@ function gatefoldBuildSleevePockets(discGroups){
   const applyRow = (wrap, i) => {
     const pos = layout[i];
     wrap.classList.remove('gf-row-left', 'gf-row-right', 'gf-row-center');
-    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); return; }
+    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); wrap.style.bottom = ''; return; }
     wrap.classList.add('gf-row-' + pos.col);
     wrap.style.setProperty('--gf-row', String(pos.row));
+    wrap.style.bottom = gfRowOffsetPx(pos.row) + 'px';
   };
   applyRow(first, 0);
   for(let k = 1; k < discGroups.length; k++){
