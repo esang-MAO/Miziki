@@ -173,11 +173,18 @@ test('splitSides: a computed double LP keeps track order even with uneven side l
   assert.equal(s.reduce((sum, side) => sum + side.idx.reduce((a, i) => a + durs[i], 0), 0), durs.reduce((a, d) => a + d, 0));
 });
 
-test('discGroupsFor: a computed double LP reports two virtual discs, 1 and 2', () => {
+// Box-set follow-up to CC5 (Ken, 2026-11-09): a computed double/quad LP
+// reports one virtual disc per side (never more than 4, since
+// splitSingleDiscGroups() itself caps there), so it renders in the
+// gatefold through the exact same row layout a real 4-disc box set
+// uses -- "2 in the front and 2 in the back."
+test('discGroupsFor: a computed quad LP reports four virtual discs, one per side', () => {
   const t = durTracks(new Array(8).fill(525));
   assert.deepEqual(discGroupsFor([0,1,2,3,4,5,6,7], t), [
-    { disc: 1, idx: [0,1,2,3] },
-    { disc: 2, idx: [4,5,6,7] },
+    { disc: 1, idx: [0,1] },
+    { disc: 2, idx: [2,3] },
+    { disc: 3, idx: [4,5] },
+    { disc: 4, idx: [6,7] },
   ]);
 });
 
