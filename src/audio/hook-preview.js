@@ -19,10 +19,33 @@ import { S } from '../state.js';
 import { ensureContext } from './engine.js';
 import { ensureBuffer } from '../player/buffers.js';
 
-const FADE_SEC = 0.35;
+const FADE_SEC = 0.35;        // the stop fade, and the preview's own fade-out
+const FADE_IN_SEC = 1.0;      // LI2 (docs/35_LEAD_IN.md): longer than the fade-out
 const DEFAULT_SPAN_SEC = 20;
+// LI2 (docs/35_LEAD_IN.md): a brain-imaging anticipation response builds in
+// the few seconds before a musical peak, separate from the reward response
+// at the peak itself (Oxford Handbook of Music Psychology ch. 18) -- so the
+// preview now starts this many seconds before the detector's own hookStart,
+// rather than exactly on it. This only moves where playback starts; the
+// stored hookStart/hookEnd (src/audio/hook.js's detection) are untouched.
+const LEAD_IN_SEC = 5;
 
 let active = null;   // {source, gain, analyser, ctx, trackIdx, hookStart, hookEnd, span, startedAt}
+
+// LI2 (docs/35_LEAD_IN.md): pure so the lead-in math is unit-testable
+// without an AudioContext. rawStart/rawEnd are the detector's own stored
+// hookStart/hookEnd (null if never measured); dur is the decoded buffer's
+// duration in seconds. Returns the actual playback window -- playStart is
+// what the "FROM [TRACK] · …" readout shows, not the stored hookStart.
+export function computeHookPreviewWindow(rawStart, rawEnd, dur){
+  const hookStart = rawStart != null ? Math.max(0, Math.min(rawStart, Math.max(0, dur - 1))) : 0;
+  const hookEnd = rawEnd != null && rawEnd > hookStart
+    ? Math.min(rawEnd, dur)
+    : Math.min(hookStart + DEFAULT_SPAN_SEC, dur);
+  const playStart = Math.max(0, hookStart - LEAD_IN_SEC);
+  const span = Math.max(1, hookEnd - playStart);
+  return {playStart, hookEnd, span};
+}
 
 export function hookPreviewInfo(){
   if(!active) return null;
@@ -70,11 +93,7 @@ export async function playHookPreview(trackIdx, onEnded){
   const d = t.details || {};
   const rawStart = typeof d.hookStart === 'number' ? d.hookStart : null;
   const rawEnd = typeof d.hookEnd === 'number' ? d.hookEnd : null;
-  const hookStart = rawStart != null ? Math.max(0, Math.min(rawStart, Math.max(0, dur - 1))) : 0;
-  const hookEnd = rawEnd != null && rawEnd > hookStart
-    ? Math.min(rawEnd, dur)
-    : Math.min(hookStart + DEFAULT_SPAN_SEC, dur);
-  const span = Math.max(1, hookEnd - hookStart);
+  const {playStart, hookEnd, span} = computeHookPreviewWindow(rawStart, rawEnd, dur);
 
   const ctx = S.ctx;
   const source = ctx.createBufferSource();
@@ -88,20 +107,23 @@ export async function playHookPreview(trackIdx, onEnded){
   gain.connect(S.nodes.master);
 
   const now = ctx.currentTime;
-  const fadeIn = Math.min(FADE_SEC, span / 2);
+  const fadeIn = Math.min(FADE_IN_SEC, span / 2);
   const fadeOutAt = Math.max(fadeIn, span - FADE_SEC);
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(1, now + fadeIn);
   gain.gain.setValueAtTime(1, now + fadeOutAt);
   gain.gain.linearRampToValueAtTime(0, now + span);
 
-  source.start(now, hookStart, span);
-  active = {source, gain, analyser, ctx, trackIdx, hookStart, hookEnd, span, startedAt: now};
+  source.start(now, playStart, span);
+  // LI2: hookStart here is the real playback start (post-lead-in), the
+  // same value the "FROM [TRACK] · …" readout (crate/view.js) shows -- not
+  // the detector's own stored hookStart, which playStart is derived from.
+  active = {source, gain, analyser, ctx, trackIdx, hookStart: playStart, hookEnd, span, startedAt: now};
   source.onended = () => {
     if(active && active.source === source){
       active = null;
       if(onEnded) onEnded();
     }
   };
-  return {hookStart, hookEnd, span};
+  return {hookStart: playStart, hookEnd, span};
 }
