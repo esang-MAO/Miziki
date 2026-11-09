@@ -360,41 +360,14 @@
 .gf-sleeve{position:absolute;left:20px;right:20px;top:570px;height:252px;overflow:hidden;pointer-events:none;
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-sleeve{opacity:1}
-.gf-sleeve-paper{position:absolute;left:0;right:0;top:40px;bottom:-200px;
-  /* CR8 (docs/13_CRATE.md): tokenized onto the same --stock-divider-1/2
-     pair 10-crate.css's own divider card uses, reconciling this gradient's
-     previous second stop (#CBBE9F) with the design README's one
-     canonical stock colour (#CFC2A3) instead of carrying a near-duplicate. */
-  background:linear-gradient(180deg,var(--stock-divider-1),var(--stock-divider-2));border-radius:3px;
-  box-shadow:0 -10px 24px rgba(0,0,0,.35);
-  /* GF3 point 2: "the pocket's thumb cut scales with it" -- the cutout
-     radius follows --gf-pocket-size (gatefoldGeometry()'s own pocketSize),
-     the same way --gf-disc-size already drives .gf-sleeve-disc-wrap below. */
-  mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2) at 50% 0,
-    transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2));
-  -webkit-mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2) at 50% 0,
-    transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2))}
-/* CC5 point 5: "the sleeve paper's mask gets two thumb cuts, one centered
-   over each pocket" -- .gf-sleeve-paper is #gfSleevePockets' own sibling
-   (not a descendant), so this reads .gf-two-disc off their shared parent
-   #gfSleeve instead. Each cutout's x-offset matches the two-disc flex
-   row's own cell centers: half the gap plus half a disc's width out from
-   50% on either side -- the same --sp-4/--gf-disc-size numbers
-   .gf-sleeve-pockets.gf-two-disc above lays the pockets out with. */
-.gf-sleeve.gf-two-disc .gf-sleeve-paper{
-  mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
-      at calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2) 0,
-      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2)),
-    radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
-      at calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2) 0,
-      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2));
-  -webkit-mask:radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
-      at calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2) 0,
-      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2)),
-    radial-gradient(circle calc(var(--gf-pocket-size,132px) / 2)
-      at calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2) 0,
-      transparent calc(var(--gf-pocket-size,132px) / 2 - 1px),#000 calc(var(--gf-pocket-size,132px) / 2))
-}
+/* Ken, 2026-11-09 (uniform-sleeve-look follow-up to the box-set redesign
+   below): 1-2 disc albums now get the same half-circle-disc-over-
+   half-square-sleeve look every 3+ disc album already has (.gf-disc-own-
+   sleeve, below) -- "that way the look is uniform across the board." The
+   old shared paper backdrop with a per-pocket thumb-cut mask is retired
+   entirely (unconditionally hidden just below) rather than kept for only
+   the 1-2 disc case, since every pocket now draws its own sleeve. */
+.gf-sleeve-paper{display:none}
 /* GF4 point 1/3: #gfSleevePockets wraps every pocket. A single disc (the
    default, unchanged from GF3) needs no layout of its own -- display:contents
    keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before. */
@@ -439,7 +412,6 @@
    how double discs look in the gatefold now, just with the additional
    rows." Every row renders at full, identical brightness, same as
    today's two-disc row -- no per-row dim. */
-.gf-sleeve.gf-row-disc .gf-sleeve-paper{display:none}
 /* Design-mockup follow-up (Ken, 2026-11-09): rows of up to 3 across
    (gatefoldRowLayout(), src/gatefold/geometry.js) -- --gf-row-x (-1/0/1
    for a row of 3, -0.5/0.5 for a row of 2, 0 alone) replaces the old
@@ -464,16 +436,26 @@
    paper sleeve (a two-tone cover-art gradient, an open-corner flap where
    the record slides in, a spine fold) rather than a flat manila-folder
    block. Still a full circle once it's actually on the platter (02-
-   stage-platter.css's own disc, untouched by any of this). */
-.gf-row-disc .gf-sleeve-disc-wrap .disc{clip-path:inset(0 0 50% 0)}
-.gf-disc-own-sleeve{display:none}
-.gf-row-disc .gf-disc-own-sleeve{display:block;position:absolute;left:0;right:0;bottom:0;height:50%;
+   stage-platter.css's own disc, untouched by any of this).
+   Uniform-sleeve-look follow-up (Ken, 2026-11-09): "the 1-2 disc should
+   also be in the half square/half semicircle sleeves & record look...
+   that way the look is uniform across the board" -- the disc-clip and
+   own-sleeve rules below no longer gate on .gf-row-disc, so a 1 or
+   2-disc album gets the exact same half-circle-over-half-square
+   rendering at its existing fixed --gf-disc-size (156px) rather than the
+   row layout's own scaled --gf-row-disc-size -- "the size can remain
+   the same since there is more space available." Only the row layout's
+   own positioning/sizing rule just above (.gf-row-disc .gf-sleeve-disc-
+   wrap) still gates on 3+ discs, since 1-2 discs keep their existing
+   centered/side-by-side placement untouched. */
+.gf-sleeve-disc-wrap .disc{clip-path:inset(0 0 50% 0)}
+.gf-disc-own-sleeve{display:block;position:absolute;left:0;right:0;bottom:0;height:50%;
   border-radius:2px;overflow:hidden;
   background:linear-gradient(135deg,var(--stock-divider-1) 0%,var(--stock-divider-1) 55%,var(--stock-divider-2) 55%,var(--stock-divider-2) 100%);
   box-shadow:0 6px 12px rgba(0,0,0,.25),inset 0 0 0 1px rgba(0,0,0,.1)}
-.gf-row-disc .gf-disc-own-sleeve::before{content:'';position:absolute;top:0;right:0;width:0;height:0;
+.gf-disc-own-sleeve::before{content:'';position:absolute;top:0;right:0;width:0;height:0;
   border-style:solid;border-width:0 14px 14px 0;border-color:transparent rgba(255,255,255,.35) transparent transparent}
-.gf-row-disc .gf-disc-own-sleeve::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(0,0,0,.2)}
+.gf-disc-own-sleeve::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(0,0,0,.2)}
 /* GF3 point 2: the pocket disc's own label scales with the record's real
    size -- the same [data-size]-keyed ratios 02-stage-platter.css already
    uses for the big spinning platter ("the same ratios... a 7″ label
