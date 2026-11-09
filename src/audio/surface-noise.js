@@ -297,8 +297,8 @@ function startBuffer(build, { loop = false, playbackRate = 1 } = {}){
         gain.gain.setValueAtTime(gain.gain.value, now);
         gain.gain.linearRampToValueAtTime(0, end);
         src.stop(end + 0.02);
-      }catch(_e){}
-      src.onended = () => { try{ gain.disconnect(); }catch(_e){} };
+      }catch(_e){} // node already stopped/context closed -- expected, not logged
+      src.onended = () => { try{ gain.disconnect(); }catch(_e){} }; // already disconnected -- expected, not logged
     }
   };
 }
@@ -397,7 +397,7 @@ export function fadeMusicTo(value, ms){
     g.gain.cancelScheduledValues(now);
     g.gain.setValueAtTime(g.gain.value, now);
     g.gain.linearRampToValueAtTime(value, end);
-  }catch(_e){}
+  }catch(_e){} // context closed/node disconnected -- expected, not logged
 }
 
 // PL1 (docs/19_PLAYER.md): fadeMusicTo()'s own counterpart for a start that
@@ -418,5 +418,5 @@ export function fadeMusicInAt(when, ms){
     g.gain.cancelScheduledValues(when);
     g.gain.setValueAtTime(0, when);
     g.gain.linearRampToValueAtTime(1, when + Math.max(0, ms) / 1000);
-  }catch(_e){}
+  }catch(_e){} // context closed/node disconnected -- expected, not logged
 }

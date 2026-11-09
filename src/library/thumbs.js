@@ -332,7 +332,7 @@ export async function pruneThumbs(){
     const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
     const keep = kind === 'album' ? (S.albumDisplay[id] || S.achievements[id] || S.collection[id]) : S.trackDisplay[id];
     if(keep) continue;
-    try{ URL.revokeObjectURL(thumbURL[key]); }catch(_e){}
+    try{ URL.revokeObjectURL(thumbURL[key]); }catch(_e){} // already revoked -- expected, not logged
     delete thumbURL[key]; delete thumbSrcSeen[key];
     await meta.del('thumb:' + key);
   }

@@ -173,7 +173,7 @@ export function cancelPendingGapless(){
   if(!pendingGapless) return;
   const { src } = pendingGapless;
   src.onended = null;
-  try{ src.stop(); }catch(_e){}
+  try{ src.stop(); }catch(_e){} // source already stopped/context closed -- expected, not logged
   pendingGapless = null;
 }
 
@@ -301,7 +301,7 @@ function stopSourceCleanly(){
   if(!src._mzEnded){
     fadeMusicTo(0, EDGE_FADE_MS);
     const when = S.ctx ? S.ctx.currentTime + EDGE_FADE_MS / 1000 : 0;
-    try{ src.stop(when); }catch(_e){}
+    try{ src.stop(when); }catch(_e){} // source already stopped/context closed -- expected, not logged
   }
   S.source = null;
 }
@@ -670,7 +670,7 @@ export function handleContextInterruption(){
   cancelPendingOpening(0);
   stopUnderMusicBed(0);
   const src = S.source;
-  if(src){ src.onended = null; try{ src.stop(); }catch(_e){} }
+  if(src){ src.onended = null; try{ src.stop(); }catch(_e){} } // source already stopped/context closed -- expected, not logged
   S.source = null;
   S.playing = false;
   S.pausedBySystem = true;
@@ -727,9 +727,9 @@ export function seek(sec){
           g.gain.setValueAtTime(g.gain.value, now);
           g.gain.linearRampToValueAtTime(0, dipEnd);
           g.gain.linearRampToValueAtTime(1, dipEnd + START_FADE_MS / 1000);
-        }catch(_e){}
+        }catch(_e){} // context closed mid-ramp -- expected, not logged
       }
-      try{ old.stop(dipEnd); }catch(_e){}
+      try{ old.stop(dipEnd); }catch(_e){} // source already stopped/context closed -- expected, not logged
       S.source = null;
       startSource(S.pos, 0, { startAt: dipEnd, skipFadeIn: true });
     } else {

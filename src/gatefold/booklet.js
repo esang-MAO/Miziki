@@ -179,7 +179,7 @@ export async function closeBookletViewer(){
   revokePageUrlsFor(b);
   if(b.returnFocus && document.contains(b.returnFocus) && typeof b.returnFocus.focus === 'function') b.returnFocus.focus();
 }
-function revokePageUrlsFor(b){ b.pages.forEach(p => { if(p.url) try{ URL.revokeObjectURL(p.url); }catch(_e){} }); }
+function revokePageUrlsFor(b){ b.pages.forEach(p => { if(p.url) try{ URL.revokeObjectURL(p.url); }catch(_e){} }); } // already revoked -- expected, not logged
 
 // GF10 point 1's other entry point: "Add booklet pages…" from the panel.
 // `pendingAddItem` bridges the click (which must open #bookletAddFile

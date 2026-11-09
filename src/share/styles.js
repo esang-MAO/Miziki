@@ -250,7 +250,7 @@ export async function fillShareDisc(ctx, info, cx, cy, r, half){
       const dark = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       dark.addColorStop(0, 'rgba(0,0,0,.12)'); dark.addColorStop(0.88, 'rgba(0,0,0,.55)'); dark.addColorStop(1, 'rgba(0,0,0,.78)');
       ctx.fillStyle = dark; ctx.fillRect(cx - r, cy - r, r*2, r*2);
-    }catch(_e){}
+    }catch(_e){} // broken/missing cover art -- expected, leaves the plain background
   } else if(look === 'metal'){
     const base = ((METAL_COLORS[metal] || METAL_COLORS.bronze)).mid;
     const colors = [hexMix(base, '#ffffff', 0.45), base, hexMix(base, '#000000', 0.5)];
@@ -304,7 +304,7 @@ export async function fillShareDisc(ctx, info, cx, cy, r, half){
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lr, 0, Math.PI*2); ctx.clip();
       drawCover(ctx, limg, cx - lr, cy - lr, lr*2, lr*2);
       ctx.restore();
-    }catch(_e){}
+    }catch(_e){} // broken/missing cover art -- expected, leaves the plain label
     return;
   }
   drawPaperLabelBase(ctx, cx, cy, lr);

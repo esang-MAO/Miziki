@@ -16,7 +16,7 @@ export function wireAccount(){
     if(!file) return;
     try{
       const blob = await cropSquareImage(file, 500);
-      if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(_err){}
+      if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(_err){} // already revoked/not a blob: URL -- expected, not logged
       S.profile.artBlob = blob;
       S.profile.art = URL.createObjectURL(blob);
       await persistProfile();

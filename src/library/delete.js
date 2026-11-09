@@ -69,7 +69,7 @@ export async function deleteTracks(idsToDelete){
     $('#sleeve').style.display = 'none';
   }
 
-  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} });
+  S.tracks.forEach(t => { if(idSet.has(t.id) && t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} }); // already revoked -- expected, not logged
   const removedAlbumIds = new Set();
   S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
   S.tracks = S.tracks.filter(t => !idSet.has(t.id));
@@ -184,7 +184,7 @@ export async function forgetLibrary(){
   // file with the same id comes back
   await pruneThumbs();   // drops only the thumbnails nothing else still references
 
-  S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} });
+  S.tracks.forEach(t => { if(t.art) try{ URL.revokeObjectURL(t.art); }catch(_e){} }); // already revoked -- expected, not logged
   invalidateActiveSessionIfAny();   // end any in-flight session cleanly first, so a half-played album is never counted
   stop();
   S.tracks = []; S.index = -1;

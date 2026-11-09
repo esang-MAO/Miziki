@@ -53,6 +53,6 @@ export function wavDetails(b){
       if(!size) break;
       i += 8 + size + (size % 2);
     }
-  }catch(_e){}
+  }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
   return d;
 }

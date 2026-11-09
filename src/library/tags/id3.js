@@ -113,10 +113,10 @@ export function id3Details(b, offset){
         } else if(id === 'TSRC'){
           d.isrc = plainText();
         }
-      }catch(_e){}
+      }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
       i += 10 + size;
     }
-  }catch(_e){}
+  }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
   return d;
 }
 

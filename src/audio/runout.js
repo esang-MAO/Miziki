@@ -64,8 +64,8 @@ export function startRunout(durSec){
         gain.gain.setValueAtTime(gain.gain.value, now);
         gain.gain.linearRampToValueAtTime(0, end);
         src.stop(end + 0.02);
-      }catch(_e){}
-      src.onended = () => { try{ gain.disconnect(); }catch(_e){} };
+      }catch(_e){} // node already stopped/context closed -- expected, not logged
+      src.onended = () => { try{ gain.disconnect(); }catch(_e){} }; // already disconnected -- expected, not logged
     }
   };
 }

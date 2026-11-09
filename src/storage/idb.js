@@ -11,6 +11,8 @@
    See CLAUDE.md's persistence rules: any future version bump must
    come with a new upgrade test in tests/unit/idb.test.js that starts from
    the previous version's real store layout, with data in it. */
+import { logError } from '../util/debug-log.js';
+
 export const DB = {
   db:null, ok:false,
   // RF5 (docs/12_REFINE.md, point 3): `blocked` is true when the most recent
@@ -98,7 +100,11 @@ export const DB = {
   async all(name){ if(!this.ok) return [];
     try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(_e){ return []; } },
   async clear(name){ if(!this.ok) return;
-    try{ await this.req(this.store(name,'readwrite').clear()); }catch(_e){} },
+    // LI5 (docs/35_LEAD_IN.md): unlike put/get/all/del above, clear() has no
+    // fallback value to quietly return -- a failed clear (e.g. "Forget
+    // library") is a real bug worth finding, not an expected environment
+    // limitation, so it goes to the debug log instead of staying silent.
+    try{ await this.req(this.store(name,'readwrite').clear()); }catch(e){ logError('idb.clear', e); } },
   async del(name, k){ if(!this.ok) return false;
     try{ await this.req(this.store(name,'readwrite').delete(k)); return true; }catch(_e){ return false; } }
 };

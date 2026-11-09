@@ -128,7 +128,7 @@ function wirePeelDrag(hotspot, wrap, fold){
     dragging = true;
     startX = e.clientX; startY = e.clientY;
     span = Math.max(1, wrap.getBoundingClientRect().width);
-    try{ hotspot.setPointerCapture(e.pointerId); }catch(_err){}
+    try{ hotspot.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
   }
   function onMove(e){
     if(!dragging || cancelled) return;

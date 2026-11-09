@@ -79,7 +79,7 @@ export function persistSunTimesCache(rise, set){
     localStorage.setItem(SUN_TIMES_STORAGE_KEY, JSON.stringify({
       date: new Date().toDateString(), rise: rise.toISOString(), set: set.toISOString(),
     }));
-  } catch(_e) {}
+  } catch(_e) {} // private browsing/quota -- expected, not logged
 }
 
 // (DA1) computeSun() fills the full day model, not just tonight's

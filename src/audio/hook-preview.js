@@ -73,8 +73,8 @@ export function stopHookPreview(){
     gain.gain.linearRampToValueAtTime(0, now + FADE_SEC);
   }catch(_e){ /* context already gone — nothing left to fade */ }
   setTimeout(() => {
-    try{ source.stop(); }catch(_e){}
-    try{ source.disconnect(); gain.disconnect(); }catch(_e){}
+    try{ source.stop(); }catch(_e){} // source already stopped/context closed -- expected, not logged
+    try{ source.disconnect(); gain.disconnect(); }catch(_e){} // already disconnected -- expected, not logged
   }, FADE_SEC * 1000 + 60);
 }
 

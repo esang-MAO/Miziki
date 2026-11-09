@@ -423,3 +423,15 @@ Device check: not needed — comment-only change, confirmed byte-identical build
 **This completes TR6, and with it the whole TR1-TR7 repo-trim phase** (docs/19_PLAYER.md): TR1-TR5 and TR7 merged earlier in this phase, TR6 merged across 6 batches (#251-#255 and this PR) grouping ~20 `src/` folders by subsystem instead of one PR per folder, per Ken's own call on scope.
 
 Device check: not needed — comment-only change, confirmed byte-identical build output.
+
+## LI5: test coverage baseline (reference only, not a CI gate)
+
+Generated 2026-11-09 by `npm run test:coverage` (Node's built-in `--experimental-test-coverage`, no new dependency), over `tests/unit/*.test.js`:
+
+| Lines | Branches | Functions |
+|---|---|---|
+| 85.22% | 87.98% | 74.21% |
+
+Not a CI gate and not re-run automatically — a reference point for later PRs in plan 35 (and beyond) that want to know whether a change left coverage better or worse. Re-run with `npm run test:coverage` and update this table by hand.
+
+LI5 also recorded the repo's import-cycle counts (`scripts/cycles.mjs`, `npm run cycles`) at the same commit: largest cycle **63 modules**, mutual-import pairs **40** — these two *are* a CI gate (`.github/workflows/pr-checks.yml`), set to today's counts so they can only go down.

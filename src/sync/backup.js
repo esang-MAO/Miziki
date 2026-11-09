@@ -594,7 +594,7 @@ async function queueAvatarDownload(client, uid, picture){
   if(!picture.hash || (picture.at || 0) <= localAt) return;
   const { data, error } = await client.storage.from('avatars').download(uid + '/avatar-' + picture.hash + '.jpg');
   if(error || !data) return;
-  if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(_e){}
+  if(S.profile.art) try{ URL.revokeObjectURL(S.profile.art); }catch(_e){} // already revoked/not a blob: URL -- expected, not logged
   S.profile.artBlob = data;
   S.profile.art = URL.createObjectURL(data);
   S.profile.pictureHash = picture.hash;

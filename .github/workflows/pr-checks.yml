@@ -26,5 +26,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test:unit
+      # LI5 (docs/35_LEAD_IN.md): the two numbers scripts/cycles.mjs
+      # prints become a ceiling under --check, so the import graph can
+      # only get less tangled, never more, without the PR saying so.
+      - run: node scripts/cycles.mjs --check
+      - run: npm run check-doc-links
       - run: npm run build
       - run: MIZIKI_BASE=/ npm run build

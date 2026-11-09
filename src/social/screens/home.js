@@ -312,11 +312,11 @@ function loadFeedCache(){
 }
 function saveFeedCache(events){
   try{ localStorage.setItem(HOME_FEED_CACHE_KEY, JSON.stringify({ events, fetchedAt: Date.now() })); }
-  catch(_e){}
+  catch(_e){} // private browsing/quota -- expected, not logged
 }
 export function clearHomeFeedCache(){
   homeShellBuilt = false;
-  try{ localStorage.removeItem(HOME_FEED_CACHE_KEY); }catch(_e){}
+  try{ localStorage.removeItem(HOME_FEED_CACHE_KEY); }catch(_e){} // private browsing -- expected, not logged
 }
 
 function loadKeptCache(){
@@ -329,10 +329,10 @@ function loadKeptCache(){
 }
 function saveKeptCache(albumIds){
   try{ localStorage.setItem(HOME_KEPT_CACHE_KEY, JSON.stringify({ albumIds, fetchedAt: Date.now() })); }
-  catch(_e){}
+  catch(_e){} // private browsing/quota -- expected, not logged
 }
 export function clearHomeKeptCache(){
-  try{ localStorage.removeItem(HOME_KEPT_CACHE_KEY); }catch(_e){}
+  try{ localStorage.removeItem(HOME_KEPT_CACHE_KEY); }catch(_e){} // private browsing -- expected, not logged
 }
 
 // shouldFetchHomeFeed(cachedFetchedAt, sunriseMs, nowMs) -> RW2's own

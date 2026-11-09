@@ -171,7 +171,7 @@ function wireShrinkDrag(wrap, tab, seed, onCommit){
     startX = e.clientX;
     hostWidth = wrap.getBoundingClientRect().width || 1;
     lastCrinkleT = performance.now();
-    try{ tab.setPointerCapture(e.pointerId); }catch(_err){}
+    try{ tab.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
   }
   function onMove(e){
     if(!dragging || cancelled) return;
