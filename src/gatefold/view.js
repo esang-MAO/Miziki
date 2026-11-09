@@ -43,7 +43,7 @@ import { persistAlbumKeptFor } from '../history/sessions.js';
 import { runGatefoldHandoff } from '../shell/handoff.js';
 import { splitSides, albumFormatFor, discGroupsFor } from '../shell/ceremony-timing.js';
 import { openLayer, closeLayer, closeLayerThen, forceCloseLayer } from '../shell/nav-stack.js';
-import { gatefoldGeometry } from './geometry.js';
+import { gatefoldGeometry, gatefoldRowLayout } from './geometry.js';
 import { queueSave } from '../storage/meta.js';
 import { openConfirmDelete, renderTracks, moverCtl, syncQueueOrder } from '../library/view.js';
 import { countForAlbum, deleteAlbum, deleteTracks } from '../library/delete.js';
@@ -721,18 +721,39 @@ function gatefoldSleevePocketEls(){
 // fully visible, no scroll -- .gf-two-disc, toggled on both the pockets
 // row (for its own flex layout) and #gfSleeve (so .gf-sleeve-paper, a
 // sibling of #gfSleevePockets rather than a descendant, can get its own
-// two-cutout mask). Three or more discs keep gf-multi-disc's existing
-// scrolling row untouched.
+// two-cutout mask). Three or more discs use gatefoldRowLayout() below
+// instead, rows of 2 straight back, via .gf-row-disc.
+// Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
+// 2026-11-09): #gfSleeve's default CSS height (11-gatefold.css), tall
+// enough for one row -- grown below, one GF_SLEEVE_ROW_STEP per extra
+// row, so a box set's extra rows of 2 don't clip.
+const GF_SLEEVE_BASE_HEIGHT = 252;
+const GF_SLEEVE_ROW_STEP = 78; // gatefoldGeometry()'s uniform discDiameter (156) / 2
+
 function gatefoldBuildSleevePockets(discGroups){
   const pockets = $('#gfSleevePockets');
+  const gfSleeve = $('#gfSleeve');
   const twoDisc = discGroups.length === 2;
-  pockets.classList.toggle('gf-multi-disc', discGroups.length > 1);
+  const rowDisc = discGroups.length > 2;
   pockets.classList.toggle('gf-two-disc', twoDisc);
-  $('#gfSleeve').classList.toggle('gf-two-disc', twoDisc);
+  pockets.classList.toggle('gf-row-disc', rowDisc);
+  gfSleeve.classList.toggle('gf-two-disc', twoDisc);
+  gfSleeve.classList.toggle('gf-row-disc', rowDisc);
+  const layout = gatefoldRowLayout(discGroups.length);
+  const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
+  gfSleeve.style.height = rowDisc ? (GF_SLEEVE_BASE_HEIGHT + rows * GF_SLEEVE_ROW_STEP) + 'px' : '';
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
   const first = $('#gfSleeveDiscWrap');
   first.classList.remove('gf-disc-out');
   first.setAttribute('data-disc', String(discGroups[0] ? discGroups[0].disc : 0));
+  const applyRow = (wrap, i) => {
+    const pos = layout[i];
+    wrap.classList.remove('gf-row-left', 'gf-row-right', 'gf-row-center');
+    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); return; }
+    wrap.classList.add('gf-row-' + pos.col);
+    wrap.style.setProperty('--gf-row', String(pos.row));
+  };
+  applyRow(first, 0);
   for(let k = 1; k < discGroups.length; k++){
     const clone = first.cloneNode(true);
     clone.removeAttribute('id');
@@ -740,6 +761,7 @@ function gatefoldBuildSleevePockets(discGroups){
     clone.classList.add('gf-sleeve-disc-wrap-extra');
     clone.classList.remove('gf-disc-out', 'gf-disc-empty');
     clone.setAttribute('data-disc', String(discGroups[k].disc));
+    applyRow(clone, k);
     pockets.appendChild(clone);
   }
 }

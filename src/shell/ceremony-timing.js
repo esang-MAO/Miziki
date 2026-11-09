@@ -14,28 +14,41 @@
    sides, A-D, not two. */
 import { bestSideCut, bestSideCuts, sideLengthsFromDurations, albumRecordFormat, DOUBLE_LP_SIDE_CAP_SEC } from '../record-art/format.js';
 
-// CC5 (docs/34_CARE_AND_CONTROL.md): a single real disc's own track
-// list, split into either its normal 2 time-balanced sides, or, when
-// that 2-way split would put either side over DOUBLE_LP_SIDE_CAP_SEC, 4
-// sides via bestSideCuts() -- "a single-disc album whose two-side split
-// puts either side over 22 min becomes a double LP." Needs at least 4
-// tracks to actually produce 4 groups (can't split further than one
-// track per side); with fewer, the over-length 2-way split stands --
-// "with no side over 22 min where avoidable," and a handful of very long
-// tracks isn't avoidable this way. Returns an array of 1, 2 or 4 index
-// groups, never empty for a non-empty discIdx.
+// CC5 (docs/34_CARE_AND_CONTROL.md) + box-set follow-up (Ken, 2026-11-09):
+// a single real disc's own track list, split into its normal 2
+// time-balanced sides, or, when that 2-way split would put either side
+// over DOUBLE_LP_SIDE_CAP_SEC, escalated two sides at a time -- 4 sides
+// ("a single-disc album whose two-side split puts either side over 22
+// min becomes a double LP," CC5's own, unchanged first tier), then 6,
+// then 8 -- stopping as soon as a tier gets every side under the cap, or
+// at 8 sides regardless (Ken: "cap the number of discs to 4," and 8
+// sides is 4 discs of 2 sides each). Each tier needs at least that many
+// tracks to actually produce that many groups (can't split further than
+// one track per side); short of the tracks (or the tracks) needed for
+// the next tier, the best tier reached so far stands -- "with no side
+// over 22 min where avoidable," and a handful of very long tracks isn't
+// avoidable this way. Returns an array of 1, 2, 4, 6 or 8 index groups,
+// never empty for a non-empty discIdx.
 function splitSingleDiscGroups(discIdx, durOf){
   if(discIdx.length < 2) return [discIdx];
-  const cut = bestSideCut(discIdx.map(durOf));
-  const a = discIdx.slice(0, cut).reduce((s, i) => s + durOf(i), 0);
-  const b = discIdx.slice(cut).reduce((s, i) => s + durOf(i), 0);
-  if(discIdx.length < 4 || Math.max(a, b) <= DOUBLE_LP_SIDE_CAP_SEC) return [discIdx.slice(0, cut), discIdx.slice(cut)];
-  const cuts = bestSideCuts(discIdx.map(durOf), 4);
-  const groups = [];
-  let prev = 0;
-  for(const c of cuts){ groups.push(discIdx.slice(prev, c)); prev = c; }
-  groups.push(discIdx.slice(prev));
-  return groups;
+  const durations = discIdx.map(durOf);
+  const sideSum = g => g.reduce((s, i) => s + durOf(i), 0);
+  const maxSide = groups => Math.max(...groups.map(sideSum));
+  const cut = bestSideCut(durations);
+  const twoWay = [discIdx.slice(0, cut), discIdx.slice(cut)];
+  if(discIdx.length < 4 || maxSide(twoWay) <= DOUBLE_LP_SIDE_CAP_SEC) return twoWay;
+  let best = null;
+  for(const sides of [4, 6, 8]){
+    if(discIdx.length < sides) break;
+    const cuts = bestSideCuts(durations, sides);
+    const groups = [];
+    let prev = 0;
+    for(const c of cuts){ groups.push(discIdx.slice(prev, c)); prev = c; }
+    groups.push(discIdx.slice(prev));
+    best = groups;
+    if(maxSide(groups) <= DOUBLE_LP_SIDE_CAP_SEC) break;
+  }
+  return best || twoWay;
 }
 
 // §4, change records. Milliseconds from the moment the next record is asked
@@ -129,12 +142,15 @@ export function sideBoundaryAt(sides, n){
 // to place the tracklist's own "Disc N" eyebrow above each disc's first
 // side. Disc numbers keep whatever order they first appear in trackIdx
 // (almost always ascending, since that's how an album's own tracks sort).
-// CC5 point 4: a computed double LP (the single-real-disc case, split
-// into 4 groups by splitSingleDiscGroups() above) is reported as two
-// virtual discs here -- disc 1 (sides A/B) and disc 2 (sides C/D) -- the
-// same numbers a real tagged 2-disc album's own "DISC 1"/"DISC 2"
-// eyebrows already use, so the gatefold needs no separate code path for
-// "computed" vs. "tagged" once it has this list.
+// CC5 point 4 + box-set follow-up: a computed double/triple/quad LP (the
+// single-real-disc case, escalated to 4, 6 or 8 groups by
+// splitSingleDiscGroups() above) is reported as one virtual disc per
+// *pair* of sides -- disc 1 (sides A/B), disc 2 (C/D), and so on, never
+// one disc per side -- the same numbers a real tagged multi-disc album's
+// own "DISC 1"/"DISC 2"/... eyebrows already use, so the gatefold needs
+// no separate code path for "computed" vs. "tagged" once it has this
+// list. A plain, non-escalated 2-way split (groups.length === 2) is
+// still just one disc with an A/B flip, not a second virtual disc.
 export function discGroupsFor(trackIdx, tracks){
   if(!trackIdx || !trackIdx.length) return [];
   const discOf = i => (tracks[i] && tracks[i].tags && tracks[i].tags.disc) || 0;
@@ -142,11 +158,10 @@ export function discGroupsFor(trackIdx, tracks){
   const discs = [...new Set(trackIdx.map(discOf))];
   if(discs.length > 1) return discs.map(disc => ({ disc, idx: trackIdx.filter(i => discOf(i) === disc) }));
   const groups = splitSingleDiscGroups(trackIdx, durOf);
-  if(groups.length === 4){
-    return [
-      { disc: 1, idx: [...groups[0], ...groups[1]] },
-      { disc: 2, idx: [...groups[2], ...groups[3]] },
-    ];
+  if(groups.length >= 4){
+    const out = [];
+    for(let i = 0; i < groups.length; i += 2) out.push({ disc: out.length + 1, idx: [...groups[i], ...(groups[i + 1] || [])] });
+    return out;
   }
   return [{ disc: discs[0], idx: trackIdx }];
 }

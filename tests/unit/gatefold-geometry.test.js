@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gatefoldGeometry } from '../../src/gatefold/geometry.js';
+import { gatefoldGeometry, gatefoldRowLayout } from '../../src/gatefold/geometry.js';
 
 // GF2/GF3 (docs/29_GATEFOLD.md point 1/2): the 12" case must reproduce the
 // numbers every pre-GF3 gatefold literal already assumed (panel 350,
@@ -44,4 +44,51 @@ test('CC5: two discs at full size plus the --sp-4 gap fit inside the sleeve, no 
   assert.equal(sleeveWidth, geom.panelSize);
   const twoDiscWidth = 2 * geom.discDiameter + SP_4_PX;
   assert.ok(twoDiscWidth <= sleeveWidth, 'two discs + gap (' + twoDiscWidth + 'px) overflow the sleeve (' + sleeveWidth + 'px)');
+});
+
+// Box-set follow-up (docs/34_CARE_AND_CONTROL.md point 5 follow-up, Ken
+// 2026-11-09): rows of 2, front row first, odd one out alone at the back.
+test('gatefoldRowLayout: empty/zero discs', () => {
+  assert.deepEqual(gatefoldRowLayout(0), []);
+  assert.deepEqual(gatefoldRowLayout(-1), []);
+});
+
+test('gatefoldRowLayout: a single disc sits alone in the front row, centered', () => {
+  assert.deepEqual(gatefoldRowLayout(1), [{ row: 0, col: 'center' }]);
+});
+
+test('gatefoldRowLayout: two discs sit side by side in the front row -- today\'s plain two-disc layout', () => {
+  assert.deepEqual(gatefoldRowLayout(2), [
+    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+  ]);
+});
+
+test('gatefoldRowLayout: three discs -- a full front row of 2, odd one out alone in row 1 (behind)', () => {
+  assert.deepEqual(gatefoldRowLayout(3), [
+    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+    { row: 1, col: 'center' },
+  ]);
+});
+
+test('gatefoldRowLayout: four discs -- two full rows of 2, no odd one out', () => {
+  assert.deepEqual(gatefoldRowLayout(4), [
+    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+    { row: 1, col: 'left' }, { row: 1, col: 'right' },
+  ]);
+});
+
+test('gatefoldRowLayout: five discs -- two full rows of 2, odd one out alone furthest back', () => {
+  assert.deepEqual(gatefoldRowLayout(5), [
+    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+    { row: 1, col: 'left' }, { row: 1, col: 'right' },
+    { row: 2, col: 'center' },
+  ]);
+});
+
+test('gatefoldRowLayout: six discs -- three full rows of 2', () => {
+  assert.deepEqual(gatefoldRowLayout(6), [
+    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+    { row: 1, col: 'left' }, { row: 1, col: 'right' },
+    { row: 2, col: 'left' }, { row: 2, col: 'right' },
+  ]);
 });
