@@ -167,6 +167,8 @@ These shape behavior, not copy: the reasons behind them are never surfaced to th
   - Deluxe grants only what it lists. It never speeds up earning anything else, and earning thresholds are never tightened after release.
   - The purchase lives in one fixed place (Settings) and is never shown at a moment of frustration.
   - Every turntable stays earnable without Deluxe.
+- **No mood features and no health claims.** No mood tagging, "music for when you're down", or anything that responds to a listener's mood. App, App Store and share-card text never claim relaxation, sleep or health benefits; Sundown is described as a feel, not a treatment.
+- **Earning never needs the screen.** Metals, turntables, rare pressings and zoetropes count plays made in the background or with the screen off. No rule may require "attentive" listening.
 
 ## Security
 
@@ -189,6 +191,12 @@ These shape behavior, not copy: the reasons behind them are never surfaced to th
 9. **The iOS audio-gesture rules are load-bearing and must survive every move untouched.** `play()`'s first call is `bgPrime()`, before any `await` — iOS only allows audio to start inside the original tap. When touching playback code: never add, remove, or reorder an `await`; never make a synchronous function `async` or the reverse; keep the `S.gen` generation counter and `onended` handler logic exactly as-is; keep `startSource`'s encoder delay/padding handling unchanged.
 10. **Every PR must pass `npm run lint` with zero warnings.** The rule set is small on purpose (`no-undef` and a handful of core-ESLint safety checks, no style rules) — it catches a dropped-import-while-still-used bug before merge. A deliberately-unused catch-clause binding/var/argument gets a leading underscore (`_e`, …) rather than being left bare; a genuinely dead import/declaration gets removed.
 11. **Audio PRs add an offline-render test** (`tests/audio-render/specs/*.js`, `npm run test:audio-render`) proving the property the PR claims against a real `OfflineAudioContext`, in both Chromium and WebKit where WebKit is installed — iOS runs WebKit, so a Chromium-only pass doesn't prove the fix holds there.
+12. **A bug-fix PR fixes one bug** and, where the code is testable, adds the failing test first.
+13. **No new function over ~80 lines and no file past ~1,000 lines without a comment saying why.** Extract first, then extend.
+
+## Plan docs
+
+A plan doc (`docs/NN_NAME.md`) covers one or more PR-sized steps. Each step states: **Read first**, **Changes**, **Tests (Claude runs)**, **Preview focus (Ken runs)**, **Removes** (one in, one out — rule 3 above), and **Not in this step**. A plan's own **Decisions** section holds no open questions before its first step runs — resolve every open question with Ken first. A plan ends with a short **After** section, filled in once the plan is done: what reached the iPhone broken, and which rule went into this file because of it.
 
 ## Device checklist (run on iPhone, from the home-screen app, after each change)
 
