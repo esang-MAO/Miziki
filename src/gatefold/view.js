@@ -743,6 +743,22 @@ const GF_SLEEVE_TOP = 570;
 const GF_SLEEVE_BASE_HEIGHT = 252;
 const GF_SLEEVE_ANCHOR_BOTTOM = GF_SLEEVE_TOP + GF_SLEEVE_BASE_HEIGHT;
 const GF_SLEEVE_ROW_STEP = 78; // gatefoldGeometry()'s uniform discDiameter (156) / 2
+const GF_SLEEVE_DISC_SIZE = 156;
+// Ken, 2026-11-09 (follow-up to the bottom-anchor fix above): rows 0-1
+// (3-4 discs) sit well clear of .gf-info's album-name/artist text
+// (11-gatefold.css, top:494px/height:44px -- its text ends at 538px;
+// row 1's disc top lands at 588px, a proven ~50px gap). A real *tagged*
+// box set has no disc cap though, and row 2+ (5+ discs) used the same
+// uncapped 78px-per-row step, which reaches the info text's own
+// bounding box (row 2's disc top: 510px, 28px into it). Past row 1,
+// each further row steps by a shrinking amount instead (18px, capped
+// at 2 extra steps) so the deepest disc's top never passes 552px --
+// 14px clear of the text -- however many discs a box set has; rows 0-1
+// are untouched (identical px as before this follow-up).
+function gfRowOffsetPx(row){
+  if(row <= 1) return row * GF_SLEEVE_ROW_STEP;
+  return GF_SLEEVE_ROW_STEP + Math.min((row - 1) * 18, 36);
+}
 
 function gatefoldBuildSleevePockets(discGroups){
   const pockets = $('#gfSleevePockets');
@@ -755,7 +771,7 @@ function gatefoldBuildSleevePockets(discGroups){
   gfSleeve.classList.toggle('gf-row-disc', rowDisc);
   const layout = gatefoldRowLayout(discGroups.length);
   const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
-  const sleeveHeight = GF_SLEEVE_BASE_HEIGHT + rows * GF_SLEEVE_ROW_STEP;
+  const sleeveHeight = GF_SLEEVE_DISC_SIZE + gfRowOffsetPx(rows);
   gfSleeve.style.height = rowDisc ? sleeveHeight + 'px' : '';
   gfSleeve.style.top = rowDisc ? (GF_SLEEVE_ANCHOR_BOTTOM - sleeveHeight) + 'px' : '';
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
@@ -765,9 +781,10 @@ function gatefoldBuildSleevePockets(discGroups){
   const applyRow = (wrap, i) => {
     const pos = layout[i];
     wrap.classList.remove('gf-row-left', 'gf-row-right', 'gf-row-center');
-    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); return; }
+    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); wrap.style.bottom = ''; return; }
     wrap.classList.add('gf-row-' + pos.col);
     wrap.style.setProperty('--gf-row', String(pos.row));
+    wrap.style.bottom = gfRowOffsetPx(pos.row) + 'px';
   };
   applyRow(first, 0);
   for(let k = 1; k < discGroups.length; k++){
