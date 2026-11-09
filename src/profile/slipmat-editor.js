@@ -161,7 +161,7 @@ async function openAdjust(host, blob, rerender){
   let drag = null;
   preview.addEventListener('pointerdown', e => {
     drag = { x: e.clientX, y: e.clientY, cx: crop.cx, cy: crop.cy };
-    try{ preview.setPointerCapture(e.pointerId); }catch(_e){}
+    try{ preview.setPointerCapture(e.pointerId); }catch(_e){} // pointer may already be released/captured -- expected, not logged
   });
   preview.addEventListener('pointermove', e => {
     if(!drag) return;

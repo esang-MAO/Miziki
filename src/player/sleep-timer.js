@@ -33,7 +33,7 @@ export function updateSleepUI(){
 
 function sleepCancelGainAutomation(){
   if(!S.ctx || !S.nodes || !S.nodes.master) return;
-  try{ S.nodes.master.gain.cancelScheduledValues(S.ctx.currentTime); }catch(_e){}
+  try{ S.nodes.master.gain.cancelScheduledValues(S.ctx.currentTime); }catch(_e){} // context closed -- expected, not logged
 }
 
 export function stopSleepState(){
@@ -59,7 +59,7 @@ function sleepStartFade(remainMs){
     g.cancelScheduledValues(now);
     g.setValueAtTime(g.value, now);
     g.linearRampToValueAtTime(0, now + Math.max(0.1, remainMs/1000));
-  }catch(_e){}
+  }catch(_e){} // context closed mid-ramp -- expected, not logged
 }
 
 function sleepTimeExpired(){

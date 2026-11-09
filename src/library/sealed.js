@@ -132,7 +132,7 @@ function wireTearDrag(tab, wrap, strip, albumId){
     moved = false;
     startX = e.clientX;
     hostWidth = wrap.getBoundingClientRect().width || 1;
-    try{ tab.setPointerCapture(e.pointerId); }catch(_err){}
+    try{ tab.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
   });
   tab.addEventListener('pointermove', e => {
     if(!dragging || committed) return;

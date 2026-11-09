@@ -162,7 +162,7 @@ export async function applyEdit(trackIds, fields, artBlob){
     }
     if(artBlob){
       await artwork.put({id, blob: artBlob});
-      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
+      if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){} // already revoked -- expected, not logged
       t.overlayArtBlob = artBlob;
       t.art = URL.createObjectURL(artBlob);
       touchedAlbumIds.add(albumKey(t));
@@ -205,7 +205,7 @@ export async function revertTrack(id){
   await artwork.del(id);
   t.tags = Object.assign({}, t.embeddedTags);
   t.details = Object.assign({}, t.embeddedDetails);
-  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
+  if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){} // already revoked -- expected, not logged
   t.overlayArtBlob = null;
   t.art = t.embeddedArt;
   if(hadArtOverlay){
@@ -247,7 +247,7 @@ export async function undoLastEdit(){
     const {tagFields: prevTagFields, detailFields: prevDetailFields} = splitFields(prevRec ? prevRec.fields : null);
     t.tags = Object.assign({}, t.embeddedTags, prevTagFields);
     t.details = Object.assign({}, t.embeddedDetails, prevDetailFields);
-    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){}
+    if(t.overlayArtBlob) try{ URL.revokeObjectURL(t.art); }catch(_e){} // already revoked -- expected, not logged
     if(prevArtRec){ t.overlayArtBlob = prevArtRec.blob; t.art = URL.createObjectURL(prevArtRec.blob); touchedAlbumIds.add(albumKey(t)); }
     else { t.overlayArtBlob = null; t.art = t.embeddedArt; touchedAlbumIds.add(albumKey(t)); }
     recomputeTrack(i);

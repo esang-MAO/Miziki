@@ -166,7 +166,7 @@ async function restoreLibrary(){
   // with nothing said — tell the user plainly, since by then they may be
   // deep in the app with no reason to suspect storage has gone stale.
   DB.onNotice(kind => { if(kind === 'staleVersion') showStaleVersionBanner(); });
-  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){}
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
   const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
   // Perf fix: build every track record first, then resolve every overlay/

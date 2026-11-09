@@ -110,7 +110,7 @@ export function applyOutputRoute(){
       n.out.disconnect();
       n.out.connect(n.bgDest);
     }catch(_e){
-      try{ n.out.connect(S.ctx.destination); }catch(_){}
+      try{ n.out.connect(S.ctx.destination); }catch(_){} // last-resort fallback to the normal destination; its own failure means the context itself is gone -- expected, not logged
       n.bgDest = null;
       bgFallback();
       return;
@@ -121,9 +121,9 @@ export function applyOutputRoute(){
     el.srcObject = n.bgDest.stream;
     if(S.playing) bgStartEl();
   } else if(!want && n.bgDest){
-    try{ n.out.disconnect(); }catch(_e){}
+    try{ n.out.disconnect(); }catch(_e){} // already disconnected -- expected, not logged
     n.out.connect(S.ctx.destination);
-    try{ n.bgDest.disconnect(); }catch(_e){}
+    try{ n.bgDest.disconnect(); }catch(_e){} // already disconnected -- expected, not logged
     n.bgDest = null;
     bgTeardown();
   }
@@ -169,7 +169,7 @@ export function bgSync(){
 export function bgIdleNow(){
   const el = S.bg.el;
   if(el && el.srcObject && !el.paused) el.pause();
-  if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(_e){} }
+  if('mediaSession' in navigator){ try{ navigator.mediaSession.playbackState = 'paused'; }catch(_e){} } // mediaSession unsupported or playbackState rejected -- expected, not logged
 }
 
 export function mediaSessionSync(){
@@ -202,7 +202,7 @@ export function mediaSessionSync(){
       ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: cachedArt || []}));
       assigned = true;
     }catch(_e){
-      try{ ms.metadata = new MediaMetadata(base); assigned = true; }catch(_){}
+      try{ ms.metadata = new MediaMetadata(base); assigned = true; }catch(_){} // MediaMetadata construction failing even without artwork is a deeper browser issue -- still expected, not logged
     }
     // Only remember this key once a MediaMetadata assignment actually
     // succeeded — committing the key on a failed attempt would mean a
@@ -216,7 +216,7 @@ export function mediaSessionSync(){
         // the track (or its art) may have moved on by the time this
         // resolves — only patch the metadata back in if it hasn't
         if(!entries.length || S.bg.msKey !== key) return;
-        try{ ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: entries})); }catch(_e){}
+        try{ ms.metadata = new MediaMetadata(Object.assign({}, base, {artwork: entries})); }catch(_e){} // mediaSession/MediaMetadata unsupported, or the session has since moved on -- expected, not logged
       });
     }
   }
@@ -225,13 +225,13 @@ export function mediaSessionSync(){
   // already runs on every play/pause/track-change (bgSync() via
   // renderMiniPlayer()), so the lock screen's own playbackState agrees
   // with S.playing whether or not Background playback is on.
-  try{ ms.playbackState = S.playing ? 'playing' : 'paused'; }catch(_e){}
+  try{ ms.playbackState = S.playing ? 'playing' : 'paused'; }catch(_e){} // mediaSession unsupported -- expected, not logged
   bgPosition();
 }
 
 function bgInstallHandlers(){
   const ms = navigator.mediaSession;
-  const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(_e){} };
+  const set = (action, fn) => { try{ ms.setActionHandler(action, fn); }catch(_e){} }; // this action name isn't a supported MediaSessionAction on this browser -- expected, not logged
   set('play', async () => { if(!S.ctx) await ensureContext(); if(!S.playing) play(); });
   set('pause', () => { if(S.playing) pause(); });
   set('stop', () => { if(S.playing) pause(); });
@@ -251,8 +251,8 @@ function bgRemoveHandlers(){
   S.bg.msKey = '';
   if(!('mediaSession' in navigator) || !S.bg.handlers) return;
   const ms = navigator.mediaSession;
-  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(_e){} });
-  try{ ms.metadata = null; ms.playbackState = 'none'; }catch(_e){}
+  ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach(a => { try{ ms.setActionHandler(a, null); }catch(_e){} }); // same per-action feature detection as bgInstallHandlers() above -- expected, not logged
+  try{ ms.metadata = null; ms.playbackState = 'none'; }catch(_e){} // mediaSession unsupported -- expected, not logged
   S.bg.handlers = false;
 }
 
@@ -265,7 +265,7 @@ export function bgPosition(){
   try{
     navigator.mediaSession.setPositionState({duration:t.duration, playbackRate:S.rate > 0 ? S.rate : 1,
       position:clamp(currentPos(), 0, t.duration)});
-  }catch(_e){}
+  }catch(_e){} // setPositionState unsupported, or duration not yet known -- expected, not logged
 }
 
 export function bgUpdateUI(){
@@ -285,7 +285,7 @@ export function bgUpdateUI(){
 
 export function applyBgAudioSetting(){
   // on iOS this also lets Web Audio play with the silent switch on
-  try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(_e){}
+  try{ if('audioSession' in navigator) navigator.audioSession.type = bgRouteActive() ? 'playback' : 'auto'; }catch(_e){} // audioSession unsupported outside iOS Safari -- expected, not logged
   // applyOutputRoute() already tears down the hidden <audio> element on
   // an on->off transition (its own else branch, bgTeardown()) — that's
   // the real, audio-element-specific cleanup this toggle controls.
@@ -315,7 +315,7 @@ function bgOfferAnswered(){
   try{ return localStorage.getItem(BG_OFFER_ANSWERED_KEY) === '1'; }catch(_e){ return false; }
 }
 function markBgOfferAnswered(){
-  try{ localStorage.setItem(BG_OFFER_ANSWERED_KEY, '1'); }catch(_e){}
+  try{ localStorage.setItem(BG_OFFER_ANSWERED_KEY, '1'); }catch(_e){} // private browsing/quota -- expected, not logged
 }
 
 // Call on visibilitychange -> hidden. Remembers whether losing playback

@@ -18,7 +18,7 @@ export function askLocation(){
   if(!navigator.geolocation){ $('#locNote').textContent = 'This browser has no location access, so Miziki is using a stand-in sunset of 8:10 pm.'; fallbackSun(); return; }
   navigator.geolocation.getCurrentPosition(
     pos => {
-      try{ localStorage.setItem(LOCATION_GRANTED_KEY, '1'); }catch(_e){}
+      try{ localStorage.setItem(LOCATION_GRANTED_KEY, '1'); }catch(_e){} // private browsing/quota -- expected, not logged
       S.sun.lat = pos.coords.latitude; S.sun.lon = pos.coords.longitude;
       computeSun(); drawSun();
       $('#locNote').textContent = 'Sunset times come from your location and today\'s date, worked out on the device.';
@@ -39,7 +39,7 @@ export function askLocation(){
 // button wired to askLocation() — the only place that actually asks.
 export function initLocationPrompt(){
   let granted = false;
-  try{ granted = localStorage.getItem(LOCATION_GRANTED_KEY) === '1'; }catch(_e){}
+  try{ granted = localStorage.getItem(LOCATION_GRANTED_KEY) === '1'; }catch(_e){} // private browsing -- expected, not logged
   if(granted){ askLocation(); return; }
   const note = $('#locNote');
   if(note) note.innerHTML = 'Location is off, so tonight is a stand-in: sunset 8:10 pm, dusk 8:36 pm. <button class="cta ghost" id="retryLoc" style="margin-top:10px">Use my location</button>';
@@ -64,7 +64,7 @@ export function initLocationPrompt(){
 // sunset until location answers.
 export function fallbackSun(){
   let cache = null;
-  try{ cache = JSON.parse(localStorage.getItem(SUN_TIMES_STORAGE_KEY) || 'null'); }catch(_e){}
+  try{ cache = JSON.parse(localStorage.getItem(SUN_TIMES_STORAGE_KEY) || 'null'); }catch(_e){} // blocked storage or a malformed cache entry -- expected, not logged
   const ev = standInEvents(new Date(), cache);
   S.sun.dawn = ev.dawn; S.sun.rise = ev.rise; S.sun.noon = ev.noon;
   S.sun.set = ev.set; S.sun.dusk = ev.dusk;

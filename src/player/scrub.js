@@ -138,8 +138,8 @@ async function ensureScratchModule(ctx){
 }
 
 function freeScratchNode(){
-  if(scratchNode){ try{ scratchNode.port.postMessage({type:'stop'}); scratchNode.disconnect(); }catch(_err){} }
-  if(scratchGain){ try{ scratchGain.disconnect(); }catch(_err){} }
+  if(scratchNode){ try{ scratchNode.port.postMessage({type:'stop'}); scratchNode.disconnect(); }catch(_err){} } // already disconnected/context closed -- expected, not logged
+  if(scratchGain){ try{ scratchGain.disconnect(); }catch(_err){} } // already disconnected -- expected, not logged
   scratchNode = null; scratchGain = null; scratchGraphCtx = null;
 }
 
@@ -278,7 +278,7 @@ export function wireSpinToScrub(){
       S.needleDrop = true;
       disc.classList.add('disc-drop-active');
       needleGesture = {pointerId:e.pointerId, lastIndex:null, lastSnapped:false};
-      try{ disc.setPointerCapture(e.pointerId); }catch(_err){}
+      try{ disc.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
       return;
     }
     const ang = pointerAngle(e.clientX, e.clientY, rect);
@@ -328,7 +328,7 @@ export function wireSpinToScrub(){
       if(Math.abs(angleDelta(ang, scrubGesture.startAngle)) < SCRUB_CLAIM_THRESHOLD_DEG) return;
       scrubGesture.claimed = true;
       clearLongPressTimer();
-      try{ disc.setPointerCapture(e.pointerId); }catch(_err){}
+      try{ disc.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
       if(S.playing) pause();               // silence the normal transport during a scrub...
       // ...replaced by real scratch audio if Vinyl + Scratch are both on.
       // Scratch works even while paused, same as a real record moved by hand

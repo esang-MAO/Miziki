@@ -119,7 +119,7 @@ function wireSundownSheetDrag(){
   grabber.addEventListener('pointerdown', ev => {
     dragging = true; startY = ev.clientY; startFull = sheet.classList.contains('full');
     sheet.classList.add('dragging');
-    try{ grabber.setPointerCapture(ev.pointerId); }catch(_e){}
+    try{ grabber.setPointerCapture(ev.pointerId); }catch(_e){} // pointer may already be released/captured -- expected, not logged
   });
   grabber.addEventListener('pointermove', ev => {
     if(!dragging) return;

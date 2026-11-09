@@ -60,7 +60,7 @@ function readTags(buf, filename){
         if(b[i]===0x49 && b[i+1]===0x44 && b[i+2]===0x33){ t = id3Tags(b, i); break; }
       }
     }
-  }catch(_e){}
+  }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
   return {
     title: clean(t.title) || filename.replace(/\.[^.]+$/,''),
     artist: clean(t.artist) || 'Unknown Artist',
@@ -83,7 +83,7 @@ function readDetails(buf){
         if(b[i]===0x49 && b[i+1]===0x44 && b[i+2]===0x33) return id3Details(b, i);
       }
     }
-  }catch(_e){}
+  }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
   return emptyDetails();
 }
 
@@ -101,7 +101,7 @@ function findArtworkBlob(buf){
         }
       }
     }
-  }catch(_e){}
+  }catch(_e){}  // malformed/truncated tag bytes -- expected (LI7 covers hardening this further), not logged
   return null;
 }
 

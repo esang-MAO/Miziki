@@ -21,5 +21,5 @@ export function hapticTick(){
     const ua = navigator.userActivation;
     if(ua && !ua.hasBeenActive) return;
     navigator.vibrate(8);
-  }catch(_e){}
+  }catch(_e){} // feature detection: vibrate()/Haptics can throw on an unsupported browser/plugin -- expected, not logged
 }

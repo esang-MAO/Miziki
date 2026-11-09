@@ -91,7 +91,7 @@ function crateArtCacheSet(tier, albumId, url){
   cache.set(albumId, url);
   while(cache.size > cap){
     const oldestId = cache.keys().next().value;
-    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(_e){}
+    try{ URL.revokeObjectURL(cache.get(oldestId)); }catch(_e){} // already revoked/not a blob: URL -- expected, not logged
     cache.delete(oldestId);
   }
 }
@@ -120,7 +120,7 @@ export async function getCrateArtURL(albumId, tier){
 
 function revokeCrateArtTier(albumId, tier){
   const cache = crateArtCache[tier];
-  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(_e){} cache.delete(albumId); }
+  if(cache.has(albumId)){ try{ URL.revokeObjectURL(cache.get(albumId)); }catch(_e){} cache.delete(albumId); } // already revoked -- expected, not logged
 }
 
 export async function deleteCrateArtTiers(albumId){

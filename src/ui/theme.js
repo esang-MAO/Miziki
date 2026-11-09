@@ -153,18 +153,18 @@ export function applyTheme(){
   if(S.theme === 'light' || S.theme === 'dark'){
     root.dataset.theme = S.theme;
     teardownAutoListener();
-    try { localStorage.setItem(THEME_STORAGE_KEY, S.theme); } catch(_e) {}
+    try { localStorage.setItem(THEME_STORAGE_KEY, S.theme); } catch(_e) {} // private browsing/quota -- expected, theme-boot.js just has no mirror to read next launch
   } else if(S.theme === 'nychthemeron'){
     // resolves to the *existing* light/dark token sets — Nychthemeron
     // isn't a third palette, just a different rule for picking between
     // the two that already exist (see this file's own header comment).
     root.dataset.theme = effectiveTheme();
     teardownAutoListener();
-    try { localStorage.setItem(THEME_STORAGE_KEY, 'nychthemeron'); } catch(_e) {}
+    try { localStorage.setItem(THEME_STORAGE_KEY, 'nychthemeron'); } catch(_e) {} // same expected private-browsing/quota case as above
   } else {
     delete root.dataset.theme;
     setupAutoListener();
-    try { localStorage.removeItem(THEME_STORAGE_KEY); } catch(_e) {}
+    try { localStorage.removeItem(THEME_STORAGE_KEY); } catch(_e) {} // same expected private-browsing/quota case as above
   }
   setMetaThemeColor(effectiveTheme());
   syncThemeButtons();

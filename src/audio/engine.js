@@ -679,8 +679,8 @@ export function disconnectVinylChain(){
   if(!n || !n.pad || !S.ctx || n.vinylChainIdle) return;
   n.pad.disconnect();
   n.makeup.disconnect();
-  if(n.wowOsc){ try{ n.wowOsc.stop(); }catch(_e){} }
-  if(n.flutOsc){ try{ n.flutOsc.stop(); }catch(_e){} }
+  if(n.wowOsc){ try{ n.wowOsc.stop(); }catch(_e){} } // oscillator already stopped -- expected, not logged
+  if(n.flutOsc){ try{ n.flutOsc.stop(); }catch(_e){} } // oscillator already stopped -- expected, not logged
   n.vinylChainIdle = true;
 }
 

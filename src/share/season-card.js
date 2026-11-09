@@ -152,7 +152,7 @@ export async function composeSeasonShareImage(opts){
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  try{ await document.fonts.ready; }catch(_e){}
+  try{ await document.fonts.ready; }catch(_e){} // Font Loading API unavailable/rejects -- expected, not logged
   const kit = await resolveShareStyle(style);
   kit.paintBg(ctx, w, h);
   if(!data) return canvas;

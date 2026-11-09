@@ -40,7 +40,7 @@ export function restoreScrollPosition(key, target){
 // per-tab) — 'manual' hands the whole thing to the app, same posture NV2's
 // own history.pushState()-based nav stack already assumes throughout.
 export function initScrollRestoration(){
-  try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_e){}
+  try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_e){} // feature detection -- expected, not logged
 }
 
 // test-only accessor — never used by app code

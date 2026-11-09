@@ -1345,7 +1345,7 @@ export function renderCrate(host){
     // path's pointermove runs first can classify the gesture's axis before
     // committing to a vertical flip/pull.
     hStartX = e.clientX; hStartY = e.clientY; hGestureT0 = performance.now();
-    try{ stage.setPointerCapture(e.pointerId); }catch(_err){}
+    try{ stage.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
     const front = frontRecordAt(e);
     if(!front){ beginFlipDrag(e, false); return; }
     pullState = {
@@ -1493,7 +1493,7 @@ export function renderCrate(host){
     if(!entry) return;
     scrubbing = true;
     cancelAnim();
-    try{ rail.setPointerCapture(e.pointerId); }catch(_err){}
+    try{ rail.setPointerCapture(e.pointerId); }catch(_err){} // pointer may already be released/captured -- expected, not logged
     bubbleEl = document.createElement('div');
     bubbleEl.className = 'crate-rail-bubble';
     document.body.appendChild(bubbleEl);

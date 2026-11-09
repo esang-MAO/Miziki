@@ -49,7 +49,7 @@ export function selectSundownView(view){
   if(soundEl) soundEl.style.display = view === 'sound' ? '' : 'none';
   // device-only, same posture as S.theme's own localStorage mirror
   // (src/theme-boot.js) — never synced, never part of prefs/backup.
-  try{ localStorage.setItem(SUNDOWN_VIEW_KEY, view); }catch(_e){}
+  try{ localStorage.setItem(SUNDOWN_VIEW_KEY, view); }catch(_e){} // private browsing/quota -- expected, not logged
   currentSundownView = view;
   if(isNewView) restoreScrollPosition('sundown-view:' + view);
 }
