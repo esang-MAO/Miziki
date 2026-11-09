@@ -380,33 +380,66 @@
 }
 /* GF4 point 1/3: #gfSleevePockets wraps every pocket. A single disc (the
    default, unchanged from GF3) needs no layout of its own -- display:contents
-   keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before.
-   Two or more discs (.gf-multi-disc, set by gatefoldBuildSleevePockets())
-   switch to a horizontally-scrolling row instead, one pocket per disc,
-   never shrinking below the single-disc size. */
+   keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before. */
 .gf-sleeve-pockets{display:contents}
-.gf-sleeve-pockets.gf-multi-disc{position:absolute;inset:0;display:flex;align-items:flex-start;
-  gap:var(--sp-5);overflow-x:auto;padding:0 calc(50% - var(--gf-disc-size,156px) / 2)}
 /* CC5 (docs/34_CARE_AND_CONTROL.md point 5): exactly two discs -- a
    computed double LP or a real tagged 2-disc album -- sit side by side
-   and fully visible instead of the scrolling row above: two discs at
-   full --gf-disc-size plus a --sp-4 gap already fit the 350px sleeve
-   (2 × 156 + 16 = 328px), so this only needs centering, a smaller gap,
-   and no scroll -- never a size reduction. Three or more discs (box
-   sets) are untouched, still .gf-multi-disc alone. */
-.gf-sleeve-pockets.gf-two-disc{justify-content:center;gap:var(--sp-4);overflow-x:visible;padding:0}
+   and fully visible: two discs at full --gf-disc-size plus a --sp-4 gap
+   already fit the 350px sleeve (2 × 156 + 16 = 328px), so this only
+   needs centering, a smaller gap, and no scroll -- never a size
+   reduction. */
+.gf-sleeve-pockets.gf-two-disc{position:absolute;inset:0;display:flex;align-items:flex-start;
+  justify-content:center;gap:var(--sp-4)}
 .gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:var(--gf-disc-size,156px);height:var(--gf-disc-size,156px);margin-left:calc(var(--gf-disc-size,156px) / -2);
   opacity:1;transition:transform .25s ease-out,opacity .3s}
-.gf-multi-disc .gf-sleeve-disc-wrap{position:relative;left:auto;top:auto;margin-left:0;flex:0 0 var(--gf-disc-size,156px)}
+.gf-two-disc .gf-sleeve-disc-wrap{position:relative;left:auto;top:auto;margin-left:0;flex:0 0 var(--gf-disc-size,156px)}
 .gf-sleeve-disc-wrap.gf-disc-out{transform:translateY(-96px)}
 /* GF4 point 1: only the disc itself (and its dead wax, below) fades out
    when a pocket is "on the platter" -- the pocket wrap stays opaque so
-   its own .gf-disc-on-platter label (next) can show in its place. */
+   its own .gf-disc-on-platter label (next) can show in its place. This
+   is deliberately generic over every pocket (gatefoldSleevePocketEls()
+   loops them all) so it needs no change for box-set rows below --
+   Ken, 2026-11-09: "Just leave the space blank when the disc is on the
+   platter," for a disc in any row. */
 .gf-sleeve-disc-wrap.gf-disc-empty .disc{opacity:0}
 .gf-disc-on-platter{position:absolute;inset:8% 4%;display:flex;align-items:center;justify-content:center;
   text-align:center;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .3s;pointer-events:none}
 .gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-on-platter{opacity:1}
+
+/* Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
+   2026-11-09): a real tagged album with more than 2 discs gets
+   additional rows of 2, straight back -- replacing the old horizontally-
+   scrolling .gf-multi-disc row entirely ("one in, one out": that
+   scrolling treatment is retired, not kept alongside this). Set by
+   gatefoldBuildSleevePockets()/gatefoldRowLayout() (src/gatefold/view.js,
+   geometry.js): --gf-row (0 = front row, today's plain two-disc
+   position) plus a .gf-row-left/.gf-row-right/.gf-row-center column
+   class per pocket. The column x-offsets reuse the exact
+   50% ± --sp-4/2 ± --gf-disc-size/2 formula the two-disc sleeve-paper
+   mask above already uses, so the front row lines up pixel-identical
+   with today's plain two-disc look -- Ken: "It should look the same as
+   how double discs look in the gatefold now, just with the additional
+   rows." Every row renders at full, identical brightness, same as
+   today's two-disc row -- no per-row dim. */
+.gf-sleeve.gf-row-disc .gf-sleeve-paper{display:none}
+.gf-row-disc .gf-sleeve-disc-wrap{top:auto;
+  bottom:calc(var(--gf-row,0) * var(--gf-disc-size,156px) / 2);
+  z-index:calc(100 - var(--gf-row,0))}
+.gf-row-disc .gf-sleeve-disc-wrap.gf-row-left{left:calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2)}
+.gf-row-disc .gf-sleeve-disc-wrap.gf-row-right{left:calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2)}
+.gf-row-disc .gf-sleeve-disc-wrap.gf-row-center{left:50%}
+/* Ken: "similar to a real record, each disc would be in its own sleeve,"
+   "make the sleeves half the length," "records should poke out from the
+   top of the sleeves" -- half the disc's own height, covering its
+   bottom half (the now-exposed paper edge rounds at the bottom, the
+   side that would show between two stacked sleeves), shown only once a
+   pocket is part of a box-set row. */
+.gf-disc-own-sleeve{display:none}
+.gf-row-disc .gf-disc-own-sleeve{display:block;position:absolute;left:-10%;right:-10%;bottom:-6%;
+  height:calc(var(--gf-disc-size,156px) / 2 + 6%);
+  background:linear-gradient(180deg,var(--stock-divider-1),var(--stock-divider-2));
+  border-radius:0 0 10px 10px;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:-1}
 /* GF3 point 2: the pocket disc's own label scales with the record's real
    size -- the same [data-size]-keyed ratios 02-stage-platter.css already
    uses for the big spinning platter ("the same ratios... a 7″ label
