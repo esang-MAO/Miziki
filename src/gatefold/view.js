@@ -725,39 +725,80 @@ function gatefoldSleevePocketEls(){
 // instead, rows of 2 straight back, via .gf-row-disc.
 // Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
 // 2026-11-09): #gfSleeve's default CSS position/height (11-gatefold.css,
-// top:570px/height:252px, bottom edge at 822px within the gatefold's own
-// 390x740 reference frame -- gatefoldGeometry()'s referenceWidth/Height).
-// Ken, 2026-11-09 (caught live on a real phone): growing *only* the
-// height, keeping that same fixed top, pushes the bottom edge further
-// down the reference frame for each extra row -- past 740 and, for 2+
-// extra rows, past a real phone's own viewport height too (the gatefold
-// overlay clips at its real screen bounds, not at the 740 reference
-// line; 822 already relies on the slack most phones have beyond 740 at
-// the gatefold's usual width-bound scale). Anchoring the BOTTOM edge at
-// its original 822px instead, and growing upward (shrinking `top`) for
-// each extra row, keeps every row inside that same already-proven-safe
-// bottom bound -- the sleeve grows into the gap above it (520-570px
-// headroom below the tracklist/cover panel's own 430px bottom) instead
-// of past the screen's bottom edge.
+// top:570px/height:252px, bottom edge at 822px) are plain real device
+// px -- #gfSleeve and #gfInfo are both siblings of .gf-camera (the 3D
+// flip stage), not descendants of it, so neither is affected by
+// --gf-page-scale or the camera's own push/pan transform; confirmed by
+// measuring both at viewport heights where that scale isn't 1 and
+// seeing the same literal numbers either way. Growing only the height
+// from a fixed top pushed the bottom edge further down for each extra
+// row, clipped under a real phone's own screen bounds (#391). Anchoring
+// the bottom edge at a hardcoded 822 (assuming an ~844-tall viewport)
+// fixed that on the device it was measured against, but Ken then hit
+// the same "can't see every row" symptom again on his own phone --
+// meaning his real `window.innerHeight` is shorter than 844, so the
+// hardcoded anchor still overshot it. A first attempt at fixing that
+// also stopped the sleeve at the mini-player's own top edge, but the
+// mini-player overlapping part of the sleeve has always been accepted
+// (true for the existing 1-2 disc design too, which already overlaps
+// it) -- treating it as a hard wall left too little real room and
+// compressed deeper box sets into a near-total overlap, hiding the
+// back row behind the front one instead of just under the mini-player.
+// gatefoldSleeveRowBudget() now anchors the bottom at the real
+// `window.innerHeight` (never past it, whatever that number actually
+// is on this device) and the top at .gf-info's own real rendered
+// bottom edge (never past that, so rows can't cover the album text).
+// gatefoldLayoutSleeveRows() fits however many rows exist into exactly
+// that measured gap, shrinking the per-row step below the proven 78px
+// (half the disc diameter) only when the uncompressed stack wouldn't
+// fit -- "stacking the rows tighter is fine" (Ken) -- so every disc
+// stays visible and distinguishable on whatever device is real, not
+// just the one this was tested on.
 const GF_SLEEVE_TOP = 570;
 const GF_SLEEVE_BASE_HEIGHT = 252;
 const GF_SLEEVE_ANCHOR_BOTTOM = GF_SLEEVE_TOP + GF_SLEEVE_BASE_HEIGHT;
 const GF_SLEEVE_ROW_STEP = 78; // gatefoldGeometry()'s uniform discDiameter (156) / 2
 const GF_SLEEVE_DISC_SIZE = 156;
-// Ken, 2026-11-09 (follow-up to the bottom-anchor fix above): rows 0-1
-// (3-4 discs) sit well clear of .gf-info's album-name/artist text
-// (11-gatefold.css, top:494px/height:44px -- its text ends at 538px;
-// row 1's disc top lands at 588px, a proven ~50px gap). A real *tagged*
-// box set has no disc cap though, and row 2+ (5+ discs) used the same
-// uncapped 78px-per-row step, which reaches the info text's own
-// bounding box (row 2's disc top: 510px, 28px into it). Past row 1,
-// each further row steps by a shrinking amount instead (18px, capped
-// at 2 extra steps) so the deepest disc's top never passes 552px --
-// 14px clear of the text -- however many discs a box set has; rows 0-1
-// are untouched (identical px as before this follow-up).
-function gfRowOffsetPx(row){
-  if(row <= 1) return row * GF_SLEEVE_ROW_STEP;
-  return GF_SLEEVE_ROW_STEP + Math.min((row - 1) * 18, 36);
+const GF_SLEEVE_ROW_MARGIN = 12; // clearance kept below the info text and above the real viewport edge
+
+function gatefoldSleeveRowBudget(){
+  const info = $('.gf-info');
+  const infoRect = info ? info.getBoundingClientRect() : null;
+  const minTop = infoRect && infoRect.height > 0
+    ? infoRect.bottom + GF_SLEEVE_ROW_MARGIN
+    : GF_SLEEVE_TOP - (GF_SLEEVE_ROW_STEP - GF_SLEEVE_ROW_MARGIN);
+  // The real viewport edge is the one bound that can never give: a few
+  // px of tight margin above the info text beats clipping off the
+  // bottom entirely, so `top` yields first if there isn't room for
+  // even one disc between the two (an extreme, unlikely-in-practice
+  // case -- any real phone has well over 156px between its album text
+  // and its own screen edge).
+  const bottom = Math.min(GF_SLEEVE_ANCHOR_BOTTOM, window.innerHeight - GF_SLEEVE_ROW_MARGIN);
+  const top = Math.min(minTop, bottom - GF_SLEEVE_DISC_SIZE);
+  return { top, bottom };
+}
+
+function gatefoldLayoutSleeveRows(rowDisc, rows){
+  const gfSleeve = $('#gfSleeve');
+  if(!rowDisc){
+    gfSleeve.style.height = '';
+    gfSleeve.style.top = '';
+    gatefoldSleevePocketEls().forEach(wrap => { wrap.style.bottom = ''; });
+    return;
+  }
+  const budget = gatefoldSleeveRowBudget();
+  const available = budget.bottom - budget.top;
+  const uncompressedHeight = GF_SLEEVE_DISC_SIZE + rows * GF_SLEEVE_ROW_STEP;
+  const step = uncompressedHeight <= available
+    ? GF_SLEEVE_ROW_STEP
+    : Math.max(12, (available - GF_SLEEVE_DISC_SIZE) / rows);
+  const sleeveHeight = GF_SLEEVE_DISC_SIZE + rows * step;
+  gfSleeve.style.height = sleeveHeight + 'px';
+  gfSleeve.style.top = (budget.bottom - sleeveHeight) + 'px';
+  gatefoldSleevePocketEls().forEach(wrap => {
+    const row = Number(wrap.dataset.gfRow || 0);
+    wrap.style.bottom = (row * step) + 'px';
+  });
 }
 
 function gatefoldBuildSleevePockets(discGroups){
@@ -770,10 +811,6 @@ function gatefoldBuildSleevePockets(discGroups){
   gfSleeve.classList.toggle('gf-two-disc', twoDisc);
   gfSleeve.classList.toggle('gf-row-disc', rowDisc);
   const layout = gatefoldRowLayout(discGroups.length);
-  const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
-  const sleeveHeight = GF_SLEEVE_DISC_SIZE + gfRowOffsetPx(rows);
-  gfSleeve.style.height = rowDisc ? sleeveHeight + 'px' : '';
-  gfSleeve.style.top = rowDisc ? (GF_SLEEVE_ANCHOR_BOTTOM - sleeveHeight) + 'px' : '';
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
   const first = $('#gfSleeveDiscWrap');
   first.classList.remove('gf-disc-out');
@@ -781,10 +818,10 @@ function gatefoldBuildSleevePockets(discGroups){
   const applyRow = (wrap, i) => {
     const pos = layout[i];
     wrap.classList.remove('gf-row-left', 'gf-row-right', 'gf-row-center');
-    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); wrap.style.bottom = ''; return; }
+    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); delete wrap.dataset.gfRow; wrap.style.bottom = ''; return; }
     wrap.classList.add('gf-row-' + pos.col);
     wrap.style.setProperty('--gf-row', String(pos.row));
-    wrap.style.bottom = gfRowOffsetPx(pos.row) + 'px';
+    wrap.dataset.gfRow = String(pos.row);
   };
   applyRow(first, 0);
   for(let k = 1; k < discGroups.length; k++){
@@ -797,6 +834,22 @@ function gatefoldBuildSleevePockets(discGroups){
     applyRow(clone, k);
     pockets.appendChild(clone);
   }
+  const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
+  gatefoldLayoutSleeveRows(rowDisc, rows);
+}
+
+// gatefoldBuildSleevePockets() runs before the overlay is visible
+// (display:none until .open is added), so its own layout pass measures
+// against a zeroed-out .gf-info/mini-player and has to be redone once
+// there's something real on screen to measure -- openGatefold() calls
+// this right after adding .open.
+function gatefoldRelayoutSleeveRows(){
+  if(!GF) return;
+  const rowDisc = GF.discGroups.length > 2;
+  if(!rowDisc) return;
+  const layout = gatefoldRowLayout(GF.discGroups.length);
+  const rows = layout.reduce((max, l) => Math.max(max, l.row), 0);
+  gatefoldLayoutSleeveRows(rowDisc, rows);
 }
 
 const GF_WEAR_STAGES = ['light', 'worn', 'loved'];
@@ -1697,6 +1750,7 @@ export function openGatefold(item, opts){
   updateGatefoldScale();
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden','false');
+  gatefoldRelayoutSleeveRows();
   gatefoldWireGestures();
   runGatefoldOpen(mode);
   openLayer('gatefold', closeGatefold, { instantClose: closeGatefoldInstant, container: overlay });
