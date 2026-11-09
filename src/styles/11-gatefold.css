@@ -368,21 +368,16 @@
    entirely (unconditionally hidden just below) rather than kept for only
    the 1-2 disc case, since every pocket now draws its own sleeve. */
 .gf-sleeve-paper{display:none}
-/* GF4 point 1/3: #gfSleevePockets wraps every pocket. A single disc (the
-   default, unchanged from GF3) needs no layout of its own -- display:contents
-   keeps .gf-sleeve-disc-wrap positioned straight off .gf-sleeve as before. */
+/* GF4 point 1/3: #gfSleevePockets wraps every pocket -- display:contents
+   keeps every .gf-sleeve-disc-wrap positioned straight off .gf-sleeve,
+   each wrap placing itself absolutely (below) rather than the wrapper
+   doing any layout of its own. */
 .gf-sleeve-pockets{display:contents}
-/* CC5 (docs/34_CARE_AND_CONTROL.md point 5): exactly two discs -- a
-   computed double LP or a real tagged 2-disc album -- sit side by side
-   and fully visible: two discs at full --gf-disc-size plus a --sp-4 gap
-   already fit the 350px sleeve (2 × 156 + 16 = 328px), so this only
-   needs centering, a smaller gap, and no scroll -- never a size
-   reduction. */
-.gf-sleeve-pockets.gf-two-disc{position:absolute;inset:0;display:flex;align-items:flex-start;
-  justify-content:center;gap:var(--sp-4)}
-.gf-sleeve-disc-wrap{position:absolute;left:50%;top:0;width:var(--gf-disc-size,156px);height:var(--gf-disc-size,156px);margin-left:calc(var(--gf-disc-size,156px) / -2);
+.gf-sleeve-disc-wrap{position:absolute;top:auto;
+  width:var(--gf-row-disc-size,156px);height:var(--gf-row-disc-size,156px);margin-left:0;
+  left:calc(50% + var(--gf-row-x,0) * (var(--sp-4) + var(--gf-row-disc-size,156px)) - var(--gf-row-disc-size,156px) / 2);
+  z-index:calc(100 - var(--gf-row,0));
   opacity:1;transition:transform .25s ease-out,opacity .3s}
-.gf-two-disc .gf-sleeve-disc-wrap{position:relative;left:auto;top:auto;margin-left:0;flex:0 0 var(--gf-disc-size,156px)}
 .gf-sleeve-disc-wrap.gf-disc-out{transform:translateY(-96px)}
 /* GF4 point 1: only the disc itself (and its dead wax, below) fades out
    when a pocket is "on the platter" -- the pocket wrap stays opaque so
@@ -403,53 +398,32 @@
    scrolling .gf-multi-disc row entirely ("one in, one out": that
    scrolling treatment is retired, not kept alongside this). Set by
    gatefoldBuildSleevePockets()/gatefoldRowLayout() (src/gatefold/view.js,
-   geometry.js): --gf-row (0 = front row, today's plain two-disc
-   position) plus a .gf-row-left/.gf-row-right/.gf-row-center column
-   class per pocket. The column x-offsets reuse the exact
-   50% ± --sp-4/2 ± --gf-disc-size/2 formula the two-disc sleeve-paper
-   mask above already uses, so the front row lines up pixel-identical
-   with today's plain two-disc look -- Ken: "It should look the same as
-   how double discs look in the gatefold now, just with the additional
-   rows." Every row renders at full, identical brightness, same as
-   today's two-disc row -- no per-row dim. */
-/* Design-mockup follow-up (Ken, 2026-11-09): rows of up to 3 across
-   (gatefoldRowLayout(), src/gatefold/geometry.js) -- --gf-row-x (-1/0/1
-   for a row of 3, -0.5/0.5 for a row of 2, 0 alone) replaces the old
-   fixed left/right/center classes so any row width positions off the
-   same one formula. --gf-row-disc-size is pushed per open by
-   gatefoldLayoutSleeveRows() (view.js), scaled to the widest row and the
-   real room above the mini-player -- never the plain sleeve's fixed
-   --gf-disc-size. bottom is set directly in JS (half a disc's height
-   per row behind the front one), not a CSS calc, since the per-open
-   size it depends on isn't a CSS var everywhere it's needed. */
-.gf-row-disc .gf-sleeve-disc-wrap{top:auto;position:absolute;
-  width:var(--gf-row-disc-size,156px);height:var(--gf-row-disc-size,156px);margin-left:0;
-  left:calc(50% + var(--gf-row-x,0) * (var(--sp-4) + var(--gf-row-disc-size,156px)) - var(--gf-row-disc-size,156px) / 2);
-  z-index:calc(100 - var(--gf-row,0))}
-/* Ken, design-mockup follow-up: "the records should effectively appear
-   as semicircles sticking out of the respective sleeves... no need to
-   see it as a full square sleeve and a full circular record" -- the
-   disc only ever draws its visible top half (clip-path, not a second
-   element hidden behind an opaque sleeve: there's no overlap to hide,
-   so nothing costs extra vertical room), and .gf-disc-own-sleeve only
-   ever draws its own visible bottom half, styled to read as a real
-   paper sleeve (a two-tone cover-art gradient, an open-corner flap where
-   the record slides in, a spine fold) rather than a flat manila-folder
-   block. Still a full circle once it's actually on the platter (02-
-   stage-platter.css's own disc, untouched by any of this).
-   Uniform-sleeve-look follow-up (Ken, 2026-11-09): "the 1-2 disc should
-   also be in the half square/half semicircle sleeves & record look...
-   that way the look is uniform across the board" -- the disc-clip and
-   own-sleeve rules below no longer gate on .gf-row-disc, so a 1 or
-   2-disc album gets the exact same half-circle-over-half-square
-   rendering at its existing fixed --gf-disc-size (156px) rather than the
-   row layout's own scaled --gf-row-disc-size -- "the size can remain
-   the same since there is more space available." Only the row layout's
-   own positioning/sizing rule just above (.gf-row-disc .gf-sleeve-disc-
-   wrap) still gates on 3+ discs, since 1-2 discs keep their existing
-   centered/side-by-side placement untouched. */
-.gf-sleeve-disc-wrap .disc{clip-path:inset(0 0 50% 0)}
-.gf-disc-own-sleeve{display:block;position:absolute;left:0;right:0;bottom:0;height:50%;
+   geometry.js): --gf-row (0 = front row) plus --gf-row-x, the generic
+   positioning rule now on the base .gf-sleeve-disc-wrap above (GF13's
+   own column classes are long gone).
+   Third-square follow-up (Ken, 2026-11-09): "For any size disc the
+   sleeve should be flush with the top of the mini player. Instead of a
+   half square make it a third of a square with the upper third of the
+   circle sticking out of it" -- approved via an Artifact mockup (1-6
+   discs) before this landed. Every disc, at any count (1 through
+   however many a box set has), now shows only its own top THIRD
+   (clip-path, not half) over its own sleeve's bottom THIRD
+   (.gf-disc-own-sleeve, now a middle band rather than a bottom-anchored
+   half) -- the wrap's own bottom third stays blank. Since the disc
+   element itself still fills the wrap (02-stage-platter.css's
+   .disc{inset:0}), the wrap's own box is still a full square (needed
+   so the disc/label/dead-wax proportions stay correct) -- only the
+   CLIP shrinks, so the visually blank bottom third can run past
+   .gf-sleeve's own bottom edge (clipped off harmlessly by its own
+   overflow:hidden) while the ACTUAL painted content (disc-third +
+   sleeve-third) sits flush against it. gatefoldLayoutSleeveRows()
+   (view.js) computes every wrap's `bottom` with that blank third
+   already subtracted, for every disc count -- 1 and 2 discs now run
+   through the exact same budget/row-layout code 3+ discs already used,
+   not a separate fixed-position/fixed-size path, so "flush with the
+   mini player" and the scaled --gf-row-disc-size apply everywhere. */
+.gf-sleeve-disc-wrap .disc{clip-path:inset(0 0 66.6667% 0)}
+.gf-disc-own-sleeve{display:block;position:absolute;left:0;right:0;top:33.3333%;height:33.3334%;
   border-radius:2px;overflow:hidden;
   background:linear-gradient(135deg,var(--stock-divider-1) 0%,var(--stock-divider-1) 55%,var(--stock-divider-2) 55%,var(--stock-divider-2) 100%);
   box-shadow:0 6px 12px rgba(0,0,0,.25),inset 0 0 0 1px rgba(0,0,0,.1)}
