@@ -717,12 +717,11 @@ function gatefoldSleevePocketEls(){
 // later disc's pocket is a clone of it with its id (and every id of its
 // own descendants) stripped, found afterward through the shared
 // .gf-sleeve-disc-wrap class and its own [data-disc] instead.
-// CC5 point 5: exactly two discs (computed or tagged) sit side by side,
-// fully visible, no scroll -- .gf-two-disc, toggled on both the pockets
-// row (for its own flex layout) and #gfSleeve (so .gf-sleeve-paper, a
-// sibling of #gfSleevePockets rather than a descendant, can get its own
-// two-cutout mask). Three or more discs use gatefoldRowLayout() below
-// instead, rows of 2 straight back, via .gf-row-disc.
+// Every disc count, 1 and up, now runs through the same generic
+// gatefoldRowLayout()-driven positioning below (the earlier two-disc
+// flex layout and .gf-sleeve-paper thumb-cut mask are both retired --
+// see the "Third-square follow-up" comment above
+// gatefoldSleeveRowBudget()).
 // Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
 // 2026-11-09): #gfSleeve's default CSS position/height (11-gatefold.css,
 // top:570px/height:252px, bottom edge at 822px) are plain real device
@@ -754,25 +753,32 @@ function gatefoldSleevePocketEls(){
 // fit -- "stacking the rows tighter is fine" (Ken) -- so every disc
 // stays visible and distinguishable on whatever device is real, not
 // just the one this was tested on.
-// Design-mockup follow-up (Ken, 2026-11-09): the sleeve rack now sits
-// flush against the mini-player's own top edge (or, with nothing
-// loaded and the mini-player hidden, the tab bar's) -- no overlap, by
-// design, unlike the plain 1-2 disc sleeve above (.gf-sleeve-paper's own
-// fixed top/height), which is untouched by any of this and keeps
-// overlapping the mini-player exactly as it always has. Each disc is
-// only ever drawn as its visible top half-circle over its visible
-// bottom half-square of sleeve (11-gatefold.css's .gf-row-disc rules) --
-// there's no hidden other half to find room for -- so stacking a row
-// behind another only costs half a disc's height, not a whole one,
-// which is what lets --gf-row-disc-size grow well past the plain
-// sleeve's fixed 156px when a box set's widest row has fewer than 3
-// discs across (Ken: "sizing should scale... depending on the number of
-// discs an album has").
+// Design-mockup follow-up (Ken, 2026-11-09): the sleeve rack sits flush
+// against the mini-player's own top edge (or, with nothing loaded and
+// the mini-player hidden, the tab bar's) -- no overlap, by design.
+// Third-square follow-up (Ken, 2026-11-09): "For any size disc the
+// sleeve should be flush with the top of the mini player. Instead of a
+// half square make it a third of a square with the upper third of the
+// circle sticking out of it" -- approved via an Artifact mockup (1-6
+// discs) before landing. Every disc at every count (not just 3+) now
+// runs through this same budget/row-layout code: gatefoldBuildSleevePockets()
+// below no longer branches on disc count, and a 1- or 2-disc album gets
+// the same flush positioning and scaled --gf-row-disc-size a box set
+// already had, instead of the old fixed-position/fixed-156px path.
+// Each disc only ever shows its own top THIRD (11-gatefold.css's
+// .disc clip-path) over its own sleeve's middle THIRD
+// (.gf-disc-own-sleeve) -- the wrap's own bottom third is blank, so
+// GF_SLEEVE_FRONT_VISIBLE_RATIO (the front row's visible fraction of
+// one disc's height) is 2/3, not a full disc the way the half/half
+// look's front row used to read. A later row still only costs
+// GF_SLEEVE_ROW_STEP_RATIO's own fraction peeking above the row in
+// front of it, just rescaled to a third instead of a half.
 const GF_SLEEVE_ROW_GAP = 16; // matches CLAUDE.md's --sp-4
 const GF_SLEEVE_MIN_DISC = 90;
 const GF_SLEEVE_MAX_DISC = 190;
 const GF_SLEEVE_ROW_TOP_MARGIN = 12; // clearance kept below the info text
-const GF_SLEEVE_ROW_STEP_RATIO = 0.5; // half a disc's height peeks above the row in front of it
+const GF_SLEEVE_FRONT_VISIBLE_RATIO = 2 / 3; // disc-third + sleeve-third
+const GF_SLEEVE_ROW_STEP_RATIO = 1 / 3; // a third of a disc's height peeks above the row in front of it
 
 function gatefoldSleeveRowBudget(){
   const info = $('.gf-info');
@@ -791,15 +797,8 @@ function gatefoldSleeveRowBudget(){
   return { top, bottom };
 }
 
-function gatefoldLayoutSleeveRows(rowDisc, layout){
+function gatefoldLayoutSleeveRows(layout){
   const gfSleeve = $('#gfSleeve');
-  if(!rowDisc){
-    gfSleeve.style.height = '';
-    gfSleeve.style.top = '';
-    gfSleeve.style.removeProperty('--gf-row-disc-size');
-    gatefoldSleevePocketEls().forEach(wrap => { wrap.style.bottom = ''; wrap.style.removeProperty('--gf-row-x'); });
-    return;
-  }
   const numRows = layout.reduce((max, l) => Math.max(max, l.row), 0) + 1;
   const rowCounts = new Array(numRows).fill(0);
   layout.forEach(l => { rowCounts[l.row]++; });
@@ -809,29 +808,27 @@ function gatefoldLayoutSleeveRows(rowDisc, layout){
   const available = Math.max(0, budget.bottom - budget.top);
   const width = (GF && GF.geom ? GF.geom.panelSize : 350);
   const widthCap = maxCount > 1 ? (width - (maxCount - 1) * GF_SLEEVE_ROW_GAP) / maxCount : width;
-  const heightCap = available / (1 + GF_SLEEVE_ROW_STEP_RATIO * (numRows - 1));
+  const heightCap = available / (GF_SLEEVE_FRONT_VISIBLE_RATIO + GF_SLEEVE_ROW_STEP_RATIO * (numRows - 1));
   const size = Math.max(GF_SLEEVE_MIN_DISC, Math.min(GF_SLEEVE_MAX_DISC, widthCap, heightCap));
 
   const rowStep = size * GF_SLEEVE_ROW_STEP_RATIO;
-  const sleeveHeight = size + (numRows - 1) * rowStep;
+  const sleeveHeight = size * GF_SLEEVE_FRONT_VISIBLE_RATIO + (numRows - 1) * rowStep;
   gfSleeve.style.height = sleeveHeight + 'px';
   gfSleeve.style.top = (budget.bottom - sleeveHeight) + 'px';
   gfSleeve.style.setProperty('--gf-row-disc-size', size + 'px');
   gatefoldSleevePocketEls().forEach(wrap => {
     const row = Number(wrap.dataset.gfRow || 0);
-    wrap.style.bottom = (row * rowStep) + 'px';
+    // each wrap's own box is a full disc-size square (so the disc inside
+    // it keeps correct proportions), but only its top two-thirds ever
+    // paints (disc-third + sleeve-third) -- its blank bottom third is
+    // subtracted here so the painted content, not the blank box, sits
+    // flush against the row in front of it / the mini-player.
+    wrap.style.bottom = ((row - 1) * rowStep) + 'px';
   });
 }
 
 function gatefoldBuildSleevePockets(discGroups){
   const pockets = $('#gfSleevePockets');
-  const gfSleeve = $('#gfSleeve');
-  const twoDisc = discGroups.length === 2;
-  const rowDisc = discGroups.length > 2;
-  pockets.classList.toggle('gf-two-disc', twoDisc);
-  pockets.classList.toggle('gf-row-disc', rowDisc);
-  gfSleeve.classList.toggle('gf-two-disc', twoDisc);
-  gfSleeve.classList.toggle('gf-row-disc', rowDisc);
   const layout = gatefoldRowLayout(discGroups.length);
   pockets.querySelectorAll('.gf-sleeve-disc-wrap-extra').forEach(n => n.remove());
   const first = $('#gfSleeveDiscWrap');
@@ -839,7 +836,7 @@ function gatefoldBuildSleevePockets(discGroups){
   first.setAttribute('data-disc', String(discGroups[0] ? discGroups[0].disc : 0));
   const applyRow = (wrap, i) => {
     const pos = layout[i];
-    if(!rowDisc || !pos) { delete wrap.dataset.gfRow; wrap.style.bottom = ''; wrap.style.removeProperty('--gf-row-x'); wrap.style.removeProperty('--gf-row'); return; }
+    if(!pos) { delete wrap.dataset.gfRow; wrap.style.bottom = ''; wrap.style.removeProperty('--gf-row-x'); wrap.style.removeProperty('--gf-row'); return; }
     wrap.style.setProperty('--gf-row', String(pos.row));
     wrap.style.setProperty('--gf-row-x', String(pos.x));
     wrap.dataset.gfRow = String(pos.row);
@@ -855,7 +852,7 @@ function gatefoldBuildSleevePockets(discGroups){
     applyRow(clone, k);
     pockets.appendChild(clone);
   }
-  gatefoldLayoutSleeveRows(rowDisc, layout);
+  gatefoldLayoutSleeveRows(layout);
 }
 
 // gatefoldBuildSleevePockets() runs before the overlay is visible
@@ -865,9 +862,7 @@ function gatefoldBuildSleevePockets(discGroups){
 // this right after adding .open.
 function gatefoldRelayoutSleeveRows(){
   if(!GF) return;
-  const rowDisc = GF.discGroups.length > 2;
-  if(!rowDisc) return;
-  gatefoldLayoutSleeveRows(rowDisc, gatefoldRowLayout(GF.discGroups.length));
+  gatefoldLayoutSleeveRows(gatefoldRowLayout(GF.discGroups.length));
 }
 
 const GF_WEAR_STAGES = ['light', 'worn', 'loved'];
