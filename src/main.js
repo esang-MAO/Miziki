@@ -186,8 +186,15 @@ async function restoreLibrary(){
   await restoreMeta();
   // ST1 (docs/32_SHELF_AND_TURNTABLES.md): a dev-only URL switch, applied
   // after the saved value restores so it always wins; queueSave() persists
-  // the override like any other setting change.
-  if(applyDeluxeUrlSwitch(location.search)) queueSave();
+  // the override like any other setting change. LI1 (docs/35_LEAD_IN.md):
+  // import.meta.env.DEV is only true under `npm run dev` -- the literal
+  // `import.meta.env.DEV &&` here lets both the GitHub Pages and Netlify
+  // preview builds constant-fold the whole call away as dead code (so
+  // `?deluxe=1` can no longer grant Deluxe on a live URL, and the call
+  // doesn't even ship in the bundle); applyDeluxeUrlSwitch()'s own isDev
+  // parameter is the same guard again, so it stays safe to call from
+  // anywhere even if this call site ever stopped doing it first.
+  if(import.meta.env.DEV && applyDeluxeUrlSwitch(location.search, import.meta.env.DEV)) queueSave();
   await restoreSessions();
   await restoreSealedAlbums();
   rebuildPeopleIndex();
@@ -281,7 +288,13 @@ async function restoreLibrary(){
   // updateHomeTabVisibility() for the actual
   // show/hide logic (wired to MizikiSocial's own 'status' event, so no
   // separate call is needed here).
-  if(new URLSearchParams(location.search).get('social') === 'demo'){
+  // LI1 (docs/35_LEAD_IN.md): import.meta.env.DEV gates this the same way
+  // as the Deluxe switch above -- previously ?social=demo worked on any
+  // build (including the live GitHub Pages URL and Netlify previews) as
+  // long as the query param was present. Checked first so the dynamic
+  // import below is unreachable, and Vite's build drops src/social/demo.js
+  // from dist/ entirely rather than merely never calling it.
+  if(import.meta.env.DEV && new URLSearchParams(location.search).get('social') === 'demo'){
     // Dynamic import, not a static one: ?social=demo is dev-only (see
     // CLAUDE.md), so src/social/demo.js — fixture data and ~700 lines of
     // monkey-patching MizikiSocial's methods — must not be in the main
