@@ -47,48 +47,46 @@ test('CC5: two discs at full size plus the --sp-4 gap fit inside the sleeve, no 
 });
 
 // Box-set follow-up (docs/34_CARE_AND_CONTROL.md point 5 follow-up, Ken
-// 2026-11-09): rows of 2, front row first, odd one out alone at the back.
+// 2026-11-09, design-mockup revision): rows of up to 3 across, front row
+// first, any remainder absorbed by the front row(s).
 test('gatefoldRowLayout: empty/zero discs', () => {
   assert.deepEqual(gatefoldRowLayout(0), []);
   assert.deepEqual(gatefoldRowLayout(-1), []);
 });
 
 test('gatefoldRowLayout: a single disc sits alone in the front row, centered', () => {
-  assert.deepEqual(gatefoldRowLayout(1), [{ row: 0, col: 'center' }]);
+  assert.deepEqual(gatefoldRowLayout(1), [{ row: 0, x: 0 }]);
 });
 
 test('gatefoldRowLayout: two discs sit side by side in the front row -- today\'s plain two-disc layout', () => {
   assert.deepEqual(gatefoldRowLayout(2), [
-    { row: 0, col: 'left' }, { row: 0, col: 'right' },
+    { row: 0, x: -0.5 }, { row: 0, x: 0.5 },
   ]);
 });
 
-test('gatefoldRowLayout: three discs -- a full front row of 2, odd one out alone in row 1 (behind)', () => {
+test('gatefoldRowLayout: three discs -- one row of 3 across', () => {
   assert.deepEqual(gatefoldRowLayout(3), [
-    { row: 0, col: 'left' }, { row: 0, col: 'right' },
-    { row: 1, col: 'center' },
+    { row: 0, x: -1 }, { row: 0, x: 0 }, { row: 0, x: 1 },
   ]);
 });
 
-test('gatefoldRowLayout: four discs -- two full rows of 2, no odd one out', () => {
+test('gatefoldRowLayout: four discs -- two rows of 2', () => {
   assert.deepEqual(gatefoldRowLayout(4), [
-    { row: 0, col: 'left' }, { row: 0, col: 'right' },
-    { row: 1, col: 'left' }, { row: 1, col: 'right' },
+    { row: 0, x: -0.5 }, { row: 0, x: 0.5 },
+    { row: 1, x: -0.5 }, { row: 1, x: 0.5 },
   ]);
 });
 
-test('gatefoldRowLayout: five discs -- two full rows of 2, odd one out alone furthest back', () => {
+test('gatefoldRowLayout: five discs -- front row of 3, back row of 2', () => {
   assert.deepEqual(gatefoldRowLayout(5), [
-    { row: 0, col: 'left' }, { row: 0, col: 'right' },
-    { row: 1, col: 'left' }, { row: 1, col: 'right' },
-    { row: 2, col: 'center' },
+    { row: 0, x: -1 }, { row: 0, x: 0 }, { row: 0, x: 1 },
+    { row: 1, x: -0.5 }, { row: 1, x: 0.5 },
   ]);
 });
 
-test('gatefoldRowLayout: six discs -- three full rows of 2', () => {
+test('gatefoldRowLayout: six discs -- two rows of 3', () => {
   assert.deepEqual(gatefoldRowLayout(6), [
-    { row: 0, col: 'left' }, { row: 0, col: 'right' },
-    { row: 1, col: 'left' }, { row: 1, col: 'right' },
-    { row: 2, col: 'left' }, { row: 2, col: 'right' },
+    { row: 0, x: -1 }, { row: 0, x: 0 }, { row: 0, x: 1 },
+    { row: 1, x: -1 }, { row: 1, x: 0 }, { row: 1, x: 1 },
   ]);
 });

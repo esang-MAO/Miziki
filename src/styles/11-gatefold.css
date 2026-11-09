@@ -169,10 +169,14 @@
 .gf-flip-dots span{width:5px;height:5px;border-radius:50%;background:rgba(239,233,223,.3)}
 .gf-flip-dots span.active{background:var(--paper)}
 /* Keyboard: "a 'Turn over' control reachable by Tab" (GF5 point 1) -- a
-   small mono text button, same family as .gf-left-cue/.gf-right-cue. */
-.gf-turn-over{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 26px);
-  transform:translateX(-50%);text-align:center;font-family:var(--data);font-size:var(--fs-caption);
-  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .15s}
+   plain icon button (Ken, 2026-11-09: "the flip cover button should just
+   be a flip icon," not a labeled pill), same reachable-by-Tab role as
+   before, just drawn as a circle. */
+.gf-turn-over{position:absolute;left:50%;top:calc(80px + var(--gf-panel-size,350px) + 20px);
+  transform:translateX(-50%);width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(239,233,223,.3);background:transparent;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;padding:0;
+  opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-turn-over{opacity:1}
 /* GF13 fix 3: flipping to the back cover means nothing while looking at
    the inside-left panel instead of the cover, so hide both there, same
@@ -423,23 +427,40 @@
    rows." Every row renders at full, identical brightness, same as
    today's two-disc row -- no per-row dim. */
 .gf-sleeve.gf-row-disc .gf-sleeve-paper{display:none}
-.gf-row-disc .gf-sleeve-disc-wrap{top:auto;
-  bottom:calc(var(--gf-row,0) * var(--gf-disc-size,156px) / 2);
+/* Design-mockup follow-up (Ken, 2026-11-09): rows of up to 3 across
+   (gatefoldRowLayout(), src/gatefold/geometry.js) -- --gf-row-x (-1/0/1
+   for a row of 3, -0.5/0.5 for a row of 2, 0 alone) replaces the old
+   fixed left/right/center classes so any row width positions off the
+   same one formula. --gf-row-disc-size is pushed per open by
+   gatefoldLayoutSleeveRows() (view.js), scaled to the widest row and the
+   real room above the mini-player -- never the plain sleeve's fixed
+   --gf-disc-size. bottom is set directly in JS (half a disc's height
+   per row behind the front one), not a CSS calc, since the per-open
+   size it depends on isn't a CSS var everywhere it's needed. */
+.gf-row-disc .gf-sleeve-disc-wrap{top:auto;position:absolute;
+  width:var(--gf-row-disc-size,156px);height:var(--gf-row-disc-size,156px);margin-left:0;
+  left:calc(50% + var(--gf-row-x,0) * (var(--sp-4) + var(--gf-row-disc-size,156px)) - var(--gf-row-disc-size,156px) / 2);
   z-index:calc(100 - var(--gf-row,0))}
-.gf-row-disc .gf-sleeve-disc-wrap.gf-row-left{left:calc(50% - var(--sp-4) / 2 - var(--gf-disc-size,156px) / 2)}
-.gf-row-disc .gf-sleeve-disc-wrap.gf-row-right{left:calc(50% + var(--sp-4) / 2 + var(--gf-disc-size,156px) / 2)}
-.gf-row-disc .gf-sleeve-disc-wrap.gf-row-center{left:50%}
-/* Ken: "similar to a real record, each disc would be in its own sleeve,"
-   "make the sleeves half the length," "records should poke out from the
-   top of the sleeves" -- half the disc's own height, covering its
-   bottom half (the now-exposed paper edge rounds at the bottom, the
-   side that would show between two stacked sleeves), shown only once a
-   pocket is part of a box-set row. */
+/* Ken, design-mockup follow-up: "the records should effectively appear
+   as semicircles sticking out of the respective sleeves... no need to
+   see it as a full square sleeve and a full circular record" -- the
+   disc only ever draws its visible top half (clip-path, not a second
+   element hidden behind an opaque sleeve: there's no overlap to hide,
+   so nothing costs extra vertical room), and .gf-disc-own-sleeve only
+   ever draws its own visible bottom half, styled to read as a real
+   paper sleeve (a two-tone cover-art gradient, an open-corner flap where
+   the record slides in, a spine fold) rather than a flat manila-folder
+   block. Still a full circle once it's actually on the platter (02-
+   stage-platter.css's own disc, untouched by any of this). */
+.gf-row-disc .gf-sleeve-disc-wrap .disc{clip-path:inset(0 0 50% 0)}
 .gf-disc-own-sleeve{display:none}
-.gf-row-disc .gf-disc-own-sleeve{display:block;position:absolute;left:-10%;right:-10%;bottom:-6%;
-  height:calc(var(--gf-disc-size,156px) / 2 + 6%);
-  background:linear-gradient(180deg,var(--stock-divider-1),var(--stock-divider-2));
-  border-radius:0 0 10px 10px;box-shadow:0 6px 12px rgba(0,0,0,.3);z-index:-1}
+.gf-row-disc .gf-disc-own-sleeve{display:block;position:absolute;left:0;right:0;bottom:0;height:50%;
+  border-radius:2px;overflow:hidden;
+  background:linear-gradient(135deg,var(--stock-divider-1) 0%,var(--stock-divider-1) 55%,var(--stock-divider-2) 55%,var(--stock-divider-2) 100%);
+  box-shadow:0 6px 12px rgba(0,0,0,.25),inset 0 0 0 1px rgba(0,0,0,.1)}
+.gf-row-disc .gf-disc-own-sleeve::before{content:'';position:absolute;top:0;right:0;width:0;height:0;
+  border-style:solid;border-width:0 14px 14px 0;border-color:transparent rgba(255,255,255,.35) transparent transparent}
+.gf-row-disc .gf-disc-own-sleeve::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(0,0,0,.2)}
 /* GF3 point 2: the pocket disc's own label scales with the record's real
    size -- the same [data-size]-keyed ratios 02-stage-platter.css already
    uses for the big spinning platter ("the same ratios... a 7″ label
