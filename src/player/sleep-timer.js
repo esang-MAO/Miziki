@@ -1,7 +1,7 @@
-import { S } from '../state.js';
+import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { applyVolume } from '../sundown/location.js';
-import { pauseAndRest } from './transport.js';
+import { pauseAndRest, sideLetterFor } from './transport.js';
 import { setPathNote } from '../ui/path-note.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
@@ -24,6 +24,10 @@ export function updateSleepUI(){
     btn.textContent = '🌙 Sleep: ' + mins + ' min';
   } else if(S.sleep.mode === 'track') btn.textContent = '🌙 Sleep: End of track';
   else if(S.sleep.mode === 'album') btn.textContent = '🌙 Sleep: End of album';
+  // LI3 (docs/35_LEAD_IN.md): the actual side letter, captured once at
+  // startSleepTimer() -- S.sleep.side is null for a one-track single (no
+  // sides to letter), where this mode behaves like End of track anyway.
+  else if(S.sleep.mode === 'side') btn.textContent = '🌙 Sleep: End of side' + (S.sleep.side ? ' ' + S.sleep.side : '');
   else btn.textContent = '🌙 Sleep Timer';
 }
 
@@ -35,7 +39,7 @@ function sleepCancelGainAutomation(){
 export function stopSleepState(){
   clearSleepTimer();
   sleepCancelGainAutomation();
-  S.sleep.mode = null; S.sleep.at = null; S.sleep.fading = false;
+  S.sleep.mode = null; S.sleep.at = null; S.sleep.fading = false; S.sleep.side = null;
   applyVolume();
   updateSleepUI();
 }
@@ -96,13 +100,19 @@ function startSleepTimer(mode, minutes){
   applyVolume();
   S.sleep.mode = mode;
   S.sleep.at = mode === 'time' ? Date.now() + minutes * 60000 : null;
+  // LI3: captured once, here -- the currently-playing track's own side
+  // letter, so the label stays put for the rest of this side regardless
+  // of anything else that changes later. '' (no sides) stays null.
+  S.sleep.side = mode === 'side' ? (sideLetterFor(current(), S.index) || null) : null;
   if(mode === 'time') scheduleSleepCheck();
   updateSleepUI();
   setPathNote(mode === 'time' ? ('Sleeping in ' + minutes + ' min')
-    : mode === 'track' ? 'Sleeping at end of track' : 'Sleeping at end of album');
+    : mode === 'track' ? 'Sleeping at end of track'
+    : mode === 'album' ? 'Sleeping at end of album'
+    : 'Sleeping at end of side' + (S.sleep.side ? ' ' + S.sleep.side : ''));
 }
 
-const SLEEP_MINUTE_OPTIONS = [15, 30, 45, 60, 90];
+const SLEEP_MINUTE_OPTIONS = [15, 30, 45, 60];
 function renderSleepOptions(){
   const host = $('#sleepOptions'); host.innerHTML = '';
   const currentMins = S.sleep.mode === 'time' ? Math.round((S.sleep.at - Date.now())/60000) : null;
@@ -117,6 +127,10 @@ function renderSleepOptions(){
   const albumBtn = el('button','cta' + (S.sleep.mode === 'album' ? '' : ' ghost'), 'End of album');
   albumBtn.addEventListener('click', ()=>{ startSleepTimer('album'); closeLayer('sleep'); });
   host.appendChild(albumBtn);
+  // LI3 (docs/35_LEAD_IN.md)
+  const sideBtn = el('button','cta' + (S.sleep.mode === 'side' ? '' : ' ghost'), 'End of side');
+  sideBtn.addEventListener('click', ()=>{ startSleepTimer('side'); closeLayer('sleep'); });
+  host.appendChild(sideBtn);
   const offBtn = el('button','cta ghost', 'Off');
   offBtn.addEventListener('click', ()=>{ stopSleepState(); setPathNote('Sleep timer off.'); closeLayer('sleep'); });
   host.appendChild(offBtn);

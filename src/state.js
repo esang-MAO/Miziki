@@ -322,8 +322,12 @@ export const S = {
   // has ever set a preference.
   shareStyle:'night',
   shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
-  // sleep timer — session-only, never persisted (see SLEEP spec §5)
-  sleep:{mode:null, at:null, timer:null, fading:false},
+  // sleep timer — session-only, never persisted (see SLEEP spec §5).
+  // LI3 (docs/35_LEAD_IN.md): `side` is 'side' mode's own side letter
+  // ('A', 'B', ...), captured once at the moment it's set so the label
+  // stays put even if playback is mid-side-change for some other reason;
+  // null for every other mode.
+  sleep:{mode:null, at:null, timer:null, fading:false, side:null},
   // FS10 (docs/25_FROM_SCRATCH.md): Focus -- a per-session player toggle,
   // resets on relaunch, never saved to prefs/backup. Replaces RW3's "This
   // record only" outright (same boundary behavior in player/queue.js's

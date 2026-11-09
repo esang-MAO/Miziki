@@ -176,8 +176,12 @@ mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
+// LI3 (docs/35_LEAD_IN.md): a spy, not a bare no-op, so the "End of side"
+// tests below can assert advance() actually called it (and didn't just
+// happen to leave S.qpos where it already was for some other reason).
+const sleepStopPlaybackMock = mock.fn();
 mock.module(new URL('../../src/player/sleep-timer.js', import.meta.url).href, {
-  namedExports: { sleepStopPlayback(){} },
+  namedExports: { sleepStopPlayback: sleepStopPlaybackMock },
 });
 // buffers.js's own real imports — mocked the same way for the same reason
 // (engine.js has a real, non-circular import of main.js/transport.js too).
@@ -219,7 +223,7 @@ const {
   buildOrder, reorderQueue, advance, skipWithLift,
   playNext, addToQueue, openQueueSheet, closeQueueSheet,
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
-  queueRemoveAt, queueReorderTo, isAlbumBoundary, continueFromResting,
+  queueRemoveAt, queueReorderTo, isAlbumBoundary, isSideBoundary, continueFromResting,
   flipFromResting, playAgainFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
@@ -237,6 +241,7 @@ function resetState(overrides){
   }, overrides);
   loadMock.mock.resetCalls(); playMock.mock.resetCalls();
   pauseMock.mock.resetCalls(); pauseAndRestMock.mock.resetCalls();
+  sleepStopPlaybackMock.mock.resetCalls();
   stopAtRecordEndCeremonyMock.mock.resetCalls();
   seekMock.mock.resetCalls();
   cancelPendingGaplessMock.mock.resetCalls();
@@ -672,6 +677,50 @@ test('isAlbumBoundary: a different album is a boundary', () => {
 });
 test('isAlbumBoundary: nothing next (queue end) is a boundary', () => {
   assert.equal(isAlbumBoundary(fakeAlbumTrack('X','A'), null), true);
+});
+
+/* ================= LI3 (docs/35_LEAD_IN.md): sleep timer "End of side" ================= */
+
+test('isSideBoundary: mid-side (same album, same side letter) is not a boundary', () => {
+  assert.equal(isSideBoundary(fakeAlbumTrack('X','A'), 0, fakeAlbumTrack('X','A'), 1), false);
+});
+test('isSideBoundary: last track of side A into side B is a boundary', () => {
+  assert.equal(isSideBoundary(fakeAlbumTrack('X','A'), 0, fakeAlbumTrack('X','B'), 1), true);
+});
+test('isSideBoundary: end of album is also end of its last side', () => {
+  assert.equal(isSideBoundary(fakeAlbumTrack('X','B'), 1, null, null), true);
+});
+test('isSideBoundary: a one-track single (no sides) behaves like end of track -- next track is always a different album', () => {
+  // sideLetterFor() returns '' for an album with no sides to split, same
+  // as the real splitSides()-backed implementation -- fakeAlbumTrack's
+  // own side field left undefined falls back to '' via the mock.
+  assert.equal(isSideBoundary(fakeAlbumTrack('X', undefined), 0, fakeAlbumTrack('Y','A'), 1), true);
+});
+
+test('advance: "End of side" lets playback continue mid-side', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','A')],
+    queue: [0,1], qpos: 0, index: 0, sleep: { mode: 'side' },
+  });
+  advance(1, true);
+  assert.equal(S.qpos, 1);   // rolled on, not stopped
+});
+test('advance: "End of side" stops exactly at the side flip, not past it', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('X','B')],
+    queue: [0,1], qpos: 0, index: 0, sleep: { mode: 'side' }, playing: true,
+  });
+  advance(1, true);
+  assert.equal(sleepStopPlaybackMock.mock.calls.length, 1);
+  assert.equal(S.qpos, 0);   // never moved onto the next side
+});
+test('advance: "End of side" stops at the genuine end of the queue too', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A')],
+    queue: [0], qpos: 0, index: 0, sleep: { mode: 'side' }, playing: true, repeat: 'off',
+  });
+  advance(1, true);
+  assert.equal(sleepStopPlaybackMock.mock.calls.length, 1);
 });
 
 test('advance: Focus stops at a side flip exactly like a plain boundary check -- never mid-album', () => {
