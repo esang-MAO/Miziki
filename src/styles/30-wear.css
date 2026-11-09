@@ -58,6 +58,11 @@
    element for those two stages). */
 .gf-info-wear{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
 
+/* LI4 (docs/35_LEAD_IN.md): the quiet "Spun a lot last autumn" / "Mostly
+   at dusk" line, right under the wear line -- same liner-note-aside read,
+   same muted caption treatment. */
+.gf-info-recall{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
+
 /* per-side "SIDE A · 260 PLAYS" with a thin bar, from trackPlayCounts
    summed per side. */
 .gf-side-wear{padding:0 var(--sp-1) var(--sp-2)}
