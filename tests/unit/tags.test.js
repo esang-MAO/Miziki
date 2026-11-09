@@ -413,6 +413,25 @@ test('truncated or garbage bytes never throw, and return the empty/default resul
   assert.doesNotThrow(() => findArtworkBlob(truncatedFlac));
 });
 
+// LI7 (docs/35_LEAD_IN.md): readHeader() walks RIFF/WAVE chunks with a raw
+// DataView, which throws a RangeError (unlike every other reader here,
+// which uses plain byte indexing or the bounds-checked u32be()/txt()
+// helpers) when a file is cut off partway through the 'fmt ' chunk's own
+// body -- a real truncated-download/truncated-export shape, not only
+// garbage bytes. readHeader() itself has no try/catch at all, so this
+// reached callers uncaught.
+test('a WAV file truncated partway through its "fmt " chunk never throws', () => {
+  const b = new Uint8Array(21);
+  const view = new DataView(b.buffer);
+  b.set(asciiBytes('RIFF'), 0);
+  view.setUint32(4, 100, true);
+  b.set(asciiBytes('WAVE'), 8);
+  b.set(asciiBytes('fmt '), 12);
+  view.setUint32(16, 16, true);   // declares a 16-byte fmt body, but the buffer ends at byte 21
+  assert.doesNotThrow(() => readHeader(b.buffer));
+  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true});
+});
+
 // -- tests: duplicate detection ----------------------------------------------
 
 test('findDuplicateTrack matches within the duration tolerance and not outside it', () => {
@@ -447,4 +466,146 @@ test('shouldSealOnImport: a later import seals a genuinely new album, once', () 
 
 test('shouldSealOnImport: loose tracks (Unknown Album) are never sealed', () => {
   assert.equal(shouldSealOnImport('Unknown Album', 'unknown-album', false, new Set()), false);
+});
+
+// -- LI7 (docs/35_LEAD_IN.md): tag parsers survive bad files -----------------
+// A truncation sweep over one real-shaped fixture per format: cut at every
+// byte offset, plus a few oversized-declared-length/zero-length-frame
+// variants, through all four public entry points. Asserts nothing throws
+// and nothing hangs (a generous per-call time bound -- every reader here
+// is a synchronous byte walk, so a real infinite loop shows up as one slow
+// call, not a hang of the whole suite).
+
+// -- WAV builder --
+function wavChunk(id, payload){
+  const padded = payload.length % 2 ? concatBytes([payload, new Uint8Array([0])]) : payload;
+  return concatBytes([asciiBytes(id), u32leBytes(payload.length), padded]);
+}
+function wavListInfoChunk(fields){
+  const subs = Object.entries(fields).map(([id, val]) => {
+    const bytes = concatBytes([asciiBytes(val), new Uint8Array([0])]);
+    return wavChunk(id, bytes);
+  });
+  return wavChunk('LIST', concatBytes([asciiBytes('INFO'), ...subs]));
+}
+function buildWavFile({rate=44100, ch=2, bits=16, info={}}={}){
+  const fmtPayload = concatBytes([
+    new Uint8Array([1,0]), new Uint8Array([ch,0]),       // format tag (PCM), channels
+    u32leBytes(rate), u32leBytes(rate * ch * (bits/8)),   // sample rate, byte rate
+    new Uint8Array([ch*(bits/8),0]), new Uint8Array([bits,0]),  // block align, bits/sample
+  ]);
+  const chunks = [wavChunk('fmt ', fmtPayload)];
+  if(Object.keys(info).length) chunks.push(wavListInfoChunk(info));
+  const body = concatBytes([asciiBytes('WAVE'), ...chunks]);
+  return concatBytes([asciiBytes('RIFF'), u32leBytes(body.length), body]).buffer;
+}
+
+// -- MP4 builder --
+// Every MP4 reader in this directory (mp4Info/mp4RawAtoms/mp4Cover) scans
+// for its own raw byte signature rather than walking a real box tree (only
+// mp4GaplessInfo/mp4FreeformAtoms, not exercised by readTags/readHeader/
+// findArtworkBlob, need a real moov>udta>meta>ilst structure) — so a
+// fixture only needs those literal byte patterns in the right relative
+// order, not a fully valid box tree.
+function mp4DataAtom(code, payload, flags=0){
+  const dataBoxSize = 16 + payload.length;
+  const dataBox = concatBytes([u32beBytes(dataBoxSize), asciiBytes('data'), u32beBytes(flags), new Uint8Array(4), payload]);
+  return concatBytes([u32beBytes(8 + dataBoxSize), asciiBytes(code), dataBox]);
+}
+function buildMp4File({title='MP4 Title', cover=null}={}){
+  const ftyp = concatBytes([u32beBytes(16), asciiBytes('ftyp'), asciiBytes('M4A '), new Uint8Array(4)]);
+  const marker = asciiBytes('mp4a');
+  const ilstItems = [mp4DataAtom('\xA9nam', asciiBytes(title), 1)];
+  const ilst = concatBytes([u32beBytes(8 + ilstItems.reduce((n,c)=>n+c.length,0)), asciiBytes('ilst'), ...ilstItems]);
+  const parts = [ftyp, marker, ilst];
+  if(cover){
+    const dataSize = 16 + cover.data.length;
+    parts.push(concatBytes([asciiBytes('covr'), u32beBytes(dataSize), asciiBytes('data'), u32beBytes(cover.kind === 'png' ? 14 : 13), new Uint8Array(4), cover.data]));
+  }
+  return concatBytes(parts).buffer;
+}
+
+function sweepTruncations(buf, label){
+  const full = new Uint8Array(buf);
+  for(let cut = 0; cut <= full.length; cut++){
+    const truncated = full.slice(0, cut).buffer;
+    for(const [name, fn] of [['readHeader', readHeader], ['readTags', (b) => readTags(b, 'x')], ['readDetails', readDetails], ['findArtworkBlob', findArtworkBlob]]){
+      const started = Date.now();
+      let threw = null;
+      try{ fn(truncated); }catch(e){ threw = e; }
+      const elapsedMs = Date.now() - started;
+      assert.equal(threw, null, `${label} truncated to ${cut} bytes: ${name}() threw ${threw && threw.message}`);
+      assert.ok(elapsedMs < 500, `${label} truncated to ${cut} bytes: ${name}() took ${elapsedMs}ms`);
+    }
+  }
+}
+
+test('LI7: every byte-offset truncation of a FLAC fixture (with picture) never throws or hangs', () => {
+  const buf = buildFlacFile({
+    comments: ['TITLE=Flac Title', 'ARTIST=Flac Artist', 'REPLAYGAIN_TRACK_GAIN=-3.00 dB'],
+    picture: {mime: 'image/jpeg', data: new Uint8Array([1,2,3,4,5,6,7,8])},
+  });
+  sweepTruncations(buf, 'FLAC');
+});
+
+test('LI7: every byte-offset truncation of an ID3/MP3 fixture (with APIC) never throws or hangs', () => {
+  const buf = buildID3File([
+    id3Frame('TIT2', 0, 'Test Title'),
+    id3Frame('TPE1', 1, 'Café Artist'),
+    txxxFrame('REPLAYGAIN_TRACK_GAIN', '-3.00 dB'),
+    apicFrame('image/jpeg', new Uint8Array([1,2,3,4,5,6,7,8])),
+  ]);
+  sweepTruncations(buf, 'ID3');
+});
+
+test('LI7: every byte-offset truncation of a WAV fixture (with LIST/INFO) never throws or hangs', () => {
+  const buf = buildWavFile({info: {INAM: 'Wav Title', IART: 'Wav Artist', IGNR: 'Rock'}});
+  sweepTruncations(buf, 'WAV');
+});
+
+test('LI7: every byte-offset truncation of an MP4 fixture (with covr) never throws or hangs', () => {
+  const buf = buildMp4File({title: 'MP4 Title', cover: {kind: 'jpeg', data: new Uint8Array([1,2,3,4,5,6,7,8])}});
+  sweepTruncations(buf, 'MP4');
+});
+
+// -- oversized declared lengths / zero-length frames -------------------------
+
+test('LI7: an ID3 frame declaring a size larger than the file never throws', () => {
+  const huge = concatBytes([asciiBytes('TIT2'), u32beBytes(0xFFFFFF), new Uint8Array([0,0]), asciiBytes('x')]);
+  const buf = buildID3File([huge]);
+  for(const fn of [readHeader, (b)=>readTags(b,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
+});
+
+test('LI7: an ID3 frame with a zero-length body never throws', () => {
+  const zero = concatBytes([asciiBytes('TIT2'), u32beBytes(0), new Uint8Array([0,0])]);
+  const buf = buildID3File([zero]);
+  for(const fn of [readHeader, (b)=>readTags(b,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
+});
+
+test('LI7: a FLAC metadata block declaring a length larger than the file never throws', () => {
+  const buf = concatBytes([asciiBytes('fLaC'), flacBlockHeader(4, true, 0xFFFFFF), asciiBytes('short')]).buffer;
+  for(const fn of [readHeader, (b)=>readTags(b,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
+});
+
+test('LI7: a FLAC metadata block with a zero declared length never throws or hangs', () => {
+  const buf = concatBytes([asciiBytes('fLaC'), flacBlockHeader(4, true, 0), asciiBytes('trailing garbage')]).buffer;
+  for(const fn of [readHeader, (b)=>readTags(b,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
+});
+
+test('LI7: a WAV fmt chunk declaring a size larger than the file never throws', () => {
+  const b = new Uint8Array(40);
+  const view = new DataView(b.buffer);
+  b.set(asciiBytes('RIFF'), 0); view.setUint32(4, 1000, true);
+  b.set(asciiBytes('WAVE'), 8); b.set(asciiBytes('fmt '), 12);
+  view.setUint32(16, 0xFFFFFF, true);   // declared fmt size far larger than the real buffer
+  const buf = b.buffer;
+  for(const fn of [readHeader, (b2)=>readTags(b2,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
+});
+
+test('LI7: an MP4 ilst item declaring a data-box size larger than the file never throws', () => {
+  const ftyp = concatBytes([u32beBytes(16), asciiBytes('ftyp'), asciiBytes('M4A '), new Uint8Array(4)]);
+  const badItem = concatBytes([u32beBytes(8 + 0xFFFFFF), asciiBytes('\xA9nam'), u32beBytes(0xFFFFFF), asciiBytes('data'), new Uint8Array(8), asciiBytes('x')]);
+  const ilst = concatBytes([u32beBytes(8 + badItem.length), asciiBytes('ilst'), badItem]);
+  const buf = concatBytes([ftyp, asciiBytes('mp4a'), ilst]).buffer;
+  for(const fn of [readHeader, (b)=>readTags(b,'x'), readDetails, findArtworkBlob]) assert.doesNotThrow(() => fn(buf));
 });
