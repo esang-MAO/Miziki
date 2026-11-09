@@ -19,6 +19,7 @@ import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
 import { discLook, paintDiscLook, hasLookChoice, openLookPicker } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
+import { recallLineFor } from '../history/recall.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
@@ -412,6 +413,10 @@ const SLEEVE_NOTE_PROMPTS = [
   'Best side and why',
   'Play it when…',
   'The sound that hooked me',
+  // LI4 (docs/35_LEAD_IN.md point 3): a fifth prompt. Widens the hash's
+  // own modulus, so some records' prompt changes once -- acceptable,
+  // since a prompt is placeholder text, never the saved note itself.
+  'Reminds me of…',
 ];
 function sleeveNotePromptFor(albumId){
   const s = String(albumId || '');
@@ -1233,12 +1238,24 @@ function gatefoldInfoAndSleeveHTML(item){
   // at all for new/light (wearCopy returns null for those stages). GF1
   // point 7: the phase this record has been played in most, from
   // S.albumPhaseCounts, once it has at least five counted plays.
+  let wearCopyShownPhrase = false;
   if(S.showWear !== false){
     const stage = wearStage(S.sessionCounts[item.albumId], S.albumFirstPlayed[item.albumId], Date.now());
     const phraseWord = wearPhaseWord(S.albumPhaseCounts[item.albumId]);
     const copy = wearCopy(stage, S.albumFirstPlayed[item.albumId], phraseWord);
     if(copy) info.appendChild(el('p','gf-info-wear', copy));
+    wearCopyShownPhrase = !!(copy && phraseWord);
   }
+  // LI4 (docs/35_LEAD_IN.md): one quiet "remembers" line right under the
+  // wear line -- still inside this same `if(night) return` gate above, so
+  // it's shown day only (decision 4), same posture as the wear/format
+  // lines it sits beside. S.mergedStats, when signed in, carries the
+  // cross-device merged twin of both maps below (same "merged in place of
+  // the per-device counter" rule every other reader of it already uses).
+  const recallPlayCountsByDay = S.mergedStats ? S.mergedStats.albumPlayCountsByDay : S.albumPlayCountsByDay;
+  const recallPhaseCounts = S.mergedStats ? S.mergedStats.albumPhaseCounts : S.albumPhaseCounts;
+  const recall = recallLineFor(recallPlayCountsByDay, recallPhaseCounts[item.albumId], item.albumId, Date.now(), wearCopyShownPhrase);
+  if(recall) info.appendChild(el('p','gf-info-recall', recall));
   info.appendChild(el('p','gf-info-meta', gatefoldFormatLine(item)));
 }
 
