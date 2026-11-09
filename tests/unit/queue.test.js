@@ -225,6 +225,7 @@ const {
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
   queueRemoveAt, queueReorderTo, isAlbumBoundary, isSideBoundary, continueFromResting,
   flipFromResting, playAgainFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
+  setQueueList, setQpos,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
 const { S } = await import('../../src/state.js');
@@ -1044,4 +1045,23 @@ test('updateFocusUI does not touch the Queue row\'s own "hidden until a track is
   S.focus = false;
   updateFocusUI();
   assert.equal(queueBtn.style.display, 'none');   // untouched -- only the class changed
+});
+
+// LI6 (docs/35_LEAD_IN.md): "the queue has one writer" -- S.queue/S.qpos
+// are now assigned only from these two setters (enforced by eslint.config.js's
+// no-restricted-syntax rule everywhere else in src/). Every former direct
+// call site above already pins its own behavior through its own assertions
+// on S.queue/S.qpos after calling through buildOrder()/reorderQueue()/etc,
+// which themselves now go through these setters -- this pair of tests pins
+// the two primitives themselves.
+test('setQueueList replaces S.queue with the exact array given', () => {
+  resetState({ queue: [9,9,9] });
+  setQueueList([3,1,4]);
+  assert.deepEqual(S.queue, [3,1,4]);
+});
+
+test('setQpos replaces S.qpos with the exact value given', () => {
+  resetState({ qpos: 7 });
+  setQpos(2);
+  assert.equal(S.qpos, 2);
 });

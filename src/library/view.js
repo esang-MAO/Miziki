@@ -8,7 +8,7 @@
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { fmt } from '../util/text.js';
-import { setQueue } from '../player/queue.js';
+import { setQueue, setQueueList, setQpos } from '../player/queue.js';
 import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
 import { isFavorite } from './favorites.js';
 import { appendConnectedShelf } from './connected.js';
@@ -480,7 +480,7 @@ export function syncQueueOrder(order){
   if(S.baseQueue.length !== order.length) return;
   if(!S.baseQueue.every(i => order.indexOf(i) >= 0)) return;
   S.baseQueue = order.slice();
-  if(!S.shuffle){ S.queue = order.slice(); S.qpos = Math.max(0, S.queue.indexOf(S.index)); }
+  if(!S.shuffle){ setQueueList(order.slice()); setQpos(Math.max(0, S.queue.indexOf(S.index))); }
 }
 
 // GF12 (docs/29_GATEFOLD.md): exported so the gatefold's own "Track order"

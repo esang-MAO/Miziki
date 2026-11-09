@@ -22,21 +22,36 @@ import {
 } from '../audio/surface-noise.js';
 import { rotationHz, RPM_33, RPM_45 } from '../record-art/format.js';
 
+// LI6 (docs/35_LEAD_IN.md): the only two places that assign S.queue/
+// S.qpos directly -- every other call site in this file and in
+// library/delete.js, library/view.js, shell/runout.js, player/scrub.js,
+// player/resume.js routes through these instead (an ESLint
+// no-restricted-syntax rule, eslint.config.js, fails a direct assignment
+// anywhere outside this file). Named setQueueList rather than setQueue to
+// avoid colliding with this file's own, very different, already widely
+// used setQueue(indices, startPos, autoplay) just below (loads a whole
+// new queue and starts playback) -- these two are plain, synchronous
+// state writes with no side effect beyond the assignment itself; every
+// side effect (load(), reorderQueue(), etc.) stays exactly where it
+// already was at each call site, in the same order as before.
+export function setQueueList(list){ S.queue = list; }
+export function setQpos(pos){ S.qpos = pos; }
+
 export function buildOrder(first){
   const rest = S.baseQueue.filter(i => i !== first);
   for(let i = rest.length - 1; i > 0; i--){
     const j = Math.floor(Math.random()*(i+1));
     [rest[i], rest[j]] = [rest[j], rest[i]];
   }
-  S.queue = (first === undefined || first === null) ? rest : [first].concat(rest);
+  setQueueList((first === undefined || first === null) ? rest : [first].concat(rest));
 }
 
 export function setQueue(indices, startPos, autoplay){
   invalidateActiveSessionIfAny();
   S.baseQueue = indices.slice();
   const first = indices[startPos];
-  if(S.shuffle) buildOrder(first); else S.queue = S.baseQueue.slice();
-  S.qpos = Math.max(0, S.queue.indexOf(first));
+  if(S.shuffle) buildOrder(first); else setQueueList(S.baseQueue.slice());
+  setQpos(Math.max(0, S.queue.indexOf(first)));
   load(S.queue[S.qpos]);
   if(!autoplay){
     // silent queue-priming (restoring a persisted library on boot) is not a
@@ -59,8 +74,8 @@ export function reorderQueue(){
   const cur = S.index;
   if(!S.baseQueue.length) return;
   if(S.shuffle) buildOrder(cur >= 0 ? cur : undefined);
-  else S.queue = S.baseQueue.slice();
-  S.qpos = Math.max(0, S.queue.indexOf(cur));
+  else setQueueList(S.baseQueue.slice());
+  setQpos(Math.max(0, S.queue.indexOf(cur)));
 }
 
 // Mirrors advance(1, true)'s own index math (natural end-of-track,
@@ -188,7 +203,7 @@ export function advance(dir, auto){
   }
   if(n < 0) n = S.repeat === 'all' ? S.queue.length - 1 : 0;
   if(auto && maybeSideFlip(n)) return;   // side A ran out: turn the record over first (CEREMONY §3)
-  S.qpos = n;
+  setQpos(n);
   load(S.queue[n]);
   // next/prev/auto-advance never open the player themselves — but if it's
   // already open (sitting in it, or mid next/prev), there's no sheet or
@@ -271,7 +286,7 @@ function restartAlbumFromSideA(){
       startPos--;
     }
   }
-  S.qpos = startPos;
+  setQpos(startPos);
   load(S.queue[S.qpos]);
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();
@@ -285,7 +300,7 @@ export function continueFromResting(){
   if(r.pendingIndex === null || r.pendingIndex === undefined){
     restartAlbumFromSideA();
   } else {
-    S.qpos = r.pendingIndex;
+    setQpos(r.pendingIndex);
     load(S.queue[S.qpos]);
     if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
     else play();
@@ -309,7 +324,7 @@ export function flipFromResting(){
   S.resting = null;
   paintRestingCard();
   if(pos === null) return;
-  S.qpos = pos;
+  setQpos(pos);
   load(S.queue[pos]);
   if(S.playerOpen) runStartSequence(current(), S.pendingShellInfo, play);
   else play();
@@ -518,7 +533,7 @@ function hideQueueUndo(){
 }
 export function undoQueueChange(){
   const snap = S.queueUndo; if(!snap) return;
-  S.baseQueue = snap.baseQueue; S.queue = snap.queue; S.qpos = snap.qpos;
+  S.baseQueue = snap.baseQueue; setQueueList(snap.queue); setQpos(snap.qpos);
   hideQueueUndo();
   renderQueueSheet(queueSheetHost);
 }
@@ -572,7 +587,7 @@ export function clearUpcoming(){
   cancelPendingGapless();
   queueUndoSnapshot();
   const removed = new Set(S.queue.slice(S.qpos + 1));
-  S.queue = S.queue.slice(0, S.qpos + 1);
+  setQueueList(S.queue.slice(0, S.qpos + 1));
   S.baseQueue = S.baseQueue.filter(idx => !removed.has(idx));
   showQueueUndo(removed.size === 1 ? '1 track removed from the queue.' : removed.size + ' tracks removed from the queue.');
   renderQueueSheet(queueSheetHost);

@@ -23,7 +23,7 @@
 import { S } from '../state.js';
 import { idOf, idxOf } from '../library/model.js';
 import { meta, storage } from '../storage/repo.js';
-import { setQueue } from './queue.js';
+import { setQueue, setQueueList, setQpos } from './queue.js';
 import { drawTime } from './clock.js';
 
 const RESUME_KEY = 'resume';
@@ -108,8 +108,8 @@ export async function restoreResume(){
   // setQueue() may have reshuffled S.queue off S.baseQueue if shuffle is
   // on (already restored from prefs by the time this runs) — overwrite
   // with the exact order this device actually left off on
-  S.queue = queue;
-  S.qpos = qpos;
+  setQueueList(queue);
+  setQpos(qpos);
   S.pos = pos;
   S.resumePending = true;
   drawTime();

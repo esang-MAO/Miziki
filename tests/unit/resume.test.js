@@ -11,16 +11,31 @@ import { DB } from '../../src/storage/idb.js';
 // Mocked directly, the same "stop the chain at the door" reasoning every
 // other mock-heavy file in this suite already uses. setQueue is recorded
 // (not a no-op) so tests can assert what AU1's own restore path handed it.
+// LI6 (docs/35_LEAD_IN.md): resume.js now also calls the real
+// setQueueList()/setQpos() (the only two places allowed to write S.queue/
+// S.qpos) after setQueue() above — imported first here, so the mocked
+// setQueueList/setQpos below can write the real S object directly, the
+// same way the real ones do.
+// Bound as QueueS, not S -- the mocked setQueueList/setQpos below write to
+// the real S object directly, standing in for the real setters (LI6), and
+// eslint.config.js's no-restricted-syntax rule matches the identifier `S`
+// specifically (same reasoning as runout-held-sleeve.test.js's own mock).
+const { S: QueueS } = await import('../../src/state.js');
+const S = QueueS;
+
 let setQueueCalls = [];
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { setQueue(...args){ setQueueCalls.push(args); } },
+  namedExports: {
+    setQueue(...args){ setQueueCalls.push(args); },
+    setQueueList(list){ QueueS.queue = list; },
+    setQpos(pos){ QueueS.qpos = pos; },
+  },
 });
 mock.module(new URL('../../src/player/clock.js', import.meta.url).href, {
   namedExports: { drawTime(){}, updateFocusStatusLine(){} },
 });
 
 const { saveResumeNow, restoreResume, autosaveResumeTick } = await import('../../src/player/resume.js');
-const { S } = await import('../../src/state.js');
 
 function freshIndexedDB(){
   const factory = new IDBFactory();

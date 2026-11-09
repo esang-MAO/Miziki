@@ -92,9 +92,18 @@ mock.module(new URL('../../src/shell/put-away.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, {
   namedExports: { sleeveArtFor(){}, applySleeveWear(){} },
 });
+// LI6 (docs/35_LEAD_IN.md): clearToRest() now calls the real setQueueList()/
+// setQpos() (the only two places allowed to write S.queue/S.qpos) —
+// imported first here so the mocks below can write the real S object
+// directly, the same way the real ones do.
+const { S: QueueS } = await import('../../src/state.js');
 const paintRestingCardMock = mock.fn();
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
-  namedExports: { paintRestingCard: paintRestingCardMock },
+  namedExports: {
+    paintRestingCard: paintRestingCardMock,
+    setQueueList(list){ QueueS.queue = list; },
+    setQpos(pos){ QueueS.qpos = pos; },
+  },
 });
 
 const { endOfQueue, stopAtRecordEndCeremony, clearToRest } = await import('../../src/shell/runout.js');

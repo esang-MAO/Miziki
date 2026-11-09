@@ -14,7 +14,7 @@ import { albumKey } from '../record-art/tiers.js';
 import { idOf, idxOf, allIdx } from './model.js';
 import { tracks, overlays, artwork } from '../storage/repo.js';
 import { stop } from '../player/transport.js';
-import { setQueue } from '../player/queue.js';
+import { setQueue, setQueueList, setQpos } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { drawTime } from '../player/clock.js';
 import { invalidateActiveSessionIfAny } from '../history/sessions.js';
@@ -118,7 +118,7 @@ export async function deleteTracks(idsToDelete){
       $('#platterBox').classList.add('disc-hidden');
       setQueue(allIdx(), 0, false);   // silent priming un-hides it again once the next track lands
     } else {
-      S.queue = []; S.baseQueue = []; S.qpos = 0;
+      setQueueList([]); S.baseQueue = []; setQpos(0);
       MizikiSocial.stopSpinning();
       $('#trackName').textContent = 'Nothing on the platter';
       $('#trackBy').textContent = ''; $('#trackSpec').textContent = 'Load a file to see its signal path';
@@ -141,10 +141,10 @@ export async function deleteTracks(idsToDelete){
       stopSleepState();
     }
   } else {
-    S.queue = queueIds.map(idxOf).filter(i => i >= 0);
+    setQueueList(queueIds.map(idxOf).filter(i => i >= 0));
     S.baseQueue = baseQueueIds.map(idxOf).filter(i => i >= 0);
     S.index = idxOf(currentId);
-    S.qpos = Math.max(0, S.queue.indexOf(S.index));
+    setQpos(Math.max(0, S.queue.indexOf(S.index)));
   }
 
   rebuildPeopleIndex();
@@ -188,7 +188,7 @@ export async function forgetLibrary(){
   invalidateActiveSessionIfAny();   // end any in-flight session cleanly first, so a half-played album is never counted
   stop();
   S.tracks = []; S.index = -1;
-  S.queue = []; S.baseQueue = []; S.qpos = 0; S.lru = [];
+  setQueueList([]); S.baseQueue = []; setQpos(0); S.lru = [];
   S.curPlayed = []; S.curTrackDone = false;
   S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
   // playlists, albumOrder/albumSort, S.sealed, every listening-stats field
