@@ -37,14 +37,12 @@ Findings from a reading pass over seven books, checked against the repo as of `3
 
 ---
 
-## Decisions (Ken, before LI1)
+## Decisions (Ken, answered 2026-11-09)
 
-These are open. Write the answers here before LI1 starts; this section must be empty of questions before any step runs.
-
-1. **Sleep timer "End of side".** Add it (LI3). One in, one out: retire the 90-minute option? *(Recommended: yes.)*
-2. **Night volume.** The two music-psychology readers disagreed. Quiet music reads as calmer (both books), but a level dip fights loudness normalization and takes volume out of the listener's hands. *(Recommended: don't build it. Revisit only if L1/L2 listening says the night still feels too present.)*
-3. **"[Friend] is spinning this too"** on a gatefold when a friend's `now_spinning` matches the release. Listening "with" someone lowers stress more and moving in time together bonds people (Power ch. 15–16). It's found on the record, never pushed, but it is new content. Build it? If yes, does it hide after sunset (like Share/Pin under GF11) or stay as company? *(Recommended: build it later, after the friends sticker ships; hide after sunset.)*
-4. **Gatefold memory line** (LI4): show it after sunset too, or day only? *(Recommended: day only, consistent with GF11.)*
+1. **Sleep timer "End of side".** Add it (LI3), and retire the 90-minute option. **Yes.**
+2. **Night volume.** Don't build a level dip. **No.**
+3. **"[Friend] is spinning this too"** on a gatefold when a friend's `now_spinning` matches the release. **Build later**, after the friends sticker ships; hides after sunset (per recommendation).
+4. **Gatefold memory line** (LI4): shown day only, consistent with GF11.
 
 ---
 
