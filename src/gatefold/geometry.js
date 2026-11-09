@@ -31,27 +31,36 @@ export function gatefoldGeometry(_format, _viewport){
 }
 
 // Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5): a real
-// tagged multi-disc album with more than 2 discs gets additional rows of
-// 2, straight back, in the exact same left/right positions the existing
-// two-disc row already uses -- never a size cap (that cap stays CC5's
+// tagged multi-disc album with more than 2 discs gets additional rows,
+// up to 3 discs across each -- never a size cap (that cap stays CC5's
 // own, on a *computed* double/quad LP from a too-long single disc, via
 // splitSingleDiscGroups()'s bestSideCuts(durations, 4) in
 // ceremony-timing.js, untouched by this function). row 0 is the front
 // row (today's plain two-disc position); each higher row is one row
-// further back. An odd disc out sits alone, centered, as its own row at
-// the very back -- Ken, 2026-11-09: "The odd one out should be in the
-// back" -- never as an unpaired front disc.
+// further back.
+//
+// Design-mockup follow-up (Ken, 2026-11-09): "For albums that have 3
+// discs it should just be 1 row of 3 across. For 4, then 2 rows of 2...
+// For 5: bottom row has 3, top has 2. For 6: 2 rows of 3." Rows of up to
+// 3 (never an unpaired front disc) with any remainder absorbed by the
+// front row(s) first, so a count that doesn't split evenly always puts
+// the fuller row in front, never the back.
+//
+// x is each disc's horizontal offset from center, in units of one
+// disc-width-plus-gap (CSS turns it into an actual px offset) -- -1/0/1
+// for a row of 3, -0.5/0.5 for a row of 2, 0 alone for a row of 1.
 export function gatefoldRowLayout(n){
   if(n <= 0) return [];
-  const pairRows = Math.floor(n / 2);
-  const hasOdd = n % 2 === 1;
+  const maxPerRow = 3;
+  const numRows = Math.max(1, Math.ceil(n / maxPerRow));
+  const base = Math.floor(n / numRows);
+  const extra = n % numRows;
+  const rowCounts = [];
+  for(let row = 0; row < numRows; row++) rowCounts.push(base + (row < extra ? 1 : 0));
+  const xOffsetsFor = count => count === 1 ? [0] : count === 2 ? [-0.5, 0.5] : [-1, 0, 1];
   const layout = [];
-  for(let i = 0; i < n; i++){
-    const isOddLast = hasOdd && i === n - 1;
-    layout.push({
-      row: isOddLast ? pairRows : Math.floor(i / 2),
-      col: isOddLast ? 'center' : (i % 2 === 0 ? 'left' : 'right'),
-    });
-  }
+  rowCounts.forEach((count, row) => {
+    xOffsetsFor(count).forEach(x => layout.push({ row, x }));
+  });
   return layout;
 }

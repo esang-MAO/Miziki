@@ -754,50 +754,72 @@ function gatefoldSleevePocketEls(){
 // fit -- "stacking the rows tighter is fine" (Ken) -- so every disc
 // stays visible and distinguishable on whatever device is real, not
 // just the one this was tested on.
-const GF_SLEEVE_TOP = 570;
-const GF_SLEEVE_BASE_HEIGHT = 252;
-const GF_SLEEVE_ANCHOR_BOTTOM = GF_SLEEVE_TOP + GF_SLEEVE_BASE_HEIGHT;
-const GF_SLEEVE_ROW_STEP = 78; // gatefoldGeometry()'s uniform discDiameter (156) / 2
-const GF_SLEEVE_DISC_SIZE = 156;
-const GF_SLEEVE_ROW_MARGIN = 12; // clearance kept below the info text and above the real viewport edge
+// Design-mockup follow-up (Ken, 2026-11-09): the sleeve rack now sits
+// flush against the mini-player's own top edge (or, with nothing
+// loaded and the mini-player hidden, the tab bar's) -- no overlap, by
+// design, unlike the plain 1-2 disc sleeve above (.gf-sleeve-paper's own
+// fixed top/height), which is untouched by any of this and keeps
+// overlapping the mini-player exactly as it always has. Each disc is
+// only ever drawn as its visible top half-circle over its visible
+// bottom half-square of sleeve (11-gatefold.css's .gf-row-disc rules) --
+// there's no hidden other half to find room for -- so stacking a row
+// behind another only costs half a disc's height, not a whole one,
+// which is what lets --gf-row-disc-size grow well past the plain
+// sleeve's fixed 156px when a box set's widest row has fewer than 3
+// discs across (Ken: "sizing should scale... depending on the number of
+// discs an album has").
+const GF_SLEEVE_ROW_GAP = 16; // matches CLAUDE.md's --sp-4
+const GF_SLEEVE_MIN_DISC = 90;
+const GF_SLEEVE_MAX_DISC = 190;
+const GF_SLEEVE_ROW_TOP_MARGIN = 12; // clearance kept below the info text
+const GF_SLEEVE_ROW_STEP_RATIO = 0.5; // half a disc's height peeks above the row in front of it
 
 function gatefoldSleeveRowBudget(){
   const info = $('.gf-info');
   const infoRect = info ? info.getBoundingClientRect() : null;
-  const minTop = infoRect && infoRect.height > 0
-    ? infoRect.bottom + GF_SLEEVE_ROW_MARGIN
-    : GF_SLEEVE_TOP - (GF_SLEEVE_ROW_STEP - GF_SLEEVE_ROW_MARGIN);
-  // The real viewport edge is the one bound that can never give: a few
-  // px of tight margin above the info text beats clipping off the
-  // bottom entirely, so `top` yields first if there isn't room for
-  // even one disc between the two (an extreme, unlikely-in-practice
-  // case -- any real phone has well over 156px between its album text
-  // and its own screen edge).
-  const bottom = Math.min(GF_SLEEVE_ANCHOR_BOTTOM, window.innerHeight - GF_SLEEVE_ROW_MARGIN);
-  const top = Math.min(minTop, bottom - GF_SLEEVE_DISC_SIZE);
+  const top = infoRect && infoRect.height > 0 ? infoRect.bottom + GF_SLEEVE_ROW_TOP_MARGIN : 0;
+  // flush against whichever of the mini-player/tab bar is actually the
+  // top of the bottom chrome right now -- the mini-player is display:none
+  // with nothing loaded (mini-player.js's renderMiniPlayer()), so this
+  // falls back to the tab bar's own top edge rather than the mini-
+  // player's stale (collapsed) rect.
+  const mini = $('.mini-player');
+  const miniVisible = mini && getComputedStyle(mini).display !== 'none';
+  const chrome = miniVisible ? mini : $('#tabbar');
+  const chromeRect = chrome ? chrome.getBoundingClientRect() : null;
+  const bottom = chromeRect && chromeRect.height > 0 ? chromeRect.top : window.innerHeight;
   return { top, bottom };
 }
 
-function gatefoldLayoutSleeveRows(rowDisc, rows){
+function gatefoldLayoutSleeveRows(rowDisc, layout){
   const gfSleeve = $('#gfSleeve');
   if(!rowDisc){
     gfSleeve.style.height = '';
     gfSleeve.style.top = '';
-    gatefoldSleevePocketEls().forEach(wrap => { wrap.style.bottom = ''; });
+    gfSleeve.style.removeProperty('--gf-row-disc-size');
+    gatefoldSleevePocketEls().forEach(wrap => { wrap.style.bottom = ''; wrap.style.removeProperty('--gf-row-x'); });
     return;
   }
+  const numRows = layout.reduce((max, l) => Math.max(max, l.row), 0) + 1;
+  const rowCounts = new Array(numRows).fill(0);
+  layout.forEach(l => { rowCounts[l.row]++; });
+  const maxCount = Math.max(...rowCounts);
+
   const budget = gatefoldSleeveRowBudget();
-  const available = budget.bottom - budget.top;
-  const uncompressedHeight = GF_SLEEVE_DISC_SIZE + rows * GF_SLEEVE_ROW_STEP;
-  const step = uncompressedHeight <= available
-    ? GF_SLEEVE_ROW_STEP
-    : Math.max(12, (available - GF_SLEEVE_DISC_SIZE) / rows);
-  const sleeveHeight = GF_SLEEVE_DISC_SIZE + rows * step;
+  const available = Math.max(0, budget.bottom - budget.top);
+  const width = (GF && GF.geom ? GF.geom.panelSize : 350);
+  const widthCap = maxCount > 1 ? (width - (maxCount - 1) * GF_SLEEVE_ROW_GAP) / maxCount : width;
+  const heightCap = available / (1 + GF_SLEEVE_ROW_STEP_RATIO * (numRows - 1));
+  const size = Math.max(GF_SLEEVE_MIN_DISC, Math.min(GF_SLEEVE_MAX_DISC, widthCap, heightCap));
+
+  const rowStep = size * GF_SLEEVE_ROW_STEP_RATIO;
+  const sleeveHeight = size + (numRows - 1) * rowStep;
   gfSleeve.style.height = sleeveHeight + 'px';
   gfSleeve.style.top = (budget.bottom - sleeveHeight) + 'px';
+  gfSleeve.style.setProperty('--gf-row-disc-size', size + 'px');
   gatefoldSleevePocketEls().forEach(wrap => {
     const row = Number(wrap.dataset.gfRow || 0);
-    wrap.style.bottom = (row * step) + 'px';
+    wrap.style.bottom = (row * rowStep) + 'px';
   });
 }
 
@@ -817,10 +839,9 @@ function gatefoldBuildSleevePockets(discGroups){
   first.setAttribute('data-disc', String(discGroups[0] ? discGroups[0].disc : 0));
   const applyRow = (wrap, i) => {
     const pos = layout[i];
-    wrap.classList.remove('gf-row-left', 'gf-row-right', 'gf-row-center');
-    if(!rowDisc || !pos) { wrap.style.removeProperty('--gf-row'); delete wrap.dataset.gfRow; wrap.style.bottom = ''; return; }
-    wrap.classList.add('gf-row-' + pos.col);
+    if(!rowDisc || !pos) { delete wrap.dataset.gfRow; wrap.style.bottom = ''; wrap.style.removeProperty('--gf-row-x'); wrap.style.removeProperty('--gf-row'); return; }
     wrap.style.setProperty('--gf-row', String(pos.row));
+    wrap.style.setProperty('--gf-row-x', String(pos.x));
     wrap.dataset.gfRow = String(pos.row);
   };
   applyRow(first, 0);
@@ -834,8 +855,7 @@ function gatefoldBuildSleevePockets(discGroups){
     applyRow(clone, k);
     pockets.appendChild(clone);
   }
-  const rows = rowDisc ? layout.reduce((max, l) => Math.max(max, l.row), 0) : 0;
-  gatefoldLayoutSleeveRows(rowDisc, rows);
+  gatefoldLayoutSleeveRows(rowDisc, layout);
 }
 
 // gatefoldBuildSleevePockets() runs before the overlay is visible
@@ -847,9 +867,7 @@ function gatefoldRelayoutSleeveRows(){
   if(!GF) return;
   const rowDisc = GF.discGroups.length > 2;
   if(!rowDisc) return;
-  const layout = gatefoldRowLayout(GF.discGroups.length);
-  const rows = layout.reduce((max, l) => Math.max(max, l.row), 0);
-  gatefoldLayoutSleeveRows(rowDisc, rows);
+  gatefoldLayoutSleeveRows(rowDisc, gatefoldRowLayout(GF.discGroups.length));
 }
 
 const GF_WEAR_STAGES = ['light', 'worn', 'loved'];
