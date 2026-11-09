@@ -159,26 +159,79 @@ test('splitSides: a 40-minute single disc stays at two sides, no double LP', () 
   assert.deepEqual(s.map(x => x.idx), [[0,1],[2,3]]);
 });
 
-test('splitSides: a computed double LP keeps track order even with uneven side lengths', () => {
-  // One dominating 3000s track plus seven short ones: the plain 2-way
-  // split puts it on an over-the-cap side regardless, so this becomes a
-  // computed double LP with real, unevenly-spaced cut points rather
-  // than an even 2-tracks-a-side split -- every index must still appear
-  // exactly once, in its original order, and the sides must still sum
-  // to the album's own total duration.
+// Box-set follow-up to CC5 (Ken, 2026-11-09): a single track that's over
+// the cap all by itself can't be fixed by splitting further -- any side
+// holding it stays over cap at every tier, so the escalation climbs all
+// the way to the 8-side hard cap (4 discs) rather than stopping at 4.
+// Track order and the total duration must still be preserved exactly.
+test('splitSides: a single dominating track can\'t be split small enough -- escalates to the 8-side hard cap', () => {
   const durs = [100,300,3000,300,100,100,300,100];
   const s = splitSides([0,1,2,3,4,5,6,7], durTracks(durs), true);
-  assert.equal(s.length, 4);
+  assert.equal(s.length, 8);
+  assert.deepEqual(s.map(x => x.label), ['SIDE A','SIDE B','SIDE C','SIDE D','SIDE E','SIDE F','SIDE G','SIDE H']);
   assert.deepEqual(s.flatMap(x => x.idx), [0,1,2,3,4,5,6,7]);
   assert.equal(s.reduce((sum, side) => sum + side.idx.reduce((a, i) => a + durs[i], 0), 0), durs.reduce((a, d) => a + d, 0));
 });
 
-test('discGroupsFor: a computed double LP reports two virtual discs, 1 and 2', () => {
+test('discGroupsFor: a computed double LP (4 sides) reports two virtual discs, 1 and 2', () => {
   const t = durTracks(new Array(8).fill(525));
   assert.deepEqual(discGroupsFor([0,1,2,3,4,5,6,7], t), [
     { disc: 1, idx: [0,1,2,3] },
     { disc: 2, idx: [4,5,6,7] },
   ]);
+});
+
+// Box-set follow-up to CC5 (Ken, 2026-11-09, "cap the number of discs to
+// 4"): once a double LP (4 sides) still has a side over the 22-min cap,
+// escalation tries 6 sides next, stopping there once every side gets
+// under cap -- three discs, not four.
+test('splitSides: a long album escalates to 6 sides (three discs) when 4 sides is still over cap but 6 gets under it', () => {
+  // 24 equal 300s tracks, 7200s (120 min) total: the 4-way split
+  // (6 tracks/side, 1800s) is still over the 22-min (1320s) cap, but the
+  // 6-way split (4 tracks/side, 1200s) gets under it, so escalation
+  // stops there.
+  const t = durTracks(new Array(24).fill(300));
+  const idx = t.map((_, i) => i);
+  const s = splitSides(idx, t, true);
+  assert.equal(s.length, 6);
+  assert.deepEqual(s.map(x => x.idx.length), [4,4,4,4,4,4]);
+  assert.deepEqual(s.flatMap(x => x.idx), idx);
+});
+
+test('discGroupsFor: a 6-side computed split reports three virtual discs', () => {
+  const t = durTracks(new Array(24).fill(300));
+  const idx = t.map((_, i) => i);
+  const groups = discGroupsFor(idx, t);
+  assert.deepEqual(groups.map(g => g.disc), [1,2,3]);
+  assert.deepEqual(groups.map(g => g.idx.length), [8,8,8]);
+  assert.deepEqual(groups.flatMap(g => g.idx), idx);
+});
+
+// Box-set follow-up to CC5 (Ken, 2026-11-09): the hard cap -- 8 sides,
+// four discs -- is the last tier tried, whether or not it actually gets
+// every side under cap (see the single-dominating-track test above for
+// the "still over cap" case; this one gets under cap exactly at the
+// ceiling).
+test('splitSides: a very long album escalates all the way to the 8-side hard cap (four discs) when 6 sides is still over cap', () => {
+  // 48 equal 200s tracks, 9600s (160 min) total: 2-way (4800s/side),
+  // 4-way (2400s/side) and 6-way (1600s/side) are all still over the
+  // 22-min cap; only the hard-capped 8-way split (1200s/side) gets
+  // under it.
+  const t = durTracks(new Array(48).fill(200));
+  const idx = t.map((_, i) => i);
+  const s = splitSides(idx, t, true);
+  assert.equal(s.length, 8);
+  assert.deepEqual(s.map(x => x.idx.length), [6,6,6,6,6,6,6,6]);
+  assert.deepEqual(s.flatMap(x => x.idx), idx);
+});
+
+test('discGroupsFor: an 8-side computed split reports four virtual discs, never more', () => {
+  const t = durTracks(new Array(48).fill(200));
+  const idx = t.map((_, i) => i);
+  const groups = discGroupsFor(idx, t);
+  assert.deepEqual(groups.map(g => g.disc), [1,2,3,4]);
+  assert.deepEqual(groups.map(g => g.idx.length), [12,12,12,12]);
+  assert.deepEqual(groups.flatMap(g => g.idx), idx);
 });
 
 test('discGroupsFor: an under-cap single disc stays one group, not a double LP', () => {
