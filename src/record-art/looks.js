@@ -48,8 +48,15 @@ function availableLooks(t){
   // tier 1 with nothing earned has no real alternative to fall back to, so
   // the plain format variant only counts as a genuine "look" once there's
   // either something else to switch away from, or the tier itself carries
-  // real variance (2/3)
-  if(tier !== 1 || looks.length === 0) looks.push('variant');
+  // real variance (2/3). Bug fix (diagnosed during UN18's final sweep): this
+  // used to read `tier !== 1 || looks.length === 0`, which only added
+  // 'variant' for tier 1 when *nothing* else was earned -- a tier-1 record
+  // with exactly one other earned look (zoetrope/rare/metal) then had
+  // looks.length===1, so hasLookChoice() (length > 1) wrongly said there was
+  // no choice, even though variant-vs-that-one-look is a real choice. The
+  // rule is the same either way: variant only drops out when it would be
+  // the *sole* option with nothing to switch between.
+  if(tier !== 1 || looks.length <= 1) looks.push('variant');
   return looks;
 }
 
