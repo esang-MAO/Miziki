@@ -23,7 +23,7 @@ import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { recallLineFor } from '../history/recall.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
-import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
+import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob, backCoverMenuRowsVisible } from './back-cover.js';
 import { albumTracks, idOf, idxOf } from '../library/model.js';
 import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist, openCreditsSheet, trackHasCreditsContent } from '../library/credits.js';
 import { isFavorite, toggleFavorite } from '../library/favorites.js';
@@ -1150,6 +1150,17 @@ export function gatefoldFormatLines(item){
 // "Remove album", every one of them shown every time, day or night.
 export function openGatefoldMoreMenu(){
   const btn = $('#gfMoreBtn');
+  // UN10 (docs/36_UNIFORMITY.md point 2): the back cover's own rows only
+  // make sense turned over -- re-checked fresh every open, same posture
+  // as every other row below that depends on current GF state.
+  const showBackCoverRows = backCoverMenuRowsVisible(GF && GF.turnedOver);
+  ['gfBackCoverChooseBtn', 'gfBackCoverPhotoBtn', 'gfBackCoverDefaultBtn', 'gfBackCoverMenuDivider'].forEach(id =>
+    $('#' + id).style.display = showBackCoverRows ? '' : 'none');
+  if(showBackCoverRows){
+    const albumId = currentGatefoldAlbumId();
+    getAlbumBackCoverBlob(albumId).then(blob =>
+      $('#gfBackCoverDefaultBtn').setAttribute('aria-checked', String(!blob)));
+  }
   const shareSrc = document.querySelector('.gf-share-btn');
   const pinSrc = document.querySelector('.gf-pin-btn');
   $('#gfMoreShareBtn').style.display = shareSrc ? '' : 'none';

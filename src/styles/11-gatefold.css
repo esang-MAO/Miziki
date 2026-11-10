@@ -244,40 +244,61 @@
    paper texture over a real photo. */
 .gf-back-cover-photo::before{content:none}
 .gf-back-cover-photo img{display:block;width:100%;height:100%;object-fit:cover}
-/* GF6: "a ··· button on the back opens a small menu" -- same mono-text
-   icon-button shape as .gf-left-cue/.gf-right-cue, a plain circle so it
-   reads on either the printed default or a user's own photo. Only
-   interactive once the stage itself is (.gf-back-cover-stage is
-   pointer-events:none at rest -- a child can still opt back in). */
-.gf-back-cover-more{position:absolute;top:10px;right:10px;width:30px;height:30px;
-  border-radius:50%;background:rgba(6,10,13,.55);color:var(--paper);font-family:var(--body);
-  font-size:var(--fs-row);line-height:1;z-index:1;pointer-events:none}
-.gatefold.gf-turned-over .gf-back-cover-more{pointer-events:auto}
+/* UN10 (docs/36_UNIFORMITY.md point 2): the back cover's own "⋯" button
+   is gone -- #gfMoreBtn (11-gatefold.css L60, always visible) is the one
+   menu now, so .gf-back-cover-stage carries no interactive control of
+   its own any more. 22px bottom padding (up from 16px) keeps the footer
+   clear of this frame's own printed border at any track count (decision
+   2) -- .gf-back-sides below carries the matching 10px gap above the
+   footer rule. */
 .gf-back-frame{position:absolute;inset:14px;border:1.5px solid rgba(38,32,44,.85);border-radius:2px;
-  padding:16px 14px;display:flex;flex-direction:column;overflow:hidden}
+  padding:16px 14px 22px;display:flex;flex-direction:column;overflow:hidden}
 .gf-back-artist{margin:0 0 2px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
   letter-spacing:var(--track-caps);text-transform:uppercase;color:rgba(38,32,44,.75)}
 .gf-back-title{margin:0 0 12px;font-family:var(--display);font-size:var(--fs-title);font-weight:700;
   line-height:1.05;letter-spacing:0}
 .gf-back-7 .gf-back-title{font-size:var(--fs-body)}
 .gf-back-10 .gf-back-title{font-size:var(--fs-row)}
-.gf-back-sides{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0 18px;overflow:hidden;min-height:0}
+/* UN10 point 4: the 10px margin-bottom here (not on .gf-back-footer's own
+   margin-top:auto, which collapses to 0 once the grid fills the frame)
+   is what keeps the footer rule off a tall 2-disc/4-side tracklist --
+   .gf-back-footer's own margin-top:auto still pins it to the bottom on a
+   short one. */
+.gf-back-sides{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0 18px;overflow:hidden;min-height:0;margin-bottom:10px}
 .gf-back-side{display:flex;flex-direction:column;min-width:0}
-.gf-back-side-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 4px;
-  font-family:var(--display);font-size:var(--fs-caption);letter-spacing:var(--track-caps)}
+/* UN10 point 1: side headings over a thin rule, Antonio 700. */
+.gf-back-side-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 6px;
+  padding-bottom:3px;border-bottom:1px solid rgba(38,32,44,.25);
+  font-family:var(--display);font-weight:700;font-size:var(--fs-caption);letter-spacing:var(--track-caps)}
 .gf-back-side-head span{font-family:var(--data);font-variant-numeric:tabular-nums;color:rgba(38,32,44,.65)}
-.gf-back-track{display:flex;align-items:baseline;gap:6px;margin:0 0 2px;font-family:var(--data);
-  font-size:var(--fs-caption);line-height:1.35}
-.gf-back-tn{color:rgba(38,32,44,.55);flex:0 0 auto}
-.gf-back-tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gf-back-td{color:rgba(38,32,44,.65);flex:0 0 auto;font-variant-numeric:tabular-nums}
+/* UN10 point 1: titles wrap to two lines instead of truncating, so a
+   wrapped title's number/duration stay pinned to its first line, not
+   centred against the extra height -- flex-start, not baseline. */
+.gf-back-track{display:flex;align-items:flex-start;gap:6px;margin:0 0 3px;line-height:1.35}
+/* Numbers and durations are the dead-wax/label kind of physical-object
+   detail CLAUDE.md's token scale carves out below the 12px caption floor
+   -- legibly repeated nearby (the gatefold's own tracklist panel already
+   shows both for this same record), same posture as the pocket disc's
+   own dead-wax text (below, this file) and 10-crate.css's bin-label mono. */
+.gf-back-tn{color:rgba(38,32,44,.55);flex:0 0 auto;font-family:var(--data);font-size:11px}
+.gf-back-tt{flex:1;min-width:0;font-family:var(--body);font-size:var(--fs-caption);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.gf-back-td{color:rgba(38,32,44,.65);flex:0 0 auto;font-variant-numeric:tabular-nums;
+  font-family:var(--data);font-size:11px}
 .gf-back-more{margin:2px 0 0;font-family:var(--data);font-size:var(--fs-caption);color:rgba(38,32,44,.55)}
 .gf-back-footer{margin-top:auto;padding-top:10px;border-top:1.5px solid #26202C;
   display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
 .gf-back-meta{font-family:var(--data);font-size:var(--fs-caption);line-height:1.5;color:rgba(38,32,44,.8)}
 .gf-back-catalog{margin:0;font-weight:500;color:#26202C}
 .gf-back-meta p{margin:0}
-.gf-back-wordmark{width:34px;height:auto;display:block;flex:0 0 auto}
+/* UN10 point 3: 34 -> 58px. The mark's own SVG paints its letters/rings
+   off var(--paper)/var(--accent-text) (src/ui/wordmark.js) -- both
+   custom properties, inherited by the cloned SVG's own children, so
+   overriding them here (rather than the dark-theme page defaults) is
+   what gets the plan's own ink/ring values onto this one paper-coloured
+   mark without a second copy of the SVG. */
+.gf-back-wordmark{width:58px;height:auto;display:block;flex:0 0 auto;
+  --paper:rgba(43,35,28,.78);--accent-text:#B9742A}
 /* GF5 point 4: a worn record's back carries the same wear classes as its
    sleeve (30-wear.css's own .sleeve.wear-* ring/edge rules) -- the front
    cover face stays pristine, as today. */

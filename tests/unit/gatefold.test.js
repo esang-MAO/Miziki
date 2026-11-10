@@ -121,6 +121,9 @@ mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
     buildBackCoverEl(){ return {}; },
     buildBackCoverImageEl(){ return {}; },
     getAlbumBackCoverBlob(){ return Promise.resolve(null); },
+    // UN10 (docs/36_UNIFORMITY.md point 2): the real function is pure
+    // and tested directly in gatefold-back-cover.test.js.
+    backCoverMenuRowsVisible(turnedOver){ return !!turnedOver; },
   },
 });
 // GF10: buildBookletRow() (view.js) reads bookletPageCount() and opens the

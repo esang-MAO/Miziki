@@ -1617,27 +1617,18 @@
        gatefoldSetTurnedOver()/11-gatefold.css's own comment on this). -->
   <div class="gf-back-cover-stage" id="gfBackCoverStage" aria-hidden="true">
     <div id="gfBackCover"></div>
-    <!-- GF6: your own back cover -- lives on the stage itself (not inside
-         #gfBackCover, which gatefoldSetBackCover() clears and rebuilds on
-         every open) so it survives that rebuild untouched. -->
-    <button type="button" class="gf-back-cover-more" id="gfBackCoverMoreBtn" aria-label="Back cover options" aria-haspopup="true" aria-expanded="false">⋯</button>
   </div>
   <div class="gf-flip-dots" id="gfFlipDots" aria-hidden="true"><span class="active"></span><span></span></div>
   <button type="button" class="gf-turn-over" id="gfTurnOver" aria-pressed="false" aria-label="Flip cover">
     <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true"><path d="M3.2 6.2A6 6 0 0 1 14.3 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M14.6 2v3.2h-3.2" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.8 10.8A6 6 0 0 1 2.7 12" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M2.4 15v-3.2h3.2" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
 
-  <!-- GF6: "a ··· button on the back opens a small menu" -- reuses the
-       app's one overflow-menu component (01-header.css's .overflow-menu/
-       .overflow-scrim, the same shape the player/library headers' own
-       "···" menus already use), positioned off #gfBackCoverMoreBtn's own
-       rect in JS (src/wiring/gatefold.js). -->
-  <div class="overflow-scrim" id="gfBackCoverMenuScrim"></div>
-  <div class="overflow-menu" id="gfBackCoverMenu" role="menu">
-    <button class="overflow-menu-row" id="gfBackCoverChooseBtn" role="menuitem">Choose an image…</button>
-    <button class="overflow-menu-row" id="gfBackCoverPhotoBtn" role="menuitem">Photograph your copy</button>
-    <button class="overflow-menu-row overflow-menu-row-check" id="gfBackCoverDefaultBtn" role="menuitemcheckbox" aria-checked="true">Use Miziki default</button>
-  </div>
+  <!-- UN10 (docs/36_UNIFORMITY.md point 2): the back cover's own "⋯" menu
+       is gone -- #gfMoreBtn (below) is already a fixed, always-visible
+       control, turned over or not, so it's the one menu now. These three
+       rows are shown only while turned over (gatefoldOpenMoreMenu()),
+       with the hidden file inputs they trigger kept here, next to the
+       stage they affect. -->
   <input id="gfBackCoverFile" type="file" accept="image/*" style="display:none">
   <input id="gfBackCoverCameraFile" type="file" accept="image/*" capture="environment" style="display:none">
 
@@ -1645,8 +1636,7 @@
        always-present "record options" menu, then GF14: Share record/Pin
        to crate moved in for good (previously only while GF.night, with
        their own always-on pill buttons by day) -- one home for both,
-       day or night, rather than two. Same .overflow-menu/.overflow-scrim
-       shape as #gfBackCoverMenu above, positioned off #gfMoreBtn's own
+       day or night, rather than two. Positioned off #gfMoreBtn's own
        rect (src/wiring/gatefold.js). GF15: "Select" re-homed here too --
        the batch-edit/delete selection the old renderAlbumDetail() used
        to reach through the library header's own Select toggle, now that
@@ -1655,10 +1645,16 @@
   <div class="overflow-scrim" id="gfMoreMenuScrim"></div>
   <!-- UN3 (docs/36_UNIFORMITY.md): restyled onto the shared list-menu
        look (05-parts.css's .p-list-menu*) -- same ids/wiring, sentence
-       case, "Remove album" last, in its own danger-colour group. Back
-       cover ⋯'s own items (UN10, not yet built) join this same menu once
-       the record is turned over -- not addressed here. -->
+       case, "Remove album" last, in its own danger-colour group. UN10:
+       the back cover's own "⋯" (GF6) is gone -- its three rows join the
+       top of this same menu instead, shown only while turned over
+       (gatefoldOpenMoreMenu()), so there's one menu button on the
+       gatefold, not two. -->
   <div class="overflow-menu p-list-menu" id="gfMoreMenu" role="menu">
+    <button class="p-list-menu-item" id="gfBackCoverChooseBtn" role="menuitem">Choose an image…</button>
+    <button class="p-list-menu-item" id="gfBackCoverPhotoBtn" role="menuitem">Photograph your copy</button>
+    <button class="p-list-menu-item overflow-menu-row-check" id="gfBackCoverDefaultBtn" role="menuitemcheckbox" aria-checked="true">Use Miziki default</button>
+    <div class="p-list-menu-divider" id="gfBackCoverMenuDivider"></div>
     <button class="p-list-menu-item" id="gfMoreShareBtn" role="menuitem">Share record</button>
     <button class="p-list-menu-item" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
     <button class="p-list-menu-item overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
