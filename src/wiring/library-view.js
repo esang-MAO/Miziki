@@ -100,6 +100,10 @@ export function wireLibraryView(){
   // library/view.js's own openArtistMoreMenu(), only the scrim's
   // tap-to-dismiss needs wiring here.
   $('#artistMoreMenuScrim').addEventListener('click', () => closeLayer('artist-more-menu'));
+  // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): the playlist page's
+  // own ⋯ menu -- opened from library/view.js's own openPlaylistMoreMenu(),
+  // only the scrim's tap-to-dismiss needs wiring here, same as above.
+  $('#playlistMoreMenuScrim').addEventListener('click', () => closeLayer('playlist-more-menu'));
   // UN3 point 6: "Select" moves from the old small popover into a
   // navRow at the top of the Library tools sheet itself (a judgment
   // call -- see miziki.html's own comment on #libToolsSheetOverlay).

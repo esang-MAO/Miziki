@@ -215,6 +215,79 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .pl-caption{font-family:var(--body);font-size:13px;line-height:1.3;color:var(--muted)}
 .playlist-tile.is-fav .pl-title::before{content:'♥ ';color:var(--paper)}
 
+/* ---- Playlist detail page: LB4 (docs/36A_LIBRARY_AND_LAUNCH.md,
+   decision 4) ----
+   backHeader('Playlists', '', ⋯) (library/view.js's own renderTracksBody()
+   call, same as isArtistPage's backHeader('Artists', ...) above it), then
+   this head block: the 96px mosaic (playlistMosaicArt() reused unchanged
+   -- .pl-mosaic is already width:100% of its own parent, so fixing
+   .pl-detail-mosaic's own width is the only CSS this needs), the title
+   and "{n} songs · {length}" caption, then Play/Shuffle/Add songs. */
+.pl-detail-head{display:flex;gap:var(--sp-4);align-items:flex-start;padding:var(--sp-3) 0 var(--sp-4)}
+.pl-detail-mosaic{width:96px;flex:0 0 auto;border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--sh-2)}
+.pl-detail-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--sp-1);padding-top:2px}
+/* Antonio 700 26px: this step's own exact wording ("the title (Antonio
+   700 26px, wraps)") -- 26px sits between --fs-title/20 and --fs-hero/28,
+   so it stays literal with this comment rather than bent onto either,
+   same "canvas-exact" posture as .pl-title/.pl-caption just above (LB0
+   never exported this frame either -- flagged again in the LB4 PR body).
+   No line-clamp, unlike the mosaic tile's own 2-line .pl-title -- this is
+   the page's own hero title, not a grid cell, so it wraps as far as it
+   needs to (this step's own "Preview focus" line: "the long playlist
+   name wraps"). */
+.pl-detail-title{margin:0;font-family:var(--display);font-weight:700;font-size:26px;line-height:1.15;
+  color:var(--paper);word-break:break-word}
+.pl-detail-caption{margin:0;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
+.pl-detail-actions{display:flex;gap:var(--sp-2);padding:0 0 var(--sp-3)}
+.pl-detail-actions .p-btn{flex:1}
+
+/* ---- Playlist detail page rows: handle · number · art · title/artist ·
+   time · ⋯ (decision 4 point 4) -- a dedicated row, not .tracklist li
+   (songRow()'s own shape), since only this list needs a drag handle and
+   its own lift/reflow treatment; .t-idx/.t-art/.t-name/.t-dur/.t-edit
+   (02-stage-platter.css) are reused unchanged via trackArtNode()/
+   trackNameNode() (library/view.js). */
+.pl-tracklist{list-style:none;margin:0;padding:0}
+.pl-row{display:flex;align-items:center;gap:var(--sp-2);width:100%;min-height:57px;
+  padding:4px 0;border-bottom:1px solid var(--line);text-align:left;background:none;
+  border-left:0;border-right:0;border-top:0;color:inherit;position:relative;
+  transition:transform .15s ease-out}
+.pl-row:last-child{border-bottom:0}
+/* The dragged row's own transform tracks the pointer every frame
+   (wirePlaylistDrag(), library/view.js) -- the .15s transition above is
+   for every *other* row's "make room" shift only, so this one row keeps
+   moving exactly as fast as the finger does. */
+.pl-row.dragging{transition:none}
+/* Lifted while dragging -- shadow + a touch of scale, same elevation
+   family (--sh-3) a dragged crate card or the current crate card itself
+   already reads at (10-crate.css), so "lifted" means the same thing here
+   it does everywhere else in the app. z-index keeps it drawn over the
+   rows it's passing. touch-action:none is on the handle itself, not this
+   row, below. */
+.pl-row.dragging{position:relative;z-index:5;background:var(--panel);box-shadow:var(--sh-3);
+  border-radius:var(--radius-control);border-bottom-color:transparent;will-change:transform}
+.pl-row-handle{width:24px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:var(--fs-row);letter-spacing:.2em;cursor:grab;touch-action:none;
+  -webkit-user-select:none;user-select:none}
+.pl-row.dragging .pl-row-handle{cursor:grabbing;color:var(--paper)}
+
+/* ---- "Add songs" pick mode (decision 4 point 5): same row shape minus
+   the handle/⋯, reusing .tracklist li.picked's own checkmark treatment
+   (02-stage-platter.css's .tracklist li.picked .t-idx::after) for "this
+   one's selected" -- so a picked row here looks exactly like a picked row
+   anywhere else in the library already does. #plAddSongsBar is the pinned
+   bar itself (miziki.html), positioned the same fixed-offset way
+   .undo-banner already is (16-edit-sheet.css) -- above the mini-player
+   and tab bar, never under them. */
+.pl-add-bar{position:fixed;left:16px;right:16px;bottom:calc(128px + env(safe-area-inset-bottom));
+  max-width:488px;margin:0 auto;z-index:60}
+.pl-add-bar .p-btn{width:100%}
+/* .pl-row's own "picked" look -- the same rule .tracklist li.picked
+   already draws (02-stage-platter.css), just under this list's own class
+   since .pl-row isn't .tracklist li. */
+.pl-tracklist li.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
+.pl-tracklist li.picked .t-idx::after{content:'✓';color:var(--paper);margin-left:2px}
+
 /* ---- Search: album hits already render a cover via groupRow's .g-art
    (library/search.js) -- this is the one CSS-only touch CR9's "Search
    results show sleeves for album hits" needed: a hairline lit top edge,

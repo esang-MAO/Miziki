@@ -7,8 +7,9 @@
    module has nothing to do with either. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { backHeader, emptyNote } from '../ui/parts.js';
+import { backHeader, emptyNote, listMenu } from '../ui/parts.js';
 import { openPlaylistNameSheet } from './playlist-sheet.js';
+import { dragTargetIndex, reorderPresentIds } from './drag-reorder.js';
 import { fmt } from '../util/text.js';
 import { setQueue, setQueueList, setQpos, playNext, addToQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView, openCreditsSheet } from './credits.js';
@@ -141,14 +142,14 @@ function artFor(indices){
   return withArt === undefined ? null : S.tracks[withArt].art;
 }
 
-export function songRow(i, queue, pos, extra){
-  const t = S.tracks[i];
-  const li = el('li');
-  li.dataset.id = t.id;
-  if(i === S.index) li.setAttribute('aria-current','true');
-  if(S.view.editSelecting && S.editSelection.has(t.id)) li.classList.add('picked');
-  const idx = el('span','t-idx', String(pos + 1).padStart(2,'0'));
-  li.appendChild(idx);
+// LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): pulled out of songRow()
+// below so the new playlist-page row (playlistSongRow(), further down)
+// can build the same art-thumbnail/title-artist cells without a second,
+// drifting copy of this markup -- the one "easy, low-risk" share the
+// addendum's own LB4 step calls for between the two row shapes, short of
+// a full shared row component (left for LB7, which builds this row style
+// everywhere).
+function trackArtNode(t){
   if(t.art){
     const im = el('img','t-art'); im.src = t.art; im.alt='';
     // NV6 (docs/11_SMOOTH_NAVIGATION.md): a large library can have
@@ -158,13 +159,27 @@ export function songRow(i, queue, pos, extra){
     // means the browser never has to reflow once the image actually loads.
     im.loading = 'lazy'; im.decoding = 'async';
     im.width = 34; im.height = 34;
-    li.appendChild(im);
+    return im;
   }
-  else li.appendChild(el('span','t-art'));
+  return el('span','t-art');
+}
+function trackNameNode(t){
   const name = el('span','t-name');
   name.appendChild(el('b', null, t.tags.title));
   name.appendChild(el('em', null, t.tags.artist + formatSuffix(t, libCommonFormat)));
-  li.appendChild(name);
+  return name;
+}
+
+export function songRow(i, queue, pos, extra){
+  const t = S.tracks[i];
+  const li = el('li');
+  li.dataset.id = t.id;
+  if(i === S.index) li.setAttribute('aria-current','true');
+  if(S.view.editSelecting && S.editSelection.has(t.id)) li.classList.add('picked');
+  const idx = el('span','t-idx', String(pos + 1).padStart(2,'0'));
+  li.appendChild(idx);
+  li.appendChild(trackArtNode(t));
+  li.appendChild(trackNameNode(t));
   li.appendChild(el('span','t-dur', fmt(t.duration)));
   if(!S.view.editSelecting){
     const editBtn = el('button','t-edit','⋯');
@@ -307,8 +322,16 @@ function updateSelectBar(){
 // openGatefoldTrackMenu() (gatefold/view.js) already takes for its own
 // per-track sheet. "Add to playlist…" is left out, see miziki.html's own
 // comment on #rowMenuOverlay for why.
-function rowMenuGroups(t){
-  return [
+// LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): `extraGroups` (an
+// array of groups, same shape as this function's own return value) lets
+// a caller insert context-only rows -- today just the playlist page's own
+// "Move up"/"Move down"/"Remove from this playlist" (openPlaylistRowMenu()
+// below) -- ahead of the library-wide "Remove from library…" group, which
+// always stays last. Reusing this one sheet rather than a second menu
+// component is the same "share the sheet, not the row" posture this step
+// took for trackArtNode()/trackNameNode() above.
+function rowMenuGroups(t, extraGroups){
+  const groups = [
     [
       { label: 'Play next', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuPlayNext(i); } },
       { label: 'Add to queue', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuAddQueue(i); } },
@@ -318,12 +341,14 @@ function rowMenuGroups(t){
       ...(trackHasCreditsContent(t) ? [{ label: 'Credits and notes', onClick: () => rowMenuOpenCredits(t) }] : []),
       { label: 'Edit info', onClick: () => rowMenuEditInfo(t.id) },
     ],
-    [
-      { label: '!Remove from library…', onClick: () => rowMenuRemove(t.id) },
-    ],
   ];
+  if(extraGroups && extraGroups.length) groups.push(...extraGroups);
+  groups.push([
+    { label: '!Remove from library…', onClick: () => rowMenuRemove(t.id) },
+  ]);
+  return groups;
 }
-function openRowMenu(t){
+function openRowMenu(t, extraGroups){
   $('#rowMenuTitle').textContent = t.tags.title;
   $('#rowMenuSub').textContent = t.tags.artist + ' · ' + t.tags.album;
   const cover = $('#rowMenuCover');
@@ -333,7 +358,7 @@ function openRowMenu(t){
   else cover.appendChild(el('span', null, '◍'));
   const body = $('#rowMenuBody');
   body.innerHTML = '';
-  rowMenuGroups(t).forEach((group, i) => {
+  rowMenuGroups(t, extraGroups).forEach((group, i) => {
     if(i > 0) body.appendChild(el('div', 'p-list-menu-divider'));
     group.forEach(item => {
       const danger = item.label.startsWith('!');
@@ -392,11 +417,22 @@ export function closeRowMenu(){
 export let confirmDeleteAction = null;
 export function openConfirmDelete(kind, count, name, action){
   $('#confirmTitle').textContent = kind === 'song' ? 'Remove song' :
-    kind === 'album' ? 'Remove album' : kind === 'artist' ? 'Remove artist' : 'Remove songs';
-  const noun = count === 1 ? 'track' : 'tracks';
-  const nameBit = name ? '“' + name + '” — ' : '';
-  $('#confirmBody').textContent = nameBit + count + ' ' + noun + ' will be removed from Miziki’s library. '
-    + 'This removes ' + (count === 1 ? 'it' : 'them') + ' from the library only, not from disk — your files stay where they are.';
+    kind === 'album' ? 'Remove album' : kind === 'artist' ? 'Remove artist' :
+    kind === 'playlist' ? 'Delete playlist' : 'Remove songs';
+  // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): "Delete playlist…"
+  // reuses this same shared dialog (the step's own wording), but its copy
+  // is its own case rather than a variant of the library-removal sentence
+  // below -- deleting a playlist removes none of its songs from the
+  // library, the opposite of what that sentence promises.
+  if(kind === 'playlist'){
+    $('#confirmBody').textContent = '“' + name + '” will be deleted. Your songs stay in your library — only the playlist itself goes.';
+  } else {
+    const noun = count === 1 ? 'track' : 'tracks';
+    const nameBit = name ? '“' + name + '” — ' : '';
+    $('#confirmBody').textContent = nameBit + count + ' ' + noun + ' will be removed from Miziki’s library. '
+      + 'This removes ' + (count === 1 ? 'it' : 'them') + ' from the library only, not from disk — your files stay where they are.';
+  }
+  $('#confirmGo').textContent = kind === 'playlist' ? 'Delete' : 'Remove';
   confirmDeleteAction = action;
   $('#confirmOverlay').classList.add('open');
   $('#confirmOverlay').setAttribute('aria-hidden','false');
@@ -681,6 +717,369 @@ export function moverCtl(list, pos, after){
   return box;
 }
 
+/* ================= LB4: the playlist detail page =================
+   docs/36A_LIBRARY_AND_LAUNCH.md decision 4 -- backHeader('Playlists', '',
+   ⋯) + the mosaic/title/caption + Play/Shuffle/Add songs, a drag-handle
+   row in place of moverCtl()'s ▲▼ buttons (which stay exactly as they
+   were above, for the gatefold's own "Track order" mode -- this is a
+   second, playlist-only row shape, not a change to that shared one), and
+   the "Add songs" pick screen that replaces the old inline "Add or remove
+   tracks" toggle. */
+
+// ---- the ⋯ menu (Rename…/Delete playlist…) ----
+// "Share" is left out, same call UN3 point 5 already made for "Share
+// artist" (openArtistMoreMenu() above) and for the same reason: there's
+// no playlist share-card composer anywhere in src/share/ yet (its five
+// composers are nowPlaying/record/pressings/crate/season -- see
+// src/share/sheet.js's own CARD_FILENAMES) -- building one is real new
+// feature work, not a menu restyle, so it's flagged in the LB4 PR body as
+// a follow-up rather than built here.
+function playlistMoreMenuGroups(pl){
+  return [
+    [{ label: 'Rename…', onClick: () => playlistMoreMenuRename(pl) }],
+    [{ label: '!Delete playlist…', onClick: () => playlistMoreMenuDelete(pl) }],
+  ];
+}
+function openPlaylistMoreMenu(btn, pl){
+  const menu = $('#playlistMoreMenu');
+  menu.innerHTML = '';
+  menu.appendChild(listMenu(playlistMoreMenuGroups(pl)));
+  const r = btn.getBoundingClientRect();
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#playlistMoreMenuScrim').classList.add('open');
+  menu.classList.add('open');
+  openLayer('playlist-more-menu', closePlaylistMoreMenu, { container: [menu, $('#playlistMoreMenuScrim')] });
+}
+export function closePlaylistMoreMenu(){
+  $('#playlistMoreMenuScrim').classList.remove('open');
+  $('#playlistMoreMenu').classList.remove('open');
+}
+// LB2 built openPlaylistNameSheet() with exactly this call in mind (its
+// own file-top comment) -- {title, initial, confirmLabel, existingNames},
+// same signature "New playlist" already uses above, just pre-filled and
+// excluding this playlist's own current name from the collision check.
+async function playlistMoreMenuRename(pl){
+  // forceCloseLayer(...,{skipHistory:true}), not closeLayer() -- this
+  // opens another layer (the name sheet) in the very same tick, the same
+  // "close-then-immediately-open" shape rowMenuEditInfo()/rowMenuOpenCredits()
+  // already use above for exactly this reason: a plain closeLayer()'s own
+  // history pop can race the new layer's own history push and close it
+  // right back (confirmed live with Playwright before settling on this).
+  forceCloseLayer('playlist-more-menu', {skipHistory: true});
+  const name = await openPlaylistNameSheet({
+    title: 'Rename playlist',
+    initial: pl.name,
+    confirmLabel: 'Save',
+    existingNames: S.playlists.filter(p => p !== pl).map(p => p.name),
+  });
+  if(!name || name === pl.name) return;
+  // Judgment call, flagged in the LB4 PR body: the sync engine keys a
+  // playlist's own order/membership backup stamps by its *name* (RF17,
+  // src/sync/backup-doc.js's buildPlaylistDefsAndOrder()) -- a pre-
+  // existing property of that keying, not something this step changes.
+  // Renaming here only stamps playlistDefs under the new name; a device
+  // that synced this playlist under its old name before the rename syncs
+  // will keep that old entry around rather than having it replaced. A
+  // real fix is a tombstone convention for the sync engine, which is out
+  // of scope for a page-assembly step like this one.
+  pl.name = name;
+  queueSave();
+  touchBackupKey('playlistDefs', name);
+  renderTracks();
+}
+async function playlistMoreMenuDelete(pl){
+  // Same reasoning as playlistMoreMenuRename() just above.
+  forceCloseLayer('playlist-more-menu', {skipHistory: true});
+  openConfirmDelete('playlist', 0, pl.name, async () => {
+    const at = S.playlists.indexOf(pl);
+    if(at < 0) return;
+    S.playlists.splice(at, 1);
+    queueSave();
+    // Same judgment call as the rename above: deleting a playlist here is
+    // local-only -- nothing today marks playlistDefs/playlistOrder as
+    // *removed* for the sync engine to carry to another device, which
+    // would need its own tombstone convention (out of scope here, see
+    // rename's own comment just above).
+    S.view.playlist = null;
+    renderTracks();
+  });
+}
+
+// ---- rows: handle · number · art · title/artist · time · ⋯ ----
+function playlistSongRow(pl, i, pos, present){
+  const t = S.tracks[i];
+  const li = el('li','pl-row');
+  li._plTrackId = t.id;   // the real id value, not a dataset string -- see
+                           // wirePlaylistDrag()'s own comment on why
+  if(i === S.index) li.setAttribute('aria-current','true');
+
+  // present.length > 1 gated the same way moverCtl() gates its own ▲▼
+  // buttons above -- nothing to reorder with a single row.
+  if(present.length > 1){
+    const handle = el('span','pl-row-handle','⠿');
+    handle.setAttribute('aria-hidden','true');   // decorative; the
+    // keyboard-accessible path is "Move up"/"Move down" in this row's own
+    // ⋯ menu (openPlaylistRowMenu() below), same split UN5 point 6 drew
+    // between moverCtl()'s own decorative grip and its real ▲▼ buttons.
+    handle.addEventListener('click', e => e.stopPropagation());
+    li.appendChild(handle);
+  } else {
+    li.appendChild(el('span','pl-row-handle'));
+  }
+
+  li.appendChild(el('span','t-idx', String(pos + 1).padStart(2,'0')));
+  li.appendChild(trackArtNode(t));
+  li.appendChild(trackNameNode(t));
+  li.appendChild(el('span','t-dur', fmt(t.duration)));
+
+  const editBtn = el('button','t-edit','⋯');
+  editBtn.setAttribute('aria-label','Track options');
+  editBtn.addEventListener('click', e => { e.stopPropagation(); openPlaylistRowMenu(pl, t); });
+  li.appendChild(editBtn);
+
+  li.addEventListener('click', ()=> setQueue(present, present.indexOf(i), true));
+  return li;
+}
+
+// openRowMenu()'s own extraGroups parameter (above) is what lets this
+// reuse the one track-options sheet rather than a second menu component.
+function openPlaylistRowMenu(pl, t){
+  const fullPos = pl.items.indexOf(t.id);
+  const extra = [];
+  const moveItems = [];
+  if(fullPos > 0) moveItems.push({ label: 'Move up', onClick: () => { closeLayer('row-menu'); reorderPlaylistItem(pl, fullPos, -1); } });
+  if(fullPos < pl.items.length - 1) moveItems.push({ label: 'Move down', onClick: () => { closeLayer('row-menu'); reorderPlaylistItem(pl, fullPos, 1); } });
+  if(moveItems.length) extra.push(moveItems);
+  extra.push([{ label: '!Remove from this playlist', onClick: () => { closeLayer('row-menu'); removeFromPlaylist(pl, t.id); } }]);
+  openRowMenu(t, extra);
+}
+function reorderPlaylistItem(pl, fullPos, dir){
+  if(!moveIn(pl.items, fullPos, dir)) return;
+  queueSave();
+  touchBackupKey('playlistOrder', pl.name);
+  syncQueueOrder(pl.items.map(idxOf).filter(x => x >= 0));
+  renderTracks();
+}
+function removeFromPlaylist(pl, id){
+  const at = pl.items.indexOf(id);
+  if(at < 0) return;
+  pl.items.splice(at, 1);
+  queueSave();
+  touchBackupMembership(pl.name, id, 'removed');
+  touchBackupKey('playlistOrder', pl.name);
+  renderTracks();
+}
+
+// ---- reorder by drag handle ----
+// Only the "which slot" math (dragTargetIndex()) and the "fold the new
+// present-order back into the playlist's full id list" math
+// (reorderPresentIds()) are pure/tested (src/library/drag-reorder.js) --
+// everything here is the DOM half: lift the dragged row with a transform
+// while it's live, actually move it in the DOM as it crosses a slot
+// boundary (which is what makes the rest of the list "make room" --
+// ordinary reflow, no second animation layer), and persist once on drop.
+function wirePlaylistDrag(ul, pl){
+  const rows = () => Array.from(ul.children);
+  rows().forEach(li => {
+    const handle = li.querySelector('.pl-row-handle');
+    if(!handle || !handle.getAttribute('aria-hidden')) return;
+    handle.addEventListener('pointerdown', e => {
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      // `all` is a fixed snapshot of the row order at drag-start -- the
+      // dragged row itself is never re-parented in the DOM until the very
+      // end (onUp), only visually translated; moving it mid-drag (an
+      // earlier version of this function did) turned out to silently
+      // drop the handle's own pointer capture on this preview's Chromium
+      // build, which stops pointerup ever reaching this listener at all
+      // -- confirmed live with Playwright before settling on this shape.
+      // Every *other* row's own "make room" shift is a pure CSS transform
+      // during the drag instead (applyShift() below, the same FLIP-style
+      // split moverCtl()'s own click-and-rerender never needed), so
+      // nothing but `li` ever moves in the DOM before the gesture ends.
+      const all = rows();
+      const startIndex = all.indexOf(li);
+      const rowHeight = li.getBoundingClientRect().height;
+      const firstTop = all[0].getBoundingClientRect().top;
+      const startClientY = e.clientY;
+      try{ handle.setPointerCapture(e.pointerId); }catch(_e){ /* older WebKit */ }
+      li.classList.add('dragging');
+      let target = startIndex;
+
+      const applyShift = () => {
+        all.forEach((row, idx) => {
+          if(row === li) return;
+          let shift = 0;
+          if(idx > startIndex && idx <= target) shift = -1;
+          else if(idx < startIndex && idx >= target) shift = 1;
+          row.style.transform = shift ? 'translateY(' + (shift * rowHeight) + 'px)' : '';
+        });
+      };
+      const onMove = ev => {
+        li.style.transform = 'translateY(' + (ev.clientY - startClientY) + 'px)';
+        target = dragTargetIndex(firstTop, rowHeight, all.length, ev.clientY);
+        applyShift();
+      };
+      const onUp = ev => {
+        try{ handle.releasePointerCapture(ev.pointerId); }catch(_e){ /* already released */ }
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onUp);
+        handle.removeEventListener('pointercancel', onUp);
+        li.classList.remove('dragging');
+        li.style.transform = '';
+        all.forEach(row => { if(row !== li) row.style.transform = ''; });
+        if(target !== startIndex){
+          const ref = target > startIndex ? all[target].nextSibling : all[target];
+          ul.insertBefore(li, ref);
+          const finalIds = rows().map(r => r._plTrackId);
+          pl.items = reorderPresentIds(pl.items, finalIds);
+          queueSave();
+          touchBackupKey('playlistOrder', pl.name);
+          syncQueueOrder(pl.items.map(idxOf).filter(x => x >= 0));
+          renderTracks();
+        }
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onUp);
+      handle.addEventListener('pointercancel', onUp);
+    });
+  });
+}
+
+// ---- the detail page itself ----
+function renderPlaylistDetail(host, pl){
+  const present = pl.items.map(idxOf).filter(i => i >= 0);
+
+  const moreBtn = el('button','hdr-icon-btn','⋯');
+  moreBtn.type = 'button';
+  moreBtn.setAttribute('aria-label','Playlist options');
+  moreBtn.setAttribute('aria-haspopup','menu');
+  const header = backHeader('Playlists', '', moreBtn);
+  header.backBtn.addEventListener('click', ()=>{ S.view.playlist = null; renderTracks(); });
+  moreBtn.addEventListener('click', ()=> openPlaylistMoreMenu(moreBtn, pl));
+  host.appendChild(header);
+
+  const info = el('div','pl-detail-head');
+  const mosaicBox = el('div','pl-detail-mosaic');
+  mosaicBox.appendChild(playlistMosaicArt(pl, present));
+  info.appendChild(mosaicBox);
+  const text = el('div','pl-detail-text');
+  text.appendChild(el('h2','pl-detail-title', pl.name));
+  const songCount = present.length;
+  const lengthSec = present.reduce((sum, i) => sum + (S.tracks[i].duration || 0), 0);
+  text.appendChild(el('p','pl-detail-caption',
+    songCount + (songCount === 1 ? ' song · ' : ' songs · ') + fmt(lengthSec)));
+  info.appendChild(text);
+  host.appendChild(info);
+
+  const actions = el('div','pl-detail-actions');
+  const playBtn = el('button','p-btn p-btn--primary','Play');
+  playBtn.type = 'button';
+  playBtn.disabled = !present.length;
+  playBtn.addEventListener('click', ()=> setQueue(present, 0, true));
+  const shuffleBtn = el('button','p-btn','Shuffle');
+  shuffleBtn.type = 'button';
+  shuffleBtn.disabled = !present.length;
+  shuffleBtn.addEventListener('click', ()=>{
+    const shuffled = present.slice();
+    for(let k = shuffled.length - 1; k > 0; k--){
+      const j = Math.floor(Math.random() * (k + 1));
+      [shuffled[k], shuffled[j]] = [shuffled[j], shuffled[k]];
+    }
+    setQueue(shuffled, 0, true);
+  });
+  const addBtn = el('button','p-btn','Add songs');
+  addBtn.type = 'button';
+  addBtn.addEventListener('click', ()=>{ S.view.picking = true; renderTracks(); });
+  actions.appendChild(playBtn); actions.appendChild(shuffleBtn); actions.appendChild(addBtn);
+  host.appendChild(actions);
+
+  if(!present.length) host.appendChild(el('p','note','This playlist is empty.'));
+  const ul = el('ul','pl-tracklist');
+  present.forEach((i,pos) => ul.appendChild(playlistSongRow(pl, i, pos, present)));
+  host.appendChild(ul);
+  if(present.length > 1) wirePlaylistDrag(ul, pl);
+}
+
+// ---- "Add songs": the Songs list in pick mode ----
+// Judgment call, flagged in the LB4 PR body (LB0 never exported this
+// frame to check against): only songs *not already* in the playlist are
+// listed, rather than every song with the already-in ones pre-checked --
+// "Add {n}" then always means exactly what it says, and removing a song
+// is the row ⋯ menu's own job now (decision 4 point 4), not this screen's.
+// The transient selection is kept here, outside S.playlists, until "Add
+// {n}" actually commits it -- `plName` guards against a stale selection
+// surviving into a second playlist's own Add-songs session.
+let addSongsState = { plName: null, ids: new Set() };
+function addSongsSelection(pl){
+  if(addSongsState.plName !== pl.name) addSongsState = { plName: pl.name, ids: new Set() };
+  return addSongsState;
+}
+function updateAddSongsBar(state){
+  const bar = $('#plAddSongsBar');
+  const btn = $('#plAddSongsBtn');
+  const n = state.ids.size;
+  bar.style.display = n ? 'block' : 'none';
+  btn.textContent = 'Add ' + n + (n === 1 ? ' song' : ' songs');
+  btn.onclick = () => commitAddSongs(state);
+}
+function commitAddSongs(state){
+  const pl = S.playlists.find(p => p.name === state.plName);
+  if(pl){
+    state.ids.forEach(id => {
+      if(!pl.items.includes(id)){
+        pl.items.push(id);
+        touchBackupMembership(pl.name, id, 'added');
+      }
+    });
+    queueSave();
+    touchBackupKey('playlistOrder', pl.name);
+  }
+  addSongsState = { plName: null, ids: new Set() };
+  S.view.picking = false;
+  renderTracks();
+}
+function addSongsRow(t, pos, state){
+  const li = el('li','pl-row');
+  li.setAttribute('role','checkbox');
+  const checked = state.ids.has(t.id);
+  li.setAttribute('aria-checked', String(checked));
+  if(checked) li.classList.add('picked');
+  li.appendChild(el('span','pl-row-handle'));
+  li.appendChild(el('span','t-idx', String(pos + 1).padStart(2,'0')));
+  li.appendChild(trackArtNode(t));
+  li.appendChild(trackNameNode(t));
+  li.addEventListener('click', ()=>{
+    const now = !state.ids.has(t.id);
+    if(now) state.ids.add(t.id); else state.ids.delete(t.id);
+    li.classList.toggle('picked', now);
+    li.setAttribute('aria-checked', String(now));
+    updateAddSongsBar(state);
+  });
+  return li;
+}
+function renderPlaylistAddSongs(host, pl){
+  const state = addSongsSelection(pl);
+
+  const header = backHeader(pl.name, 'Add songs', null);
+  header.backBtn.addEventListener('click', ()=>{ S.view.picking = false; renderTracks(); });
+  host.appendChild(header);
+
+  const already = new Set(pl.items);
+  const candidates = allIdx().filter(i => !already.has(idOf(i)))
+    .sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
+  if(!candidates.length){
+    host.appendChild(el('p','note','Every song in your library is already in this playlist.'));
+  } else {
+    host.appendChild(el('p','note','Tap songs to add, then tap Add.'));
+    const ul = el('ul','pl-tracklist');
+    candidates.forEach((i,pos) => ul.appendChild(addSongsRow(S.tracks[i], pos, state)));
+    host.appendChild(ul);
+  }
+  updateAddSongsBar(state);
+}
+
 /* Library-wide search + sort, and tag-aware search (CREDITS spec §3),
    moved to src/library/search.js (step 5e). */
 
@@ -869,6 +1268,14 @@ function renderTracksBody(host){
   // render pass kept trying to show/hide the now-gone button and threw
   // on every render, blanking the whole library screen.
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
+  // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): reset every render --
+  // renderPlaylistAddSongs()'s own updateAddSongsBar() (below) is what
+  // shows it again, only for the one playlist currently in "Add songs"
+  // pick mode. Without this, navigating away from that screen by any path
+  // that doesn't itself touch this bar (switching tabs, drilling into an
+  // album) left it stuck showing the stale count from whatever was picked
+  // last -- confirmed live with Playwright before adding this reset.
+  $('#plAddSongsBar').style.display = 'none';
   updateLibTabsForLayout();
   updateHeaderActionsAvailability();
   // UN5 point 2: a live search covers every type regardless of the
@@ -931,8 +1338,15 @@ function renderTracksBody(host){
   // crumb's own removeBtn ternary used to cover with "Remove Artist"
   // (the `else` of `(v.mode === 'albums' || atArtistAlbum)` just below).
   const isArtistPage = v.mode === 'artists' && v.group !== null && v.artistAlbum === null;
-  crumb.style.display = (inside && !isArtistPage) ? 'flex' : 'none';
-  if(inside && !isArtistPage){
+  // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): a playlist that's
+  // been drilled into gets its own backHeader('Playlists', '', ⋯) too --
+  // same reasoning as isArtistPage just above, since this screen now
+  // needs a ⋯ menu (Rename…/Delete playlist…) the generic crumb has no
+  // room for, and the title moves out of the header row entirely (point
+  // 1), which the crumb's own single label slot can't do either.
+  const isPlaylistDetail = v.mode === 'playlists' && v.playlist !== null;
+  crumb.style.display = (inside && !isArtistPage && !isPlaylistDetail) ? 'flex' : 'none';
+  if(inside && !isArtistPage && !isPlaylistDetail){
     crumb.innerHTML = '';
     const atArtistAlbum = v.mode === 'artists' && v.artistAlbum !== null;
     // an album or loose-tracks page reached from the crate says so, and
@@ -1205,42 +1619,13 @@ function renderTracksBody(host){
         host.appendChild(grid);
       }
     } else {
+      // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): the real
+      // playlist-detail page and its "Add songs" pick mode -- see the
+      // block of functions above moverCtl()'s own "Library-wide search"
+      // divider comment for both.
       const pl = S.playlists[v.playlist];
-      if(v.picking){
-        host.appendChild(el('p','note','Tap tracks to add or remove them, then tap Done.'));
-        const all = allIdx().sort((a,b) => byName(S.tracks[a].tags.title, S.tracks[b].tags.title));
-        all.forEach((i,pos) => {
-          const row = songRow(i, all, pos);
-          if(pl.items.includes(idOf(i))) row.classList.add('picked');
-          ul.appendChild(row);
-        });
-        host.appendChild(ul);
-        const done = el('button','cta','Done');
-        done.addEventListener('click', ()=>{ v.picking = false; renderTracks(); });
-        const wrap = el('div','stack'); wrap.appendChild(done); host.appendChild(wrap);
-      } else {
-        // playlist items are track ids (F3 spec) — a forgotten track's id
-        // stays in pl.items but is simply skipped here, hidden until a
-        // matching file is imported again, at which point it reappears in
-        // its saved place rather than at the end
-        const present = pl.items.map(idxOf).filter(i => i >= 0);
-        if(!present.length) host.appendChild(el('p','note','This playlist is empty.'));
-        present.forEach((i,pos) => {
-          const row = songRow(i, present, pos);
-          if(present.length > 1){
-            // move within the full (id-based) order, not within `present`,
-            // so a hidden/forgotten entry elsewhere in the playlist keeps
-            // its own relative place
-            const fullPos = pl.items.indexOf(idOf(i));
-            row.appendChild(moverCtl(pl.items, fullPos, ord => { touchBackupKey('playlistOrder', pl.name); syncQueueOrder(ord.map(idxOf).filter(x => x >= 0)); }));
-          }
-          ul.appendChild(row);
-        });
-        host.appendChild(ul);
-        const edit = el('button','cta ghost','Add or remove tracks');
-        edit.addEventListener('click', ()=>{ v.picking = true; renderTracks(); });
-        const wrap = el('div','stack'); wrap.appendChild(edit); host.appendChild(wrap);
-      }
+      if(v.picking) renderPlaylistAddSongs(host, pl);
+      else renderPlaylistDetail(host, pl);
     }
   }
 
