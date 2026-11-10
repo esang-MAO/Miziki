@@ -19,8 +19,13 @@
    left as its own near-duplicate -- noted at each one for UN18 to delete
    once every call site has moved to the real class/helper. */
 
-/* ---- screen title ---- */
-.p-title{
+/* ---- screen title ----
+   UN13 (docs/36_UNIFORMITY.md point 1, "the season name in the screen
+   title style"): .listening-season-title b (17-profile.css) folds in
+   here too -- it already matched everything but font-weight/letter-
+   spacing/color, which this picks up now. */
+.p-title,
+.listening-season-title b{
   font-family:var(--display); font-weight:700; font-size:var(--fs-hero); line-height:var(--lh-hero);
   letter-spacing:var(--track-display); color:var(--paper); margin:0;
 }
@@ -35,9 +40,16 @@
    UN18: .store-section-head h2 (18-storefront.css) folds into this once
    the storefront moves to .p-label directly -- it's #homeBody's own
    small-mono-kicker override of the same heading that already pointed
-   this direction first. */
+   this direction first. UN13 (docs/36_UNIFORMITY.md point 1, "Card labels
+   use .p-label, not mono caps") folds .profile-section-head (17-
+   profile.css, "Most spun"/"Played through") and .rhythm-card-head
+   ("Listening rhythm") in the same way -- each already matched this
+   font/case/color, just via its own near-duplicate declaration;
+   layout-only rules (flex/border/margin) stay local to each class. */
 .p-label,
-.store-section-head h2{
+.store-section-head h2,
+.profile-section-head,
+.rhythm-card-head{
   font-family:var(--body); font-weight:600; font-size:var(--fs-caption); letter-spacing:var(--track-caps);
   text-transform:uppercase; color:var(--muted); margin:0;
 }

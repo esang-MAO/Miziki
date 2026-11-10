@@ -2,7 +2,7 @@ import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow, recordsInWindowCount, topAlbumsFromCounts } from '../history/achievements.js';
+import { topAlbums, topTracks, achievementsList, topAlbumsInWindow, recordsInWindowCount, topAlbumsFromCounts } from '../history/achievements.js';
 import { renderStorefrontSection } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
 // pressing chart moved there; see records.js's own header.
@@ -399,21 +399,25 @@ function seasonDataFor(offset){
   };
 }
 
-const WEEKDAY_CAPS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-const MONTH_CAPS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-function playedThroughDateCaps(ms){
+// UN13 point 2: "Archivo 13 muted, sentence case, one line" -- in place
+// of the old all-caps mono readout. The weekday/month names are proper
+// nouns, so they stay capitalized; only the opening letter of the whole
+// line otherwise needs capitalizing (done once, in playedThroughLine()).
+const WEEKDAY_NAME = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAME = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function playedThroughDate(ms){
   const d = new Date(ms);
-  return WEEKDAY_CAPS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_CAPS[d.getMonth()];
+  return WEEKDAY_NAME[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_NAME[d.getMonth()];
 }
 
 // whole && a side letter both set means the completed track landed exactly
 // on the album's own last side boundary -- true of any multi-side release
 // played straight through, but only a two-sided 7" single (RPM_45, "7\"")
-// gets the narrower "BOTH SIDES" wording the spec asks for; every other
+// gets the narrower "both sides" wording the spec asks for; every other
 // multi-side release (an LP's two sides, a multi-disc set) still reads as
 // one whole record. A sample track that's since left the library (the
 // entry outlives the file, same as every other playedThrough field) just
-// falls back to the plain "WHOLE RECORD" wording rather than guessing.
+// falls back to the plain "whole record" wording rather than guessing.
 function playedThroughLabel(entry){
   if(entry.whole){
     if(entry.side){
@@ -421,19 +425,24 @@ function playedThroughLabel(entry){
       if(sample && sample.tags && sample.tags.album){
         const idx = albumTracks(sample.tags.album);
         const format = albumFormatFor(idx, S.tracks, (S.albumFormat && S.albumFormat[entry.albumId]) || 'auto');
-        if(format && format.size === '7"' && format.speed === RPM_45) return '7″ · BOTH SIDES';
+        if(format && format.size === '7"' && format.speed === RPM_45) return '7″ · both sides';
       }
     }
-    return 'WHOLE RECORD';
+    return 'whole record';
   }
-  return 'SIDE ' + (entry.side || '');
+  return 'side ' + (entry.side || '');
 }
 
-// The played-through log's own mono line -- "WHOLE RECORD · DUSK · TUE 3
-// NOV" / "SIDE B · NIGHT · …" / "7″ · BOTH SIDES · …" (GS9 point 2).
+// The played-through log's own one-line caption -- "Whole record ·
+// afternoon · Mon 9 Nov" / "Side B · night · …" / "7″ · both sides · …"
+// (GS9 point 2; UN13 point 2 moved it off the mono whitelist to sentence
+// case). The phase word reuses PHASE_CAPS' own wording (not rhythm-
+// card.js's PHASE_LABEL, which says "Twilight" rather than "Dusk") just
+// lower-cased, so the actual word shown doesn't change, only its case.
 export function playedThroughLine(entry){
-  return [playedThroughLabel(entry), PHASE_CAPS[entry.phase] || '', playedThroughDateCaps(entry.at)]
+  const line = [playedThroughLabel(entry), (PHASE_CAPS[entry.phase] || '').toLowerCase(), playedThroughDate(entry.at)]
     .filter(Boolean).join(' · ');
+  return line.charAt(0).toUpperCase() + line.slice(1);
 }
 
 function navLink(label, onTap){
@@ -508,7 +517,7 @@ function playedThroughRow(entry){
   else li.appendChild(el('span','t-art'));
   const info = el('span','t-name');
   info.appendChild(el('b', null, disp.name));
-  info.appendChild(el('em','listening-played-mono', playedThroughLine(entry)));
+  info.appendChild(el('em','listening-played-caption', playedThroughLine(entry)));
   const sticker = playedThroughSticker(entry);
   if(sticker) info.appendChild(sticker);
   li.appendChild(info);
@@ -603,7 +612,10 @@ function renderListeningScreen(body){
     const empty = el('div','profile-empty'); empty.appendChild(el('p', null, 'Nothing played this season yet.'));
     spunSection.appendChild(empty);
   }
-  spunSection.appendChild(navLink('Top records ›', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
+  // UN13 point 1: "Top albums" -- it used to say "Top records" while
+  // opening a screen titled "Top Albums" (now "Top albums", UN12);
+  // matching the destination's own name beats a generic "records" here.
+  spunSection.appendChild(navLink('Top albums ›', ()=>{ S.profileView.screen = 'topAlbums'; renderProfile(); }));
   spunSection.appendChild(navLink('Top songs ›', ()=>{ S.profileView.screen = 'topSongs'; renderProfile(); }));
   wrap.appendChild(spunSection);
 
@@ -639,24 +651,23 @@ function renderListeningScreen(body){
   // profile's Records section/screen (records.js), alongside the records
   // they belong to.
 
-  // SH1 (docs/18_SHARE.md): "Profile home: the existing Share button
-  // becomes two rows, 'Share crate' and 'Share season' (the second only
-  // once the rhythm card is unlocked, >= 20 plays in the 90-day window)."
-  // Same gate renderRhythmCard() itself uses (rhythm-card.js) -- windowed,
-  // not the lifetime phasePlayCounts, and always the *current* season
-  // regardless of which one the ‹ › nav above is browsing.
+  // UN13 point 1: "'Share crate' becomes 'Share this season', a full-
+  // width secondary button -- it's the Season card, which is what this
+  // screen shows." This screen is season-scoped end to end (the ‹ ›
+  // header, Most spun, Played through all browse by season), so sharing
+  // a generic, unwindowed crate card from here never matched what's
+  // actually on it -- there's no other "Share crate" entry point
+  // anywhere else in the app for this to duplicate. Judgment call: kept
+  // the existing >= 20-play gate (renderRhythmCard()'s own threshold)
+  // rather than inventing an always-visible fallback the plan doesn't
+  // describe -- below the gate, the rhythm card itself already renders
+  // nothing, so a share action for data that thin would have nothing
+  // real to show either.
   const shareStack = el('div','profile-share-stack');
-  const shareCrateBtn = el('button','cta ghost profile-share','Share crate');
-  shareCrateBtn.classList.toggle('active', crateFilled());
-  shareCrateBtn.addEventListener('click', async () => {
-    const { openShareSheet } = await import('../share/sheet.js');
-    openShareSheet({ card:'crate' });
-  });
-  shareStack.appendChild(shareCrateBtn);
-
   const rhythm = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
   if(rhythm.total >= RHYTHM_MIN_PLAYS){
-    const shareSeasonBtn = el('button','cta ghost profile-share','Share season');
+    const shareSeasonBtn = el('button','p-btn profile-share','Share this season');
+    shareSeasonBtn.type = 'button';
     shareSeasonBtn.addEventListener('click', async () => {
       // QC2 (docs/24_QUIET_COUNTS.md): "most played this season" — the top
       // 3 albums by plays in the card's own window, replacing the old
@@ -713,7 +724,10 @@ function renderTopAlbumsScreen(body){
     else li.appendChild(el('span','t-art'));
     const name = el('span','t-name');
     name.appendChild(el('b', null, a.display.name));
-    name.appendChild(el('em', null, a.display.artist + ' · ' + fmtCount(a.count, 'session', 'sessions')));
+    // UN13 point 3: "1 play" / "3 plays" (album plays), matching Top
+    // songs' own copy pattern -- same a.count (S.sessionCounts) as
+    // before, just the word "play" instead of "session".
+    name.appendChild(el('em', null, a.display.artist + ' · ' + fmtCount(a.count, 'play', 'plays')));
     li.appendChild(name);
     ul.appendChild(li);
   });

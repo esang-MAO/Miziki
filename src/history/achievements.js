@@ -76,10 +76,6 @@ export function checkAlbumAchievementAndCollection(t){
   }
 }
 
-// crate/share-button first-run gating — each clears independently, on the
-// metric that actually drives it (see PROFILE spec §9)
-export function crateFilled(){ return Object.keys(S.sessionCounts).length > 0; }
-
 // CR11 point 3: the pressing chart's "owned" set — every solid/effect id
 // any album currently in the library draws, one representative track per
 // album (the same S.tracks[idx[0]]-first-occurrence convention every

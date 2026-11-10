@@ -49,8 +49,6 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 /* ---- Artist page: PLAY ALL / SHUFFLE / CREDITS, then the shelf ---- */
 .artist-actions{display:flex;gap:var(--sp-2);padding:var(--sp-3) 0}
 .artist-credits{padding:0 0 var(--sp-3)}
-.artist-shelf-rail{height:10px;border-radius:5px;margin:0 0 -4px;
-  background:linear-gradient(90deg,#8E7A60,#4D3D2F)}
 .artist-shelf{display:flex;gap:var(--sp-3);overflow-x:auto;overscroll-behavior-x:contain;
   scroll-snap-type:x proximity;padding:var(--sp-4) var(--sp-2) var(--sp-5);-webkit-overflow-scrolling:touch}
 .shelf-item{flex:0 0 auto;width:128px;display:flex;flex-direction:column;gap:var(--sp-2);scroll-snap-align:start}
