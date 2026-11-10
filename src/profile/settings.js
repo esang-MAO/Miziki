@@ -408,26 +408,33 @@ export function renderSocialSettingsScreen(body){
     renderFollowRow(body, 'Following', () => MizikiSocial.listFollowing());
   });
 
-  renderDeviceList(body);
+  // Devices and sign-out only make sense once there's actually a session
+  // to list devices for or sign out of -- same signed-in gate as
+  // privacy.js's renderSocialSection() (status.auth === 'ready'), hidden
+  // entirely when signed out rather than showing "Not synced yet." /
+  // "Loading…" devices next to buttons with nothing to do.
+  if(status.auth === 'ready'){
+    renderDeviceList(body);
 
-  const signOutStack = el('div','stack social-stack');
-  const signOutBtn = el('button','cta ghost','Sign out');
-  signOutBtn.addEventListener('click', async ()=>{
-    await MizikiSocial.signOut();
-    clearHomeFeedCache();
-    S.profileView.screen = 'home';
-    renderProfile();
-  });
-  signOutStack.appendChild(signOutBtn);
-  const signOutAllBtn = el('button','cta ghost','Sign out everywhere');
-  signOutAllBtn.addEventListener('click', async ()=>{
-    await MizikiSocial.signOutEverywhere();
-    clearHomeFeedCache();
-    S.profileView.screen = 'home';
-    renderProfile();
-  });
-  signOutStack.appendChild(signOutAllBtn);
-  body.appendChild(signOutStack);
+    const signOutStack = el('div','stack social-stack');
+    const signOutBtn = el('button','cta ghost','Sign out');
+    signOutBtn.addEventListener('click', async ()=>{
+      await MizikiSocial.signOut();
+      clearHomeFeedCache();
+      S.profileView.screen = 'home';
+      renderProfile();
+    });
+    signOutStack.appendChild(signOutBtn);
+    const signOutAllBtn = el('button','cta ghost','Sign out everywhere');
+    signOutAllBtn.addEventListener('click', async ()=>{
+      await MizikiSocial.signOutEverywhere();
+      clearHomeFeedCache();
+      S.profileView.screen = 'home';
+      renderProfile();
+    });
+    signOutStack.appendChild(signOutAllBtn);
+    body.appendChild(signOutStack);
+  }
 
   wirePrivacyLink(body, renderProfile);
 
