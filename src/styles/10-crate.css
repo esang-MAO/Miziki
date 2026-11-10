@@ -58,8 +58,10 @@
 /* FS6 (docs/25_FROM_SCRATCH.md point 2): the record-count/sort-chip line
    moved out to the shared static row above the stage (#crateSortRow,
    01-header.css). LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): the
-   now-playing indicator that used to live here moved below the stage (see
-   .crate-topbar) -- this row now holds only the A-Z "letter · artist" line
+   now-playing indicator that used to live here moved out to its own
+   .crate-topbar row (Ken, 2026-11-10: that row now sits above this one,
+   directly under #crateSortRow's count line, not below the stage) --
+   this row now holds only the A-Z "letter · artist" line
    (.crate-letter-line), left-aligned, and is empty (zero height) in
    genre/decade or on a non-A-Z section. */
 .crate-header{display:flex;align-items:center;justify-content:flex-start;gap:var(--sp-3);
@@ -279,13 +281,21 @@
    writes everywhere else (player/clock.js's drawSun()), not the fixed
    --accent a bordered chip used. */
 /* LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): a --field pill, 40px
-   tall, centred under the info card -- replaces the plain phase-coloured
-   line CR1 drew above the stage. Shown only once the playing album has
-   scrolled out of view (updateNowPlayingTopBar(), crate/view.js); width
-   shrinks to its content (not the old 60%-of-row cap) since it now has
-   the whole row's width to breathe in. */
+   tall, centred -- replaces the plain phase-coloured line CR1 drew above
+   the stage. Shown only once the playing album has scrolled out of view
+   (updateNowPlayingTopBar(), crate/view.js); width shrinks to its content
+   (not the old 60%-of-row cap) since it has the whole row's width to
+   breathe in. Ken (2026-11-10, from a real-device screenshot): LB5's own
+   spec called for this to sit "centred under the card, not above the
+   section header" -- it shipped sitting below the stage/info panel
+   instead (just above the mini-player); moved to be the first thing in
+   .crate-wrap, directly under the "{n} records" count line -- .crate-wrap's
+   own margin-top:10px already supplies the gap down from that count line,
+   so this now only needs a bottom gap (leading the stack), matching
+   .crate-header/.crate-section-header's own margin-bottom just below it,
+   rather than the top gap it needed trailing .crate-info. */
 .crate-topbar{display:none;align-items:center;gap:8px;height:40px;width:fit-content;max-width:100%;
-  padding:0 var(--sp-3) 0 10px;margin:var(--sp-3) auto 0;
+  padding:0 var(--sp-3) 0 10px;margin:0 auto var(--sp-2);
   border:1px solid var(--line);border-radius:999px;background:var(--field);
   font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--paper);cursor:pointer}
 .crate-topbar.show{display:flex}

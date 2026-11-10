@@ -382,16 +382,20 @@ export function applyCrateMiniInset(){
     ? headerEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(headerEl).marginBottom) || 0)
     : 0;
   // LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): the now-playing chip
-  // moved below .crate-info, a real sibling in flow rather than content
-  // inside the always-present header above — its own height (0 while
-  // display:none, real height once .show is toggled on) has to come out
-  // of the same budget too, same reasoning as headerReserve/
-  // sectionHeaderReserve, or the chip appearing could push the page into
-  // scrolling at the exact moment it's needed (updateNowPlayingTopBar()
-  // already calls this function again whenever shown/hidden changes).
+  // is a real sibling in flow (Ken, 2026-11-10: now above .crate-header/
+  // sectionHeaderSlot, see wrap.appendChild order above), not content
+  // inside an always-present row — its own height (0 while display:none,
+  // real height once .show is toggled on) has to come out of this same
+  // budget too, same reasoning as headerReserve/sectionHeaderReserve, or
+  // the chip appearing could push the page into scrolling at the exact
+  // moment it's needed (updateNowPlayingTopBar() already calls this
+  // function again whenever shown/hidden changes). Measured the same way
+  // regardless of where in the flow the chip actually sits, so this needed
+  // no change when the chip's position moved — only margin-bottom now,
+  // not margin-top, since it leads the stack instead of trailing it.
   const chipEl = document.querySelector('.crate-topbar');
   const chipReserve = chipEl
-    ? chipEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(chipEl).marginTop) || 0)
+    ? chipEl.getBoundingClientRect().height + (parseFloat(getComputedStyle(chipEl).marginBottom) || 0)
     : 0;
   // CR14 (docs/14_CRATE_SECTIONS.md PR 2): the new section header (prev
   // arrow · name + dots · next arrow) sits above .crate-stage too, same
@@ -553,7 +557,7 @@ export function renderCrate(host){
 
   const wrap = el('div','crate-wrap');
   // LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): this header row no
-  // longer carries the now-playing indicator (moved below the stage, see
+  // longer carries the now-playing indicator (moved to its own row, see
   // nowPlayingBtn below) — in A-Z it now holds the current letter/artist
   // line instead (updateAzLine()), replacing the artist-divider card that
   // used to poke up out of the stack. Empty (no markup) in genre/decade and
@@ -594,10 +598,16 @@ export function renderCrate(host){
     line.appendChild(el('span','crate-letter-line-artist', '· ' + artist));
     header.appendChild(line);
   }
-  // LB5: a --field pill under the info card (not a plain line above the
-  // stage) for when the playing album has been scrolled away from —
-  // tapping it jumps back, same as before. The "●" glyph is gone and the
-  // text truncates with "…" instead of being left to overflow.
+  // LB5: a --field pill for when the playing album has been scrolled away
+  // from — tapping it jumps back, same as before. The "●" glyph is gone
+  // and the text truncates with "…" instead of being left to overflow.
+  // Ken (2026-11-10, from a real-device screenshot): LB5's spec called for
+  // this to sit "centred under the card, not above the section header",
+  // but the markup below instead appended it after .crate-info, which put
+  // it below the stage/info panel, just above the mini-player — moved to
+  // sit directly under the "{n} records" count line at the top of the
+  // screen instead (see wrap.appendChild order below), which is what the
+  // spec actually asked for.
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');
   const nowPlayingIcon = document.createElementNS(SVGNS, 'svg');
@@ -669,10 +679,13 @@ export function renderCrate(host){
   // has scrolled yet.
   const rail = el('div','crate-rail crate-rail-idle');
   const info = el('div','crate-info');
-  // LB5: the now-playing chip sits centred under the info card now, not
-  // above the stage — appended last, after info, rather than into header.
-  wrap.appendChild(header); wrap.appendChild(sectionHeaderSlot); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
+  // Ken (2026-11-10): the now-playing chip is appended first, directly
+  // under the "{n} records" count line (#crateSortRow, a static sibling
+  // just above .crate-wrap in the DOM — see miziki.html) — ahead of
+  // .crate-header (A-Z's letter/artist line) and sectionHeaderSlot
+  // (genre/decade's chip row), rather than after .crate-info/the stage.
   wrap.appendChild(nowPlayingBtn);
+  wrap.appendChild(header); wrap.appendChild(sectionHeaderSlot); wrap.appendChild(stage); wrap.appendChild(rail); wrap.appendChild(info);
 
   // GF12 (docs/29_GATEFOLD.md): the desktop crate detail panel (D5) is
   // retired — the gatefold's own wide spread (opened by tapping a record)
@@ -880,7 +893,7 @@ export function renderCrate(host){
     } else {
       nowPlayingBtn.classList.remove('show');
     }
-    // the chip is now a real sibling below .crate-info (LB5), not an
+    // the chip is a real sibling in .crate-wrap's own flow (LB5), not an
     // always-present row's own inline content — showing/hiding it changes
     // .crate-topbar's own real height, which applyCrateMiniInset() has to
     // fold into its "available" stage-height budget the same way it
