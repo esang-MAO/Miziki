@@ -16,7 +16,7 @@ function fakeEl(){
   const kids = [];
   const listeners = {};
   return {
-    textContent: '', style: {}, innerHTML: '', src: '', alt: '', value: '',
+    textContent: '', style: {}, innerHTML: '', src: '', alt: '', value: '', dataset: {},
     classList: {
       add(...cs){ cs.forEach(c => classes.add(c)); },
       remove(...cs){ cs.forEach(c => classes.delete(c)); },
@@ -26,6 +26,7 @@ function fakeEl(){
     addEventListener(type, fn){ (listeners[type] ||= []).push(fn); },
     appendChild(child){ kids.push(child); return child; },
     querySelector(){ return fakeEl(); },
+    querySelectorAll(){ return []; },
     children: kids, listeners,
   };
 }
@@ -44,6 +45,8 @@ globalThis.document = {
 
 const groupRowMock = mock.fn((_label, _sub, _idx, _onTap) => fakeEl());
 const songRowMock = mock.fn((_i) => fakeEl());
+const artistRowMock = mock.fn((_artist, _idx, _onTap) => fakeEl());
+const playlistMosaicArtMock = mock.fn((_pl, _present) => fakeEl());
 const queueSaveMock = mock.fn();
 const renderTracksMock = mock.fn();
 const openAlbumFromLibraryMock = mock.fn();
@@ -53,11 +56,13 @@ const openAlbumFromLibraryMock = mock.fn();
 // file, since the real view.js would otherwise reach back into
 // library/search.js itself (a real circular pair) plus favorites.js/
 // credits.js/sealed.js/edit.js/delete.js and crate/view.js's own wide
-// chains.
+// chains. LB9 adds artistRow/playlistMosaicArt to that same real-import/
+// mocked-here pair, for the Artists/Playlists result rows.
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: {
     renderTracks: renderTracksMock,
-    groupRow: groupRowMock, songRow: songRowMock,
+    groupRow: groupRowMock, songRow: songRowMock, artistRow: artistRowMock,
+    playlistMosaicArt: playlistMosaicArtMock,
     openAlbumFromLibrary: openAlbumFromLibraryMock,
   },
 });
@@ -130,7 +135,9 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
 
 const {
   parseSearchQuery, searchLibrary, librarySortComparator, sortAlbumGroups,
-  highlightMatches, renderSearchResults, renderSearchChips, updateSearchChipsVisibility,
+  highlightMatches, renderSearchResults, renderSearchFilters, updateSearchChipsVisibility,
+  resultsForFilter, searchHintText, pickTopResult, getSearchFilter, setSearchFilter, resetSearchFilter,
+  SEARCH_TYPE_FILTERS,
 } = await import('../../src/library/search.js');
 const { S } = await import('../../src/state.js');
 const { emptyDetails } = await import('../../src/library/tags/index.js');
@@ -154,8 +161,11 @@ function resetState(overrides){
   elCache.clear();
   groupRowMock.mock.resetCalls();
   songRowMock.mock.resetCalls();
+  artistRowMock.mock.resetCalls();
+  playlistMosaicArtMock.mock.resetCalls();
   queueSaveMock.mock.resetCalls();
   renderTracksMock.mock.resetCalls();
+  resetSearchFilter();
 }
 
 test('parseSearchQuery splits a known field token from free text', () => {
@@ -276,7 +286,8 @@ test('renderSearchResults shows a "no matches" note when nothing matches', () =>
   resetState({ tracks: [fakeTrack()] });
   const host = fakeEl();
   renderSearchResults(host, 'zzzznomatch');
-  assert.match(host.children[0].textContent, /No matches/);
+  const wrap = host.children[0];
+  assert.match(wrap.children[0].textContent, /Nothing in your library matches "zzzznomatch"/);
 });
 
 test('renderSearchResults groups song results and calls songRow for each', () => {
@@ -286,37 +297,93 @@ test('renderSearchResults groups song results and calls songRow for each', () =>
   assert.equal(songRowMock.mock.calls.length, 1);
 });
 
-// RF8 (docs/12_REFINE.md): collapsed to three fields (artist:/album:/year:)
-// plus a "More" chip by default -- not every field key and smart filter at
-// once, the pre-RF8 behavior.
-test('renderSearchChips renders the three-chip default plus a More chip', () => {
-  resetState({ tracks: [fakeTrack()] });
-  renderSearchChips();
-  const host = elCache.get('#searchChips');
-  assert.equal(host.children.length, 4);
+// LB9 point 3: artists/playlists get their own row renderers (round
+// photo / mosaic), reused from library/view.js rather than rebuilt here.
+test('renderSearchResults calls artistRow for an artist match and playlistMosaicArt for a playlist match', () => {
+  resetState({
+    tracks: [fakeTrack({ tags: { title: 'Song', artist: 'Theo', album: 'X', albumArtist: 'Theo', track:1, disc:1 } })],
+    playlists: [{ name: 'Theo faves', items: [] }],
+  });
+  const host = fakeEl();
+  renderSearchResults(host, 'theo');
+  assert.equal(artistRowMock.mock.calls.length, 1);
+  assert.equal(playlistMosaicArtMock.mock.calls.length, 1);
 });
 
-test('a chip tapped on the More button reveals the rest of the field keys and smart filters', () => {
-  resetState({ tracks: [fakeTrack()] });
-  renderSearchChips();
-  const host = elCache.get('#searchChips');
-  const more = host.children[host.children.length - 1];
-  more.listeners.click[0]();
-  assert.ok(host.children.length > 4, 'the full set (no trailing More chip once expanded) should be larger');
+// decision 14: "the typed syntax still works when typed" -- a field-only
+// query never matches a playlist by name (LB9's own judgment call, see
+// search.js's searchLibrary() comment).
+test('searchLibrary: a plain-text query matches a playlist by name; a field: query never does', () => {
+  resetState({
+    tracks: [fakeTrack({ tags: { title: 'Song', artist: 'Prince', album: 'X', albumArtist: 'Prince', track:1, disc:1 } })],
+    playlists: [{ name: 'Road trip', items: [] }],
+  });
+  assert.deepEqual(searchLibrary('road').playlists, [0]);
+  assert.deepEqual(searchLibrary('artist:prince').playlists, []);
 });
 
-// RF8 (docs/12_REFINE.md): chips are hidden until the field has text (not
-// shown on a bare empty focus any more), then shown once it does.
-test('updateSearchChipsVisibility shows chips once the search box has text, hides them when empty', () => {
+// ---- LB9 point 2: the type filter chips + the field-syntax hint line ----
+
+test('SEARCH_TYPE_FILTERS lists All first, then the four real types', () => {
+  assert.deepEqual(SEARCH_TYPE_FILTERS.map(f => f.key), ['all', 'songs', 'albums', 'artists', 'playlists']);
+});
+
+test('getSearchFilter/setSearchFilter/resetSearchFilter track the active type filter', () => {
+  assert.equal(getSearchFilter(), 'all');
+  setSearchFilter('artists');
+  assert.equal(getSearchFilter(), 'artists');
+  resetSearchFilter();
+  assert.equal(getSearchFilter(), 'all');
+});
+
+test('resultsForFilter picks out one type\'s own list, and null for "all"', () => {
+  const results = { songs: [1], albums: ['A'], artists: ['B'], playlists: [2] };
+  assert.deepEqual(resultsForFilter(results, 'songs'), [1]);
+  assert.deepEqual(resultsForFilter(results, 'playlists'), [2]);
+  assert.equal(resultsForFilter(results, 'all'), null);
+});
+
+test('searchHintText: null with no fields, "Searching key: value" joined by ", " with fields', () => {
+  assert.equal(searchHintText([]), null);
+  assert.equal(searchHintText([{ key: 'artist', value: 'Theo' }]), 'Searching artist: Theo');
+  assert.equal(
+    searchHintText([{ key: 'artist', value: 'Theo' }, { key: 'year', value: '1984' }]),
+    'Searching artist: Theo, year: 1984',
+  );
+});
+
+test('renderSearchFilters renders one chip per type filter', () => {
+  resetState({ tracks: [fakeTrack()] });
+  renderSearchFilters();
+  const host = elCache.get('#searchChips');
+  assert.equal(host.children.length, SEARCH_TYPE_FILTERS.length);
+});
+
+test('tapping a filter chip switches the active filter and re-renders', () => {
+  resetState({ tracks: [fakeTrack()] });
+  renderSearchFilters();
+  const host = elCache.get('#searchChips');
+  const artistsChip = host.children.find(c => c.textContent === 'Artists');
+  artistsChip.listeners.click[0]();
+  assert.equal(getSearchFilter(), 'artists');
+  assert.equal(renderTracksMock.mock.calls.length, 1);
+});
+
+// chips (and the hint line) are hidden until the field has text, same
+// gating RF8's old field-key chips used.
+test('updateSearchChipsVisibility shows chips once the search box has text, hides them (and the hint) when empty', () => {
   resetState({ tracks: [fakeTrack()] });
   elCache.set('#librarySearch', fakeEl());
   elCache.set('#searchChips', fakeEl());
+  elCache.set('#searchHint', fakeEl());
   const input = elCache.get('#librarySearch');
   const chips = elCache.get('#searchChips');
+  const hint = elCache.get('#searchHint');
 
   input.value = '';
   updateSearchChipsVisibility();
   assert.equal(chips.style.display, 'none');
+  assert.equal(hint.style.display, 'none');
 
   input.value = 'something';
   updateSearchChipsVisibility();
@@ -325,4 +392,43 @@ test('updateSearchChipsVisibility shows chips once the search box has text, hide
   input.value = '';
   updateSearchChipsVisibility();
   assert.equal(chips.style.display, 'none');
+});
+
+// ---- LB9: "Top result" selection ----------------------------------------
+
+function lookup(type, item){
+  if(type === 'songs') return { 1: 'Purple Rain', 2: 'Kiss' }[item];
+  if(type === 'playlists') return { 0: 'Road trip' }[item];
+  return item;
+}
+
+test('pickTopResult: null with no text query (a field-only search has no Top result)', () => {
+  assert.equal(pickTopResult({ albums: ['A'], artists: [], playlists: [], songs: [] }, '', lookup), null);
+});
+
+test('pickTopResult: an exact match wins outright, even over a higher-priority type\'s own partial match', () => {
+  const results = { albums: ['Purple Rainstorm'], artists: ['Prince'], playlists: [], songs: [1] };
+  // "Prince" is an exact artist match; "Purple Rainstorm" only partially
+  // matches "purple" and would otherwise win on type priority alone.
+  const top = pickTopResult(results, 'Prince', lookup);
+  assert.deepEqual(top, { type: 'artists', ref: 'Prince' });
+});
+
+test('pickTopResult: falls back to the highest-priority non-empty type (albums, artists, playlists, songs)', () => {
+  assert.deepEqual(
+    pickTopResult({ albums: [], artists: ['Prince'], playlists: [0], songs: [1] }, 'x', lookup),
+    { type: 'artists', ref: 'Prince' },
+  );
+  assert.deepEqual(
+    pickTopResult({ albums: [], artists: [], playlists: [0], songs: [1] }, 'x', lookup),
+    { type: 'playlists', ref: 0 },
+  );
+  assert.deepEqual(
+    pickTopResult({ albums: [], artists: [], playlists: [], songs: [1] }, 'x', lookup),
+    { type: 'songs', ref: 1 },
+  );
+});
+
+test('pickTopResult: null when every category is empty', () => {
+  assert.equal(pickTopResult({ albums: [], artists: [], playlists: [], songs: [] }, 'x', lookup), null);
 });

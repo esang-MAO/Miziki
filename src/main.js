@@ -18,7 +18,7 @@ import { setQueue } from './player/queue.js';
 import { restoreSessions, migrateChartVersion } from './history/sessions.js';
 import { loadOverlaysBatch } from './library/edit.js';
 import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
-import { renderSearchChips } from './library/search.js';
+import { renderSearchFilters } from './library/search.js';
 import { restoreSealedAlbums } from './library/sealed.js';
 import { healThumbs, healDetails, healLoudness, healHooks } from './library/thumbs.js';
 import { healCrateArt } from './crate/tiers.js';
@@ -75,7 +75,7 @@ import { wireBackdropClose } from './wiring/backdrop-close.js';
    library-loading boot sequence itself (restoreLibrary()) stays here,
    since that's what a boot file's own job actually is. */
 
-renderSearchChips();
+renderSearchFilters();
 
 wireTransport();
 wireLibraryView();

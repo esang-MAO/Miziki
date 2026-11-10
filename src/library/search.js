@@ -14,14 +14,14 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { normKey } from '../util/text.js';
-import { byName, trackSort, allIdx } from './model.js';
+import { byName, trackSort, allIdx, idxOf } from './model.js';
 import { albumKey, trackIdentityKey, trackTier } from '../record-art/tiers.js';
 import { emptyDetails } from './tags/index.js';
 import { setQueue } from '../player/queue.js';
 import { isFavorite } from './favorites.js';
 import { openPersonOrArtist, personEntryFor, PERSON_ROLE_KEYS } from './credits.js';
 import { queueSave } from '../storage/meta.js';
-import { renderTracks, groupRow, songRow, openAlbumFromLibrary } from './view.js';
+import { renderTracks, groupRow, songRow, artistRow, playlistMosaicArt, openAlbumFromLibrary } from './view.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
@@ -101,7 +101,6 @@ export function sortAlbumGroups(groups){
 }
 
 const SEARCH_FIELD_KEYS = new Set(['artist','album','title','genre','year','label','cat','credit','composer','producer','format','rate','bits','is']);
-const SEARCH_SMART_FILTERS = ['new','unplayed','hires','lossy','favorite'];
 
 function trackAllCreditNames(t){
   const d = t.details; if(!d) return [];
@@ -187,10 +186,22 @@ function trackMatchesField(t, field){
   }
 }
 
+// LB9 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 14): playlists join the
+// searchable set -- matched by name only (there's no sensible reading of
+// "artist:Theo" against a playlist), and only for a plain-text query (a
+// field: token is track-only syntax, so a query that's fields-only, or
+// mixes fields with text, never browses playlists -- judgment call, flagged
+// in the PR). Indices into S.playlists, not the objects themselves, same
+// "hand back an index, resolve the live object at render time" shape
+// albums/artists already follow with their own name strings.
 export function searchLibrary(query){
   const parsed = parseSearchQuery(query);
   const textQ = normKey(parsed.text);
   const artists = new Set(), albums = new Set(), people = new Set(), genres = new Set(), songs = [];
+  const playlists = [];
+  if(textQ && !parsed.fields.length){
+    S.playlists.forEach((pl, n) => { if(normKey(pl.name).includes(textQ)) playlists.push(n); });
+  }
   S.tracks.forEach((t, i) => {
     if(!parsed.fields.every(f => trackMatchesField(t, f))) return;
     if(!textQ){ songs.push(i); return; }
@@ -204,8 +215,84 @@ export function searchLibrary(query){
     }
     trackAllCreditNames(t).forEach(n => { if(normKey(n).includes(textQ)) people.add(n); });
   });
-  return { artists: [...artists].sort(byName), albums: [...albums].sort(byName), songs,
+  return { artists: [...artists].sort(byName), albums: [...albums].sort(byName), songs, playlists,
     people: [...people].sort(byName), genres: [...genres].sort(byName) };
+}
+
+// ---- LB9: type filters, the hint line, and "Top result" --------------
+// Pure helpers, kept DOM-free so they're directly unit-testable (search.js
+// otherwise needs a fairly wide mock.module() preamble just to import, same
+// as every other function in this file -- these three don't add to that
+// cost for a test that only wants the selection logic).
+
+// Decision 14's own four types, "All" first. Labels, not keys, are what the
+// chips show -- "Records" (not "Albums") matches the addendum's own
+// wording and LB7's "By album" sort label, even though the result shape
+// underneath is still keyed "albums" throughout this module (searchLibrary(),
+// the crate model, etc. all already say "albums" everywhere else).
+export const SEARCH_TYPE_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'songs', label: 'Songs' },
+  { key: 'albums', label: 'Records' },
+  { key: 'artists', label: 'Artists' },
+  { key: 'playlists', label: 'Playlists' },
+];
+
+// Which of searchLibrary()'s own result arrays a non-"all" filter shows.
+// Returns null for 'all' (and any unknown key), since "all" isn't one list
+// -- it's the Top result plus every type's own capped section.
+export function resultsForFilter(results, filterKey){
+  switch(filterKey){
+    case 'songs': return results.songs;
+    case 'albums': return results.albums;
+    case 'artists': return results.artists;
+    case 'playlists': return results.playlists;
+    default: return null;
+  }
+}
+
+// "Searching artist: Theo" -- shown only when the query actually used the
+// field: syntax (decision 14's own example), never for a plain-text query.
+// Multiple fields join with ", "; free text alongside a field (e.g.
+// "artist:Theo night") is left out of the hint itself -- the field is what
+// a listener would otherwise have to already know the syntax to notice,
+// which is the whole reason this hint exists; the plain words they typed
+// alongside it need no explaining.
+export function searchHintText(fields){
+  if(!fields || !fields.length) return null;
+  return 'Searching ' + fields.map(f => `${f.key}: ${f.value}`).join(', ');
+}
+
+// "A 'Top result' section (the best single match of any type)" -- an
+// exact (case/diacritic-insensitive) match on the full query wins outright,
+// checked in this type order (an arbitrary but documented priority: a
+// record or an artist is usually what a one-word query is "about" more
+// than one of its own songs, with a playlist -- a listener's own naming,
+// rather than tag data -- next); failing that, the first item of the
+// highest-priority non-empty category. `lookup` resolves an albums/artists
+// item (plain strings already) and a playlists/songs item (an index) to
+// its own comparable label, kept as parameters rather than reaching for S
+// directly so this stays callable with plain fixtures in a test.
+const TOP_RESULT_ORDER = ['albums', 'artists', 'playlists', 'songs'];
+export function pickTopResult(results, textQuery, lookup){
+  if(!textQuery) return null;
+  const q = normKey(textQuery);
+  const labelFor = (type, item) => (type === 'albums' || type === 'artists') ? item : lookup(type, item);
+  for(const type of TOP_RESULT_ORDER){
+    const items = results[type] || [];
+    const exact = items.find(item => normKey(labelFor(type, item)) === q);
+    if(exact !== undefined) return { type, ref: exact };
+  }
+  for(const type of TOP_RESULT_ORDER){
+    const items = results[type] || [];
+    if(items.length) return { type, ref: items[0] };
+  }
+  return null;
+}
+function topResultLookup(type, item){
+  if(type === 'playlists') return S.playlists[item] ? S.playlists[item].name : '';
+  if(type === 'songs') return S.tracks[item] ? S.tracks[item].tags.title : '';
+  return item;
 }
 
 // wraps each case-insensitive occurrence of query in the result's visible
@@ -233,248 +320,233 @@ export function highlightRowLabel(row, selector, text, query){
   return row;
 }
 
-// NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather than
-// rebuilding when possible." Typing one more character into an already-
-// open, plain-text (no field: tokens) search query can only ever narrow
-// each result category — substring matching is monotonic under a prefix
-// extension: if a field doesn't contain the shorter query, it can't
-// possibly contain a longer string that *starts with* that same query
-// either (any prefix of a match is itself a match, at the same position).
-// That guarantee is what makes dropping rows in place safe without
-// re-deriving anything about *which* rows to drop from scratch — every row
-// still shown either stays (if its name/id is still in the new result set)
-// or goes, never the other way around, and nothing new can ever need
-// adding. A query with any field: token is excluded entirely (field
-// matching — especially numeric/year comparisons — isn't generally
-// monotonic this way), and so is a query that isn't a straight extension
-// of the previous one (backspacing, pasting, clearing) — both fall back to
-// the full rebuild below, which is always correct.
-export function canFilterInPlace(prevQuery, nextQuery){
-  if(!prevQuery) return false;
-  const prev = parseSearchQuery(prevQuery), next = parseSearchQuery(nextQuery);
-  if(prev.fields.length || next.fields.length) return false;
-  const prevText = normKey(prev.text), nextText = normKey(next.text);
-  if(!prevText) return false;
-  return nextText.startsWith(prevText);
+// ---- LB9: search results, grouped by type with Top result leading --------
+// Replaces step 7e/NV6's own canFilterInPlace()/filterSearchInPlace() fast
+// path (keeping an already-rendered result list's rows in step with each
+// new keystroke, rather than rebuilding): capped three-per-type lists with
+// a "See all" overflow, a Top result pulled from across every type, and a
+// filter that can swap which single type is showing all make "patch the
+// existing rows" far more bookkeeping than it's worth now — a result
+// crossing in or out of its own three-row cap, or the Top result itself
+// changing type, isn't a case of some rows simply leaving and others
+// simply staying the way a single flat list's substring-narrowing was.
+// Removed per CLAUDE.md's "one in, one out": every render here is a plain
+// rebuild, same as any other view in src/library/view.js.
+const SEARCH_RESULT_CAP = 3;
+
+// LB9 point 2: the active type filter ('all' by default), module-scoped
+// the same way RF8's old searchChipsExpanded was — it's a transient view
+// state of this one search session, not anything worth saving to S/prefs.
+let activeSearchFilter = 'all';
+export function getSearchFilter(){ return activeSearchFilter; }
+export function setSearchFilter(key){ activeSearchFilter = key; }
+export function resetSearchFilter(){ activeSearchFilter = 'all'; }
+
+function searchSeeAllButton(n, type, label){
+  const b = el('button', 'search-see-all', `See all ${n} ${label.toLowerCase()} ›`);
+  b.type = 'button';
+  b.addEventListener('click', () => { setSearchFilter(type); renderTracks(); });
+  return b;
 }
 
-// Bookkeeping for the in-place path, rebuilt fresh every time the full
-// rebuild below runs. `lastCanary` is simply the first node that rebuild
-// appended — enough to detect a rebuild that happened without going
-// through this module (e.g. the user cleared the search box, so
-// renderTracksBody() wiped #libBody and drew the plain Songs/Albums/etc.
-// view instead) and bail to a fresh rebuild rather than silently filtering
-// a detached, no-longer-visible tree.
-let lastQuery = null;
-let lastHost = null;
-let lastCanary = null;
-let lastSections = null; // {artists,albums,people,genres}: {header, rows: Map(label -> el)}
-let lastSongsHeader = null;
-let lastSongsUl = null;
-let lastSongsQueue = null; // the exact array object every kept songRow's click handler closes over
-let lastSongsRows = null;  // Map(track id -> li)
-
-function stateIsFresh(host){
-  return lastHost === host && !!lastCanary && lastCanary.parentNode === host;
-}
-
-function filterGroupSection(section, keepLabels, textQ){
-  if(!section) return keepLabels.length === 0; // monotonic: was empty, must stay empty
-  const keep = new Set(keepLabels);
-  for(const [label, row] of [...section.rows]){
-    if(keep.has(label)) highlightRowLabel(row, '.g-text b', label, textQ);
-    else { row.remove(); section.rows.delete(label); }
-  }
-  if(section.rows.size === 0 && section.header){ section.header.remove(); section.header = null; }
-  return true;
-}
-
-function filterSongsSection(songIdxs, textQ){
-  if(!lastSongsUl) return songIdxs.length === 0;
-  const keepIds = new Set(songIdxs.map(i => S.tracks[i].id));
-  for(const [id, row] of [...lastSongsRows]){
-    if(!keepIds.has(id)){ row.remove(); lastSongsRows.delete(id); }
-  }
-  // same array object every remaining row's click handler already closes
-  // over (library/view.js's songRow looks up queue.indexOf(i) live, not a
-  // baked-in position) — splicing it in place, rather than handing
-  // renderSearchResults a fresh array, is what keeps every kept row
-  // playing from its correct new position with no row rebuilt at all.
-  lastSongsQueue.length = 0;
-  lastSongsQueue.push(...songIdxs);
-  songIdxs.forEach((i, pos) => {
-    const row = lastSongsRows.get(S.tracks[i].id);
-    if(!row) return;
-    highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ);
-    const idxEl = row.querySelector('.t-idx');
-    if(idxEl) idxEl.textContent = String(pos + 1).padStart(2, '0');
+function appendAlbumRows(host, albums, textQ){
+  albums.forEach(album => {
+    const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
+    const artist = S.tracks[idx[0]].tags.albumArtist;
+    const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
+      idx, () => openAlbumFromLibrary(album, idx));
+    host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
   });
-  if(lastSongsRows.size === 0){
-    if(lastSongsHeader){ lastSongsHeader.remove(); lastSongsHeader = null; }
-    lastSongsUl.remove(); lastSongsUl = null;
-  }
-  return true;
+}
+function appendArtistRows(host, artists, textQ, goto){
+  artists.forEach(artist => {
+    const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
+    const row = artistRow(artist, idx, () => goto('artists', artist));
+    host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
+  });
+}
+// Playlists show their own mosaic (LB3, src/library/playlist-mosaic.js),
+// at .g-art's own 44px box so a playlist hit sits at the same row height
+// as every other search row.
+function searchPlaylistRow(n, textQ, openPlaylist){
+  const pl = S.playlists[n];
+  const present = pl.items.map(idxOf).filter(i => i >= 0);
+  const b = el('button', 'grouprow search-playlist-row');
+  const art = el('span', 'g-art search-pl-mosaic');
+  art.appendChild(playlistMosaicArt(pl, present));
+  b.appendChild(art);
+  const box = el('span', 'g-text');
+  box.appendChild(el('b', null, pl.name));
+  box.appendChild(el('em', null, present.length + (present.length===1?' song':' songs')));
+  b.appendChild(box);
+  b.appendChild(el('span', 'g-chev', '›'));
+  b.addEventListener('click', () => openPlaylist(n));
+  return highlightRowLabel(b, '.g-text b', pl.name, textQ);
+}
+function appendPlaylistRows(host, playlistIdxs, textQ, openPlaylist){
+  playlistIdxs.forEach(n => host.appendChild(searchPlaylistRow(n, textQ, openPlaylist)));
+}
+function appendSongRows(host, songIdxs, textQ){
+  if(!songIdxs.length) return;
+  const ul = el('ul','tracklist');
+  songIdxs.forEach((i, pos) => {
+    const row = songRow(i, songIdxs, pos);
+    ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
+  });
+  host.appendChild(ul);
 }
 
-function filterSearchResultsInPlace(host, query){
-  if(!stateIsFresh(host)) return false;
-  const results = searchLibrary(query);
-  const anyMatches = results.artists.length || results.albums.length || results.songs.length
-    || results.people.length || results.genres.length;
-  if(!anyMatches) return false; // let the caller fall back to the plain "No matches" rebuild
-  const textQ = parseSearchQuery(query).text.trim();
-  if(!filterGroupSection(lastSections.artists, results.artists, textQ)) return false;
-  if(!filterGroupSection(lastSections.albums, results.albums, textQ)) return false;
-  if(!filterGroupSection(lastSections.people, results.people, textQ)) return false;
-  if(!filterGroupSection(lastSections.genres, results.genres, textQ)) return false;
-  if(!filterSongsSection(results.songs, textQ)) return false;
-  return true;
+// `trueCount` (defaulting to items.length) is the type's real total match
+// count, used only for "See all {n} {type}" -- callers that already
+// excluded the Top result from `items` (so it isn't drawn twice) still
+// want that link, when it shows at all, to name the type's actual total,
+// since tapping it switches to the full, unexcluded list for that type
+// (renderSingleTypeResults() below).
+function appendCappedSection(host, items, label, type, renderRows, trueCount = items.length){
+  if(!items.length) return;
+  host.appendChild(el('p','note', label));
+  renderRows(host, items.slice(0, SEARCH_RESULT_CAP));
+  if(trueCount > SEARCH_RESULT_CAP) host.appendChild(searchSeeAllButton(trueCount, type, label));
 }
 
-// Exported so library/view.js's renderTracks() can try this *before*
-// renderTracksBody() does its own unconditional host.innerHTML = '' — by
-// the time that reset has run there's nothing left in the DOM to filter,
-// so this has to run first and, on success, skip the reset (and the rest
-// of renderTracksBody()) entirely. renderSearchResults() below (the
-// rebuild renderTracksBody() itself calls once it's already decided to do
-// a full rebuild) never takes this path, since the host is already empty
-// by the time it runs.
-export function filterSearchInPlace(host, query){
-  if(!canFilterInPlace(lastQuery, query)) return false;
-  if(!filterSearchResultsInPlace(host, query)) return false;
-  lastQuery = query;
-  return true;
+function appendTopResultSection(host, top, textQ, goto, openPlaylist){
+  host.appendChild(el('p','note','Top result'));
+  if(top.type === 'albums') appendAlbumRows(host, [top.ref], textQ);
+  else if(top.type === 'artists') appendArtistRows(host, [top.ref], textQ, goto);
+  else if(top.type === 'playlists') appendPlaylistRows(host, [top.ref], textQ, openPlaylist);
+  else appendSongRows(host, [top.ref], textQ);
+}
+
+// decision 14's four type filters, each showing every one of its own
+// matches (no cap, no Top result -- that's an "all" idea only).
+function renderSingleTypeResults(host, filter, results, textQ, goto, openPlaylist, query){
+  const items = resultsForFilter(results, filter);
+  if(!items.length){ noResultsNote(host, query); return; }
+  if(filter === 'albums') appendAlbumRows(host, items, textQ);
+  else if(filter === 'artists') appendArtistRows(host, items, textQ, goto);
+  else if(filter === 'playlists') appendPlaylistRows(host, items, textQ, openPlaylist);
+  else appendSongRows(host, items, textQ);
+}
+
+// decision 14 point 3's own wording, with a "Clear" text link (UN5's
+// empty-note posture, at search-result scale rather than a full card) that
+// clears the query and returns to whichever Songs/Albums/Artists/Playlists/
+// crate tab was showing underneath -- the same thing the header's own ×
+// clear button already does.
+function noResultsNote(host, query){
+  const wrap = host.appendChild(el('div','search-no-results'));
+  wrap.appendChild(el('p','note', `Nothing in your library matches "${query}".`));
+  const clear = el('button','search-see-all','Clear');
+  clear.type = 'button';
+  clear.addEventListener('click', clearSearchQuery);
+  wrap.appendChild(clear);
+}
+export function clearSearchQuery(){
+  const input = $('#librarySearch'); if(!input) return;
+  input.value = '';
+  const clearBtn = $('#hdrSearchClear'); if(clearBtn) clearBtn.style.display = 'none';
+  resetSearchFilter();
+  renderTracks();
 }
 
 export function renderSearchResults(host, query){
-  rebuildSearchResults(host, query);
-  lastQuery = query;
-  lastHost = host;
-}
-
-function rebuildSearchResults(host, query){
-  lastCanary = null; lastSections = null;
-  lastSongsHeader = null; lastSongsUl = null; lastSongsQueue = null; lastSongsRows = null;
   const results = searchLibrary(query);
-  if(!results.artists.length && !results.albums.length && !results.songs.length
-     && !results.people.length && !results.genres.length){
-    lastCanary = host.appendChild(el('p','note','No matches for “' + query + '”.'));
+  const parsed = parseSearchQuery(query);
+  const textQ = parsed.text.trim();
+  updateSearchHint(parsed.fields);
+  updateSearchFilterChipsState();
+  const anyMatches = results.artists.length || results.albums.length || results.songs.length
+    || results.people.length || results.genres.length || results.playlists.length;
+  if(!anyMatches){ noResultsNote(host, query); return; }
+
+  // leaving the search field (its own goto()/openPlaylist() below, and
+  // the People/Genres rows further down) always lands back on a plain,
+  // unfiltered library view -- the type filter is this search session's
+  // own state, not something that should still be "Playlists" the next
+  // time the field opens.
+  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; resetSearchFilter(); renderTracks(); };
+  const openPlaylist = n => { $('#librarySearch').value = ''; resetSearchFilter(); S.view.mode = 'playlists'; S.view.playlist = n; renderTracks(); };
+
+  const filter = getSearchFilter();
+  if(filter !== 'all'){
+    renderSingleTypeResults(host, filter, results, textQ, goto, openPlaylist, query);
     return;
   }
-  const textQ = parseSearchQuery(query).text.trim();
-  const sections = { artists: null, albums: null, people: null, genres: null };
-  const goto = (mode, group) => { S.view.mode = mode; S.view.group = group; S.view.artistAlbum = null; $('#librarySearch').value = ''; renderTracks(); };
-  if(results.artists.length){
-    const header = host.appendChild(el('p','note','Artists'));
-    if(!lastCanary) lastCanary = header;
-    const rows = new Map();
-    results.artists.forEach(artist => {
-      const idx = allIdx().filter(i => S.tracks[i].tags.artist === artist);
-      const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
-      const row = groupRow(artist, albumCount + (albumCount===1?' album · ':' albums · ') + idx.length
-        + (idx.length===1?' track':' tracks'), idx, () => goto('artists', artist));
-      host.appendChild(highlightRowLabel(row, '.g-text b', artist, textQ));
-      rows.set(artist, row);
-    });
-    sections.artists = { header, rows };
-  }
-  if(results.albums.length){
-    const header = host.appendChild(el('p','note','Albums'));
-    if(!lastCanary) lastCanary = header;
-    const rows = new Map();
-    results.albums.forEach(album => {
-      const idx = allIdx().filter(i => S.tracks[i].tags.album === album);
-      const artist = S.tracks[idx[0]].tags.albumArtist;
-      const row = groupRow(album, artist + ' · ' + idx.length + (idx.length===1?' track':' tracks'),
-        idx, () => openAlbumFromLibrary(album, idx));
-      host.appendChild(highlightRowLabel(row, '.g-text b', album, textQ));
-      rows.set(album, row);
-    });
-    sections.albums = { header, rows };
-  }
+
+  const top = pickTopResult(results, textQ, topResultLookup);
+  if(top) appendTopResultSection(host, top, textQ, goto, openPlaylist);
+  // the item already shown as Top result doesn't also repeat in its own
+  // type's capped section just below it.
+  const sans = (type, items) => (top && top.type === type) ? items.filter(it => it !== top.ref) : items;
+
+  appendCappedSection(host, sans('albums', results.albums), 'Records', 'albums', (h, items) => appendAlbumRows(h, items, textQ), results.albums.length);
+  appendCappedSection(host, sans('artists', results.artists), 'Artists', 'artists', (h, items) => appendArtistRows(h, items, textQ, goto), results.artists.length);
+  appendCappedSection(host, sans('playlists', results.playlists), 'Playlists', 'playlists', (h, items) => appendPlaylistRows(h, items, textQ, openPlaylist), results.playlists.length);
+  appendCappedSection(host, sans('songs', results.songs), 'Songs', 'songs', (h, items) => appendSongRows(h, items, textQ), results.songs.length);
+
+  // People/Genres (CREDITS spec §3) aren't one of decision 14's four
+  // types, so they carry no filter chip of their own and no cap -- they
+  // only ever show under "All", same visibility they always had.
   if(results.people.length){
-    const header = host.appendChild(el('p','note','People'));
-    if(!lastCanary) lastCanary = header;
-    const rows = new Map();
+    host.appendChild(el('p','note','People'));
     results.people.forEach(name => {
       const entry = personEntryFor(name);
       const count = entry ? new Set(entry.entries.map(e => e.trackIdx)).size : 0;
       const row = groupRow(name, count + (count===1?' credit':' credits'), [],
-        () => { $('#librarySearch').value = ''; openPersonOrArtist(name); });
+        () => { $('#librarySearch').value = ''; resetSearchFilter(); openPersonOrArtist(name); });
       host.appendChild(highlightRowLabel(row, '.g-text b', name, textQ));
-      rows.set(name, row);
     });
-    sections.people = { header, rows };
   }
   if(results.genres.length){
-    const header = host.appendChild(el('p','note','Genres'));
-    if(!lastCanary) lastCanary = header;
-    const rows = new Map();
+    host.appendChild(el('p','note','Genres'));
     results.genres.forEach(genre => {
       const idx = allIdx().filter(i => S.tracks[i].details && S.tracks[i].details.genre === genre);
       const row = groupRow(genre, idx.length + (idx.length===1?' track':' tracks'), idx,
-        () => { $('#librarySearch').value = ''; setQueue(idx, 0, true); });
+        () => { $('#librarySearch').value = ''; resetSearchFilter(); setQueue(idx, 0, true); });
       host.appendChild(highlightRowLabel(row, '.g-text b', genre, textQ));
-      rows.set(genre, row);
     });
-    sections.genres = { header, rows };
-  }
-  lastSections = sections;
-  if(results.songs.length){
-    const header = host.appendChild(el('p','note','Songs'));
-    if(!lastCanary) lastCanary = header;
-    const ul = el('ul','tracklist');
-    const rows = new Map();
-    const queue = results.songs; // the array every songRow below closes over — kept live for filterSongsSection
-    results.songs.forEach((i, pos) => {
-      const row = songRow(i, queue, pos);
-      ul.appendChild(highlightRowLabel(row, '.t-name b', S.tracks[i].tags.title, textQ));
-      rows.set(S.tracks[i].id, row);
-    });
-    host.appendChild(ul);
-    lastSongsHeader = header;
-    lastSongsUl = ul;
-    lastSongsQueue = queue;
-    lastSongsRows = rows;
   }
 }
 
-// discoverable field names + smart filters, shown while the search box is
-// focused and empty (CREDITS spec §3)
-// RF8 (docs/12_REFINE.md): hidden until the field has text (not shown on a
-// bare focus any more), then just the three most-used fields plus a "More"
-// that swaps in the rest — not all fourteen+ at once.
-const DEFAULT_SEARCH_CHIPS = ['artist:', 'album:', 'year:'];
-let searchChipsExpanded = false;
-
-export function renderSearchChips(){
+// ---- LB9 point 2: the type-filter chips + the field-syntax hint line -----
+// Replaces RF8's own field-name/smart-filter chips (artist:/album:/year:/
+// More) -- the typed syntax itself (parseSearchQuery(), trackMatchesField()
+// above) is unchanged and still works when typed; only the discoverability
+// chips change. Built once (main.js, same as renderSearchChips() used to
+// be), then only re-painted for its pressed state on every search render.
+export function renderSearchFilters(){
   const host = $('#searchChips');
   if(!host) return;
   host.innerHTML = '';
-  const allChips = [...SEARCH_FIELD_KEYS].map(k => k + ':').concat(SEARCH_SMART_FILTERS.map(f => 'is:' + f));
-  const chips = searchChipsExpanded ? allChips : DEFAULT_SEARCH_CHIPS;
-  chips.forEach(label => {
+  SEARCH_TYPE_FILTERS.forEach(({ key, label }) => {
     const chip = el('button','search-chip', label);
-    chip.addEventListener('click', () => {
-      const input = $('#librarySearch');
-      input.value = (input.value.trim() ? input.value.trim() + ' ' : '') + label;
-      input.focus();
-      renderTracks();
-    });
+    chip.type = 'button';
+    chip.dataset.filter = key;
+    chip.setAttribute('aria-pressed', String(key === activeSearchFilter));
+    chip.addEventListener('click', () => { setSearchFilter(key); renderTracks(); });
     host.appendChild(chip);
   });
-  if(!searchChipsExpanded){
-    const more = el('button','search-chip search-chip-more', 'More');
-    more.addEventListener('click', () => { searchChipsExpanded = true; renderSearchChips(); });
-    host.appendChild(more);
-  }
+}
+export function updateSearchFilterChipsState(){
+  const host = $('#searchChips');
+  if(!host || typeof host.querySelectorAll !== 'function') return;
+  host.querySelectorAll('.search-chip').forEach(chip => {
+    const pressed = chip.dataset.filter === activeSearchFilter;
+    chip.setAttribute('aria-pressed', String(pressed));
+    chip.classList.toggle('is-active', pressed);
+  });
+}
+function updateSearchHint(fields){
+  const hint = $('#searchHint');
+  if(!hint) return;
+  const text = searchHintText(fields);
+  hint.textContent = text || '';
+  hint.style.display = text ? '' : 'none';
 }
 export function updateSearchChipsVisibility(){
-  const input = $('#librarySearch'), chips = $('#searchChips');
+  const input = $('#librarySearch'), chips = $('#searchChips'), hint = $('#searchHint');
   if(!input || !chips) return;
   const hasText = !!input.value.trim();
-  // re-collapse (and redraw) once the field empties out again, so a later
-  // "has text" moment always starts back at the three-chip default
-  if(!hasText && searchChipsExpanded){ searchChipsExpanded = false; renderSearchChips(); }
   chips.style.display = (hasText && S.tracks.length > 0) ? 'flex' : 'none';
+  if(hint && !hasText) hint.style.display = 'none';
 }

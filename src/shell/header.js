@@ -1,9 +1,10 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { formatBytes, totalLibraryBytes } from '../library/delete.js';
-import { updateSearchChipsVisibility } from '../library/search.js';
+import { updateSearchChipsVisibility, resetSearchFilter } from '../library/search.js';
 import { isLibraryRouteVisible } from './routes.js';
 import { openLayer, closeLayer } from './nav-stack.js';
+import { saveScrollPosition, restoreScrollPosition } from './scroll-memory.js';
 import { sheetHeader } from '../ui/parts.js';
 
 /* ================= navigation shell: header actions, search field, add menu =================
@@ -55,6 +56,11 @@ export function refreshLibraryTools(){
 // input, which lives in the header above it (S1 §2.1). Cancel clears and
 // closes; the × only clears.
 export function openSearchField(){
+  // LB9 point 1: "Cancel and Escape restore the view you came from,
+  // scrolled where you were" -- saved against #libBody's own internal
+  // scroller (updateLibBodyInset()) rather than window.scrollY, the same
+  // `target` shape renderTracks()'s own lib-view: keys already use.
+  saveScrollPosition('search-entry', $('#libBody'));
   $('#libNav').style.display = 'none';
   $('#hdrSearchRow').style.display = 'flex';
   $('#hdrSearchBtn').classList.add('active');
@@ -74,11 +80,19 @@ export function openSearchField(){
 export function closeSearchField(){
   $('#librarySearch').value = '';
   $('#hdrSearchClear').style.display = 'none';
+  resetSearchFilter();
+  // wiring/search.js's own input listener renders immediately (no debounce)
+  // once the field is empty, so renderTracks() has already rebuilt the
+  // prior view by the time dispatchEvent() returns -- restoreScrollPosition
+  // right after is restoring onto that already-rebuilt content, not onto
+  // whatever search results were showing a moment ago.
   $('#librarySearch').dispatchEvent(new Event('input', { bubbles: true }));
+  restoreScrollPosition('search-entry', $('#libBody'));
   updateHeaderActionsAvailability();
   $('#hdrSearchRow').style.display = 'none';
   $('#hdrSearchBtn').classList.remove('active');
   $('#searchChips').style.display = 'none';
+  $('#searchHint').style.display = 'none';
 }
 export function isSearchFieldOpen(){
   return $('#hdrSearchRow').style.display !== 'none';

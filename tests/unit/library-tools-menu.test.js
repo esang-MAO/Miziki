@@ -14,7 +14,7 @@ mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
   namedExports: { formatBytes(){ return '0 B'; }, totalLibraryBytes(){ return 0; } },
 });
 mock.module(new URL('../../src/library/search.js', import.meta.url).href, {
-  namedExports: { updateSearchChipsVisibility(){} },
+  namedExports: { updateSearchChipsVisibility(){}, resetSearchFilter(){} },
 });
 mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { isLibraryRouteVisible(){ return true; } },

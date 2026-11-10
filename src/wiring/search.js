@@ -13,6 +13,11 @@ export function wireSearch(){
     updateSearchChipsVisibility();
     $('#hdrSearchClear').style.display = $('#librarySearch').value ? '' : 'none';
     clearTimeout(searchDebounce);
+    // LB9 point 1: a clear (the field going empty — Cancel/Escape's own
+    // dispatched 'input', or the × button) renders immediately rather than
+    // waiting out the debounce, since shell/header.js's closeSearchField()
+    // needs the prior view already rebuilt before it restores scroll.
+    if(!$('#librarySearch').value.trim()){ renderTracks(); return; }
     searchDebounce = setTimeout(renderTracks, 120);
   });
   $('#librarySearch').addEventListener('focus', updateSearchChipsVisibility);

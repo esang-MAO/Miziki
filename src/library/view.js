@@ -9,6 +9,7 @@ import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { backHeader, emptyNote, listMenu } from '../ui/parts.js';
 import { openPlaylistNameSheet } from './playlist-sheet.js';
+import { openAddToPlaylistSheet } from './add-to-playlist.js';
 import { dragTargetIndex, reorderPresentIds } from './drag-reorder.js';
 import { fmt } from '../util/text.js';
 import { setQueue, setQueueList, setQpos, playNext, addToQueue } from '../player/queue.js';
@@ -31,7 +32,7 @@ import { thumbURL } from './thumbs.js';
 import { distinctAlbumKeysInOrder, mosaicCells, mosaicLayout } from './playlist-mosaic.js';
 import { renderSidebarPlaylists, renderSidebarBins } from '../shell/sidebar.js';
 import {
-  librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
+  librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
 } from './search.js';
 import { centerEmptyState, renderCrate, openCrateAlbum } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -330,8 +331,8 @@ function updateSelectBar(){
 // and the list-menu body are rebuilt from scratch on every open, since
 // both depend on this one track -- same "rebuild, don't diff" posture
 // openGatefoldTrackMenu() (gatefold/view.js) already takes for its own
-// per-track sheet. "Add to playlist…" is left out, see miziki.html's own
-// comment on #rowMenuOverlay for why.
+// per-track sheet. "Add to playlist…" (LB9, docs/36A_LIBRARY_AND_LAUNCH.md
+// point 4) opens the picker sheet in src/library/add-to-playlist.js.
 // LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): `extraGroups` (an
 // array of groups, same shape as this function's own return value) lets
 // a caller insert context-only rows -- today just the playlist page's own
@@ -345,6 +346,7 @@ function rowMenuGroups(t, extraGroups){
     [
       { label: 'Play next', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuPlayNext(i); } },
       { label: 'Add to queue', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuAddQueue(i); } },
+      { label: 'Add to playlist…', onClick: () => rowMenuAddToPlaylist(t) },
     ],
     [
       { label: isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites', onClick: () => rowMenuToggleFavorite(t.id) },
@@ -399,6 +401,14 @@ function openRowMenu(t, extraGroups){
 function rowMenuPlayNext(i){ closeLayer('row-menu'); playNext(i); }
 function rowMenuAddQueue(i){ closeLayer('row-menu'); addToQueue(i); }
 function rowMenuToggleFavorite(id){ closeLayer('row-menu'); toggleFavorite(id); }
+// LB9 point 4: a second sheet opens in the row menu's place, same
+// forceCloseLayer({skipHistory:true}) + open shape as Credits/Edit info
+// just below -- the row menu is gone before this one opens, not stacked
+// under it.
+function rowMenuAddToPlaylist(t){
+  forceCloseLayer('row-menu', {skipHistory: true});
+  openAddToPlaylistSheet(t, { mosaicArt: playlistMosaicArt, queueSave });
+}
 function rowMenuOpenCredits(t){
   forceCloseLayer('row-menu', {skipHistory: true});
   openCreditsSheet(t);
@@ -611,7 +621,10 @@ function playlistMosaicEntry(pl, present){
 // whatever's already available synchronously and upgrades in place once
 // the tier resolves -- `cell.dataset.albumId` guards against a cell
 // having been re-used (a re-render) by the time the promise settles.
-function playlistMosaicArt(pl, present){
+// LB9 (docs/36A_LIBRARY_AND_LAUNCH.md): exported so search.js's own
+// Playlists search results can draw the exact same mosaic as the
+// Playlists grid/detail page, rather than a second cover renderer.
+export function playlistMosaicArt(pl, present){
   const entry = playlistMosaicEntry(pl, present);
   const wrap = el('span', 'pl-mosaic pl-mosaic--' + entry.layout);
   if(entry.layout === 'empty'){
@@ -1208,14 +1221,12 @@ export function openLibraryCrate(){
 
 export function renderTracks(){
   const host = $('#libBody');
-  // NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather
-  // than rebuilding when possible" — a narrowing search-query refinement
-  // (library/search.js's own canFilterInPlace()) can patch the already-
-  // rendered search results directly and skip renderTracksBody() entirely,
-  // since that function's own host.innerHTML = '' reset (below) would
-  // otherwise tear down the very rows there'd be nothing left to filter.
-  const query = $('#librarySearch').value.trim();
-  if(query && filterSearchInPlace(host, query)) return;
+  // LB9 (docs/36A_LIBRARY_AND_LAUNCH.md) retired NV6's own in-place
+  // search-result filtering fast path (library/search.js's own
+  // canFilterInPlace()/filterSearchInPlace()) — see that module's own
+  // comment on why a capped, grouped-by-type result list with a movable
+  // Top result isn't a case of rows simply leaving a flat list any more.
+  // Every render, search or not, is a plain rebuild now.
   const newKey = libViewKey(S.view);
   // first render ever (lastLibViewKey is still null) is a fresh load, not
   // a navigation — nothing to save, and the natural top position is right
