@@ -580,7 +580,6 @@
      align to the spread's bounding box, only to the page. */
   .gatefold.gf-wide .gf-info{left:calc(50% - 190px);text-align:center}
   .gatefold.gf-wide .gf-play-record-btn{left:calc(50% - 190px)}
-  .gatefold .gf-turn-over-btn{display:none}
   .gatefold.gf-wide .gf-turn-over-btn{
     display:block;position:absolute;left:calc(50% - 190px);
     top:calc(620px + 44px + var(--sp-2));width:380px;min-height:44px;
