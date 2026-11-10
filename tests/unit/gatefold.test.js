@@ -136,7 +136,7 @@ mock.module(new URL('../../src/gatefold/booklet.js', import.meta.url).href, {
   namedExports: { openBookletViewer(){}, openAddBookletPagesPicker(){} },
 });
 
-const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData } = await import('../../src/gatefold/view.js');
+const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData, gatefoldFormatLines } = await import('../../src/gatefold/view.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
 
@@ -318,4 +318,51 @@ test('gatefoldSideWearShares: an album with no plays at all gives every side a 0
   S.trackPlayCounts = {};
   const sides = [{ label: 'Side A', idx: [0] }];
   assert.deepEqual(gatefoldSideWearShares(sides), [{ plays: 0, pct: 0 }]);
+});
+
+// UN8 (docs/36_UNIFORMITY.md point 2): gatefoldFormatLines() splits the
+// old single run-on line into [record, file] -- record facts (name/
+// speed/track count/length) on one line, year/label/codec-rate/lossy on
+// the other. One-track fixtures: side length equals that track's own
+// duration, so it drives the format table directly (record-art/format.js).
+function fakeFormatTrack(duration, meta, details){
+  return { tags: { album: 'Al', artist: 'Ar', title: 'T' }, duration, meta, details };
+}
+
+test('gatefoldFormatLines: an LP (long single side, 33⅓) with year/label/codec', () => {
+  S.albumFormat = {};
+  S.tracks = [fakeFormatTrack(1200, { codec: 'FLAC', rate: 44100, lossless: true }, { label: 'Driftwood' })];
+  const item = { album: 'Al', artist: 'Ar', year: 2022, albumId: 'al', idx: [0], trackCount: 1 };
+  const [record, file] = gatefoldFormatLines(item);
+  assert.equal(record, '12″ LP · 33⅓ RPM · 1 track · 20:00');
+  assert.equal(file, '2022 · Driftwood · FLAC · 44.1 kHz');
+});
+
+test('gatefoldFormatLines: an EP (10", 45 RPM) with a lossy file', () => {
+  S.albumFormat = {};
+  S.tracks = [fakeFormatTrack(600, { codec: 'MP3', rate: 44100, lossless: false }, { label: 'Driftwood' })];
+  const item = { album: 'Al', artist: 'Ar', year: 2022, albumId: 'al', idx: [0], trackCount: 1 };
+  const [record, file] = gatefoldFormatLines(item);
+  assert.equal(record, '10″ EP · 45 RPM · 1 track · 10:00');
+  assert.equal(file, '2022 · Driftwood · MP3 · 44.1 kHz · lossy');
+});
+
+test('gatefoldFormatLines: a single with no year drops straight to the label, never starting with ·', () => {
+  S.albumFormat = {};
+  S.tracks = [fakeFormatTrack(180, { codec: 'MP3', rate: 44100, lossless: false }, { label: 'Driftwood' })];
+  const item = { album: 'Al', artist: 'Ar', year: null, albumId: 'al', idx: [0], trackCount: 1 };
+  const [record, file] = gatefoldFormatLines(item);
+  assert.equal(record, '7″ SINGLE · 45 RPM · 1 track · 3:00');
+  assert.equal(file, 'Driftwood · MP3 · 44.1 kHz · lossy');
+  assert.ok(!file.startsWith('·'));
+});
+
+test('gatefoldFormatLines: an overflowing label is dropped before the lossy word', () => {
+  S.albumFormat = {};
+  const longLabel = 'A Very Long Independent Record Label Name LLC';
+  S.tracks = [fakeFormatTrack(180, { codec: 'MP3', rate: 44100, lossless: false }, { label: longLabel })];
+  const item = { album: 'Al', artist: 'Ar', year: 2022, albumId: 'al', idx: [0], trackCount: 1 };
+  const [, file] = gatefoldFormatLines(item);
+  assert.ok(!file.includes(longLabel));
+  assert.equal(file, '2022 · MP3 · 44.1 kHz · lossy');
 });

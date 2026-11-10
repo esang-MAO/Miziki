@@ -406,7 +406,10 @@
 .gatefold.gf-chrome-in .gf-info{opacity:1}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}
 .gf-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:2px 0}
-.gf-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted)}
+/* UN8 (docs/36_UNIFORMITY.md): two lines (record facts, then file facts)
+   under the flip button, centred -- margin replaces the old single line's
+   lack of one so the two sit with a hairline of their own breathing room. */
+.gf-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);text-align:center;margin:2px 0}
 /* GF11 point 1: "hides Share record, Pin ... and dims the sleeve paper
    and label slightly" -- GF14 moved Share/Pin into the always-present
    "record options" menu (so they're never shown inline any more, day or

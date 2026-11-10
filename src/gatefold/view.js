@@ -35,7 +35,6 @@ import { getCrateArtURL } from '../crate/tiers.js';
 // from the cover.
 import { loadImageEl, shareDominantColor, artTint } from '../ui/art-color.js';
 import { fmt } from '../util/text.js';
-import { fileSpecLine } from '../player/track-spec.js';
 import { setQueue, playNext, addToQueue } from '../player/queue.js';
 import { play } from '../player/transport.js';
 import { hapticTick } from '../ui/haptic.js';
@@ -565,7 +564,7 @@ function sleeveNotePromptFor(albumId){
 // GF3: the one place that resolves an open (or about-to-open) item's real
 // format -- the album's own track lengths through the personal Auto/33/45
 // override, exactly as every other format reader here already read it
-// inline. Shared by gatherRecordShareData(), gatefoldFormatLine() and
+// inline. Shared by gatherRecordShareData(), gatefoldFormatLines() and
 // openGatefold()'s own gatefoldGeometry()/platterSizeAttr() calls (GF3
 // point 1), so there's one override lookup, not three copies of it.
 // GF8 (docs/29_GATEFOLD.md): also used by sealed-front.js's own format
@@ -1095,22 +1094,49 @@ export function updateGatefoldNowPlaying(){
   if(num){ num.innerHTML = ''; num.appendChild(gatefoldNowGlyph()); }
 }
 
-// GF1 point 4: "format name, speed, the file's format/bit depth/rate as
-// the player's spec line already words it, track count and length." Not
-// shared with crate/model.js's catalogLineFor() -- that line is the crate
-// catalog card's own uppercase label/catalog-number wording, built from no
-// file-level data at all; this one is mixed-case and always includes the
-// file's own codec/rate/bit-depth, a different shape the two don't share.
-function gatefoldFormatLine(item){
+// UN8 (docs/36_UNIFORMITY.md): two centred caption lines under the flip
+// button, replacing the old single run-on line -- record facts (name,
+// speed, track count, length; not shared with crate/model.js's own
+// catalogLineFor(), the crate catalog card's uppercase label/catalog-
+// number wording built from no file-level data at all) on one line, and
+// the file's own year/label/codec/rate/lossy word on a second, narrower
+// than fileSpecLine() (no bit-depth or mono/stereo -- the plan's own
+// example line carries neither). GF_LINE_MAX is a judgment call, not from
+// the plan (no character count was given): long enough for the plan's own
+// example line (41 chars) with a little room, short enough that a real
+// long label still forces a drop on an ordinary phone width.
+const GF_LINE_MAX = 46;
+
+// "A line never starts with ·. If a line is too long, drop the label,
+// then lossy/lossless" -- tried with every part, then with the label
+// dropped, then with the lossy word dropped too; filter(Boolean) means a
+// leading null part never leaves a stray leading "· ".
+function gatefoldFileLine({ year, label, core, lossyWord }){
+  const build = (withLabel, withLossy) =>
+    [year, withLabel ? label : null, core, withLossy ? lossyWord : null].filter(Boolean).join(' · ');
+  let line = build(true, true);
+  if(line.length > GF_LINE_MAX) line = build(false, true);
+  if(line.length > GF_LINE_MAX) line = build(false, false);
+  return line;
+}
+
+export function gatefoldFormatLines(item){
   const format = gatefoldItemFormat(item);
   const t = S.tracks[item.idx[0]];
-  const bits = [
+  const m = t ? t.meta : null;
+  const record = [
     formatRecordName(format) + ' · ' + formatSpeedText(format.speed) + ' RPM',
-    t ? fileSpecLine(t.meta) : null,
     item.trackCount + (item.trackCount===1?' track':' tracks'),
     fmt(item.idx.reduce((s,i)=>s+(S.tracks[i].duration||0),0)),
-  ].filter(Boolean);
-  return bits.join(' · ');
+  ].filter(Boolean).join(' · ');
+  const core = [m ? m.codec : null, m && m.rate ? (m.rate/1000).toFixed(1)+' kHz' : null].filter(Boolean).join(' · ');
+  const file = gatefoldFileLine({
+    year: item.year ? String(item.year) : null,
+    label: (t && t.details && t.details.label) || null,
+    core: core || null,
+    lossyWord: m ? (m.lossless ? null : 'lossy') : null,
+  });
+  return [record, file];
 }
 
 // GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
@@ -1342,8 +1368,17 @@ function gatefoldInfoAndSleeveHTML(item){
   // album) is now a fixed top-corner button (#gfMoreBtn, miziki.html),
   // wired once in src/wiring/gatefold.js -- not rebuilt into this title
   // row every open the way it used to be.
-  info.appendChild(el('h3','gf-info-title', item.album));
-  info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  // UN8 (docs/36_UNIFORMITY.md): dropped everywhere else -- the
+  // tracklist panel (buildGatefoldTracklist()'s own .gf-tl-head/.gf-tl-
+  // title) already shows artist/album, and outside wide mode the panel-
+  // visibility CSS never hides #gfInfo under it, so both titles were on
+  // screen together. Wide mode shows both panels side by side on purpose
+  // (11-gatefold.css), with this caption sitting in its own left column
+  // rather than stacked under the tracklist's header, so it keeps them.
+  if(GF && GF.mode === 'wide'){
+    info.appendChild(el('h3','gf-info-title', item.album));
+    info.appendChild(el('p','gf-info-sub', item.artist + (item.year ? ' · ' + item.year : '')));
+  }
   // GF11 point 1: "hides ... the format line and the wear line" after
   // sunset -- "fewer lines under the panel: just the record" (the design
   // mock's own wording). GF.night is computed once when the gatefold
@@ -1373,7 +1408,9 @@ function gatefoldInfoAndSleeveHTML(item){
   const recallPhaseCounts = S.mergedStats ? S.mergedStats.albumPhaseCounts : S.albumPhaseCounts;
   const recall = recallLineFor(recallPlayCountsByDay, recallPhaseCounts[item.albumId], item.albumId, Date.now(), wearCopyShownPhrase);
   if(recall) info.appendChild(el('p','gf-info-recall', recall));
-  info.appendChild(el('p','gf-info-meta', gatefoldFormatLine(item)));
+  const [record, file] = gatefoldFormatLines(item);
+  info.appendChild(el('p','gf-info-meta', record));
+  info.appendChild(el('p','gf-info-meta', file));
 }
 
 // The gatefold's own disc, pulled from the sleeve pocket, shows the same
@@ -1833,7 +1870,7 @@ export function openGatefold(item, opts){
   const trackIdx = gatefoldTrackIndices(item);
   if(!trackIdx.length) return;
   // GF3 point 1: the record's own format (12"/10"/7", through the
-  // personal Auto/33/45 override, same as gatefoldFormatLine()/
+  // personal Auto/33/45 override, same as gatefoldFormatLines()/
   // gatherRecordShareData()) drives this open's own geometry -- panel/
   // pan/pocket/disc sizes, pushed as CSS vars below -- and the pocket
   // disc's own [data-size] label-inset scaling (point 2), the same
