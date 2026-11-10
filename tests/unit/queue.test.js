@@ -79,6 +79,19 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks(){}, exitSelectMode(){}, songRow(){}, updateTrackRow(){ return false; } },
 });
+// LB2 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 2): saveQueueAsPlaylist()
+// now opens the shared playlist name sheet instead of window.prompt() —
+// the sheet's own real DOM/nav-stack chain is covered by
+// tests/unit/playlist-sheet.test.js, so here it's stopped at the door,
+// same as every other "stop the chain" mock above. openPlaylistNameSheetResult
+// is read fresh on every call, so each test just sets it before calling.
+let openPlaylistNameSheetResult = null;
+const openPlaylistNameSheetCalls = [];
+mock.module(new URL('../../src/library/playlist-sheet.js', import.meta.url).href, {
+  namedExports: {
+    openPlaylistNameSheet: async (opts) => { openPlaylistNameSheetCalls.push(opts); return openPlaylistNameSheetResult; },
+  },
+});
 // RF23 (docs/12_REFINE.md): credits.js's new, one-directional import of
 // openFriendStore (social/screens/friend-store.js) would otherwise reach
 // that module's own real chain (profile/storefront.js and everything past
@@ -536,9 +549,9 @@ test('queueMove(pos, dir) is a thin adjacent-swap wrapper over queueReorderTo, u
   assert.deepEqual(S.queue, [0,2,1]);
 });
 
-test('saveQueueAsPlaylist prompts for a name and saves the whole queue, deduplicated by id, in queue order', () => {
-  const origPrompt = globalThis.window.prompt;
-  globalThis.window.prompt = () => 'My Mix';
+test('saveQueueAsPlaylist opens the name sheet (with the queue-count note) and saves the whole queue, deduplicated by id, in queue order', async () => {
+  openPlaylistNameSheetResult = 'My Mix';
+  openPlaylistNameSheetCalls.length = 0;
   resetState({
     tracks: [
       { tags: { title:'a' }, meta:{}, id:'id-a' },
@@ -547,23 +560,23 @@ test('saveQueueAsPlaylist prompts for a name and saves the whole queue, deduplic
     ],
     baseQueue: [0,1,2], queue: [2,0,1], qpos: 0, index: 2,
   });
-  saveQueueAsPlaylist();
+  await saveQueueAsPlaylist();
   assert.equal(S.playlists.length, 1);
   assert.equal(S.playlists[0].name, 'My Mix');
   assert.deepEqual(S.playlists[0].items, ['id-c','id-a','id-b']);
-  globalThis.window.prompt = origPrompt;
+  assert.equal(openPlaylistNameSheetCalls.length, 1);
+  assert.equal(openPlaylistNameSheetCalls[0].note, 'Starts with the 3 songs in your queue.');
+  assert.equal(openPlaylistNameSheetCalls[0].confirmLabel, 'Create playlist');
 });
 
-test('saveQueueAsPlaylist does nothing when the prompt is cancelled or left blank', () => {
-  const origPrompt = globalThis.window.prompt;
-  globalThis.window.prompt = () => null;
+test('saveQueueAsPlaylist does nothing when the sheet closes with no name (× / swipe / Back / empty)', async () => {
+  openPlaylistNameSheetResult = null;
   resetState({
     tracks: [{ tags:{ title:'a' }, meta:{}, id:'id-a' }],
     baseQueue: [0], queue: [0], qpos: 0, index: 0,
   });
-  saveQueueAsPlaylist();
+  await saveQueueAsPlaylist();
   assert.equal(S.playlists.length, 0);
-  globalThis.window.prompt = origPrompt;
 });
 
 test('renderQueueSheet shows a "RECENTLY PLAYED" section for tracks already played in this queue', () => {

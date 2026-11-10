@@ -26,6 +26,11 @@ const SHEETS = [
   { sheet: '#sleepSheetBox', layer: 'sleep' },
   { sheet: '#recordSheetBox', layer: 'record-sheet' },
   { sheet: '#dupSheetBox', layer: 'duplicate-prompt' },
+  // LB2 (docs/36A_LIBRARY_AND_LAUNCH.md): the playlist name sheet is
+  // non-destructive (closing it with no name typed is just "never mind",
+  // the same as its explicit × button) -- it belongs in this list, not
+  // the exclusion one above.
+  { sheet: '#playlistNameSheetBox', layer: 'playlist-name' },
 ];
 
 export function wireSwipeClose(){

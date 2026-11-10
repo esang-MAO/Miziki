@@ -8,6 +8,7 @@
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { backHeader, emptyNote } from '../ui/parts.js';
+import { openPlaylistNameSheet } from './playlist-sheet.js';
 import { fmt } from '../util/text.js';
 import { setQueue, setQueueList, setQpos, playNext, addToQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView, openCreditsSheet } from './credits.js';
@@ -490,6 +491,26 @@ export function artistRow(artist, idx, onTap){
 // title strip, in place of the plain groupRow list every other tab still
 // uses (an album or an artist is a single sleeve; a playlist of several
 // different albums reads better as a compilation's own cover collage).
+// LB2 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 2): the "New playlist"
+// sheet -- title "New playlist", button "Create playlist" -- shared by
+// both of this screen's own entry points (the empty-note action and the
+// grid's own button). Resolves to null (typed name empty, or the sheet
+// was closed) without doing anything.
+async function createPlaylistViaSheet(){
+  const name = await openPlaylistNameSheet({
+    title: 'New playlist',
+    confirmLabel: 'Create playlist',
+    existingNames: S.playlists.map(p => p.name),
+  });
+  if(!name) return;
+  S.playlists.push({ name, items: [] });
+  queueSave();
+  touchBackupKey('playlistDefs', name);
+  S.view.playlist = S.playlists.length - 1;
+  S.view.picking = true;
+  renderTracks();
+}
+
 function playlistTile(pl, present, onTap){
   const b = el('button','playlist-tile' + (pl.system === 'favorites' ? ' is-fav' : ''));
   const covers = el('span','pl-covers');
@@ -1058,16 +1079,16 @@ function renderTracksBody(host){
     if(v.playlist === null){
       // CR9 (docs/13_CRATE.md): a 2x2 grid of compilation sleeves in place
       // of the plain groupRow list — Favorites first with its heart.
-      // UN5 point 1: the old dashed-sleeve tile is gone -- the "none yet"
-      // case is now emptyNote(), its one action focusing the same inline
-      // name field/Create button every other add-a-playlist path already
-      // uses (there's no separate naming sheet in this codebase to open
-      // instead -- judgment call, see the PR body).
+      // UN5 point 1 / LB2 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 2):
+      // the old dashed-sleeve tile, and the inline "New playlist name"
+      // field + Create button that used to sit under the grid, are both
+      // gone -- every path to a new playlist now opens the same name
+      // sheet (createPlaylistViaSheet() below).
       if(!S.playlists.length){
         host.appendChild(emptyNote({
           head: 'No playlists yet.',
           sub: "Name one here, or add songs to one from any song's ⋯ menu.",
-          action: { label: 'New playlist', onClick: () => $('#plName')?.focus() },
+          action: { label: 'New playlist', onClick: createPlaylistViaSheet },
         }));
       } else {
         // Favorites (and any other system playlist) pinned first, without
@@ -1083,17 +1104,12 @@ function renderTracksBody(host){
           grid.appendChild(playlistTile(pl, present, ()=>{ v.playlist = n; renderTracks(); }));
         });
         host.appendChild(grid);
+        const add = el('div','stack');
+        const mk = el('button','cta','New playlist');
+        mk.addEventListener('click', createPlaylistViaSheet);
+        add.appendChild(mk);
+        host.appendChild(add);
       }
-      const add = el('div','stack');
-      const nameIn = el('input','pl-input'); nameIn.placeholder = 'New playlist name'; nameIn.id = 'plName';
-      const mk = el('button','cta','Create');
-      mk.addEventListener('click', ()=>{
-        const nm = nameIn.value.trim(); if(!nm) return;
-        S.playlists.push({name:nm, items:[]}); queueSave(); touchBackupKey('playlistDefs', nm);
-        v.playlist = S.playlists.length - 1; v.picking = true; renderTracks();
-      });
-      add.appendChild(nameIn); add.appendChild(mk);
-      host.appendChild(add);
     } else {
       const pl = S.playlists[v.playlist];
       if(v.picking){

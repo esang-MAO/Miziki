@@ -15,6 +15,7 @@ import { endOfQueue, maybeSideFlip, stopAtRecordEndCeremony } from '../shell/run
 import { openLayer } from '../shell/nav-stack.js';
 import { REDUCED } from '../util/motion.js';
 import { queueSave } from '../storage/meta.js';
+import { openPlaylistNameSheet } from '../library/playlist-sheet.js';
 import {
   releaseSeed, noiseFloorScale, surfaceNoiseActive,
   playNeedleLift, playSkipDrop, fadeMusicTo,
@@ -578,12 +579,17 @@ function queueRelativeTime(ms){
 
 // §6: "Save queue as playlist" -- the whole current queue (already-played
 // portion included), in its current (possibly shuffled) order, deduplicated
-// by id the same way a playlist's own items array always is. window.prompt()
-// is an established pattern in this codebase (player/eq-sheet.js's own
-// "Save preset"), not a new one introduced here.
-export function saveQueueAsPlaylist(){
+// by id the same way a playlist's own items array always is. LB2 (docs/
+// 36A_LIBRARY_AND_LAUNCH.md, decision 2) replaces the old window.prompt()
+// with the shared playlist name sheet (src/library/playlist-sheet.js).
+export async function saveQueueAsPlaylist(){
   if(!S.queue.length) return;
-  const nm = (window.prompt('Name this playlist') || '').trim();
+  const nm = await openPlaylistNameSheet({
+    title: 'New playlist',
+    confirmLabel: 'Create playlist',
+    note: `Starts with the ${S.queue.length} songs in your queue.`,
+    existingNames: S.playlists.map(p => p.name),
+  });
   if(!nm) return;
   const seen = new Set();
   const items = [];
