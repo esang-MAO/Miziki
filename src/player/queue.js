@@ -255,6 +255,19 @@ function fmtEndedAt(ms){
   return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+// UN11 (docs/36_UNIFORMITY.md point 3): the resting card's own secondary
+// button -- "Back to the crate" normally, "Flip to Side B" when another
+// side is still queued -- one slot, not two stacked buttons (the old
+// #restingFlipBtn above #restingBackBtn). Reusing frame 16's "Back to
+// your queue" wording for the real action continueFromResting() already
+// takes (go to whatever's queued next) felt stale against the new card's
+// look, so the plan's own "Back to the crate" label replaces it.
+function paintRestingSecondaryButton(){
+  const btn = $('#restingBackBtn'); if(!btn) return;
+  const canFlip = otherSideQueuePos(current()) !== null;
+  btn.textContent = canFlip ? 'Flip to Side B' : 'Back to the crate';
+}
+
 // Exported: src/shell/runout.js calls this once it lands on the held
 // sleeve (S.resting already set there), and this module's own
 // continueFromResting()/flipFromResting() call it again whenever
@@ -269,8 +282,15 @@ export function paintRestingCard(){
   const body = $('#restingBody'); if(body) body.textContent = RESTING_COPY[r.reason] || RESTING_COPY.focus;
   const meta = $('#restingMeta');
   if(meta) meta.textContent = (r.side ? 'Side ' + r.side + ' · ' : '') + 'Ended ' + fmtEndedAt(r.endedAt);
-  const flipBtn = $('#restingFlipBtn');
-  if(flipBtn) flipBtn.style.display = otherSideQueuePos(current()) !== null ? '' : 'none';
+  paintRestingSecondaryButton();
+}
+
+// UN11 point 3: the one secondary button's click -- whichever action its
+// current label actually describes, decided fresh at click time rather
+// than trusting a stale listener bound to one or the other.
+export function restingSecondaryAction(){
+  if(otherSideQueuePos(current()) !== null) flipFromResting();
+  else continueFromResting();
 }
 
 // RW4: restarts the whole record from side A, not just wherever playback

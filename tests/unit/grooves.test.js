@@ -9,7 +9,7 @@ import {
   RIM_INNER_PCT, RIM_MIN_PX, RIM_FLOOR_PCT, DROP_NEEDLE_SNAP_PCT,
   LABEL_INNER_PCT_BY_SIZE,
   bandRadiiFromDurations, grooveBandsForSide,
-  needleRadiusPct, sideMapSegments,
+  needleRadiusPct,
   isRimRadiusPct, rimThresholdPct, radiusPctFromPoint, bandIndexForRadius, dropNeedleTarget,
   labelInnerPctForSize,
 } from '../../src/record-art/grooves.js';
@@ -83,34 +83,6 @@ test('needleRadiusPct: an out-of-range activeIdx clamps to the nearest real band
 test('needleRadiusPct: no bands at all falls back to the groove area\'s outer edge', () => {
   assert.equal(needleRadiusPct(null, 0, 0.5), GROOVE_OUTER_PCT);
   assert.equal(needleRadiusPct([], 0, 0.5), GROOVE_OUTER_PCT);
-});
-
-// -- sideMapSegments -------------------------------------------------------
-
-test('sideMapSegments: widths are proportional to duration and sum to 100', () => {
-  const segs = sideMapSegments([300, 100], null, 0);
-  assert.equal(segs.length, 2);
-  assert.equal(segs[0].widthPct, 75);
-  assert.equal(segs[1].widthPct, 25);
-});
-
-test('sideMapSegments: tracks before the active one are full, after are empty, the active one fills by its own played fraction', () => {
-  const segs = sideMapSegments([100, 100, 100], 1, 0.4);
-  assert.deepEqual(segs.map(s => s.fillPct), [100, 40, 0]);
-});
-
-test('sideMapSegments: no active track (nothing playing on this side) leaves every segment unfilled', () => {
-  const segs = sideMapSegments([100, 100], null, 0.9);
-  assert.deepEqual(segs.map(s => s.fillPct), [0, 0]);
-  const segs2 = sideMapSegments([100, 100], 5, 0.9); // out of range
-  assert.deepEqual(segs2.map(s => s.fillPct), [0, 0]);
-});
-
-test('sideMapSegments: an empty duration list still returns one even segment, never divides by zero', () => {
-  const segs = sideMapSegments([0, 0], 0, 0.5);
-  assert.equal(segs[0].widthPct, 50);
-  assert.equal(segs[1].widthPct, 50);
-  assert.equal(segs[0].fillPct, 50);
 });
 
 // -- GS4: drop the needle --------------------------------------------------

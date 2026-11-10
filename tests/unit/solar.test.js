@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarEvent, computeRate, computePlatterRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS, nightPitchCaptionFor, nightPitchMonoLine } from '../../src/sundown/solar.js';
+import { solarEvent, computeRate, computePlatterRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS, nightPitchCaptionFor, nightPitchMonoLine, semitoneLowerHigherText } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
 // Columbia, MD (39.20, -76.86). Published sunset for Jun 21, 2025 is 8:38 pm
@@ -160,4 +160,25 @@ test('formatRateChange: a sped-up rate reads with a plus sign', () => {
 
 test('formatRateChange: several whole semitones down pluralizes and drops the fraction', () => {
   assert.equal(formatRateChange(0.75), '−25.0% ≈ −5 semitones');
+});
+
+// UN11 (docs/36_UNIFORMITY.md point 2): the player's own line-two wording
+// -- "0.80× · about 3¾ semitones lower" -- the plan's own example.
+test('semitoneLowerHigherText: plain-prose lower/higher, the plan\'s own example', () => {
+  assert.equal(semitoneLowerHigherText(0.80), '0.80× · about 3¾ semitones lower');
+});
+
+test('semitoneLowerHigherText: a sped-up rate reads higher', () => {
+  assert.equal(semitoneLowerHigherText(1.05), '1.05× · about ¾ semitone higher');
+});
+
+test('semitoneLowerHigherText: full speed (or near enough) is empty -- "only shows when not at plain full speed"', () => {
+  assert.equal(semitoneLowerHigherText(1), '');
+  assert.equal(semitoneLowerHigherText(1.0001), '');
+  assert.equal(semitoneLowerHigherText(0), '');
+  assert.equal(semitoneLowerHigherText(null), '');
+});
+
+test('semitoneLowerHigherText: a true but sub-quarter-semitone change still reads the rate, no semitone phrase', () => {
+  assert.equal(semitoneLowerHigherText(0.999), '1.00×');
 });

@@ -255,6 +255,24 @@ export function formatRateChange(rate){
   return sign + pctAbs.toFixed(1) + '% ≈ ' + sign + semisText + ' ' + noun;
 }
 
+// UN11 (docs/36_UNIFORMITY.md point 2): the player's own line-two wording
+// for a Sundown rate change -- "0.80× · about 3¾ semitones lower" --
+// plainer prose than formatRateChange()'s percent+semitone caption, for a
+// line that already names the phase before it ("Night · ..."). Same
+// quarter-semitone rounding as formatRateChange(), just worded as
+// lower/higher rather than signed. rate===1 reads as empty -- the plan's
+// own "only shows when the record isn't at plain full speed."
+export function semitoneLowerHigherText(rate){
+  if(!rate || Math.abs(rate - 1) < 0.0005) return '';
+  const semis = Math.abs(12 * Math.log2(rate));
+  const quarters = Math.round(semis * 4);
+  if(quarters === 0) return rate.toFixed(2) + '×';
+  const whole = Math.floor(quarters / 4);
+  const semisText = (whole ? String(whole) : '') + SEMITONE_QUARTER_GLYPH[quarters % 4];
+  const noun = (quarters >= 1 && quarters <= 4) ? 'semitone' : 'semitones';
+  return rate.toFixed(2) + '× · about ' + semisText + ' ' + noun + ' ' + (rate < 1 ? 'lower' : 'higher');
+}
+
 // "the caption names the current one in rate and semitones" (RF9; reworded
 // RF27 to the percentage+semitone format formatRateChange() builds).
 export function depthCaptionFor(key, target){

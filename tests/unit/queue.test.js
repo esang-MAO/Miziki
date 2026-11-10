@@ -225,6 +225,7 @@ const {
   renderQueueSheet, saveQueueAsPlaylist, clearUpcoming, undoQueueChange,
   queueRemoveAt, queueReorderTo, isAlbumBoundary, isSideBoundary, continueFromResting,
   flipFromResting, playAgainFromResting, updateFocusUI, toggleFocus, exitFocus, paintRestingCard,
+  restingSecondaryAction,
   setQueueList, setQpos,
 } = await import('../../src/player/queue.js');
 const { ensureBuffer, touchLRU } = await import('../../src/player/buffers.js');
@@ -955,7 +956,7 @@ test('flipFromResting is a no-op (clears resting, nothing to load) when the albu
   assert.equal(loadMock.mock.calls.length, 0);
 });
 
-test('paintRestingCard: queueEnd gets its own copy and meta line, and hides the Flip button with no other side queued', () => {
+test('paintRestingCard: queueEnd gets its own copy and meta line, and the secondary button reads "Back to the crate" with no other side queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A')],
     queue: [0], qpos: 0, index: 0,
@@ -965,10 +966,10 @@ test('paintRestingCard: queueEnd gets its own copy and meta line, and hides the 
   assert.equal(elCache.get('#restingCard').style.display, '');
   assert.equal(elCache.get('#restingBody').textContent, "You've reached the end of your queue.");
   assert.ok(elCache.get('#restingMeta').textContent.includes('Side A'));
-  assert.equal(elCache.get('#restingFlipBtn').style.display, 'none');
+  assert.equal(elCache.get('#restingBackBtn').textContent, 'Back to the crate');
 });
 
-test('paintRestingCard: a RW3 stop shows the Flip button when another side is queued', () => {
+test('paintRestingCard: a RW3 stop switches the secondary button to "Flip to Side B" when another side is queued', () => {
   resetState({
     tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
     queue: [0,1,2], qpos: 0, index: 0,
@@ -976,7 +977,28 @@ test('paintRestingCard: a RW3 stop shows the Flip button when another side is qu
   });
   paintRestingCard();
   assert.equal(elCache.get('#restingBody').textContent, 'Around sunset, playback stops between records.');
-  assert.equal(elCache.get('#restingFlipBtn').style.display, '');
+  assert.equal(elCache.get('#restingBackBtn').textContent, 'Flip to Side B');
+});
+
+test('restingSecondaryAction: flips when another side is queued, otherwise continues the queue', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A'), fakeAlbumTrack('Y','A'), fakeAlbumTrack('X','B')],
+    queue: [0,1,2], qpos: 0, index: 0,
+    resting: { reason: 'sunset', pendingIndex: 1, side: 'A', endedAt: Date.now() },
+  });
+  restingSecondaryAction();
+  assert.equal(loadMock.mock.calls[0].arguments[0], 2, 'flips to the other side\'s track index');
+  assert.equal(S.resting, null);
+});
+
+test('restingSecondaryAction: continues the queue when no other side is available', () => {
+  resetState({
+    tracks: [fakeAlbumTrack('X','A')],
+    queue: [0], qpos: 0, index: 0,
+    resting: { reason: 'queueEnd', pendingIndex: null, side: 'A', endedAt: Date.now() },
+  });
+  restingSecondaryAction();
+  assert.equal(loadMock.mock.calls[0].arguments[0], 0, 'restarts the album from side A, the null-pendingIndex fallback');
 });
 
 test('paintRestingCard: nothing resting hides the card', () => {

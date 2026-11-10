@@ -1,6 +1,37 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { specRateSuffix, specState, specStateLabel, compactFormatLabel } from '../../src/player/track-spec.js';
+import { specRateSuffix, specState, specStateLabel, compactFormatLabel, playerSpecLine1, playerSpecLine2 } from '../../src/player/track-spec.js';
+
+// UN11 (docs/36_UNIFORMITY.md point 2): line one -- "{format} · {speed} ·
+// {file type} · {rate} · {lossy/lossless}" -- the plan's own example.
+test('playerSpecLine1: the plan\'s own example line', () => {
+  assert.equal(playerSpecLine1('7″ · 45', { codec: 'MP3', rate: 44100, lossless: false }), '7″ · 45 · MP3 · 44.1 kHz · lossy');
+});
+
+test('playerSpecLine1: lossless reads "lossless", not "lossy"', () => {
+  assert.equal(playerSpecLine1('12″ · 33⅓', { codec: 'FLAC', rate: 96000, lossless: true }), '12″ · 33⅓ · FLAC · 96.0 kHz · lossless');
+});
+
+test('playerSpecLine1: drops mono/stereo and bit-depth entirely, and a missing rate', () => {
+  assert.equal(playerSpecLine1('7″ · 45', { codec: 'MP3', ch: 1, lossless: false }), '7″ · 45 · MP3 · lossy');
+});
+
+test('playerSpecLine1: empty with no meta', () => {
+  assert.equal(playerSpecLine1('7″ · 45', null), '');
+});
+
+test('playerSpecLine2: empty with no rate line and no look', () => {
+  assert.equal(playerSpecLine2('Night', '', null), '');
+});
+
+test('playerSpecLine2: phase + rate line when not at full speed', () => {
+  assert.equal(playerSpecLine2('Night', '0.80× · about 3¾ semitones lower', null), 'Night · 0.80× · about 3¾ semitones lower');
+});
+
+test('playerSpecLine2: a worn look wins over the rate line -- the plan\'s examples never show both', () => {
+  assert.equal(playerSpecLine2('Night', '0.80× · about 3¾ semitones lower', 'Gold'), 'Gold');
+  assert.equal(playerSpecLine2('Afternoon', '', 'Gold'), 'Gold');
+});
 
 // GS5 (docs/30_GROOVES_AND_SHELF.md): the dead-wax etching's short "FLAC
 // 24/96" stamp.

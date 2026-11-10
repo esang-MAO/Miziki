@@ -20,9 +20,10 @@
    - needleRadiusPct(): the needle ring's current radius (a percent of the
      record's own radius, moving inward with playback, same clamp-to-the-
      band shape as sideFullness() elsewhere in record-art/format.js).
-   - sideMapSegments(): the side map replacing the player's plain elapsed/
-     total time readout (point 4) -- one segment per track, the current
-     one filling, no numbers. */
+   sideMapSegments() (the side map replacing the player's plain elapsed/
+   total time readout, GS3 point 4) was removed in UN11 (docs/36_UNIFORMITY.md
+   decision 21), which put the plain elapsed/caption/remaining readout back
+   under the single progress bar. */
 import { clamp } from '../util/math.js';
 
 // The groove area's own inner/outer radius, as a percent of the record's
@@ -195,27 +196,4 @@ export function dropNeedleTarget(bands, radiusPct, snapPct = DROP_NEEDLE_SNAP_PC
     snapped,
     radiusPct: snapped ? bands[nearest].startPct : clamped,
   };
-}
-
-// The side map: one segment per track on this side, widthPct proportional
-// to its own duration (same weighting bandRadiiFromDurations() uses, just
-// expressed as a flat 0..100 width rather than a radius range) and
-// fillPct telling the UI how much of *that* segment to fill -- 100 for
-// every track already finished, 0 for every track still to come, and the
-// played fraction for whichever one is active right now. No activeIdx (or
-// one outside the side) means nothing is playing on this side -- every
-// segment reads unfilled.
-export function sideMapSegments(durations, activeIdx, playedFrac){
-  const list = (durations && durations.length) ? durations : [0];
-  const total = list.reduce((a, b) => a + (b || 0), 0);
-  const frac = clamp(playedFrac || 0, 0, 1);
-  return list.map((d, i) => {
-    const widthPct = total > 0 ? ((d || 0) / total) * 100 : 100 / list.length;
-    let fillPct = 0;
-    if(activeIdx != null && activeIdx >= 0 && activeIdx < list.length){
-      if(i < activeIdx) fillPct = 100;
-      else if(i === activeIdx) fillPct = frac * 100;
-    }
-    return { widthPct, fillPct };
-  });
 }

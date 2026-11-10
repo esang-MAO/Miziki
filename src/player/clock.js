@@ -1,16 +1,20 @@
 import { S, current } from '../state.js';
-import { $, el } from '../util/dom.js';
-import { needleRadiusPct, sideMapSegments } from '../record-art/grooves.js';
+import { $ } from '../util/dom.js';
+import { needleRadiusPct } from '../record-art/grooves.js';
 import { clamp } from '../util/math.js';
 import { fmt } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
-import { computeRate, computePlatterRate, sunProgress, easedProgress, currentDayPosition, nowClock, formatRateChange } from '../sundown/solar.js';
+import { computeRate, computePlatterRate, sunProgress, easedProgress, currentDayPosition, nowClock, semitoneLowerHigherText } from '../sundown/solar.js';
+import { discLook, discLookDisplayName } from '../record-art/looks.js';
+import { playerSpecLine2 } from './track-spec.js';
 import { seasonTint } from '../sundown/season.js';
 import { addPlayedRange, checkTrackCompletion } from '../history/played.js';
 import { autosaveResumeTick } from './resume.js';
 import { bgPosition } from './background.js';
 import { applyWobbleRate } from '../audio/engine.js';
 import { maybeScheduleGaplessNext, cancelPendingGapless, sideLetterFor } from './transport.js';
+import { albumTracks } from '../library/model.js';
+import { sideProgressCaption } from './track-spec.js';
 import { albumKey } from '../record-art/tiers.js';
 import { easeOutCubic, REDUCED } from '../util/motion.js';
 import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
@@ -197,54 +201,33 @@ setInterval(() => {
   tick(performance.now(), 120);
 }, 1000);
 
-// GS3 (docs/30_GROOVES_AND_SHELF.md point 4): the side map's own DOM is
-// rebuilt only when the active side's own track list actually changes
-// (a new track load, a side turn) -- cached by a plain join() of
-// S.sideTrackIdx as the key, the same "rebuild only when the identity
-// changes, patch in place otherwise" shape NV3 already uses for the
-// library's now-playing row. Every other tick just patches each
-// segment's own width/fill, never touching the DOM it doesn't need to.
-let sideMapKey = null, sideMapEls = [];
-
+// UN11 point 1 (docs/36_UNIFORMITY.md decision 21): one progress bar
+// only (#scrub, below) -- this function no longer builds the GS3
+// segmented side map, just the plain elapsed/caption/remaining readout
+// under it, plus the needle-ring update (unrelated to the time readout,
+// kept here only because it already shared sideIdx/activeIdx/frac).
 function renderSideMap(t, pos){
-  const mapEl = $('#sideMap'), trackEl = $('#sideMapTrack');
-  if(!mapEl || !trackEl) return;
+  const elapsedEl = $('#timeElapsed'), captionEl = $('#timeCaption'), remainingEl = $('#timeRemaining');
   const sideIdx = S.sideTrackIdx;
-  if(!sideIdx || !sideIdx.length){
-    if(sideMapKey !== null){ sideMapKey = null; sideMapEls = []; mapEl.textContent = ''; }
-    trackEl.textContent = '';
-    return;
-  }
-  const key = sideIdx.join(',');
-  if(key !== sideMapKey){
-    sideMapKey = key;
-    mapEl.textContent = '';
-    sideMapEls = sideIdx.map(() => {
-      const seg = el('span', 'side-map-seg');
-      const fill = el('span', 'side-map-fill');
-      seg.appendChild(fill);
-      mapEl.appendChild(seg);
-      return { seg, fill };
-    });
-  }
-  const activeIdx = sideIdx.indexOf(S.index);
+  const activeIdx = sideIdx ? sideIdx.indexOf(S.index) : -1;
   const dur = t ? (t.duration || 0) : 0;
   const frac = dur ? pos / dur : 0;
-  const durations = sideIdx.map(idx => (S.tracks[idx] && S.tracks[idx].duration) || 0);
-  const segs = sideMapSegments(durations, activeIdx >= 0 ? activeIdx : null, frac);
-  segs.forEach((s, i) => {
-    const entry = sideMapEls[i];
-    if(!entry) return;
-    entry.seg.style.width = s.widthPct + '%';
-    entry.fill.style.width = s.fillPct + '%';
-  });
-  // GS3 point 4: "the current track as '2 · Night Ferry'" -- the track's
-  // own 1-based position within this side, not its position in the whole
-  // album (a side B's first track reads "1 · ...", not its album-wide
-  // track number). t.tags.title is untrusted file metadata, so this goes
-  // through textContent (set just below), never innerHTML -- CLAUDE.md's
-  // own "Security" rule.
-  trackEl.textContent = (activeIdx >= 0 && t) ? ((activeIdx + 1) + ' · ' + (t.tags ? t.tags.title : t.name)) : '';
+  if(elapsedEl) elapsedEl.textContent = t ? fmt(pos) : '';
+  if(remainingEl) remainingEl.textContent = t ? ('-' + fmt(Math.max(0, dur - pos))) : '';
+  if(captionEl){
+    let caption = '';
+    if(t){
+      const side = sideLetterFor(t, S.index);
+      if(side && sideIdx && activeIdx >= 0){
+        caption = sideProgressCaption(side, activeIdx + 1, sideIdx.length, 0, 0);
+      } else {
+        const albumIdx = t.tags && t.tags.album ? albumTracks(t.tags.album) : [];
+        const albumPos = albumIdx.indexOf(S.index);
+        caption = sideProgressCaption('', 0, 0, albumPos + 1, albumIdx.length);
+      }
+    }
+    captionEl.textContent = caption;
+  }
 
   // point 2: "a thin cream ring plus a small dot marks the needle's
   // current radius; it moves inward with playback" -- the same band
@@ -528,13 +511,15 @@ export function drawSun(){
   }
   const specPhase = $('#trackSpecPhase');
   if(specPhase){
-    // RF27 (docs/12_REFINE.md): same percentage+semitone format as
-    // rateWhyText above and the depth caption (solar.js's
-    // formatRateChange()), not a bare "X ST SLOWER" — upper-cased to
-    // match this line's own all-caps style.
-    specPhase.textContent = current()
-      ? name.toUpperCase() + ' · ' + (S.mode === 'pure' || S.rate >= 0.999 ? 'FULL SPEED' : formatRateChange(S.rate).toUpperCase())
-      : '';
+    // UN11 (docs/36_UNIFORMITY.md point 2): line two only shows when the
+    // record isn't at plain full speed, or wears a look -- "Night · 0.80×
+    // · about 3¾ semitones lower", or a look's own name ("Gold"). A look
+    // takes priority (playerSpecLine2()'s own call); "AFTERNOON · FULL
+    // SPEED" is gone outright -- the phase button below already says it.
+    const t = current();
+    const rateLine = (t && S.mode !== 'pure' && S.rate < 0.999) ? semitoneLowerHigherText(S.rate) : '';
+    const lookName = t ? discLookDisplayName(discLook(t)) : null;
+    specPhase.textContent = t ? playerSpecLine2(name, rateLine, lookName) : '';
   }
 
   // Day Arc v2 (DAY_ARC_BRIEF.md, PR 4): the dial + reading cards paint

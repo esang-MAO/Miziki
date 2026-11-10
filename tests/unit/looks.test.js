@@ -54,7 +54,7 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 });
 
 const {
-  hasLookChoice, discLook, openLookPicker, resolveLook,
+  hasLookChoice, discLook, discLookDisplayName, openLookPicker, resolveLook,
 } = await import('../../src/record-art/looks.js');
 const { S } = await import('../../src/state.js');
 const { albumKey } = await import('../../src/record-art/tiers.js');
@@ -129,6 +129,24 @@ test('discLook(t, "metal") (forced) returns the metal look without writing S.alb
   assert.equal(d.look, 'metal');
   assert.equal(d.metal, 'gold');
   assert.deepEqual(S.albumLookPref, {}, 'a forced preview must never write a saved preference');
+});
+
+// UN11 (docs/36_UNIFORMITY.md point 2): the player's own line-two look
+// name -- "Gold" for a metal, a variant's own name for rare, "Zoetrope"
+// for a zoetrope, and null for the ordinary default (never announced as
+// "a look" of its own).
+test('discLookDisplayName: a metal capitalizes its lowercase name', () => {
+  const t = hiResTrack(1, 'Metal Name Album');
+  resetState({ tracks: [t] });
+  const d = discLook(t, 'metal');
+  d.metal = 'gold';
+  assert.equal(discLookDisplayName(d), 'Gold');
+});
+
+test('discLookDisplayName: zoetrope and the ordinary default', () => {
+  assert.equal(discLookDisplayName({ look: 'zoetrope' }), 'Zoetrope');
+  assert.equal(discLookDisplayName({ look: 'variant' }), null);
+  assert.equal(discLookDisplayName(null), null);
 });
 
 test('resolveLook: forceLook short-circuits the saved-preference/precedence logic entirely', () => {

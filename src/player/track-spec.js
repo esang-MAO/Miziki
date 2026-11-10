@@ -32,6 +32,45 @@ export function compactFormatLabel(m){
   return [m.codec, m.bits + '/' + khzText].filter(Boolean).join(' ');
 }
 
+// UN11 (docs/36_UNIFORMITY.md point 2): the player's own "two spec lines" --
+// line one always shows "{format} · {speed} · {file type} · {rate} ·
+// {lossy/lossless}" ("7″ · 45 · MP3 · 44.1 kHz · lossy"), dropping mono/
+// stereo (shown only in Track info) and the word "full speed" (the
+// default, so never worth a word here). `formatChip` is record-art/
+// format.js's own formatChipText(S.recordFormat) ("7″ · 45"); `m` is the
+// track's meta. Pure and DOM-free, like every other helper in this file.
+export function playerSpecLine1(formatChip, m){
+  if(!m) return '';
+  return [formatChip, m.codec, m.rate ? (m.rate/1000).toFixed(1)+' kHz' : null,
+    m.lossless ? 'lossless' : 'lossy'].filter(Boolean).join(' · ');
+}
+
+// Line two: only when the record isn't at plain full speed, or wears a
+// look -- "Night · 0.80× · about 3¾ semitones lower", or a look's own
+// name ("Gold"). `rateLine` is solar.js's formatRateChange(rate) text (or
+// null at full speed); `phaseName`/`lookName` are plain strings, already
+// resolved by the caller (clock.js already has both in scope). A look
+// takes priority when both are true at once -- the plan's own example
+// lines never show both together, and the look is the rarer, more
+// specific fact of the two.
+export function playerSpecLine2(phaseName, rateLine, lookName){
+  if(lookName) return lookName;
+  if(!rateLine) return '';
+  return phaseName + ' · ' + rateLine;
+}
+
+// UN11 (docs/36_UNIFORMITY.md point 1): the single progress bar's own
+// centre caption -- "Side A · 1 of 2" (this track's 1-based position
+// among this side's own tracks) when sides are on, or "Track 3 of 10"
+// (position in the whole album) when they're off or the track has no
+// side at all. Pure: posInSide/sideLen and albumPos/albumLen are already
+// resolved by the caller (clock.js has both sets of indices in scope).
+export function sideProgressCaption(side, posInSide, sideLen, albumPos, albumLen){
+  if(side) return 'Side ' + side + ' · ' + posInSide + ' of ' + sideLen;
+  if(!albumLen) return '';
+  return 'Track ' + albumPos + ' of ' + albumLen;
+}
+
 // Only non-empty when the engine rate actually differs from the source --
 // "no upsampling claims, ever" means never implying a conversion
 // happened when the two already match.

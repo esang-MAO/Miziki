@@ -12,7 +12,6 @@
 @media (max-width:1023px){
   .player-overlay #playerDismiss,
   .player-overlay .now-top-row .icon-btn,
-  .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,
   .player-overlay #focusStatusLine,
@@ -32,7 +31,6 @@
      progress line stay */
   .player-overlay.eve-glance #playerDismiss,
   .player-overlay.eve-glance .now-top-row .icon-btn,
-  .player-overlay.eve-glance #trackSpecFormat,
   .player-overlay.eve-glance #trackSpec,
   .player-overlay.eve-glance #trackSpecPhase,
   .player-overlay.eve-glance #focusStatusLine,
@@ -67,7 +65,6 @@
 @media (max-width:1023px) and (prefers-reduced-motion:reduce){
   .player-overlay #playerDismiss,
   .player-overlay .now-top-row .icon-btn,
-  .player-overlay #trackSpecFormat,
   .player-overlay #trackSpec,
   .player-overlay #trackSpecPhase,
   .player-overlay #focusStatusLine,

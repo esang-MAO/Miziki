@@ -192,6 +192,19 @@ export function closeLookPicker(){
 // a specific look kind without touching S.albumLookPref — the one thing
 // lookPreview() below needs to paint a swatch of a look the user hasn't
 // actually picked yet.
+// UN11 (docs/36_UNIFORMITY.md point 2): the player's own line-two name
+// for a worn look -- "Gold" -- null for the ordinary default ('variant',
+// every track's plain pressing color, never itself announced as "a
+// look"). Takes the already-resolved discLook() result so a caller that
+// needs the rest of it too (the swatch color, etc.) computes it once.
+export function discLookDisplayName(result){
+  if(!result) return null;
+  if(result.look === 'zoetrope') return 'Zoetrope';
+  if(result.look === 'rare') return getVariantDef(result.rareId).name;
+  if(result.look === 'metal' && result.metal) return result.metal.charAt(0).toUpperCase() + result.metal.slice(1);
+  return null;
+}
+
 export function discLook(t, forceLook){
   const look = resolveLook(t, forceLook);
   const albumId = albumKey(t);

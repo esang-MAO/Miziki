@@ -43,6 +43,11 @@ const ALLOWLIST = [
   // src/shell/sundown-sheet.js. --accent-text, not raw --amber, since this
   // is real small text (tests/unit/contrast.test.js).
   { why: "Sundown dial's sun (full player phase pill)", re: /\.now-phase-(pill|glyph)\b/ },
+  // UN11 (docs/36_UNIFORMITY.md point 2): the same object once more --
+  // the player's own line-two spec text ("Night · 0.80× · ...", or a worn
+  // look's name) is explicitly "printed amber, never a state colour, the
+  // same as the phase label" per the plan's own decision 22.
+  { why: "Sundown dial's sun (player spec line two)", re: /^#trackSpecPhase\b/ },
 ];
 
 function stripComments(css) {

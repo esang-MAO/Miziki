@@ -157,6 +157,15 @@
   line-height:var(--lh-title); color:var(--paper);
 }
 
+/* UN11 (docs/36_UNIFORMITY.md point 6): the depth and night-pitch rows'
+   own .row stacks instead of the shared .row's side-by-side layout --
+   align-items:stretch makes .k and the segmented group both full-width
+   without touching .row itself, which every other sheet/edit row still
+   uses unchanged. */
+.row.sd-full-seg{
+  flex-direction:column; align-items:stretch; gap:10px;
+}
+
 /* RF9 (docs/12_REFINE.md) removed the three reading cards (Platter/Sound/
    Sky, PR 4) that used to sit here outright -- the dial above is already
    the one preview. RW1 (docs/23_RHYTHM_AND_WEAR.md) brings back exactly

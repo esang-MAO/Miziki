@@ -9,7 +9,7 @@ import { bgPrime } from '../player/background.js';
 import { ensureContext, applyDeviceVolume } from '../audio/engine.js';
 import { pause, play, seek, toggleTrackSpecState } from '../player/transport.js';
 import { nextTrack, prevTrack, toggleShuffle, cycleRepeat } from '../player/controls.js';
-import { continueFromResting, flipFromResting, playAgainFromResting, toggleFocus } from '../player/queue.js';
+import { continueFromResting, restingSecondaryAction, playAgainFromResting, toggleFocus } from '../player/queue.js';
 import { setMode } from '../audio/mode.js';
 import { queueSave } from '../storage/meta.js';
 import { wireSpinToScrub } from '../player/scrub.js';
@@ -127,12 +127,14 @@ export function wireTransport(){
   // current queue, no overflow menu involved.
   $('#focusPill').addEventListener('click', toggleFocus);
   $('#focusDoneBtn').addEventListener('click', toggleFocus);
-  $('#restingFlipBtn').addEventListener('click', flipFromResting);
-  // FS10 point 4, frame 16: the resting card's own explicit "Play it
-  // again" (restarts side A) and "Back to your queue" (continueFromResting)
-  // buttons, replacing the old #restingNote instructional text.
+  // FS10 point 4, frame 16 / UN11 point 3: the resting card's own explicit
+  // "Play it again" (restarts side A) and one secondary button -- "Flip
+  // to Side B" or "Back to the crate," whichever its current label
+  // actually names (restingSecondaryAction(), player/queue.js) -- in
+  // place of the old #restingNote instructional text and, before this
+  // step, two separately-shown buttons for the same two actions.
   $('#restingPlayAgainBtn').addEventListener('click', playAgainFromResting);
-  $('#restingBackBtn').addEventListener('click', continueFromResting);
+  $('#restingBackBtn').addEventListener('click', restingSecondaryAction);
 
   // docs/15_SURFACE_NOISE.md §4 / GS5 (docs/30_GROOVES_AND_SHELF.md): the
   // player's own discoverable way to flip a waiting record (#flipPrompt,

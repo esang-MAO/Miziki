@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { $ } from '../util/dom.js';
+import { $, el } from '../util/dom.js';
 import { computeSun, persistSunTimesCache, SUN_TIMES_STORAGE_KEY } from './solar.js';
 import { standInEvents } from './day.js';
 import { drawSun } from '../player/clock.js';
@@ -14,8 +14,37 @@ import { queueSave } from '../storage/meta.js';
 // cache) — never part of prefs/backup, purely a per-device nicety.
 const LOCATION_GRANTED_KEY = 'miziki-location-granted';
 
+// UN11 (docs/36_UNIFORMITY.md point 7): "sunset about {time}" -- the same
+// lowercase 12-hour shape clock.js's own fmtEndsAround() uses for a
+// readout this small.
+function fmtClock(d){
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+}
+
+// Builds "Location is off, so tonight is a stand-in: sunset about {time}."
+// plus the "Use my location" retry button, as real DOM nodes rather than
+// innerHTML -- S.sun.set is always an internal Date, never untrusted file
+// text, but CLAUDE.md's own innerHTML rule only exempts a plain string
+// literal, so this stays off that path regardless.
+function paintStandInNote(note){
+  note.textContent = '';
+  note.appendChild(document.createTextNode('Location is off, so tonight is a stand-in: sunset about ' + fmtClock(S.sun.set) + '. '));
+  const retry = el('button', 'cta ghost', 'Use my location');
+  retry.type = 'button'; retry.id = 'retryLoc';
+  // UN11 (docs/36_UNIFORMITY.md point 6): .cta/.p-btn is inline-flex, so a
+  // margin-top alone left this floating beside the sentence instead of on
+  // its own line below it -- display:block actually forces the break.
+  retry.style.display = 'block'; retry.style.marginTop = '10px';
+  retry.addEventListener('click', askLocation);
+  note.appendChild(retry);
+}
+
 export function askLocation(){
-  if(!navigator.geolocation){ $('#locNote').textContent = 'This browser has no location access, so Miziki is using a stand-in sunset of 8:10 pm.'; fallbackSun(); return; }
+  if(!navigator.geolocation){
+    fallbackSun();
+    $('#locNote').textContent = 'This browser has no location access, so Miziki is using a stand-in: sunset about ' + fmtClock(S.sun.set) + '.';
+    return;
+  }
   navigator.geolocation.getCurrentPosition(
     pos => {
       try{ localStorage.setItem(LOCATION_GRANTED_KEY, '1'); }catch(_e){} // private browsing/quota -- expected, not logged
@@ -23,9 +52,8 @@ export function askLocation(){
       computeSun(); drawSun();
       $('#locNote').textContent = 'Sunset times come from your location and today\'s date, worked out on the device.';
     },
-    () => { $('#locNote').innerHTML = 'Location is off, so tonight is a stand-in: sunset 8:10 pm, dusk 8:36 pm. <button class="cta ghost" id="retryLoc" style="margin-top:10px">Use my location</button>';
-            fallbackSun(); drawSun();
-            const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation); },
+    () => { fallbackSun(); drawSun();
+            const note = $('#locNote'); if(note) paintStandInNote(note); },
     {timeout:8000, maximumAge:600000}
   );
 }
@@ -42,8 +70,10 @@ export function initLocationPrompt(){
   try{ granted = localStorage.getItem(LOCATION_GRANTED_KEY) === '1'; }catch(_e){} // private browsing -- expected, not logged
   if(granted){ askLocation(); return; }
   const note = $('#locNote');
-  if(note) note.innerHTML = 'Location is off, so tonight is a stand-in: sunset 8:10 pm, dusk 8:36 pm. <button class="cta ghost" id="retryLoc" style="margin-top:10px">Use my location</button>';
-  const r = $('#retryLoc'); if(r) r.addEventListener('click', askLocation);
+  // main.js calls fallbackSun() just before this, so S.sun.set is already
+  // this stand-in day's own sunset (real cached time when one exists, the
+  // rough season-aware model otherwise -- day.js's standInEvents()).
+  if(note) paintStandInNote(note);
 }
 
 // Fills all five day-model events, not just tonight's sunset/dusk — the
