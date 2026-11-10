@@ -234,10 +234,23 @@ function formatDuration(totalSec){
 
 // one crate record per album id; loose ("Unknown Album") tracks collapse
 // into one pseudo-record per artist instead of one per track (CRATE spec §2)
+//
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9): "the crate model no
+// longer builds a record from untagged files (no album tag *and* no
+// artist tag)". Read literally -- a loose file with a real artist tag
+// still becomes that artist's own loose pseudo-record (today's
+// behavior, unchanged); only a file with *neither* tag (parseTags' own
+// 'Unknown Artist'/'Unknown Album' fallbacks both firing, src/library/
+// tags/index.js) is skipped here, so it never appears anywhere in the
+// crate (A–Z, genre or decade) -- only in Songs (library/view.js). A
+// file with a real album tag but no artist tag is untouched by this at
+// all: it never reaches this branch, since the `t.tags.album ===
+// 'Unknown Album'` check above it already routes it to byAlbum instead.
 function buildCrateRecords(){
   const byAlbum = new Map(), looseByArtist = new Map();
   S.tracks.forEach((t, i) => {
     if(t.tags.album === 'Unknown Album'){
+      if(t.tags.artist === 'Unknown Artist') return;
       const artistName = t.tags.artist || 'Unknown Artist';
       const key = normKey(artistName) || 'unknown';
       if(!looseByArtist.has(key)) looseByArtist.set(key, {artist:artistName, idx:[]});

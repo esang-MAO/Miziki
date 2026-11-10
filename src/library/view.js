@@ -18,7 +18,7 @@ import { appendConnectedShelf } from './connected.js';
 import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-shelves.js';
 import { albumYearFor, albumArtistFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
-import { byName, groupBy, allIdx, idOf, idxOf, trackSort, mostCommonFormat, formatSuffix } from './model.js';
+import { byName, groupBy, allIdx, idOf, idxOf, trackSort, mostCommonFormat, formatSuffix, mostPlayedTrackIdxFor, displayArtist } from './model.js';
 import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { formatRecordName } from '../record-art/format.js';
 import { overlays, artwork } from '../storage/repo.js';
@@ -176,7 +176,7 @@ function trackArtNode(t){
 function trackNameNode(t){
   const name = el('span','t-name');
   name.appendChild(el('b', null, t.tags.title));
-  name.appendChild(el('em', null, t.tags.artist + formatSuffix(t, libCommonFormat)));
+  name.appendChild(el('em', null, displayArtist(t.tags.artist) + formatSuffix(t, libCommonFormat)));
   return name;
 }
 
@@ -257,7 +257,7 @@ export function updateTrackRow(id){
   if(nameEl){
     nameEl.innerHTML = '';
     nameEl.appendChild(el('b', null, t.tags.title));
-    nameEl.appendChild(el('em', null, t.tags.artist + formatSuffix(t, libCommonFormat)));
+    nameEl.appendChild(el('em', null, displayArtist(t.tags.artist) + formatSuffix(t, libCommonFormat)));
   }
   const durEl = li.querySelector('.t-dur');
   if(durEl) durEl.textContent = fmt(t.duration);
@@ -360,7 +360,8 @@ function rowMenuGroups(t, extraGroups){
 }
 function openRowMenu(t, extraGroups){
   $('#rowMenuTitle').textContent = t.tags.title;
-  $('#rowMenuSub').textContent = t.tags.artist + ' · ' + t.tags.album;
+  const rowMenuArtist = displayArtist(t.tags.artist);
+  $('#rowMenuSub').textContent = rowMenuArtist ? rowMenuArtist + ' · ' + t.tags.album : t.tags.album;
   const cover = $('#rowMenuCover');
   cover.innerHTML = '';
   const src = thumbURL['album:' + albumKey(t)] || t.art;
@@ -500,34 +501,45 @@ export function groupRow(label, sub, indices, onTap){
   return b;
 }
 
-// CR9 (docs/13_CRATE.md): the Artists tab's own row — a fanned stack of
-// up to three covers (reusing thumbURL, the already-generated/cropped
-// tier, the same source crate/view.js's own sleeves read) in place of
-// groupRow's single disc icon, since an artist is several records, not
-// one. `idx` is every track by this artist.
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 10): the Artists tab's own
+// row — a single 46px round photo (the artist's most-played record's
+// cover, cropped round via CSS, mostPlayedTrackIdxFor() in ./model.js)
+// in place of the three-cover fanned stack this replaces, since "6
+// records · 12 songs" now carries the "several records" idea in text
+// instead. `idx` is every track by this artist.
 export function artistRow(artist, idx, onTap){
   const b = el('button','grouprow artist-row');
-  const albumAt = new Map(); // one representative track index per album, first-seen order
-  idx.forEach(i => { const alb = S.tracks[i].tags.album; if(!albumAt.has(alb)) albumAt.set(alb, i); });
-  const stack = el('span','artist-stack');
-  const covers = [...albumAt.values()].slice(0, 3)
-    .map(i => thumbURL['album:' + albumKey(S.tracks[i])] || S.tracks[i].art)
-    .filter(Boolean);
-  if(covers.length){
-    covers.forEach(src => {
-      const im = el('img', null); im.src = src; im.alt = '';
-      im.loading = 'lazy'; im.decoding = 'async'; im.width = 40; im.height = 40;
-      stack.appendChild(im);
-    });
-  } else stack.appendChild(el('span','g-art','◍'));
-  b.appendChild(stack);
-  const years = idx.map(i => S.tracks[i].tags.year).filter(Boolean);
-  const yearRange = years.length
-    ? (Math.min(...years) === Math.max(...years) ? String(Math.min(...years)) : Math.min(...years) + '–' + Math.max(...years))
-    : '';
+  const counts = S.mergedStats ? S.mergedStats.sessionCounts : S.sessionCounts;
+  const repI = mostPlayedTrackIdxFor(idx, S.tracks, counts, albumKey);
+  const src = repI != null ? (thumbURL['album:' + albumKey(S.tracks[repI])] || S.tracks[repI].art) : null;
+  if(src){
+    const im = el('img', 'artist-photo'); im.src = src; im.alt = '';
+    im.loading = 'lazy'; im.decoding = 'async'; im.width = 46; im.height = 46;
+    b.appendChild(im);
+  } else b.appendChild(el('span','artist-photo artist-photo-fallback','◍'));
+  const albumCount = new Set(idx.map(i => S.tracks[i].tags.album)).size;
   const box = el('span','g-text');
   box.appendChild(el('b', null, artist));
-  box.appendChild(el('em', null, albumAt.size + (albumAt.size === 1 ? ' record' : ' records') + (yearRange ? ' · ' + yearRange : '')));
+  box.appendChild(el('em', null,
+    albumCount + (albumCount === 1 ? ' record · ' : ' records · ') + idx.length + (idx.length === 1 ? ' song' : ' songs')));
+  b.appendChild(box);
+  b.appendChild(el('span','g-chev','›'));
+  b.addEventListener('click', onTap);
+  return b;
+}
+
+// LB8 decision 9: "Songs without an artist" — the Artists list's own row
+// for parseTags' 'Unknown Artist' fallback (src/library/tags/index.js),
+// filed under "#" at the very end rather than wherever "Unknown Artist"
+// would otherwise sort alphabetically. A dashed round placeholder in
+// place of a cover, since these tracks don't belong to any one record —
+// opens a plain songs list (v.mode = 'untaggedSongs') with an Edit info hint.
+function untaggedArtistsRow(idx, onTap){
+  const b = el('button','grouprow artist-row artist-row-untagged');
+  b.appendChild(el('span','artist-photo artist-photo-dashed'));
+  const box = el('span','g-text');
+  box.appendChild(el('b', null, 'Songs without an artist'));
+  box.appendChild(el('em', null, idx.length + (idx.length === 1 ? ' song' : ' songs') + ' · tag them in Edit info'));
   b.appendChild(box);
   b.appendChild(el('span','g-chev','›'));
   b.addEventListener('click', onTap);
@@ -1345,7 +1357,12 @@ function renderTracksBody(host){
   // breadcrumb when drilled into an album, artist (and its albums), playlist,
   // person, or an artist's loose-tracks page opened from the crate
   const crumb = $('#crumb');
-  const inside = v.group !== null || v.playlist !== null || v.mode === 'person' || v.mode === 'crateLoose';
+  // LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9): "Songs without an
+  // artist" opens a plain songs list off the Artists list -- its own
+  // mode, kept separate from v.crateLooseIdx/crateLooseArtist (an
+  // artist's loose tracks reached *from the crate*, with its own
+  // "back to Crate"/"back to Songs" rules below that would be wrong here).
+  const inside = v.group !== null || v.playlist !== null || v.mode === 'person' || v.mode === 'crateLoose' || v.mode === 'untaggedSongs';
   // UN3 (docs/36_UNIFORMITY.md point 5): a plain artist page (not drilled
   // into one of its albums) gets backHeader('Artists', name, ⋯) instead
   // of the generic crumb -- "Remove artist…" moves into the ⋯ menu
@@ -1377,6 +1394,7 @@ function renderTracksBody(host){
         else v.mode = 'songs';
       }
       else if(v.mode === 'crateLoose'){ v.mode = 'songs'; v.crateLooseIdx = null; v.crateLooseArtist = null; }
+      else if(v.mode === 'untaggedSongs'){ v.mode = 'artists'; }
       else if(atArtistAlbum) v.artistAlbum = null;
       // an album opened from the crate returns to the crate itself, not the
       // flat albums grid underneath it (S1/S2 spec: crate is its own tab)
@@ -1387,7 +1405,8 @@ function renderTracksBody(host){
     crumb.appendChild(back);
     crumb.appendChild(el('span','crumb-label',
       v.mode === 'person' ? v.person : (v.mode === 'crateLoose' ? v.crateLooseArtist :
-      (v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group)))));
+      (v.mode === 'untaggedSongs' ? 'Songs without an artist' :
+      (v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group))))));
     // Album deletion lives right where you're looking at that album —
     // offered even for a single-album artist, no conditional collapsing
     // (see LIBRARY spec §4). The plain-artist-page case (UN3 point 5,
@@ -1425,15 +1444,37 @@ function renderTracksBody(host){
   // (every composer there is per-album/per-track/per-crate) -- building
   // one is real new feature work, not a menu restyle, so it's noted as a
   // follow-up in the PR rather than built here.
+  // LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 11 / point 3, on top of
+  // UN13): the name moves out of the header row entirely and becomes the
+  // page title (two lines max) -- "6 records · 12 songs" sits under it,
+  // so the header row is left with only "‹ Artists" and ⋯ (never
+  // squeezed beside a long name the way "Remove artist" used to be,
+  // before UN3 moved that into the ⋯ menu).
   if(isArtistPage){
     const moreBtn = el('button', 'hdr-icon-btn', '⋯');
     moreBtn.type = 'button';
     moreBtn.setAttribute('aria-label', 'Artist options');
     moreBtn.setAttribute('aria-haspopup', 'menu');
-    const header = backHeader('Artists', v.group, moreBtn);
+    const header = backHeader('Artists', '', moreBtn);
     header.backBtn.addEventListener('click', ()=>{ v.group = null; renderTracks(); });
     moreBtn.addEventListener('click', ()=> openArtistMoreMenu(moreBtn));
     host.appendChild(header);
+    const artistIdx = allIdx().filter(i => S.tracks[i].tags.artist === v.group);
+    const artistAlbumCount = new Set(artistIdx.map(i => S.tracks[i].tags.album)).size;
+    const titleBlock = el('div','artist-page-title');
+    // JUDGMENT CALL: the addendum's literal text calls for "Antonio 700
+    // 30px" -- neither --fs-hero (28px) nor --fs-giant (44px) lands on
+    // that exactly, and 36A/36 both repeat "every screen is built from
+    // 36's shared parts, no new one-off styles" throughout. Reused
+    // .p-title (the screen-title part: Antonio 700, --fs-hero) rather
+    // than inventing a 30px-exact class for this one page -- flagged for
+    // Ken in case he wants the literal size instead (frame lib-1-artist-
+    // long was never exported, so there's no canvas pixel to check against).
+    titleBlock.appendChild(el('h1','p-title artist-page-name', v.group));
+    titleBlock.appendChild(el('p','artist-page-meta',
+      artistAlbumCount + (artistAlbumCount === 1 ? ' record · ' : ' records · ') +
+      artistIdx.length + (artistIdx.length === 1 ? ' song' : ' songs')));
+    host.appendChild(titleBlock);
   }
 
   const ul = el('ul','tracklist');
@@ -1478,6 +1519,20 @@ function renderTracksBody(host){
     host.appendChild(ul);
   }
 
+  // LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9): "Songs without an
+  // artist" -- a plain songs list with an Edit info hint. Recomputed from
+  // groupBy() rather than stashed on v, same as every other drill-down
+  // here; the row this opened from is the one entry groupBy('artist')
+  // ever returns keyed 'Unknown Artist' (parseTags' own internal fallback,
+  // src/library/tags/index.js), so there's nothing else to intersect it with.
+  else if(v.mode === 'untaggedSongs'){
+    const unknown = groupBy('artist').find(([artist]) => artist === 'Unknown Artist');
+    const idx = unknown ? unknown[1] : [];
+    host.appendChild(el('p','note','Tap a song’s ⋯ and choose Edit info to tag it.'));
+    idx.forEach((i,pos) => ul.appendChild(songRow(i, idx, pos)));
+    host.appendChild(ul);
+  }
+
   else if(v.mode === 'albums'){
     // GF12 (docs/29_GATEFOLD.md): the album drill-down opens the gatefold
     // directly (openAlbumFromLibrary(), same sealed -> single -> gatefold
@@ -1499,11 +1554,26 @@ function renderTracksBody(host){
 
   else if(v.mode === 'artists'){
     if(v.group === null){
-      const artistGroups = groupBy('artist');
+      // LB8 decision 9: 'Unknown Artist' (parseTags' own internal
+      // fallback) never shows as a normal, alphabetically-sorted artist
+      // row -- pulled out of groupBy('artist')'s own list and appended
+      // as "Songs without an artist" at the very end, under "#" on the
+      // rail rather than wherever "Unknown Artist" would otherwise sort
+      // ("U"). The sentinel key only ever exists in this one array,
+      // built fresh every render, so it can't collide with a real artist
+      // name or leak anywhere else.
+      const UNTAGGED_KEY = '\u0000untagged';
+      const allArtistGroups = groupBy('artist');
+      const unknownGroup = allArtistGroups.find(([artist]) => artist === 'Unknown Artist');
+      const namedGroups = allArtistGroups.filter(([artist]) => artist !== 'Unknown Artist');
+      const artistGroups = unknownGroup ? namedGroups.concat([[UNTAGGED_KEY, unknownGroup[1]]]) : namedGroups;
       const showArtistsRail = artistGroups.length > ARTISTS_RAIL_THRESHOLD;
-      appendRowsChunked(host, artistGroups, ([artist, idx]) => artistRow(artist, idx, ()=>{ v.group = artist; renderTracks(); }),
-        showArtistsRail ? { labelFor: ([artist]) => artist, headFor: letterHead } : null);
-      if(showArtistsRail) attachLetterRail(host, buildLetterGroups(artistGroups, ([artist]) => artist));
+      const artistLabelFor = ([artist]) => artist === UNTAGGED_KEY ? '#' : artist;
+      appendRowsChunked(host, artistGroups, ([artist, idx]) => artist === UNTAGGED_KEY
+          ? untaggedArtistsRow(idx, () => { v.mode = 'untaggedSongs'; renderTracks(); })
+          : artistRow(artist, idx, ()=>{ v.group = artist; renderTracks(); }),
+        showArtistsRail ? { labelFor: artistLabelFor, headFor: letterHead } : null);
+      if(showArtistsRail) attachLetterRail(host, buildLetterGroups(artistGroups, artistLabelFor));
     } else {
       // GF12 (docs/29_GATEFOLD.md): an artist's own album drill-down opens
       // the gatefold directly too (v.artistAlbum is never set), same as
@@ -1593,7 +1663,8 @@ function renderTracksBody(host){
       host.appendChild(shelf);
       // the local shelves (docs/21_ARTIST_PAGE.md) — on-device stats only,
       // each omitted until it has something to show
-      appendMostSpun(host, idx);
+      appendMostSpun(host, entries, (album, aidx) => openAlbumFromLibrary(album, aidx),
+        (albumId, firstTrack) => thumbURL['album:' + albumId] || firstTrack.art);
       appendArtistHistory(host, v.group, idx);
       appendPressings(host, entries);
       // Connected crate (docs/20_CONNECTED.md): related artists' records

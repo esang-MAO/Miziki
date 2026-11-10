@@ -9,7 +9,7 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, { na
 mock.module(new URL('../../src/crate/model.js', import.meta.url).href, { namedExports: { lastSpunLabel(){ return ''; } } });
 mock.module(new URL('../../src/profile/rhythm-card.js', import.meta.url).href, { namedExports: { PHASE_LABEL: {} } });
 
-const { topTracksFor, topPhase, historyFor, pressingLabel, PHASE_MIN_PLAYS } =
+const { topTracksFor, topPhase, historyFor, pressingLabel, PHASE_MIN_PLAYS, topRecordsFor } =
   await import('../../src/library/artist-shelves.js');
 const { trackIdentityKey, albumKey, getVariantDef } = await import('../../src/record-art/tiers.js');
 
@@ -68,6 +68,30 @@ test('historyFor: null when never played; no phase below the minimum', () => {
     albumPhase: { [albumKey(tracks[0])]: { golden: PHASE_MIN_PLAYS - 1 } } });
   assert.equal(thin.spins, 1);
   assert.equal(thin.phase, null);
+});
+
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9/point 4): "Your most
+// spun" is now one line per record, ranked by full plays, not per track.
+const entries = [
+  ['Midnight Marauders', [0, 1, 4]],
+  ['The Low End Theory', [2, 3, 5]],
+];
+test('topRecordsFor: most-played record first, only records with a play, one row per album', () => {
+  const counts = { [albumKey(tracks[0])]: 12, [albumKey(tracks[2])]: 40 };
+  const top = topRecordsFor(entries, tracks, counts);
+  assert.deepEqual(top.map(x => x.album), ['The Low End Theory', 'Midnight Marauders']);
+  assert.equal(top[0].plays, 40);
+});
+test('topRecordsFor: an unplayed record never shows, empty counts gives no rows', () => {
+  const counts = { [albumKey(tracks[0])]: 5 };
+  assert.deepEqual(topRecordsFor(entries, tracks, counts).map(x => x.album), ['Midnight Marauders']);
+  assert.deepEqual(topRecordsFor(entries, tracks, {}), []);
+});
+test('topRecordsFor: equal play counts go to the most recently played album', () => {
+  const counts = { [albumKey(tracks[0])]: 5, [albumKey(tracks[2])]: 5 };
+  const last = { [albumKey(tracks[0])]: 100, [albumKey(tracks[2])]: 200 };
+  assert.deepEqual(topRecordsFor(entries, tracks, counts, last).map(x => x.album),
+    ['The Low End Theory', 'Midnight Marauders']);
 });
 
 test('pressingLabel names the pressing, rare, or metal over its pressing', () => {
