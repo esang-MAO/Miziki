@@ -39,6 +39,9 @@ export function wireGatefold(){
   $('#gfRightCue').addEventListener('click', () => gatefoldSwitchPanel('right'));
   $('#gfTurnOver').addEventListener('click', gatefoldToggleTurnedOver);
   $('#gfPlayRecordBtn').addEventListener('click', gatefoldPlayRecord);
+  // UN17 point 4: the desktop spread's own text "Turn it over" -- same
+  // toggle #gfTurnOver already calls, never a second implementation.
+  $('#gfTurnOverText').addEventListener('click', gatefoldToggleTurnedOver);
   document.querySelectorAll('#gfPanelToggle [data-panel], #gfFlatSeg [data-panel]').forEach(b =>
     b.addEventListener('click', () => gatefoldSwitchPanel(b.dataset.panel)));
   window.addEventListener('resize', updateGatefoldScale);

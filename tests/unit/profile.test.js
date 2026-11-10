@@ -46,6 +46,9 @@ function fakeHostEl(){
   const children = [];
   const node = {
     style: {}, dataset: {},
+    // UN17 point 2: renderProfile() now toggles two content-width classes
+    // on #profileBody on every call.
+    classList: { add(){}, contains(){ return false; }, toggle(){}, remove(){} },
     appendChild(child){ children.push(child); child.parent = node; return child; },
     get childNodes(){ return children; },
     get children(){ return children; },

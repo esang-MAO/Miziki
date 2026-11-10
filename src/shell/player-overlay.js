@@ -12,12 +12,23 @@ import { anchoredMenuTop } from '../util/menu-position.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
+// UN17 point 5: #barVolume (AU7) moves into the player's own right column
+// while the full player is open on desktop, and back to the mini-player
+// bar on close -- a plain DOM move, not a new element, so the one
+// applyDeviceVolume() listener (audio/engine.js) never needs rewiring.
+function relocateVolumeForPlayer(open){
+  const input = $('#barVolume');
+  const dest = $(open && isDesktopShell() ? '#playerVolumeHost' : '#miniPlayer');
+  if(input && dest && input.parentNode !== dest) dest.appendChild(input);
+}
+
 export function openPlayerViaSheet(t, info){
   if(!t) return;
   S.playerOpen = true;
   const ov = $('#playerOverlay');
   ov.setAttribute('aria-hidden','false');
   ov.classList.add('open');
+  relocateVolumeForPlayer(true);
   openLayer('player', closePlayer, { container: ov });
   scheduleGlance();
   wakeEveningGlance();
@@ -37,6 +48,7 @@ export function openPlayerViaSheet(t, info){
 export function openPlayer(){
   if(!current() || S.playerOpen) return;
   S.playerOpen = true;
+  relocateVolumeForPlayer(true);
   openLayer('player', closePlayer, { container: $('#playerOverlay') });
   runMorphOpen();
   scheduleGlance();
@@ -52,6 +64,7 @@ export function closePlayer(){
   const ov = $('#playerOverlay');
   ov.classList.remove('open');
   ov.setAttribute('aria-hidden','true');
+  relocateVolumeForPlayer(false);
 }
 
 /* ---- morph: the mini-player's disc grows and travels into the full disc's

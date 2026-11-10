@@ -1609,6 +1609,9 @@ function gatefoldSetTurnedOver(on){
     dot.classList.toggle('active', (i === 1) === GF.turnedOver));
   const btn = $('#gfTurnOver');
   if(btn) btn.setAttribute('aria-pressed', String(GF.turnedOver));
+  // UN17 point 4: the desktop spread's own text twin of the button above
+  const textBtn = $('#gfTurnOverText');
+  if(textBtn) textBtn.setAttribute('aria-pressed', String(GF.turnedOver));
 }
 
 export function gatefoldToggleTurnedOver(){

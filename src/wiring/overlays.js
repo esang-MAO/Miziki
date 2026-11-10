@@ -15,6 +15,8 @@ import { $ } from '../util/dom.js';
 import { openQueueSheet, saveQueueAsPlaylist, undoQueueChange } from '../player/queue.js';
 import { openLookPicker } from '../record-art/looks.js';
 import { closeLayer, closeLayerThen } from '../shell/nav-stack.js';
+import { isDesktopShell } from '../util/viewport.js';
+import { selectPlayerSideTab } from '../shell/player-side-panel.js';
 
 export function wireOverlays(){
   // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 1):
@@ -33,10 +35,16 @@ export function wireOverlays(){
   });
   $('#miniQueueBtn').addEventListener('click', openQueueSheet);
   // FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row's own queue
-  // icon -- same opener, same hidden-until-a-track-loads rule as
-  // #queueBtn (player/transport.js's load()/library/delete.js/
-  // shell/runout.js all toggle both together).
-  $('#playerQueueBtn').addEventListener('click', openQueueSheet);
+  // icon -- same hidden-until-a-track-loads rule as #queueBtn (player/
+  // transport.js's load()/library/delete.js/shell/runout.js all toggle
+  // both together). UN17 point 5: on desktop the side panel's "Up next"
+  // tab already shows this same list right next to the player, so this
+  // button switches to that tab instead of opening a second modal on
+  // top of it -- the phone keeps the sheet, since it has no side panel.
+  $('#playerQueueBtn').addEventListener('click', ()=>{
+    if(isDesktopShell()) selectPlayerSideTab('upnext');
+    else openQueueSheet();
+  });
   $('#queueClose').addEventListener('click', () => closeLayer('queue'));
   // AU8 (docs/16_AUDIO.md §6): the queue sheet's own header action and its
   // shared undo toast — Clear Upcoming's own button is rendered fresh by

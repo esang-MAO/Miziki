@@ -120,6 +120,14 @@ export function renderProfile(opts = {}){
   // narrows it to just the home screen within that route.
   $('#appHeader').classList.toggle('on-profile-sub', screen !== 'home');
   const body = $('#profileBody');
+  // UN17 point 2: "Settings, Listening, Records, Privacy, Account and
+  // Terms centre in a max-width column" on desktop (23-desktop.css) --
+  // Records gets the wider of the two caps, the rest share the narrower
+  // one; every other screen (home, Top albums/songs, Played through,
+  // Privacy policy) stays full width, unchanged.
+  const NARROW_SCREENS = ['settings', 'listening', 'privacy', 'socialSettings', 'termsOfUse'];
+  body.classList.toggle('profile-content-narrow', NARROW_SCREENS.includes(screen));
+  body.classList.toggle('profile-content-wide', screen === 'records' || screen === 'collection');
   parkPlaybackSettings();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
   if(!refreshingHome) body.innerHTML = '';
