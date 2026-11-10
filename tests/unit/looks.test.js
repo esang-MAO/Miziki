@@ -60,6 +60,11 @@ const { S } = await import('../../src/state.js');
 const { albumKey } = await import('../../src/record-art/tiers.js');
 
 function hiResTrack(id, album){ return { id, meta: { lossless: true, bits: 24, rate: 96000 }, tags: { album, artist: 'Artist', title: 'Title ' + id }, art: null }; }
+// trackTier() (record-art/tiers.js): lossless and over 16-bit/44.1kHz is
+// tier 3, lossless at CD quality is tier 2, anything lossy (MP3, etc.) is
+// tier 1 -- the only tier that carries the "nothing earned yet" special
+// case under test below.
+function lossyTrack(id, album){ return { id, meta: { lossless: false }, tags: { album, artist: 'Artist', title: 'Title ' + id }, art: null }; }
 
 function resetState(overrides){
   elCache.clear();
@@ -94,6 +99,32 @@ test('hasLookChoice: true once a zoetrope is earned and zoetropes are enabled', 
   const t = hiResTrack(1, 'Zoetrope Album 2');
   resetState({ tracks: [t], zoetropesEnabled: true, zoetropeUnlocked: { [albumKey(t)]: true } });
   assert.equal(hasLookChoice(t), true);
+});
+
+// Bug (diagnosed during UN18's final sweep): a tier-1 record with exactly
+// one earned look (rare/metal/zoetrope) was missing the 'variant' fallback
+// -- availableLooks() only pushed it when looks.length === 0, so
+// hasLookChoice() (length > 1) wrongly read as "no choice" even though the
+// user had genuinely earned one. Zero earned looks must still mean no
+// choice (variant-only, unchanged); two-plus earned looks were never
+// affected (variant isn't even needed for hasLookChoice to be true there).
+test('hasLookChoice: tier-1 record, zero earned looks -- still no choice (regression guard)', () => {
+  const t = lossyTrack(1, 'Lossy Plain Album');
+  resetState({ tracks: [t] });
+  assert.equal(hasLookChoice(t), false);
+});
+
+test('hasLookChoice: tier-1 record with exactly one earned look (rare) -- a real choice exists', () => {
+  const t = lossyTrack(1, 'Lossy Rare Album');
+  t.art = 'data:image/png;base64,x';
+  resetState({ tracks: [t], rareUnlocked: { [albumKey(t)]: true } });
+  assert.equal(hasLookChoice(t), true, 'variant must be offered alongside the one earned look');
+});
+
+test('hasLookChoice: tier-1 record with exactly one earned look (zoetrope) -- a real choice exists', () => {
+  const t = lossyTrack(1, 'Lossy Zoetrope Album');
+  resetState({ tracks: [t], zoetropeUnlocked: { [albumKey(t)]: true } });
+  assert.equal(hasLookChoice(t), true, 'variant must be offered alongside the one earned look');
 });
 
 // PRESSING_DRAW (PR B.3.1 point 5): availableLooks()/buildLookOptionContent()/
