@@ -31,6 +31,7 @@ import { thumbURL } from '../library/thumbs.js';
 import { buildPeekDisc } from '../record-art/peek.js';
 import { hapticTick } from '../ui/haptic.js';
 import { wordmarkEl as buildWordmark } from '../ui/wordmark.js';
+import { REDUCED } from '../util/motion.js';
 
 // resolved by restoreLibrary() (main.js) once S.tracks/sessions/thumbnails
 // are in place — the launch intro races this against a timeout rather than
@@ -50,6 +51,20 @@ const LAUNCH_ANIM = {
   // computeFlickPosition(). Proportions come from the reference timeline
   // (about 15:21:4 records for a 40-record flick).
   accelShare: 0.375, cruiseShare: 0.525, decelShare: 0.10
+};
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): the short variant's own dig
+// timings, kept beside LAUNCH_ANIM rather than scattered -- a sixth the
+// stack (6 records instead of 18, so the catch still lands four from the
+// end, same as LAUNCH_STACK's own targetIndex formula) and the cruise
+// phase cut hard (800ms -> 100ms) so the whole accel/cruise/decel flick
+// comes in around 600ms. accel/decel are cut too (there's a lot less
+// stack to cross), just not as drastically as cruise. The catch/pull/
+// crossfade phases that follow the flick are unchanged -- they read
+// LAUNCH_ANIM directly, not this block (decision 16: "the rest is the
+// same as full").
+const SHORT_LAUNCH_ANIM = {
+  stackCount: 6,
+  accelMs: 250, cruiseMs: 100, decelMs: 250,   // 600ms total
 };
 document.documentElement.style.setProperty('--launch-fade-duration', LAUNCH_ANIM.fadeMs + 'ms');
 document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM.pullMs + 'ms');
@@ -110,6 +125,9 @@ export function resolveLastPlayedTrackIndex(albumId){
 // count and target position never change with library size — only what's
 // printed on each sleeve does (planLaunchStack()).
 const LAUNCH_STACK = { count: LAUNCH_ANIM.stackCount, targetIndex: LAUNCH_ANIM.stackCount - 4 };
+// LA1: the short variant's own (smaller) stack, same "caught four from the
+// end" formula as LAUNCH_STACK above.
+const SHORT_LAUNCH_STACK = { count: SHORT_LAUNCH_ANIM.stackCount, targetIndex: SHORT_LAUNCH_ANIM.stackCount - 4 };
 
 // Which album goes on each of the stack's sleeves: the target album at
 // targetIndex, and the other candidates (already ordered, best first)
@@ -220,7 +238,7 @@ function launchMizikiMark(){
 // One card's DOM: a clean sleeve showing either an album's cover or the
 // Miziki cover. Only built for indices inside the visible window, never
 // all at once.
-function makeLaunchCard(index, plan){
+function makeLaunchCard(index, plan, targetIndex){
   const el = document.createElement('div');
   el.className = 'launch-card';
   const face = document.createElement('div');
@@ -236,9 +254,32 @@ function makeLaunchCard(index, plan){
     face.classList.add('launch-card-miziki');
     face.appendChild(launchMizikiMark());
   }
-  if(index === LAUNCH_STACK.targetIndex) el.classList.add('launch-target');
+  if(index === targetIndex) el.classList.add('launch-target');
   el.appendChild(face);
   return el;
+}
+
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 16): which variant plays --
+// pure, so it's testable without a DOM. `reducedMotion` wins outright
+// (`fade`): a dig, however short, is still more motion than Reduce Motion
+// should ever show. Otherwise: `full` when no launch has played today yet
+// (`lastLaunchAt` null, or from a different calendar day than `now`), or
+// when the last launch was before today's sunset and `now` is at or past
+// it (the first cold start after the day turns); every other cold start is
+// `short`. `sunset` is a Date (or epoch ms) from Sundown's own day model
+// (S.sun.set, real or the seasonal stand-in -- see sundown/day.js);
+// `lastLaunchAt`/`now` are epoch ms.
+export function chooseLaunchVariant({ lastLaunchAt, now, sunset, reducedMotion }){
+  if(reducedMotion) return 'fade';
+  if(lastLaunchAt == null) return 'full';
+  const last = new Date(lastLaunchAt);
+  const current = new Date(now);
+  if(last.toDateString() !== current.toDateString()) return 'full';
+  if(sunset != null){
+    const sunsetMs = sunset instanceof Date ? sunset.getTime() : sunset;
+    if(last.getTime() < sunsetMs && current.getTime() >= sunsetMs) return 'full';
+  }
+  return 'short';
 }
 
 export async function runLaunchSequence(){
@@ -252,10 +293,37 @@ export async function runLaunchSequence(){
   // wait for restoreLibrary() (so S.launchIntro is known), capped at 700ms
   await Promise.race([libraryReadyPromise, sleep(LAUNCH_ANIM.readyWaitMs)]);
   if(cancelled()) return;
-  const stack = LAUNCH_STACK;
   // S.launchIntro's persisted value loads inside restoreLibrary(), which by
   // now has had at least this long to resolve it — now it's known for sure
   if(!S.launchIntro){ overlay.remove(); window.removeEventListener('resize', updateLaunchScale); return; }
+
+  // LA1: the variant, decided once S.lastLaunchAt (also loaded inside
+  // restoreLibrary(), same race as S.launchIntro above) and S.sun (set
+  // synchronously at boot by main.js's fallbackSun(), before this ever
+  // runs) are both known. Recorded regardless of which variant plays, so
+  // the *next* cold start's own decision is correct.
+  const launchNow = Date.now();
+  const variant = chooseLaunchVariant({
+    lastLaunchAt: S.lastLaunchAt,
+    now: launchNow,
+    sunset: (S.sun && S.sun.ok) ? S.sun.set : null,
+    reducedMotion: REDUCED,
+  });
+  S.lastLaunchAt = launchNow;
+  queueSave();
+
+  // fade: Reduce Motion. No card stack, no flick -- just the app, same as
+  // this call site's own behavior before LA1 (the overlay is also
+  // `display:none` under this same media query, 09-launch-intro.css, so
+  // this is belt-and-suspenders consistent with every other REDUCED check
+  // in this codebase rather than a visible behavior change).
+  if(variant === 'fade'){
+    overlay.remove();
+    window.removeEventListener('resize', updateLaunchScale);
+    return;
+  }
+
+  const stack = variant === 'short' ? SHORT_LAUNCH_STACK : LAUNCH_STACK;
 
   // What's printed on each sleeve, decided once, from whatever the library
   // has restored by now (the same ready race above — never waited on
@@ -268,7 +336,7 @@ export async function runLaunchSequence(){
   function syncCards(position, speed, spread){
     const lo = Math.max(0, Math.floor(position) - 8), hi = Math.min(stack.count - 1, Math.ceil(position) + 8);
     for(const i of Array.from(cards.keys())) if(i < lo || i > hi){ cards.get(i).remove(); cards.delete(i); }
-    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(i, plan); stackEl.appendChild(el); cards.set(i, el); }
+    for(let i=lo;i<=hi;i++) if(!cards.has(i)){ const el = makeLaunchCard(i, plan, stack.targetIndex); stackEl.appendChild(el); cards.set(i, el); }
     cards.forEach((el, i) => applyLaunchCardPose(el, launchCardPose(i - position, speed, spread)));
   }
   syncCards(0, 0, 1);
@@ -317,7 +385,11 @@ export async function runLaunchSequence(){
 
   // FLICK: accelerate, cruise, decelerate — one position, driven by rAF
   {
-    const timing = {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
+    // LA1: short swaps in its own cut accel/cruise/decel timings; every
+    // other phase (fade/catch/pull/crossfade) stays LAUNCH_ANIM's, below.
+    const timing = variant === 'short'
+      ? {accelMs: SHORT_LAUNCH_ANIM.accelMs, cruiseMs: SHORT_LAUNCH_ANIM.cruiseMs, decelMs: SHORT_LAUNCH_ANIM.decelMs}
+      : {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
     const scrollMs = timing.accelMs + timing.cruiseMs + timing.decelMs;
     const flickStart = performance.now();
     await new Promise(resolve => {

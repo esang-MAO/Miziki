@@ -40,10 +40,21 @@ mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
 mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
   namedExports: { wordmarkEl(){ return { classList: { add(){} } }; } },
 });
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): intro.js now imports REDUCED itself
+// (to pass it into chooseLaunchVariant() inside runLaunchSequence()) —
+// window.matchMedia doesn't exist in this file's stubbed-document
+// environment, so it's mocked the same way tests/unit/clock.test.js's own
+// motion.js mock already is. The value here is never read by
+// chooseLaunchVariant() itself (a pure function taking reducedMotion as a
+// plain argument, tested directly below) — only by runLaunchSequence()'s
+// own DOM-driving code this file doesn't exercise.
+mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
+  namedExports: { REDUCED: false },
+});
 
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,
-  computeFlickPosition, flickSpeed, planLaunchStack,
+  computeFlickPosition, flickSpeed, planLaunchStack, chooseLaunchVariant,
 } = await import('../../src/launch/intro.js');
 const { S } = await import('../../src/state.js');
 
@@ -175,4 +186,51 @@ test('planLaunchStack: no target (an empty play history in an empty library) lea
   const plan = planLaunchStack(['b'], null, 18, 14);
   assert.equal(plan[14], null);
   assert.equal(plan.filter(Boolean).length, 1);
+});
+
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 16): chooseLaunchVariant()'s
+// own five required cases. 2026-11-10 10:00am/10:00pm are both well clear of
+// midnight on either side, so toDateString() comparisons below never
+// accidentally straddle a day boundary by the test's own choice of hours.
+const MORNING = new Date('2026-11-10T10:00:00').getTime();
+const SUNSET = new Date('2026-11-10T17:00:00').getTime();   // mid-afternoon-ish stand-in
+const EVENING = new Date('2026-11-10T20:00:00').getTime();   // after SUNSET
+const LATER_EVENING = new Date('2026-11-10T21:00:00').getTime();
+const YESTERDAY_EVENING = new Date('2026-11-09T20:00:00').getTime();
+
+test('chooseLaunchVariant: first-of-day (no S.lastLaunchAt at all) plays full', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: null, now: MORNING, sunset: SUNSET, reducedMotion: false }), 'full');
+});
+
+test('chooseLaunchVariant: first-of-day (last launch was yesterday) plays full', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: YESTERDAY_EVENING, now: MORNING, sunset: SUNSET, reducedMotion: false }), 'full');
+});
+
+test('chooseLaunchVariant: a second launch an hour later, same day, before sunset, plays short', () => {
+  const firstLaunch = MORNING;
+  const anHourLater = firstLaunch + 60*60000;
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: firstLaunch, now: anHourLater, sunset: SUNSET, reducedMotion: false }), 'short');
+});
+
+test('chooseLaunchVariant: the first launch after sunset (last launch was earlier today, before sunset) plays full', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: MORNING, now: EVENING, sunset: SUNSET, reducedMotion: false }), 'full');
+});
+
+test('chooseLaunchVariant: a second launch after sunset (last launch was already after sunset) plays short', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: EVENING, now: LATER_EVENING, sunset: SUNSET, reducedMotion: false }), 'short');
+});
+
+test('chooseLaunchVariant: Reduce Motion always plays fade, overriding every other rule', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: null, now: MORNING, sunset: SUNSET, reducedMotion: true }), 'fade');
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: MORNING, now: EVENING, sunset: SUNSET, reducedMotion: true }), 'fade');
+});
+
+test('chooseLaunchVariant: a Date sunset (not just an epoch-ms number) is accepted the same way', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: MORNING, now: EVENING, sunset: new Date(SUNSET), reducedMotion: false }), 'full');
+});
+
+test('chooseLaunchVariant: no sunset at all (S.sun not ok yet) still falls back to the same-day rule', () => {
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: null, now: MORNING, sunset: null, reducedMotion: false }), 'full');
+  const anHourLater = MORNING + 60*60000;
+  assert.equal(chooseLaunchVariant({ lastLaunchAt: MORNING, now: anHourLater, sunset: null, reducedMotion: false }), 'short');
 });

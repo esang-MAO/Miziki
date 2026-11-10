@@ -36,7 +36,6 @@ import { storage, tracks } from './storage/repo.js';
 import { restoreMeta, queueSave } from './storage/meta.js';
 import { applyDeluxeUrlSwitch } from './deluxe.js';
 import { restoreResume } from './player/resume.js';
-import { REDUCED } from './util/motion.js';
 import { updateChromeInset } from './shell/mini-player.js';
 import { putAwayInstant } from './shell/put-away.js';
 import { isProfileRouteVisible, showRoute } from './shell/routes.js';
@@ -135,10 +134,12 @@ window.addEventListener('resize', updateChromeInset);
 showRoute('library');
 requestAnimationFrame(frame);
 restoreLibrary();   // runs underneath the launch intro below; never waits on it
-// REDUCED and document.hidden are known synchronously; S.launchIntro's
-// persisted value isn't (it loads inside restoreLibrary()), so
-// runLaunchSequence() re-checks it itself once that's resolved
-if(REDUCED || document.hidden) $('#launchOverlay').remove();
+// document.hidden is known synchronously; S.launchIntro/S.lastLaunchAt
+// aren't (they load inside restoreLibrary()), so runLaunchSequence()
+// re-checks S.launchIntro itself once that's resolved, and (LA1, docs/
+// 36A_LIBRARY_AND_LAUNCH.md) picks the fade variant for REDUCED internally
+// -- it still needs to run under REDUCED so S.lastLaunchAt gets recorded.
+if(document.hidden) $('#launchOverlay').remove();
 else runLaunchSequence();
 
 async function restoreLibrary(){

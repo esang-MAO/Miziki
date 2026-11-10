@@ -42,6 +42,7 @@ const KNOWN_PREF_KEYS = new Set([
   'deluxe',
   'shelfFinish',
   'turntable',
+  'lastLaunchAt',
 ]);
 
 // RF17 (docs/12_REFINE.md, "merge per item, not per blob", point 4):
@@ -96,6 +97,12 @@ export function serializePrefs(S){
     deluxe: S.deluxe,
     shelfFinish: S.shelfFinish,
     turntable: S.turntable,
+    // LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): when the full launch dig last
+    // played -- a perfectly ordinary local pref like theme/deviceVolume
+    // (so a reload still knows "today" without re-deciding full on every
+    // cold start), stripped from the uploaded backup copy in
+    // src/sync/backup.js's buildLocalState() since it's a device-only fact.
+    lastLaunchAt: S.lastLaunchAt,
   }, unknownPrefKeys || {});
 }
 
@@ -280,6 +287,10 @@ export function parsePrefs(raw){
   if(p.repeat) out.repeat = p.repeat;
   if(typeof p.shuffle === 'boolean') out.shuffle = p.shuffle;
   if(p.mode) out.mode = p.mode;
+  // LA1: a saved object without this (every device before this PR) loads as
+  // null, the stated default -- chooseLaunchVariant() already treats a
+  // missing/null lastLaunchAt as "no launch today", i.e. the full variant.
+  if(typeof p.lastLaunchAt === 'number') out.lastLaunchAt = p.lastLaunchAt;
 
   return out;
 }
