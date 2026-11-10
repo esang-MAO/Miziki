@@ -1,0 +1,199 @@
+/* ---------- UN2 (docs/36_UNIFORMITY.md): the shared parts ---------- */
+/* One canonical look per job, built once here, instead of each screen's
+   own near-duplicate. Built from the "Miziki Uniformity" canvas's frame
+   `1-main` (docs/design/uniformity/README.md) -- that frame is the visual
+   source of truth, not this file's own guesses. DOM helpers that build
+   these from JS live in src/ui/parts.js.
+
+   Several of the canvas's own exact pixel values below don't land on an
+   existing --fs-* / --sp-* / --track-* token (22px sheet title, 15px button
+   type, 10px button radius, 11px segmented-control radius, 14px/46px
+   list-menu radius+row height, 52px back-header row, .02em sheet-title
+   tracking). Kept pixel-exact rather than bent onto the nearest token --
+   matching the approved design 1:1 is this step's whole point -- each is
+   marked "(canvas-exact)" at its own rule below. Flagged in the UN2 PR for
+   Ken's awareness, same posture as UN1's ring/dot contrast-floor call.
+
+   Where an existing class already did one of these jobs, it's aliased
+   onto the class here (composed into the same selector list) rather than
+   left as its own near-duplicate -- noted at each one for UN18 to delete
+   once every call site has moved to the real class/helper. */
+
+/* ---- screen title ---- */
+.p-title{
+  font-family:var(--display); font-weight:700; font-size:var(--fs-hero); line-height:var(--lh-hero);
+  letter-spacing:var(--track-display); color:var(--paper); margin:0;
+}
+
+/* ---- sheet title ---- */
+/* 22px/.02em: canvas-exact, see file-top note. */
+.p-sheet-title{
+  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:.02em; color:var(--paper); margin:0;
+}
+
+/* ---- section label ----
+   UN18: .store-section-head h2 (18-storefront.css) folds into this once
+   the storefront moves to .p-label directly -- it's #homeBody's own
+   small-mono-kicker override of the same heading that already pointed
+   this direction first. */
+.p-label,
+.store-section-head h2{
+  font-family:var(--body); font-weight:600; font-size:var(--fs-caption); letter-spacing:var(--track-caps);
+  text-transform:uppercase; color:var(--muted); margin:0;
+}
+
+/* ---- back header ----
+   backHeader(to, title, rightEl) (src/ui/parts.js). UN18: .crumb-back
+   (02-stage-platter.css) folds into .p-back-link below once every back-
+   row call site has moved to backHeader(). */
+.p-back-header{ display:flex; align-items:center; gap:var(--sp-3); height:52px /* canvas-exact */; }
+.p-back-link,
+.crumb-back{
+  font-family:var(--body); font-size:var(--fs-body); font-weight:500; color:var(--paper);
+  background:none; border:0; padding:var(--sp-2) 0; min-height:44px; display:flex; align-items:center;
+}
+.p-back-title{
+  flex:1; text-align:center; font-family:var(--display); font-weight:600; font-size:var(--fs-title);
+  letter-spacing:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0;
+}
+.p-back-right{ flex:0 0 auto; }
+
+/* ---- sheet header ----
+   sheetHeader(title) (src/ui/parts.js). UN18: .edit-close (16-edit-
+   sheet.css) folds into .p-sheet-close below. */
+.p-sheet-header{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); }
+.p-sheet-close,
+.edit-close{
+  width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:var(--fs-row); background:none; border:0; flex:0 0 auto;
+}
+
+/* ---- segmented control ----
+   .p-seg + segmented(opts, value, onChange) (src/ui/parts.js).
+   UN18: .seg (16-edit-sheet.css), .sd-tabs/.sd-drift-seg/.sd-preset-seg/
+   .sd-depth-seg/.sd-surface-noise-seg/.sd-night-pitch-seg (25-day-arc-
+   v2.css) fold into this once their own screens move to segmented(). The
+   sd- and .sd-tabs selectors keep their own grid-template-columns (2, 3
+   or 5 across)
+   -- that's layout, not look, and UN2 only unifies the look. */
+.p-seg,
+.seg,
+.sd-tabs,
+.sd-drift-seg,
+.sd-preset-seg,
+.sd-depth-seg,
+.sd-surface-noise-seg,
+.sd-night-pitch-seg{
+  display:flex; border:1px solid var(--line); border-radius:11px /* canvas-exact */; background:var(--field);
+  padding:3px; gap:0; min-height:40px;
+}
+.p-seg button,
+.seg button,
+.sd-tabs button,
+.sd-drift-seg button,
+.sd-preset-seg button,
+.sd-depth-seg button,
+.sd-surface-noise-seg button,
+.sd-night-pitch-seg button{
+  flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--muted); cursor:pointer;
+  font-family:var(--body); font-size:var(--fs-body); font-weight:500; border-radius:8px;
+  padding:var(--sp-1) var(--sp-2); white-space:normal; text-align:center; line-height:1.25;
+}
+.p-seg button[aria-pressed="true"],
+.seg button[aria-pressed="true"],
+.sd-tabs button[aria-selected="true"],
+.sd-drift-seg button[aria-pressed="true"],
+.sd-preset-seg button[aria-pressed="true"],
+.sd-depth-seg button[aria-pressed="true"],
+.sd-surface-noise-seg button[aria-pressed="true"],
+.sd-night-pitch-seg button[aria-pressed="true"]{
+  background:var(--paper); color:var(--sky1); font-weight:600;
+}
+
+/* ---- toggle row ----
+   toggleRow({label, desc, info, checked, onChange}) (src/ui/parts.js) --
+   wraps the existing .switch (31-switch.css, makeSwitch()). */
+.p-toggle-row{ padding:var(--sp-3) 0; border-bottom:1px solid var(--line); }
+.p-toggle-row:last-child{ border-bottom:0; }
+.p-toggle-top{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); cursor:pointer; }
+.p-toggle-left{ display:flex; align-items:center; gap:var(--sp-1); min-width:0; }
+.p-toggle-label{ font-family:var(--body); font-size:var(--fs-row); font-weight:500; color:var(--paper); }
+.p-toggle-info{
+  width:32px; height:32px; min-width:32px; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:var(--fs-body); background:none; border:0;
+}
+.p-toggle-desc{ margin:var(--sp-1) 0 0; font-size:var(--fs-body); color:var(--muted); }
+
+/* ---- navigation row ----
+   navRow({label, value, onClick, danger}) (src/ui/parts.js). */
+.p-nav-row{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3);
+  min-height:52px; width:100%; background:none; border:0; border-bottom:1px solid var(--line);
+  font-family:var(--body); text-align:left; cursor:pointer;
+}
+.p-nav-row:last-child{ border-bottom:0; }
+.p-nav-label{ font-size:var(--fs-row); font-weight:500; color:var(--paper); }
+.p-nav-row--danger .p-nav-label{ color:var(--danger); }
+.p-nav-right{ display:flex; align-items:center; gap:var(--sp-2); flex:0 0 auto; }
+.p-nav-value{ font-size:var(--fs-body); color:var(--muted); }
+.p-nav-chevron{ color:var(--muted); font-size:var(--fs-body); }
+
+/* ---- buttons ----
+   .p-btn/.p-btn--primary/.p-btn--danger (src/ui/parts.js's emptyNote()
+   also uses .p-btn--primary directly). 15px/10px: canvas-exact, see
+   file-top note. UN18: .cta/.cta.ghost (16-edit-sheet.css) fold into
+   .p-btn/.p-btn (secondary is the plain look already); .cta.danger folds
+   into .p-btn--danger. */
+.p-btn,
+.cta{
+  display:inline-flex; align-items:center; justify-content:center; min-height:44px;
+  border-radius:10px; padding:11px var(--sp-4); font-family:var(--body); font-size:15px; font-weight:500;
+  border:1.5px solid var(--ring); color:var(--paper); background:none; transition:color .5s,border-color .5s;
+}
+.p-btn--primary{ border-color:transparent; background:var(--paper); color:var(--sky1); }
+.p-btn--danger,
+.cta.danger{ border-color:var(--danger-line); color:var(--danger); background:none; }
+
+/* ---- list menu ----
+   listMenu(groups) (src/ui/parts.js). 14px/46px: canvas-exact, see
+   file-top note. */
+.p-list-menu{ background:var(--popover); border-radius:14px; overflow:hidden; }
+.p-list-menu-item{
+  display:block; width:100%; min-height:46px; padding:0 var(--sp-4); text-align:left;
+  font-family:var(--body); font-size:var(--fs-row); color:var(--paper); background:none; border:0;
+}
+.p-list-menu-item--danger{ color:var(--danger); }
+.p-list-menu-divider{ height:1px; background:var(--line); margin:0 var(--sp-4); }
+
+/* ---- empty note ----
+   emptyNote({head, sub, action}) (src/ui/parts.js). */
+/* The canvas's own spec splits this card's background by theme
+   (--stock-card light / --paper dark), but --stock-card is already a
+   theme-reactive token (00-base.css/22-theme.css both redefine it) that
+   every other paper-card surface in the app (.crate-catalog-card,
+   .store-sign, .gf-back-cover, .held-note, ...) already uses unchanged
+   across both themes -- so this follows that same established pattern
+   rather than adding a second, parts-only split. */
+.p-empty-note{
+  background:var(--stock-card); color:#26202C; border-radius:var(--radius-card);
+  padding:var(--sp-5) var(--sp-4) var(--sp-4); text-align:center; position:relative;
+}
+.p-empty-note-tape{
+  position:absolute; top:-8px; left:50%; transform:translateX(-50%) rotate(-2deg);
+  width:64px; height:18px; background:var(--amber-tint); opacity:.85;
+}
+.p-empty-note-head{ font-family:var(--hand); font-size:var(--fs-hero); margin:var(--sp-2) 0 var(--sp-1); }
+.p-empty-note-sub{ font-family:var(--body); font-size:var(--fs-body); margin:0 0 var(--sp-3); }
+
+/* ---- focus rings ----
+   UN2 point 2: a sheet opening used to focus its close/back button and
+   show the browser's own hard-edged outline. The one app-wide rule for
+   that used to live in 20-friend-store.css as a bare `:focus-visible`
+   using --cream at a 3px offset -- in dark theme --cream is near-white,
+   which is exactly the "hard white box" this step fixes. Moved here as
+   the one rule covering every focusable control (.gf-back,
+   #sealedFrontCloseBtn, the social auth ×, #socialNavOverlay's back
+   button and every .edit-close included -- none of them had a rule of
+   their own to override). Focus is still moved programmatically on open
+   for VoiceOver; :focus-visible only shows the ring for keyboard focus. */
+:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; border-radius:inherit; }

@@ -118,7 +118,10 @@
 .store-card-btn{background:none;border:0;padding:0;display:flex;align-items:center;gap:var(--sp-3);width:100%;text-align:left;color:inherit}
 
 .store-section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 0}
-.store-section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.03em;text-transform:uppercase}
+/* UN2 (docs/36_UNIFORMITY.md): aliased onto .p-label (05-parts.css) --
+   delete this selector in UN18 once the storefront adopts the shared
+   section-label look directly. */
+.store-section-head h2{margin:0}
 .store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--paper);
   letter-spacing:.08em;text-transform:uppercase;padding:var(--sp-3) 0 var(--sp-3) var(--sp-3);min-height:44px}
 
