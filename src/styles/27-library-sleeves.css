@@ -377,3 +377,59 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
 @media (prefers-reduced-motion: reduce){
   .shelf-sleeve,.shelf-sleeve-alt{transform:none}
 }
+
+/* ---- LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): the desktop
+   Songs table -- a different presentation of the exact sorted list
+   songRow() already renders below 1024px (library/view.js's songsTable()
+   only ever builds this markup once isDesktopShell() is true, so no
+   media query is needed to keep it off the phone; the table itself still
+   gets a min-width guard below as a second line of defense, the same
+   belt-and-suspenders posture .playlist-grid's own desktop rule takes
+   two sections up). Centred like other capped desktop content areas
+   (LB9's own #libBody search results, UN17's 640px Settings column) --
+   margin:0 auto on a max-width wrapper. */
+.songs-table-wrap{max-width:1080px;margin:0 auto;width:100%}
+.songs-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.songs-table thead th{text-align:left;padding:var(--sp-2) var(--sp-2);
+  border-bottom:1px solid var(--line);background:var(--bg)}
+.songs-table th.st-sortable{padding:0}
+.st-sort-btn{width:100%;text-align:left;background:none;border:0;font:inherit;
+  padding:var(--sp-2) var(--sp-2);cursor:pointer;color:inherit}
+.st-sort-btn:hover,.st-sort-btn:focus-visible{color:var(--paper)}
+/* "Rows are 52px" -- set on the <tr> itself; every cell's content (a
+   34px thumbnail, one line of text) stays well under that, so the row
+   never has to grow past it. */
+.songs-table-row{height:52px}
+.songs-table-row:hover{background:var(--raised)}
+.songs-table td{padding:0 var(--sp-2);vertical-align:middle;overflow:hidden}
+.st-idx{width:40px;color:var(--muted);font-family:var(--data);font-size:var(--fs-caption)}
+.st-art{width:50px}
+.st-art .t-art{width:34px;height:34px}
+/* "Title, artist and record end with '…', and hovering a cut-off cell
+   shows it in full (title attribute)" -- the title attribute is set in
+   JS (songsTableRow()); this just makes the ellipsis itself possible. */
+.st-title,.st-artist,.st-album{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--body);font-size:var(--fs-row)}
+.st-title{width:32%;color:var(--paper);font-weight:500}
+.st-artist{width:22%;color:var(--muted)}
+.st-album{width:22%;color:var(--muted)}
+.st-time{width:64px;font-family:var(--data);font-size:var(--fs-body);color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.st-menu{width:44px;text-align:right}
+.songs-table .new-tag{margin-left:var(--sp-2)}
+
+/* ---- LB10 point 3: Artists on desktop -- the same round-photo row
+   (artistRow(), library/view.js) in a wider grid rather than one long
+   column, matching the wide-grid treatment .playlist-grid already gives
+   Playlists (just above in this file) and UN17's own crate/records-grid
+   widening -- same "reuse the pattern, don't invent a second one" call.
+   Rows wrap into the container library/view.js now gives them
+   (.artists-grid) only at this width; below it the container is a plain
+   block and the rows stack exactly as they always have. A letter head
+   (grouping kicks in past ARTISTS_RAIL_THRESHOLD) spans every column so
+   it still reads as a divider, not a grid cell of its own. */
+@media (min-width:1024px){
+  .artists-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    gap:0 var(--sp-4);max-width:calc(3 * 360px + 2 * var(--sp-4))}
+  .artists-grid .letter-head{grid-column:1 / -1}
+}

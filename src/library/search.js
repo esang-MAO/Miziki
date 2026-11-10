@@ -24,7 +24,15 @@ import { queueSave } from '../storage/meta.js';
 import { renderTracks, groupRow, songRow, artistRow, playlistMosaicArt, openAlbumFromLibrary } from './view.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
-const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
+// LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): 'title' is new here —
+// the desktop Songs table's own Title column header needs a sort mode to
+// click into, and there wasn't one (the chip only ever offered Artist as
+// the title-adjacent default, which also sub-sorts by album/track number,
+// not by title first). Added to the one shared list rather than a second,
+// table-only sort path, so the mobile chip gains "By title" too — the
+// same "same sorts the chip offers" rule the table's Artist/Record
+// columns satisfy for free since those keys already existed.
+const LIBRARY_SORTS = [['title','Title'],['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
 
 // RF8 (docs/12_REFINE.md), restyled by LB7 (docs/36A_LIBRARY_AND_LAUNCH.md
 // decision 4): one line under the tabs — the sort label is now a pill
@@ -76,6 +84,7 @@ export function librarySortComparator(_mode){
   return (a, b) => {
     const ta = S.tracks[a], tb = S.tracks[b];
     switch(key){
+      case 'title': return byName(ta.tags.title, tb.tags.title) || byName(ta.tags.artist, tb.tags.artist);
       case 'album': return byName(ta.tags.album, tb.tags.album) || trackSort(a, b);
       case 'added': return (tb.addedAt||0) - (ta.addedAt||0);
       case 'played': return (S.trackLastPlayed[trackIdentityKey(tb)]||0) - (S.trackLastPlayed[trackIdentityKey(ta)]||0);

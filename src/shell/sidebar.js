@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { ensureCrateModel } from '../crate/model.js';
+import { idxOf } from '../library/model.js';
 
 /* ================= desktop shell: sidebar content (step D3,
    docs/DESKTOP_LAYOUT.md) =================
@@ -35,7 +36,24 @@ export function renderSidebarPlaylists(){
   const order = S.playlists.map((_, n) => n)
     .sort((a, b) => (S.playlists[a].system ? 0 : 1) - (S.playlists[b].system ? 0 : 1));
   for(const n of order){
-    host.appendChild(el('li', 'sidebar-playlist-row', S.playlists[n].name));
+    const pl = S.playlists[n];
+    const li = el('li');
+    const row = el('div', 'sidebar-bin-row sidebar-playlist-row-inner');
+    row.appendChild(el('span', 'sidebar-bin-label', pl.name));
+    // LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): the sidebar's
+    // playlist rows had no count at all before this — only the name,
+    // truncated with "…" but with nothing to push against, so there was
+    // nothing to protect from being "pushed off" either. Reusing
+    // .sidebar-bin-row/-label/-count (23-desktop.css) rather than a
+    // second truncation+right-aligned-count rule, since that's exactly
+    // the shape UN17 already built for the BINS list just below this one
+    // — "{n} songs", counting only tracks currently reconnected, same
+    // rule renderTracks()'s own playlist-grid/detail captions use
+    // (pl.items.map(idxOf).filter(i => i >= 0)).
+    const count = pl.items.map(idxOf).filter(i => i >= 0).length;
+    row.appendChild(el('span', 'sidebar-bin-count', count + (count === 1 ? ' song' : ' songs')));
+    li.appendChild(row);
+    host.appendChild(li);
   }
 }
 
