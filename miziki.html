@@ -1521,21 +1521,26 @@
   </div>
 </div>
 
-<!-- DUPLICATE IMPORT: surfaced, never auto-merged (see PLAYBACK/IMPORT spec §6).
-     One track at a time, pausing the import loop until resolved. -->
+<!-- DUPLICATE IMPORT: decision 1, docs/36A_LIBRARY_AND_LAUNCH.md (LB1).
+     Surfaced once per whole import batch (never auto-merged, see
+     PLAYBACK/IMPORT spec §6), not once per file any more -- the import
+     loop never stops to ask; it collects possible duplicates and this
+     sheet decides all of them at once, once everything else has already
+     landed. Built fully by src/library/duplicates-ui.js's
+     openDuplicatesSheet() -- #dupHead/#dupBody are rebuilt on every
+     render (summary <-> the "Review one by one" sub-view). #dupSkipToast
+     is a sibling of the overlay, not nested inside it -- it's shown the
+     instant the sheet closes, and .edit-overlay's own close animation
+     then hides the sheet (visibility, after a 200ms transition) under it,
+     which would hide a toast nested inside along with it. -->
 <div class="edit-overlay" id="dupOverlay" aria-hidden="true">
-  <div class="edit-sheet" style="max-width:420px">
-    <div class="edit-head">
-      <span>Possible duplicate</span>
-      <button class="edit-close" id="dupClose" aria-label="Close">✕</button>
-    </div>
-    <p class="note" id="dupBody" style="margin-top:0"></p>
-    <div class="stack">
-      <button class="cta ghost" id="dupKeepBoth">Keep Both</button>
-      <button class="cta danger" id="dupReplace">Replace</button>
-      <button class="cta" id="dupSkip">Skip Import</button>
-    </div>
+  <div class="edit-sheet" id="dupSheetBox" style="max-width:420px">
+    <div id="dupHead"></div>
+    <div id="dupBody"></div>
   </div>
+</div>
+<div class="dup-skip-toast" id="dupSkipToast" style="display:none">
+  <span id="dupSkipText"></span>
 </div>
 
 <!-- BACKGROUND PLAYBACK OFFER (RF7, docs/12_REFINE.md): shown once, on

@@ -4,10 +4,14 @@
 // player, each keyed by its own nav-stack layer id (the same ids every
 // close button in src/wiring/ already closes via closeLayer(), see
 // overlays.js/edit.js/share.js/transport.js/account.js). Deliberately not
-// wired onto confirmOverlay/dupOverlay/dupScanOverlay/socialAuthOverlay/
+// wired onto confirmOverlay/dupScanOverlay/socialAuthOverlay/
 // socialNavOverlay -- those aren't in the plan's own named list, and an
 // accidental swipe dismissing a destructive confirmation or a duplicate-
-// scan screen would be a real regression, not a convenience.
+// scan screen would be a real regression, not a convenience. #dupOverlay
+// moved out of that list under LB1 (docs/36A_LIBRARY_AND_LAUNCH.md,
+// decision 1 point 4): "closing the sheet with × or by swiping down means
+// Skip all" is now the sheet's own explicit, non-destructive spec, not an
+// accident -- a dropped import can always be redone.
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { closeLayer } from '../shell/nav-stack.js';
@@ -21,6 +25,7 @@ const SHEETS = [
   { sheet: '#shareSheetBox', layer: 'share' },
   { sheet: '#sleepSheetBox', layer: 'sleep' },
   { sheet: '#recordSheetBox', layer: 'record-sheet' },
+  { sheet: '#dupSheetBox', layer: 'duplicate-prompt' },
 ];
 
 export function wireSwipeClose(){

@@ -257,3 +257,24 @@ input[type=file]{display:none}
 .liner-edit-source-file{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted-2)}
 #linerEditRevert{width:100%;text-align:center;margin-top:var(--sp-3)}
 
+/* LB1 (docs/36A_LIBRARY_AND_LAUNCH.md): the end-of-import duplicates
+   sheet, rebuilt on every open/view-change by library/duplicates-ui.js
+   (summary <-> review, same #dupHead/#dupBody pair). Rows reuse
+   #rowMenuOverlay's own .row-menu-cover/-text/-title/-sub (16-edit-
+   sheet.css above) -- same cover+title+subtitle shape, just stacked
+   instead of sitting beside a close button. */
+.dup-rows{display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-2)}
+.dup-row{display:flex;align-items:center;gap:var(--sp-3)}
+.dup-more{margin-top:var(--sp-2);text-align:center}
+.dup-actions .p-btn{width:100%}
+/* Same banner look as the queue's own undo toast (.queue-undo-toast,
+   above), fixed to the viewport instead of absolute-within-the-sheet --
+   this one is shown the instant the sheet closes (miziki.html's own
+   comment on #dupSkipToast explains why it can't be a child of the
+   overlay). "Skipped N you didn't review." never offers an undo, so it
+   has no second child to space away from the text. */
+.dup-skip-toast{position:fixed;left:20px;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));
+  z-index:130;display:flex;align-items:center;justify-content:center;
+  background:var(--cream);color:#1A1410;border-radius:var(--radius-control);padding:10px 14px;
+  font-size:var(--fs-caption)}
+
