@@ -576,4 +576,8 @@
 .gatefold .gf-play-record-btn{display:none}
 .gatefold.gf-wide .gf-play-record-btn{display:block;position:absolute;left:20px;top:620px;width:380px;
   min-height:44px;text-align:center;z-index:3}
+/* UN17.4: the secondary "Turn it over" button, same posture as the primary
+   Play button above -- hidden by default (phone/short viewports), shown
+   only in the desktop wide spread via 23-desktop.css's own override. */
+.gatefold .gf-turn-over-btn{display:none}
 
