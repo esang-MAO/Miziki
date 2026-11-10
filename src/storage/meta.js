@@ -158,6 +158,10 @@ function applyPrefs(p){
   if(p.shareFormatByCard) Object.assign(S.shareFormatByCard, p.shareFormatByCard);
   if(p.repeat && p.repeat !== S.repeat){ S.repeat = 'off'; for(let n=0;n<3 && S.repeat!==p.repeat;n++) cycleRepeat(); }
   if(p.shuffle && !S.shuffle) toggleShuffle();
+  // LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): no UI side effect of its own --
+  // runLaunchSequence() (src/launch/intro.js) is the only reader, at the
+  // next cold start.
+  if(typeof p.lastLaunchAt === 'number') S.lastLaunchAt = p.lastLaunchAt;
   // D2: theme has no dedicated UI side effect of its own here, the way
   // sleevePullEnabled/bgAudio do above -- applyTheme() is called
   // unconditionally below regardless of whether a saved value exists, so

@@ -437,6 +437,12 @@ S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, h
 // Launch intro (cold start only, on by default) — see the launch sequence section
 S.launchSeq = 0;
 S.launchIntro = true;
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): when the launch intro last played,
+// in epoch ms -- null means never (this device's first-ever cold start).
+// Device-only: a saved local pref like theme/deviceVolume, but stripped
+// from the uploaded backup copy (src/sync/backup.js) since it's a fact
+// about this device's own cold starts, not the account.
+S.lastLaunchAt = null;
 // Crate view: a second way to browse the library, beside the list (see
 // CRATE spec). libraryLayout/crateGroup/crateAnchor are persisted prefs;
 // `crate` itself is session-only render/gesture state, rebuilt on demand.

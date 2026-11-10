@@ -29,6 +29,7 @@ function fakeS(overrides = {}){
     deluxe: false,
     shelfFinish: 'walnut',
     turntable: 'standard',
+    lastLaunchAt: 1234567890,
   }, overrides);
 }
 
@@ -60,6 +61,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     deluxe: S.deluxe,
     shelfFinish: S.shelfFinish,
     turntable: S.turntable,
+    lastLaunchAt: S.lastLaunchAt,
   });
 });
 
@@ -570,6 +572,28 @@ test('old saved data: no zoetropesEnabled field at all leaves it out, so the def
 test('round trip: deluxe survives a non-default value', () => {
   const parsed = parsePrefs(serializePrefs(fakeS({ deluxe: true })));
   assert.equal(parsed.deluxe, true);
+});
+
+// LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): lastLaunchAt round-trip, old-data
+// default and bad-value coverage, the same three-test shape every other
+// field in this file already establishes. Device-only (stripped from the
+// uploaded backup copy in src/sync/backup.js, not here -- same as theme/
+// deviceVolume) doesn't change how it round-trips through a *local* save.
+test('round trip: lastLaunchAt survives a non-default value', () => {
+  const parsed = parsePrefs(serializePrefs(fakeS({ lastLaunchAt: 1700000000000 })));
+  assert.equal(parsed.lastLaunchAt, 1700000000000);
+});
+
+test('old saved data: no lastLaunchAt field at all leaves it out, so the default (null, "never") stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.lastLaunchAt;
+  const parsed = parsePrefs(raw);
+  assert.equal('lastLaunchAt' in parsed, false);
+});
+
+test('bad values are ignored: a non-numeric lastLaunchAt', () => {
+  const parsed = parsePrefs({ lastLaunchAt: 'yesterday' });
+  assert.equal('lastLaunchAt' in parsed, false);
 });
 
 test('old saved data: no deluxe field at all leaves it out, so the default (off) stays in place', () => {

@@ -217,6 +217,10 @@ function buildLocalState(){
       const p = serializePrefs(S);
       delete p.theme; delete p.slipmatCustom; delete p.slipmatWordmark; delete p.slipmatDim;
       delete p.deviceVolume;
+      // LA1 (docs/36A_LIBRARY_AND_LAUNCH.md): when the launch intro last
+      // played is a fact about this device's own cold starts, not the
+      // account -- same device-only carve-out as theme/deviceVolume above.
+      delete p.lastLaunchAt;
       return p;
     })(),
     profileName: S.profile.name || '',
