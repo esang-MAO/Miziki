@@ -62,7 +62,19 @@ export function openSearchField(){
   updateSearchChipsVisibility();
   openLayer('search-field', closeSearchField, { container: $('#hdrSearchRow') });
 }
+// UN5 point 2: Cancel and Escape both close this layer (Escape via
+// nav-stack's own global handler, bypassing wiring/search.js's Cancel
+// button listener entirely), so the query-clearing has to live here, not
+// just on the Cancel button, or Escape would leave the stale query (and
+// its filter chips) showing once the field closes. Clearing through a
+// dispatched `input` event -- rather than importing renderTracks and
+// risking a header.js <-> library/view.js import cycle -- reuses
+// wiring/search.js's own existing input listener, which already
+// schedules the redraw.
 export function closeSearchField(){
+  $('#librarySearch').value = '';
+  $('#hdrSearchClear').style.display = 'none';
+  $('#librarySearch').dispatchEvent(new Event('input', { bubbles: true }));
   updateHeaderActionsAvailability();
   $('#hdrSearchRow').style.display = 'none';
   $('#hdrSearchBtn').classList.remove('active');

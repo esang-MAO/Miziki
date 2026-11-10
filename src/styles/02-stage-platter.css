@@ -377,9 +377,17 @@
   stroke-linecap:round;stroke-linejoin:round}
 .rep-one{position:absolute;right:3px;bottom:2px;font-family:var(--body);font-size:var(--fs-caption);font-weight:600;
   background:var(--cream);color:#12100A;border-radius:2px;padding:0 2px;line-height:1.4}
-.movers{display:flex;gap:2px;flex:0 0 auto}
-.mv{width:28px;height:30px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
-  font-size:var(--fs-micro);letter-spacing:.10em;line-height:1}
+/* UN5 point 6: 28x30 -> 44x44 (both reorder contexts share moverCtl() --
+   library/view.js -- so this widens the one shared tap target rather
+   than forking it for the gatefold alone), plus a grip handle (decorative
+   only -- see the PR body: no drag gesture wired to it yet, just the
+   visual affordance the plan's own wording calls for alongside the
+   buttons, which stay the one accessible/keyboard path). */
+.movers{display:flex;align-items:center;gap:2px;flex:0 0 auto}
+.mv-grip{width:20px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--muted);
+  font-size:var(--fs-row);letter-spacing:.2em;cursor:grab}
+.mv{width:44px;height:44px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
+  font-size:var(--fs-row);letter-spacing:.10em;line-height:1}
 .mv:active{color:var(--paper);border-color:var(--paper)}
 /* RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
    Songs" — no hairline (point 2's "remove the hairlines between header

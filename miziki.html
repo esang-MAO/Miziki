@@ -116,14 +116,19 @@
 
   <!-- LIBRARY: landing route -->
   <section class="route on" id="route-library" role="main">
-    <div class="empty" id="empty">
-      <p>No music loaded yet</p>
-      <small>Choose FLAC, WAV, ALAC or MP3 files from this device, or drag them in. They stay on it — nothing is uploaded, and nothing is copied.</small>
-      <div class="stack" style="justify-content:center">
-        <button class="cta" id="pick">Choose files</button>
-        <button class="cta ghost" id="pickFolder">Choose folder</button>
-        <button class="cta ghost" id="tone">Play test tone</button>
+    <!-- UN5 point 1 (docs/36_UNIFORMITY.md): emptyNote()'s look, built
+         statically here (not via src/ui/parts.js's helper) so #pick/
+         #pickFolder/#tone keep the same ids src/wiring/import.js already
+         wires -- a plain markup swap, no JS/wiring change needed. -->
+    <div class="empty p-empty-note" id="empty">
+      <div class="p-empty-note-tape"></div>
+      <p class="p-empty-note-head">The crate is empty.</p>
+      <p class="p-empty-note-sub">Choose songs or a folder on this device. They stay here, nothing is uploaded or copied.</p>
+      <div class="p-empty-note-actions">
+        <button class="p-btn p-btn--primary" id="pick">Choose files</button>
+        <button class="p-btn" id="pickFolder">Choose folder</button>
       </div>
+      <button class="p-empty-note-link" id="tone" type="button">Play a test tone</button>
     </div>
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>

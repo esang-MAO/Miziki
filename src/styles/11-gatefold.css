@@ -117,10 +117,19 @@
    "picked" row reads the same whichever list it's in. */
 .gf-track-row.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
 .gf-track-row.picked .gf-tn::after{content:'✓';color:var(--on-dark);margin-left:2px}
-.gf-select-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
-  flex-wrap:wrap;margin-bottom:var(--sp-2);padding-bottom:var(--sp-2);border-bottom:1px solid var(--line)}
-.gf-select-count{font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
-.gf-select-bar-stack{display:flex;gap:var(--sp-2)}
+/* UN5 point 6: the Track order/Select mode bar -- label left, primary
+   Done right (gatefoldModeBar(), src/gatefold/view.js). */
+.gf-mode-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+  margin-bottom:var(--sp-3);padding-bottom:var(--sp-2);border-bottom:1px solid var(--line)}
+.gf-mode-bar .p-sheet-title{color:var(--on-dark)}
+/* Select's own Select all/Edit/Remove -- sticky to the bottom of this
+   panel's own scroll area (.gf-tracklist/.gf-flat-body are both already
+   overflow-y:auto), not the library's inline .select-bar look, since it
+   now reads as a bar of its own rather than a row among the settings. */
+.gf-select-actions{position:sticky; bottom:0; display:flex; gap:var(--sp-2);
+  margin-top:var(--sp-2); padding:var(--sp-3) 0 calc(var(--sp-3) + env(safe-area-inset-bottom));
+  background:linear-gradient(to top, #1C1226 60%, transparent)}
+.gf-select-actions .p-btn{flex:1}
 .gf-now-glyph{display:inline-block;width:10px}
 .gf-now-glyph span{display:inline-block;width:2px;background:var(--cream);margin-right:1px;
   animation:gfbar 1s ease-in-out infinite}

@@ -12,7 +12,9 @@ import { renderSocialSettingsScreen } from './settings.js';
 import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools, openLibraryToolsPanel } from '../shell/header.js';
-import { toggleRow, navRow } from '../ui/parts.js';
+import { toggleRow, navRow, emptyNote } from '../ui/parts.js';
+import { openLibraryCrate } from '../library/view.js';
+import { showRoute } from '../shell/routes.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
@@ -537,9 +539,11 @@ function renderListeningScreen(body){
   // shows its own ordinary state (including its own, more specific empty
   // copy).
   if(!albums.length && !tracks.length && !achList.length && !collList.length){
-    const empty = el('div','profile-empty profile-empty-first');
-    empty.appendChild(el('p', null, 'Play an album start to finish to earn your first metal.'));
-    wrap.appendChild(empty);
+    wrap.appendChild(emptyNote({
+      head: 'Nothing earned yet.',
+      sub: 'Play an album start to finish to earn your first metal.',
+      action: { label: 'Open the crate', onClick: () => { showRoute('library'); openLibraryCrate(); } },
+    }));
     body.appendChild(wrap);
     return;
   }

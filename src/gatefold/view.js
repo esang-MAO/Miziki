@@ -326,18 +326,31 @@ export function gatefoldSideWearShares(sides){
 // S.albumOrder[item.album] is kept in id form (same as S.albumSort's
 // lazy seeding in library/model.js's albumTracks()), touchBackupKey'd and
 // synced into the live queue when this album is what's playing.
+// UN5 point 6: Track order's and Select's shared mode-bar shape -- the
+// mode's own label, left, and a primary Done, right. sheetHeader() isn't
+// quite this (its right side is a × close icon, not a text "Done"), so
+// this is its own small builder rather than bending that one to fit.
+function gatefoldModeBar(label, onDone){
+  const bar = el('div','gf-mode-bar');
+  bar.appendChild(el('span','p-sheet-title', label));
+  const done = el('button','p-btn p-btn--primary','Done');
+  done.type = 'button';
+  done.addEventListener('click', onDone);
+  bar.appendChild(done);
+  return bar;
+}
+
 export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
   const host = document.createDocumentFragment();
   host.appendChild(el('p','gf-tl-head', item.artist));
   host.appendChild(el('h2','gf-tl-title', item.album));
   if(opts && opts.reorder){
     const album = item.album;
-    const bar = el('div','gf-reorder-bar');
-    bar.appendChild(el('span', null, 'Reordering tracks'));
-    const done = el('button','gf-reorder-done','Done');
-    done.addEventListener('click', gatefoldExitReorderMode);
-    bar.appendChild(done);
-    host.appendChild(bar);
+    // UN5 point 6: the mode bar's label + primary Done -- gf-reorder-bar/
+    // gf-reorder-done had no CSS of their own before this (plain unstyled
+    // text/button), so this is new, not a restyle of something that
+    // already looked like anything.
+    host.appendChild(gatefoldModeBar('Reordering tracks', gatefoldExitReorderMode));
     trackIdx.forEach((i, k) => {
       const fullPos = S.albumOrder[album].indexOf(idOf(i));
       const ctl = moverCtl(S.albumOrder[album], fullPos, ord => {
@@ -351,34 +364,41 @@ export function buildGatefoldTracklist(item, trackIdx, playHandler, opts){
   }
   // GF15: "Select" -- a flat list, same reasoning as Track order's own
   // flattening just above (a batch selection spanning sides doesn't need
-  // the side splits at all), with a bar of its own (count + Edit/Remove/
-  // Done) standing in for the library header's own #selectBar, which
-  // sits behind the gatefold and so can't be reused directly.
+  // the side splits at all).
+  // UN5 point 6: the top bar is now just the mode label + primary Done
+  // (gatefoldModeBar, shared with Track order above); Select all/Edit/
+  // Remove move to a bottom bar, sticky to the bottom of this panel's own
+  // scroll area (.gf-tracklist/.gf-flat-body, both already overflow-y:
+  // auto) -- as close to "a bar above the mini-player" as this gatefold
+  // can safely get: the panel sits inside a 3D-transformed stage
+  // (.gf-camera/.gf-right, 11-gatefold.css), so a true position:fixed
+  // bar would be pinned to that transform's own box, not the viewport,
+  // and never actually reach above the real mini-player. Flagged in the
+  // PR body.
   if(opts && opts.select){
-    const bar = el('div','gf-select-bar');
-    bar.appendChild(el('span','gf-select-count', GF.selection.size + ' selected'));
-    const stack = el('div','gf-select-bar-stack');
+    host.appendChild(gatefoldModeBar(GF.selection.size + ' selected', gatefoldExitSelectMode));
+    trackIdx.forEach((i, k) => {
+      host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler, null, true));
+    });
+    const bar = el('div','gf-select-actions');
     // GF16 (Ken, 2026-11-06): the library's own select bar has a Select
     // all/Select none toggle (library/view.js's selectAllVisible()) --
     // this mirrors it for the gatefold's own GF.selection, scoped to this
     // album's trackIdx rather than the library's visibleTrackIds().
     const allPicked = trackIdx.length > 0 && trackIdx.every(i => GF.selection.has(S.tracks[i].id));
-    const allBtn = el('button','cta ghost small', allPicked ? 'Select none' : 'Select all');
+    const allBtn = el('button','p-btn', allPicked ? 'Select none' : 'Select all');
+    allBtn.type = 'button';
     allBtn.addEventListener('click', () => gatefoldToggleSelectAll(trackIdx));
-    const editBtn = el('button','cta small','Edit');
+    const editBtn = el('button','p-btn','Edit');
+    editBtn.type = 'button';
     editBtn.disabled = GF.selection.size === 0;
     editBtn.addEventListener('click', gatefoldSelectEdit);
-    const removeBtn = el('button','cta ghost small','Remove');
+    const removeBtn = el('button','p-btn p-btn--danger','Remove');
+    removeBtn.type = 'button';
     removeBtn.disabled = GF.selection.size === 0;
     removeBtn.addEventListener('click', gatefoldSelectDelete);
-    const done = el('button','cta ghost small','Done');
-    done.addEventListener('click', gatefoldExitSelectMode);
-    stack.appendChild(allBtn); stack.appendChild(editBtn); stack.appendChild(removeBtn); stack.appendChild(done);
-    bar.appendChild(stack);
+    bar.appendChild(allBtn); bar.appendChild(editBtn); bar.appendChild(removeBtn);
     host.appendChild(bar);
-    trackIdx.forEach((i, k) => {
-      host.appendChild(gatefoldTrackRow(i, k + 1, trackIdx, playHandler, null, true));
-    });
     return host;
   }
   // GS12 (docs/30_GROOVES_AND_SHELF.md): a sleeve note pinned to a track

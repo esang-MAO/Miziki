@@ -20,6 +20,7 @@ import { classifyDynamics, albumGainDb, formatGainDb } from '../audio/loudness.j
 import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { formatRecordName, formatSpeedText, RPM_45 } from '../record-art/format.js';
 import { persistAlbumLinerNote } from '../history/sessions.js';
+import { emptyNote } from '../ui/parts.js';
 
 const COMMENT_JUNK_RE = /^(ripped|encoded|exact audio copy|eac|cuetools|from musicbrainz)/i;
 const CREDIT_ROLE_BUCKETS = [['composers','Composer'],['lyricists','Lyricist'],['producers','Producer'],
@@ -164,7 +165,14 @@ export function renderCreditsSheet(t, host){
     host.appendChild(section);
   }
 
-  if(!host.children.length) host.appendChild(el('p','note','No notes or credits found in this file.'));
+  if(!host.children.length){
+    // UN5 point 1: emptyNote() only for the desktop side panel's own
+    // "Credits" tab (player-side-panel.js) -- the phone's #creditsOverlay
+    // sheet shares this same render function but isn't named in the
+    // plan's table, so it keeps its existing plain fallback copy/look.
+    if(host.id === 'playerSideBody') host.appendChild(emptyNote({ head: 'No credits.', sub: "These files don't carry any." }));
+    else host.appendChild(el('p','note','No notes or credits found in this file.'));
+  }
 }
 
 export function openCreditsSheet(t){
@@ -279,7 +287,10 @@ export function renderLinerNotes(host, album){
   const fmtLine = album ? albumFormatLine(album) : '';
   if(fmtLine) host.appendChild(el('p','credit-format-line', fmtLine));
   const text = album ? albumLinerNotes(album) : '';
-  host.appendChild(text ? el('p','credit-note', text) : el('p','note','No liner notes in these files.'));
+  // UN5 point 1: this tab has no phone call site -- it's the desktop side
+  // panel's own "Liner notes" tab (player-side-panel.js) -- so its one
+  // empty state can move onto emptyNote() unconditionally, no action.
+  host.appendChild(text ? el('p','credit-note', text) : emptyNote({ head: 'No liner notes.', sub: "These files don't carry any." }));
   const note = album ? albumDynamicsNote(album) : null;
   if(note) host.appendChild(buildDynamicsNoteEl(note));
 }

@@ -187,15 +187,20 @@ test('updateHomeTabVisibility: staying signed in and selected never redirects', 
   assert.equal(lastShowRouteCall, null);
 });
 
+// UN5 point 1: the sign-in card is now emptyNote() (src/ui/parts.js) --
+// a .p-empty-note card whose headline is its own <p>, not a reused
+// Profile-style <h3>, and whose action button sits inside a
+// .p-empty-note-actions wrapper rather than being the card's own direct
+// child.
 test('renderHome: signed out shows its own sign-in card, never builds the shell, never Profile\'s identity editor', async () => {
   resetHome({ social: { status(){ return { auth: 'signedOut' }; } } });
   await renderHome();
   assert.equal(homeBody.children.length, 2);
   assert.equal(homeBody.children[0].className, 'store-sign');
-  assert.equal(homeBody.children[1].className, 'store-open-card');
+  assert.equal(homeBody.children[1].className, 'p-empty-note');
   // Home's own card, not a reuse of Profile's -- no avatar/name editor and
   // no crate grid of this device's own records, just what the feed is for.
-  const heading = homeBody.children[1].children.find(c => c.tagName === 'H3');
+  const heading = homeBody.children[1].children.find(c => c.className === 'p-empty-note-head');
   assert.ok(heading, 'has its own heading');
   assert.match(heading.textContent, /friends/i);
 });
@@ -204,7 +209,8 @@ test('renderHome: needsProfile shows "Finish setup" instead of "Sign in"', async
   resetHome({ social: { status(){ return { auth: 'needsProfile' }; } } });
   await renderHome();
   const card = homeBody.children[1];
-  const btn = card.children.find(c => c.tagName === 'BUTTON');
+  const actions = card.children.find(c => c.className === 'p-empty-note-actions');
+  const btn = actions.children.find(c => c.tagName === 'BUTTON');
   assert.equal(btn.textContent, 'Finish setup');
 });
 

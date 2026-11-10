@@ -20,6 +20,7 @@ import { beginSocialSignIn } from '../../profile/settings.js';
 // out from under whoever was on it.
 import { showRoute } from '../../shell/routes.js';
 import { stickerBadge } from '../sticker.js';
+import { emptyNote } from '../../ui/parts.js';
 
 // RF7 (docs/12_REFINE.md) asks for "one card (what friends' crates are,
 // and a sign-in button)," not a copy of the Profile screen's own identity
@@ -27,18 +28,25 @@ import { stickerBadge } from '../sticker.js';
 // profile/storefront.js's renderLocalStorefront(): no avatar, no username,
 // no crate grid of this device's own records, just what the feed is for
 // and a way in.
+// UN5 point 1: the old dashed .store-open-card is now emptyNote() -- the
+// headline ("See what friends are spinning") and body copy are unchanged,
+// only the card's own look and action button move onto the shared part.
 function renderHomeSignInCard(host, authState){
   host.innerHTML = '';
+  // UN5 point 1: "the floating Refresh button goes" on signed-out Home --
+  // pull-to-refresh's own gesture stays (wirePullToRefresh, unrelated to
+  // this in-flow button), there's just nothing of this screen's own to
+  // refresh while signed out, so the keyboard-accessible button goes too.
+  const refreshBtn = host.parentElement && host.parentElement.querySelector('.route-refresh-btn');
+  if(refreshBtn) refreshBtn.style.display = 'none';
   host.appendChild(storeSign());
-  const card = el('div','store-open-card');
-  card.appendChild(el('h3', null, 'See what friends are spinning'));
-  card.appendChild(el('p', null, authState === 'needsProfile'
-    ? 'Finish setting up your crate to follow friends and see what they’re playing here.'
-    : 'Sign in to follow friends, see what they’re playing, and share your own crate.'));
-  const btn = el('button','cta', authState === 'needsProfile' ? 'Finish setup' : 'Sign in');
-  btn.addEventListener('click', beginSocialSignIn);
-  card.appendChild(btn);
-  host.appendChild(card);
+  host.appendChild(emptyNote({
+    head: 'See what friends are spinning',
+    sub: authState === 'needsProfile'
+      ? 'Finish setting up your crate to follow friends and see what they’re playing here.'
+      : 'Sign in to follow friends, see what they’re playing, and share your own crate.',
+    action: { label: authState === 'needsProfile' ? 'Finish setup' : 'Sign in', onClick: beginSocialSignIn },
+  }));
 }
 
 // The Home tab itself is gone outright while signed out, not just its
@@ -514,6 +522,8 @@ export async function renderHome(){
     return;
   }
   if(!homeShellBuilt){
+    const refreshBtn = container.parentElement && container.parentElement.querySelector('.route-refresh-btn');
+    if(refreshBtn) refreshBtn.style.display = '';
     buildHomeShell(container);
     homeShellBuilt = true;
     // cached feed shows synchronously -- "Loading..." only ever appears

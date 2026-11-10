@@ -20,11 +20,11 @@ export function wireSearch(){
 
   // header search icon / Cancel / × (S1 §2.1)
   $('#hdrSearchBtn').addEventListener('click', openSearchField);
+  // UN5 point 2: closeSearchField() (closeLayer's registered callback,
+  // also reached from Escape via nav-stack) now does the clearing itself,
+  // so Cancel is just the same close.
   $('#hdrSearchCancel').addEventListener('click', ()=>{
-    $('#librarySearch').value = '';
-    $('#hdrSearchClear').style.display = 'none';
     closeLayer('search-field');
-    renderTracks();
   });
   $('#hdrSearchClear').addEventListener('click', ()=>{
     $('#librarySearch').value = '';

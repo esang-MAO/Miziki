@@ -14,6 +14,7 @@ import { flowPose, flowZIndex } from './geometry.js';
 import { isAlbumSealed, buildSealOverlay, sealedQuietPlay } from '../library/sealed.js';
 import { thumbURL } from '../library/thumbs.js';
 import { setQueue } from '../player/queue.js';
+import { crateCountLabel } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { isLibraryRouteVisible } from '../shell/routes.js';
 import { openAddMenu } from '../shell/header.js';
@@ -246,7 +247,7 @@ function renderCrateFlat(host, model){
     const section = model.sections[activeIdx];
     const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
     const countEl = $('#crateRecordCount');
-    if(countEl) countEl.textContent = count + (count === 1 ? ' record' : ' records');
+    if(countEl) countEl.textContent = crateCountLabel(count, section);
   }
   renderList();
 }
@@ -509,7 +510,7 @@ export function renderCrate(host){
     const section = curSection();
     const count = model.items.slice(section.start, section.end).filter(it => it.type === 'rec').length;
     const countEl = $('#crateRecordCount');
-    if(countEl) countEl.textContent = count + (count === 1 ? ' record' : ' records');
+    if(countEl) countEl.textContent = crateCountLabel(count, section);
   }
   const nowPlayingBtn = el('button','crate-topbar');
   nowPlayingBtn.setAttribute('aria-label','Scroll to the album that is now playing');

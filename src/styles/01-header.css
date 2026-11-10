@@ -148,8 +148,18 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 /* FS6 (docs/25_FROM_SCRATCH.md point 1): 16px apart, same as the header's
    own icon-to-tab spacing, so the row reads as one evenly-spaced line. */
 .lib-tabs-group{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;min-width:0;min-height:32px;
-  overflow-x:auto;scrollbar-width:none}
+  overflow-x:auto;scrollbar-width:none;
+  /* UN5 point 4: a right-edge fade, the one visual cue that the row keeps
+     scrolling past what's shown -- harmless when everything already fits
+     (the gradient's hard edge then just sits past the last tab). */
+  -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+  mask-image:linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+}
 .lib-tabs-group::-webkit-scrollbar{display:none}
+/* UN5 point 4: 16px -> 12px once Larger text's own ~15% bump (00-base.css)
+   makes the row more likely to overflow -- the row already scrolls
+   sideways either way (above), this just buys back a little width first. */
+:root.larger-text .lib-tabs-group{gap:12px}
 /* TY2: Library header tabs (Songs/Crate/Artists/Playlists) -- Archivo,
    sentence case, baseline-aligned. FS2 (docs/25_FROM_SCRATCH.md): amber
    never signals state -- the active tab's underline is cream, not amber. */
