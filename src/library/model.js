@@ -4,8 +4,22 @@
    grouping, and track id/index lookups. No DOM, no storage: everything
    here reads only S.tracks and the small per-album prefs on S. */
 import { S } from '../state.js';
+import { letterKeyFor } from '../ui/letter-rail.js';
 
-export const byName = (a,b) => String(a).localeCompare(String(b), undefined, {sensitivity:'base', numeric:true});
+// Ken's 2026-11-10 call, resolving a judgment call flagged in LB7 (PR #436):
+// the letter rail (src/ui/letter-rail.js) always shows "#" after "Z", so the
+// real list order has to agree. A plain localeCompare({numeric:true}) would
+// put a digit-prefixed or otherwise unlettered name *before* "A" (digits
+// sort below letters), so anything letterKeyFor() buckets under '#' -- the
+// exact same rule the rail itself uses -- is pushed after every lettered
+// name first; within the same bucket (both lettered, or both '#') the
+// original natural compare still decides the order.
+export const byName = (a,b) => {
+  const hashA = letterKeyFor(a) === '#' ? 1 : 0;
+  const hashB = letterKeyFor(b) === '#' ? 1 : 0;
+  if(hashA !== hashB) return hashA - hashB;
+  return String(a).localeCompare(String(b), undefined, {sensitivity:'base', numeric:true});
+};
 
 export const trackSort = (a,b) => (S.tracks[a].tags.disc - S.tracks[b].tags.disc)
   || (S.tracks[a].tags.track - S.tracks[b].tags.track)
