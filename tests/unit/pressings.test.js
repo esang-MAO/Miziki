@@ -87,7 +87,7 @@ mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
   namedExports: { mostRecentlySpunAlbum(){ return null; }, lastSpunPhrase(){ return ''; }, crateFlatAlbumOrder(){ return []; } },
 });
 
-const { renderPressingCard, storeWallSection, storeStat } = await import('../../src/profile/storefront.js');
+const { renderPressingCard, storeWallSection, storeStat, wallFoundList, wallFoundCaption } = await import('../../src/profile/storefront.js');
 
 // friend-store.js's own pressingLineFor() — point 1's "Both Verdigris" /
 // "Yours: X · Friend's: Y" line, exercised against the real
@@ -386,4 +386,60 @@ test('WS1 point 4: zero picks shows one plain line, no ledge at all', () => {
   assert.equal(section.kids.find(k => k.className === 'store-wall-caption'), undefined);
   const line = section.kids.find(k => k.className === 'store-loading');
   assert.equal(line.textContent, 'Pin a record to put it on the wall.');
+});
+
+/* ---- UN14 (docs/36_UNIFORMITY.md point 2/3/5): the wall cubby's own
+   found-list cap (0/1/2/3/5 -> 0/1/2/3/3) and its caption text, both
+   extracted as pure functions (wallFoundList/wallFoundCaption) so they're
+   testable with no DOM or achievements.js involved. ---- */
+
+test('UN14 point 2: wallFoundList caps at 3 regardless of how many are found', () => {
+  for(const n of [0, 1, 2, 3, 5]){
+    const collection = {};
+    for(let i = 0; i < n; i++) collection['p' + i] = {id: 'p' + i, discoveredAt: i};
+    assert.equal(wallFoundList(collection, []).length, Math.min(n, 3), `${n} found -> ${Math.min(n, 3)} sections`);
+  }
+});
+
+test('UN14 point 2: wallFoundList sorts newest-first across pressings and metals together', () => {
+  const collection = {old: {id:'old', discoveredAt: 100}, new: {id:'new', discoveredAt: 300}};
+  const achievements = [{id:'mid', updatedAt: 200}];
+  const found = wallFoundList(collection, achievements);
+  assert.deepEqual(found.map(f => f.rec.id), ['new', 'mid', 'old']);
+});
+
+test('UN14 point 3: wallFoundCaption with a saved phase reads "PHASE · DATE"', () => {
+  const caption = wallFoundCaption('pressing', 'twilight', new Date('2026-11-09T12:00:00Z').getTime());
+  assert.equal(caption, 'DUSK · 9 NOV');
+});
+
+test('UN14 point 3: wallFoundCaption with no saved phase is just the date, never a leading "· "', () => {
+  const caption = wallFoundCaption('pressing', undefined, new Date('2026-11-09T12:00:00Z').getTime());
+  assert.equal(caption, '9 NOV');
+  assert.ok(!caption.startsWith('·'));
+});
+
+test('UN14 point 3: wallFoundCaption for a metal is unaffected (always has a phase-equivalent word)', () => {
+  const caption = wallFoundCaption('metal', undefined, new Date('2026-11-09T12:00:00Z').getTime());
+  assert.equal(caption, 'METAL · NOV');
+});
+
+test('UN14 point 5: storeWallSection with no found pressings/metals shows the muted empty line, no cubby', () => {
+  const section = storeWallSection([]);
+  assert.equal(section.kids.find(k => k.className === 'store-wall-frames-wrap'), undefined);
+  const lines = section.kids.filter(k => k.className === 'store-loading');
+  assert.ok(lines.some(l => l.textContent === 'Play an album start to finish…'));
+});
+
+test('UN14 point 5: storeWallSection renders exactly 3 frames when more than 3 are found', () => {
+  S.collection.a = {albumId:'a', variant:'oxblood', pattern:'solid', name:'A', discoveredAt: 500};
+  S.collection.b = {albumId:'b', variant:'oxblood', pattern:'solid', name:'B', discoveredAt: 400};
+  S.collection.c = {albumId:'c', variant:'oxblood', pattern:'solid', name:'C', discoveredAt: 300};
+  S.collection.d = {albumId:'d', variant:'oxblood', pattern:'solid', name:'D', discoveredAt: 200};
+  S.collection.e = {albumId:'e', variant:'oxblood', pattern:'solid', name:'E', discoveredAt: 100};
+  const section = storeWallSection([]);
+  const frames = section.kids.find(k => k.className === 'store-wall-frames-wrap')
+    .kids.find(k => k.className === 'store-wall-frames');
+  assert.equal(frames.kids.filter(k => k.className === 'store-pressing-frame').length, 3);
+  for(const id of ['a','b','c','d','e']) delete S.collection[id];
 });
