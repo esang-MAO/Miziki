@@ -14,6 +14,24 @@ test('byName compares case- and accent-insensitively, with natural number order'
   assert.ok(byName('Track 10', 'Track 2') > 0);
 });
 
+// Ken's 2026-11-10 call, resolving a judgment call flagged in LB7 (PR
+// #436): the letter rail always shows "#" after "Z" (36A decision 6), so
+// an unlettered name (digit-prefixed, or anything else letterKeyFor()
+// (src/ui/letter-rail.js) buckets under '#') must sort after every
+// lettered name here too, not before it the way plain localeCompare would.
+test('byName: an unlettered ("#"-bucketed) name sorts after every lettered name', () => {
+  assert.ok(byName('3 Doors Down', 'Air') > 0);
+  assert.ok(byName('Air', '3 Doors Down') < 0);
+  assert.ok(byName('Zeppelin', '3 Doors Down') < 0); // '#' sorts after Z, not before A
+  assert.ok(byName('3 Doors Down', 'Zeppelin') > 0);
+  const names = ['Zeppelin', '3 Doors Down', 'Air', '!!!', 'Beck'];
+  assert.deepEqual(names.slice().sort(byName), ['Air', 'Beck', 'Zeppelin', '!!!', '3 Doors Down']);
+});
+
+test('byName: two unlettered names still sort naturally against each other', () => {
+  assert.ok(byName('3 Doors Down', '10cc') < 0); // numeric:true keeps 3 < 10 within the '#' bucket
+});
+
 test('trackSort orders by disc, then track number, then title', () => {
   S.tracks = [
     track('a', { disc: 2, track: 1, title: 'Z' }),
