@@ -18,7 +18,7 @@ import { el } from '../util/dom.js';
 import { renderTurntable } from './turntable.js';
 import { stickerBadge } from '../social/sticker.js';
 import { loadImageEl, shareDominantColor, spineColor } from '../ui/art-color.js';
-import { albumPressingTrack, selectVariant, getVariantDef } from '../record-art/tiers.js';
+import { albumPressingTrack, selectVariant, getVariantDef, selectVariantForAlbum } from '../record-art/tiers.js';
 
 export const SHELF_UNIT_CUBES = 6;
 export const SHELF_UNIT_COLS = 2;
@@ -81,10 +81,22 @@ const SPINE_HEIGHT_DEFAULT = 88;
 // body, rim] (record-art/tiers.js's own F() comment); `body` is the one
 // meant to read as the pressing's base colour at a glance, same role
 // spineColor() gives a resolved cover tint.
-function pressingSpineColor(albumId){
-  const t = albumPressingTrack(albumId);
-  if(!t) return null;
-  try{ return getVariantDef(selectVariant(t)).colors[1]; }catch(_e){ return null; }
+// UN16 (docs/36_UNIFORMITY.md point 3): albumPressingTrack() only ever
+// searches this device's own S.tracks, so it silently returns null for
+// every friend's record (a friend's crate shelf items carry a release_id,
+// never a local track) -- the exact "their shelf looked empty" bug the
+// plan reports. `item.tier`/`item.artist`/`item.name`, when the caller
+// has them (loadFriendShelfUnit() attaches item.tier from the friend's
+// own crate_items.quality_tier), fall back to the same artist+title+tier
+// lookup CR11's pressingLineFor()/friendPressingSection() already use for
+// a friend's pressing -- never a new RPC, never a guess.
+function pressingSpineColor(item){
+  const t = albumPressingTrack(item.id);
+  if(t){ try{ return getVariantDef(selectVariant(t)).colors[1]; }catch(_e){ /* fall through */ } }
+  if(item.tier != null && item.artist && item.name){
+    try{ return getVariantDef(selectVariantForAlbum(item.artist, item.name, item.tier).variant).colors[1]; }catch(_e){ return null; }
+  }
+  return null;
 }
 
 // Dominant colour per album, worked out once and cached in memory only
@@ -154,13 +166,13 @@ function cubeSpine(item, onTapAlbum){
     // since been replaced by a re-render (cheap re-render beats a stale
     // write: 18-storefront.css reads --spine-color, so a late write to a
     // detached button just paints nothing anyone sees).
-    const fallback = pressingSpineColor(item.id);
+    const fallback = pressingSpineColor(item);
     if(fallback) sp.style.setProperty('--spine-color', fallback);
     resolveSpineColor(item.id, item.art).then(hex => {
       if(hex) sp.style.setProperty('--spine-color', hex);
     });
   } else {
-    const hex = pressingSpineColor(item.id);
+    const hex = pressingSpineColor(item);
     if(hex) sp.style.setProperty('--spine-color', hex);
   }
   return sp;
@@ -174,6 +186,20 @@ function cubeSpine(item, onTapAlbum){
 function cubeFace(item, onTapAlbum, stickers){
   const face = el('button', 'shelf-face');
   if(item.art){ const im = document.createElement('img'); im.src = item.art; im.alt = ''; face.appendChild(im); }
+  else {
+    // UN16 point 3: a friend's face-out cube with no local art — the same
+    // printed title card storefront.js's noArtCover() draws elsewhere,
+    // built locally (not imported) to avoid a new edge back to
+    // storefront.js, which already imports this module.
+    const cover = el('div','store-no-art-cover');
+    const hex = pressingSpineColor(item);
+    // backgroundColor, not the shorthand -- see storefront.js's noArtCover()
+    // for why (it would blank out the CSS scrim behind the text).
+    cover.style.backgroundColor = hex || 'var(--panel)';
+    cover.appendChild(el('span','store-no-art-title', item.name));
+    if(item.artist) cover.appendChild(el('span','store-no-art-artist', item.artist));
+    face.appendChild(cover);
+  }
   face.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
   face.addEventListener('click', () => onTapAlbum(item.id));
   if(stickers){

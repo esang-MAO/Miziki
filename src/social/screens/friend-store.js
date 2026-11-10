@@ -2,8 +2,8 @@ import { $, el } from '../../util/dom.js';
 import { S } from '../../state.js';
 import { crateFlatAlbumOrder } from '../../crate/model.js';
 import {
-  storeSign, storeStat, storePickTile, localAlbumArt, timeAgoShort,
-  renderStoreError, STORE_TIER_LABEL, renderPressingCard, storeShelvesSection,
+  storeStat, storePickTile, localAlbumArt, timeAgoShort, noArtCover,
+  renderStoreError, STORE_TIER_LABEL, renderPressingCard, storeShelvesSection, profileHeaderPlate,
 } from '../../profile/storefront.js';
 // ST6 (docs/32_SHELF_AND_TURNTABLES.md): the default crate view here is
 // now the same ST2 shelf unit the local profile home draws (renderShelfUnit()),
@@ -71,7 +71,11 @@ function renderSocialNavTop(){
   const top = socialNav[socialNav.length - 1];
   const body = $('#socialNavBody'); body.innerHTML = '';
   if(top.type === 'friendStore'){
-    $('#socialNavTitle').textContent = 'Browsing crate';
+    // UN16 (docs/36_UNIFORMITY.md point 2): the nav title no longer says
+    // "Browsing crate" -- the plate rendered into the body below (both
+    // renderLockedFriendStore() and renderFriendStoreContent()) already
+    // says whose crate this is.
+    $('#socialNavTitle').textContent = '';
     loadAndRenderFriendStore(body, top.handle);
   }
 }
@@ -84,7 +88,6 @@ async function loadAndRenderFriendStore(body, handle){
   body.appendChild(el('p','store-loading','Loading crate…'));
   const full = await MizikiSocial.loadProfile(handle);
   if(!full.ok){ renderStoreError(body, full.error, ()=>loadAndRenderFriendStore(body, handle)); return; }
-  $('#socialNavTitle').textContent = 'Browsing crate';
   body.innerHTML = '';
   if(!full.canView){ renderLockedFriendStore(body, full); return; }
   renderFriendStoreContent(body, full);
@@ -106,7 +109,7 @@ function friendStoreHeader(full, extraBtn){
 }
 
 function renderLockedFriendStore(body, full){
-  body.appendChild(storeSign(full.profile.handle));
+  body.appendChild(profileHeaderPlate(full.profile.handle));
   body.appendChild(friendStoreHeader(full));
   if(full.profile.bio) body.appendChild(el('p','store-bio', full.profile.bio));
 
@@ -169,7 +172,7 @@ function friendNowSpinningRow(full){
 // cover once it resolves, rather than blocking the row on the network.
 function friendPicksSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'in rotation'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'in rotation'));
   section.appendChild(head);
   const row = el('div','store-picks-row');
   full.staffPicks.forEach((p, i) => {
@@ -238,7 +241,7 @@ export function pressingLineFor(item, friendHandle){
 // RPC itself returns it in (001_schema.sql's records_in_common).
 function friendInCommonSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'You both have'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'You both have'));
   section.appendChild(head);
   section.appendChild(storeRuleCaption('Records in both your crates, ' + full.inCommon.length + ' total.'));
   const grid = el('div','store-crate-grid');
@@ -248,6 +251,8 @@ function friendInCommonSection(full){
     const art = localAlbumArt(item.title, item.artist);
     const cover = el('div','store-crate-cover');
     if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    else cover.appendChild(noArtCover(item.title, item.artist,
+      item.their_quality_tier != null ? item.their_quality_tier : item.my_quality_tier));
     cell.appendChild(cover);
     cell.appendChild(el('div','store-crate-name', item.title));
     cell.appendChild(el('div','store-crate-artist', item.artist));
@@ -262,12 +267,22 @@ function friendInCommonSection(full){
 
 function friendFreshSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Fresh for you'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'Fresh for you'));
   section.appendChild(head);
   section.appendChild(storeRuleCaption(freshCaption(full.profile.handle)));
   full.fresh.forEach(item => {
     const row = el('div','store-fresh-row');
     row.dataset.releaseId = item.release_id;
+    // UN16 point 3: "Fresh for you" rows showed no cover at all -- the
+    // same no-art fallback every other friend-record site gets, art when
+    // the viewer happens to already have this one locally (unusual, since
+    // "fresh" means not yet in this device's crate), otherwise the
+    // printed title card.
+    const cover = el('div','store-fresh-cover');
+    const art = localAlbumArt(item.title, item.artist);
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    else cover.appendChild(noArtCover(item.title, item.artist, item.quality_tier));
+    row.appendChild(cover);
     const text = el('div','store-fresh-text');
     text.appendChild(el('b', null, item.title));
     text.appendChild(el('em', null, item.artist));
@@ -305,11 +320,18 @@ function friendFreshSection(full){
 
 function friendDiggingPreview(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Digging list'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'Digging list'));
   section.appendChild(head);
   full.digging.forEach(item => {
     const row = el('div','store-dig-row');
-    row.appendChild(el('div','store-dig-cover'));
+    // UN16 point 3: the digging-list RPC (003_digging.sql) carries no
+    // quality_tier at all -- the fallback cover below just reads as a
+    // plain muted card rather than a wrong pressing colour.
+    const cover = el('div','store-dig-cover');
+    const art = localAlbumArt(item.title, item.artist);
+    if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    else cover.appendChild(noArtCover(item.title, item.artist, null));
+    row.appendChild(cover);
     const text = el('div','store-dig-text');
     text.appendChild(el('b', null, item.title));
     text.appendChild(el('em', null, item.artist));
@@ -342,7 +364,10 @@ function friendHeldStack(hold){
   hold.releases.slice(0, 3).forEach(r => {
     const sleeve = el('div','held-sleeve' + (r.handed_back ? ' handed-back' : ''));
     const art = localAlbumArt(r.title, r.artist);
+    // UN16 point 3: held_for_me() (migration 025) carries no quality_tier
+    // either -- same muted-card fallback as the digging list above.
     if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; sleeve.appendChild(im); }
+    else sleeve.appendChild(noArtCover(r.title, r.artist, null));
     stack.appendChild(sleeve);
   });
   return stack;
@@ -351,7 +376,7 @@ function friendHeldStack(hold){
 function friendHeldSection(full){
   if(!full.heldForYou || !full.heldForYou.length) return null;
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Held for you'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'Held for you'));
   section.appendChild(head);
   full.heldForYou.forEach(hold => {
     const card = el('div','store-card held-card');
@@ -500,7 +525,7 @@ function loadFriendShelfUnit(full, holder){
     const pinIds = full.staffPicks.map(p => p.release_id);
     const faceOutIds = pinIds.slice(3, 5);
     const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
-      art: localAlbumArt(item.title, item.artist)}));
+      art: localAlbumArt(item.title, item.artist), tier: item.quality_tier}));
     const truncated = shelfUnitCubes(shelfItems, faceOutIds).length > SHELF_UNIT_CUBES
       || items.length < full.summary.records;
     // CC3 (docs/34_CARE_AND_CONTROL.md): "a friend's crate shelves and
@@ -541,7 +566,7 @@ function loadFriendCrateGrid(full, holder){
     const items = (r.ok && r.items) || [];
     const pinIds = full.staffPicks.map(p => p.release_id);
     const shelfItems = items.map(item => ({id: item.release_id, name: item.title, artist: item.artist,
-      art: localAlbumArt(item.title, item.artist)}));
+      art: localAlbumArt(item.title, item.artist), tier: item.quality_tier}));
     const faceOutIds = pinIds.slice(3, 5);
     const stickers = faceOutIds.length
       ? (await MizikiSocial.friendsStickerCounts(faceOutIds)).counts || {}
@@ -568,7 +593,7 @@ function friendCrateSection(full){
 // purely to derive each item's pressing locally — no new RPC needed.
 function friendPressingSection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Pressings'));
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'Pressings'));
   section.appendChild(head);
   const holder = el('div');
   holder.appendChild(el('p','store-loading','Loading…'));
@@ -589,7 +614,9 @@ function friendPressingSection(full){
 
 function friendActivitySection(full){
   const section = el('div','store-section');
-  const head = el('div','store-section-head'); head.appendChild(el('h2', null, 'Recently at the counter'));
+  // UN16 point 2: "Counter" is store language, and the crate isn't a
+  // store (Nov decision).
+  const head = el('div','store-section-head'); head.appendChild(el('h2', 'p-label', 'Lately'));
   section.appendChild(head);
   const holder = el('div');
   holder.appendChild(el('p','store-loading','Loading…'));
@@ -604,7 +631,7 @@ function friendActivitySection(full){
 }
 
 function renderFriendStoreContent(body, full){
-  body.appendChild(storeSign(full.profile.handle));
+  body.appendChild(profileHeaderPlate(full.profile.handle));
   const share = el('button','store-share-icon','↗');
   share.setAttribute('aria-label','Share this crate');
   share.addEventListener('click', ()=> shareFriendStore(full.profile.handle));
