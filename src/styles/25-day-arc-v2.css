@@ -119,7 +119,7 @@
   font-family:var(--body); font-size:var(--fs-caption); letter-spacing:0;
   color:var(--muted); margin-bottom:14px;
 }
-.sd-event-row em{ color:var(--cream); font-style:normal; font-weight:600; }
+.sd-event-row em{ color:var(--paper); font-style:normal; font-weight:600; }
 
 /* FS12 point 2: the kicker row -- #sundownEyebrow (restyled above) on its
    own line, then the big Antonio phase word with the trend/rate readout
@@ -194,7 +194,7 @@
    by dial-view.js's renderDialView(), the same "repaint reflects state"
    shape every other readout on this view already uses. */
 .sd-now-btn.previewing{
-  background:var(--cream); border-color:var(--cream); color:var(--on-accent);
+  background:var(--paper); border-color:var(--paper); color:var(--on-accent);
 }
 
 @media (min-width:1024px){
@@ -301,7 +301,7 @@
   display:flex; flex-direction:column; gap:2px; text-align:left;
   font-family:inherit; color:inherit; min-height:44px; cursor:pointer;
 }
-.sd-charcard[aria-expanded="true"]{ border-color:var(--cream); }
+.sd-charcard[aria-expanded="true"]{ border-color:var(--paper); }
 .sd-charcard-label{
   margin:0; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted);
@@ -346,7 +346,7 @@
   font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.02em;
   cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none;
 }
-.sd-audition-btn[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); border-color:var(--cream); }
+.sd-audition-btn[aria-pressed="true"]{ background:var(--paper); color:var(--on-accent); border-color:var(--paper); }
 .sd-audition-pure{
   align-self:stretch; width:100%; text-align:center; margin:0 0 18px; padding:10px;
 }
@@ -377,7 +377,7 @@
    reading as part of the sentence above it rather than its own block. */
 .sd-info{ display:inline; }
 .sd-info summary{
-  display:inline; cursor:pointer; color:var(--cream); list-style:none;
+  display:inline; cursor:pointer; color:var(--paper); list-style:none;
 }
 .sd-info summary::-webkit-details-marker{ display:none; }
 .sd-info[open] summary{ margin-right:var(--sp-1); }

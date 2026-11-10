@@ -57,7 +57,7 @@
    for a FRIEND's own storefront (social/screens/friend-store.js, outside
    this PR's scope) -- FS7 only restyles this own crate's three states,
    which now use the classes below instead. */
-.store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--cream)}
+.store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--paper)}
 .store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:var(--fs-caption);color:var(--muted)}
 /* FS7 (docs/25_FROM_SCRATCH.md point 3): "display name Archivo 20/600" --
@@ -98,7 +98,7 @@
    deliberate half-step between --fs-caption and --fs-body (the plan's own
    number), not a token. */
 .store-stat span{font-family:var(--body);font-size:13px;color:var(--muted)}
-.store-stat.accent b{color:var(--cream)}
+.store-stat.accent b{color:var(--paper)}
 
 /* RF11 (docs/12_REFINE.md, point 1): the one row every storefront state
    links into the new routed Listening screen (top album/song, metals,
@@ -119,7 +119,7 @@
 
 .store-section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 0}
 .store-section-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.03em;text-transform:uppercase}
-.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--cream);
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--paper);
   letter-spacing:.08em;text-transform:uppercase;padding:var(--sp-3) 0 var(--sp-3) var(--sp-3);min-height:44px}
 
 /* RF20 point 4: one line under a rule-chosen list (Fresh for you, You both
@@ -133,7 +133,7 @@
 .store-pick-cover{width:132px;height:132px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--cream)}
+  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--on-dark)}
 /* CC3 (docs/34_CARE_AND_CONTROL.md): a 132px cover is too narrow for the
    tier chip (top-left) and the friends sticker (crate-sticker's own
    top-right) to both fit without overlapping -- bottom-right instead,
@@ -172,7 +172,7 @@
 .store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-dig-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-dig-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
-.store-dig-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--cream)}
+.store-dig-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--paper)}
 .store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--cream);background:var(--cream);
   color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
 
@@ -211,7 +211,7 @@ button.pressing-chip{cursor:pointer}
 
 /* CR11 point 1-2: the in-common pressing line and the record sheet's own
    pressing name/note/diff. */
-.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--cream);
+.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--paper);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .record-pressing-name{margin-top:var(--sp-2);font-weight:600;font-size:var(--fs-body)}
 .record-pressing-note{margin:2px 0 0;font-size:var(--fs-caption);color:var(--muted)}
@@ -362,7 +362,7 @@ button.pressing-chip{cursor:pointer}
 .store-found-mono{font-family:var(--data) !important;font-size:var(--fs-micro) !important;letter-spacing:.08em;text-transform:uppercase;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-wall-all{display:block;background:none;border:0;
-  font-family:var(--data);font-size:var(--fs-label);color:var(--cream);letter-spacing:.08em;text-transform:uppercase;
+  font-family:var(--data);font-size:var(--fs-label);color:var(--paper);letter-spacing:.08em;text-transform:uppercase;
   text-align:right;padding:var(--sp-2) 0;min-height:44px}
 
 /* GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
@@ -410,7 +410,7 @@ button.pressing-chip{cursor:pointer}
   --wood-line:rgba(28,14,6,.45);--wood-line2:rgba(140,96,60,.28);
   --wood-back:#2E1D11;--wood-top:#7C5838;--wood-plinth:#2A1A0F;
   position:relative;width:100%;max-width:342px;margin:0 auto;aspect-ratio:342/640;
-  font-family:var(--body);color:var(--cream)}
+  font-family:var(--body);color:var(--on-dark)}
 /* ST3: the other four finishes -- same table, ShelfUnit.dc.html's F. */
 .shelf-unit[data-finish="oak"]{--wood-base:#B8894F;--wood-hi:#CC9F63;--wood-lo:#9F7340;
   --wood-line:rgba(96,60,24,.34);--wood-line2:rgba(240,200,140,.30);
@@ -723,7 +723,7 @@ button.pressing-chip{cursor:pointer}
 .shelf-finish-sw{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;min-height:44px}
 .shelf-finish-chip{display:block;width:44px;height:44px;border-radius:50%;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,0,0,.45),0 0 0 1px rgba(239,233,223,.18)}
-.shelf-finish-sw.selected .shelf-finish-chip{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,0,0,.45),0 0 0 2px var(--cream)}
+.shelf-finish-sw.selected .shelf-finish-chip{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(0,0,0,.45),0 0 0 2px var(--ring)}
 .shelf-finish-sw-label{font-size:var(--fs-body);color:var(--muted)}
 .shelf-finish-sw.selected .shelf-finish-sw-label{color:var(--paper)}
 .shelf-finish-sw-tag{font-family:var(--data);font-size:10px;color:#14110F;background:var(--stock-card);padding:1px 5px;border-radius:4px;margin-top:-2px}
@@ -740,7 +740,7 @@ button.pressing-chip{cursor:pointer}
    ring, same rule as shelf finish. */
 .turntable-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-3)}
 .turntable-pick-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:var(--sp-2);border-radius:var(--radius-card)}
-.turntable-pick-tile.selected{box-shadow:0 0 0 2px var(--cream)}
+.turntable-pick-tile.selected{box-shadow:0 0 0 2px var(--ring)}
 .turntable-pick-swatch{display:block;width:100%;aspect-ratio:200/112;position:relative;border-radius:var(--radius-control);overflow:hidden;background:var(--stock-card)}
 .turntable-pick-swatch .tt{width:100%;height:100%}
 .turntable-pick-label{font-size:var(--fs-body);color:var(--muted)}

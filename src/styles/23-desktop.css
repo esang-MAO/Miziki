@@ -104,7 +104,7 @@
      here to hide. */
   .tabbar-btn:hover svg,.tabbar-btn:focus-visible svg{color:var(--paper)}
   .tabbar-btn[aria-selected="true"]:hover svg,
-  .tabbar-btn[aria-selected="true"]:focus-visible svg{color:var(--cream)}
+  .tabbar-btn[aria-selected="true"]:focus-visible svg{color:var(--paper)}
 
   /* the playlists list and Sundown card need real width for their own
      text — cut below 1280px rather than crammed into a 76px icon rail,
@@ -155,14 +155,14 @@
   body:has(#playerOverlay.open) .mini-player .mini-bar-modes,
   body:has(#playerOverlay.open) .mini-player #miniQueueBtn{display:none}
 
-  .mini-bar-volume{display:block;flex:0 0 90px;width:90px;margin:0;accent-color:var(--cream)}
+  .mini-bar-volume{display:block;flex:0 0 90px;width:90px;margin:0;accent-color:var(--paper)}
 
   .mini-bar-btn{
     display:grid;place-content:center;width:40px;height:40px;
     border:1px solid var(--line);border-radius:50%;background:transparent;
     color:var(--paper);font-size:var(--fs-caption);cursor:pointer;
   }
-  .mini-bar-btn:hover,.mini-bar-btn:focus-visible{border-color:var(--cream);color:var(--cream)}
+  .mini-bar-btn:hover,.mini-bar-btn:focus-visible{border-color:var(--paper);color:var(--paper)}
 
   .mini-bar-seek{display:flex;align-items:center;gap:var(--sp-2);flex:1 1 auto;min-width:0;max-width:480px}
   .mini-bar-time{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--muted);flex:0 0 auto}

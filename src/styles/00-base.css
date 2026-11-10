@@ -2,6 +2,11 @@
   --sky1:#1D2F38; --sky2:#101A20; --sky3:#07080C;
   --paper:#EFE9DF;
   --cream:#EFE9DF;
+  /* UN1 (docs/36_UNIFORMITY.md): named cream, for text on a surface
+     that's dark in both themes (gatefold panel, record label/stickers,
+     the shelf unit's wood) -- same value in dark and light, unlike
+     --paper/--cream above which flip in light theme. */
+  --on-dark:#EFE9DF;
   /* FS1 (docs/25_FROM_SCRATCH.md): warm neutrals -- muted text comes from
      the warm black/paper family, not blue-grey. #94A0A6 -> #ABA298. */
   --muted:#ABA298;
@@ -17,6 +22,12 @@
      shared rule). */
   --muted-2:#9A9187;
   --line:rgba(239,233,223,.14);
+  /* UN1 (docs/36_UNIFORMITY.md): solid rings/dots that sit on the theme
+     background (a selected card's outline, a flip dot, a progress
+     track's unfilled portion) -- were a fixed cream/rgba(239,233,223,…)
+     literal, invisible in light theme. Each theme redefines these. */
+  --ring:rgba(239,233,223,.32);
+  --dot:rgba(239,233,223,.3);
   /* RF14 (docs/12_REFINE.md, point 4): "sky, panel and raised read as
      three levels" -- .42 -> .55.
      FS1: lifted onto a warm base (12,10,9) instead of the sky's own

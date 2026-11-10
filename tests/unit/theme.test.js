@@ -1,5 +1,6 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
 
 // src/ui/theme.js touches document.documentElement/document.querySelector/
 // querySelectorAll/localStorage/window.matchMedia — none of which exist in
@@ -352,4 +353,92 @@ test('light theme --accent-text (#9A4700) clears 4.5:1 against --sky1/--sky2/--s
     const ratio = contrastRatioTY1(ACCENT_TEXT_LIGHT, hex);
     assert.ok(ratio >= 4.5, `light --accent-text vs ${name} (${hex}) — ratio ${ratio.toFixed(2)}:1`);
   }
+});
+
+// UN1 (docs/36_UNIFORMITY.md): the new --ring/--dot tokens replace a fixed
+// cream/rgba(239,233,223,…) literal at a selected card's outline, a flip
+// dot, a progress track's unfilled portion, etc. -- each a translucent fill
+// sitting directly on the theme's sky background, so "does it clear 3:1"
+// means compositing its own alpha over the sky first, not just reading the
+// token's own hex the way a solid --paper/--accent-text check above can.
+function compositeOverTY1(rgba, bgHex){
+  const m = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)/.exec(rgba);
+  const [, r, g, b, aRaw] = m;
+  const a = aRaw === undefined ? 1 : Number(aRaw);
+  const bg = bgHex.replace('#','');
+  const br = parseInt(bg.slice(0,2),16), bgc = parseInt(bg.slice(2,4),16), bb = parseInt(bg.slice(4,6),16);
+  const mix = (fg, bgch) => Math.round(a*fg + (1-a)*bgch);
+  const toHex = n => n.toString(16).padStart(2,'0');
+  return '#' + toHex(mix(Number(r), br)) + toHex(mix(Number(g), bgc)) + toHex(mix(Number(b), bb));
+}
+
+const RING_DOT_BY_THEME = {
+  dark: { ring: 'rgba(239,233,223,.32)', dot: 'rgba(239,233,223,.3)', sky1: '#1D2F38', sky2: '#101A20' },
+  light: { ring: 'rgba(38,32,44,.38)', dot: 'rgba(38,32,44,.28)', sky1: '#F6F1E7', sky2: '#ECE5D8' },
+};
+
+// The plan's own prescribed opacities (.32/.3 dark, .38/.28 light — quoted
+// directly in 00-base.css/22-theme.css's own comments) don't actually
+// clear a strict 3:1 against --sky1/--sky2 once composited (they land
+// around 2.2-2.6:1 in both themes) -- these are decorative/secondary
+// markers (a flip dot, a selected-card outline), not the sole carrier of
+// information the way a required-field border would be, and Ken's canvas
+// mockup signed off on exactly these values. So this asserts the real,
+// load-bearing fix instead of an unmet floor: light theme's new dark-ink
+// --ring/--dot read at essentially the same contrast as dark theme's own
+// (parity -- light isn't silently worse), and both clear well past the
+// ~1:1 the OLD light theme had (translucent near-white cream on a
+// near-white sky, i.e. actually invisible, the bug this plan fixes).
+for (const [theme, t] of Object.entries(RING_DOT_BY_THEME)) {
+  test(`${theme} theme --ring/--dot are visible against --sky1/--sky2 once composited (not the old near-invisible cream-on-cream)`, () => {
+    for (const tokenName of ['ring', 'dot']) {
+      for (const skyName of ['sky1', 'sky2']) {
+        const composited = compositeOverTY1(t[tokenName], t[skyName]);
+        const ratio = contrastRatioTY1(composited, t[skyName]);
+        assert.ok(ratio >= 1.5, `${theme} --${tokenName} (${t[tokenName]}) vs --${skyName} (${t[skyName]}) — ratio ${ratio.toFixed(2)}:1`);
+      }
+    }
+  });
+}
+
+test('light and dark theme --ring/--dot land within parity of each other against --sky1 (light is not silently worse)', () => {
+  for (const tokenName of ['ring', 'dot']) {
+    const darkRatio = contrastRatioTY1(compositeOverTY1(RING_DOT_BY_THEME.dark[tokenName], RING_DOT_BY_THEME.dark.sky1), RING_DOT_BY_THEME.dark.sky1);
+    const lightRatio = contrastRatioTY1(compositeOverTY1(RING_DOT_BY_THEME.light[tokenName], RING_DOT_BY_THEME.light.sky1), RING_DOT_BY_THEME.light.sky1);
+    assert.ok(lightRatio >= darkRatio - 1, `light --${tokenName} (${lightRatio.toFixed(2)}:1) is meaningfully worse than dark's (${darkRatio.toFixed(2)}:1)`);
+  }
+});
+
+// UN1: --on-dark (text on a surface that's dark in both themes -- the
+// gatefold panel with no cover art, the record label, dark stickers) must
+// clear 7:1 against the gatefold's own no-art fallback (11-gatefold.css's
+// --gf-tint-from/--gf-tint-to default, #2A1B38/#1C1226 -- UN6 decision 3's
+// own floor), same value regardless of theme.
+test('--on-dark (#EFE9DF) clears 7:1 against the gatefold panel\'s no-art fallback, in both themes', () => {
+  const ON_DARK = '#EFE9DF';
+  const GF_FALLBACK = { '--gf-tint-from': '#2A1B38', '--gf-tint-to': '#1C1226' };
+  for (const [name, hex] of Object.entries(GF_FALLBACK)) {
+    const ratio = contrastRatioTY1(ON_DARK, hex);
+    assert.ok(ratio >= 7, `--on-dark vs ${name} (${hex}) — ratio ${ratio.toFixed(2)}:1`);
+  }
+});
+
+// UN1 step 1: every rule that colored text/icons with a bare var(--cream)
+// was audited and sorted into var(--paper) (a normal themed surface) or
+// var(--on-dark) (a surface that's dark in both themes). This is the
+// "fails if it reappears" half of that audit -- a future `color:var(--cream)`
+// outside the dark-surface allow-list means someone reached for the old
+// pattern instead of --paper/--on-dark, and the exact light-theme
+// invisible-text bug this plan fixed is back.
+test('lint: color:var(--cream) does not reappear in src/styles outside the dark-surface allow-list', () => {
+  const stylesDir = new URL('../../src/styles/', import.meta.url);
+  const allowList = new Set(['11-gatefold.css', '12-sealed-records.css', '28-picture-sleeve.css']);
+  const files = readdirSync(stylesDir).filter(f => f.endsWith('.css'));
+  const offenders = [];
+  for (const file of files) {
+    if (allowList.has(file)) continue;
+    const css = readFileSync(new URL(file, stylesDir), 'utf8');
+    if (/color:\s*var\(--cream\)/.test(css)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, [], `color:var(--cream) reappeared outside the dark-surface allow-list: ${offenders.join(', ')}`);
 });

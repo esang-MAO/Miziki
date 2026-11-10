@@ -15,5 +15,5 @@ button{font-family:var(--body);color:var(--paper);background:none;border:0;curso
 .tbtn:active{background:rgba(255,255,255,.09)}
 /* point 5: a 64px outlined circle, 1.5px cream (was 60px/1px via .tbtn's
    own border-width). */
-.play{width:64px;height:64px;border-width:1.5px;border-color:var(--cream);color:var(--cream);font-size:var(--fs-title);transition:color .5s,border-color .5s}
+.play{width:64px;height:64px;border-width:1.5px;border-color:var(--paper);color:var(--paper);font-size:var(--fs-title);transition:color .5s,border-color .5s}
 
