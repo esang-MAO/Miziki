@@ -17,10 +17,91 @@
 import { el } from '../util/dom.js';
 import { renderTurntable } from './turntable.js';
 import { stickerBadge } from '../social/sticker.js';
+import { loadImageEl, shareDominantColor, spineColor } from '../ui/art-color.js';
+import { albumPressingTrack, selectVariant, getVariantDef } from '../record-art/tiers.js';
 
 export const SHELF_UNIT_CUBES = 6;
 export const SHELF_UNIT_COLS = 2;
 const CUBE_CAPACITY = 10;
+
+// UN15 point 3 ("rows that grow"): the unit no longer pads a short crate
+// out to a fixed 6-cube/3-row box -- it renders 1-3 rows, however many the
+// crate actually needs. These four pixel constants are a straight read of
+// the design's own fixed 342x640 mock (docs/design/shelf-turntables/
+// ShelfUnit.dc.html): a 138px top zone (turntable deck, top plank, top
+// full-rail) and a 32px bottom zone (bottom rail 14px + plinth 10px + the
+// floor-shadow's own 8px of headroom below the plinth) are the same at
+// every row count: 138 + 3*150 + 2*10 + 32 = 640, matching the mock
+// exactly. Only the row/rail content between them grows or shrinks.
+const SHELF_TOP_ZONE_PX = 138;
+const SHELF_ROW_PX = 150;
+const SHELF_RAIL_PX = 10;
+const SHELF_BOTTOMRAIL_PX = 14;
+const SHELF_PLINTH_PX = 10;
+const SHELF_BOTTOM_ZONE_PX = 32; // bottomrail 14 + plinth 10 + floor-shadow headroom 8
+
+export function shelfUnitRows(cubesNeeded){
+  return Math.max(1, Math.min(3, Math.ceil((cubesNeeded || 0) / SHELF_UNIT_COLS)));
+}
+
+function shelfUnitContentPx(rows){
+  return rows * SHELF_ROW_PX + (rows - 1) * SHELF_RAIL_PX;
+}
+
+function shelfUnitTotalPx(rows){
+  return SHELF_TOP_ZONE_PX + shelfUnitContentPx(rows) + SHELF_BOTTOM_ZONE_PX;
+}
+
+// UN15 point 1 (bug): storefront.js's shelfItemsFromCrate() feeds this
+// crateFlatAlbumOrder()'s own flat items, which walks the crate's sections
+// (A-Z, New arrivals, In rotation) in a row -- any album in more than one
+// section arrives once per section. Pure and exported here, rather than
+// inline in storefront.js, so it's unit-testable without that file's own
+// DOM/state-heavy import web pulling in.
+export function dedupeCrateItems(crateItems){
+  const seen = new Set();
+  return crateItems.filter(it => {
+    if(seen.has(it.albumId)) return false;
+    seen.add(it.albumId);
+    return true;
+  });
+}
+
+// UN15 point 2: height by format, as a percentage of the cube's inner
+// height -- a 7in single's spine reads visibly shorter than a 12in LP's,
+// same as a real crate. Falls back to the old flat 88% for an item whose
+// format never resolved (shouldn't happen from storefront.js's own
+// shelfItemsFromCrate(), which always attaches one, but a defensive
+// default beats a missing height).
+const SPINE_HEIGHT_PCT = { '7"': 70, '10"': 80, '12"': 92 };
+const SPINE_HEIGHT_DEFAULT = 88;
+
+// UN15 point 2: "the record's own pressing colour... so it's the same on
+// every device" -- the pressing chart's own `colors` 3-tuple is [ring,
+// body, rim] (record-art/tiers.js's own F() comment); `body` is the one
+// meant to read as the pressing's base colour at a glance, same role
+// spineColor() gives a resolved cover tint.
+function pressingSpineColor(albumId){
+  const t = albumPressingTrack(albumId);
+  if(!t) return null;
+  try{ return getVariantDef(selectVariant(t)).colors[1]; }catch(_e){ return null; }
+}
+
+// Dominant colour per album, worked out once and cached in memory only
+// (same posture as gatefold/view.js's own gfTintCache -- cheap to redo,
+// and underlying art can change via an edit).
+const spineColorCache = new Map();
+async function resolveSpineColor(albumId, artUrl){
+  if(spineColorCache.has(albumId)) return spineColorCache.get(albumId);
+  let hex = null;
+  try{
+    const img = await loadImageEl(artUrl);
+    const dom = shareDominantColor(img);
+    if(dom) hex = spineColor(dom);
+  }catch(_e){ hex = null; }
+  spineColorCache.set(albumId, hex);
+  return hex;
+}
 
 // Splits a flat {id,name,artist,art} list (already pin-rank-aware) into
 // cube buckets -- every one of them, not capped, so a caller can tell
@@ -63,10 +144,25 @@ export function shelfUnitCubes(items, faceOutIds){
 
 function cubeSpine(item, onTapAlbum){
   const sp = el('button', 'sp');
-  if(item.art) sp.style.backgroundImage = 'url("' + item.art + '")';
-  else sp.classList.add('sp--blank');
+  sp.style.height = (SPINE_HEIGHT_PCT[item.format] || SPINE_HEIGHT_DEFAULT) + '%';
   sp.setAttribute('aria-label', item.name + (item.artist ? ', ' + item.artist : ''));
   sp.addEventListener('click', () => onTapAlbum(item.id));
+  if(item.art){
+    // Paint the pressing colour immediately so there's never a blank
+    // spine while the cover decodes -- swapped for the real dominant
+    // colour once resolveSpineColor() settles, unless this spine has
+    // since been replaced by a re-render (cheap re-render beats a stale
+    // write: 18-storefront.css reads --spine-color, so a late write to a
+    // detached button just paints nothing anyone sees).
+    const fallback = pressingSpineColor(item.id);
+    if(fallback) sp.style.setProperty('--spine-color', fallback);
+    resolveSpineColor(item.id, item.art).then(hex => {
+      if(hex) sp.style.setProperty('--spine-color', hex);
+    });
+  } else {
+    const hex = pressingSpineColor(item.id);
+    if(hex) sp.style.setProperty('--spine-color', hex);
+  }
   return sp;
 }
 
@@ -126,55 +222,96 @@ export function renderShelfUnit({items, faceOutIds, onTapAlbum, model, turntable
   const unit = el('div', 'shelf-unit');
   unit.setAttribute('data-finish', finish || 'walnut');
 
-  unit.appendChild(el('div', 'shelf-unit-floor-shadow'));
+  const cubes = shelfUnitCubes(items, faceOutIds);
+  const shown = cubes.slice(0, SHELF_UNIT_CUBES);
+  // UN15 point 3: only as many rows as the crate actually needs (1-3),
+  // not always a fixed 3 -- every vertically-positioned child below is
+  // repositioned inline against this render's own totalPx, since the
+  // 342x640 mock's static CSS percentages only hold true at 3 rows.
+  const rows = shelfUnitRows(shown.length);
+  const totalPx = shelfUnitTotalPx(rows);
+  const pct = px => (px / totalPx * 100) + '%';
+  unit.style.aspectRatio = '342 / ' + totalPx;
+
+  const floorShadow = el('div', 'shelf-unit-floor-shadow');
+  floorShadow.style.height = pct(14);
+  unit.appendChild(floorShadow);
 
   const top = el('div', 'shelf-unit-top');
-  top.appendChild(el('div', 'shelf-unit-tt-shadow'));
+  const ttShadow = el('div', 'shelf-unit-tt-shadow');
+  ttShadow.style.top = pct(112);
+  ttShadow.style.height = pct(8);
+  top.appendChild(ttShadow);
   const ttHolder = el('div', 'shelf-unit-tt-holder');
+  ttHolder.style.top = pct(6);
+  ttHolder.style.height = pct(112);
   ttHolder.appendChild(renderTurntable(model || 'standard', !!turntableInfo.hasRecord, turntableInfo.art, !!turntableInfo.spinning, turntableInfo.turnSeconds));
   top.appendChild(ttHolder);
   if(sleeveArt || sleeveName){
-    top.appendChild(el('div', 'shelf-unit-sleeve-shadow'));
+    const sleeveShadow = el('div', 'shelf-unit-sleeve-shadow');
+    sleeveShadow.style.top = pct(108);
+    sleeveShadow.style.height = pct(8);
+    top.appendChild(sleeveShadow);
     const sleeve = el('div', 'shelf-unit-sleeve');
+    sleeve.style.top = pct(12);
+    sleeve.style.height = pct(96);
     if(sleeveArt){ const im = document.createElement('img'); im.src = sleeveArt; im.alt = ''; sleeve.appendChild(im); }
     sleeve.setAttribute('aria-label', sleeveName ? sleeveName + ', the cover of what’s on the turntable' : '');
     top.appendChild(sleeve);
   }
   unit.appendChild(top);
 
-  unit.appendChild(el('div', 'shelf-unit-topcap'));
-  unit.appendChild(el('div', 'shelf-unit-fullrail shelf-unit-fullrail--top'));
+  const topcap = el('div', 'shelf-unit-topcap');
+  topcap.style.top = pct(112);
+  topcap.style.height = pct(12);
+  unit.appendChild(topcap);
+  const fullrailTop = el('div', 'shelf-unit-fullrail shelf-unit-fullrail--top');
+  fullrailTop.style.top = pct(124);
+  fullrailTop.style.height = pct(14);
+  unit.appendChild(fullrailTop);
 
-  const cubes = shelfUnitCubes(items, faceOutIds);
-  const shown = cubes.slice(0, SHELF_UNIT_CUBES);
   const slots = [];
-  for(let i = 0; i < SHELF_UNIT_CUBES; i++) slots.push(shown[i] || null);
+  for(let i = 0; i < rows * SHELF_UNIT_COLS; i++) slots.push(shown[i] || null);
   const emptyFromIdx = shown.length;
 
   const frame = el('div', 'shelf-unit-frame');
-  const rowCount = SHELF_UNIT_CUBES / SHELF_UNIT_COLS;
-  for(let r = 0; r < rowCount; r++){
+  let rowTopPx = SHELF_TOP_ZONE_PX;
+  for(let r = 0; r < rows; r++){
     const row = el('div', 'shelf-unit-row');
-    row.setAttribute('data-row', String(r));
+    row.style.top = pct(rowTopPx);
+    row.style.height = pct(SHELF_ROW_PX);
     for(let c = 0; c < SHELF_UNIT_COLS; c++){
       const i = r * SHELF_UNIT_COLS + c;
       row.appendChild(slots[i] ? shelfCell(slots[i], onTapAlbum, stickers) : emptyCell(i === emptyFromIdx));
     }
     frame.appendChild(row);
-    if(r < rowCount - 1){
+    rowTopPx += SHELF_ROW_PX;
+    if(r < rows - 1){
       const rail = el('div', 'shelf-unit-rail');
-      rail.setAttribute('data-rail', String(r));
+      rail.style.top = pct(rowTopPx);
+      rail.style.height = pct(SHELF_RAIL_PX);
       rail.appendChild(el('div', 'shelf-unit-rail-half'));
       rail.appendChild(el('div', 'shelf-unit-rail-half'));
       frame.appendChild(rail);
+      rowTopPx += SHELF_RAIL_PX;
     }
   }
-  frame.appendChild(el('div', 'shelf-unit-post shelf-unit-post--l'));
-  frame.appendChild(el('div', 'shelf-unit-post shelf-unit-post--m'));
-  frame.appendChild(el('div', 'shelf-unit-post shelf-unit-post--r'));
+  const postHeightPx = rowTopPx + SHELF_BOTTOMRAIL_PX - 124;
+  ['shelf-unit-post--l', 'shelf-unit-post--m', 'shelf-unit-post--r'].forEach(mod => {
+    const post = el('div', 'shelf-unit-post ' + mod);
+    post.style.top = pct(124);
+    post.style.height = pct(postHeightPx);
+    frame.appendChild(post);
+  });
   unit.appendChild(frame);
 
-  unit.appendChild(el('div', 'shelf-unit-bottomrail'));
-  unit.appendChild(el('div', 'shelf-unit-plinth'));
+  const bottomrail = el('div', 'shelf-unit-bottomrail');
+  bottomrail.style.top = pct(rowTopPx);
+  bottomrail.style.height = pct(SHELF_BOTTOMRAIL_PX);
+  unit.appendChild(bottomrail);
+  const plinth = el('div', 'shelf-unit-plinth');
+  plinth.style.top = pct(rowTopPx + SHELF_BOTTOMRAIL_PX);
+  plinth.style.height = pct(SHELF_PLINTH_PX);
+  unit.appendChild(plinth);
   return unit;
 }

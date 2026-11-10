@@ -431,28 +431,40 @@ button.pressing-chip{cursor:pointer}
   --wood-line:rgba(0,0,0,.50);--wood-line2:rgba(120,104,92,.26);
   --wood-back:#151210;--wood-top:#3F3833;--wood-plinth:#120F0E}
 
-.shelf-unit-floor-shadow{position:absolute;left:1.754%;right:1.754%;bottom:0;height:2.1875%;border-radius:50%;
+.shelf-unit-floor-shadow{position:absolute;left:1.754%;right:1.754%;bottom:0;border-radius:50%;
   background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 70%)}
 
 .shelf-unit-top{position:absolute;inset:0}
-.shelf-unit-tt-shadow{position:absolute;left:2.924%;top:17.5%;width:52.63%;height:1.25%;border-radius:50%;
+/* UN15 point 3: top/height on every element below are set inline per
+   render by renderShelfUnit() (shelf-unit.js), against that render's own
+   totalPx -- the unit now renders 1-3 rows, not always 3, so a static
+   percentage (correct only at 640px/3 rows) would misplace everything at
+   any other row count. Only the horizontal (left/width) percentages --
+   relative to the unit's constant 342px width, not its variable height --
+   stay fixed here. */
+.shelf-unit-tt-shadow{position:absolute;left:2.924%;width:52.63%;border-radius:50%;
   background:radial-gradient(ellipse,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 70%)}
-.shelf-unit-tt-holder{position:absolute;left:2.339%;top:.9375%;width:58.48%;height:17.5%}
+/* UN15 point 4: "the turntable... scales to about 115% of today's size...
+   keeping its bottom aligned with the sleeve stand" -- a transform (origin
+   at the bottom edge) grows the deck in place without touching its box's
+   own top/height, so it needs no interaction with point 3's per-row totalPx
+   math above, and the layout siblings (the sleeve) never see it as wider. */
+.shelf-unit-tt-holder{position:absolute;left:2.339%;width:58.48%;transform:scale(1.15);transform-origin:50% 100%}
 .shelf-unit-tt-holder .tt{width:100%;height:100%}
-.shelf-unit-sleeve-shadow{position:absolute;left:64.91%;top:16.875%;width:30.41%;height:1.25%;border-radius:2px;
+.shelf-unit-sleeve-shadow{position:absolute;left:64.91%;width:30.41%;border-radius:2px;
   background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,.10));box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-.shelf-unit-sleeve{position:absolute;left:66.08%;top:1.875%;width:28.07%;height:15%;overflow:hidden;background:#B5483F;
+.shelf-unit-sleeve{position:absolute;left:66.08%;width:28.07%;overflow:hidden;background:#B5483F;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 4px 10px rgba(0,0,0,.45);
   transform:perspective(400px) rotateX(6deg);transform-origin:50% 100%}
 .shelf-unit-sleeve img{width:100%;height:100%;object-fit:cover;display:block}
 
-.shelf-unit-topcap{position:absolute;left:0;right:0;top:17.5%;height:1.875%;box-shadow:inset 0 1px 0 rgba(0,0,0,.25);
+.shelf-unit-topcap{position:absolute;left:0;right:0;box-shadow:inset 0 1px 0 rgba(0,0,0,.25);
   background-image:repeating-linear-gradient(179.5deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 4px),
     repeating-linear-gradient(180.7deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 9px),
     linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
     linear-gradient(180deg,var(--wood-lo) 0%,var(--wood-top) 100%)}
 
-.shelf-unit-post{position:absolute;top:19.375%;height:77.8125%;
+.shelf-unit-post{position:absolute;
   background-image:repeating-linear-gradient(89deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
     repeating-linear-gradient(91.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
     linear-gradient(0deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 27%,rgba(0,0,0,.05) 52%,rgba(255,255,255,.06) 77%,rgba(0,0,0,.07) 100%),
@@ -462,17 +474,13 @@ button.pressing-chip{cursor:pointer}
 .shelf-unit-post--m{left:48.538%;width:2.924%}
 .shelf-unit-post--r{left:95.906%;width:4.09%}
 
-.shelf-unit-fullrail{position:absolute;left:0;right:0;height:2.1875%;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
+.shelf-unit-fullrail{position:absolute;left:0;right:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
   background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
     repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
     linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
     linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
-.shelf-unit-fullrail--top{top:19.375%}
-.shelf-unit-fullrail--bottom{top:95%}
 
-.shelf-unit-rail{position:absolute;left:0;right:0;height:1.5625%;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
-.shelf-unit-rail[data-rail="0"]{top:45%}
-.shelf-unit-rail[data-rail="1"]{top:70%}
+.shelf-unit-rail{position:absolute;left:0;right:0;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
 .shelf-unit-rail-half{flex:1 1 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
   background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
     repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
@@ -480,10 +488,7 @@ button.pressing-chip{cursor:pointer}
     linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
 
 .shelf-unit-frame{position:absolute;inset:0}
-.shelf-unit-row{position:absolute;left:0;right:0;height:23.4375%;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
-.shelf-unit-row[data-row="0"]{top:21.5625%}
-.shelf-unit-row[data-row="1"]{top:46.5625%}
-.shelf-unit-row[data-row="2"]{top:71.5625%}
+.shelf-unit-row{position:absolute;left:0;right:0;display:flex;gap:2.924%;padding:0 4.09%;box-sizing:border-box}
 
 .shelf-cell{position:relative;flex:1 1 0;height:100%;overflow:hidden;
   background-image:repeating-linear-gradient(90.6deg,rgba(0,0,0,.22) 0px,rgba(0,0,0,.22) 1px,transparent 1px,transparent 7px),
@@ -496,9 +501,23 @@ button.pressing-chip{cursor:pointer}
     linear-gradient(180deg,var(--wood-back) 0%,var(--wood-top) 100%)}
 .shelf-cell-depth{position:absolute;inset:0;pointer-events:none;
   box-shadow:inset 0 16px 18px -6px rgba(0,0,0,.6),inset 12px 0 14px -8px rgba(0,0,0,.45),inset -12px 0 14px -8px rgba(0,0,0,.45)}
-.shelf-cell .sp{display:block;flex:none;border:0;padding:0;border-radius:1px 1px 0 0;box-shadow:0 1px 0 rgba(0,0,0,.3);
-  width:11px;height:88%;background-size:cover;background-position:center}
-.shelf-cell .sp--blank{background-color:var(--panel)}
+/* UN15 point 2: spines paint from --spine-color (set per item by
+   shelf-unit.js's cubeSpine(), from the cover's own dominant colour or,
+   with no art, the album's pressing colour) instead of the cover image
+   itself -- a busy cover squeezed into an 11px-wide background-image read
+   as meaningless stripes. The top 7px band is the same colour mixed
+   toward black, standing in for "the same hue x0.62" lightness scale
+   without a second hex computation; the inset right-edge line is the
+   "1px right-edge shadow" the plan calls for. Height is set inline per
+   format (12in/10in/7in) by cubeSpine(); --disc-a is the CLAUDE.md
+   warm-black fallback for a spine with neither resolved colour nor a
+   pressing to draw from. */
+.shelf-cell .sp{display:block;flex:none;border:0;padding:0;border-radius:1px 1px 0 0;
+  box-shadow:inset -1px 0 0 rgba(0,0,0,.35),0 1px 0 rgba(0,0,0,.3);
+  width:11px;height:88%;
+  background:linear-gradient(to bottom,
+    color-mix(in srgb, var(--spine-color, var(--disc-a)) 62%, black) 0 7px,
+    var(--spine-color, var(--disc-a)) 7px 100%)}
 /* `transform:none` resets the bare .shelf-face rule above (line 386-387),
    the older flat .cube grid's own leaning-cover look (GS11) -- left
    unreset here, that -3deg rotation stayed on every ST2 shelf-unit face
@@ -522,12 +541,12 @@ button.pressing-chip{cursor:pointer}
 .shelf-cell-note{position:absolute;right:10.53%;top:26.67%;transform:rotate(4deg);background:var(--stock-card);color:#26202C;
   padding:4px 10px 5px;box-shadow:0 1px 3px rgba(0,0,0,.45);font-family:var(--hand);font-weight:500;font-size:18px;line-height:1}
 
-.shelf-unit-bottomrail{position:absolute;left:0;right:0;top:95%;height:2.1875%;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
+.shelf-unit-bottomrail{position:absolute;left:0;right:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 3px rgba(0,0,0,.35);
   background-image:repeating-linear-gradient(179deg,var(--wood-line) 0px,var(--wood-line) 1px,transparent 1px,transparent 5px),
     repeating-linear-gradient(181.5deg,var(--wood-line2) 0px,var(--wood-line2) 1px,transparent 1px,transparent 11px),
     linear-gradient(90deg,rgba(0,0,0,.07) 0%,rgba(255,255,255,.05) 21%,rgba(0,0,0,.05) 46%,rgba(255,255,255,.06) 69%,rgba(0,0,0,.07) 100%),
     linear-gradient(180deg,var(--wood-hi) 0%,var(--wood-base) 50%,var(--wood-lo) 100%)}
-.shelf-unit-plinth{position:absolute;left:1.754%;right:1.754%;top:97.1875%;height:1.5625%;background:var(--wood-plinth)}
+.shelf-unit-plinth{position:absolute;left:1.754%;right:1.754%;background:var(--wood-plinth)}
 
 /* docs/design/shelf-turntables/Turntable.dc.html, all twelve models (ST2
    shipped Standard only; ST4 added the rest, found by listening --
@@ -745,8 +764,14 @@ button.pressing-chip{cursor:pointer}
    tile like the shelf finish's unowned swatches). Selected = a cream
    ring, same rule as shelf finish. */
 .turntable-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-3)}
-.turntable-pick-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:var(--sp-2);border-radius:var(--radius-card)}
-.turntable-pick-tile.selected{box-shadow:0 0 0 2px var(--ring)}
+/* UN15 point 5: "Cards use --field with a --line border; the selected
+   card has a 2px --paper border (visible in light theme)" -- a plain
+   box-shadow ring (the shelf-finish swatch's own selected treatment,
+   point 6, left as-is) reads too faint against --field in light theme
+   for a whole card, so the selected state is a real border instead. */
+.turntable-pick-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--field);
+  border:1px solid var(--line);padding:var(--sp-2);border-radius:var(--radius-card)}
+.turntable-pick-tile.selected{border:2px solid var(--paper)}
 .turntable-pick-swatch{display:block;width:100%;aspect-ratio:200/112;position:relative;border-radius:var(--radius-control);overflow:hidden;background:var(--stock-card)}
 .turntable-pick-swatch .tt{width:100%;height:100%}
 .turntable-pick-label{font-size:var(--fs-body);color:var(--muted)}

@@ -23,8 +23,9 @@ import { PHASE_CAPS } from '../sundown/spin-wording.js';
 // anything back from this file), widening the already-circular
 // screens.js pair above rather than creating a new one.
 import { showRoute } from '../shell/routes.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
 import { renderTracks } from '../library/view.js';
-import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES } from './shelf-unit.js';
+import { renderShelfUnit, shelfUnitCubes, SHELF_UNIT_CUBES, dedupeCrateItems } from './shelf-unit.js';
 import { displayShelfFinish } from './shelf-finish.js';
 import { displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
@@ -826,9 +827,26 @@ function shelfFaceCover(item, onTapAlbum, stickers){
 // storeShelvesSection so a friend's shelf (which resolves its own items
 // from social/screens/friend-store.js's MizikiSocial.crate() rows instead)
 // never has to know this file's crate-model-specific shape at all.
+// UN15 point 1: crateFlatAlbumOrder() walks the crate's sections in a row
+// (A-Z, New arrivals, In rotation), so an album that belongs to more than
+// one section -- any album newly added, or any that's currently spinning
+// -- appears once per section. dedupeCrateItems() (shelf-unit.js) drops the
+// repeats by albumId, keeping the first appearance, so the shelf draws one
+// spine per album rather than one per section membership -- split out
+// there, pure, rather than inline here, so it's unit-testable without this
+// file's own DOM/state-heavy import web.
 function shelfItemsFromCrate(crateItems){
-  return crateItems.map(it => ({id: it.albumId, name: it.album, artist: it.artist,
-    art: thumbURL['album:' + it.albumId] || (S.tracks[it.idx[0]] || {}).art || null}));
+  return dedupeCrateItems(crateItems).map(it => {
+    // UN15 point 2's spine-height-by-format reuses the same format
+    // resolution the launch ceremony and the per-album edit sheet already
+    // call -- albumFormatFor() takes the album's own override
+    // (S.albumFormat), same as every other caller of it.
+    const override = (S.albumFormat && S.albumFormat[it.albumId]) || 'auto';
+    const format = albumFormatFor(it.idx, S.tracks, override);
+    return {id: it.albumId, name: it.album, artist: it.artist,
+      art: thumbURL['album:' + it.albumId] || (S.tracks[it.idx[0]] || {}).art || null,
+      format: format ? format.size : null};
+  });
 }
 
 function storeDiggingSection(full, host){
