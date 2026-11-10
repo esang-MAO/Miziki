@@ -36,7 +36,7 @@ import {
 import { centerEmptyState, renderCrate, openCrateAlbum } from '../crate/view.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
-import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
+import { letterKeyFor, buildLetterGroups, buildFullAlphabet, buildRailTicks } from '../ui/letter-rail.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from '../shell/scroll-memory.js';
 
@@ -89,8 +89,9 @@ function appendRowsChunked(host, items, makeRow, opts){
   let lastKey = null;
   function appendOne(item, pos){
     if(labelFor){
-      const key = letterKeyFor(labelFor(item));
-      if(key !== lastKey){ lastKey = key; if(headFor) host.appendChild(headFor(key)); }
+      const rawLabel = labelFor(item);
+      const key = letterKeyFor(rawLabel);
+      if(key !== lastKey){ lastKey = key; if(headFor) host.appendChild(headFor(key, rawLabel)); }
     }
     host.appendChild(makeRow(item, pos));
   }
@@ -124,14 +125,23 @@ function letterHead(key){
 // no-op when there's nothing to group (fewer than one bucket) so callers
 // can call this unconditionally once they've already decided the list is
 // long enough to want one.
+// LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 6): `groups` is whatever
+// buildLetterGroups() returned — present-only, one entry per run — and
+// buildFullAlphabet() spreads that across the full fixed A–Z+# rail so it
+// never moves around between libraries. `host.classList` carries
+// `lib-has-rail` for as long as the rail is attached (reset at the top of
+// every render, below) so 27-library-sleeves.css's own margin-right rule
+// only applies while a rail is actually showing.
 function attachLetterRail(host, groups){
-  if(groups.length < 2) return;
+  const entries = buildFullAlphabet(groups);
+  host.classList.add('lib-has-rail');
   const rail = el('div','lib-rail');
   host.appendChild(rail);
-  buildRailTicks(rail, groups, {
+  buildRailTicks(rail, entries, {
     itemClass: 'letter-rail-item', dimClass: 'letter-rail-dim', currentClass: 'letter-rail-current',
     onTap: e_ => {
-      const head = host.querySelector('[data-letter-key="' + e_.key + '"]');
+      const key = e_.jumpKey || e_.key;
+      const head = host.querySelector('[data-letter-key="' + key + '"]');
       if(head) head.scrollIntoView({block: 'start', behavior: 'smooth'});
     },
   });
@@ -1247,6 +1257,11 @@ export function closeArtistMoreMenu(){
 function renderTracksBody(host){
   viewRenderGen++; // invalidate any chunked append job still running from a previous render
   host.innerHTML = '';
+  // LB7: innerHTML='' above clears the rail element itself, but not a
+  // class on `host` — reset it every render so a screen that doesn't
+  // attach a rail this time (e.g. navigating from a >200-song Songs list
+  // to Albums) doesn't keep the previous render's row margin-right.
+  host.classList.remove('lib-has-rail');
   // D3 (docs/DESKTOP_LAYOUT.md): every S.playlists mutation already lands
   // here (see this module's own CLAUDE.md entry — it's the hub every
   // library-mutating action's "now redraw the screen" call reaches), so
@@ -1432,13 +1447,24 @@ function renderTracksBody(host){
     // album; "added"/"played"/"sessions" aren't, and a letter head over a
     // list that jumps around by recency would read as broken, not helpful).
     const sortKey = S.librarySort;
-    const songLabelFor = sortKey === 'album' ? i => S.tracks[i].tags.album : (!sortKey || sortKey === 'artist') ? i => S.tracks[i].tags.artist : null;
+    // LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 7): "by artist, it
+    // reads '{letter} · {artist}'; by title, just the letter" — grouping
+    // by artist means each run is every song by one artist, so there's a
+    // single name worth repeating in the header; grouping by album has no
+    // such single value (an album's own title already differs from an
+    // artist name), so it stays just the letter.
+    const groupingByArtist = !sortKey || sortKey === 'artist';
+    const songLabelFor = sortKey === 'album' ? i => S.tracks[i].tags.album : groupingByArtist ? i => S.tracks[i].tags.artist : null;
     const showSongsRail = songLabelFor && q.length > SONGS_RAIL_THRESHOLD;
     appendRowsChunked(ul, q, (i, pos) => {
       const row = songRow(i, q, pos);
       if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
       return row;
-    }, showSongsRail ? { labelFor: songLabelFor, headFor: key => { const h = el('li','letter-head', key); h.dataset.letterKey = key; return h; } } : null);
+    }, showSongsRail ? { labelFor: songLabelFor, headFor: (key, rawLabel) => {
+      const h = el('li','letter-head', groupingByArtist ? key + ' · ' + rawLabel : key);
+      h.dataset.letterKey = key;
+      return h;
+    } } : null);
     if(showSongsRail) attachLetterRail(host, buildLetterGroups(q, songLabelFor));
   }
 

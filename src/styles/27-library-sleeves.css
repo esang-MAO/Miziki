@@ -33,17 +33,56 @@
    opaque background -- var(--sky2) matches body's own flat background
    (00-base.css). It previously read var(--bg,transparent) but --bg is never
    defined anywhere, so the divider was always transparent and the row
-   scrolling up behind it showed through the letter glyph. */
-.letter-head{position:sticky;top:0;z-index:4;padding:6px var(--sp-2) 4px;
+   scrolling up behind it showed through the letter glyph.
+   LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 7) fixes the real bug this
+   divider had next: no fixed height meant it rode the generic `.tracklist
+   li{content-visibility:auto;contain-intrinsic-size:auto 66px}` rule just
+   above in 02-stage-platter.css, so a sticky head could briefly get laid
+   out at that 66px placeholder before snapping down to its real ~30px
+   height once actually painted, overlapping the next row for a frame
+   while it did ("52 Golden Moons 2" cut in half under the "C" header).
+   Giving it its own explicit height and opting it back out of
+   content-visibility (the same "override for this one row type" shape
+   .artist-row already uses above, for a different WebKit reason) makes it
+   always reserve exactly 34px, so rows start below it and never under it.
+   JUDGMENT CALL: the addendum's literal text says "a solid --bg/--sky1
+   background" -- --bg still doesn't exist anywhere in this codebase (see
+   above), and --sky1 is the *lighter* top-of-screen gradient stop used on
+   full-bleed pages (player overlay/gatefold/launch intro), not this flat
+   page's own background -- using it here would reopen the same kind of
+   seam this comment already describes fixing once. Kept --sky2 (matching
+   body's real background, and this file's own established fix) instead;
+   flagged in the PR for Ken to confirm against the un-exported frame. */
+.letter-head{position:sticky;top:0;z-index:4;height:34px;box-sizing:border-box;
+  display:flex;align-items:center;padding:0 var(--sp-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
   font-family:var(--display);font-size:20px;letter-spacing:.02em;color:var(--muted);
-  background:var(--sky2)}
-li.letter-head{list-style:none;padding:6px 0 4px}
-.lib-rail{position:fixed;right:4px;top:96px;bottom:140px;width:22px;z-index:30}
+  background:var(--sky2);border-bottom:1px solid var(--line)}
+/* `.tracklist li{content-visibility:auto;...}` (02-stage-platter.css) is
+   class+tag (0,1,1), a higher specificity than `.letter-head` alone
+   (0,1,0) -- the plain selector above lost to it regardless of file
+   order, so the Songs list's own `<li class="letter-head">` kept
+   content-visibility:auto, and this fix never actually took effect there
+   (confirmed live: scrolled-past headers reported identical, collapsed
+   bounding rects instead of their real stacked positions). `li.letter-head`
+   (0,2,0) is the one selector specific enough to win. */
+li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intrinsic-size:auto 34px}
+/* LB7 (decision 6): the rail's own 18px column, plus list rows getting
+   margin-right:18px (below) so a row's own ⋯ button never sits under a
+   letter -- only while a rail is actually attached (.lib-has-rail,
+   src/library/view.js's attachLetterRail()/renderTracksBody()). */
+.lib-rail{position:fixed;right:4px;top:96px;bottom:140px;width:18px;z-index:30}
+.lib-has-rail .tracklist li,
+.lib-has-rail .artist-row{margin-right:18px}
 .letter-rail-item{position:absolute;right:0;background:none;border:none;cursor:pointer;
   font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;color:var(--muted);
   padding:1px 2px}
 .letter-rail-item.letter-rail-current{color:var(--paper);font-weight:600}
-.letter-rail-item.letter-rail-dim{opacity:.28}
+/* LB7 (decision 6): dim no longer means removed -- see buildFullAlphabet()
+   (src/ui/letter-rail.js). A dim tick stays at .28 opacity but, in the
+   library's own rail, is still a real tappable button (:disabled only
+   applies when there's truly nothing to jump to, which buildRailTicks()
+   now decides per-entry, not here). */
+.letter-rail-item.letter-rail-dim{opacity:.4}
 .letter-rail-item:disabled{pointer-events:none}
 
 /* ---- Artist page: PLAY ALL / SHUFFLE / CREDITS, then the shelf ---- */
