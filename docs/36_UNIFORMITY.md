@@ -1,5 +1,7 @@
 # 36 · Uniformity
 
+**Addendum: docs/36A_LIBRARY_AND_LAUNCH.md**
+
 A look-and-flow pass over the whole app: one set of parts used everywhere, every screen built from them, and the visual bugs a full walk-through turned up. **This plan replaces the draft `docs/36_GATEFOLD_POLISH.md`.** That draft's gatefold work is folded in here as UN6–UN10, with its decisions kept.
 
 **Checked against `main` at `dcc2fdc` (Nov 9, after #406).** Every finding below comes from running the app in a browser at 390×844 (phone, dark and light) and 1440×900 (desktop). The test setup:
