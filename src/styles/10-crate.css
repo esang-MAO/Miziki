@@ -91,6 +91,29 @@
 .crate-section-dots{display:flex;align-items:center;gap:5px}
 .crate-section-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-2);opacity:.4}
 .crate-section-dot.current{background:var(--paper);opacity:1}
+/* LB6 (docs/36A_LIBRARY_AND_LAUNCH.md decision 13): genre/decade's own
+   section indicator, replacing .crate-section-header above for those two
+   groups only (A-Z keeps the arrows/name/dots header, since it still
+   needs the arrows for the trailing bin sections). A sideways-scrolling
+   row with a fade at the right edge via mask-image (not a hard clip, so a
+   half-visible next chip reads as "more here" rather than a cut word);
+   left edge stays unfaded since there's nothing to hint at the first chip.
+   Same "renders empty, costs nothing" shape as .crate-section-header for a
+   single-section library. */
+.crate-section-chips{margin-bottom:var(--sp-2)}
+.crate-section-chips-scroll{display:flex;gap:var(--sp-2);overflow-x:auto;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent 100%);
+  mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent 100%);
+  padding:2px 32px 2px 0;scroll-padding-inline:4px}
+.crate-section-chips-scroll::-webkit-scrollbar{display:none}
+/* "the current section is filled (--paper)" -- a filled background plus a
+   weight change, never amber (CLAUDE.md: "amber never signals state" --
+   a pressed/selected state is a ring, fill or weight change, not a colour
+   that wasn't already there). */
+.crate-section-chip{flex:none;font-family:var(--body);font-size:var(--fs-body);font-weight:500;
+  color:var(--muted);background:var(--field);border:none;border-radius:999px;
+  padding:6px var(--sp-3);cursor:pointer;white-space:nowrap}
+.crate-section-chip.current{background:var(--paper);color:var(--sky1);font-weight:600}
 .crate-stage{position:relative;height:var(--crate-stage-h);overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 /* CR14: the neighbouring section's own front card, clipped to a thin

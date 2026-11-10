@@ -493,6 +493,66 @@ test('ensureCrateModel: decade sort has one section per decade group, no bin sec
     'no virtual-bin sections in decade sort');
 });
 
+// LB6 (docs/36A_LIBRARY_AND_LAUNCH.md decision 13): the genre/decade chip
+// row (crate/view.js's buildSectionChips()) renders one chip per
+// model.sections entry, in that array's own order, with no reordering of
+// its own -- so "chip list order matches the crate model's section order"
+// reduces to model.sections itself being in the order genre/decade names
+// sort in, which this asserts directly against a real ensureCrateModel()
+// run rather than a hand-built sections array.
+test('ensureCrateModel: genre sections sort by name, in the order the chip row would render them', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'Rock', year:0} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'Jazz', year:0} }),
+      fakeTrack('a3', { tags: { title:'A3', artist:'Art3', album:'Alb3', albumArtist:'Art3', track:1, disc:1 }, details:{genre:'Ambient', year:0} }),
+    ],
+    crateGroup: 'genre',
+  });
+  const model = ensureCrateModel();
+  assert.deepEqual(model.sections.map(s => s.label), ['Ambient', 'Jazz', 'Rock'],
+    'chips would read Ambient, Jazz, Rock left to right, not file/insertion order');
+});
+
+test('ensureCrateModel: decade sections sort oldest first, in the order the chip row would render them', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'', year:2001} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'', year:1975} }),
+      fakeTrack('a3', { tags: { title:'A3', artist:'Art3', album:'Alb3', albumArtist:'Art3', track:1, disc:1 }, details:{genre:'', year:1962} }),
+    ],
+    crateGroup: 'decade',
+  });
+  const model = ensureCrateModel();
+  assert.deepEqual(model.sections.map(s => s.label), ['1960s', '1970s', '2000s'],
+    'chips would read 1960s, 1970s, 2000s left to right, oldest first');
+});
+
+// LB6: "the selected chip follows swipes" -- a horizontal swipe commits to
+// a new model.sections index via sectionIndexAt() (crate/view.js's
+// switchToSectionIndex() resolves the landed-on section this same way,
+// then refreshSectionHeaderUI() rebuilds the chip row off that index), so
+// asserting sectionIndexAt() picks the right chip for a position anywhere
+// inside each real genre section is this behaviour's own pure core.
+test('ensureCrateModel + sectionIndexAt: a swipe landing anywhere inside a genre section selects that section\'s own chip', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Art1', album:'Alb1', albumArtist:'Art1', track:1, disc:1 }, details:{genre:'Ambient', year:0} }),
+      fakeTrack('a2', { tags: { title:'A2', artist:'Art2', album:'Alb2', albumArtist:'Art2', track:1, disc:1 }, details:{genre:'Jazz', year:0} }),
+      fakeTrack('a3', { tags: { title:'A3', artist:'Art3', album:'Alb3', albumArtist:'Art3', track:1, disc:1 }, details:{genre:'Rock', year:0} }),
+    ],
+    crateGroup: 'genre',
+  });
+  const model = ensureCrateModel();
+  assert.equal(model.sections.length, 3, 'one chip per genre');
+  model.sections.forEach((section, chipIdx) => {
+    for(let pos = section.start; pos < section.end; pos++){
+      assert.equal(sectionIndexAt(model.sections, pos), chipIdx,
+        `position ${pos} (inside "${section.label}") should select chip ${chipIdx}, not drift to a neighbour`);
+    }
+  });
+});
+
 test('ensureCrateModel: a single-genre library still gets exactly one section, with no divider inside it', () => {
   resetState({
     tracks: [

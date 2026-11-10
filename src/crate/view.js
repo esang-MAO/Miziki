@@ -222,6 +222,40 @@ function buildSectionHeader(sections, activeIdx, onNav){
   return header;
 }
 
+// LB6 (docs/36A_LIBRARY_AND_LAUNCH.md decision 13): genre/decade's own
+// section indicator — a sideways-scrolling row of chips, one per section
+// in the crate model's own order (model.sections, built by buildCrateModel()
+// in crate/model.js), replacing the arrows/name/dots buildSectionHeader()
+// draws above — A-Z keeps that header (it still needs the arrows to cross
+// into the trailing bin sections) and keeps its own letter line (LB5,
+// .crate-header/updateAzLine(), untouched by this). "The current section
+// is filled (--paper)" per the decision: a weight/fill change, never amber
+// (CLAUDE.md's "amber never signals state"). `onJump(idx)` is called with
+// the tapped chip's own section index; the caller (switchToSectionIndex())
+// already handles jumping to an arbitrary index, not just ±1, so no
+// separate "jump" path is needed here. The active chip scrolls into view
+// whenever `activeIdx` moves — including when a swipe (not a chip tap)
+// is what moved it, so the row tracks the crate instead of just driving it.
+function buildSectionChips(sections, activeIdx, onJump){
+  const wrap = el('div','crate-section-chips');
+  if(sections.length <= 1) return wrap;   // same "nothing to show" rule as buildSectionHeader
+  const scroller = el('div','crate-section-chips-scroll');
+  scroller.setAttribute('role','tablist');
+  scroller.setAttribute('aria-label','Jump to section');
+  let activeChip = null;
+  sections.forEach((s, i) => {
+    const chip = el('button','crate-section-chip' + (i === activeIdx ? ' current' : ''), s.label);
+    chip.setAttribute('role','tab');
+    chip.setAttribute('aria-selected', i === activeIdx ? 'true' : 'false');
+    chip.addEventListener('click', () => onJump(i));
+    scroller.appendChild(chip);
+    if(i === activeIdx) activeChip = chip;
+  });
+  wrap.appendChild(scroller);
+  if(activeChip) activeChip.scrollIntoView({block:'nearest', inline:'center', behavior: REDUCED ? 'auto' : 'smooth'});
+  return wrap;
+}
+
 // flat, non-3D fallback for prefers-reduced-motion: a plain scrollable list,
 // snap-scroll instead of momentum, cross-fade instead of the pull-to-camera
 // (CRATE spec §6). CR14: "no sliding. Show the section header with arrows;
@@ -239,11 +273,18 @@ function renderCrateFlat(host, model){
 
   function renderList(){
     headerSlot.innerHTML = '';
-    headerSlot.appendChild(buildSectionHeader(model.sections, activeIdx, dir => {
-      activeIdx = clamp(activeIdx + dir, 0, model.sections.length - 1);
+    const jumpTo = toIdx => {
+      activeIdx = clamp(toIdx, 0, model.sections.length - 1);
       S.crate.pos = model.sections[activeIdx].start;
       renderList();
-    }));
+    };
+    // LB6: genre/decade gets the chip row here too (the reduced-motion flat
+    // list shares this same header slot with the 3D stage) -- A-Z keeps
+    // the arrows/name/dots header, since it still needs the arrows to step
+    // into the trailing bin sections (new/sealed/picks) after the letter run.
+    headerSlot.appendChild(model.group === 'genre' || model.group === 'decade'
+      ? buildSectionChips(model.sections, activeIdx, jumpTo)
+      : buildSectionHeader(model.sections, activeIdx, dir => jumpTo(activeIdx + dir)));
     listSlot.innerHTML = '';
     renderFlatList(listSlot, model, model.sections[activeIdx]);
     // FS6 (docs/25_FROM_SCRATCH.md point 2): the shared sort-row's count
@@ -597,7 +638,16 @@ export function renderCrate(host){
   const sectionHeaderSlot = el('div');
   function refreshSectionHeaderUI(){
     sectionHeaderSlot.innerHTML = '';
-    sectionHeaderSlot.appendChild(buildSectionHeader(model.sections, activeSectionIdx, dir => switchToSection(dir)));
+    // LB6 (docs/36A_LIBRARY_AND_LAUNCH.md decision 13): genre/decade's chip
+    // row replaces the arrows/name/dots header here -- tapping a chip jumps
+    // straight to its own section index (switchToSectionIndex() already
+    // handles an arbitrary target, not just ±1), and since this function
+    // re-runs on every section switch (including one driven by a swipe,
+    // via endHorizontalDrag() -> switchToSectionIndex()), the chip marked
+    // current always matches activeSectionIdx, whatever moved it there.
+    sectionHeaderSlot.appendChild(model.group === 'genre' || model.group === 'decade'
+      ? buildSectionChips(model.sections, activeSectionIdx, idx => switchToSectionIndex(idx, true))
+      : buildSectionHeader(model.sections, activeSectionIdx, dir => switchToSection(dir)));
   }
   const stage = el('div','crate-stage');
   stage.tabIndex = 0;
