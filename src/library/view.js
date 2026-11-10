@@ -4,7 +4,15 @@
    the Songs/Artists/Playlists/crate tabs, search results, and the
    breadcrumb/drill-down between them. The gatefold and sealed-record
    sheet live separately in src/gatefold/ and src/crate/view.js — this
-   module has nothing to do with either. */
+   module has nothing to do with either.
+   Already well past CLAUDE.md rule 13's ~1,000-line guidance before LB10
+   (docs/36A_LIBRARY_AND_LAUNCH.md) added the desktop Songs table and the
+   Artists desktop grid wrapper on top — it's the one hub every library
+   row renderer and renderTracksBody()'s own per-mode branch lands on, so
+   LB7-LB10 have each extended it rather than fork a second copy of the
+   same per-mode switch. A real split (row builders vs. renderTracksBody()
+   vs. per-mode branches) is tracked as backlog, not attempted inside a
+   feature-adding PR. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { backHeader, emptyNote, listMenu } from '../ui/parts.js';
@@ -40,6 +48,7 @@ import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibrary
 import { letterKeyFor, buildLetterGroups, buildFullAlphabet, buildRailTicks } from '../ui/letter-rail.js';
 import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from '../shell/scroll-memory.js';
+import { isDesktopShell } from '../util/viewport.js';
 
 // NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
 // on a single screen (~400+), the first screenful renders synchronously —
@@ -212,6 +221,82 @@ export function songRow(i, queue, pos, extra){
   });
   if(extra) extra(li, i);
   return li;
+}
+
+// LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): the Songs tab's own
+// ≥1024px table — a different presentation of the exact same sorted
+// `q` the phone list (songRow(), above) renders, never a second data
+// path. Three cells (Title/Artist/Record) each carry a `title`
+// attribute so a cut-off cell's full text shows on hover, since CSS
+// ellipsis alone throws the rest away. Clicking a sortable header sets
+// S.librarySort to the same key the mobile sort chip offers
+// (librarySortBar(), src/library/search.js) and re-renders — one state,
+// two ways in.
+function songsTableSortHeader(label, key){
+  const th = el('th', 'p-label st-sortable');
+  if(S.librarySort === key) th.setAttribute('aria-sort', 'ascending');
+  const btn = el('button', 'st-sort-btn', label);
+  btn.type = 'button';
+  btn.setAttribute('aria-label', 'Sort by ' + label);
+  btn.addEventListener('click', () => { S.librarySort = key; queueSave(); renderTracks(); });
+  th.appendChild(btn);
+  return th;
+}
+function songsTableHead(){
+  const tr = el('tr');
+  tr.appendChild(el('th', 'p-label st-idx', '#'));
+  tr.appendChild(el('th', 'p-label st-art'));
+  tr.appendChild(songsTableSortHeader('Title', 'title'));
+  tr.appendChild(songsTableSortHeader('Artist', 'artist'));
+  tr.appendChild(songsTableSortHeader('Record', 'album'));
+  tr.appendChild(el('th', 'p-label st-time', 'Time'));
+  tr.appendChild(el('th', 'p-label st-menu'));
+  const thead = el('thead');
+  thead.appendChild(tr);
+  return thead;
+}
+function songsTableRow(i, queue, pos){
+  const t = S.tracks[i];
+  const tr = el('tr', 'songs-table-row');
+  tr.dataset.id = t.id;
+  if(i === S.index) tr.setAttribute('aria-current', 'true');
+  tr.appendChild(el('td', 'st-idx', String(pos + 1).padStart(2, '0')));
+  const artTd = el('td', 'st-art');
+  artTd.appendChild(trackArtNode(t));
+  tr.appendChild(artTd);
+  const titleTd = el('td', 'st-title', t.tags.title);
+  titleTd.title = t.tags.title;
+  tr.appendChild(titleTd);
+  const artistName = displayArtist(t.tags.artist);
+  const artistTd = el('td', 'st-artist', artistName);
+  artistTd.title = artistName;
+  tr.appendChild(artistTd);
+  const albumTd = el('td', 'st-album', t.tags.album);
+  albumTd.title = t.tags.album;
+  tr.appendChild(albumTd);
+  tr.appendChild(el('td', 'st-time', fmt(t.duration)));
+  const menuTd = el('td', 'st-menu');
+  const editBtn = el('button', 't-edit', '⋯');
+  editBtn.setAttribute('aria-label', 'Track options');
+  editBtn.addEventListener('click', e => { e.stopPropagation(); openRowMenu(t); });
+  menuTd.appendChild(editBtn);
+  tr.appendChild(menuTd);
+  tr.addEventListener('click', () => setQueue(queue, queue.indexOf(i), true));
+  return [tr, titleTd];
+}
+function songsTable(q){
+  const wrap = el('div', 'songs-table-wrap');
+  const table = el('table', 'songs-table');
+  table.appendChild(songsTableHead());
+  const tbody = el('tbody');
+  table.appendChild(tbody);
+  appendRowsChunked(tbody, q, (i, pos) => {
+    const [row, titleTd] = songsTableRow(i, q, pos);
+    if(isAlbumSealed(albumKey(S.tracks[i]))) titleTd.appendChild(el('span', 'new-tag', 'NEW'));
+    return row;
+  });
+  wrap.appendChild(table);
+  return wrap;
 }
 
 // NV3 (docs/11_SMOOTH_NAVIGATION.md): a targeted patch for one row, instead
@@ -1493,31 +1578,46 @@ function renderTracksBody(host){
   if(v.mode === 'songs'){
     const q = allIdx().sort(librarySortComparator('songs'));
     host.appendChild(librarySortBar(q.length, q.length === 1 ? 'Song' : 'Songs'));
-    host.appendChild(ul);
-    // CR9 (docs/13_CRATE.md): sticky letter heads + rail above 200 tracks
-    // — only while the current sort is actually alphabetical (artist or
-    // album; "added"/"played"/"sessions" aren't, and a letter head over a
-    // list that jumps around by recency would read as broken, not helpful).
-    const sortKey = S.librarySort;
-    // LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 7): "by artist, it
-    // reads '{letter} · {artist}'; by title, just the letter" — grouping
-    // by artist means each run is every song by one artist, so there's a
-    // single name worth repeating in the header; grouping by album has no
-    // such single value (an album's own title already differs from an
-    // artist name), so it stays just the letter.
-    const groupingByArtist = !sortKey || sortKey === 'artist';
-    const songLabelFor = sortKey === 'album' ? i => S.tracks[i].tags.album : groupingByArtist ? i => S.tracks[i].tags.artist : null;
-    const showSongsRail = songLabelFor && q.length > SONGS_RAIL_THRESHOLD;
-    appendRowsChunked(ul, q, (i, pos) => {
-      const row = songRow(i, q, pos);
-      if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
-      return row;
-    }, showSongsRail ? { labelFor: songLabelFor, headFor: (key, rawLabel) => {
-      const h = el('li','letter-head', groupingByArtist ? key + ' · ' + rawLabel : key);
-      h.dataset.letterKey = key;
-      return h;
-    } } : null);
-    if(showSongsRail) attachLetterRail(host, buildLetterGroups(q, songLabelFor));
+    // LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): at ≥1024px the
+    // same sorted `q` draws as a table (songsTable(), above) instead of
+    // the phone list below it — chosen once per render via isDesktopShell()
+    // the same way several other desktop-vs-phone behavior choices in this
+    // codebase already are (src/shell/player-overlay.js, src/crate/view.js),
+    // not re-rendered on a live resize across the breakpoint, same as
+    // those. The letter rail/sticky headers below are a phone-only
+    // reading aid; the table's own sortable columns replace that job.
+    if(isDesktopShell()){
+      host.appendChild(songsTable(q));
+    } else {
+      host.appendChild(ul);
+      // CR9 (docs/13_CRATE.md): sticky letter heads + rail above 200 tracks
+      // — only while the current sort is actually alphabetical (artist or
+      // album; "added"/"played"/"sessions" aren't, and a letter head over a
+      // list that jumps around by recency would read as broken, not helpful).
+      const sortKey = S.librarySort;
+      // LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 7): "by artist, it
+      // reads '{letter} · {artist}'; by title, just the letter" — grouping
+      // by artist means each run is every song by one artist, so there's a
+      // single name worth repeating in the header; grouping by album has no
+      // such single value (an album's own title already differs from an
+      // artist name), so it stays just the letter. LB10 adds a 'title' sort
+      // key with no letter-rail grouping of its own (same as added/played/
+      // sessions) -- the desktop table's Title column covers that case
+      // instead, and the phone chip rarely lands on it mid-scroll.
+      const groupingByArtist = !sortKey || sortKey === 'artist';
+      const songLabelFor = sortKey === 'album' ? i => S.tracks[i].tags.album : groupingByArtist ? i => S.tracks[i].tags.artist : null;
+      const showSongsRail = songLabelFor && q.length > SONGS_RAIL_THRESHOLD;
+      appendRowsChunked(ul, q, (i, pos) => {
+        const row = songRow(i, q, pos);
+        if(isAlbumSealed(albumKey(S.tracks[i]))) row.querySelector('.t-name').appendChild(el('span','new-tag','NEW'));
+        return row;
+      }, showSongsRail ? { labelFor: songLabelFor, headFor: (key, rawLabel) => {
+        const h = el('li','letter-head', groupingByArtist ? key + ' · ' + rawLabel : key);
+        h.dataset.letterKey = key;
+        return h;
+      } } : null);
+      if(showSongsRail) attachLetterRail(host, buildLetterGroups(q, songLabelFor));
+    }
   }
 
   else if(v.mode === 'person'){
@@ -1580,7 +1680,14 @@ function renderTracksBody(host){
       const artistGroups = unknownGroup ? namedGroups.concat([[UNTAGGED_KEY, unknownGroup[1]]]) : namedGroups;
       const showArtistsRail = artistGroups.length > ARTISTS_RAIL_THRESHOLD;
       const artistLabelFor = ([artist]) => artist === UNTAGGED_KEY ? '#' : artist;
-      appendRowsChunked(host, artistGroups, ([artist, idx]) => artist === UNTAGGED_KEY
+      // LB10 point 3: a plain wrapper div so 27-library-sleeves.css's own
+      // min-width:1024px rule can grid these rows into columns on
+      // desktop (matching .playlist-grid's own wide-grid treatment just
+      // below in that file) -- phone width leaves the div unstyled, so
+      // the rows stack exactly as they did appended straight into `host`.
+      const artistsGrid = el('div', 'artists-grid');
+      host.appendChild(artistsGrid);
+      appendRowsChunked(artistsGrid, artistGroups, ([artist, idx]) => artist === UNTAGGED_KEY
           ? untaggedArtistsRow(idx, () => { v.mode = 'untaggedSongs'; renderTracks(); })
           : artistRow(artist, idx, ()=>{ v.group = artist; renderTracks(); }),
         showArtistsRail ? { labelFor: artistLabelFor, headFor: letterHead } : null);

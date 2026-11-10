@@ -272,11 +272,18 @@
      doesn't set. */
   .sidebar-heading{margin:0 0 var(--sp-2);padding:0 10px}
   .sidebar-playlists{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-  .sidebar-playlist-row,.sidebar-playlists-empty{
-    font-size:var(--fs-caption);padding:7px 10px;border-radius:6px;color:var(--paper);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  .sidebar-playlists-empty{
+    font-size:var(--fs-caption);padding:7px 10px;border-radius:6px;color:var(--muted);
   }
-  .sidebar-playlists-empty{color:var(--muted)}
+  /* LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): "one line each,
+     the name ending with '…', the count right-aligned and flex:none" --
+     the same shape .sidebar-bin-row/-label/-count already give the BINS
+     list just below (UN17), reused here rather than a second truncation
+     rule. These rows aren't a button anywhere yet (no click handler),
+     so the modifier below drops .sidebar-bin-row's own cursor/hover
+     affordance rather than implying a tap that does nothing. */
+  .sidebar-playlist-row-inner{cursor:default}
+  .sidebar-playlist-row-inner:hover,.sidebar-playlist-row-inner:focus-visible{background:none}
   /* CR10 (docs/13_CRATE.md point 3): the BINS list above Playlists —
      same list/row shape as .sidebar-playlists just above, except each
      row is a real button ("each jumps the crate") so it needs the usual

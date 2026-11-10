@@ -62,7 +62,12 @@ test('renderSidebarPlaylists: a system playlist (Favorites) is pinned first', ()
     { name: 'Favorites', items: [], system: 'favorites' },
   ];
   renderSidebarPlaylists();
-  assert.deepEqual(host.children.map(c => c.textContent), ['Favorites', 'Road Trip']);
+  // LB10 (docs/36A_LIBRARY_AND_LAUNCH.md decision 15): each row is now
+  // li > div(.sidebar-bin-row) > [name span, count span] rather than a
+  // single text-bearing <li> — the right-aligned song count UN17 already
+  // gives the BINS list, extended here to Playlists.
+  const names = host.children.map(li => li.children[0].children[0].textContent);
+  assert.deepEqual(names, ['Favorites', 'Road Trip']);
 });
 
 // docs/DESKTOP_LAYOUT.md's own required test case, verbatim shape.
@@ -72,7 +77,24 @@ test('renderSidebarPlaylists: a playlist name renders as text, never markup', ()
   S.playlists = [{ name: payload, items: [] }];
   renderSidebarPlaylists();
   assert.equal(host.children.length, 1);
-  assert.equal(host.children[0].textContent, payload);
+  assert.equal(host.children[0].children[0].children[0].textContent, payload);
+});
+
+// LB10: the count is "{n} songs", reading only tracks currently
+// reconnected (pl.items.map(idxOf).filter(i => i >= 0)), same rule the
+// playlist grid/detail captions already use — never the raw item count,
+// which could include a forgotten track's still-remembered id.
+test('renderSidebarPlaylists: the count reads only reconnected tracks, correctly pluralized', () => {
+  host = fakeHost();
+  S.tracks = [{ id: 'a' }, { id: 'b' }];
+  S.playlists = [
+    { name: 'One song', items: ['a', 'missing'] },
+    { name: 'Two songs', items: ['a', 'b'] },
+  ];
+  renderSidebarPlaylists();
+  const counts = host.children.map(li => li.children[0].children[1].textContent);
+  assert.deepEqual(counts, ['1 song', '2 songs']);
+  S.tracks = [];
 });
 
 test('renderSidebarPlaylists: no #sidebarPlaylists host yet (not in the DOM) is a quiet no-op', () => {
