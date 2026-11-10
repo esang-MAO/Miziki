@@ -35,9 +35,6 @@ function hasKnownFormat(record){
 // systems together" call CLAUDE.md documents for sync/images.js's own
 // crop logic and player/clock.js's PHASE_COLOR table.
 const NEW_ARRIVAL_WINDOW_MS = 14 * 24 * 3600 * 1000;
-// CR2: "an artist with three or more records" gets its own divider inside
-// a letter.
-const ARTIST_DIVIDER_MIN = 3;
 
 // CR2: staff picks are MizikiSocial's own local pin state (X.state.pins,
 // already in pin-rank order — getPins()'s own doc comment), reached as
@@ -76,7 +73,12 @@ function compareCrateArtists(a, b){
   const pa = crateArtistPriority(a), pb = crateArtistPriority(b);
   return pa !== pb ? pa - pb : crateCompareNames(a, b);
 }
-function crateLetterFor(artist){
+// LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): exported so crate/
+// view.js's own A-Z "current letter · artist" line (replacing the artist-
+// divider card below) can resolve a letter straight from an artist name,
+// the same rule the grouping pass itself uses, rather than scanning for a
+// divider item's own label.
+export function crateLetterFor(artist){
   if(artist === 'Unknown Artist') return '?';
   const c = crateSortKey(artist).charAt(0);
   return /[a-z]/.test(c) ? c.toUpperCase() : '#';
@@ -363,26 +365,14 @@ function buildVirtualBins(records){
   return bins;
 }
 
-// CR2 point 2: "inside a letter, an artist with three or more records
-// gets a type:'div' item with kind:'artist' ahead of their records." The
-// letter group's own records are already sorted by artist name first
-// (compareCrateArtists, in the caller below), so a run of the same artist
-// is always contiguous — no second grouping pass needed, just a walk that
-// notices where one run ends and the next begins.
-function withArtistDividers(letterRecords){
-  const runs = groupSortedRecords(letterRecords, r => r.artist);
-  const out = [];
-  runs.forEach(run => {
-    if(run.records.length >= ARTIST_DIVIDER_MIN){
-      const span = yearSpanLabel(run.records);
-      out.push({type:'div', kind:'artist', label:run.key,
-        meta: run.records.length + ' ALBUMS' + (span ? ' · ' + span : ''), panelSub:'Artist', key:'artist:' + run.key,
-        idx: flatIdx(run.records)});
-    }
-    out.push(...run.records);
-  });
-  return out;
-}
+// LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): CR2 point 2 used to
+// give "an artist with three or more records" its own type:'div' item
+// (kind:'artist') ahead of their records — "the artist-divider card that
+// pokes up behind the record like a tab." That card goes: the current
+// letter and artist now live in a line under the sort chip instead
+// (crate/view.js's own per-frame read of model.items, via crateLetterFor()
+// above), so this just hands the letter group's records straight through,
+// already in their existing artist-then-year-then-album order.
 
 // builds the ordered {type:'div'|'rec', ...} array once, plus lookup maps
 // for jumping by album id or by letter/genre (CRATE spec §2), plus (CR14,
@@ -465,12 +455,7 @@ function buildCrateModel(group){
           panelSub: g.key === '?' ? 'Unknown artist' : 'Artists beginning with ' + g.key, key:g.key,
           idx: flatIdx(g.records)});
       }
-      // CR2 point 2: artist dividers only ever sit inside a letter group,
-      // never standing in for the letter divider above them.
-      withArtistDividers(g.records).forEach(it => {
-        if(it.type === 'div') items.push(it);
-        else { byAlbumId.set(it.albumId, items.length); items.push(it); }
-      });
+      g.records.forEach(r => { byAlbumId.set(r.albumId, items.length); items.push(r); });
     });
     if(showDividers){
       railEntries = CRATE_ALPHABET.concat(present.has('?') ? ['?'] : [])
@@ -520,31 +505,39 @@ export function clampToSection(section, value){
   return clamp(value, section.start, section.end - 1);
 }
 
-// CR3 point 3: "[LABEL] · [CAT. NO.] · [YEAR] · N TRACKS · M:SS", falling
-// back to "[GENRE] · [YEAR] · N TRACKS" (no runtime) once label and
+// CR3 point 3: "[Label] · [Cat. no.] · [Year] · N tracks · M:SS", falling
+// back to "[Genre] · [Year] · N tracks" (no runtime) once label and
 // catalog are both empty — the design doc's own fallback example drops
 // the duration, not just the two missing fields, so this matches that
 // literally rather than reusing the first branch's bits minus two.
-// AU10 (docs/16_AUDIO.md §5): "7″ SINGLE · 2 TRACKS" — the catalog card
+// LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): sentence case, not
+// caps — "7″ single · Rock · 1964 · 2 tracks".
+// AU10 (docs/16_AUDIO.md §5): "7″ single · 2 tracks" — the catalog card
 // names the format up front only for a 45 (a 33⅓ LP is the unremarkable
 // default, so it stays unlabeled, the same restraint stickerFor()/the
 // crate's own format chip already apply).
 function catalogFormatPrefix(record){
   if(!hasKnownFormat(record)) return [];
   const f = formatOf(record);
-  return f.speed === RPM_45 ? [formatRecordName(f)] : [];
+  // formatRecordName() itself stays ALL CAPS ("7″ SINGLE") — it's shared
+  // with several other all-caps surfaces (the gatefold's liner notes and
+  // sealed front, the edit sheet's format summary, the library's album
+  // caption), none of which this step touches. Lower-cased only here, for
+  // this one sentence-case line; "EP"/"LP" never contain "SINGLE" so they
+  // pass through untouched.
+  return f.speed === RPM_45 ? [formatRecordName(f).replace('SINGLE', 'single')] : [];
 }
 
 export function catalogLineFor(record){
   if(record.label || record.catalog){
     const bits = [...catalogFormatPrefix(record), record.label, record.catalog, record.year ? String(record.year) : null,
-      record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS'),
+      record.trackCount + (record.trackCount === 1 ? ' track' : ' tracks'),
       formatDuration(record.durationSec)].filter(Boolean);
-    return bits.join(' · ').toUpperCase();
+    return bits.join(' · ');
   }
   const bits = [...catalogFormatPrefix(record), record.genre, record.year ? String(record.year) : null,
-    record.trackCount + (record.trackCount === 1 ? ' TRACK' : ' TRACKS')].filter(Boolean);
-  return bits.join(' · ').toUpperCase();
+    record.trackCount + (record.trackCount === 1 ? ' track' : ' tracks')].filter(Boolean);
+  return bits.join(' · ');
 }
 
 // AU10: the small "7″ · 45" / "12″ · 45" sticker on a crate sleeve —
