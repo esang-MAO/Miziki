@@ -30,6 +30,17 @@ export function activePlayerSideTab(){
   return (btn && btn.dataset.panelTab) || 'upnext';
 }
 
+// UN17 point 5: the full player's own Queue button switches the side
+// panel to this tab on desktop, rather than opening a second queue sheet
+// right next to a panel already showing the same list -- same "flip
+// aria-selected, repaint" shape src/wiring/transport.js's own tab click
+// listener uses.
+export function selectPlayerSideTab(tab){
+  document.querySelectorAll('#playerSideTabs [data-panel-tab]')
+    .forEach(b => b.setAttribute('aria-selected', String(b.dataset.panelTab === tab)));
+  renderPlayerSidePanel();
+}
+
 export function renderPlayerSidePanel(){
   const host = $('#playerSideBody');
   if(!host) return;

@@ -496,28 +496,30 @@
   </button>
   <!-- Sundown's content opens from a sheet (sundown-sheet.js), not a tab;
        showRoute('sundown')/('character') redirect into it -->
-  <!-- D7: data-route stays "profile" for routing/aria; only the visible
-       label (Profile vs Crate) flips at 1024px+ (23-desktop.css) -->
+  <!-- D7/UN17 point 1 (decision 13): data-route stays "profile" for
+       routing/aria; the desktop-only label read "Crate", now "Profile" --
+       the swap itself (23-desktop.css, hides .tabbar-label, shows
+       .tabbar-label-desktop at 1024px+) is unchanged. -->
   <button class="tabbar-btn" role="tab" data-route="profile" aria-selected="false">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>
     <span class="tabbar-label">Profile</span>
-    <span class="tabbar-label-desktop">Crate</span>
+    <span class="tabbar-label-desktop">Profile</span>
   </button>
 </nav>
 <div class="sidebar-extra">
   <!-- CR10: mirrors the crate's own virtual bins (crate/model.js's
        buildVirtualBins()), built by sidebar.js's renderSidebarBins() -->
   <div class="sidebar-section">
-    <div class="sidebar-heading">Bins</div>
+    <div class="sidebar-heading p-label">Bins</div>
     <ul class="sidebar-bins" id="sidebarBins"></ul>
   </div>
   <div class="sidebar-section">
-    <div class="sidebar-heading">Playlists</div>
+    <div class="sidebar-heading p-label">Playlists</div>
     <ul class="sidebar-playlists" id="sidebarPlaylists"></ul>
   </div>
   <!-- desktop way in to the Sundown sheet (src/shell/sundown-sheet.js) -->
   <button type="button" class="sidebar-section sidebar-sundown" id="sidebarSundown">
-    <div class="sidebar-heading">Sundown</div>
+    <div class="sidebar-heading p-label">Sundown</div>
     <!-- mirrors the Day view's own phase block, written by drawSun() -->
     <div class="sidebar-sundown-phase" id="sidePhaseName"></div>
     <div class="sidebar-sundown-rate" id="sidePhaseSub"></div>
@@ -1155,6 +1157,13 @@
        targeted at this host instead of an overlay — see
        src/shell/player-side-panel.js. -->
   <div class="player-side-panel" id="playerSidePanel">
+    <!-- UN17 point 5: the bottom bar's #barVolume (AU7, docs/16_AUDIO.md
+         §6) moves here while the full player is open on desktop -- the
+         player has its own controls now, so the bar underneath it never
+         shows a lone volume slider. A DOM move only (shell/player-
+         overlay.js), never a cloned id -- applyDeviceVolume() (audio/
+         engine.js) keeps listening to the one element wherever it sits. -->
+    <div class="player-volume-row" id="playerVolumeHost"></div>
     <div class="player-side-tabs" id="playerSideTabs" role="tablist">
       <button class="player-side-tab" data-panel-tab="upnext" role="tab" aria-selected="true">Up next</button>
       <button class="player-side-tab" data-panel-tab="liner" role="tab" aria-selected="false">Liner notes</button>
@@ -1794,6 +1803,13 @@
        already covers playing a track, and there's no room for a second,
        redundant play button. -->
   <button class="cta gf-play-record-btn" id="gfPlayRecordBtn" type="button">▶ Play the record</button>
+  <!-- UN17 point 4 (docs/36_UNIFORMITY.md, frame 6-desktop-gatefold): the
+       spread's own secondary action on desktop, beside "Play the record"
+       -- the existing #gfTurnOver icon button (above) stays the sleeve's
+       own on-cover flip control everywhere else; this is a second way to
+       the same gatefoldToggleTurnedOver(), never a duplicate of its
+       logic. Hidden outside .gf-wide, same as the button above. -->
+  <button class="cta ghost gf-turn-over-btn" id="gfTurnOverText" type="button" aria-pressed="false">Turn it over</button>
   <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
     <button data-panel="right" aria-pressed="true">Tracks</button>
     <button data-panel="left" aria-pressed="false">Inside</button>

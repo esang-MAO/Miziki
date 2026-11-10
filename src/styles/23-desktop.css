@@ -56,6 +56,13 @@
   .store-pick-sleeve-note, .store-bio, .rest-hint p{
     max-width:var(--measure);
   }
+  /* UN17 point 2: Settings/Listening/Privacy/Account/Terms centre in a
+     640px column instead of stretching across the whole content area
+     (today's rows/segments run ~1,100px, with switches far from their
+     labels); Records' own grid gets more room instead (point 2's own
+     1000px cap). Classes toggled by profile/screens.js's renderProfile(). */
+  #profileBody.profile-content-narrow{max-width:640px;margin:0 auto}
+  #profileBody.profile-content-wide{max-width:1000px;margin:0 auto}
   /* .wrap stops being a centered 520px column and becomes a flex item
      sharing a row with the sidebar — this is what actually gives it "the
      rest of the space beside the sidebar" with no manual width/margin
@@ -73,7 +80,15 @@
      collapses to 0 height then) — the same "a little unused space beats
      content hidden under fixed chrome" trade-off the phone's own
      --chrome-inset fallback already makes. */
-  body{display:flex}
+  /* UN17 point 1: html/body's own height:100% (00-base.css) pins body's
+     flex-container box to exactly one viewport tall; a route whose content
+     is taller than that (profile, unlike the phone-width routes this file
+     mostly deals with) then overflows that box without growing it, so the
+     sticky sidebar below -- constrained to its own flex container's box,
+     per spec -- runs out of room to stick in and scrolls away with the
+     page. min-height lets the box (and so the sidebar's containing block)
+     grow to the real content height instead. */
+  body{display:flex;height:auto;min-height:100vh}
   .wrap{max-width:none;margin:0;flex:1 1 auto;min-width:0;order:0;
     padding:28px var(--sp-6) calc(116px + env(safe-area-inset-bottom))}
 
@@ -215,11 +230,19 @@
    rather than hidden as redundant with a panel that no longer exists. */
 
 @media (min-width:1024px){
-  :root{--crate-card-size:340px}
+  /* UN17 point 6: "the current record draws larger (up to 360px) when
+     the window allows" -- clamp() instead of the old flat 340px, so a
+     1024px-wide window (30vw ≈ 307px, under the 340px floor) still reads
+     exactly as it does today, and only a genuinely wider window grows the
+     card, capped at 360px. */
+  :root{--crate-card-size:clamp(340px, 30vw, 360px)}
   /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): "the wider stage simply shows
      more of each peek" — a wider sliver to match the bigger 340px card,
      same ratio as the phone's own 46px/278px. */
   .crate-peek{width:70px;height:calc(var(--crate-card-size) * .78)}
+  /* UN17 point 6: "the info card is capped to the record's width plus
+     40px instead of spanning the whole content area" */
+  .crate-info{max-width:calc(var(--crate-card-size) + 40px);margin-left:auto;margin-right:auto}
   /* CR10 point 2: "the rail docked 16 px from the stage edge" — the
      mockup's own right:16px, vertically centred rather than pinned 10px
      from the top. The rail's own drag-to-scrub pointer handling
@@ -243,10 +266,11 @@
     display:flex;flex-direction:column;gap:22px;margin-top:20px;padding-top:var(--sp-4);
     border-top:1px solid var(--line);overflow-y:auto;min-height:0;
   }
-  .sidebar-heading{
-    font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
-    text-transform:uppercase;color:var(--muted);margin:0 0 var(--sp-2);padding:0 10px;
-  }
+  /* UN17 point 1: "Section labels use .p-label" -- typography now comes
+     from that shared class (05-parts.css, added alongside this one in
+     miziki.html's markup); this rule keeps only the layout .p-label
+     doesn't set. */
+  .sidebar-heading{margin:0 0 var(--sp-2);padding:0 10px}
   .sidebar-playlists{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
   .sidebar-playlist-row,.sidebar-playlists-empty{
     font-size:var(--fs-caption);padding:7px 10px;border-radius:6px;color:var(--paper);
@@ -264,7 +288,12 @@
     color:var(--paper);background:none;border:0;cursor:pointer;text-align:left;
   }
   .sidebar-bin-row:hover,.sidebar-bin-row:focus-visible{background:var(--raised)}
-  .sidebar-bin-count{color:var(--muted);flex:0 0 auto}
+  /* UN17 point 1: "one line each... value right-aligned" -- today the
+     label has no width/white-space rules of its own, so a long one
+     (e.g. "45s · 7″ & 12″") wraps onto a second line inside the flex row
+     instead of truncating and leaving the count its own column. */
+  .sidebar-bin-label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sidebar-bin-count{color:var(--muted);flex:0 0 auto;white-space:nowrap}
   .sidebar-bins-empty{font-size:var(--fs-caption);padding:7px 10px;color:var(--muted)}
   /* RF26 (docs/12_REFINE.md): #sidebarSundown is a real <button> now (the
      sheet's own desktop way in, src/shell/sundown-sheet.js) — reset the
@@ -390,31 +419,27 @@
   #queueBtn{display:none !important}
 }
 
-/* D7 (docs/DESKTOP_LAYOUT.md): Crate profile on desktop — the mockup's
-   two-column grid ("top records and digging list on the left, collection
-   and now spinning on the right"), plus wider versions of the grids
-   that already exist (the doc's own "the awning, avatar disc, stats and
-   metals row already exist and only need the wider grid" — no new
-   layout for those, just more columns now that .wrap's 520px cap is
-   gone, D3). .profile-desktop-grid is the same invisible-scaffolding
-   pattern every prior D-step's own wrapper already uses: display:contents
-   below this breakpoint, so renderProfileHome()'s existing #profileBody
-   content (one .store-host, one .profile-extras, each built by existing,
-   unmodified functions in src/profile/storefront.js/screens.js) renders
-   exactly as it always has on a phone.
+/* D7 (docs/DESKTOP_LAYOUT.md), reworked by UN17 point 3 (docs/36_UNIFORMITY.md,
+   frames 4-desktop-profile/5-desktop-wall): two columns, the wall on the
+   left (≤420px) and the shelf on the right, with the identity header
+   ("name and rows") stacked under the wall rather than spanning full
+   width at the top -- the global plate+gear (#appHeader.on-profile) are
+   already full width above this grid entirely, unaffected by any of this.
+   .profile-desktop-grid is the same invisible-scaffolding pattern every
+   prior D-step's own wrapper already uses: display:contents below this
+   breakpoint, so renderProfileHome()'s existing #profileBody content (one
+   .store-host, one .profile-extras, each built by existing, unmodified
+   functions in src/profile/storefront.js/screens.js) renders exactly as
+   it always has on a phone.
    At 1024px+, both .store-host and .profile-extras become display:contents
    too, so their own children spill into being direct items of the one
    shared grid — display:contents doesn't change DOM structure or how
    selectors match it, only box generation, so every selector below still
    targets the real element, just via a descendant (not child) relation.
    Everything not named in the two-column mapping stays a full-width row
-   (grid-column:1/-1) in its own fixed order, so the overall page reads:
-   identity/stats header, then the two-column band, then the metals row,
-   staff picks, the full crate grid, and Share last — regardless of which
-   of the two original wrapper subtrees each piece's markup happens to
-   live under. order has zero effect below this breakpoint (it only does
-   anything inside an actual grid/flex formatting context), so none of
-   this touches phone layout. */
+   (grid-column:1/-1) in its own fixed order. order has zero effect below
+   this breakpoint (it only does anything inside an actual grid/flex
+   formatting context), so none of this touches phone layout. */
 .profile-desktop-grid{display:contents}
 
 @media (min-width:1024px){
@@ -422,55 +447,73 @@
   .store-host{display:contents}
   .profile-extras{display:contents}
 
-  /* every piece not named in the doc's own two-column mapping, full
-     width, in a fixed reading order — covers renderLocalStorefront (the
-     one signed-out view, social configured or not, GS8 follow-up) and
-     renderStorefront (signed in), which don't share every element:
-     .store-bio/.store-vis-row/.store-requests-wrap only ever exist signed
-     in, .store-open-card only while not yet signed in — a missing one
-     just means that order slot has nothing to fill it. The identity
-     header itself (.store-header) is now the one place the avatar/name
-     is edited in every state, so there's no separate editor section to
-     order here any more. */
+  /* the sign-in prompt (signed out, social configured) is the one thing
+     that still belongs above the two-column band, full width */
   .store-sign-wrap{grid-column:1/-1;order:1}
-  .store-header{grid-column:1/-1;order:2}
-  .store-bio{grid-column:1/-1;order:3}
-  .store-vis-row{grid-column:1/-1;order:4}
-  .store-stats{grid-column:1/-1;order:5}
-  .store-requests-wrap{grid-column:1/-1;order:6}
-  .store-open-card{grid-column:1/-1;order:7}
 
-  /* "the shelf unit" and "digging list"/"collection" share the row below
-     the stats header — left/right via grid-column, paired via order. A
-     missing piece (digging-list is social-only, absent in the common
-     signed-out/local-only case) just leaves that cell empty — grid auto-
-     placement needs no row-span bookkeeping for that. GS9 (point 4)
-     removed the Top Album/Top Song tiles this grid used to pair it
-     against (.profile-top-row, now gone along with the tiles
-     themselves) — the shelf unit (ST2, docs/32_SHELF_AND_TURNTABLES.md,
-     replaces GS8's own .store-turntable console-shelf) keeps the same
-     column/order regardless. */
-  .store-shelf-unit-section{grid-column:2;order:10}
-  .store-section-digging{grid-column:1;order:11}
-  button.profile-section{grid-column:2;order:11}
+  /* left column, top to bottom: the wall, then the identity header and
+     its own rows (bio/visibility/follow-requests/the sign-in CTA) --
+     "name and rows under the wall." */
+  .store-header{grid-column:1;order:3}
+  .store-bio{grid-column:1;order:4}
+  .store-vis-row{grid-column:1;order:5}
+  .store-requests-wrap{grid-column:1;order:6}
+  .store-listening-row{grid-column:1;order:7}
+  .store-records-pressings{grid-column:1;order:8}
+  .store-open-card{grid-column:1;order:9}
+
+  /* stats (play counts) stay a full-width row, now below the two-column
+     band rather than above it */
+  .store-stats{grid-column:1/-1;order:15}
+
+  /* the Collection button pairs with the digging list below, set
+     alongside it after the generic .store-section catch-all (next) --
+     see that rule's own comment for why. */
+  button.profile-section{grid-column:2;order:21}
 
   /* achievements ("metals row") stays full width — div, not button,
      the one thing distinguishing it from the collection button above,
      which shares the exact same base class */
-  div.profile-section{grid-column:1/-1;order:20}
-  /* staff picks and the full crate grid ("All records") both share the
-     base .store-section class with the digging list above — the more
-     specific .store-section-digging rule already won that one element's
-     own grid-column/order, so this plain rule only ever actually applies
-     to these other two, in their own existing DOM order */
-  .store-section{grid-column:1/-1;order:21}
+  div.profile-section{grid-column:1/-1;order:30}
+  /* the staff-picks/crate-grid catch-all every .store-section not named
+     below falls into. .store-wall/.store-shelf-unit-section/
+     .store-section-digging all share this same base class at equal
+     specificity, so each one's own more specific grid-column/order is
+     set again just below, after this rule, to actually win that tie --
+     source order decides between selectors of equal specificity, so
+     setting them earlier (as a first pass of this block did) only loses
+     to this rule. */
+  .store-section{grid-column:1/-1;order:31}
+  .store-wall{grid-column:1;order:2}
+  /* right column, paired with the wall at the same order so grid's
+     row-major auto-placement lands them on the same row */
+  .store-shelf-unit-section{grid-column:2;order:2}
+  /* the digging list below that, left column, paired with the Collection
+     button above (order:21) */
+  .store-section-digging{grid-column:1;order:21}
 
-  .profile-share-stack{grid-column:1/-1;order:30}
+  .profile-share-stack{grid-column:1/-1;order:40}
   /* the local-only storefront's own closing note ("This is a local
      preview...") — a direct child of .store-host, so the child
      combinator still matches it correctly even though .store-host
      itself no longer generates a box */
-  .store-host > .note{grid-column:1/-1;order:31}
+  .store-host > .note{grid-column:1/-1;order:41}
+
+  /* "the wall's ledge covers are 118px and the cubby sections match the
+     shelf's cube size, so the two read at the same scale" -- the wall
+     column itself caps at 420px (today it runs the full column width,
+     which read oversized against the shelf next to it); the ledge's
+     three covers (18-storefront.css's .store-ledge-pin, a 1/3-of-container
+     percentage split everywhere else) and the pressing/metal frames
+     (.store-pressing-frame, flex:1 so three of them always fill the
+     wall's whole width -- "the cubby is huge") both go fixed-size instead,
+     matching .cube's own 156px (18-storefront.css) -- the shelf unit's
+     own cube width at its 342px max-width (same file). */
+  .store-wall{max-width:420px}
+  .store-ledge-pin{flex:0 0 118px}
+  .store-ledge-name{flex:0 0 118px}
+  .store-wall-frames{flex-wrap:wrap}
+  .store-pressing-frame{flex:0 0 156px}
 
   /* the achievements grid and the dedicated Collection screen's own full
      grid (both .profile-grid, not .profile-grid.mini — that one stays a
@@ -490,6 +533,47 @@
   .profile-grid{grid-template-columns:repeat(8,1fr)}
   .store-crate-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
   .records-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* UN17 point 4 (docs/36_UNIFORMITY.md, frame 6-desktop-gatefold): "the
+   open spread (both panels) is centred in the content area at its full
+   desktop size... today the spread sits small in the top-left with about
+   two-thirds of the screen empty." .gatefold is position:fixed;inset:0,
+   full viewport, unconfined by the sidebar -- D6 already confines the
+   full player the same way (.player-overlay above), so this mirrors that.
+   Measured directly (not derived from the format-independent geometry
+   numbers, since .gf-camera's own composite scale/translate transform
+   makes the screen position a non-trivial function of them): in gf-wide
+   mode, at any viewport, the open spread's two panels land at local
+   x:[90,790] relative to .gatefold's own left edge, i.e. a constant
+   700px-wide spread centred on local x:440 -- #gfCamera carries every
+   descendant that's actually inside it (.gf-right/.gf-cover/their own
+   children) along with its own `left`, so shifting that one property by
+   calc(50% - 440px) re-centres the whole spread against the confined
+   box's real (now sidebar-excluded) width, for any content width, without
+   touching any of the per-format geometry math (gatefold/geometry.js)
+   those descendants' own `left`s are still computed against. #gfInfo/
+   #gfBackCoverStage/#gfFlipDots/#gfTurnOver all sit outside #gfCamera on
+   purpose (its own pan/scale/swing must never catch them, per their own
+   existing comments), so they need their own independent centering
+   below. */
+@media (min-width:1024px){
+  .gatefold{left:var(--sidebar-width);right:0}
+  .gatefold.gf-wide .gf-camera{left:calc(50% - 440px)}
+
+  /* the two spec lines (.gf-info-meta, gatefold/view.js) and the primary/
+     secondary actions beneath the spread, each its own box independently
+     centred on the confined content area -- simpler and more robust than
+     reusing the spread's own 440px offset, since these don't need to
+     align to the spread's bounding box, only to the page. */
+  .gatefold.gf-wide .gf-info{left:calc(50% - 190px);text-align:center}
+  .gatefold.gf-wide .gf-play-record-btn{left:calc(50% - 190px)}
+  .gatefold .gf-turn-over-btn{display:none}
+  .gatefold.gf-wide .gf-turn-over-btn{
+    display:block;position:absolute;left:calc(50% - 190px);
+    top:calc(620px + 44px + var(--sp-2));width:380px;min-height:44px;
+    text-align:center;z-index:3;
+  }
 }
 
 /* CEREMONY §2 (docs/CEREMONY.md): with nothing loaded, the desktop player

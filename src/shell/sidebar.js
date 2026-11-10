@@ -66,7 +66,15 @@ export function renderSidebarBins(){
     const btn = el('button', 'sidebar-bin-row');
     btn.dataset.bin = bin.key;
     btn.appendChild(el('span', 'sidebar-bin-label', bin.label));
-    btn.appendChild(el('span', 'sidebar-bin-count', bin.meta));
+    // UN17 point 1: the sidebar's own one-line, right-aligned, correctly
+    // pluralized count -- bin.meta itself (e.g. "1 RECORDS · 45 RPM") is
+    // shared with the mobile crate's own divider tabs (crate/model.js's
+    // buildVirtualBins()) and stays exactly as it is there; this reads
+    // just the leading count out of it rather than reusing the string
+    // verbatim, so the two displays can read differently without the
+    // underlying data ever forking.
+    const n = parseInt(bin.meta, 10) || 0;
+    btn.appendChild(el('span', 'sidebar-bin-count', n + (n === 1 ? ' record' : ' records')));
     li.appendChild(btn);
     host.appendChild(li);
   });

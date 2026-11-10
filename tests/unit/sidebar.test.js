@@ -104,7 +104,11 @@ test('renderSidebarBins: one row per virtual bin, each carrying its key/label/co
   const rows = binsHost.children.map(li => li.children[0]);
   assert.deepEqual(rows.map(b => b.dataset.bin), ['new', 'picks', 'sealed']);
   assert.deepEqual(rows.map(b => b.children[0].textContent), ['NEW ARRIVALS', 'STAFF PICKS', 'SEALED']);
-  assert.deepEqual(rows.map(b => b.children[1].textContent), ['3 ALBUMS', '1 ALBUM', '2 ALBUMS']);
+  // UN17 point 1: the sidebar reads its own plural-correct "{n} record(s)"
+  // from the leading count in bin.meta, rather than showing that string
+  // verbatim (meta itself stays exactly what the mobile crate's own
+  // divider tabs already expect -- unchanged above).
+  assert.deepEqual(rows.map(b => b.children[1].textContent), ['3 records', '1 record', '2 records']);
 });
 
 test('renderSidebarBins: no #sidebarBins host yet (not in the DOM) is a quiet no-op', () => {
