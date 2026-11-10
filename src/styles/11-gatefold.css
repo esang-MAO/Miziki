@@ -77,15 +77,34 @@
   transform:scale(var(--gf-page-scale,1))
     translate(calc(var(--gf-ref-w,390px) / 2),calc(var(--gf-ref-h,740px) / 2)) scale(var(--gf-s,1))
     translate(calc(-1 * var(--gf-cx, var(--gf-pan,175px))),calc(-1 * var(--gf-ref-h,740px) / 2))}
+/* UN6 (docs/36_UNIFORMITY.md): --gf-tint-from/--gf-tint-to are set once
+   per album, from the cover's own colour (src/ui/art-color.js's
+   artTint(), wired in gatefold/view.js's openGatefold()) — the literal
+   fallback here is today's plum, unchanged for a record with no usable
+   art. */
 .gf-right{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:var(--gf-cover-top,58px);
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
-  overflow:hidden;background:linear-gradient(160deg,#2A1B38,#1C1226);color:var(--paper)}
+  overflow:hidden;background:linear-gradient(160deg,var(--gf-tint-from,#2A1B38),var(--gf-tint-to,#1C1226));color:var(--paper)}
 .gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
 /* GF13: left padding cleared to 26px (was 14px) so the title/track rows
    never render under .gf-left-cue's own 20px-wide tab on this panel's
    left edge -- Ken's "bunched up" tracklist text was this cue tab sitting
    on top of the first few characters of every line. */
-.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px var(--sp-3) 26px;outline:none}
+/* UN6 point 4: a 56px fade to --gf-tint-to over the bottom edge, shown
+   only while the list actually overflows past it -- the classic two-layer
+   scroll-shadow trick (CSS-only, no scroll listener). The top layer is a
+   solid --gf-tint-to "eraser" pinned to the content's own bottom edge
+   (background-attachment:local, so it travels with the content); the
+   bottom layer is the fade itself, pinned to the viewport (:scroll). At
+   rest the eraser sits below the fold and the fade shows normally; once
+   scrolled all the way down, the eraser's content-relative position lands
+   exactly over the fade and paints it out, so the true last row reads at
+   full opacity instead of fading into the background. */
+.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px var(--sp-3) 26px;outline:none;
+  background:
+    linear-gradient(var(--gf-tint-to,#1C1226),var(--gf-tint-to,#1C1226)) bottom local,
+    linear-gradient(to bottom,transparent,var(--gf-tint-to,#1C1226)) bottom scroll;
+  background-repeat:no-repeat;background-size:100% 56px,100% 56px}
 /* TY3: an eyebrow over the album title -- Archivo caps, --track-caps. */
 .gf-tl-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);margin-bottom:2px}
@@ -158,11 +177,11 @@
 .gatefold.gf-chrome-in:not(.gf-wide):not(.gf-panel-dragging).gf-panel-left .gf-right{visibility:hidden}
 .gf-face{position:absolute;inset:0;border-radius:4px;overflow:hidden;
   backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.gf-face-front{background:#1C1226}
+.gf-face-front{background:var(--gf-tint-to,#1C1226)}
 .gf-face-front img{width:100%;height:100%;object-fit:cover;display:block}
 .gf-face-front::after{content:'';position:absolute;inset:0 0 0 0;pointer-events:none;
   box-shadow:inset 12px 0 10px -10px rgba(0,0,0,.45)}
-.gf-face-back{transform:rotateY(180deg);background:#1C1226;color:var(--paper)}
+.gf-face-back{transform:rotateY(180deg);background:var(--gf-tint-to,#1C1226);color:var(--paper)}
 /* GF5 (docs/29_GATEFOLD.md): turning the sleeve over. #gfBackCoverStage
    sits OUTSIDE #gfCamera on purpose (miziki.html's own comment there says
    why): #gfCover's swing is an inline rotateY set by view.js's own

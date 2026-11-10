@@ -31,6 +31,9 @@ import { bookletPageCount } from '../library/booklet.js';
 import { openBookletViewer, openAddBookletPagesPicker } from './booklet.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
+// UN6 (docs/36_UNIFORMITY.md): the gatefold's interior takes its colour
+// from the cover.
+import { loadImageEl, shareDominantColor, artTint } from '../ui/art-color.js';
 import { fmt } from '../util/text.js';
 import { fileSpecLine } from '../player/track-spec.js';
 import { setQueue, playNext, addToQueue } from '../player/queue.js';
@@ -94,6 +97,42 @@ pushGatefoldGeometryVars(gatefoldGeometry());
 export let GF = null;   // ephemeral render state for the open gatefold; null when closed
 
 export function isGatefoldOpen(){ return !!GF; }
+
+// UN6 point 2: the cover's tint, worked out once per album and cached in
+// memory only (never persisted — it's cheap to redo, and the underlying
+// art can change via an edit). The plan calls for the crate's "M" art
+// tier, but only 'S' and 'L' tiers actually exist (src/crate/tiers.js) —
+// 'L' is used since openGatefold()'s own gatherRecordShareData() already
+// fetches that same tier for this exact screen, so this reuses real art
+// already being loaded here rather than adding a third tier.
+const gfTintCache = new Map();
+async function resolveGatefoldTint(albumId){
+  if(gfTintCache.has(albumId)) return gfTintCache.get(albumId);
+  let tint = null;
+  try{
+    const url = (await getCrateArtURL(albumId, 'L').catch(() => null)) || thumbURL['album:' + albumId] || null;
+    if(url){
+      const img = await loadImageEl(url);
+      const dom = shareDominantColor(img);
+      if(dom) tint = artTint(dom);
+    }
+  }catch(_e){ tint = null; } // falls back to CSS's own plum default below
+  gfTintCache.set(albumId, tint);
+  return tint;
+}
+
+function applyGatefoldTint(overlay, albumId, seq){
+  resolveGatefoldTint(albumId).then(tint => {
+    if(!GF || GF.seq !== seq) return; // closed/reopened to a different album meanwhile
+    if(tint){
+      overlay.style.setProperty('--gf-tint-from', tint.from);
+      overlay.style.setProperty('--gf-tint-to', tint.to);
+    } else {
+      overlay.style.removeProperty('--gf-tint-from');
+      overlay.style.removeProperty('--gf-tint-to');
+    }
+  });
+}
 
 function gatefoldViewportMode(){
   const w = window.innerWidth, h = window.innerHeight;
@@ -1818,6 +1857,11 @@ export function openGatefold(item, opts){
   overlay.setAttribute('aria-label', item.album);
   overlay.classList.toggle('gf-wide', mode === 'wide');
   overlay.classList.toggle('gf-night', night);
+  // UN6 point 2: set once this open's own tint resolves (sync from cache
+  // on a repeat visit, otherwise a beat after the sampling finishes) --
+  // GF.seq guards against a fast close/reopen landing a stale album's
+  // colour on the gatefold that's actually open by the time it resolves.
+  applyGatefoldTint(overlay, item.albumId, GF.seq);
   overlay.classList.remove('gf-chrome-in');
   overlay.classList.add('gf-panel-right');
   overlay.classList.remove('gf-panel-left', 'gf-panel-dragging');
