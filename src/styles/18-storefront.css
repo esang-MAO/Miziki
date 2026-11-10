@@ -142,6 +142,22 @@
    top-right) to both fit without overlapping -- bottom-right instead,
    the one corner nothing else here ever claims. */
 .store-pick-cover .crate-sticker-friends{top:auto;bottom:8px}
+/* UN16 (docs/36_UNIFORMITY.md point 3): the shared no-art fallback cover
+   (storefront.js's noArtCover()) — fills whichever cover box it's dropped
+   into (that box already sets its own size/radius/overflow:hidden), a
+   printed title card in the resolved pressing colour or var(--panel). */
+/* UN16: the cover's own background is either a resolved pressing colour
+   (any hue) or the plain var(--panel) fallback -- a fixed dark scrim
+   behind the text, not a theme-paired color, is the one thing that reads
+   against either reliably, the same "dark backing behind light text over
+   unknown art" shape .store-pick-tier's own chip already uses. */
+.store-no-art-cover{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;
+  justify-content:flex-end;gap:1px;padding:7px;
+  background-image:linear-gradient(to top, rgba(10,8,6,.72), rgba(10,8,6,0) 65%)}
+.store-no-art-title{font-family:var(--display);font-weight:700;font-size:var(--fs-body);line-height:1.15;
+  color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-no-art-artist{font-family:var(--body);font-size:var(--fs-caption);color:rgba(255,255,255,.88);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-pick-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:4px;padding:var(--sp-2) 10px;
   font-size:var(--fs-caption);line-height:1.35;display:flex;flex-direction:column;gap:var(--sp-1)}
 .store-pick-stars{font-size:var(--fs-caption);letter-spacing:1.5px;color:#B8641A}
@@ -171,7 +187,8 @@
 .store-dig-row{display:flex;align-items:center;gap:var(--sp-3);padding:10px;margin-top:9px;
   border:1px solid var(--line);border-radius:12px;background:var(--raised)}
 .store-dig-row:first-child{margin-top:10px}
-.store-dig-cover{width:48px;height:48px;border-radius:5px;flex:none;background:var(--panel);object-fit:cover}
+.store-dig-cover{width:48px;height:48px;border-radius:5px;flex:none;background:var(--panel);overflow:hidden}
+.store-dig-cover img{width:100%;height:100%;object-fit:cover;display:block}
 .store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-dig-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-dig-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}

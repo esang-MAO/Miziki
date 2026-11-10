@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
-import { albumKey, trackTier, albumPressingTrack, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground } from '../record-art/tiers.js';
+import { albumKey, trackTier, albumPressingTrack, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground, selectVariantForAlbum, getVariantDef } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { discLook } from '../record-art/looks.js';
 import { mostRecentlySpunAlbum, crateFlatAlbumOrder } from '../crate/model.js';
@@ -188,6 +188,32 @@ export function localAlbumArt(title, artist){
   return t ? t.art : null;
 }
 
+// UN16 (docs/36_UNIFORMITY.md point 3): a friend's own cover art never
+// reaches this device — a shared fallback for every place a friend's
+// record can show with nothing to draw (the wall, the shelf, Fresh for
+// you, the digging list, Held for you): a printed title card in the
+// record's own pressing colour, same artist+title+tier lookup CR11's
+// pressingLineFor()/friendPressingSection() already use for a friend's
+// pressing (never a new RPC). `tier` is whichever quality_tier the
+// caller has on hand; several of these rows carry none at all (Held for
+// you's releases, the digging list) — null just reads as a plain muted
+// card instead of a wrong colour, never a thrown error.
+export function noArtCover(title, artist, tier){
+  const cover = el('div','store-no-art-cover');
+  let color = null;
+  if(tier != null){
+    try{ color = getVariantDef(selectVariantForAlbum(artist, title, tier).variant).colors[1]; }catch(_e){ /* stays muted */ }
+  }
+  // backgroundColor, not the background shorthand -- the shorthand would
+  // reset .store-no-art-cover's own CSS background-image scrim (05-parts/
+  // 18-storefront.css), which is what keeps the title/artist text legible
+  // over any pressing colour.
+  cover.style.backgroundColor = color || 'var(--panel)';
+  cover.appendChild(el('span','store-no-art-title', title));
+  cover.appendChild(el('span','store-no-art-artist', artist));
+  return cover;
+}
+
 // CC3 (docs/34_CARE_AND_CONTROL.md): `owners`, when given, is this
 // record's own friends-sticker count (release_id -> owners, resolved by
 // the caller) -- `pick` is always a face-out "in rotation" pin here (a
@@ -199,6 +225,7 @@ export function storePickTile(pick, owners){
   const cover = el('div','store-pick-cover');
   const art = localAlbumArt(pick.title, pick.artist);
   if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+  else cover.appendChild(noArtCover(pick.title, pick.artist, pick.quality_tier));
   cover.appendChild(el('span','store-pick-tier', STORE_TIER_LABEL[pick.quality_tier] || ''));
   if(owners){
     const badge = stickerBadge(pick.release_id, owners);
