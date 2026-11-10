@@ -2,7 +2,8 @@
    Three shelves under an artist's own record shelf, built only from what's
    already on this device — no social layer, no network:
 
-   - Your most spun: this artist's five most-played tracks (S.trackPlayCounts)
+   - Your most spun: this artist's five most-played records, by full plays
+     (S.sessionCounts, LB8/docs/36A_LIBRARY_AND_LAUNCH.md decision 9)
    - You & [artist]: total spins, when you last spun them, and the
      time-of-day phase you most often play them in (S.albumPhaseCounts)
    - Your pressings: the disc each of this artist's albums presses as —
@@ -16,7 +17,6 @@
    listening counter (src/history/ is the only writer). */
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
-import { setQueue } from '../player/queue.js';
 import { albumKey, trackIdentityKey, getVariantDef } from '../record-art/tiers.js';
 import { discLook } from '../record-art/looks.js';
 import { PHASES } from '../sundown/rhythm.js';
@@ -24,6 +24,7 @@ import { PHASE_LABEL } from '../profile/rhythm-card.js';
 import { lastSpunLabel } from '../crate/model.js';
 
 export const TOP_TRACKS = 5;
+export const TOP_RECORDS = 5;
 // Below this many phase-counted plays, "mostly spun at" is noise.
 export const PHASE_MIN_PLAYS = 5;
 
@@ -43,6 +44,30 @@ export function topTracksFor(idx, tracks, playCounts, lastPlayed, n = TOP_TRACKS
     seen.set(key, { i, key, plays, last: lastPlayed[key] || 0 });
   });
   return [...seen.values()].sort((a, b) => b.plays - a.plays || b.last - a.last).slice(0, n);
+}
+
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9/point 4): "Your most
+// spun" shows one line per *record*, not per track -- full plays
+// (S.sessionCounts, the same per-record counter history/achievements.js's
+// topAlbums() reads) rather than individual track plays, since that's
+// what "plays" means for a record. `entries` is the artist page's own
+// [album, trackIdx[]] list (same shape appendPressings() below takes).
+// Fixes the old per-track row's own "long title shows twice" bug (the
+// track title and its album name, often identical on a single-track
+// single, both rendered on the same row) by only ever showing the one
+// record title, never a track title.
+export function topRecordsFor(entries, tracks, sessionCounts, albumLastPlayed = {}, n = TOP_RECORDS){
+  return entries
+    .map(([album, aidx]) => {
+      const t = tracks[aidx[0]];
+      if(!t) return null;
+      const albumId = albumKey(t);
+      const plays = sessionCounts[albumId] || 0;
+      return plays ? { albumId, album, aidx, plays, last: albumLastPlayed[albumId] || 0 } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.plays - a.plays || b.last - a.last)
+    .slice(0, n);
 }
 
 // The phase with the most plays; ties go to the earlier phase in the day.
@@ -85,24 +110,36 @@ export function pressingLabel(look){
 
 function eyebrow(text){ return el('h3','artist-eyebrow', text); }
 
-export function appendMostSpun(host, idx){
-  const top = topTracksFor(idx, S.tracks, S.trackPlayCounts, S.trackLastPlayed);
+// LB8 point 4: "one line per record (cover, title ending with '…', '{n}
+// plays')". `entries` is the artist page's own [album, trackIdx[]] list.
+// `onOpen(album, aidx)` opens that record the same way its shelf sleeve
+// above does (openAlbumFromLibrary(), passed in by the caller rather than
+// imported here, to avoid a circular import with library/view.js).
+// `artFor(albumId, firstTrack)` resolves a cover the same way, passed in
+// rather than importing thumbURL from ./thumbs.js directly -- that module
+// real-chains into profile/screens.js/crate/model.js/audio/engine.js (its
+// own file-top comment), exactly the wide dependency web this module's
+// own header says it stays free of for its unit tests.
+export function appendMostSpun(host, entries, onOpen, artFor){
+  const counts = S.mergedStats ? S.mergedStats.sessionCounts : S.sessionCounts;
+  const top = topRecordsFor(entries, S.tracks, counts, S.albumLastPlayed);
   if(!top.length) return;
   const section = el('section','artist-section most-spun');
   section.appendChild(eyebrow('Your most spun'));
   const list = el('ol','most-spun-list');
-  const queue = top.map(x => x.i);
-  top.forEach((x, k) => {
-    const t = S.tracks[x.i];
+  top.forEach(x => {
     const li = el('li');
     const btn = el('button','most-spun-row');
-    btn.appendChild(el('span','most-spun-n', String(k + 1)));
-    const text = el('span','most-spun-text');
-    text.appendChild(el('b', null, t.tags.title));
-    text.appendChild(el('em', null, t.tags.album));
-    btn.appendChild(text);
-    btn.appendChild(el('span','most-spun-plays', x.plays + (x.plays === 1 ? ' spin' : ' spins')));
-    btn.addEventListener('click', () => setQueue(queue, k, true));
+    const firstTrack = S.tracks[x.aidx[0]];
+    const src = artFor ? artFor(x.albumId, firstTrack) : firstTrack.art;
+    if(src){
+      const im = el('img', 'most-spun-art'); im.src = src; im.alt = '';
+      im.loading = 'lazy'; im.decoding = 'async'; im.width = 40; im.height = 40;
+      btn.appendChild(im);
+    } else btn.appendChild(el('span','most-spun-art g-art','◍'));
+    btn.appendChild(el('span','most-spun-title', x.album));
+    btn.appendChild(el('span','most-spun-plays', x.plays + (x.plays === 1 ? ' play' : ' plays')));
+    btn.addEventListener('click', () => onOpen && onOpen(x.album, x.aidx));
     li.appendChild(btn);
     list.appendChild(li);
   });

@@ -66,6 +66,39 @@ export function crateCountLabel(count, section){
   return count + (count === 1 ? ' record' : ' records');
 }
 
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 10): the Artists list's own
+// round photo is "the artist's most-played record's cover" -- one
+// representative track index per album (first-seen order within `idx`,
+// so an artist who's never been played still gets a deterministic photo
+// rather than whichever album the sort order happens to put first) with
+// the most full plays (`sessionCounts`, the same per-record counter
+// history/achievements.js's topAlbums()/topAlbumsFromCounts() already
+// read) winning; ties go to whichever album was seen first. `albumKeyFn`
+// is passed in rather than imported so this stays a pure function of its
+// own arguments, no different from byName/trackSort above.
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9): "every display of
+// [parseTags' 'Unknown Artist' fallback] is replaced" -- anywhere a
+// track's own artist shows as plain text to the listener (a song row, a
+// song's ⋯ menu), this returns '' instead of the literal fallback
+// string, rather than printing it as if it were a real artist name. A
+// real *album* that merely lacks an artist tag (still has an album tag)
+// is a different case decision 9 leaves alone -- its own "Unknown
+// Artist" still shows wherever an album's artist does today.
+export function displayArtist(artist){
+  return artist === 'Unknown Artist' ? '' : artist;
+}
+
+export function mostPlayedTrackIdxFor(idx, tracks, sessionCounts, albumKeyFn){
+  const albumAt = new Map();
+  idx.forEach(i => { const alb = tracks[i].tags.album; if(!albumAt.has(alb)) albumAt.set(alb, i); });
+  let best = null, bestPlays = -1;
+  albumAt.forEach(i => {
+    const plays = sessionCounts[albumKeyFn(tracks[i])] || 0;
+    if(plays > bestPlays){ bestPlays = plays; best = i; }
+  });
+  return best;
+}
+
 export function albumTracks(album){
   const base = S.tracks.map((t,i)=>i).filter(i => S.tracks[i].tags.album === album);
   const mode = S.albumSort[album] || 'auto';

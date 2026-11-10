@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf } from '../../src/library/model.js';
+import { byName, trackSort, groupBy, allIdx, albumTracks, idOf, idxOf, mostPlayedTrackIdxFor, displayArtist } from '../../src/library/model.js';
 import { S } from '../../src/state.js';
 
 function track(id, overrides){
@@ -99,4 +99,41 @@ test('idxOf returns the index for a track id, or -1 if missing', () => {
   S.tracks = [track('a'), track('b')];
   assert.equal(idxOf('b'), 1);
   assert.equal(idxOf('nope'), -1);
+});
+
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 10): the Artists list's
+// round photo is "the artist's most-played record's cover".
+test('mostPlayedTrackIdxFor: the most full plays wins, ties go to the first-seen album', () => {
+  const tracks = [
+    track('a', { album: 'Low' }),
+    track('b', { album: 'High' }),
+    track('c', { album: 'High' }),
+  ];
+  // albumKeyFn receives the track (not the bare album name), same as the
+  // real caller passing record-art/tiers.js's albumKey -- identity on the
+  // album tag is enough for these tests, they don't need the real key.
+  const albumKeyFn = t => t.tags.album;
+  const counts = { Low: 1, High: 5 };
+  assert.equal(mostPlayedTrackIdxFor([0,1,2], tracks, counts, albumKeyFn), 1, 'High has more plays');
+});
+
+test('mostPlayedTrackIdxFor: never played -- falls back to the first-seen album', () => {
+  const tracks = [
+    track('a', { album: 'Z' }),
+    track('b', { album: 'A' }),
+  ];
+  const albumKeyFn = t => t.tags.album;
+  assert.equal(mostPlayedTrackIdxFor([0,1], tracks, {}, albumKeyFn), 0, 'first-seen, not alphabetical');
+});
+
+test('mostPlayedTrackIdxFor: an empty idx list has no representative track', () => {
+  assert.equal(mostPlayedTrackIdxFor([], [], {}, t => t.tags.album), null);
+});
+
+// LB8 decision 9: "every display of it is replaced" -- a real artist
+// name passes through unchanged, parseTags' own 'Unknown Artist'
+// fallback never reaches the listener as plain text.
+test('displayArtist: hides the Unknown Artist fallback, passes a real name through', () => {
+  assert.equal(displayArtist('Unknown Artist'), '');
+  assert.equal(displayArtist('Alpha Lane'), 'Alpha Lane');
 });

@@ -6,27 +6,39 @@
    Exact values from docs/design/crate/README.md's own "The rest of the
    library (CR9)" section. */
 
-/* ---- Artists: fanned stack in place of groupRow's single disc icon ---- */
+/* ---- Artists: a single round photo in place of groupRow's square icon ---- */
 /* .grouprow (02-stage-platter.css) turns on content-visibility:auto as a
    lazy-render perf opt-in for a long list -- fine for a plain song/album
-   row, but an artist row is heavier (three stacked, rotated cover images)
-   and on-device WebKit is known to leave a content-visibility:auto element
-   blank after it scrolls into view instead of promoting it to its real
-   rendered content, especially with a transform in play the way the
-   fanned artist-stack below uses (img:nth-child(2)/(3)'s rotate()) --
-   Chromium doesn't reproduce it, which is why this never showed up in
-   Playwright verification. That reads as exactly Ken's report: an empty
-   band opening up while scrolling the Artists tab (screenshot
-   IMG_6832.jpeg). Turning content-visibility back off for this one row
-   type trades a little of that lazy-render saving for rows that always
-   actually paint; .grouprow's own opt-in (Albums, Playlists) is untouched. */
+   row. The artist row used to carry three stacked, rotated cover images
+   (the fanned stack LB8, docs/36A_LIBRARY_AND_LAUNCH.md decision 10,
+   replaces with one round photo below) and on-device WebKit was known to
+   leave a content-visibility:auto element blank after it scrolled into
+   view instead of promoting it to its real rendered content, especially
+   with a transform in play the way that stack's img:nth-child(2)/(3)
+   rotate() did -- Chromium doesn't reproduce it, which is why this never
+   showed up in Playwright verification. That read as exactly Ken's
+   report: an empty band opening up while scrolling the Artists tab
+   (screenshot IMG_6832.jpeg). Keeping content-visibility off for this row
+   type costs nothing now that there's no transform left to trigger it,
+   so it stays rather than risking that WebKit bug resurfacing for an
+   unrelated reason; .grouprow's own opt-in (Albums, Playlists) is
+   untouched. */
 .artist-row{min-height:72px;content-visibility:visible}
-.artist-stack{position:relative;flex:0 0 auto;width:52px;height:44px}
-.artist-stack img,.artist-stack .g-art{position:absolute;top:0;left:4px;width:44px;height:44px;
-  border-radius:2px;object-fit:cover;box-shadow:0 1px 2px var(--shadow)}
-.artist-stack img:nth-child(1),.artist-stack .g-art{transform:rotate(0deg);z-index:3}
-.artist-stack img:nth-child(2){transform:rotate(-3deg);z-index:2}
-.artist-stack img:nth-child(3){transform:rotate(8deg);z-index:1}
+.artist-photo{width:46px;height:46px;border-radius:50%;object-fit:cover;flex:0 0 auto;
+  box-shadow:0 1px 2px var(--shadow)}
+.artist-photo-fallback{background:rgba(255,255,255,.06);display:grid;place-content:center;
+  color:var(--muted);font-size:var(--fs-row)}
+/* LB8 decision 9: "Songs without an artist" -- a dashed placeholder in
+   place of a cover, since these tracks don't belong to any one record. */
+.artist-photo-dashed{background:none;border:1.5px dashed var(--ring)}
+
+/* ---- Artist page: the name as the page title (LB8, decision 11/point 3) ---- */
+/* .p-title (05-parts.css) gives the Antonio 700/--fs-hero look; the
+   line-clamp below is this page's own addition on top, since .p-title's
+   other callers (plain screen titles) don't need a cap. */
+.artist-page-title{padding:var(--sp-2) 0 var(--sp-4)}
+.artist-page-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.artist-page-meta{margin:var(--sp-1) 0 0;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 
 /* ---- Artists/Songs: sticky letter heads + the crate's rail, reused ---- */
 /* letter-head sticks to the top of the list while scrolling, so it needs an
@@ -113,16 +125,18 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
 .artist-eyebrow{margin:0 0 var(--sp-2);font-family:var(--display);font-weight:400;
   font-size:var(--fs-title);line-height:var(--lh-title);color:var(--paper)}
 
+/* LB8 point 4: one line per record (cover, title ending with "…", "{n}
+   plays") -- replaces the old two-line-per-row shape (a track title plus
+   its album underneath, which on a single-track single showed the exact
+   same text twice). */
 .most-spun-list{list-style:none;margin:0;padding:0}
 .most-spun-row{width:100%;min-height:48px;display:flex;align-items:center;gap:var(--sp-3);
   background:none;border:0;padding:var(--sp-1) 0;color:inherit;text-align:left;cursor:pointer}
 .most-spun-row:active{background:var(--sel)}
-.most-spun-n{width:18px;flex:0 0 auto;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
-.most-spun-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.most-spun-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.most-spun-text em{font-style:normal;font-family:var(--body);font-size:var(--fs-caption);line-height:var(--lh-caption);
-  color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.most-spun-art{width:40px;height:40px;border-radius:2px;flex:0 0 auto;object-fit:cover}
+.most-spun-art.g-art{font-size:var(--fs-row)}
+.most-spun-title{flex:1;min-width:0;font-family:var(--body);font-weight:400;font-size:var(--fs-body);
+  line-height:var(--lh-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .most-spun-plays{flex:0 0 auto;font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
 
 /* a taped-on index card, the crate's stock family (not chrome) */

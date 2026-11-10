@@ -72,6 +72,40 @@ test('ensureCrateModel: one record per album, alphabetically by artist, each unt
   assert.equal(records[2].kind, 'loose');
 });
 
+// LB8 (docs/36A_LIBRARY_AND_LAUNCH.md decision 9): "no album tag *and*
+// no artist tag" never builds a pretend record -- a loose track with a
+// real artist tag still does (the 'Zed' case just above, unchanged).
+test('ensureCrateModel: a file with neither an album nor an artist tag never becomes a record', () => {
+  resetState({
+    tracks: [
+      fakeTrack('a1', { tags: { title:'A1', artist:'Alpha', album:'Album A', albumArtist:'Alpha', track:1, disc:1 } }),
+      fakeTrack('u1', { tags: { title:'U1', artist:'Unknown Artist', album:'Unknown Album', albumArtist:'Unknown Artist', track:1, disc:1 } }),
+      fakeTrack('u2', { tags: { title:'U2', artist:'Unknown Artist', album:'Unknown Album', albumArtist:'Unknown Artist', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const records = model.items.filter(it => it.type === 'rec');
+  assert.equal(records.length, 1, 'only the one real album -- the two untagged tracks form no record at all');
+  assert.equal(records[0].artist, 'Alpha');
+});
+
+// A file with a real album tag but no artist tag is a different case --
+// decision 9's exclusion is specifically "album AND artist" both
+// missing, so this one still becomes a real album record (with 'Unknown
+// Artist' as its own artist, same as today).
+test('ensureCrateModel: a file with an album tag but no artist tag still becomes a record', () => {
+  resetState({
+    tracks: [
+      fakeTrack('n1', { tags: { title:'N1', artist:'Unknown Artist', album:'No Artist Album', albumArtist:'Unknown Artist', track:1, disc:1 } }),
+    ],
+  });
+  const model = ensureCrateModel();
+  const records = model.items.filter(it => it.type === 'rec');
+  assert.equal(records.length, 1);
+  assert.equal(records[0].kind, 'album');
+  assert.equal(records[0].artist, 'Unknown Artist');
+});
+
 test('ensureCrateModel: rebuilds only when the group changes or invalidateCrateModel() was called, and re-resolves S.crate.pos from the anchor afterward', () => {
   resetState({ tracks: [fakeTrack('a1')] });
   const first = ensureCrateModel();
