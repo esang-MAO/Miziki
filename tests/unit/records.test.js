@@ -268,8 +268,11 @@ test('renderRecordsScreen: tapping the other tab switches the filter and re-rend
   renderProfileCalls = 0;
   const body = fakeEl();
   R.renderRecordsScreen(body);
-  const tabs = byClass(body, 'records-tabs')[0].childNodes;
-  assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
+  // UN13 point 4: a plain segmented() (shared parts) now, in place of
+  // the old hand-built .records-tabs row -- its buttons carry
+  // aria-pressed, not aria-selected.
+  const tabs = byClass(body, 'p-seg')[0].childNodes;
+  assert.equal(tabs[0].getAttribute('aria-pressed'), 'true');
   tabs[1].click();
   assert.equal(S.profileView.recordsFilter, 'pressings');
   assert.equal(renderProfileCalls, 1);

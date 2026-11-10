@@ -17,6 +17,8 @@ import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-s
 import { albumYearFor, albumArtistFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
 import { byName, groupBy, allIdx, idOf, idxOf, trackSort, mostCommonFormat, formatSuffix } from './model.js';
+import { albumFormatFor } from '../shell/ceremony-timing.js';
+import { formatRecordName } from '../record-art/format.js';
 import { overlays, artwork } from '../storage/repo.js';
 import { applyEdit, showUndoBanner, openEditSheet } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist, deleteTracks } from './delete.js';
@@ -1010,7 +1012,6 @@ function renderTracksBody(host){
       host.appendChild(actions);
       host.appendChild(creditsBody);
 
-      host.appendChild(el('div','artist-shelf-rail'));
       const shelf = el('div','artist-shelf');
       entries.forEach(([album, aidx], k) => {
         // docs/21_ARTIST_PAGE.md: each sleeve carries its title and year
@@ -1028,8 +1029,16 @@ function renderTracksBody(host){
         item.appendChild(btn);
         const cap = el('span','shelf-caption');
         cap.appendChild(el('b', null, album));
+        // UN13 point 5: "a captioned grid (cover, title, '2019 · 12″
+        // LP')" -- the format half reuses record-art/format.js's own
+        // table (formatRecordName()), the same one the gatefold/crate
+        // stickers/liner notes already read, rather than a second
+        // format-naming scheme just for this shelf.
         const year = yearOf.get(album);
-        if(year) cap.appendChild(el('span', null, String(year)));
+        const albumId = albumKey(S.tracks[aidx[0]]);
+        const format = albumFormatFor(aidx, S.tracks, (S.albumFormat && S.albumFormat[albumId]) || 'auto');
+        const caption = [year ? String(year) : '', format ? formatRecordName(format) : ''].filter(Boolean).join(' · ');
+        if(caption) cap.appendChild(el('span', null, caption));
         item.appendChild(cap);
         shelf.appendChild(item);
       });

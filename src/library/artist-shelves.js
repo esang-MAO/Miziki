@@ -141,7 +141,7 @@ export function appendPressings(host, entries){
     if(!t) return;
     let look = null;
     try{ look = discLook(t); } catch(_e){ return; }
-    items.push({ album, bg: look.bg, label: pressingLabel(look) });
+    items.push({ album, bg: look.bg, label: pressingLabel(look), paperLabel: look.paperLabel });
   });
   if(!items.length) return;
   const section = el('section','artist-section artist-pressings');
@@ -152,6 +152,10 @@ export function appendPressings(host, entries){
     const disc = el('span','pressing-disc');
     disc.setAttribute('aria-hidden','true');
     disc.style.background = it.bg;
+    // UN13 point 5 (Nov 7 decision): the same paper centre label every
+    // other disc carries (record-art/looks.js's own paperLabel flag --
+    // false for a zoetrope, whose own art already fills the centre).
+    if(it.paperLabel) disc.appendChild(el('span','paper-label-sm'));
     disc.appendChild(el('span','pressing-disc-hole'));
     fig.appendChild(disc);
     const cap = el('figcaption');

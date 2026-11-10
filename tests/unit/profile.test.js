@@ -124,7 +124,7 @@ let mockTopAlbums = [], mockTopTracks = [], mockAchievements = [], mockOwnedPres
 mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
   namedExports: {
     topAlbums(){ return mockTopAlbums; }, topTracks(){ return mockTopTracks; }, achievementsList(){ return mockAchievements; },
-    crateFilled(){ return false; }, collectionGroups(){ return {}; },
+    collectionGroups(){ return {}; },
     // QC2 (docs/24_QUIET_COUNTS.md): the Season share card's windowed
     // top-albums pick — this file's own tests only care that the share
     // button exists and wires to openShareSheet, not what it's built from.
@@ -223,7 +223,7 @@ mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
   namedExports: { showRoute(name){ showRouteMock(name); } },
 });
 
-const { renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
+const { renderProfile, refreshProfileHome, playedThroughLine } = await import('../../src/profile/screens.js');
 const { fmtCount } = await import('../../src/util/text.js');
 const { S } = await import('../../src/state.js');
 const { collectionBadge } = await import('../../src/profile/badges.js');
@@ -403,4 +403,17 @@ test('renderProfile(listening): the season header\'s forward button starts disab
   const header = profileHosts['#profileBody'].children[0].childNodes[0];
   const fwdBtn = header.childNodes[2];
   assert.equal(fwdBtn.disabled, true, 'the current season has no later season to step to');
+});
+
+// UN13 point 2: "Whole record · afternoon · Mon 9 Nov" -- sentence case,
+// off the mono/caps whitelist. The date is a real Monday (9 Nov 2026) so
+// the weekday/month names aren't just coincidentally right.
+test('playedThroughLine: sentence case for a whole-record entry', () => {
+  const at = new Date(2026, 10, 9).getTime();
+  assert.equal(playedThroughLine({whole:true, phase:'afternoon', at, albumId:'none'}), 'Whole record · afternoon · Mon 9 Nov');
+});
+
+test('playedThroughLine: a single side keeps its own letter, still sentence case', () => {
+  const at = new Date(2026, 10, 9).getTime();
+  assert.equal(playedThroughLine({whole:false, side:'B', phase:'night', at, albumId:'none'}), 'Side B · night · Mon 9 Nov');
 });

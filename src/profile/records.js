@@ -6,7 +6,7 @@ import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
 import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } from '../history/achievements.js';
-import { navRow } from '../ui/parts.js';
+import { navRow, segmented } from '../ui/parts.js';
 // Part of the profile's own circular cluster (storefront.js/screens.js,
 // see CLAUDE.md's src/profile/ entry): storefront.js imports openRecords()/
 // storePressingsTeaserRow() from here, screens.js imports
@@ -86,10 +86,6 @@ export function libraryRecords(){
     return {albumId, name: name || 'Unknown album',
       artist: t.tags.albumArtist || t.tags.artist || '', art: albumArt(albumId, t.art)};
   });
-}
-
-export function pressingCounts(){
-  return {pressings: Object.keys(S.collection).length, metals: achievementsList().length};
 }
 
 // QC1 (docs/24_QUIET_COUNTS.md): the Records header is just the record
@@ -213,8 +209,8 @@ function recordCell(opts){
 // thing kept from the old custom row, spliced in before navRow()'s own
 // label, since navRow() itself has no concept of a leading icon. The
 // value is now the fixed "Everything you've found, newest first" --
-// no counts, so pressingCounts() is unused here now (still called by
-// renderRecordsScreen() below for its own tab-count chips).
+// no counts, same as the Records screen's own tabs now (UN13 point 4),
+// so the pressingCounts() helper that used to feed both went away too.
 export function storePressingsTeaserRow(){
   const chips = el('span','store-records-chips');
   chips.setAttribute('aria-hidden','true');
@@ -237,22 +233,19 @@ export function storePressingsTeaserRow(){
 export function renderRecordsScreen(body){
   const filter = S.profileView.recordsFilter === 'pressings' ? 'pressings' : 'all';
   const records = libraryRecords();
-  const counts = pressingCounts();
   const wrap = el('div','records-screen');
-  wrap.appendChild(el('div','store-records-count', recordsCountLine(records.length)));
+  // UN13 point 4: the "14 records" line stays only on "All records" now
+  // (it used to show on both tabs), in Archivo 13 muted.
+  if(filter === 'all') wrap.appendChild(el('div','records-count-line', recordsCountLine(records.length)));
 
-  const tabs = el('div','seg records-tabs');
-  tabs.setAttribute('role','tablist');
-  tabs.setAttribute('aria-label','Show');
-  [['all', 'All · ' + records.length], ['pressings', 'Pressings · ' + (counts.pressings + counts.metals)]].forEach(([key, label]) => {
-    const b = el('button', null, label);
-    b.setAttribute('role','tab');
-    b.setAttribute('aria-selected', String(key === filter));
-    b.setAttribute('aria-pressed', String(key === filter));
-    b.addEventListener('click', ()=>{ if(key !== filter) openRecords(key); });
-    tabs.appendChild(b);
-  });
-  wrap.appendChild(tabs);
+  // UN13 point 4: a plain segmented() (shared parts, src/ui/parts.js)
+  // with no counts, in place of the old hand-built "All · 14 / Pressings
+  // · 1" tab row.
+  wrap.appendChild(segmented(
+    [{value:'all', label:'All records'}, {value:'pressings', label:'Pressings'}],
+    filter,
+    key => { if(key !== filter) openRecords(key); },
+  ));
 
   // SH1 (docs/18_SHARE.md): "Profile › Records › Pressings: a Share
   // button in the screen header." Only on the Pressings tab -- All

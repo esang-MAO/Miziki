@@ -228,6 +228,11 @@ button.pressing-chip{cursor:pointer}
    disc is showing; % padding is of the cell's width, and the disc's own
    negative % top is of the (square) art box, so the two match. */
 .store-records-count{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);text-transform:uppercase}
+/* UN13 point 4: the "14 records" line stays only on "All records" now,
+   off the mono whitelist -- same deliberate 13px half-step as
+   .store-stat span just below (TY4) and .listening-played-caption
+   (17-profile.css, UN13 point 2): no 13px token exists. */
+.records-count-line{font-family:var(--body);font-size:13px;color:var(--muted)}
 .records-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-4) var(--sp-3);margin-top:var(--sp-2)}
 .rec-cell{min-width:0;display:flex;flex-direction:column;gap:2px;padding-top:14%}
 .rec-cell.pulled{padding-top:30%}
@@ -257,14 +262,12 @@ button.pressing-chip{cursor:pointer}
 .store-records-chips{display:flex;gap:var(--sp-1);flex:none}
 .store-records-chips span{width:10px;height:10px;border-radius:50%}
 .records-screen{padding-bottom:var(--sp-6)}
-.records-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:var(--sp-3)}
-.records-tabs button{min-height:40px}
 /* SH1 (docs/18_SHARE.md): the Pressings tab's own Share entry point. */
 .store-records-share{width:100%;margin-top:var(--sp-3)}
 /* FS14: matches the library's own alpha divider (.letter-head,
    27-library-sleeves.css) -- was a mono caps label, the one leftover
    divider on this screen that TY1's library pass never reached. */
-.records-letter{font-family:var(--display);font-size:var(--fs-title);letter-spacing:.02em;color:var(--muted);margin-top:var(--sp-5)}
+.records-letter{font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.02em;color:var(--muted);margin-top:var(--sp-5)}
 .records-group-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--sp-5)}
 .records-group-head h3{margin:0;font-family:var(--display);font-weight:700;font-size:var(--fs-title);letter-spacing:.02em}
 
