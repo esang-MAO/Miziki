@@ -25,6 +25,17 @@
 import { getVariantDef } from '../record-art/tiers.js';
 import { METAL_COLORS } from '../record-art/metals.js';
 import { wordmarkMarkup } from '../ui/wordmark.js';
+// UN6 (docs/36_UNIFORMITY.md): moved to src/ui/art-color.js, unchanged,
+// so the gatefold's own cover-tint math (artTint()/spineColor()) can sit
+// beside the one function that already turns cover art into a colour,
+// instead of each screen growing its own copy.
+// loadImageEl() moved to art-color.js alongside shareDominantColor() (so
+// the gatefold's own tint lookup, UN6, can use it without this whole
+// module — which pulls in ui/wordmark.js's Vite-only `?raw` SVG import,
+// unsafe for node:test to statically resolve); re-exported here since
+// several share/*.js card composers still import it from this file.
+import { shareDominantColor, loadImageEl } from '../ui/art-color.js';
+export { loadImageEl };
 
 export const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
 
@@ -118,16 +129,6 @@ export function fillVariantSwatch(ctx, def, x, y, size, _radius){
   if(def.pattern !== 'zoetrope') drawPaperLabelBase(ctx, cx, cy, r*0.42);
 }
 
-// waits for decode() too, not just the load event, so the first draw never
-// races a not-yet-decoded frame (spec §2 implementation notes)
-export function loadImageEl(src){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => { if(img.decode) img.decode().then(() => resolve(img), () => resolve(img)); else resolve(img); };
-    img.onerror = reject;
-    img.src = src;
-  });
-}
 
 // whole-pixel positions, and a step-halving downscale for large source art
 // so it never samples a single too-sharp blit — never upscales past source
@@ -401,44 +402,6 @@ export function shareGrainTile(){
   return c;
 }
 
-// downsamples art to ~32px and buckets by hue, picking the most saturated
-// mid-luminance bucket — returns null (greyscale/missing art) when nothing
-// qualifies, which the caller treats as "fall back to Night" (spec §2)
-export function shareDominantColor(img){
-  try{
-    const size = 32;
-    const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const cx = c.getContext('2d');
-    cx.drawImage(img, 0, 0, size, size);
-    const data = cx.getImageData(0, 0, size, size).data;
-    const buckets = {};
-    for(let i = 0; i < data.length; i += 4){
-      const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255;
-      const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2, d = max-min;
-      const s = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
-      // only exclude true greys/near-black/near-white — a dark but saturated
-      // colour (low l, high s) must still qualify, or legitimately dark art
-      // would wrongly fall back to Night instead of a darkened Cover card
-      if(s < 0.14 || l < 0.025 || l > 0.975) continue;
-      let h = 0;
-      if(d !== 0){
-        if(max === r) h = ((g-b)/d) % 6;
-        else if(max === g) h = (b-r)/d + 2;
-        else h = (r-g)/d + 4;
-        h = Math.round(h*60); if(h < 0) h += 360;
-      }
-      const key = Math.floor(h/24)*24;
-      const bucket = buckets[key] || (buckets[key] = {h:0, s:0, l:0, n:0, score:0});
-      const score = s * (1 - Math.abs(l - 0.5)*1.3);
-      bucket.h += h; bucket.s += s; bucket.l += l; bucket.n++; bucket.score += score;
-    }
-    let best = null;
-    Object.values(buckets).forEach(b => { if(!best || b.score > best.score) best = b; });
-    if(!best || best.n < 4) return null;
-    return { h: best.h/best.n, s: Math.min(1, best.s/best.n), l: Math.min(0.82, Math.max(0.12, best.l/best.n)) };
-  }catch(_e){ return null; }
-}
 export function hslStr(h, s, l){ return 'hsl(' + h.toFixed(0) + ',' + Math.round(s*100) + '%,' + Math.round(l*100) + '%)'; }
 
 // resolves a style name (+ optional art URL for Cover) into the kit every
