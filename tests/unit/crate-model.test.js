@@ -26,7 +26,7 @@ const {
   CRATE_HORIZONTAL_MIN_PX, CRATE_HORIZONTAL_RATIO,
   CRATE_SECTION_COMMIT_PX, CRATE_SECTION_FLICK_PX, CRATE_SECTION_FLICK_MS,
   cratePeekRise, CRATE_PEEK_RISE_RATE, CRATE_PEEK_MAX_FRACTION,
-  crateAlbumJumpTarget, crateFlatAlbumOrder,
+  crateAlbumJumpTarget, crateFlatAlbumOrder, crateLetterFor,
 } = await import('../../src/crate/model.js');
 const { S } = await import('../../src/state.js');
 
@@ -219,7 +219,12 @@ test('ensureCrateModel: a record inside a bin is double-listed -- it also appear
   assert.notEqual(model.byAlbumId.get(albumId), binCopyIdx);
 });
 
-test('ensureCrateModel: artist dividers appear once an artist reaches 3 records (within a letter), not before, and never stand in for the letter divider', () => {
+// LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): "the artist-divider
+// card that pokes up behind the record like a tab... goes" — an artist
+// with several records no longer gets its own type:'div' item at all; the
+// current letter/artist instead lives in crate/view.js's own line under
+// the sort chip (crateLetterFor(), below), read straight off each record.
+test('ensureCrateModel: an artist with several records gets no divider of its own (LB5 removed the artist-divider card)', () => {
   resetState({
     tracks: [
       fakeTrack('m1', { tags: { title:'M1', artist:'Many Albums', album:'Many A', albumArtist:'Many Albums', track:1, disc:1 } }),
@@ -231,10 +236,17 @@ test('ensureCrateModel: artist dividers appear once an artist reaches 3 records 
   });
   const model = ensureCrateModel();
   const artistDividers = model.items.filter(it => it.type === 'div' && it.kind === 'artist');
-  assert.equal(artistDividers.length, 1, 'only the 3-album artist gets a divider');
-  assert.equal(artistDividers[0].label, 'Many Albums');
-  assert.equal(artistDividers[0].meta.indexOf('3 ALBUMS'), 0);
-  assert.equal(artistDividers[0].idx.length, 3, 'idx flattens all three records’ own track indices, for PLAY ALL');
+  assert.equal(artistDividers.length, 0, 'no artist-kind divider is ever created any more');
+  // the records themselves are untouched -- still every album, in order.
+  assert.deepEqual(model.items.filter(it => it.type === 'rec').map(it => it.album),
+    ['Few A', 'Few B', 'Many A', 'Many B', 'Many C']);
+});
+
+test('crateLetterFor: the A-Z letter a given artist files under', () => {
+  assert.equal(crateLetterFor('Many Albums'), 'M');
+  assert.equal(crateLetterFor('the Few'), 'F', 'a leading article is stripped before taking the first letter');
+  assert.equal(crateLetterFor('Unknown Artist'), '?');
+  assert.equal(crateLetterFor('123 Band'), '#', 'a non-letter first character files under #');
 });
 
 // CR3 (docs/13_CRATE.md) point 4: "stickerFor priority (a sealed hi-res new
@@ -269,14 +281,16 @@ test('stickerFor: an earned metal shows once nothing higher-priority applies', (
   assert.deepEqual(stickerFor(record, false), {kind:'metal', metal:'gold'});
 });
 
+// LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): sentence case, not
+// caps — "7″ single · Rock · 1964 · 2 tracks".
 test('catalogLineFor: label + catalog number present, with the duration', () => {
   const record = {label:'ABC Records', catalog:'ABC-123', year:1999, trackCount:10, durationSec: 41*60 + 12};
-  assert.equal(catalogLineFor(record), 'ABC RECORDS · ABC-123 · 1999 · 10 TRACKS · 41:12');
+  assert.equal(catalogLineFor(record), 'ABC Records · ABC-123 · 1999 · 10 tracks · 41:12');
 });
 
 test('catalogLineFor: falls back to genre/year/track-count, with no duration, once label and catalog are both empty', () => {
   const record = {label:'', catalog:'', genre:'Rock', year:1998, trackCount:10, durationSec: 2472};
-  assert.equal(catalogLineFor(record), 'ROCK · 1998 · 10 TRACKS');
+  assert.equal(catalogLineFor(record), 'Rock · 1998 · 10 tracks');
 });
 
 // CR4 (docs/13_CRATE.md): "a third crate order, DECADE... sorted by year,
@@ -619,15 +633,15 @@ test('crate45ChipFor: "size · 45" for a 45, null for a 33⅓ LP or an unknown-d
 test('catalogLineFor: names the format up front only for a 45', () => {
   resetState({ tracks: [fakeTrack('t1', { duration: 180 })] });
   const record45 = {idx:[0], albumId:'alb1', label:'', catalog:'', genre:'Rock', year:1998, trackCount:1, durationSec: 180};
-  assert.equal(catalogLineFor(record45), '7″ SINGLE · ROCK · 1998 · 1 TRACK');
+  assert.equal(catalogLineFor(record45), '7″ single · Rock · 1998 · 1 track');
   resetState({ tracks: [fakeTrack('t1', { duration: 2000 })] });
   const recordLp = {idx:[0], albumId:'alb1', label:'', catalog:'', genre:'Rock', year:1998, trackCount:1, durationSec: 2000};
-  assert.equal(catalogLineFor(recordLp), 'ROCK · 1998 · 1 TRACK', 'a 33⅓ LP stays unlabeled, the unremarkable default');
+  assert.equal(catalogLineFor(recordLp), 'Rock · 1998 · 1 track', 'a 33⅓ LP stays unlabeled, the unremarkable default');
 });
 
 test('catalogLineFor: a synthetic record with no idx at all (existing fixtures above) is unaffected by the format prefix', () => {
   const record = {label:'ABC Records', catalog:'ABC-123', year:1999, trackCount:10, durationSec: 41*60 + 12};
-  assert.equal(catalogLineFor(record), 'ABC RECORDS · ABC-123 · 1999 · 10 TRACKS · 41:12');
+  assert.equal(catalogLineFor(record), 'ABC Records · ABC-123 · 1999 · 10 tracks · 41:12');
 });
 
 /* ---- GS8 (docs/30_GROOVES_AND_SHELF.md point 4): "the shelves" needs the

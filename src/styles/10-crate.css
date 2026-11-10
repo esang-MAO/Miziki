@@ -57,10 +57,24 @@
 .crate-wrap{margin-top:10px;position:relative;min-width:0}
 /* FS6 (docs/25_FROM_SCRATCH.md point 2): the record-count/sort-chip line
    moved out to the shared static row above the stage (#crateSortRow,
-   01-header.css) -- this header is just the now-playing indicator's own
-   row now, right-aligned same as before. */
-.crate-header{display:flex;align-items:center;justify-content:flex-end;gap:var(--sp-3);
-  margin-bottom:var(--sp-2)}
+   01-header.css). LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): the
+   now-playing indicator that used to live here moved below the stage (see
+   .crate-topbar) -- this row now holds only the A-Z "letter · artist" line
+   (.crate-letter-line), left-aligned, and is empty (zero height) in
+   genre/decade or on a non-A-Z section. */
+.crate-header{display:flex;align-items:center;justify-content:flex-start;gap:var(--sp-3);
+  margin-bottom:var(--sp-2);min-height:0}
+/* LB5: replaces the artist-divider card that used to poke up out of the
+   stack ("the artist-divider card that pokes up behind the record like a
+   tab... goes" -- decision 12). Antonio 18 for the letter is the
+   addendum's own canvas size, not a token -- it sits between --fs-row
+   (16px) and --fs-title (20px) on purpose, smaller than a section title
+   since this is a passing position marker, not a heading. Archivo 14 for
+   the artist already matches --fs-body exactly. */
+.crate-letter-line{display:flex;align-items:baseline;gap:6px;min-width:0}
+.crate-letter-line-letter{font-family:var(--display);font-weight:700;font-size:18px;color:var(--paper);flex:none}
+.crate-letter-line-artist{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 /* CR14 (docs/14_CRATE_SECTIONS.md PR 2): previous/next arrows, the active
    section's name, one dot per section — above the stage. Empty (no
    markup at all) whenever there's only one section, so it costs nothing
@@ -241,10 +255,24 @@
    be inline text, coloured by the same --phase-color token the day arc
    writes everywhere else (player/clock.js's drawSun()), not the fixed
    --accent a bordered chip used. */
-.crate-topbar{display:none;align-items:center;gap:6px;background:none;border:none;padding:0;margin:0;
-  font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--phase-color);
-  max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-.crate-topbar.show{display:inline-flex}
+/* LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): a --field pill, 40px
+   tall, centred under the info card -- replaces the plain phase-coloured
+   line CR1 drew above the stage. Shown only once the playing album has
+   scrolled out of view (updateNowPlayingTopBar(), crate/view.js); width
+   shrinks to its content (not the old 60%-of-row cap) since it now has
+   the whole row's width to breathe in. */
+.crate-topbar{display:none;align-items:center;gap:8px;height:40px;width:fit-content;max-width:100%;
+  padding:0 var(--sp-3) 0 10px;margin:var(--sp-3) auto 0;
+  border:1px solid var(--line);border-radius:999px;background:var(--field);
+  font-family:var(--body);font-size:var(--fs-caption);font-weight:500;color:var(--paper);cursor:pointer}
+.crate-topbar.show{display:flex}
+.crate-topbar-icon{flex:none;width:14px;height:14px;fill:currentColor}
+/* "Now playing: {album}", ending with "…" at a fixed 220px regardless of
+   how long the album name is -- the addendum's own "ending with '…' (max-
+   width 220px)". */
+.crate-topbar-text{flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crate-topbar-chevron{flex:none;width:16px;height:16px;opacity:.6}
+.crate-topbar-chevron path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .crate-flat-wrap{margin-top:10px}
 .crate-flat-list{display:flex;flex-direction:column;gap:10px;max-height:460px;overflow-y:auto;scroll-snap-type:y proximity}
 .crate-flat-item{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2);border-radius:4px;scroll-snap-align:center}
