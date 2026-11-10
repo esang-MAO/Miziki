@@ -5,7 +5,7 @@
 // other module that touches it already has (see src/main.js's own entry
 // in CLAUDE.md).
 import { $, el } from '../util/dom.js';
-import { wirePullToRefresh, registerProfileRefresh } from '../shell/pull-refresh.js';
+import { wirePullToRefresh } from '../shell/pull-refresh.js';
 import { refreshHome } from '../social/screens/home.js';
 import { refreshProfileHome } from '../profile/screens.js';
 
@@ -49,11 +49,10 @@ export function wirePullRefresh(){
   }
   const profileRoute = $('#route-profile');
   if(profileRoute){
-    // Profile has its own gear menu (src/profile/storefront.js) — its
-    // "Refresh" menu item reaches this exact same debounced/throttled
-    // closure through registerProfileRefresh()/triggerProfileRefresh(),
-    // rather than a second in-flow button of its own.
-    const ctrl = wirePullToRefresh(profileRoute, { onRefresh: refreshProfileHome, getStatusLine: profileStatusLine });
-    registerProfileRefresh(ctrl.refresh);
+    // UN12 (docs/36_UNIFORMITY.md point 12): Profile's own keyboard-
+    // accessible Refresh trigger (the header's old "Refresh" text button)
+    // is gone -- pull-to-refresh's own gesture is the one way to refresh
+    // here now, same as the plan's own wording for this point.
+    wirePullToRefresh(profileRoute, { onRefresh: refreshProfileHome, getStatusLine: profileStatusLine });
   }
 }

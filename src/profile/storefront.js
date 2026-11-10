@@ -72,6 +72,39 @@ export function storeSign(handle){
   return wrap;
 }
 
+// UN12 (docs/36_UNIFORMITY.md point 12): "the profile has one header" --
+// the plate that now fills #hdrProfilePlate (miziki.html), replacing
+// storeSign()'s old job of being the first thing drawn in the profile
+// body. A smaller, untaped twin of storeSign() above (same hand-lettered
+// "{handle}'s crate" idea, 01-header.css's own sizing) -- kept as a
+// separate function rather than a storeSign() size param, since this one
+// also has to cover the signed-out case storeSign() deliberately leaves
+// blank: "Signed out with no username, the plate reads 'your crate'."
+export function profileHeaderPlate(handle){
+  const card = el('div','hdr-profile-plate-card');
+  if(handle){
+    card.appendChild(el('span','hdr-profile-plate-name', handle));
+    card.appendChild(el('span','hdr-profile-plate-suffix','’s crate'));
+  } else {
+    card.appendChild(el('span','hdr-profile-plate-name','your crate'));
+  }
+  return card;
+}
+
+// Fills #hdrProfilePlate with the current handle's plate -- called by both
+// renderLocalStorefront() and renderStorefront() below (the only two
+// places that know the live handle), rather than from renderProfile()'s
+// own top-of-function pass, since a username/handle can change from a
+// plain input `change` event that re-renders only the body host, not the
+// whole profile screen. #hdrProfilePlate doesn't exist outside the
+// Profile route's own header markup, so this no-ops everywhere else.
+function updateHeaderPlate(handle){
+  const host = $('#hdrProfilePlate');
+  if(!host) return;
+  host.innerHTML = '';
+  host.appendChild(profileHeaderPlate(handle || ''));
+}
+
 // FS3 (docs/25_FROM_SCRATCH.md): the one switch component for the whole
 // app now lives in ui/switch.js -- this stays as a thin wrapper so every
 // existing call site (profile/privacy.js, profile/screens.js,
@@ -258,11 +291,13 @@ export function renderStoreError(host, error, retry){
 
 export function renderStorefrontSection(body){
   const soc = (typeof MizikiSocial === 'undefined') ? {enabled:false} : MizikiSocial.status();
-  // FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
-  // top-right" moved this universal entry point into the shared #appHeader
-  // (#hdrProfileSettingsBtn/#hdrProfileRefreshBtn, wired once in
-  // src/wiring/account.js) -- the gear-icon dropdown this function used to
-  // build fresh on every render is gone; nothing to append here any more.
+  // UN12 (docs/36_UNIFORMITY.md point 12): "the profile has one header" --
+  // the Settings gear lives in the shared #appHeader now
+  // (#hdrProfileSettingsBtn, wired once in src/wiring/account.js), and the
+  // plate (#hdrProfilePlate) is filled by renderLocalStorefront()/
+  // renderStorefront() below via updateHeaderPlate() -- the gear-icon
+  // dropdown this function used to build fresh on every render is gone;
+  // nothing to append here any more.
   // D7 (docs/DESKTOP_LAYOUT.md): wraps .store-host below so
   // src/styles/23-desktop.css's own desktop grid can reach it —
   // display:contents below 1024px, the same invisible-scaffolding pattern
@@ -340,14 +375,14 @@ function localStaffPicks(){
 // run.
 function renderLocalStorefront(host, cta){
   host.innerHTML = '';
-  host.appendChild(storeSign(S.profile.username || ''));
+  updateHeaderPlate(S.profile.username || '');
 
-  // FS7 (docs/25_FROM_SCRATCH.md point 3): the sign above already shows
-  // "{username}'s crate" (GS7 superseded the old "Crate of {username}"
-  // wording) -- this input still sets that same S.profile.username, just
-  // demoted out of the identity row's own
+  // FS7 (docs/25_FROM_SCRATCH.md point 3): the plate above (now in the
+  // header -- UN12) already shows "{username}'s crate" (GS7 superseded
+  // the old "Crate of {username}" wording) -- this input still sets that
+  // same S.profile.username, just demoted out of the identity row's own
   // primary text (the display name takes that spot now) into a small
-  // secondary line below the header, same "@handle" shape a social handle
+  // secondary line under the name, same "@handle" shape a social handle
   // gets once one exists.
   const userIn = document.createElement('input');
   userIn.className = 'store-username-input'; userIn.type = 'text'; userIn.placeholder = 'yourname'; userIn.maxLength = 30;
@@ -359,17 +394,16 @@ function renderLocalStorefront(host, cta){
   header.appendChild(storeAvatarButton());
   const idBox = el('div','store-id');
   appendNameEditor(idBox);
+  const userRow = el('div','store-username-row');
+  userRow.appendChild(el('span','store-username-at','@'));
+  userRow.appendChild(userIn);
+  idBox.appendChild(userRow);
   header.appendChild(idBox);
   const editBtn = el('button','store-edit-btn','Edit');
   editBtn.setAttribute('aria-label','Edit your crate username');
   editBtn.addEventListener('click', ()=>{ userIn.focus(); });
   header.appendChild(editBtn);
   host.appendChild(header);
-
-  const userRow = el('div','store-username-row');
-  userRow.appendChild(el('span','store-username-at','@'));
-  userRow.appendChild(userIn);
-  host.appendChild(userRow);
 
   const picks = localStaffPicks();
   host.appendChild(storeWallSection(picks));
@@ -388,9 +422,12 @@ function renderLocalStorefront(host, cta){
     btn.addEventListener('click', beginSocialSignIn);
     card.appendChild(btn);
     host.appendChild(card);
-  } else {
-    host.appendChild(el('p','note','This is a local preview — connect a Miziki account to add friends, followers, and sharing.'));
   }
+  // UN12 point 15: the plain "local preview" note this branch used to show
+  // here is gone -- wirePrivacyLink() (profile/privacy-link.js, called
+  // once per Profile-tab visit from screens.js's renderProfileHome) now
+  // builds its replacement (a Privacy navRow + one muted line) right after
+  // this same !soc.enabled state, so there's no empty gap left behind.
 }
 
 async function loadAndRenderStorefront(host){
@@ -450,7 +487,7 @@ export function storeWallSection(picks){
   const section = el('div','store-section store-wall');
   section.setAttribute('data-finish', displayShelfFinish(S.shelfFinish, hasDeluxe()));
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'On the wall'));
+  head.appendChild(el('h2', 'p-label', 'On the wall'));
   section.appendChild(head);
   if(picks.length){
     section.appendChild(el('p','store-wall-caption','in rotation'));
@@ -618,7 +655,7 @@ function pressingBgFor(t){
 function storeShelfUnitSection(items, pinIds, onTapAlbum){
   const section = el('div','store-section store-shelf-unit-section');
   const head = el('div','store-shelf-head');
-  head.appendChild(el('h2', null, 'The shelves'));
+  head.appendChild(el('h2', 'p-label', 'The shelves'));
   const faceOutIds = (pinIds || []).slice(3, 5);
   const truncated = shelfUnitCubes(items, faceOutIds).length > SHELF_UNIT_CUBES;
   if(truncated){
@@ -687,7 +724,7 @@ export function storeShelvesSection(items, pinIds, onTapAlbum, opts = {}){
   const faceOut = new Set((pinIds || []).slice(3, 5));
   const section = el('div','store-section store-shelves');
   const head = el('div','store-section-head');
-  head.appendChild(el('h2', null, 'The shelves'));
+  head.appendChild(el('h2', 'p-label', 'The shelves'));
   section.appendChild(head);
   if(!items.length){
     section.appendChild(el('p','store-loading','Nothing in the crate yet.'));
@@ -815,18 +852,23 @@ function storeDiggingSection(full, host){
 
 function renderStorefront(host, full, requests){
   host.innerHTML = '';
-  host.appendChild(storeSign(full.profile.handle));
+  updateHeaderPlate(full.profile.handle);
   const header = el('div','store-header');
   header.appendChild(storeAvatarButton());
   // FS7 (docs/25_FROM_SCRATCH.md point 3): "display name Archivo 20/600,
   // then your own short line (bio/name field) in --muted — nothing when
-  // it's empty." The @handle moves out of this primary spot -- the sign
-  // above already shows "{handle}'s crate" (GS7), so repeating it here
-  // would be the second big heading this redesign's "one in one out"
-  // rule keeps dropping; it gets the same small "@handle" secondary line
-  // the local-only state's own username now does, right below the header.
+  // it's empty." The @handle moves out of this primary spot -- the plate
+  // above (now in the header -- UN12) already shows "{handle}'s crate"
+  // (GS7), so repeating it here would be the second big heading this
+  // redesign's "one in one out" rule keeps dropping; it gets the same
+  // small "@handle" secondary line the local-only state's own username
+  // now does, right under the name (UN12 point 3).
   const idBox = el('div','store-id');
   idBox.appendChild(el('div','store-name', full.profile.display_name || full.profile.handle));
+  const handleRow = el('div','store-username-row');
+  handleRow.appendChild(el('span','store-username-at','@'));
+  handleRow.appendChild(el('span', null, full.profile.handle));
+  idBox.appendChild(handleRow);
   if(full.profile.bio) idBox.appendChild(el('p','store-bio', full.profile.bio));
   header.appendChild(idBox);
   // DA3: the signed-in storefront's own gear (which jumped straight to
@@ -840,10 +882,6 @@ function renderStorefront(host, full, requests){
   editBtn.addEventListener('click', ()=>{ S.profileView.screen = 'socialSettings'; renderProfile(); });
   header.appendChild(editBtn);
   host.appendChild(header);
-  const handleRow = el('div','store-username-row');
-  handleRow.appendChild(el('span','store-username-at','@'));
-  handleRow.appendChild(el('span', null, full.profile.handle));
-  host.appendChild(handleRow);
   const visRow = el('div','store-vis-row');
   const visChip = el('button','store-vis-chip', STORE_VIS_LABEL[full.profile.visibility] || 'Friends only');
   visChip.setAttribute('aria-label','Change who can see your crate — currently ' + (STORE_VIS_LABEL[full.profile.visibility] || 'Friends only'));

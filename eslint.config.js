@@ -157,6 +157,7 @@ module.exports = [
       'src/gatefold/view.js',
       'src/profile/storefront.js',
       'src/profile/settings.js',
+      'src/profile/privacy-link.js',
       'src/social/screens/friend-store.js',
       'src/social/screens/home.js',
       'src/social/demo.js',

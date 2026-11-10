@@ -248,14 +248,14 @@ button.pressing-chip{cursor:pointer}
 .rec-label > span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-cell.pulled .rec-label{margin-top:6px}
 .rec-dot{width:8px;height:8px;border-radius:50%;flex:none}
-.store-records-pressings{width:100%;min-height:56px;margin-top:var(--sp-3);padding:var(--sp-2) var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);
-  border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel);color:var(--paper);text-align:left;cursor:pointer}
+/* UN12 (docs/36_UNIFORMITY.md point 14, decision 14): the Pressings &
+   metals row is a plain navRow() now (.p-nav-row, 05-parts.css) -- this
+   modifier only adds back the one thing navRow() doesn't build itself,
+   the little disc-dots chip row spliced in before the label
+   (storePressingsTeaserRow(), src/profile/records.js). */
+.store-records-pressings{margin-top:var(--sp-2)}
 .store-records-chips{display:flex;gap:var(--sp-1);flex:none}
 .store-records-chips span{width:10px;height:10px;border-radius:50%}
-.store-records-pressings-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.store-records-pressings-text b{font-size:var(--fs-body);font-weight:600}
-.store-records-pressings-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);text-transform:uppercase}
-.store-records-pressings .g-chev{color:var(--muted)}
 .records-screen{padding-bottom:var(--sp-6)}
 .records-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:var(--sp-3)}
 .records-tabs button{min-height:40px}

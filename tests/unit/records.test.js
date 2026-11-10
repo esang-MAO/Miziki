@@ -14,6 +14,12 @@ function fakeEl(){
   const node = {
     style: {}, dataset: {}, className: '', textContent: '',
     appendChild(child){ children.push(child); return child; },
+    // UN12 (docs/36_UNIFORMITY.md point 14): storePressingsTeaserRow()
+    // splices its disc-dots chip row in before navRow()'s own label via a
+    // real insertBefore() -- `ref === null` (insert at the end) is never
+    // used by that call site, so it's not implemented here.
+    insertBefore(child, ref){ children.splice(children.indexOf(ref), 0, child); return child; },
+    get firstChild(){ return children[0]; },
     get childNodes(){ return children; },
     get children(){ return children; },
     setAttribute(k, v){ attrs[k] = String(v); },
@@ -162,26 +168,36 @@ test('openRecords: sets the records screen and filter, then re-renders', () => {
   assert.equal(renderProfileCalls, 1);
 });
 
-test('storePressingsTeaserRow: counts both pressings and metals, and opens the Pressings tab', () => {
+// UN12 (docs/36_UNIFORMITY.md point 14, decision 14): the row is a plain
+// navRow() now (shared parts, src/ui/parts.js) -- a fixed label/value
+// ("Pressings & metals" / "Everything you've found, newest first") rather
+// than a count-dependent caption ("No counts"). The disc-dots chip row is
+// the one thing still count-dependent, so that's what these two tests
+// cover now instead of the old small-caption text.
+test('storePressingsTeaserRow: a disc dot per pressing/metal found, and opens the Pressings tab', () => {
   reset();
   S.collection.a = {albumId: 'a', variant: 'woad-madder', pattern: 'swirl', name: 'A album'};
   mockAchievements = [{albumId: 'b', tier: 'gold', name: 'B', artist: '', updatedAt: 1}];
   const row = R.storePressingsTeaserRow();
-  const text = byClass(row, 'store-records-pressings-text')[0];
-  const small = text.childNodes.find(n => n.tag === 'small');
-  assert.match(small.textContent, /1 pressing/);
-  assert.match(small.textContent, /1 metal/);
+  const label = byClass(row, 'p-nav-label')[0];
+  const value = byClass(row, 'p-nav-value')[0];
+  assert.equal(label.textContent, 'Pressings & metals');
+  assert.equal(value.textContent, 'Everything you’ve found, newest first');
+  const chips = byClass(row, 'store-records-chips')[0];
+  assert.equal(chips.childNodes.length, 2, 'one dot for the pressing, one for the metal');
   row.click();
   assert.equal(S.profileView.screen, 'records');
   assert.equal(S.profileView.recordsFilter, 'pressings');
 });
 
-test('storePressingsTeaserRow: a quiet prompt when nothing is unlocked yet', () => {
+test('storePressingsTeaserRow: no chips when nothing is unlocked yet, label/value unchanged', () => {
   reset();
   const row = R.storePressingsTeaserRow();
-  const text = byClass(row, 'store-records-pressings-text')[0];
-  const small = text.childNodes.find(n => n.tag === 'small');
-  assert.match(small.textContent, /unlock its pressing/);
+  const label = byClass(row, 'p-nav-label')[0];
+  const value = byClass(row, 'p-nav-value')[0];
+  assert.equal(label.textContent, 'Pressings & metals');
+  assert.equal(value.textContent, 'Everything you’ve found, newest first');
+  assert.equal(byClass(row, 'store-records-chips').length, 0, 'the empty chip row is never appended');
 });
 
 test('renderRecordsScreen(all): letter heads group the records', () => {

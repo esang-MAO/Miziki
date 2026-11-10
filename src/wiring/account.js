@@ -7,7 +7,6 @@ import { $ } from '../util/dom.js';
 import { persistProfile, renderProfile } from '../profile/screens.js';
 import { cropSquareImage } from '../library/edit.js';
 import { closeLayer } from '../shell/nav-stack.js';
-import { triggerProfileRefresh } from '../shell/pull-refresh.js';
 
 export function wireAccount(){
   $('#profilePicFile').addEventListener('change', async e=>{
@@ -36,14 +35,11 @@ export function wireAccount(){
   $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
   $('#heldClose').addEventListener('click', () => closeLayer('held-sheet'));
 
-  // FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
-  // top-right" -- replaces the gear-icon dropdown renderStorefrontSection()
-  // used to build fresh on every render (its Refresh item folded in only
-  // to avoid colliding with the pull-to-refresh indicator's own top-right
-  // spot, src/shell/pull-refresh.js). These two buttons are static markup
-  // in the shared #appHeader (same home as #hdrWordmark), so they're wired
-  // once here rather than rebuilt per render; the handlers themselves don't
-  // vary by render state.
-  $('#hdrProfileRefreshBtn').addEventListener('click', () => triggerProfileRefresh());
+  // UN12 (docs/36_UNIFORMITY.md point 12): the Profile route's one header
+  // -- the Settings gear is static markup in the shared #appHeader, so
+  // it's wired once here rather than rebuilt per render (its handler
+  // doesn't vary by render state). The plate beside it (#hdrProfilePlate)
+  // is filled by profile/storefront.js's own render calls instead, since
+  // its content does vary (the current username/handle).
   $('#hdrProfileSettingsBtn').addEventListener('click', () => { S.profileView.screen = 'settings'; renderProfile(); });
 }

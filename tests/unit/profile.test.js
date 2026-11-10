@@ -284,9 +284,11 @@ test('renderProfile: a plain call on the home screen builds a fresh storefront h
   assert.equal(storefrontCalls.length, 1);
   assert.equal(rhythmCalls.length, 0, 'the rhythm card lives on the Listening screen now, not home');
   // TR2 (docs/19_PLAYER.md): wirePrivacyLink (now real-loaded from the tiny
-  // profile/privacy-link.js leaf, not mocked away) appends its own Privacy
-  // button to #profileBody alongside the storefrontHost.
-  assert.equal(profileHosts['#profileBody'].children.length, 2, 'the storefrontHost plus the Privacy button');
+  // profile/privacy-link.js leaf, not mocked away) appends its own content
+  // to #profileBody alongside the storefrontHost -- UN12 point 15, with no
+  // MizikiSocial global in this test environment (soc.enabled false), that's
+  // a navRow('Privacy') plus one muted line, not the old single button.
+  assert.equal(profileHosts['#profileBody'].children.length, 3, 'the storefrontHost plus the Privacy navRow and its muted line');
 });
 
 test('renderProfile({refresh:true}) while already on home never wipes #profileBody -- same host, re-painted', () => {
@@ -295,7 +297,7 @@ test('renderProfile({refresh:true}) while already on home never wipes #profileBo
   const [storefrontHost] = profileHosts['#profileBody'].children;
   renderProfile({ refresh: true });
   assert.equal(storefrontCalls.length, 2, 'renderStorefrontSection ran again, to pick up fresh data');
-  assert.equal(profileHosts['#profileBody'].children.length, 2, 'no new top-level host was appended');
+  assert.equal(profileHosts['#profileBody'].children.length, 3, 'no new top-level host was appended');
   assert.equal(profileHosts['#profileBody'].children[0], storefrontHost, 'same storefront host, not torn down');
 });
 

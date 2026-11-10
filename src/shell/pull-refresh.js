@@ -56,10 +56,11 @@ export function shouldThrottle(lastRefreshAt, now){
 // caller's own concern, not this indicator's — an absolutely-positioned
 // button built here would collide with the Settings gear at the same
 // top-right corner on Profile. src/wiring/pull-refresh.js builds a real
-// in-flow button for Home, and folds Profile's into its Settings menu via
-// registerProfileRefresh()/triggerProfileRefresh() below; this indicator is
-// left with only the touch gesture's own visual feedback (the spinner dot)
-// and the aria-live status line.
+// in-flow button for Home; Profile's own keyboard-accessible trigger went
+// with UN12 (docs/36_UNIFORMITY.md point 12, "Refresh goes; pull-to-refresh
+// does the same job") -- this indicator is left with only the touch
+// gesture's own visual feedback (the spinner dot) and the aria-live status
+// line on both routes now.
 function buildIndicatorDom(routeEl){
   const controls = document.createElement('div');
   controls.className = 'pull-refresh';
@@ -168,21 +169,4 @@ export function wirePullToRefresh(routeEl, { onRefresh, getStatusLine }){
   routeEl.addEventListener('touchcancel', onTouchEnd);
 
   return { refresh: runRefresh };
-}
-
-// RF11 (docs/12_REFINE.md, point 4): Profile's own keyboard-accessible
-// Refresh trigger is a "Refresh" item inside the Settings gear's popup menu
-// (src/profile/storefront.js's renderStorefrontSection()) rather than a
-// separate floating button — but that menu is rebuilt from scratch on every
-// render (every storefront state redraws itself fresh), so it can't hold a
-// persistent reference to the one `runRefresh` closure wirePullToRefresh()
-// creates once at boot (src/wiring/pull-refresh.js). This tiny registry is
-// the indirection that lets it reach that same closure anyway: wired once,
-// read every time the menu item is actually clicked.
-let profileRefreshFn = null;
-export function registerProfileRefresh(fn){
-  profileRefreshFn = fn;
-}
-export function triggerProfileRefresh(){
-  return profileRefreshFn ? profileRefreshFn() : Promise.resolve();
 }

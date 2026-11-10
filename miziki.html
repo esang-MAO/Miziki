@@ -78,13 +78,21 @@
 
   <!-- hosts the expanded search field (see openSearchField) -->
   <header class="top" id="appHeader">
-    <div class="hdr-wordmark" id="hdrWordmark"></div>
-    <!-- FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left,
-         Settings top-right" -- shown only on the Profile route, same
-         .top.on-profile gate as #hdrWordmark above. -->
+    <!-- UN12 (docs/36_UNIFORMITY.md point 12): "the profile has one
+         header" -- supersedes FS7's wordmark-top-left/Settings-top-right
+         row. Shown only on the Profile route (.top.on-profile, set by
+         shell/routes.js), and only on the home screen within it
+         (.top.on-profile-sub hides it, toggled in profile/screens.js's
+         renderProfile()). #hdrProfilePlate is filled by
+         profile/storefront.js's profileHeaderPlate() -- the hand-lettered
+         "{username}'s crate" sign, moved up from the body (it used to be
+         storeSign()'s first element there; that call is gone now there's
+         only one place for it). -->
     <div class="hdr-profile-actions">
-      <button class="hdr-text-btn" id="hdrProfileRefreshBtn">Refresh</button>
-      <button class="hdr-text-btn" id="hdrProfileSettingsBtn">Settings</button>
+      <div class="hdr-profile-plate" id="hdrProfilePlate" aria-hidden="true"></div>
+      <button class="hdr-icon-btn" id="hdrProfileSettingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 .1-1 7.6 7.6 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3h-6l-.3 2.6a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1L9 21h6l.3-2.6a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6z"/></svg>
+      </button>
     </div>
     <div class="hdr-search-row" id="hdrSearchRow" style="display:none">
       <div class="hdr-search-field">
@@ -225,7 +233,12 @@
 
   <!-- PROFILE -->
   <section class="route" id="route-profile" role="main">
-    <div class="crumb" id="profileCrumb" style="display:none"></div>
+    <!-- UN12 point 2: holds a shared-parts backHeader('Profile', ...) row
+         (src/ui/parts.js), built by profile/screens.js's renderProfile() --
+         no .crumb class here now, so backHeader's own p-back-header
+         spacing applies without doubling up with .crumb's (still used by
+         the library route's own #crumb, 02-stage-platter.css). -->
+    <div id="profileCrumb" style="display:none"></div>
     <div id="profileBody"></div>
     <input id="profilePicFile" type="file" accept="image/*">
     <!-- LIBRARY TOOLS: see docs/19_PLAYER_HTML_NOTES.md#libtoolsstashlibtools-profile -->
