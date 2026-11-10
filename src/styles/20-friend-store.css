@@ -144,7 +144,11 @@
   color:var(--muted);font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em}
 .share-style-swatch{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);display:block}
 .share-style-chip[aria-pressed="true"]{color:var(--paper)}
-.share-style-chip[aria-pressed="true"] .share-style-swatch{box-shadow:0 0 0 2px var(--cream),inset 0 0 0 1px rgba(255,255,255,.15)}
+/* UN2 (docs/36_UNIFORMITY.md): was a bare var(--cream) ring, the same
+   dark-theme-only-visible bug class UN1 fixed for every "color: cream"
+   text rule -- box-shadow rings never went through that audit since it
+   only matched the `color:` property. */
+.share-style-chip[aria-pressed="true"] .share-style-swatch{box-shadow:0 0 0 2px var(--ring),inset 0 0 0 1px rgba(255,255,255,.15)}
 .share-style-swatch.style-night{background:linear-gradient(160deg,#1D2F38,#07080C)}
 .share-style-swatch.style-cover{background:linear-gradient(160deg,#C77B3C,#4A1E12)}
 .share-style-swatch.style-paper{background:#EDE6D6}
@@ -158,5 +162,7 @@
 .share-actions-row{display:flex;gap:var(--sp-2);margin-top:var(--sp-2)}
 .share-actions-row .cta{flex:1;text-align:center;box-sizing:border-box}
 
-:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
+/* UN2 (docs/36_UNIFORMITY.md): the app-wide :focus-visible rule moved to
+   05-parts.css, with --ring instead of --cream and a 2px offset -- see
+   that file's own "focus rings" note. */
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

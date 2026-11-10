@@ -342,8 +342,9 @@
 .tracklist li.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
 .tracklist li.picked .t-idx::after{content:'✓';color:var(--paper);margin-left:2px}
 .crumb{display:flex;align-items:center;gap:var(--sp-3);padding:10px 0;border-bottom:1px solid var(--line)}
-/* TY3: a button -- Archivo, sentence case. */
-.crumb-back{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}
+/* UN2 (docs/36_UNIFORMITY.md): aliased onto .p-back-link in
+   05-parts.css -- delete this selector in UN18 once every call site
+   moves to backHeader(). */
 .crumb-label{font-family:var(--display);font-size:var(--fs-row);letter-spacing:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .grouprow{display:flex;align-items:center;gap:var(--sp-3);width:100%;padding:11px 0;
@@ -358,8 +359,8 @@
 .g-chev{color:var(--muted);font-size:var(--fs-title)}
 /* FS13 (docs/25_FROM_SCRATCH.md): "fields on --field with a 1px edge" --
    was a literal rgba() white tint, not theme-reactive. Covers the Edit
-   sheet's own text fields and #librarySearch (focus ring cream is already
-   the app-wide :focus-visible rule, 20-friend-store.css). */
+   sheet's own text fields and #librarySearch (focus ring is already the
+   app-wide :focus-visible rule, 05-parts.css). */
 .pl-input{flex:1;min-width:140px;background:var(--field);border:1px solid var(--line);
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:var(--fs-row);padding:10px var(--sp-3)}
 /* FS5 (docs/25_FROM_SCRATCH.md point 3): the artist line -- Archivo 16/500

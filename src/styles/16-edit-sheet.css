@@ -26,7 +26,9 @@
 }
 .edit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .edit-head span{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.06em}
-.edit-close{width:32px;height:32px;color:var(--muted);font-size:var(--fs-row)}
+/* UN2 (docs/36_UNIFORMITY.md): aliased onto .p-sheet-close in
+   05-parts.css -- delete this selector in UN18 once every call site
+   moves to sheetHeader(). */
 .social-close{width:44px;height:44px;margin:-6px -var(--sp-2) -6px 0;color:var(--muted);font-size:var(--fs-row);
   display:flex;align-items:center;justify-content:center}
 .edit-art-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
@@ -58,11 +60,9 @@
 .readout{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--paper);white-space:nowrap;transition:color .5s}
 .readout.plain{color:var(--paper)}
 
-.seg{display:flex;gap:6px;flex-wrap:wrap}
-/* TY2: a segmented control -- Archivo, sentence case. */
-.seg button{font-family:var(--body);font-size:var(--fs-body);font-weight:500;padding:7px 10px;
-  border:1px solid var(--line);border-radius:3px;color:var(--muted)}
-.seg button[aria-pressed="true"]{border-color:var(--paper);color:var(--paper);background:color-mix(in srgb,var(--paper) 12%,transparent)}
+/* UN2 (docs/36_UNIFORMITY.md): aliased onto .p-seg in 05-parts.css --
+   delete this selector (and its button/aria-pressed rules) in UN18 once
+   every call site moves to segmented(). */
 
 .slider-row{padding:13px 0;border-bottom:1px solid var(--line)}
 .slider-row:last-child{border-bottom:0}
@@ -81,18 +81,16 @@
 input[type=range]{width:100%;accent-color:var(--paper);height:22px}
 input[type=file]{display:none}
 
-/* TY2: the primary-action button -- Archivo, sentence case. */
-.cta{display:inline-block;border:1px solid var(--paper);color:var(--paper);border-radius:3px;
-  padding:11px var(--sp-4);font-family:var(--body);font-size:var(--fs-row);font-weight:500;transition:color .5s,border-color .5s}
-.cta.ghost{border-color:var(--line);color:var(--paper)}
+/* UN2 (docs/36_UNIFORMITY.md): .cta/.cta.ghost/.cta.danger aliased onto
+   .p-btn/.p-btn--danger in 05-parts.css -- .cta.ghost's own old look is
+   now redundant with the new shared base (both are the 1.5px --ring
+   outline look), so it needs no rule of its own any more. Delete these
+   selectors in UN18 once every call site moves to <button class="p-btn">.
+   .cta.pill stays -- a legitimate modifier (border-radius) layered on
+   top of the new base, not a duplicate of it. */
 /* GS5 (docs/30_GROOVES_AND_SHELF.md): "Turn to side B" as an outlined
    pill, same family as select-bar's own .cta.ghost.pill treatment above. */
 .cta.pill{border-radius:999px}
-/* FS13 (docs/25_FROM_SCRATCH.md): a destructive confirm/replace action --
-   the dialog's own copy is the actual safeguard (no undo window), this is
-   just the one place amber would otherwise be tempting as a "danger"
-   color; --danger is the actual token for that, amber stays state-free. */
-.cta.danger{border-color:var(--danger-line);color:var(--danger)}
 .stack{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:14px}
 
 .empty{border:1px dashed var(--line);border-radius:4px;padding:20px;text-align:center}
