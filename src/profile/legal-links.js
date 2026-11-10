@@ -22,7 +22,7 @@ import { el } from '../util/dom.js';
 export function legalLinksRow(renderProfile, before){
   const go = (screen) => { if(before) before(); S.profileView.screen = screen; renderProfile(); };
   const row = el('p','note legal-links');
-  const privacyBtn = el('button','link-btn','Privacy Policy');
+  const privacyBtn = el('button','link-btn','Privacy policy');
   privacyBtn.addEventListener('click', ()=> go('privacyPolicy'));
   const termsBtn = el('button','link-btn','Terms of use');
   termsBtn.addEventListener('click', ()=> go('termsOfUse'));

@@ -21,7 +21,7 @@ import { queueSave } from '../storage/meta.js';
 // has none at all (SH1 item 3), crate shows only "Name" even though its
 // composer still unconditionally draws every section S.shareSelectionByCard
 // .crate holds until SH5 actually removes them from crate-card.js.
-const CARD_TITLES = { nowPlaying:'Now Playing', record:'Record', pressings:'Pressings', crate:'Crate', season:'Season' };
+const CARD_TITLES = { nowPlaying:'Now playing', record:'Record', pressings:'Pressings', crate:'Crate', season:'Season' };
 const CARD_FILENAMES = { nowPlaying:'now-playing', record:'record', pressings:'pressings', crate:'crate', season:'season' };
 const INCLUDE_LABELS = {
   nowPlaying: { phase:'Time of day' },
