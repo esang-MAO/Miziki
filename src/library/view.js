@@ -7,7 +7,7 @@
    module has nothing to do with either. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
-import { backHeader } from '../ui/parts.js';
+import { backHeader, emptyNote } from '../ui/parts.js';
 import { fmt } from '../util/text.js';
 import { setQueue, setQueueList, setQpos, playNext, addToQueue } from '../player/queue.js';
 import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView, openCreditsSheet } from './credits.js';
@@ -16,7 +16,7 @@ import { appendConnectedShelf } from './connected.js';
 import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-shelves.js';
 import { albumYearFor, albumArtistFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
-import { byName, groupBy, allIdx, idOf, idxOf, trackSort } from './model.js';
+import { byName, groupBy, allIdx, idOf, idxOf, trackSort, mostCommonFormat, formatSuffix } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
 import { applyEdit, showUndoBanner, openEditSheet } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist, deleteTracks } from './delete.js';
@@ -158,8 +158,7 @@ export function songRow(i, queue, pos, extra){
   else li.appendChild(el('span','t-art'));
   const name = el('span','t-name');
   name.appendChild(el('b', null, t.tags.title));
-  name.appendChild(el('em', null, t.tags.artist + ' · ' + t.meta.codec
-    + (t.meta.lossless ? '' : ' · lossy')));
+  name.appendChild(el('em', null, t.tags.artist + formatSuffix(t, libCommonFormat)));
   li.appendChild(name);
   li.appendChild(el('span','t-dur', fmt(t.duration)));
   if(!S.view.editSelecting){
@@ -228,8 +227,7 @@ export function updateTrackRow(id){
   if(nameEl){
     nameEl.innerHTML = '';
     nameEl.appendChild(el('b', null, t.tags.title));
-    nameEl.appendChild(el('em', null, t.tags.artist + ' · ' + t.meta.codec
-      + (t.meta.lossless ? '' : ' · lossy')));
+    nameEl.appendChild(el('em', null, t.tags.artist + formatSuffix(t, libCommonFormat)));
   }
   const durEl = li.querySelector('.t-dur');
   if(durEl) durEl.textContent = fmt(t.duration);
@@ -554,6 +552,13 @@ export function syncQueueOrder(order){
 // manual reordering.
 export function moverCtl(list, pos, after){
   const box = el('span','movers');
+  // UN5 point 6: a decorative grip -- the visual "this row drags" cue the
+  // plan's wording asks for, aria-hidden since no drag gesture is wired
+  // to it yet (the ▲▼ buttons below stay the one working, accessible
+  // reorder path -- see this PR's own body for why drag itself is out).
+  const grip = el('span','mv-grip','⠿');
+  grip.setAttribute('aria-hidden','true');
+  box.appendChild(grip);
   [['▲',-1],['▼',1]].forEach(([glyph,dir]) => {
     const b = el('button','mv',glyph);
     b.setAttribute('aria-label', dir < 0 ? 'Move up' : 'Move down');
@@ -658,6 +663,18 @@ function libViewKey(v){
   return [v.mode, v.group, v.artistAlbum, v.playlist, v.person, v.crateLooseArtist].join('\u0001');
 }
 
+// UN5 point 1: the Listening empty state's "Open the crate" action --
+// same view-mode-setting shape as wiring/library-view.js's sidebarBins
+// click handler, pulled out so a non-library screen (profile/screens.js)
+// can jump here without duplicating it. Only sets view state + redraws;
+// the caller (which already knows it's not on the library route) does
+// the route switch itself.
+export function openLibraryCrate(){
+  S.view.mode = 'crate'; S.view.group = null; S.view.artistAlbum = null; S.view.playlist = null;
+  S.view.person = null; S.view.crateLooseIdx = null; S.view.picking = false;
+  renderTracks();
+}
+
 export function renderTracks(){
   const host = $('#libBody');
   // NV6 (docs/11_SMOOTH_NAVIGATION.md): "filter the existing rows rather
@@ -688,6 +705,13 @@ export function renderTracks(){
 // popovers) lives outside renderTracksBody() itself, and by the time a
 // tap can reach it, the render that set it has already finished.
 let artistCreditsToggle = null;
+
+// UN5 point 5: the library's own most-common codec/lossless combo,
+// recomputed once per renderTracksBody() pass rather than per row --
+// songRow()/updateTrackRow() read it from here instead of taking it as a
+// parameter, since both are also called from playlist/search code paths
+// that don't thread extra arguments through.
+let libCommonFormat = null;
 function openArtistMoreMenu(btn){
   const r = btn.getBoundingClientRect();
   const menu = $('#artistMoreMenu');
@@ -726,13 +750,29 @@ function renderTracksBody(host){
   // picks/Sealed counts) needs to stay in sync from.
   renderSidebarBins();
   const v = S.view;
+  libCommonFormat = mostCommonFormat(S.tracks);
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();
   $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
   updateLibTabsForLayout();
   updateHeaderActionsAvailability();
-  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v.mode)));
+  // UN5 point 2: a live search covers every type regardless of the
+  // Songs/Albums/Artists/Playlists tab otherwise selected, so no tab
+  // should read as pressed while results are showing.
+  const liveQuery = $('#librarySearch').value.trim();
+  let pressedTab = null;
+  document.querySelectorAll('[data-view]').forEach(b => {
+    const pressed = !liveQuery && b.dataset.view === v.mode;
+    b.setAttribute('aria-pressed', String(pressed));
+    if(pressed) pressedTab = b;
+  });
+  // UN5 point 4: with Larger text on (or just a lot of tabs), the row can
+  // overflow its own scrollable width (.lib-tabs-group, 01-header.css) --
+  // the selected tab scrolls into view rather than staying wherever the
+  // row's scroll position already was, so it's never the one left clipped
+  // at the edge (the "Playlists" cut to "Playli" bug).
+  if(pressedTab) pressedTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   refreshLibraryTools();
   updateLibBodyInset();
   // D5 (docs/DESKTOP_LAYOUT.md): hidden by default every render, same as
@@ -1004,15 +1044,18 @@ function renderTracksBody(host){
   else if(v.mode === 'playlists'){
     if(v.playlist === null){
       // CR9 (docs/13_CRATE.md): a 2x2 grid of compilation sleeves in place
-      // of the plain groupRow list — Favorites first with its heart, an
-      // empty library shown as one dashed sleeve rather than a bare note.
+      // of the plain groupRow list — Favorites first with its heart.
+      // UN5 point 1: the old dashed-sleeve tile is gone -- the "none yet"
+      // case is now emptyNote(), its one action focusing the same inline
+      // name field/Create button every other add-a-playlist path already
+      // uses (there's no separate naming sheet in this codebase to open
+      // instead -- judgment call, see the PR body).
       if(!S.playlists.length){
-        const empty = el('div','playlist-tile playlist-tile-empty');
-        empty.appendChild(el('span','pl-covers'));
-        const strip = el('span','pl-strip pl-strip-dashed');
-        strip.appendChild(el('b', null, 'Make your first playlist.'));
-        empty.appendChild(strip);
-        host.appendChild(empty);
+        host.appendChild(emptyNote({
+          head: 'No playlists yet.',
+          sub: "Name one here, or add songs to one from any song's ⋯ menu.",
+          action: { label: 'New playlist', onClick: () => $('#plName')?.focus() },
+        }));
       } else {
         // Favorites (and any other system playlist) pinned first, without
         // reordering S.playlists itself — v.playlist indexes the real array

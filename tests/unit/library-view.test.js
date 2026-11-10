@@ -402,8 +402,10 @@ test('moverCtl: moving an item down then back up leaves the list correctly reord
   resetState({ tracks: [fakeTrack('a'), fakeTrack('b'), fakeTrack('c')] });
   const list = ['a', 'b', 'c'];
   let reported = null;
+  // UN5 point 6: moverCtl() now prepends a decorative grip (children[0]),
+  // so the ▲/▼ buttons shift to children[1]/children[2].
   const ctl = moverCtl(list, 0, ord => { reported = ord.slice(); });
-  const [, downBtn] = ctl.children;
+  const [, , downBtn] = ctl.children;
   downBtn.fire('click', { stopPropagation(){} });
   assert.deepEqual(list, ['b', 'a', 'c'], 'moving "a" down one swaps it with "b"');
   assert.deepEqual(reported, ['b', 'a', 'c'], 'the caller is handed the same mutated order');
@@ -412,7 +414,7 @@ test('moverCtl: moving an item down then back up leaves the list correctly reord
   // "a" is now at index 1 -- move it back up, and the list should return
   // to its original order (the move survives a full round trip).
   const ctl2 = moverCtl(list, 1, ord => { reported = ord.slice(); });
-  const [upBtn2] = ctl2.children;
+  const [, upBtn2] = ctl2.children;
   upBtn2.fire('click', { stopPropagation(){} });
   assert.deepEqual(list, ['a', 'b', 'c'], 'moving it back up restores the original order');
   assert.deepEqual(reported, ['a', 'b', 'c']);

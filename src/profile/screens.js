@@ -12,7 +12,8 @@ import { renderSocialSettingsScreen } from './settings.js';
 import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools, openLibraryToolsPanel } from '../shell/header.js';
-import { toggleRow, navRow } from '../ui/parts.js';
+import { toggleRow, navRow, emptyNote } from '../ui/parts.js';
+import { openLibraryCrate } from '../library/view.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
@@ -537,9 +538,15 @@ function renderListeningScreen(body){
   // shows its own ordinary state (including its own, more specific empty
   // copy).
   if(!albums.length && !tracks.length && !achList.length && !collList.length){
-    const empty = el('div','profile-empty profile-empty-first');
-    empty.appendChild(el('p', null, 'Play an album start to finish to earn your first metal.'));
-    wrap.appendChild(empty);
+    wrap.appendChild(emptyNote({
+      head: 'Nothing earned yet.',
+      sub: 'Play an album start to finish to earn your first metal.',
+      // UN5: clicks the real library tab button rather than importing
+      // showRoute() directly — shell/routes.js already imports this file
+      // (for renderProfile()), so importing it back here would make a new
+      // profile<->shell mutual-import pair (scripts/cycles.mjs --check).
+      action: { label: 'Open the crate', onClick: () => { $('.tabbar-btn[data-route="library"]')?.click(); openLibraryCrate(); } },
+    }));
     body.appendChild(wrap);
     return;
   }

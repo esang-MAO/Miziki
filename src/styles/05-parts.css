@@ -184,6 +184,15 @@
 }
 .p-empty-note-head{ font-family:var(--hand); font-size:var(--fs-hero); margin:var(--sp-2) 0 var(--sp-1); }
 .p-empty-note-sub{ font-family:var(--body); font-size:var(--fs-body); margin:0 0 var(--sp-3); }
+/* UN5 point 1: the library empty state's own Choose files/Choose folder
+   pair -- emptyNote()'s `actions` option, stacked full-width since the
+   card itself is already centred and narrow. */
+.p-empty-note-actions{ display:flex; flex-direction:column; gap:var(--sp-2); }
+.p-empty-note-actions .p-btn{ width:100%; }
+.p-empty-note-link{
+  display:block; width:100%; margin-top:var(--sp-2); padding:var(--sp-1) 0; border:0; background:none;
+  font-family:var(--body); font-size:var(--fs-body); color:#26202C; text-decoration:underline; text-underline-offset:2px;
+}
 
 /* ---- focus rings ----
    UN2 point 2: a sheet opening used to focus its close/back button and

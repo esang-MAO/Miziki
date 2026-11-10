@@ -121,19 +121,40 @@ export function listMenu(groups){
   return menu;
 }
 
-// emptyNote({head, sub, action}): a paper card with an amber tape strip,
-// a Caveat headline, an optional body line, and one optional primary
-// button ({label, onClick}) below.
-export function emptyNote({head, sub, action}){
+// emptyNote({head, sub, action, actions, link}): a paper card with an
+// amber tape strip, a Caveat headline, an optional body line, and below
+// it either:
+// - `action` ({label, onClick}): the common one-button case, a single
+//   primary .p-btn--primary (UN5's Listening/Home empty states).
+// - `actions` ([{label, onClick, kind}]): the library empty state's
+//   Choose files (primary) + Choose folder (secondary) pair -- `kind`
+//   is 'primary' (default for the first) or 'secondary'.
+// - `link`: one more {label, onClick} rendered as a plain text link
+//   below the button(s) (the library empty state's "Play a test tone").
+// Neither is required -- the player side panel's "No liner notes."/"No
+// credits." cards (UN5 point 1) pass none.
+export function emptyNote({head, sub, action, actions, link}){
   const card = el('div', 'p-empty-note');
   card.appendChild(el('div', 'p-empty-note-tape'));
   card.appendChild(el('p', 'p-empty-note-head', head));
   if(sub) card.appendChild(el('p', 'p-empty-note-sub', sub));
-  if(action){
-    const btn = el('button', 'p-btn p-btn--primary', action.label);
-    btn.type = 'button';
-    btn.addEventListener('click', action.onClick);
-    card.appendChild(btn);
+  const buttonSpecs = actions || (action ? [{...action, kind: 'primary'}] : []);
+  if(buttonSpecs.length){
+    const stack = el('div', 'p-empty-note-actions');
+    buttonSpecs.forEach((spec, i) => {
+      const kind = spec.kind || (i === 0 ? 'primary' : 'secondary');
+      const btn = el('button', kind === 'primary' ? 'p-btn p-btn--primary' : 'p-btn', spec.label);
+      btn.type = 'button';
+      btn.addEventListener('click', spec.onClick);
+      stack.appendChild(btn);
+    });
+    card.appendChild(stack);
+  }
+  if(link){
+    const a = el('button', 'p-empty-note-link', link.label);
+    a.type = 'button';
+    a.addEventListener('click', link.onClick);
+    card.appendChild(a);
   }
   return card;
 }

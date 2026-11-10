@@ -130,9 +130,10 @@ input[type=file]{display:none}
 .cta.pill{border-radius:999px}
 .stack{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:14px}
 
-.empty{border:1px dashed var(--line);border-radius:4px;padding:20px;text-align:center}
-.empty p{margin:0 0 var(--sp-1);font-size:var(--fs-body)}
-.empty small{color:var(--muted);font-size:var(--fs-caption);line-height:1.5;display:block}
+/* UN5 point 1: the library empty state's own dashed box is gone -- #empty
+   now carries .p-empty-note's card look directly (miziki.html), so this
+   rule only needs to size/position the one instance left. */
+.empty{width:min(100%, 420px); margin:0 auto}
 
 .tracklist{list-style:none;margin:var(--sp-4) 0 0;padding:0}
 /* RF13 (docs/12_REFINE.md): "remove per-row hairlines in song and artist

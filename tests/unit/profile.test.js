@@ -207,6 +207,21 @@ mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
 mock.module(new URL('../../src/shell/sundown-sheet.js', import.meta.url).href, {
   namedExports: { openSundownSheet(){} },
 });
+// UN5: the Listening screen's "Open the crate" empty-state action imports
+// library/view.js's openLibraryCrate() -- the real module reaches
+// crate/view.js, which reaches crate/divider-art.js's raw `?raw` SVG
+// import, which Node's loader can't parse -- stopped at the door the same
+// way every other wide chain in this suite is.
+const openLibraryCrateMock = mock.fn();
+mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
+  namedExports: { openLibraryCrate(){ openLibraryCrateMock(); } },
+});
+// Same action also calls shell/routes.js's showRoute() -- real module
+// reaches gatefold/view.js's own wide chain, same reasoning as above.
+const showRouteMock = mock.fn();
+mock.module(new URL('../../src/shell/routes.js', import.meta.url).href, {
+  namedExports: { showRoute(name){ showRouteMock(name); } },
+});
 
 const { renderProfile, refreshProfileHome } = await import('../../src/profile/screens.js');
 const { fmtCount } = await import('../../src/util/text.js');
@@ -324,7 +339,7 @@ test('renderProfile(listening): a wholly new profile shows one consolidated empt
   assert.equal(body.children.length, 1, 'just the one wrap div');
   const wrap = body.children[0];
   assert.equal(wrap.childNodes.length, 1, 'exactly one child -- the consolidated empty card');
-  assert.equal(wrap.childNodes[0].className, 'profile-empty profile-empty-first');
+  assert.equal(wrap.childNodes[0].className, 'p-empty-note');
 });
 
 // The pressing chart and Collection moved off Listening onto the Records

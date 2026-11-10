@@ -152,13 +152,18 @@ test('listMenu: a divider separates groups, but a single group has none', () => 
   });
 });
 
+// UN5 point 1: `action` now builds its button inside a
+// .p-empty-note-actions wrapper (so the library empty state's `actions`
+// array can sit next to it without a separate card shape) -- children[3]
+// is that wrapper, not the button itself.
 test('emptyNote: head/sub text set, and an action builds one primary button that fires onClick', () => {
   withFakeDocument(() => {
     let calls = 0;
     const card = emptyNote({head: 'No playlists yet', sub: 'Make one from any album.', action: {label: 'New playlist', onClick: () => { calls++; }}});
     assert.equal(card.children[1].textContent, 'No playlists yet');
     assert.equal(card.children[2].textContent, 'Make one from any album.');
-    const btn = card.children[3];
+    const actions = card.children[3];
+    const btn = actions.children[0];
     assert.equal(btn.classList.contains('p-btn--primary'), true);
     btn.fire('click');
     assert.equal(calls, 1);
