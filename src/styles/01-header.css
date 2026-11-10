@@ -8,24 +8,31 @@
    everything inside .top would sit under the status bar/notch. */
 .top{padding:calc(14px + env(safe-area-inset-top)) 0 10px;border-bottom:1px solid var(--line)}
 .top.no-border{border-bottom:none;padding-bottom:6px}
-/* FS4 (docs/25_FROM_SCRATCH.md point 1): Profile's header shows the
-   wordmark top-left, 22px -- filled once at boot (shell/start-sequence.js),
-   shown only on the Profile route (.top.on-profile, set by shell/routes.js). */
-.hdr-wordmark{display:none}
-.top.on-profile .hdr-wordmark{display:block}
-.hdr-wordmark svg{width:22px;height:auto;display:block}
-/* FS7 (docs/25_FROM_SCRATCH.md point 1): "the wordmark top-left, Settings
-   top-right" -- the wordmark and this pair now share one row, only on the
-   Profile route (same .top.on-profile gate). Replaces the gear-icon
-   dropdown renderStorefrontSection() used to build (src/profile/
-   storefront.js); #hdrProfileRefreshBtn keeps the keyboard-reachable
-   refresh trigger the old menu folded in, so it isn't lost. */
+/* UN12 (docs/36_UNIFORMITY.md point 12): "the profile has one header" --
+   the plate ("{username}'s crate", hand-lettered) left, a Settings gear
+   right, only on the Profile route (.top.on-profile, set by
+   shell/routes.js) and only its home screen (.top.on-profile-sub hides it
+   on a sub-screen, toggled by profile/screens.js's renderProfile()).
+   Supersedes FS4/FS7's wordmark-top-left row -- #hdrWordmark is gone, the
+   plate is this redesign's one piece of identity in the header now. */
 .top.on-profile{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
 .hdr-profile-actions{display:none}
-.top.on-profile .hdr-profile-actions{display:flex;align-items:center;gap:var(--sp-4)}
-.hdr-text-btn{background:none;border:0;padding:0;font-family:var(--body);font-size:var(--fs-body);
-  font-weight:500;color:var(--muted)}
-#hdrProfileSettingsBtn{color:var(--paper)}
+.top.on-profile:not(.on-profile-sub) .hdr-profile-actions{display:flex;align-items:center;gap:var(--sp-4);min-width:0;flex:1}
+/* A smaller, untaped twin of .store-sign (18-storefront.css) -- same
+   paper/rotation language, sized to sit in a 44px-tall header row instead
+   of the body. --fs-hero/--fs-row read like deliberate token choices but
+   are really "about half .store-sign's own 56/30px, and they happen to
+   land on existing steps" -- noted as a judgment call in the PR, since the
+   plan gives no size. */
+.hdr-profile-plate{min-width:0;flex:1}
+.hdr-profile-plate-card{display:inline-flex;align-items:baseline;gap:3px;max-width:100%;box-sizing:border-box;
+  background:var(--stock-card);color:#26202C;border-radius:4px;transform:rotate(-1deg);
+  padding:4px 10px 3px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 4px 10px rgba(0,0,0,.25)}
+.hdr-profile-plate-name{font-family:var(--hand);font-weight:700;font-size:var(--fs-hero);line-height:var(--lh-hero);
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-profile-plate-suffix{font-family:var(--hand);font-weight:500;font-size:var(--fs-row);line-height:1;
+  color:#4A4250;flex:none}
+#hdrProfileSettingsBtn{color:var(--paper);flex:none}
 /* search + add icons now sit on the library tabs row itself (#libNav) */
 .hdr-actions{display:flex;gap:2px;flex:0 0 auto}
 /* FS6 (docs/25_FROM_SCRATCH.md point 1): 28px wide x 44px tall -- a real

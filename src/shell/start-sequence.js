@@ -40,10 +40,6 @@ $('#sleeveOut .sleeve-mark').appendChild(wordmarkEl());
 // same one-time boot-time fill as the sleeve marks above.
 { const m = $('.mini-mark'); if(m) m.appendChild(wordmarkEl()); }
 { const r = document.querySelector('.slipmat-rest span'); if(r) r.appendChild(wordmarkEl()); }
-// FS4 point 1: Profile's own header shows the wordmark top-left, 22px --
-// shell/routes.js just toggles #appHeader's on-profile class, which this
-// fill makes visible.
-{ const h = $('#hdrWordmark'); if(h) h.appendChild(wordmarkEl()); }
 
 const STAGE_CLASSES =['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
 

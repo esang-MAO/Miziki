@@ -125,16 +125,23 @@
 .p-toggle-desc{ margin:var(--sp-1) 0 0; font-size:var(--fs-body); color:var(--muted); }
 
 /* ---- navigation row ----
-   navRow({label, value, onClick, danger}) (src/ui/parts.js). */
+   navRow({label, value, onClick, danger}) (src/ui/parts.js). .p-nav-right
+   pushes itself to the far right with margin-left:auto rather than the
+   row using justify-content:space-between, so a caller can splice its own
+   leading element in before .p-nav-label (UN12 point 14's "disc dots kept"
+   row, src/profile/records.js's storePressingsTeaserRow()) and have it
+   group naturally with the label on the left -- identical result to
+   space-between for the plain two-child case every other navRow() caller
+   still is. */
 .p-nav-row{
-  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3);
+  display:flex; align-items:center; gap:var(--sp-3);
   min-height:52px; width:100%; background:none; border:0; border-bottom:1px solid var(--line);
   font-family:var(--body); text-align:left; cursor:pointer;
 }
 .p-nav-row:last-child{ border-bottom:0; }
 .p-nav-label{ font-size:var(--fs-row); font-weight:500; color:var(--paper); }
 .p-nav-row--danger .p-nav-label{ color:var(--danger); }
-.p-nav-right{ display:flex; align-items:center; gap:var(--sp-2); flex:0 0 auto; }
+.p-nav-right{ display:flex; align-items:center; gap:var(--sp-2); flex:0 0 auto; margin-left:auto; }
 .p-nav-value{ font-size:var(--fs-body); color:var(--muted); }
 .p-nav-chevron{ color:var(--muted); font-size:var(--fs-body); }
 

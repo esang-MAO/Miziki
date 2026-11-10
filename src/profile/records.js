@@ -6,6 +6,7 @@ import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
 import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } from '../history/achievements.js';
+import { navRow } from '../ui/parts.js';
 // Part of the profile's own circular cluster (storefront.js/screens.js,
 // see CLAUDE.md's src/profile/ entry): storefront.js imports openRecords()/
 // storePressingsTeaserRow() from here, screens.js imports
@@ -207,9 +208,14 @@ function recordCell(opts){
 // is gone (storeShelvesSection()'s own "Browse all" opens the All tab in
 // its place); this row is the one piece of it worth keeping on its own --
 // nothing else on the profile home points at the pressing chart/metals.
+// UN12 (docs/36_UNIFORMITY.md point 14, decision 14): a navRow (shared
+// parts, src/ui/parts.js) -- the little disc-dots chip row is the one
+// thing kept from the old custom row, spliced in before navRow()'s own
+// label, since navRow() itself has no concept of a leading icon. The
+// value is now the fixed "Everything you've found, newest first" --
+// no counts, so pressingCounts() is unused here now (still called by
+// renderRecordsScreen() below for its own tab-count chips).
 export function storePressingsTeaserRow(){
-  const counts = pressingCounts();
-  const row = el('button','store-records-pressings');
   const chips = el('span','store-records-chips');
   chips.setAttribute('aria-hidden','true');
   Object.values(S.collection).slice(0, 4).forEach(rec => {
@@ -217,16 +223,13 @@ export function storePressingsTeaserRow(){
   });
   const topMetal = achievementsList()[0];
   if(topMetal){ const c = el('span'); c.style.background = metalDisc(topMetal); chips.appendChild(c); }
-  if(chips.childNodes.length) row.appendChild(chips);
-  const text = el('span','store-records-pressings-text');
-  text.appendChild(el('b', null, 'Pressings & metals'));
-  text.appendChild(el('small', null, counts.pressings || counts.metals
-    ? [counts.pressings ? plural(counts.pressings, 'pressing', 'pressings') : null,
-       counts.metals ? plural(counts.metals, 'metal', 'metals') : null].filter(Boolean).join(' · ')
-    : 'Play an album through to unlock its pressing'));
-  row.appendChild(text);
-  row.appendChild(el('span','g-chev','›'));
-  row.addEventListener('click', ()=> openRecords('pressings'));
+  const row = navRow({
+    label: 'Pressings & metals',
+    value: 'Everything you’ve found, newest first',
+    onClick: ()=> openRecords('pressings'),
+  });
+  row.className += ' store-records-pressings';
+  if(chips.childNodes.length) row.insertBefore(chips, row.firstChild);
   return row;
 }
 

@@ -12,7 +12,7 @@ import { renderSocialSettingsScreen } from './settings.js';
 import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools, openLibraryToolsPanel } from '../shell/header.js';
-import { toggleRow, navRow, emptyNote } from '../ui/parts.js';
+import { toggleRow, navRow, emptyNote, backHeader } from '../ui/parts.js';
 import { openLibraryCrate } from '../library/view.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
@@ -96,17 +96,29 @@ let lastProfileScreen = null;
 export function renderProfile(opts = {}){
   const crumb = $('#profileCrumb');
   const screen = S.profileView.screen;
-  const labels = {listening:'Listening', topAlbums:'Top Albums', topSongs:'Top Songs', playedThrough:'Played through',
+  // UN12 point 13: sentence case everywhere ("Top Albums" -> "Top albums",
+  // "Privacy Policy" -> "Privacy policy") -- the rest were already
+  // sentence case.
+  const labels = {listening:'Listening', topAlbums:'Top albums', topSongs:'Top songs', playedThrough:'Played through',
     records:'Records', collection:'Records', socialSettings:'Account', privacy:'Privacy',
-    privacyPolicy:'Privacy Policy', termsOfUse:'Terms of use', settings:'Settings'};
-  crumb.style.display = screen === 'home' ? 'none' : 'flex';
+    privacyPolicy:'Privacy policy', termsOfUse:'Terms of use', settings:'Settings'};
+  crumb.style.display = screen === 'home' ? 'none' : 'block';
   if(screen !== 'home'){
     crumb.innerHTML = '';
-    const back = el('button','crumb-back','‹ Back');
-    back.addEventListener('click', ()=>{ S.profileView.screen = 'home'; renderProfile(); });
-    crumb.appendChild(back);
-    crumb.appendChild(el('span','crumb-label', labels[screen] || ''));
+    // UN12 point 2: "#profileCrumb becomes backHeader('Profile',
+    // labels[screen])" -- the shared parts back header (src/ui/parts.js),
+    // same one every other sub-screen in the app already uses, replacing
+    // the hand-built .crumb-back/.crumb-label pair (still used by the
+    // library route's own #crumb -- a UN18 cleanup, not this PR's).
+    const header = backHeader('Profile', labels[screen] || '');
+    header.backBtn.addEventListener('click', ()=>{ S.profileView.screen = 'home'; renderProfile(); });
+    crumb.appendChild(header);
   }
+  // UN12 point 1's second half ("renderProfile() hides the top bar
+  // whenever screen !== 'home'"): #appHeader's own .on-profile gate
+  // (shell/routes.js) covers the whole Profile route; this second class
+  // narrows it to just the home screen within that route.
+  $('#appHeader').classList.toggle('on-profile-sub', screen !== 'home');
   const body = $('#profileBody');
   parkPlaybackSettings();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';

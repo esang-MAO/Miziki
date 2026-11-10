@@ -97,9 +97,10 @@ export function showRoute(name){
   document.querySelectorAll('.tabbar-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.route === name)));
   document.querySelectorAll('.route').forEach(p => p.classList.toggle('on', p.id === 'route-' + name));
   $('#appHeader').classList.toggle('no-border', name === 'library');
-  // FS4 (docs/25_FROM_SCRATCH.md point 1): Profile's header shows the
-  // wordmark top-left -- hdrWordmark itself is filled once at boot
-  // (shell/start-sequence.js), this just toggles the one route that shows it.
+  // UN12 (docs/36_UNIFORMITY.md point 12): Profile's one header -- the
+  // "{username}'s crate" plate and Settings gear, shown only on this
+  // route (profile/screens.js's renderProfile() narrows it further to
+  // just the home screen within the route via .on-profile-sub).
   $('#appHeader').classList.toggle('on-profile', name === 'profile');
   updateHeaderActionsAvailability();
   if(name !== 'library'){
