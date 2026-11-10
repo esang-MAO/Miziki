@@ -349,6 +349,31 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
    rather than copying that rule's own crate-stage-specific values. */
 .g-art{box-shadow:inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.25)}
 
+/* LB9 (docs/36A_LIBRARY_AND_LAUNCH.md point 3): a search hit on a
+   playlist draws its own mosaic (playlist-mosaic.js/playlistMosaicArt(),
+   reused as-is from the Playlists grid) inside a plain 44px .g-art box,
+   so it sits at the same row height as every other search result --
+   .pl-mosaic's own width:100%/aspect-ratio:1 (above) does the rest once
+   it's confined to a square parent. */
+.search-pl-mosaic{overflow:hidden;position:relative}
+.search-playlist-row{content-visibility:visible}
+
+/* ---- LB9 point 4: the Add to playlist sheet's own rows -- same cover +
+   title/caption shape as #rowMenuOverlay's .row-menu-cover/-text (16-edit-
+   sheet.css), just with the playlist's own mosaic in place of a track's
+   single cover, and an "Already in" state in place of a chevron. */
+.add-to-pl-row{display:flex;align-items:center;gap:var(--sp-3);width:100%;min-height:52px;
+  padding:9px var(--sp-4);background:none;border:0;text-align:left;cursor:pointer;color:inherit}
+.add-to-pl-row:active{background:var(--sel)}
+.add-to-pl-mosaic{width:40px;height:40px;border-radius:4px;flex:0 0 auto}
+.add-to-pl-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.add-to-pl-text b{font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:var(--paper);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.add-to-pl-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
+.add-to-pl-state{flex:0 0 auto;font-size:var(--fs-caption);color:var(--muted)}
+.add-to-pl-row--dim{opacity:.5;cursor:default}
+.add-to-pl-row--dim:active{background:none}
+
 @media (prefers-reduced-motion: reduce){
   .shelf-sleeve,.shelf-sleeve-alt{transform:none}
 }

@@ -103,6 +103,10 @@
       <button class="hdr-cancel" id="hdrSearchCancel">Cancel</button>
     </div>
     <div class="search-chips" id="searchChips" style="display:none"></div>
+    <!-- LB9 point 2: shown only while the query uses the field: syntax
+         ("Searching artist: Theo") -- src/library/search.js's own
+         updateSearchHint(). -->
+    <p class="search-hint" id="searchHint" style="display:none"></p>
   </header>
 
   <!-- + menu: Add songs / Add folder (S1 §3). UN3 (docs/36_UNIFORMITY.md
@@ -1301,13 +1305,9 @@
      the shared list menu (src/ui/parts.js's listMenu()), built by
      library/view.js's openRowMenu() rather than static markup, since the
      header needs the track's own art/text. #rowMenuBody is the mount
-     point; its content is rebuilt on every open. "Add to playlist…"
-     (the plan's own third item in the first group) is left out: there is
-     no existing picker to add one track to an already-saved playlist
-     anywhere in the app yet (player/queue.js's "Save as playlist" only
-     saves the whole current queue as a new one) -- building that picker
-     is real feature work, not a menu restyle, so it's noted as a
-     follow-up rather than built here. -->
+     point; its content is rebuilt on every open. "Add to playlist…" (the
+     plan's own third item in the first group) opens LB9's own picker
+     sheet, #addToPlOverlay below (src/library/add-to-playlist.js). -->
 <div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="p-sheet-header" id="rowMenuHead">
@@ -1565,6 +1565,24 @@
     <div id="plNameHead"></div>
     <div id="plNameBody"></div>
   </div>
+</div>
+
+<!-- ADD TO PLAYLIST: LB9 (docs/36A_LIBRARY_AND_LAUNCH.md point 4), opened
+     from the song ⋯ menu (#rowMenuOverlay above). Built fully by
+     src/library/add-to-playlist.js's openAddToPlaylistSheet() --
+     #addToPlHead/#addToPlBody are rebuilt on every open, same as
+     #plNameHead/#plNameBody above. #plAddToast is a sibling of the
+     overlay, not nested inside it, same reason as #dupSkipToast below it
+     in this file: it's shown the instant the sheet closes. -->
+<div class="edit-overlay" id="addToPlOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="addToPlSheetBox" style="max-width:420px">
+    <div id="addToPlHead"></div>
+    <p class="note" id="addToPlCaption"></p>
+    <div class="p-list-menu" id="addToPlBody" role="menu"></div>
+  </div>
+</div>
+<div class="dup-skip-toast" id="plAddToast" style="display:none">
+  <span id="plAddToastText"></span>
 </div>
 
 <!-- LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): the playlist page's

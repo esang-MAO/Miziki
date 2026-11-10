@@ -25,6 +25,24 @@
 .search-chips{display:flex;flex-wrap:wrap;gap:6px;margin:var(--sp-2) 0}
 .search-chip{border:1px solid var(--line);border-radius:12px;padding:var(--sp-1) 10px;font-size:var(--fs-caption);color:var(--muted);
   background:rgba(255,255,255,.03)}
+/* LB9 (docs/36A_LIBRARY_AND_LAUNCH.md point 2): the type filter's own
+   "filled when on" state (decision 14) -- same posture as .p-seg's
+   selected-segment fill (05-parts.css), just on the existing chip shape
+   rather than a new control. */
+.search-chip.is-active{background:var(--paper);color:var(--sky1);border-color:var(--paper);font-weight:600}
+/* "Searching artist: Theo" -- shown only when the query used the field:
+   syntax (updateSearchHint(), src/library/search.js). */
+.search-hint{font-size:var(--fs-caption);color:var(--muted);margin:2px 0 var(--sp-2)}
+/* "See all {n} {type} ›" (a type section's overflow) and the no-results
+   note's "Clear" link -- a borderless, underlined text link, same family
+   as .credit-link just above but block-level by default, since the
+   section overflow wants a full-width tap target under its own group. */
+.search-see-all{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 0;
+  font:inherit;font-size:var(--fs-body);color:var(--paper);text-decoration:underline;
+  text-underline-offset:2px;cursor:pointer}
+.search-no-results{padding:var(--sp-4) 0;text-align:center}
+.search-no-results .note{margin:0 0 var(--sp-2)}
+.search-no-results .search-see-all{display:inline;width:auto;padding:0;text-align:center}
 
 /* AU5 (docs/16_AUDIO.md §4): "THE MASTER" — one word, a small meter, one
    sentence, the applied gain on the right. Informational only; never a
