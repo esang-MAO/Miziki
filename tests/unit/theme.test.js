@@ -423,6 +423,17 @@ test('--on-dark (#EFE9DF) clears 7:1 against the gatefold panel\'s no-art fallba
   }
 });
 
+// UN9 (docs/36_UNIFORMITY.md) point 3: the "on the platter" hand-lettered
+// label (src/styles/11-gatefold.css's .gf-disc-on-platter) is real dark
+// ink (#3B3229) on a real paper-colored empty sleeve (#EFE9DF, the same
+// literal used for --paper/--on-dark above), neither one theme-reactive
+// (both are physical-object literals, like the dead-wax/label-rim text
+// CLAUDE.md already carves out), so a single flat 4.5:1 check covers it.
+test('.gf-disc-on-platter ink (#3B3229) clears 4.5:1 against the empty-sleeve paper (#EFE9DF)', () => {
+  const ratio = contrastRatioTY1('#3B3229', '#EFE9DF');
+  assert.ok(ratio >= 4.5, `ink vs paper — ratio ${ratio.toFixed(2)}:1`);
+});
+
 // UN1 step 1: every rule that colored text/icons with a bare var(--cream)
 // was audited and sorted into var(--paper) (a normal themed surface) or
 // var(--on-dark) (a surface that's dark in both themes). This is the
