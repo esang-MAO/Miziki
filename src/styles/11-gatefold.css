@@ -85,11 +85,15 @@
 .gf-right{position:absolute;left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);top:var(--gf-cover-top,58px);
   width:var(--gf-panel-size,350px);height:var(--gf-panel-size,350px);border-radius:4px;
   overflow:hidden;background:linear-gradient(160deg,var(--gf-tint-from,#2A1B38),var(--gf-tint-to,#1C1226));color:var(--paper)}
+/* UN7 point 3: spine shading -- a 10px inset shadow down the panel's own
+   left edge, on top of whatever tint/art it's showing, so the spine
+   reads as a fold rather than a flat seam. */
+.gf-right::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  box-shadow:inset 10px 0 10px -10px rgba(0,0,0,.65)}
 .gf-shadow{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2}
-/* GF13: left padding cleared to 26px (was 14px) so the title/track rows
-   never render under .gf-left-cue's own 20px-wide tab on this panel's
-   left edge -- Ken's "bunched up" tracklist text was this cue tab sitting
-   on top of the first few characters of every line. */
+/* UN7 point 1: the tab is now 24px (STRIP_WIDTH in gatefold/geometry.js),
+   was 20px -- GF13's own clearance (6px beyond the tab's width) carries
+   forward at 30px. */
 /* UN6 point 4: a 56px fade to --gf-tint-to over the bottom edge, shown
    only while the list actually overflows past it -- the classic two-layer
    scroll-shadow trick (CSS-only, no scroll listener). The top layer is a
@@ -100,7 +104,7 @@
    scrolled all the way down, the eraser's content-relative position lands
    exactly over the fade and paints it out, so the true last row reads at
    full opacity instead of fading into the background. */
-.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px var(--sp-3) 26px;outline:none;
+.gf-tracklist{position:absolute;inset:0;overflow-y:auto;padding:var(--sp-3) 14px var(--sp-3) 30px;outline:none;
   background:
     linear-gradient(var(--gf-tint-to,#1C1226),var(--gf-tint-to,#1C1226)) bottom local,
     linear-gradient(to bottom,transparent,var(--gf-tint-to,#1C1226)) bottom scroll;
@@ -282,9 +286,9 @@
 .gf-back-cover.wear-light::after{box-shadow:inset 0 0 0 1px rgba(214,196,160,.12),inset 0 0 40px rgba(38,32,44,.05)}
 .gf-back-cover.wear-worn::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.18),inset 0 0 60px rgba(38,32,44,.09)}
 .gf-back-cover.wear-loved::after{box-shadow:inset 0 0 0 2px rgba(214,196,160,.26),inset 0 0 80px rgba(38,32,44,.14)}
-/* GF13: right padding cleared to 26px (was 18px, same gf-right-cue
-   overlap as .gf-tracklist's left edge above). */
-.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px 26px 18px 18px;outline:none}
+/* UN7 point 1: 30px, same gf-right-cue 24px-tab clearance as
+   .gf-tracklist's left edge above (was 26px for the old 20px tab). */
+.gf-left{position:absolute;inset:0;overflow-y:auto;padding:18px 30px 18px 18px;outline:none}
 .gf-left h3, .picture-sleeve-body h3{font-family:var(--display);font-size:var(--fs-title);margin:0 0 var(--sp-2)}
 /* GF1 point 5: liner-note prose and credit rows move off the 12px caption
    floor to --fs-body (14px). */
@@ -362,16 +366,42 @@
 /* GF1 point 2: always shown now (no liner-notes/credits gate), drawn as a
    real edge rather than an invisible hit-area -- a <button> in the markup,
    with its own aria-label. .gf-right-cue (the left panel's own mirror,
-   "‹ Inside" reversed to "Tracks ›") is its twin, going back. */
-.gf-left-cue, .gf-right-cue{position:absolute;top:var(--gf-cover-top,58px);width:20px;height:var(--gf-panel-size,350px);z-index:3;
-  display:flex;align-items:center;justify-content:center;border:0;padding:0}
-.gf-left-cue{left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);background:linear-gradient(90deg,#140D1C,#1C1226);border-radius:0 3px 3px 0;
-  box-shadow:inset -6px 0 8px -6px rgba(0,0,0,.6)}
+   "‹ Inside" reversed to "Tracks ›") is its twin, going back.
+   UN7 point 2: .gf-left-cue is now a 24px (STRIP_WIDTH) strip of the
+   record's own cover art rather than a flat dark bar -- #gfLeftCueArt
+   (an <img>, src set alongside #gfCoverArt in gatefoldSetCoverArt())
+   sits at object-position:left so only the art's own left edge shows,
+   with a darkening gradient over it toward the spine (the strip's right
+   edge, where it meets the panel). .gf-right-cue keeps its own plain
+   gradient backdrop -- the plan's cover-strip treatment is for the
+   front-facing left edge only, not its after-swing mirror. Both buttons'
+   own hit area is already the full 24x350 strip, well past the 44x44
+   floor; UN7 point 2/4's "28x72 visible, >=44x44 hit area" describes the
+   paper chip riding on top (.gf-cue-chip, below), not the button itself. */
+.gf-left-cue, .gf-right-cue{position:absolute;top:var(--gf-cover-top,58px);width:24px;height:var(--gf-panel-size,350px);z-index:3;
+  display:flex;align-items:center;justify-content:center;border:0;padding:0;overflow:hidden}
+.gf-left-cue{left:calc((var(--gf-ref-w,390px) - var(--gf-panel-size,350px)) / 2);border-radius:0 3px 3px 0}
 .gf-right-cue{right:0;background:linear-gradient(270deg,#140D1C,#1C1226);border-radius:3px 0 0 3px;
   box-shadow:inset 6px 0 8px -6px rgba(0,0,0,.6)}
-.gf-left-cue span, .gf-right-cue span{writing-mode:vertical-rl;font-family:var(--body);font-size:var(--fs-caption);
-  font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
-.gf-left-cue span{transform:rotate(180deg)}
+.gf-left-cue-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:left;display:block}
+.gf-left-cue::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(0,0,0,0),var(--gf-tint-to,#1C1226) 85%)}
+/* UN7 point 2/4: the paper chip itself -- 28x72 visible, --paper text on
+   a fixed #2B231C ink background (not theme/tint reactive, same "sleeve
+   interior" posture as .gf-right/.gf-face's own fixed dark literals
+   above), Archivo 11/600 caps, vertical. Centered on the strip, 2px
+   wider than it on each side -- the strip's own 24x350 button is the
+   real hit area, already well past 44x44. */
+.gf-cue-chip{position:relative;z-index:1;width:28px;height:72px;border-radius:3px;
+  background:#2B231C;display:flex;align-items:center;justify-content:center;pointer-events:none}
+/* UN7 names "Archivo 11/600 caps" for this chip, but CLAUDE.md's token
+   scale reserves 11px for physical-object detail "legibly repeated
+   nearby" -- this label is its own only source (no nearby repeat), so it
+   takes --fs-caption (12px), the scale's actual floor for read text,
+   instead of the literal canvas value. Flagged in the PR for Ken. */
+.gf-cue-chip span{writing-mode:vertical-rl;font-family:var(--body);font-size:var(--fs-caption);font-weight:600;
+  letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--paper)}
+.gf-left-cue .gf-cue-chip span{transform:rotate(180deg)}
 .gf-info{position:absolute;left:20px;right:20px;top:472px;opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-info{opacity:1}
 .gf-info-title{font-family:var(--display);font-size:var(--fs-title);margin:0}

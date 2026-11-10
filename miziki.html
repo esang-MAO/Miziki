@@ -1591,12 +1591,21 @@
         <div class="gf-tl-fade"></div>
         <div class="gf-shadow" id="gfShadow"></div>
       </div>
-      <button type="button" class="gf-left-cue" id="gfLeftCue" aria-label="Inside left panel"><span>‹ Inside</span></button>
+      <!-- UN7 point 2: the real cover's own left edge (#gfLeftCueArt,
+           src set alongside #gfCoverArt in gatefoldSetCoverArt()),
+           darkened toward the spine by 11-gatefold.css's .gf-left-cue
+           ::after -- replaces the old flat dark bar. -->
+      <button type="button" class="gf-left-cue" id="gfLeftCue" aria-label="Inside left panel">
+        <img class="gf-left-cue-art" id="gfLeftCueArt" alt="">
+        <div class="gf-cue-chip"><span>‹ Inside</span></div>
+      </button>
       <div class="gf-cover" id="gfCover">
         <div class="gf-face gf-face-front"><img id="gfCoverArt" alt=""></div>
         <div class="gf-face gf-face-back">
           <div class="gf-left" id="gfLeft" tabindex="-1"></div>
-          <button type="button" class="gf-right-cue" id="gfRightCue" aria-label="Back to tracklist"><span>Tracks ›</span></button>
+          <button type="button" class="gf-right-cue" id="gfRightCue" aria-label="Back to tracklist">
+            <div class="gf-cue-chip"><span>Tracks ›</span></div>
+          </button>
         </div>
       </div>
     </div>
