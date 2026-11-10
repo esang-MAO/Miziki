@@ -88,7 +88,10 @@ export function wireTransport(){
   $('#sleepTimerBtn').addEventListener('click', ()=>{
     closeLayerThen('player-overflow-menu', openSleepSheet);
   });
-  $('#sleepClose').addEventListener('click', () => closeLayer('sleep'));
+  // UN4 (docs/36_UNIFORMITY.md point 1): the close button is now built
+  // lazily by sleep-timer.js's own openSleepSheet() (sheetHeader(),
+  // src/ui/parts.js), which wires its own closeBtn there -- no static
+  // #sleepClose exists any more.
 
   // AU6 (docs/16_AUDIO.md §3): the EQ sheet, same overflow-menu entry
   // point as Sleep timer just above. TR2 (docs/19_PLAYER.md): dynamically

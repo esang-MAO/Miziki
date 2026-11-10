@@ -192,8 +192,11 @@ mock.module(new URL('../../src/player/eq-sheet.js', import.meta.url).href, {
 });
 // Since step 7b, screens.js's refreshLibraryTools import is a real one from
 // src/shell/header.js instead of main.js — mocked there directly instead.
+// UN4 (docs/36_UNIFORMITY.md point 4) added openLibraryToolsPanel to the
+// same import — every mock.module() stub here must list every export the
+// real module has, not just the ones this file's own tests exercise.
 mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
-  namedExports: { refreshLibraryTools(){} },
+  namedExports: { refreshLibraryTools(){}, openLibraryToolsPanel(){} },
 });
 // RF26 (docs/12_REFINE.md): the new Settings › Sundown row's own import —
 // the real shell/sundown-sheet.js reaches shell/routes.js, which reaches

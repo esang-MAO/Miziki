@@ -38,9 +38,12 @@ export function sheetHeader(title){
   return row;
 }
 
-// segmented(opts, value, onChange): opts is [{value, label}]. Clicking an
-// option calls onChange(option.value); the caller re-renders (or calls
-// setSegmentedValue below) to move the pressed state.
+// segmented(opts, value, onChange): opts is [{value, label, ariaLabel}].
+// ariaLabel is optional, for an option whose own visible text doesn't say
+// what it does on its own (e.g. a proper noun) -- every other option
+// needs none, since its label already says everything aria-pressed needs
+// to convey. Clicking an option calls onChange(option.value); the caller
+// re-renders (or calls setSegmentedValue below) to move the pressed state.
 export function segmented(opts, value, onChange){
   const seg = el('div', 'p-seg');
   seg.setAttribute('role', 'group');
@@ -48,6 +51,7 @@ export function segmented(opts, value, onChange){
     const btn = el('button', null, opt.label);
     btn.type = 'button';
     btn.setAttribute('aria-pressed', String(opt.value === value));
+    if(opt.ariaLabel) btn.setAttribute('aria-label', opt.ariaLabel);
     btn.dataset.value = opt.value;
     btn.addEventListener('click', () => onChange(opt.value));
     seg.appendChild(btn);

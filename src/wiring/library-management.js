@@ -9,11 +9,11 @@ export function wireLibraryManagement(){
   let armed = false, armTimer = null;
   $('#forget').addEventListener('click', async e => {
     if(!armed){
-      armed = true; e.target.textContent = 'TAP AGAIN';
-      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'FORGET'; }, 4000);
+      armed = true; e.target.textContent = 'Tap again to forget';
+      armTimer = setTimeout(()=>{ armed = false; e.target.textContent = 'Forget library'; }, 4000);
       return;
     }
-    clearTimeout(armTimer); armed = false; e.target.textContent = 'FORGET';
+    clearTimeout(armTimer); armed = false; e.target.textContent = 'Forget library';
     await forgetLibrary();
   });
 

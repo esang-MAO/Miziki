@@ -229,34 +229,45 @@ function renderParametricBands(host, eq){
   host.appendChild(addBtn);
 }
 
+// UN4 (docs/36_UNIFORMITY.md point 2): the fixed 5 presets read as one
+// segmented control (.seg, aliased onto .p-seg in 05-parts.css) instead
+// of uppercase pill buttons. Saved presets are an open-ended, user-named
+// list -- not a fixed one-of-N choice -- so they stay their own pill row
+// underneath, unchanged.
 function renderPresets(host, eq){
-  const row = el('div','eq-preset-row');
+  const seg = el('div','seg eq-preset-seg');
   EQ_PRESET_KEYS.forEach(key => {
     const preset = EQ_PRESETS[key];
     const active = eq.mode === 'graphic' && matchPreset(eq.graphicBands, eq.tilt) === key;
-    const chip = el('button','eq-preset-chip' + (active ? ' active' : ''), EQ_PRESET_LABELS[key]);
-    chip.setAttribute('aria-pressed', String(active));
-    chip.addEventListener('click', () => {
+    const btn = el('button', null, EQ_PRESET_LABELS[key]);
+    btn.setAttribute('aria-pressed', String(active));
+    btn.addEventListener('click', () => {
       eq.mode = 'graphic';
       eq.tilt = preset.tilt;
       eq.graphicBands = preset.graphicBands.slice();
       queueSave(); applyEQ(); renderEqSheet();
     });
-    row.appendChild(chip);
+    seg.appendChild(btn);
   });
-  Object.keys(eq.savedPresets || {}).forEach(name => {
-    const chip = el('button','eq-preset-chip eq-preset-chip-saved', name);
-    chip.addEventListener('click', () => {
-      const saved = eq.savedPresets[name];
-      eq.mode = saved.mode || 'graphic';
-      eq.tilt = saved.tilt || 0;
-      eq.graphicBands = (saved.graphicBands || eq.graphicBands).slice();
-      eq.parametricBands = (saved.parametricBands || []).map(b => Object.assign({}, b));
-      queueSave(); applyEQ(); renderEqSheet();
+  host.appendChild(seg);
+
+  const savedNames = Object.keys(eq.savedPresets || {});
+  if(savedNames.length){
+    const row = el('div','eq-preset-row');
+    savedNames.forEach(name => {
+      const chip = el('button','eq-preset-chip eq-preset-chip-saved', name);
+      chip.addEventListener('click', () => {
+        const saved = eq.savedPresets[name];
+        eq.mode = saved.mode || 'graphic';
+        eq.tilt = saved.tilt || 0;
+        eq.graphicBands = (saved.graphicBands || eq.graphicBands).slice();
+        eq.parametricBands = (saved.parametricBands || []).map(b => Object.assign({}, b));
+        queueSave(); applyEQ(); renderEqSheet();
+      });
+      row.appendChild(chip);
     });
-    row.appendChild(chip);
-  });
-  host.appendChild(row);
+    host.appendChild(row);
+  }
 }
 
 export function renderEqSheet(){

@@ -210,7 +210,13 @@
    .sound-dial-label/.sound-dial-tone-caption, #sdSkySoundA/B's own
    .sd-sky-bg-sound height) went with it. */
 
+/* UN4 (docs/36_UNIFORMITY.md point 7): Sound view's section labels move
+   onto .p-label (05-parts.css, Archivo caps) -- out of the shared mono-
+   caps family below, which every other screen (Library tools, Settings,
+   Profile home, Share) still uses unchanged. */
 .sd-section-label{
+  font-family:var(--body); font-weight:600; font-size:var(--fs-caption); letter-spacing:var(--track-caps);
+  text-transform:uppercase; color:var(--muted);
   margin:var(--sp-1) 0 6px;
 }
 
@@ -218,13 +224,13 @@
    dimmed and inert (audio/mode.js's setMode()) while it's off. */
 .sd-sound-dim{ opacity:.4; }
 
-/* FS12 point 3: "Vinyl as the first row: Antonio 28 label" -- .row .k's
-   plain --fs-body text, upsized/restyled for just this one row. */
-.sd-vinyl-row .k{
+/* FS12 point 3: "Vinyl as the first row: Antonio 28 label" -- upsized/
+   restyled for just this one row, now toggleRow()'s own .p-toggle-label
+   (UN4, docs/36_UNIFORMITY.md point 7) rather than .row .k. */
+.sd-vinyl-label{
   font-family:var(--display); font-size:var(--fs-hero); line-height:var(--lh-hero);
   letter-spacing:var(--track-display); color:var(--paper);
 }
-.sd-vinyl-row .k em{ font-family:var(--body); font-size:var(--fs-caption); letter-spacing:0; }
 
 /* FS12 point 3: the Fine-tune/EQ rows reuse .settings-link-row/
    .settings-link-right/.settings-link-value/.g-chev as-is (src/styles/
@@ -236,21 +242,23 @@
    margin/padding/border; only the type treatment is shared, so Library
    tools, Sundown, Sound, Settings and the Profile home read the same. */
 .lib-tools-caption,
-.sd-section-label,
 .settings-section-head,
 .profile-section-head,
 .share-section-label{
   font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
-/* §4.3 item 3 / FS12 point 1: a full-width segmented control (cream fill
-   on the selected segment) — visually its own thing (not the smaller
-   pill-row .seg used by the Day view's Auto/Manual and Pacing rows). One
-   shared look for every "pick one of N" group in the sheet: the Day|Sound
-   tabs (2), the depth control (4), and every 3-way group below, so none
-   of them read as a leftover from the old slider-era rectangular
-   buttons. .sd-tabs uses aria-selected (it's a tablist); the rest use
-   aria-pressed. */
+/* §4.3 item 3 / FS12 point 1: one shared look for every "pick one of N"
+   group in the sheet -- the Day|Sound tabs (2), the depth control (5),
+   and every other group here. UN4 (docs/36_UNIFORMITY.md point 2): the
+   look itself (padding, font-size, white-space, the pressed fill) is now
+   .p-seg's (05-parts.css), since .sd-tabs/.sd-drift-seg/.sd-preset-seg/
+   .sd-depth-seg/.sd-surface-noise-seg/.sd-night-pitch-seg are aliased
+   onto .p-seg there. This file keeps only the per-group column count --
+   that's layout, not look -- plus .sd-tabs' own aria-selected (tablist)
+   in place of aria-pressed. The old fixed 12px font-size + overflow:
+   hidden here is what cut night-depth's labels to "Gentl"/"Mediu"/
+   "Deepe" -- .p-seg already wraps instead of clipping. */
 .sd-tabs,
 .sd-drift-seg,
 .sd-preset-seg,
@@ -258,28 +266,11 @@
 .sd-surface-noise-seg,
 .sd-night-pitch-seg{
   display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
-  border:1px solid var(--line); border-radius:12px; overflow:hidden;
-  background:var(--panel); margin-bottom:18px; gap:0;
 }
 .sd-tabs,
 .sd-night-pitch-seg{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-.sd-tabs{ margin-bottom:var(--sp-4); }
 .sd-depth-seg{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
-.sd-tabs button,
-.sd-drift-seg button,
-.sd-preset-seg button,
-.sd-depth-seg button,
-.sd-surface-noise-seg button,
-.sd-night-pitch-seg button{
-  min-height:44px; border:0; background:transparent; color:var(--paper); cursor:pointer;
-  font-family:var(--body); font-size:var(--fs-caption); font-weight:500; padding:var(--sp-1) 6px;
-}
-.sd-tabs button[aria-selected="true"],
-.sd-drift-seg button[aria-pressed="true"],
-.sd-preset-seg button[aria-pressed="true"],
-.sd-depth-seg button[aria-pressed="true"],
-.sd-surface-noise-seg button[aria-pressed="true"],
-.sd-night-pitch-seg button[aria-pressed="true"]{ background:var(--cream); color:var(--on-accent); font-weight:600; }
+.sd-tabs button[aria-selected="true"]{ background:var(--paper); color:var(--sky1); font-weight:600; }
 
 /* GS6 (docs/30_GROOVES_AND_SHELF.md): the mono rate-change line under the
    night-pitch row -- same small mono readout look as .sd-section-label's
@@ -347,9 +338,21 @@
   cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none;
 }
 .sd-audition-btn[aria-pressed="true"]{ background:var(--paper); color:var(--on-accent); border-color:var(--paper); }
+/* UN4 (docs/36_UNIFORMITY.md point 7): "Hear it without Vinyl" becomes a
+   full-width secondary button (.p-btn's own look, 05-parts.css) -- its
+   own rule rather than the small per-card "Hear it alone" chip look
+   .sd-audition-btn still gives those (unnamed by this plan step), since
+   the two no longer share a look even though both are the same press-
+   and-hold mechanism (src/wiring/character.js). Stays tap-to-toggle with
+   aria-pressed (Oct 30 decision), just restyled when pressed to match
+   .p-btn--primary instead of the small chip's own fill. */
 .sd-audition-pure{
-  align-self:stretch; width:100%; text-align:center; margin:0 0 18px; padding:10px;
+  align-self:stretch; width:100%; box-sizing:border-box; text-align:center; margin:0 0 18px;
+  min-height:44px; border-radius:10px; padding:11px var(--sp-4);
+  font-family:var(--body); font-size:15px; font-weight:500; letter-spacing:0;
+  border:1.5px solid var(--ring); background:none; color:var(--paper);
 }
+.sd-audition-pure[aria-pressed="true"]{ background:var(--paper); color:var(--sky1); border-color:transparent; }
 
 /* §4.3 item 5: the "Tone today" curve card. */
 .sd-tonecurve{

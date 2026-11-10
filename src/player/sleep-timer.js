@@ -1,9 +1,10 @@
 import { S, current } from '../state.js';
-import { $, el } from '../util/dom.js';
+import { $ } from '../util/dom.js';
 import { applyVolume } from '../sundown/location.js';
 import { pauseAndRest, sideLetterFor } from './transport.js';
 import { setPathNote } from '../ui/path-note.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
+import { sheetHeader, listMenu } from '../ui/parts.js';
 
 /* ================= sleep timer (SLEEP spec §5) =================
    Session-only (S.sleep is never persisted). Time mode is deadline-based —
@@ -112,30 +113,36 @@ function startSleepTimer(mode, minutes){
     : 'Sleeping at end of side' + (S.sleep.side ? ' ' + S.sleep.side : ''));
 }
 
+// UN4 (docs/36_UNIFORMITY.md point 2): stays a list, since it's a
+// pick-one-and-go action rather than a setting -- listMenu() (src/ui/
+// parts.js), one group, current choice marked rather than built as its
+// own segmented control.
 const SLEEP_MINUTE_OPTIONS = [15, 30, 45, 60];
 function renderSleepOptions(){
   const host = $('#sleepOptions'); host.innerHTML = '';
   const currentMins = S.sleep.mode === 'time' ? Math.round((S.sleep.at - Date.now())/60000) : null;
-  SLEEP_MINUTE_OPTIONS.forEach(mins => {
-    const b = el('button','cta' + (currentMins === mins ? '' : ' ghost'), mins + ' min');
-    b.addEventListener('click', ()=>{ startSleepTimer('time', mins); closeLayer('sleep'); });
-    host.appendChild(b);
-  });
-  const trackBtn = el('button','cta' + (S.sleep.mode === 'track' ? '' : ' ghost'), 'End of track');
-  trackBtn.addEventListener('click', ()=>{ startSleepTimer('track'); closeLayer('sleep'); });
-  host.appendChild(trackBtn);
-  const albumBtn = el('button','cta' + (S.sleep.mode === 'album' ? '' : ' ghost'), 'End of album');
-  albumBtn.addEventListener('click', ()=>{ startSleepTimer('album'); closeLayer('sleep'); });
-  host.appendChild(albumBtn);
-  // LI3 (docs/35_LEAD_IN.md)
-  const sideBtn = el('button','cta' + (S.sleep.mode === 'side' ? '' : ' ghost'), 'End of side');
-  sideBtn.addEventListener('click', ()=>{ startSleepTimer('side'); closeLayer('sleep'); });
-  host.appendChild(sideBtn);
-  const offBtn = el('button','cta ghost', 'Off');
-  offBtn.addEventListener('click', ()=>{ stopSleepState(); setPathNote('Sleep timer off.'); closeLayer('sleep'); });
-  host.appendChild(offBtn);
+  const mark = on => on ? ' ✓' : '';
+  const items = SLEEP_MINUTE_OPTIONS.map(mins => ({
+    label: mins + ' min' + mark(currentMins === mins),
+    onClick: () => { startSleepTimer('time', mins); closeLayer('sleep'); },
+  }));
+  items.push(
+    { label: 'End of track' + mark(S.sleep.mode === 'track'), onClick: () => { startSleepTimer('track'); closeLayer('sleep'); } },
+    // LI3 (docs/35_LEAD_IN.md)
+    { label: 'End of side' + mark(S.sleep.mode === 'side'), onClick: () => { startSleepTimer('side'); closeLayer('sleep'); } },
+    { label: 'End of album' + mark(S.sleep.mode === 'album'), onClick: () => { startSleepTimer('album'); closeLayer('sleep'); } },
+    { label: 'Off' + mark(!S.sleep.mode), onClick: () => { stopSleepState(); setPathNote('Sleep timer off.'); closeLayer('sleep'); } },
+  );
+  host.appendChild(listMenu([items]));
 }
+let sleepHeadBuilt = false;
 export function openSleepSheet(){
+  if(!sleepHeadBuilt){
+    const head = sheetHeader('Sleep timer');
+    head.closeBtn.addEventListener('click', () => closeLayer('sleep'));
+    $('#sleepHead').appendChild(head);
+    sleepHeadBuilt = true;
+  }
   renderSleepOptions();
   const overlay = $('#sleepOverlay');
   overlay.classList.add('open');

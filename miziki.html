@@ -271,7 +271,7 @@
           <p class="lib-tools-caption lib-tools-danger">Danger</p>
           <div class="lib-tools-row2 lib-tools-danger">
             <span class="k">Forget library<em>Removes every song from Miziki. Your stats, playlists and settings stay, and reconnect if you add the songs again. Files on your device aren't touched — to reset stats instead, use Clear listening history above.</em></span>
-            <button class="cta forget-btn" id="forget">FORGET</button>
+            <button class="p-btn p-btn--danger forget-btn" id="forget">Forget library</button>
           </div>
         </div>
         <p class="note" id="libToolsFooter"></p>
@@ -283,42 +283,97 @@
     <!-- PLAYBACK SETTINGS: see docs/19_PLAYER_HTML_NOTES.md#playbacksettingsstashplaybacksettings-profile -->
     <div id="playbackSettingsStash" style="display:none">
       <div id="playbackSettings">
-      <div class="row">
-        <div class="k">Scratch<em>Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record.</em> <details class="sd-info"><summary aria-label="More about Scratch">(i)</summary>Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</details></div>
-        <button id="scratchBtn" class="switch" role="switch" aria-checked="true" aria-label="Scratch"><span class="switch-track"><i></i></span></button>
+      <!-- UN4 (docs/36_UNIFORMITY.md point 3): every on/off row reads as
+           toggleRow()'s shape (src/ui/parts.js/05-parts.css) -- label +
+           inline ⓘ on top, description below, the existing .switch
+           (31-switch.css) on the right. Kept as static markup (not built
+           by toggleRow() itself) so src/wiring/character.js's boot-time
+           listeners on these exact button ids are untouched -- same
+           "alias the look, keep the wiring" posture UN2 used for .cta/
+           .seg. The ⓘ is the same <details>/<summary> disclosure as
+           before (.sd-info), just moved next to the label instead of
+           trailing the description. -->
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Scratch</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about Scratch">ⓘ</summary>Turn off to make spinning a fast, silent way to move through a track — the time slider still handles long jumps either way.</details>
+          </div>
+          <button id="scratchBtn" class="switch" role="switch" aria-checked="true" aria-label="Scratch"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">Spinning the disc by hand in Vinyl plays the actual song at your hand's speed, forward or backward, like a real record.</p>
       </div>
 
-      <div class="row">
-        <div class="k">Sleeve Pull<em>The record sliding out of its sleeve when an album starts or changes.</em> <details class="sd-info"><summary aria-label="More about Sleeve Pull">(i)</summary>Turn off to jump straight into playback.</details></div>
-        <button id="sleevePullBtn" class="switch" role="switch" aria-checked="true" aria-label="Sleeve Pull"><span class="switch-track"><i></i></span></button>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Sleeve pull</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about Sleeve pull">ⓘ</summary>Turn off to jump straight into playback.</details>
+          </div>
+          <button id="sleevePullBtn" class="switch" role="switch" aria-checked="true" aria-label="Sleeve Pull"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">The record sliding out of its sleeve when an album starts or changes.</p>
       </div>
 
-      <div class="row">
-        <div class="k">Launch intro<em>The crate riffle and title screen when Miziki opens.</em> <details class="sd-info"><summary aria-label="More about Launch intro">(i)</summary>Turn off to go straight to the library.</details></div>
-        <button id="launchIntroBtn" class="switch" role="switch" aria-checked="true" aria-label="Launch intro"><span class="switch-track"><i></i></span></button>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Launch intro</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about Launch intro">ⓘ</summary>Turn off to go straight to the library.</details>
+          </div>
+          <button id="launchIntroBtn" class="switch" role="switch" aria-checked="true" aria-label="Launch intro"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">The crate riffle and title screen when Miziki opens.</p>
       </div>
 
-      <div class="row">
-        <div class="k">Background playback<em id="bgAudioNote">Keeps music playing when you leave the app or lock the screen.</em> <details class="sd-info"><summary aria-label="More about Background playback">(i)</summary>Adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</details></div>
-        <button id="bgAudioBtn" class="switch" role="switch" aria-checked="false" aria-label="Background playback"><span class="switch-track"><i></i></span></button>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Background playback</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about Background playback">ⓘ</summary>Adds lock-screen controls. Audio is routed through the browser's media player, which may convert it to the device's output rate. Pure and Vinyl still apply first.</details>
+          </div>
+          <button id="bgAudioBtn" class="switch" role="switch" aria-checked="false" aria-label="Background playback"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc" id="bgAudioNote">Keeps music playing when you leave the app or lock the screen.</p>
       </div>
 
-      <div class="row">
-        <div class="k">Paper label on lossy files<em>A lossy (MP3/AAC) record presses onto Jet, Miziki's one tier-1 pressing.</em> <details class="sd-info"><summary aria-label="More about paper label on lossy files">(i)</summary>Off shows the usual amber label on every Jet pressing; on swaps it for a paper label with an olive ring, so a lossy record reads differently at a glance.</details></div>
-        <button id="paperLabelBtn" class="switch" role="switch" aria-checked="false" aria-label="Paper label on lossy files"><span class="switch-track"><i></i></span></button>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Paper label on lossy files</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about paper label on lossy files">ⓘ</summary>Off shows the usual amber label on every Jet pressing; on swaps it for a paper label with an olive ring, so a lossy record reads differently at a glance.</details>
+          </div>
+          <button id="paperLabelBtn" class="switch" role="switch" aria-checked="false" aria-label="Paper label on lossy files"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">A lossy (MP3/AAC) record presses onto Jet, Miziki's one tier-1 pressing.</p>
       </div>
 
       <!-- off freezes day-progress/unlocks (no data loss) and stops
            offering an earned zoetrope as the active look -->
-      <div class="row">
-        <div class="k">Zoetropes earned<em>Playing an album every side start-to-finish on 10 different days earns it a strobe-animated zoetrope pressing.</em> <details class="sd-info"><summary aria-label="More about zoetropes earned">(i)</summary>Off pauses new progress (nothing already earned is lost) and stops showing an earned zoetrope on the platter until turned back on.</details></div>
-        <button id="zoetropesBtn" class="switch" role="switch" aria-checked="true" aria-label="Zoetropes earned"><span class="switch-track"><i></i></span></button>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Zoetropes earned</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about zoetropes earned">ⓘ</summary>Off pauses new progress (nothing already earned is lost) and stops showing an earned zoetrope on the platter until turned back on.</details>
+          </div>
+          <button id="zoetropesBtn" class="switch" role="switch" aria-checked="true" aria-label="Zoetropes earned"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">Playing an album every side start-to-finish on 10 different days earns it a strobe-animated zoetrope pressing.</p>
       </div>
 
-      <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto -->
-      <div class="row">
-        <div class="k">Loudness normalization<em id="loudnessDesc">Auto: album gain for an album played in order, track gain otherwise.</em> <details class="sd-info"><summary aria-label="More about loudness normalization">(i)</summary>Evens out volume between quietly and loudly mastered records, using a file's own ReplayGain tag when it has one, or Miziki's own measurement otherwise. Never pushes a track into clipping — the safety limiter still catches anything left.</details></div>
-        <div class="seg">
+      <!-- AU5 (docs/16_AUDIO.md §4): Off/Track/Album/Auto, now a real
+           segmented() look (.seg is aliased onto .p-seg, 05-parts.css) --
+           UN4 point 2 fixes this row's old 2×2 wrap at four equal
+           segments. -->
+      <div class="p-toggle-row">
+        <div class="p-toggle-top" style="cursor:default">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Loudness normalization</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about loudness normalization">ⓘ</summary>Evens out volume between quietly and loudly mastered records, using a file's own ReplayGain tag when it has one, or Miziki's own measurement otherwise. Never pushes a track into clipping — the safety limiter still catches anything left.</details>
+          </div>
+        </div>
+        <p class="p-toggle-desc" id="loudnessDesc">Auto: album gain for an album played in order, track gain otherwise.</p>
+        <div class="seg" style="margin-top:var(--sp-2)">
           <button data-loudness="off" aria-pressed="false">Off</button>
           <button data-loudness="track" aria-pressed="false">Track</button>
           <button data-loudness="album" aria-pressed="false">Album</button>
@@ -330,16 +385,25 @@
            output stage in both Pure and Vinyl (audio/engine.js's
            applyMonoBalance()); the slider mutates S.balance directly on
            'input', no full re-render mid-drag. -->
-      <div class="row">
-        <div class="k">Mono<em>Sends the same mix to both speakers or earbuds.</em> <details class="sd-info"><summary aria-label="More about Mono">(i)</summary>Helps one-earbud listening and hearing in one ear — a record mixed in stereo only sounds complete to a centered listener anyway.</details></div>
-        <button id="monoBtn" class="switch" role="switch" aria-checked="false" aria-label="Mono"><span class="switch-track"><i></i></span></button>
-      </div>
-      <div class="row">
-        <div class="k">Balance<em>Left/right, with a center tick.</em></div>
-        <div class="settings-slider">
-          <input type="range" id="balanceSlider" min="-1" max="1" step="0.05" value="0" aria-label="Left/right balance">
-          <span class="settings-slider-val" id="balanceDesc">Center</span>
+      <div class="p-toggle-row">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left">
+            <span class="p-toggle-label">Mono</span>
+            <details class="sd-info"><summary class="p-toggle-info" aria-label="More about Mono">ⓘ</summary>Helps one-earbud listening and hearing in one ear — a record mixed in stereo only sounds complete to a centered listener anyway.</details>
+          </div>
+          <button id="monoBtn" class="switch" role="switch" aria-checked="false" aria-label="Mono"><span class="switch-track"><i></i></span></button>
         </div>
+        <p class="p-toggle-desc">Sends the same mix to both speakers or earbuds.</p>
+      </div>
+      <!-- UN4 point 5: the "Center" readout moves onto the label row,
+           above the slider, so it can't run off the right edge the way
+           "Cent" used to on a narrow phone. -->
+      <div class="p-toggle-row">
+        <div class="p-toggle-top" style="cursor:default">
+          <span class="p-toggle-label">Balance</span>
+          <span class="p-nav-value" id="balanceDesc">Center</span>
+        </div>
+        <input type="range" id="balanceSlider" min="-1" max="1" step="0.05" value="0" aria-label="Left/right balance" style="margin-top:var(--sp-2)">
       </div>
 
       <p class="note">Wireless output re-encodes audio — AirPods and most Bluetooth devices deliver AAC regardless of the source file's quality. <details class="sd-info"><summary aria-label="More about wireless output">(i)</summary>Wired or built-in playback preserves the file's full resolution.</details></p>
@@ -586,9 +650,14 @@
            the same way it used to set the player's own #modeToggle; the
            click handler lives in src/wiring/sundown.js and calls the same
            setMode(). #barModeToggle (desktop mini-bar) is unaffected. -->
-      <div class="row sd-vinyl-row" style="margin-top:0">
-        <div class="k">Vinyl<em>Off plays every file untouched, at full speed.</em></div>
-        <button id="soundModeSwitch" class="switch" role="switch" aria-checked="true" aria-label="Vinyl mode"><span class="switch-track"><i></i></span></button>
+      <!-- UN4 (docs/36_UNIFORMITY.md point 7): "Vinyl" becomes a
+           toggleRow() look (05-parts.css) at the top of the view. -->
+      <div class="p-toggle-row sd-vinyl-row" style="margin-top:0;border-bottom:0">
+        <div class="p-toggle-top">
+          <span class="p-toggle-label sd-vinyl-label">Vinyl</span>
+          <button id="soundModeSwitch" class="switch" role="switch" aria-checked="true" aria-label="Vinyl mode"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">Off plays every file untouched, at full speed.</p>
       </div>
 
       <!-- FS12 point 3: everything below only applies to Vinyl -- dimmed
@@ -1148,7 +1217,7 @@
     <p class="note" id="editBatchNote" style="display:none"></p>
 
     <div class="stack">
-      <button class="cta" id="editSave">Save</button>
+      <button class="p-btn p-btn--primary" id="editSave">Save</button>
       <button class="cta ghost" id="editRevert">Revert to file</button>
     </div>
   </div>
@@ -1283,14 +1352,14 @@
   </div>
 </div>
 
-<!-- SLEEP TIMER -->
+<!-- SLEEP TIMER: UN4 (docs/36_UNIFORMITY.md point 1/2) -- sheetHeader() +
+     listMenu() (src/ui/parts.js), both built once lazily by
+     player/sleep-timer.js's openSleepSheet(). Stays a list (a pick-one-
+     and-go action, not a setting), not a segmented control. -->
 <div class="edit-overlay" id="sleepOverlay" aria-hidden="true">
   <div class="edit-sheet" id="sleepSheetBox" style="max-width:420px">
-    <div class="edit-head">
-      <span>Sleep timer</span>
-      <button class="edit-close" id="sleepClose" aria-label="Close">✕</button>
-    </div>
-    <div class="stack" id="sleepOptions" style="flex-direction:column"></div>
+    <div id="sleepHead"></div>
+    <div id="sleepOptions"></div>
   </div>
 </div>
 
@@ -1483,12 +1552,18 @@
       <p class="share-section-label" id="shareIncludeLabel" hidden>Include</p>
       <div class="share-toggles" id="shareToggles"></div>
     </div>
+    <!-- UN4 (docs/36_UNIFORMITY.md point 8): one primary button
+         (#shareShareBtn when the native share sheet is available, else
+         #shareSave -- updateShareActionButtons(), src/share/sheet.js)
+         plus a secondary (#shareCopy, or #shareSave when Share is
+         primary), with "More options" as a plain text link under them,
+         not a third button in the row. -->
     <button class="cta share-primary" id="shareShareBtn" style="display:none">Share…</button>
     <div class="share-actions-row">
       <button class="cta ghost" id="shareSave">Save image</button>
       <button class="cta ghost" id="shareCopy" style="display:none">Copy</button>
-      <button type="button" class="cta ghost" id="shareMoreToggle" aria-expanded="false" aria-controls="shareMoreBody">More options ›</button>
     </div>
+    <button type="button" class="share-more-toggle" id="shareMoreToggle" aria-expanded="false" aria-controls="shareMoreBody">More options ›</button>
   </div>
 </div>
 
