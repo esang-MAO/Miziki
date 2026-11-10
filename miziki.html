@@ -209,6 +209,17 @@
       <div class="p-list-menu-divider"></div>
       <button class="p-list-menu-item p-list-menu-item--danger" id="artistMoreRemoveBtn" role="menuitem">Remove artist…</button>
     </div>
+    <!-- LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): the playlist
+         page's own ⋯ menu -- same small-popover shape as #artistMoreMenu
+         just above, opened from library/view.js's own openPlaylistMoreMenu().
+         Its body is rebuilt via src/ui/parts.js's listMenu() every open
+         (the current playlist's own Rename…/Delete), unlike
+         #artistMoreMenu's static rows, since this step's task explicitly
+         calls for building it with that helper. "Share" is left out --
+         see view.js's own comment above openPlaylistMoreMenu() for why,
+         same posture as "Share artist" just above. -->
+    <div class="overflow-scrim" id="playlistMoreMenuScrim"></div>
+    <div class="overflow-menu" id="playlistMoreMenu" role="menu"></div>
     <!-- FS6 (docs/25_FROM_SCRATCH.md point 2): the crate's own sort-chip +
          record-count line -- sort chip left, "N records" right, nothing
          else on it. Shown only in crate mode (updateCrateGroupToggleUI(),
@@ -1544,16 +1555,27 @@
 </div>
 
 <!-- PLAYLIST NAME SHEET: decision 2, docs/36A_LIBRARY_AND_LAUNCH.md (LB2).
-     The one sheet New playlist, Save queue as playlist and (once a future
-     step adds the row) Rename all share -- built fully by
-     src/library/playlist-sheet.js's openPlaylistNameSheet(); #plNameHead/
-     #plNameBody are rebuilt on every open, same as #dupHead/#dupBody
-     above. -->
+     The one sheet New playlist, Save queue as playlist and Rename
+     (LB4's own playlistMoreMenuRename(), src/library/view.js) all share --
+     built fully by src/library/playlist-sheet.js's openPlaylistNameSheet();
+     #plNameHead/#plNameBody are rebuilt on every open, same as #dupHead/
+     #dupBody above. -->
 <div class="edit-overlay" id="playlistNameOverlay" aria-hidden="true">
   <div class="edit-sheet" id="playlistNameSheetBox" style="max-width:420px">
     <div id="plNameHead"></div>
     <div id="plNameBody"></div>
   </div>
+</div>
+
+<!-- LB4 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 4): the playlist page's
+     "Add songs" pick-mode bar -- pinned above the mini-player/tab bar
+     (same fixed-offset convention as .undo-banner just above), shown only
+     while S.view.picking is on for a playlist. Its one button's label and
+     click handler are rebuilt by src/library/view.js's
+     renderPlaylistAddSongs()/updateAddSongsBar() each time the selection
+     changes, rather than re-rendering the whole screen per tap. -->
+<div class="pl-add-bar" id="plAddSongsBar" style="display:none">
+  <button class="p-btn p-btn--primary" id="plAddSongsBtn" type="button">Add songs</button>
 </div>
 
 <!-- BACKGROUND PLAYBACK OFFER (RF7, docs/12_REFINE.md): shown once, on
