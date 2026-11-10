@@ -448,9 +448,25 @@
    Ken, 2026-11-09: "Just leave the space blank when the disc is on the
    platter," for a disc in any row. */
 .gf-sleeve-disc-wrap.gf-disc-empty .disc{opacity:0}
+/* UN9 point 1 (docs/36_UNIFORMITY.md): with the disc gone, its own-sleeve
+   band (above, the same third-of-a-square size/position every pocket
+   already draws) reads as an empty paper inner sleeve instead -- a flat
+   cream card (no stacked-edge fold/shadow, those read as "a disc's in
+   here") with a half-circle thumb cut carved out of its top edge via a
+   mask, so whatever's behind (the gatefold's own time-of-day sky, not a
+   fixed color) shows through the cut rather than a color-matched patch. */
+.gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-own-sleeve{
+  background:#EFE9DF;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 4px 10px rgba(0,0,0,.2);
+  -webkit-mask-image:radial-gradient(circle at 50% 0,transparent 0 14%,#000 14.5% 100%);
+  mask-image:radial-gradient(circle at 50% 0,transparent 0 14%,#000 14.5% 100%)}
+.gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-own-sleeve::before,
+.gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-own-sleeve::after{content:none}
+/* UN9 point 2: hand lettering, not the old tilted mono-card look (mono
+   font, caps, muted ink) -- real ink on real paper, turned slightly like
+   a note slipped in by hand. */
 .gf-disc-on-platter{position:absolute;inset:8% 4%;display:flex;align-items:center;justify-content:center;
-  text-align:center;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:var(--track-caps);
-  text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .3s;pointer-events:none}
+  text-align:center;font-family:var(--hand);font-weight:600;font-size:var(--fs-hero);line-height:var(--lh-hero);
+  color:#3B3229;transform:rotate(-2deg);opacity:0;transition:opacity .3s;pointer-events:none}
 .gf-sleeve-disc-wrap.gf-disc-empty .gf-disc-on-platter{opacity:1}
 
 /* Box-set follow-up to CC5 (docs/34_CARE_AND_CONTROL.md point 5, Ken
