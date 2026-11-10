@@ -186,10 +186,11 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 .lib-tools-plus{width:26px;height:26px;border:1px solid var(--paper);border-radius:50%;color:var(--paper);
   display:grid;place-content:center;font-size:var(--fs-row);flex:0 0 auto;transition:transform .2s}
 .lib-tools-row[aria-expanded="true"] .lib-tools-plus{transform:rotate(45deg)}
-/* TY2: a settings row label -- Archivo row, not a kicker (reads as a
-   setting name, not a caps section head). .lib-tools-caption below is
-   the actual section kicker. */
-.lib-tools-label{font-family:var(--body);font-size:var(--fs-row);font-weight:500}
+/* UN4 (docs/36_UNIFORMITY.md point 1): "Library tools' title moves from
+   Archivo bold to the sheet title style" -- same look as .p-sheet-title
+   (05-parts.css), since the real sheetHeader() above it (shell/header.js's
+   openLibraryToolsPanel()) is built from the same spec. */
+.lib-tools-label{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.02em}
 .lib-tools-preview{margin-left:auto;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .lib-tools-panel{overflow:hidden;max-height:0;transition:max-height .2s ease}
 .lib-tools-panel.open{max-height:1400px}
@@ -198,7 +199,11 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 .lib-tools-row2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
 .lib-tools-row2 .k{font-size:var(--fs-body)}
 .lib-tools-row2 .k em{display:block;font-style:normal;font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.4}
-.lib-tools-danger .k{color:#E0705A}
+.lib-tools-danger .k{color:var(--danger)}
 .lib-tools-danger .k em{color:var(--muted)}
-.forget-btn{border-color:#E0705A;color:#E0705A}
+/* UN4 (docs/36_UNIFORMITY.md point 8): the button itself is now
+   .p-btn--danger (05-parts.css) -- real theme-reactive var(--danger)/
+   var(--danger-line) in place of this file's own hardcoded hex, which
+   never reacted to theme. */
+.forget-btn{width:100%}
 

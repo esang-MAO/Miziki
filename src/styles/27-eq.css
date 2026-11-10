@@ -18,6 +18,7 @@
 
 .eq-mode-seg{margin-bottom:var(--sp-4)}
 
+.eq-preset-seg{margin-bottom:var(--sp-4)}
 .eq-preset-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--sp-5)}
 .eq-preset-chip{font-family:var(--body);font-size:var(--fs-body);font-weight:500;
   padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:none;

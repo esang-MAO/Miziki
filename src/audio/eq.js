@@ -54,8 +54,10 @@ export const EQ_PRESETS = {
   vocals: { tilt: 0, graphicBands: [-3, -2, -1, -1, 0, 0, 0, 0, -1, -2] },
   lessBass: { tilt: 0, graphicBands: [-6, -5, -3, -1, 0, 0, 0, 0, 0, 0] },
 };
+// UN4 (docs/36_UNIFORMITY.md point 2): sentence case, read as a
+// segmented control (05-parts.css's .p-seg) rather than uppercase pills.
 export const EQ_PRESET_LABELS = {
-  flat: 'FLAT', warm: 'WARM', bright: 'BRIGHT', vocals: 'VOCALS', lessBass: 'LESS BASS',
+  flat: 'Flat', warm: 'Warm', bright: 'Bright', vocals: 'Vocals', lessBass: 'Less bass',
 };
 export const EQ_PRESET_KEYS = Object.keys(EQ_PRESETS);
 

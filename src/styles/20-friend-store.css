@@ -152,15 +152,23 @@
 .share-style-swatch.style-night{background:linear-gradient(160deg,#1D2F38,#07080C)}
 .share-style-swatch.style-cover{background:linear-gradient(160deg,#C77B3C,#4A1E12)}
 .share-style-swatch.style-paper{background:#EDE6D6}
+/* UN4 (docs/36_UNIFORMITY.md point 8): the real .p-btn--primary fill
+   (05-parts.css), not a translucent cream tint -- this is the sheet's
+   one primary action whenever the native Share button above isn't
+   shown (updateShareActionButtons(), src/share/sheet.js). */
 .share-primary{display:block;width:100%;box-sizing:border-box;text-align:center;margin-top:14px;
-  background:color-mix(in srgb,var(--cream) 14%,transparent)}
-/* RF10 (docs/12_REFINE.md): flex, not a fixed-column grid -- Copy and
-   More options each show/hide independently (canCopyImages(), the
-   disclosure's own open state has no bearing on this row at all), so the
-   row needs to divide evenly between whichever of its 2-3 children are
-   actually visible rather than leaving an empty grid track. */
+  border-color:transparent;background:var(--paper);color:var(--sky1)}
+/* RF10 (docs/12_REFINE.md): flex, not a fixed-column grid -- Copy shows/
+   hides independently (canCopyImages()), so the row needs to divide
+   evenly between Save and Copy, whichever of the two is actually
+   visible, rather than leaving an empty grid track. UN4 point 8: "More
+   options" is a plain text link under this row now, not a third button
+   inside it -- see .share-more-toggle below. */
 .share-actions-row{display:flex;gap:var(--sp-2);margin-top:var(--sp-2)}
 .share-actions-row .cta{flex:1;text-align:center;box-sizing:border-box}
+.share-more-toggle{display:block;width:100%;text-align:center;margin-top:var(--sp-3);
+  background:none;border:0;color:var(--muted);font-family:var(--body);font-size:var(--fs-body);
+  text-decoration:underline;text-underline-offset:2px}
 
 /* UN2 (docs/36_UNIFORMITY.md): the app-wide :focus-visible rule moved to
    05-parts.css, with --ring instead of --cream and a 2px offset -- see

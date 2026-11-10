@@ -24,8 +24,16 @@
   .edit-overlay{transition:none}
   .edit-sheet{transition:none}
 }
-.edit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.edit-head span{font-family:var(--display);font-size:var(--fs-row);letter-spacing:.06em}
+/* UN4 (docs/36_UNIFORMITY.md point 1): "every sheet header uses
+   sheetHeader()" -- .edit-head's look matches .p-sheet-header/
+   .p-sheet-title (05-parts.css) rather than every one of these call
+   sites (Share, EQ, Queue, Edit track, Credits, Shelf finish, Turntable,
+   Duplicate scan, Clear history, Sign in, Liner notes edit) being rebuilt
+   as real sheetHeader() DOM -- same "alias the look now, migrate the DOM
+   in UN18" posture UN2 used for .cta/.seg. .edit-close is already
+   aliased onto .p-sheet-close there. */
+.edit-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-bottom:14px}
+.edit-head span{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.02em;color:var(--paper)}
 /* UN2 (docs/36_UNIFORMITY.md): aliased onto .p-sheet-close in
    05-parts.css -- delete this selector in UN18 once every call site
    moves to sheetHeader(). */
@@ -82,7 +90,20 @@
 
 .slider-row{padding:13px 0;border-bottom:1px solid var(--line)}
 .slider-row:last-child{border-bottom:0}
+/* UN4 (docs/36_UNIFORMITY.md point 9): the Edit track sheet's own fields
+   already sit in boxes (.pl-input), so the divider line between them is
+   redundant -- dropped, scoped to #editOverlay alone (the sign-in sheet,
+   #socialAuthOverlay, keeps .slider-row's shared default just below,
+   since this point only names Edit track). Spacing becomes margin-based
+   (16px between fields, 6px label-to-field) in place of the old
+   padding+border-bottom combo. */
+#editOverlay .slider-row{padding:0;margin-bottom:var(--sp-4);border-bottom:0}
+#editOverlay .slider-row:last-child{margin-bottom:0}
 .slider-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+/* 6px: canvas-exact (the plan's own point 9), doesn't land on --sp-1
+   (4px)/--sp-2 (8px) -- see 05-parts.css's file-top note on this same
+   "kept pixel-exact over bent onto the nearest token" pattern. */
+#editOverlay .slider-head{margin-bottom:6px}
 .slider-head span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 /* FS13 (docs/25_FROM_SCRATCH.md): "labels Archivo 14/500 above fields" --
    plain sentence case, not the shared caps kicker look above; scoped to

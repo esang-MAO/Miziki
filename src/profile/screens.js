@@ -3,7 +3,7 @@ import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
 import { topAlbums, topTracks, achievementsList, crateFilled, topAlbumsInWindow, recordsInWindowCount, topAlbumsFromCounts } from '../history/achievements.js';
-import { renderStorefrontSection, storeSwitch } from './storefront.js';
+import { renderStorefrontSection } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
 // pressing chart moved there; see records.js's own header.
 import { renderRecordsScreen } from './records.js';
@@ -11,7 +11,8 @@ import { renderRhythmCard, renderBestPerPhaseList } from './rhythm-card.js';
 import { renderSocialSettingsScreen } from './settings.js';
 import { wirePrivacyLink } from './privacy-link.js';
 import { legalLinksRow } from './legal-links.js';
-import { refreshLibraryTools } from '../shell/header.js';
+import { refreshLibraryTools, openLibraryToolsPanel } from '../shell/header.js';
+import { toggleRow, navRow } from '../ui/parts.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
@@ -107,7 +108,6 @@ export function renderProfile(opts = {}){
   }
   const body = $('#profileBody');
   parkPlaybackSettings();
-  parkLibraryTools();
   const refreshingHome = !!opts.refresh && screen === 'home' && lastProfileScreen === 'home';
   if(!refreshingHome) body.innerHTML = '';
   if(screen === 'listening') renderListeningScreen(body);
@@ -216,22 +216,27 @@ function parkPlaybackSettings(){
   const panel = $('#playbackSettings'), stash = $('#playbackSettingsStash');
   if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
 }
-// The same parking shape as parkPlaybackSettings() above, for #libTools —
-// parked here, hidden, in #libToolsStash (miziki.html);
-// renderAppSettingsScreen() borrows it below.
-function parkLibraryTools(){
-  const panel = $('#libTools'), stash = $('#libToolsStash');
-  if(panel && stash && panel.parentNode !== stash) stash.appendChild(panel);
-}
+// UN4 (docs/36_UNIFORMITY.md point 4): the settings-order rewrite. One
+// navRow()-shaped link row for each tappable settings destination (Shelf
+// finish, Turntable, Library tools, EQ, Account, Privacy) -- a one-to-one
+// swap for the old hand-built .settings-link-row shape, since navRow()
+// already builds the same label+value+chevron button. The on/off and
+// choice controls inside #playbackSettings stay static markup (miziki.html)
+// visually restyled onto toggleRow()/segmented()'s own CSS classes --
+// moving their real DOM/wiring into this file would mean re-wiring every
+// listener src/wiring/character.js attaches at boot, out of scope here.
 function renderAppSettingsScreen(body){
   const appearance = el('div','settings-section');
   appearance.appendChild(el('div','settings-section-head', 'Appearance'));
-  const seg = el('div','seg settings-appearance');
-  [['auto','Auto'], ['light','Light'], ['dark','Dark'], ['nychthemeron','Nychthemeron']].forEach(([value, label]) => {
+  // UN4 point 6: four equal segments, Auto · Light · Dark · Sun (decision
+  // 9) -- "Sun" is just this row's own display label for the existing
+  // 'nychthemeron' stored value/mode; nothing else about it changes.
+  const seg = el('div','p-seg settings-appearance');
+  [['auto','Auto'], ['light','Light'], ['dark','Dark'], ['nychthemeron','Sun']].forEach(([value, label]) => {
     const b = el('button', null, label);
     b.dataset.themeChoice = value;
     b.setAttribute('aria-pressed', String(S.theme === value));
-    if(value === 'nychthemeron') b.setAttribute('aria-label', 'Nychthemeron: follows sunrise and sunset');
+    if(value === 'nychthemeron') b.setAttribute('aria-label', 'Sun: follows sunrise and sunset');
     b.addEventListener('click', () => setTheme(value));
     seg.appendChild(b);
   });
@@ -239,138 +244,116 @@ function renderAppSettingsScreen(body){
   // RF11 (docs/12_REFINE.md, point 5): "every helper is one line of
   // caption text; anything longer sits behind an (i)." Keeps the one
   // required sentence ("Turns dark at 8:10 PM today.") visible on its own
-  // line; what Auto/Nychthemeron/Light/Dark each actually mean moves
-  // behind the same native <details>/<summary> "(i)" disclosure pattern
-  // src/wiring/character.js's own Sound-view Character card already
-  // established (see src/styles/25-day-arc-v2.css's .sd-info).
+  // line; what Auto/Sun/Light/Dark each actually mean moves behind the
+  // same native <details>/<summary> "(i)" disclosure pattern src/wiring/
+  // character.js's own Sound-view Character card already established
+  // (see src/styles/25-day-arc-v2.css's .sd-info). UN4 point 6: "Auto
+  // turns dark at {time} today. Sun follows the sky all day."
   const note = el('p','note');
-  note.appendChild(document.createTextNode(nychthemeronSwitchCaption() + ' '));
+  note.appendChild(document.createTextNode(nychthemeronSwitchCaption() + ' Sun follows the sky all day. '));
   const info = document.createElement('details'); info.className = 'sd-info';
   const summary = document.createElement('summary'); summary.textContent = '(i)';
   summary.setAttribute('aria-label','More about Appearance');
   info.appendChild(summary);
   info.appendChild(document.createTextNode(
-    'Auto follows your device’s own Light/Dark setting, including live if it changes. Nychthemeron follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. Choosing Light or Dark keeps that look regardless of the device.'));
+    'Auto follows your device’s own Light/Dark setting, including live if it changes. Sun follows the whole day and night: light from sunrise to sunset, dark from sunset to sunrise. Choosing Light or Dark keeps that look regardless of the device.'));
   note.appendChild(info);
   appearance.appendChild(note);
-  // TY5 (docs/22_TYPE.md): "a 'Larger text' switch in Settings →
-  // Appearance" — same row shape slipmat-editor.js's own switchRow()
-  // uses, built fresh here since this screen already rebuilds whole on
-  // every render (this file's own header comment, just above).
-  const largerTextRow = el('div','social-setting-row');
-  largerTextRow.appendChild(el('h2', null, 'Larger text'));
-  largerTextRow.appendChild(storeSwitch('Larger text', S.largerText, v => setLargerText(v), largerTextRow));
-  appearance.appendChild(largerTextRow);
-  // RW6 (docs/23_RHYTHM_AND_WEAR.md): same row+note shape as the social
-  // settings rows (src/profile/privacy.js) — a label/switch row, then a
-  // sibling caption paragraph below it.
-  const seasonalSkyRow = el('div','social-setting-row');
-  seasonalSkyRow.appendChild(el('h2', null, 'Sky follows the seasons'));
-  seasonalSkyRow.appendChild(storeSwitch('Sky follows the seasons', S.seasonalSky, v => setSeasonalSky(v), seasonalSkyRow));
-  appearance.appendChild(seasonalSkyRow);
-  appearance.appendChild(el('p','note','The sky’s colors shift slightly through the year.'));
+  // UN4 point 3: every on/off row uses toggleRow()'s shape -- Larger
+  // text/Sky follows the seasons/Show wear are built fresh on every
+  // render already (this file's own header comment above), so these
+  // three move onto the real helper outright, in place of the old
+  // .social-setting-row + separate caption-paragraph shape.
+  appearance.appendChild(toggleRow({
+    label: 'Larger text', checked: S.largerText, onChange: v => setLargerText(v),
+  }));
+  appearance.appendChild(toggleRow({
+    label: 'Sky follows the seasons', desc: 'The sky’s colors shift slightly through the year.',
+    checked: S.seasonalSky, onChange: v => setSeasonalSky(v),
+  }));
   // RW7: on by default -- off shows every record new, but the data
   // keeps counting, so turning it back on later shows the true stage
   // with no gap.
-  const showWearRow = el('div','social-setting-row');
-  showWearRow.appendChild(el('h2', null, 'Show wear'));
-  showWearRow.appendChild(storeSwitch('Show wear', S.showWear, v => setShowWear(v), showWearRow));
-  appearance.appendChild(showWearRow);
-  appearance.appendChild(el('p','note','Records and sleeves look worn from play, alongside their metals.'));
+  appearance.appendChild(toggleRow({
+    label: 'Show wear', desc: 'Records and sleeves look worn from play, alongside their metals.',
+    checked: S.showWear, onChange: v => setShowWear(v),
+  }));
   body.appendChild(appearance);
 
-  // CEREMONY §6: the Slipmat row, part of Appearance. Filled once the saved
-  // image (if any) has been read; placed now so the screen order is fixed.
+  // UN4 point 4: "Your shelf" is new -- Slipmat (CEREMONY §6, was under
+  // Appearance), Shelf finish and Turntable (ST3/ST4, were under
+  // Library) move here together, since all three are the same kind of
+  // thing: a cosmetic pick for the shelf unit/platter, not an app
+  // setting or a library behavior.
+  const shelf = el('div','settings-section');
+  shelf.appendChild(el('div','settings-section-head', 'Your shelf'));
+  // CEREMONY §6: the Slipmat row. Filled once the saved image (if any)
+  // has been read; placed now so the screen order is fixed.
   const slipmat = el('div','settings-slipmat');
-  appearance.appendChild(slipmat);
+  shelf.appendChild(slipmat);
   renderSlipmatRow(slipmat, () => { if(S.profileView.screen === 'settings') renderProfile(); });
-
-  // Library tools (layout/sides/sealed/play-in-full-player, find
-  // duplicates, clear history, test tone, forget library) — see
-  // parkLibraryTools()/#libToolsStash above.
-  const library = el('div','settings-section');
-  library.appendChild(el('div','settings-section-head', 'Library'));
-  const libPanel = $('#libTools');
-  if(libPanel) library.appendChild(libPanel);
   // ST3 (docs/32_SHELF_AND_TURNTABLES.md): "Edit crate › Shelf finish" --
-  // the one way in, same settings-link-row shape the EQ row below uses.
-  // The value shown is what actually displays (displayShelfFinish()'s own
-  // Deluxe-off fallback to Walnut), not necessarily the saved id.
-  const finishRow = el('button','settings-link-row');
-  finishRow.appendChild(el('span', null, 'Shelf finish'));
-  const finishRowRight = el('span','settings-link-right');
-  finishRowRight.appendChild(el('span','settings-link-value',
-    shelfFinishInfo(displayShelfFinish(S.shelfFinish, hasDeluxe())).label));
-  finishRowRight.appendChild(el('span','g-chev','›'));
-  finishRow.appendChild(finishRowRight);
-  // Dynamically imported like the EQ row's own openEqSheet() above --
-  // shelf-finish-sheet.js reaches storage/meta.js's own queueSave(),
-  // real weight (the audio engine, Sundown, the launch intro) nobody
-  // needs until this one row is actually tapped.
-  finishRow.addEventListener('click', async () => {
-    const { openShelfFinishSheet } = await import('./shelf-finish-sheet.js');
-    openShelfFinishSheet();
-  });
-  library.appendChild(finishRow);
-  // ST4 (docs/32_SHELF_AND_TURNTABLES.md): "Edit crate › Turntable" --
-  // same row/dynamic-import shape as Shelf finish just above. The value
-  // shown is what actually displays (displayTurntable()'s own fallback to
-  // Standard), not necessarily the saved id.
-  const ttRow = el('button','settings-link-row');
-  ttRow.appendChild(el('span', null, 'Turntable'));
-  const ttRowRight = el('span','settings-link-right');
-  ttRowRight.appendChild(el('span','settings-link-value',
-    turntableInfo(displayTurntable(S.turntable, S.turntablesFound, hasDeluxe())).label));
-  ttRowRight.appendChild(el('span','g-chev','›'));
-  ttRow.appendChild(ttRowRight);
-  ttRow.addEventListener('click', async () => {
-    const { openTurntableSheet } = await import('./turntable-sheet.js');
-    openTurntableSheet();
-  });
-  library.appendChild(ttRow);
-  body.appendChild(library);
+  // the one way in. The value shown is what actually displays
+  // (displayShelfFinish()'s own Deluxe-off fallback to Walnut), not
+  // necessarily the saved id. Dynamically imported -- shelf-finish-
+  // sheet.js reaches storage/meta.js's own queueSave(), real weight
+  // (the audio engine, Sundown, the launch intro) nobody needs until this
+  // one row is actually tapped. Same shape for Turntable (ST4) below.
+  shelf.appendChild(navRow({
+    label: 'Shelf finish', value: shelfFinishInfo(displayShelfFinish(S.shelfFinish, hasDeluxe())).label,
+    onClick: async () => { const { openShelfFinishSheet } = await import('./shelf-finish-sheet.js'); openShelfFinishSheet(); },
+  }));
+  shelf.appendChild(navRow({
+    label: 'Turntable', value: turntableInfo(displayTurntable(S.turntable, S.turntablesFound, hasDeluxe())).label,
+    onClick: async () => { const { openTurntableSheet } = await import('./turntable-sheet.js'); openTurntableSheet(); },
+  }));
+  body.appendChild(shelf);
 
   const playback = el('div','settings-section');
-  playback.appendChild(el('div','settings-section-head', 'Playback & behavior'));
+  playback.appendChild(el('div','settings-section-head', 'Playback'));
   const panel = $('#playbackSettings');
   if(panel) playback.appendChild(panel);
   // AU6 (docs/16_AUDIO.md §3): "an EQ row in Settings › Playback that
-  // shows the current preset and state (CUSTOM · ON)" — a tappable row,
-  // same shape as the Account & privacy rows below, just with a second
-  // value span for that state text.
-  const eqRow = el('button','settings-link-row');
-  eqRow.appendChild(el('span', null, 'EQ'));
-  const eqRowRight = el('span','settings-link-right');
-  eqRowRight.appendChild(el('span','settings-link-value', eqStateLabel()));
-  eqRowRight.appendChild(el('span','g-chev','›'));
-  eqRow.appendChild(eqRowRight);
-  // TR2 (docs/19_PLAYER.md): eq-sheet.js's heavy sheet-rendering code is
-  // only ever needed once this row is tapped, so it's fetched here
-  // instead of statically imported -- eqStateLabel() above comes from
-  // the tiny eq-label.js leaf instead, so the Settings screen itself
-  // never pulls in the full sheet module just to show the state text.
-  eqRow.addEventListener('click', async () => {
-    const { openEqSheet } = await import('../player/eq-sheet.js');
-    openEqSheet();
-  });
-  playback.appendChild(eqRow);
+  // shows the current preset and state (CUSTOM · ON)" -- a navRow(), same
+  // as every other settings link row now. TR2 (docs/19_PLAYER.md):
+  // eq-sheet.js's heavy sheet-rendering code is only ever needed once
+  // this row is tapped, so it's fetched here instead of statically
+  // imported -- eqStateLabel() above comes from the tiny eq-label.js leaf
+  // instead, so the Settings screen itself never pulls in the full sheet
+  // module just to show the state text.
+  playback.appendChild(navRow({
+    label: 'EQ', value: eqStateLabel(),
+    onClick: async () => { const { openEqSheet } = await import('../player/eq-sheet.js'); openEqSheet(); },
+  }));
   body.appendChild(playback);
 
-  const links = el('div','settings-section');
-  links.appendChild(el('div','settings-section-head', 'Account & privacy'));
-  const row = (label, onTap) => {
-    const b = el('button','settings-link-row');
-    b.appendChild(el('span', null, label));
-    b.appendChild(el('span','g-chev','›'));
-    b.addEventListener('click', onTap);
-    links.appendChild(b);
-  };
+  // UN4 point 4: Sundown gets its own section -- a single row opening
+  // the sheet -- instead of sitting inside Account & privacy, where it
+  // has no real connection to either.
+  const sundown = el('div','settings-section');
+  sundown.appendChild(el('div','settings-section-head', 'Sundown'));
   // RF26 (docs/12_REFINE.md): "Settings › Sundown, for when nothing has
   // played yet" — the one way in that doesn't depend on a record being on
   // the platter (the knob) or loaded in the mini-player (its sun button).
-  row('Sundown', () => openSundownSheet());
-  row('Account', () => { S.profileView.screen = 'socialSettings'; renderProfile(); });
-  row('Privacy', () => { S.profileView.screen = 'privacy'; renderProfile(); });
+  sundown.appendChild(navRow({ label: 'Sundown', onClick: () => openSundownSheet() }));
+  body.appendChild(sundown);
+
+  // Library tools (layout/sides/sealed/play-in-full-player, find
+  // duplicates, clear history, test tone, forget library) -- UN3
+  // (docs/36_UNIFORMITY.md point 6, decision 11) already built the real
+  // sheet (shell/header.js's openLibraryToolsPanel()) that the library
+  // header's own "···" opens; this is just the same destination, one
+  // row, same as Account/Privacy below -- not the whole panel embedded
+  // inline the way it used to be.
+  const library = el('div','settings-section');
+  library.appendChild(el('div','settings-section-head', 'Library'));
+  library.appendChild(navRow({ label: 'Library tools', onClick: () => openLibraryToolsPanel() }));
+  body.appendChild(library);
+
+  const links = el('div','settings-section');
+  links.appendChild(el('div','settings-section-head', 'Account & privacy'));
+  links.appendChild(navRow({ label: 'Account', onClick: () => { S.profileView.screen = 'socialSettings'; renderProfile(); } }));
+  links.appendChild(navRow({ label: 'Privacy', onClick: () => { S.profileView.screen = 'privacy'; renderProfile(); } }));
   body.appendChild(links);
   body.appendChild(legalLinksRow(renderProfile));
 }
