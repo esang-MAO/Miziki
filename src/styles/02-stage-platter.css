@@ -320,9 +320,13 @@
 .disc[data-variant="ultra-clear"] .dead-wax text,
 .disc[data-variant="picture-disc"] .dead-wax text{fill:rgba(0,0,0,.4)}
 .t-art{width:34px;height:34px;border-radius:2px;object-fit:cover;background:rgba(255,255,255,.06);flex:0 0 auto}
-/* TY3 (docs/22_TYPE.md): durations are the text face's own tabular
-   figures, not mono -- Archivo + .num. */
-.t-dur{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
+/* TY3 (docs/22_TYPE.md) read durations as the text face's own tabular
+   figures, not mono. LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 8,
+   "time in mono") supersedes that for this one row's duration specifically
+   -- it's the mono whitelist's own "format chips, sample-rate/bit-depth"
+   kind of reading, not a tabular-figures one, now that the row's layout
+   has a dedicated mono column ending in the 44px ⋯ button. */
+.t-dur{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);font-variant-numeric:tabular-nums}
 /* NV6 (docs/11_SMOOTH_NAVIGATION.md): a library of thousands of rows costs
    nothing to lay out or paint once it's scrolled off screen — the browser
    skips layout/paint/hit-testing for anything content-visibility:auto hides,
@@ -336,8 +340,13 @@
    knows to temporarily reveal a content-visibility:auto element that
    matches, per spec — auto, not hidden, is what makes that work; nothing
    here needs JS of its own for it. Row height here matches what the row's
-   own content actually renders at (34px art + 11px padding top/bottom). */
-.tracklist li{content-visibility:auto;contain-intrinsic-size:auto 57px}
+   own content actually renders at (LB7 grew the row's tallest child from
+   34px art to the 44px ⋯ button, so 44px + 11px padding top/bottom, up
+   from 34px + 11px/57px before). A stale placeholder shorter than the
+   real row risks the exact "sticky header cuts a row in half" bug LB7's
+   own .letter-head fix (27-library-sleeves.css) addresses — this is the
+   plain-row half of keeping that from recurring. */
+.tracklist li{content-visibility:auto;contain-intrinsic-size:auto 66px}
 .grouprow{content-visibility:auto;contain-intrinsic-size:auto 67px}
 .tracklist li.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
 .tracklist li.picked .t-idx::after{content:'✓';color:var(--paper);margin-left:2px}
@@ -389,14 +398,14 @@
 .mv{width:44px;height:44px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
   font-size:var(--fs-row);letter-spacing:.10em;line-height:1}
 .mv:active{color:var(--paper);border-color:var(--paper)}
-/* RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
-   Songs" — no hairline (point 2's "remove the hairlines between header
-   rows"). The sort label + chevron is itself the clickable button; the
-   count afterward is plain text. */
-.sortbar{display:flex;align-items:center;gap:6px;padding:10px 0}
-.sortbar span{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);
-  text-transform:uppercase;color:var(--muted)}
-.sort-toggle{display:flex;align-items:center;gap:var(--sp-1)}
-.sort-toggle span:first-child{color:var(--paper)}
-.sort-chev{font-size:var(--fs-micro);letter-spacing:.10em}
+/* RF8 (docs/12_REFINE.md), restyled by LB7 (docs/36A_LIBRARY_AND_LAUNCH.md
+   decision 4): one line under the tabs, no hairline (point 2's "remove
+   the hairlines between header rows") -- the sort chip sits left, the
+   count sits right ("By artist" ... "396 songs"), replacing the old
+   mono-caps "By Artist ▾ · 240 SONGS" line. The chip itself reuses
+   .crate-section-chip (10-crate.css) rather than a second, near-identical
+   pill style -- see librarySortBar(), src/library/search.js. */
+.sortbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding:10px 0}
+.sortbar-count{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 

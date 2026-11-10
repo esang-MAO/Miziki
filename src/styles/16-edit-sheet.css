@@ -69,6 +69,11 @@
 
 /* library row edit affordance + multi-select mode */
 .t-edit{width:26px;height:26px;color:var(--muted);font-size:var(--fs-row);flex:0 0 auto}
+/* LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 8): "a 44px ⋯ button" --
+   scoped to the Songs list's own row (.tracklist li) rather than widening
+   the shared .t-edit rule above, which crate/view.js's flat-list play
+   button and the playlist page's own row also reuse unchanged. */
+.tracklist li .t-edit{width:44px;height:44px}
 .select-bar{display:flex;flex-direction:column;gap:var(--sp-2);padding:10px 0;border-bottom:1px solid var(--line)}
 .select-bar .stack{margin-top:0}
 /* FS13 (docs/25_FROM_SCRATCH.md): "ghost buttons as outlined pills, the
@@ -144,7 +149,12 @@ input[type=file]{display:none}
 /* FS13 (docs/25_FROM_SCRATCH.md): "title in Archivo 16/500, secondary
    text in Archivo 14 muted" -- was 14/500 title, 12 secondary. */
 .tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
+/* LB7 (docs/36A_LIBRARY_AND_LAUNCH.md decision 8): "one line each, ending
+   with '…'" -- the artist line had no overflow handling of its own
+   before, so a long one could wrap onto a second/third line; it's
+   display:block (not inline) for white-space/ellipsis to apply at all. */
+.tracklist .t-name em{display:block;font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tracklist .t-idx{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:18px}
 .tracklist li[aria-current="true"] .t-idx{color:var(--paper)}
 /* FS15 (docs/25_FROM_SCRATCH.md): "the current track marked by weight and

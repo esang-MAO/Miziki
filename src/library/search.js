@@ -26,22 +26,24 @@ import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 const LIBRARY_SORTS = [['artist','Artist'],['album','Album'],['added','Added'],['played','Played'],['sessions','Sessions']];
 
-// RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
-// Songs" — where the first part (the sort label + chevron) is the sort
-// button itself, not a separate hamburger-style toggle. count/unit are
-// optional (the album-detail view's own tracklist has no top-level count
-// to show) and, when given, are plain text after the button.
+// RF8 (docs/12_REFINE.md), restyled by LB7 (docs/36A_LIBRARY_AND_LAUNCH.md
+// decision 4): one line under the tabs — the sort label is now a pill
+// chip ("By artist") reusing the crate's own .crate-section-chip class
+// (10-crate.css, LB5/LB6) rather than a second, near-identical chip style;
+// the count moves out to plain muted text on the right ("396 songs"),
+// replacing the old mono-caps "By Artist ▾ · 396 SONGS" line. count/unit
+// are optional (the album-detail view's own tracklist has no top-level
+// count to show) and, when given, sit after the chip.
 export function librarySortBar(count, unit){
   const bar = el('div','sortbar');
   const label = LIBRARY_SORTS.find(([k]) => k === S.librarySort);
-  const toggle = el('button','sort-toggle');
+  const toggle = el('button','crate-section-chip');
   toggle.setAttribute('aria-label','Sort options');
   toggle.setAttribute('aria-haspopup','true');
-  toggle.appendChild(el('span', null, 'By ' + (label ? label[1] : '')));
-  toggle.appendChild(el('span','sort-chev','▾'));
+  toggle.textContent = 'By ' + (label ? label[1].toLowerCase() : '');
   toggle.addEventListener('click', openSortMenu);
   bar.appendChild(toggle);
-  if(count != null) bar.appendChild(el('span', null, '· ' + count + ' ' + unit));
+  if(count != null) bar.appendChild(el('span','sortbar-count', count + ' ' + String(unit).toLowerCase()));
   return bar;
 }
 
