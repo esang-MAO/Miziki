@@ -140,22 +140,80 @@ li.letter-head{list-style:none;padding:6px 0 4px}
 .connected-buy{flex:0 0 auto;min-height:44px;display:flex;align-items:center;font-family:var(--body);
   font-size:var(--fs-body);font-weight:500;color:var(--paper);text-decoration:none}
 
-/* ---- Playlists: a 2x2 grid of compilation sleeves ---- */
+/* ---- Playlists: LB3 (docs/36A_LIBRARY_AND_LAUNCH.md, decisions 3/5) ----
+   Header row ("{n} playlists" / "New playlist") above a grid of mosaic-
+   cover tiles, replacing the old plain cover-repeat tile and the inline
+   Create-playlist field this addendum's own LB2 already removed. Desktop
+   column count (4-6 across) is this file's own min-width:1024px block,
+   just below -- the base rule stays the phone's plain 2 columns at any
+   narrower width. */
+.playlist-grid-head{display:flex;align-items:center;justify-content:space-between;
+  gap:var(--sp-3);padding:var(--sp-3) 0 0}
+.playlist-grid-count{font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .playlist-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-3) 0}
+/* LB3 point 4: "the grid fills the content width (four to six across by
+   width)" -- auto-fill rather than a fixed per-breakpoint count (unlike
+   23-desktop.css's own .records-grid/.store-crate-grid, which show a
+   known total), since the column count should track whatever width
+   .wrap actually has at any point between 1024px and the sidebar's own
+   1280px widening, not jump at just those two steps. 200px gives 4
+   columns at the narrow (76px-sidebar) end of that range and 5-6 once
+   the sidebar widens/the window grows, matching "four to six" with one
+   rule instead of a third breakpoint. This has to live in *this* file,
+   not 23-desktop.css (D3) -- this file loads after that one in cascade
+   order (27 > 23), so a same-specificity override placed there would
+   simply lose to the plain rule just above at every width, media query
+   or not; confirmed live with Playwright before settling on this.
+   max-width caps the row at six 200px columns (plus their five gaps) --
+   confirmed live that auto-fill alone keeps adding columns past six on a
+   genuinely wide window (1920px gave seven), past what "four to six"
+   calls for; this is the simplest way to hold that ceiling without a
+   third, even-wider breakpoint. */
+@media (min-width:1024px){
+  .playlist-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    max-width:calc(6 * 200px + 5 * var(--sp-4))}
+}
 .playlist-tile{display:flex;flex-direction:column;border:none;padding:0;cursor:pointer;
   border-radius:var(--radius-card);overflow:hidden;background:var(--panel);box-shadow:var(--sh-2);
   text-align:left}
-.pl-covers{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;aspect-ratio:1;width:100%}
-.pl-covers img{width:100%;height:100%;object-fit:cover;display:block}
-.pl-covers .g-art{grid-column:1/-1;grid-row:1/-1;display:flex;align-items:center;justify-content:center;
-  font-size:var(--fs-display);color:var(--muted)}
-.pl-strip{display:flex;flex-direction:column;gap:2px;padding:var(--sp-2) var(--sp-3);
-  background:#EFE6D2;color:#2A1B38}
-.pl-strip b{font-family:var(--display);font-size:var(--fs-row);font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pl-strip em{font-style:normal;font-family:var(--data);font-size:8px;letter-spacing:.08em;
-  text-transform:uppercase;color:#2A1B38;opacity:.7}
-.playlist-tile.is-fav .pl-strip b::before{content:'♥ ';color:var(--paper)}
+
+/* The mosaic itself: 2x2 grid (4, or 3 padded with a repeat -- both just
+   tile .pl-mosaic-cell in source order), a diagonal split (2, the one
+   count the addendum calls its own shape), a single cover (1), or the
+   empty-note treatment (0). */
+.pl-mosaic{position:relative;display:block;aspect-ratio:1;width:100%;overflow:hidden;
+  background:var(--panel-2,var(--panel))}
+.pl-mosaic--grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.pl-mosaic-cell{position:relative;overflow:hidden}
+.pl-mosaic-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.pl-mosaic-cell--blank{background:var(--line)}
+.pl-mosaic--single .pl-mosaic-cell{width:100%;height:100%}
+.pl-mosaic--diagonal .pl-mosaic-cell{position:absolute;inset:0}
+.pl-mosaic--diagonal .pl-mosaic-cell:nth-child(1){clip-path:polygon(0 0,100% 0,0 100%)}
+.pl-mosaic--diagonal .pl-mosaic-cell:nth-child(2){clip-path:polygon(100% 0,100% 100%,0 100%)}
+/* Judgment call (this file's own playlistMosaicArt() comment): the empty
+   state reuses UN5's empty-note tape-on-stock-card look (05-parts.css's
+   .p-empty-note/.p-empty-note-tape) at tile scale, not the full card --
+   there's no room for a head/sub/action inside a square cover tile. */
+.pl-mosaic-empty{position:absolute;inset:0;background:var(--stock-card);display:flex;
+  align-items:center;justify-content:center}
+.pl-mosaic-empty-tape{position:absolute;top:8%;left:50%;transform:translateX(-50%) rotate(-3deg);
+  width:40%;height:12%;background:var(--amber-tint);opacity:.85}
+
+.pl-strip{display:flex;flex-direction:column;gap:2px;padding:var(--sp-2) var(--sp-3)}
+/* 15/500, 13 muted: this addendum's own decision 2, repeated verbatim in
+   LB4/LB7 -- neither lands on an existing --fs-* token (15 sits between
+   --fs-body/14 and --fs-row/16; 13 between --fs-caption/12 and
+   --fs-body/14), so these stay literal with this comment rather than
+   bending onto the nearest token, the same "canvas-exact" posture
+   05-parts.css's own file-top note already uses for pixel values the
+   design canvas specifies that don't land on the scale either. Flagged
+   again in the LB3 PR body, since LB0 never exported this frame to check
+   the reading against. */
+.pl-title{font-family:var(--body);font-weight:500;font-size:15px;line-height:1.3;color:var(--paper);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.pl-caption{font-family:var(--body);font-size:13px;line-height:1.3;color:var(--muted)}
+.playlist-tile.is-fav .pl-title::before{content:'♥ ';color:var(--paper)}
 
 /* ---- Search: album hits already render a cover via groupRow's .g-art
    (library/search.js) -- this is the one CSS-only touch CR9's "Search
