@@ -88,6 +88,6 @@ body.focus-active .tabbar{display:none}
 .tabbar-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
 .tabbar-btn span{color:var(--muted)}
-.tabbar-btn[aria-selected="true"] svg{color:var(--cream);stroke-width:2.2}
-.tabbar-btn[aria-selected="true"] span{color:var(--cream);font-weight:700}
+.tabbar-btn[aria-selected="true"] svg{color:var(--paper);stroke-width:2.2}
+.tabbar-btn[aria-selected="true"] span{color:var(--paper);font-weight:700}
 

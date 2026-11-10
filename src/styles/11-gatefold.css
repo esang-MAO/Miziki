@@ -94,7 +94,7 @@
    the track-count/duration span is plain Archivo body, tabular figures. */
 .gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
   font-family:var(--display);margin:10px 0 2px}
-.gf-side-head b{color:var(--cream);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
+.gf-side-head b{color:var(--on-dark);font-size:var(--fs-row);letter-spacing:var(--track-caps)}
 .gf-side-head span{font-family:var(--body);color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
 /* GF4 point 2: "DISC N" eyebrow, same caps/track-caps voice as .gf-tl-head
    above it, repeated once per disc rather than once for the whole album. */
@@ -110,13 +110,13 @@
 .gf-track-row .gf-tn{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);width:20px;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .gf-track-row .gf-tt{flex:1;min-width:0;font-size:var(--fs-row);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gf-track-row .gf-td{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
-.gf-track-row.gf-now-playing .gf-tt{color:var(--cream)}
-.gf-track-row.gf-now-playing .gf-tn{color:var(--cream)}
+.gf-track-row.gf-now-playing .gf-tt{color:var(--on-dark)}
+.gf-track-row.gf-now-playing .gf-tn{color:var(--on-dark)}
 /* GF15: a picked row in select mode -- same tint + checkmark the
    library's own .tracklist li.picked uses (02-stage-platter.css), so a
    "picked" row reads the same whichever list it's in. */
 .gf-track-row.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
-.gf-track-row.picked .gf-tn::after{content:'✓';color:var(--cream);margin-left:2px}
+.gf-track-row.picked .gf-tn::after{content:'✓';color:var(--on-dark);margin-left:2px}
 .gf-select-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
   flex-wrap:wrap;margin-bottom:var(--sp-2);padding-bottom:var(--sp-2);border-bottom:1px solid var(--line)}
 .gf-select-count{font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
@@ -179,7 +179,7 @@
   transform:translateX(-50%);display:flex;justify-content:center;gap:6px;
   opacity:0;transition:opacity .15s;pointer-events:none}
 .gatefold.gf-chrome-in .gf-flip-dots{opacity:1}
-.gf-flip-dots span{width:5px;height:5px;border-radius:50%;background:rgba(239,233,223,.3)}
+.gf-flip-dots span{width:5px;height:5px;border-radius:50%;background:var(--dot)}
 .gf-flip-dots span.active{background:var(--paper)}
 /* Keyboard: "a 'Turn over' control reachable by Tab" (GF5 point 1) -- a
    plain icon button (Ken, 2026-11-09: "the flip cover button should just
@@ -187,7 +187,7 @@
    before, just drawn as a circle. */
 .gf-turn-over{position:absolute;left:50%;top:calc(var(--gf-cover-top,58px) + var(--gf-panel-size,350px) + 20px);
   transform:translateX(-50%);width:34px;height:34px;border-radius:50%;
-  border:1px solid rgba(239,233,223,.3);background:transparent;color:var(--muted);
+  border:1px solid var(--ring);background:transparent;color:var(--muted);
   display:flex;align-items:center;justify-content:center;padding:0;
   opacity:0;transition:opacity .15s}
 .gatefold.gf-chrome-in .gf-turn-over{opacity:1}
@@ -293,7 +293,7 @@
 .gf-left .gf-stars, .picture-sleeve-body .gf-stars{display:flex;gap:2px;margin-left:-5px}
 .gf-left .gf-star-btn, .picture-sleeve-body .gf-star-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:none;border:0;color:var(--muted);font-size:var(--fs-title);padding:0}
-.gf-left .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--cream)}
+.gf-left .gf-star-btn.on, .picture-sleeve-body .gf-star-btn.on{color:var(--on-dark)}
 .gf-left .gf-note-input, .picture-sleeve-body .gf-note-input{width:100%;box-sizing:border-box;background:var(--panel);
   border:1px solid var(--line);border-radius:4px;padding:9px 11px;font-family:var(--body);
   font-size:var(--fs-row);color:var(--paper);resize:none;min-height:44px}
@@ -315,7 +315,7 @@
 .picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
-.picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--cream);color:var(--cream);
+.picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--on-dark);color:var(--on-dark);
   background:color-mix(in srgb,var(--cream) 12%,transparent)}
 /* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
    Same plain-pill shape as .gf-pin-btn just above, minus the pressed

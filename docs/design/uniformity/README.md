@@ -5,9 +5,7 @@ The mockups behind **`docs/36_UNIFORMITY.md`** (UN0–UN18). Two Claude Design c
 - **"Miziki Gatefold Polish"** — https://claude.ai/artifact/MdVvbhs3muWF4s6GxvEYUy
 - **"Miziki Uniformity"** — https://claude.ai/artifact/5qbTo7wfy18WqF4X4ohq6k
 
-The PNGs in `png/` are 2× renders of each artboard, exported from Ken's standalone HTML export of the Uniformity canvas (a self-contained bundle with every artboard inlined as an iframe — no claude.ai session needed to render it). **Build with Miziki's real CSS and components, not by copying this markup** — same rule as every other design-handoff folder in `docs/design/`.
-
-**Gatefold Polish canvas has no PNGs yet** — this session only had an HTML export for the Uniformity canvas. The frame table below still documents what each Gatefold Polish artboard shows, from the plan doc's own description; read its `.dc.html` source as text or open the live canvas link until someone exports it the same way.
+The PNGs in `png/` are 2× renders of each artboard, exported from Ken's standalone HTML exports of both canvases (self-contained bundles with every artboard inlined as an iframe — no claude.ai session needed to render them). **Build with Miziki's real CSS and components, not by copying this markup** — same rule as every other design-handoff folder in `docs/design/`.
 
 ## Miziki Uniformity canvas — 27 frames
 
@@ -43,14 +41,14 @@ The PNGs in `png/` are 2× renders of each artboard, exported from Ken's standal
 
 ## Miziki Gatefold Polish canvas — 7 frames (folded into UN6–UN10)
 
-| Frame | Shows | Used by |
-|---|---|---|
-| `Main` | A 10″ EP gatefold spread, tinted from its cover | UN6, UN7, UN8, UN9 |
-| `LP` | A 12″ LP gatefold spread | UN6, UN7, UN8 |
-| `BackCover` | The back cover: Archivo titles, two columns per side, footer above the line | UN10 |
-| `Light` | The gatefold in light theme | UN1, UN6 |
-| `TodayFront` | Today's build, front, for comparison | — |
-| `TodayBack` | Today's build, back, for comparison | — |
-| `TodayLight` | Today's build, light theme, for comparison | — |
+| Frame | PNG | Caption (from the canvas) | Used by |
+|---|---|---|---|
+| `Main` | `png/gf-1-ep.png` | 1 · 10″ EP, on the platter | UN6, UN7, UN8, UN9 |
+| `LP` | `png/gf-2-lp.png` | 2 · 12″ LP, in its sleeve | UN6, UN7, UN8 |
+| `BackCover` | `png/gf-3-back.png` | 3 · Back cover | UN10 |
+| `Light` | `png/gf-4-light.png` | 4 · Light theme | UN1, UN6 |
+| `TodayFront` | `png/gf-today-ep.png` | Today · 10″ EP, for comparison | — |
+| `TodayBack` | `png/gf-today-back.png` | Today · Back cover, for comparison | — |
+| `TodayLight` | `png/gf-today-light.png` | Today · Light theme, for comparison | — |
 
 Frame-to-filename mapping above is `{Frame}.dc.html` in each canvas's `project/` folder. Reading a `.dc.html` file (via the Artifact tool's `read` action) shows the artboard's own source, which needs the canvas runtime and won't render correctly opened directly in a browser.

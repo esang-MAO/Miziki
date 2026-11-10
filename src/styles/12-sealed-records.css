@@ -69,7 +69,7 @@
 .seal-wrap.seal-lifting{transition:transform .42s ease-in,opacity .42s ease-in;
   transform:translateY(-100%);opacity:0}
 .seal-wrap.seal-fading{transition:opacity .15s;opacity:0}
-.new-tag{display:inline-block;color:var(--cream);font-family:var(--data);font-size:var(--fs-micro);
+.new-tag{display:inline-block;color:var(--on-dark);font-family:var(--data);font-size:var(--fs-micro);
   letter-spacing:.1em;border:1px solid var(--cream);border-radius:3px;padding:1px var(--sp-1);margin-left:6px;vertical-align:1px}
 
 /* GF8 (docs/29_GATEFOLD.md): the sealed front -- a sealed album's own

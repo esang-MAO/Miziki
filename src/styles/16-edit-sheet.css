@@ -55,14 +55,14 @@
 .row:last-child{border-bottom:0}
 .row .k{font-size:var(--fs-body)}
 .row .k em{display:block;font-style:normal;font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.45}
-.readout{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--cream);white-space:nowrap;transition:color .5s}
+.readout{font-family:var(--body);font-weight:500;font-size:var(--fs-caption);color:var(--paper);white-space:nowrap;transition:color .5s}
 .readout.plain{color:var(--paper)}
 
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 /* TY2: a segmented control -- Archivo, sentence case. */
 .seg button{font-family:var(--body);font-size:var(--fs-body);font-weight:500;padding:7px 10px;
   border:1px solid var(--line);border-radius:3px;color:var(--muted)}
-.seg button[aria-pressed="true"]{border-color:var(--cream);color:var(--paper);background:color-mix(in srgb,var(--cream) 12%,transparent)}
+.seg button[aria-pressed="true"]{border-color:var(--paper);color:var(--paper);background:color-mix(in srgb,var(--paper) 12%,transparent)}
 
 .slider-row{padding:13px 0;border-bottom:1px solid var(--line)}
 .slider-row:last-child{border-bottom:0}
@@ -78,11 +78,11 @@
   font-size:var(--fs-body); font-weight:500; letter-spacing:0; text-transform:none;
 }
 .slider-head b{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}
-input[type=range]{width:100%;accent-color:var(--cream);height:22px}
+input[type=range]{width:100%;accent-color:var(--paper);height:22px}
 input[type=file]{display:none}
 
 /* TY2: the primary-action button -- Archivo, sentence case. */
-.cta{display:inline-block;border:1px solid var(--cream);color:var(--cream);border-radius:3px;
+.cta{display:inline-block;border:1px solid var(--paper);color:var(--paper);border-radius:3px;
   padding:11px var(--sp-4);font-family:var(--body);font-size:var(--fs-row);font-weight:500;transition:color .5s,border-color .5s}
 .cta.ghost{border-color:var(--line);color:var(--paper)}
 /* GS5 (docs/30_GROOVES_AND_SHELF.md): "Turn to side B" as an outlined
@@ -110,7 +110,7 @@ input[type=file]{display:none}
 .tracklist .t-name b{display:block;font-weight:500;font-size:var(--fs-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tracklist .t-name em{font-style:normal;font-family:var(--body);font-size:var(--fs-body);color:var(--muted)}
 .tracklist .t-idx{font-family:var(--body);font-size:var(--fs-caption);color:var(--muted);width:18px}
-.tracklist li[aria-current="true"] .t-idx{color:var(--cream)}
+.tracklist li[aria-current="true"] .t-idx{color:var(--paper)}
 /* FS15 (docs/25_FROM_SCRATCH.md): "the current track marked by weight and
    a small disc, not amber" -- the queue's own current-track row (it has
    no .t-idx to tint, unlike Songs' list rows just above), a small cream

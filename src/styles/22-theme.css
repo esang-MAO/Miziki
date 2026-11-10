@@ -47,6 +47,10 @@
      floor" reason dark's --muted-2 was raised. */
   --muted-2:#5E6A70;
   --line:rgba(21,35,43,.16);
+  /* UN1 (docs/36_UNIFORMITY.md): light's own ring/dot -- dark ink at the
+     same opacities 00-base.css's dark values use. */
+  --ring:rgba(38,32,44,.38);
+  --dot:rgba(38,32,44,.28);
   --panel:rgba(255,252,246,.55);
   --chrome:rgba(246,241,231,.92);
   --raised:rgba(255,255,255,.55);
@@ -90,6 +94,8 @@
     --muted:#6B6258;
     --muted-2:#5E6A70;
     --line:rgba(21,35,43,.16);
+    --ring:rgba(38,32,44,.38);
+    --dot:rgba(38,32,44,.28);
     --panel:rgba(255,252,246,.55);
     --chrome:rgba(246,241,231,.92);
     --raised:rgba(255,255,255,.55);
@@ -125,6 +131,8 @@
   --muted:#ABA298;
   --muted-2:#9A9187;
   --line:rgba(239,233,223,.14);
+  --ring:rgba(239,233,223,.32);
+  --dot:rgba(239,233,223,.3);
   --panel:rgba(12,10,9,.55);
   --chrome:rgba(12,10,9,.92);
   --raised:rgba(239,233,223,.07);

@@ -129,7 +129,7 @@
    element is left empty and :empty hides it -- player/transport.js's
    load() is the one writer). */
 .format-chip{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;
-  color:var(--cream);margin-top:2px}
+  color:var(--paper);margin-top:2px}
 .format-chip:empty{display:none}
 
 /* FS5 (docs/25_FROM_SCRATCH.md point 6): the bottom row -- phase pill
@@ -159,7 +159,7 @@
    overlay that already reads var(--cream)/var(--muted) picks this up for
    free, the same "redefine the token locally" approach the theme-
    transition rule elsewhere in this app already uses. */
-.player-overlay[data-phase="night"]{--cream:#DCD6CC;--muted:#A39A90}
+.player-overlay[data-phase="night"]{--cream:#DCD6CC;--muted:#A39A90;--paper:#DCD6CC}
 .player-overlay[data-phase="night"] .label{filter:brightness(.8)}
 
 .icon-btn{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-content:center;

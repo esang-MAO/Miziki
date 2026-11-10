@@ -18,4 +18,4 @@
   letter-spacing:var(--track-caps); text-transform:uppercase;
   color:var(--muted); margin:0 0 var(--sp-2);
 }
-.sd-eyebrow.sd-previewing{ color:var(--cream); }
+.sd-eyebrow.sd-previewing{ color:var(--paper); }

@@ -135,7 +135,7 @@
    than under the finger itself. */
 .needle-drop-tag{position:absolute;left:0;top:0;transform:translate(-50%,-160%);
   opacity:0;pointer-events:none;white-space:nowrap;
-  font-family:var(--hand);font-size:var(--fs-row);color:var(--cream);
+  font-family:var(--hand);font-size:var(--fs-row);color:var(--on-dark);
   text-shadow:0 1px 3px rgba(0,0,0,.6);transition:opacity .15s}
 .needle-drop-tag.on{opacity:1}
 /* holds a snapshot of the disc's previous background and fades it out to
@@ -295,7 +295,7 @@
   box-shadow:inset 0 1px 0 var(--plinth-edge)}
 .speed-toggle span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;
   color:var(--muted);padding:3px 6px;border-radius:8px;transition:color .2s,background .2s}
-.speed-toggle span.active{color:var(--cream);background:rgba(255,255,255,.08)}
+.speed-toggle span.active{color:var(--paper);background:rgba(255,255,255,.08)}
 
 /* SURFACE_NOISE §5: dead-wax etchings -- hidden at rest (the .runout fade-up
    is in 03-sleeve-pull.css, alongside the label-glow run-out rule it rides
@@ -340,10 +340,10 @@
 .tracklist li{content-visibility:auto;contain-intrinsic-size:auto 57px}
 .grouprow{content-visibility:auto;contain-intrinsic-size:auto 67px}
 .tracklist li.picked{background:color-mix(in srgb,var(--cream) 12%,transparent)}
-.tracklist li.picked .t-idx::after{content:'✓';color:var(--cream);margin-left:2px}
+.tracklist li.picked .t-idx::after{content:'✓';color:var(--paper);margin-left:2px}
 .crumb{display:flex;align-items:center;gap:var(--sp-3);padding:10px 0;border-bottom:1px solid var(--line)}
 /* TY3: a button -- Archivo, sentence case. */
-.crumb-back{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--cream)}
+.crumb-back{font-family:var(--body);font-size:var(--fs-body);font-weight:500;color:var(--paper)}
 .crumb-label{font-family:var(--display);font-size:var(--fs-row);letter-spacing:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .grouprow{display:flex;align-items:center;gap:var(--sp-3);width:100%;padding:11px 0;
@@ -364,13 +364,13 @@
   border-radius:3px;color:var(--paper);font-family:var(--body);font-size:var(--fs-row);padding:10px var(--sp-3)}
 /* FS5 (docs/25_FROM_SCRATCH.md point 3): the artist line -- Archivo 16/500
    cream (was fs-caption/--muted). */
-.by{font-family:var(--body);font-weight:500;font-size:var(--fs-row);color:var(--cream);margin-bottom:5px}
+.by{font-family:var(--body);font-weight:500;font-size:var(--fs-row);color:var(--paper);margin-bottom:5px}
 /* TY7b (docs/22_TYPE.md): filled and shown only by the desktop glance view
    (23-desktop.css, src/shell/player-overlay.js) -- never visible on phone
    or in any other desktop state, where #trackBy is the one by-line. */
 .glance-meta{display:none}
 .tbtn.mini{width:44px;height:44px;color:var(--paper);position:relative}
-.tbtn.mini[aria-pressed="true"]{color:var(--cream);border-color:var(--cream);
+.tbtn.mini[aria-pressed="true"]{color:var(--paper);border-color:var(--paper);
   background:color-mix(in srgb,var(--cream) 12%,transparent)}
 .tbtn.mini svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round}
@@ -379,7 +379,7 @@
 .movers{display:flex;gap:2px;flex:0 0 auto}
 .mv{width:28px;height:30px;border:1px solid var(--line);border-radius:3px;color:var(--muted);
   font-size:var(--fs-micro);letter-spacing:.10em;line-height:1}
-.mv:active{color:var(--cream);border-color:var(--cream)}
+.mv:active{color:var(--paper);border-color:var(--paper)}
 /* RF8 (docs/12_REFINE.md): one line under the tabs — "By Artist ▾ · 240
    Songs" — no hairline (point 2's "remove the hairlines between header
    rows"). The sort label + chevron is itself the clickable button; the

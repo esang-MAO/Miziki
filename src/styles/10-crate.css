@@ -76,7 +76,7 @@
 .crate-section-name{font-family:var(--body);font-size:var(--fs-body);font-weight:600;color:var(--paper)}
 .crate-section-dots{display:flex;align-items:center;gap:5px}
 .crate-section-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-2);opacity:.4}
-.crate-section-dot.current{background:var(--cream);opacity:1}
+.crate-section-dot.current{background:var(--paper);opacity:1}
 .crate-stage{position:relative;height:var(--crate-stage-h);overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
 /* CR14: the neighbouring section's own front card, clipped to a thin
@@ -224,7 +224,7 @@
 .crate-rail-item{position:absolute;left:0;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;
   color:var(--muted-2);transform:translateY(-50%);white-space:nowrap;
   background:none;border:none;padding:0;margin:0;cursor:pointer}
-.crate-rail-item.crate-rail-current{color:var(--cream);font-weight:500}
+.crate-rail-item.crate-rail-current{color:var(--paper);font-weight:500}
 .crate-rail-item.crate-rail-dim{opacity:.28}
 .crate-rail-bubble{position:fixed;width:68px;height:68px;border-radius:50%;background:var(--cream);color:#2A1B38;
   display:grid;place-content:center;font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:.02em;
@@ -234,7 +234,7 @@
 .crate-info .crate-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:0 0 2px}
 .crate-info .crate-info-meta{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
-  color:var(--cream);border:1px solid var(--cream);border-radius:12px;padding:var(--sp-1) 10px;
+  color:var(--paper);border:1px solid var(--paper);border-radius:12px;padding:var(--sp-1) 10px;
   margin-left:10px;background:color-mix(in srgb,var(--cream) 10%,transparent)}
 /* CR1: "now-playing as text in the phase colour" — no pill, no border; the
    crate's header row (above) is a plain flex line, so this just needs to
@@ -380,7 +380,7 @@
 .crate-hold-preview{margin:0 var(--sp-1) var(--sp-2)}
 .crate-hold-preview-btn{display:block;width:100%;text-align:center;background:#2A1B38;
   border:none;border-radius:var(--radius-control);padding:var(--sp-2) var(--sp-1);
-  font-family:var(--data);font-size:var(--fs-row);font-weight:600;color:var(--cream);cursor:pointer}
+  font-family:var(--data);font-size:var(--fs-row);font-weight:600;color:var(--on-dark);cursor:pointer}
 .crate-hold-preview-btn:active,.crate-hold-preview-btn:focus-visible{background:#44314F}
 .crate-hold-preview-status{display:flex;flex-direction:column;gap:4px;padding:var(--sp-2) var(--sp-1)}
 .crate-hold-preview-label{margin:0;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.02em;
