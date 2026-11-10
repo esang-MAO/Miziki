@@ -97,13 +97,17 @@
     <div class="search-chips" id="searchChips" style="display:none"></div>
   </header>
 
-  <!-- + menu: Add songs / Add folder (S1 §3) -->
+  <!-- + menu: Add songs / Add folder (S1 §3). UN3 (docs/36_UNIFORMITY.md
+       point 7): restyled onto the shared list-menu card look
+       (05-parts.css's .p-list-menu) -- the icons stay, since both items
+       have one, the one menu in the app where that's true. -->
   <div class="add-scrim" id="addScrim"></div>
-  <div class="add-menu" id="addMenu" role="menu">
+  <div class="add-menu p-list-menu" id="addMenu" role="menu">
     <button class="add-menu-row" id="addSongsRow" role="menuitem">
       <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="17.5" cy="16" r="2.6"/></svg>
       <span><b>Add songs</b><em>Pick files from this device</em></span>
     </button>
+    <div class="p-list-menu-divider"></div>
     <button class="add-menu-row" id="addFolderRow" role="menuitem">
       <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
       <span><b>Add folder</b><em>Everything inside it</em></span>
@@ -149,25 +153,25 @@
         </div>
       </div>
     </div>
-    <div class="overflow-scrim" id="libOverflowScrim"></div>
-    <!-- FS11 (docs/25_FROM_SCRATCH.md): "Library tools" grows this same
-         menu in place into the full panel (shell/header.js's
-         openLibraryToolsMenuPanel()/closeLibraryToolsMenuPanel()) -- the
-         two rows and the panel are siblings here so the menu can swap
-         which one shows without swapping elements. -->
-    <div class="overflow-menu" id="libOverflowMenu" role="menu">
-      <div id="libOverflowMenuRows">
-        <button class="overflow-menu-row lib-select-tab" id="selectToggle" role="menuitem">Select</button>
-        <button class="overflow-menu-row overflow-menu-row-chev" id="libToolsMenuRow" role="menuitem">
-          <span>Library tools</span><span class="g-chev">›</span>
+    <!-- UN3 (docs/36_UNIFORMITY.md point 6, decision 11): the ⋯ button
+         opens Library tools directly now, since it was the only real
+         destination (decision 11) -- #libOverflowMenu and its scrim are
+         gone, replaced by this one full sheet (sheetHeader()'s look,
+         src/ui/parts.js/05-parts.css), built once here and opened/closed
+         by shell/header.js's openLibraryToolsPanel()/
+         closeLibraryToolsPanel(). "Select" (the small menu's other row)
+         moves to a navRow at the top of the sheet's own body instead of
+         being chosen from a picker first -- a judgment call, since
+         decision 11 only says Library tools is "the only item" without
+         saying where Select goes; flagged in the PR. -->
+    <div class="edit-overlay" id="libToolsSheetOverlay" aria-hidden="true">
+      <div class="edit-sheet" id="libToolsSheetBox">
+        <div class="p-sheet-header" id="libToolsSheetHead"></div>
+        <button class="p-nav-row" id="libToolsSelectRow">
+          <span class="p-nav-label">Select</span>
+          <span class="p-nav-right"><span class="p-nav-chevron">›</span></span>
         </button>
-      </div>
-      <div class="lib-tools-menu-panel">
-        <div class="lib-tools-menu-head">
-          <h2>Library tools</h2>
-          <button class="lib-tools-menu-close" id="libToolsMenuClose" aria-label="Close Library tools">×</button>
-        </div>
-        <div class="lib-tools-menu-body" id="libToolsMenuBody"></div>
+        <div id="libToolsSheetBody"></div>
       </div>
     </div>
     <div class="select-bar" id="selectBar" style="display:none">
@@ -181,6 +185,17 @@
       </div>
     </div>
     <div class="crumb" id="crumb" style="display:none"></div>
+    <!-- UN3 (docs/36_UNIFORMITY.md point 5): the artist page's own ⋯
+         menu, opened from library/view.js's own backHeader() row
+         (openArtistMoreMenu()) -- same small-popover shape as #gfMoreMenu/
+         #addMenu. "Share artist" is left out, see view.js's own comment
+         above openArtistMoreMenu() for why. -->
+    <div class="overflow-scrim" id="artistMoreMenuScrim"></div>
+    <div class="overflow-menu p-list-menu" id="artistMoreMenu" role="menu">
+      <button class="p-list-menu-item" id="artistMoreCreditsBtn" role="menuitem">Credits</button>
+      <div class="p-list-menu-divider"></div>
+      <button class="p-list-menu-item p-list-menu-item--danger" id="artistMoreRemoveBtn" role="menuitem">Remove artist…</button>
+    </div>
     <!-- FS6 (docs/25_FROM_SCRATCH.md point 2): the crate's own sort-chip +
          record-count line -- sort chip left, "N records" right, nothing
          else on it. Shown only in crate mode (updateCrateGroupToggleUI(),
@@ -928,24 +943,47 @@
     </div>
 
     <div class="overflow-scrim" id="playerOverflowScrim"></div>
-    <div class="overflow-menu" id="playerOverflowMenu" role="menu">
-      <button class="overflow-menu-row edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
-      <button class="overflow-menu-row" id="queueBtn" style="display:none" role="menuitem">Queue</button>
+    <!-- UN3 (docs/36_UNIFORMITY.md): rebuilt on the shared list-menu look
+         (src/ui/parts.js's listMenu(), 05-parts.css) -- three groups,
+         [Queue, Credits and notes, Edit info] / [Favorite, Share, EQ,
+         Sleep timer] / the Private session switch row. Each row keeps its
+         own id and existing wiring (player/transport.js, library/edit.js,
+         wiring/share.js, wiring/overlays.js) unchanged -- only the
+         classes, grouping/order and glyphs/label text move. Positioning
+         (.overflow-menu, src/styles/01-header.css) is unchanged: open/
+         flip math lives in shell/player-overlay.js. -->
+    <div class="overflow-menu p-list-menu" id="playerOverflowMenu" role="menu">
+      <button class="p-list-menu-item" id="queueBtn" style="display:none" role="menuitem">Queue</button>
       <!-- FS5 point 1: Credits and notes, Favorite and Share, moved here
            from the title row -- same hidden-until-a-track-loads rule they
            had there, same ids, so player/transport.js, library/delete.js,
            shell/runout.js and library/favorites.js/credits.js need no
            change beyond the label text itself. -->
-      <button class="overflow-menu-row" id="trackInfoBtn" style="display:none" role="menuitem">Credits and notes</button>
-      <button class="overflow-menu-row" id="playerFavBtn" style="display:none" role="menuitem" aria-pressed="false">♡ Favorite</button>
-      <button class="overflow-menu-row" id="playerShareIconBtn" style="display:none" role="menuitem">Share</button>
+      <button class="p-list-menu-item" id="trackInfoBtn" style="display:none" role="menuitem">Credits and notes</button>
+      <button class="p-list-menu-item edit-current" id="editCurrentBtn" role="menuitem">Edit info</button>
+      <div class="p-list-menu-divider"></div>
+      <button class="p-list-menu-item" id="playerFavBtn" style="display:none" role="menuitem" aria-pressed="false">Favorite</button>
+      <button class="p-list-menu-item" id="playerShareIconBtn" style="display:none" role="menuitem">Share</button>
       <!-- AU6: not gated behind a loaded track like #queueBtn/#sleepTimerBtn --
            EQ settings are meaningful with nothing playing -->
-      <button class="overflow-menu-row" id="eqBtn" role="menuitem">EQ</button>
-      <button class="overflow-menu-row" id="sleepTimerBtn" style="display:none" role="menuitem">🌙 Sleep Timer</button>
-      <!-- RF21: a menuitemcheckbox, not a settings toggle -- scoped to
-           this one session only (S.privateSpin), not a saved pref -->
-      <button class="overflow-menu-row overflow-menu-row-check" id="privateSpinBtn" role="menuitemcheckbox" aria-checked="false">Don't share this session</button>
+      <button class="p-list-menu-item" id="eqBtn" role="menuitem">EQ</button>
+      <button class="p-list-menu-item" id="sleepTimerBtn" style="display:none" role="menuitem">Sleep timer</button>
+      <div class="p-list-menu-divider"></div>
+      <!-- Decision 8 (docs/36_UNIFORMITY.md): "Don't share this session"
+           renamed "Private session" -- S.privateSpin itself, and what it
+           does, are unchanged. Restyled onto the shared toggle-row look
+           (src/ui/parts.js's toggleRow(), 05-parts.css's .p-toggle-*) in
+           place rather than through that helper, so the existing
+           role="switch"-free menuitemcheckbox wiring (player/transport.js)
+           needs only a markup/class change, not new wiring. -->
+      <div class="p-toggle-row" id="privateSpinRow">
+        <div class="p-toggle-top">
+          <div class="p-toggle-left"><span class="p-toggle-label">Private session</span></div>
+          <button class="switch" id="privateSpinBtn" role="switch" aria-checked="false" aria-label="Private session">
+            <span class="switch-track"><i></i></span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
@@ -1127,21 +1165,29 @@
   <button class="cta ghost" id="dbStaleReload">Reload</button>
 </div>
 
-<!-- ROW MENU: overflow menu for a single library row -->
+<!-- ROW MENU: overflow menu for a single library row. UN3 (docs/36_
+     UNIFORMITY.md): a sheet now (cover, title, artist · album, ×) over
+     the shared list menu (src/ui/parts.js's listMenu()), built by
+     library/view.js's openRowMenu() rather than static markup, since the
+     header needs the track's own art/text. #rowMenuBody is the mount
+     point; its content is rebuilt on every open. "Add to playlist…"
+     (the plan's own third item in the first group) is left out: there is
+     no existing picker to add one track to an already-saved playlist
+     anywhere in the app yet (player/queue.js's "Save as playlist" only
+     saves the whole current queue as a new one) -- building that picker
+     is real feature work, not a menu restyle, so it's noted as a
+     follow-up rather than built here. -->
 <div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
-    <div class="edit-head">
-      <span id="rowMenuTitle">Track</span>
-      <button class="edit-close" id="rowMenuClose" aria-label="Close">✕</button>
+    <div class="p-sheet-header" id="rowMenuHead">
+      <div class="row-menu-cover" id="rowMenuCover"></div>
+      <div class="row-menu-text">
+        <p class="row-menu-title" id="rowMenuTitle">Track</p>
+        <p class="row-menu-sub" id="rowMenuSub"></p>
+      </div>
+      <button class="p-sheet-close" id="rowMenuClose" aria-label="Close">✕</button>
     </div>
-    <div class="stack">
-      <button class="cta ghost" id="rowMenuEdit">Edit Info</button>
-      <button class="cta ghost" id="rowMenuCredits" style="display:none">Credits &amp; Notes</button>
-      <button class="cta ghost" id="rowMenuFav">Add to Favorites</button>
-      <button class="cta ghost" id="rowMenuPlayNext">Play Next</button>
-      <button class="cta ghost" id="rowMenuAddQueue">Add to Queue</button>
-      <button class="cta ghost" id="rowMenuRemove">Remove from Library</button>
-    </div>
+    <div class="p-list-menu" id="rowMenuBody" role="menu"></div>
   </div>
 </div>
 
@@ -1283,11 +1329,13 @@
      each option now carries a small disc swatch of its own art. Dims the
      screen behind it less than every other sheet (.35 instead of .72, see
      16-edit-sheet.css) so the record stays visible while choosing. -->
+<!-- UN3 (docs/36_UNIFORMITY.md): header restyled onto sheetHeader()'s
+     look (05-parts.css's .p-sheet-*) -- same #lookClose id/wiring. -->
 <div class="edit-overlay" id="lookOverlay" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
-    <div class="edit-head">
-      <span>Look</span>
-      <button class="edit-close" id="lookClose" aria-label="Close">✕</button>
+    <div class="p-sheet-header">
+      <h2 class="p-sheet-title">Look</h2>
+      <button class="p-sheet-close" id="lookClose" aria-label="Close">✕</button>
     </div>
     <div class="stack" id="lookOptions" style="flex-direction:column"></div>
   </div>
@@ -1516,26 +1564,32 @@
        the gatefold is the one album view (GF12) and that header isn't
        behind it any more. -->
   <div class="overflow-scrim" id="gfMoreMenuScrim"></div>
-  <div class="overflow-menu" id="gfMoreMenu" role="menu">
-    <button class="overflow-menu-row" id="gfMoreShareBtn" role="menuitem">Share record</button>
-    <button class="overflow-menu-row" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
-    <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
+  <!-- UN3 (docs/36_UNIFORMITY.md): restyled onto the shared list-menu
+       look (05-parts.css's .p-list-menu*) -- same ids/wiring, sentence
+       case, "Remove album" last, in its own danger-colour group. Back
+       cover ⋯'s own items (UN10, not yet built) join this same menu once
+       the record is turned over -- not addressed here. -->
+  <div class="overflow-menu p-list-menu" id="gfMoreMenu" role="menu">
+    <button class="p-list-menu-item" id="gfMoreShareBtn" role="menuitem">Share record</button>
+    <button class="p-list-menu-item" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
+    <button class="p-list-menu-item overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
     <!-- PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): opens the
          same #lookOverlay sheet the full player's #lookBtn does, for this
          album rather than whatever's on the platter -- shown only once
          there's a real choice (src/gatefold/view.js's hasLookChoice()
          check, re-run every time this menu opens). The small disc swatch
          before the chevron previews the album's current look. -->
-    <button class="overflow-menu-row overflow-menu-row-chev" id="gfMoreLookBtn" role="menuitem" style="display:none">
+    <button class="p-list-menu-item overflow-menu-row-chev" id="gfMoreLookBtn" role="menuitem" style="display:none">
       <span>Record look…</span>
       <span class="gf-more-look-end">
         <span class="look-row-disc" aria-hidden="true"><span class="label"></span></span>
         <span class="g-chev">›</span>
       </span>
     </button>
-    <button class="overflow-menu-row" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
-    <button class="overflow-menu-row" id="gfMoreSelectBtn" role="menuitem">Select</button>
-    <button class="overflow-menu-row" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album</button>
+    <button class="p-list-menu-item" id="gfMoreTrackOrderBtn" role="menuitem">Track order</button>
+    <button class="p-list-menu-item" id="gfMoreSelectBtn" role="menuitem">Select</button>
+    <div class="p-list-menu-divider"></div>
+    <button class="p-list-menu-item p-list-menu-item--danger" id="gfMoreRemoveAlbumBtn" role="menuitem">Remove album…</button>
   </div>
 
   <!-- GS10 (docs/30_GROOVES_AND_SHELF.md point 1): "Keep for…" -- the
@@ -1584,26 +1638,6 @@
     </div>
   </div>
 
-  <!-- GF9 (docs/29_GATEFOLD.md): a long press on a gatefold track row opens
-       this small sheet instead of playing -- same .edit-overlay/.edit-sheet
-       shell as linerEditOverlay above, mirroring library/view.js's own
-       #rowMenuOverlay (Play Next/Add to Queue/Favorite/Credits), plus a
-       side-and-length meta line the row menu has no need for. -->
-  <div class="edit-overlay" id="gfTrackMenuOverlay" aria-hidden="true">
-    <div class="edit-sheet" style="max-width:420px">
-      <div class="edit-head">
-        <span id="gfTrackMenuTitle">Track</span>
-        <button class="edit-close" id="gfTrackMenuClose" aria-label="Close">✕</button>
-      </div>
-      <p class="note" id="gfTrackMenuMeta"></p>
-      <div class="stack">
-        <button class="cta ghost" id="gfTrackMenuPlayNext">Play Next</button>
-        <button class="cta ghost" id="gfTrackMenuAddQueue">Add to Queue</button>
-        <button class="cta ghost" id="gfTrackMenuFav">Add to Favorites</button>
-        <button class="cta ghost" id="gfTrackMenuCredits" style="display:none">This Track's Credits</button>
-      </div>
-    </div>
-  </div>
   <div class="gf-flat-tracks" id="gfFlatTracks">
     <div class="gf-flat-head">
       <button class="gf-back" id="gfFlatBack" style="position:static;opacity:1" aria-label="Back to crate">‹ Crate</button>
@@ -1641,6 +1675,30 @@
   <div class="gf-panel-toggle sr-only" id="gfPanelToggle">
     <button data-panel="right" aria-pressed="true">Tracks</button>
     <button data-panel="left" aria-pressed="false">Inside</button>
+  </div>
+</div>
+
+<!-- GF9 (docs/29_GATEFOLD.md): a long press on a gatefold track row opens
+     this small sheet instead of playing -- same .edit-overlay/.edit-sheet
+     shell as linerEditOverlay, mirroring library/view.js's own
+     #rowMenuOverlay, plus a side-and-length caption the row menu has no
+     need for.
+     UN3 (docs/36_UNIFORMITY.md): rebuilt on sheetHeader()+listMenu()
+     (src/ui/parts.js, 05-parts.css). **Bug fix:** this used to live
+     nested inside #gatefold (z-index:30, its own stacking context) with
+     its own z-index:120 -- a child's z-index only competes within its
+     nearest stacking-context ancestor, so 120 could never actually beat
+     .mini-player/.tabbar's z-index:40 at the page's real top level, and
+     the sheet's lower rows rendered underneath them. Moved out to be a
+     direct body-level sibling instead (same level as #editOverlay,
+     #rowMenuOverlay, ...), which is the one real fix -- every other full
+     sheet in the app already works this way for the same reason, so no
+     extra bottom padding is needed once it's no longer trapped. -->
+<div class="edit-overlay" id="gfTrackMenuOverlay" aria-hidden="true">
+  <div class="edit-sheet" style="max-width:420px">
+    <div id="gfTrackMenuHead"></div>
+    <p class="row-menu-sub" id="gfTrackMenuMeta"></p>
+    <div class="p-list-menu" id="gfTrackMenuBody" role="menu"></div>
   </div>
 </div>
 

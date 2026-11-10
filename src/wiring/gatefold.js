@@ -9,8 +9,6 @@ import {
   gatefoldSwitchPanel, updateGatefoldScale, gatefoldToggleTurnedOver,
   currentGatefoldAlbumId, refreshGatefoldBackCover,
   saveLinerEditSheet, revertLinerEditSheet,
-  gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
-  gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
   openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
   gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
   gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect, gatefoldMoreMenuLook,
@@ -93,14 +91,11 @@ export function wireGatefold(){
   $('#linerEditSave').addEventListener('click', saveLinerEditSheet);
   $('#linerEditRevert').addEventListener('click', revertLinerEditSheet);
 
-  // GF9 (docs/29_GATEFOLD.md): the long-press track menu's own buttons --
-  // opened from wireGatefoldTrackLongPress() (src/gatefold/view.js), wired
-  // here once like every other static gatefold control.
-  $('#gfTrackMenuClose').addEventListener('click', () => closeLayer('gf-track-menu'));
-  $('#gfTrackMenuPlayNext').addEventListener('click', gatefoldTrackMenuPlayNext);
-  $('#gfTrackMenuAddQueue').addEventListener('click', gatefoldTrackMenuAddToQueue);
-  $('#gfTrackMenuFav').addEventListener('click', gatefoldTrackMenuToggleFavorite);
-  $('#gfTrackMenuCredits').addEventListener('click', gatefoldTrackMenuOpenCredits);
+  // UN3 (docs/36_UNIFORMITY.md): the long-press track menu's own list-menu
+  // rows are now built and wired inline by src/gatefold/view.js's own
+  // openGatefoldTrackMenu() each time it opens (GF9), same "no stable
+  // per-row ids" shape UN3 gave library/view.js's row menu -- nothing
+  // left here to wire.
 
   // GF10 (docs/29_GATEFOLD.md): the booklet viewer's own Done button --
   // opened from buildBookletRow() (src/gatefold/view.js) -- plus the

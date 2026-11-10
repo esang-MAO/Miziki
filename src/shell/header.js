@@ -3,7 +3,8 @@ import { $ } from '../util/dom.js';
 import { formatBytes, totalLibraryBytes } from '../library/delete.js';
 import { updateSearchChipsVisibility } from '../library/search.js';
 import { isLibraryRouteVisible } from './routes.js';
-import { openLayer } from './nav-stack.js';
+import { openLayer, closeLayer } from './nav-stack.js';
+import { sheetHeader } from '../ui/parts.js';
 
 /* ================= navigation shell: header actions, search field, add menu =================
    isLibraryRouteVisible, updateHeaderActionsAvailability,
@@ -102,69 +103,47 @@ export function isAddMenuOpen(){
   return $('#addMenu').classList.contains('open');
 }
 
-// RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
-// Select and Library tools. Same popover shape as the + menu above,
-// positioned off its own button instead.
-export function openLibOverflowMenu(){
-  const btn = $('#hdrOverflowBtn'), r = btn.getBoundingClientRect();
-  const menu = $('#libOverflowMenu');
-  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
-  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
-  $('#libOverflowScrim').classList.add('open');
-  menu.classList.add('open');
-  btn.setAttribute('aria-expanded', 'true');
-  // See openAddMenu()'s own comment above -- the scrim is a separate
-  // sibling, not nested inside the menu, so it has to be in container too.
-  openLayer('lib-overflow-menu', closeLibOverflowMenu, { container: [menu, $('#libOverflowScrim')] });
-}
-export function closeLibOverflowMenu(){
-  closeLibraryToolsMenuPanel();
-  $('#libOverflowScrim').classList.remove('open');
-  $('#libOverflowMenu').classList.remove('open');
-  $('#hdrOverflowBtn').setAttribute('aria-expanded', 'false');
-}
-export function isLibOverflowMenuOpen(){
-  return $('#libOverflowMenu').classList.contains('open');
-}
-
-// FS11 (docs/25_FROM_SCRATCH.md): "Library tools" grows #libOverflowMenu
-// in place into the full panel -- same menu element, same 'lib-overflow-menu'
-// nav-stack layer (no second layer to push/pop), just a size/content swap.
-// Closing it (the panel's own ×, the scrim, Escape, or the back gesture)
-// always closes the whole menu, never collapses back to the small one --
-// closeLibOverflowMenu() above calls closeLibraryToolsMenuPanel() first on
-// every close, a no-op if the panel was never opened.
-export function openLibraryToolsMenuPanel(){
-  const menu = $('#libOverflowMenu');
-  const libTools = $('#libTools'), body = $('#libToolsMenuBody');
+// UN3 (docs/36_UNIFORMITY.md point 6, decision 11): the library header's
+// own "···" opens Library tools directly now (it was the menu's only
+// real destination) -- a full sheet (sheetHeader()'s look, src/ui/
+// parts.js) rather than the old two-row popover that grew into a panel
+// in place. The header is built once, lazily, on first open.
+let libToolsSheetHeadBuilt = false;
+export function openLibraryToolsPanel(){
+  const overlay = $('#libToolsSheetOverlay');
+  if(!libToolsSheetHeadBuilt){
+    const built = sheetHeader('Library tools');
+    built.closeBtn.addEventListener('click', () => closeLayer('lib-tools-sheet'));
+    $('#libToolsSheetHead').appendChild(built);
+    libToolsSheetHeadBuilt = true;
+  }
+  const libTools = $('#libTools'), bodyHost = $('#libToolsSheetBody');
   // reparent, never copy -- "whichever opens last owns the element" (point
   // 3); profile/screens.js's own parkLibraryTools()/renderAppSettingsScreen()
   // do the same unconditional re-grab shape on their side.
-  if(libTools && body && libTools.parentNode !== body) body.appendChild(libTools);
-  // the disclosure is Settings-only here -- always expanded in this panel
+  if(libTools && bodyHost && libTools.parentNode !== bodyHost) bodyHost.appendChild(libTools);
+  // the disclosure is Settings-only here -- always expanded in this sheet
   $('#libToolsPanel').classList.add('open');
   $('#libToolsToggle').setAttribute('aria-expanded', 'true');
   refreshLibraryTools();
-  const r = $('#libNav').getBoundingClientRect();
-  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
-  menu.style.left = '12px';
-  menu.style.right = '12px';
-  menu.style.width = 'auto';
-  menu.style.maxHeight = 'calc(100dvh - 140px)';
-  menu.style.borderRadius = '14px';
-  menu.classList.add('lib-tools-open');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  $('#hdrOverflowBtn').setAttribute('aria-expanded', 'true');
+  openLayer('lib-tools-sheet', closeLibraryToolsPanel, { container: overlay });
 }
-export function closeLibraryToolsMenuPanel(){
-  const menu = $('#libOverflowMenu');
-  if(!menu.classList.contains('lib-tools-open')) return;
-  const libTools = $('#libTools'), body = $('#libToolsMenuBody'), stash = $('#libToolsStash');
-  // only hand it back if this panel is still the one holding it -- if
+export function closeLibraryToolsPanel(){
+  const overlay = $('#libToolsSheetOverlay');
+  const libTools = $('#libTools'), bodyHost = $('#libToolsSheetBody'), stash = $('#libToolsStash');
+  // only hand it back if this sheet is still the one holding it -- if
   // Settings already re-grabbed it (can't happen on the same route, but
   // guarded per point 4 anyway), leave it where it is.
-  if(libTools && stash && libTools.parentNode === body) stash.appendChild(libTools);
+  if(libTools && stash && libTools.parentNode === bodyHost) stash.appendChild(libTools);
   $('#libToolsPanel').classList.remove('open');
   $('#libToolsToggle').setAttribute('aria-expanded', 'false');
-  menu.classList.remove('lib-tools-open');
-  menu.style.top = ''; menu.style.left = ''; menu.style.right = '';
-  menu.style.width = ''; menu.style.maxHeight = ''; menu.style.borderRadius = '';
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  $('#hdrOverflowBtn').setAttribute('aria-expanded', 'false');
+}
+export function isLibraryToolsPanelOpen(){
+  return $('#libToolsSheetOverlay').classList.contains('open');
 }

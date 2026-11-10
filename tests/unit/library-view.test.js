@@ -125,12 +125,21 @@ const scrollByMock = mock.fn();
 globalThis.window = { scrollBy: scrollByMock, scrollTo(){}, innerHeight: 800 };
 
 const setQueueMock = mock.fn();
+const playNextMock = mock.fn();
+const addToQueueMock = mock.fn();
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   // LI6 (docs/35_LEAD_IN.md): view.js's syncQueueOrder() now also calls
   // setQueueList()/setQpos() — not exercised by any test in this file, so
   // no-op stubs are enough just to satisfy the static import.
-  namedExports: { setQueue: setQueueMock, setQueueList(){}, setQpos(){} },
+  // UN3 (docs/36_UNIFORMITY.md): the row menu's own Play next/Add to
+  // queue actions now call these directly (library/view.js), instead of
+  // src/wiring/library-view.js wiring per-id buttons.
+  namedExports: {
+    setQueue: setQueueMock, setQueueList(){}, setQpos(){},
+    playNext: playNextMock, addToQueue: addToQueueMock,
+  },
 });
+const openCreditsSheetMock = mock.fn();
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: {
     trackHasCreditsContent(){ return false; }, albumLinerNotes(){ return ''; },
@@ -138,10 +147,13 @@ mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
     renderPersonView(){},
     // library/connected.js (the artist page's Connected shelf) imports these
     isLibraryArtist(){ return false; }, openPersonOrArtist(){},
+    // UN3: the row menu's own "Credits and notes" item
+    openCreditsSheet: openCreditsSheetMock,
   },
 });
+const toggleFavoriteMock = mock.fn();
 mock.module(new URL('../../src/library/favorites.js', import.meta.url).href, {
-  namedExports: { isFavorite(){ return false; } },
+  namedExports: { isFavorite(){ return false; }, toggleFavorite: toggleFavoriteMock },
 });
 const queueSaveMock = mock.fn();
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
@@ -152,13 +164,21 @@ mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
 });
 const applyEditMock = mock.fn(async () => {});
 const showUndoBannerMock = mock.fn();
+const openEditSheetMock = mock.fn();
 mock.module(new URL('../../src/library/edit.js', import.meta.url).href, {
-  namedExports: { applyEdit: applyEditMock, showUndoBanner: showUndoBannerMock },
+  namedExports: {
+    applyEdit: applyEditMock, showUndoBanner: showUndoBannerMock,
+    // UN3 (docs/36_UNIFORMITY.md): the row menu's own "Edit info" item
+    openEditSheet: openEditSheetMock,
+  },
 });
+const deleteTracksMock = mock.fn(async () => {});
 mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
   namedExports: {
     countForAlbum(){ return 0; }, countForArtist(){ return 0; },
     deleteAlbum(){}, deleteArtist(){},
+    // UN3: the row menu's own "Remove from library…" item
+    deleteTracks: deleteTracksMock,
   },
 });
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
@@ -276,10 +296,12 @@ test('selectAllVisible: an empty library is a no-op', () => {
   assert.equal(S.editSelection.size, 0);
 });
 
-test('closeRowMenu clears rowMenuTrackId (exported read-only for main.js\'s wiring)', () => {
+// UN3 (docs/36_UNIFORMITY.md): rowMenuTrackId is gone -- openRowMenu()'s
+// own closures now carry the track/id directly, so closeRowMenu() has no
+// module state left to clear. This just proves it's a quiet no-op.
+test('closeRowMenu is a quiet no-op (no module state left to clear)', () => {
   resetState({ tracks: [fakeTrack('a')] });
-  closeRowMenu();
-  assert.equal(view.rowMenuTrackId, null);
+  assert.doesNotThrow(() => closeRowMenu());
 });
 
 test('openConfirmDelete/closeConfirmDelete set and clear confirmDeleteAction', () => {

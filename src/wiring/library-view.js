@@ -6,20 +6,16 @@
    dialog. */
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
-import { idxOf } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel, nextCrateGroup } from '../crate/model.js';
 import {
   renderTracks, enterSelectMode, exitSelectMode, selectAllVisible,
-  openConfirmDelete, closeConfirmDelete, rowMenuTrackId, confirmDeleteAction,
+  openConfirmDelete, closeConfirmDelete, confirmDeleteAction,
   applyTrackNumbersInOrder,
 } from '../library/view.js';
 import { deleteTracks } from '../library/delete.js';
 import { openEditSheet } from '../library/edit.js';
-import { openCreditsSheet } from '../library/credits.js';
-import { toggleFavorite } from '../library/favorites.js';
-import { playNext, addToQueue } from '../player/queue.js';
-import { openLibOverflowMenu, isLibOverflowMenuOpen, openLibraryToolsMenuPanel } from '../shell/header.js';
+import { openLibraryToolsPanel, isLibraryToolsPanelOpen } from '../shell/header.js';
 import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 
 export function wireLibraryView(){
@@ -96,21 +92,18 @@ export function wireLibraryView(){
     $('#libToolsToggle').setAttribute('aria-expanded', String(open));
   });
 
-  // RF8 (docs/12_REFINE.md): the library header's own "···" overflow —
-  // Select lives here off the tabs row. Library tools itself lives in
-  // Profile › Settings instead (see shell/header.js's
-  // openLibOverflowMenu()/closeLibOverflowMenu() and profile/screens.js's
-  // renderAppSettingsScreen()).
-  $('#hdrOverflowBtn').addEventListener('click', ()=> isLibOverflowMenuOpen() ? closeLayer('lib-overflow-menu') : openLibOverflowMenu());
-  $('#libOverflowScrim').addEventListener('click', () => closeLayer('lib-overflow-menu'));
-  // FS11 (docs/25_FROM_SCRATCH.md): "Library tools ›" grows the same menu
-  // in place -- closing it, from its own × or anything else, always closes
-  // the whole menu (shell/header.js's closeLibOverflowMenu()), never just
-  // collapses back to the small one.
-  $('#libToolsMenuRow').addEventListener('click', openLibraryToolsMenuPanel);
-  $('#libToolsMenuClose').addEventListener('click', () => closeLayer('lib-overflow-menu'));
-
-  $('#selectToggle').addEventListener('click', ()=>{ forceCloseLayer('lib-overflow-menu'); enterSelectMode(); });
+  // UN3 (docs/36_UNIFORMITY.md point 6, decision 11): the library
+  // header's own "···" opens Library tools directly now (shell/header.js's
+  // openLibraryToolsPanel()) -- #libOverflowMenu and its scrim are gone.
+  $('#hdrOverflowBtn').addEventListener('click', ()=> isLibraryToolsPanelOpen() ? closeLayer('lib-tools-sheet') : openLibraryToolsPanel());
+  // UN3 point 5: the artist page's own ⋯ menu -- opened from
+  // library/view.js's own openArtistMoreMenu(), only the scrim's
+  // tap-to-dismiss needs wiring here.
+  $('#artistMoreMenuScrim').addEventListener('click', () => closeLayer('artist-more-menu'));
+  // UN3 point 6: "Select" moves from the old small popover into a
+  // navRow at the top of the Library tools sheet itself (a judgment
+  // call -- see miziki.html's own comment on #libToolsSheetOverlay).
+  $('#libToolsSelectRow').addEventListener('click', ()=>{ forceCloseLayer('lib-tools-sheet'); enterSelectMode(); });
   $('#selectCancel').addEventListener('click', exitSelectMode);
   $('#selectAll').addEventListener('click', selectAllVisible);
   $('#selectEdit').addEventListener('click', ()=>{
@@ -125,37 +118,13 @@ export function wireLibraryView(){
     openConfirmDelete('batch', ids.length, null, async () => { await deleteTracks(ids); exitSelectMode(); });
   });
 
+  // UN3 (docs/36_UNIFORMITY.md): the row menu's own action rows (Play
+  // next/Add to queue/Favorite/Credits and notes/Edit info/Remove from
+  // library) are now built and wired inline by library/view.js's
+  // openRowMenu() each time it opens, since the menu is a real list-menu
+  // sheet rebuilt per track rather than a fixed set of ids — only the ×
+  // stays a static element with its own id.
   $('#rowMenuClose').addEventListener('click', () => closeLayer('row-menu'));
-  $('#rowMenuEdit').addEventListener('click', ()=>{
-    // row-menu's close is immediately followed, in the same tick, by
-    // opening a different layer ('edit') that replaces it — plain
-    // closeLayer() would queue a history.go() that races the new layer's
-    // own pushState (nav-stack.js's own documented skipHistory rule, the
-    // same fix shell/handoff.js uses for the gatefold-to-player handoff).
-    const id = rowMenuTrackId; forceCloseLayer('row-menu', {skipHistory: true});
-    if(id) openEditSheet([id]);
-  });
-  $('#rowMenuCredits').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; forceCloseLayer('row-menu', {skipHistory: true});
-    const t = S.tracks[idxOf(id)]; if(t) openCreditsSheet(t);
-  });
-  $('#rowMenuFav').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeLayer('row-menu');
-    if(id) toggleFavorite(id);
-  });
-  $('#rowMenuRemove').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeLayer('row-menu');
-    const t = S.tracks[idxOf(id)]; if(!t) return;
-    openConfirmDelete('song', 1, t.tags.title, async () => { await deleteTracks([id]); });
-  });
-  $('#rowMenuPlayNext').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeLayer('row-menu');
-    const i = idxOf(id); if(i >= 0) playNext(i);
-  });
-  $('#rowMenuAddQueue').addEventListener('click', ()=>{
-    const id = rowMenuTrackId; closeLayer('row-menu');
-    const i = idxOf(id); if(i >= 0) addToQueue(i);
-  });
 
   $('#confirmClose').addEventListener('click', closeConfirmDelete);
   $('#confirmCancel').addEventListener('click', closeConfirmDelete);

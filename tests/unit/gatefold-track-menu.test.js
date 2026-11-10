@@ -97,6 +97,23 @@ mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
 mock.module(new URL('../../src/gatefold/booklet.js', import.meta.url).href, {
   namedExports: { openBookletViewer(){}, openAddBookletPagesPicker(){} },
 });
+// UN3 (docs/36_UNIFORMITY.md): openGatefoldTrackMenu() now builds its
+// header via sheetHeader() (src/ui/parts.js) -- stopped at the door here
+// too, same reasoning as every other mock in this file, since what's
+// worth asserting on is the title/close-handler it was given, not a
+// faithfully-built DOM tree this file's own minimal el() stub can't
+// traverse anyway (its appendChild doesn't track children).
+let lastSheetHeaderTitle = null;
+mock.module(new URL('../../src/ui/parts.js', import.meta.url).href, {
+  namedExports: {
+    sheetHeader(title){
+      lastSheetHeaderTitle = title;
+      const built = fakeEl();
+      built.closeBtn = fakeEl();
+      return built;
+    },
+  },
+});
 
 function fakeEl(){
   const classes = new Set();
@@ -142,19 +159,22 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
 
 const {
   wireGatefoldTrackLongPress, openGatefoldTrackMenu, closeGatefoldTrackMenu,
-  gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue, gatefoldTrackMenuToggleFavorite,
-  gatefoldTrackMenuOpenCredits, GF_LONG_PRESS_MS,
+  gatefoldTrackMenuPlayFromHere, gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
+  gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits, gatefoldTrackMenuShare,
+  gfTrackMenuGroups, GF_LONG_PRESS_MS,
 } = await import('../../src/gatefold/view.js');
 const { S } = await import('../../src/state.js');
 
 function resetAll(){
   elCache.clear();
   registeredClose = null;
+  lastSheetHeaderTitle = null;
   openCreditsSheetMock.mock.resetCalls();
   trackHasCreditsContentMock.mock.resetCalls();
   isFavoriteMock.mock.resetCalls();
   toggleFavoriteMock.mock.resetCalls();
   hapticTickMock.mock.resetCalls();
+  setQueueMock.mock.resetCalls();
   playNextMock.mock.resetCalls();
   addToQueueMock.mock.resetCalls();
   S.index = -1;
@@ -208,18 +228,55 @@ test('a completed long press never plays, haptic-ticks, and opens the track menu
   row.fire('click', { preventDefault(){} });
   assert.equal(playHandler.mock.calls.length, 0);
   assert.equal(hapticTickMock.mock.calls.length, 1);
-  assert.equal(elCache.get('#gfTrackMenuTitle').textContent, 'Two');
+  assert.equal(lastSheetHeaderTitle, 'Two');
   assert.ok(registeredClose);   // openLayer registered a close callback
 });
 
-test('openGatefoldTrackMenu paints meta, favorite state and credits visibility', () => {
+// UN3 (docs/36_UNIFORMITY.md): openGatefoldTrackMenu() now builds its
+// header via sheetHeader() (mocked above) and its body from
+// gfTrackMenuGroups() -- that function's own label/grouping logic is
+// asserted on directly below, since it's what actually encodes
+// favorite-state/credits-visibility now, not a fixed-id textContent/
+// style.display pair.
+test('openGatefoldTrackMenu paints the title and meta caption', () => {
+  resetAll();
+  openGatefoldTrackMenu(0, [0, 1]);
+  assert.equal(lastSheetHeaderTitle, 'One');
+  assert.equal(elCache.get('#gfTrackMenuMeta').textContent, '3:00');
+});
+
+test('gfTrackMenuGroups: Play from here/next/queue, favorite label, Credits only when the track has any, Share last', () => {
   resetAll();
   isFavoriteMock.mock.mockImplementationOnce(() => true);
-  openGatefoldTrackMenu(0, [0, 1]);
-  assert.equal(elCache.get('#gfTrackMenuTitle').textContent, 'One');
-  assert.equal(elCache.get('#gfTrackMenuMeta').textContent, '3:00');
-  assert.equal(elCache.get('#gfTrackMenuFav').textContent, 'Remove from Favorites');
-  assert.equal(elCache.get('#gfTrackMenuCredits').style.display, '');
+  const withFavAndCredits = gfTrackMenuGroups(S.tracks[0]);
+  assert.deepEqual(withFavAndCredits[0].map(x => x.label), ['Play from here', 'Play next', 'Add to queue']);
+  assert.deepEqual(withFavAndCredits[1].map(x => x.label), ['Remove from Favorites', 'Credits']);
+  assert.deepEqual(withFavAndCredits[2].map(x => x.label), ['Share']);
+
+  trackHasCreditsContentMock.mock.mockImplementationOnce(() => false);
+  const noCredits = gfTrackMenuGroups(S.tracks[1]);
+  assert.deepEqual(noCredits[1].map(x => x.label), ['Add to Favorites']);
+});
+
+test('gatefoldTrackMenuPlayFromHere queues from this track on, in the album\'s own order, and closes the menu', () => {
+  resetAll();
+  openGatefoldTrackMenu(1, [0, 1]);
+  gatefoldTrackMenuPlayFromHere();
+  assert.deepEqual(setQueueMock.mock.calls[0].arguments, [[0, 1], 1, true]);
+  assert.equal(registeredClose, null);
+});
+
+test('gatefoldTrackMenuShare clicks the gatefold\'s own Share record button and closes the menu', () => {
+  resetAll();
+  const shareBtn = { click: mock.fn() };
+  const origQuerySelector = globalThis.document.querySelector;
+  globalThis.document.querySelector = (sel) => sel === '.gf-share-btn' ? shareBtn : null;
+  try{
+    openGatefoldTrackMenu(0, [0, 1]);
+    gatefoldTrackMenuShare();
+    assert.equal(shareBtn.click.mock.calls.length, 1);
+    assert.equal(registeredClose, null);
+  } finally { globalThis.document.querySelector = origQuerySelector; }
 });
 
 test('gatefoldTrackMenuPlayNext calls playNext with this track\'s index and closes the menu', () => {

@@ -13,6 +13,7 @@
    src/gatefold/sealed-front.js. */
 import { S, current, touchBackupKey } from '../state.js';
 import { $, el } from '../util/dom.js';
+import { sheetHeader } from '../ui/parts.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
@@ -195,16 +196,62 @@ function gatefoldTrackRow(i, pos, trackIdx, playHandler, reorderCtl, selecting){
 // openCreditsSheet/trackHasCreditsContent, same role rows/ISRC/person-view
 // links the full credits sheet already shows — no new builder needed).
 let gfTrackMenuCtx = null;
+// UN3 (docs/36_UNIFORMITY.md): rebuilt on sheetHeader()+the list-menu
+// look (src/ui/parts.js, 05-parts.css), with "Play from here" added
+// (plays the album from this track on, same ordering a tap on the row
+// itself uses) and "Share" (reuses the gatefold's own Share record
+// button -- there's no per-arbitrary-track share composer, only Now
+// Playing's, which is tied to whatever's actually loaded; building one
+// for an arbitrary long-pressed track is real feature work, out of
+// scope here, so this shares the record instead and is noted as a
+// follow-up in the PR). See miziki.html's own comment on
+// #gfTrackMenuOverlay for the z-index/stacking-context bug this also
+// fixes by moving the overlay out of #gatefold's own subtree.
+// Exported for its own unit test, same precedent as angleDelta
+// (scrub.js)/computeFlickPosition (launch/intro.js) above -- the label/
+// grouping logic (which items show, in what order, what each says) is
+// what's worth asserting on directly, not the DOM the menu paints it
+// into.
+export function gfTrackMenuGroups(t){
+  return [
+    [
+      { label: 'Play from here', onClick: gatefoldTrackMenuPlayFromHere },
+      { label: 'Play next', onClick: gatefoldTrackMenuPlayNext },
+      { label: 'Add to queue', onClick: gatefoldTrackMenuAddToQueue },
+    ],
+    [
+      { label: isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites', onClick: gatefoldTrackMenuToggleFavorite },
+      ...(trackHasCreditsContent(t) ? [{ label: 'Credits', onClick: gatefoldTrackMenuOpenCredits }] : []),
+    ],
+    [
+      { label: 'Share', onClick: gatefoldTrackMenuShare },
+    ],
+  ];
+}
 export function openGatefoldTrackMenu(i, trackIdx){
   const t = S.tracks[i];
   if(!t) return;
   gfTrackMenuCtx = { i, trackIdx };
-  $('#gfTrackMenuTitle').textContent = t.tags.title;
+  const head = $('#gfTrackMenuHead');
+  head.innerHTML = '';
+  const built = sheetHeader(t.tags.title);
+  built.closeBtn.addEventListener('click', () => closeLayer('gf-track-menu'));
+  head.appendChild(built);
   const sides = gatefoldSideSplits(trackIdx);
   const side = sides && sides.find(s => s.idx.includes(i));
   $('#gfTrackMenuMeta').textContent = (side ? side.label + ' · ' : '') + fmt(t.duration);
-  $('#gfTrackMenuFav').textContent = isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites';
-  $('#gfTrackMenuCredits').style.display = trackHasCreditsContent(t) ? '' : 'none';
+  const body = $('#gfTrackMenuBody');
+  body.innerHTML = '';
+  gfTrackMenuGroups(t).forEach((group, idx) => {
+    if(idx > 0) body.appendChild(el('div', 'p-list-menu-divider'));
+    group.forEach(item => {
+      const btn = el('button', 'p-list-menu-item', item.label);
+      btn.type = 'button';
+      btn.setAttribute('role', 'menuitem');
+      btn.addEventListener('click', item.onClick);
+      body.appendChild(btn);
+    });
+  });
   const overlay = $('#gfTrackMenuOverlay');
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden','false');
@@ -214,6 +261,12 @@ export function closeGatefoldTrackMenu(){
   gfTrackMenuCtx = null;
   $('#gfTrackMenuOverlay').classList.remove('open');
   $('#gfTrackMenuOverlay').setAttribute('aria-hidden','true');
+}
+export function gatefoldTrackMenuPlayFromHere(){
+  if(!gfTrackMenuCtx) return;
+  const { i, trackIdx } = gfTrackMenuCtx;
+  closeLayer('gf-track-menu');
+  setQueue(trackIdx, trackIdx.indexOf(i), true);
 }
 export function gatefoldTrackMenuPlayNext(){
   if(!gfTrackMenuCtx) return;
@@ -238,6 +291,11 @@ export function gatefoldTrackMenuOpenCredits(){
   const t = S.tracks[gfTrackMenuCtx.i];
   forceCloseLayer('gf-track-menu', {skipHistory: true});
   if(t) openCreditsSheet(t);
+}
+export function gatefoldTrackMenuShare(){
+  closeLayer('gf-track-menu');
+  const btn = document.querySelector('.gf-share-btn');
+  if(btn) btn.click();
 }
 
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): pure per-side play-count sums, from
