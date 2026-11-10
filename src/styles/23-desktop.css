@@ -549,7 +549,6 @@
   .player-overlay.glance .glance-albumyear{
     font-family:var(--body);font-size:var(--fs-title);color:var(--muted);margin-top:2px;
   }
-  .player-overlay.glance #trackSpecFormat,
   .player-overlay.glance #trackSpec,
   .player-overlay.glance #trackSpecPhase,
   .player-overlay.glance #scrub,

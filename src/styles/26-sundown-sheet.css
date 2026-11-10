@@ -20,11 +20,15 @@
 .mini-sun-btn[data-phase="morning"]{ --phase-color:#98C2CE }
 .mini-sun-btn svg{ width:20px; height:20px; fill:none; stroke:var(--phase-color); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
 
-/* the player's own format line, phase suffix — a sibling of #trackSpec,
-   not a child (see miziki.html's own comment for why), collapsed to
-   nothing until a track is loaded. */
+/* the player's own line-two spec text — a sibling of #trackSpec, not a
+   child (see miziki.html's own comment for why), collapsed to nothing
+   until a track is loaded or the record's at plain full speed with no
+   look worn (UN11, docs/36_UNIFORMITY.md point 2). --accent-text, not
+   --muted-2: this is printed amber, the same posture as the phase label
+   below it — never a state colour (contrast checked the same way
+   03-sleeve-pull.css's own --accent-text uses already are). */
 #trackSpecPhase{
-  margin-top:2px; color:var(--muted-2, var(--muted));
+  margin-top:2px; color:var(--accent-text);
 }
 #trackSpecPhase:empty{ display:none }
 

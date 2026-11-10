@@ -612,7 +612,12 @@
            S.target to 0.85/0.80/0.75. Saved pacing (S.pace) other than
            the default 'window' keeps applying with no visible control. -->
       <h3 class="sd-night-heading">Through the night</h3>
-      <div class="row">
+      <!-- UN11 (docs/36_UNIFORMITY.md point 6): the depth and night-pitch
+           segmented controls go full-width, stacked under their own
+           label+description, instead of squeezed beside them like every
+           other .row -- a 5-across (and 2-across) group needs its own
+           line. .sd-full-seg (25-day-arc-v2.css) just makes .row stack. -->
+      <div class="row sd-full-seg">
         <div class="k">How deep the night goes<em id="depthDesc">Medium — 0.80× · 3.9 st</em></div>
         <div class="seg sd-depth-seg" role="group" aria-label="How deep the night goes">
           <button data-depth="off" aria-pressed="false">Off</button>
@@ -627,7 +632,7 @@
            (the music itself slows and deepens); Keep pitch leaves the
            audio at rate 1 while the platter still visually slows --
            no time-stretching, since that would blur the sound. -->
-      <div class="row" style="margin-top:12px">
+      <div class="row sd-full-seg" style="margin-top:12px">
         <div class="k">At night, the music<em id="nightPitchDesc">At night, the music itself slows and deepens along with the platter.</em></div>
         <div class="seg sd-night-pitch-seg" role="group" aria-label="At night, the music">
           <button data-night-pitch="slowed" aria-pressed="true">Slowed</button>
@@ -638,10 +643,16 @@
 
       <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): off by default; This record
            only (the player's own switch card, below) is the always-
-           available per-session equivalent. -->
-      <div class="row" style="margin-top:12px">
-        <div class="k">Stop between records at sunset and midnight<em>For an hour around each, playback stops when a record ends.</em></div>
-        <button id="stopAtTurnsBtn" class="switch" role="switch" aria-checked="false" aria-label="Stop between records at sunset and midnight"><span class="switch-track"><i></i></span></button>
+           available per-session equivalent. UN11 point 6: the same
+           toggleRow() shape (src/ui/parts.js/05-parts.css) UN4 already
+           gave the Sound view's own Vinyl row -- #stopAtTurnsBtn keeps
+           its id, src/wiring/sundown.js/src/storage/meta.js are unaffected. -->
+      <div class="p-toggle-row" style="margin-top:12px">
+        <div class="p-toggle-top">
+          <span class="p-toggle-label">Stop between records at sunset and midnight</span>
+          <button id="stopAtTurnsBtn" class="switch" role="switch" aria-checked="false" aria-label="Stop between records at sunset and midnight"><span class="switch-track"><i></i></span></button>
+        </div>
+        <p class="p-toggle-desc">For an hour around each, playback stops when a record ends.</p>
       </div>
 
       <p class="note" id="locNote"></p>
@@ -952,7 +963,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
           Focus
         </span>
-        <button type="button" class="focus-done-btn" id="focusDoneBtn">Done</button>
+        <button type="button" class="focus-done-btn p-btn" id="focusDoneBtn">Done</button>
       </div>
       <div class="now-title-row">
         <h2 id="trackName">Nothing on the platter</h2>
@@ -975,35 +986,48 @@
         <div class="glance-artist" id="glanceArtist"></div>
         <div class="glance-albumyear" id="glanceAlbumYear"></div>
       </div>
-      <!-- shown only for a 45; written by player/transport.js's load() -->
-      <div class="format-chip" id="trackSpecFormat"></div>
-      <!-- PL8 item 10 (docs/19_PLAYER.md): tapping this reveals its own
-           Untouched/Converted/Shaped state (src/player/transport.js's
-           toggleTrackSpecState(), wired in src/wiring/transport.js). -->
+      <!-- UN11 (docs/36_UNIFORMITY.md point 2): "two spec lines" -- line
+           one (format · speed · file type · rate · lossy/lossless, e.g.
+           "7″ · 45 · MP3 · 44.1 kHz · lossy") replaces the old separate
+           45-only format chip; PL8 item 10 (docs/19_PLAYER.md)'s tap-for-
+           state behavior is unchanged (src/player/transport.js's
+           toggleTrackSpecState(), wired in src/wiring/transport.js), just
+           appended to this one line instead of a second element. -->
       <div class="spec" id="trackSpec" role="button" tabindex="0" aria-label="Signal path, tap for state">Load a file to see its signal path</div>
-      <!-- a sibling, not a child, of #trackSpec -- load() sets that one's
-           textContent wholesale on every track change, which would wipe
-           this out; drawSun() keeps this one live instead -->
+      <!-- line two: only when the record isn't at plain full speed, or
+           wears a look -- "Night · 0.80× · about 3¾ semitones lower", or
+           a look's own name. A sibling, not a child, of #trackSpec --
+           load() sets that one's textContent wholesale on every track
+           change, which would wipe this out; drawSun() keeps this one
+           live instead. --accent-text ink: printed amber, same posture
+           as the phase label, never a state colour. -->
       <div class="spec" id="trackSpecPhase"></div>
       <!-- RW3 (docs/23_RHYTHM_AND_WEAR.md): shown instead of the ordinary
            spec/actions while paused at a record boundary (This record
            only, or Stop between records at sunset/midnight) -- S.resting,
            painted by src/player/queue.js's paintRestingCard(). RW4 is the
            PR that unifies this with the real end-of-queue final state
-           (the held sleeve); for now this is its own small card. -->
+           (the held sleeve); for now this is its own small card. UN11
+           (docs/36_UNIFORMITY.md point 3): takes the card look from frame
+           `7-resting` -- a .p-label kicker + mono timestamp row, one
+           sentence of body, then primary/secondary buttons (one
+           secondary slot now, not two stacked ones -- see queue.js's
+           paintRestingSecondaryButton()). -->
       <div class="resting-card" id="restingCard" style="display:none">
-        <!-- RW4: "the side and the time it ended" -->
-        <div class="resting-meta" id="restingMeta"></div>
-        <div class="resting-kicker" id="restingKicker"></div>
+        <div class="resting-head">
+          <div class="p-label resting-kicker" id="restingKicker"></div>
+          <!-- RW4: "the side and the time it ended," mono, on the right -->
+          <div class="resting-meta" id="restingMeta"></div>
+        </div>
         <p class="resting-body" id="restingBody"></p>
-        <!-- FS10 (docs/25_FROM_SCRATCH.md) point 4, frame 16: "Play it
-             again (outlined, restarts side A)" and "Back to your queue
-             (continueFromResting())" -- replaces the old instructional
-             #restingNote text with two explicit buttons; the Flip prompt
-             stays for whichever resting reason still has another side queued. -->
-        <button class="cta ghost" id="restingFlipBtn" style="display:none">Flip to Side B</button>
-        <button class="cta ghost" id="restingPlayAgainBtn">Play it again</button>
-        <button class="link-btn" id="restingBackBtn">Back to your queue</button>
+        <!-- FS10 (docs/25_FROM_SCRATCH.md) point 4, frame 16, reworked by
+             UN11 point 3: "Play it again" (primary, restarts side A) and
+             one secondary button whose label/action switch between "Flip
+             to Side B" and "Back to the crate" (queue.js's
+             restingSecondaryAction()) depending on whether another side
+             is still queued. -->
+        <button class="p-btn p-btn--primary" id="restingPlayAgainBtn">Play it again</button>
+        <button class="p-btn" id="restingBackBtn">Back to the crate</button>
       </div>
       <div class="stack" id="nowActions" style="justify-content:center;margin-top:10px">
         <button class="cta ghost" id="lookBtn" style="display:none">Look</button>
@@ -1061,16 +1085,16 @@
     </div>
 
     <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
-    <!-- GS3 (docs/30_GROOVES_AND_SHELF.md point 4): replaces the plain
-         elapsed/total time readout -- a side map (one segment per track
-         on this side, the current one filling, no numbers) plus the
-         current track's own side-relative position and title. Built/
-         updated by player/clock.js's drawTime(); the lock screen's own
-         position/scrubber (mediaSession, player/background.js) is
-         untouched. -->
+    <!-- UN11 (docs/36_UNIFORMITY.md decision 21): one progress bar only
+         (#scrub above) -- elapsed/remaining times either side of a centre
+         caption ("Side A · 1 of 2", or "Track 3 of 10" with sides off).
+         Built/updated by player/clock.js's drawTime()/renderSideMap(); the
+         lock screen's own position/scrubber (mediaSession,
+         player/background.js) is untouched. -->
     <div class="times">
-      <div class="side-map" id="sideMap" aria-hidden="true"></div>
-      <div class="side-map-track" id="sideMapTrack"></div>
+      <span class="time-elapsed" id="timeElapsed"></span>
+      <span class="time-caption" id="timeCaption"></span>
+      <span class="time-remaining" id="timeRemaining"></span>
     </div>
 
     <div class="transport">

@@ -36,7 +36,7 @@ import {
 } from '../audio/surface-noise.js';
 import { performPendingFlip, sideFlipTurnAt } from '../shell/runout.js';
 import { saveResumeNow } from './resume.js';
-import { fileSpecLine, specRateSuffix, specState, specStateLabel } from './track-spec.js';
+import { playerSpecLine1, specRateSuffix, specState, specStateLabel } from './track-spec.js';
 
 // AU2 (docs/16_AUDIO.md §2.2): every ordinary edge -- pause, stop, seek --
 // fades S.nodes.trackGain by this many ms before the source actually
@@ -61,7 +61,7 @@ function renderTrackSpecLine(t){
   if(!el || !t) return;
   const m = t.meta;
   const engineRate = S.ctx ? S.ctx.sampleRate : null;
-  const base = fileSpecLine(m) + specRateSuffix(m.rate, engineRate);
+  const base = playerSpecLine1(formatChipText(S.recordFormat), m) + specRateSuffix(m.rate, engineRate);
   if(!specExpanded){ el.textContent = base; return; }
   const eq = S.eq || {};
   const state = specState({
@@ -425,9 +425,6 @@ export function load(i){
     platterStage.setAttribute('data-size', platterSizeAttr(S.recordFormat));
     platterStage.setAttribute('data-speed', platterSpeedAttr(S.recordFormat));
   }
-  // AU10: the "7″ · 45" chip before the spec line.
-  const fmtChip = $('#trackSpecFormat');
-  if(fmtChip) fmtChip.textContent = S.recordFormat.speed === RPM_45 ? formatChipText(S.recordFormat) : '';
   // SURFACE_NOISE §5: the dead-wax etching, same as every other
   // written-at-load platter readout just above it. AU10: the band's own
   // radius now follows this side's fullness (record-art/format.js).

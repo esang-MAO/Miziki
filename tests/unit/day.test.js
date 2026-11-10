@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents, dayPosition, standInEvents, isAfterSunset } from '../../src/sundown/day.js';
-import { sunProgress, easedProgress, computeRate } from '../../src/sundown/solar.js';
+import { sunProgress, easedProgress, computeRate, solarEvent } from '../../src/sundown/solar.js';
 import { S } from '../../src/state.js';
 
 // src/sundown/day.js and the day-model parts of solar.js have no DOM/`S`-
@@ -273,12 +273,39 @@ test('easedProgress: twilight (dusk) pacing is unchanged from before DA1', () =>
   assert.ok(Math.abs(e - 0.5) < 0.01); // smoothstep(0.5) = 0.5
 });
 
-test('standInEvents: with no cache, the fixed stand-ins (sunset 8:10 pm, dusk 8:36 pm)', () => {
+// UN11 (docs/36_UNIFORMITY.md point 7): with no cache, the stand-in is a
+// rough sun model (lat 40°, lon from the device's own UTC offset), not a
+// fixed summer sunset -- matched here against solarEvent() directly
+// (the same call standInEvents() makes), rather than a hardcoded time,
+// so the test holds under whatever timezone it actually runs in.
+test('standInEvents: with no cache, a rough season-aware model replaces the old fixed summer stand-in', () => {
   const now = new Date(2026, 9, 21, 9, 0);
+  const lon = -now.getTimezoneOffset() / 4;
+  const rise = solarEvent(now, 40, lon, -0.833, true);
+  const set = solarEvent(now, 40, lon, -0.833, false);
   const ev = standInEvents(now, null);
-  assert.equal(ev.rise.getHours() * 60 + ev.rise.getMinutes(), 6*60 + 50);
-  assert.equal(ev.set.getHours() * 60 + ev.set.getMinutes(), 20*60 + 10);
-  assert.equal(ev.dusk.getHours() * 60 + ev.dusk.getMinutes(), 20*60 + 36);
+  assert.equal(ev.rise.getTime(), rise.getTime());
+  assert.equal(ev.set.getTime(), set.getTime());
+  assert.equal(ev.dawn.getTime(), rise.getTime() - 30*60000);
+  assert.equal(ev.dusk.getTime(), set.getTime() + 26*60000);
+  assert.ok(Math.abs(ev.noon.getTime() - (rise.getTime() + set.getTime()) / 2) < 1);
+});
+
+// The whole point of point 7: a December sunset reads meaningfully
+// earlier than a June one at the same (rough, timezone-derived) spot --
+// not "always 8:10 pm" whatever the month, which used to make "night"
+// start three real hours late in November for anyone without location.
+test('standInEvents: the rough model is seasonal -- December sunset is well before June sunset', () => {
+  const june = new Date(2026, 5, 21, 9, 0);
+  const december = new Date(2026, 11, 21, 9, 0);
+  const juneEv = standInEvents(june, null);
+  const decEv = standInEvents(december, null);
+  const juneMinutes = juneEv.set.getHours() * 60 + juneEv.set.getMinutes();
+  const decMinutes = decEv.set.getHours() * 60 + decEv.set.getMinutes();
+  // at lat 40 the solstice gap in day length is roughly 5-6 hours, so even
+  // a loose margin (2h) is well clear of noise/edge-of-day wraparound.
+  assert.ok(juneMinutes - decMinutes > 120,
+    `expected June sunset (${juneMinutes}m) well after December's (${decMinutes}m)`);
 });
 
 test("standInEvents: today's cached sunrise/sunset replace the stand-ins, with dawn/dusk/noon derived around them", () => {
@@ -295,13 +322,15 @@ test("standInEvents: today's cached sunrise/sunset replace the stand-ins, with d
   assert.notEqual(evening.phase, 'afternoon');
 });
 
-test("standInEvents: a cache from another day, or a malformed one, falls back to the stand-ins", () => {
+test("standInEvents: a cache from another day, or a malformed one, falls back to the rough model", () => {
   const now = new Date(2026, 9, 21, 9, 0);
+  const lon = -now.getTimezoneOffset() / 4;
+  const expectedSet = solarEvent(now, 40, lon, -0.833, false);
   const y = new Date(2026, 9, 20);
   const stale = standInEvents(now, { date: y.toDateString(), rise: y.toISOString(), set: y.toISOString() });
-  assert.equal(stale.set.getHours(), 20);
+  assert.equal(stale.set.getTime(), expectedSet.getTime());
   const bad = standInEvents(now, { date: now.toDateString(), rise: 'nope', set: 'nope' });
-  assert.equal(bad.set.getHours(), 20);
+  assert.equal(bad.set.getTime(), expectedSet.getTime());
 });
 
 // GF11 (docs/29_GATEFOLD.md): "from the day model's sunset phase until
