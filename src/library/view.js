@@ -753,7 +753,11 @@ function renderTracksBody(host){
   libCommonFormat = mostCommonFormat(S.tracks);
   $('#empty').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();
-  $('#selectToggle').style.display = (S.tracks.length && v.mode !== 'crate') ? '' : 'none';
+  // UN3 (docs/36_UNIFORMITY.md) retired the header's own Select toggle
+  // button (#selectToggle) in favor of a "Select" row inside the Library
+  // tools sheet (#libToolsSelectRow, wiring/library-view.js) -- this
+  // render pass kept trying to show/hide the now-gone button and threw
+  // on every render, blanking the whole library screen.
   $('#selectBar').style.display = v.editSelecting ? 'flex' : 'none';
   updateLibTabsForLayout();
   updateHeaderActionsAvailability();
