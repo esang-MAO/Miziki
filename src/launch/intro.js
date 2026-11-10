@@ -68,7 +68,6 @@ const SHORT_LAUNCH_ANIM = {
 };
 document.documentElement.style.setProperty('--launch-fade-duration', LAUNCH_ANIM.fadeMs + 'ms');
 document.documentElement.style.setProperty('--launch-pull-duration', LAUNCH_ANIM.pullMs + 'ms');
-document.documentElement.style.setProperty('--launch-wordmark-duration', (LAUNCH_ANIM.catchMs + LAUNCH_ANIM.pullMs) + 'ms');
 document.documentElement.style.setProperty('--launch-skip-duration', LAUNCH_ANIM.skipMs + 'ms');
 
 // TY4 (docs/22_TYPE.md): the launch header's wordmark is the drawn SVG now,
@@ -384,6 +383,10 @@ export async function runLaunchSequence(){
   if(cancelled()) return;
 
   // FLICK: accelerate, cruise, decelerate — one position, driven by rAF
+  // LA2: the one mark (#launchWordmark) fades to 70% for the dig, same
+  // phase this flick covers.
+  const wordmarkEl = $('#launchWordmark');
+  wordmarkEl.classList.add('launch-digging');
   {
     // LA1: short swaps in its own cut accel/cruise/decel timings; every
     // other phase (fade/catch/pull/crossfade) stays LAUNCH_ANIM's, below.
@@ -412,6 +415,9 @@ export async function runLaunchSequence(){
   // crate's own way of taking a record out) and a haptic tick lands it
   // where the platform allows one (ui/haptic.js — silent on iOS Safari,
   // so the lift is what carries the moment there).
+  // LA2: the mark fades further, to 25%, for the catch -- and stays there
+  // through pull/crossfade (it never moves to the bottom or grows).
+  wordmarkEl.classList.add('launch-caught');
   const targetCard = cards.get(stack.targetIndex);
   if(targetCard){
     hapticTick();
@@ -436,10 +442,9 @@ export async function runLaunchSequence(){
   // PULL TO CAMERA: the sleeve scales up to face-on while its record
   // slides out of the top in its own pressing (record-art/peek.js — the
   // same drawing as the crate's pull-up, rising to the same quarter of the
-  // card); neighbours spread apart, dim and fade (opacity only, no blur);
-  // the wordmark grows
-  const wordmarkEl = $('#launchWordmark');
-  wordmarkEl.classList.add('launch-grown');
+  // card); neighbours spread apart, dim and fade (opacity only, no blur).
+  // The mark (#launchWordmark) stays put at the top, already at its 25%
+  // catch opacity set above (LA2) -- it never grows or moves down here.
   let peekEl = null;
   if(targetCard){
     const targetTrack = targetId != null ? (S.tracks.find(t => albumKey(t) === targetId) || null) : null;

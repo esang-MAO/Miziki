@@ -21,14 +21,21 @@
 .launch-stage{position:relative;width:390px;height:740px;flex:0 0 auto;
   perspective:1000px;perspective-origin:50% 36%;
   transform:scale(var(--launch-scale,1))}
-/* TY4 (docs/22_TYPE.md): the "A" cut (data/wordmark.svg), muted until the
-   catch. "Grown" now scales the drawn mark itself (transform, same as every
-   other launch-card move) rather than jumping font-size. */
+/* LA2 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 17): one mark, the "F" cut
+   (data/wordmark.svg, rotated -12deg — the same drawing the Miziki sleeve's
+   .launch-card-mark below uses), small, at the top of the stage only. It
+   never moves to the bottom or grows -- that was the old upright "A" cut's
+   catch/pull animation (removed; see docs/CHANGELOG.md for its history).
+   Full opacity at rest, fading to 70% during the dig (.launch-digging,
+   added when the flick starts) and to 25% at the catch (.launch-caught,
+   added when the lift starts) and staying there through pull/crossfade.
+   Reuses --launch-fade-duration (set from LAUNCH_ANIM.fadeMs) for the
+   opacity transition rather than a wordmark-only duration var. */
 .launch-wordmark{position:absolute;left:0;right:0;top:64px;text-align:center;
-  opacity:.55;transition:opacity var(--launch-wordmark-duration,900ms) ease-out,
-    transform var(--launch-wordmark-duration,900ms) ease-out}
-.launch-wordmark svg{width:130px;height:auto;display:inline-block}
-.launch-wordmark.launch-grown{opacity:1;top:auto;bottom:140px;transform:scale(2.2)}
+  opacity:1;transition:opacity var(--launch-fade-duration,250ms) ease-out}
+.launch-wordmark.launch-digging{opacity:.7}
+.launch-wordmark.launch-caught{opacity:.25}
+.launch-wordmark svg{width:110px;height:auto;display:inline-block;transform:rotate(-12deg)}
 .launch-stack{position:absolute;inset:0;transform-style:preserve-3d;
   opacity:0;transition:opacity var(--launch-fade-duration,250ms) ease-out}
 .launch-stack.launch-settled{opacity:1}
