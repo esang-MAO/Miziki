@@ -496,7 +496,9 @@ export function storeWallSection(picks){
     section.appendChild(el('p','store-loading','Pin a record to put it on the wall.'));
   }
   const cubby = storeWallCubby();
-  if(cubby) section.appendChild(cubby);
+  // UN14 point 2/5 (docs/36_UNIFORMITY.md): no found pressings or metals
+  // yet means no empty cubby or placeholder frames, just this one line.
+  section.appendChild(cubby || el('p','store-loading','Play an album start to finish…'));
   return section;
 }
 
@@ -536,11 +538,27 @@ function storeLedge(picks){
 // history/achievements.js's achievementsList(), merged and sorted by
 // their own date, newest first). Fewer than three found just leaves the
 // remaining frames out, per docs/24_QUIET_COUNTS.md.
-function storeWallCubby(){
-  const found = [
-    ...Object.values(S.collection).map(rec => ({rec, kind:'pressing', date: rec.discoveredAt})),
-    ...achievementsList().map(rec => ({rec, kind:'metal', date: rec.updatedAt})),
+// Pure: the last three pressings/metals found, newest first — extracted
+// so UN14 (docs/36_UNIFORMITY.md) can test the 0/1/2/3/5-found section
+// count without a DOM.
+export function wallFoundList(collection, achievements){
+  return [
+    ...Object.values(collection).map(rec => ({rec, kind:'pressing', date: rec.discoveredAt})),
+    ...achievements.map(rec => ({rec, kind:'metal', date: rec.updatedAt})),
   ].sort((a, b) => b.date - a.date).slice(0, 3);
+}
+
+// Pure: the mono readout under a wall frame. UN14 point 3 — no phase
+// saved (older finds) means just the date, never a leading "· " dangling
+// off a blank phase word.
+export function wallFoundCaption(kind, phase, date){
+  if(kind === 'metal') return 'METAL · ' + wallMonth(date);
+  const phaseLabel = PHASE_CAPS[phase];
+  return phaseLabel ? phaseLabel + ' · ' + wallDayMonth(date) : wallDayMonth(date);
+}
+
+function storeWallCubby(){
+  const found = wallFoundList(S.collection, achievementsList());
   if(!found.length) return null;
 
   const wrap = el('div','store-wall-frames-wrap');
@@ -569,9 +587,7 @@ function storeWallCubby(){
 
     const cap = el('div','store-pressing-caption');
     cap.appendChild(el('b', null, rec.name));
-    cap.appendChild(el('span','store-found-mono', kind === 'metal'
-      ? 'METAL · ' + wallMonth(date)
-      : (PHASE_CAPS[rec.phase] || '') + ' · ' + wallDayMonth(date)));
+    cap.appendChild(el('span','store-found-mono', wallFoundCaption(kind, rec.phase, date)));
     captions.appendChild(cap);
   });
   wrap.appendChild(frames);

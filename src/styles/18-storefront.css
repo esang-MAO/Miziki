@@ -368,7 +368,7 @@ button.pressing-chip{cursor:pointer}
 .store-found-mono{font-family:var(--data) !important;font-size:var(--fs-micro) !important;letter-spacing:.08em;text-transform:uppercase;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-wall-all{display:block;background:none;border:0;
-  font-family:var(--data);font-size:var(--fs-label);color:var(--paper);letter-spacing:.08em;text-transform:uppercase;
+  font-family:var(--body);font-size:var(--fs-body);font-weight:600;color:var(--paper);
   text-align:right;padding:var(--sp-2) 0;min-height:44px}
 
 /* GS8 point 4-5: "a cube-shelving view of your crate (2 columns), records
