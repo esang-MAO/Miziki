@@ -23,6 +23,9 @@ function turntableTile(model, current){
   swatch.appendChild(renderTurntable(model.id, true, null, false));
   btn.appendChild(swatch);
   btn.appendChild(el('span', 'turntable-pick-label', model.label));
+  // UN15 point 5: same DELUXE tag shelf-finish-sheet.js's own swatch already
+  // carries for a Deluxe finish.
+  if(model.deluxe) btn.appendChild(el('span', 'shelf-finish-sw-tag', 'DELUXE'));
   btn.addEventListener('click', () => pickTurntable(model.id));
   return btn;
 }
@@ -43,18 +46,20 @@ function renderTurntableSheet(){
   previewWrap.appendChild(renderShelfUnit(Object.assign({model: shown, onTapAlbum: () => {}}, shelfUnitRenderProps())));
   body.appendChild(previewWrap);
 
+  // UN15 point 5: "the selected deck's name and note sit directly under
+  // the preview, not after all 12 cards."
+  const cur = turntableInfo(shown);
+  const currentInfo = el('div', 'shelf-finish-current');
+  currentInfo.appendChild(el('span', 'shelf-finish-current-name', cur.label));
+  currentInfo.appendChild(el('span', 'shelf-finish-current-note', cur.note));
+  body.appendChild(currentInfo);
+
   const had = turntablesHad(S.turntablesFound, hasDeluxe());
   const group = el('div', 'turntable-pick-grid');
   group.setAttribute('role', 'radiogroup');
   group.setAttribute('aria-label', 'Turntable');
   TURNTABLE_LINEUP.filter(m => had.has(m.id)).forEach(m => group.appendChild(turntableTile(m, shown)));
   body.appendChild(group);
-
-  const cur = turntableInfo(shown);
-  const currentInfo = el('div', 'shelf-finish-current');
-  currentInfo.appendChild(el('span', 'shelf-finish-current-name', cur.label));
-  currentInfo.appendChild(el('span', 'shelf-finish-current-note', cur.note));
-  body.appendChild(currentInfo);
 }
 
 export function openTurntableSheet(){
