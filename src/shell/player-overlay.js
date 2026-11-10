@@ -8,6 +8,7 @@ import { runStartSequence, interruptStartSequence } from './start-sequence.js';
 import { openLayer } from './nav-stack.js';
 import { currentDayPosition } from '../sundown/solar.js';
 import { eveningGlanceLevel, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS, FOCUS_GLANCE_FIRST_MS } from '../player/evening-glance.js';
+import { anchoredMenuTop } from '../util/menu-position.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
@@ -131,7 +132,22 @@ export function interruptMorph(){
 export function openPlayerOverflowMenu(){
   const btn = $('#playerOverflowBtn'), r = btn.getBoundingClientRect();
   const menu = $('#playerOverflowMenu');
-  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  // UN3 (docs/36_UNIFORMITY.md): anchor above the button -- flip below
+  // only when there isn't room above either. Today's menu always opened
+  // below, which is what let the last row ("Private session") run off
+  // the bottom of a 390x844 screen once a track is loaded and every row
+  // shows. The menu's real height depends on which rows are currently
+  // hidden, so it's measured with a laid-out-but-invisible pass rather
+  // than assumed.
+  menu.style.visibility = 'hidden';
+  menu.style.display = 'flex';
+  const menuHeight = menu.offsetHeight;
+  menu.style.display = '';
+  menu.style.visibility = '';
+  menu.style.top = anchoredMenuTop({
+    buttonTop: r.top, buttonBottom: r.bottom, menuHeight,
+    viewportHeight: window.innerHeight, scrollY: window.scrollY, margin: 8,
+  }) + 'px';
   menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
   $('#playerOverflowScrim').classList.add('open');
   menu.classList.add('open');

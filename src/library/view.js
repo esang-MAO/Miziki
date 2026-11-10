@@ -7,18 +7,19 @@
    module has nothing to do with either. */
 import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $, el } from '../util/dom.js';
+import { backHeader } from '../ui/parts.js';
 import { fmt } from '../util/text.js';
-import { setQueue, setQueueList, setQpos } from '../player/queue.js';
-import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView } from './credits.js';
-import { isFavorite } from './favorites.js';
+import { setQueue, setQueueList, setQpos, playNext, addToQueue } from '../player/queue.js';
+import { trackHasCreditsContent, albumCreditRoll, creditRow, renderPersonView, openCreditsSheet } from './credits.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
 import { appendConnectedShelf } from './connected.js';
 import { appendMostSpun, appendArtistHistory, appendPressings } from './artist-shelves.js';
 import { albumYearFor, albumArtistFor } from '../crate/model.js';
 import { queueSave } from '../storage/meta.js';
 import { byName, groupBy, allIdx, idOf, idxOf, trackSort } from './model.js';
 import { overlays, artwork } from '../storage/repo.js';
-import { applyEdit, showUndoBanner } from './edit.js';
-import { countForAlbum, countForArtist, deleteAlbum, deleteArtist } from './delete.js';
+import { applyEdit, showUndoBanner, openEditSheet } from './edit.js';
+import { countForAlbum, countForArtist, deleteAlbum, deleteArtist, deleteTracks } from './delete.js';
 import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
 import { thumbURL } from './thumbs.js';
@@ -30,7 +31,7 @@ import { centerEmptyState, renderCrate, openCrateAlbum } from '../crate/view.js'
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
 import { letterKeyFor, buildLetterGroups, buildRailTicks } from '../ui/letter-rail.js';
-import { openLayer } from '../shell/nav-stack.js';
+import { openLayer, closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
 import { saveScrollPosition, restoreScrollPosition } from '../shell/scroll-memory.js';
 
 // NV6 (docs/11_SMOOTH_NAVIGATION.md): for a library with more rows than fit
@@ -297,12 +298,50 @@ function updateSelectBar(){
 /* ---- deletion UI: row overflow menu + shared confirm dialog ----
    No undo window (see LIBRARY spec §4) — the confirm dialog is the
    safeguard, and its copy must be unambiguous that files stay on disk. */
-export let rowMenuTrackId = null;
+// UN3 (docs/36_UNIFORMITY.md): the header (cover/title/artist · album)
+// and the list-menu body are rebuilt from scratch on every open, since
+// both depend on this one track -- same "rebuild, don't diff" posture
+// openGatefoldTrackMenu() (gatefold/view.js) already takes for its own
+// per-track sheet. "Add to playlist…" is left out, see miziki.html's own
+// comment on #rowMenuOverlay for why.
+function rowMenuGroups(t){
+  return [
+    [
+      { label: 'Play next', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuPlayNext(i); } },
+      { label: 'Add to queue', onClick: () => { const i = idxOf(t.id); if(i >= 0) rowMenuAddQueue(i); } },
+    ],
+    [
+      { label: isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites', onClick: () => rowMenuToggleFavorite(t.id) },
+      ...(trackHasCreditsContent(t) ? [{ label: 'Credits and notes', onClick: () => rowMenuOpenCredits(t) }] : []),
+      { label: 'Edit info', onClick: () => rowMenuEditInfo(t.id) },
+    ],
+    [
+      { label: '!Remove from library…', onClick: () => rowMenuRemove(t.id) },
+    ],
+  ];
+}
 function openRowMenu(t){
-  rowMenuTrackId = t.id;
   $('#rowMenuTitle').textContent = t.tags.title;
-  $('#rowMenuCredits').style.display = trackHasCreditsContent(t) ? '' : 'none';
-  $('#rowMenuFav').textContent = isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites';
+  $('#rowMenuSub').textContent = t.tags.artist + ' · ' + t.tags.album;
+  const cover = $('#rowMenuCover');
+  cover.innerHTML = '';
+  const src = thumbURL['album:' + albumKey(t)] || t.art;
+  if(src){ const im = el('img', null); im.src = src; im.alt = ''; cover.appendChild(im); }
+  else cover.appendChild(el('span', null, '◍'));
+  const body = $('#rowMenuBody');
+  body.innerHTML = '';
+  rowMenuGroups(t).forEach((group, i) => {
+    if(i > 0) body.appendChild(el('div', 'p-list-menu-divider'));
+    group.forEach(item => {
+      const danger = item.label.startsWith('!');
+      const btn = el('button', danger ? 'p-list-menu-item p-list-menu-item--danger' : 'p-list-menu-item',
+        danger ? item.label.slice(1) : item.label);
+      btn.type = 'button';
+      btn.setAttribute('role', 'menuitem');
+      btn.addEventListener('click', item.onClick);
+      body.appendChild(btn);
+    });
+  });
   $('#rowMenuOverlay').classList.add('open');
   $('#rowMenuOverlay').setAttribute('aria-hidden','false');
   // Was a plain classList toggle with no Back/Escape/tap-outside support at
@@ -312,8 +351,34 @@ function openRowMenu(t){
   // forceCloseLayer instead of calling closeRowMenu() directly now.
   openLayer('row-menu', closeRowMenu, { container: $('#rowMenuOverlay') });
 }
+// UN3: each row's own action, inlined into rowMenuGroups() above rather
+// than wired by id from src/wiring/library-view.js, since the buttons
+// themselves no longer have stable ids (the menu is rebuilt per track).
+// Same close-then-act shape the old per-id wiring used — see this
+// function's own history in src/wiring/library-view.js before UN3 for
+// the skipHistory/forceCloseLayer reasoning each of these preserves.
+function rowMenuPlayNext(i){ closeLayer('row-menu'); playNext(i); }
+function rowMenuAddQueue(i){ closeLayer('row-menu'); addToQueue(i); }
+function rowMenuToggleFavorite(id){ closeLayer('row-menu'); toggleFavorite(id); }
+function rowMenuOpenCredits(t){
+  forceCloseLayer('row-menu', {skipHistory: true});
+  openCreditsSheet(t);
+}
+function rowMenuEditInfo(id){
+  forceCloseLayer('row-menu', {skipHistory: true});
+  openEditSheet([id]);
+}
+// UN3 point 2: "Remove today's confirm" — this removes the track from
+// the *library listing* only (files on disk are untouched, same as
+// every other library removal), unlike the artist page's "Remove
+// artist…" (UN3 point 5), which still confirms through #confirmOverlay
+// since deleting every album by an artist is a much larger, harder to
+// walk back action.
+async function rowMenuRemove(id){
+  closeLayer('row-menu');
+  await deleteTracks([id]);
+}
 export function closeRowMenu(){
-  rowMenuTrackId = null;
   $('#rowMenuOverlay').classList.remove('open');
   $('#rowMenuOverlay').setAttribute('aria-hidden','true');
 }
@@ -617,6 +682,35 @@ export function renderTracks(){
   }
 }
 
+// UN3 point 5: set each render by the artist-page branch below, read by
+// openArtistMoreMenu()'s own "Credits" item -- module-scoped since the
+// menu's rect-based open/close (same shape as shell/header.js's small
+// popovers) lives outside renderTracksBody() itself, and by the time a
+// tap can reach it, the render that set it has already finished.
+let artistCreditsToggle = null;
+function openArtistMoreMenu(btn){
+  const r = btn.getBoundingClientRect();
+  const menu = $('#artistMoreMenu');
+  menu.style.top = Math.round(r.bottom + window.scrollY + 8) + 'px';
+  menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+  $('#artistMoreMenuScrim').classList.add('open');
+  menu.classList.add('open');
+  $('#artistMoreCreditsBtn').onclick = () => {
+    closeLayer('artist-more-menu');
+    if(artistCreditsToggle) artistCreditsToggle();
+  };
+  $('#artistMoreRemoveBtn').onclick = () => {
+    closeLayer('artist-more-menu');
+    const group = S.view.group;
+    openConfirmDelete('artist', countForArtist(group), group, async () => { deleteArtist(group); S.view.group = null; renderTracks(); });
+  };
+  openLayer('artist-more-menu', closeArtistMoreMenu, { container: [menu, $('#artistMoreMenuScrim')] });
+}
+export function closeArtistMoreMenu(){
+  $('#artistMoreMenuScrim').classList.remove('open');
+  $('#artistMoreMenu').classList.remove('open');
+}
+
 function renderTracksBody(host){
   viewRenderGen++; // invalidate any chunked append job still running from a previous render
   host.innerHTML = '';
@@ -676,8 +770,15 @@ function renderTracksBody(host){
   // person, or an artist's loose-tracks page opened from the crate
   const crumb = $('#crumb');
   const inside = v.group !== null || v.playlist !== null || v.mode === 'person' || v.mode === 'crateLoose';
-  crumb.style.display = inside ? 'flex' : 'none';
-  if(inside){
+  // UN3 (docs/36_UNIFORMITY.md point 5): a plain artist page (not drilled
+  // into one of its albums) gets backHeader('Artists', name, ⋯) instead
+  // of the generic crumb -- "Remove artist…" moves into the ⋯ menu
+  // (openArtistMoreMenu() below), so this is the one case the old
+  // crumb's own removeBtn ternary used to cover with "Remove Artist"
+  // (the `else` of `(v.mode === 'albums' || atArtistAlbum)` just below).
+  const isArtistPage = v.mode === 'artists' && v.group !== null && v.artistAlbum === null;
+  crumb.style.display = (inside && !isArtistPage) ? 'flex' : 'none';
+  if(inside && !isArtistPage){
     crumb.innerHTML = '';
     const atArtistAlbum = v.mode === 'artists' && v.artistAlbum !== null;
     // an album or loose-tracks page reached from the crate says so, and
@@ -704,17 +805,19 @@ function renderTracksBody(host){
     crumb.appendChild(el('span','crumb-label',
       v.mode === 'person' ? v.person : (v.mode === 'crateLoose' ? v.crateLooseArtist :
       (v.playlist !== null ? S.playlists[v.playlist].name : (atArtistAlbum ? v.artistAlbum : v.group)))));
-    // Album/artist deletion lives right where you're looking at that album
-    // or artist — offered even for a single-album artist, no conditional
-    // collapsing to album deletion (see LIBRARY spec §4)
-    if(v.playlist === null && v.group !== null && (v.mode === 'albums' || v.mode === 'artists')){
-      const removeBtn = el('button','crumb-back', (v.mode === 'albums' || atArtistAlbum) ? 'Remove Album' : 'Remove Artist');
+    // Album deletion lives right where you're looking at that album —
+    // offered even for a single-album artist, no conditional collapsing
+    // (see LIBRARY spec §4). The plain-artist-page case (UN3 point 5,
+    // "Remove artist…") is excluded from this whole block by
+    // !isArtistPage above now, and lives in openArtistMoreMenu() instead.
+    if(v.playlist === null && v.group !== null && (v.mode === 'albums' || atArtistAlbum)){
+      const removeBtn = el('button','crumb-back','Remove Album');
       removeBtn.style.marginLeft = 'auto';
       removeBtn.addEventListener('click', ()=>{
         const group = v.group;
         if(v.mode === 'albums'){
           openConfirmDelete('album', countForAlbum(group), group, async () => { deleteAlbum(group); v.group = null; renderTracks(); });
-        } else if(atArtistAlbum){
+        } else {
           const album = v.artistAlbum;
           const artist = v.group;
           openConfirmDelete('album', countForAlbum(album), album, async () => {
@@ -725,12 +828,29 @@ function renderTracksBody(host){
             if(!countForArtist(artist)) v.group = null;
             renderTracks();
           });
-        } else {
-          openConfirmDelete('artist', countForArtist(group), group, async () => { deleteArtist(group); v.group = null; renderTracks(); });
         }
       });
       crumb.appendChild(removeBtn);
     }
+  }
+
+  // UN3 point 5: the plain artist page's own header -- backHeader('Artists',
+  // name, ⋯), with Credits and "Remove artist…" (danger, with a confirm,
+  // unchanged from what the old crumb removeBtn did) moved into the ⋯
+  // menu. "Share artist" (the plan's other ⋯ item) is left out: there's
+  // no share-card composer for an artist anywhere in src/share/ yet
+  // (every composer there is per-album/per-track/per-crate) -- building
+  // one is real new feature work, not a menu restyle, so it's noted as a
+  // follow-up in the PR rather than built here.
+  if(isArtistPage){
+    const moreBtn = el('button', 'hdr-icon-btn', '⋯');
+    moreBtn.type = 'button';
+    moreBtn.setAttribute('aria-label', 'Artist options');
+    moreBtn.setAttribute('aria-haspopup', 'menu');
+    const header = backHeader('Artists', v.group, moreBtn);
+    header.backBtn.addEventListener('click', ()=>{ v.group = null; renderTracks(); });
+    moreBtn.addEventListener('click', ()=> openArtistMoreMenu(moreBtn));
+    host.appendChild(header);
   }
 
   const ul = el('ul','tracklist');
@@ -811,6 +931,10 @@ function renderTracksBody(host){
         (yearOf.get(a[0]) || 9999) - (yearOf.get(b[0]) || 9999) || byName(a[0], b[0]));
       const flat = entries.flatMap(([, aidx]) => aidx.slice().sort(trackSort));
 
+      // UN3 point 5: the action row is Play all (primary) and Shuffle
+      // (secondary) only now -- Credits moved into the ⋯ menu above
+      // (openArtistMoreMenu()'s own toggle, set below, is what that
+      // menu's "Credits" item actually calls).
       const actions = el('div','artist-actions');
       const playAll = el('button','cta','Play all');
       playAll.addEventListener('click', ()=> setQueue(flat, 0, true));
@@ -823,14 +947,11 @@ function renderTracksBody(host){
         }
         setQueue(shuffled, 0, true);
       });
-      const creditsBtn = el('button','cta ghost','Credits');
-      creditsBtn.setAttribute('aria-expanded','false');
       const creditsBody = el('div','artist-credits');
       creditsBody.hidden = true;
-      creditsBtn.addEventListener('click', ()=>{
+      artistCreditsToggle = () => {
         const open = creditsBody.hidden;
         creditsBody.hidden = !open;
-        creditsBtn.setAttribute('aria-expanded', String(open));
         if(open && !creditsBody.childNodes.length){
           const roll = new Map();
           entries.forEach(([album]) => albumCreditRoll(album).forEach((names, label) => {
@@ -840,8 +961,8 @@ function renderTracksBody(host){
           if(!roll.size) creditsBody.appendChild(el('p','note','No credits in these files.'));
           else roll.forEach((names, label) => creditsBody.appendChild(creditRow(label, names)));
         }
-      });
-      actions.appendChild(playAll); actions.appendChild(shuffleBtn); actions.appendChild(creditsBtn);
+      };
+      actions.appendChild(playAll); actions.appendChild(shuffleBtn);
       host.appendChild(actions);
       host.appendChild(creditsBody);
 
