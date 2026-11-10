@@ -18,13 +18,28 @@
 const PANEL_SIZE = 350;
 const DISC_DIAMETER = 156;
 const POCKET_SIZE = 132;
+// UN7 (docs/36_UNIFORMITY.md point 1): "today the panel starts 40px in
+// and runs off the right edge" on a 390px phone, because panelSize was
+// the flat 350 literal above regardless of viewport. viewportWidth is
+// optional -- every pre-existing call site/test that omits it (including
+// the module-load fallback call in gatefold/view.js, before any real
+// viewport is known) keeps the old flat-350 behaviour unchanged; only
+// openGatefold()'s own call now passes window.innerWidth. The 16px side
+// margin plus the 24px cover-strip width (UN7 point 2 -- gf-left-cue's
+// own width) are subtracted so the strip and panel together, not the
+// panel alone, fit inside the viewport with equal 16px margins.
+const SIDE_MARGIN = 16;
+const STRIP_WIDTH = 24;
 
-export function gatefoldGeometry(_format, _viewport){
+export function gatefoldGeometry(_format, viewportWidth){
+  const panelSize = viewportWidth == null
+    ? PANEL_SIZE
+    : Math.min(PANEL_SIZE, viewportWidth - 2 * SIDE_MARGIN - STRIP_WIDTH);
   return {
     referenceWidth: 390,
     referenceHeight: 740,
-    panelSize: PANEL_SIZE,
-    panDistance: PANEL_SIZE / 2,
+    panelSize,
+    panDistance: panelSize / 2,
     pocketSize: POCKET_SIZE,
     discDiameter: DISC_DIAMETER,
   };

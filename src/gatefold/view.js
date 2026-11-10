@@ -1444,15 +1444,19 @@ function gatefoldApplyPocketDeadWax(item){
 
 async function gatefoldSetCoverArt(item){
   const img = $('#gfCoverArt');
+  // UN7 point 2: the cover-strip art (#gfLeftCueArt) is the same cover,
+  // just cropped to its own left edge by 11-gatefold.css's
+  // object-position:left -- set alongside #gfCoverArt, not a second fetch.
+  const cueImg = $('#gfLeftCueArt');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   const setDiscArt = src => gatefoldSleevePocketEls().forEach(wrap => {
     const discArt = wrap.querySelector('.art');
     if(discArt) discArt.src = src;
   });
-  if(fallback){ img.src = fallback; setDiscArt(fallback); }
+  if(fallback){ img.src = fallback; if(cueImg) cueImg.src = fallback; setDiscArt(fallback); }
   applyGatefoldDiscVariant(item);
   const url = await getCrateArtURL(item.albumId, 'L');
-  if(url && GF && GF.item === item){ img.src = url; setDiscArt(url); }
+  if(url && GF && GF.item === item){ img.src = url; if(cueImg) cueImg.src = url; setDiscArt(url); }
 }
 
 // GF5 point 2 / GF6: the back cover, built fresh per open off the album's
@@ -1837,7 +1841,11 @@ export function openGatefold(item, opts){
   // isSingleRecord() routing to the picture sleeve instead of here is
   // unchanged, upstream in crate/view.js's openCrateAlbum().
   const format = gatefoldItemFormat(item);
-  const geom = gatefoldGeometry(format);
+  // UN7 point 1: fit the real phone -- panelSize now comes from the
+  // actual viewport width, not a flat 350 literal that ran off the right
+  // edge on a 390px phone. Read once here, same "doesn't change under
+  // the user mid-look" posture GF11 point 2 already uses just below.
+  const geom = gatefoldGeometry(format, window.innerWidth);
   // GF4 point 1/3: the discs this album actually spans -- one sleeve
   // pocket each, built fresh below (gatefoldBuildSleevePockets()).
   // Stored on GF since several later functions (flourish, the empty-

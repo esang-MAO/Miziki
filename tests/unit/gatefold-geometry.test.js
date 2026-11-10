@@ -29,6 +29,29 @@ test('gatefoldGeometry: no format given falls back to the same uniform numbers',
   assert.deepEqual(gatefoldGeometry(), gatefoldGeometry({ size: '12"', speed: 33.333 }));
 });
 
+// UN7 (docs/36_UNIFORMITY.md point 1): panelSize = min(350, viewport.width
+// - 2*16 - 24) -- the strip (24px) and the panel's own 16px side margins
+// have to fit inside the real viewport, not just the panel.
+test('gatefoldGeometry: a 390px phone gets 334, not the flat 350 that used to run off the edge', () => {
+  const geom = gatefoldGeometry({ size: '12"', speed: 33.333 }, 390);
+  assert.equal(geom.panelSize, 334);
+  assert.equal(geom.panDistance, 167);
+});
+
+test('gatefoldGeometry: a wide viewport is capped at 350, never grows past it', () => {
+  const geom = gatefoldGeometry({ size: '12"', speed: 33.333 }, 1200);
+  assert.equal(geom.panelSize, 350);
+  assert.equal(geom.panDistance, 175);
+});
+
+test('gatefoldGeometry: format has no effect on the viewport-driven size either', () => {
+  assert.deepEqual(gatefoldGeometry({ size: '7"', speed: 45 }, 390), gatefoldGeometry({ size: '12"', speed: 33.333 }, 390));
+});
+
+test('gatefoldGeometry: omitting viewport keeps the old flat-350 fallback (module-load call before any real viewport is known)', () => {
+  assert.equal(gatefoldGeometry().panelSize, 350);
+});
+
 // CC5 (docs/34_CARE_AND_CONTROL.md point 5/6): "two pockets are both
 // inside the sleeve's bounds (no scroll) at the 390px reference width" --
 // the sleeve itself is the 390px reference viewport minus its own 20px
