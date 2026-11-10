@@ -56,8 +56,8 @@
   --on-accent:#2A1B38;
   --shadow:rgba(0,0,0,.45);
   /* FS1: a popover/menu surface distinct from --panel/--chrome -- new,
-     used by FS4's popovers and menus (#addMenu, #libOverflowMenu,
-     #playerOverflowMenu) and FS12's Sundown sheet. */
+     used by FS4's popovers and menus (#addMenu, #playerOverflowMenu) and
+     FS12's Sundown sheet. */
   --popover:#2A2522;
   /* FS1: destructive actions (Forget library, revert) -- new, not part of
      the amber family on purpose, since amber never signals state. */

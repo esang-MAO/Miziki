@@ -857,7 +857,7 @@ function renderTracksBody(host){
     // "Remove artist…") is excluded from this whole block by
     // !isArtistPage above now, and lives in openArtistMoreMenu() instead.
     if(v.playlist === null && v.group !== null && (v.mode === 'albums' || atArtistAlbum)){
-      const removeBtn = el('button','crumb-back','Remove Album');
+      const removeBtn = el('button','crumb-back','Remove album…');
       removeBtn.style.marginLeft = 'auto';
       removeBtn.addEventListener('click', ()=>{
         const group = v.group;

@@ -111,7 +111,7 @@ export function renderTermsScreen(host){
   lastUpdatedNote(body);
   body.appendChild(el('p', null,
     'By using Miziki, you agree to these terms. If you don’t agree, don’t use the app. '
-    + 'See the Privacy Policy for what data is collected and how it’s handled — these terms '
+    + 'See the Privacy policy for what data is collected and how it’s handled — these terms '
     + 'are about using the app itself.'));
 
   section(body, 'What Miziki is', [
@@ -123,7 +123,7 @@ export function renderTermsScreen(host){
   ]);
 
   section(body, 'Your account', [
-    'You’re responsible for your own account and for keeping your sign-in code private (there’s no password — codes are single-use and emailed to you). You can sign out of one device or every device at once from the Account screen, and delete your account entirely at any time; see the Privacy Policy for exactly what deletion removes.',
+    'You’re responsible for your own account and for keeping your sign-in code private (there’s no password — codes are single-use and emailed to you). You can sign out of one device or every device at once from the Account screen, and delete your account entirely at any time; see the Privacy policy for exactly what deletion removes.',
   ]);
 
   section(body, 'Your content', [

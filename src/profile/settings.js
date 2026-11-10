@@ -105,7 +105,7 @@ function renderSocialAuthEmail(title, body){
   }, socialAuth.busy));
   // closeSocialAuth first — otherwise the sign-in modal would stay open on
   // top of the profile screen underneath it once renderProfile() runs.
-  body.appendChild(el('p','note','By continuing, you agree to our Privacy Policy and Terms of use.'));
+  body.appendChild(el('p','note','By continuing, you agree to our Privacy policy and Terms of use.'));
   body.appendChild(legalLinksRow(renderProfile, () => forceCloseLayer('social-auth')));
 }
 
