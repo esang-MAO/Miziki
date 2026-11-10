@@ -1,5 +1,7 @@
 # 30 · Grooves and the home shelf
 
+**Look refined by docs/36_UNIFORMITY.md** (GS8's shelf look specifically).
+
 The platter starts showing the record itself: each side's grooves are drawn from its real tracks, the needle is where you are, and the run-out is a place the record rests until you turn it over. The profile moves out of the shop and into your home: a hand-lettered sign, a wall, cube shelving. Listening becomes a record of seasons, kept for a year, and gains a log of what you played through.
 
 Grounded in a reading of *In the Groove*, *Practical Musicology*, *Retromania*, *Futuromania* and Bartmanski & Woodward's *Vinyl*. The reasons stay off screen (CLAUDE.md, **How Miziki behaves**): copy is plain and standard and never explains itself.

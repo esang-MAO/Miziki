@@ -14,6 +14,7 @@ Follows CLAUDE.md's **How Miziki behaves** rules (PR #269). The reasons stay off
 - **Staff picks:** no "N of 8", no empty slot (one line when there are none).
 - **Followers/Following:** off the crate, onto Profile › Settings › Account. "In common" stays on a friend's crate, without the accent.
 - **Wear (follow-up to RW7):** no play counts on the gatefold or side bars.
+- **Pressings everywhere (docs/36_UNIFORMITY.md, decision 14):** the extra pressing/metal counts on the profile row and the Records filter also go; this doc's own owned-only, no-counts rule is unchanged.
 
 **Designs:** `docs/design/quiet-counts/` (frames plus README).
 

@@ -1,5 +1,7 @@
 # 32 · The shelf, its finishes and the turntables
 
+**Look refined by docs/36_UNIFORMITY.md.**
+
 The profile's shelving becomes a real piece of furniture: a solid-wood cube unit drawn with grain, depth and shadow, standing against the wall on a floor line. A turntable sits on top of it with the record that's on, and that record **spins while you're playing and stops when you pause**. Owners choose the shelf's **finish** and the **turntable**; friends who visit see both exactly as the owner set them.
 
 Builds on docs/30_GROOVES_AND_SHELF.md (the sign, the wall, the cube shelving, "in rotation" with 5 pins). **Do GS7–GS8 of plan 30 first**; this plan replaces GS8's flat CSS cubes with the rendered unit.

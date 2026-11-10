@@ -1,5 +1,7 @@
 # 33 · The wall, paper labels, and share-card text fixes
 
+**Look refined by docs/36_UNIFORMITY.md.**
+
 Three things, one plan:
 
 1. **The wall** gets real shelving that matches the cube unit (docs/32): the **in rotation** covers lean on a **floating picture ledge**, and the last three pressings and metals stand on clear stands in a **wall cubby** — the same wood and finish as the shelf below.

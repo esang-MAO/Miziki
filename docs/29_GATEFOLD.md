@@ -1,5 +1,7 @@
 # 29 · Gatefold
 
+**Look refined by docs/36_UNIFORMITY.md.**
+
 The gatefold becomes the one way into a record: sized like the real thing, turned over to see its back, opened by peeling the wrap, and readable without squinting. The pass also fixes what the Nov 4 audit found broken or missing in today's gatefold (`src/gatefold/view.js`, as of PR #318).
 
 Follows CLAUDE.md's **How Miziki behaves** rules. The reasons stay off screen: copy is plain and standard and never explains itself.
