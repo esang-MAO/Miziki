@@ -32,6 +32,9 @@ const OVERLAYS = [
   { overlay: '#queueOverlay', layer: 'queue' },
   { overlay: '#shareOverlay', layer: 'share' },
   { overlay: '#bgOfferCard', layer: 'bg-offer' },
+  // LB2 (docs/36A_LIBRARY_AND_LAUNCH.md): same non-destructive reasoning
+  // as swipe-close.js's own addition just above.
+  { overlay: '#playlistNameOverlay', layer: 'playlist-name' },
 ];
 
 export function wireBackdropClose(){

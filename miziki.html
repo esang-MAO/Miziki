@@ -1543,6 +1543,19 @@
   <span id="dupSkipText"></span>
 </div>
 
+<!-- PLAYLIST NAME SHEET: decision 2, docs/36A_LIBRARY_AND_LAUNCH.md (LB2).
+     The one sheet New playlist, Save queue as playlist and (once a future
+     step adds the row) Rename all share -- built fully by
+     src/library/playlist-sheet.js's openPlaylistNameSheet(); #plNameHead/
+     #plNameBody are rebuilt on every open, same as #dupHead/#dupBody
+     above. -->
+<div class="edit-overlay" id="playlistNameOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="playlistNameSheetBox" style="max-width:420px">
+    <div id="plNameHead"></div>
+    <div id="plNameBody"></div>
+  </div>
+</div>
+
 <!-- BACKGROUND PLAYBACK OFFER (RF7, docs/12_REFINE.md): shown once, on
      return, only when playback actually stopped while the app was hidden
      and Background playback is off — docs/design/refine/ReturnCard.dc.html
