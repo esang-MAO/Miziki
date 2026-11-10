@@ -34,6 +34,7 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 });
 const {
   buildBackCoverData, getAlbumBackCoverBlob, setAlbumBackCoverImage, clearAlbumBackCoverImage,
+  backCoverMenuRowsVisible,
 } = await import('../../src/gatefold/back-cover.js');
 const { matrixTail } = await import('../../src/record-art/etchings.js');
 const { S } = await import('../../src/state.js');
@@ -144,4 +145,25 @@ test('GF6: clearAlbumBackCoverImage ("Use Miziki default") removes the stored im
   await clearAlbumBackCoverImage('album-clear');
   assert.equal(await getAlbumBackCoverBlob('album-clear'), null);
   assert.deepEqual(backupCalls.clears, ['album-clear']);
+});
+
+// UN10 (docs/36_UNIFORMITY.md point 2): the back-cover "⋯" rows moved
+// into the gatefold's one options menu, shown only while turned over.
+test('UN10: backCoverMenuRowsVisible is true only when turned over', () => {
+  assert.equal(backCoverMenuRowsVisible(true), true);
+  assert.equal(backCoverMenuRowsVisible(false), false);
+  assert.equal(backCoverMenuRowsVisible(undefined), false);
+  assert.equal(backCoverMenuRowsVisible(null), false);
+});
+
+// UN10 point 5: "the default is checked only without a custom back" --
+// openGatefoldMoreMenu() checks #gfBackCoverDefaultBtn with !blob, the
+// same predicate asserted directly here against the real storage calls.
+test('UN10: "Use Miziki default" checked state follows getAlbumBackCoverBlob', async () => {
+  const albumId = 'album-un10-checked';
+  assert.equal(!(await getAlbumBackCoverBlob(albumId)), true);   // no custom back yet -- checked
+  await setAlbumBackCoverImage(albumId, { size: 1 });
+  assert.equal(!(await getAlbumBackCoverBlob(albumId)), false);  // custom back set -- unchecked
+  await clearAlbumBackCoverImage(albumId);
+  assert.equal(!(await getAlbumBackCoverBlob(albumId)), true);   // back to default -- checked again
 });

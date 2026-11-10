@@ -49,6 +49,14 @@ export async function clearAlbumBackCoverImage(albumId){
   clearBackCoverClaim(albumId);
 }
 
+// UN10 (docs/36_UNIFORMITY.md point 2): the back cover's own "⋯" rows
+// (Choose an image…/Photograph your copy/Use Miziki default) now live at
+// the top of the gatefold's one options menu (gfMoreMenu, #gfMoreBtn)
+// instead of a second button/menu of their own -- shown only once the
+// record is actually turned over. Pure so a unit test can assert this
+// without view.js's own wide, DOM-heavy import graph.
+export function backCoverMenuRowsVisible(turnedOver){ return !!turnedOver; }
+
 // GF5 point 4: a worn record's back carries the same wear classes as its
 // sleeve -- reusing .gf-back-cover here (rather than a new class) is what
 // lets updateGatefoldSleeveState()'s existing `#gfBackCover .gf-back-cover`
