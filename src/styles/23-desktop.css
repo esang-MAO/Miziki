@@ -527,6 +527,11 @@
   /* the profile's Records preview: all ten in one row */
   .records-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
   .records-grid.preview{grid-template-columns:repeat(10,minmax(0,1fr))}
+  /* .playlist-grid's own desktop column rule lives in
+     27-library-sleeves.css instead of here -- that file loads *after*
+     this one in cascade order (27 > 23), so a same-specificity override
+     placed here would simply lose to that file's plain phone rule at
+     every width, media query or not. */
 }
 
 @media (min-width:1280px){

@@ -25,7 +25,9 @@ import { applyEdit, showUndoBanner, openEditSheet } from './edit.js';
 import { countForAlbum, countForArtist, deleteAlbum, deleteArtist, deleteTracks } from './delete.js';
 import { isAlbumSealed } from './sealed.js';
 import { albumKey } from '../record-art/tiers.js';
+import { getCrateArtURL } from '../crate/tiers.js';
 import { thumbURL } from './thumbs.js';
+import { distinctAlbumKeysInOrder, mosaicCells, mosaicLayout } from './playlist-mosaic.js';
 import { renderSidebarPlaylists, renderSidebarBins } from '../shell/sidebar.js';
 import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults, filterSearchInPlace,
@@ -511,23 +513,108 @@ async function createPlaylistViaSheet(){
   renderTracks();
 }
 
+// LB3 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 3): one mosaic per
+// playlist -- its first four *different* records' covers, cached in
+// memory and rebuilt only when that playlist's own items actually
+// change. Keyed by the playlist object itself (a WeakMap, so a deleted
+// playlist's cache entry is simply dropped along with it, no explicit
+// cleanup needed); the dirty check is a content snapshot of pl.items
+// (view.js's own reorder/add/remove all mutate that array in place via
+// splice/push, so a reference-equality check on the array itself would
+// never see a change) -- the same "remember what a thumbnail was last
+// cut from, compare on the next pass" shape thumbs.js's thumbSrcSeen map
+// already uses for its own per-item cache invalidation.
+const playlistMosaicCache = new WeakMap();
+
+function playlistMosaicEntry(pl, present){
+  const itemsKey = pl.items.join(',');
+  const cached = playlistMosaicCache.get(pl);
+  if(cached && cached.itemsKey === itemsKey) return cached;
+  const distinct = distinctAlbumKeysInOrder(present, S.tracks, albumKey);
+  const entry = {
+    itemsKey,
+    layout: mosaicLayout(distinct.length),
+    cells: mosaicCells(distinct),
+    urls: new Map(),   // albumId -> resolved crate-art-S url, filled in as it builds
+  };
+  playlistMosaicCache.set(pl, entry);
+  return entry;
+}
+
+// The mosaic itself: 2x2 grid (4, or 3 padded with a repeat), a diagonal
+// split (2), a single cover (1), or UN5's empty-note treatment, scaled to
+// the tile, for 0. Art comes from the crate's own "S" (640px) tier
+// (src/crate/tiers.js, built lazily and LRU-cached there) -- the same
+// resolver/fallback order every other cover in the app already follows
+// (crate/view.js's own setCardImage(), gatefold/view.js's art lookups):
+// the crate-tier url once it's built, else the existing 800px album
+// thumbnail, else nothing. getCrateArtURL() is async (it may need to
+// build the tier from the original file first), so each cell starts on
+// whatever's already available synchronously and upgrades in place once
+// the tier resolves -- `cell.dataset.albumId` guards against a cell
+// having been re-used (a re-render) by the time the promise settles.
+function playlistMosaicArt(pl, present){
+  const entry = playlistMosaicEntry(pl, present);
+  const wrap = el('span', 'pl-mosaic pl-mosaic--' + entry.layout);
+  if(entry.layout === 'empty'){
+    // UN5's empty-note card pattern (src/ui/parts.js's emptyNote()), at
+    // mosaic-tile scale rather than the full head/sub/actions card that
+    // component builds for a whole empty screen -- a 96px square has no
+    // room for that, so this reuses just its tape-sticker-on-stock-card
+    // visual (05-parts.css's .p-empty-note/.p-empty-note-tape), which is
+    // the one piece of the pattern that still reads at this size. Judgment
+    // call, flagged in the PR body (LB0 never exported this frame).
+    const empty = el('span', 'pl-mosaic-empty');
+    empty.appendChild(el('span', 'pl-mosaic-empty-tape'));
+    wrap.appendChild(empty);
+    return wrap;
+  }
+  entry.cells.forEach(albumId => {
+    const cell = el('span', 'pl-mosaic-cell');
+    cell.dataset.albumId = albumId;
+    const img = el('img', null);
+    img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+    const fallback = entry.urls.get(albumId) || thumbURL['album:' + albumId];
+    if(fallback) img.src = fallback;
+    else cell.classList.add('pl-mosaic-cell--blank');
+    cell.appendChild(img);
+    wrap.appendChild(cell);
+    if(!entry.urls.has(albumId)){
+      getCrateArtURL(albumId, 'S').then(url => {
+        if(!url) return;
+        entry.urls.set(albumId, url);
+        if(cell.dataset.albumId !== albumId) return;   // recycled since
+        cell.classList.remove('pl-mosaic-cell--blank');
+        img.src = url;
+      });
+    }
+  });
+  return wrap;
+}
+
 function playlistTile(pl, present, onTap){
   const b = el('button','playlist-tile' + (pl.system === 'favorites' ? ' is-fav' : ''));
-  const covers = el('span','pl-covers');
-  const srcs = present.slice(0, 4)
-    .map(i => thumbURL['album:' + albumKey(S.tracks[i])] || S.tracks[i].art)
-    .filter(Boolean);
-  if(srcs.length){
-    srcs.forEach(src => {
-      const im = el('img', null); im.src = src; im.alt = '';
-      im.loading = 'lazy'; im.decoding = 'async';
-      covers.appendChild(im);
-    });
-  } else covers.appendChild(el('span','g-art','◍'));
-  b.appendChild(covers);
+  b.appendChild(playlistMosaicArt(pl, present));
   const strip = el('span','pl-strip');
-  strip.appendChild(el('b', null, pl.name));
-  strip.appendChild(el('em', null, present.length + (present.length === 1 ? ' track' : ' tracks')));
+  // Decision 2 (LB3's own title, "{n} songs · {length}"): Archivo 15/500
+  // for the title, 13 for the caption -- neither lands on an existing
+  // --fs-* token (15 sits between --fs-body/14 and --fs-row/16; 13 sits
+  // between --fs-caption/12 and --fs-body/14, and repeats verbatim across
+  // this addendum's own decisions 2 and 7/LB7, so it isn't a one-off
+  // worth bending onto --fs-caption just for this tile). Kept literal with
+  // this comment, same "canvas-exact, flagged for Ken" posture 05-parts.css's
+  // own file-top note already sets for the 15px button type/22px sheet
+  // title/etc that don't land on the scale either -- flagged again in this
+  // PR's own body since LB0 never exported a frame to check the pixel
+  // reading against.
+  strip.appendChild(el('b', 'pl-title', pl.name));
+  const songCount = present.length;
+  const lengthSec = present.reduce((sum, i) => sum + (S.tracks[i].duration || 0), 0);
+  // Decision 5: "songs", never "tracks", in anything the library says
+  // about songs -- this caption, the header row below, and the empty-grid
+  // note all say "songs."
+  strip.appendChild(el('span', 'pl-caption',
+    songCount + (songCount === 1 ? ' song · ' : ' songs · ') + fmt(lengthSec)));
   b.appendChild(strip);
   b.addEventListener('click', onTap);
   return b;
@@ -1091,6 +1178,18 @@ function renderTracksBody(host){
           action: { label: 'New playlist', onClick: createPlaylistViaSheet },
         }));
       } else {
+        // Decision 3's own header row: "{n} playlists" left, "New
+        // playlist" (secondary, .p-btn -- UN2) right, replacing the old
+        // full-width .cta button that used to sit under the grid.
+        const head = el('div', 'playlist-grid-head');
+        head.appendChild(el('span', 'playlist-grid-count',
+          S.playlists.length + (S.playlists.length === 1 ? ' playlist' : ' playlists')));
+        const mk = el('button', 'p-btn', 'New playlist');
+        mk.type = 'button';
+        mk.addEventListener('click', createPlaylistViaSheet);
+        head.appendChild(mk);
+        host.appendChild(head);
+
         // Favorites (and any other system playlist) pinned first, without
         // reordering S.playlists itself — v.playlist indexes the real array
         const order = S.playlists.map((_, n) => n).sort((a, b) => (S.playlists[a].system?0:1) - (S.playlists[b].system?0:1));
@@ -1104,11 +1203,6 @@ function renderTracksBody(host){
           grid.appendChild(playlistTile(pl, present, ()=>{ v.playlist = n; renderTracks(); }));
         });
         host.appendChild(grid);
-        const add = el('div','stack');
-        const mk = el('button','cta','New playlist');
-        mk.addEventListener('click', createPlaylistViaSheet);
-        add.appendChild(mk);
-        host.appendChild(add);
       }
     } else {
       const pl = S.playlists[v.playlist];
