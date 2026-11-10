@@ -3,6 +3,24 @@
    this file is only the EQ-specific content below the head row. */
 .eq-sheet-box{max-width:480px}
 
+/* Ken, 2026-11-10: "EQ ›" inside the Sundown sheet's Sound tab
+   (src/wiring/character.js) opens this same #eqOverlay, but
+   .edit-overlay's shared z-index:120 (16-edit-sheet.css) sits well
+   under the Sundown sheet/scrim's own 160/161 (26-sundown-sheet.css),
+   so the EQ sheet opened that way painted invisibly underneath it,
+   with the still-open Sundown scrim intercepting every tap. Bumping
+   only #eqOverlay, not .edit-overlay generally, since every other
+   .edit-overlay sheet (Edit track, sign-in, record, shelf finish,
+   turntable, confirm, …) is never reachable from inside the Sundown
+   sheet and so never needs to clear its 161 -- a blanket bump would
+   also reorder those sheets' long-standing relationships with
+   share-overlay (130)/social-nav-overlay (125)/recordSheetOverlay
+   (128) for no reason. Nothing opens on top of the EQ sheet itself
+   (eq-sheet.js), so always sitting above Sundown doesn't risk hiding
+   anything behind it when EQ is reached from its other entry points
+   (the full player's ··· menu, Settings). */
+#eqOverlay{z-index:165}
+
 .eq-head-row{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
 .eq-head-sub{font-size:var(--fs-caption);color:var(--muted);flex:1}
 /* TY2 (docs/22_TYPE.md): band labels and switches move to Archivo; the
