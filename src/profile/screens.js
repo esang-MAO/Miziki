@@ -14,7 +14,6 @@ import { legalLinksRow } from './legal-links.js';
 import { refreshLibraryTools, openLibraryToolsPanel } from '../shell/header.js';
 import { toggleRow, navRow, emptyNote } from '../ui/parts.js';
 import { openLibraryCrate } from '../library/view.js';
-import { showRoute } from '../shell/routes.js';
 import { queueAvatarUpload } from '../sync/backup.js';
 import { setTheme, setLargerText, setSeasonalSky, setShowWear, isDaylightPhase } from '../ui/theme.js';
 import { renderSlipmatRow } from './slipmat-editor.js';
@@ -542,7 +541,11 @@ function renderListeningScreen(body){
     wrap.appendChild(emptyNote({
       head: 'Nothing earned yet.',
       sub: 'Play an album start to finish to earn your first metal.',
-      action: { label: 'Open the crate', onClick: () => { showRoute('library'); openLibraryCrate(); } },
+      // UN5: clicks the real library tab button rather than importing
+      // showRoute() directly — shell/routes.js already imports this file
+      // (for renderProfile()), so importing it back here would make a new
+      // profile<->shell mutual-import pair (scripts/cycles.mjs --check).
+      action: { label: 'Open the crate', onClick: () => { $('.tabbar-btn[data-route="library"]')?.click(); openLibraryCrate(); } },
     }));
     body.appendChild(wrap);
     return;
