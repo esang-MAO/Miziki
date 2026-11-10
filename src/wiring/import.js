@@ -4,7 +4,6 @@
    duplicate scan. */
 import { $ } from '../util/dom.js';
 import { addFiles, filesFromDataTransferItems, addTestTone } from '../library/import.js';
-import { resolveDuplicatePrompt } from '../library/duplicates-ui.js';
 import { openDuplicateScan } from '../library/duplicate-scan.js';
 import { openAddMenu, isAddMenuOpen } from '../shell/header.js';
 import { closeLayer, forceCloseLayer } from '../shell/nav-stack.js';
@@ -44,11 +43,11 @@ export function wireImport(){
     if(files.length) addFiles(files);
   });
 
-  $('#dupClose').addEventListener('click', ()=>resolveDuplicatePrompt('skip'));
-  $('#dupKeepBoth').addEventListener('click', ()=>resolveDuplicatePrompt('keep'));
-  $('#dupReplace').addEventListener('click', ()=>resolveDuplicatePrompt('replace'));
-  $('#dupSkip').addEventListener('click', ()=>resolveDuplicatePrompt('skip'));
-
+  // LB1 (docs/36A_LIBRARY_AND_LAUNCH.md): the duplicates sheet itself is
+  // rebuilt fresh on every open by library/duplicates-ui.js's own
+  // openDuplicatesSheet() (summary and "Review one by one" are both
+  // rendered there, buttons wired inline) -- nothing static to wire here
+  // any more.
   $('#scanDuplicatesBtn').addEventListener('click', openDuplicateScan);
   $('#dupScanClose').addEventListener('click', () => closeLayer('duplicate-scan'));
 }

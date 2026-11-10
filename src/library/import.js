@@ -18,7 +18,7 @@ import { setQueue } from '../player/queue.js';
 import { allIdx } from './model.js';
 import { storage, tracks } from '../storage/repo.js';
 import { readHeader, readTags, readDetails, findArtworkBlob, emptyDetails } from './tags/index.js';
-import { askDuplicateResolution } from './duplicates-ui.js';
+import { openDuplicatesSheet } from './duplicates-ui.js';
 import { loadOverlayFor } from './edit.js';
 import { deleteTracks } from './delete.js';
 import { rebuildPeopleIndex } from './credits.js';
@@ -106,6 +106,13 @@ export async function addFiles(list){
   // it starts, even if that track came from this same first batch's
   // earlier files) seals exactly as before.
   const isFirstImport = S.tracks.length === 0;
+  // LB1 (docs/36A_LIBRARY_AND_LAUNCH.md, decision 1): a possible duplicate
+  // no longer pauses the loop to ask -- it's collected here, fully decoded
+  // and ready to finish building (finishDuplicateTrack() below), and the
+  // file is skipped for now. Every other file keeps importing. Once the
+  // whole batch is in, addFiles() opens one sheet for every item still in
+  // this list, instead of asking once per file.
+  const pendingDupes = [];
   let i = 0;
   for(const f of files){
     i++;
@@ -153,9 +160,26 @@ export async function addFiles(list){
       if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
       const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
       if(dup){
-        const choice = await askDuplicateResolution(dup, f.name);
-        if(choice === 'skip') continue;
-        if(choice === 'replace') await deleteTracks([dup.id]);
+        // The matched existing track is already in the library, so the
+        // album it belongs to is never "new" -- GF10's folder->album
+        // booklet mapping doesn't need to wait on Keep/Replace/Skip
+        // either way, so it's recorded now same as a normal track's own.
+        const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
+        folderAlbumIds.set(dir, albumKey({tags}));
+        pendingDupes.push({
+          id, tags, details, buffer, trimmedDuration, gaplessDelaySec, gaplessPaddingSec,
+          sizeBytes: raw.byteLength, artBlob, fileBlob, fileName: f.name, existingTrack: dup,
+          // normalized the same way the non-duplicate path below builds
+          // its own t.meta -- finishDuplicateTrack() uses this as-is.
+          meta: {
+            codec: meta.codec || 'Audio',
+            rate: meta.rate || buffer.sampleRate,
+            bits: meta.bits || null,
+            lossless: meta.lossless === true,
+            ch: meta.ch || buffer.numberOfChannels,
+          },
+        });
+        continue;
       }
       const t = {
         id, addedAt: Date.now(),
@@ -202,6 +226,28 @@ export async function addFiles(list){
     }
   }
   await storeBookletCandidates(bookletCandidates, folderAlbumIds);
+  syncAfterImportChange();
+  if(failed.length){
+    setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
+      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
+  } else {
+    setPathNote();
+  }
+  if(pendingDupes.length){
+    const imported = files.length - failed.length - pendingDupes.length;
+    openDuplicatesSheet(pendingDupes, imported, async (resolved) => {
+      for(const { item, choice } of resolved) await finishDuplicateTrack(item, choice, isFirstImport, existingAlbumIds);
+      syncAfterImportChange();
+    });
+  }
+}
+
+// The same five bookkeeping steps the import loop above used to reach only
+// once, at the very end -- also re-run once a possible duplicate's
+// Keep/Replace/Skip choice has actually landed any new track(s) (see
+// finishDuplicateTrack() below), since those arrive after addFiles()'s own
+// first call already ran. Cheap and idempotent either way.
+function syncAfterImportChange(){
   rebuildPeopleIndex();
   invalidateCrateModel();
   renderTracks();
@@ -210,11 +256,43 @@ export async function addFiles(list){
   MizikiSocial.libraryChanged();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
-  if(failed.length){
-    setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
-      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
-  } else {
-    setPathNote();
+}
+
+// Finishes exactly what addFiles()'s own loop would have done for a
+// duplicate file, now that its choice is known -- 'skip' leaves it out
+// entirely (nothing was ever decoded-and-discarded beyond what 'skip'
+// already discarded before this point), 'replace' removes the matched
+// existing track first, and both 'replace'/'keep' then build and add the
+// track exactly as a non-duplicate file would have. `isFirstImport`/
+// `existingAlbumIds` are addFiles()'s own per-batch state, passed through
+// rather than closed over, so this stays a plain top-level function.
+async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumIds){
+  if(choice === 'skip') return;
+  if(choice === 'replace') await deleteTracks([item.existingTrack.id]);
+  const t = {
+    id: item.id, addedAt: Date.now(),
+    name: item.tags.title, tags: item.tags, details: item.details, buffer: item.buffer,
+    duration: item.trimmedDuration || item.buffer.duration,
+    gaplessDelaySec: item.gaplessDelaySec, gaplessPaddingSec: item.gaplessPaddingSec, sizeBytes: item.sizeBytes,
+    art: item.artBlob ? URL.createObjectURL(item.artBlob) : null,
+    artBlob: item.artBlob, blob: item.fileBlob, stored: false,
+    meta: item.meta,
+  };
+  await loadOverlayFor(t);
+  S.tracks.push(t);
+  touchLRU(S.tracks.length - 1);
+  reconcileImportedTrack(t);
+  const aid = albumKey(t);
+  // Always a no-op in practice: `aid` was already in existingAlbumIds
+  // before this batch even started (a duplicate only exists because its
+  // album's existing track is already in the library) -- kept so this
+  // stays exactly the same decision shouldSealOnImport makes for every
+  // other track, rather than a special case for this path.
+  if(shouldSealOnImport(t.tags.album, aid, isFirstImport, existingAlbumIds)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+  if(await storeTrack(t, item.fileBlob)){
+    t.stored = true;
+    t.blob = null;
+    t.artBlob = null;
   }
 }
 
