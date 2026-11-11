@@ -26,6 +26,14 @@ mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
 mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
   namedExports: { CRATE_PEEK_MAX_FRACTION: 0.26 },
 });
+// LA3: intro.js now reads the crate's own flowPose() params for the exact
+// landing (measureCrateLanding()/crateCardSpread()) -- crate/constants.js
+// itself reads window.devicePixelRatio at module load, which this file's
+// stubbed environment (document only, no window) doesn't have, so it's
+// mocked the same way the other crate/* modules above already are.
+mock.module(new URL('../../src/crate/constants.js', import.meta.url).href, {
+  namedExports: { CRATE_ORIGIN_Y: 15, CRATE_DEPTH_SPREAD: 0.8 },
+});
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { thumbURL: {} },
 });
