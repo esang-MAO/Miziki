@@ -63,6 +63,7 @@ mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,
   computeFlickPosition, flickSpeed, planLaunchStack, chooseLaunchVariant,
+  usesShortDig,
 } = await import('../../src/launch/intro.js');
 const { S } = await import('../../src/state.js');
 
@@ -241,4 +242,21 @@ test('chooseLaunchVariant: no sunset at all (S.sun not ok yet) still falls back 
   assert.equal(chooseLaunchVariant({ lastLaunchAt: null, now: MORNING, sunset: null, reducedMotion: false }), 'full');
   const anHourLater = MORNING + 60*60000;
   assert.equal(chooseLaunchVariant({ lastLaunchAt: MORNING, now: anHourLater, sunset: null, reducedMotion: false }), 'short');
+});
+
+// LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): "the dig uses Miziki
+// sleeves only, at the short length" -- an empty library always plays the
+// short variant's own timing, even on the very first cold start ever
+// (where chooseLaunchVariant() alone would say `full`).
+test('usesShortDig: an empty library uses the short dig even when the variant is full', () => {
+  assert.equal(usesShortDig('full', true), true);
+});
+
+test('usesShortDig: a non-empty library on a full-variant cold start keeps the full dig', () => {
+  assert.equal(usesShortDig('full', false), false);
+});
+
+test('usesShortDig: the short variant stays short regardless of library size', () => {
+  assert.equal(usesShortDig('short', false), true);
+  assert.equal(usesShortDig('short', true), true);
 });

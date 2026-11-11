@@ -137,7 +137,16 @@ input[type=file]{display:none}
 
 /* UN5 point 1: the library empty state's own dashed box is gone -- #empty
    now carries .p-empty-note's card look directly (miziki.html), so this
-   rule only needs to size/position the one instance left. */
+   rule only needs to size/position the one instance left. LA4
+   (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): #empty now sits inside
+   #emptyCrateState, alongside the still Miziki sleeve above it
+   (10-crate.css's own .crate-empty-sleeve) -- the size/centering that
+   used to live on #empty itself moves to that wrapper so the sleeve and
+   the note centre as one block; #empty keeps the plain nested-block
+   sizing (width:min(100%,420px) is a no-op once its own parent is
+   already capped the same way, left here rather than removed to avoid
+   relying on that one level of nesting). */
+.crate-empty-state{position:relative; width:min(100%, 420px); margin:0 auto}
 .empty{width:min(100%, 420px); margin:0 auto}
 
 .tracklist{list-style:none;margin:var(--sp-4) 0 0;padding:0}

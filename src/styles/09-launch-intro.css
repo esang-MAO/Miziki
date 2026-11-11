@@ -82,7 +82,17 @@
    runLaunchSequence()/revealRoom() (src/launch/intro.js) -- never on its
    own timer in CSS, since it has to start exactly when the overlay
    actually hides. */
+/* LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): "the UN5 empty note
+   rises under it as part of the room" -- #empty joins .crate-info's own
+   step (0ms) rather than getting a step of its own, since it plays the
+   same role for an empty library that .crate-info plays for a real one:
+   the panel directly under the record. The still Miziki sleeve itself
+   (#emptyCrateSleeve, 10-crate.css) is deliberately left out of this list
+   -- like the crate's own current card, it's already sitting there
+   underneath, pixel-for-pixel where the launch overlay just landed (no
+   cross-fade, decision 18), so it has nothing to fade in from. */
 .launch-room .crate-info,
+.launch-room #empty,
 .launch-room .mini-player,
 .launch-room .tabbar,
 .launch-room .sidebar,
@@ -92,6 +102,7 @@
   transition:opacity .2s ease-out, transform .2s ease-out;
 }
 .launch-room.room-info-in .crate-info,
+.launch-room.room-info-in #empty,
 .launch-room.room-bars-in .mini-player,
 .launch-room.room-bars-in .tabbar,
 .launch-room.room-bars-in .sidebar,
@@ -104,6 +115,7 @@
      element simply sits at rest regardless of which .room-*-in steps
      have landed, so there's nothing to stagger and nothing that moves. */
   .launch-room .crate-info,
+  .launch-room #empty,
   .launch-room .mini-player,
   .launch-room .tabbar,
   .launch-room .sidebar,

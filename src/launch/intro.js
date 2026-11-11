@@ -332,6 +332,17 @@ export function chooseLaunchVariant({ lastLaunchAt, now, sunset, reducedMotion }
   return 'short';
 }
 
+// LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): whether the dig plays
+// at the short variant's own timing (stack count + accel/cruise/decel) --
+// true for `short` itself, and also true for an empty library regardless
+// of what `variant` otherwise is (an empty library's very first cold
+// start would otherwise be `full`, per chooseLaunchVariant() above, but
+// decision 20 asks for "the short length" specifically). Pure, exported
+// for its unit test the same reason chooseLaunchVariant() is.
+export function usesShortDig(variant, tracksEmpty){
+  return variant === 'short' || !!tracksEmpty;
+}
+
 // LA3: applies an exact-landing pose (tx/ty/z/rot/scale/opacity, in the
 // same local units as the launch card's base box) directly as a
 // transform/opacity pair -- pulled out to module scope (no closure over
@@ -402,6 +413,21 @@ export async function runLaunchSequence(){
   S.lastLaunchAt = launchNow;
   queueSave();
 
+  // LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): "the dig uses Miziki
+  // sleeves only, at the short length" -- an empty library always gets the
+  // short variant's own dig timing (stack count, accel/cruise/decel), even
+  // on the very first cold start ever, when chooseLaunchVariant() above
+  // would otherwise say `full` (no S.lastLaunchAt yet). Not a fourth
+  // variant of its own: `fade` (Reduce Motion) still wins outright, same
+  // as any other cold start, and every phase after the dig (catch/pull/
+  // room) is already unchanged by variant -- only the two blocks below
+  // that branch on `variant === 'short'` need this folded in. The stack
+  // itself needs no special-casing to come out "Miziki sleeves only": with
+  // S.tracks empty, launchCandidates() is already `[]` and
+  // resolveLastPlayedAlbum() is already `null` (see its own test), so
+  // planLaunchStack() already fills every sleeve with the Miziki cover.
+  const shortDig = usesShortDig(variant, S.tracks.length === 0);
+
   // fade: Reduce Motion. No card stack, no flick -- just the app, same as
   // this call site's own behavior before LA1 (the overlay is also
   // `display:none` under this same media query, 09-launch-intro.css, so
@@ -420,7 +446,7 @@ export async function runLaunchSequence(){
   const appRoot = document.getElementById('app') || document.body;
   appRoot.classList.add('launch-room');
 
-  const stack = variant === 'short' ? SHORT_LAUNCH_STACK : LAUNCH_STACK;
+  const stack = shortDig ? SHORT_LAUNCH_STACK : LAUNCH_STACK;
 
   // What's printed on each sleeve, decided once, from whatever the library
   // has restored by now (the same ready race above — never waited on
@@ -498,7 +524,9 @@ export async function runLaunchSequence(){
   {
     // LA1: short swaps in its own cut accel/cruise/decel timings; every
     // other phase (fade/catch/pull/crossfade) stays LAUNCH_ANIM's, below.
-    const timing = variant === 'short'
+    // LA4: an empty library gets this same cut timing even when `variant`
+    // itself is `full` (see `shortDig` above).
+    const timing = shortDig
       ? {accelMs: SHORT_LAUNCH_ANIM.accelMs, cruiseMs: SHORT_LAUNCH_ANIM.cruiseMs, decelMs: SHORT_LAUNCH_ANIM.decelMs}
       : {accelMs: LAUNCH_ANIM.accelMs, cruiseMs: LAUNCH_ANIM.cruiseMs, decelMs: LAUNCH_ANIM.decelMs};
     const scrollMs = timing.accelMs + timing.cruiseMs + timing.decelMs;
