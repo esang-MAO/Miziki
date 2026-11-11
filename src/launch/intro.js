@@ -27,11 +27,13 @@ import { queueSave } from '../storage/meta.js';
 import { flowPose, flowZIndex } from '../crate/geometry.js';
 import { crateArtCache, getCrateArtURL } from '../crate/tiers.js';
 import { CRATE_PEEK_MAX_FRACTION } from '../crate/model.js';
+import { CRATE_ORIGIN_Y, CRATE_DEPTH_SPREAD } from '../crate/constants.js';
 import { thumbURL } from '../library/thumbs.js';
 import { buildPeekDisc } from '../record-art/peek.js';
 import { hapticTick } from '../ui/haptic.js';
 import { wordmarkEl as buildWordmark } from '../ui/wordmark.js';
 import { REDUCED } from '../util/motion.js';
+import { isDesktopShell } from '../util/viewport.js';
 
 // resolved by restoreLibrary() (main.js) once S.tracks/sessions/thumbnails
 // are in place — the launch intro races this against a timeout rather than
@@ -42,6 +44,9 @@ export function markLibraryReady(){ libraryReadyResolve(); }
 
 const LAUNCH_ANIM = {
   fadeMs: 250, accelMs: 650, cruiseMs: 800, decelMs: 800,
+  // LA3 (decision 18): crossfadeMs is the fallback-only hand-off now --
+  // the crate card measured/not measured in time, respectively (see
+  // runLaunchSequence's `landing` ? finishLaunch(0) : finishLaunch(crossfadeMs)).
   catchMs: 300, pullMs: 600, crossfadeMs: 600,
   liftPx: 28,
   skipMs: 150, readyWaitMs: 700,
@@ -76,10 +81,56 @@ $('#launchWordmark').replaceChildren(buildWordmark());
 
 // the 390x740 design stage scales uniformly to fit the viewport rather than
 // being redrawn per size — CSS alone can't turn a viewport length into a
-// unitless scale() factor, so this is computed and written as a variable
+// unitless scale() factor, so this is computed and written as a variable.
+// LA3 (docs/36A_LIBRARY_AND_LAUNCH.md decision 21): on the desktop shell
+// the stage fits the content area right of the sidebar, not the whole
+// window — .launch-overlay itself is inset from the sidebar at that
+// breakpoint (09-launch-intro.css/23-desktop.css), so the scale-to-fit
+// math has to shrink its own available width by the same --sidebar-width
+// or the stage would overflow past where the overlay is actually inset,
+// landing short of (or on top of) the sidebar rather than centred in the
+// space beside it.
 function updateLaunchScale(){
-  const s = Math.min(window.innerWidth / 390, window.innerHeight / 740);
+  const sidebarWidth = isDesktopShell()
+    ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width')) || 0)
+    : 0;
+  const s = Math.min((window.innerWidth - sidebarWidth) / 390, window.innerHeight / 740);
   document.documentElement.style.setProperty('--launch-scale', s);
+}
+
+// LA3 decision 18: the crate's own flowPose() params (CRATE_ORIGIN_Y, and
+// the live --crate-card-size ratio CR/D5 already scales flowPose's spread
+// by — see crate/view.js's own currentCardSize()/cardSpread, duplicated
+// here rather than exported since it's three lines and crate/view.js
+// can't be imported from here without a cycle (it already imports this
+// file for resolveLastPlayedAlbum())
+const BASE_CRATE_CARD_SIZE = 278;
+function crateCardSpread(){
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--crate-card-size'));
+  const size = (v > 0) ? v : BASE_CRATE_CARD_SIZE;
+  return (size / BASE_CRATE_CARD_SIZE) * CRATE_DEPTH_SPREAD;
+}
+
+// The live crate's current card, measured and converted into the launch
+// stage's own local (unscaled by --launch-scale) coordinate space — the
+// same frame .launch-card's base box (left:56,top:128,278x278,
+// 09-launch-intro.css) is defined in. Null when the crate isn't rendered
+// yet (its card has no size), which is this step's documented fallback:
+// the landing below then falls back to today's generic pull/cross-fade.
+function measureCrateLanding(){
+  const cardEl = document.querySelector('.crate-card.crate-current');
+  const stage = document.querySelector('.launch-stage');
+  if(!cardEl || !stage) return null;
+  const cardRect = cardEl.getBoundingClientRect();
+  if(!cardRect.width || !cardRect.height) return null;
+  const stageRect = stage.getBoundingClientRect();
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--launch-scale')) || 1;
+  return {
+    left: (cardRect.left - stageRect.left) / scale,
+    top: (cardRect.top - stageRect.top) / scale,
+    width: cardRect.width / scale,
+    height: cardRect.height / scale,
+  };
 }
 
 // the key in S.albumLastPlayed with the largest timestamp; a library that
@@ -281,6 +332,46 @@ export function chooseLaunchVariant({ lastLaunchAt, now, sunset, reducedMotion }
   return 'short';
 }
 
+// LA3: applies an exact-landing pose (tx/ty/z/rot/scale/opacity, in the
+// same local units as the launch card's base box) directly as a
+// transform/opacity pair -- pulled out to module scope (no closure over
+// runLaunchSequence's own `cards`/`stack`) purely to keep that already-
+// long sequence function from growing further; see its own comment.
+function applyExactPose(el, pose){
+  el.style.transform = 'translateX(' + pose.tx.toFixed(1) + 'px) translateY(' + pose.ty.toFixed(1) + 'px) translateZ(' + pose.z.toFixed(1) + 'px) '
+    + 'rotateX(' + pose.rot.toFixed(2) + 'deg) scale(' + Math.max(0.001, pose.scale).toFixed(3) + ')';
+  el.style.opacity = pose.opacity;
+}
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+// LA3 (docs/36A_LIBRARY_AND_LAUNCH.md decision 19/21): the room the
+// overlay hands off to starts dim and 8px low (09-launch-intro.css's own
+// .launch-room rules) and fills back in top-down rather than all at once.
+// `.launch-room` itself goes on well before the hand-off, while the
+// overlay still covers the whole screen (see runLaunchSequence below), so
+// there's nothing to see yet; these four steps only run once the overlay
+// is actually hiding (from finishLaunch()). Reduced motion shows every
+// room element at rest regardless of these classes (same media query,
+//09-launch-intro.css) so no branch is needed here for that case.
+const ROOM_STEPS = ['room-info-in', 'room-bars-in', 'room-header-in', 'room-neighbour-in'];
+const ROOM_STEP_DELAYS = [0, 100, 200, 300];
+function revealRoom(root){
+  if(!root) return;
+  ROOM_STEPS.forEach((cls, i) => setTimeout(() => root.classList.add(cls), ROOM_STEP_DELAYS[i]));
+  const cleanupAt = ROOM_STEP_DELAYS[ROOM_STEP_DELAYS.length - 1] + 200;   // last step's own 200ms ease-out
+  setTimeout(() => root.classList.remove('launch-room', ...ROOM_STEPS), cleanupAt);
+}
+
+// Rule 13 (CLAUDE.md): already well over ~80 lines before LA3, and grown
+// further here (the exact-landing math, decision 18) -- kept as one
+// function because it's a single linear ceremony (fade -> flick -> catch
+// -> land -> hand-off) sharing one `cancelled()`/`token` closure the same
+// way src/shell/player-overlay.js's/put-away.js's own open/close
+// ceremonies do; splitting it across files would scatter that shared
+// cancellation state rather than shrink it. Every piece of real math
+// (measureCrateLanding/crateCardSpread/applyExactPose/startPoseFor/
+// endPoseFor/revealRoom) is already pulled out above/inline where it
+// doesn't need this function's own closure.
 export async function runLaunchSequence(){
   const token = ++S.launchSeq;
   const cancelled = () => token !== S.launchSeq;
@@ -321,6 +412,13 @@ export async function runLaunchSequence(){
     window.removeEventListener('resize', updateLaunchScale);
     return;
   }
+
+  // LA3: the room underneath goes dim/8px-low right away -- harmless since
+  // the overlay still covers the whole screen at this point -- so there's
+  // no race between the overlay hiding and the room's own starting state
+  // further down (finishLaunch() only starts revealing it back in).
+  const appRoot = document.getElementById('app') || document.body;
+  appRoot.classList.add('launch-room');
 
   const stack = variant === 'short' ? SHORT_LAUNCH_STACK : LAUNCH_STACK;
 
@@ -369,11 +467,21 @@ export async function runLaunchSequence(){
   overlay.addEventListener('pointerdown', skip, {capture:true});
 
   function finishLaunch(fadeMs){
+    // LA3: fadeMs===0 (the exact-landing case) means hide in one frame, not
+    // "no fadeMs given" -- `0 || skipMs` would wrongly fall back to the
+    // 150ms skip fade, so an explicit null/undefined check is needed here
+    // now that 0 is itself a meaningful value this function is called with.
+    const fade = (fadeMs == null) ? LAUNCH_ANIM.skipMs : fadeMs;
     overlay.removeEventListener('pointerdown', skip, {capture:true});
     window.removeEventListener('resize', updateLaunchScale);
-    overlay.style.transition = 'opacity ' + (fadeMs || LAUNCH_ANIM.skipMs) + 'ms linear';
+    overlay.style.transition = 'opacity ' + fade + 'ms linear';
     overlay.classList.add('launch-hidden');
-    setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, fadeMs || LAUNCH_ANIM.skipMs);
+    setTimeout(() => { if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, fade);
+    // LA3 (decision 19/21): the room underneath starts filling back in the
+    // moment the overlay actually starts hiding, whichever way this
+    // sequence ended (exact landing, the readyWaitMs fallback, or a tap
+    // to skip) -- revealRoom() itself owns the top-down timing/cleanup.
+    revealRoom(appRoot);
   }
 
   // STACK fades up, resting on record 0
@@ -411,6 +519,16 @@ export async function runLaunchSequence(){
     syncCards(stack.targetIndex, 0, 1);   // land exactly on the target, no residual speed-stretch
   }
 
+  // LA3 (decision 18, step 1 -- "before the catch, read the live
+  // .crate-card.crate-current's getBoundingClientRect()"): the crate has
+  // been rendering underneath this whole overlay since the first paint
+  // (restoreLibrary(), main.js), and by now the ~2s-plus flick above has
+  // given it every chance to settle, so no further wait is added here
+  // beyond the readyWaitMs race already run at the top of this function.
+  // Null (crate not there, or sized 0 -- not ready in time) falls back to
+  // today's generic pull/cross-fade landing below, unchanged.
+  const landing = measureCrateLanding();
+
   // CATCH: the last-played sleeve lifts out of the stack (CR5's pull, the
   // crate's own way of taking a record out) and a haptic tick lands it
   // where the platform allows one (ui/haptic.js — silent on iOS Safari,
@@ -439,12 +557,12 @@ export async function runLaunchSequence(){
   }
   if(cancelled()) return;
 
-  // PULL TO CAMERA: the sleeve scales up to face-on while its record
-  // slides out of the top in its own pressing (record-art/peek.js — the
-  // same drawing as the crate's pull-up, rising to the same quarter of the
-  // card); neighbours spread apart, dim and fade (opacity only, no blur).
-  // The mark (#launchWordmark) stays put at the top, already at its 25%
-  // catch opacity set above (LA2) -- it never grows or moves down here.
+  // PULL TO CAMERA / LAND: the sleeve's record slides out of the top in
+  // its own pressing (record-art/peek.js — the same drawing as the
+  // crate's pull-up, rising to the same quarter of the card) while the
+  // sleeve itself animates to its landing pose. The mark (#launchWordmark)
+  // stays put at the top, already at its 25% catch opacity set above
+  // (LA2) -- it never grows or moves down here.
   let peekEl = null;
   if(targetCard){
     const targetTrack = targetId != null ? (S.tracks.find(t => albumKey(t) === targetId) || null) : null;
@@ -453,30 +571,104 @@ export async function runLaunchSequence(){
     targetCard.insertBefore(peekEl, targetCard.firstChild);
   }
   const cardSize = targetCard ? (targetCard.offsetHeight || 278) : 278;
-  const pullStart = performance.now();
-  await new Promise(resolve => {
-    function step(now){
-      if(cancelled()){ resolve(); return; }
-      const p = clamp((now - pullStart) / LAUNCH_ANIM.pullMs, 0, 1);
-      const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
-      const spread = 1 + 1.2*eased;   // neighbours spread ~1.7x-2.2x by the end
-      cards.forEach((el, i) => {
-        if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased, LAUNCH_ANIM.liftPx); return; }
-        const pose = launchCardPose(i - stack.targetIndex, 0, spread);
-        pose.opacity = Math.max(0, pose.opacity) * (1 - 0.9*eased);
-        applyLaunchCardPose(el, pose);
-      });
-      if(peekEl) peekEl.style.transform = 'translateY(' + (-(cardSize * CRATE_PEEK_MAX_FRACTION * eased)).toFixed(1) + 'px)';
-      if(p >= 1){ resolve(); return; }
-      requestAnimationFrame(step);
+
+  // the pose each card is already in, right after CATCH -- the lerp start
+  // for the exact-landing branch below (see endPoseFor/applyExactPose)
+  function startPoseFor(i){
+    if(i === stack.targetIndex){
+      const p = launchCardPose(0, 0, 1);
+      return {tx:0, ty:p.offset - LAUNCH_ANIM.liftPx, z:p.depth, rot:p.tilt, scale:p.scale, opacity:p.opacity};
     }
-    requestAnimationFrame(step);
-  });
-  if(cancelled()) return;
+    const p = launchCardPose(i - stack.targetIndex, 0, 1);
+    return {tx:0, ty:p.offset, z:p.depth, rot:p.tilt, scale:p.scale, opacity:p.opacity};
+  }
+
+  if(landing){
+    // LA3 (decision 18, steps 1-2): land exactly on the live crate card --
+    // the target card's end pose comes straight from the measured rect
+    // (position, size) plus flowPose()'s own tilt for the current card
+    // (0, for d=0); every other card's end pose is the crate's own
+    // flowPose(originY: CRATE_ORIGIN_Y, spread: crateCardSpread())
+    // formula, calibrated by the same scale correction the target needed
+    // -- the crate's own stack, not launch's generic "spread apart and
+    // dim" flourish the `else` branch (today's fallback landing) below
+    // still draws.
+    const spread = crateCardSpread();
+    const poseTarget = flowPose(0, 0, 0, {originY: CRATE_ORIGIN_Y, spread});
+    const predictedTargetWidth = 278 * poseTarget.scale;
+    const scaleCorrection = landing.width / predictedTargetWidth;
+    const baseCenterX = 56 + 139, baseCenterY = 128 + 139;   // .launch-card's base box, centred
+    const targetCenterX = landing.left + landing.width / 2;
+    const targetCenterY = landing.top + landing.height / 2;
+    const tx = targetCenterX - baseCenterX;
+    const targetScale = landing.width / 278;
+    function endPoseFor(i){
+      const d = i - stack.targetIndex, a = Math.abs(d);
+      if(d === 0) return {tx, ty: targetCenterY - baseCenterY, z: 0, rot: poseTarget.rotX, scale: targetScale, opacity: 1};
+      const pose = flowPose(a, d, 0, {originY: CRATE_ORIGIN_Y, spread});
+      return {
+        tx,
+        ty: (targetCenterY - baseCenterY) + (pose.y - poseTarget.y) * scaleCorrection,
+        z: pose.z * scaleCorrection,
+        rot: pose.rotX,
+        scale: targetScale * (pose.scale / poseTarget.scale),
+        opacity: pose.opacity,
+      };
+    }
+    const pullStart = performance.now();
+    await new Promise(resolve => {
+      function step(now){
+        if(cancelled()){ resolve(); return; }
+        const p = clamp((now - pullStart) / LAUNCH_ANIM.pullMs, 0, 1);
+        const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
+        cards.forEach((el, i) => {
+          const start = startPoseFor(i), end = endPoseFor(i);
+          applyExactPose(el, {
+            tx: lerp(start.tx, end.tx, eased), ty: lerp(start.ty, end.ty, eased),
+            z: lerp(start.z, end.z, eased), rot: lerp(start.rot, end.rot, eased),
+            scale: lerp(start.scale, end.scale, eased), opacity: lerp(start.opacity, end.opacity, eased),
+          });
+        });
+        if(peekEl) peekEl.style.transform = 'translateY(' + (-(cardSize * CRATE_PEEK_MAX_FRACTION * eased)).toFixed(1) + 'px)';
+        if(p >= 1){ resolve(); return; }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+    if(cancelled()) return;
+  } else {
+    // fallback (decision 18, step 1's own "if the crate isn't ready in
+    // time"): today's landing -- the sleeve scales up to face-on,
+    // neighbours spread apart, dim and fade (opacity only, no blur).
+    const pullStart = performance.now();
+    await new Promise(resolve => {
+      function step(now){
+        if(cancelled()){ resolve(); return; }
+        const p = clamp((now - pullStart) / LAUNCH_ANIM.pullMs, 0, 1);
+        const eased = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;   // ease-in-out
+        const spread = 1 + 1.2*eased;   // neighbours spread ~1.7x-2.2x by the end
+        cards.forEach((el, i) => {
+          if(i === stack.targetIndex){ applyLaunchCardPose(el, launchCardPose(0, 0, 1), 0.86 + 0.14*eased, LAUNCH_ANIM.liftPx); return; }
+          const pose = launchCardPose(i - stack.targetIndex, 0, spread);
+          pose.opacity = Math.max(0, pose.opacity) * (1 - 0.9*eased);
+          applyLaunchCardPose(el, pose);
+        });
+        if(peekEl) peekEl.style.transform = 'translateY(' + (-(cardSize * CRATE_PEEK_MAX_FRACTION * eased)).toFixed(1) + 'px)';
+        if(p >= 1){ resolve(); return; }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+    if(cancelled()) return;
+  }
 
   // HAND-OFF: the app underneath is already on the empty slipmat with the
-  // last-played album primed (main.js), so this is just the crossfade
-  finishLaunch(LAUNCH_ANIM.crossfadeMs);
+  // last-played album primed (main.js). LA3 (decision 18): an exact
+  // landing just stops drawing in one frame -- no cross-fade, since the
+  // two covers already agree pixel-for-pixel. The fallback path (the
+  // crate wasn't ready in time) keeps today's 600ms cross-fade, since
+  // there's nothing exact to cut to instantly.
+  finishLaunch(landing ? 0 : LAUNCH_ANIM.crossfadeMs);
 }
 
 export function attachLaunchSettingRow(){

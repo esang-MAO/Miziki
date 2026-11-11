@@ -357,6 +357,13 @@
     transform:none;opacity:0;visibility:hidden;
     transition:opacity 180ms ease;
   }
+  /* LA3 (docs/36A_LIBRARY_AND_LAUNCH.md decision 21): the launch stage
+     centres on the crate's own column -- the content area right of the
+     sidebar -- not the whole window, the same left-inset .player-overlay
+     above already uses. updateLaunchScale() (src/launch/intro.js) shrinks
+     its own fit-to-viewport math by this same --sidebar-width so the
+     390x740 stage doesn't overflow past this narrower box. */
+  .launch-overlay{left:var(--sidebar-width);right:0}
   /* FS10 (docs/25_FROM_SCRATCH.md point 7): "the sidebar and library pane
      fold away while Focus is on" -- the sidebar rail hides and the
      player (already covering the main content area whenever it's open)

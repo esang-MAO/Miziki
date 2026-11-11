@@ -70,3 +70,46 @@
 .launch-peek{left:4%;top:4%;width:92%;height:92%;z-index:0}
 @media (prefers-reduced-motion:reduce){.launch-overlay{display:none}}
 
+/* LA3 (docs/36A_LIBRARY_AND_LAUNCH.md decision 19/21): the room the
+   launch overlay hands off to -- info card, mini-player, tab bar, header
+   and the neighbouring-section bar (genre/decade's own chip row,
+   .crate-section-chips, LB6) -- starts transparent and 8px low, and
+   fills back in top-down rather than all at once. The sidebar's own join
+   (decision 21, desktop only -- display:contents below 1024px, so this
+   has no effect on a phone) rides the same step as the mini-player/tab
+   bar, since that's the one element (D4) the mini-player already is on
+   desktop. .launch-room itself, and each .room-*-in step, is staged by
+   runLaunchSequence()/revealRoom() (src/launch/intro.js) -- never on its
+   own timer in CSS, since it has to start exactly when the overlay
+   actually hides. */
+.launch-room .crate-info,
+.launch-room .mini-player,
+.launch-room .tabbar,
+.launch-room .sidebar,
+.launch-room #appHeader,
+.launch-room .crate-section-chips{
+  opacity:0;transform:translateY(8px);
+  transition:opacity .2s ease-out, transform .2s ease-out;
+}
+.launch-room.room-info-in .crate-info,
+.launch-room.room-bars-in .mini-player,
+.launch-room.room-bars-in .tabbar,
+.launch-room.room-bars-in .sidebar,
+.launch-room.room-header-in #appHeader,
+.launch-room.room-neighbour-in .crate-section-chips{
+  opacity:1;transform:none;
+}
+@media (prefers-reduced-motion:reduce){
+  /* "reduced motion does all at once with no movement" -- every room
+     element simply sits at rest regardless of which .room-*-in steps
+     have landed, so there's nothing to stagger and nothing that moves. */
+  .launch-room .crate-info,
+  .launch-room .mini-player,
+  .launch-room .tabbar,
+  .launch-room .sidebar,
+  .launch-room #appHeader,
+  .launch-room .crate-section-chips{
+    opacity:1;transform:none;transition:none;
+  }
+}
+
