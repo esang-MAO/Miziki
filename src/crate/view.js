@@ -24,6 +24,7 @@ import { buildPeekDisc } from '../record-art/peek.js';
 import { wearStage } from '../record-art/wear.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import { dividerArtEl } from './divider-art.js';
+import { wordmarkEl } from '../ui/wordmark.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, crateAlbumJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
@@ -58,6 +59,12 @@ import {
 // so there's nothing here for the no-restricted-syntax ESLint rule to
 // even consider.
 const SVGNS = 'http://www.w3.org/2000/svg';
+// LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): the empty crate's own
+// still Miziki sleeve (#emptyCrateSleeve, miziki.html) -- set once at
+// module load, same pattern as every other .launch-card-mark/.sleeve-mark
+// call site (src/launch/intro.js's own #launchWordmark, src/shell/
+// start-sequence.js's .sleeve-mark/.mini-mark).
+{ const m = $('#emptyCrateSleeveMark'); if(m) m.appendChild(wordmarkEl()); }
 const BASE_CRATE_CARD_SIZE = 278;
 function currentCardSize(){
   const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--crate-card-size'));
@@ -1681,14 +1688,18 @@ export function renderCrate(host){
 
 // vertically centres the empty-library placeholder in whatever room is left
 // under the header and above the tab bar, rather than always hugging the
-// top — a one-off static block, unlike the scrollable track lists
+// top — a one-off static block, unlike the scrollable track lists.
+// LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): centres #emptyCrateState
+// (the still Miziki sleeve plus the note below it) as one block now, rather
+// than #empty alone, so the sleeve doesn't get pushed up out of its own
+// "where the crate card will sit" spot relative to the note under it.
 export function centerEmptyState(){
-  const empty = $('#empty');
-  empty.style.marginTop = '0px';
+  const wrap = $('#emptyCrateState');
+  wrap.style.marginTop = '0px';
   const tabbarEl = $('#tabbar');
   const tabbarH = tabbarEl ? tabbarEl.getBoundingClientRect().height : 0;
-  const top = empty.getBoundingClientRect().top;
+  const top = wrap.getBoundingClientRect().top;
   const available = window.innerHeight - top - tabbarH - 16;
-  const slack = available - empty.getBoundingClientRect().height;
-  if(slack > 0) empty.style.marginTop = Math.round(slack / 2) + 'px';
+  const slack = available - wrap.getBoundingClientRect().height;
+  if(slack > 0) wrap.style.marginTop = Math.round(slack / 2) + 'px';
 }

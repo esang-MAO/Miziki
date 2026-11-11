@@ -128,19 +128,36 @@
 
   <!-- LIBRARY: landing route -->
   <section class="route on" id="route-library" role="main">
-    <!-- UN5 point 1 (docs/36_UNIFORMITY.md): emptyNote()'s look, built
-         statically here (not via src/ui/parts.js's helper) so #pick/
-         #pickFolder/#tone keep the same ids src/wiring/import.js already
-         wires -- a plain markup swap, no JS/wiring change needed. -->
-    <div class="empty p-empty-note" id="empty">
-      <div class="p-empty-note-tape"></div>
-      <p class="p-empty-note-head">The crate is empty.</p>
-      <p class="p-empty-note-sub">Choose songs or a folder on this device. They stay here, nothing is uploaded or copied.</p>
-      <div class="p-empty-note-actions">
-        <button class="p-btn p-btn--primary" id="pick">Choose files</button>
-        <button class="p-btn" id="pickFolder">Choose folder</button>
+    <!-- LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): the empty
+         crate's own still record sits above the note, in the same spot a
+         real crate card would occupy -- it's the thing the first-open
+         launch dig (src/launch/intro.js) catches and lands on
+         (measureCrateLanding() finds it via the same ".crate-card.
+         crate-current" selector a real card uses, so no special-casing
+         was needed there), and then simply stays, since it's the crate's
+         own markup, not part of the launch overlay. The mark itself is
+         set once at module load (src/crate/view.js), same pattern as
+         every other .launch-card-mark/.sleeve-mark call site. -->
+    <div class="crate-empty-state" id="emptyCrateState">
+      <div class="crate-card crate-current crate-empty-sleeve" id="emptyCrateSleeve">
+        <div class="crate-card-face launch-card-miziki">
+          <div class="launch-card-mark" id="emptyCrateSleeveMark"></div>
+        </div>
       </div>
-      <button class="p-empty-note-link" id="tone" type="button">Play a test tone</button>
+      <!-- UN5 point 1 (docs/36_UNIFORMITY.md): emptyNote()'s look, built
+           statically here (not via src/ui/parts.js's helper) so #pick/
+           #pickFolder/#tone keep the same ids src/wiring/import.js already
+           wires -- a plain markup swap, no JS/wiring change needed. -->
+      <div class="empty p-empty-note" id="empty">
+        <div class="p-empty-note-tape"></div>
+        <p class="p-empty-note-head">The crate is empty.</p>
+        <p class="p-empty-note-sub">Choose songs or a folder on this device. They stay here, nothing is uploaded or copied.</p>
+        <div class="p-empty-note-actions">
+          <button class="p-btn p-btn--primary" id="pick">Choose files</button>
+          <button class="p-btn" id="pickFolder">Choose folder</button>
+        </div>
+        <button class="p-empty-note-link" id="tone" type="button">Play a test tone</button>
+      </div>
     </div>
     <input id="file" type="file" accept="audio/*,.flac,.wav,.aiff,.aif,.m4a,.alac,.mp3" multiple>
     <input id="folderFile" type="file" webkitdirectory multiple>

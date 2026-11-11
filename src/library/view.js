@@ -1383,7 +1383,11 @@ function renderTracksBody(host){
   renderSidebarBins();
   const v = S.view;
   libCommonFormat = mostCommonFormat(S.tracks);
-  $('#empty').style.display = S.tracks.length ? 'none' : 'block';
+  // LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): toggles the whole
+  // #emptyCrateState wrapper now (the still Miziki sleeve plus #empty
+  // under it), not #empty alone -- the sleeve and the note show and hide
+  // together, the same single S.tracks.length check as before.
+  $('#emptyCrateState').style.display = S.tracks.length ? 'none' : 'block';
   if(!S.tracks.length) centerEmptyState();
   // UN3 (docs/36_UNIFORMITY.md) retired the header's own Select toggle
   // button (#selectToggle) in favor of a "Select" row inside the Library
