@@ -515,18 +515,18 @@
   },
   {
    "id": "prussian-bone",
-   "name": "Prussian & Bone",
+   "name": "Prussian & Sulphur",
    "tier": 3,
    "technique": "swirl",
    "detail": "swirl",
-   "inks": "Prussian \u00b7 Bone",
+   "inks": "Prussian \u00b7 Sulphur",
    "rarity": "common",
    "body": "#2B5586",
    "rim": "#122540",
    "ring": "#1F3F66",
    "translucent": false,
    "css_layers": [
-    "inset:-16%;background:conic-gradient(from 20deg,#2B5586 0 22%,#DED7C7 22% 38%,#2B5586 38% 58%,#DED7C7 58% 76%,#2B5586 76% 100%);filter:blur(7px)"
+    "inset:-16%;background:conic-gradient(from 20deg,#2B5586 0 22%,#F5F5B8 22% 38%,#2B5586 38% 58%,#F5F5B8 58% 76%,#2B5586 76% 100%);filter:blur(7px)"
    ]
   },
   {
@@ -563,18 +563,18 @@
   },
   {
    "id": "grape-chalk",
-   "name": "Grape & Chalk",
+   "name": "Grape & Nile",
    "tier": 3,
    "technique": "swirl",
    "detail": "swirl",
-   "inks": "Grape \u00b7 Chalk",
+   "inks": "Grape \u00b7 Nile",
    "rarity": "common",
    "body": "#582C83",
    "rim": "#361A52",
    "ring": "#6D419B",
    "translucent": false,
    "css_layers": [
-    "inset:-16%;background:conic-gradient(from 20deg,#582C83 0 22%,#E6E2DA 22% 38%,#582C83 38% 58%,#E6E2DA 58% 76%,#582C83 76% 100%);filter:blur(7px)"
+    "inset:-16%;background:conic-gradient(from 20deg,#582C83 0 22%,#BFFFE6 22% 38%,#582C83 38% 58%,#BFFFE6 58% 76%,#582C83 76% 100%);filter:blur(7px)"
    ]
   },
   {
@@ -611,34 +611,34 @@
   },
   {
    "id": "oxblood-split",
-   "name": "Oxblood Split",
+   "name": "Oxblood & Ivory Buff",
    "tier": 3,
    "technique": "split",
    "detail": "split",
-   "inks": "Isabelline \u00b7 Oxblood",
+   "inks": "Ivory Buff \u00b7 Oxblood",
    "rarity": "common",
    "body": "#6B1F1C",
    "rim": "#3E1210",
    "ring": "#8A2E2A",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#DCCDB0 50%,#6B1F1C 50%)"
+    "background:linear-gradient(90deg,#EBD999 50%,#6B1F1C 50%)"
    ]
   },
   {
    "id": "tyrian-split",
-   "name": "Tyrian Split",
+   "name": "Tyrian & Shell",
    "tier": 3,
    "technique": "split",
    "detail": "split",
-   "inks": "Isabelline \u00b7 Tyrian",
+   "inks": "Seashell \u00b7 Tyrian",
    "rarity": "uncommon",
    "body": "#5B1A3C",
    "rim": "#3A0F26",
    "ring": "#6E2448",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#DCCDB0 50%,#5B1A3C 50%)"
+    "background:linear-gradient(90deg,#FFCFC4 50%,#5B1A3C 50%)"
    ]
   },
   {
@@ -659,34 +659,34 @@
   },
   {
    "id": "pine-split",
-   "name": "Pine Split",
+   "name": "Pine & Ivory Buff",
    "tier": 3,
    "technique": "split",
    "detail": "split",
-   "inks": "Bone \u00b7 Pine",
+   "inks": "Ivory Buff \u00b7 Pine",
    "rarity": "common",
    "body": "#2A6A4F",
    "rim": "#102A20",
    "ring": "#1E4D3A",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#DED7C7 50%,#2A6A4F 50%)"
+    "background:linear-gradient(90deg,#EBD999 50%,#2A6A4F 50%)"
    ]
   },
   {
    "id": "rose-split",
-   "name": "Rose Split",
+   "name": "Rose & Neutral Grey",
    "tier": 3,
    "technique": "split",
    "detail": "split",
-   "inks": "Chalk \u00b7 Rose",
+   "inks": "Neutral Grey \u00b7 Rose",
    "rarity": "common",
    "body": "#D97A96",
    "rim": "#7A2E48",
    "ring": "#C45C7A",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#E6E2DA 50%,#D97A96 50%)"
+    "background:linear-gradient(90deg,#B5D1CC 50%,#D97A96 50%)"
    ]
   },
   {
@@ -707,34 +707,34 @@
   },
   {
    "id": "vermilion-chalk-pine",
-   "name": "Vermilion Chalk Pine",
+   "name": "Vermilion Nile Pine",
    "tier": 3,
    "technique": "tri-split",
    "detail": "tri-split",
-   "inks": "Vermilion \u00b7 Chalk \u00b7 Pine",
+   "inks": "Vermilion \u00b7 Nile \u00b7 Pine",
    "rarity": "uncommon",
-   "body": "#E6E2DA",
+   "body": "#BFFFE6",
    "rim": "#B9B5AC",
    "ring": "#F4F1EA",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#C4302B 33.4%,#E6E2DA 33.4% 66.7%,#2A6A4F 66.7%)"
+    "background:linear-gradient(90deg,#C4302B 33.4%,#BFFFE6 33.4% 66.7%,#2A6A4F 66.7%)"
    ]
   },
   {
    "id": "cobalt-bone-madder",
-   "name": "Cobalt Bone Madder",
+   "name": "Cobalt Sulphur Madder",
    "tier": 3,
    "technique": "tri-split",
    "detail": "tri-split",
-   "inks": "Cobalt \u00b7 Bone \u00b7 Madder",
+   "inks": "Cobalt \u00b7 Sulphur \u00b7 Madder",
    "rarity": "uncommon",
-   "body": "#DED7C7",
+   "body": "#F5F5B8",
    "rim": "#A9A69B",
    "ring": "#F1EDE3",
    "translucent": false,
    "css_layers": [
-    "background:linear-gradient(90deg,#3660BE 33.4%,#DED7C7 33.4% 66.7%,#9A3328 66.7%)"
+    "background:linear-gradient(90deg,#3660BE 33.4%,#F5F5B8 33.4% 66.7%,#9A3328 66.7%)"
    ]
   },
   {
@@ -759,14 +759,14 @@
    "tier": 3,
    "technique": "pinwheel",
    "detail": "pinwheel \u00b7 six wedges",
-   "inks": "Madder \u00b7 Isabelline",
+   "inks": "Madder \u00b7 Ivory Buff",
    "rarity": "common",
    "body": "#9A3328",
    "rim": "#5C1A14",
    "ring": "#B5433A",
    "translucent": false,
    "css_layers": [
-    "background:conic-gradient(from 12deg,#9A3328 0 60deg,#DCCDB0 60deg 120deg,#9A3328 120deg 180deg,#DCCDB0 180deg 240deg,#9A3328 240deg 300deg,#DCCDB0 300deg)"
+    "background:conic-gradient(from 12deg,#9A3328 0 60deg,#EBD999 60deg 120deg,#9A3328 120deg 180deg,#EBD999 180deg 240deg,#9A3328 240deg 300deg,#EBD999 300deg)"
    ]
   },
   {
@@ -775,14 +775,14 @@
    "tier": 3,
    "technique": "pinwheel",
    "detail": "pinwheel \u00b7 six wedges",
-   "inks": "Teal \u00b7 Chalk",
+   "inks": "Teal \u00b7 Pale Lemon",
    "rarity": "common",
    "body": "#28868B",
    "rim": "#123F42",
    "ring": "#1F6F73",
    "translucent": false,
    "css_layers": [
-    "background:conic-gradient(from 12deg,#28868B 0 60deg,#E6E2DA 60deg 120deg,#28868B 120deg 180deg,#E6E2DA 180deg 240deg,#28868B 240deg 300deg,#E6E2DA 300deg)"
+    "background:conic-gradient(from 12deg,#28868B 0 60deg,#FFF59E 60deg 120deg,#28868B 120deg 180deg,#FFF59E 180deg 240deg,#28868B 240deg 300deg,#FFF59E 300deg)"
    ]
   },
   {
@@ -791,14 +791,14 @@
    "tier": 3,
    "technique": "pinwheel",
    "detail": "pinwheel \u00b7 six wedges",
-   "inks": "Grape \u00b7 Bone",
+   "inks": "Grape \u00b7 Nile",
    "rarity": "uncommon",
    "body": "#582C83",
    "rim": "#361A52",
    "ring": "#6D419B",
    "translucent": false,
    "css_layers": [
-    "background:conic-gradient(from 12deg,#582C83 0 60deg,#DED7C7 60deg 120deg,#582C83 120deg 180deg,#DED7C7 180deg 240deg,#582C83 240deg 300deg,#DED7C7 300deg)"
+    "background:conic-gradient(from 12deg,#582C83 0 60deg,#BFFFE6 60deg 120deg,#582C83 120deg 180deg,#BFFFE6 180deg 240deg,#582C83 240deg 300deg,#BFFFE6 300deg)"
    ]
   },
   {
@@ -807,14 +807,14 @@
    "tier": 3,
    "technique": "pinwheel",
    "detail": "pinwheel \u00b7 six wedges",
-   "inks": "Sienna \u00b7 Isabelline",
+   "inks": "Sienna \u00b7 Pale Lemon",
    "rarity": "common",
    "body": "#8B4426",
    "rim": "#4F2412",
    "ring": "#A0522D",
    "translucent": false,
    "css_layers": [
-    "background:conic-gradient(from 12deg,#8B4426 0 60deg,#DCCDB0 60deg 120deg,#8B4426 120deg 180deg,#DCCDB0 180deg 240deg,#8B4426 240deg 300deg,#DCCDB0 300deg)"
+    "background:conic-gradient(from 12deg,#8B4426 0 60deg,#FFF59E 60deg 120deg,#8B4426 120deg 180deg,#FFF59E 180deg 240deg,#8B4426 240deg 300deg,#FFF59E 300deg)"
    ]
   },
   {
