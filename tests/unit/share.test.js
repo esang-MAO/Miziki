@@ -17,7 +17,8 @@ import assert from 'node:assert/strict';
 mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
   namedExports: { wordmarkMarkup(){ return '<svg></svg>'; } },
 });
-const { SHARE_FORMATS, resolveShareStyle, shareFitLines, paperLabelTextLayout } = await import('../../src/share/styles.js');
+const { SHARE_FORMATS, resolveShareStyle, shareFitLines, paperLabelTextLayout, shareTriad } = await import('../../src/share/styles.js');
+import { contrastRatio } from '../../src/ui/art-color.js';
 
 // Canvas drawing itself can't run in Node (no real 2D context), so this
 // file sticks to the two genuinely pure parts of the share-image code:
@@ -84,6 +85,40 @@ test('resolveShareStyle: Paper and Night each resolve to their own named kit; Co
   assert.equal((await resolveShareStyle('cover', null)).name, 'night');
   // an unrecognized style name is treated the same as no style at all
   assert.equal((await resolveShareStyle('not-a-real-style', null)).name, 'night');
+});
+
+/* ===================== CO6 (docs/37_COLOUR.md) =====================
+   shareTriad(rgb) — a ground/type/accent triad for the cover-derived
+   share-card background, built on CO4's artAnchor()/artTint(). Pure
+   colour math, same as artTint()/artAnchor() themselves, so it's tested
+   directly here rather than through resolveShareStyle()'s 'cover'
+   branch (which needs a real Image/canvas to reach at all — see the
+   'falls through to Night' comment above). */
+
+test('shareTriad(): type clears TY1\'s 7:1 floor against its own ground', () => {
+  // a saturated orange, same cover hue art-color.test.js's own artAnchor()
+  // test uses — resolves to the Slate Color / Ivory Buff anchor pairing.
+  const { ground, type, accent } = shareTriad({ r: 244, g: 133, b: 37 });
+  assert.ok(contrastRatio(type, ground) >= 7, `type (${type}) vs ground (${ground}) — ${contrastRatio(type, ground).toFixed(2)}:1`);
+  assert.ok(typeof accent === 'string' && accent.length > 0);
+});
+
+test('shareTriad(): no anchor for this hue falls back to artTint()\'s own ground and --paper for type', () => {
+  // the olive/yellow-green band artAnchor() itself returns null for
+  // (art-color.test.js) — shareTriad() must fall through the same way,
+  // never throwing and never returning an undefined ground/type.
+  const { ground, type } = shareTriad({ r: 51, g: 204, b: 51 });
+  assert.equal(type, '#EFE9DF');
+  assert.ok(typeof ground === 'string' && ground.startsWith('#'));
+});
+
+test('shareTriad(): the accent never lands within ΔE 10 of its own ground or type', async () => {
+  const { deltaE } = await import('../../src/ui/palette-ref.js');
+  for(const rgb of [{ r: 244, g: 133, b: 37 }, { r: 51, g: 204, b: 51 }, { r: 60, g: 90, b: 220 }]){
+    const { ground, type, accent } = shareTriad(rgb);
+    assert.ok(deltaE(accent, ground) >= 10, `accent (${accent}) too close to ground (${ground})`);
+    assert.ok(deltaE(accent, type) >= 10, `accent (${accent}) too close to type (${type})`);
+  }
 });
 
 /* ===================== SH3 (docs/18_SHARE.md) =====================

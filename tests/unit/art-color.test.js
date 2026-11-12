@@ -80,10 +80,22 @@ test('artAnchor(): a warm orange cover anchors to a genuinely different-hue near
   assert.equal(anchor.name, 'Slate Color');
 });
 
+// CO6 (recommendation 7): each ground carries its own hand-picked pale
+// partner too, for shareTriad()'s "type" -- these two match the design
+// canvas's own worked examples.
+test('artAnchor(): the Slate Color anchor carries its own hand-picked pale partner (Ivory Buff)', () => {
+  const anchor = artAnchor({ h: 28, s: 0.9, l: 0.55 });
+  assert.ok(anchor.pale);
+  assert.equal(anchor.pale.hex, '#EBD999');
+  assert.equal(anchor.pale.name, 'Ivory Buff');
+});
+
 test('artAnchor(): a cool navy cover anchors to a warm near-neutral dark', () => {
   const anchor = artAnchor({ h: 222, s: 0.65, l: 0.3 });
   assert.ok(anchor);
   assert.equal(anchor.name, 'Vandyke Brown');
+  assert.equal(anchor.pale.hex, '#FFF59E');
+  assert.equal(anchor.pale.name, 'Pale Lemon Yellow');
 });
 
 test('artAnchor(): a yellow-green/olive cover has no good complement in the hand-picked table -- null', () => {

@@ -153,7 +153,10 @@ export async function composeSeasonShareImage(opts){
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   try{ await document.fonts.ready; }catch(_e){} // Font Loading API unavailable/rejects -- expected, not logged
-  const kit = await resolveShareStyle(style);
+  // CO6 (docs/37_COLOUR.md): passes the season's own top album art so
+  // Cover style's shareTriad() ground/type/accent can resolve here too --
+  // this card had no art argument to give it before.
+  const kit = await resolveShareStyle(style, data && data.topAlbums && data.topAlbums[0] && data.topAlbums[0].art);
   kit.paintBg(ctx, w, h);
   if(!data) return canvas;
 

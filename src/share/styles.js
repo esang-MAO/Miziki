@@ -34,7 +34,8 @@ import { wordmarkMarkup } from '../ui/wordmark.js';
 // module — which pulls in ui/wordmark.js's Vite-only `?raw` SVG import,
 // unsafe for node:test to statically resolve); re-exported here since
 // several share/*.js card composers still import it from this file.
-import { shareDominantColor, loadImageEl } from '../ui/art-color.js';
+import { shareDominantColor, loadImageEl, artAnchor, artTint, contrastRatio } from '../ui/art-color.js';
+import { deltaE, toLab, fromLab } from '../ui/palette-ref.js';
 export { loadImageEl };
 
 export const SHARE_BG = ['#1D2F38', '#101A20', '#07080C'];
@@ -404,6 +405,84 @@ export function shareGrainTile(){
 
 export function hslStr(h, s, l){ return 'hsl(' + h.toFixed(0) + ',' + Math.round(s*100) + '%,' + Math.round(l*100) + '%)'; }
 
+// the inverse of rgbToHsl() below -- needed only to hand shareTriad() its
+// documented {r,g,b} shape when the only colour on hand is shareDominant
+// Color()'s own {h,s,l} (0-1 ranges, h in degrees).
+function hslToRgb(h, s, l){
+  const c = (1 - Math.abs(2*l - 1)) * s;
+  const x = c * (1 - Math.abs(((h/60) % 2) - 1));
+  const m = l - c/2;
+  let r=0, g=0, b=0;
+  if(h < 60){ r=c; g=x; b=0; }
+  else if(h < 120){ r=x; g=c; b=0; }
+  else if(h < 180){ r=0; g=c; b=x; }
+  else if(h < 240){ r=0; g=x; b=c; }
+  else if(h < 300){ r=x; g=0; b=c; }
+  else { r=c; g=0; b=x; }
+  return { r: Math.round((r+m)*255), g: Math.round((g+m)*255), b: Math.round((b+m)*255) };
+}
+
+// "r,g,b" for an rgba() string -- shareTriad()'s kit builds translucent
+// sub/chip colours from its own flat ground/type hexes the same way the
+// gradient-based cover kit below already builds them from literal values.
+function hexToRgbCss(hex){
+  const n = parseInt(hex.replace('#', ''), 16);
+  return ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255);
+}
+
+function rgbToHsl(r, g, b){
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), l = (max+min)/2, d = max-min;
+  let h = 0, s = 0;
+  if(d !== 0){
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    if(max === r) h = ((g-b)/d) % 6;
+    else if(max === g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h = Math.round(h*60); if(h < 0) h += 360;
+  }
+  return { h, s, l };
+}
+
+// CO6 (docs/37_COLOUR.md, recommendation 7): a ground/type/accent triad
+// for a share card's cover-derived background, built on CO4's
+// artAnchor()/artTint() -- the anchor's own hand-picked pale partner
+// (art-color.js's ANCHOR_CANDIDATES) stands in for "the most-partnered
+// pale" the plan calls for: that would have come from the same removed
+// Wada combination-frequency data the ground anchor itself used to,
+// before recommendation 10 asked Ken and he chose a hand-picked table
+// instead (CO4). No anchor qualifying falls through to artTint()'s own
+// same-hue `from`, and no pale falls through to --paper.
+const SHARE_TRIAD_ACCENT = '#E9A24A'; // --amber
+const SHARE_TRIAD_TYPE_FALLBACK = '#EFE9DF'; // --paper
+const SHARE_TRIAD_CLASH_DELTA_E = 10;
+const SHARE_TRIAD_ACCENT_L_MIN = 45, SHARE_TRIAD_ACCENT_L_MAX = 70;
+// Wada 3's own three-colour ΔL median (docs/37_COLOUR.md) -- a triad that
+// spreads less is flagged for review, never rejected outright.
+const SHARE_TRIAD_SPREAD_FLOOR = 43;
+export const SHARE_TRIAD_TYPE_CONTRAST_FLOOR = 7; // TY1's --on-dark floor
+
+export function shareTriad(rgb){
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  const anchor = artAnchor(hsl);
+  const ground = anchor ? anchor.hex : artTint(hsl).from;
+  const type = anchor && anchor.pale ? anchor.pale.hex : SHARE_TRIAD_TYPE_FALLBACK;
+  let accent = SHARE_TRIAD_ACCENT;
+  if(deltaE(accent, ground) < SHARE_TRIAD_CLASH_DELTA_E || deltaE(accent, type) < SHARE_TRIAD_CLASH_DELTA_E){
+    // no second real partner in the hand-picked table to reach for --
+    // the "next partner" the plan describes is approximated as a step
+    // between ground and type, pulled into the L 45-70 band it asks for.
+    const g = toLab(ground), t = toLab(type);
+    const midL = Math.max(SHARE_TRIAD_ACCENT_L_MIN, Math.min(SHARE_TRIAD_ACCENT_L_MAX, (g.L + t.L) / 2));
+    accent = fromLab({ L: midL, a: (g.a + t.a) / 2, b: (g.b + t.b) / 2 });
+  }
+  const spread = Math.abs(toLab(ground).L - toLab(type).L);
+  if(spread < SHARE_TRIAD_SPREAD_FLOOR && import.meta.env && import.meta.env.DEV){
+    console.warn('[shareTriad] triad spreads only ' + spread.toFixed(1) + 'ΔL (book\'s three-colour median is 43):', { ground, type, accent });
+  }
+  return { ground, type, accent };
+}
+
 // resolves a style name (+ optional art URL for Cover) into the kit every
 // card draws with: a background painter and a consistent ink/sub/accent/
 // chip palette, so cards never hand-roll per-style colours inline
@@ -413,6 +492,21 @@ export async function resolveShareStyle(style, artURL){
       const img = await loadImageEl(artURL);
       const dom = shareDominantColor(img);
       if(dom){
+        // CO6 (recommendation 7): the anchor/pale/amber triad, tried first
+        // -- a flat ground rather than the old gradient, in the same kit
+        // shape every other style already returns. Falls back to today's
+        // gradient-based cover kit (below) when the triad's type fails
+        // TY1's 7:1 floor against its own ground, per the plan's own
+        // "fall back to today's card colours" rule.
+        const rgbForTriad = hslToRgb(dom.h, dom.s, dom.l);
+        const triad = shareTriad(rgbForTriad);
+        if(contrastRatio(triad.type, triad.ground) >= SHARE_TRIAD_TYPE_CONTRAST_FLOOR){
+          return {
+            name:'cover', ink: triad.type, sub: 'rgba(' + hexToRgbCss(triad.type) + ',.66)', accent: triad.accent,
+            chipBorder: 'rgba(' + hexToRgbCss(triad.type) + ',.4)', chipBg: 'rgba(' + hexToRgbCss(triad.ground) + ',.25)',
+            paintBg(ctx, w, h){ ctx.fillStyle = triad.ground; ctx.fillRect(0, 0, w, h); }
+          };
+        }
         // the top stop tracks the art's own lightness (darkened art stays
         // dark, bright art stays bright) so ink contrast has something real
         // to react to; the bottom stop always darkens toward the footer
