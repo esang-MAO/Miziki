@@ -75,13 +75,17 @@ function currentCardSize(){
 // metalBackground() draws for the platter itself — "14px, radial
 // highlight" per the design doc, reusing METAL_COLORS as the one source
 // of truth for which hex means which metal.
+// CO7 (docs/37_COLOUR.md, recommendation 8): drawn under 48px, so it must
+// still use METAL_COLORS' own three real stops (shadow/mid/highlight) as
+// a gradient — this used to fake the highlight/shadow with a flat white/
+// black overlay over `mid` alone, which drew every metal's dot with the
+// same two overlay tones instead of that metal's own (Adams 4: a metal
+// needs its own highlight and shadow to read as metal, not just any
+// light/dark).
 function metalDotBackground(name){
-  // PRESSINGS_110 PR4: METAL_COLORS' own base/highlight/shadow/underglow
-  // shape became shadow/mid/highlight (data/pressings.json's own field
-  // names) — `mid` is this dot's equivalent of the old `base`.
   const m = METAL_COLORS[name];
-  const base = m ? m.mid : '#999';
-  return 'radial-gradient(circle at 35% 30%, rgba(255,255,255,.65) 0%, ' + base + ' 55%, rgba(0,0,0,.35) 100%)';
+  if(!m) return 'radial-gradient(circle at 35% 30%, rgba(255,255,255,.65) 0%, #999 55%, rgba(0,0,0,.35) 100%)';
+  return 'radial-gradient(circle at 35% 30%, ' + m.highlight + ' 0%, ' + m.mid + ' 55%, ' + m.shadow + ' 100%)';
 }
 
 // CR3 point 1/2: one .crate-sticker element for whichever kind
