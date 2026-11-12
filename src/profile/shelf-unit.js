@@ -19,10 +19,15 @@ import { renderTurntable } from './turntable.js';
 import { stickerBadge } from '../social/sticker.js';
 import { loadImageEl, shareDominantColor, spineColor } from '../ui/art-color.js';
 import { albumPressingTrack, selectVariant, getVariantDef, selectVariantForAlbum } from '../record-art/tiers.js';
+import { abbreviateSpineLabel, spineLabelBudgetPx } from './spine-label.js';
 
 export const SHELF_UNIT_CUBES = 6;
 export const SHELF_UNIT_COLS = 2;
-const CUBE_CAPACITY = 10;
+// CO5 (docs/37_COLOUR.md, recommendation 6): "seven spines a cube" --
+// dropped from 10 now that a spine also carries a printed label, which
+// needs real width to stay legible (18-storefront.css's own .shelf-cell
+// .sp went from a fixed 11px to an equal flex share of the cell).
+const CUBE_CAPACITY = 7;
 
 // UN15 point 3 ("rows that grow"): the unit no longer pads a short crate
 // out to a fixed 6-cube/3-row box -- it renders 1-3 rows, however many the
@@ -154,6 +159,24 @@ export function shelfUnitCubes(items, faceOutIds){
   return cubes;
 }
 
+// CO5 point 4: the spine's printed label needs ink that stays legible
+// against whatever colour --spine-color actually resolves to -- a light
+// ink on a dark spine, a dark ink on a light spine. Plain WCAG relative
+// luminance against a mid threshold, same formula tests/unit/theme.test.js's
+// relLuminanceTY1 uses; not exported from art-color.js to avoid a new
+// import edge for two lines of math.
+export function spineInkIsLight(hex){
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const toLinear = c => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  return L < 0.4; // a dark spine gets light (--on-dark-ish) ink
+}
+function setSpineColor(sp, hex){
+  sp.style.setProperty('--spine-color', hex);
+  sp.classList.toggle('sp--light-ink', spineInkIsLight(hex));
+}
+
 function cubeSpine(item, onTapAlbum){
   const sp = el('button', 'sp');
   sp.style.height = (SPINE_HEIGHT_PCT[item.format] || SPINE_HEIGHT_DEFAULT) + '%';
@@ -167,14 +190,35 @@ function cubeSpine(item, onTapAlbum){
     // write: 18-storefront.css reads --spine-color, so a late write to a
     // detached button just paints nothing anyone sees).
     const fallback = pressingSpineColor(item);
-    if(fallback) sp.style.setProperty('--spine-color', fallback);
+    if(fallback) setSpineColor(sp, fallback);
     resolveSpineColor(item.id, item.art).then(hex => {
-      if(hex) sp.style.setProperty('--spine-color', hex);
+      if(hex) setSpineColor(sp, hex);
     });
+    // CO5 point 3 (art sliver, option A): a thin strip of the album's own
+    // cover, already loaded for the face-outs -- no new image request,
+    // and no sliver at all with no art, per the plan.
+    const artSliver = el('span', 'sp-art');
+    artSliver.style.backgroundImage = 'url("' + item.art + '")';
+    sp.appendChild(artSliver);
   } else {
     const hex = pressingSpineColor(item);
-    if(hex) sp.style.setProperty('--spine-color', hex);
+    if(hex) setSpineColor(sp, hex);
   }
+  // CO5 point 4: the printed label -- artist at 72% opacity, then the
+  // album, vertical bottom-to-top. abbreviateSpineLabel() (spine-label.js)
+  // ports the reference algorithm, measured against this spine's own
+  // typical pixel budget for its format (spineLabelBudgetPx()).
+  const label = el('span', 'sp-label');
+  const budgetPx = spineLabelBudgetPx(item.format);
+  const text = abbreviateSpineLabel({ artist: item.artist || '', album: item.name }, budgetPx);
+  const sepIdx = text.indexOf(' · ');
+  if(item.artist && sepIdx !== -1){
+    label.appendChild(el('span', 'sp-artist', text.slice(0, sepIdx)));
+    label.appendChild(el('span', null, text.slice(sepIdx)));
+  } else {
+    label.appendChild(el('span', null, text));
+  }
+  sp.appendChild(label);
   return sp;
 }
 

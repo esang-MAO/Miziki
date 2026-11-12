@@ -4,10 +4,13 @@ import { shelfUnitCubes, shelfUnitRows, dedupeCrateItems } from '../../src/profi
 
 function item(id){ return {id, name: id, artist: 'A'}; }
 
-test('shelfUnitCubes: packs plain spines ten to a cube', () => {
+// CO5 (docs/37_COLOUR.md, recommendation 6): "seven spines a cube" -- was
+// 10, dropped once a spine also carries a printed label needing real
+// width.
+test('shelfUnitCubes: packs plain spines seven to a cube', () => {
   const items = Array.from({length: 23}, (_, i) => item('t' + i));
   const cubes = shelfUnitCubes(items, []);
-  assert.deepEqual(cubes.map(c => c.length), [10, 10, 3]);
+  assert.deepEqual(cubes.map(c => c.length), [7, 7, 7, 2]);
 });
 
 // Wall & Labels follow-up (Ken, 2026-11-08): "each record being put in its
