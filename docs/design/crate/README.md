@@ -113,7 +113,7 @@ That is the incentive: a better file is a more interesting record, and a friend'
 | Tier | Common | Uncommon | Scarce |
 |---|---|---|---|
 | Solids (40) | 20: Oxblood, Madder, Vermilion, Coral, Blush, Ochre, Sienna, Sepia, Puce, Isabelline, Chalk, Olive, Teal, Petrol, Prussian, Woad, Ultramarine, Indigo, Payne's grey, Graphite | 14: Rose, Turquoise, Viridian, Verdigris, Umber, Bone, Celadon, Powder blue, Heliotrope, Mauve, Grape, Terracotta, Pine, Smoke | 6: Fuchsia, Aquamarine, Emerald, Cobalt, Tyrian, Caramel |
-| Effects (32) | 16: Woad & Madder, Prussian & Bone, Oxblood split, Jet & Bone, Mauve Measles, Soot, Verdigris on Jet, Payne's Smoke, Teal & Coral, Grape & Chalk, Olive & Terracotta, Ultramarine & Verdigris, Pine split, Rose split, Prussian & Ochre, Oxblood ring | 11: Tyrian split, Serpentine, Jasper, Sodalite, Heliotrope ring, Teal ring, Rose Smoke, Tobacco Smoke, Minium & Vermilion, Viridian & Ochre, Coral on Teal | 5: Lapis, Malachite, Rhodonite, Ember, Sea Smoke |
+| Effects (32) | 16: Woad & Madder, Prussian & Sulphur, Oxblood & Ivory Buff, Jet & Bone, Mauve Measles, Soot, Verdigris on Jet, Payne's Smoke, Teal & Coral, Grape & Nile, Olive & Terracotta, Ultramarine & Verdigris, Pine & Ivory Buff, Rose & Neutral Grey, Prussian & Ochre, Oxblood ring | 11: Tyrian & Shell, Serpentine, Jasper, Sodalite, Heliotrope ring, Teal ring, Rose Smoke, Tobacco Smoke, Minium & Vermilion, Viridian & Ochre, Coral on Teal | 5: Lapis, Malachite, Rhodonite, Ember, Sea Smoke |
 
 Jet is not banded (tier 1 is only Jet). Rare (session) pressings sit outside the bands. The draw is: band from the first 32 bits of the album hash, colour from the next 32 (`floor(frac * band.length)`), so adding a colour to a band never reshuffles another band.
 
@@ -172,10 +172,10 @@ No yellow brighter than Ochre, and no orange: either fights the amber label. Blu
 |---|---|---|---|
 | Woad & Madder | swirl | `#2B4A7A` / `#B5433A` | `#1A1A22` |
 | Minium & Vermilion | swirl | `#E0552A` / `#C4302B` | `#5C1512` |
-| Prussian & Bone | swirl | `#2B5586` / `#DED7C7` | `#122540` |
+| Prussian & Sulphur | swirl | `#2B5586` / `#F5F5B8` | `#122540` |
 | Viridian & Ochre | swirl | `#2E8A74` / `#9A6E22` | `#133F35` |
-| Oxblood split | split, 4 px soft seam | `#6B1F1C` / Isabelline `#DCCDB0` | each side's dark |
-| Tyrian split | split | `#5B1A3C` / `#DCCDB0` | each side's dark |
+| Oxblood & Ivory Buff | split, 4 px soft seam | `#6B1F1C` / Ivory Buff `#EBD999` | each side's dark |
+| Tyrian & Shell | split | `#5B1A3C` / `#FFCFC4` | each side's dark |
 | Jet & Bone | split | `#1A1716` / `#DED7C7` | each side's dark |
 | Lapis | marble | `#1E3A8A` body, `#E9E4D6` veins, `#C9A24A` flecks | `#101F4A` |
 | Malachite | marble, banded | `#2E8A74` / `#133F35` | `#0E2E27` |
@@ -187,11 +187,11 @@ No yellow brighter than Ochre, and no orange: either fights the amber label. Blu
 | Tobacco Smoke | smoke (T) | `#4E3728 · #8A6238 · #2A1D14`, drifting `#B8862E` | |
 | Heliotrope ring | ring | `#6C4A8A` inside Ochre `#9A6E22` | `#5E4212` |
 | Teal & Coral | swirl | `#28868B` / `#D4674F` | `#123F42` |
-| Grape & Chalk | swirl | `#582C83` / `#E6E2DA` | `#361A52` |
+| Grape & Nile | swirl | `#582C83` / `#BFFFE6` | `#361A52` |
 | Olive & Terracotta | swirl | `#4A5527` / `#C05131` | `#2B3115` |
 | Ultramarine & Verdigris | swirl | `#2949A6` / `#5BAA99` | `#101F4A` |
-| Pine split | split | `#2A6A4F` / Bone `#DED7C7` | each side's dark |
-| Rose split | split | `#D97A96` / Chalk `#E6E2DA` | each side's dark |
+| Pine & Ivory Buff | split | `#2A6A4F` / Ivory Buff `#EBD999` | each side's dark |
+| Rose & Neutral Grey | split | `#D97A96` / Neutral Grey `#B5D1CC` | each side's dark |
 | Prussian & Ochre | split | `#2B5586` / `#9A6E22` | each side's dark |
 | Rhodonite | marble | `#D97A96` body, `#3C4654` veins | `#7A2E48` |
 | Jasper | marble | `#8B4426` body, `#B8862E` veins | `#4F2412` |
