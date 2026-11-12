@@ -170,7 +170,13 @@ const F = (ring, body, rim) => [ring, body, rim];
 // solid/Jet, pickBand() 60/30/10 -> 50/35/15). Same `rec.tier === 1` guard
 // as before — lossy stays Jet-only regardless of key or odds, so it's
 // still the one tier this redraw skips.
-export const CHART_VERSION = 4;
+//
+// CO3 (docs/37_COLOUR.md): bumped 4 -> 5 — tier-2 odds move from 85/15
+// solid/Jet to 75/10/15 solid/effect/Jet. Only the 0.15-0.25 slice of
+// mixFrac moves from solid to effect; the solid draw above 0.25 keeps its
+// own salt, so which solid a tier-2 record would have drawn is unchanged
+// for every key that stays a solid. Same `rec.tier === 1` guard as always.
+export const CHART_VERSION = 5;
 
 export const VARIANT_DEFS = {
   // ---- tier 1: the one lossy pressing ----
@@ -477,10 +483,10 @@ function drawFromCatalogue(key, byBand){
   return pickFromPool(pool, frac32(key, '\u0002'));
 }
 
-// Tier mixes (README): lossy = Jet only; lossless = 85% solid / 15% Jet;
-// hi-res = 55% effect / 40% solid / 5% Jet (CC6, decision 5 — was 70/25/5).
-// A third, independent hash slice decides the mix so it never correlates
-// with the band/colour draw.
+// Tier mixes (README): lossy = Jet only; lossless = 75% solid / 10% effect
+// / 15% Jet (CO3 — was 85/15, solid-only); hi-res = 55% effect / 40% solid
+// / 5% Jet (CC6, decision 5 — was 70/25/5). A third, independent hash
+// slice decides the mix so it never correlates with the band/colour draw.
 //
 // Split out of selectVariant() (CR11, docs/13_CRATE.md point 1) so a
 // pressing can be drawn from a bare tier + identity key, not just from a
@@ -494,6 +500,7 @@ function selectVariantForTierKey(tier, key){
   const mixFrac = frac32(key, '\u0000');
   if(tier === 2){
     if(mixFrac < 0.15) return {tier, variant: 'jet'};
+    if(mixFrac < 0.25) return {tier, variant: drawFromCatalogue(key, EFFECT_BY_BAND)};
     return {tier, variant: drawFromCatalogue(key, SOLID_BY_BAND)};
   }
   // tier 3

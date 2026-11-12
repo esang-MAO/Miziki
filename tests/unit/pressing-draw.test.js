@@ -29,6 +29,19 @@ test('pressing draw: every solid is reachable at tier 2', () => {
   assert.deepEqual(missing, [], `never drawn at tier 2: ${missing.join(', ')}`);
 });
 
+// CO3 (docs/37_COLOUR.md): tier 2's new 0.15-0.25 mixFrac slice draws from
+// the same effect catalogue as tier 3 — every effect must be reachable
+// there too, not just at tier 3.
+test('pressing draw: every effect is reachable at tier 2', () => {
+  const seen = new Set();
+  for(const name of NAMES){
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 2);
+    seen.add(variant);
+  }
+  const missing = EFFECT_IDS.filter(id => !seen.has(id));
+  assert.deepEqual(missing, [], `never drawn at tier 2: ${missing.join(', ')}`);
+});
+
 test('pressing draw: every effect is reachable at tier 3', () => {
   const seen = new Set();
   for(const name of NAMES){
@@ -58,12 +71,17 @@ function withinTolerance(actual, expected, tolerancePct){
     `expected ~${(expected * 100).toFixed(1)}%, got ${(actual * 100).toFixed(1)}%`);
 }
 
-test('pressing draw: tier-2 mix is ~15% Jet / 85% solid', () => {
-  let jet = 0;
+test('pressing draw: tier-2 mix is ~15% Jet / 10% effect / 75% solid', () => {
+  let jet = 0, effect = 0, solid = 0;
   for(const name of NAMES){
-    if(selectVariantForAlbum('Fixed Artist', name, 2).variant === 'jet') jet++;
+    const { variant } = selectVariantForAlbum('Fixed Artist', name, 2);
+    if(variant === 'jet') jet++;
+    else if(EFFECT_IDS.includes(variant)) effect++;
+    else solid++;
   }
   withinTolerance(jet / N, 0.15, 0.02);
+  withinTolerance(effect / N, 0.10, 0.02);
+  withinTolerance(solid / N, 0.75, 0.02);
 });
 
 test('pressing draw: tier-3 mix is ~5% Jet / 40% solid / 55% effect', () => {
@@ -126,4 +144,33 @@ test('pressing draw: two keys that normalize the same way draw the same variant'
   const b = selectVariantForAlbum('the artist', 'the album', 3);
   assert.deepEqual(a, b);
   assert.equal(albumKey({ tags: { album: '  The Album  ' } }), albumKey({ tags: { album: 'the album' } }));
+});
+
+// CO3 (docs/37_COLOUR.md): a snapshot of the tier-2 draw for 50 fixed
+// album ids, pinned under CHART_VERSION 5. Guards against a future change
+// accidentally moving a tier-2 draw outside the 0.15-0.25 mixFrac slice
+// CO3 touches (e.g. a `mixFrac < 0.15`/`< 0.25` typo, or a pool/salt
+// change) going unnoticed.
+test('CO3: a snapshot of the tier-2 draw for 50 fixed album ids is unchanged', () => {
+  const snapshot = [];
+  for(let i = 0; i < 50; i++){
+    const { variant } = selectVariantForAlbum('Fixed Artist', 'album ' + i, 2);
+    snapshot.push(variant);
+  }
+  assert.deepEqual(snapshot, [
+    'isabelline', 'aquamarine', 'chalk', 'tyrian-target', 'olive',
+    'pine', 'grape', 'cobalt-burst', 'fuchsia', 'isabelline',
+    'soot', 'terracotta', 'indigo', 'jet', 'jet',
+    'prussian-bone', 'ultramarine-verdigris', 'verdigris', 'ochre-jet-terracotta', 'paynesgrey',
+    'turquoise', 'heliotrope', 'viridian', 'heliotrope', 'blush',
+    'cobalt', 'umber', 'indigo', 'tyrian', 'powderblue',
+    'ochre', 'petrol', 'celadon', 'heliotrope', 'sepia',
+    'caramel', 'blush-cloud', 'rose', 'tyrian', 'sienna',
+    'cobalt', 'oxblood', 'ochre', 'jet', 'vermilion-burst',
+    'smoke', 'umber', 'teal', 'jet', 'mauve',
+  ], 'tier-2 draw for fixed album ids moved — check CHART_VERSION and the 0.15/0.25 mixFrac boundaries');
+  // every snapshot entry is a real catalogue key, so this also confirms
+  // tier 2 now genuinely reaches the effects catalogue, not just solids/Jet.
+  const effectHits = snapshot.filter(v => EFFECT_IDS.includes(v));
+  assert.ok(effectHits.length > 0, 'expected at least one effect among 50 fixed tier-2 draws');
 });

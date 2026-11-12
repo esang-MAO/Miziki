@@ -24,7 +24,8 @@
    "jet": 1.0
   },
   "lossless": {
-   "solid": 0.85,
+   "solid": 0.75,
+   "effect": 0.1,
    "jet": 0.15
   },
   "hires": {
