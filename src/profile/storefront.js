@@ -762,7 +762,10 @@ export function shelfUnitRenderProps(){
 // that to show -- used by this file's own two profile-home call sites
 // only; friend-store.js's call (no opts) is untouched, since it already
 // has its own paged "Browse all N records" button outside this function.
-const SHELF_CUBE_CAPACITY = 10, SHELF_FACE_WIDTH = 3;
+// CO5 (docs/37_COLOUR.md, recommendation 6): "seven spines a cube" --
+// matches shelf-unit.js's own CUBE_CAPACITY drop from 10, for the same
+// reason (a spine now carries a printed label, which needs real width).
+const SHELF_CUBE_CAPACITY = 7, SHELF_FACE_WIDTH = 3;
 export const SHELF_PREVIEW_CUBES = 6;
 export function storeShelvesSection(items, pinIds, onTapAlbum, opts = {}){
   const faceOut = new Set((pinIds || []).slice(3, 5));

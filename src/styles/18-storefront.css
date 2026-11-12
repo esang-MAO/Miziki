@@ -529,12 +529,36 @@ button.pressing-chip{cursor:pointer}
    format (12in/10in/7in) by cubeSpine(); --disc-a is the CLAUDE.md
    warm-black fallback for a spine with neither resolved colour nor a
    pressing to draw from. */
-.shelf-cell .sp{display:block;flex:none;border:0;padding:0;border-radius:1px 1px 0 0;
+/* CO5 (docs/37_COLOUR.md, recommendation 6): a spine no longer has a
+   fixed width -- it now carries a printed label, so it shares the row's
+   width equally with however many spines are in the cube (up to the new
+   CUBE_CAPACITY of 7, shelf-unit.js), the same flex:1 pattern
+   .shelf-cell-recs' children already use via its own display:flex. */
+.shelf-cell .sp{display:block;position:relative;flex:1 1 0;min-width:0;border:0;padding:0;border-radius:1px 1px 0 0;
   box-shadow:inset -1px 0 0 rgba(0,0,0,.35),0 1px 0 rgba(0,0,0,.3);
-  width:11px;height:88%;
+  height:88%;overflow:hidden;
   background:linear-gradient(to bottom,
     color-mix(in srgb, var(--spine-color, var(--disc-a)) 62%, black) 0 7px,
     var(--spine-color, var(--disc-a)) 7px 100%)}
+/* CO5 point 3 (art sliver, option A): a thin strip of the album's own
+   cover along one edge of the spine -- the sliver's own width is a
+   fraction of the spine's rendered width, not a fixed px, since spines
+   now vary in width with how many share the row. */
+.sp-art{position:absolute;top:7px;bottom:0;right:0;width:30%;
+  background-size:auto 100%;background-position:center;background-repeat:no-repeat;
+  box-shadow:inset 1px 0 0 rgba(0,0,0,.25)}
+/* CO5 point 4: the printed label -- artist (72% opacity) · album, running
+   bottom-to-top along the spine. Ink defaults to --on-dark (a dark
+   spine); .sp--light-ink (set in JS from the resolved --spine-color's own
+   luminance) switches it to the same dark ink CR8 gives --paper in light
+   theme, for a light spine. */
+.sp-label{position:absolute;left:0;right:0;top:9px;bottom:3px;display:flex;align-items:flex-end;justify-content:center;
+  overflow:hidden;pointer-events:none;
+  font-family:var(--display);font-size:var(--fs-caption);font-weight:700;letter-spacing:var(--track-caps);
+  text-transform:uppercase;color:var(--on-dark);
+  writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+.sp--light-ink .sp-label{color:#26202C}
+.sp-artist{opacity:.72}
 /* `transform:none` resets the bare .shelf-face rule above (line 386-387),
    the older flat .cube grid's own leaning-cover look (GS11) -- left
    unreset here, that -3deg rotation stayed on every ST2 shelf-unit face
