@@ -38,7 +38,11 @@ test('CO2: every old pressing key still exists', () => {
 });
 
 test('CO2: CHART_VERSION is unchanged by the re-ink', () => {
-  assert.equal(CHART_VERSION, 4);
+  // CO2 itself touches only colour/name/note — it never bumps the chart
+  // version. CO3 (docs/37_COLOUR.md) separately bumped it 4 -> 5 for the
+  // tier-2 odds change, so this pins the value CO3 left it at rather than
+  // CO2's own, to still catch an unrelated accidental bump.
+  assert.equal(CHART_VERSION, 5);
 });
 
 test('CO2: every re-inked pale equals its WADA hex in palette-ref.js', () => {

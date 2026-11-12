@@ -57,7 +57,7 @@ const {
   hasLookChoice, discLook, discLookDisplayName, openLookPicker, resolveLook,
 } = await import('../../src/record-art/looks.js');
 const { S } = await import('../../src/state.js');
-const { albumKey } = await import('../../src/record-art/tiers.js');
+const { albumKey, selectVariant } = await import('../../src/record-art/tiers.js');
 
 function hiResTrack(id, album){ return { id, meta: { lossless: true, bits: 24, rate: 96000 }, tags: { album, artist: 'Artist', title: 'Title ' + id }, art: null }; }
 // trackTier() (record-art/tiers.js): lossless and over 16-bit/44.1kHz is
@@ -220,4 +220,53 @@ test('discLook() reflects the picked look afterwards, for the same album', () =>
   S.albumLookPref[albumId] = 'variant';
   const before = discLook(t);
   assert.equal(before.look, 'variant');
+});
+
+// CO3 (docs/37_COLOUR.md, recommendation 3): a lossless (tier 2) or hi-res
+// (tier 3) record that happens to draw Jet is not a lossy file, so the
+// picker must not show Jet's own "a lossy file presses the same every
+// time" note for it. Brute-forces a synthetic album name whose draw lands
+// on Jet at each tier, deterministically (selectVariant() is pure).
+function findAlbumDrawingJet(meta){
+  for(let i = 0; i < 500; i++){
+    const t = { meta, tags: { album: 'JetHunt ' + i, artist: 'Artist', title: 'Title' }, art: null };
+    if(selectVariant(t).variant === 'jet') return t;
+  }
+  return null;
+}
+function notesIn(children, out = []){
+  for(const c of children){
+    if(c.className === 'look-option-note') out.push(c.textContent);
+    if(c.children && c.children.length) notesIn(c.children, out);
+  }
+  return out;
+}
+
+test('CO3: a tier-2 record that draws Jet shows the lossless note, not the lossy-file hint', () => {
+  const t = findAlbumDrawingJet({ lossless: true, bits: 16, rate: 44100 });
+  assert.ok(t, 'expected at least one of 500 synthetic tier-2 names to draw Jet');
+  resetState({ tracks: [t] });
+  openLookPicker(t);
+  const notes = notesIn(elCache.get('#lookOptions').children);
+  assert.ok(notes.some(n => n.includes('simply drew black')), 'expected the CO3 lossless Jet note');
+  assert.ok(!notes.some(n => n.includes('a lossy file presses')), 'the lossy-only note must not appear for a tier-2 record');
+});
+
+test('CO3: a tier-3 record that draws Jet shows the lossless note too', () => {
+  const t = findAlbumDrawingJet({ lossless: true, bits: 24, rate: 96000 });
+  assert.ok(t, 'expected at least one of 500 synthetic tier-3 names to draw Jet');
+  resetState({ tracks: [t] });
+  openLookPicker(t);
+  const notes = notesIn(elCache.get('#lookOptions').children);
+  assert.ok(notes.some(n => n.includes('simply drew black')), 'expected the CO3 lossless Jet note');
+});
+
+test('CO3: a tier-1 (lossy) record keeps Jet\'s original note and the lossy hint', () => {
+  const t = lossyTrack(1, 'Still Lossy Album');
+  resetState({ tracks: [t] });
+  openLookPicker(t);
+  const notes = notesIn(elCache.get('#lookOptions').children);
+  assert.ok(notes.some(n => n.includes('a lossy file presses the same every time')), 'tier-1 Jet keeps its original note');
+  const hints = elCache.get('#lookOptions').children.filter(c => c.className === 'note look-lossy-hint');
+  assert.equal(hints.length, 1, 'tier-1 still shows the separate "a lossless copy would press in colour" hint');
 });

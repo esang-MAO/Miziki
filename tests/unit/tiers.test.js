@@ -108,17 +108,20 @@ test('CR7 tier mixes: lossy is always Jet, lossless/hi-res mixes sum to 100', ()
     const t = albumTrack('Lossy ' + i, { lossless: false, bits: 16, rate: 44100 });
     assert.deepEqual(selectVariant(t), { tier: 1, variant: 'jet' });
   }
-  // tier 2: 85% solid / 15% Jet
-  let jet2 = 0, solid2 = 0;
+  // tier 2: 75% solid / 10% effect / 15% Jet (CO3, was 85/15 solid-only)
+  let jet2 = 0, solid2 = 0, effect2 = 0;
   for(let i=0;i<N;i++){
     const t = albumTrack('Lossless ' + i, { lossless: true, bits: 16, rate: 44100 });
     const { tier, variant } = selectVariant(t);
     assert.equal(tier, 2);
-    if(variant === 'jet') jet2++; else solid2++;
+    if(variant === 'jet') jet2++;
+    else if(VARIANT_DEFS[variant].family === 'effects') effect2++;
+    else solid2++;
   }
   assert.ok(Math.abs(jet2 / N - 0.15) < 0.03);
-  assert.ok(Math.abs(solid2 / N - 0.85) < 0.03);
-  assert.equal(jet2 + solid2, N);
+  assert.ok(Math.abs(effect2 / N - 0.10) < 0.03);
+  assert.ok(Math.abs(solid2 / N - 0.75) < 0.03);
+  assert.equal(jet2 + solid2 + effect2, N);
   // tier 3: 55% effect / 40% solid / 5% Jet (CC6, was 70/25/5)
   let jet3 = 0, solid3 = 0, effect3 = 0;
   for(let i=0;i<N;i++){

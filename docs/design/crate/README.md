@@ -103,7 +103,7 @@ The catalogue grows from 12 to **40 solids in nine families, 32 two-ink effects 
 | File | Shelf | Mix |
 |---|---|---|
 | Lossy (tier 1) | Jet only | 100% |
-| Lossless (tier 2) | the 40 solids | 85% solid · 15% Jet |
+| Lossless (tier 2) | the 40 solids, plus a slice of effects | 75% solid · 10% effect · 15% Jet |
 | Hi-res (tier 3) | the 32 effects | 70% effect · 25% solid · 5% Jet |
 
 That is the incentive: a better file is a more interesting record, and a friend's Jet copy of your Verdigris says "lossy" without a word. Rare pressings (Ultra clear, Picture disc, Glow, Liquid filled) still come from sessions through the existing rare unlock, never from the file.

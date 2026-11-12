@@ -116,9 +116,16 @@ function buildLookOptionContent(kind, t){
     const name = m ? (m[0].toUpperCase() + m.slice(1) + ' Metal') : 'Metal';
     return { group: 'Metal', name, sub: null, note: 'Earned by a full, in-order play-through.' };
   }
-  const { variant } = selectVariant(albumPressingTrack(albumKey(t)) || t);
+  const pressingTrack = albumPressingTrack(albumKey(t)) || t;
+  const { variant } = selectVariant(pressingTrack);
   const def = getVariantDef(variant);
-  return { group: familyGroupLabel(def), name: def.name, sub: def.sub, note: def.note };
+  // CO3 (docs/37_COLOUR.md, recommendation 3): Jet's own note ("a lossy
+  // file presses the same every time") is only true at tier 1. A tier-2/3
+  // record that happens to draw Jet gets a note that doesn't claim that.
+  const note = (variant === 'jet' && trackTier(pressingTrack) !== 1)
+    ? 'Plain and warm-black — this one simply drew black, same as any other colour on the shelf.'
+    : def.note;
+  return { group: familyGroupLabel(def), name: def.name, sub: def.sub, note };
 }
 
 // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B.3.1 point 4): a
