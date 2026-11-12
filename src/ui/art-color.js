@@ -109,6 +109,20 @@ function darkenHex(hex, factor){
   return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
+// CO3 point 3 (docs/37_COLOUR.md, the rich-black Jet tint, deferred until
+// this module's own artAnchor() existed): a plain channel-wise blend
+// between two hex colours, `amt` the weight toward `toward` (0 = all
+// `hex`, 1 = all `toward`) -- exported for record-art/looks.js's
+// resolveRichBlackJet(), which blends a lossless Jet draw's own colours
+// toward the album's artAnchor() rather than toward black/white the way
+// darkenHex() above does.
+export function mixHex(hex, toward, amt){
+  const a = hexToRgb(hex), b = hexToRgb(toward);
+  const toHex = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  const mixChan = (x, y) => x + (y - x) * amt;
+  return '#' + toHex(mixChan(a.r, b.r)) + toHex(mixChan(a.g, b.g)) + toHex(mixChan(a.b, b.b));
+}
+
 // standard WCAG relative luminance / contrast ratio — same formula
 // tests/unit/theme.test.js's relLuminanceTY1/contrastRatioTY1 use.
 function srgbToLinear(c){ const n = c/255; return n <= 0.03928 ? n/12.92 : Math.pow((n+0.055)/1.055, 2.4); }

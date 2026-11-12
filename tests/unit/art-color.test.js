@@ -5,7 +5,7 @@
 // tests cover resolveShareStyle()'s 'cover' branch).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { artTint, spineColor, artAnchor } from '../../src/ui/art-color.js';
+import { artTint, spineColor, artAnchor, mixHex } from '../../src/ui/art-color.js';
 
 const FALLBACK_FROM = '#242127', FALLBACK_TO = '#1C1A1F'; // --disc-a/--disc-b
 
@@ -141,4 +141,30 @@ test('artTint(): with no usable anchor (olive/yellow-green cover), falls through
   const { from, to } = artTint(hsl);
   assert.ok(contrastRatio(ON_DARK, from) >= 7);
   assert.notEqual(to, from);
+});
+
+// CO3 point 3 (recommendation 9, the deferred rich-black Jet tint):
+// mixHex() is a plain channel-wise blend, no colour-space conversion --
+// unlike darkenHex() above (which always blends toward black/white),
+// `toward` is an arbitrary hex colour.
+test('mixHex(): amt 0 returns hex unchanged, amt 1 returns toward unchanged', () => {
+  assert.equal(mixHex('#2B2622', '#1b3644', 0), '#2b2622');
+  assert.equal(mixHex('#2B2622', '#1b3644', 1), '#1b3644');
+});
+
+test('mixHex(): blends each channel linearly at a fractional amt', () => {
+  // #000000 -> #ffffff at 0.5 should land dead in the middle of every channel
+  assert.equal(mixHex('#000000', '#ffffff', 0.5), '#808080');
+});
+
+test('mixHex(): the real rich-black Jet blend (ring 45% toward Slate Color) stays within the Jet/anchor envelope', () => {
+  const ring = '#2B2622', anchor = '#1b3644';
+  const mixed = mixHex(ring, anchor, 0.45);
+  // every channel of the mix sits between the two inputs' own channels
+  const chan = hex => ({ r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) });
+  const a = chan(ring), b = chan(anchor), m = chan(mixed);
+  for(const c of ['r','g','b']){
+    const lo = Math.min(a[c], b[c]), hi = Math.max(a[c], b[c]);
+    assert.ok(m[c] >= lo - 1 && m[c] <= hi + 1, `channel ${c} (${m[c]}) out of [${lo},${hi}]`);
+  }
 });

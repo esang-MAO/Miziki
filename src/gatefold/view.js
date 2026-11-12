@@ -18,7 +18,7 @@ import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
 import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
-import { discLook, paintDiscLook, hasLookChoice, openLookPicker } from '../record-art/looks.js';
+import { discLook, paintDiscLook, hasLookChoice, openLookPicker, isRichBlackCandidate, resolveRichBlackJet } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { recallLineFor } from '../history/recall.js';
 import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
@@ -1466,6 +1466,19 @@ function applyGatefoldDiscVariant(item, crossfade){
       paint();
     }
   });
+  // CO3 point 3: same fire-and-forget repaint as the full player's own
+  // applyDiscVariant() -- GF.item === item is this view's own staleness
+  // guard (gatefold closed/reopened to a different album while the art
+  // was loading), same role current() === t plays for the platter.
+  if(t && isRichBlackCandidate(d)){
+    resolveRichBlackJet(item.albumId, t.art).then(richBg => {
+      if(!richBg || !GF || GF.item !== item) return;
+      gatefoldSleevePocketEls().forEach(wrap => {
+        const disc = wrap.querySelector('.disc');
+        if(disc) disc.style.background = richBg;
+      });
+    });
+  }
 }
 
 // GF3 point 3: "when the disc is out ... draw its run-out etching from

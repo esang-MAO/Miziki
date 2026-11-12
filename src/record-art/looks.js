@@ -8,6 +8,7 @@ import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay
 import { persistAlbumLookPref } from '../history/sessions.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { RPM_45 } from './format.js';
+import { loadImageEl, shareDominantColor, artAnchor, mixHex } from '../ui/art-color.js';
 
 /* ================= look switching =================
    Once an album has more than one available "look" — the rare variant, an
@@ -305,6 +306,46 @@ export function discLook(t, forceLook){
     bg: variantBackground(getVariantDef(variant)), lightOverlay: null, labelKind: 'amber', paperLabel: tier === 1 && S.paperLabelOnLossy };
 }
 
+// CO3 point 3 (docs/37_COLOUR.md), deferred to this standalone PR until
+// CO4's artAnchor() existed to blend toward: a lossless (tier 2/3) Jet
+// draw reads a little richer -- its own colours blended toward the
+// album's own artAnchor(), 45% through the ring/body, 30% through the
+// rim (kept a touch plainer/darker than the rest of the disc). Jet's own
+// key, odds and note are all unchanged -- this only ever touches the
+// painted `bg`, never what selectVariant() draws or persists.
+export function isRichBlackCandidate(d){
+  return !!d && d.tier != null && d.tier !== 1 && d.variant === 'jet' && !d.metal;
+}
+const RICH_BLACK_RING_BODY_AMT = 0.45, RICH_BLACK_RIM_AMT = 0.30;
+const richBlackCache = new Map();
+// Takes a pre-resolved art URL rather than looking one up itself --
+// looks.js stays off crate/tiers.js's and library/thumbs.js's own wide
+// import chains (same reasoning sync/backup.js's own header comment gives
+// for avoiding this module), so each caller passes whatever art it
+// already has in scope (the platter's own t.art; the gatefold's own
+// cover-art resolution in gatefoldSetCoverArt()).
+export async function resolveRichBlackJet(albumId, artUrl){
+  if(richBlackCache.has(albumId)) return richBlackCache.get(albumId);
+  let bg = null;
+  if(artUrl){
+    try{
+      const img = await loadImageEl(artUrl);
+      const dom = shareDominantColor(img);
+      const anchor = dom && artAnchor(dom);
+      if(anchor){
+        const [ring, body, rim] = getVariantDef('jet').colors;
+        bg = variantBackground({ pattern: 'solid', colors: [
+          mixHex(ring, anchor.hex, RICH_BLACK_RING_BODY_AMT),
+          mixHex(body, anchor.hex, RICH_BLACK_RING_BODY_AMT),
+          mixHex(rim, anchor.hex, RICH_BLACK_RIM_AMT),
+        ] });
+      }
+    }catch(_e){ bg = null; } // broken/missing cover art -- expected, stays plain Jet
+  }
+  richBlackCache.set(albumId, bg);
+  return bg;
+}
+
 // The class/dataset/background work discLook()'s result paints onto any
 // disc+label pair — shared by the full player's own #disc/#label
 // (applyDiscVariant() below), the gatefold's sleeve-pocket disc
@@ -385,5 +426,16 @@ export function applyDiscVariant(t, crossfade){
   } else {
     if(ring){ ring.style.background = ''; ring.classList.remove('on'); }
     S.zoetropeFrameCount = null;
+  }
+  // CO3 point 3: a fire-and-forget repaint, never an await inserted into
+  // this (iOS-gesture-critical, rule 9) function -- the plain Jet paint
+  // above is already on screen by the time this settles, and a stale
+  // response (track changed again while this album's art was loading) is
+  // dropped via the current() check, same guard history/played.js etc.
+  // already use for their own post-load writes.
+  if(isRichBlackCandidate(d)){
+    resolveRichBlackJet(albumKey(t), t.art).then(richBg => {
+      if(richBg && current() === t) setDiscBackground($('#disc'), richBg, true);
+    });
   }
 }

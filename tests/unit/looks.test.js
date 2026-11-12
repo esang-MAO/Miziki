@@ -25,6 +25,29 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
   },
 });
 
+// CO3 point 3 (docs/37_COLOUR.md, the rich-black Jet tint): resolveRichBlackJet()'s
+// own art/colour pipeline (loadImageEl/shareDominantColor/artAnchor) is
+// exercised directly in tests/unit/art-color.test.js -- here it's stubbed,
+// same shape cube-spine.test.js's own art-color.js mock uses, so these
+// tests drive resolveRichBlackJet()'s caching/candidate/fallback logic
+// without a real Image/canvas. mixHex is the real implementation,
+// reimplemented inline (it's pure and already covered on its own in
+// art-color.test.js) since mock.module() replaces every named export.
+let artColorBehavior = { dom: { h: 0, s: 0, l: 0 }, anchor: { hex: '#1b3644', name: 'Slate Color' } };
+mock.module(new URL('../../src/ui/art-color.js', import.meta.url).href, {
+  namedExports: {
+    loadImageEl: async () => ({}),
+    shareDominantColor: () => artColorBehavior.dom,
+    artAnchor: () => artColorBehavior.anchor,
+    mixHex(hex, toward, amt){
+      const h = s => ({ r: parseInt(s.slice(1,3),16), g: parseInt(s.slice(3,5),16), b: parseInt(s.slice(5,7),16) });
+      const a = h(hex), b = h(toward);
+      const toHex = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+      return '#' + toHex(a.r + (b.r-a.r)*amt) + toHex(a.g + (b.g-a.g)*amt) + toHex(a.b + (b.b-a.b)*amt);
+    },
+  },
+});
+
 function fakeEl(){
   const classes = new Set();
   const listeners = {};
@@ -55,9 +78,10 @@ mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
 
 const {
   hasLookChoice, discLook, discLookDisplayName, openLookPicker, resolveLook,
+  isRichBlackCandidate, resolveRichBlackJet,
 } = await import('../../src/record-art/looks.js');
 const { S } = await import('../../src/state.js');
-const { albumKey, selectVariant } = await import('../../src/record-art/tiers.js');
+const { albumKey, selectVariant, getVariantDef, variantBackground } = await import('../../src/record-art/tiers.js');
 
 function hiResTrack(id, album){ return { id, meta: { lossless: true, bits: 24, rate: 96000 }, tags: { album, artist: 'Artist', title: 'Title ' + id }, art: null }; }
 // trackTier() (record-art/tiers.js): lossless and over 16-bit/44.1kHz is
@@ -269,4 +293,57 @@ test('CO3: a tier-1 (lossy) record keeps Jet\'s original note and the lossy hint
   assert.ok(notes.some(n => n.includes('a lossy file presses the same every time')), 'tier-1 Jet keeps its original note');
   const hints = elCache.get('#lookOptions').children.filter(c => c.className === 'note look-lossy-hint');
   assert.equal(hints.length, 1, 'tier-1 still shows the separate "a lossless copy would press in colour" hint');
+});
+
+// CO3 point 3 (recommendation 9, the deferred rich-black Jet tint):
+// isRichBlackCandidate() gates resolveRichBlackJet() to exactly the same
+// "lossless Jet, no metal earned" case CO3's own lossless note targets.
+test('isRichBlackCandidate(): true only for a lossless (tier 2/3) Jet draw with no metal', () => {
+  assert.equal(isRichBlackCandidate({ tier: 2, variant: 'jet', metal: null }), true);
+  assert.equal(isRichBlackCandidate({ tier: 3, variant: 'jet', metal: null }), true);
+});
+
+test('isRichBlackCandidate(): false for a tier-1 (lossy) Jet draw -- CO3\'s plain-black case', () => {
+  assert.equal(isRichBlackCandidate({ tier: 1, variant: 'jet', metal: null }), false);
+});
+
+test('isRichBlackCandidate(): false for a zoetrope/rare draw (tier is null)', () => {
+  assert.equal(isRichBlackCandidate({ tier: null, variant: 'jet', metal: null }), false);
+});
+
+test('isRichBlackCandidate(): false once a metal is earned -- the metal look takes over, never Jet', () => {
+  assert.equal(isRichBlackCandidate({ tier: 2, variant: 'jet', metal: 'gold' }), false);
+});
+
+test('isRichBlackCandidate(): false for any variant other than jet', () => {
+  assert.equal(isRichBlackCandidate({ tier: 2, variant: 'crimson', metal: null }), false);
+});
+
+test('isRichBlackCandidate(): false/no-throw for a null discLook() result (no track)', () => {
+  assert.equal(isRichBlackCandidate(null), false);
+});
+
+test('resolveRichBlackJet(): no art URL -- resolves null, never touches the colour pipeline', async () => {
+  assert.equal(await resolveRichBlackJet('no-art-album', null), null);
+});
+
+test('resolveRichBlackJet(): a qualifying anchor returns a solid-pattern gradient string, not plain Jet', async () => {
+  artColorBehavior = { dom: { h: 28, s: 0.9, l: 0.55 }, anchor: { hex: '#1b3644', name: 'Slate Color' } };
+  const bg = await resolveRichBlackJet('rich-black-album-1', 'data:image/png;base64,x');
+  assert.ok(bg, 'expected a non-null background');
+  assert.ok(bg.startsWith('radial-gradient'), 'solid pattern is a radial-gradient, same as plain Jet');
+  assert.notEqual(bg, variantBackground(getVariantDef('jet')), 'the rich-black bg must differ from plain Jet');
+});
+
+test('resolveRichBlackJet(): no anchor for this cover (olive/yellow-green) -- falls back to null, plain Jet stays', async () => {
+  artColorBehavior = { dom: { h: 115, s: 0.6, l: 0.5 }, anchor: null };
+  assert.equal(await resolveRichBlackJet('rich-black-album-2', 'data:image/png;base64,x'), null);
+});
+
+test('resolveRichBlackJet(): caches by albumId -- a second call with different art for the same id returns the first result', async () => {
+  artColorBehavior = { dom: { h: 28, s: 0.9, l: 0.55 }, anchor: { hex: '#1b3644', name: 'Slate Color' } };
+  const first = await resolveRichBlackJet('rich-black-album-3', 'data:image/png;base64,x');
+  artColorBehavior = { dom: { h: 115, s: 0.6, l: 0.5 }, anchor: null }; // would resolve null if actually re-run
+  const second = await resolveRichBlackJet('rich-black-album-3', 'data:image/png;base64,y');
+  assert.equal(second, first, 'the cached result must win over the (different) second call\'s inputs');
 });
