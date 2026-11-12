@@ -289,6 +289,8 @@ Each PR's own **Preview focus** says what Ken checks on his iPhone.
 
 ## UN6: the gatefold takes its colour from the cover
 
+**See also: docs/37_COLOUR.md.**
+
 > Read CLAUDE.md, this plan and the README (frames `gf-1-ep`, `gf-2-lp`). Depends on UN1.
 >
 > 1. **One colour function.**
@@ -463,6 +465,8 @@ Each PR's own **Preview focus** says what Ken checks on his iPhone.
 ---
 
 ## UN15: the shelf and the turntable
+
+**See also: docs/37_COLOUR.md.**
 
 > Read CLAUDE.md, this plan and the README (frames `5-shelf`, `5-turntable-picker`). Depends on UN6 (`spineColor()`), UN12.
 >
