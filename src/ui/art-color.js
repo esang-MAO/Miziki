@@ -116,7 +116,10 @@ function relLuminance(hex){
   const { r, g, b } = hexToRgb(hex);
   return 0.2126*srgbToLinear(r) + 0.7152*srgbToLinear(g) + 0.0722*srgbToLinear(b);
 }
-function contrastRatio(hexA, hexB){
+// CO6: exported so shareTriad() (src/share/styles.js) can check its own
+// type-on-ground contrast against the same WCAG formula, rather than a
+// second copy of it.
+export function contrastRatio(hexA, hexB){
   const l1 = relLuminance(hexA), l2 = relLuminance(hexB);
   const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
@@ -141,11 +144,20 @@ function compositeOverHex(r, g, b, a, bgHex){
 // 25 by the plan's own filter, which only four Wada colours actually
 // clear -- picked by hand from docs/design/colour/colors.json, with
 // nothing about which colours the book itself pairs them with.
+// CO6 (recommendation 7): each ground also carries a hand-picked pale
+// partner, same reasoning as the ground table itself -- recommendation
+// 10's "most-partnered pale" would have come from the same removed
+// Wada combination-frequency data as the ground anchor did, so this is
+// a fixed Miziki pairing instead. Three of the four are the design
+// canvas's own worked examples (Slate Color/Ivory Buff, Vandyke Brown/
+// Pale Lemon Yellow, Deep Slate Olive/Turquoise Green); Deep Slate
+// Green's pairing with Seashell Pink is this PR's own extrapolation,
+// picked by hand the same way, flagged for Ken in the PR description.
 const ANCHOR_CANDIDATES = [
-  { hex: '#1b3644', name: 'Slate Color', hue: 200 },
-  { hex: '#362304', name: 'Vandyke Brown', hue: 37 },
-  { hex: '#172713', name: 'Deep Slate Olive', hue: 108 },
-  { hex: '#0f261f', name: 'Deep Slate Green', hue: 162 },
+  { hex: '#1b3644', name: 'Slate Color', hue: 200, pale: { hex: '#EBD999', name: 'Ivory Buff' } },
+  { hex: '#362304', name: 'Vandyke Brown', hue: 37, pale: { hex: '#FFF59E', name: 'Pale Lemon Yellow' } },
+  { hex: '#172713', name: 'Deep Slate Olive', hue: 108, pale: { hex: '#B5FFC2', name: 'Turquoise Green' } },
+  { hex: '#0f261f', name: 'Deep Slate Green', hue: 162, pale: { hex: '#FFCFC4', name: 'Seashell Pink' } },
 ];
 // Recommendation 6: "the dark partner is a different hue, not the key
 // colour darkened." A candidate within this many degrees of the cover's
@@ -175,7 +187,7 @@ export function artAnchor(hsl){
     if(d < bestDist){ best = c; bestDist = d; }
   }
   if(bestDist > ANCHOR_MAX_COMPLEMENT_DISTANCE) return null;
-  return { hex: best.hex, name: best.name };
+  return { hex: best.hex, name: best.name, pale: best.pale };
 }
 const ANCHOR_TO_DARKEN_FACTOR = 0.82;
 
