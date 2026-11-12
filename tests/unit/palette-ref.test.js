@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { WADA, PARTNERS, nearest, deltaE, toLab, fromLab } from '../../src/ui/palette-ref.js';
+import { WADA, nearest, deltaE, toLab, fromLab } from '../../src/ui/palette-ref.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -49,16 +49,6 @@ test('CO1: nearest(hex, n) returns n results ranked by ascending deltaE', () => 
   }
 });
 
-test('CO1: every PARTNERS key is in WADA', () => {
-  const names = new Set(WADA.map((c) => c.name));
-  for (const key of Object.keys(PARTNERS)) {
-    assert.ok(names.has(key), `PARTNERS key "${key}" is not a WADA colour`);
-    for (const partner of Object.keys(PARTNERS[key])) {
-      assert.ok(names.has(partner), `PARTNERS["${key}"] partner "${partner}" is not a WADA colour`);
-    }
-  }
-});
-
 test('CO1: Wada spelling corrections applied (Ridgway spelling, not the site typo)', () => {
   const names = WADA.map((c) => c.name);
   assert.ok(names.includes('Sulphur Yellow'));
@@ -67,12 +57,11 @@ test('CO1: Wada spelling corrections applied (Ridgway spelling, not the site typ
 
 test('CO1: the module is under 12 KB minified', async () => {
   // No bundler runs in tests/unit, so this is a whitespace/comment-stripped
-  // proxy for the real minified size, not the real build. Verified by hand
-  // with `npx esbuild src/ui/palette-ref.js --bundle --minify --format=esm`:
-  // 11314 bytes at TOP_N_PARTNERS=4 (scripts/build-palette-ref.mjs). Real
-  // minification (removing spaces around operators/brackets too, which this
-  // proxy doesn't) always comes out smaller than this proxy, so the budget
-  // here is set loosely above 12 KB to match.
+  // proxy for the real minified size, not the real build. CO4 removed the
+  // derived `PARTNERS`/`PARTNERS_INDEX` export (Ken chose the hand-picked
+  // anchor table in src/ui/art-color.js instead), so this is comfortably
+  // under budget now — verified by hand with `npx esbuild
+  // src/ui/palette-ref.js --bundle --minify --format=esm`.
   const src = readFileSync(join(here, '../../src/ui/palette-ref.js'), 'utf8');
   const generated = readFileSync(
     join(here, '../../src/ui/palette-ref.generated.js'),

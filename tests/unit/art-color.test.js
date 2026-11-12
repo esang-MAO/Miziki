@@ -5,7 +5,7 @@
 // tests cover resolveShareStyle()'s 'cover' branch).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { artTint, spineColor } from '../../src/ui/art-color.js';
+import { artTint, spineColor, artAnchor } from '../../src/ui/art-color.js';
 
 const FALLBACK_FROM = '#242127', FALLBACK_TO = '#1C1A1F'; // --disc-a/--disc-b
 
@@ -66,4 +66,67 @@ test('spineColor() stays within a legible mid-lightness range and never goes dar
 test('spineColor() on a near-grey also falls back to --disc-a', () => {
   assert.equal(spineColor({ h: 10, s: 0.05, l: 0.5 }), FALLBACK_FROM);
   assert.equal(spineColor(null), FALLBACK_FROM);
+});
+
+// CO4 (docs/37_COLOUR.md, recommendation 4): artAnchor() is a hand-picked
+// table (Ken declined the Wada-derived partner-count approach -- see
+// art-color.js's own header comment), not anything read from the
+// catalogue's combination data, so these pin the table's own behaviour
+// rather than any specific worked example from the plan.
+test('artAnchor(): a warm orange cover anchors to a genuinely different-hue near-neutral dark', () => {
+  const anchor = artAnchor({ h: 28, s: 0.9, l: 0.55 });
+  assert.ok(anchor, 'expected a non-null anchor for a saturated orange cover');
+  assert.equal(anchor.hex, '#1b3644');
+  assert.equal(anchor.name, 'Slate Color');
+});
+
+test('artAnchor(): a cool navy cover anchors to a warm near-neutral dark', () => {
+  const anchor = artAnchor({ h: 222, s: 0.65, l: 0.3 });
+  assert.ok(anchor);
+  assert.equal(anchor.name, 'Vandyke Brown');
+});
+
+test('artAnchor(): a yellow-green/olive cover has no good complement in the hand-picked table -- null', () => {
+  for(const h of [100, 110, 120, 130, 140]){
+    assert.equal(artAnchor({ h, s: 0.6, l: 0.5 }), null, `expected null at hue ${h}`);
+  }
+});
+
+test('artAnchor(): a near-grey (low saturation) or no input returns null, same floor as artTint()', () => {
+  assert.equal(artAnchor({ h: 40, s: 0.05, l: 0.5 }), null);
+  assert.equal(artAnchor(null), null);
+});
+
+test('artAnchor(): never returns a candidate within the same hue family as the cover itself', () => {
+  // recommendation 6: "the dark partner is a different hue, not the key
+  // colour darkened" -- sweep the whole hue wheel and check the anchor
+  // (when one is returned) is never suspiciously close to the input.
+  for(let h = 0; h < 360; h += 5){
+    const anchor = artAnchor({ h, s: 0.6, l: 0.5 });
+    if(!anchor) continue;
+    const anchorHue = anchor.name === 'Slate Color' ? 200
+      : anchor.name === 'Vandyke Brown' ? 37
+      : anchor.name === 'Deep Slate Olive' ? 108
+      : 162; // Deep Slate Green
+    const d = Math.abs(anchorHue - h) % 360;
+    const dist = d > 180 ? 360 - d : d;
+    assert.ok(dist >= 40, `anchor ${anchor.name} (hue ${anchorHue}) too close to cover hue ${h}: ${dist}`);
+  }
+});
+
+test('artTint(): uses the anchor as `from` when one clears the contrast floors, with a darker `to` of the same colour', () => {
+  const { from, to } = artTint({ h: 28, s: 0.9, l: 0.55 });
+  const anchor = artAnchor({ h: 28, s: 0.9, l: 0.55 });
+  assert.equal(from, anchor.hex);
+  assert.notEqual(to, from);
+  assert.ok(relLuminance(to) <= relLuminance(from), '`to` is never lighter than the anchor `from`');
+  assert.ok(contrastRatio(ON_DARK, from) >= 7);
+});
+
+test('artTint(): with no usable anchor (olive/yellow-green cover), falls through to the same-hue result unchanged', () => {
+  const hsl = { h: 115, s: 0.6, l: 0.5 };
+  assert.equal(artAnchor(hsl), null, 'precondition: this hue has no anchor');
+  const { from, to } = artTint(hsl);
+  assert.ok(contrastRatio(ON_DARK, from) >= 7);
+  assert.notEqual(to, from);
 });

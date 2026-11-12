@@ -100,6 +100,15 @@ function hexToRgb(hex){
   return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
 }
 
+// darkens a hex colour by scaling its RGB channels, for artAnchor()'s own
+// `to` companion below -- a plain channel scale rather than a full HSL
+// round-trip, since all that's needed is "the same colour, a touch darker".
+function darkenHex(hex, factor){
+  const { r, g, b } = hexToRgb(hex);
+  const toHex = v => Math.max(0, Math.min(255, Math.round(v * factor))).toString(16).padStart(2, '0');
+  return '#' + toHex(r) + toHex(g) + toHex(b);
+}
+
 // standard WCAG relative luminance / contrast ratio — same formula
 // tests/unit/theme.test.js's relLuminanceTY1/contrastRatioTY1 use.
 function srgbToLinear(c){ const n = c/255; return n <= 0.03928 ? n/12.92 : Math.pow((n+0.055)/1.055, 2.4); }
@@ -121,14 +130,76 @@ function compositeOverHex(r, g, b, a, bgHex){
   return '#' + toHex(mix(r, bg.r)) + toHex(mix(g, bg.g)) + toHex(mix(b, bg.b));
 }
 
+// CO4 (docs/37_COLOUR.md, recommendation 4; recommendation 10): a
+// near-neutral dark pulled from the opposite side of the cover's own hue,
+// for a gatefold interior that would otherwise read a little flat under
+// the same-hue tint below. Ken chose not to derive this from Wada's own
+// combination frequencies (CO1 shipped the derived partner counts as
+// `PARTNERS` in palette-ref.js; CO4 removes it unused -- recommendation
+// 10's "Ken to confirm" came back no). This is a hand-picked table of
+// this catalogue's own near-neutral darks instead -- L 8-30, chroma under
+// 25 by the plan's own filter, which only four Wada colours actually
+// clear -- picked by hand from docs/design/colour/colors.json, with
+// nothing about which colours the book itself pairs them with.
+const ANCHOR_CANDIDATES = [
+  { hex: '#1b3644', name: 'Slate Color', hue: 200 },
+  { hex: '#362304', name: 'Vandyke Brown', hue: 37 },
+  { hex: '#172713', name: 'Deep Slate Olive', hue: 108 },
+  { hex: '#0f261f', name: 'Deep Slate Green', hue: 162 },
+];
+// Recommendation 6: "the dark partner is a different hue, not the key
+// colour darkened." A candidate within this many degrees of the cover's
+// own hue is the same family, not a real anchor, and is dropped from
+// consideration -- when every candidate is too close (a green cover has
+// no spare green-free candidate once ANCHOR_CANDIDATES' own entries are
+// excluded), artAnchor() returns null rather than force a same-family
+// match.
+const ANCHOR_MIN_HUE_DISTANCE = 40;
+// Even the nearest remaining candidate can still be a poor complement --
+// the small, hand-picked table has gaps (nothing near violet/magenta),
+// and a cover that falls in one shouldn't get the closest-available
+// candidate anyway, however far off: past this distance from the true
+// complement, there's nothing good here, and artAnchor() says so with
+// null rather than force a middling match.
+const ANCHOR_MAX_COMPLEMENT_DISTANCE = 70;
+function hueDistance(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+
+export function artAnchor(hsl){
+  if(!hsl || hsl.s == null || hsl.s < GREY_SATURATION_FLOOR || hsl.h == null) return null;
+  const complement = (hsl.h + 180) % 360;
+  const eligible = ANCHOR_CANDIDATES.filter(c => hueDistance(c.hue, hsl.h) >= ANCHOR_MIN_HUE_DISTANCE);
+  if(eligible.length === 0) return null;
+  let best = eligible[0], bestDist = hueDistance(best.hue, complement);
+  for(const c of eligible.slice(1)){
+    const d = hueDistance(c.hue, complement);
+    if(d < bestDist){ best = c; bestDist = d; }
+  }
+  if(bestDist > ANCHOR_MAX_COMPLEMENT_DISTANCE) return null;
+  return { hex: best.hex, name: best.name };
+}
+const ANCHOR_TO_DARKEN_FACTOR = 0.82;
+
 // keeps the cover's main hue, caps saturation, and pulls lightness down
 // until --on-dark text clears 7:1 on `from` and the 66%-alpha muted read
 // clears 4.5:1 — `to` is the same hue one step darker. A near-grey input
 // (low saturation, including no input at all) gets the warm --disc-a/
-// --disc-b pair instead of a muddy tint (UN6 point 1).
+// --disc-b pair instead of a muddy tint (UN6 point 1). CO4: tries the
+// anchor first, but only as `from` if it already clears both floors as
+// is -- recommendation 4 point 2 is explicit that nothing here may be
+// lightened to make the anchor fit; a failing anchor falls straight
+// through to the same-hue result below, unchanged.
 export function artTint(hsl){
   if(!hsl || hsl.s == null || hsl.s < GREY_SATURATION_FLOOR || hsl.h == null){
     return { from: DISC_A, to: DISC_B };
+  }
+  const anchor = artAnchor(hsl);
+  if(anchor){
+    const onDarkOk = contrastRatio(ON_DARK, anchor.hex) >= ON_DARK_FROM_FLOOR;
+    const mutedComposite = compositeOverHex(239, 233, 223, MUTED_ON_DARK_ALPHA, anchor.hex);
+    const mutedOk = contrastRatio(mutedComposite, anchor.hex) >= MUTED_ON_DARK_FLOOR;
+    if(onDarkOk && mutedOk){
+      return { from: anchor.hex, to: darkenHex(anchor.hex, ANCHOR_TO_DARKEN_FACTOR) };
+    }
   }
   const h = hsl.h, s = Math.min(hsl.s, SATURATION_CAP);
   let l = 0.6;
