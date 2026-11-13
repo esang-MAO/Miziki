@@ -36,7 +36,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 - `src/fonts/` — self-hosted Antonio/Archivo/IBM Plex Mono, Latin subset, OFL licensed.
 - `src/miziki-social.js` — the social client (`MizikiSocial`). A real ES module (bundled and minified like any other), but still assigns to `window.MizikiSocial` rather than exporting, since most callers reach it as a global rather than importing it (`main.js` imports it only for that side effect, as its first import); wired via `env`-passed accessor functions, not imports, so it stays decoupled from the rest of the app.
 - `supabase/functions/` — edge functions: `mb-connections/` (the only code that calls MusicBrainz — fills the connected-crate cache, off unless the `MB_ENABLED` secret is `true`) and `_shared/mb-connections.js` (its pure parsing, plain JS so `tests/unit/connected.test.js` runs it under Node).
-- `supabase/migrations/` — schema/RPCs/RLS, applied in numeric order. **Never edit an applied migration** — add a new one. From `012_migrations_log.sql` on, each asserts the prior version is logged and logs its own.
+- `supabase/migrations/` — schema/RPCs/RLS, applied in numeric order. **Never edit an applied migration** — add a new one. From `012_migrations_log.sql` on, each asserts the prior version is logged and logs its own. **Every new migration is applied to the staging project first** (`docs/SUPABASE_SETUP.md`'s staging section) **and ships with an undo file**, `supabase/migrations/undo/NNN_name.undo.sql`, holding the statements that reverse it. An undo file is never applied by routine; it exists so a bad migration can be backed out by hand.
 - `tests/unit/` — `node:test` tests for extracted pure functions (`npm run test:unit`); several mock modules that would otherwise need a browser or a wide unrelated dependency web — expected here, not a smell.
 - `tests/client.test.js` — social-client tests against a local Postgres. `tests/perf/` — `nav.perf.js` (`npm run perf`, not CI) plus fixtures.
 - `tests/audio-render/` — the offline-render harness for audio PRs: serves the repo unbuilt (native relative imports, no bundler) and drives Chromium/WebKit against real `OfflineAudioContext` specs. Not CI; run by hand, paste results into the PR.
@@ -159,7 +159,7 @@ These shape behavior, not copy: the reasons behind them are never surfaced to th
 - **Endings are part of the music.** Never trim a run-out, a fade or the silence between sides, and never fill it with a suggestion. When playback stops, the screen holds the record or its sleeve — never an empty state, and never a "what to play next" prompt. A resting screen should look warm, not blank.
 - **One in, one out.** Every feature PR's description names what it removes, absorbs or simplifies. A feature that adds a control retires one where it can; if nothing goes, the description says why.
 - **Motion flows.** Prefer a continuous gesture (drag, spin, swipe) over a new button. Animations ease evenly with no bursts, and visible changes over time (sky, light, speed, tone) move in small steps — crossfade, never hard-cut.
-- **Less after dark.** As the evening goes on, the app shows less, never more: no new content is pushed after sunset, and an idle player sheds controls rather than adding them.
+- **Less after dark.** As the evening goes on, the app shows less, never more: no new content is pushed after sunset, and an idle player sheds controls rather than adding them. The single first-night Sundown line (BD6, `docs/38_BEFORE_THE_DOMAIN.md`) is the one exception, shown once per account.
 - **Miziki keeps no engagement numbers.** No analytics, telemetry, dwell time, daily-active or retention tracking, on the device or the server. Listening stats exist only for the listener's own screens and for what they choose to share.
 - **Deluxe is a fair trade.**
   - One price, the same for everyone.
@@ -199,6 +199,8 @@ These shape behavior, not copy: the reasons behind them are never surfaced to th
 A plan doc (`docs/NN_NAME.md`) covers one or more PR-sized steps. Each step states: **Read first**, **Changes**, **Tests (Claude runs)**, **Preview focus (Ken runs)**, **Removes** (one in, one out — rule 3 above), and **Not in this step**. A plan's own **Decisions** section holds no open questions before its first step runs — resolve every open question with Ken first. A plan ends with a short **After** section, filled in once the plan is done: what reached the iPhone broken, and which rule went into this file because of it.
 
 ## Device checklist (run on iPhone, from the home-screen app, after each change)
+
+Run on iPhone, and on an Android phone in Chrome (`docs/38_BEFORE_THE_DOMAIN.md`, K3), and once at desktop width.
 
 - [ ] App opens; the launch intro plays (and is skipped when turned off)
 - [ ] Existing library is still there after the update (IndexedDB intact)
