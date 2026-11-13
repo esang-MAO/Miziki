@@ -4,11 +4,15 @@
    tag/artwork parsing itself lives in src/library/tags/ — this module is
    "what to do with a File object," not "how to read one." One file at a
    time, the "Importing N of M" note, a failed file skipped (not aborting
-   the batch), and new albums sealed once per batch (SEALED spec §2). The
-   import loop also runs the BS.1770 loudness measurement (AU5,
-   docs/16_AUDIO.md §4) and the hook-detection pass (AU12, §7) right after
-   decodeAudioData, both via audio/analysis-client.js's analyzeTrack()
-   (off the main thread, in a Worker). */
+   the batch), and new albums sealed once per batch (SEALED spec §2).
+   BD4 (docs/38_BEFORE_THE_DOMAIN.md): the loop no longer awaits the
+   BS.1770 loudness measurement (AU5, docs/16_AUDIO.md §4) or the
+   hook-detection pass (AU12, §7) — both measured at 85-90% of a FLAC/MP3
+   track's own per-file import time, almost all of it off-main-thread Worker
+   round-trip but still serialized into the loop one file at a time. A newly
+   imported track stores with those fields unset and syncAfterImportChange()
+   kicks off thumbs.js's existing healLoudness()/healHooks() idle passes to
+   fill them in once the batch ends. */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -26,9 +30,9 @@ import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
+import { healLoudness, healHooks } from './thumbs.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
-import { analyzeTrack } from '../audio/analysis-client.js';
 import { isBookletPageCandidate, groupBookletCandidatesByAlbumFolder, addBookletPages } from './booklet.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
@@ -162,25 +166,17 @@ export async function addFiles(list){
       const trimmedDuration = buffer
         ? Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec)
         : (meta.durationSec || 0);
-      // AU5 (docs/16_AUDIO.md §4)/AU12 (§7): "Import already decodes every
-      // file, so compute BS.1770 integrated loudness and true peak there"
-      // / "find each track's most-repeated section" — one round trip to
-      // the analysis worker (PL6 item 1) computes both from the same
-      // decode, off the main thread. detectHook()'s own result is null
-      // for anything too short for a meaningful 8-30s repeat (or with no
-      // clear one at all) — hookStart/hookEnd are simply left unset on
-      // details, the same "absent means unknown" posture every other
-      // optional details field already has. A track too long to decode
-      // gets neither — same posture, one more reason for "unmeasured."
-      if(buffer){
-        const channels = [];
-        for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-        const analysis = await analyzeTrack(channels, buffer.sampleRate);
-        details.loudness = analysis.loudness;
-        if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
-      } else {
-        tooLong.push(f.name);
-      }
+      // BD4 (docs/38_BEFORE_THE_DOMAIN.md): loudness/hook measurement (AU5,
+      // docs/16_AUDIO.md §4; AU12, §7) no longer happens inline here — it's
+      // 85-90% of a track's own import time (measured in that plan's own
+      // BD4 section) and was serializing the whole analysis worker
+      // round-trip into the per-file loop. details.loudness/hookStart/
+      // hookEnd are simply left unset, the same "absent means unknown"
+      // posture every optional details field already has (and the same
+      // posture a track too long to decode already took before this step);
+      // syncAfterImportChange() below starts the existing healLoudness()/
+      // healHooks() idle passes once the batch ends to fill them in.
+      if(!buffer) tooLong.push(f.name);
       const dup = findDuplicateTrack(tags, trimmedDuration || (buffer && buffer.duration) || 0);
       if(dup){
         // The matched existing track is already in the library, so the
@@ -281,6 +277,11 @@ function syncAfterImportChange(){
   persistSealedAlbums();
   MizikiSocial.libraryChanged();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
+  // BD4: fills in the loudness/hook fields this batch's own loop left
+  // unset — same idle passes restoreLibrary() already runs at boot,
+  // already resumable and already gated on t.stored && t.details.
+  healLoudness().catch(() => {});
+  healHooks().catch(() => {});
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
 }
 

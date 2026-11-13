@@ -22,8 +22,16 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
     decodeAudioFile: async (raw) => raw.__buffer,
   },
 });
-mock.module(new URL('../../src/audio/analysis-client.js', import.meta.url).href, {
-  namedExports: { analyzeTrack: async () => ({ loudness: { integrated: -14, truePeak: -1 }, hook: null }) },
+// BD4 (docs/38_BEFORE_THE_DOMAIN.md): import.js no longer calls analyzeTrack()
+// inline -- it hands loudness/hook measurement off to thumbs.js's
+// healLoudness()/healHooks() once the batch ends, so those are mocked here
+// instead of analysis-client.js.
+const healCalls = { loudness: 0, hooks: 0 };
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
+  namedExports: {
+    healLoudness: async () => { healCalls.loudness++; },
+    healHooks: async () => { healCalls.hooks++; },
+  },
 });
 mock.module(new URL('../../src/library/tags/index.js', import.meta.url).href, {
   namedExports: {
@@ -83,9 +91,10 @@ mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
     addBookletPages: async () => {},
   },
 });
+const storageState = { available: false };
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: {
-    storage: { available: () => false },
+    storage: { available: () => storageState.available },
     tracks: { put: async () => true },
   },
 });
@@ -142,6 +151,30 @@ test('addFiles: 0 duplicates never opens the sheet', async () => {
   await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' }), fakeFile({ name: 'b.flac', title: 'Song B' })]);
   assert.equal(openDuplicatesSheetCalls.length, 0);
   assert.equal(S.tracks.length, 2);
+});
+
+// BD4 (docs/38_BEFORE_THE_DOMAIN.md): a track lands in the library and is
+// playable the moment its file is decoded, with loudness/hook measurement
+// left for the heal passes that run once the batch ends -- not awaited
+// inline per file the way it used to be.
+test('addFiles: a track is in S.tracks and stored before any loudness/hook measurement exists, then the heal pass is what fills it in', async () => {
+  resetAll();
+  healCalls.loudness = 0; healCalls.hooks = 0;
+  storageState.available = true;
+  try{
+    await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' })]);
+    assert.equal(S.tracks.length, 1);
+    assert.equal(S.tracks[0].stored, true);
+    assert.equal(S.tracks[0].details.loudness, undefined);
+    assert.equal(S.tracks[0].details.hookStart, undefined);
+    // syncAfterImportChange() kicks off the existing healLoudness()/healHooks()
+    // idle passes once the batch ends -- the real passes are mocked above
+    // (thumbs.js is "stop the chain at the door" here too), so this only
+    // proves addFiles() still calls them once the track is stored, not what
+    // they themselves do (their own body is untouched by this step).
+    assert.equal(healCalls.loudness, 1);
+    assert.equal(healCalls.hooks, 1);
+  }finally{ storageState.available = false; }
 });
 
 test('addFiles: 1 duplicate opens the sheet with exactly one pending item, after the non-duplicate already landed', async () => {

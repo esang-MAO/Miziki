@@ -171,6 +171,17 @@ BD0, BD1, BD12, BD16, BD17, BD18 and BD19 change nothing on screen.
 > Read CLAUDE.md (rule 9; `src/history/` rule), `src/library/import.js` (the per-file loop, lines ~117–225), `src/audio/analysis-client.js`, and `healLoudness()`/`healHooks()` in `src/library/thumbs.js` first. Decision 6: hook previews stay.
 >
 > 1. **Measure first.** Time the four phases per file (read, decode, analyse, store) for one 12-track FLAC album and one 12-track MP3 album in Chromium, and write the numbers into this doc. **If analysis is under 20% of the per-file time, stop here and report**; the fix would then be elsewhere and needs a new decision.
+>
+>    **Measured 2026-11-13** (Chromium, synthetic 12-track albums, ~3.5 min/track, 44.1kHz stereo; `performance.now()` around each of the four `addFiles()` phases, averaged over the 12 tracks):
+>
+>    | | read | decode | analyse | store | total/file | analyse % |
+>    |---|---|---|---|---|---|---|
+>    | FLAC | 20.9ms | 354.7ms | 3305.0ms | 6.0ms | 3686.7ms | **89.6%** |
+>    | MP3 | 17.3ms | 577.2ms | 3421.2ms | 5.4ms | 4021.1ms | **85.1%** |
+>
+>    Analysis is 85-90% of per-file time in both formats, far over the 20% floor — continuing with step 2.
+>
+>    **Verified live** (Chromium, same 12-track FLAC album, temporary timing instrumentation, reverted before the PR): every track lands in `S.tracks` (playable) within ~6s of the batch starting; the first loudness heal doesn't land until ~11s, and they continue to arrive roughly one every 4-5s after that — well after the track is already playable, confirming the import loop itself no longer waits on analysis.
 > 2. Otherwise: the import loop no longer awaits `analyzeTrack()`. It stores the track with `details.loudness` and the hook fields unset ("absent means unknown", the posture those fields already have) and moves to the next file.
 > 3. When the batch ends, call the existing `healLoudness()` and `healHooks()` passes, which already fill these in from the stored file in the background. Do not write a second queue.
 > 4. A track played before its loudness arrives plays un-normalised, exactly as a track imported before loudness existed does today.
