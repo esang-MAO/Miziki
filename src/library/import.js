@@ -24,7 +24,8 @@ import { storage, tracks } from '../storage/repo.js';
 import { readHeader, readTags, readDetails, findArtworkBlob, emptyDetails } from './tags/index.js';
 import { openDuplicatesSheet } from './duplicates-ui.js';
 import { loadOverlayFor } from './edit.js';
-import { deleteTracks } from './delete.js';
+import { deleteTracks, formatBytes } from './delete.js';
+import { readUsage } from '../storage/usage.js';
 import { rebuildPeopleIndex } from './credits.js';
 import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
@@ -97,12 +98,32 @@ export async function addFiles(list){
     return false;
   });
   if(!files.length) return;   // booklet images with no audio sibling in this batch have no album to attach to
+  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): a batch that plainly won't fit never
+  // starts at all, rather than failing file by file partway through once
+  // storage actually runs out. readUsage() returning null (unsupported)
+  // means there's nothing to check against, so the import proceeds exactly
+  // as it always has.
+  const usage = await readUsage();
+  if(usage){
+    const pickedBytes = allFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+    const freeBytes = Math.max(0, usage.quota - usage.usage);
+    if(pickedBytes > freeBytes){
+      setPathNote('These files need ' + formatBytes(pickedBytes) + ' and Miziki has ' + formatBytes(freeBytes) + ' free on this device.', true);
+      return;
+    }
+  }
   const folderAlbumIds = new Map();   // audio file's own folder -> the album it belongs to
   const failed = [];
   // BD3: stored with tags but never decoded -- too long to safely decode
   // in the web build. Named separately from `failed` since nothing about
   // these actually failed; they're just waiting for the native build.
   const tooLong = [];
+  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): storeTrack() returning false used
+  // to be silent -- the track still played for this session (t.stored
+  // stays false, t.blob stays in memory) but nothing said the file never
+  // actually reached disk, so it was gone the moment the tab closed with
+  // no warning at all.
+  const notSaved = [];
   // an album not already in the library when this batch starts is "new" —
   // sealed once, regardless of how many of its files land in this same
   // batch (SEALED spec §2); loose tracks have no release identity to seal
@@ -237,6 +258,8 @@ export async function addFiles(list){
         t.stored = true;
         t.blob = null;            // it lives on disk now; no need to hold it in memory
         t.artBlob = null;
+      } else {
+        notSaved.push(f.name);
       }
     }catch(_err){
       // one bad file should never stop the rest of the batch — note it and
@@ -246,11 +269,12 @@ export async function addFiles(list){
   }
   await storeBookletCandidates(bookletCandidates, folderAlbumIds);
   syncAfterImportChange();
-  if(failed.length || tooLong.length){
+  if(failed.length || tooLong.length || notSaved.length){
     let note = 'Imported ' + (files.length - failed.length - tooLong.length) + ' of ' + files.length + '.';
     if(failed.length) note += ' Could not decode: ' + failed.join(', ')
       + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.';
     if(tooLong.length) note += ' Too long to play in the web version of Miziki: ' + tooLong.join(', ') + '.';
+    if(notSaved.length) note += ' Not saved: ' + notSaved.join(', ') + '.';
     setPathNote(note, true);
   } else {
     setPathNote();

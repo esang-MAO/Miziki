@@ -61,7 +61,20 @@ mock.module(new URL('../../src/library/delete.js', import.meta.url).href, {
       const { S } = await import('../../src/state.js');
       S.tracks = S.tracks.filter(t => !ids.includes(t.id));
     },
+    formatBytes(n){
+      if(!n) return '0 MB';
+      const units = ['B','KB','MB','GB','TB'];
+      let i = 0;
+      while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
+      return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    },
   },
+});
+// BD5: readUsage() default (null) means "nothing to check against" -- the
+// fit-check tests below set usageState.result for the duration of one test.
+const usageState = { result: null };
+mock.module(new URL('../../src/storage/usage.js', import.meta.url).href, {
+  namedExports: { readUsage: async () => usageState.result },
 });
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: { rebuildPeopleIndex: () => {} },
@@ -91,11 +104,11 @@ mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
     addBookletPages: async () => {},
   },
 });
-const storageState = { available: false };
+const storageState = { available: false, putOk: true };
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: {
     storage: { available: () => storageState.available },
-    tracks: { put: async () => true },
+    tracks: { put: async () => storageState.putOk },
   },
 });
 mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {
@@ -108,8 +121,9 @@ mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   namedExports: { setQueue: () => {} },
 });
+const pathNoteCalls = [];
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
-  namedExports: { setPathNote: () => {} },
+  namedExports: { setPathNote: (msg, warn) => { pathNoteCalls.push({ msg, warn }); } },
 });
 
 const { addFiles } = await import('../../src/library/import.js');
@@ -144,6 +158,10 @@ function resetAll(){
   S.index = -1;
   openDuplicatesSheetCalls.length = 0;
   deletedIds.length = 0;
+  pathNoteCalls.length = 0;
+  usageState.result = null;
+  storageState.available = false;
+  storageState.putOk = true;
 }
 
 test('addFiles: 0 duplicates never opens the sheet', async () => {
@@ -151,6 +169,57 @@ test('addFiles: 0 duplicates never opens the sheet', async () => {
   await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' }), fakeFile({ name: 'b.flac', title: 'Song B' })]);
   assert.equal(openDuplicatesSheetCalls.length, 0);
   assert.equal(S.tracks.length, 2);
+});
+
+// BD5 (docs/38_BEFORE_THE_DOMAIN.md): a batch that plainly won't fit never
+// starts at all, rather than failing file by file partway through.
+test('addFiles: a batch over the device\'s free space never starts, and says so', async () => {
+  resetAll();
+  const GB = 1024 * 1024 * 1024;
+  usageState.result = { usage: 58 * GB, quota: 60 * GB };   // 2 GB free
+  await addFiles([fakeFile({ name: 'big.flac', title: 'Big', size: 4.1 * GB })]);
+  assert.equal(S.tracks.length, 0);
+  assert.equal(pathNoteCalls.length, 1);
+  assert.match(pathNoteCalls[0].msg, /need 4\.1 GB/);
+  assert.match(pathNoteCalls[0].msg, /2\.0 GB free/);
+  assert.equal(pathNoteCalls[0].warn, true);
+});
+
+test('addFiles: a batch that fits within free space imports as normal', async () => {
+  resetAll();
+  const GB = 1024 * 1024 * 1024;
+  usageState.result = { usage: 1 * GB, quota: 60 * GB };
+  await addFiles([fakeFile({ name: 'a.flac', title: 'Song A', size: 1000 })]);
+  assert.equal(S.tracks.length, 1);
+});
+
+test('addFiles: readUsage() returning null (unsupported) never blocks an import', async () => {
+  resetAll();
+  usageState.result = null;
+  await addFiles([fakeFile({ name: 'a.flac', title: 'Song A', size: 50 * 1024 * 1024 * 1024 })]);
+  assert.equal(S.tracks.length, 1);
+});
+
+// BD5: storeTrack() returning false used to be silent.
+test('addFiles: a track storeTrack() fails to save is named in the end-of-batch summary', async () => {
+  resetAll();
+  storageState.available = true;
+  storageState.putOk = false;
+  await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' })]);
+  assert.equal(S.tracks.length, 1);
+  assert.equal(S.tracks[0].stored, false);
+  const note = pathNoteCalls[pathNoteCalls.length - 1];
+  assert.match(note.msg, /Not saved: a\.flac/);
+  assert.equal(note.warn, true);
+});
+
+test('addFiles: a track storeTrack() succeeds on is never mentioned as not saved', async () => {
+  resetAll();
+  storageState.available = true;
+  storageState.putOk = true;
+  await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' })]);
+  assert.equal(S.tracks[0].stored, true);
+  assert.equal(pathNoteCalls.some(c => /Not saved/.test(c.msg)), false);
 });
 
 // BD4 (docs/38_BEFORE_THE_DOMAIN.md): a track lands in the library and is
