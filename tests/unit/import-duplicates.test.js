@@ -90,7 +90,11 @@ mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   },
 });
 mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {
-  namedExports: { touchLRU: () => {} },
+  namedExports: {
+    touchLRU: () => {},
+    decodedBytesFor: () => 0,
+    DECODE_MAX_BYTES: 1.2 * 1024 * 1024 * 1024,
+  },
 });
 mock.module(new URL('../../src/player/queue.js', import.meta.url).href, {
   namedExports: { setQueue: () => {} },
