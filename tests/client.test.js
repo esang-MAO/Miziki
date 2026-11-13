@@ -355,12 +355,57 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    asUser(UID3, `select sync_crate('[{"release_key":"createdbykey1","title":"CB Album","artist":"CB Artist"}]'::jsonb, true)`);
    assert.equal(q1(`select created_by from releases where release_key='createdbykey1'`), UID3); });
 
- await t('a direct insert into releases with someone else\'s created_by is rejected',()=>{
+ await t('a direct insert into releases as an authenticated user is refused',()=>{
    let threw=false;
-   try{ asUser(UID3, `insert into releases(release_key,title,artist,created_by) values ('createdbykey2','CB2','CB2 Artist','${UID4}')`); }
-   catch(e){ threw=/row-level security|permission denied/i.test(e.message); if(!threw) throw e; }
-   assert.ok(threw, 'expected RLS to reject created_by spoofing');
+   try{ asUser(UID3, `insert into releases(release_key,title,artist) values ('createdbykey2','CB2','CB2 Artist')`); }
+   catch(e){ threw=/permission denied/i.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected the closed grant to reject a direct insert');
    assert.equal(q1(`select count(*) from releases where release_key='createdbykey2'`), '0'); });
+
+ await t('the ensure_release helper leaves an existing row\'s title alone',()=>{
+   asUser(UID3, `select private.ensure_release('createdbykey1','A Different Title','A Different Artist')`);
+   assert.equal(q1(`select title from releases where release_key='createdbykey1'`), 'CB Album'); });
+
+ await t('the 2,001st new release in a day raises',()=>{
+   q1(`update releases set created_at = now() - interval '1 hour'
+     where created_by='${UID3}' and release_key not in ('createdbykey1')`);
+   const already = +q1(`select count(*) from releases where created_by='${UID3}' and created_at > now() - interval '24 hours'`);
+   const toMake = 2000 - already;
+   for(let n=0;n<toMake;n++){
+     asUser(UID3, `select private.ensure_release('cap-rel-${n}','Cap ${n}','Cap Artist')`);
+   }
+   let threw=false;
+   try{ asUser(UID3, `select private.ensure_release('cap-rel-over','Cap Over','Cap Artist')`); }
+   catch(e){ threw=/too many new releases today/.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected the daily release cap to raise once 2,000 is reached'); });
+
+ await t('the follow cap raises past 200 new follows in a day',()=>{
+   const already = +q1(`select count(*) from follows where follower_id='${UID3}' and created_at > now() - interval '24 hours'`);
+   const need = 200 - already;
+   for(let n=0;n<need;n++){
+     const target = crypto.randomUUID();
+     psql(`insert into auth.users values ('${target}') on conflict do nothing;
+       insert into profiles(id,handle,display_name,visibility) values ('${target}','capfollow${n}','Cap Follow ${n}','public') on conflict do nothing`);
+     asUser(UID3, `insert into follows(follower_id,followee_id) values ('${UID3}','${target}')`);
+   }
+   let threw=false;
+   const over = crypto.randomUUID();
+   psql(`insert into auth.users values ('${over}') on conflict do nothing;
+     insert into profiles(id,handle,display_name,visibility) values ('${over}','capfollowover','Cap Follow Over','public') on conflict do nothing`);
+   try{ asUser(UID3, `insert into follows(follower_id,followee_id) values ('${UID3}','${over}')`); }
+   catch(e){ threw=/too many new follows today/.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected the daily follow cap to raise once 200 is reached'); });
+
+ await t('the report cap raises past 20 new reports in a day',()=>{
+   const already = +q1(`select count(*) from reports where reporter_id='${UID3}' and created_at > now() - interval '24 hours'`);
+   const need = 20 - already;
+   for(let n=0;n<need;n++){
+     asUser(UID3, `insert into reports(reporter_id,target_user_id,reason) values ('${UID3}','${UID4}','cap test ${n}')`);
+   }
+   let threw=false;
+   try{ asUser(UID3, `insert into reports(reporter_id,target_user_id,reason) values ('${UID3}','${UID4}','cap test over')`); }
+   catch(e){ threw=/too many reports today/.test(e.message); if(!threw) throw e; }
+   assert.ok(threw, 'expected the daily report cap to raise once 20 is reached'); });
 
  await t('delete_my_account removes the caller\'s auth user, profile, crate, follows and backup rows -- and leaves everyone else untouched',async()=>{
    const UID5='55555555-5555-5555-5555-555555555555';
@@ -630,7 +675,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    insert into profiles(id,handle,display_name,visibility) values ('${SUID}','spinphasetest','Spin Phase Test','public')
    on conflict do nothing`);
  await t('now_spinning.phase: the check constraint accepts every one of the seven phase names',()=>{
-   asUser(SUID, `insert into releases(release_key,title,artist) values ('phase-accept-rel','Phase Accept','Artist') on conflict do nothing`);
+   asUser(SUID, `select private.ensure_release('phase-accept-rel','Phase Accept','Artist')`);
    const relId = asUser(SUID, `select id from releases where release_key='phase-accept-rel'`);
    for(const phase of ['night','dawn','morning','midday','afternoon','golden','twilight']){
      asUser(SUID, `insert into now_spinning(user_id,release_id,phase) values ('${SUID}','${relId}','${phase}')
@@ -639,7 +684,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    }
    asUser(SUID, `delete from now_spinning where user_id='${SUID}'`); });
  await t('now_spinning.phase: the check constraint rejects a phase name outside the seven',()=>{
-   asUser(SUID, `insert into releases(release_key,title,artist) values ('phase-check-rel','Phase Check','Artist') on conflict do nothing`);
+   asUser(SUID, `select private.ensure_release('phase-check-rel','Phase Check','Artist')`);
    const relId = asUser(SUID, `select id from releases where release_key='phase-check-rel'`);
    let threw=false;
    try{ asUser(SUID, `insert into now_spinning(user_id,release_id,phase) values ('${SUID}','${relId}','not-a-real-phase')
@@ -671,7 +716,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    update follows set status='accepted' where follower_id='${FUID_B}' and followee_id='${FUID_A}'`);
 
  await t('RF2: going private removes the added event too, not just pinned/review',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-1','RF2 Album','RF2 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf2-rel-1','RF2 Album','RF2 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-1'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -689,7 +734,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  // existed while public, and was removed only once private). There is
  // now no 'unlock' row to remove in either state.
  await t('RF21: a metal unlock never posts to the feed, public or private',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-2','RF2 Album 2','RF2 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf2-rel-2','RF2 Album 2','RF2 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-2'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -701,7 +746,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
      'no unlock row exists at all, not merely a hidden one'); });
 
  await t('RF2/RF21: deleting a crate item entirely removes its added events (crate_items_after_delete)',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-3','RF2 Album 3','RF2 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf2-rel-3','RF2 Album 3','RF2 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf2-rel-3'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -718,14 +763,14 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  // re-point its release_id at whichever item was most recently added,
  // not stay stuck on the item that first created the row.
  await t('migration 020: a burst-collapsed added event follows the latest item, not the first',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('m20-rel-1','M20 Album 1','M20 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('m20-rel-1','M20 Album 1','M20 Artist')`);
    const rel1 = asUser(FUID_A, `select id from releases where release_key='m20-rel-1'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${rel1}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
    assert.equal(asUser(FUID_A, `select release_id from feed_events where actor_id='${FUID_A}' and type='added'`), rel1,
      'a fresh burst starts pointed at the first item');
 
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('m20-rel-2','M20 Album 2','M20 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('m20-rel-2','M20 Album 2','M20 Artist')`);
    const rel2 = asUser(FUID_A, `select id from releases where release_key='m20-rel-2'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${rel2}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -740,7 +785,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    asUser(FUID_A, `delete from crate_items where user_id='${FUID_A}' and release_id in ('${rel1}','${rel2}')`); });
 
  await t('RF21: home_feed_rich expires a caller\'s own feed_events rows older than 45 days on every read',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf21-expiry','RF21 Expiry','RF21 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf21-expiry','RF21 Expiry','RF21 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf21-expiry'`);
    q1(`insert into feed_events(actor_id,type,release_id,payload,created_at)
      values ('${FUID_A}','added','${relId}','{"count":1}'::jsonb, now() - interval '46 days')`);
@@ -751,9 +796,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
      'reading the feed expired the caller\'s own stale row'); });
 
  await t('rebuild_feed_events: reproduces the same visible feed the triggers would, repairing a stale row a bad trigger left behind',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-4','RF2 Rebuild Public','RF2 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf2-rel-4','RF2 Rebuild Public','RF2 Artist')`);
    const relPublic = asUser(FUID_A, `select id from releases where release_key='rf2-rel-4'`);
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf2-rel-5','RF2 Rebuild Private','RF2 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf2-rel-5','RF2 Rebuild Private','RF2 Artist')`);
    const relPrivate = asUser(FUID_A, `select id from releases where release_key='rf2-rel-5'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,pin_rank) values ('${FUID_A}','${relPublic}','public',null)
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -781,7 +826,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.ok(threw, 'expected rebuild_feed_events to refuse rebuilding someone elses feed'); });
 
  await t('RF21: rebuild_feed_events never resurrects an unlock row',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf21-rebuild','RF21 Rebuild','RF21 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf21-rebuild','RF21 Rebuild','RF21 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf21-rebuild'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility) values ('${FUID_A}','${relId}','public')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility`);
@@ -828,21 +873,21 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  // FUID_A, accepted) from the RF2 fixtures above -- the same visibility
  // shape fresh_for_you's own `security invoker` + crate_items RLS needs.
  await t('RF20: an unpinned, un-noted 5-star record is not fresh',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-1','RF20 High Rated','RF20 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf20-rel-1','RF20 High Rated','RF20 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-1'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',5,null,null)
      on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
    assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '0',
      'a 5-star record with no pin and no note must not show up as fresh'); });
  await t('RF20: a pinned 2-star record is fresh',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-2','RF20 Pinned Low Rated','RF20 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf20-rel-2','RF20 Pinned Low Rated','RF20 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',2,8,null)
      on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
    assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '1',
      'a pinned record must be fresh even at a low rating'); });
  await t('RF20: an unpinned record with a sleeve note is fresh too',()=>{
-   asUser(FUID_A, `insert into releases(release_key,title,artist) values ('rf20-rel-3','RF20 Noted Not Pinned','RF20 Artist') on conflict do nothing`);
+   asUser(FUID_A, `select private.ensure_release('rf20-rel-3','RF20 Noted Not Pinned','RF20 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-3'`);
    asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',1,null,'Still my favorite side B.')
      on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
