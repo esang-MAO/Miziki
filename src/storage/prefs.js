@@ -33,7 +33,7 @@ const KNOWN_PREF_KEYS = new Set([
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
   'surfaceNoise', 'surfaceNoiseUnderMusic',
-  'autoFlip', 'nightPitch', 'stopAtTurns', 'seasonalSky', 'showWear',
+  'autoFlip', 'nightPitch', 'stopAtTurns', 'seasonalSky', 'showWear', 'sundownExplained',
   'loudnessMode',
   'eq',
   'mono', 'balance', 'deviceVolume',
@@ -86,6 +86,7 @@ export function serializePrefs(S){
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     nightPitch: S.nightPitch,
+    sundownExplained: S.sundownExplained,
     stopAtTurns: S.stopAtTurns,
     seasonalSky: S.seasonalSky,
     showWear: S.showWear,
@@ -187,6 +188,11 @@ export function parsePrefs(raw){
   // device before this PR) loads as 'slowed', the stated default and
   // today's behavior.
   if(p.nightPitch === 'slowed' || p.nightPitch === 'true') out.nightPitch = p.nightPitch;
+  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): a saved object without this (every
+  // device before this PR) loads as false, the stated default -- the line
+  // shows once more, which is harmless (it's gated on "not yet explained",
+  // not a one-time-ever guarantee across a version boundary).
+  if(typeof p.sundownExplained === 'boolean') out.sundownExplained = p.sundownExplained;
   // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
   // device before this PR) loads as off, the stated default.
   if(typeof p.stopAtTurns === 'boolean') out.stopAtTurns = p.stopAtTurns;

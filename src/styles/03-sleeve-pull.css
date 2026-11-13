@@ -152,6 +152,18 @@
   background:rgba(239,233,223,.06);border-radius:999px;padding:6px 14px}
 .now-focus-pill svg{width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.5}
 
+/* BD6 (docs/38_BEFORE_THE_DOMAIN.md): the one-time Sundown explainer line,
+   shown once per account beside the phase pill above it. var(--body)/
+   --fs-body/--muted per the plan's own spec -- never amber (that's the
+   phase pill's own, already-shown-every-time wording, not this one-shot
+   explanation). A plain button (same tap target as the phase pill) so
+   "tap here" is literally tappable, left-aligned under the bottom row. */
+.now-sundown-explainer{display:block;width:100%;text-align:left;background:none;border:0;padding:0;
+  margin-top:var(--sp-2);font-family:var(--body);font-size:var(--fs-body);color:var(--muted);
+  line-height:1.4;opacity:0;transition:opacity .4s ease}
+.now-sundown-explainer.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.now-sundown-explainer{transition:none}}
+
 /* FS5 point 8: "after dark" -- night only, the player's own cream/muted
    dim and the label loses ~20% brightness. A local override of the two
    tokens, not a new entry in player/clock.js's own mutedGradientStops()

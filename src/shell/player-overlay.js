@@ -9,6 +9,7 @@ import { openLayer } from './nav-stack.js';
 import { currentDayPosition } from '../sundown/solar.js';
 import { eveningGlanceLevel, EVENING_GLANCE_FIRST_MS, EVENING_GLANCE_DEEP_MS, FOCUS_GLANCE_FIRST_MS } from '../player/evening-glance.js';
 import { anchoredMenuTop } from '../util/menu-position.js';
+import { resetSundownExplainerDisplay } from '../player/clock.js';
 
 // Library selection always arrives via the sheet — something is being
 // started. The sheet must settle fully before the disc transition begins.
@@ -61,6 +62,7 @@ export function closePlayer(){
   interruptStartSequence();
   exitGlance();
   clearEveningGlance();
+  resetSundownExplainerDisplay();
   const ov = $('#playerOverlay');
   ov.classList.remove('open');
   ov.setAttribute('aria-hidden','true');
