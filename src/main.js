@@ -167,7 +167,10 @@ async function restoreLibrary(){
   // with nothing said — tell the user plainly, since by then they may be
   // deep in the app with no reason to suspect storage has gone stale.
   DB.onNotice(kind => { if(kind === 'staleVersion') showStaleVersionBanner(); });
-  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
+  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): kept so Library tools can tell the
+  // user whether the browser promised not to clear this library under
+  // storage pressure -- runtime-only (S.storagePersisted), not saved.
+  try{ if(navigator.storage && navigator.storage.persist) S.storagePersisted = await navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
   const recs = await tracks.all();
   recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
   // Perf fix: build every track record first, then resolve every overlay/

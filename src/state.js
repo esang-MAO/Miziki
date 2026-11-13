@@ -720,3 +720,10 @@ S.seasonSummaries = {};
 // backed up or shown to the user, the same class of local-only timestamp
 // as uploadedImageHashes in backup.js.
 S.rhythmPushedAt = 0;
+// BD5 (docs/38_BEFORE_THE_DOMAIN.md): navigator.storage.persist()'s own
+// answer, read once in restoreLibrary() -- runtime-only, never saved (no
+// prefs entry; the browser's own answer can change outside the app, so
+// nothing would be gained by persisting a stale copy of it). null means
+// unknown/unsupported, same posture src/storage/usage.js's readUsage()
+// takes for an unsupported navigator.storage.estimate().
+S.storagePersisted = null;
