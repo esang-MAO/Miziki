@@ -18,6 +18,7 @@ function fakeS(overrides = {}){
     surfaceNoise: 'subtle', surfaceNoiseUnderMusic: false,
     autoFlip: true,
     nightPitch: 'slowed',
+    sundownExplained: false,
     stopAtTurns: false,
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
@@ -50,6 +51,7 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     nightPitch: S.nightPitch,
+    sundownExplained: S.sundownExplained,
     stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
@@ -378,6 +380,27 @@ test('old saved data: no nightPitch field at all leaves it out, so the default (
 test('bad values are ignored: a nightPitch outside Slowed/Keep pitch', () => {
   const parsed = parsePrefs({ nightPitch: 'kept' });
   assert.equal('nightPitch' in parsed, false);
+});
+
+// BD6 (docs/38_BEFORE_THE_DOMAIN.md): a saved object without this (every
+// device before this PR) loads as false, the stated default.
+test('round trip: sundownExplained survives both true and false', () => {
+  const p1 = parsePrefs(serializePrefs(fakeS({ sundownExplained: true })));
+  assert.equal(p1.sundownExplained, true);
+  const p2 = parsePrefs(serializePrefs(fakeS({ sundownExplained: false })));
+  assert.equal(p2.sundownExplained, false);
+});
+
+test('old saved data: no sundownExplained field at all leaves it out, so the default (false) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  delete raw.sundownExplained;
+  const parsed = parsePrefs(raw);
+  assert.equal('sundownExplained' in parsed, false);
+});
+
+test('bad values are ignored: a non-boolean sundownExplained', () => {
+  const parsed = parsePrefs({ sundownExplained: 'yes' });
+  assert.equal('sundownExplained' in parsed, false);
 });
 
 // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every

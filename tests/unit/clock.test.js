@@ -176,7 +176,7 @@ globalThis.document = {
   },
 };
 
-const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, crateLightColor, focusEndsAtMs } = await import('../../src/player/clock.js');
+const { tick, currentPos, drawSun, skyGradientStops, mutedGradientStops, phaseText, crateLightColor, focusEndsAtMs, shouldShowSundownExplainer } = await import('../../src/player/clock.js');
 const { S } = await import('../../src/state.js');
 
 function drawSunAt(theme, sunOk){
@@ -709,5 +709,24 @@ test('focusEndsAtMs: a zero or missing rate falls back to 1.0 rather than dividi
   const now = Date.UTC(2026, 9, 31, 12, 0, 0);
   assert.equal(focusEndsAtMs(now, 600, 0), now + 600000);
   assert.equal(focusEndsAtMs(now, 600, undefined), now + 600000);
+});
+
+// BD6 (docs/38_BEFORE_THE_DOMAIN.md): shouldShowSundownExplainer's own
+// pure (mode, rate, explained) -> show/hide decision.
+test('shouldShowSundownExplainer: shows in Vinyl below full speed, if not already explained', () => {
+  assert.equal(shouldShowSundownExplainer('vinyl', 0.8, false), true);
+});
+
+test('shouldShowSundownExplainer: never in Pure, even below full speed (can\'t happen, but defensive)', () => {
+  assert.equal(shouldShowSundownExplainer('pure', 0.8, false), false);
+});
+
+test('shouldShowSundownExplainer: never at full speed or above', () => {
+  assert.equal(shouldShowSundownExplainer('vinyl', 1, false), false);
+  assert.equal(shouldShowSundownExplainer('vinyl', 1.0, false), false);
+});
+
+test('shouldShowSundownExplainer: never once the account has already seen it', () => {
+  assert.equal(shouldShowSundownExplainer('vinyl', 0.8, true), false);
 });
 

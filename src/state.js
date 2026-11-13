@@ -68,6 +68,12 @@ export const S = {
   // for real; 'true' keeps the audio at rate 1 while the platter still
   // visually slows (computePlatterRate()) -- see sundown/solar.js.
   nightPitch:'slowed',
+  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): whether the one-time "Sundown plays
+  // records a little slower" line beside the player's phase pill has
+  // already shown on this account -- false until it's shown once, then
+  // stays true forever (rides in prefs with no carve-out, same as
+  // nightPitch above).
+  sundownExplained:false,
   previewMin:0, live:true,
   // DA1 (docs/DAY_ARC.md): dawn/rise/noon alongside the original set/dusk
   // — dayPosition() (src/sundown/day.js) reads all five, plus

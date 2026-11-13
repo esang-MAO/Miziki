@@ -1181,6 +1181,14 @@
         </button>
       </div>
     </div>
+    <!-- BD6 (docs/38_BEFORE_THE_DOMAIN.md): the one-time "Sundown plays
+         records a little slower" line, shown once per account the first
+         time a track is playing in Vinyl with computeRate() under 1.
+         Tapping it (or the phase pill above) opens the Sundown sheet; it
+         sets S.sundownExplained the moment it's shown, so it never shows
+         again on any device on the account. Crossfades via CSS opacity
+         (26-sundown-sheet.css), prefers-reduced-motion honoured there. -->
+    <button type="button" class="now-sundown-explainer" id="nowSundownExplainer" style="display:none">After dark, Sundown plays records a little slower. Tap here to change it.</button>
     </div>
   </section>
 
