@@ -429,7 +429,11 @@ test('a WAV file truncated partway through its "fmt " chunk never throws', () =>
   b.set(asciiBytes('fmt '), 12);
   view.setUint32(16, 16, true);   // declares a 16-byte fmt body, but the buffer ends at byte 21
   assert.doesNotThrow(() => readHeader(b.buffer));
-  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true});
+  // BD3 (docs/38_BEFORE_THE_DOMAIN.md): readHeader() now also looks for the
+  // 'data' chunk's size to compute an exact durationSec -- absent here (no
+  // 'data' chunk reached before the truncated buffer runs out), so it's null,
+  // same as any other WAV whose duration couldn't be determined from headers.
+  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true, durationSec: null});
 });
 
 // -- tests: duplicate detection ----------------------------------------------

@@ -13,7 +13,7 @@ import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
 import { ensureContext, decodeAudioFile } from '../audio/engine.js';
-import { touchLRU } from '../player/buffers.js';
+import { touchLRU, decodedBytesFor, DECODE_MAX_BYTES } from '../player/buffers.js';
 import { setQueue } from '../player/queue.js';
 import { allIdx } from './model.js';
 import { storage, tracks } from '../storage/repo.js';
@@ -95,6 +95,10 @@ export async function addFiles(list){
   if(!files.length) return;   // booklet images with no audio sibling in this batch have no album to attach to
   const folderAlbumIds = new Map();   // audio file's own folder -> the album it belongs to
   const failed = [];
+  // BD3: stored with tags but never decoded -- too long to safely decode
+  // in the web build. Named separately from `failed` since nothing about
+  // these actually failed; they're just waiting for the native build.
+  const tooLong = [];
   // an album not already in the library when this batch starts is "new" —
   // sealed once, regardless of how many of its files land in this same
   // batch (SEALED spec §2); loose tracks have no release identity to seal
@@ -128,22 +132,36 @@ export async function addFiles(list){
       const details = readDetails(raw);
       const artBlob = findArtworkBlob(raw);
       const fileBlob = new Blob([raw], {type: f.type || 'application/octet-stream'});
+      // BD3 (docs/38_BEFORE_THE_DOMAIN.md): a file long enough to decode
+      // into an unmanageable amount of memory never reaches decodeAudioFile()
+      // at all -- only possible where the header itself gives an exact
+      // duration (FLAC/WAV today; readHeader() leaves durationSec null
+      // for every other format, so those still decode as before this
+      // step -- the native build, which streams instead of decoding
+      // whole, covers the rest).
+      await ensureContext();
+      const tooLongToDecode = meta.durationSec != null &&
+        decodedBytesFor(meta.durationSec, meta.ch || 2, S.ctx.sampleRate) > DECODE_MAX_BYTES;
       // AU3 (docs/16_AUDIO.md §2.3): the context is created once, at the
       // device's own fixed rate — decodeAudioData resamples to it
       // regardless of the file's own rate, so there's no rate to pass here.
       // Decoded on a disposable OfflineAudioContext, not the live S.ctx, so
       // a big import batch can't contend with whatever is already playing
       // — see decodeAudioFile()'s own comment.
-      const buffer = await decodeAudioFile(raw);
+      const buffer = tooLongToDecode ? null : await decodeAudioFile(raw);
       // Encoder delay/padding sample counts are expressed at the file's own
       // native rate — converting to seconds here keeps everything else
       // (t.duration, startSource's offsets) rate-independent. Lossless
       // formats and files with no/malformed gapless tag get zero trim,
-      // which is exactly standard playback (see PLAYBACK spec §1).
-      const gaplessRate = meta.rate || buffer.sampleRate;
-      const gaplessDelaySec = meta.gapless ? meta.gapless.delay / gaplessRate : 0;
-      const gaplessPaddingSec = meta.gapless ? meta.gapless.padding / gaplessRate : 0;
-      const trimmedDuration = Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec);
+      // which is exactly standard playback (see PLAYBACK spec §1). A file
+      // too long to decode has no buffer to trim against, so its duration
+      // is the header's own, untrimmed.
+      const gaplessRate = meta.rate || (buffer && buffer.sampleRate);
+      const gaplessDelaySec = (!tooLongToDecode && meta.gapless) ? meta.gapless.delay / gaplessRate : 0;
+      const gaplessPaddingSec = (!tooLongToDecode && meta.gapless) ? meta.gapless.padding / gaplessRate : 0;
+      const trimmedDuration = buffer
+        ? Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec)
+        : (meta.durationSec || 0);
       // AU5 (docs/16_AUDIO.md §4)/AU12 (§7): "Import already decodes every
       // file, so compute BS.1770 integrated loudness and true peak there"
       // / "find each track's most-repeated section" — one round trip to
@@ -152,13 +170,18 @@ export async function addFiles(list){
       // for anything too short for a meaningful 8-30s repeat (or with no
       // clear one at all) — hookStart/hookEnd are simply left unset on
       // details, the same "absent means unknown" posture every other
-      // optional details field already has.
-      const channels = [];
-      for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-      const analysis = await analyzeTrack(channels, buffer.sampleRate);
-      details.loudness = analysis.loudness;
-      if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
-      const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
+      // optional details field already has. A track too long to decode
+      // gets neither — same posture, one more reason for "unmeasured."
+      if(buffer){
+        const channels = [];
+        for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+        const analysis = await analyzeTrack(channels, buffer.sampleRate);
+        details.loudness = analysis.loudness;
+        if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
+      } else {
+        tooLong.push(f.name);
+      }
+      const dup = findDuplicateTrack(tags, trimmedDuration || (buffer && buffer.duration) || 0);
       if(dup){
         // The matched existing track is already in the library, so the
         // album it belongs to is never "new" -- GF10's folder->album
@@ -173,10 +196,10 @@ export async function addFiles(list){
           // its own t.meta -- finishDuplicateTrack() uses this as-is.
           meta: {
             codec: meta.codec || 'Audio',
-            rate: meta.rate || buffer.sampleRate,
+            rate: meta.rate || (buffer && buffer.sampleRate) || null,
             bits: meta.bits || null,
             lossless: meta.lossless === true,
-            ch: meta.ch || buffer.numberOfChannels,
+            ch: meta.ch || (buffer && buffer.numberOfChannels) || null,
           },
         });
         continue;
@@ -184,21 +207,21 @@ export async function addFiles(list){
       const t = {
         id, addedAt: Date.now(),
         name: tags.title, tags, details, buffer,
-        duration: trimmedDuration || buffer.duration,
+        duration: trimmedDuration || (buffer && buffer.duration) || 0,
         gaplessDelaySec, gaplessPaddingSec, sizeBytes: raw.byteLength,
         art: artBlob ? URL.createObjectURL(artBlob) : null,
         artBlob, blob: fileBlob, stored: false,
         meta: {
           codec: meta.codec || 'Audio',
-          rate: meta.rate || buffer.sampleRate,
+          rate: meta.rate || (buffer && buffer.sampleRate) || null,
           bits: meta.bits || null,
           lossless: meta.lossless === true,
-          ch: meta.ch || buffer.numberOfChannels
+          ch: meta.ch || (buffer && buffer.numberOfChannels) || null
         }
       };
       await loadOverlayFor(t);
       S.tracks.push(t);
-      touchLRU(S.tracks.length - 1);
+      if(buffer) touchLRU(S.tracks.length - 1);
       // a backed-up edit/playlist entry that arrived (via sync) before this
       // exact file ever did ("music re-added later") waits by identity key
       // until this moment to attach
@@ -227,9 +250,12 @@ export async function addFiles(list){
   }
   await storeBookletCandidates(bookletCandidates, folderAlbumIds);
   syncAfterImportChange();
-  if(failed.length){
-    setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
-      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
+  if(failed.length || tooLong.length){
+    let note = 'Imported ' + (files.length - failed.length - tooLong.length) + ' of ' + files.length + '.';
+    if(failed.length) note += ' Could not decode: ' + failed.join(', ')
+      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.';
+    if(tooLong.length) note += ' Too long to play in the web version of Miziki: ' + tooLong.join(', ') + '.';
+    setPathNote(note, true);
   } else {
     setPathNote();
   }
@@ -272,7 +298,7 @@ async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumId
   const t = {
     id: item.id, addedAt: Date.now(),
     name: item.tags.title, tags: item.tags, details: item.details, buffer: item.buffer,
-    duration: item.trimmedDuration || item.buffer.duration,
+    duration: item.trimmedDuration || (item.buffer && item.buffer.duration) || 0,
     gaplessDelaySec: item.gaplessDelaySec, gaplessPaddingSec: item.gaplessPaddingSec, sizeBytes: item.sizeBytes,
     art: item.artBlob ? URL.createObjectURL(item.artBlob) : null,
     artBlob: item.artBlob, blob: item.fileBlob, stored: false,
@@ -280,7 +306,7 @@ async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumId
   };
   await loadOverlayFor(t);
   S.tracks.push(t);
-  touchLRU(S.tracks.length - 1);
+  if(t.buffer) touchLRU(S.tracks.length - 1);
   reconcileImportedTrack(t);
   const aid = albumKey(t);
   // Always a no-op in practice: `aid` was already in existingAlbumIds

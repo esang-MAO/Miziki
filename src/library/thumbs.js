@@ -11,6 +11,21 @@ import { invalidateCrateModel } from '../crate/model.js';
 import { decodeAudioFile } from '../audio/engine.js';
 import { TRUE_PEAK_VERSION } from '../audio/loudness.js';
 import { analyzeTrack } from '../audio/analysis-client.js';
+import { decodedBytesFor, DECODE_MAX_BYTES } from '../player/buffers.js';
+
+// BD3 (docs/38_BEFORE_THE_DOMAIN.md): healLoudness()/healHooks() below
+// re-decode a track the same way import does -- without this, a track
+// import already refused to decode (too long for the web build) would
+// just sit as an unresolved heal target and get decoded anyway, every
+// idle pass, forever. No live AudioContext is guaranteed to exist yet
+// when these background passes run (the fixed rate they'll actually
+// decode at doesn't matter for a safety margin either way), so this
+// uses a representative rate rather than reading S.ctx.sampleRate --
+// same number buffers.js's own doc comment already uses.
+const HEAL_ESTIMATE_SAMPLE_RATE = 48000;
+function tooLongToHeal(t){
+  return decodedBytesFor(t.duration, t.meta && t.meta.ch, HEAL_ESTIMATE_SAMPLE_RATE) > DECODE_MAX_BYTES;
+}
 
 /* ---- persisted artwork: thumbnails, never object URLs ----
    t.art is a URL.createObjectURL() string, which stops working the moment the
@@ -268,7 +283,7 @@ export async function healLoudness(){
   // when its truePeakVersion doesn't match the current algorithm — the
   // one-time cost of recomputing a changed true-peak estimate on the
   // next boot repair pass, same mechanism, no separate migration.
-  const targets = S.tracks.filter(t => t.stored && t.details
+  const targets = S.tracks.filter(t => t.stored && t.details && !tooLongToHeal(t)
     && !(t.details.loudness && t.details.loudness.measured && t.details.loudness.truePeakVersion === TRUE_PEAK_VERSION));
   await runIdlePass(targets, async t => {
     try{
@@ -302,7 +317,7 @@ export async function healLoudness(){
 // keeps failing).
 export async function healHooks(){
   if(!storage.available()) return;
-  const targets = S.tracks.filter(t => t.stored && t.details && typeof t.details.hookStart !== 'number');
+  const targets = S.tracks.filter(t => t.stored && t.details && !tooLongToHeal(t) && typeof t.details.hookStart !== 'number');
   await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);

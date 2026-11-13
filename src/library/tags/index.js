@@ -19,13 +19,21 @@ function readHeader(buf){
   const tag = txt(b,0,4);
   if(tag === 'fLaC'){
     const p = 18;                       // 4 magic + 4 block header + 10 into STREAMINFO
-    return {codec:'FLAC', lossless:true,
-      rate: (b[p]<<12) | (b[p+1]<<4) | (b[p+2]>>4),
+    const rate = (b[p]<<12) | (b[p+1]<<4) | (b[p+2]>>4);
+    // BD3 (docs/38_BEFORE_THE_DOMAIN.md): STREAMINFO's own total_samples,
+    // a 36-bit field spanning the low nibble of b[p+3] through b[p+7] --
+    // 0 means "unknown" per the FLAC spec, same as a missing duration
+    // anywhere else in this app. Built with multiplication, not `<<`,
+    // since the high nibble would otherwise need a 36-bit shift.
+    const totalSamples = (b[p+3] & 0x0F) * 0x100000000
+      + (((b[p+4]<<24) | (b[p+5]<<16) | (b[p+6]<<8) | b[p+7]) >>> 0);
+    return {codec:'FLAC', lossless:true, rate,
       ch: ((b[p+2]>>1) & 0x07) + 1,
-      bits: (((b[p+2] & 1) << 4) | (b[p+3] >> 4)) + 1};
+      bits: (((b[p+2] & 1) << 4) | (b[p+3] >> 4)) + 1,
+      durationSec: (totalSamples > 0 && rate > 0) ? totalSamples / rate : null};
   }
   if(tag === 'RIFF'){
-    let i = 12;
+    let i = 12, fmt = null, dataSize = null;
     while(i < Math.min(b.length - 8, 100000)){
       const id = txt(b,i,4), size = dv.getUint32(i+4, true);
       // LI7 (docs/35_LEAD_IN.md): a file truncated partway through the
@@ -35,15 +43,23 @@ function readHeader(buf){
       // elsewhere in this module, which are bounds-checked), so this one
       // read is guarded the same way every other truncation case here
       // already falls back to "codec known, details unknown."
-      if(id === 'fmt '){
-        try{
-          return {codec:'WAV', lossless:true,
-            ch:dv.getUint16(i+10,true), rate:dv.getUint32(i+12,true), bits:dv.getUint16(i+22,true)};
-        }catch(_e){ return {codec:'WAV', lossless:true}; }
+      if(id === 'fmt ' && !fmt){
+        try{ fmt = {ch:dv.getUint16(i+10,true), rate:dv.getUint32(i+12,true), bits:dv.getUint16(i+22,true)}; }
+        catch(_e){ fmt = {}; }
       }
+      // BD3: the 'data' chunk's own size, so duration can come from the
+      // header (uncompressed PCM: byte size / frame size / rate is exact)
+      // without decoding the file -- kept scanning for even after 'fmt '
+      // is found, since encoders order chunks either way.
+      if(id === 'data' && dataSize === null) dataSize = size;
+      if(fmt && dataSize !== null) break;
       i += 8 + size + (size % 2);
     }
-    return {codec:'WAV', lossless:true};
+    if(!fmt) return {codec:'WAV', lossless:true};
+    const bytesPerFrame = (fmt.ch || 0) * ((fmt.bits || 0) / 8);
+    const durationSec = (dataSize !== null && bytesPerFrame > 0 && fmt.rate > 0)
+      ? dataSize / bytesPerFrame / fmt.rate : null;
+    return {codec:'WAV', lossless:true, ...fmt, durationSec};
   }
   if(tag === 'FORM'){
     for(let i = 12; i < Math.min(b.length - 8, 100000); i++){
