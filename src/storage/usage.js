@@ -3,7 +3,7 @@
    the feature-detect and the null return) plus the pure string formatting
    Library tools' own usage line and addFiles()'s pre-import fit check both
    need. */
-import { formatBytes } from '../library/delete.js';
+import { formatBytes } from '../util/text.js';
 
 export async function readUsage(){
   try{
