@@ -3,7 +3,7 @@
 /* record sheet can be opened from inside the friend-store screen above, so it
    needs to stack higher than social-nav-overlay rather than the shared
    edit-overlay default */
-#recordSheetOverlay,#heldOverlay{z-index:128}
+#recordSheetOverlay{z-index:128}
 .social-nav-overlay.open{display:flex}
 /* .social-nav-overlay is position:fixed;inset:0 with its head flush at
    the overlay's own top edge -- needs the same env(safe-area-inset-top)
@@ -67,33 +67,6 @@
 .store-activity-row em{font-style:normal;color:var(--muted)}
 
 .store-crate-cell{background:none;border:0;padding:0;text-align:left;color:inherit;display:block;width:100%}
-
-/* GS11 (docs/30_GROOVES_AND_SHELF.md): "held for you" + the give-side
-   picker it shares a sheet with. .held-card overrides .store-card's row
-   layout (stack/note/button don't fit beside each other on a phone). */
-.held-card{flex-direction:column;align-items:stretch;gap:10px}
-.held-stack{display:flex;padding-left:14px}
-.held-sleeve{width:52px;aspect-ratio:1;border-radius:6px;background:var(--stock-card);
-  box-shadow:0 2px 6px rgba(0,0,0,.35);margin-left:-14px;overflow:hidden;flex:none}
-.held-sleeve img{width:100%;height:100%;object-fit:cover;display:block}
-.held-sleeve.handed-back{opacity:.4}
-/* TY6 (docs/22_TYPE.md): same hand-lettered note treatment as .record-note. */
-.held-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
-  padding:var(--sp-3) 14px;font-family:var(--hand);font-weight:500;font-size:18px;line-height:1.3;margin:0}
-.held-pick-grid{margin-top:14px}
-.held-pick-cell{position:relative;border-radius:10px}
-.held-pick-cell.on .store-crate-cover{box-shadow:0 0 0 2px var(--cream)}
-.held-pick-note{width:100%;box-sizing:border-box;margin-top:14px;min-height:60px;resize:vertical;
-  background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--paper);
-  font-family:var(--body);font-size:var(--fs-body);padding:10px 12px}
-.held-look-row{display:flex;align-items:center;gap:var(--sp-3);padding:11px 0;border-bottom:1px solid var(--line)}
-.held-look-cover{width:44px;height:44px;border-radius:6px;background:var(--panel);flex:none;overflow:hidden}
-.held-look-cover img{width:100%;height:100%;object-fit:cover;display:block}
-.held-look-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.held-look-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.held-look-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
-.store-follow-btn.ghost{border-color:var(--line);color:var(--paper);background:none}
-#heldBody > .cta{width:100%;box-sizing:border-box;text-align:center;margin-top:14px}
 
 .record-cover{width:100%;aspect-ratio:1;border-radius:10px;background:var(--panel);margin-bottom:14px;
   overflow:hidden;position:relative}

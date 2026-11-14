@@ -357,7 +357,7 @@
   background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:9px 11px;
   font-family:var(--body);font-size:var(--fs-body);color:var(--paper);min-height:44px}
 /* TY6 (docs/22_TYPE.md): same hand-lettered paper-note treatment as
-   .record-note/.held-note/.store-pick-sleeve-note -- the one place in the
+   .record-note/.store-pick-sleeve-note -- the one place in the
    tracklist a note like this shows up. */
 .gf-anchor-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
   padding:10px 14px;font-family:var(--hand);font-weight:500;font-size:16px;line-height:1.25;

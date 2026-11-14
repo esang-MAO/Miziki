@@ -1,6 +1,9 @@
 // docs/32_SHELF_AND_TURNTABLES.md, ST2 + ST4: the turntable on top of the
-// shelf unit. ST2 shipped only Standard; ST4 adds the other eleven (found
-// by listening, src/history/achievements.js) plus the picker. CSS only,
+// shelf unit. ST2 shipped only Standard; ST4 adds the other ten (found
+// by listening, src/history/achievements.js) plus the picker. BD8
+// (docs/38_BEFORE_THE_DOMAIN.md) removed Suitcase, whose earning rule
+// leaned on the held-for-you social feature this plan also removes --
+// eleven models total now, not twelve. CSS only,
 // drawn at a fixed 200×112 (design `Turntable.dc.html`), scaled by the
 // shelf unit's own container. Every model's geometry below is that design
 // file's own px values, converted to percentages of the 200×112 box.
@@ -19,7 +22,6 @@ export const TURNTABLE_LINEUP = [
   {id: 'linear', label: 'Linear', note: 'A silver slab; the arm tracks straight across.', deluxe: true},
   {id: 'deck', label: 'Deck', note: 'Direct drive, strobe dots, a target light.', deluxe: false},
   {id: 'clear', label: 'Clear', note: 'Acrylic on cone feet, belt and motor in view.', deluxe: false},
-  {id: 'suitcase', label: 'Suitcase', note: "Red leatherette portable, speaker in the case.", deluxe: false},
   {id: 'broadcast', label: 'Broadcast', note: 'A heavy radio-station table, long arm.', deluxe: false},
   {id: 'upright', label: 'Upright', note: 'The record stands on edge, like a clock.', deluxe: false},
   {id: 'radiogram', label: 'Radiogram', note: 'A cabinet with a radio dial and a lid that lifts.', deluxe: false},
@@ -75,7 +77,6 @@ const MODEL_PARTS = {
   console: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'s4'},{c:'s5'},{c:'s6'},{c:'s7',x:1},{c:'rec'},{c:'s10',x:1},{c:'s11'},{c:'s12'}],
   deck: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'rec'},{c:'s9'},{c:'s10'},{c:'s11'},{c:'s12'},{c:'s13'}],
   clear: [{c:'s0',x:1},{c:'s1',x:1},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'rec'},{c:'s8'},{c:'s9'},{c:'s10'}],
-  suitcase: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3',x:1},{c:'rec'},{c:'s6'},{c:'s7'},{c:'s8'},{c:'s9'},{c:'s10',x:1},{c:'s11',x:1},{c:'s12'}],
   broadcast: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5',x:1},{c:'rec'},{c:'s8'},{c:'s9'},{c:'s10'},{c:'s11'}],
   horn: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'rec'},{c:'s9'},{c:'s10'}],
   linear: [{c:'s0'},{c:'s1'},{c:'s2'},{c:'s3'},{c:'s4'},{c:'s5'},{c:'s6'},{c:'s7'},{c:'rec'},{c:'s10'},{c:'s11'},{c:'s12'},{c:'s13'},{c:'s14'}],
