@@ -31,5 +31,6 @@ jobs:
       # only get less tangled, never more, without the PR saying so.
       - run: node scripts/cycles.mjs --check
       - run: npm run check-doc-links
+      - run: npm run check-no-realtime
       - run: npm run build
       - run: MIZIKI_BASE=/ npm run build
