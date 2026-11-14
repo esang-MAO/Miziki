@@ -1217,27 +1217,20 @@ const handBack = (holdId, releaseKey) => guarded(async () => {
   return { ok: true };
 });
 
-/* ---- realtime: friends' discs appear as they start spinning ---- */
-async function releaseInfo(id) {
-  if (X.releaseCache.has(id)) return X.releaseCache.get(id);
-  const r = await q(X.sb.from('releases').select('id, title, artist, year').eq('id', id).maybeSingle());
-  if (r) X.releaseCache.set(id, r);
-  return r;
-}
-function subscribeNowSpinning(cb) {
-  if (!X.enabled) return () => {};
-  const ch = X.sb.channel('miziki-now-spinning')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'now_spinning' }, async payload => {
-      try {
-        if (payload.eventType === 'DELETE') { cb({ type: 'stopped', userId: payload.old && payload.old.user_id }); return; }
-        const row = payload.new;
-        if (!row || row.user_id === X.userId) return;
-        const rel = await releaseInfo(row.release_id);
-        cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel, phase: row.phase });
-      } catch (_e) { /* ignore */ }
-    }).subscribe();
-  return () => { try { X.sb.removeChannel(ch); } catch (_e) { /* noop */ } };
-}
+/* ---- friends' current discs: a plain read, polled on tab-open and
+   pull-to-refresh (BD7, docs/38_BEFORE_THE_DOMAIN.md) -- no realtime
+   socket. Same RLS row (spinning_select, 001_schema.sql) the old
+   subscription relied on, just read directly instead of pushed; the
+   .in() filter narrows to who's actually being asked about rather than
+   leaning on RLS alone to do it. */
+const nowSpinningForFriends = userIds => guarded(async () => {
+  const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+  if (!ids.length) return { ok: true, spinning: [] };
+  const rows = await q(X.sb.from('now_spinning')
+    .select('user_id, track_title, phase, releases(title, artist)')
+    .in('user_id', ids).gt('expires_at', new Date().toISOString()));
+  return { ok: true, spinning: (rows || []).map(r => ({ userId: r.user_id, track: r.track_title, phase: r.phase, release: r.releases || null })) };
+});
 
 /* ====================================================================
    11. Miziki adapter: maps the app's globals onto the module's interface
@@ -1345,7 +1338,7 @@ root.MizikiSocial = {
   searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing, listFollowers,
   block, unblock, listBlocked, report,
   // reading
-  loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
+  loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, nowSpinningForFriends,
   setAside, heldForMe, handBack,
   friendsStickerCounts, friendsStickerDetail, friendsStickerCountsByKeys, getCountInStickers, setCountInStickers,
   // helpers (also used by tests / UI)

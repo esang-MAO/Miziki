@@ -238,12 +238,15 @@ export function installSocialDemo(){
   MizikiSocial.unblock = async () => ({ok:true});
   MizikiSocial.report = async () => ({ok:true});
 
-  MizikiSocial.subscribeNowSpinning = cb => {
-    const timer = setTimeout(()=> cb({type:'spinning', userId:'june', track:'So What',
-      expiresAt: new Date(Date.now() + 600000).toISOString(),
-      release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}, phase:'golden'}), 2500);
-    return () => clearTimeout(timer);
-  };
+  // BD7 (docs/38_BEFORE_THE_DOMAIN.md): a plain read, matching the real
+  // nowSpinningForFriends(userIds) -- June is always "spinning" in demo
+  // mode, no fake delay needed since there's no realtime push to mimic.
+  MizikiSocial.nowSpinningForFriends = async userIds => ({
+    ok: true,
+    spinning: (userIds || []).includes('june') || (userIds || []).includes(FRIENDS.june.profile.id)
+      ? [{userId: FRIENDS.june.profile.id, track:'So What', release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}, phase:'golden'}]
+      : [],
+  });
   MizikiSocial.homeFeed = async () => ({ok:true, events: [
     {id:1, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'pinned', release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', payload:{}, created_at:new Date(Date.now() - 3600e3).toISOString()},
     {id:2, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'review', release_id:'june-r2', title:'Head Hunters', artist:'Herbie Hancock', payload:{rating:4}, created_at:new Date(Date.now() - 3700e3).toISOString()},

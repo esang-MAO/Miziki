@@ -16,6 +16,7 @@
     "test:coverage": "node --experimental-test-module-mocks --experimental-test-coverage --test tests/unit/*.test.js",
     "cycles": "node scripts/cycles.mjs",
     "check-doc-links": "node scripts/check-doc-links.mjs",
+    "check-no-realtime": "node scripts/check-no-realtime.mjs",
     "perf": "node tests/perf/nav.perf.js",
     "test:audio-render": "node tests/audio-render/run.js"
   },

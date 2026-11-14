@@ -138,7 +138,9 @@ function resetHome(opts = {}){
     listRequests: async () => ({ ok:true, requests:[] }),
     listFollowing: async () => ({ ok:true, following:[] }),
     homeFeed: async () => ({ ok:true, events:[] }),
-    subscribeNowSpinning(){ return () => {}; },
+    // BD7 (docs/38_BEFORE_THE_DOMAIN.md): a plain read, not a realtime
+    // subscription -- replaces the old subscribeNowSpinning() mock.
+    nowSpinningForFriends: async () => ({ ok:true, spinning:[] }),
     searchProfiles: async () => ({ ok:true, profiles:[] }),
     labelColor(){ return '#000'; },
     // CC3 (docs/34_CARE_AND_CONTROL.md): paintFeed() batches one of these
@@ -456,6 +458,23 @@ test('refreshHome: after sunset, pull-to-refresh shows the same caught-up banner
   await refreshHome();
   assert.equal(fetchCalled, false);
   assert.equal(bannerHolder.children[0].className, 'home-feed-caughtup');
+});
+
+// BD7 (docs/38_BEFORE_THE_DOMAIN.md): no realtime socket -- Home asks for
+// friends' current discs with a plain read, on tab-open and refresh,
+// narrowed to exactly the accepted-following ids it just rebuilt from
+// listFollowing(), not every signed-in user.
+test('refreshHome: asks nowSpinningForFriends for exactly the accepted-following ids', async () => {
+  let askedIds = null;
+  resetHome({ social: {
+    listFollowing: async () => ({ ok:true, following: [
+      { followee_id:'u1', status:'accepted', profiles:{ handle:'june' } },
+      { followee_id:'u2', status:'pending', profiles:{ handle:'theo' } },
+    ] }),
+    nowSpinningForFriends: async ids => { askedIds = ids; return { ok:true, spinning:[] }; },
+  } });
+  await renderHome();
+  assert.deepEqual(askedIds, ['u1'], 'only the accepted followee, never the pending one');
 });
 
 test('renderHome: follow requests and Now spinning stay live even when the feed itself skips its fetch', async () => {

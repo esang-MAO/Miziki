@@ -218,15 +218,13 @@ function homePeopleSearch(container){
 }
 
 const homeSpinState = new Map();
-let homeSpinUnsub = null;
 let homeFollowingHandles = new Map();
 
-// NV4 (docs/11_SMOOTH_NAVIGATION.md): build once, patch in place. Before
-// this step, homeNowSpinningRow() (unsubscribe/resubscribe to realtime) ran
-// on every single renderHome() call — the one place this file already had
-// the "build once, patch" shape (homeSpinState/paintHomeSpinRow() persisting
-// across calls) was undermined by resubscribing every time anyway. Now
-// called only from buildHomeShell(), once per sign-in.
+// NV4 (docs/11_SMOOTH_NAVIGATION.md): build once, patch in place. Called
+// only from buildHomeShell(), once per sign-in -- just the stable DOM
+// host; homeSpinState itself is now filled by refreshHomeSpinState()
+// below (BD7, docs/38_BEFORE_THE_DOMAIN.md: a plain read on tab-open and
+// pull-to-refresh, no realtime socket).
 function homeNowSpinningRow(container){
   const section = el('div');
   section.id = 'homeSpinSection';
@@ -238,17 +236,26 @@ function homeNowSpinningRow(container){
   section.appendChild(row);
   container.appendChild(section);
   paintHomeSpinRow();
-  if(homeSpinUnsub) homeSpinUnsub();
-  homeSpinUnsub = MizikiSocial.subscribeNowSpinning(evt => {
-    if(evt.type === 'stopped') homeSpinState.delete(evt.userId);
-    else homeSpinState.set(evt.userId, evt);
-    paintHomeSpinRow();
-  });
+}
+
+// BD7: replaces the old realtime subscription -- fetched fresh every time
+// refreshHome() runs (tab open, pull-to-refresh), narrowed to the
+// accepted-following ids refreshHome() just rebuilt homeFollowingHandles
+// from, so this never asks about anyone the Home screen doesn't already
+// show a handle for.
+async function refreshHomeSpinState(){
+  const ids = [...homeFollowingHandles.keys()];
+  homeSpinState.clear();
+  if(ids.length){
+    const r = await MizikiSocial.nowSpinningForFriends(ids);
+    if(r.ok) r.spinning.forEach(evt => homeSpinState.set(evt.userId, evt));
+  }
+  paintHomeSpinRow();
 }
 // FS9 (docs/25_FROM_SCRATCH.md point 1): a vertical list of rows -- a
 // small disc, the title, a muted "handle · …" subline -- replacing the
-// old horizontal "♪ SPINNING" card row. The realtime now_spinning payload
-// (miziki-social.js's subscribeNowSpinning()) carries no pressing/variant
+// old horizontal "♪ SPINNING" card row. The now_spinning row
+// (miziki-social.js's nowSpinningForFriends()) carries no pressing/variant
 // or side (A/B) for a *friend's* spin -- only release title/artist and
 // the DA6 day-arc phase it started in -- so the disc is tinted by that
 // phase (profile/rhythm-card.js's own PHASE_COLOR, already the dial's
@@ -426,7 +433,8 @@ function paintFeed(events){
 
 // Builds #homeBody's own static shell once per sign-in: the people-search
 // field, a stable host for the follow-requests card, the now-spinning
-// section (subscribes to realtime once, see homeNowSpinningRow() above),
+// section's own DOM (see homeNowSpinningRow() above -- its data is filled
+// in by refreshHomeSpinState() on every refreshHome(), not built here),
 // and a stable host for the feed. Every later refresh only ever touches
 // requestsHolderEl/feedHolderEl's own contents — #homeBody itself is never
 // wiped again until a sign-out/sign-in actually changes what shell is
@@ -481,6 +489,7 @@ export async function refreshHome(){
   if(following.ok) following.following.forEach(f => {
     if(f.status === 'accepted' && f.profiles) homeFollowingHandles.set(f.followee_id, f.profiles.handle);
   });
+  refreshHomeSpinState();
 
   const sunriseMs = S.sun && S.sun.rise ? S.sun.rise.getTime() : null;
 
@@ -543,6 +552,5 @@ export function _resetHomeStateForTests(){
   requestsHolderEl = null;
   bannerHolderEl = null;
   homeFollowingHandles = new Map();
-  if(homeSpinUnsub){ homeSpinUnsub(); homeSpinUnsub = null; }
   homeSpinState.clear();
 }
