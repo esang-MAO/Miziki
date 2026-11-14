@@ -273,11 +273,14 @@ export function parsePrefs(raw){
   if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
     || p.shelfFinish === 'ash' || p.shelfFinish === 'black') out.shelfFinish = p.shelfFinish;
   // ST4: a saved object without this loads as 'standard', the stated
-  // default. The twelve ids are duplicated here rather than imported from
+  // default. The eleven ids (BD8, docs/38_BEFORE_THE_DOMAIN.md, removed
+  // Suitcase) are duplicated here rather than imported from
   // src/profile/turntable.js (this module stays a leaf, same reasoning as
   // mono/balance's clamps above) -- found/Deluxe gating is applied at
-  // display time (turntable.js's displayTurntable()), not here.
-  if(['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast',
+  // display time (turntable.js's displayTurntable()), not here. A saved
+  // 'suitcase' from before this PR simply falls through to the default,
+  // same as any other unknown value.
+  if(['standard', 'console', 'linear', 'deck', 'clear', 'broadcast',
     'upright', 'radiogram', 'slate', 'lathe', 'horn'].includes(p.turntable)) out.turntable = p.turntable;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved

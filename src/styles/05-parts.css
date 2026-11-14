@@ -190,9 +190,9 @@
    (--stock-card light / --paper dark), but --stock-card is already a
    theme-reactive token (00-base.css/22-theme.css both redefine it) that
    every other paper-card surface in the app (.crate-catalog-card,
-   .store-sign, .gf-back-cover, .held-note, ...) already uses unchanged
-   across both themes -- so this follows that same established pattern
-   rather than adding a second, parts-only split. */
+   .store-sign, .gf-back-cover, ...) already uses unchanged across both
+   themes -- so this follows that same established pattern rather than
+   adding a second, parts-only split. */
 .p-empty-note{
   background:var(--stock-card); color:#26202C; border-radius:var(--radius-card);
   padding:var(--sp-5) var(--sp-4) var(--sp-4); text-align:center; position:relative;

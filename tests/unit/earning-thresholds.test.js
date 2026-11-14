@@ -11,13 +11,15 @@
 //      snapshot is updated on purpose, so tightening a threshold after
 //      release is a deliberate, reviewable act, not a quiet edit.
 //
-// Known gap, not this test's job to fix: Suitcase, Upright and Horn have
-// no earning rule yet (ST4, docs/32_SHELF_AND_TURNTABLES.md -- Suitcase/
-// Upright need the signed-in-only held-for-you cache's pin-timestamp
-// tracking, not verified in a reusable shape; Horn waits on the 78rpm
-// format). They're excluded here by name, not papered over -- closing
-// either gap means deleting it from KNOWN_UNEARNABLE, which makes this
-// test start enforcing them too.
+// Known gap, not this test's job to fix: Upright and Horn have no
+// earning rule yet (ST4, docs/32_SHELF_AND_TURNTABLES.md -- Upright
+// needs a local pin-start timestamp, not verified in a reusable shape;
+// Horn waits on the 78rpm format). Suitcase itself was removed outright
+// by BD8 (docs/38_BEFORE_THE_DOMAIN.md) -- its earning rule leaned on
+// the held-for-you social feature that step also removes, so there's no
+// gap left to close for it. They're excluded here by name, not papered
+// over -- closing either remaining gap means deleting it from
+// KNOWN_UNEARNABLE, which makes this test start enforcing it too.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -37,7 +39,7 @@ import { TURNTABLE_LINEUP } from '../../src/profile/turntable.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSIONS_SRC = readFileSync(path.join(__dirname, '..', '..', 'src', 'history', 'sessions.js'), 'utf8');
 
-const KNOWN_UNEARNABLE = new Set(['suitcase', 'upright', 'horn']);
+const KNOWN_UNEARNABLE = new Set(['upright', 'horn']);
 
 function idsWithAnEarningRule(){
   const ids = new Set();
