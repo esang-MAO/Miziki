@@ -117,10 +117,6 @@ export async function persistAlbumKeptFor(keys){
   await meta.put('albumKeptFor', S.albumKeptFor);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumKeptFor', k));
 }
-// GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page count --
-// device-only, same posture as phasePlayCountsByDay above (no per-key
-// stamp needed since it never reaches the backup doc at all).
-export async function persistAlbumBookletPages(){ await meta.put('albumBookletPages', S.albumBookletPages); }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): written once, the first time an album
 // completes a qualifying session — never overwritten after that, so it
@@ -350,14 +346,16 @@ function checkZoetropeUnlock(albumId){
 }
 
 // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntables found by
-// listening. Nine of the plan's eleven listening-earned models are
+// listening. Nine of the plan's ten remaining listening-earned models are
 // implemented here (Lathe reuses rareUnlocked outright, with no progress
-// counter of its own); Suitcase (a friend's held-for-you stack) and
-// Upright (90 days pinned, played each of those months) both need a
-// signal this pass doesn't yet have a reliable source for -- the social
-// client's held-for-you cache shape, and a local pin-start timestamp --
-// and are left for a follow-up rather than guessed at. Horn stays
-// dormant until the 78 format exists, per the plan's own note.
+// counter of its own); Upright (90 days pinned, played each of those
+// months) needs a signal this pass doesn't yet have a reliable source for
+// -- a local pin-start timestamp, not verified in a reusable shape -- and
+// is left for a follow-up rather than guessed at. Horn stays dormant
+// until the 78 format exists, per the plan's own note. Suitcase itself
+// was removed outright by BD8 (docs/38_BEFORE_THE_DOMAIN.md), since its
+// earning rule leaned on the held-for-you social feature that step also
+// removes.
 export const LINEAR_CLEAN_SIDES_TO_EARN = 10;
 export const CLEAR_HIRES_ALBUMS_TO_EARN = 5;
 export const BROADCAST_NIGHT_ALBUMS_TO_EARN = 7;
@@ -585,9 +583,6 @@ export async function restoreSessions(){
   // GS10 (docs/30_GROOVES_AND_SHELF.md)
   const albumKeptForPref = await meta.get('albumKeptFor');
   if(albumKeptForPref) S.albumKeptFor = albumKeptForPref;
-  // GF10 (docs/29_GATEFOLD.md)
-  const albumBookletPagesPref = await meta.get('albumBookletPages');
-  if(albumBookletPagesPref) S.albumBookletPages = albumBookletPagesPref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
   const albumFirst = await meta.get('albumFirstPlayed');

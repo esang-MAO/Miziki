@@ -167,7 +167,10 @@ async function restoreLibrary(){
   // with nothing said — tell the user plainly, since by then they may be
   // deep in the app with no reason to suspect storage has gone stale.
   DB.onNotice(kind => { if(kind === 'staleVersion') showStaleVersionBanner(); });
-  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
+  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): kept so Library tools can tell the
+  // user whether the browser promised not to clear this library under
+  // storage pressure -- runtime-only (S.storagePersisted), not saved.
+  try{ if(navigator.storage && navigator.storage.persist) S.storagePersisted = await navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
   // Perf/memory fix: tracks.each() walks the store with a cursor rather than
   // tracks.all()'s getAll(), so a large library's audio+art blobs are never
   // all resident in memory at once just to read them -- each row's blob

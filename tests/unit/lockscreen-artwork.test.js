@@ -26,7 +26,7 @@ mock.module(new URL('../../src/crate/model.js', import.meta.url).href, {
   namedExports: { invalidateCrateModel(){} },
 });
 mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
-  namedExports: { decodeAudioFile: async () => null },
+  namedExports: { decodeAudioFile: async () => null, ensureContext: async () => {} },
 });
 
 const { lockscreenArtCacheHit, LOCKSCREEN_ART_SIZES } = await import('../../src/library/thumbs.js');

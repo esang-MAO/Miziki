@@ -56,22 +56,7 @@ export function installSocialDemo(){
         {release_id:'june-c0', title:'A Love Supreme', artist:'John Coltrane', year:1965},
         {release_id:'june-c1', title:'Kind of Blue', artist:'Miles Davis', year:1959}
       ],
-      nowSpinning: null,
-      // GS11 (docs/30_GROOVES_AND_SHELF.md): "held for you" fixture, so the
-      // section/sheet can be reviewed without a live Supabase. release_key
-      // is whatever MizikiSocial.releaseKey(artist, title) would compute
-      // for these two in a real crate -- fixed demo strings are fine here
-      // since nothing round-trips through the real RPC.
-      heldForYou: [{
-        id:'hold-1', from_user:'june', from_handle:'june',
-        note:'For you. Start with the green one, after dark.',
-        created_at:new Date(Date.now() - 3600e3).toISOString(),
-        expires_at:new Date(Date.now() + 29 * 86400e3).toISOString(),
-        releases:[
-          {release_key:'demo-blue-train', title:'Blue Train', artist:'John Coltrane', year:1957, handed_back:false},
-          {release_key:'demo-head-hunters', title:'Head Hunters', artist:'Herbie Hancock', year:1973, handed_back:false}
-        ]
-      }]
+      nowSpinning: null
     },
     mateo: {
       profile: {id:'mateo', handle:'mateo', display_name:'Mateo', bio:'Vinyl hoarder, no apologies.', visibility:'friends', show_digging_list:true},
@@ -163,23 +148,7 @@ export function installSocialDemo(){
     out.diggingShared = f.profile.show_digging_list !== false;
     out.digging = out.diggingShared ? f.digging : [];
     out.diggingCount = out.digging.length;
-    out.heldForYou = f.heldForYou || [];
     return out;
-  };
-
-  /* ---- held for you (GS11) ---- */
-  MizikiSocial.setAside = async () => ({ok:true});
-  MizikiSocial.heldForMe = async fromUserId => {
-    const f = fromUserId ? friendById(fromUserId) : null;
-    return {ok:true, holds: f ? (f.heldForYou || []) : []};
-  };
-  MizikiSocial.handBack = async (holdId, releaseKey) => {
-    for(const f of Object.values(FRIENDS)){
-      const hold = (f.heldForYou || []).find(h => h.id === holdId);
-      const r = hold && hold.releases.find(x => x.release_key === releaseKey);
-      if(r) r.handed_back = true;
-    }
-    return {ok:true};
   };
 
   MizikiSocial.crate = async (userId, opts) => {
@@ -238,12 +207,15 @@ export function installSocialDemo(){
   MizikiSocial.unblock = async () => ({ok:true});
   MizikiSocial.report = async () => ({ok:true});
 
-  MizikiSocial.subscribeNowSpinning = cb => {
-    const timer = setTimeout(()=> cb({type:'spinning', userId:'june', track:'So What',
-      expiresAt: new Date(Date.now() + 600000).toISOString(),
-      release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}, phase:'golden'}), 2500);
-    return () => clearTimeout(timer);
-  };
+  // BD7 (docs/38_BEFORE_THE_DOMAIN.md): a plain read, matching the real
+  // nowSpinningForFriends(userIds) -- June is always "spinning" in demo
+  // mode, no fake delay needed since there's no realtime push to mimic.
+  MizikiSocial.nowSpinningForFriends = async userIds => ({
+    ok: true,
+    spinning: (userIds || []).includes('june') || (userIds || []).includes(FRIENDS.june.profile.id)
+      ? [{userId: FRIENDS.june.profile.id, track:'So What', release:{id:'june-r0', title:'Kind of Blue', artist:'Miles Davis'}, phase:'golden'}]
+      : [],
+  });
   MizikiSocial.homeFeed = async () => ({ok:true, events: [
     {id:1, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'pinned', release_id:'june-r0', title:'Blue Train', artist:'John Coltrane', payload:{}, created_at:new Date(Date.now() - 3600e3).toISOString()},
     {id:2, actor_id:'june', actor_handle:'june', actor_name:'June Okafor', type:'review', release_id:'june-r2', title:'Head Hunters', artist:'Herbie Hancock', payload:{rating:4}, created_at:new Date(Date.now() - 3700e3).toISOString()},
