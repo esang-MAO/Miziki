@@ -121,7 +121,7 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
 // "stop the chain at the door" reasoning as the rest of this file. The
 // real module is covered by tests/unit/gatefold-back-cover.test.js.
 mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
-  namedExports: { albumBackCoverIsUnset: async () => true, setAlbumBackCoverImage: async () => {} },
+  namedExports: { albumBackCoverIsUnset: async () => true, setAlbumBackCoverImage: async () => {}, clearAlbumBackCoverImage: async () => {} },
 });
 
 const { findDuplicateTrack, DUP_DURATION_TOLERANCE_SEC, shouldSealOnImport } = await import('../../src/library/import.js');

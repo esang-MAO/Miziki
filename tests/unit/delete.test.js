@@ -56,6 +56,17 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; } },
 });
+// deleteTracks() (step since the orphaned-override fix) clears an emptied
+// album's own back-cover photo via gatefold/back-cover.js's
+// clearAlbumBackCoverImage() -- mocked here for the same "stop the chain at
+// the door" reason as every other module above: the real file's
+// buildBackCoverEl() imports ui/wordmark.js, which imports an .svg Node
+// can't resolve. Its own correctness is covered by
+// tests/unit/gatefold-back-cover.test.js.
+const clearAlbumBackCoverImageMock = mock.fn(async () => {});
+mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
+  namedExports: { clearAlbumBackCoverImage: clearAlbumBackCoverImageMock },
+});
 // Since step 7c, delete.js's deleteCrateArtTiers/invalidateCrateModel
 // imports are real ones from src/crate/tiers.js/model.js instead of
 // main.js — mocked directly here, same "stop the chain at the door"
@@ -161,8 +172,10 @@ function resetState(overrides){
     sealed: new Set(), achievements: {}, collection: {}, sessions: {}, sessionCounts: {},
     rareUnlocked: {}, sessionActive: null, curPlayed: [], curTrackDone: false, lru: [],
     playerOpen: false,
+    albumLookPref: {}, albumFormat: {}, albumKeptFor: {}, albumLinerNote: {},
   }, overrides);
   persistSealedAlbumsMock.mock.resetCalls();
+  clearAlbumBackCoverImageMock.mock.resetCalls();
 }
 
 function freshIndexedDB(){
@@ -250,6 +263,80 @@ test('deleteTracks: deleting a non-last track from a sealed album leaves the sea
 
   assert.ok(S.sealed.has('al'));
   assert.equal(persistSealedAlbumsMock.mock.calls.length, 0);
+  DB.db.close();
+});
+
+// explicit deletion really forgets an emptied album -- unlike forgetLibrary
+// (F3 spec), which leaves every per-album override alone on purpose so a
+// re-add reconnects it. Listening stats (achievements/collection/sessions)
+// are the one thing deletion never touches -- see the file header.
+test('deleteTracks: dropping an album\'s last track clears its look pref, format override and "Keep for…" claim', async () => {
+  await openFresh();
+  const t = fakeTrack({ id:'t1' });
+  resetState({
+    tracks: [t],
+    albumLookPref: { al: 'gold' }, albumFormat: { al: '45' }, albumKeptFor: { al: 'firstLight' },
+  });
+
+  await deleteTracks(['t1']);
+
+  assert.deepEqual(S.albumLookPref, {});
+  assert.deepEqual(S.albumFormat, {});
+  assert.deepEqual(S.albumKeptFor, {});
+  DB.db.close();
+});
+
+test('deleteTracks: dropping an album\'s last track clears its liner-note override and back-cover photo', async () => {
+  await openFresh();
+  const t = fakeTrack({ id:'t1' });
+  resetState({ tracks: [t], albumLinerNote: { al: 'My own notes' } });
+
+  await deleteTracks(['t1']);
+
+  assert.deepEqual(S.albumLinerNote, {});
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 1);
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls[0].arguments[0], 'al');
+  DB.db.close();
+});
+
+test('deleteTracks: deleting a non-last track leaves every per-album override on the surviving album alone', async () => {
+  await openFresh();
+  resetState({
+    tracks: [
+      fakeTrack({ id:'t1' }),
+      fakeTrack({ id:'t2', tags:{ title:'B', artist:'A', album:'Al', albumArtist:'A', track:2 } }),
+    ],
+    albumLookPref: { al: 'gold' }, albumFormat: { al: '45' }, albumKeptFor: { al: 'firstLight' },
+    albumLinerNote: { al: 'My own notes' },
+  });
+
+  await deleteTracks(['t1']);
+
+  assert.deepEqual(S.albumLookPref, { al: 'gold' });
+  assert.deepEqual(S.albumFormat, { al: '45' });
+  assert.deepEqual(S.albumKeptFor, { al: 'firstLight' });
+  assert.deepEqual(S.albumLinerNote, { al: 'My own notes' });
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 0);
+  DB.db.close();
+});
+
+// deletion never touches listening history (file header comment) -- only
+// "Clear listening history" does. This is the "besides listening stats"
+// half of the same fix: the per-album overrides above are dropped, these
+// identity-keyed stats survive untouched even once the album is gone.
+test('deleteTracks: dropping an album\'s last track leaves its listening stats untouched', async () => {
+  await openFresh();
+  const t = fakeTrack({ id:'t1' });
+  resetState({
+    tracks: [t],
+    achievements: { al: { metal: 'gold' } }, collection: { al: { foundAt: 1 } }, sessionCounts: { al: 3 },
+  });
+
+  await deleteTracks(['t1']);
+
+  assert.deepEqual(S.achievements, { al: { metal: 'gold' } });
+  assert.deepEqual(S.collection, { al: { foundAt: 1 } });
+  assert.deepEqual(S.sessionCounts, { al: 3 });
   DB.db.close();
 });
 

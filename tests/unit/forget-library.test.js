@@ -41,6 +41,13 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums(){} },
 });
+// delete.js's module-level import of gatefold/back-cover.js (for
+// deleteTracks()'s own per-album cleanup) needs stopping here too, same
+// "stop the chain at the door" reason as tests/unit/delete.test.js's own
+// mock of it -- forgetLibrary() itself never calls this.
+mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
+  namedExports: { clearAlbumBackCoverImage: async () => {} },
+});
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: {
     restoreThumbs: async () => {}, pruneThumbs: async () => {},

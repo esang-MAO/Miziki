@@ -17,11 +17,12 @@ import { stop } from '../player/transport.js';
 import { setQueue, setQueueList, setQpos } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { drawTime } from '../player/clock.js';
-import { invalidateActiveSessionIfAny } from '../history/sessions.js';
-import { rebuildPeopleIndex } from './credits.js';
+import { invalidateActiveSessionIfAny, persistAlbumLookPref, persistAlbumFormat, persistAlbumKeptFor } from '../history/sessions.js';
+import { rebuildPeopleIndex, clearAlbumLinerNoteOverride } from './credits.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { applyDeadWaxEtching } from '../record-art/etchings.js';
 import { persistSealedAlbums } from './sealed.js';
+import { clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
 import { queueSave } from '../storage/meta.js';
 import { clearSpinDown } from '../shell/put-away.js';
 import { forceCloseLayer } from '../shell/nav-stack.js';
@@ -68,13 +69,24 @@ export async function deleteTracks(idsToDelete){
   S.tracks.forEach(t => { if(idSet.has(t.id)) removedAlbumIds.add(albumKey(t)); });
   S.tracks = S.tracks.filter(t => !idSet.has(t.id));
   // an album that just lost its last track has no tracks left to cut crate
-  // art from — drop its tiers rather than leaving them stranded (spec §B3)
+  // art from — drop its tiers rather than leaving them stranded (spec §B3).
+  // Same posture for every other per-album override below (look pref,
+  // format, back cover, liner note, "Keep for…"): explicit deletion really
+  // forgets this album, unlike forgetLibrary (F3 spec), which leaves these
+  // alone on purpose so a later re-add reconnects them. Listening
+  // stats/history are the one exception (see this file's own header) --
+  // deletion never touches those, only "Clear listening history" does.
   const survivingAlbumIds = new Set(S.tracks.map(albumKey));
   let sealedChanged = false;
   for(const albumId of removedAlbumIds){
     if(survivingAlbumIds.has(albumId)) continue;
     await deleteCrateArtTiers(albumId);
     if(S.sealed.delete(albumId)) sealedChanged = true;   // SEALED spec §2
+    if(albumId in S.albumLookPref){ delete S.albumLookPref[albumId]; await persistAlbumLookPref(albumId); }
+    if(albumId in S.albumFormat){ delete S.albumFormat[albumId]; await persistAlbumFormat(albumId); }
+    if(albumId in S.albumKeptFor){ delete S.albumKeptFor[albumId]; await persistAlbumKeptFor(albumId); }
+    clearAlbumLinerNoteOverride(albumId);
+    await clearAlbumBackCoverImage(albumId);
   }
   if(sealedChanged) persistSealedAlbums();
 
@@ -83,6 +95,12 @@ export async function deleteTracks(idsToDelete){
     await overlays.del(id);
     await artwork.del(id);
   }
+  // Catches the one case the per-album loop above can't: a thumbnail for an
+  // album/track that was never played (so no stats row claims it) and is
+  // now gone from the library too -- pruneThumbs() only drops thumbnails
+  // nothing else (a stats row) still references, so this never touches one
+  // backing an album/track history is still keeping.
+  await pruneThumbs();
 
   // explicit deletion actually drops membership — unlike forgetLibrary
   // (F3 spec), which never touches these at all so everything reconnects.
