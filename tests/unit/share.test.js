@@ -121,37 +121,14 @@ test('shareTriad(): the accent never lands within ΔE 10 of its own ground or ty
   }
 });
 
-/* ===================== SH3 (docs/18_SHARE.md) =====================
-   The Record card (src/share/record-card.js). Canvas drawing itself
-   can't run in Node, so this sticks to item 7's own three pieces of real
-   decision logic, each a plain exported pure function the real composer
-   calls: tick count from rating, note omission, and friends-sticker
-   gating. record-card.js has no import that would need mocking to load
-   it directly -- record-art/tiers.js's getVariantDef and styles.js are
-   both the same "safe to import directly, no DOM at the top level" leaves
-   the SHARE_FORMATS/resolveShareStyle tests above already rely on. This
-   import has to happen before the SH1 block below mocks record-card.js
-   wholesale (for sheet.js's own tests) -- node:test's mock.module()
-   replaces the module in the registry for every subsequent import, real
-   or not, so the real module has to be loaded first. */
-const { ratingTickCount, friendsStickerText, recordNoteText } = await import('../../src/share/record-card.js');
-
-test('ratingTickCount: the filled count tracks the rating 1:1', () => {
-  assert.equal(ratingTickCount(3), 3);
-  assert.equal(ratingTickCount(1), 1);
-  assert.equal(ratingTickCount(5), 5);
-});
-
-test('ratingTickCount: an unrated record draws no ticks at all, not five empty ones', () => {
-  assert.equal(ratingTickCount(0), 0);
-  assert.equal(ratingTickCount(null), 0);
-  assert.equal(ratingTickCount(undefined), 0);
-});
-
-test('ratingTickCount: clamps to the five-tick row regardless of a stray out-of-range value', () => {
-  assert.equal(ratingTickCount(7), 5);
-  assert.equal(ratingTickCount(-2), 0);
-});
+// BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed the Record card
+// (src/share/record-card.js) and its own ratingTickCount/recordNoteText
+// pure helpers along with it. friendsStickerText() lives on in
+// src/share/sticker-text.js (CC3, docs/34_CARE_AND_CONTROL.md, pulled out
+// before this step so src/social/sticker.js's own badge could reuse it
+// without record-card.js's wide share/styles.js -> ui/wordmark.js chain)
+// and is still real behavior worth covering, so its tests move there too.
+const { friendsStickerText } = await import('../../src/share/sticker-text.js');
 
 test('friendsStickerText: no friends (0, null, undefined) means no sticker at all', () => {
   assert.equal(friendsStickerText(0), null);
@@ -163,17 +140,6 @@ test('friendsStickerText: no friends (0, null, undefined) means no sticker at al
 test('friendsStickerText: singular and plural read grammatically ("1 friend" / "3 friends")', () => {
   assert.equal(friendsStickerText(1), '1 friend');
   assert.equal(friendsStickerText(3), '3 friends');
-});
-
-test('recordNoteText: an empty or whitespace-only note is treated the same as no note', () => {
-  assert.equal(recordNoteText(''), null);
-  assert.equal(recordNoteText('   '), null);
-  assert.equal(recordNoteText(null), null);
-  assert.equal(recordNoteText(undefined), null);
-});
-
-test('recordNoteText: a real note survives, trimmed', () => {
-  assert.equal(recordNoteText('  Sounds better on a rainy day.  '), 'Sounds better on a rainy day.');
 });
 
 /* ===================== SH4 (docs/18_SHARE.md) =====================
@@ -355,78 +321,29 @@ test('paperLabelTextLayout: each line fits its own stated max width (title/kicke
   assert.ok(layout.artist.endsWith('…'), 'sanity: this artist really was too long to fit as-is');
 });
 
-/* ===================== SH6 (docs/18_SHARE.md) =====================
-   The Season card (src/share/season-card.js) -- item 7's own "legend
-   order, zero-tier omission, the lock threshold shared with rhythm.js."
-   The lock threshold itself is already covered by RHYTHM_MIN_PLAYS's own
-   existing use throughout this app (sundown/rhythm.js, exercised by
-   other test files) -- SH1 item 4 keeps the entry point hidden below it,
-   and the composer is never called locked at all, so there's nothing
-   season-card.js itself needs to test for that half. season-card.js's
-   own imports (state.js, sundown/rhythm.js, profile/rhythm-card.js,
-   record-art/metals.js, styles.js) are all the same "no DOM at the top
-   level" leaves every other composer here already relies on, so this
-   needs no mocking to load for real either -- and it has to happen
-   before the SH1 block below mocks season-card.js wholesale (for
-   sheet.js's own tests), for the same reason record-card.js/
-   pressings-card.js's real imports above do. */
-const { legendOrder, verdictSentence } = await import('../../src/share/season-card.js');
-
-test('legendOrder: sorted by share descending', () => {
-  const shares = { night: 0.1, dawn: 0, morning: 0.5, midday: 0.4, afternoon: 0, golden: 0, twilight: 0 };
-  assert.deepEqual(legendOrder(shares), ['morning', 'midday', 'night']);
-});
-
-test('legendOrder: a phase with no share at all is left out, not shown at 0%', () => {
-  assert.deepEqual(legendOrder({ night: 1 }), ['night']);
-  assert.deepEqual(legendOrder({}), []);
-  assert.deepEqual(legendOrder(null), []);
-});
-
-test('legendOrder: a tie breaks by the fixed PHASES order, deterministically', () => {
-  // night (index 0) outranks golden (index 5) in PHASES' own fixed order
-  assert.deepEqual(legendOrder({ golden: 0.5, night: 0.5 }), ['night', 'golden']);
-});
-
-// FS8 (docs/25_FROM_SCRATCH.md point 4): verdictSentence() -- the Season
-// card's own standalone sentence, dropping rhythmVerdictLabel()'s
-// "Lately, " prefix (meant for the profile card's inline use) and ending
-// with a period.
-test('verdictSentence: drops the "Lately, " prefix and ends with a period', () => {
-  assert.equal(verdictSentence('Lately, mostly after dark'), 'Mostly after dark.');
-  assert.equal(verdictSentence('Lately, around the clock'), 'Around the clock.');
-});
-
-test('verdictSentence: never double-punctuates, and empty input gives empty output', () => {
-  assert.equal(verdictSentence('Already ends with a period.'), 'Already ends with a period.');
-  assert.equal(verdictSentence(''), '');
-  assert.equal(verdictSentence(null), '');
-});
-
-// QC2 (docs/24_QUIET_COUNTS.md) removed metalTierOrder()/drawMetalsRow()
-// along with the Season card's metals/"N records played through" figures
-// — replaced by "MOST PLAYED THIS SEASON" (drawTopAlbumsRow(), real
-// canvas drawing, not separately unit-testable for the same reason as
-// drawPressingChips above). Its own selection logic —
-// history/achievements.js's topAlbumsInWindow(), reading
-// sundown/rhythm.js's windowedCounts() — is pure and tested directly
-// below instead.
+// BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed the Season card
+// (src/share/season-card.js) and its own legendOrder/verdictSentence pure
+// helpers along with it. The lock-threshold constant (RHYTHM_MIN_PLAYS)
+// and windowedCounts()/topAlbumsInWindow() they used stay covered by
+// their own existing tests elsewhere (sundown/rhythm.js, history/
+// achievements.js) -- they never belonged to season-card.js itself.
 
 /* ===================== SH1 (docs/18_SHARE.md) =====================
-   "One share sheet, five entry points" -- src/share/sheet.js is now the
-   one place that opens any of five cards (nowPlaying/record/pressings/
-   crate/season), each through the same nav-stack.js layer id ('share').
-   The real composers (crate-card.js/now-playing-card.js/record-card.js/
-   pressings-card.js/season-card.js) draw real canvases nothing in Node
-   can render, so -- same "stop the chain at the door" shape every other
-   mock-heavy file in this suite already uses -- every one of them is
-   mocked to a trivial async function returning a plain {width,height}
-   object, and sheet.js's own direct DOM/global-document reads are
-   stubbed rather than given a real browser. What's actually under test:
-   that openShareSheet() registers its single 'share' layer with
-   nav-stack.js for every card (the "open/close path through nav-stack.js
-   for each card" SH1 item 6 asks for), and that S.shareSelectionByCard's
-   defaults match each card's own Include-toggle table (item 3). */
+   "One share sheet, two entry points" -- src/share/sheet.js is the one
+   place that opens either remaining card (nowPlaying/pressings), each
+   through the same nav-stack.js layer id ('share'). BD11 (docs/
+   38_BEFORE_THE_DOMAIN.md) removed the other three (Record, Crate,
+   Season). The real composers (now-playing-card.js/pressings-card.js)
+   draw real canvases nothing in Node can render, so -- same "stop the
+   chain at the door" shape every other mock-heavy file in this suite
+   already uses -- both are mocked to a trivial async function returning
+   a plain {width,height} object, and sheet.js's own direct DOM/global-
+   document reads are stubbed rather than given a real browser. What's
+   actually under test: that openShareSheet() registers its single
+   'share' layer with nav-stack.js for every card (the "open/close path
+   through nav-stack.js for each card" SH1 item 6 asks for), and that
+   S.shareSelectionByCard's defaults match each remaining card's own
+   Include-toggle table (item 3). */
 
 const openLayerCalls = [];
 mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
@@ -445,20 +362,11 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
 mock.module(new URL('../../src/sundown/solar.js', import.meta.url).href, {
   namedExports: { currentDayPosition(){ return { phase:'midday' }; } },
 });
-mock.module(new URL('../../src/share/crate-card.js', import.meta.url).href, {
-  namedExports: { composeShareImage: async () => ({ width:1, height:1 }) },
-});
 mock.module(new URL('../../src/share/now-playing-card.js', import.meta.url).href, {
   namedExports: { composePlayerShareImage: async () => ({ width:1, height:1 }) },
 });
-mock.module(new URL('../../src/share/record-card.js', import.meta.url).href, {
-  namedExports: { composeRecordShareImage: async () => ({ width:1, height:1 }) },
-});
 mock.module(new URL('../../src/share/pressings-card.js', import.meta.url).href, {
   namedExports: { composePressingsShareImage: async () => ({ width:1, height:1 }) },
-});
-mock.module(new URL('../../src/share/season-card.js', import.meta.url).href, {
-  namedExports: { composeSeasonShareImage: async () => ({ width:1, height:1 }) },
 });
 
 // sheet.js reads/writes the DOM two ways: through util/dom.js's $/el (every
@@ -511,9 +419,9 @@ globalThis.document = {
 const { S } = await import('../../src/state.js');
 const { openShareSheet, shareCurrentCard } = await import('../../src/share/sheet.js');
 
-const ALL_CARDS = ['nowPlaying', 'record', 'pressings', 'crate', 'season'];
+const ALL_CARDS = ['nowPlaying', 'pressings'];
 
-test('openShareSheet: every one of the five cards registers the single "share" nav-stack layer', async () => {
+test('openShareSheet: every one of the remaining cards registers the single "share" nav-stack layer', async () => {
   for(const card of ALL_CARDS){
     openLayerCalls.length = 0;
     await openShareSheet({ card, data:{} });
@@ -523,30 +431,23 @@ test('openShareSheet: every one of the five cards registers the single "share" n
   }
 });
 
-test('openShareSheet: an unrecognized card falls back to crate (the sheet\'s own default)', async () => {
+test('openShareSheet: an unrecognized card falls back to Now Playing (the sheet\'s own default)', async () => {
   await openShareSheet({ card:'not-a-real-card' });
-  assert.equal(shareCurrentCard(), 'crate');
+  assert.equal(shareCurrentCard(), 'nowPlaying');
 });
 
 test('S.shareSelectionByCard: defaults match SH1 item 3\'s own Include-toggle table', () => {
   // nowPlaying -> Time of day
   assert.deepEqual(Object.keys(S.shareSelectionByCard.nowPlaying), ['phase']);
   assert.equal(S.shareSelectionByCard.nowPlaying.phase, true);
-  // record -> Sleeve note, Friends
-  assert.deepEqual(new Set(Object.keys(S.shareSelectionByCard.record)), new Set(['note', 'friends']));
   // pressings -> none
   assert.deepEqual(S.shareSelectionByCard.pressings, {});
-  // crate -> Name (SH5 removed the metals/collection/rhythm sections and
-  // their own Include toggles from crate-card.js, so this is the one key
-  // left, not just the one the sheet happens to show a toggle for).
-  assert.deepEqual(Object.keys(S.shareSelectionByCard.crate), ['name']);
-  assert.equal(S.shareSelectionByCard.crate.name, true);
-  // season -> Name
-  assert.deepEqual(Object.keys(S.shareSelectionByCard.season), ['name']);
-  assert.equal(S.shareSelectionByCard.season.name, true);
 });
 
-test('S.shareFormatByCard: every card has its own per-card default format (SH1 item 2)', () => {
+// BD11 (docs/38_BEFORE_THE_DOMAIN.md point 3): parsePrefs/serializePrefs
+// keep round-tripping the record/crate/season keys unchanged -- a format
+// saved under one of those now-dead keys is just inert, not migrated.
+test('S.shareFormatByCard: every card (including the three BD11 removed) keeps its per-card default format', () => {
   assert.deepEqual(S.shareFormatByCard, {
     nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square',
   });

@@ -79,9 +79,6 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 mock.module(new URL('../../src/library/edit.js', import.meta.url).href, {
   namedExports: { openEditSheet(){} },
 });
-mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
-  namedExports: { openShareSheet(){} },
-});
 mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
   namedExports: {
     buildBackCoverEl(){ return {}; },
@@ -155,7 +152,7 @@ mock.module(new URL('../../src/shell/nav-stack.js', import.meta.url).href, {
 const {
   wireGatefoldTrackLongPress, openGatefoldTrackMenu, closeGatefoldTrackMenu,
   gatefoldTrackMenuPlayFromHere, gatefoldTrackMenuPlayNext, gatefoldTrackMenuAddToQueue,
-  gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits, gatefoldTrackMenuShare,
+  gatefoldTrackMenuToggleFavorite, gatefoldTrackMenuOpenCredits,
   gfTrackMenuGroups, GF_LONG_PRESS_MS,
 } = await import('../../src/gatefold/view.js');
 const { S } = await import('../../src/state.js');
@@ -240,13 +237,16 @@ test('openGatefoldTrackMenu paints the title and meta caption', () => {
   assert.equal(elCache.get('#gfTrackMenuMeta').textContent, '3:00');
 });
 
-test('gfTrackMenuGroups: Play from here/next/queue, favorite label, Credits only when the track has any, Share last', () => {
+// BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed this menu's own "Share" row
+// (and gatefoldTrackMenuShare() with it) -- it only ever reused the
+// gatefold's own Share record button, which is gone.
+test('gfTrackMenuGroups: Play from here/next/queue, favorite label, Credits only when the track has any', () => {
   resetAll();
   isFavoriteMock.mock.mockImplementationOnce(() => true);
   const withFavAndCredits = gfTrackMenuGroups(S.tracks[0]);
   assert.deepEqual(withFavAndCredits[0].map(x => x.label), ['Play from here', 'Play next', 'Add to queue']);
   assert.deepEqual(withFavAndCredits[1].map(x => x.label), ['Remove from Favorites', 'Credits']);
-  assert.deepEqual(withFavAndCredits[2].map(x => x.label), ['Share']);
+  assert.equal(withFavAndCredits.length, 2);
 
   trackHasCreditsContentMock.mock.mockImplementationOnce(() => false);
   const noCredits = gfTrackMenuGroups(S.tracks[1]);
@@ -259,19 +259,6 @@ test('gatefoldTrackMenuPlayFromHere queues from this track on, in the album\'s o
   gatefoldTrackMenuPlayFromHere();
   assert.deepEqual(setQueueMock.mock.calls[0].arguments, [[0, 1], 1, true]);
   assert.equal(registeredClose, null);
-});
-
-test('gatefoldTrackMenuShare clicks the gatefold\'s own Share record button and closes the menu', () => {
-  resetAll();
-  const shareBtn = { click: mock.fn() };
-  const origQuerySelector = globalThis.document.querySelector;
-  globalThis.document.querySelector = (sel) => sel === '.gf-share-btn' ? shareBtn : null;
-  try{
-    openGatefoldTrackMenu(0, [0, 1]);
-    gatefoldTrackMenuShare();
-    assert.equal(shareBtn.click.mock.calls.length, 1);
-    assert.equal(registeredClose, null);
-  } finally { globalThis.document.querySelector = origQuerySelector; }
 });
 
 test('gatefoldTrackMenuPlayNext calls playNext with this track\'s index and closes the menu', () => {

@@ -10,7 +10,7 @@ import {
   currentGatefoldAlbumId, refreshGatefoldBackCover,
   saveLinerEditSheet, revertLinerEditSheet,
   openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
-  gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
+  gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
   gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect, gatefoldMoreMenuLook,
   gatefoldPlayRecord,
 } from '../gatefold/view.js';
@@ -81,11 +81,11 @@ export function wireGatefold(){
   // "record options" menu, then GF14: its opener (#gfMoreBtn) became a
   // fixed top-corner button, same static-control wiring as every other
   // gatefold control here, instead of being rebuilt into the info block
-  // every open. Share/Pin/Keep for…/Track order/Select/Remove album all
-  // show every time now, day or night.
+  // every open. Pin/Keep for…/Track order/Select/Remove album all show
+  // every time now, day or night. BD11 (docs/38_BEFORE_THE_DOMAIN.md)
+  // removed the row above Pin — Share record.
   $('#gfMoreBtn').addEventListener('click', () => isGatefoldMoreMenuOpen() ? closeLayer('gf-more-menu') : openGatefoldMoreMenu());
   $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
-  $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
   $('#gfMoreKeepForBtn').addEventListener('click', gatefoldMoreMenuKeepFor);
   $('#gfMoreLookBtn').addEventListener('click', gatefoldMoreMenuLook);
