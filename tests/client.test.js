@@ -99,7 +99,11 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await t('pin swap works (two-phase)',async()=>{ M.movePin('a2',0); const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r));
    assert.equal(q1(`select pin_rank from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 2')`),'1');
    assert.equal(q1(`select pin_rank from crate_items where user_id='${UID}' and release_id=(select id from releases where title='Album 1')`),'2'); });
- await t('unpin then pin other albums, 8 max',async()=>{ for(const n of [3,4,5,6,7,8,9]) M.pin('a'+n); assert.equal(M.getPins().length,8); const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r)); assert.equal(+q1(`select count(pin_rank) from crate_items where user_id='${UID}'`),8); });
+ // BD12: migration 024_pin_rank_five.sql (GS8, docs/30_GROOVES_AND_SHELF.md)
+ // tightened the cap from 8 to 5, and src/miziki-social.js's own MAX_PINS
+ // already matches -- this test's own numbers were never updated to match,
+ // the one stale fixture BD12's CI wiring turned up.
+ await t('unpin then pin other albums, 5 max',async()=>{ for(const n of [3,4,5,6,7,8,9]) M.pin('a'+n); assert.equal(M.getPins().length,5); const r=await M.syncNow(); assert.equal(r.ok,true,JSON.stringify(r)); assert.equal(+q1(`select count(pin_rank) from crate_items where user_id='${UID}'`),5); });
  await t('small removal proceeds',async()=>{ ALBUMS=ALBUMS.filter(a=>a.id!=='a20'); const r=await M.syncNow(); assert.equal(r.removed,1); assert.equal(crateN(),19); });
  await t('mass removal held until confirm',async()=>{ ALBUMS=ALBUMS.slice(0,8); const r=await M.syncNow(); assert.equal(r.held,11,JSON.stringify(r)); assert.equal(crateN(),19); assert.equal(M.status().sync,'needsReview');
    const r2=await M.confirmRemovals(); assert.equal(r2.removed,11,JSON.stringify(r2)); assert.equal(crateN(),8); });
@@ -882,7 +886,10 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await t('RF20: a pinned 2-star record is fresh',()=>{
    asUser(FUID_A, `select private.ensure_release('rf20-rel-2','RF20 Pinned Low Rated','RF20 Artist')`);
    const relId = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
-   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',2,8,null)
+   // BD12: pin_rank 8 predates migration 024_pin_rank_five.sql's tighter
+   // 1-5 check constraint -- any pinned (non-null) rank proves the point
+   // this test is actually making, so 2 is as good as the old 8 was.
+   asUser(FUID_A, `insert into crate_items(user_id,release_id,visibility,rating,pin_rank,sleeve_note) values ('${FUID_A}','${relId}','public',2,2,null)
      on conflict (user_id,release_id) do update set visibility=excluded.visibility, rating=excluded.rating, pin_rank=excluded.pin_rank, sleeve_note=excluded.sleeve_note`);
    assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '1',
      'a pinned record must be fresh even at a low rating'); });
@@ -894,7 +901,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    assert.equal(asUser(FUID_B, `select count(*) from fresh_for_you(p_other=>'${FUID_A}') where release_id='${relId}'`), '1',
      'a noted-but-unpinned record must be fresh even at a 1-star rating'); });
  await t('RF20: pins outrank an unpinned note regardless of rating',()=>{
-   // From the two fresh records above: rf20-rel-2 (pin_rank 8, rating 2)
+   // From the two fresh records above: rf20-rel-2 (pin_rank 2, rating 2)
    // must sort ahead of rf20-rel-3 (no pin, rating 1, note) -- pin beats
    // note-only, never mind which one has the higher rating.
    const relPinned = asUser(FUID_A, `select id from releases where release_key='rf20-rel-2'`);
