@@ -17,7 +17,6 @@ import {
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
 import { toggleSealedFrontTurnedOver, commitPeel } from '../gatefold/sealed-front.js';
-import { handleBookletAddFileChange } from '../gatefold/booklet.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
 async function handleGfBackCoverFile(e){
@@ -77,17 +76,6 @@ export function wireGatefold(){
   // openGatefoldTrackMenu() each time it opens (GF9), same "no stable
   // per-row ids" shape UN3 gave library/view.js's row menu -- nothing
   // left here to wire.
-
-  // GF10 (docs/29_GATEFOLD.md): the booklet viewer's own Done button --
-  // opened from buildBookletRow() (src/gatefold/view.js) -- plus the
-  // hidden file input "Add booklet pages…" opens via
-  // openAddBookletPagesPicker() (src/gatefold/booklet.js).
-  $('#bookletDoneBtn').addEventListener('click', () => closeLayer('booklet-viewer'));
-  $('#bookletAddFile').addEventListener('change', e => {
-    const files = e.target.files;
-    e.target.value = '';
-    handleBookletAddFileChange(files);
-  });
 
   // GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
   // "record options" menu, then GF14: its opener (#gfMoreBtn) became a

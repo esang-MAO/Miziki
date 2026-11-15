@@ -257,15 +257,6 @@ export const S = {
   // Home's once-a-day sunrise refresh and the Listening screen's own kept
   // list (GS9).
   albumKeptFor:{},
-  // GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page *count* --
-  // {albumId: N}, device-only (like the pages themselves: real image bytes
-  // live in the artwork store under 'booklet:<albumId>:<NNNN>', excluded
-  // from backup the same way audio/embedded art are). Kept here, not read
-  // from the artwork store on every panel paint, purely so
-  // buildGatefoldLeftPanel's "Booklet · N pages" row can stay synchronous
-  // like every other row there -- library/booklet.js's bookletPageCount()
-  // is the one reader.
-  albumBookletPages:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
