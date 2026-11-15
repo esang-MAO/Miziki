@@ -15,7 +15,7 @@
 <!-- Content Security Policy, as a meta tag since GitHub Pages can't set a
      real response header — see CLAUDE.md's "Security" section for the
      policy's current rationale. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co wss://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Miziki</title>
 <!-- self-hosted fonts (step 01: security hardening) — no more Google
@@ -56,6 +56,7 @@
 <link rel="stylesheet" href="/src/styles/29-evening-glance.css">
 <link rel="stylesheet" href="/src/styles/30-wear.css">
 <link rel="stylesheet" href="/src/styles/31-switch.css">
+<link rel="stylesheet" href="/src/styles/32-booklet.css">
 </head>
 <body id="app">
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -150,7 +151,7 @@
       <div class="empty p-empty-note" id="empty">
         <div class="p-empty-note-tape"></div>
         <p class="p-empty-note-head">The crate is empty.</p>
-        <p class="p-empty-note-sub">Choose songs or a folder on this device. Miziki keeps its own copy here, and nothing is uploaded.</p>
+        <p class="p-empty-note-sub">Choose songs or a folder on this device. They stay here, nothing is uploaded or copied.</p>
         <div class="p-empty-note-actions">
           <button class="p-btn p-btn--primary" id="pick">Choose files</button>
           <button class="p-btn" id="pickFolder">Choose folder</button>
@@ -324,7 +325,6 @@
           </div>
         </div>
         <p class="note" id="libToolsFooter"></p>
-        <p class="lib-tools-storage" id="libStorageUsage"></p>
         <p class="note" id="storeNote"></p>
         <p class="note" id="pathNote"></p>
       </div>
@@ -1180,14 +1180,6 @@
         </button>
       </div>
     </div>
-    <!-- BD6 (docs/38_BEFORE_THE_DOMAIN.md): the one-time "Sundown plays
-         records a little slower" line, shown once per account the first
-         time a track is playing in Vinyl with computeRate() under 1.
-         Tapping it (or the phase pill above) opens the Sundown sheet; it
-         sets S.sundownExplained the moment it's shown, so it never shows
-         again on any device on the account. Crossfades via CSS opacity
-         (26-sundown-sheet.css), prefers-reduced-motion honoured there. -->
-    <button type="button" class="now-sundown-explainer" id="nowSundownExplainer" style="display:none">After dark, Sundown plays records a little slower. Tap here to change it.</button>
     </div>
   </section>
 
@@ -1423,6 +1415,19 @@
       <button class="social-close" id="recordSheetClose" aria-label="Close">✕</button>
     </div>
     <div id="recordSheetBody"></div>
+  </div>
+</div>
+
+<!-- HELD SHEET (GS11, docs/30_GROOVES_AND_SHELF.md): "Held for you"'s own
+     Look through, and the Set aside picker -- same shared .edit-overlay/
+     .edit-sheet shell the record sheet above uses, one mode at a time. -->
+<div class="edit-overlay" id="heldOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="heldSheetBox">
+    <div class="edit-head">
+      <span id="heldKicker"></span>
+      <button class="social-close" id="heldClose" aria-label="Close">✕</button>
+    </div>
+    <div id="heldBody"></div>
   </div>
 </div>
 
@@ -1771,6 +1776,7 @@
     <button class="p-list-menu-item" id="gfBackCoverPhotoBtn" role="menuitem">Photograph your copy</button>
     <button class="p-list-menu-item overflow-menu-row-check" id="gfBackCoverDefaultBtn" role="menuitemcheckbox" aria-checked="true">Use Miziki default</button>
     <div class="p-list-menu-divider" id="gfBackCoverMenuDivider"></div>
+    <button class="p-list-menu-item" id="gfMoreShareBtn" role="menuitem">Share record</button>
     <button class="p-list-menu-item" id="gfMorePinBtn" role="menuitem">Pin to crate</button>
     <button class="p-list-menu-item overflow-menu-row-chev" id="gfMoreKeepForBtn" role="menuitem">Keep for…</button>
     <!-- PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): opens the
@@ -1908,6 +1914,27 @@
     <div class="p-list-menu" id="gfTrackMenuBody" role="menu"></div>
   </div>
 </div>
+
+<!-- GF10 (docs/29_GATEFOLD.md): the booklet viewer -- a full-screen layer
+     over everything, opened from the gatefold's inside-left panel once an
+     album has any pages (src/gatefold/booklet.js). Page-turn on swipe,
+     pinch to zoom, a thumbnail strip, "N / M", Done. -->
+<div class="booklet-viewer" id="bookletViewer" role="dialog" aria-modal="true" aria-label="Booklet" aria-hidden="true">
+  <div class="booklet-head">
+    <div>
+      <p class="booklet-kicker">Booklet</p>
+      <p class="booklet-album" id="bookletViewerAlbum"></p>
+    </div>
+    <button class="booklet-done" id="bookletDoneBtn">Done</button>
+  </div>
+  <div class="booklet-page-stage" id="bookletPageStage">
+    <img class="booklet-page-img" id="bookletPageImg" alt="Booklet page">
+  </div>
+  <p class="booklet-page-count" id="bookletPageCount"></p>
+  <div class="booklet-thumb-strip" id="bookletThumbStrip"></div>
+  <p class="booklet-hint">Swipe to turn a page. Pinch to read up close.</p>
+</div>
+<input id="bookletAddFile" type="file" accept="image/*" multiple style="display:none">
 
 <!-- GF8 (docs/29_GATEFOLD.md): the sealed front -- a sealed album opens
      here instead of the gatefold, until its wrap is peeled or it's first

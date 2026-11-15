@@ -21,12 +21,14 @@ import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/ti
 import { discLook, paintDiscLook, hasLookChoice, openLookPicker } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { recallLineFor } from '../history/recall.js';
-import { formatRecordName, formatSpeedText, platterSizeAttr } from '../record-art/format.js';
+import { formatRecordName, formatSpeedText, RPM_45, platterSizeAttr } from '../record-art/format.js';
 import { etchingFor } from '../record-art/etchings.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob, backCoverMenuRowsVisible } from './back-cover.js';
 import { albumTracks, idOf, idxOf } from '../library/model.js';
 import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAlbumLinerNoteOverride, clearAlbumLinerNoteOverride, albumCreditRoll, albumDynamicsNote, buildDynamicsNoteEl, openPersonOrArtist, openCreditsSheet, trackHasCreditsContent } from '../library/credits.js';
 import { isFavorite, toggleFavorite } from '../library/favorites.js';
+import { bookletPageCount } from '../library/booklet.js';
+import { openBookletViewer, openAddBookletPagesPicker } from './booklet.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
 // UN6 (docs/36_UNIFORMITY.md): the gatefold's interior takes its colour
@@ -99,9 +101,9 @@ export function isGatefoldOpen(){ return !!GF; }
 // memory only (never persisted — it's cheap to redo, and the underlying
 // art can change via an edit). The plan calls for the crate's "M" art
 // tier, but only 'S' and 'L' tiers actually exist (src/crate/tiers.js) —
-// 'L' is used since getCrateArtURL() below already fetches that same
-// tier for other on-screen art, so this reuses real art already being
-// loaded here rather than adding a third tier.
+// 'L' is used since openGatefold()'s own gatherRecordShareData() already
+// fetches that same tier for this exact screen, so this reuses real art
+// already being loaded here rather than adding a third tier.
 const gfTintCache = new Map();
 async function resolveGatefoldTint(albumId){
   if(gfTintCache.has(albumId)) return gfTintCache.get(albumId);
@@ -235,9 +237,12 @@ let gfTrackMenuCtx = null;
 // UN3 (docs/36_UNIFORMITY.md): rebuilt on sheetHeader()+the list-menu
 // look (src/ui/parts.js, 05-parts.css), with "Play from here" added
 // (plays the album from this track on, same ordering a tap on the row
-// itself uses). BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed the "Share"
-// row this menu used to carry -- it only ever reused the gatefold's own
-// Share record button, which is gone. See miziki.html's own comment on
+// itself uses) and "Share" (reuses the gatefold's own Share record
+// button -- there's no per-arbitrary-track share composer, only Now
+// Playing's, which is tied to whatever's actually loaded; building one
+// for an arbitrary long-pressed track is real feature work, out of
+// scope here, so this shares the record instead and is noted as a
+// follow-up in the PR). See miziki.html's own comment on
 // #gfTrackMenuOverlay for the z-index/stacking-context bug this also
 // fixes by moving the overlay out of #gatefold's own subtree.
 // Exported for its own unit test, same precedent as angleDelta
@@ -255,6 +260,9 @@ export function gfTrackMenuGroups(t){
     [
       { label: isFavorite(t.id) ? 'Remove from Favorites' : 'Add to Favorites', onClick: gatefoldTrackMenuToggleFavorite },
       ...(trackHasCreditsContent(t) ? [{ label: 'Credits', onClick: gatefoldTrackMenuOpenCredits }] : []),
+    ],
+    [
+      { label: 'Share', onClick: gatefoldTrackMenuShare },
     ],
   ];
 }
@@ -322,6 +330,12 @@ export function gatefoldTrackMenuOpenCredits(){
   forceCloseLayer('gf-track-menu', {skipHistory: true});
   if(t) openCreditsSheet(t);
 }
+export function gatefoldTrackMenuShare(){
+  closeLayer('gf-track-menu');
+  const btn = document.querySelector('.gf-share-btn');
+  if(btn) btn.click();
+}
+
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): pure per-side play-count sums, from
 // trackPlayCounts summed over each side's own track indices -- pulled out
 // of buildGatefoldTracklist below purely for testability (the same
@@ -536,17 +550,59 @@ function sleeveNotePromptFor(albumId){
 // Exported so the picture sleeve (src/gatefold/picture-sleeve.js) can reuse
 // the exact same rating/sleeve-note/pin controls instead of a second
 // implementation.
+// GF1 (docs/29_GATEFOLD.md point 1): the Record share card's whole payload,
+// gathered in one place so the gatefold and any later entry point (the
+// picture sleeve, a friend's record sheet) share it rather than each
+// building their own partial version — src/share/record-card.js's own doc
+// comment lists exactly this shape and reads nothing else. art: the
+// crate's own L tier, falling back to the thumbnail/track art the same way
+// gatefoldSetCoverArt() below does. variant/look/metal: the same
+// discLook() resolution applyGatefoldDiscVariant() already uses, off the
+// album's own pressing track. speed: the album's real format (33 or 45),
+// honoring the personal override the same way every other format reader
+// does. friendsCount: always null here — this is always your own copy.
 // GF3: the one place that resolves an open (or about-to-open) item's real
 // format -- the album's own track lengths through the personal Auto/33/45
 // override, exactly as every other format reader here already read it
-// inline. Shared by gatefoldFormatLines() and openGatefold()'s own
-// gatefoldGeometry()/platterSizeAttr() calls (GF3 point 1), so there's one
-// override lookup, not three copies of it.
+// inline. Shared by gatherRecordShareData(), gatefoldFormatLines() and
+// openGatefold()'s own gatefoldGeometry()/platterSizeAttr() calls (GF3
+// point 1), so there's one override lookup, not three copies of it.
 // GF8 (docs/29_GATEFOLD.md): also used by sealed-front.js's own format
 // line, before the gatefold itself has ever opened for this album.
 export function gatefoldItemFormat(item){
   const override = (S.albumFormat && S.albumFormat[item.albumId]) || 'auto';
   return albumFormatFor(item.idx, S.tracks, override);
+}
+
+// CC3 point 4 (docs/34_CARE_AND_CONTROL.md): reads from the real RPC now
+// instead of a hardcode -- MizikiSocial.friendsStickerCountsByKeys()
+// resolves this device's own release_key through the `releases` table
+// (the client never has a release_id for its own crate, CC2's own note).
+// This is always your own copy, and friends_sticker() always excludes a
+// release the caller owns, so the resolved count is, in practice, always
+// 0/null here -- wired to the same data source as every other sticker
+// rather than a second hand-maintained hardcode, with no behavior change.
+export async function gatherRecordShareData(item){
+  const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+  const d = t ? discLook(t) : null;
+  const fallbackArt = thumbURL['album:' + item.albumId] || (t && t.art) || null;
+  const art = (await getCrateArtURL(item.albumId, 'L').catch(() => null)) || fallbackArt;
+  const format = gatefoldItemFormat(item);
+  const social = MizikiSocial.getAlbumSocial(item.albumId);
+  const key = MizikiSocial.releaseKey(item.artist, item.album);
+  let friendsCount = null;
+  if(key){
+    const r = await MizikiSocial.friendsStickerCountsByKeys([key]);
+    if(r.ok && r.counts[key] != null) friendsCount = r.counts[key];
+  }
+  return {
+    album: item.album, artist: item.artist, year: item.year, albumId: item.albumId,
+    art, variant: d ? d.variant : null, look: d ? d.look : null, metal: d ? d.metal : null,
+    speed: format.speed === RPM_45 ? 45 : 33,
+    rating: social.rating != null ? social.rating : null,
+    note: social.note || null,
+    friendsCount,
+  };
 }
 
 export function gatefoldSocialControlsHTML(item){
@@ -601,6 +657,19 @@ export function gatefoldSocialControlsHTML(item){
   const pinBtn = document.createElement('button');
   pinBtn.type = 'button'; pinBtn.className = 'gf-pin-btn';
   wrap.appendChild(pinBtn);
+
+  // SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record
+  // row." GF1: the full payload, gathered by gatherRecordShareData() above.
+  const shareBtn = document.createElement('button');
+  shareBtn.type = 'button'; shareBtn.className = 'gf-share-btn';
+  shareBtn.textContent = 'Share record';
+  shareBtn.addEventListener('click', async () => {
+    const [{ openShareSheet }, data] = await Promise.all([
+      import('../share/sheet.js'), gatherRecordShareData(item),
+    ]);
+    openShareSheet({ card:'record', data });
+  });
+  wrap.appendChild(shareBtn);
 
   function paint(){
     const s = MizikiSocial.getAlbumSocial(item.albumId);
@@ -664,6 +733,30 @@ function buildLinerNotesHeading(item){
   return row;
 }
 
+// GF10 (docs/29_GATEFOLD.md): "Booklet · N pages" (opens the viewer),
+// shown only once pages exist (point 2) -- plus "Add booklet pages…",
+// always there, which is how a page gets there in the first place when it
+// didn't arrive as a sidecar at import (point 1). Same two-button-row
+// shape as buildLinerNotesHeading above.
+function buildBookletRow(item){
+  const n = bookletPageCount(item.albumId);
+  const row = el('div','gf-liner-head');
+  if(n){
+    const openBtn = el('button','gf-liner-label','Booklet · ' + n + (n === 1 ? ' page' : ' pages'));
+    openBtn.type = 'button';
+    openBtn.addEventListener('click', () => openBookletViewer(item));
+    row.appendChild(openBtn);
+  } else {
+    row.appendChild(el('p','gf-liner-label','Booklet'));
+  }
+  const addBtn = el('button', 'gf-liner-edit-btn', n ? 'Add pages' : 'Add booklet pages…');
+  addBtn.type = 'button';
+  addBtn.setAttribute('aria-label', 'Add booklet pages');
+  addBtn.addEventListener('click', () => openAddBookletPagesPicker(item));
+  row.appendChild(addBtn);
+  return row;
+}
+
 export function buildGatefoldLeftPanel(item){
   const host = el('div', 'gf-left-panel');
   host.appendChild(buildLinerNotesHeading(item));
@@ -682,6 +775,7 @@ export function buildGatefoldLeftPanel(item){
     // of whether it has liner notes/credits of its own.
     const minimalNote = albumDynamicsNote(item.album);
     if(minimalNote) host.appendChild(buildDynamicsNoteEl(minimalNote));
+    host.appendChild(buildBookletRow(item));
     host.appendChild(gatefoldSocialControlsHTML(item));
     return host;
   }
@@ -702,6 +796,7 @@ export function buildGatefoldLeftPanel(item){
   const metaBits = [item.year || null, item.genre || null,
     item.trackCount + (item.trackCount===1?' track':' tracks')].filter(Boolean);
   host.appendChild(el('p','gf-meta-line', metaBits.join(' · ')));
+  host.appendChild(buildBookletRow(item));
   host.appendChild(gatefoldSocialControlsHTML(item));
   return host;
 }
@@ -1066,7 +1161,9 @@ export function openGatefoldMoreMenu(){
     getAlbumBackCoverBlob(albumId).then(blob =>
       $('#gfBackCoverDefaultBtn').setAttribute('aria-checked', String(!blob)));
   }
+  const shareSrc = document.querySelector('.gf-share-btn');
   const pinSrc = document.querySelector('.gf-pin-btn');
+  $('#gfMoreShareBtn').style.display = shareSrc ? '' : 'none';
   if(pinSrc){
     $('#gfMorePinBtn').style.display = '';
     $('#gfMorePinBtn').textContent = pinSrc.textContent;
@@ -1094,6 +1191,11 @@ export function closeGatefoldMoreMenu(){
   $('#gfMoreMenuScrim').classList.remove('open');
   $('#gfMoreMenu').classList.remove('open');
   $('#gfMoreBtn').setAttribute('aria-expanded', 'false');
+}
+export function gatefoldMoreMenuShare(){
+  closeLayer('gf-more-menu');
+  const btn = document.querySelector('.gf-share-btn');
+  if(btn) btn.click();
 }
 export function gatefoldMoreMenuPin(){
   closeLayer('gf-more-menu');
@@ -1470,6 +1572,8 @@ export function closeLinerEditSheet(){
 // mode flat body, or a picture sleeve) by replacing its .gf-left-panel
 // wrapper wholesale -- a DOM swap, not a rebuild of the host itself,
 // since #pictureSleeveBody has its own play-row sibling to leave alone.
+// Also used by gatefold/booklet.js's openAddBookletPagesPicker() after a
+// page is added, same "rebuild-and-swap" refresh liner notes already use.
 export function refreshLinerPanel(item){
   const panelEl = document.querySelector('.gf-left-panel');
   if(panelEl) panelEl.replaceWith(buildGatefoldLeftPanel(item));

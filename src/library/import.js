@@ -4,38 +4,32 @@
    tag/artwork parsing itself lives in src/library/tags/ — this module is
    "what to do with a File object," not "how to read one." One file at a
    time, the "Importing N of M" note, a failed file skipped (not aborting
-   the batch), and new albums sealed once per batch (SEALED spec §2).
-   BD4 (docs/38_BEFORE_THE_DOMAIN.md): the loop no longer awaits the
-   BS.1770 loudness measurement (AU5, docs/16_AUDIO.md §4) or the
-   hook-detection pass (AU12, §7) — both measured at 85-90% of a FLAC/MP3
-   track's own per-file import time, almost all of it off-main-thread Worker
-   round-trip but still serialized into the loop one file at a time. A newly
-   imported track stores with those fields unset and syncAfterImportChange()
-   kicks off thumbs.js's existing healLoudness()/healHooks() idle passes to
-   fill them in once the batch ends. */
+   the batch), and new albums sealed once per batch (SEALED spec §2). The
+   import loop also runs the BS.1770 loudness measurement (AU5,
+   docs/16_AUDIO.md §4) and the hook-detection pass (AU12, §7) right after
+   decodeAudioData, both via audio/analysis-client.js's analyzeTrack()
+   (off the main thread, in a Worker). */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
 import { ensureContext, decodeAudioFile } from '../audio/engine.js';
-import { touchLRU, decodedBytesFor, DECODE_MAX_BYTES } from '../player/buffers.js';
+import { touchLRU } from '../player/buffers.js';
 import { setQueue } from '../player/queue.js';
 import { allIdx } from './model.js';
 import { storage, tracks } from '../storage/repo.js';
 import { readHeader, readTags, readDetails, findArtworkBlob, emptyDetails } from './tags/index.js';
 import { openDuplicatesSheet } from './duplicates-ui.js';
 import { loadOverlayFor } from './edit.js';
-import { deleteTracks, formatBytes } from './delete.js';
-import { readUsage } from '../storage/usage.js';
+import { deleteTracks } from './delete.js';
 import { rebuildPeopleIndex } from './credits.js';
 import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
-import { healLoudness, healHooks } from './thumbs.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
-import { isPageImageName, isBackCoverName, groupSidecarCandidatesByAlbumFolder } from './sidecar.js';
-import { albumBackCoverIsUnset, setAlbumBackCoverImage } from '../gatefold/back-cover.js';
+import { analyzeTrack } from '../audio/analysis-client.js';
+import { isBookletPageCandidate, groupBookletCandidatesByAlbumFolder, addBookletPages } from './booklet.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -87,52 +81,20 @@ export function shouldSealOnImport(albumName, aid, isFirstImport, existingAlbumI
 export async function addFiles(list){
   const allFiles = Array.from(list).filter(f => f.size > 0);
   if(!allFiles.length) return;
-  // BD10 (docs/38_BEFORE_THE_DOMAIN.md): a sidecar back-cover image (named
-  // back/back cover/backcover/back_cover/back-cover/rear/rear cover/tray/
-  // inlay, any leading track-number prefix ignored) beside a folder
-  // import's audio files never reaches the decode loop below (it'd just
-  // fail it as "could not decode") -- pulled out first, matched to an
-  // album by shared folder once this batch's audio files are known. The
-  // plain file picker (#file, accept="audio/*,...") can never hand this
-  // any image in the first place -- only a folder pick (#folderFile, no
-  // type filter) can, so there is nothing to do for an individual-file
-  // pick (point 5 of this step).
-  const backCoverCandidates = [];
+  // GF10 (docs/29_GATEFOLD.md): sidecar booklet-page images, picked up
+  // from a folder import or a folder dropped in, never reach the audio
+  // decode loop below (they'd just fail it as "could not decode") --
+  // pulled out first, matched to an album by shared folder once this
+  // batch's audio files are known, and stored as the album's booklet.
+  const bookletCandidates = [];
   const files = allFiles.filter(f => {
-    if(!(isPageImageName(f.name) && isBackCoverName(f.name))) return true;
-    backCoverCandidates.push(f);
+    if(!isBookletPageCandidate(f.name, f.webkitRelativePath)) return true;
+    bookletCandidates.push(f);
     return false;
   });
-  if(!files.length) return;
-  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): a batch that plainly won't fit never
-  // starts at all, rather than failing file by file partway through once
-  // storage actually runs out. readUsage() returning null (unsupported)
-  // means there's nothing to check against, so the import proceeds exactly
-  // as it always has.
-  const usage = await readUsage();
-  if(usage){
-    const pickedBytes = allFiles.reduce((sum, f) => sum + (f.size || 0), 0);
-    const freeBytes = Math.max(0, usage.quota - usage.usage);
-    if(pickedBytes > freeBytes){
-      setPathNote('These files need ' + formatBytes(pickedBytes) + ' and Miziki has ' + formatBytes(freeBytes) + ' free on this device.', true);
-      return;
-    }
-  }
-  // BD10: audio file's own folder -> the album it belongs to, built up as
-  // the loop below decodes each file -- the only way to know which album
-  // a sidecar back-cover candidate's shared folder actually belongs to.
-  const folderAlbumIds = new Map();
+  if(!files.length) return;   // booklet images with no audio sibling in this batch have no album to attach to
+  const folderAlbumIds = new Map();   // audio file's own folder -> the album it belongs to
   const failed = [];
-  // BD3: stored with tags but never decoded -- too long to safely decode
-  // in the web build. Named separately from `failed` since nothing about
-  // these actually failed; they're just waiting for the native build.
-  const tooLong = [];
-  // BD5 (docs/38_BEFORE_THE_DOMAIN.md): storeTrack() returning false used
-  // to be silent -- the track still played for this session (t.stored
-  // stays false, t.blob stays in memory) but nothing said the file never
-  // actually reached disk, so it was gone the moment the tab closed with
-  // no warning at all.
-  const notSaved = [];
   // an album not already in the library when this batch starts is "new" —
   // sealed once, regardless of how many of its files land in this same
   // batch (SEALED spec §2); loose tracks have no release identity to seal
@@ -166,52 +128,41 @@ export async function addFiles(list){
       const details = readDetails(raw);
       const artBlob = findArtworkBlob(raw);
       const fileBlob = new Blob([raw], {type: f.type || 'application/octet-stream'});
-      // BD3 (docs/38_BEFORE_THE_DOMAIN.md): a file long enough to decode
-      // into an unmanageable amount of memory never reaches decodeAudioFile()
-      // at all -- only possible where the header itself gives an exact
-      // duration (FLAC/WAV today; readHeader() leaves durationSec null
-      // for every other format, so those still decode as before this
-      // step -- the native build, which streams instead of decoding
-      // whole, covers the rest).
-      await ensureContext();
-      const tooLongToDecode = meta.durationSec != null &&
-        decodedBytesFor(meta.durationSec, meta.ch || 2, S.ctx.sampleRate) > DECODE_MAX_BYTES;
       // AU3 (docs/16_AUDIO.md §2.3): the context is created once, at the
       // device's own fixed rate — decodeAudioData resamples to it
       // regardless of the file's own rate, so there's no rate to pass here.
       // Decoded on a disposable OfflineAudioContext, not the live S.ctx, so
       // a big import batch can't contend with whatever is already playing
       // — see decodeAudioFile()'s own comment.
-      const buffer = tooLongToDecode ? null : await decodeAudioFile(raw);
+      const buffer = await decodeAudioFile(raw);
       // Encoder delay/padding sample counts are expressed at the file's own
       // native rate — converting to seconds here keeps everything else
       // (t.duration, startSource's offsets) rate-independent. Lossless
       // formats and files with no/malformed gapless tag get zero trim,
-      // which is exactly standard playback (see PLAYBACK spec §1). A file
-      // too long to decode has no buffer to trim against, so its duration
-      // is the header's own, untrimmed.
-      const gaplessRate = meta.rate || (buffer && buffer.sampleRate);
-      const gaplessDelaySec = (!tooLongToDecode && meta.gapless) ? meta.gapless.delay / gaplessRate : 0;
-      const gaplessPaddingSec = (!tooLongToDecode && meta.gapless) ? meta.gapless.padding / gaplessRate : 0;
-      const trimmedDuration = buffer
-        ? Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec)
-        : (meta.durationSec || 0);
-      // BD4 (docs/38_BEFORE_THE_DOMAIN.md): loudness/hook measurement (AU5,
-      // docs/16_AUDIO.md §4; AU12, §7) no longer happens inline here — it's
-      // 85-90% of a track's own import time (measured in that plan's own
-      // BD4 section) and was serializing the whole analysis worker
-      // round-trip into the per-file loop. details.loudness/hookStart/
-      // hookEnd are simply left unset, the same "absent means unknown"
-      // posture every optional details field already has (and the same
-      // posture a track too long to decode already took before this step);
-      // syncAfterImportChange() below starts the existing healLoudness()/
-      // healHooks() idle passes once the batch ends to fill them in.
-      if(!buffer) tooLong.push(f.name);
-      const dup = findDuplicateTrack(tags, trimmedDuration || (buffer && buffer.duration) || 0);
+      // which is exactly standard playback (see PLAYBACK spec §1).
+      const gaplessRate = meta.rate || buffer.sampleRate;
+      const gaplessDelaySec = meta.gapless ? meta.gapless.delay / gaplessRate : 0;
+      const gaplessPaddingSec = meta.gapless ? meta.gapless.padding / gaplessRate : 0;
+      const trimmedDuration = Math.max(0, buffer.duration - gaplessDelaySec - gaplessPaddingSec);
+      // AU5 (docs/16_AUDIO.md §4)/AU12 (§7): "Import already decodes every
+      // file, so compute BS.1770 integrated loudness and true peak there"
+      // / "find each track's most-repeated section" — one round trip to
+      // the analysis worker (PL6 item 1) computes both from the same
+      // decode, off the main thread. detectHook()'s own result is null
+      // for anything too short for a meaningful 8-30s repeat (or with no
+      // clear one at all) — hookStart/hookEnd are simply left unset on
+      // details, the same "absent means unknown" posture every other
+      // optional details field already has.
+      const channels = [];
+      for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
+      const analysis = await analyzeTrack(channels, buffer.sampleRate);
+      details.loudness = analysis.loudness;
+      if(analysis.hook){ details.hookStart = analysis.hook.hookStart; details.hookEnd = analysis.hook.hookEnd; }
+      const dup = findDuplicateTrack(tags, trimmedDuration || buffer.duration);
       if(dup){
         // The matched existing track is already in the library, so the
-        // album it belongs to is never "new" -- BD10's folder->album
-        // back-cover mapping doesn't need to wait on Keep/Replace/Skip
+        // album it belongs to is never "new" -- GF10's folder->album
+        // booklet mapping doesn't need to wait on Keep/Replace/Skip
         // either way, so it's recorded now same as a normal track's own.
         const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
         folderAlbumIds.set(dir, albumKey({tags}));
@@ -222,10 +173,10 @@ export async function addFiles(list){
           // its own t.meta -- finishDuplicateTrack() uses this as-is.
           meta: {
             codec: meta.codec || 'Audio',
-            rate: meta.rate || (buffer && buffer.sampleRate) || null,
+            rate: meta.rate || buffer.sampleRate,
             bits: meta.bits || null,
             lossless: meta.lossless === true,
-            ch: meta.ch || (buffer && buffer.numberOfChannels) || null,
+            ch: meta.ch || buffer.numberOfChannels,
           },
         });
         continue;
@@ -233,21 +184,21 @@ export async function addFiles(list){
       const t = {
         id, addedAt: Date.now(),
         name: tags.title, tags, details, buffer,
-        duration: trimmedDuration || (buffer && buffer.duration) || 0,
+        duration: trimmedDuration || buffer.duration,
         gaplessDelaySec, gaplessPaddingSec, sizeBytes: raw.byteLength,
         art: artBlob ? URL.createObjectURL(artBlob) : null,
         artBlob, blob: fileBlob, stored: false,
         meta: {
           codec: meta.codec || 'Audio',
-          rate: meta.rate || (buffer && buffer.sampleRate) || null,
+          rate: meta.rate || buffer.sampleRate,
           bits: meta.bits || null,
           lossless: meta.lossless === true,
-          ch: meta.ch || (buffer && buffer.numberOfChannels) || null
+          ch: meta.ch || buffer.numberOfChannels
         }
       };
       await loadOverlayFor(t);
       S.tracks.push(t);
-      if(buffer) touchLRU(S.tracks.length - 1);
+      touchLRU(S.tracks.length - 1);
       // a backed-up edit/playlist entry that arrived (via sync) before this
       // exact file ever did ("music re-added later") waits by identity key
       // until this moment to attach
@@ -255,10 +206,11 @@ export async function addFiles(list){
       {
         const aid = albumKey(t);
         if(shouldSealOnImport(tags.album, aid, isFirstImport, existingAlbumIds)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
-        // BD10: this file's own folder (dirname of its webkitRelativePath,
-        // '' for a flat pick) is where a sidecar back-cover image would
-        // live, so the back-cover group keyed by that same folder belongs
-        // to this track's album.
+        // GF10: this file's own folder (dirname of its webkitRelativePath,
+        // '' for a flat pick) is where a sidecar booklet/scans/artwork
+        // subfolder -- or a booklet-prefixed page right beside it -- would
+        // live, so the booklet group keyed by that same folder belongs to
+        // this track's album.
         const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
         folderAlbumIds.set(dir, aid);
       }
@@ -266,8 +218,6 @@ export async function addFiles(list){
         t.stored = true;
         t.blob = null;            // it lives on disk now; no need to hold it in memory
         t.artBlob = null;
-      } else {
-        notSaved.push(f.name);
       }
     }catch(_err){
       // one bad file should never stop the rest of the batch — note it and
@@ -275,15 +225,11 @@ export async function addFiles(list){
       failed.push(f.name);
     }
   }
-  await storeBackCoverCandidates(backCoverCandidates, folderAlbumIds);
+  await storeBookletCandidates(bookletCandidates, folderAlbumIds);
   syncAfterImportChange();
-  if(failed.length || tooLong.length || notSaved.length){
-    let note = 'Imported ' + (files.length - failed.length - tooLong.length) + ' of ' + files.length + '.';
-    if(failed.length) note += ' Could not decode: ' + failed.join(', ')
-      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.';
-    if(tooLong.length) note += ' Too long to play in the web version of Miziki: ' + tooLong.join(', ') + '.';
-    if(notSaved.length) note += ' Not saved: ' + notSaved.join(', ') + '.';
-    setPathNote(note, true);
+  if(failed.length){
+    setPathNote('Imported ' + (files.length - failed.length) + ' of ' + files.length + '. Could not decode: ' + failed.join(', ')
+      + '. This browser may not support that format — WAV works everywhere, and FLAC works in Safari and Chrome.', true);
   } else {
     setPathNote();
   }
@@ -309,35 +255,7 @@ function syncAfterImportChange(){
   persistSealedAlbums();
   MizikiSocial.libraryChanged();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
-  // BD4: fills in the loudness/hook fields this batch's own loop left
-  // unset — same idle passes restoreLibrary() already runs at boot,
-  // already resumable and already gated on t.stored && t.details.
-  healLoudness().catch(() => {});
-  healHooks().catch(() => {});
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
-}
-
-// BD10 (docs/38_BEFORE_THE_DOMAIN.md): matches this batch's own sidecar
-// back-cover candidates to the album(s) they sat beside, same by-folder
-// grouping booklet pages used to use (sidecar.js, moved there by BD9 for
-// exactly this). An album that already has a back cover -- a photo, or a
-// deliberate "Use Miziki default" tombstone -- is left alone (point 4);
-// several same-folder candidates pick the largest file, on the theory
-// that a scanned back cover is rarely the smallest image in its own
-// folder. Auto-detected, so setAlbumBackCoverImage() is told never to
-// claim or upload it (point 3).
-async function storeBackCoverCandidates(candidates, folderAlbumIds){
-  if(!candidates.length) return;
-  const groups = groupSidecarCandidatesByAlbumFolder(candidates.map(f => ({
-    name: f.name, relativePath: f.webkitRelativePath, file: f,
-  })));
-  for(const [folder, group] of groups){
-    const albumId = folderAlbumIds.get(folder);
-    if(!albumId) continue;
-    if(!(await albumBackCoverIsUnset(albumId))) continue;
-    const largest = group.reduce((a, b) => (b.file.size > a.file.size ? b : a));
-    await setAlbumBackCoverImage(albumId, largest.file, { autoDetected: true });
-  }
 }
 
 // Finishes exactly what addFiles()'s own loop would have done for a
@@ -354,7 +272,7 @@ async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumId
   const t = {
     id: item.id, addedAt: Date.now(),
     name: item.tags.title, tags: item.tags, details: item.details, buffer: item.buffer,
-    duration: item.trimmedDuration || (item.buffer && item.buffer.duration) || 0,
+    duration: item.trimmedDuration || item.buffer.duration,
     gaplessDelaySec: item.gaplessDelaySec, gaplessPaddingSec: item.gaplessPaddingSec, sizeBytes: item.sizeBytes,
     art: item.artBlob ? URL.createObjectURL(item.artBlob) : null,
     artBlob: item.artBlob, blob: item.fileBlob, stored: false,
@@ -362,7 +280,7 @@ async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumId
   };
   await loadOverlayFor(t);
   S.tracks.push(t);
-  if(t.buffer) touchLRU(S.tracks.length - 1);
+  touchLRU(S.tracks.length - 1);
   reconcileImportedTrack(t);
   const aid = albumKey(t);
   // Always a no-op in practice: `aid` was already in existingAlbumIds
@@ -375,6 +293,22 @@ async function finishDuplicateTrack(item, choice, isFirstImport, existingAlbumId
     t.stored = true;
     t.blob = null;
     t.artBlob = null;
+  }
+}
+
+// GF10: matches each booklet-candidate group (by its shared folder) to
+// the album whose audio files landed in that same folder this batch, and
+// appends its pages in file-name order. A group with no matching folder
+// (its audio siblings weren't part of this import, or there were none)
+// is silently left unattached — nothing in this batch knows which album
+// it belongs to.
+async function storeBookletCandidates(candidates, folderAlbumIds){
+  if(!candidates.length) return;
+  const groups = groupBookletCandidatesByAlbumFolder(candidates.map(f => ({ name: f.name, relativePath: f.webkitRelativePath, file: f })));
+  for(const [folder, group] of groups){
+    const albumId = folderAlbumIds.get(folder);
+    if(!albumId) continue;
+    await addBookletPages(albumId, group.map(c => c.file));
   }
 }
 

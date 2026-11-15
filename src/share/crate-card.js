@@ -1,0 +1,255 @@
+import { S } from '../state.js';
+import { topAlbums, topTracks } from '../history/achievements.js';
+import {
+  SHARE_FORMATS, shareFitText, shareSwatchGradient, loadImageEl, drawCover,
+  roundRectPath, resolveShareStyle, drawDiagonalWordmark, drawShareFooter,
+} from './styles.js';
+
+// Ken's 2026-10-30 ask: the "staff pick" sticker TY6 named as deferred
+// ("doesn't exist yet, new-art work out of scope for a type PR"). Local
+// staff-pick state is MizikiSocial's own pin list (crate/model.js's
+// localStaffPickIds() reads the same X.state.pins) -- reached as the real
+// global per the established "never import MizikiSocial, check typeof
+// first" pattern (crate/model.js, library/credits.js), since this file
+// stays DOM-free/pure like the rest of share/*.js and crate/model.js isn't
+// a dependency any share card needs for anything else.
+function topAlbumIsStaffPick(albumId){
+  if(typeof MizikiSocial === 'undefined' || !MizikiSocial.getPins) return false;
+  try{ return MizikiSocial.getPins().includes(albumId); }catch(_e){ return false; }
+}
+
+// Matches the DOM sticker kit's "staff pick" family (10-crate.css's
+// .crate-sticker-new/-friends, 12-sealed-records.css's .seal-sticker):
+// Caveat 700 on --stock-manila, rotated within the shared -4deg..+3deg
+// range. Drawn on canvas rather than styled with those classes since a
+// share card has no DOM to attach them to.
+function drawStaffPickSticker(ctx, heroX, heroY, heroW, w){
+  const fontPx = Math.round(w*0.026);
+  const text = 'Staff pick';
+  ctx.save();
+  ctx.font = '700 ' + fontPx + 'px Caveat, cursive';
+  const padX = Math.round(w*0.014), padY = Math.round(w*0.008);
+  const textW = ctx.measureText(text).width;
+  const boxW = textW + padX*2, boxH = fontPx + padY*2;
+  // top right of the hero, inset the way .seal-sticker insets from its
+  // own sleeve face (top:10%;right:6%)
+  const cx = heroX + heroW - Math.round(heroW*0.06) - boxW/2;
+  const cy = heroY + Math.round(heroW*0.10) + boxH/2;
+  ctx.translate(cx, cy);
+  ctx.rotate(-3 * Math.PI / 180);
+  ctx.fillStyle = '#E8D9A8';   // --stock-manila
+  roundRectPath(ctx, -boxW/2, -boxH/2, boxW, boxH, 3);
+  ctx.fill();
+  ctx.fillStyle = '#2A1B38';   // the sticker kit's own ink
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 1);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+/* ---- My Crate card (composeShareImage) — avatar/name, hero = top
+   record, a grid of the next covers, top songs, the shared footer
+   (styles.js's drawShareFooter). SH5 (docs/18_SHARE.md) dropped the
+   metals/collection/rhythm sections this card used to also carry -- that's
+   the profile's own Listening screen and share/season-card.js's job now,
+   not every crate share. FS8 (docs/25_FROM_SCRATCH.md point 5) dropped
+   the "N RECORDS · N TRACKS"/session-count figures too (no counts, QC2).
+   `opts`: {style, format, sections}. Pure: no DOM reads, only the same
+   state-reading anchors the original drew from (topAlbums/topTracks/
+   S.profile/S.tracks). ---- */
+export async function composeShareImage(opts){
+  const style = opts.style || 'night', format = opts.format || 'square';
+  const sections = opts.sections || {};
+  const dim = SHARE_FORMATS[format] || SHARE_FORMATS.square;
+  const w = dim.w, h = dim.h;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  try{ await document.fonts.ready; }catch(_e){} // Font Loading API unavailable/rejects -- expected, not logged
+
+  const topAlbum = topAlbums(1)[0];
+  const kit = await resolveShareStyle(style, topAlbum && topAlbum.display.art);
+  kit.paintBg(ctx, w, h);
+
+  const pad = Math.round(w*0.055);
+  const topY = dim.safeTop, bottomY = dim.safeBottom;
+  const twoCol = format !== 'story';
+
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  // header: avatar, name (if on), album/track counts
+  const avSize = Math.round(w*0.075);
+  const avX = pad, avY = topY;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(avX+avSize/2, avY+avSize/2, avSize/2, 0, Math.PI*2); ctx.clip();
+  let drewAvatar = false;
+  if(S.profile.art){
+    try{ const img = await loadImageEl(S.profile.art); drawCover(ctx, img, avX, avY, avSize, avSize); drewAvatar = true; }catch(_e){} // broken/missing avatar image -- expected, falls back to drewAvatar staying false
+  }
+  if(!drewAvatar){
+    ctx.fillStyle = shareSwatchGradient(ctx, avX+avSize/2, avY+avSize/2, avSize/2, ['#3E8E7E','#245048','#122623']);
+    ctx.fillRect(avX, avY, avSize, avSize);
+    if(S.profile.name){
+      ctx.fillStyle = kit.name === 'paper' ? '#EDE6D6' : '#EFE9DF';
+      ctx.font = '600 ' + Math.round(avSize*0.42) + 'px Archivo, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(S.profile.name[0].toUpperCase(), avX+avSize/2, avY+avSize/2+1);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+  }
+  ctx.restore();
+
+  const showName = sections.name !== false && !!S.profile.name;
+  // FS8 (docs/25_FROM_SCRATCH.md point 5): "no counts" -- the old
+  // "N RECORDS · N TRACKS" line is dropped, same QC2 rule the Pressings
+  // and Season cards already follow.
+  const textX = avX + avSize + Math.round(w*0.025);
+  const headName = showName ? S.profile.name.toUpperCase() + "'S CRATE" : 'MY CRATE';
+  ctx.font = '700 ' + Math.round(w*0.042) + 'px Antonio, sans-serif';
+  ctx.fillStyle = kit.ink;
+  ctx.fillText(shareFitText(ctx, headName, w - textX - pad), textX, avY + avSize*0.5);
+
+  let y = avY + avSize + Math.round(h*0.04);
+  const heroW = twoCol ? Math.round(w*0.42) : Math.round(w*0.46);
+  const heroX = twoCol ? pad : Math.round((w-heroW)/2);
+  const heroH = heroW;
+
+  if(topAlbum){
+    if(topAlbum.display.art){
+      try{ const img = await loadImageEl(topAlbum.display.art); ctx.save(); roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.clip(); drawCover(ctx, img, heroX, y, heroW, heroH); ctx.restore(); }
+      catch(_e){ await drawDiagonalWordmark(ctx, heroX, y, heroW); }
+    } else await drawDiagonalWordmark(ctx, heroX, y, heroW);
+  } else {
+    ctx.fillStyle = kit.chipBg; roundRectPath(ctx, heroX, y, heroW, heroH, 6); ctx.fill();
+  }
+  if(topAlbum && topAlbumIsStaffPick(topAlbum.albumId)){
+    drawStaffPickSticker(ctx, heroX, y, heroW, w);
+  }
+
+  if(twoCol){
+    // 2x2 grid of the next top covers, to the right of the hero
+    const gridX = heroX + heroW + Math.round(w*0.03);
+    const gridW = w - pad - gridX;
+    const cell = (gridW - Math.round(w*0.02)) / 2;
+    const nextAlbums = topAlbums(5).slice(1, 5);
+    for(let i = 0; i < 4; i++){
+      const cx = gridX + (i%2)*(cell + Math.round(w*0.02));
+      const cy = y + Math.floor(i/2)*(cell + Math.round(w*0.02));
+      const a = nextAlbums[i];
+      if(a && a.display.art){
+        try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, cy, cell, cell); ctx.restore(); }
+        catch(_e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill(); }
+      } else {
+        ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, cy, cell, cell, 5); ctx.fill();
+        if(a){
+          ctx.fillStyle = kit.sub; ctx.font = '600 20px "IBM Plex Mono", monospace';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(shareFitText(ctx, a.display.name, cell-16), cx+cell/2, cy+cell/2);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        }
+      }
+    }
+    y += heroH + Math.round(h*0.035);
+  } else {
+    // single column: a plain row of the next covers beneath the hero
+    y += heroH + Math.round(h*0.03);
+    const nextAlbums = topAlbums(5).slice(1, 5);
+    if(nextAlbums.length){
+      const cell = Math.round((w - pad*2 - (nextAlbums.length-1)*Math.round(w*0.025)) / 4);
+      let cx = pad;
+      for(const a of nextAlbums){
+        if(a.display.art){
+          try{ const img = await loadImageEl(a.display.art); ctx.save(); roundRectPath(ctx, cx, y, cell, cell, 5); ctx.clip(); drawCover(ctx, img, cx, y, cell, cell); ctx.restore(); }
+          catch(_e){ ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
+        } else { ctx.fillStyle = kit.chipBg; roundRectPath(ctx, cx, y, cell, cell, 5); ctx.fill(); }
+        cx += cell + Math.round(w*0.025);
+      }
+      y += cell + Math.round(h*0.03);
+    }
+  }
+
+  // TY6: the kicker is Archivo caps --track-caps, not mono.
+  ctx.font = '700 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
+  ctx.fillStyle = kit.accent;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+  ctx.fillText('01 · TOP ALBUM', twoCol ? heroX : pad, y);
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  y += Math.round(w*0.04);
+  ctx.font = '700 ' + Math.round(w*0.04) + 'px Archivo, sans-serif';
+  ctx.fillStyle = kit.ink;
+  ctx.fillText(shareFitText(ctx, topAlbum ? topAlbum.display.name : 'Nothing yet', w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
+  y += Math.round(w*0.034);
+  ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif';
+  ctx.fillStyle = kit.sub;
+  // FS8 point 5: no counts -- the session-count figure is dropped.
+  const subLine = topAlbum ? topAlbum.display.artist : '';
+  ctx.fillText(shareFitText(ctx, subLine, w - pad - (twoCol?heroX:pad)), twoCol ? heroX : pad, y);
+  y += Math.round(h*(twoCol ? 0.05 : 0.03));
+
+  // SH5 item 4/5: metals, collection and the rhythm chip are gone -- TOP
+  // SONGS is now the one thing below the album block, full width, so it
+  // can run all the way down to the bottom padding (item 5's own reason
+  // the wordmark moved off-centre).
+  const leftX = pad, colW = w - pad*2;
+  let leftY = y;
+
+  if(sections.songs !== false){
+    // TY6: the kicker is Archivo caps --track-caps, not mono.
+    ctx.font = '700 ' + Math.round(w*0.019) + 'px Archivo, sans-serif';
+    ctx.fillStyle = kit.accent;
+    if('letterSpacing' in ctx) ctx.letterSpacing = '.08em';
+    ctx.fillText('TOP SONGS', leftX, leftY);
+    if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    leftY += Math.round(w*0.036);
+    // SH5 item 3: three rows in Square, five in Story -- matching the
+    // design README's own "Three rows in Square, five in Story" line for
+    // this section (portrait had no board of its own and was dropped in
+    // WS4). Also capped by whatever vertical space is actually left above
+    // the footer, for a crowded collection.
+    const rowH = Math.round(w*0.042), footerReserve = 64;
+    const songRows = Math.min(format === 'story' ? 5 : 3, Math.max(0, Math.floor((bottomY - footerReserve - leftY) / rowH) + 1));
+    const list = topTracks(songRows);
+    if(list.length){
+      list.forEach((t, i) => {
+        // rank in the accent colour, mono -- its own font/colour, never
+        // the title's, which the pre-SH5 code drew both in together
+        ctx.font = '600 ' + Math.round(w*0.016) + 'px "IBM Plex Mono", monospace';
+        ctx.fillStyle = kit.accent;
+        const rankStr = String(i+1).padStart(2,'0');
+        ctx.fillText(rankStr, leftX, leftY);
+        const rankW = ctx.measureText(rankStr).width + Math.round(w*0.014);
+
+        // the artist sub never wraps and never grows past 40% of the row
+        // (README: "max 40% of the row, never wrapping") -- reserved
+        // first so the title's own available width already accounts for it
+        const subMaxW = colW * 0.4;
+        ctx.font = '400 ' + Math.round(w*0.02) + 'px Archivo, sans-serif';
+        const subText = '· ' + t.artist;
+
+        ctx.font = '600 ' + Math.round(w*0.027) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.ink;
+        const titleAvailW = Math.max(20, colW - rankW - subMaxW - Math.round(w*0.012));
+        const titleText = shareFitText(ctx, t.title, titleAvailW);
+        ctx.fillText(titleText, leftX + rankW, leftY);
+        const titleW = ctx.measureText(titleText).width;
+
+        ctx.font = '400 ' + Math.round(w*0.02) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+        const subX = leftX + rankW + titleW + Math.round(w*0.012);
+        const subAvailW = Math.min(subMaxW, Math.max(10, leftX + colW - subX));
+        ctx.fillText(shareFitText(ctx, subText, subAvailW), subX, leftY);
+
+        leftY += Math.round(w*0.042);
+      });
+    } else {
+      ctx.font = '400 ' + Math.round(w*0.024) + 'px Archivo, sans-serif'; ctx.fillStyle = kit.sub;
+      ctx.fillText('Nothing in the sleeve yet.', leftX, leftY);
+      leftY += Math.round(w*0.04);
+    }
+  }
+
+  // FS8 (docs/25_FROM_SCRATCH.md point 1/5): the shared footer every card
+  // now draws, wordmark bottom-left + "from the crate of NAME" bottom-right.
+  const markY = Math.min(Math.max(leftY, Math.round(h*0.02)) + Math.round(h*0.03), bottomY);
+  await drawShareFooter(ctx, kit, w, pad, markY, showName ? S.profile.name : null);
+
+  return canvas;
+}

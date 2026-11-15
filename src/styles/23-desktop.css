@@ -506,6 +506,7 @@
      button above (order:21) */
   .store-section-digging{grid-column:1;order:21}
 
+  .profile-share-stack{grid-column:1/-1;order:40}
   /* the local-only storefront's own closing note ("This is a local
      preview...") — a direct child of .store-host, so the child
      combinator still matches it correctly even though .store-host
