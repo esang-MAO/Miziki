@@ -198,28 +198,3 @@ test('put/get/all/del/clear round-trip, including storing and reading back a Blo
 
   DB.db.close();
 });
-
-// BD9 (docs/38_BEFORE_THE_DOMAIN.md point 3): the booklet viewer is gone,
-// but a device that had booklet pages before this PR keeps them, unread,
-// in rows keyed 'booklet:<albumId>:<NNNN>' -- no IndexedDB version bump,
-// no migration. This proves the artwork store still opens and reads a
-// custom cover row exactly as before with leftover booklet rows sitting
-// alongside it.
-test('artwork store: opens and reads a custom cover row with leftover booklet rows alongside it', async () => {
-  freshIndexedDB();
-  resetDB();
-  await DB.open();
-
-  await DB.put('artwork', { id: 'booklet:al1:0000', blob: new Blob(['page0'], { type: 'image/jpeg' }) });
-  await DB.put('artwork', { id: 'booklet:al1:0001', blob: new Blob(['page1'], { type: 'image/jpeg' }) });
-  await DB.put('artwork', { id: 'cover:al1', blob: new Blob(['cover'], { type: 'image/jpeg' }) });
-
-  const cover = await DB.get('artwork', 'cover:al1');
-  assert.ok(cover.blob instanceof Blob);
-  assert.equal(await cover.blob.text(), 'cover');
-
-  const all = await DB.all('artwork');
-  assert.equal(all.length, 3);
-
-  DB.db.close();
-});

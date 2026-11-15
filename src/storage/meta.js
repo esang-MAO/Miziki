@@ -193,8 +193,7 @@ function applyPrefs(p){
     || p.shelfFinish === 'ash' || p.shelfFinish === 'black') S.shelfFinish = p.shelfFinish;
   // ST4: same no-UI-side-effect posture as shelfFinish just above -- the
   // shelf unit reads S.turntable fresh via displayTurntable() every render.
-  // Eleven ids (BD8 removed Suitcase; a saved 'suitcase' just falls out).
-  if(['standard', 'console', 'linear', 'deck', 'clear', 'broadcast',
+  if(['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast',
     'upright', 'radiogram', 'slate', 'lathe', 'horn'].includes(p.turntable)) S.turntable = p.turntable;
   // DA2: no dedicated UI side effect call of its own the way bgAudio/
   // launchIntro have above — just sync the segmented control's own

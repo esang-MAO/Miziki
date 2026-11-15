@@ -10,13 +10,14 @@ import {
   currentGatefoldAlbumId, refreshGatefoldBackCover,
   saveLinerEditSheet, revertLinerEditSheet,
   openGatefoldMoreMenu, isGatefoldMoreMenuOpen,
-  gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
+  gatefoldMoreMenuShare, gatefoldMoreMenuPin, gatefoldMoreMenuTrackOrder, gatefoldMoreMenuRemoveAlbum,
   gatefoldMoreMenuKeepFor, gatefoldKeepForPick, gatefoldMoreMenuSelect, gatefoldMoreMenuLook,
   gatefoldPlayRecord,
 } from '../gatefold/view.js';
 import { cropSquareImage } from '../library/edit.js';
 import { setAlbumBackCoverImage, clearAlbumBackCoverImage } from '../gatefold/back-cover.js';
 import { toggleSealedFrontTurnedOver, commitPeel } from '../gatefold/sealed-front.js';
+import { handleBookletAddFileChange } from '../gatefold/booklet.js';
 import { closeLayer } from '../shell/nav-stack.js';
 
 async function handleGfBackCoverFile(e){
@@ -77,15 +78,26 @@ export function wireGatefold(){
   // per-row ids" shape UN3 gave library/view.js's row menu -- nothing
   // left here to wire.
 
+  // GF10 (docs/29_GATEFOLD.md): the booklet viewer's own Done button --
+  // opened from buildBookletRow() (src/gatefold/view.js) -- plus the
+  // hidden file input "Add booklet pages…" opens via
+  // openAddBookletPagesPicker() (src/gatefold/booklet.js).
+  $('#bookletDoneBtn').addEventListener('click', () => closeLayer('booklet-viewer'));
+  $('#bookletAddFile').addEventListener('change', e => {
+    const files = e.target.files;
+    e.target.value = '';
+    handleBookletAddFileChange(files);
+  });
+
   // GF11 (docs/29_GATEFOLD.md), generalized by GF12 into an always-present
   // "record options" menu, then GF14: its opener (#gfMoreBtn) became a
   // fixed top-corner button, same static-control wiring as every other
   // gatefold control here, instead of being rebuilt into the info block
-  // every open. Pin/Keep for…/Track order/Select/Remove album all show
-  // every time now, day or night. BD11 (docs/38_BEFORE_THE_DOMAIN.md)
-  // removed the row above Pin — Share record.
+  // every open. Share/Pin/Keep for…/Track order/Select/Remove album all
+  // show every time now, day or night.
   $('#gfMoreBtn').addEventListener('click', () => isGatefoldMoreMenuOpen() ? closeLayer('gf-more-menu') : openGatefoldMoreMenu());
   $('#gfMoreMenuScrim').addEventListener('click', () => closeLayer('gf-more-menu'));
+  $('#gfMoreShareBtn').addEventListener('click', gatefoldMoreMenuShare);
   $('#gfMorePinBtn').addEventListener('click', gatefoldMoreMenuPin);
   $('#gfMoreKeepForBtn').addEventListener('click', gatefoldMoreMenuKeepFor);
   $('#gfMoreLookBtn').addEventListener('click', gatefoldMoreMenuLook);

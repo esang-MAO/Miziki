@@ -33,7 +33,7 @@ const KNOWN_PREF_KEYS = new Set([
   'slipmatCustom', 'slipmatWordmark', 'slipmatDim',
   'paperLabelOnLossy',
   'surfaceNoise', 'surfaceNoiseUnderMusic',
-  'autoFlip', 'nightPitch', 'stopAtTurns', 'seasonalSky', 'showWear', 'sundownExplained',
+  'autoFlip', 'nightPitch', 'stopAtTurns', 'seasonalSky', 'showWear',
   'loudnessMode',
   'eq',
   'mono', 'balance', 'deviceVolume',
@@ -86,7 +86,6 @@ export function serializePrefs(S){
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     nightPitch: S.nightPitch,
-    sundownExplained: S.sundownExplained,
     stopAtTurns: S.stopAtTurns,
     seasonalSky: S.seasonalSky,
     showWear: S.showWear,
@@ -188,11 +187,6 @@ export function parsePrefs(raw){
   // device before this PR) loads as 'slowed', the stated default and
   // today's behavior.
   if(p.nightPitch === 'slowed' || p.nightPitch === 'true') out.nightPitch = p.nightPitch;
-  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): a saved object without this (every
-  // device before this PR) loads as false, the stated default -- the line
-  // shows once more, which is harmless (it's gated on "not yet explained",
-  // not a one-time-ever guarantee across a version boundary).
-  if(typeof p.sundownExplained === 'boolean') out.sundownExplained = p.sundownExplained;
   // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
   // device before this PR) loads as off, the stated default.
   if(typeof p.stopAtTurns === 'boolean') out.stopAtTurns = p.stopAtTurns;
@@ -273,14 +267,11 @@ export function parsePrefs(raw){
   if(p.shelfFinish === 'walnut' || p.shelfFinish === 'oak' || p.shelfFinish === 'teak'
     || p.shelfFinish === 'ash' || p.shelfFinish === 'black') out.shelfFinish = p.shelfFinish;
   // ST4: a saved object without this loads as 'standard', the stated
-  // default. The eleven ids (BD8, docs/38_BEFORE_THE_DOMAIN.md, removed
-  // Suitcase) are duplicated here rather than imported from
+  // default. The twelve ids are duplicated here rather than imported from
   // src/profile/turntable.js (this module stays a leaf, same reasoning as
   // mono/balance's clamps above) -- found/Deluxe gating is applied at
-  // display time (turntable.js's displayTurntable()), not here. A saved
-  // 'suitcase' from before this PR simply falls through to the default,
-  // same as any other unknown value.
-  if(['standard', 'console', 'linear', 'deck', 'clear', 'broadcast',
+  // display time (turntable.js's displayTurntable()), not here.
+  if(['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast',
     'upright', 'radiogram', 'slate', 'lathe', 'horn'].includes(p.turntable)) out.turntable = p.turntable;
   // repeat/shuffle: applyPrefs decides what to do with these against the
   // *current* S.repeat/S.shuffle at apply time (cycling toward a saved

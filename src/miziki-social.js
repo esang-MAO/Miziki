@@ -1034,7 +1034,7 @@ const loadProfile = handle => guarded(async () => {
   const canView = isMe || profile.visibility === 'public' || rel.following === 'accepted';
   const out = { ok: true, profile, relationship: rel, isMe, canView, labelColor: labelColor(profile.handle) };
   if (!canView) return out;
-  const [summary, picks, spinning, fresh, inCommonRows, follows, rhythm] = await Promise.all([
+  const [summary, picks, spinning, fresh, inCommonRows, follows, rhythm, held] = await Promise.all([
     rpc('profile_summary', { p_user: profile.id }),
     rpc('crate_page', { p_user: profile.id, p_offset: 0, p_limit: 8, p_pinned_only: true }),
     q(X.sb.from('now_spinning').select('track_title, started_at, expires_at, phase, releases(title, artist)')
@@ -1056,9 +1056,14 @@ const loadProfile = handle => guarded(async () => {
     // regardless — it comes back null for anyone who shouldn't see it,
     // or for an owner who never shared one, same "absent, not denied"
     // shape as everything else in this function.
-    rpc('get_listening_rhythm', { p_user: profile.id })
+    rpc('get_listening_rhythm', { p_user: profile.id }),
+    // GS11: what this one friend has set aside for the signed-in user.
+    // RLS (held_records_select) already limits held_for_me() to rows
+    // where to_user = auth.uid(), so this is never anyone else's.
+    isMe ? Promise.resolve([]) : rpc('held_for_me', { p_from: profile.id })
   ]);
   out.listeningRhythm = rhythm || null;
+  out.heldForYou = held || [];
   out.summary = (summary && summary[0]) || { records: 0, pins: 0, in_common: 0 };
   if (isMe) {
     const f = (follows && follows[0]) || { followers: 0, following: 0 };
@@ -1190,20 +1195,49 @@ const setCountInStickers = on => guarded(async () => {
   return { ok: true };
 });
 
-/* ---- friends' current discs: a plain read, polled on tab-open and
-   pull-to-refresh (BD7, docs/38_BEFORE_THE_DOMAIN.md) -- no realtime
-   socket. Same RLS row (spinning_select, 001_schema.sql) the old
-   subscription relied on, just read directly instead of pushed; the
-   .in() filter narrows to who's actually being asked about rather than
-   leaning on RLS alone to do it. */
-const nowSpinningForFriends = userIds => guarded(async () => {
-  const ids = Array.from(new Set((userIds || []).filter(Boolean)));
-  if (!ids.length) return { ok: true, spinning: [] };
-  const rows = await q(X.sb.from('now_spinning')
-    .select('user_id, track_title, phase, releases(title, artist)')
-    .in('user_id', ids).gt('expires_at', new Date().toISOString()));
-  return { ok: true, spinning: (rows || []).map(r => ({ userId: r.user_id, track: r.track_title, phase: r.phase, release: r.releases || null })) };
+/* ---- held for you (GS11, docs/30_GROOVES_AND_SHELF.md) ---- */
+// "Set aside for [name]": up to 3 of this device's own crate records,
+// by release_key -- the server (held_records_before_insert, migration
+// 025) re-checks mutual-follow/not-blocked/actually-owns-them, so this
+// is a plain insert, not an RPC.
+const setAside = (toUserId, releaseKeys, note) => guarded(async () => {
+  const keys = Array.from(new Set((releaseKeys || []).filter(Boolean))).slice(0, 3);
+  if (!keys.length) return fail('bad_keys', 'Pick at least one record.');
+  await q(X.sb.from('held_records')
+    .insert({ from_user: X.userId, to_user: toUserId, release_ids: keys, note: cleanNote(note) }));
+  return { ok: true };
 });
+// p_from omitted = "held for you" across everyone; a friend's crate page
+// narrows to what that one friend has held.
+const heldForMe = fromUserId => guarded(async () => ({
+  ok: true, holds: (await rpc('held_for_me', { p_from: fromUserId || null })) || []
+}));
+const handBack = (holdId, releaseKey) => guarded(async () => {
+  await rpc('hand_back', { p_hold_id: holdId, p_release_key: releaseKey });
+  return { ok: true };
+});
+
+/* ---- realtime: friends' discs appear as they start spinning ---- */
+async function releaseInfo(id) {
+  if (X.releaseCache.has(id)) return X.releaseCache.get(id);
+  const r = await q(X.sb.from('releases').select('id, title, artist, year').eq('id', id).maybeSingle());
+  if (r) X.releaseCache.set(id, r);
+  return r;
+}
+function subscribeNowSpinning(cb) {
+  if (!X.enabled) return () => {};
+  const ch = X.sb.channel('miziki-now-spinning')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'now_spinning' }, async payload => {
+      try {
+        if (payload.eventType === 'DELETE') { cb({ type: 'stopped', userId: payload.old && payload.old.user_id }); return; }
+        const row = payload.new;
+        if (!row || row.user_id === X.userId) return;
+        const rel = await releaseInfo(row.release_id);
+        cb({ type: 'spinning', userId: row.user_id, track: row.track_title, expiresAt: row.expires_at, release: rel, phase: row.phase });
+      } catch (_e) { /* ignore */ }
+    }).subscribe();
+  return () => { try { X.sb.removeChannel(ch); } catch (_e) { /* noop */ } };
+}
 
 /* ====================================================================
    11. Miziki adapter: maps the app's globals onto the module's interface
@@ -1311,7 +1345,8 @@ root.MizikiSocial = {
   searchProfiles, follow, unfollow, respondToRequest, removeFollower, listRequests, listFollowing, listFollowers,
   block, unblock, listBlocked, report,
   // reading
-  loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, nowSpinningForFriends,
+  loadProfile, crate, inCommon, creditFriends, artistConnections, homeFeed, addToDigging, removeFromDigging, listDigging, diggingOf, subscribeNowSpinning,
+  setAside, heldForMe, handBack,
   friendsStickerCounts, friendsStickerDetail, friendsStickerCountsByKeys, getCountInStickers, setCountInStickers,
   // helpers (also used by tests / UI)
   releaseKey, labelColor, sha256hex, mizikiAdapter,

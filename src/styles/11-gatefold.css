@@ -357,28 +357,33 @@
   background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:9px 11px;
   font-family:var(--body);font-size:var(--fs-body);color:var(--paper);min-height:44px}
 /* TY6 (docs/22_TYPE.md): same hand-lettered paper-note treatment as
-   .record-note/.store-pick-sleeve-note -- the one place in the
+   .record-note/.held-note/.store-pick-sleeve-note -- the one place in the
    tracklist a note like this shows up. */
 .gf-anchor-note{transform:rotate(-1deg);background:var(--stock-card);color:#1A1410;border-radius:6px;
   padding:10px 14px;font-family:var(--hand);font-weight:500;font-size:16px;line-height:1.25;
   margin:4px 0 8px 30px}
-/* .picture-sleeve-body (singles, docs/17_SINGLES.md) keeps Pin inline, as
-   built -- only the main gatefold moved it into the "record options" menu
-   (GF14, below). BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed its old
-   Share-record sibling button entirely, not just this inline showing of it. */
+/* .picture-sleeve-body (singles, docs/17_SINGLES.md) keeps Pin/Share
+   inline, as built -- only the main gatefold moved them into the "record
+   options" menu (GF14, below). */
 .picture-sleeve-body .gf-pin-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
   color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
   font-weight:500;background:none}
 .picture-sleeve-body .gf-pin-btn[aria-pressed="true"]{border-color:var(--on-dark);color:var(--on-dark);
   background:color-mix(in srgb,var(--cream) 12%,transparent)}
-/* GF14 (docs/29_GATEFOLD.md): the main gatefold's own Pin stays a real
-   element -- gatefoldSocialControlsHTML() still builds it, and the
+/* SH1 (docs/18_SHARE.md): "Record sheet / gatefold: a Share record row."
+   Same plain-pill shape as .gf-pin-btn just above, minus the pressed
+   highlight -- it never toggles, it opens the share sheet. */
+.picture-sleeve-body .gf-share-btn{align-self:flex-start;min-height:44px;box-sizing:border-box;border:1px solid var(--line);
+  color:var(--paper);border-radius:22px;padding:0 18px;font-family:var(--body);font-size:var(--fs-body);
+  font-weight:500;background:none}
+/* GF14 (docs/29_GATEFOLD.md): the main gatefold's own Pin/Share stay real
+   elements -- gatefoldSocialControlsHTML() still builds them, and the
    "record options" menu (#gfMoreBtn, below) still just forwards clicks to
-   it -- but it's never shown inline here any more, in either layout
+   them -- but they're never shown inline here any more, in either layout
    (.gf-left: normal/wide mode's scrolling panel; .gf-flat-body: short
    mode's own copy of the same panel). Previously shown by day, hidden only
-   .gf-night; now the menu is its one home at any time. */
-.gf-left .gf-pin-btn, .gf-flat-body .gf-pin-btn{display:none}
+   .gf-night; now the menu is their one home at any time. */
+.gf-left .gf-pin-btn, .gf-left .gf-share-btn, .gf-flat-body .gf-pin-btn, .gf-flat-body .gf-share-btn{display:none}
 /* GF1 point 2: always shown now (no liner-notes/credits gate), drawn as a
    real edge rather than an invisible hit-area -- a <button> in the markup,
    with its own aria-label. .gf-right-cue (the left panel's own mirror,

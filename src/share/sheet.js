@@ -2,31 +2,36 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { resolveLook } from '../record-art/looks.js';
 import { currentDayPosition } from '../sundown/solar.js';
+import { composeShareImage } from './crate-card.js';
 import { composePlayerShareImage } from './now-playing-card.js';
+import { composeRecordShareImage } from './record-card.js';
 import { composePressingsShareImage } from './pressings-card.js';
+import { composeSeasonShareImage } from './season-card.js';
 import { openLayer } from '../shell/nav-stack.js';
 import { queueSave } from '../storage/meta.js';
 
-/* SH1 (docs/18_SHARE.md): one share sheet, cards read from the DOM (the
-   sheet's own chips) for style/format, everything else (the pixels)
+/* SH1 (docs/18_SHARE.md): one share sheet, five cards. Style/format read
+   from the DOM (the sheet's own chips), everything else (the pixels)
    comes from the pure composers above. Live preview re-renders are
-   debounced ~100ms so rapid taps don't each trigger a full recompose.
-   BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed three of the five original
-   cards (Record, Crate, Season) and their entry points -- Now Playing and
-   Pressings are what's left. */
+   debounced ~100ms so rapid taps don't each trigger a full recompose. */
 
 // one entry per card: the head title ("Share · <name>"), the kebab-case
 // token its filename uses, and which Include toggles it offers (label
 // text, keyed the same way as S.shareSelectionByCard[card]) -- pressings
-// has none at all (SH1 item 3).
-const CARD_TITLES = { nowPlaying:'Now playing', pressings:'Pressings' };
-const CARD_FILENAMES = { nowPlaying:'now-playing', pressings:'pressings' };
+// has none at all (SH1 item 3), crate shows only "Name" even though its
+// composer still unconditionally draws every section S.shareSelectionByCard
+// .crate holds until SH5 actually removes them from crate-card.js.
+const CARD_TITLES = { nowPlaying:'Now playing', record:'Record', pressings:'Pressings', crate:'Crate', season:'Season' };
+const CARD_FILENAMES = { nowPlaying:'now-playing', record:'record', pressings:'pressings', crate:'crate', season:'season' };
 const INCLUDE_LABELS = {
   nowPlaying: { phase:'Time of day' },
+  record: { note:'Sleeve note', friends:'Friends' },
   pressings: {},
+  crate: { name:'Name' },
+  season: { name:'Name' },
 };
 
-let currentCard = 'nowPlaying';
+let currentCard = 'crate';
 let currentData = null;
 
 export function shareSelectedStyle(rowId){
@@ -101,8 +106,12 @@ function gatherNowPlayingData(){
 }
 
 async function composeForCurrentCard(style, format){
+  if(currentCard === 'crate') return composeShareImage({style, format, sections: S.shareSelectionByCard.crate});
+  if(currentCard === 'nowPlaying') return composePlayerShareImage({style, format, data: gatherNowPlayingData()});
+  if(currentCard === 'record') return composeRecordShareImage({style, format, data: currentData});
   if(currentCard === 'pressings') return composePressingsShareImage({style, format, data: currentData});
-  return composePlayerShareImage({style, format, data: gatherNowPlayingData()});
+  if(currentCard === 'season') return composeSeasonShareImage({style, format, data: currentData});
+  return composeShareImage({style, format, sections: S.shareSelectionByCard.crate});
 }
 
 let shareRenderTimer = null;
@@ -142,7 +151,7 @@ function buildIncludeToggles(card){
 
 export async function openShareSheet(opts){
   const { card, data } = opts || {};
-  currentCard = CARD_TITLES[card] ? card : 'nowPlaying';
+  currentCard = CARD_TITLES[card] ? card : 'crate';
   currentData = data || null;
   $('#shareHeadTitle').textContent = 'Share · ' + CARD_TITLES[currentCard];
   const format = S.shareFormatByCard[currentCard] || 'square';

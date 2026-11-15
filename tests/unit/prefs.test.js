@@ -18,7 +18,6 @@ function fakeS(overrides = {}){
     surfaceNoise: 'subtle', surfaceNoiseUnderMusic: false,
     autoFlip: true,
     nightPitch: 'slowed',
-    sundownExplained: false,
     stopAtTurns: false,
     loudnessMode: 'auto',
     eq: { enabled: false, mode: 'graphic', tilt: 0, graphicBands: [0,0,0,0,0,0,0,0,0,0], parametricBands: [], autoPreamp: true, preampDb: 0, savedPresets: {} },
@@ -51,7 +50,6 @@ test('round trip: parsePrefs(serializePrefs(S)) returns every field with the sam
     surfaceNoise: S.surfaceNoise, surfaceNoiseUnderMusic: S.surfaceNoiseUnderMusic,
     autoFlip: S.autoFlip,
     nightPitch: S.nightPitch,
-    sundownExplained: S.sundownExplained,
     stopAtTurns: S.stopAtTurns,
     loudnessMode: S.loudnessMode,
     eq: S.eq,
@@ -382,27 +380,6 @@ test('bad values are ignored: a nightPitch outside Slowed/Keep pitch', () => {
   assert.equal('nightPitch' in parsed, false);
 });
 
-// BD6 (docs/38_BEFORE_THE_DOMAIN.md): a saved object without this (every
-// device before this PR) loads as false, the stated default.
-test('round trip: sundownExplained survives both true and false', () => {
-  const p1 = parsePrefs(serializePrefs(fakeS({ sundownExplained: true })));
-  assert.equal(p1.sundownExplained, true);
-  const p2 = parsePrefs(serializePrefs(fakeS({ sundownExplained: false })));
-  assert.equal(p2.sundownExplained, false);
-});
-
-test('old saved data: no sundownExplained field at all leaves it out, so the default (false) stays in place', () => {
-  const raw = serializePrefs(fakeS());
-  delete raw.sundownExplained;
-  const parsed = parsePrefs(raw);
-  assert.equal('sundownExplained' in parsed, false);
-});
-
-test('bad values are ignored: a non-boolean sundownExplained', () => {
-  const parsed = parsePrefs({ sundownExplained: 'yes' });
-  assert.equal('sundownExplained' in parsed, false);
-});
-
 // RW3 (docs/23_RHYTHM_AND_WEAR.md): a saved object without this (every
 // device before this PR) loads as off -- the stated default.
 test('round trip: stopAtTurns survives both On and Off', () => {
@@ -658,21 +635,11 @@ test('bad value: an unrecognized shelfFinish is dropped, so the default stays in
 
 // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the selected turntable -- same
 // three-test shape as shelfFinish above.
-test('round trip: turntable survives each of its eleven valid values', () => {
-  for(const v of ['standard', 'console', 'linear', 'deck', 'clear', 'broadcast', 'upright', 'radiogram', 'slate', 'lathe', 'horn']){
+test('round trip: turntable survives each of its twelve valid values', () => {
+  for(const v of ['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast', 'upright', 'radiogram', 'slate', 'lathe', 'horn']){
     const parsed = parsePrefs(serializePrefs(fakeS({ turntable: v })));
     assert.equal(parsed.turntable, v);
   }
-});
-
-// BD8 (docs/38_BEFORE_THE_DOMAIN.md): a saved 'suitcase' from before this
-// PR removed the model falls through to the default, same as any other
-// unrecognized value -- not a special case of its own.
-test('bad value: a saved suitcase turntable is dropped, so the default (standard) stays in place', () => {
-  const raw = serializePrefs(fakeS());
-  raw.turntable = 'suitcase';
-  const parsed = parsePrefs(raw);
-  assert.equal('turntable' in parsed, false);
 });
 
 test('old saved data: no turntable field at all leaves it out, so the default (standard) stays in place', () => {

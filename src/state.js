@@ -68,12 +68,6 @@ export const S = {
   // for real; 'true' keeps the audio at rate 1 while the platter still
   // visually slows (computePlatterRate()) -- see sundown/solar.js.
   nightPitch:'slowed',
-  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): whether the one-time "Sundown plays
-  // records a little slower" line beside the player's phase pill has
-  // already shown on this account -- false until it's shown once, then
-  // stays true forever (rides in prefs with no carve-out, same as
-  // nightPitch above).
-  sundownExplained:false,
   previewMin:0, live:true,
   // DA1 (docs/DAY_ARC.md): dawn/rise/noon alongside the original set/dusk
   // — dayPosition() (src/sundown/day.js) reads all five, plus
@@ -257,6 +251,15 @@ export const S = {
   // Home's once-a-day sunrise refresh and the Listening screen's own kept
   // list (GS9).
   albumKeptFor:{},
+  // GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page *count* --
+  // {albumId: N}, device-only (like the pages themselves: real image bytes
+  // live in the artwork store under 'booklet:<albumId>:<NNNN>', excluded
+  // from backup the same way audio/embedded art are). Kept here, not read
+  // from the artwork store on every panel paint, purely so
+  // buildGatefoldLeftPanel's "Booklet · N pages" row can stay synchronous
+  // like every other row there -- library/booklet.js's bookletPageCount()
+  // is the one reader.
+  albumBookletPages:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
   outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
@@ -299,23 +302,24 @@ export const S = {
   // object; reset to 0 whenever the screen is entered fresh (storefront.js's
   // storeListeningRow()).
   profileView:{screen:'home', recordsFilter:'all', seasonOffset:0},
-  // SH1 (docs/18_SHARE.md): one sheet -- Include toggles are per card now
-  // (`shareSelectionByCard`), replacing the old shareSelection/
-  // playerShareSelection pair. BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed
-  // three of the five original cards (Record, Crate, Season); their own
-  // Include-toggle entries went with them since this map is session-only,
-  // never saved to prefs/backup, same as before this step.
+  // SH1 (docs/18_SHARE.md): one sheet, five cards -- Include toggles are
+  // per card now (`shareSelectionByCard`), replacing the old shareSelection/
+  // playerShareSelection pair. SH5 removed crate-card.js's metals/
+  // collection/rhythm sections outright, so `crate` now only ever holds
+  // the one key the sheet shows it a toggle for, per SH1 item 3's own
+  // Include-toggle table. Session-only, never saved to prefs/backup,
+  // same as before this step.
   shareSelectionByCard:{
     nowPlaying:{phase:true},
+    record:{note:true, friends:true},
     pressings:{},
+    crate:{name:true},
+    season:{name:true},
   },
   // Part 2 §2 / SH1 item 2: each card remembers its own format choice,
   // replacing the single shareFormat -- a per-card default (README table)
   // only applies the very first time, before that card's own sheet open
-  // has ever set a preference. BD11 removed the record/crate/season cards,
-  // but their keys stay here (and in parsePrefs/serializePrefs) rather
-  // than migrating a saved value -- a format choice saved under a
-  // now-dead key is just inert, not wrong.
+  // has ever set a preference.
   shareStyle:'night',
   shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
   // sleep timer — session-only, never persisted (see SLEEP spec §5).
@@ -716,10 +720,3 @@ S.seasonSummaries = {};
 // backed up or shown to the user, the same class of local-only timestamp
 // as uploadedImageHashes in backup.js.
 S.rhythmPushedAt = 0;
-// BD5 (docs/38_BEFORE_THE_DOMAIN.md): navigator.storage.persist()'s own
-// answer, read once in restoreLibrary() -- runtime-only, never saved (no
-// prefs entry; the browser's own answer can change outside the app, so
-// nothing would be gained by persisting a stale copy of it). null means
-// unknown/unsupported, same posture src/storage/usage.js's readUsage()
-// takes for an unsupported navigator.storage.estimate().
-S.storagePersisted = null;

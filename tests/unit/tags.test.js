@@ -95,8 +95,7 @@ mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; },
-    healLoudness: async () => {}, healHooks: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; } },
 });
 mock.module(new URL('../../src/player/transport.js', import.meta.url).href, {
   namedExports: { load(){}, play(){}, pause(){}, pauseAndRest(){}, seek(){}, stop(){}, sideLetterFor(){ return ''; }, cancelPendingGapless(){} },
@@ -112,16 +111,6 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
 });
 mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
-});
-// BD10 (docs/38_BEFORE_THE_DOMAIN.md): import.js's own new
-// setAlbumBackCoverImage/albumBackCoverIsUnset import, mocked directly on
-// its own module rather than chasing its real chain (storage/repo.js's
-// artwork store, sync/backup.js's upload/claim calls, and ui/wordmark.js's
-// data/wordmark.svg?raw asset import node:test can't resolve) -- same
-// "stop the chain at the door" reasoning as the rest of this file. The
-// real module is covered by tests/unit/gatefold-back-cover.test.js.
-mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
-  namedExports: { albumBackCoverIsUnset: async () => true, setAlbumBackCoverImage: async () => {} },
 });
 
 const { findDuplicateTrack, DUP_DURATION_TOLERANCE_SEC, shouldSealOnImport } = await import('../../src/library/import.js');
@@ -440,11 +429,7 @@ test('a WAV file truncated partway through its "fmt " chunk never throws', () =>
   b.set(asciiBytes('fmt '), 12);
   view.setUint32(16, 16, true);   // declares a 16-byte fmt body, but the buffer ends at byte 21
   assert.doesNotThrow(() => readHeader(b.buffer));
-  // BD3 (docs/38_BEFORE_THE_DOMAIN.md): readHeader() now also looks for the
-  // 'data' chunk's size to compute an exact durationSec -- absent here (no
-  // 'data' chunk reached before the truncated buffer runs out), so it's null,
-  // same as any other WAV whose duration couldn't be determined from headers.
-  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true, durationSec: null});
+  assert.deepEqual(readHeader(b.buffer), {codec: 'WAV', lossless: true});
 });
 
 // -- tests: duplicate detection ----------------------------------------------
