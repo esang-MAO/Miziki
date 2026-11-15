@@ -56,22 +56,7 @@ export function installSocialDemo(){
         {release_id:'june-c0', title:'A Love Supreme', artist:'John Coltrane', year:1965},
         {release_id:'june-c1', title:'Kind of Blue', artist:'Miles Davis', year:1959}
       ],
-      nowSpinning: null,
-      // GS11 (docs/30_GROOVES_AND_SHELF.md): "held for you" fixture, so the
-      // section/sheet can be reviewed without a live Supabase. release_key
-      // is whatever MizikiSocial.releaseKey(artist, title) would compute
-      // for these two in a real crate -- fixed demo strings are fine here
-      // since nothing round-trips through the real RPC.
-      heldForYou: [{
-        id:'hold-1', from_user:'june', from_handle:'june',
-        note:'For you. Start with the green one, after dark.',
-        created_at:new Date(Date.now() - 3600e3).toISOString(),
-        expires_at:new Date(Date.now() + 29 * 86400e3).toISOString(),
-        releases:[
-          {release_key:'demo-blue-train', title:'Blue Train', artist:'John Coltrane', year:1957, handed_back:false},
-          {release_key:'demo-head-hunters', title:'Head Hunters', artist:'Herbie Hancock', year:1973, handed_back:false}
-        ]
-      }]
+      nowSpinning: null
     },
     mateo: {
       profile: {id:'mateo', handle:'mateo', display_name:'Mateo', bio:'Vinyl hoarder, no apologies.', visibility:'friends', show_digging_list:true},
@@ -163,23 +148,7 @@ export function installSocialDemo(){
     out.diggingShared = f.profile.show_digging_list !== false;
     out.digging = out.diggingShared ? f.digging : [];
     out.diggingCount = out.digging.length;
-    out.heldForYou = f.heldForYou || [];
     return out;
-  };
-
-  /* ---- held for you (GS11) ---- */
-  MizikiSocial.setAside = async () => ({ok:true});
-  MizikiSocial.heldForMe = async fromUserId => {
-    const f = fromUserId ? friendById(fromUserId) : null;
-    return {ok:true, holds: f ? (f.heldForYou || []) : []};
-  };
-  MizikiSocial.handBack = async (holdId, releaseKey) => {
-    for(const f of Object.values(FRIENDS)){
-      const hold = (f.heldForYou || []).find(h => h.id === holdId);
-      const r = hold && hold.releases.find(x => x.release_key === releaseKey);
-      if(r) r.handed_back = true;
-    }
-    return {ok:true};
   };
 
   MizikiSocial.crate = async (userId, opts) => {

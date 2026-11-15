@@ -33,7 +33,6 @@ export function wireAccount(){
     popSocialScreen();
   });
   $('#recordSheetClose').addEventListener('click', () => closeLayer('record-sheet'));
-  $('#heldClose').addEventListener('click', () => closeLayer('held-sheet'));
 
   // UN12 (docs/36_UNIFORMITY.md point 12): the Profile route's one header
   // -- the Settings gear is static markup in the shared #appHeader, so

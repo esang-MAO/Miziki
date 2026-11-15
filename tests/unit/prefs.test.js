@@ -658,11 +658,21 @@ test('bad value: an unrecognized shelfFinish is dropped, so the default stays in
 
 // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the selected turntable -- same
 // three-test shape as shelfFinish above.
-test('round trip: turntable survives each of its twelve valid values', () => {
-  for(const v of ['standard', 'console', 'linear', 'deck', 'clear', 'suitcase', 'broadcast', 'upright', 'radiogram', 'slate', 'lathe', 'horn']){
+test('round trip: turntable survives each of its eleven valid values', () => {
+  for(const v of ['standard', 'console', 'linear', 'deck', 'clear', 'broadcast', 'upright', 'radiogram', 'slate', 'lathe', 'horn']){
     const parsed = parsePrefs(serializePrefs(fakeS({ turntable: v })));
     assert.equal(parsed.turntable, v);
   }
+});
+
+// BD8 (docs/38_BEFORE_THE_DOMAIN.md): a saved 'suitcase' from before this
+// PR removed the model falls through to the default, same as any other
+// unrecognized value -- not a special case of its own.
+test('bad value: a saved suitcase turntable is dropped, so the default (standard) stays in place', () => {
+  const raw = serializePrefs(fakeS());
+  raw.turntable = 'suitcase';
+  const parsed = parsePrefs(raw);
+  assert.equal('turntable' in parsed, false);
 });
 
 test('old saved data: no turntable field at all leaves it out, so the default (standard) stays in place', () => {

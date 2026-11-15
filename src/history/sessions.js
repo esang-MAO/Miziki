@@ -350,14 +350,16 @@ function checkZoetropeUnlock(albumId){
 }
 
 // ST4 (docs/32_SHELF_AND_TURNTABLES.md): the shelf turntables found by
-// listening. Nine of the plan's eleven listening-earned models are
+// listening. Nine of the plan's ten remaining listening-earned models are
 // implemented here (Lathe reuses rareUnlocked outright, with no progress
-// counter of its own); Suitcase (a friend's held-for-you stack) and
-// Upright (90 days pinned, played each of those months) both need a
-// signal this pass doesn't yet have a reliable source for -- the social
-// client's held-for-you cache shape, and a local pin-start timestamp --
-// and are left for a follow-up rather than guessed at. Horn stays
-// dormant until the 78 format exists, per the plan's own note.
+// counter of its own); Upright (90 days pinned, played each of those
+// months) needs a signal this pass doesn't yet have a reliable source for
+// -- a local pin-start timestamp, not verified in a reusable shape -- and
+// is left for a follow-up rather than guessed at. Horn stays dormant
+// until the 78 format exists, per the plan's own note. Suitcase itself
+// was removed outright by BD8 (docs/38_BEFORE_THE_DOMAIN.md), since its
+// earning rule leaned on the held-for-you social feature that step also
+// removes.
 export const LINEAR_CLEAN_SIDES_TO_EARN = 10;
 export const CLEAR_HIRES_ALBUMS_TO_EARN = 5;
 export const BROADCAST_NIGHT_ALBUMS_TO_EARN = 7;
