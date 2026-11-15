@@ -299,24 +299,23 @@ export const S = {
   // object; reset to 0 whenever the screen is entered fresh (storefront.js's
   // storeListeningRow()).
   profileView:{screen:'home', recordsFilter:'all', seasonOffset:0},
-  // SH1 (docs/18_SHARE.md): one sheet, five cards -- Include toggles are
-  // per card now (`shareSelectionByCard`), replacing the old shareSelection/
-  // playerShareSelection pair. SH5 removed crate-card.js's metals/
-  // collection/rhythm sections outright, so `crate` now only ever holds
-  // the one key the sheet shows it a toggle for, per SH1 item 3's own
-  // Include-toggle table. Session-only, never saved to prefs/backup,
-  // same as before this step.
+  // SH1 (docs/18_SHARE.md): one sheet -- Include toggles are per card now
+  // (`shareSelectionByCard`), replacing the old shareSelection/
+  // playerShareSelection pair. BD11 (docs/38_BEFORE_THE_DOMAIN.md) removed
+  // three of the five original cards (Record, Crate, Season); their own
+  // Include-toggle entries went with them since this map is session-only,
+  // never saved to prefs/backup, same as before this step.
   shareSelectionByCard:{
     nowPlaying:{phase:true},
-    record:{note:true, friends:true},
     pressings:{},
-    crate:{name:true},
-    season:{name:true},
   },
   // Part 2 §2 / SH1 item 2: each card remembers its own format choice,
   // replacing the single shareFormat -- a per-card default (README table)
   // only applies the very first time, before that card's own sheet open
-  // has ever set a preference.
+  // has ever set a preference. BD11 removed the record/crate/season cards,
+  // but their keys stay here (and in parsePrefs/serializePrefs) rather
+  // than migrating a saved value -- a format choice saved under a
+  // now-dead key is just inert, not wrong.
   shareStyle:'night',
   shareFormatByCard:{nowPlaying:'story', record:'square', pressings:'story', crate:'square', season:'square'},
   // sleep timer — session-only, never persisted (see SLEEP spec §5).
