@@ -92,14 +92,6 @@ mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
     backCoverMenuRowsVisible(turnedOver){ return !!turnedOver; },
   },
 });
-// GF10: same "stop the chain at the door" reasoning as gatefold.test.js's
-// own identical mocks.
-mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
-  namedExports: { bookletPageCount(){ return 0; } },
-});
-mock.module(new URL('../../src/gatefold/booklet.js', import.meta.url).href, {
-  namedExports: { openBookletViewer(){}, openAddBookletPagesPicker(){} },
-});
 // UN3 (docs/36_UNIFORMITY.md): openGatefoldTrackMenu() now builds its
 // header via sheetHeader() (src/ui/parts.js) -- stopped at the door here
 // too, same reasoning as every other mock in this file, since what's

@@ -117,10 +117,6 @@ export async function persistAlbumKeptFor(keys){
   await meta.put('albumKeptFor', S.albumKeptFor);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumKeptFor', k));
 }
-// GF10 (docs/29_GATEFOLD.md): the album-keyed booklet-page count --
-// device-only, same posture as phasePlayCountsByDay above (no per-key
-// stamp needed since it never reaches the backup doc at all).
-export async function persistAlbumBookletPages(){ await meta.put('albumBookletPages', S.albumBookletPages); }
 export async function persistAlbumLastPlayed(){ await meta.put('albumLastPlayed', S.albumLastPlayed); }
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): written once, the first time an album
 // completes a qualifying session — never overwritten after that, so it
@@ -587,9 +583,6 @@ export async function restoreSessions(){
   // GS10 (docs/30_GROOVES_AND_SHELF.md)
   const albumKeptForPref = await meta.get('albumKeptFor');
   if(albumKeptForPref) S.albumKeptFor = albumKeptForPref;
-  // GF10 (docs/29_GATEFOLD.md)
-  const albumBookletPagesPref = await meta.get('albumBookletPages');
-  if(albumBookletPagesPref) S.albumBookletPages = albumBookletPagesPref;
   const albumLast = await meta.get('albumLastPlayed');
   if(albumLast) S.albumLastPlayed = albumLast;
   const albumFirst = await meta.get('albumFirstPlayed');

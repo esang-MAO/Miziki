@@ -97,13 +97,6 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
   namedExports: { reconcileImportedTrack: () => {} },
 });
-mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
-  namedExports: {
-    isBookletPageCandidate: () => false,
-    groupBookletCandidatesByAlbumFolder: () => new Map(),
-    addBookletPages: async () => {},
-  },
-});
 const storageState = { available: false, putOk: true };
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: {
