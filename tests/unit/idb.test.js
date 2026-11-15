@@ -199,6 +199,40 @@ test('put/get/all/del/clear round-trip, including storing and reading back a Blo
   DB.db.close();
 });
 
+// Boot-time memory fix: main.js's restoreLibrary() reads 'tracks' via
+// eachCursor() instead of all()/getAll(), so a large library's blobs are
+// never all resident in memory at once. This proves the cursor walk visits
+// every row exactly once, through mapFn, same as all() would show.
+test('eachCursor visits every row exactly once through mapFn, same data as all()', async () => {
+  freshIndexedDB();
+  resetDB();
+  await DB.open();
+
+  await DB.put('tracks', { id: 't1', name: 'A', blob: new Blob(['a']) });
+  await DB.put('tracks', { id: 't2', name: 'B', blob: new Blob(['b']) });
+  await DB.put('tracks', { id: 't3', name: 'C', blob: new Blob(['c']) });
+
+  const seen = [];
+  const mapped = await DB.eachCursor('tracks', row => { seen.push(row.id); return row.name; });
+
+  assert.deepEqual(seen.sort(), ['t1', 't2', 't3']);
+  assert.deepEqual(mapped.sort(), ['A', 'B', 'C']);
+  assert.equal(mapped.length, (await DB.all('tracks')).length);
+
+  DB.db.close();
+});
+
+test('eachCursor on storage-unavailable/empty store resolves [] rather than throwing', async () => {
+  freshIndexedDB();
+  resetDB();
+  assert.deepEqual(await DB.eachCursor('tracks', row => row.id), []); // DB.ok is still false here
+
+  await DB.open();
+  assert.deepEqual(await DB.eachCursor('tracks', row => row.id), []); // open, but store is empty
+
+  DB.db.close();
+});
+
 // BD9 (docs/38_BEFORE_THE_DOMAIN.md point 3): the booklet viewer is gone,
 // but a device that had booklet pages before this PR keeps them, unread,
 // in rows keyed 'booklet:<albumId>:<NNNN>' -- no IndexedDB version bump,
