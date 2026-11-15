@@ -99,6 +99,31 @@ export const DB = {
     try{ return await this.req(this.store(name,'readonly').get(k)); }catch(_e){ return null; } },
   async all(name){ if(!this.ok) return [];
     try{ return await this.req(this.store(name,'readonly').getAll()) || []; }catch(_e){ return []; } },
+  // A cursor walk, mapping each row through `mapFn` as it's read rather
+  // than materializing every row at once the way getAll() does -- for a
+  // store whose rows carry a Blob (tracks' own audio/art fields), getAll()
+  // holds every row, blobs included, in memory simultaneously before the
+  // caller gets to drop what it doesn't need; a large, lossless-heavy
+  // library can make that momentary peak far bigger than the library's own
+  // steady-state footprint. `mapFn` must stay synchronous (no `await`
+  // inside it) -- continue() has to fire in the same task as onsuccess, or
+  // the transaction can go inactive before the next row is requested.
+  async eachCursor(name, mapFn){ if(!this.ok) return [];
+    const out = [];
+    try{
+      await new Promise((resolve, reject) => {
+        const req = this.store(name,'readonly').openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if(!cursor){ resolve(); return; }
+          out.push(mapFn(cursor.value));
+          cursor.continue();
+        };
+        req.onerror = () => reject(req.error);
+      });
+    }catch(_e){ /* whatever was already mapped is still usable */ }
+    return out;
+  },
   async clear(name){ if(!this.ok) return;
     // LI5 (docs/35_LEAD_IN.md): unlike put/get/all/del above, clear() has no
     // fallback value to quietly return -- a failed clear (e.g. "Forget

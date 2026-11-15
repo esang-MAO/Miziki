@@ -23,6 +23,10 @@ export const tracks = {
   get(id){ return DB.get('tracks', id); },
   put(rec){ return DB.put('tracks', rec); },
   all(){ return DB.all('tracks'); },
+  // main.js's restoreLibrary() own boot read -- a cursor walk (DB.eachCursor())
+  // rather than all(), so a large library's audio/art blobs are never all
+  // resident at once just to read them. `mapFn` must stay synchronous.
+  each(mapFn){ return DB.eachCursor('tracks', mapFn); },
   del(id){ return DB.del('tracks', id); },
   clear(){ return DB.clear('tracks'); },
 };
