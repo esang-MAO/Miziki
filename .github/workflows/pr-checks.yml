@@ -8,6 +8,13 @@ name: PR checks
 on:
   pull_request:
 
+# Every job here only reads the checkout and runs local commands -- none
+# pushes, comments, or otherwise writes back to the repo -- so the default
+# GITHUB_TOKEN permissions (broader than any job here needs) are narrowed
+# to read-only across the whole workflow.
+permissions:
+  contents: read
+
 # A new push to the PR cancels the previous run for that PR rather than
 # queuing behind it — same reasoning as deploy.yml's concurrency group.
 concurrency:
