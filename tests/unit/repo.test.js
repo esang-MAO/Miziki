@@ -48,6 +48,19 @@ test('tracks: put/get/all/del/clear round-trip', async () => {
   DB.db.close();
 });
 
+// main.js's restoreLibrary() reads 'tracks' via each(), a cursor walk
+// (DB.eachCursor()), instead of all()'s getAll(), so a large library's
+// blobs are never all resident in memory at once just to read them.
+test('tracks.each() maps every row through mapFn, same rows all() would return', async () => {
+  await openFresh();
+  await tracks.put({ id: 't1', name: 'A' });
+  await tracks.put({ id: 't2', name: 'B' });
+  const mapped = await tracks.each(r => r.name);
+  assert.deepEqual(mapped.sort(), ['A', 'B']);
+  assert.equal(mapped.length, (await tracks.all()).length);
+  DB.db.close();
+});
+
 test('meta: get returns the bare value, not the {k, v} wrapper', async () => {
   await openFresh();
   await meta.put('prefs', { mode: 'vinyl' });

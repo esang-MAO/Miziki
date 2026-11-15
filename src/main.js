@@ -171,20 +171,25 @@ async function restoreLibrary(){
   // user whether the browser promised not to clear this library under
   // storage pressure -- runtime-only (S.storagePersisted), not saved.
   try{ if(navigator.storage && navigator.storage.persist) S.storagePersisted = await navigator.storage.persist(); }catch(_e){} // feature detection -- expected, not logged
-  const recs = await tracks.all();
-  recs.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
-  // Perf fix: build every track record first, then resolve every overlay/
-  // custom-cover claim in one pass (loadOverlaysBatch(), src/library/edit.js)
-  // instead of once per track -- see that function's own comment for why
-  // this turns 2*N sequential IndexedDB transactions into a small constant
-  // number of them.
-  const newTracks = recs.map(r => ({
+  // Perf/memory fix: tracks.each() walks the store with a cursor rather than
+  // tracks.all()'s getAll(), so a large library's audio+art blobs are never
+  // all resident in memory at once just to read them -- each row's blob
+  // reference is dropped (mapped away to a lightweight track record) before
+  // the next row is even fetched. Cursor order follows the `id` key, not
+  // addedAt, so the sort moves here, after the walk, instead of before it.
+  const newTracks = await tracks.each(r => ({
     id:r.id, addedAt:r.addedAt, name:r.tags.title, tags:Object.assign({}, r.tags), details: r.details || null, meta:r.meta,
     duration:r.duration, buffer:null, blob:null, stored:true, artBlob:null,
     gaplessDelaySec:r.gaplessDelaySec || 0, gaplessPaddingSec:r.gaplessPaddingSec || 0,
     sizeBytes:r.sizeBytes || 0,
     art: r.art ? URL.createObjectURL(r.art) : null
   }));
+  newTracks.sort((a,b) => (a.addedAt||0) - (b.addedAt||0));
+  // Perf fix: build every track record first, then resolve every overlay/
+  // custom-cover claim in one pass (loadOverlaysBatch(), src/library/edit.js)
+  // instead of once per track -- see that function's own comment for why
+  // this turns 2*N sequential IndexedDB transactions into a small constant
+  // number of them.
   await loadOverlaysBatch(newTracks);
   for(const t of newTracks) S.tracks.push(t);
   await restoreMeta();
