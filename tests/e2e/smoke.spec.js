@@ -92,7 +92,16 @@ async function main(){
 
   const { server, url } = await serveDist(distDir);
   const executablePath = findChromiumExecutable();
-  const browser = await chromium.launch(executablePath ? { executablePath } : {});
+  // --no-sandbox/--disable-dev-shm-usage: the standard pair a GitHub
+  // Actions runner needs for headless Chromium -- without them the
+  // sandbox can silently fail to spin up a renderer process on some CI
+  // hosts, which doesn't fail the page load itself but leaves anything
+  // that depends on it (decodeAudioData, the analysis Worker addFiles()
+  // uses) hanging rather than erroring. Harmless locally.
+  const browser = await chromium.launch({
+    ...(executablePath ? { executablePath } : {}),
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  });
 
   try{
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -106,9 +115,11 @@ async function main(){
 
     const files = [buildWavFile('Smoke Track One.wav', 220), buildWavFile('Smoke Track Two.wav', 330)];
     await page.setInputFiles('#file', files, { timeout: 30000 });
+    // A generous timeout -- a shared CI runner's CPU is slower than a dev
+    // machine's for the real decode/analyze work addFiles() does per file.
     await page.waitForFunction(
       () => (document.querySelector('#pathNote')?.textContent || '').includes('Importing 2 of 2'),
-      { timeout: 30000 },
+      { timeout: 60000 },
     );
     await page.waitForTimeout(1000); // the last file's decode/analyze/store work
 
@@ -119,7 +130,7 @@ async function main(){
     await page.locator('li[data-id]').first().click();
     await page.waitForFunction(
       () => document.getElementById('miniIndicator')?.classList.contains('playing'),
-      { timeout: 10000 },
+      { timeout: 20000 },
     );
 
     // docs/15_SURFACE_NOISE.md §1: Vinyl (the boot default) plays a
@@ -130,7 +141,7 @@ async function main(){
     // the lead-in's own length.
     await page.waitForFunction(
       () => document.getElementById('timeElapsed')?.textContent !== '0:00',
-      { timeout: 10000 },
+      { timeout: 20000 },
     );
     const before = parseElapsed(await page.textContent('#timeElapsed'));
     assert.ok(before !== null, 'expected a readable elapsed time');
@@ -145,7 +156,7 @@ async function main(){
         return (+m[1]) * 60 + (+m[2]) > beforeSec;
       },
       before,
-      { timeout: 8000 },
+      { timeout: 15000 },
     );
     const after = parseElapsed(await page.textContent('#timeElapsed'));
     assert.ok(after > before, `expected playback position to advance (got ${before}s -> ${after}s)`);
@@ -162,7 +173,7 @@ async function main(){
     // last-played track itself (not just the library) survived the reload.
     await page.waitForFunction(
       () => document.querySelector('.mini-player')?.classList.contains('resuming'),
-      { timeout: 10000 },
+      { timeout: 20000 },
     );
     const miniTitle = (await page.textContent('#miniTitle') || '').trim();
     assert.equal(miniTitle, 'Smoke Track One', 'expected the last-played track to be restored, paused, after reload');
