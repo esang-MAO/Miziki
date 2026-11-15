@@ -14,6 +14,22 @@ function fileExt(name){
 }
 export function isPageImageName(name){ return PAGE_IMAGE_EXT.includes(fileExt(name)); }
 
+// BD10 (docs/38_BEFORE_THE_DOMAIN.md): the file-name forms a back-cover
+// scan is likely to carry -- a leading track/page number (dropped, same
+// as any other sidecar scan) then an exact match against a short list of
+// plain English/common-scan names. Deliberately narrow: a folder's own
+// front-cover scan or a loose booklet page must never be picked up.
+const BACK_COVER_NAMES = ['back','back cover','backcover','back_cover','back-cover','rear','rear cover','tray','inlay'];
+
+function stripExt(name){
+  const i = name.lastIndexOf('.');
+  return i === -1 ? name : name.slice(0, i);
+}
+export function isBackCoverName(name){
+  const stem = stripExt(name).toLowerCase().trim().replace(/^\d+[\s\-_.]+/, '').replace(/[-_]+/g, ' ').trim();
+  return BACK_COVER_NAMES.map(n => n.replace(/[-_]/g, ' ')).includes(stem);
+}
+
 // Groups a batch's sidecar-image candidates by the folder that holds their
 // *album* -- a booklet/scans/artwork subfolder's own parent, or (a
 // filename-rule match sitting right beside the audio) its own parent

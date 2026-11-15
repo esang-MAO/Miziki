@@ -34,6 +34,8 @@ import { healCrateArt } from '../crate/tiers.js';
 import { healLoudness, healHooks } from './thumbs.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
+import { isPageImageName, isBackCoverName, groupSidecarCandidatesByAlbumFolder } from './sidecar.js';
+import { albumBackCoverIsUnset, setAlbumBackCoverImage } from '../gatefold/back-cover.js';
 
 // Likely-duplicate match: same normalized artist+album+title identity,
 // within a small duration tolerance — never auto-merged, only surfaced
@@ -83,7 +85,24 @@ export function shouldSealOnImport(albumName, aid, isFirstImport, existingAlbumI
 }
 
 export async function addFiles(list){
-  const files = Array.from(list).filter(f => f.size > 0);
+  const allFiles = Array.from(list).filter(f => f.size > 0);
+  if(!allFiles.length) return;
+  // BD10 (docs/38_BEFORE_THE_DOMAIN.md): a sidecar back-cover image (named
+  // back/back cover/backcover/back_cover/back-cover/rear/rear cover/tray/
+  // inlay, any leading track-number prefix ignored) beside a folder
+  // import's audio files never reaches the decode loop below (it'd just
+  // fail it as "could not decode") -- pulled out first, matched to an
+  // album by shared folder once this batch's audio files are known. The
+  // plain file picker (#file, accept="audio/*,...") can never hand this
+  // any image in the first place -- only a folder pick (#folderFile, no
+  // type filter) can, so there is nothing to do for an individual-file
+  // pick (point 5 of this step).
+  const backCoverCandidates = [];
+  const files = allFiles.filter(f => {
+    if(!(isPageImageName(f.name) && isBackCoverName(f.name))) return true;
+    backCoverCandidates.push(f);
+    return false;
+  });
   if(!files.length) return;
   // BD5 (docs/38_BEFORE_THE_DOMAIN.md): a batch that plainly won't fit never
   // starts at all, rather than failing file by file partway through once
@@ -92,13 +111,17 @@ export async function addFiles(list){
   // as it always has.
   const usage = await readUsage();
   if(usage){
-    const pickedBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+    const pickedBytes = allFiles.reduce((sum, f) => sum + (f.size || 0), 0);
     const freeBytes = Math.max(0, usage.quota - usage.usage);
     if(pickedBytes > freeBytes){
       setPathNote('These files need ' + formatBytes(pickedBytes) + ' and Miziki has ' + formatBytes(freeBytes) + ' free on this device.', true);
       return;
     }
   }
+  // BD10: audio file's own folder -> the album it belongs to, built up as
+  // the loop below decodes each file -- the only way to know which album
+  // a sidecar back-cover candidate's shared folder actually belongs to.
+  const folderAlbumIds = new Map();
   const failed = [];
   // BD3: stored with tags but never decoded -- too long to safely decode
   // in the web build. Named separately from `failed` since nothing about
@@ -186,6 +209,12 @@ export async function addFiles(list){
       if(!buffer) tooLong.push(f.name);
       const dup = findDuplicateTrack(tags, trimmedDuration || (buffer && buffer.duration) || 0);
       if(dup){
+        // The matched existing track is already in the library, so the
+        // album it belongs to is never "new" -- BD10's folder->album
+        // back-cover mapping doesn't need to wait on Keep/Replace/Skip
+        // either way, so it's recorded now same as a normal track's own.
+        const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
+        folderAlbumIds.set(dir, albumKey({tags}));
         pendingDupes.push({
           id, tags, details, buffer, trimmedDuration, gaplessDelaySec, gaplessPaddingSec,
           sizeBytes: raw.byteLength, artBlob, fileBlob, fileName: f.name, existingTrack: dup,
@@ -226,6 +255,12 @@ export async function addFiles(list){
       {
         const aid = albumKey(t);
         if(shouldSealOnImport(tags.album, aid, isFirstImport, existingAlbumIds)){ S.sealed.add(aid); existingAlbumIds.add(aid); }
+        // BD10: this file's own folder (dirname of its webkitRelativePath,
+        // '' for a flat pick) is where a sidecar back-cover image would
+        // live, so the back-cover group keyed by that same folder belongs
+        // to this track's album.
+        const dir = (f.webkitRelativePath || '').split('/').slice(0, -1).join('/');
+        folderAlbumIds.set(dir, aid);
       }
       if(await storeTrack(t, fileBlob)){
         t.stored = true;
@@ -240,6 +275,7 @@ export async function addFiles(list){
       failed.push(f.name);
     }
   }
+  await storeBackCoverCandidates(backCoverCandidates, folderAlbumIds);
   syncAfterImportChange();
   if(failed.length || tooLong.length || notSaved.length){
     let note = 'Imported ' + (files.length - failed.length - tooLong.length) + ' of ' + files.length + '.';
@@ -279,6 +315,29 @@ function syncAfterImportChange(){
   healLoudness().catch(() => {});
   healHooks().catch(() => {});
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
+}
+
+// BD10 (docs/38_BEFORE_THE_DOMAIN.md): matches this batch's own sidecar
+// back-cover candidates to the album(s) they sat beside, same by-folder
+// grouping booklet pages used to use (sidecar.js, moved there by BD9 for
+// exactly this). An album that already has a back cover -- a photo, or a
+// deliberate "Use Miziki default" tombstone -- is left alone (point 4);
+// several same-folder candidates pick the largest file, on the theory
+// that a scanned back cover is rarely the smallest image in its own
+// folder. Auto-detected, so setAlbumBackCoverImage() is told never to
+// claim or upload it (point 3).
+async function storeBackCoverCandidates(candidates, folderAlbumIds){
+  if(!candidates.length) return;
+  const groups = groupSidecarCandidatesByAlbumFolder(candidates.map(f => ({
+    name: f.name, relativePath: f.webkitRelativePath, file: f,
+  })));
+  for(const [folder, group] of groups){
+    const albumId = folderAlbumIds.get(folder);
+    if(!albumId) continue;
+    if(!(await albumBackCoverIsUnset(albumId))) continue;
+    const largest = group.reduce((a, b) => (b.file.size > a.file.size ? b : a));
+    await setAlbumBackCoverImage(albumId, largest.file, { autoDetected: true });
+  }
 }
 
 // Finishes exactly what addFiles()'s own loop would have done for a

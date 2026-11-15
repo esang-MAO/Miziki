@@ -95,14 +95,39 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
   namedExports: { renderTracks: () => {} },
 });
 mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
-  namedExports: { reconcileImportedTrack: () => {} },
+  namedExports: {
+    reconcileImportedTrack: () => {},
+    // BD10 (docs/38_BEFORE_THE_DOMAIN.md): gatefold/back-cover.js's own
+    // import, pulled in transitively now that import.js calls
+    // setAlbumBackCoverImage() for sidecar back covers -- "stop the chain
+    // at the door" same as reconcileImportedTrack above. The claim/upload
+    // logic itself is covered by tests/unit/gatefold-back-cover.test.js.
+    queueBackCoverUpload: () => {},
+    clearBackCoverClaim: () => {},
+  },
 });
 const storageState = { available: false, putOk: true };
+const backCoverArtworkStore = new Map();
 mock.module(new URL('../../src/storage/repo.js', import.meta.url).href, {
   namedExports: {
     storage: { available: () => storageState.available },
     tracks: { put: async () => storageState.putOk },
+    // BD10: gatefold/back-cover.js's own artwork-store use, same reason as
+    // the sync/backup.js mock above.
+    artwork: {
+      get(id){ return Promise.resolve(backCoverArtworkStore.get(id) || null); },
+      put(rec){ backCoverArtworkStore.set(rec.id, rec); return Promise.resolve(); },
+      del(id){ backCoverArtworkStore.delete(id); return Promise.resolve(); },
+    },
   },
+});
+// BD10: gatefold/back-cover.js imports wordmarkEl() only for
+// buildBackCoverEl() (never called by addFiles()'s own back-cover path),
+// but its own module still carries the data/wordmark.svg?raw asset import
+// node:test can't resolve -- same mock tests/unit/gatefold-back-cover.test.js
+// already uses for this exact reason.
+mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
+  namedExports: { wordmarkEl(){ return { classList: { add(){} } }; } },
 });
 mock.module(new URL('../../src/player/buffers.js', import.meta.url).href, {
   namedExports: {
@@ -127,13 +152,14 @@ const { resolveDupSheetClose, dupSheetTitle } = await import('../../src/library/
 // __tags/__buffer as non-enumerable-ish side channels the mocked
 // readTags()/decodeAudioFile() above read straight back off, since nothing
 // here needs a real byte-level FLAC/MP3 parse.
-function fakeFile({ name, title, artist = 'Artist', album = 'Album', duration = 180, size = 1000 }){
+function fakeFile({ name, title, artist = 'Artist', album = 'Album', duration = 180, size = 1000, relativePath }){
   const raw = new ArrayBuffer(8);
   raw.__tags = { title, artist, album, track: 1, disc: 0 };
   raw.__buffer = { duration, numberOfChannels: 2, sampleRate: 44100, getChannelData: () => new Float32Array(0) };
   return {
     name, size, lastModified: 1,
     type: 'audio/flac',
+    webkitRelativePath: relativePath || name,
     arrayBuffer: async () => raw,
   };
 }
@@ -155,6 +181,18 @@ function resetAll(){
   usageState.result = null;
   storageState.available = false;
   storageState.putOk = true;
+  backCoverArtworkStore.clear();
+  S.albumBackCover = {};
+  S.backupUpdatedAt.albumBackCover = {};
+}
+
+// BD10 (docs/38_BEFORE_THE_DOMAIN.md): a sidecar image file, same shape
+// fakeFile() builds for audio but with no decodable tags/buffer -- the
+// back-cover path never reaches readTags()/decodeAudioFile() for these,
+// it only ever reads .name/.size/.webkitRelativePath.
+function fakeImageFile({ name, relativePath, size = 2000 }){
+  return { name, size, lastModified: 1, type: 'image/jpeg', webkitRelativePath: relativePath || name,
+    arrayBuffer: async () => new ArrayBuffer(0) };
 }
 
 test('addFiles: 0 duplicates never opens the sheet', async () => {
@@ -342,6 +380,63 @@ test('resolveDupSheetClose: Review closed part-way skips the rest and reports th
   const { choices, toast } = resolveDupSheetClose({ mode: 'review', finalAction: null, choices: partial, reviewIndex: 2, n: 9 });
   assert.deepEqual(choices, ['keep', 'replace', 'skip', 'skip', 'skip', 'skip', 'skip', 'skip', 'skip']);
   assert.equal(toast, "Skipped 7 you didn't review.");
+});
+
+// --- BD10 (docs/38_BEFORE_THE_DOMAIN.md): sidecar back-cover auto-detection ---
+
+test('addFiles: a back-cover-named sidecar image beside an album folder is stored as that album\'s back cover', async () => {
+  resetAll();
+  await addFiles([
+    fakeFile({ name: 'song.flac', title: 'Song A', album: 'My Album', relativePath: 'My Album/song.flac' }),
+    fakeImageFile({ name: 'back.jpg', relativePath: 'My Album/back.jpg' }),
+  ]);
+  assert.equal(S.tracks.length, 1);
+  const { albumKey } = await import('../../src/record-art/tiers.js');
+  const { getAlbumBackCoverBlob } = await import('../../src/gatefold/back-cover.js');
+  const aid = albumKey(S.tracks[0]);
+  assert.ok(await getAlbumBackCoverBlob(aid));
+});
+
+test('addFiles: the sidecar image never reaches the decode loop (not counted as failed/imported)', async () => {
+  resetAll();
+  await addFiles([
+    fakeFile({ name: 'song.flac', title: 'Song A', album: 'My Album', relativePath: 'My Album/song.flac' }),
+    fakeImageFile({ name: 'back.jpg', relativePath: 'My Album/back.jpg' }),
+  ]);
+  assert.equal(S.tracks.length, 1);
+  assert.equal(pathNoteCalls.some(c => /Could not decode/.test(c.msg)), false);
+});
+
+test('addFiles: several back-cover candidates in one folder -- the largest file wins', async () => {
+  resetAll();
+  const { albumKey } = await import('../../src/record-art/tiers.js');
+  const { getAlbumBackCoverBlob } = await import('../../src/gatefold/back-cover.js');
+  await addFiles([
+    fakeFile({ name: 'song.flac', title: 'Song A', album: 'My Album', relativePath: 'My Album/song.flac' }),
+    fakeImageFile({ name: 'rear.jpg', relativePath: 'My Album/rear.jpg', size: 100 }),
+    fakeImageFile({ name: 'rear cover.jpg', relativePath: 'My Album/rear cover.jpg', size: 9000 }),
+  ]);
+  const aid = albumKey(S.tracks[0]);
+  const blob = await getAlbumBackCoverBlob(aid);
+  assert.ok(blob);
+  assert.equal(blob.size, 9000);
+});
+
+test('addFiles: an album that already has a back cover is left alone', async () => {
+  resetAll();
+  const { albumKey } = await import('../../src/record-art/tiers.js');
+  const { setAlbumBackCoverImage, getAlbumBackCoverBlob } = await import('../../src/gatefold/back-cover.js');
+  // import the audio first so albumKey() has a track to compute from, then
+  // hand-pick a cover before the (second) batch that carries the sidecar image
+  await addFiles([fakeFile({ name: 'song.flac', title: 'Song A', album: 'My Album', relativePath: 'My Album/song.flac' })]);
+  const aid = albumKey(S.tracks[0]);
+  const picked = { size: 1, __picked: true };
+  await setAlbumBackCoverImage(aid, picked);
+  await addFiles([
+    fakeFile({ name: 'song2.flac', title: 'Song B', album: 'My Album', relativePath: 'My Album/song2.flac' }),
+    fakeImageFile({ name: 'back.jpg', relativePath: 'My Album/back.jpg', size: 9999 }),
+  ]);
+  assert.equal(await getAlbumBackCoverBlob(aid), picked);
 });
 
 test('resolveDupSheetClose: closing Review right after its very first file (none decided yet) skips all of them with the right count', () => {
