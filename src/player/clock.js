@@ -21,6 +21,7 @@ import { effectiveTheme, syncNychthemeronTheme } from '../ui/theme.js';
 import { renderDialView } from '../sundown/dial-view.js';
 import { RPM_33 } from '../record-art/format.js';
 import { zoetropeRingAngleDeg } from '../record-art/zoetrope-motion.js';
+import { queueSave } from '../storage/meta.js';
 
 // AU10 (docs/16_AUDIO.md §5, "the speed change"): the platter's own base
 // RPM, eased over S.rpmEase.ms when one's in flight (player/transport.js's
@@ -141,7 +142,26 @@ export function settleTrackEnd(){
   tick(performance.now(), 120);
   if(S.pos < t.duration){ addPlayedRange(S.pos, t.duration); S.pos = t.duration; }
   checkTrackCompletion(t);
+  resetSundownExplainerDisplay();
 }
+
+// BD6 (docs/38_BEFORE_THE_DOMAIN.md): pure trigger for the one-time
+// Sundown explainer line -- never shown in Pure (rate is always 1 there
+// anyway, but this also covers a Pure track whose stale S.rate hasn't
+// re-settled yet), only below full speed, and only until the account has
+// already seen it once.
+export function shouldShowSundownExplainer(mode, rate, explained){
+  return mode !== 'pure' && rate < 1 && !explained;
+}
+
+// Whether this stretch of playback has already shown the explainer --
+// drawSun() below sets it true the first qualifying tick and leaves it
+// shown (even through a pause) until settleTrackEnd() or closePlayer()
+// (shell/player-overlay.js) calls this to let it show again for the next
+// track, same "module-scope latch, reset by its own callers" shape as
+// S.rpmEase/lastSky above.
+let sundownExplainerVisible = false;
+export function resetSundownExplainerDisplay(){ sundownExplainerVisible = false; }
 
 export function frame(now){
   const dt = tick(now, 0.1);
@@ -508,6 +528,28 @@ export function drawSun(){
     const isNight = dayPos.phase === 'night';
     if(sunGlyph) sunGlyph.style.display = isNight ? 'none' : '';
     if(nightGlyph) nightGlyph.style.display = isNight ? '' : 'none';
+  }
+  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): the one-time "Sundown plays
+  // records a little slower" line beside the phase pill above. Once shown
+  // for this stretch of playback, stays visible (even through a pause)
+  // until the track ends or the player closes -- resetSundownExplainerDisplay()
+  // below, called from settleTrackEnd() and closePlayer() -- rather than
+  // re-checking shouldShowSundownExplainer() every tick, which would hide
+  // it again the instant S.rate crept back to 1 mid-track.
+  const explainer = $('#nowSundownExplainer');
+  if(explainer){
+    if(!sundownExplainerVisible && S.playing && shouldShowSundownExplainer(S.mode, S.rate, S.sundownExplained)){
+      sundownExplainerVisible = true;
+      S.sundownExplained = true;
+      queueSave();
+    }
+    if(sundownExplainerVisible && explainer.style.display === 'none'){
+      explainer.style.display = '';
+      requestAnimationFrame(() => explainer.classList.add('show'));
+    } else if(!sundownExplainerVisible && explainer.style.display !== 'none'){
+      explainer.classList.remove('show');
+      explainer.style.display = 'none';
+    }
   }
   const specPhase = $('#trackSpecPhase');
   if(specPhase){

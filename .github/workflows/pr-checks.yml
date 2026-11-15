@@ -8,6 +8,13 @@ name: PR checks
 on:
   pull_request:
 
+# Every job here only reads the checkout and runs local commands -- none
+# pushes, comments, or otherwise writes back to the repo -- so the default
+# GITHUB_TOKEN permissions (broader than any job here needs) are narrowed
+# to read-only across the whole workflow.
+permissions:
+  contents: read
+
 # A new push to the PR cancels the previous run for that PR rather than
 # queuing behind it — same reasoning as deploy.yml's concurrency group.
 concurrency:
@@ -31,5 +38,67 @@ jobs:
       # only get less tangled, never more, without the PR saying so.
       - run: node scripts/cycles.mjs --check
       - run: npm run check-doc-links
+      - run: npm run check-no-realtime
       - run: npm run build
       - run: MIZIKI_BASE=/ npm run build
+
+  # BD12 (docs/38_BEFORE_THE_DOMAIN.md): the one check that imports a real
+  # file, plays it, reloads and proves the library survived -- nothing
+  # above does that; `npm run build` only proves the bundle compiles.
+  # Built against the real GitHub Pages base (/Miziki/, vite.config.js's
+  # own default), not the Netlify-preview root base `checks` also builds.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  # The Postgres-backed social-client tests (tests/client.test.js) --
+  # previously run only by hand, never gating a PR. Schema load mirrors
+  # the by-hand recipe in this test file's own header: the stub, then
+  # every migration in supabase/migrations/ in numeric order (the glob
+  # skips the undo/ subdirectory on its own).
+  client-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: load schema
+        run: |
+          createdb mz
+          psql -d mz -X -At -v ON_ERROR_STOP=1 -f tests/supabase_stub.sql
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            psql -d mz -X -At -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - run: npm test

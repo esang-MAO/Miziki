@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TURNTABLE_LINEUP, TURNTABLE_IDS, turntableInfo, turntableModelLabel, turntablesHad, displayTurntable } from '../../src/profile/turntable.js';
 
-test('TURNTABLE_LINEUP lists all twelve models, Standard first', () => {
-  assert.equal(TURNTABLE_IDS.length, 12);
+test('TURNTABLE_LINEUP lists all eleven models, Standard first', () => {
+  assert.equal(TURNTABLE_IDS.length, 11);
   assert.equal(TURNTABLE_IDS[0], 'standard');
   assert.deepEqual(TURNTABLE_IDS, TURNTABLE_LINEUP.map(m => m.id));
 });

@@ -1,7 +1,8 @@
 /* PL6 item 1 (docs/19_PLAYER.md): the request/response wrapper every real
-   caller (library/import.js's import loop, library/thumbs.js's
-   healLoudness()/healHooks()) actually calls — analysis-worker.js itself
-   only speaks postMessage. One round trip per track returns both the
+   caller — library/thumbs.js's healLoudness()/healHooks() (BD4,
+   docs/38_BEFORE_THE_DOMAIN.md: the sole callers since the import loop
+   itself stopped awaiting this inline) — actually calls; analysis-worker.js
+   itself only speaks postMessage. One round trip per track returns both the
    loudness measurement and the hook detection together, since every
    caller already wants both from the same decode (the same two call
    sites AU5's measureTrack()/AU12's detectHook() always shared).

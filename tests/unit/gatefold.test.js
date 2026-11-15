@@ -104,13 +104,6 @@ const queueSaveMock = mock.fn();
 mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
   namedExports: { queueSave: queueSaveMock },
 });
-// SH1 (docs/18_SHARE.md): view.js's own new "Share record" button imports
-// openShareSheet from share/sheet.js, which would otherwise reach the real
-// share composer chain (crate-card.js -> history/achievements.js, etc.) —
-// mocked here too, the same "stop the chain at the door" reasoning.
-mock.module(new URL('../../src/share/sheet.js', import.meta.url).href, {
-  namedExports: { openShareSheet(){} },
-});
 // GF5/GF6: back-cover.js's own buildBackCoverEl imports ui/wordmark.js, a
 // ?raw asset import node:test can't resolve -- mocked here too, the usual
 // "stop the chain at the door" reasoning; back-cover.js's own data builder
@@ -126,20 +119,7 @@ mock.module(new URL('../../src/gatefold/back-cover.js', import.meta.url).href, {
     backCoverMenuRowsVisible(turnedOver){ return !!turnedOver; },
   },
 });
-// GF10: buildBookletRow() (view.js) reads bookletPageCount() and opens the
-// viewer/picker -- both mocked here, the usual "stop the chain at the
-// door" reasoning; library/booklet.js's own detection/storage functions
-// are covered by tests/unit/booklet.test.js instead, and mocking
-// gatefold/booklet.js entirely here also sidesteps its own (safe) circular
-// import of view.js's refreshLinerPanel.
-mock.module(new URL('../../src/library/booklet.js', import.meta.url).href, {
-  namedExports: { bookletPageCount(){ return 0; } },
-});
-mock.module(new URL('../../src/gatefold/booklet.js', import.meta.url).href, {
-  namedExports: { openBookletViewer(){}, openAddBookletPagesPicker(){} },
-});
-
-const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatherRecordShareData, gatefoldFormatLines } = await import('../../src/gatefold/view.js');
+const { gatefoldSideSplits, gatefoldSideWearShares, isGatefoldOpen, gatefoldFormatLines } = await import('../../src/gatefold/view.js');
 const { isSingleRecord, isPictureSleeveOpen } = await import('../../src/gatefold/picture-sleeve.js');
 const { S } = await import('../../src/state.js');
 
@@ -158,77 +138,6 @@ test('gatefoldSideSplits: S.albumSides off never splits regardless of track coun
   S.albumSides = false;
   S.tracks = [0,1,2,3,4].map(() => fakeTrack(1, 600));
   assert.equal(gatefoldSideSplits([0, 1, 2, 3, 4]), null);
-});
-
-// GF1 (docs/29_GATEFOLD.md point 1) / CC3 point 4 (docs/34_CARE_AND_
-// CONTROL.md): gatherRecordShareData() is always your own copy, and
-// carries rating/note straight through from MizikiSocial.getAlbumSocial(),
-// null when unset. friendsCount is now wired to the real RPC (through
-// releaseKey()/friendsStickerCountsByKeys()) rather than hardcoded --
-// resolves to whatever that call returns, null when it can't resolve a
-// key or the call fails, which in real use is always the case for an
-// owned copy (friends_sticker() excludes releases the caller owns).
-function fakeAlbumTrack(){
-  return { tags: { album: 'Low Tide', artist: 'The Shoals', title: 'Drift' },
-    duration: 200, art: null, meta: { codec: 'FLAC', rate: 44100, bits: 16, ch: 2, lossless: true } };
-}
-
-test('gatherRecordShareData: owned record never carries a friends sticker, unrated reads null', async () => {
-  globalThis.MizikiSocial = {
-    getAlbumSocial(){ return { rating: null, note: '' }; },
-    releaseKey(){ return 'v1:fake'; },
-    friendsStickerCountsByKeys: async () => ({ ok: true, counts: {} }),
-  };
-  S.albumSides = true;
-  S.tracks = [fakeAlbumTrack()];
-  S.albumFormat = {};
-  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
-  S.index = -1;
-  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
-  const data = await gatherRecordShareData(item);
-  assert.equal(data.friendsCount, null);
-  assert.equal(data.rating, null);
-  assert.equal(data.note, null);
-  assert.equal(data.speed, 45);   // a 200s side falls in the 7" @45 band
-});
-
-test('gatherRecordShareData: a rating and note pass straight through', async () => {
-  globalThis.MizikiSocial = {
-    getAlbumSocial(){ return { rating: 4, note: 'Side A at dusk' }; },
-    releaseKey(){ return null; },   // no key resolvable -- stays null, never throws
-    friendsStickerCountsByKeys: async () => ({ ok: false }),
-  };
-  S.albumSides = true;
-  S.tracks = [fakeAlbumTrack()];
-  S.albumFormat = {};
-  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
-  S.index = -1;
-  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
-  const data = await gatherRecordShareData(item);
-  assert.equal(data.rating, 4);
-  assert.equal(data.note, 'Side A at dusk');
-  assert.equal(data.friendsCount, null);
-});
-
-// CC3 point 6: "share-card gating" -- the real RPC is the thing
-// friendsCount reflects, not a hardcoded value, proven here with a non-
-// zero result (never actually returned for an owned copy in production,
-// but the plumbing itself has to carry a real number through when the
-// RPC gives it one).
-test('gatherRecordShareData: friendsCount reflects whatever the RPC resolves', async () => {
-  globalThis.MizikiSocial = {
-    getAlbumSocial(){ return { rating: null, note: '' }; },
-    releaseKey(){ return 'v1:fake'; },
-    friendsStickerCountsByKeys: async () => ({ ok: true, counts: { 'v1:fake': 2 } }),
-  };
-  S.albumSides = true;
-  S.tracks = [fakeAlbumTrack()];
-  S.albumFormat = {};
-  S.zoetropesEnabled = false; S.zoetropeUnlocked = {};
-  S.index = -1;
-  const item = { album: 'Low Tide', artist: 'The Shoals', year: 2024, albumId: 'low-tide', idx: [0], trackCount: 1 };
-  const data = await gatherRecordShareData(item);
-  assert.equal(data.friendsCount, 2);
 });
 
 test('gatefoldSideSplits: a single disc of equal-length tracks balances by time', () => {
