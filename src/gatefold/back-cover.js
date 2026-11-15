@@ -35,13 +35,29 @@ export async function getAlbumBackCoverBlob(albumId){
   return (rec && rec.blob) || null;
 }
 
+// BD10 (docs/38_BEFORE_THE_DOMAIN.md): true only when this album has never
+// had a back cover stored *and* never had a claim touched either way --
+// i.e. it's still showing the Miziki default and nothing (not even a
+// "Use Miziki default" tombstone) has been recorded for it yet. Import's
+// auto-detection checks this before writing a sidecar image, so it never
+// overwrites a cover the user picked or deliberately cleared.
+export async function albumBackCoverIsUnset(albumId){
+  if(await getAlbumBackCoverBlob(albumId)) return false;
+  const stamp = S.backupUpdatedAt && S.backupUpdatedAt.albumBackCover && S.backupUpdatedAt.albumBackCover[albumId];
+  return !stamp;
+}
+
 // blob is already square-cropped by the caller (cropSquareImage(), the
 // same step the edit sheet's own cover picker already takes) -- this just
 // owns the local artwork row and the sync claim, same split applyEdit()'s
 // own artBlob branch has between artwork.put() and queueCoverUpload().
-export async function setAlbumBackCoverImage(albumId, blob){
+// BD10: opts.autoDetected skips the sync claim entirely -- an
+// import-time sidecar match is device-only (CLAUDE.md's backup table),
+// never uploaded and never stamped, so it stays invisible to the merge
+// logic and a later hand-picked cover can still claim the key cleanly.
+export async function setAlbumBackCoverImage(albumId, blob, opts){
   await artwork.put({ id: backCoverArtworkId(albumId), blob });
-  queueBackCoverUpload(albumId, blob);
+  if(!opts || !opts.autoDetected) queueBackCoverUpload(albumId, blob);
 }
 // "Use Miziki default" -- GF6 point 1's menu, the edit sheet's own row.
 export async function clearAlbumBackCoverImage(albumId){
