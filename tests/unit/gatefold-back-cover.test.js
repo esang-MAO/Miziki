@@ -34,7 +34,7 @@ mock.module(new URL('../../src/sync/backup.js', import.meta.url).href, {
 });
 const {
   buildBackCoverData, getAlbumBackCoverBlob, setAlbumBackCoverImage, clearAlbumBackCoverImage,
-  backCoverMenuRowsVisible,
+  backCoverMenuRowsVisible, albumBackCoverIsUnset,
 } = await import('../../src/gatefold/back-cover.js');
 const { matrixTail } = await import('../../src/record-art/etchings.js');
 const { S } = await import('../../src/state.js');
@@ -166,4 +166,58 @@ test('UN10: "Use Miziki default" checked state follows getAlbumBackCoverBlob', a
   assert.equal(!(await getAlbumBackCoverBlob(albumId)), false);  // custom back set -- unchecked
   await clearAlbumBackCoverImage(albumId);
   assert.equal(!(await getAlbumBackCoverBlob(albumId)), true);   // back to default -- checked again
+});
+
+// BD10 (docs/38_BEFORE_THE_DOMAIN.md): import's sidecar auto-detection
+// must never overwrite a cover the user picked, or a default they chose
+// on purpose -- albumBackCoverIsUnset() is the guard it checks first.
+test('BD10: albumBackCoverIsUnset is true for an album never touched either way', async () => {
+  assert.equal(await albumBackCoverIsUnset('album-bd10-untouched'), true);
+});
+
+test('BD10: albumBackCoverIsUnset is false once an image is stored', async () => {
+  const albumId = 'album-bd10-has-image';
+  assert.equal(await albumBackCoverIsUnset(albumId), true);
+  await setAlbumBackCoverImage(albumId, { size: 1 });
+  assert.equal(await albumBackCoverIsUnset(albumId), false);
+});
+
+test('BD10: albumBackCoverIsUnset is false once "Use Miziki default" tombstones the claim', async () => {
+  // clearBackCoverClaim() is mocked above to a plain recorder (sync/
+  // backup.js's own touchBackupKey() bookkeeping is covered by
+  // backup-merge.test.js instead), so the stamp it would leave is set
+  // directly here -- same S.backupUpdatedAt.albumBackCover shape
+  // touchBackupKey() itself writes (src/state.js).
+  const albumId = 'album-bd10-tombstoned';
+  await setAlbumBackCoverImage(albumId, { size: 1 });
+  await clearAlbumBackCoverImage(albumId);
+  S.backupUpdatedAt.albumBackCover[albumId] = { seq: 0, at: Date.now() };
+  assert.equal(await getAlbumBackCoverBlob(albumId), null);        // back to the default image...
+  assert.equal(await albumBackCoverIsUnset(albumId), false);       // ...but the tombstone still counts as touched
+});
+
+test('BD10: setAlbumBackCoverImage({autoDetected:true}) stores the image but never queues the sync claim or a stamp', async () => {
+  backupCalls.uploads.length = 0;
+  const albumId = 'album-bd10-auto';
+  const blob = { size: 1 };
+  await setAlbumBackCoverImage(albumId, blob, { autoDetected: true });
+  assert.equal(await getAlbumBackCoverBlob(albumId), blob);
+  assert.equal(backupCalls.uploads.length, 0);
+  // the import guard itself correctly reports "has a cover now" (so a
+  // second import batch doesn't re-detect it) -- what BD10 actually
+  // requires stays invisible one level down: no stamp was ever written,
+  // so this key never appears in a serialized backup doc for this album.
+  assert.equal(await albumBackCoverIsUnset(albumId), false);
+  assert.equal(S.backupUpdatedAt.albumBackCover[albumId], undefined);
+});
+
+test('BD10: a later hand-picked cover still claims and uploads normally, replacing an auto-detected one', async () => {
+  backupCalls.uploads.length = 0;
+  const albumId = 'album-bd10-auto-then-picked';
+  await setAlbumBackCoverImage(albumId, { size: 1 }, { autoDetected: true });
+  const picked = { size: 2 };
+  await setAlbumBackCoverImage(albumId, picked);
+  assert.equal(await getAlbumBackCoverBlob(albumId), picked);
+  assert.equal(backupCalls.uploads.length, 1);
+  assert.equal(await albumBackCoverIsUnset(albumId), false);
 });

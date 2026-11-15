@@ -692,18 +692,6 @@ button.pressing-chip{cursor:pointer}
 .tt-clear .tt-s8{left:84%;top:46.429%;width:2.5%;height:27.679%;background:linear-gradient(90deg, #8E8984, #E3DED7, #77736E)}
 .tt-clear .tt-s9{left:60%;top:53.571%;width:25%;height:1.786%;background:#141210;transform:rotate(-9deg);transform-origin:0 50%}
 .tt-clear .tt-s10{left:57%;top:51.786%;width:5%;height:4.464%;border-radius:0.5%;background:#141210}
-.tt-suitcase .tt-s0{left:4%;top:0%;width:92%;height:53.571%;border-radius:3% 3% 0 0;background:linear-gradient(180deg, #E8DFCC, #CFC4AE);box-shadow:inset 0 0 0 5px #8E2F2A}
-.tt-suitcase .tt-s1{left:10%;top:8.929%;width:80%;height:37.5%;border-radius:1.5%;background:repeating-radial-gradient(circle at 50% 50%, rgba(80,60,40,.0) 0px, rgba(80,60,40,0) 3px, rgba(80,60,40,.22) 3px, rgba(80,60,40,.22) 4px)}
-.tt-suitcase .tt-s2{left:4%;top:53.571%;width:92%;height:5.357%;background:#6E2420}
-.tt-suitcase .tt-s3{left:15%;top:51.786%;width:63%;height:7.143%;border-radius:1%}
-.tt-suitcase .tt-rec{left:15.5%;top:44.643%;width:62%;height:12.5%;--tt-label-ratio:.11290}
-.tt-suitcase .tt-s6{left:80%;top:41.071%;width:2.5%;height:14.286%;background:#EFE9DF}
-.tt-suitcase .tt-s7{left:56%;top:46.429%;width:25%;height:2.679%;border-radius:1%;background:#EFE9DF;transform:rotate(-8deg);transform-origin:0 50%}
-.tt-suitcase .tt-s8{left:2%;top:58.929%;width:96%;height:37.5%;border-radius:0 0 3% 3%;background:repeating-linear-gradient(135deg, rgba(0,0,0,.05) 0px, rgba(0,0,0,.05) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #B5483F, #8E2F2A);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
-.tt-suitcase .tt-s9{left:32%;top:66.071%;width:36%;height:23.214%;border-radius:1.5%;background:repeating-radial-gradient(circle, #2A1B18 0px, #2A1B18 1px, #4A2420 1px, #4A2420 3px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
-.tt-suitcase .tt-s10{left:10%;top:73.214%;width:7%;height:7.143%;border-radius:1%}
-.tt-suitcase .tt-s11{left:83%;top:73.214%;width:7%;height:7.143%;border-radius:1%}
-.tt-suitcase .tt-s12{left:2%;top:95.536%;width:96%;height:4.464%;background:#3A1512}
 .tt-broadcast .tt-s0{left:3%;top:92.857%;width:94%;height:7.143%;background:#1A1C1E}
 .tt-broadcast .tt-s1{left:0%;top:58.929%;width:100%;height:35.714%;border-radius:1.5%;background:repeating-radial-gradient(circle at 30% 40%, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px), linear-gradient(180deg, #8D949A 0%, #6A7177 30%, #555B60 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
 .tt-broadcast .tt-s2{left:6%;top:69.643%;width:14%;height:12.5%;border-radius:1%;background:#1C1E20;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}

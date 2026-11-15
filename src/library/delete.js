@@ -30,17 +30,11 @@ import { deleteCrateArtTiers } from '../crate/tiers.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { renderTracks } from './view.js';
 import { pruneThumbs } from './thumbs.js';
+export { formatBytes } from '../util/text.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }
 export function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
 
-export function formatBytes(n){
-  if(!n) return '0 MB';
-  const units = ['B','KB','MB','GB','TB'];
-  let i = 0;
-  while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
-  return n.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
-}
 export function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
 
 export async function deleteTracks(idsToDelete){

@@ -195,6 +195,11 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 .lib-tools-row2 .k em{display:block;font-style:normal;font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.4}
 .lib-tools-danger .k{color:var(--danger)}
 .lib-tools-danger .k em{color:var(--muted)}
+/* BD5 (docs/38_BEFORE_THE_DOMAIN.md): the storage-usage line and its
+   "may clear" warning -- --fs-body per that step, distinct from the
+   smaller --fs-caption .note lines around it. */
+.lib-tools-storage{font-family:var(--body);font-size:var(--fs-body);color:var(--muted);line-height:1.5;margin:14px 0 0}
+.lib-tools-storage.warn{color:var(--danger)}
 /* UN4 (docs/36_UNIFORMITY.md point 8): the button itself is now
    .p-btn--danger (05-parts.css) -- real theme-reactive var(--danger)/
    var(--danger-line) in place of this file's own hardcoded hex, which

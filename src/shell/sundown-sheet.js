@@ -184,6 +184,10 @@ export function wireSundownSheetEntryPoints(){
   // icon + phase word, one of the ways in described above.
   const phasePill = $('#nowPhasePill');
   if(phasePill) phasePill.addEventListener('click', () => openSundownSheet());
+  // BD6 (docs/38_BEFORE_THE_DOMAIN.md): the one-time explainer line beside
+  // the phase pill above is itself tappable, same destination.
+  const explainer = $('#nowSundownExplainer');
+  if(explainer) explainer.addEventListener('click', () => openSundownSheet());
   wireSundownSheetClose();
   wireSundownSheetDrag();
   wireSundownSheetSwipeClose();

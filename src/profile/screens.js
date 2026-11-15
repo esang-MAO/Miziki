@@ -2,7 +2,7 @@ import { S, touchBackupField } from '../state.js';
 import { el, $ } from '../util/dom.js';
 import { fmtCount } from '../util/text.js';
 import { meta, profile } from '../storage/repo.js';
-import { topAlbums, topTracks, achievementsList, topAlbumsInWindow, recordsInWindowCount, topAlbumsFromCounts } from '../history/achievements.js';
+import { topAlbums, topTracks, achievementsList, topAlbumsFromCounts } from '../history/achievements.js';
 import { renderStorefrontSection } from './storefront.js';
 // The Records screen (All / Pressings) — the Collection screen and the
 // pressing chart moved there; see records.js's own header.
@@ -25,8 +25,8 @@ import { shelfFinishInfo, displayShelfFinish } from './shelf-finish.js';
 import { turntableInfo, displayTurntable } from './turntable.js';
 import { hasDeluxe } from '../deluxe.js';
 import {
-  RHYTHM_MIN_PLAYS, RHYTHM_WINDOW_DAYS, computeRhythmShares, windowedPhaseCounts, windowedCounts,
-  rhythmVerdictLabel, seasonLabelFor, seasonAtOffset, sumBucketsInRange, mergeCounts,
+  RHYTHM_WINDOW_DAYS, windowedCounts,
+  seasonLabelFor, seasonAtOffset, sumBucketsInRange, mergeCounts,
 } from '../sundown/rhythm.js';
 import { PHASE_CAPS, KEPT_FOR_PHASES, KEPT_FOR_LABEL } from '../sundown/spin-wording.js';
 import { albumKey, getVariantDef } from '../record-art/tiers.js';
@@ -658,43 +658,6 @@ function renderListeningScreen(body){
   // Collection (unlocked pressings) and the pressing chart moved to the
   // profile's Records section/screen (records.js), alongside the records
   // they belong to.
-
-  // UN13 point 1: "'Share crate' becomes 'Share this season', a full-
-  // width secondary button -- it's the Season card, which is what this
-  // screen shows." This screen is season-scoped end to end (the ‹ ›
-  // header, Most spun, Played through all browse by season), so sharing
-  // a generic, unwindowed crate card from here never matched what's
-  // actually on it -- there's no other "Share crate" entry point
-  // anywhere else in the app for this to duplicate. Judgment call: kept
-  // the existing >= 20-play gate (renderRhythmCard()'s own threshold)
-  // rather than inventing an always-visible fallback the plan doesn't
-  // describe -- below the gate, the rhythm card itself already renders
-  // nothing, so a share action for data that thin would have nothing
-  // real to show either.
-  const shareStack = el('div','profile-share-stack');
-  const rhythm = computeRhythmShares(windowedPhaseCounts(S.phasePlayCountsByDay, Date.now(), RHYTHM_WINDOW_DAYS));
-  if(rhythm.total >= RHYTHM_MIN_PLAYS){
-    const shareSeasonBtn = el('button','p-btn profile-share','Share this season');
-    shareSeasonBtn.type = 'button';
-    shareSeasonBtn.addEventListener('click', async () => {
-      // QC2 (docs/24_QUIET_COUNTS.md): "most played this season" — the top
-      // 3 albums by plays in the card's own window, replacing the old
-      // metals/"N records played through" figures (SH6 item 1, superseded).
-      const { openShareSheet } = await import('../share/sheet.js');
-      // FS8 (docs/25_FROM_SCRATCH.md): season.name/range (seasonLabelFor)
-      // and recordCount (distinct albums in the window) are the card's
-      // new big headline + muted subline, replacing the old "THIS SEASON
-      // · LAST 90 DAYS" kicker -- the verdict sentence moves beside the
-      // ring instead of being the headline.
-      openShareSheet({ card:'season', data:{
-        verdict: rhythmVerdictLabel(rhythm.shares), shares: rhythm.shares, total: rhythm.total,
-        season: seasonLabelFor(Date.now(), RHYTHM_WINDOW_DAYS), recordCount: recordsInWindowCount(RHYTHM_WINDOW_DAYS),
-        topAlbums: topAlbumsInWindow(3, RHYTHM_WINDOW_DAYS), ownerName: S.profile.name || null,
-      } });
-    });
-    shareStack.appendChild(shareSeasonBtn);
-  }
-  wrap.appendChild(shareStack);
 
   body.appendChild(wrap);
 }

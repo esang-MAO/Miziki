@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { $ } from '../util/dom.js';
 import { formatBytes, totalLibraryBytes } from '../library/delete.js';
+import { readUsage, formatUsage } from '../storage/usage.js';
 import { updateSearchChipsVisibility, resetSearchFilter } from '../library/search.js';
 import { isLibraryRouteVisible } from './routes.js';
 import { openLayer, closeLayer } from './nav-stack.js';
@@ -50,6 +51,27 @@ export function refreshLibraryTools(){
   $('#libToolsFooter').textContent = hasTracks
     ? (S.tracks.length + (S.tracks.length === 1 ? ' track' : ' tracks') + ' · ' + formatBytes(totalLibraryBytes()) + ' · stored on this device')
     : '';
+  refreshStorageUsage();
+}
+
+// BD5 (docs/38_BEFORE_THE_DOMAIN.md): a separate async fill-in from the
+// synchronous DOM refresh above, since navigator.storage.estimate() (behind
+// readUsage()) is itself async -- best-effort, never blocks the rest of the
+// panel, the same posture every heal/estimate call in this app already has.
+function refreshStorageUsage(){
+  const el = $('#libStorageUsage');
+  if(!el) return;
+  readUsage().then(usage => {
+    if(!usage){ el.textContent = ''; el.classList.remove('warn'); return; }
+    let text = formatUsage(usage.usage, usage.quota);
+    // S.storagePersisted is set once, in main.js's restoreLibrary() -- false
+    // specifically means the browser was asked and said no, not "unknown."
+    if(S.storagePersisted === false){
+      text += ' This browser may clear Miziki’s library if the device runs low on space.';
+      el.classList.add('warn');
+    } else el.classList.remove('warn');
+    el.textContent = text;
+  }).catch(() => {});
 }
 
 // header search field: swaps the library tabs row for a full-width search
