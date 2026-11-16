@@ -17,7 +17,7 @@ export function emptyDetails(){
     // `loudness` (this app's own BS.1770 measurement, written by
     // library/import.js right after decode, never by a tag reader) is a
     // sibling field added the same way but intentionally left out of this
-    // default object — see library/thumbs.js's healLoudness() for how an
+    // default object — see library/thumbs.js's healAnalysis() for how an
     // already-imported track without it gets measured after the fact.
     replayGain: {trackGain: null, trackPeak: null, albumGain: null, albumPeak: null}
   };

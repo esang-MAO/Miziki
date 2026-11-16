@@ -13,8 +13,8 @@ import { TRUE_PEAK_VERSION } from '../audio/loudness.js';
 import { analyzeTrack } from '../audio/analysis-client.js';
 import { decodedBytesFor, DECODE_MAX_BYTES } from '../player/buffers.js';
 
-// BD3 (docs/38_BEFORE_THE_DOMAIN.md): healLoudness()/healHooks() below
-// re-decode a track the same way import does -- without this, a track
+// BD3 (docs/38_BEFORE_THE_DOMAIN.md): healAnalysis() below re-decodes a
+// track the same way import does -- without this, a track
 // import already refused to decode (too long for the web build) would
 // just sit as an unresolved heal target and get decoded anyway, every
 // idle pass, forever. No live AudioContext is guaranteed to exist yet
@@ -232,7 +232,7 @@ function scheduleIdle(fn){
 // Runs `processOne(item)` for each item in `items`, one per idle slot --
 // awaited before the next one is even scheduled, so a slow track (decode
 // + a worker round trip) never piles idle callbacks on top of each other.
-// Every boot repair pass below (healDetails/healLoudness/healHooks) uses
+// Every boot repair pass below (healDetails/healAnalysis) uses
 // this same scheduling, not just the ones AU5/AU12 originally yielded for.
 function runIdlePass(items, processOne){
   return new Promise(resolve => {
@@ -273,18 +273,35 @@ export async function healDetails(){
   if(typeof updateCreditsButtonForCurrent === 'function') updateCreditsButtonForCurrent();
 }
 
-// AU5 (docs/16_AUDIO.md §4): "Run an idle-time pass over the existing
-// library once" — a library imported before this feature existed has
-// details.loudness still unset; this measures it the same resumable way
-// healDetails() already backfills a missing details object entirely.
-export async function healLoudness(){
+// AU5/AU12 (docs/16_AUDIO.md §4/§7): "Run an idle-time pass over the
+// existing library once" — a library imported before loudness/hook
+// detection existed has both fields still unset; this measures them the
+// same resumable way healDetails() already backfills a missing details
+// object entirely. Loudness and hook used to be two separate heal passes
+// (healLoudness()/healHooks()), each independently decoding the same
+// track's full audio when it needed both — run concurrently from
+// main.js/import.js, that meant two full decodes of the same track alive
+// at once, which crashed real libraries with several 10-15 minute tracks
+// (2026-11-16). analyzeTrack() already returns both measurements from one
+// decode (its own header comment), so one heal pass now covers both,
+// decoding each qualifying track exactly once.
+export async function healAnalysis(){
   if(!storage.available()) return;
-  // PL5 item 4: re-measure once more, even for a track already measured,
-  // when its truePeakVersion doesn't match the current algorithm — the
-  // one-time cost of recomputing a changed true-peak estimate on the
-  // next boot repair pass, same mechanism, no separate migration.
-  const targets = S.tracks.filter(t => t.stored && t.details && !tooLongToHeal(t)
-    && !(t.details.loudness && t.details.loudness.measured && t.details.loudness.truePeakVersion === TRUE_PEAK_VERSION));
+  const targets = S.tracks.filter(t => t.stored && t.details && !tooLongToHeal(t) && (
+    // PL5 item 4: re-measure loudness once more, even for a track already
+    // measured, when its truePeakVersion doesn't match the current
+    // algorithm — the one-time cost of recomputing a changed true-peak
+    // estimate on the next boot repair pass, same mechanism, no separate
+    // migration.
+    !(t.details.loudness && t.details.loudness.measured && t.details.loudness.truePeakVersion === TRUE_PEAK_VERSION)
+    // hookStart is simply absent on anything detectHook() couldn't find a
+    // repeat in, so there's nothing to distinguish "measured, no clear
+    // hook" from "not measured yet" here; a track with details but no
+    // hookStart gets re-checked every heal pass until the library is
+    // reloaded with it set, the same harmless re-check loudness's own
+    // check above accepts for a track whose measurement keeps failing.
+    || typeof t.details.hookStart !== 'number'
+  ));
   await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
@@ -299,43 +316,12 @@ export async function healLoudness(){
         // PL6 item 1: off the main thread, via the analysis worker.
         const analysis = await analyzeTrack(channels, buffer.sampleRate);
         t.details.loudness = analysis.loudness;
-        rec.details = t.details;
-        await tracks.put(rec);
-      }
-    }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
-  });
-}
-
-// AU12 (docs/16_AUDIO.md §7): the same "idle pass... for a library imported
-// before this feature existed" shape healLoudness() just above already
-// established — a track's details object is the gate (hookStart is simply
-// absent on anything detectHook() couldn't find a repeat in, so there's
-// nothing to distinguish "measured, no clear hook" from "not measured
-// yet" here; a track with details but no hookStart gets re-checked every
-// heal pass until the library is reloaded with it set, the same harmless
-// re-check healLoudness() itself accepts for a track whose measurement
-// keeps failing).
-export async function healHooks(){
-  if(!storage.available()) return;
-  const targets = S.tracks.filter(t => t.stored && t.details && !tooLongToHeal(t) && typeof t.details.hookStart !== 'number');
-  await runIdlePass(targets, async t => {
-    try{
-      const rec = await tracks.get(t.id);
-      if(rec && rec.blob){
-        const raw = await rec.blob.arrayBuffer();
-        // Same reason as healLoudness() just above — decode off the live
-        // S.ctx, not on it.
-        const buffer = await decodeAudioFile(raw);
-        const channels = [];
-        for(let ch = 0; ch < buffer.numberOfChannels; ch++) channels.push(buffer.getChannelData(ch));
-        // PL6 item 1: off the main thread, via the analysis worker.
-        const analysis = await analyzeTrack(channels, buffer.sampleRate);
         if(analysis.hook){
           t.details.hookStart = analysis.hook.hookStart;
           t.details.hookEnd = analysis.hook.hookEnd;
-          rec.details = t.details;
-          await tracks.put(rec);
         }
+        rec.details = t.details;
+        await tracks.put(rec);
       }
     }catch(_e){ /* leave this one unmeasured — a later heal pass retries it */ }
   });

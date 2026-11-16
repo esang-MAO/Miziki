@@ -1,6 +1,6 @@
 /* PL6 item 1 (docs/19_PLAYER.md): the request/response wrapper every real
-   caller — library/thumbs.js's healLoudness()/healHooks() (BD4,
-   docs/38_BEFORE_THE_DOMAIN.md: the sole callers since the import loop
+   caller — library/thumbs.js's healAnalysis() (BD4,
+   docs/38_BEFORE_THE_DOMAIN.md: the sole caller since the import loop
    itself stopped awaiting this inline) — actually calls; analysis-worker.js
    itself only speaks postMessage. One round trip per track returns both the
    loudness measurement and the hook detection together, since every
