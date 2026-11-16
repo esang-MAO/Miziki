@@ -12,7 +12,7 @@ import { S, touchBackupKey, touchBackupMembership } from '../state.js';
 import { $ } from '../util/dom.js';
 import { albumKey } from '../record-art/tiers.js';
 import { idOf, idxOf, allIdx } from './model.js';
-import { tracks, overlays, artwork } from '../storage/repo.js';
+import { tracks, overlays, artwork, meta } from '../storage/repo.js';
 import { stop } from '../player/transport.js';
 import { setQueue, setQueueList, setQpos } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
@@ -37,6 +37,20 @@ export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album =
 export function countForArtist(artist){ return S.tracks.filter(t => t.tags.artist === artist).length; }
 
 export function totalLibraryBytes(){ return S.tracks.reduce((sum,t) => sum + (t.sizeBytes || 0), 0); }
+
+// Shared by deleteTracks()'s own per-emptied-album loop below and
+// sweepOrphanedAlbumOverrides() further down -- an album with no tracks
+// left (whether just now, or from a deletion before either of those
+// existed) really is forgotten, so every per-album override it ever
+// carried goes with it: look pick, speed override, "Keep for…" claim,
+// liner note, and its own back-cover photo+claim.
+async function dropAlbumOverrides(albumId){
+  if(albumId in S.albumLookPref){ delete S.albumLookPref[albumId]; await persistAlbumLookPref(albumId); }
+  if(albumId in S.albumFormat){ delete S.albumFormat[albumId]; await persistAlbumFormat(albumId); }
+  if(albumId in S.albumKeptFor){ delete S.albumKeptFor[albumId]; await persistAlbumKeptFor(albumId); }
+  clearAlbumLinerNoteOverride(albumId);
+  await clearAlbumBackCoverImage(albumId);
+}
 
 export async function deleteTracks(idsToDelete){
   const idSet = new Set(idsToDelete);
@@ -82,11 +96,7 @@ export async function deleteTracks(idsToDelete){
     if(survivingAlbumIds.has(albumId)) continue;
     await deleteCrateArtTiers(albumId);
     if(S.sealed.delete(albumId)) sealedChanged = true;   // SEALED spec §2
-    if(albumId in S.albumLookPref){ delete S.albumLookPref[albumId]; await persistAlbumLookPref(albumId); }
-    if(albumId in S.albumFormat){ delete S.albumFormat[albumId]; await persistAlbumFormat(albumId); }
-    if(albumId in S.albumKeptFor){ delete S.albumKeptFor[albumId]; await persistAlbumKeptFor(albumId); }
-    clearAlbumLinerNoteOverride(albumId);
-    await clearAlbumBackCoverImage(albumId);
+    await dropAlbumOverrides(albumId);
   }
   if(sealedChanged) persistSealedAlbums();
 
@@ -228,4 +238,33 @@ export async function forgetLibrary(){
   $('#playerFavBtn').style.display = 'none';
   stopSleepState();
   renderTracks(); drawTime(); renderMiniPlayer();
+}
+
+// One-time backlog cleanup (2026-11-16, Ken): deleteTracks()'s own
+// dropAlbumOverrides() above only ever prevents a *new* leak -- it can't
+// reach back and clean up an override orphaned by a deletion from before
+// that fix shipped. This sweeps every album override an album with no
+// tracks left in the library is still carrying, once, the first time a
+// build with it runs on a device -- gated by the 'albumOverrideSweepDone'
+// meta flag so it never runs again. That gate matters: forgetLibrary()
+// deliberately leaves every one of these in place so a later re-add
+// reconnects them (its own header comment) -- a *recurring* boot-time
+// sweep would treat that exact "waiting to reconnect" state as orphaned
+// (every album looks gone right after a Forget Library) and silently
+// break the reconnect promise the next time anyone used it. Run once
+// against today's backlog, never again, and that risk doesn't exist.
+export async function sweepOrphanedAlbumOverrides(){
+  if(await meta.get('albumOverrideSweepDone')) return;
+  const currentAlbumIds = new Set(S.tracks.map(albumKey));
+  const orphaned = new Set();
+  [S.albumLookPref, S.albumFormat, S.albumKeptFor, S.albumLinerNote].forEach(dict => {
+    Object.keys(dict).forEach(id => { if(!currentAlbumIds.has(id)) orphaned.add(id); });
+  });
+  (await artwork.all()).forEach(row => {
+    if(!row || typeof row.id !== 'string' || row.id.indexOf('back:') !== 0) return;
+    const albumId = row.id.slice(5);
+    if(!currentAlbumIds.has(albumId)) orphaned.add(albumId);
+  });
+  for(const albumId of orphaned) await dropAlbumOverrides(albumId);
+  await meta.put('albumOverrideSweepDone', true);
 }

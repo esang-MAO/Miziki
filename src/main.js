@@ -20,6 +20,7 @@ import { loadOverlaysBatch } from './library/edit.js';
 import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
 import { renderSearchFilters } from './library/search.js';
 import { restoreSealedAlbums } from './library/sealed.js';
+import { sweepOrphanedAlbumOverrides } from './library/delete.js';
 import { healThumbs, healDetails, healLoudness, healHooks } from './library/thumbs.js';
 import { healCrateArt } from './crate/tiers.js';
 import { invalidateCrateModel } from './crate/model.js';
@@ -209,6 +210,7 @@ async function restoreLibrary(){
   rebuildPeopleIndex();
   invalidateCrateModel();
   renderTracks();
+  sweepOrphanedAlbumOverrides().catch(() => {});
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
   healCrateArt().catch(() => {});

@@ -155,9 +155,10 @@ mock.module(new URL('../../src/ui/path-note.js', import.meta.url).href, {
   namedExports: { setPathNote(){} },
 });
 
-const { countForAlbum, countForArtist, formatBytes, totalLibraryBytes, deleteTracks } =
+const { countForAlbum, countForArtist, formatBytes, totalLibraryBytes, deleteTracks, sweepOrphanedAlbumOverrides } =
   await import('../../src/library/delete.js');
 const { S } = await import('../../src/state.js');
+const { artwork, meta } = await import('../../src/storage/repo.js');
 
 function fakeTrack(overrides){
   return Object.assign({
@@ -378,6 +379,92 @@ test('deleteTracks: playlist/queue entries referencing a deleted track are dropp
   assert.equal(S.tracks.length, 1);
   assert.equal(S.tracks[0].id, 't2');
   assert.deepEqual(S.playlists[0].items, ['t2']);
+  DB.db.close();
+});
+
+// -- sweepOrphanedAlbumOverrides --------------------------------------------
+
+test('sweepOrphanedAlbumOverrides: drops overrides for an album no longer in the library', async () => {
+  await openFresh();
+  resetState({
+    tracks: [],
+    albumLookPref: { gone: 'gold' }, albumFormat: { gone: '45' }, albumKeptFor: { gone: 'firstLight' },
+    albumLinerNote: { gone: 'My own notes' },
+  });
+
+  await sweepOrphanedAlbumOverrides();
+
+  assert.deepEqual(S.albumLookPref, {});
+  assert.deepEqual(S.albumFormat, {});
+  assert.deepEqual(S.albumKeptFor, {});
+  assert.deepEqual(S.albumLinerNote, {});
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 1);
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls[0].arguments[0], 'gone');
+  DB.db.close();
+});
+
+test('sweepOrphanedAlbumOverrides: finds and clears an orphaned back-cover photo with no matching override field', async () => {
+  await openFresh();
+  await artwork.put({ id: 'back:gone', blob: new Blob() });
+  resetState({ tracks: [] });
+
+  await sweepOrphanedAlbumOverrides();
+
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 1);
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls[0].arguments[0], 'gone');
+  DB.db.close();
+});
+
+test('sweepOrphanedAlbumOverrides: leaves overrides for an album still in the library alone', async () => {
+  await openFresh();
+  const t = fakeTrack({ id: 't1' });
+  resetState({
+    tracks: [t],
+    albumLookPref: { al: 'gold' }, albumFormat: { al: '45' }, albumKeptFor: { al: 'firstLight' },
+  });
+
+  await sweepOrphanedAlbumOverrides();
+
+  assert.deepEqual(S.albumLookPref, { al: 'gold' });
+  assert.deepEqual(S.albumFormat, { al: '45' });
+  assert.deepEqual(S.albumKeptFor, { al: 'firstLight' });
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 0);
+  DB.db.close();
+});
+
+test('sweepOrphanedAlbumOverrides: runs only once, gated by the meta flag', async () => {
+  await openFresh();
+  resetState({ tracks: [], albumLookPref: { gone: 'gold' } });
+
+  await sweepOrphanedAlbumOverrides();
+  assert.deepEqual(S.albumLookPref, {});
+  assert.equal(await meta.get('albumOverrideSweepDone'), true);
+
+  // simulate the override reappearing (e.g. a later re-add) and confirm a
+  // second run is a no-op -- the one-time gate must never re-fire
+  S.albumLookPref = { gone: 'gold' };
+  clearAlbumBackCoverImageMock.mock.resetCalls();
+
+  await sweepOrphanedAlbumOverrides();
+
+  assert.deepEqual(S.albumLookPref, { gone: 'gold' });
+  assert.equal(clearAlbumBackCoverImageMock.mock.calls.length, 0);
+  DB.db.close();
+});
+
+test('sweepOrphanedAlbumOverrides: leaves listening stats untouched', async () => {
+  await openFresh();
+  resetState({
+    tracks: [],
+    albumLookPref: { gone: 'gold' },
+    achievements: { gone: { metal: 'gold' } }, collection: { gone: { foundAt: 1 } }, sessionCounts: { gone: 3 },
+  });
+
+  await sweepOrphanedAlbumOverrides();
+
+  assert.deepEqual(S.achievements, { gone: { metal: 'gold' } });
+  assert.deepEqual(S.collection, { gone: { foundAt: 1 } });
+  assert.deepEqual(S.sessionCounts, { gone: 3 });
   DB.db.close();
 });
 
