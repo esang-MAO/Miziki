@@ -750,7 +750,7 @@ export async function ensureContext(){
 
 // Decodes a file's raw bytes without touching the live context's own
 // rendering thread. library/import.js's addFiles() loop and
-// library/thumbs.js's healLoudness()/healHooks() decode here rather than
+// library/thumbs.js's healAnalysis() decode here rather than
 // on the live S.ctx: decoding on the live context contends for the audio
 // thread — especially for a multi-minute lossless FLAC/WAV — and is
 // audible as a glitch in whatever's already playing. A plain, disposable

@@ -301,7 +301,7 @@ export function renderLinerNotes(host, album){
 // rest of the album measures), otherwise the lowest (most compressed)
 // peak-to-loudness ratio among its tracks. null when nothing on the album
 // has been measured yet (a library imported before AU5, not yet healed —
-// see library/thumbs.js's healLoudness()) — renderLinerNotes() shows
+// see library/thumbs.js's healAnalysis()) — renderLinerNotes() shows
 // nothing rather than a guess. Informational only: this never ranks,
 // sorts or changes a pressing tier (CREDITS/SEALED's own tiers stay
 // exactly what they always were).

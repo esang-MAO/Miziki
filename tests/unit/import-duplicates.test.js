@@ -24,13 +24,12 @@ mock.module(new URL('../../src/audio/engine.js', import.meta.url).href, {
 });
 // BD4 (docs/38_BEFORE_THE_DOMAIN.md): import.js no longer calls analyzeTrack()
 // inline -- it hands loudness/hook measurement off to thumbs.js's
-// healLoudness()/healHooks() once the batch ends, so those are mocked here
-// instead of analysis-client.js.
-const healCalls = { loudness: 0, hooks: 0 };
+// healAnalysis() once the batch ends, so that's mocked here instead of
+// analysis-client.js.
+const healCalls = { analysis: 0 };
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: {
-    healLoudness: async () => { healCalls.loudness++; },
-    healHooks: async () => { healCalls.hooks++; },
+    healAnalysis: async () => { healCalls.analysis++; },
   },
 });
 mock.module(new URL('../../src/library/tags/index.js', import.meta.url).href, {
@@ -259,7 +258,7 @@ test('addFiles: a track storeTrack() succeeds on is never mentioned as not saved
 // inline per file the way it used to be.
 test('addFiles: a track is in S.tracks and stored before any loudness/hook measurement exists, then the heal pass is what fills it in', async () => {
   resetAll();
-  healCalls.loudness = 0; healCalls.hooks = 0;
+  healCalls.analysis = 0;
   storageState.available = true;
   try{
     await addFiles([fakeFile({ name: 'a.flac', title: 'Song A' })]);
@@ -267,13 +266,12 @@ test('addFiles: a track is in S.tracks and stored before any loudness/hook measu
     assert.equal(S.tracks[0].stored, true);
     assert.equal(S.tracks[0].details.loudness, undefined);
     assert.equal(S.tracks[0].details.hookStart, undefined);
-    // syncAfterImportChange() kicks off the existing healLoudness()/healHooks()
-    // idle passes once the batch ends -- the real passes are mocked above
-    // (thumbs.js is "stop the chain at the door" here too), so this only
-    // proves addFiles() still calls them once the track is stored, not what
-    // they themselves do (their own body is untouched by this step).
-    assert.equal(healCalls.loudness, 1);
-    assert.equal(healCalls.hooks, 1);
+    // syncAfterImportChange() kicks off the existing healAnalysis() idle
+    // pass once the batch ends -- the real pass is mocked above (thumbs.js
+    // is "stop the chain at the door" here too), so this only proves
+    // addFiles() still calls it once the track is stored, not what it
+    // itself does (its own body is untouched by this step).
+    assert.equal(healCalls.analysis, 1);
   }finally{ storageState.available = false; }
 });
 

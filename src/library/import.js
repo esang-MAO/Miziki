@@ -11,8 +11,8 @@
    track's own per-file import time, almost all of it off-main-thread Worker
    round-trip but still serialized into the loop one file at a time. A newly
    imported track stores with those fields unset and syncAfterImportChange()
-   kicks off thumbs.js's existing healLoudness()/healHooks() idle passes to
-   fill them in once the batch ends. */
+   kicks off thumbs.js's existing healAnalysis() idle pass to fill them in
+   once the batch ends. */
 import { S } from '../state.js';
 import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { setPathNote } from '../ui/path-note.js';
@@ -31,7 +31,7 @@ import { persistSealedAlbums } from './sealed.js';
 import { queueSave } from '../storage/meta.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { healCrateArt } from '../crate/tiers.js';
-import { healLoudness, healHooks } from './thumbs.js';
+import { healAnalysis } from './thumbs.js';
 import { renderTracks } from './view.js';
 import { reconcileImportedTrack } from '../sync/backup.js';
 import { isPageImageName, isBackCoverName, groupSidecarCandidatesByAlbumFolder } from './sidecar.js';
@@ -204,8 +204,8 @@ export async function addFiles(list){
       // hookEnd are simply left unset, the same "absent means unknown"
       // posture every optional details field already has (and the same
       // posture a track too long to decode already took before this step);
-      // syncAfterImportChange() below starts the existing healLoudness()/
-      // healHooks() idle passes once the batch ends to fill them in.
+      // syncAfterImportChange() below starts the existing healAnalysis()
+      // idle pass once the batch ends to fill them in.
       if(!buffer) tooLong.push(f.name);
       const dup = findDuplicateTrack(tags, trimmedDuration || (buffer && buffer.duration) || 0);
       if(dup){
@@ -310,10 +310,9 @@ function syncAfterImportChange(){
   MizikiSocial.libraryChanged();
   healCrateArt().catch(() => {});   // resumable — only the newly-imported albums are missing a tier
   // BD4: fills in the loudness/hook fields this batch's own loop left
-  // unset — same idle passes restoreLibrary() already runs at boot,
+  // unset — same idle pass restoreLibrary() already runs at boot,
   // already resumable and already gated on t.stored && t.details.
-  healLoudness().catch(() => {});
-  healHooks().catch(() => {});
+  healAnalysis().catch(() => {});
   if(S.index < 0 && S.tracks.length) setQueue(allIdx(), 0, false);
 }
 

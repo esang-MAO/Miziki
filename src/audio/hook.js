@@ -6,9 +6,9 @@
 
    Pure, zero-import leaf — no DOM, no S, no AudioContext — the same
    "directly unit-testable in Node" shape as audio/loudness.js/level-match.js.
-   library/import.js (at import) and library/thumbs.js's healHooks() (the
-   idle heal pass for a library imported before this feature existed) are
-   the two real callers, both of which already have decoded channel data in
+   library/import.js (at import) and library/thumbs.js's healAnalysis()
+   (the idle heal pass for a library imported before this feature existed)
+   are the two real callers, both of which already have decoded channel data in
    hand (the same two call sites AU5's measureTrack() already uses).
 
    A deliberately bounded approximation, not an exhaustive search: a real

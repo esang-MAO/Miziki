@@ -21,7 +21,7 @@ import { rebuildPeopleIndex, albumCreditPairs } from './library/credits.js';
 import { renderSearchFilters } from './library/search.js';
 import { restoreSealedAlbums } from './library/sealed.js';
 import { sweepOrphanedAlbumOverrides } from './library/delete.js';
-import { healThumbs, healDetails, healLoudness, healHooks } from './library/thumbs.js';
+import { healThumbs, healDetails, healAnalysis } from './library/thumbs.js';
 import { healCrateArt } from './crate/tiers.js';
 import { invalidateCrateModel } from './crate/model.js';
 import { renderTracks } from './library/view.js';
@@ -214,8 +214,7 @@ async function restoreLibrary(){
   healThumbs().catch(() => {});
   healDetails().catch(() => {});
   healCrateArt().catch(() => {});
-  healLoudness().catch(() => {});
-  healHooks().catch(() => {});
+  healAnalysis().catch(() => {});
   markLibraryReady();   // from here on the launch intro knows S.launchIntro
   if(S.tracks.length){
     // AU1 (docs/16_AUDIO.md §2.1): try the saved queue/position first — it

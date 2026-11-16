@@ -116,7 +116,7 @@ export function integratedLoudnessLUFS(channels, sampleRate){
 }
 
 // True-peak version stamp: bumped whenever estimateTruePeakDb()'s own
-// algorithm changes, so library/thumbs.js's healLoudness() knows to
+// algorithm changes, so library/thumbs.js's healAnalysis() knows to
 // re-measure an already-measured track exactly once (PL5 item 4).
 export const TRUE_PEAK_VERSION = 2;
 
@@ -224,7 +224,7 @@ export function dbToLinear(db){ return Math.pow(10, db / 20); }
 export function linearToDb(lin){ return lin > 0 ? 20 * Math.log10(lin) : -Infinity; }
 
 // The single measuring pass library/import.js runs once per imported file
-// (and library/thumbs.js's healLoudness() re-runs once, for a library
+// (and library/thumbs.js's healAnalysis() re-runs once, for a library
 // stored before this feature existed) — everything the dynamics note and
 // the ReplayGain fallback both need, from one decode.
 export function measureTrack(channels, sampleRate){
