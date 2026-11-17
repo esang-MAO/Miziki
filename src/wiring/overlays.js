@@ -55,4 +55,5 @@ export function wireOverlays(){
   $('#sortMenuClose').addEventListener('click', () => closeLayer('sort-menu'));
   $('#shelfFinishClose').addEventListener('click', () => closeLayer('shelf-finish'));
   $('#turntableClose').addEventListener('click', () => closeLayer('turntable'));
+  $('#debugLogClose').addEventListener('click', () => closeLayer('debug-log'));
 }

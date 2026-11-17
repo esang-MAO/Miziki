@@ -175,6 +175,18 @@ module.exports = [
     },
   },
 
+  // src/util/debug-log.js — BD13 (docs/38_BEFORE_THE_DOMAIN.md): reads
+  // vite.config.js's build-time `define` for the "Copy error log" sheet's
+  // app build id, through a `typeof __BUILD_ID__` guard. Declared as a
+  // global (same pattern as MizikiSocial above) so no-undef doesn't trip
+  // on the one file that reads it.
+  {
+    files: ['src/util/debug-log.js'],
+    languageOptions: {
+      globals: { __BUILD_ID__: 'readonly' },
+    },
+  },
+
   // tests/unit/*.test.js — ESM, run under Node.
   {
     files: ['tests/unit/**/*.js'],
