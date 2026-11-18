@@ -117,10 +117,13 @@ async function main(){
     await page.setInputFiles('#file', files, { timeout: 30000 });
     // A generous timeout -- a shared CI runner's CPU is slower than a dev
     // machine's for the real decode/analyze work addFiles() does per file.
+    // 60000 wasn't generous enough: CI runs (PRs #482, #483, #485) have
+    // repeatedly cleared ~61.3-61.4s on this exact wait, so 60000 left no
+    // real margin -- 90000 does.
     await page.waitForFunction(
       () => (document.querySelector('#pathNote')?.textContent || '').includes('Importing 2 of 2'),
       null,
-      { timeout: 60000 },
+      { timeout: 90000 },
     );
     await page.waitForTimeout(1000); // the last file's decode/analyze/store work
 
