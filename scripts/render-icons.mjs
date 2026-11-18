@@ -43,10 +43,18 @@ const spindleFull = readFileSync(path.join(ROOT, 'data/spindle.svg'), 'utf8');
 const spindleMid = readFileSync(path.join(ROOT, 'data/spindle-mid.svg'), 'utf8');
 const spindleLabel = readFileSync(path.join(ROOT, 'data/spindle-label.svg'), 'utf8');
 
-// src/share/styles.js's SHARE_BG, "Night" style's own top-to-bottom
-// gradient (0%/55%/100%) -- the app's dark ground, duplicated here for
-// the same reason the wordmark's colours used to be (BD14).
-const BG = 'linear-gradient(to bottom, #1D2F38 0%, #101A20 55%, #07080C 100%)';
+// A flat ground, not src/share/styles.js's SHARE_BG gradient BD14 used --
+// Ken asked (2026-11-18) for the record enlarged toward how tightly Siri/
+// Camera/Settings crop their own glyph, and iOS 26's Liquid Glass now
+// derives Dark/Tinted/Clear home-screen appearances from this one icon
+// algorithmically (Safari only accepts a single icon image for a home-
+// screen web app; there's no separate light/dark asset to author the way
+// a native app's Icon Composer layers allow). Apple's own guidance for
+// that derivation favors a plain, flat background over a gradient, so
+// this is `#101A20` -- the same flat color public/manifest.webmanifest's
+// `background_color`/`theme_color` and miziki.html's theme-color meta
+// already use for the launch/splash background, not a new color.
+const BG = '#101A20';
 
 const ICON_SIZES = [180, 192, 512];
 
@@ -80,10 +88,13 @@ async function main(){
   mkdirSync(outDir, { recursive: true });
 
   try{
-    // The disc fills about 69% of the square (data/spindle.svg's own
-    // viewBox already insets it slightly further via its root <g> scale).
+    // 98%, not 100% -- data/spindle.svg's own viewBox already insets the
+    // disc slightly via its root <g> scale, but at 100% the outer ring
+    // grazes this icon's corner-mask preview with zero margin against a
+    // real OS mask that isn't pixel-identical to this one; 98% was Ken's
+    // own pick after comparing both side by side (2026-11-18).
     for(const size of ICON_SIZES){
-      await renderOne(browser, { svg: spindleFull, size, fillPct: 69, outPath: path.join(outDir, `icon-${size}.png`) });
+      await renderOne(browser, { svg: spindleFull, size, fillPct: 98, outPath: path.join(outDir, `icon-${size}.png`) });
     }
     // favicon-32 from the mid cut (no grooves, heavier fermata), favicon-16
     // from the label cut (disc dropped entirely, per data/spindle-label.svg).
