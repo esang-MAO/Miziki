@@ -9,12 +9,11 @@ import { mostRecentlySpunAlbum, crateFlatAlbumOrder } from '../crate/model.js';
 import { DB } from '../storage/idb.js';
 import { persistProfile, formatDisplayName, renderProfile } from './screens.js';
 import { beginSocialSignIn } from './settings.js';
-// The Records screen (records + unlocked pressings/metals) — part of this
-// file's circular cluster with screens.js; see records.js's own header.
-// storeShelvesSection's own "Browse all" (GS11) opens straight into it via
-// openRecords(); storePressingsTeaserRow() is the one other entry point
-// this file still draws on the profile home.
-import { openRecords, storePressingsTeaserRow, metalDisc, pressingDisc } from './records.js';
+// The Records screen (records + unlocked pressings/metals) — see
+// records.js's own header. BD19 moved the cross-screen nav into Records
+// (this file's own openRecords(), below) so only this file still imports
+// renderProfile() back from screens.js; records.js no longer does.
+import { storePressingsTeaserRow, metalDisc, pressingDisc } from './records.js';
 import { thumbURL } from '../library/thumbs.js';
 import { achievementsList } from '../history/achievements.js';
 import { PHASE_CAPS } from '../sundown/spin-wording.js';
@@ -38,6 +37,16 @@ import { stickerBadge } from '../social/sticker.js';
 // drawn with the same stats/picks/awning/time-ago vocabulary as your own.
 export const STORE_TIER_LABEL = {1:'LOSSY', 2:'LOSSLESS', 3:'HI-RES'};
 export const STORE_VIS_LABEL = {private:'Only you', friends:'Friends only', public:'Everyone'};
+
+// The shared "open Records on a given tab" nav, formerly records.js's own
+// openRecords() — moved here since only this file still needs to reach
+// renderProfile() to do it (storeShelfUnitSection's "Browse all" and
+// storePressingsTeaserRow's own row, both below).
+function openRecords(filter){
+  S.profileView.screen = 'records';
+  S.profileView.recordsFilter = filter;
+  renderProfile();
+}
 
 function wallDayMonth(ms){
   const d = new Date(ms);
@@ -437,7 +446,7 @@ function renderLocalStorefront(host, cta){
   host.appendChild(storeWallSection(picks));
   host.appendChild(storeShelfUnitSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), picks.map(p => p.release_id), null));
   host.appendChild(storeListeningRow());
-  host.appendChild(storePressingsTeaserRow());
+  host.appendChild(storePressingsTeaserRow(()=> openRecords('pressings')));
 
   if(cta){
     const needsProfile = cta === 'needsProfile';
@@ -957,7 +966,7 @@ function renderStorefront(host, full, requests){
   host.appendChild(storeShelfUnitSection(shelfItemsFromCrate(crateFlatAlbumOrder(S.crateGroup)), full.staffPicks.map(p => p.release_id), null));
   host.appendChild(storeListeningRow());
   if(full.diggingShared) host.appendChild(storeDiggingSection(full, host));
-  host.appendChild(storePressingsTeaserRow());
+  host.appendChild(storePressingsTeaserRow(()=> openRecords('pressings')));
 }
 
 // QC1 (docs/24_QUIET_COUNTS.md): pressings are found, never counted toward
