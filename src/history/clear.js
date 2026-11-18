@@ -10,7 +10,7 @@ import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
 import { achievements, collection, sessions, meta } from '../storage/repo.js';
 import {
   persistSessionCounts, persistMetalEligibleSessions, persistRareUnlocked,
-  persistAlbumLastPlayed, persistAlbumLookPref, persistTrackPlayCounts,
+  persistAlbumLastPlayed, persistTrackPlayCounts,
   persistTrackMetalEligiblePlays, persistPhasePlayCounts, persistAlbumPhaseCounts,
   persistPhasePlayCountsByDay, persistAlbumPlayCountsByDay, persistSeasonSummaries, persistPlayedThrough,
   // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): zoetropeUnlocked/
@@ -22,7 +22,7 @@ import {
   // wear (it's history) -- same treatment as albumLastPlayed above.
   persistAlbumFirstPlayed,
 } from './sessions.js';
-import { persistAlbumDisplay, persistTrackDisplay, pruneThumbs } from '../library/thumbs.js';
+import { persistAlbumDisplay, persistTrackDisplay, persistAlbumLookPref, pruneThumbs } from '../library/thumbs.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { persistTrackLastPlayed, renderProfile } from '../profile/screens.js';
 import { scheduleBackupSync } from '../sync/backup.js';
@@ -58,9 +58,9 @@ function filterKeepByAlbumId(dict, keepSet){
 export async function resetLocalHistory(){
   // RF17 (docs/12_REFINE.md): capture every key being wiped *before* wiping
   // it, so persistAlbumDisplay/persistAlbumLookPref/persistTrackDisplay (now
-  // per-key — thumbs.js's/sessions.js's own entries) can stamp a tombstone
-  // for each one, rather than touching nothing and leaving every album's
-  // last stamp (and thus its merged value) unchanged on the next sync.
+  // per-key — all three library/thumbs.js's own entries, BD19) can stamp a
+  // tombstone for each one, rather than touching nothing and leaving every
+  // album's last stamp (and thus its merged value) unchanged on the next sync.
   const albumDisplayKeys = Object.keys(S.albumDisplay);
   const albumLookPrefKeys = Object.keys(S.albumLookPref);
   const trackDisplayKeys = Object.keys(S.trackDisplay);

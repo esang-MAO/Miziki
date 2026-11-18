@@ -2,14 +2,17 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 // PRESSING_DRAW (docs/31_PRESSINGS_AND_LOOKS.md, PR B): record-art/looks.js
-// imports history/sessions.js for persistAlbumLookPref() -- real
-// sessions.js imports looks.js right back (a real, established circular
-// pair, see tiers.js's own header comment) plus library/thumbs.js's wide
-// chain, neither of which this file's own subject (look selection/
-// switching) needs. Mocked flat, the same "stop the chain at the door"
-// shape chart-version.test.js already uses for this exact module.
+// imports library/thumbs.js for persistAlbumLookPref() -- real thumbs.js
+// has a wide chain (profile/screens.js, audio/engine.js, the analysis
+// client, ...) this file's own subject (look selection/switching) doesn't
+// need. Mocked flat, the same "stop the chain at the door" shape
+// chart-version.test.js already uses for this exact module. (BD19,
+// docs/38_BEFORE_THE_DOMAIN.md: persistAlbumLookPref used to live in
+// history/sessions.js, which made this a real circular import --
+// sessions.js imported looks.js's applyDiscVariant right back. Moved to
+// thumbs.js, alongside its same-shaped persistAlbumDisplay, to drop it.)
 const persistAlbumLookPrefMock = mock.fn();
-mock.module(new URL('../../src/history/sessions.js', import.meta.url).href, {
+mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: { persistAlbumLookPref: persistAlbumLookPrefMock },
 });
 

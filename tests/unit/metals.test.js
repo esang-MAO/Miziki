@@ -1,15 +1,16 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// resolveLook (record-art/looks.js) has a real circular import with
-// history/sessions.js (persistAlbumLookPref) and a real import of
-// library/thumbs.js's restoreThumbs — loading thumbs.js for real would
+// resolveLook (record-art/looks.js) imports library/thumbs.js for both
+// restoreThumbs and persistAlbumLookPref (BD19, docs/38_BEFORE_THE_DOMAIN.md
+// -- persistAlbumLookPref moved here from history/sessions.js, which used
+// to make this a real circular import). Loading thumbs.js for real would
 // reach library/edit.js and, through that, library/sealed.js/credits.js,
 // each circularly importing main.js (rule 8 in CLAUDE.md). Mocking just
-// thumbs.js's one export stops that chain at the door, the same approach
+// thumbs.js's exports stops that chain at the door, the same approach
 // tags.test.js/credits.test.js/search.test.js use.
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, persistable: rec => rec, thumbURL: {}, pruneThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, persistable: rec => rec, thumbURL: {}, pruneThumbs: async () => {}, persistAlbumLookPref: async () => {} },
 });
 
 const {

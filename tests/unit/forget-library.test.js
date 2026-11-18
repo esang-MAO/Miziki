@@ -9,9 +9,10 @@ import { DB } from '../../src/storage/idb.js';
 // file additionally calls clearListeningHistory() (src/history/clear.js,
 // one test) and persistSessionCounts() (src/history/sessions.js, real and
 // already reachable through delete.js's own invalidateActiveSessionIfAny
-// import) directly, so the thumbs.js mock gains the two persist* exports
-// clear.js needs, and profile/screens.js is mocked too (clear.js's own
-// real import, step 6e).
+// import) directly, so the thumbs.js mock gains the persist* exports
+// clear.js needs (BD19, docs/38_BEFORE_THE_DOMAIN.md: persistAlbumLookPref
+// joined persistAlbumDisplay/persistTrackDisplay here), and profile/
+// screens.js is mocked too (clear.js's own real import, step 6e).
 // queue.js's own real chain now reaches skipWithLift(), which imports
 // REDUCED from util/motion.js -- read once, at module load, from
 // window.matchMedia.
@@ -52,6 +53,7 @@ mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
   namedExports: {
     restoreThumbs: async () => {}, pruneThumbs: async () => {},
     persistAlbumDisplay: async () => {}, persistTrackDisplay: async () => {},
+    persistAlbumLookPref: async () => {},
     persistable(rec){ return rec; },
   },
 });

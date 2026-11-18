@@ -17,7 +17,7 @@ import { stop } from '../player/transport.js';
 import { setQueue, setQueueList, setQpos } from '../player/queue.js';
 import { stopSleepState } from '../player/sleep-timer.js';
 import { drawTime } from '../player/clock.js';
-import { invalidateActiveSessionIfAny, persistAlbumLookPref, persistAlbumFormat, persistAlbumKeptFor } from '../history/sessions.js';
+import { invalidateActiveSessionIfAny, persistAlbumFormat, persistAlbumKeptFor } from '../history/sessions.js';
 import { rebuildPeopleIndex, clearAlbumLinerNoteOverride } from './credits.js';
 import { applyDiscVariant } from '../record-art/looks.js';
 import { applyDeadWaxEtching } from '../record-art/etchings.js';
@@ -30,7 +30,7 @@ import { renderMiniPlayer } from '../shell/mini-player.js';
 import { deleteCrateArtTiers } from '../crate/tiers.js';
 import { invalidateCrateModel } from '../crate/model.js';
 import { renderTracks } from './view.js';
-import { pruneThumbs } from './thumbs.js';
+import { pruneThumbs, persistAlbumLookPref } from './thumbs.js';
 export { formatBytes } from '../util/text.js';
 
 export function countForAlbum(album){ return S.tracks.filter(t => t.tags.album === album).length; }

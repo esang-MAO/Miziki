@@ -45,7 +45,10 @@ globalThis.MizikiSocial = { stopSpinning(){}, libraryChanged(){} };
 // (forgetLibrary() calls it) — mocked as a no-op for the same "stop the
 // chain at the door" reason; its own correctness (which thumbnails survive)
 // is already covered by history.test.js's clearListeningHistory tests, the
-// other caller of the same function.
+// other caller of the same function. persistAlbumLookPref is delete.js's
+// own direct import too since BD19 (docs/38_BEFORE_THE_DOMAIN.md) moved it
+// here from history/sessions.js — mocked as a no-op for the same reason;
+// its own correctness is covered by looks.test.js/history.test.js.
 mock.module(new URL('../../src/record-art/looks.js', import.meta.url).href, {
   namedExports: { applyDiscVariant(){} },
 });
@@ -54,7 +57,7 @@ mock.module(new URL('../../src/library/sealed.js', import.meta.url).href, {
   namedExports: { persistSealedAlbums: persistSealedAlbumsMock },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; } },
+  namedExports: { restoreThumbs: async () => {}, pruneThumbs: async () => {}, persistable(rec){ return rec; }, persistAlbumLookPref: async () => {} },
 });
 // deleteTracks() (step since the orphaned-override fix) clears an emptied
 // album's own back-cover photo via gatefold/back-cover.js's

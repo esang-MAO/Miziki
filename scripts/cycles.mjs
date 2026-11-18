@@ -31,9 +31,14 @@ const SRC = path.join(ROOT, '..', 'src');
 // PR2 dropped records.js's import of renderProfile from screens.js,
 // lowering mutual pairs to 37 -- the largest cycle's own module count
 // didn't shrink, since records.js/screens.js/storefront.js still form a
-// 3-way cycle through storefront.js's own imports of both.)
+// 3-way cycle through storefront.js's own imports of both. BD19 PR3 moved
+// persistAlbumLookPref out of history/sessions.js into library/thumbs.js
+// (which already hosts the same-shaped persistAlbumDisplay), dropping its
+// real circular import with record-art/looks.js and lowering mutual pairs
+// to 36 -- the largest cycle again didn't shrink, since both files remain
+// connected via other modules already in that same SCC.)
 const MAX_CYCLE_MODULES = 60;
-const MAX_MUTUAL_PAIRS = 37;
+const MAX_MUTUAL_PAIRS = 36;
 
 function walk(dir, out){
   for(const name of readdirSync(dir)){
