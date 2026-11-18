@@ -190,7 +190,7 @@ input[type=file]{display:none}
 .edit-format-result .note{margin:2px 0 0}
 
 /* AU8 (docs/16_AUDIO.md §6): the queue sheet's own small additions. */
-.cta.small{padding:7px var(--sp-3);font-size:var(--fs-micro)}
+.cta.small{padding:7px var(--sp-3);font-size:var(--fs-caption)}
 .queue-head-actions{display:flex;align-items:center;gap:var(--sp-2)}
 /* TY2: section kickers -- Archivo caps, --track-caps. */
 .queue-section-label{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted);

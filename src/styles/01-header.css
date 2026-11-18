@@ -82,7 +82,7 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 .add-menu-row svg{width:20px;height:20px;color:var(--paper);flex:0 0 auto;margin-top:1px;
   fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .add-menu-row b{display:block;font-family:var(--body);font-size:var(--fs-row);font-weight:500}
-.add-menu-row em{display:block;font-style:normal;font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.add-menu-row em{display:block;font-style:normal;font-size:var(--fs-caption);letter-spacing:.08em;color:var(--muted);margin-top:2px}
 
 /* RF8 (docs/12_REFINE.md): a generic popover for the new "···" overflow
    menus (library header, player) — same look as .add-menu/.add-menu-row
@@ -112,7 +112,7 @@ mark.hl{background:none;color:var(--paper);font-weight:600}
 .overflow-menu-row-check::after{content:'';width:18px;height:18px;flex:0 0 auto;border-radius:50%;
   border:1px solid var(--line)}
 .overflow-menu-row-check[aria-checked="true"]::after{content:'✓';display:grid;place-content:center;
-  font-size:var(--fs-micro);line-height:1;background:var(--paper);border-color:var(--paper);color:var(--on-accent)}
+  font-size:var(--fs-caption);line-height:1;background:var(--paper);border-color:var(--paper);color:var(--on-accent)}
 .overflow-menu-row-chev{justify-content:space-between}
 .overflow-menu-row-chev .g-chev{color:var(--muted)}
 

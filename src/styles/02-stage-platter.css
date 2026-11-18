@@ -293,7 +293,7 @@
 .speed-toggle{position:absolute;left:4%;bottom:6%;z-index:4;display:flex;
   background:var(--plinth);border-radius:10px;padding:2px;gap:1px;
   box-shadow:inset 0 1px 0 var(--plinth-edge)}
-.speed-toggle span{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;
+.speed-toggle span{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;
   color:var(--muted);padding:3px 6px;border-radius:8px;transition:color .2s,background .2s}
 .speed-toggle span.active{color:var(--paper);background:rgba(255,255,255,.08)}
 

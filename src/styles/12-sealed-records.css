@@ -32,7 +32,7 @@
    26px (22px strip height + 4px gap) to a plain 8px inset. */
 .seal-date-tag{position:absolute;left:4%;bottom:8px;max-width:72%;
   background:#F2E8D2;border-left:2px solid var(--cream);
-  color:#2A1B38;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+  color:#2A1B38;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;
   padding:2px var(--sp-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* point 2, "the tear strip": top 22px (moved up from the bottom edge
    per Ken, 2026-10-23 — the opening edge the shrink-wrap's own tear tab
@@ -69,7 +69,7 @@
 .seal-wrap.seal-lifting{transition:transform .42s ease-in,opacity .42s ease-in;
   transform:translateY(-100%);opacity:0}
 .seal-wrap.seal-fading{transition:opacity .15s;opacity:0}
-.new-tag{display:inline-block;color:var(--on-dark);font-family:var(--data);font-size:var(--fs-micro);
+.new-tag{display:inline-block;color:var(--on-dark);font-family:var(--data);font-size:var(--fs-caption);
   letter-spacing:.1em;border:1px solid var(--cream);border-radius:3px;padding:1px var(--sp-1);margin-left:6px;vertical-align:1px}
 
 /* GF8 (docs/29_GATEFOLD.md): the sealed front -- a sealed album's own

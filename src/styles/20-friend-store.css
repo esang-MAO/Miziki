@@ -11,9 +11,9 @@
    under the status bar/notch now that the app runs fullscreen there (see
    miziki.html's apple-mobile-web-app meta tags). */
 .social-nav-head{display:flex;align-items:center;gap:var(--sp-1);padding:calc(6px + env(safe-area-inset-top)) var(--sp-2) 6px;border-bottom:1px solid var(--line);flex:none}
-.social-nav-back{width:44px;height:44px;color:var(--paper);font-size:var(--fs-head);flex:none;
+.social-nav-back{width:44px;height:44px;color:var(--paper);font-size:var(--fs-hero);flex:none;
   display:flex;align-items:center;justify-content:center;background:none;border:0}
-.social-nav-title{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.14em;text-transform:uppercase;
+.social-nav-title{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.14em;text-transform:uppercase;
   color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .social-nav-body{flex:1;overflow-y:auto;padding:var(--sp-1) 20px calc(var(--sp-5) + env(safe-area-inset-bottom));box-sizing:border-box}
 
@@ -59,7 +59,7 @@
 .store-letter-bar{display:flex;flex-wrap:wrap;gap:6px;margin:var(--sp-4) 0 var(--sp-1)}
 .store-letter-btn{min-width:44px;height:44px;border-radius:8px;border:1px solid var(--line);
   background:none;color:var(--muted);font-family:var(--data);font-size:var(--fs-caption)}
-.store-crate-letter-head{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;color:var(--muted);
+.store-crate-letter-head{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;color:var(--muted);
   grid-column:1/-1;margin:var(--sp-4) 0 -2px}
 
 /* FS14: "activity lines in Archivo 14" -- was fs-caption (12px). */
@@ -71,12 +71,12 @@
 .record-cover{width:100%;aspect-ratio:1;border-radius:10px;background:var(--panel);margin-bottom:14px;
   overflow:hidden;position:relative}
 .record-cover img{width:100%;height:100%;object-fit:cover}
-.record-title{font-family:var(--display);font-size:var(--fs-head);letter-spacing:.02em;margin:0 0 2px}
+.record-title{font-family:var(--display);font-size:var(--fs-hero);letter-spacing:.02em;margin:0 0 2px}
 .record-artist{font-size:var(--fs-body);color:var(--muted);margin:0 0 var(--sp-3)}
 .record-chips{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-4)}
 .record-chip{padding:5px 11px;border-radius:10px;background:var(--panel);font-family:var(--data);
-  font-size:var(--fs-micro);letter-spacing:.04em;color:var(--paper)}
-.record-rating-label{font-family:var(--data);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
+  font-size:var(--fs-caption);letter-spacing:.04em;color:var(--paper)}
+.record-rating-label{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);margin:0 0 6px}
 .record-stars{font-size:var(--fs-row);letter-spacing:2px;color:#B8641A;margin-bottom:var(--sp-2)}
 /* TY6 (docs/22_TYPE.md): the one hand-lettered element on this sheet --
@@ -119,7 +119,7 @@
 .share-section-label{margin:14px 0 var(--sp-2)}
 .share-style-row{display:flex;gap:14px;margin-bottom:var(--sp-1)}
 .share-style-chip{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;
-  color:var(--muted);font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em}
+  color:var(--muted);font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em}
 .share-style-swatch{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);display:block}
 .share-style-chip[aria-pressed="true"]{color:var(--paper)}
 /* UN2 (docs/36_UNIFORMITY.md): was a bare var(--cream) ring, the same

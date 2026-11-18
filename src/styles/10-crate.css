@@ -220,7 +220,7 @@
   border-radius:2px;pointer-events:none}
 .crate-divider-tab{position:absolute;left:10px;top:10px;width:54px;height:22px;border-radius:3px;
   display:flex;align-items:center;justify-content:center;background:rgba(42,27,56,.08);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+  font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;
   text-transform:uppercase;opacity:.85;overflow:hidden;white-space:nowrap}
 .crate-divider-label{font-family:var(--display);font-weight:700;font-size:var(--fs-giant);letter-spacing:.02em;text-align:center;
   line-height:1.05;word-break:break-word}
@@ -231,7 +231,7 @@
 .crate-divider-label-art{display:flex;justify-content:center}
 .crate-divider-label-art svg{height:38px;width:auto;max-width:100%}
 .crate-divider-meta{position:absolute;bottom:12px;left:0;right:0;text-align:center;
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em}
+  font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.08em}
 /* FS6 (docs/25_FROM_SCRATCH.md point 4): the A-Z letter divider only --
    a kraft (manila) card, tilted -1.5deg, with a strip of tape at the top
    same visual language as .artist-history-tape (27-library-sleeves.css). */
@@ -275,7 +275,7 @@
   transition:opacity .2s;z-index:70}
 .crate-rail.crate-rail-hidden{opacity:0;pointer-events:none}
 .crate-rail.crate-rail-idle{opacity:0;pointer-events:none}
-.crate-rail-item{position:absolute;left:0;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;
+.crate-rail-item{position:absolute;left:0;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.04em;
   color:var(--muted-2);transform:translateY(-50%);white-space:nowrap;
   background:none;border:none;padding:0;margin:0;cursor:pointer}
 .crate-rail-item.crate-rail-current{color:var(--paper);font-weight:500}
@@ -286,7 +286,7 @@
 .crate-info{margin-top:var(--sp-3);min-height:84px}
 .crate-info h3{font-family:var(--display);font-weight:700;font-size:var(--fs-title);margin:0 0 2px;letter-spacing:.02em}
 .crate-info .crate-info-sub{font-size:var(--fs-caption);color:var(--muted);margin:0 0 2px}
-.crate-info .crate-info-meta{font-family:var(--data);font-size:var(--fs-micro);color:var(--muted);letter-spacing:.06em}
+.crate-info .crate-info-meta{font-family:var(--data);font-size:var(--fs-caption);color:var(--muted);letter-spacing:.06em}
 .crate-now-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:var(--fs-caption);font-weight:500;
   color:var(--paper);border:1px solid var(--paper);border-radius:12px;padding:var(--sp-1) 10px;
   margin-left:10px;background:color-mix(in srgb,var(--cream) 10%,transparent)}
@@ -339,7 +339,7 @@
 .crate-empty .crate-stage{height:138px}
 .crate-empty-card{margin-top:var(--sp-4);border-radius:var(--radius-card);background:var(--cream);color:#2A1B38;
   padding:var(--sp-5) var(--sp-4);text-align:center;box-shadow:var(--sh-2)}
-.crate-empty-title{font-family:var(--display);font-weight:700;font-size:var(--fs-head);letter-spacing:.02em;margin:0 0 var(--sp-1)}
+.crate-empty-title{font-family:var(--display);font-weight:700;font-size:var(--fs-hero);letter-spacing:.02em;margin:0 0 var(--sp-1)}
 .crate-empty-sub{font-size:var(--fs-caption);color:#5A4A38;margin:0 0 var(--sp-4)}
 
 /* CR3 (docs/13_CRATE.md) point 1: "one .crate-sticker element per card,
@@ -422,7 +422,7 @@
 .crate-catalog-card .crate-info-sub{font-family:var(--body);font-size:var(--fs-row);font-weight:500;color:#2A1B38;margin:0 0 4px}
 .crate-catalog-card .crate-info-meta{font-family:var(--body);font-size:13px;letter-spacing:0;color:#5E534B}
 .crate-catalog-card .crate-now-chip{color:#2A1B38;border-color:#2A1B38;background:rgba(42,27,56,.08)}
-.crate-info-played{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;color:#5A4A52;margin:2px 0 0}
+.crate-info-played{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;color:#5A4A52;margin:2px 0 0}
 /* FS2 (docs/25_FROM_SCRATCH.md): "primary play buttons on paper" --
    an ink disc with a paper glyph, not a cream fill, since it sits on the
    paper-colored catalog card rather than the app's dark chrome. */

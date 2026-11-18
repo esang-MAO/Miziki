@@ -144,7 +144,7 @@
 /* FS12 point 2: the disc's own "LIVE" mono badge over the time -- hidden
    while previewing (dial-view.js's paintDayView(), S.previewMin !== 0). */
 .day-dial-live{
-  display:block; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em;
+  display:block; font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.14em;
   text-transform:uppercase; color:var(--on-accent); opacity:.8; margin-bottom:1px;
 }
 
@@ -182,7 +182,7 @@
   margin:0; font-family:var(--display); font-weight:600; font-size:var(--fs-hero); line-height:var(--lh-hero);
   letter-spacing:var(--track-display); text-transform:uppercase; color:var(--paper);
 }
-.sd-night-card-head span{ font-family:var(--data); font-size:var(--fs-label); letter-spacing:.06em; color:var(--paper); }
+.sd-night-card-head span{ font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.06em; color:var(--paper); }
 .sd-night-card p{ margin:0; font-family:var(--body); font-size:var(--fs-body); line-height:var(--lh-body); color:color-mix(in srgb, var(--paper) 85%, transparent); }
 
 /* §4.2 item 4 (PR 5) / FS12 point 2: the hint row + the Now pill
@@ -254,7 +254,7 @@
 .settings-section-head,
 .profile-section-head,
 .share-section-label{
-  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
 }
 
 /* §4.3 item 3 / FS12 point 1: one shared look for every "pick one of N"
@@ -286,7 +286,7 @@
    family, but sentence case (it's a value, not a heading) and not
    uppercased. */
 #nightPitchMono{
-  font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.04em; color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.04em; color:var(--muted);
   margin:-10px 0 18px;
 }
 
@@ -303,7 +303,7 @@
 }
 .sd-charcard[aria-expanded="true"]{ border-color:var(--paper); }
 .sd-charcard-label{
-  margin:0; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em; text-transform:uppercase;
+  margin:0; font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.1em; text-transform:uppercase;
   color:var(--muted);
 }
 .sd-charcard b{ font-family:var(--display); font-size:var(--fs-title); line-height:1.1; color:var(--paper); }
@@ -333,7 +333,7 @@
 .sd-charcard-fine-row{ display:flex; align-items:center; gap:10px; }
 .sd-charcard-fine-row input[type="range"]{ flex:1; }
 .sd-charcard-fine-row span{
-  flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:var(--fs-label);letter-spacing:.08em; color:var(--muted);
+  flex:none; min-width:34px; text-align:right; font-family:var(--data); font-size:var(--fs-caption);letter-spacing:.08em; color:var(--muted);
 }
 
 /* RF28 ("what am I hearing"): press-and-hold audition buttons. aria-pressed
@@ -369,17 +369,17 @@
   border:1px solid var(--line); background:var(--raised); margin-bottom:18px;
 }
 .sd-tonecurve-head{
-  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.1em;
+  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.1em;
 }
 .sd-tonecurve-head span:first-child{ color:var(--muted); text-transform:uppercase; }
 .sd-tonecurve-head span:last-child{ color:var(--cool); }
 .sd-tonecurve-svg{ display:block; width:100%; height:auto; margin-top:var(--sp-1); }
-.sd-tonecurve-axislabel{ font-family:var(--data); font-size:var(--fs-micro); letter-spacing:.05em; fill:var(--muted); }
+.sd-tonecurve-axislabel{ font-family:var(--data); font-size:var(--fs-caption); letter-spacing:.05em; fill:var(--muted); }
 #sdToneCurveLine{ stroke:var(--cool); stroke-width:2; stroke-linejoin:round; }
 #sdToneCurveNowLine{ stroke:var(--cream); stroke-width:1.5; stroke-dasharray:2 3; }
 #sdToneCurveNowDot{ fill:var(--cream); stroke:var(--chrome); stroke-width:2; }
 .sd-tonecurve-ticks{
-  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-micro);letter-spacing:.10em; color:var(--muted);
+  display:flex; justify-content:space-between; font-family:var(--data); font-size:var(--fs-caption);letter-spacing:.10em; color:var(--muted);
 }
 
 /* RF9 (docs/12_REFINE.md): "one line per control... the long Character
@@ -402,7 +402,7 @@
   margin:22px 0 10px; padding-bottom:10px; border-bottom:1px solid var(--line);
 }
 #homeBody .store-section-head h2{
-  font-family:var(--data); font-size:var(--fs-micro); font-weight:400; letter-spacing:.14em; color:var(--muted);
+  font-family:var(--data); font-size:var(--fs-caption); font-weight:400; letter-spacing:.14em; color:var(--muted);
 }
 /* FS9 (docs/25_FROM_SCRATCH.md point 2): "This morning" opts back into
    the display heading the line above takes away -- scoped to this one

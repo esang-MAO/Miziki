@@ -27,7 +27,7 @@
 .picture-sleeve-text{text-align:center;margin-bottom:var(--sp-3)}
 .picture-sleeve-artist{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
 .picture-sleeve-title{font-family:var(--display);font-size:var(--fs-title);font-weight:700;margin:2px 0}
-.picture-sleeve-chip{display:inline-block;font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.1em;
+.picture-sleeve-chip{display:inline-block;font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.1em;
   color:var(--on-dark);border:1px solid var(--on-dark);border-radius:3px;padding:2px var(--sp-2);margin-top:4px}
 .picture-sleeve-chip:empty{display:none}
 .picture-sleeve-body{outline:none}

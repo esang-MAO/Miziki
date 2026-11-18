@@ -86,7 +86,7 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
 .lib-has-rail .tracklist li,
 .lib-has-rail .artist-row{margin-right:18px}
 .letter-rail-item{position:absolute;right:0;background:none;border:none;cursor:pointer;
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.04em;color:var(--muted);
+  font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.04em;color:var(--muted);
   padding:1px 2px}
 .letter-rail-item.letter-rail-current{color:var(--paper);font-weight:600}
 /* LB7 (decision 6): dim no longer means removed -- see buildFullAlphabet()
@@ -150,7 +150,7 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
 .artist-history-stat{display:flex;flex-direction:column;gap:2px;min-width:0}
 .artist-history-stat b{font-weight:500;font-size:var(--fs-row);line-height:var(--lh-row);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.artist-history-stat span{font-family:var(--data);font-size:var(--fs-micro);line-height:var(--lh-micro);
+.artist-history-stat span{font-family:var(--data);font-size:var(--fs-caption);line-height:var(--lh-caption);
   letter-spacing:.10em;text-transform:uppercase;color:#5E5440}
 
 .pressings-row{display:flex;gap:var(--sp-4);overflow-x:auto;overscroll-behavior-x:contain;
@@ -179,7 +179,7 @@ li.letter-head{list-style:none;padding:0;content-visibility:visible;contain-intr
 .connected-row{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:var(--sp-1) 0}
 .connected-sleeve{flex:0 0 auto;width:44px;height:44px;border-radius:2px;background:var(--stock-manila);
   box-shadow:var(--sh-1);display:flex;align-items:flex-end;padding:3px;box-sizing:border-box;overflow:hidden}
-.connected-sleeve-title{font-family:var(--display);font-size:var(--fs-micro);line-height:1.05;color:#2A2418;
+.connected-sleeve-title{font-family:var(--display);font-size:var(--fs-caption);line-height:1.05;color:#2A2418;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .connected-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .connected-text b{font-weight:400;font-size:var(--fs-body);line-height:var(--lh-body);

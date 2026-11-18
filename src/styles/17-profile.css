@@ -20,7 +20,7 @@
    the tiles on the Listening screen (below). */
 
 .profile-empty-cover{display:flex;align-items:center;justify-content:center;color:var(--muted);
-  font-size:var(--fs-head);opacity:.6}
+  font-size:var(--fs-hero);opacity:.6}
 .profile-empty{border:1px dashed var(--line);border-radius:8px;padding:var(--sp-4);text-align:center;margin-top:14px}
 .profile-empty p{margin:0;font-size:var(--fs-caption);color:var(--muted)}
 
@@ -172,7 +172,7 @@ button.profile-section .profile-section-head{border-bottom:0;padding-bottom:0;ma
 .slipmat-felt::after{content:'';position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
   background:radial-gradient(circle,var(--raised) 0 18%,var(--panel) 19% 100%);box-shadow:inset 0 0 0 1px var(--line)}
 .slipmat-felt span{position:absolute;inset:0;display:grid;place-content:center;z-index:1;
-  font-family:var(--display);font-weight:600;font-size:var(--fs-micro);letter-spacing:.32em;padding-left:.32em;color:var(--muted)}
+  font-family:var(--display);font-weight:600;font-size:var(--fs-caption);letter-spacing:.32em;padding-left:.32em;color:var(--muted)}
 .slipmat-thumb{position:absolute;left:15px;top:15px;width:70px;height:70px;border-radius:50%;
   background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .slipmat-plus{position:absolute;inset:0;display:grid;place-content:center;font-size:var(--fs-hero);color:var(--muted)}
