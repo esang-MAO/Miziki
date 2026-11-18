@@ -10,9 +10,20 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Repeats `str.replace(re, '')` until a pass removes nothing more -- a
+// single pass can leave residue behind for adversarial input (CodeQL's
+// "incomplete multi-character sanitization"); irrelevant to what this
+// file does with the result (a boolean emptiness check, never rendered
+// or used as a sanitizer) but harmless and cheap to close out anyway.
+function stripAll(str, re){
+  let prev;
+  do{ prev = str; str = str.replace(re, ''); }while(str !== prev);
+  return str;
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(path.join(__dirname, '../../miziki.html'), 'utf8')
-  .replace(/<!--[\s\S]*?-->/g, ''); // comments can contain stray "<button" text
+const html = stripAll(readFileSync(path.join(__dirname, '../../miziki.html'), 'utf8'),
+  /<!--[\s\S]*?-->/g); // comments can contain stray "<button" text
 
 // Finds every unlabelled icon-only <button>: one with no aria-label/
 // aria-labelledby and no visible text once any inline <svg> icon is
@@ -25,8 +36,8 @@ function findUnlabelledIconButtons(markup){
   while((m = re.exec(markup))){
     const [, attrs, inner] = m;
     if(/\baria-label\s*=/.test(attrs) || /\baria-labelledby\s*=/.test(attrs)) continue;
-    const withoutSvg = inner.replace(/<svg\b[\s\S]*?<\/svg>/g, '');
-    const text = withoutSvg.replace(/<[^>]*>/g, '').replace(/\s+/g, '');
+    const withoutSvg = stripAll(inner, /<svg\b[\s\S]*?<\/svg>/g);
+    const text = stripAll(withoutSvg, /<[^>]*>/g).replace(/\s+/g, '');
     if(!text) offenders.push(attrs.match(/\bid\s*=\s*"([^"]+)"/)?.[1] || attrs.trim() || '(no id)');
   }
   return offenders;
