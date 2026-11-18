@@ -97,14 +97,25 @@ async function main(){
   // sandbox can silently fail to spin up a renderer process on some CI
   // hosts, which doesn't fail the page load itself but leaves anything
   // that depends on it (decodeAudioData, the analysis Worker addFiles()
-  // uses) hanging rather than erroring. Harmless locally.
+  // uses) hanging rather than erroring. Harmless locally. --mute-audio/
+  // --disable-features=AudioServiceOutOfProcess: added after CI started
+  // hanging on exactly this ("Importing 2 of 2" never appears, every
+  // single run, PRs #482/#483/#485/#486) with no page-side error ever
+  // surfacing -- keeping the audio service in-process removes one more
+  // place a renderer-spin-up failure under a CI sandbox can go silent.
   const browser = await chromium.launch({
     ...(executablePath ? { executablePath } : {}),
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--mute-audio', '--disable-features=AudioServiceOutOfProcess'],
   });
 
   try{
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    // Diagnostic only -- added after the hang above started, so a future
+    // CI failure's log shows what the page itself saw (a thrown error, a
+    // console.error from decodeAudioData, etc.) instead of just the bare
+    // waitForFunction timeout, which says nothing about why.
+    page.on('console', msg => console.log('[page]', msg.type(), msg.text()));
+    page.on('pageerror', err => console.log('[pageerror]', err.message));
     // Same reasoning as nav.perf.js's own measureLongTaskDuringImportWhilePlaying():
     // a real iOS user with Reduce Motion skips the sleeve-opening ceremony's
     // requestAnimationFrame-driven steps outright (both the plain CSS media
@@ -117,10 +128,13 @@ async function main(){
     await page.setInputFiles('#file', files, { timeout: 30000 });
     // A generous timeout -- a shared CI runner's CPU is slower than a dev
     // machine's for the real decode/analyze work addFiles() does per file.
+    // 60000 wasn't generous enough: CI runs (PRs #482, #483, #485) have
+    // repeatedly cleared ~61.3-61.4s on this exact wait, so 60000 left no
+    // real margin -- 90000 does.
     await page.waitForFunction(
       () => (document.querySelector('#pathNote')?.textContent || '').includes('Importing 2 of 2'),
       null,
-      { timeout: 60000 },
+      { timeout: 90000 },
     );
     await page.waitForTimeout(1000); // the last file's decode/analyze/store work
 
