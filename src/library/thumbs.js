@@ -258,8 +258,9 @@ export async function healDetails(){
   await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
-      if(rec && rec.blob){
-        const raw = await rec.blob.arrayBuffer();
+      const blob = await tracks.audio(t.id);
+      if(rec && blob){
+        const raw = await blob.arrayBuffer();
         t.details = readDetails(raw);
         rec.details = t.details;
         await tracks.put(rec);
@@ -305,8 +306,9 @@ export async function healAnalysis(){
   await runIdlePass(targets, async t => {
     try{
       const rec = await tracks.get(t.id);
-      if(rec && rec.blob){
-        const raw = await rec.blob.arrayBuffer();
+      const blob = await tracks.audio(t.id);
+      if(rec && blob){
+        const raw = await blob.arrayBuffer();
         // Found 2026-10-26: decoded off the live S.ctx — see
         // decodeAudioFile()'s own comment — so this idle heal pass can't
         // contend with whatever's already playing.
