@@ -143,6 +143,19 @@ restoreLibrary();   // runs underneath the launch intro below; never waits on it
 if(document.hidden) $('#launchOverlay').remove();
 else runLaunchSequence();
 
+// BD14 (docs/38_BEFORE_THE_DOMAIN.md): registered after the launch
+// sequence starts, never awaited -- this never delays first paint or
+// playback. import.meta.env.DEV is only true under `npm run dev` (same
+// guard as the deluxe/social-demo checks above): `vite dev` serves
+// unbundled source, not the built dist/sw.js this depends on. Scope is
+// the build's own base (import.meta.env.BASE_URL), so GitHub Pages
+// ('/Miziki/') and a Netlify preview ('/') both register correctly.
+if(!import.meta.env.DEV && 'serviceWorker' in navigator){
+  navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js', {
+    scope: import.meta.env.BASE_URL, type: 'module',
+  }).catch(() => {});
+}
+
 async function restoreLibrary(){
   const note = $('#storeNote');
   const ok = await storage.open();

@@ -179,6 +179,19 @@ async function main(){
     assert.equal(miniTitle, 'Smoke Track One', 'expected the last-played track to be restored, paused, after reload');
 
     console.log('ok   import, play, reload: both tracks survive and the last-played track is restored');
+
+    // BD14: the service worker registered during this session's launch
+    // sequence should be active by now -- confirm it, then prove the app
+    // still opens with no network at all (dist's own files served from its
+    // cache) and the library (already in IndexedDB) still shows.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.context().setOffline(true);
+    await page.reload({ waitUntil: 'networkidle' });
+    await waitForSongRows(page, 2);
+    rows = await page.locator('li[data-id]').count();
+    assert.equal(rows, 2, 'expected the library to load from the service worker cache while offline');
+    await page.context().setOffline(false);
+    console.log('ok   offline reload: service worker serves the app shell and the library still shows');
   } finally {
     await browser.close();
     server.close();

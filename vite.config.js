@@ -43,6 +43,43 @@ function copyThemeBoot() {
   };
 }
 
+// The base this build is deployed under — GitHub Pages' '/Miziki/' unless
+// MIZIKI_BASE overrides it (Netlify previews set it to '/'). Read once
+// here so both the `base` config below and serviceWorkerPlugin's own
+// precache-path building agree with each other.
+const BASE = process.env.MIZIKI_BASE || '/Miziki/';
+
+// BD14 (docs/38_BEFORE_THE_DOMAIN.md): at closeBundle, once every other
+// file is already in dist/ (registered after copyThemeBoot above, so its
+// copy is included too), list every file and write dist/sw.js from
+// src/sw-template.js with the real precache list and build id substituted
+// in — see that file's own header comment for the placeholder format.
+// Runs for a Netlify preview build too (serviceWorker.register() itself,
+// src/main.js, only ever reaches the real `navigator.serviceWorker` where
+// it exists, so this doesn't add any risk there).
+function serviceWorkerPlugin() {
+  return {
+    name: 'service-worker',
+    apply: 'build',
+    closeBundle() {
+      const distDir = path.resolve(__dirname, 'dist');
+      const paths = [];
+      (function walk(dir) {
+        for (const name of fs.readdirSync(dir)) {
+          const full = path.join(dir, name);
+          if (fs.statSync(full).isDirectory()) walk(full);
+          else paths.push(BASE + path.relative(distDir, full).split(path.sep).join('/'));
+        }
+      })(distDir);
+
+      let sw = fs.readFileSync(path.resolve(__dirname, 'src/sw-template.js'), 'utf8');
+      sw = sw.replace('"__MIZIKI_PRECACHE_LIST__"', JSON.stringify(paths));
+      sw = sw.replace('"__MIZIKI_BUILD_ID__"', JSON.stringify(buildId()));
+      fs.writeFileSync(path.join(distDir, 'sw.js'), sw);
+    },
+  };
+}
+
 module.exports = defineConfig({
   // The deployed app is saved to the home screen at this exact path
   // (https://esang-mao.github.io/Miziki/miziki.html) — base must stay
@@ -51,7 +88,7 @@ module.exports = defineConfig({
   // never sets MIZIKI_BASE, so that deploy is unaffected by this env var
   // and always gets '/Miziki/'. Netlify (a root-domain preview, not a
   // project-site subpath) sets MIZIKI_BASE=/ in netlify.toml instead.
-  base: process.env.MIZIKI_BASE || '/Miziki/',
+  base: BASE,
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -60,7 +97,9 @@ module.exports = defineConfig({
       input: path.resolve(__dirname, 'miziki.html'),
     },
   },
-  plugins: [copyThemeBoot()],
+  // serviceWorkerPlugin must run after copyThemeBoot -- it walks dist/ to
+  // build the precache list, so everything else needs to already be there.
+  plugins: [copyThemeBoot(), serviceWorkerPlugin()],
   // src/util/debug-log.js reads this through a `typeof __BUILD_ID__ !==
   // 'undefined'` guard, so plain Node (tests/unit, not bundled by Vite)
   // just falls back to 'dev' instead of needing this define too.

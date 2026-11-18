@@ -6,6 +6,15 @@
 <!-- iOS fullscreen home-screen install; see docs/19_PLAYER_HTML_NOTES.md#ios-fullscreen-meta-tags-apple-mobile-web-app-capablestatus-bar-style -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- BD14 (docs/38_BEFORE_THE_DOMAIN.md): a real home-screen icon --
+     wordmark on the app's dark ground, rendered once by hand via
+     scripts/render-icons.mjs. apple-touch-icon is what iOS's own "Add to
+     Home Screen" actually uses; the manifest's icons are for everyone
+     else (Android, desktop install prompts). -->
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <!-- anti-flash theme-boot script; see docs/19_PLAYER_HTML_NOTES.md#theme-bootjs-script-tag -->
 <script src="src/theme-boot.js"></script>
 <!-- fallback theme-color before src/ui/theme.js's applyTheme() runs; a
@@ -15,7 +24,7 @@
 <!-- Content Security Policy, as a meta tag since GitHub Pages can't set a
      real response header — see CLAUDE.md's "Security" section for the
      policy's current rationale. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://yeyeprzdlbyacisfftjp.supabase.co; media-src 'self' blob:; font-src 'self'; connect-src 'self' blob: https://yeyeprzdlbyacisfftjp.supabase.co; worker-src 'self' blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Miziki</title>
 <!-- self-hosted fonts (step 01: security hardening) — no more Google
