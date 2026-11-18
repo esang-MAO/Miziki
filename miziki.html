@@ -1390,6 +1390,19 @@
   </div>
 </div>
 
+<!-- BD13 (docs/38_BEFORE_THE_DOMAIN.md): Settings -> Copy error log, same
+     generic edit-overlay sheet pattern as the shelf finish sheet above.
+     Body is rebuilt by openDebugLogSheet() (src/profile/debug-log-sheet.js). -->
+<div class="edit-overlay" id="debugLogOverlay" aria-hidden="true">
+  <div class="edit-sheet" id="debugLogSheetBox">
+    <div class="edit-head">
+      <span>Error log</span>
+      <button class="edit-close" id="debugLogClose" aria-label="Close">✕</button>
+    </div>
+    <div id="debugLogBody"></div>
+  </div>
+</div>
+
 <!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
      edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
 <div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">

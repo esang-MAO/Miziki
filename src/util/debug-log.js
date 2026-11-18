@@ -20,8 +20,42 @@ export function logError(context, err){
   if(DEBUG) console.error('[debug-log]', context, err);
 }
 
-// The buffer itself, oldest first -- read from the console with
-// `?debug=1` set (nothing in the app's own UI surfaces this today).
+// BD13 (docs/38_BEFORE_THE_DOMAIN.md): the Settings screen's own "Copy
+// error log" row surfaces this buffer now, so `?debug=1` and a console are
+// no longer the only way to read it -- see that row's own module,
+// src/profile/debug-log-sheet.js.
 export function debugLogEntries(){
   return entries.slice();
+}
+
+// vite.config.js's `define` substitutes this with a short build-time git
+// SHA; under plain Node (e.g. tests/unit) or a build where git isn't
+// available, it's left undefined and this falls back to 'dev'.
+export const BUILD_ID = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
+
+function errorMessage(err){
+  if(err instanceof Error) return err.message;
+  if(typeof err === 'string') return err;
+  try{ return JSON.stringify(err); }catch(_e){ return String(err); }
+}
+
+// Pure formatter for the "Copy error log" sheet (BD13) -- `env` carries the
+// app build id and a browser string, kept as plain data rather than read
+// here so this stays testable without a DOM/location. Error text can
+// contain a file name, which is why the sheet shows this exact string
+// before any copy happens, rather than copying straight from the tap.
+export function formatDebugLog(entries, env = {}){
+  const buildId = (env && env.buildId) || 'unknown';
+  const browser = (env && env.browser) || 'unknown';
+  const lines = [
+    'Miziki error log',
+    'Build: ' + buildId,
+    'Browser: ' + browser,
+    entries.length + (entries.length === 1 ? ' entry' : ' entries'),
+    '',
+  ];
+  entries.forEach(e => {
+    lines.push('[' + new Date(e.at).toISOString() + '] ' + e.context + ': ' + errorMessage(e.err));
+  });
+  return lines.join('\n');
 }

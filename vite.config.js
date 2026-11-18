@@ -4,6 +4,21 @@
 const { defineConfig } = require('vite');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
+
+// BD13 (docs/38_BEFORE_THE_DOMAIN.md): the "Copy error log" sheet shows an
+// app build id so Ken can match a tester's report to a commit -- a short
+// git SHA, read once at config load (same build serves every request in
+// `vite dev` too, so this doesn't need to run per-request). Falls back to
+// 'dev' wherever git isn't available (a tarball checkout, a shallow clone
+// with no HEAD) rather than failing the build over a diagnostic label.
+function buildId(){
+  try{
+    return execSync('git rev-parse --short HEAD', { cwd: __dirname }).toString().trim();
+  }catch(_e){
+    return 'dev';
+  }
+}
 
 // src/theme-boot.js (D2, docs/DESKTOP_LAYOUT.md) — the anti-flash head
 // script: a plain classic <script src>, not type="module", so Vite leaves
@@ -46,4 +61,8 @@ module.exports = defineConfig({
     },
   },
   plugins: [copyThemeBoot()],
+  // src/util/debug-log.js reads this through a `typeof __BUILD_ID__ !==
+  // 'undefined'` guard, so plain Node (tests/unit, not bundled by Vite)
+  // just falls back to 'dev' instead of needing this define too.
+  define: { __BUILD_ID__: JSON.stringify(buildId()) },
 });

@@ -377,6 +377,19 @@ function renderAppSettingsScreen(body){
   links.appendChild(navRow({ label: 'Privacy', onClick: () => { S.profileView.screen = 'privacy'; renderProfile(); } }));
   body.appendChild(links);
   body.appendChild(legalLinksRow(renderProfile));
+
+  // BD13 (docs/38_BEFORE_THE_DOMAIN.md): "a 'Copy error log' row at the
+  // foot of Settings" -- replaces needing `?debug=1` and a console to see
+  // an error (src/util/debug-log.js). Dynamically imported, same reason as
+  // EQ/Shelf finish/Turntable above: nothing this pulls in is needed until
+  // the row is actually tapped.
+  const support = el('div','settings-section');
+  support.appendChild(el('div','settings-section-head', 'Support'));
+  support.appendChild(navRow({
+    label: 'Copy error log',
+    onClick: async () => { const { openDebugLogSheet } = await import('./debug-log-sheet.js'); openDebugLogSheet(); },
+  }));
+  body.appendChild(support);
 }
 
 // GS9 (docs/30_GROOVES_AND_SHELF.md): the season a given ‹ › position names

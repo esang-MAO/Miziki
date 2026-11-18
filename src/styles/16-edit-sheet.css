@@ -297,3 +297,13 @@ input[type=file]{display:none}
   background:var(--cream);color:#1A1410;border-radius:var(--radius-control);padding:10px 14px;
   font-size:var(--fs-caption)}
 
+/* BD13 (docs/38_BEFORE_THE_DOMAIN.md): the "Copy error log" sheet's own
+   read-only preview of exactly what Copy will put on the clipboard --
+   mono per the type-scale's one mono whitelist entry for a readout like
+   this (CLAUDE.md's CSS token scale). */
+.debug-log-text{width:100%;height:40vh;box-sizing:border-box;resize:none;
+  font-family:var(--data);font-size:var(--fs-caption);line-height:1.5;color:var(--paper);
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-control);
+  padding:var(--sp-3);margin-bottom:var(--sp-3)}
+.debug-log-status{min-height:1.2em}
+
