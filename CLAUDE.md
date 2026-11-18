@@ -116,7 +116,7 @@ Long-term plan: finish modularizing the codebase, build out the Supabase social 
 
 `src/styles/00-base.css`'s `:root` defines the app's whole type/spacing/elevation/radius scale. **No font-size or spacing value outside these tokens without a comment saying why.**
 
-**Type** (`--fs-*` font-size, `--lh-*` its own paired line-height). TY1 (docs/22_TYPE.md) collapsed the old ten-step scale to six plus one hero numeral step; `--fs-micro`/`--fs-label`/`--fs-head`/`--fs-display` still exist as one-release aliases onto the token each one retired into (`--fs-caption`, `--fs-caption`, `--fs-hero`, `--fs-giant`), for call sites not yet migrated — treat any you touch as a token to move, not a token to add to:
+**Type** (`--fs-*` font-size, `--lh-*` its own paired line-height). TY1 (docs/22_TYPE.md) collapsed the old ten-step scale to six plus one hero numeral step:
 
 | Token | Size/line-height | Role |
 |---|---|---|

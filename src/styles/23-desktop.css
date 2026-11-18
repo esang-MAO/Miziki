@@ -211,7 +211,7 @@
      check -- only the thumb position and label color did. */
   .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-track{background:var(--cream)}
   .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-thumb-sm{left:19px;background:var(--on-accent)}
-  .mini-bar-mode-toggle .mode-toggle-text{font-size:var(--fs-label);letter-spacing:.08em;color:var(--muted)}
+  .mini-bar-mode-toggle .mode-toggle-text{font-size:var(--fs-caption);letter-spacing:.08em;color:var(--muted)}
   .mini-bar-mode-toggle[aria-checked="true"] .mode-toggle-text{color:var(--paper)}
   .mini-bar-mode-toggle:hover .mode-toggle-text,
   .mini-bar-mode-toggle:focus-visible .mode-toggle-text{color:var(--paper)}
@@ -608,7 +608,7 @@
   .player-overlay.at-rest .slipmat-rest{display:grid}
   .player-overlay.at-rest .rest-hint{display:block;max-width:340px}
   .rest-eyebrow{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--muted)}
-  .rest-hint h2{font-family:var(--display);font-weight:600;font-size:var(--fs-head);letter-spacing:0;margin:6px 0 var(--sp-2)}
+  .rest-hint h2{font-family:var(--display);font-weight:600;font-size:var(--fs-hero);letter-spacing:0;margin:6px 0 var(--sp-2)}
   .rest-hint p{color:var(--muted);margin:0 0 var(--sp-4);line-height:1.45}
   @keyframes changeSleeveOutLeft{
     0%{transform:translateX(115%);opacity:0}

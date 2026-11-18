@@ -112,7 +112,7 @@
 /* TY3: an eyebrow over the album title -- Archivo caps, --track-caps. */
 .gf-tl-head{font-family:var(--body);font-size:var(--fs-caption);font-weight:500;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--muted);margin-bottom:2px}
-.gf-tl-title{font-family:var(--display);font-size:var(--fs-head);font-weight:700;margin:0 0 10px;letter-spacing:0}
+.gf-tl-title{font-family:var(--display);font-size:var(--fs-hero);font-weight:700;margin:0 0 10px;letter-spacing:0}
 /* TY3: "side headings stay Antonio" -- the A/B letter moves off mono;
    the track-count/duration span is plain Archivo body, tabular figures. */
 .gf-side-head{display:flex;align-items:baseline;justify-content:space-between;
@@ -539,14 +539,14 @@
   justify-content:flex-end;gap:2px;text-align:center;font-family:var(--data);font-size:11px;line-height:1.3;
   color:rgba(239,233,223,.55);opacity:0;pointer-events:none;transition:opacity .2s}
 .gf-sleeve-disc-wrap.gf-disc-out .gf-disc-deadwax{opacity:1}
-.gf-panel-toggle button{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em}
+.gf-panel-toggle button{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.10em}
 .gf-flat-tracks{position:absolute;inset:0;background:#1C1226;color:var(--paper);
   display:none;flex-direction:column;opacity:0;transition:opacity .15s}
 .gf-flat-tracks.show{display:flex}
 .gatefold.gf-chrome-in .gf-flat-tracks{opacity:1}
 .gf-flat-head{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) var(--sp-4) 10px}
 .gf-flat-head .gf-flat-seg{margin-left:auto;display:flex;gap:var(--sp-1)}
-.gf-flat-seg button{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.08em;padding:var(--sp-1) 10px;
+.gf-flat-seg button{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.08em;padding:var(--sp-1) 10px;
   border-radius:10px;color:var(--muted)}
 .gf-flat-seg button[aria-pressed="true"]{color:#1C1226;background:var(--cream)}
 .gf-flat-body{flex:1;overflow-y:auto;padding:0 var(--sp-4) var(--sp-4)}

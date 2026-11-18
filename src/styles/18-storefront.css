@@ -57,8 +57,8 @@
    for a FRIEND's own storefront (social/screens/friend-store.js, outside
    this PR's scope) -- FS7 only restyles this own crate's three states,
    which now use the classes below instead. */
-.store-kicker{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.16em;text-transform:uppercase;color:var(--paper)}
-.store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-display);letter-spacing:var(--track-display);line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-kicker{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.16em;text-transform:uppercase;color:var(--paper)}
+.store-handle{font-family:var(--display);font-weight:700;font-size:var(--fs-giant);letter-spacing:var(--track-display);line-height:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-displayname{font-size:var(--fs-caption);color:var(--muted)}
 /* FS7 (docs/25_FROM_SCRATCH.md point 3): "display name Archivo 20/600" --
    this own crate's primary identity text now, in every one of its three
@@ -122,7 +122,7 @@
    delete this selector in UN18 once the storefront adopts the shared
    section-label look directly. */
 .store-section-head h2{margin:0}
-.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-label);color:var(--paper);
+.store-section-head button{background:none;border:0;font-family:var(--data);font-size:var(--fs-caption);color:var(--paper);
   letter-spacing:.08em;text-transform:uppercase;padding:var(--sp-3) 0 var(--sp-3) var(--sp-3);min-height:44px}
 
 /* RF20 point 4: one line under a rule-chosen list (Fresh for you, You both
@@ -136,7 +136,7 @@
 .store-pick-cover{width:132px;height:132px;border-radius:7px;position:relative;overflow:hidden;background:var(--panel)}
 .store-pick-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .store-pick-tier{position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9px;background:rgba(10,14,18,.78);
-  font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--on-dark)}
+  font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;color:var(--on-dark)}
 /* CC3 (docs/34_CARE_AND_CONTROL.md): a 132px cover is too narrow for the
    tier chip (top-left) and the friends sticker (crate-sticker's own
    top-right) to both fit without overlapping -- bottom-right instead,
@@ -171,7 +171,7 @@
 /* GS12 (docs/30_GROOVES_AND_SHELF.md): "SIDE B · 4" -- the mono whitelist
    (catalogue numbers/format chips/etc.), caps-tracked same as every other
    mono kicker in the app. */
-.store-pick-anchor{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:var(--track-caps);
+.store-pick-anchor{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:var(--track-caps);
   text-transform:uppercase;color:var(--muted)}
 
 /* FS7 (docs/25_FROM_SCRATCH.md point 6): "the three newest pressings
@@ -192,7 +192,7 @@
 .store-dig-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .store-dig-text b{font-size:var(--fs-body);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-dig-text em{font-style:normal;font-size:var(--fs-caption);color:var(--muted)}
-.store-dig-text small{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--paper)}
+.store-dig-text small{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.10em;color:var(--paper)}
 .store-dig-remove{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--cream);background:var(--cream);
   color:#1A120A;flex:none;display:flex;align-items:center;justify-content:center;padding:0}
 
@@ -200,7 +200,7 @@
 .store-crate-cover{width:100%;aspect-ratio:1;border-radius:5px;background:var(--panel);overflow:hidden}
 .store-crate-cover img{width:100%;height:100%;object-fit:cover}
 .store-crate-name{font-size:var(--fs-caption);font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.store-crate-artist{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-crate-artist{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.10em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-requests-wrap{margin-top:14px}
 .store-requests-list{margin-top:2px;background:var(--panel);border-radius:0 0 14px 14px;padding:2px 15px var(--sp-1)}
 .store-requests-list .store-dig-row:last-child{border-bottom:0}
@@ -231,7 +231,7 @@ button.pressing-chip{cursor:pointer}
 
 /* CR11 point 1-2: the in-common pressing line and the record sheet's own
    pressing name/note/diff. */
-.store-crate-pressing{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.06em;color:var(--paper);
+.store-crate-pressing{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.06em;color:var(--paper);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .record-pressing-name{margin-top:var(--sp-2);font-weight:600;font-size:var(--fs-body)}
 .record-pressing-note{margin:2px 0 0;font-size:var(--fs-caption);color:var(--muted)}
@@ -244,7 +244,7 @@ button.pressing-chip{cursor:pointer}
    cell reserves the same headroom so sleeves line up whether or not a
    disc is showing; % padding is of the cell's width, and the disc's own
    negative % top is of the (square) art box, so the two match. */
-.store-records-count{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;color:var(--muted);text-transform:uppercase}
+.store-records-count{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.10em;color:var(--muted);text-transform:uppercase}
 /* UN13 point 4: the "14 records" line stays only on "All records" now,
    off the mono whitelist -- same deliberate 13px half-step as
    .store-stat span just below (TY4) and .listening-played-caption
@@ -265,7 +265,7 @@ button.pressing-chip{cursor:pointer}
 .rec-cell.pulled .rec-disc{left:8%;top:-30%;width:84%}
 .rec-name{font-size:var(--fs-caption);font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-artist{font-size:var(--fs-caption);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rec-label{font-family:var(--data);font-size:var(--fs-micro);letter-spacing:.10em;text-transform:uppercase;color:var(--paper);
+.rec-label{font-family:var(--data);font-size:var(--fs-caption);letter-spacing:.10em;text-transform:uppercase;color:var(--paper);
   display:flex;align-items:center;gap:var(--sp-1);min-width:0}
 .rec-label > span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-cell.pulled .rec-label{margin-top:6px}
@@ -382,7 +382,7 @@ button.pressing-chip{cursor:pointer}
 /* the mono readout line reuses the same style the old "recently found"
    row used (10-crate.css §peek-disc companion) -- off the mono
    whitelist's own uppercase-caps pattern. */
-.store-found-mono{font-family:var(--data) !important;font-size:var(--fs-micro) !important;letter-spacing:.08em;text-transform:uppercase;
+.store-found-mono{font-family:var(--data) !important;font-size:var(--fs-caption) !important;letter-spacing:.08em;text-transform:uppercase;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-wall-all{display:block;background:none;border:0;
   font-family:var(--body);font-size:var(--fs-body);font-weight:600;color:var(--paper);
