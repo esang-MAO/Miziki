@@ -4,7 +4,7 @@
    browser" shape as sundown/solar.js itself. src/sundown/solar.js's
    computeSun()/sunProgress()/easedProgress() are the only real callers;
    this is where the actual day-model math lives. */
-import { solarEvent, solarNoon, solarAltitudeAtNoon } from './solar.js';
+import { solarEvent, solarNoon, solarAltitudeAtNoon } from './sun-math.js';
 import { clamp } from '../util/math.js';
 
 const MIN = 60000;
