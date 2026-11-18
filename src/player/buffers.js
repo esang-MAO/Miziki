@@ -38,7 +38,7 @@ export async function ensureBuffer(i){
     return true;
   }
   let blob = t.blob;
-  if(!blob && t.stored){ blob = await tracks.audio(t.id); }
+  if(!blob && t.stored){ const rec = await tracks.get(t.id); blob = rec && rec.blob; }
   if(!blob){ setPathNote('The file for this track is no longer available. Add it again from Library.', true); return false; }
   try{
     // AU3 (docs/16_AUDIO.md §2.3): one fixed-rate context, never rebuilt
