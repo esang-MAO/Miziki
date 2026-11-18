@@ -24,10 +24,12 @@ const SRC = path.join(ROOT, '..', 'src');
 // Today's counts -- the ceiling this script enforces under --check. Only
 // ever lowered as the graph actually improves, never raised to paper over
 // a regression. (Plan 35 guessed 54/38 when it was written; this script's
-// own measured count at the time LI5 lands is 63/40 -- these two numbers,
-// not the plan's guess, are the real starting ceiling.)
-const MAX_CYCLE_MODULES = 63;
-const MAX_MUTUAL_PAIRS = 40;
+// own measured count at the time LI5 lands was 63/40. BD19 PR1,
+// docs/38_BEFORE_THE_DOMAIN.md, moved solarEvent/solarNoon/
+// solarAltitudeAtNoon out of solar.js into sun-math.js so day.js no
+// longer imports back from solar.js, lowering mutual pairs to 38.)
+const MAX_CYCLE_MODULES = 60;
+const MAX_MUTUAL_PAIRS = 38;
 
 function walk(dir, out){
   for(const name of readdirSync(dir)){

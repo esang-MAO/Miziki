@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarEvent, computeRate, computePlatterRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS, nightPitchCaptionFor, nightPitchMonoLine, semitoneLowerHigherText } from '../../src/sundown/solar.js';
+import { computeRate, computePlatterRate, depthKeyFor, depthCaptionFor, formatRateChange, DEPTH_TARGETS, nightPitchCaptionFor, nightPitchMonoLine, semitoneLowerHigherText } from '../../src/sundown/solar.js';
+import { solarEvent } from '../../src/sundown/sun-math.js';
 import { S } from '../../src/state.js';
 
 // Columbia, MD (39.20, -76.86). Published sunset for Jun 21, 2025 is 8:38 pm

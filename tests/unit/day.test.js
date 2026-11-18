@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dayEvents, dayPosition, standInEvents, isAfterSunset } from '../../src/sundown/day.js';
-import { sunProgress, easedProgress, computeRate, solarEvent } from '../../src/sundown/solar.js';
+import { sunProgress, easedProgress, computeRate } from '../../src/sundown/solar.js';
+import { solarEvent } from '../../src/sundown/sun-math.js';
 import { S } from '../../src/state.js';
 
 // src/sundown/day.js and the day-model parts of solar.js have no DOM/`S`-
