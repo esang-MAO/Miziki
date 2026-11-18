@@ -21,6 +21,14 @@ export const storage = {
 
 export const tracks = {
   get(id){ return DB.get('tracks', id); },
+  // BD18 (docs/38_BEFORE_THE_DOMAIN.md): the only function outside this
+  // folder that hands out a track's stored audio bytes -- see the App
+  // Store note at the foot of this file for why that's worth keeping to
+  // one door.
+  async audio(id){
+    const rec = await DB.get('tracks', id);
+    return (rec && rec.blob) || null;
+  },
   put(rec){ return DB.put('tracks', rec); },
   all(){ return DB.all('tracks'); },
   // main.js's restoreLibrary() own boot read -- a cursor walk (DB.eachCursor())
@@ -114,6 +122,7 @@ export const profile = {
    the device, with only small records left in the database (paths/ids,
    not bytes). This module is where that split would happen — callers
    already never touch a blob's storage directly, they go through
-   tracks.get/put, artwork.get/put and meta.thumbs()/get/put, so swapping
-   what's behind those methods is the only change a future step would need
-   to make. */
+   tracks.audio()/put, artwork.get/put and meta.thumbs()/get/put (BD18,
+   docs/38_BEFORE_THE_DOMAIN.md, made tracks.audio() the one door for a
+   track's bytes specifically), so swapping what's behind those methods is
+   the only change a future step would need to make. */
