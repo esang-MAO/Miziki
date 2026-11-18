@@ -119,6 +119,7 @@ async function main(){
     // machine's for the real decode/analyze work addFiles() does per file.
     await page.waitForFunction(
       () => (document.querySelector('#pathNote')?.textContent || '').includes('Importing 2 of 2'),
+      null,
       { timeout: 60000 },
     );
     await page.waitForTimeout(1000); // the last file's decode/analyze/store work
@@ -130,6 +131,7 @@ async function main(){
     await page.locator('li[data-id]').first().click();
     await page.waitForFunction(
       () => document.getElementById('miniIndicator')?.classList.contains('playing'),
+      null,
       { timeout: 20000 },
     );
 
@@ -141,6 +143,7 @@ async function main(){
     // the lead-in's own length.
     await page.waitForFunction(
       () => document.getElementById('timeElapsed')?.textContent !== '0:00',
+      null,
       { timeout: 20000 },
     );
     const before = parseElapsed(await page.textContent('#timeElapsed'));
@@ -173,6 +176,7 @@ async function main(){
     // last-played track itself (not just the library) survived the reload.
     await page.waitForFunction(
       () => document.querySelector('.mini-player')?.classList.contains('resuming'),
+      null,
       { timeout: 20000 },
     );
     const miniTitle = (await page.textContent('#miniTitle') || '').trim();
