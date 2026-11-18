@@ -5,7 +5,13 @@ import {
   selectZoetropeVariant, getVariantDef, variantBackground, albumPressingTrack,
 } from './tiers.js';
 import { albumMetalFor, trackMetalFor, metalPlatterBackground, metalLightOverlay, metalLabelKind, METAL_COLORS, setDiscBackground } from './metals.js';
-import { persistAlbumLookPref } from '../history/sessions.js';
+// BD19: persistAlbumLookPref lives in library/thumbs.js, not history/
+// sessions.js -- it used to, which made this a real circular import
+// (sessions.js imports applyDiscVariant from here); thumbs.js already
+// hosts the same-shaped persistAlbumDisplay and already imports
+// everything persistAlbumLookPref needs (meta, touchBackupKey), so moving
+// it there drops the cycle without duplicating anything.
+import { persistAlbumLookPref } from '../library/thumbs.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 import { RPM_45 } from './format.js';
 

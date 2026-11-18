@@ -15,10 +15,11 @@ import { S, current, touchBackupKey } from '../state.js';
 import { albumKey, trackTier, selectVariant, VARIANT_DEFS, CHART_VERSION } from '../record-art/tiers.js';
 import { albumTracks } from '../library/model.js';
 import { sessions, meta, achievements, collection, profile } from '../storage/repo.js';
-// Real circular import with looks.js (step 6b) — looks.js imports
-// persistAlbumLookPref back from here, the same shape already established
-// between engine.js and transport.js (step 3a). restoreThumbs is a real,
-// non-circular import (step 6b) — thumbs.js doesn't depend on this module.
+// BD19: this used to be a real circular import with looks.js (step 6b) --
+// looks.js imported persistAlbumLookPref back from here. That function
+// moved to library/thumbs.js (its own persistAlbumDisplay's home), so this
+// is now a one-directional, non-circular import, the same as restoreThumbs
+// below (thumbs.js doesn't depend on this module either way).
 import { applyDiscVariant } from '../record-art/looks.js';
 import { restoreThumbs, persistable } from '../library/thumbs.js';
 // PRESSINGS_110 PR7 (docs/PRESSINGS_110.md §8): distinct calendar days —
@@ -84,14 +85,9 @@ export async function persistSeasonSummaries(){ await meta.put('seasonSummaries'
 // the same way, written by sessionTrackComplete() below and patched by
 // history/played.js's checkTrackCompletion() when a pressing is found.
 export async function persistPlayedThrough(){ await meta.put('playedThrough', S.playedThrough); }
-// RF17 (docs/12_REFINE.md): `keys` is the album id (or ids) that actually
-// changed, same per-key-stamp shape as library/thumbs.js's persistAlbumDisplay.
-export async function persistAlbumLookPref(keys){
-  await meta.put('albumLookPref', S.albumLookPref);
-  (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumLookPref', k));
-}
 // AU9 (docs/16_AUDIO.md §5): the personal per-album format override
-// (Auto/33⅓/45) — same per-key-stamp shape as persistAlbumLookPref above.
+// (Auto/33⅓/45) — same per-key-stamp shape as library/thumbs.js's
+// persistAlbumDisplay/persistAlbumLookPref.
 export async function persistAlbumFormat(keys){
   await meta.put('albumFormat', S.albumFormat);
   (Array.isArray(keys) ? keys : keys != null ? [keys] : []).forEach(k => touchBackupKey('albumFormat', k));

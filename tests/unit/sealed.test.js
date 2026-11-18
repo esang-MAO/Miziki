@@ -69,7 +69,7 @@ mock.module(new URL('../../src/shell/start-sequence.js', import.meta.url).href, 
 // own further chain (library/edit.js, which reaches library/sealed.js
 // itself and library/credits.js) never has to load.
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {}, persistAlbumLookPref: async () => {} },
 });
 
 const {

@@ -32,7 +32,7 @@ mock.module(new URL('../../src/ui/haptic.js', import.meta.url).href, {
   namedExports: { hapticTick: hapticTickMock },
 });
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { thumbURL: {}, restoreThumbs: async () => {}, persistable(rec){ return rec; } },
+  namedExports: { thumbURL: {}, restoreThumbs: async () => {}, persistable(rec){ return rec; }, persistAlbumLookPref: async () => {} },
 });
 mock.module(new URL('../../src/crate/tiers.js', import.meta.url).href, {
   namedExports: { getCrateArtURL: async () => null },

@@ -70,7 +70,7 @@ mock.module(new URL('../../src/library/view.js', import.meta.url).href, {
 // sealed.test.js already does, since ownedPressingIds()'s own dependencies
 // stop well short of any of that.
 mock.module(new URL('../../src/library/thumbs.js', import.meta.url).href, {
-  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {} },
+  namedExports: { restoreThumbs: async () => {}, thumbURL: {}, persistable(rec){ return rec; }, pruneThumbs: async () => {}, persistAlbumLookPref: async () => {} },
 });
 // SH1 (docs/18_SHARE.md): storefront.js's own pre-existing import of
 // records.js (storePressingsTeaserRow) now reaches records.js's own

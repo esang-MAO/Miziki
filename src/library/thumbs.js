@@ -347,6 +347,11 @@ export async function pruneThumbs(){
 // every affected key itself before calling this, e.g. history/clear.js).
 export async function persistAlbumDisplay(keys){ await meta.put('albumDisplay', persistableMap(S.albumDisplay)); touchKeys('albumDisplay', keys); }
 export async function persistTrackDisplay(keys){ await meta.put('trackDisplay', persistableMap(S.trackDisplay)); touchKeys('trackDisplay', keys); }
+// BD19 (docs/38_BEFORE_THE_DOMAIN.md): moved from history/sessions.js,
+// which used to make this a real circular import with record-art/looks.js
+// (looks.js imports this; sessions.js imports looks.js's applyDiscVariant).
+// Same per-key-stamp shape as persistAlbumDisplay above.
+export async function persistAlbumLookPref(keys){ await meta.put('albumLookPref', S.albumLookPref); touchKeys('albumLookPref', keys); }
 
 export function snapshotAlbumDisplay(t){
   const albumId = albumKey(t);
