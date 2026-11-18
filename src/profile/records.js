@@ -7,13 +7,12 @@ import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
 import { achievementsList, ownedPressingIds, ownedRarePressingIds, ownedZoetropePressingIds } from '../history/achievements.js';
 import { navRow, segmented } from '../ui/parts.js';
-// Part of the profile's own circular cluster (storefront.js/screens.js,
-// see CLAUDE.md's src/profile/ entry): storefront.js imports openRecords()/
-// storePressingsTeaserRow() from here, screens.js imports
-// renderRecordsScreen(), and this file reaches both back only from inside
-// functions.
+// BD19: this file no longer imports back from screens.js (it used to, for
+// renderProfile() -- see CLAUDE.md's src/profile/ entry for the remaining
+// storefront.js<->screens.js knot). storefront.js still imports
+// storePressingsTeaserRow() from here; screens.js still imports
+// renderRecordsScreen().
 import { renderPressingCard } from './storefront.js';
-import { renderProfile } from './screens.js';
 
 /* ================= profile records + pressings =================
    The Records screen itself: All (every record, A–Z) or Pressings (the
@@ -132,15 +131,6 @@ async function pressingsShareData(owned){
   };
 }
 
-// Exported so storeShelvesSection's own "Browse all" (storefront.js) can
-// open straight into this screen's All tab without duplicating the three
-// lines that do it.
-export function openRecords(filter){
-  S.profileView.screen = 'records';
-  S.profileView.recordsFilter = filter;
-  renderProfile();
-}
-
 function buildDisc(bg){
   const d = el('span','peek-disc rec-disc');
   d.setAttribute('aria-hidden','true');
@@ -211,7 +201,10 @@ function recordCell(opts){
 // value is now the fixed "Everything you've found, newest first" --
 // no counts, same as the Records screen's own tabs now (UN13 point 4),
 // so the pressingCounts() helper that used to feed both went away too.
-export function storePressingsTeaserRow(){
+// onOpenPressings: the caller's own cross-screen nav into the Pressings
+// tab (BD19 -- this file no longer imports renderProfile() to do that
+// itself; see the file header).
+export function storePressingsTeaserRow(onOpenPressings){
   const chips = el('span','store-records-chips');
   chips.setAttribute('aria-hidden','true');
   Object.values(S.collection).slice(0, 4).forEach(rec => {
@@ -222,7 +215,7 @@ export function storePressingsTeaserRow(){
   const row = navRow({
     label: 'Pressings & metals',
     value: 'Everything you’ve found, newest first',
-    onClick: ()=> openRecords('pressings'),
+    onClick: onOpenPressings,
   });
   row.className += ' store-records-pressings';
   if(chips.childNodes.length) row.insertBefore(chips, row.firstChild);
@@ -244,7 +237,15 @@ export function renderRecordsScreen(body){
   wrap.appendChild(segmented(
     [{value:'all', label:'All records'}, {value:'pressings', label:'Pressings'}],
     filter,
-    key => { if(key !== filter) openRecords(key); },
+    key => {
+      if(key === filter) return;
+      S.profileView.recordsFilter = key;
+      // Re-render this screen in place (same screen, just the tab) rather
+      // than round-tripping through renderProfile() -- BD19, this file no
+      // longer imports that back from screens.js.
+      body.innerHTML = '';
+      renderRecordsScreen(body);
+    },
   ));
 
   // SH1 (docs/18_SHARE.md): "Profile › Records › Pressings: a Share

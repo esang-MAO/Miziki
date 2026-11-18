@@ -27,9 +27,13 @@ const SRC = path.join(ROOT, '..', 'src');
 // own measured count at the time LI5 lands was 63/40. BD19 PR1,
 // docs/38_BEFORE_THE_DOMAIN.md, moved solarEvent/solarNoon/
 // solarAltitudeAtNoon out of solar.js into sun-math.js so day.js no
-// longer imports back from solar.js, lowering mutual pairs to 38.)
+// longer imports back from solar.js, lowering mutual pairs to 38. BD19
+// PR2 dropped records.js's import of renderProfile from screens.js,
+// lowering mutual pairs to 37 -- the largest cycle's own module count
+// didn't shrink, since records.js/screens.js/storefront.js still form a
+// 3-way cycle through storefront.js's own imports of both.)
 const MAX_CYCLE_MODULES = 60;
-const MAX_MUTUAL_PAIRS = 38;
+const MAX_MUTUAL_PAIRS = 37;
 
 function walk(dir, out){
   for(const name of readdirSync(dir)){

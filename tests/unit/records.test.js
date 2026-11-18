@@ -13,6 +13,11 @@ function fakeEl(){
   const listeners = {};
   const node = {
     style: {}, dataset: {}, className: '', textContent: '',
+    // renderRecordsScreen's own tab-switcher clears the body this way
+    // before re-rendering in place (BD19) -- matches real DOM semantics
+    // for that one case.
+    set innerHTML(v){ if(v === '') children.length = 0; },
+    get innerHTML(){ return ''; },
     appendChild(child){ children.push(child); return child; },
     // UN12 (docs/36_UNIFORMITY.md point 14): storePressingsTeaserRow()
     // splices its disc-dots chip row in before navRow()'s own label via a
@@ -54,10 +59,6 @@ mock.module(new URL('../../src/record-art/peek.js', import.meta.url).href, {
 const pressingCardCalls = [];
 mock.module(new URL('../../src/profile/storefront.js', import.meta.url).href, {
   namedExports: { renderPressingCard(owned, opts){ pressingCardCalls.push(opts); return el('div','pressing-card'); } },
-});
-let renderProfileCalls = 0;
-mock.module(new URL('../../src/profile/screens.js', import.meta.url).href, {
-  namedExports: { renderProfile(){ renderProfileCalls++; } },
 });
 // SH1 (docs/18_SHARE.md): records.js's own new Pressings-screen Share
 // button imports openShareSheet from share/sheet.js, which would otherwise
@@ -158,15 +159,11 @@ test('libraryRecords: one entry per album, A-Z, preferring the album thumbnail o
 // records-preview grid is gone -- storeShelvesSection() (storefront.js,
 // covered in profile.test.js) is the one crate-browsing entry point on
 // the profile home now, with its own "Browse all" opening into this same
-// screen via the openRecords() export below. storePressingsTeaserRow() is
-// the one piece of the old section still drawn on the profile home.
-test('openRecords: sets the records screen and filter, then re-renders', () => {
-  reset();
-  R.openRecords('pressings');
-  assert.equal(S.profileView.screen, 'records');
-  assert.equal(S.profileView.recordsFilter, 'pressings');
-  assert.equal(renderProfileCalls, 1);
-});
+// screen via storefront.js's own openRecords() (BD19 moved it there from
+// this file, since only storefront.js still needs renderProfile() for the
+// cross-screen jump; not covered here, this file no longer imports it).
+// storePressingsTeaserRow() is the one piece of the old section still
+// drawn on the profile home.
 
 // UN12 (docs/36_UNIFORMITY.md point 14, decision 14): the row is a plain
 // navRow() now (shared parts, src/ui/parts.js) -- a fixed label/value
@@ -174,11 +171,12 @@ test('openRecords: sets the records screen and filter, then re-renders', () => {
 // than a count-dependent caption ("No counts"). The disc-dots chip row is
 // the one thing still count-dependent, so that's what these two tests
 // cover now instead of the old small-caption text.
-test('storePressingsTeaserRow: a disc dot per pressing/metal found, and opens the Pressings tab', () => {
+test('storePressingsTeaserRow: a disc dot per pressing/metal found, and calls its onOpenPressings on click', () => {
   reset();
   S.collection.a = {albumId: 'a', variant: 'woad-madder', pattern: 'swirl', name: 'A album'};
   mockAchievements = [{albumId: 'b', tier: 'gold', name: 'B', artist: '', updatedAt: 1}];
-  const row = R.storePressingsTeaserRow();
+  let opened = 0;
+  const row = R.storePressingsTeaserRow(()=> opened++);
   const label = byClass(row, 'p-nav-label')[0];
   const value = byClass(row, 'p-nav-value')[0];
   assert.equal(label.textContent, 'Pressings & metals');
@@ -186,8 +184,7 @@ test('storePressingsTeaserRow: a disc dot per pressing/metal found, and opens th
   const chips = byClass(row, 'store-records-chips')[0];
   assert.equal(chips.childNodes.length, 2, 'one dot for the pressing, one for the metal');
   row.click();
-  assert.equal(S.profileView.screen, 'records');
-  assert.equal(S.profileView.recordsFilter, 'pressings');
+  assert.equal(opened, 1, 'the caller\'s own cross-screen nav runs on click (BD19 -- this file no longer knows about profileView navigation itself)');
 });
 
 test('storePressingsTeaserRow: no chips when nothing is unlocked yet, label/value unchanged', () => {
@@ -263,9 +260,8 @@ test('renderRecordsScreen(pressings): empty state when nothing is unlocked', () 
   assert.equal(byClass(body, 'records-group-head').length, 0);
 });
 
-test('renderRecordsScreen: tapping the other tab switches the filter and re-renders', () => {
+test('renderRecordsScreen: tapping the other tab switches the filter and re-renders in place', () => {
   reset();
-  renderProfileCalls = 0;
   const body = fakeEl();
   R.renderRecordsScreen(body);
   // UN13 point 4: a plain segmented() (shared parts) now, in place of
@@ -275,5 +271,10 @@ test('renderRecordsScreen: tapping the other tab switches the filter and re-rend
   assert.equal(tabs[0].getAttribute('aria-pressed'), 'true');
   tabs[1].click();
   assert.equal(S.profileView.recordsFilter, 'pressings');
-  assert.equal(renderProfileCalls, 1);
+  // BD19: the tab switch re-renders this same screen in place
+  // (body.innerHTML = ''; renderRecordsScreen(body)) rather than
+  // round-tripping through screens.js's renderProfile() -- this file no
+  // longer imports that back.
+  const newTabs = byClass(body, 'p-seg')[0].childNodes;
+  assert.equal(newTabs[1].getAttribute('aria-pressed'), 'true', 'the re-rendered screen now shows Pressings as active');
 });
