@@ -386,6 +386,34 @@ BD0, BD1, BD12, BD16, BD17, BD18 and BD19 change nothing on screen.
 
 ---
 
+## BD14a: the Spindle icon (UI: home-screen icon and favicon)
+
+Addendum to plan 38, decided with Ken on 2026-11-18 (canvas "Miziki Fermata Mark", frames in `docs/design/spindle/`). Slot it straight after BD14. It changes only the picture BD14 renders, not how the icons are wired.
+
+**Decided:** the app icon is **Spindle**, a fermata printed on the amber paper label of a record, with the spindle hole as the fermata's dot. The fermata stands for a held note or rest: stay with a record longer than written. **The wordmark does not change.** It stays the A cut with three spindle rings, and the F cut (−12°) stays for the launch intro and empty sleeves. Folding the fermata into the wordmark was tried and dropped.
+
+> Read CLAUDE.md, BD14 above, `scripts/render-icons.mjs`, `public/manifest.webmanifest` and `miziki.html`'s head first.
+>
+> 1. Add the three size cuts as checked-in sources: `data/spindle.svg` (full), `data/spindle-mid.svg` (29–40 px) and `data/spindle-label.svg` (under 29 px). Each is a 100×100 viewBox with literal colours, so a plain script can render it.
+>    - **Full** (above 40 px): disc `#1C1A1F` with a `#2A272C` edge, four faint grooves (paper at 7%), amber label `#E9A24A`, the engraved fermata in `--on-accent` ink `#2A1B38`, and the spindle hole `#101A20` as its dot.
+>    - **Mid** (29–40 px): no grooves, a larger label, and a heavier, larger fermata.
+>    - **Label** (under 29 px): no disc. The amber label fills the mark, with the fermata and a filled ink dot.
+> 2. `scripts/render-icons.mjs`: draw `data/spindle.svg` at full size on the existing `SHARE_BG` "Night" gradient for 180, 192 and 512, with the disc filling about 69% of the square and no rounded corners (iOS and Android apply their own masks). Add `favicon-32.png` from the mid cut and `favicon-16.png` from the label cut. Update the file's header comment, which currently says the icons come from the wordmark.
+> 3. `miziki.html` head: keep the apple-touch-icon and the 192/512 links, and add `<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">` and the same at 16. Update the BD14 comment above them ("Spindle on the app's dark ground", not "wordmark on the app's dark ground").
+> 4. `manifest.webmanifest`: no change beyond the regenerated PNGs.
+> 5. CLAUDE.md: one line under Repo layout for the three `data/spindle*.svg` files and which size each serves. Add the size rule next to the wordmark's C-cut rule: switch cuts by rendered size, never scale the full cut below 40 px.
+> 6. **Tests:** none new. The existing BD14 checks cover the wiring.
+>
+> Reference PNGs rendered from the canvas are in the handoff (`public/icons/`); the script's own output should match them. Lint/tests/previews as usual. Open the PR. Do not merge.
+
+**Preview focus (iPhone):** delete the home-screen app and Add to Home Screen again (iOS caches the old icon), then check the icon beside other apps in both light and dark wallpaper. Check the favicon in a desktop browser tab: at 16 px it should read as an amber label with a dark arc and dot, not a dark blob.
+
+**Removes:** the wordmark-as-icon from BD14.
+
+**Not in this step:** Spindle anywhere inside the app (header, share cards, back cover, dead-wax etch). The In use frame shows where it could go later. Those are new placements, so they wait until after the feature freeze.
+
+---
+
 ## BD15: labels and tap routes (UI: none for touch users)
 
 > Read `miziki.html` (every `<button>`), `src/player/scrub.js`, `src/shell/player-overlay.js` (sleeve pull), `src/gatefold/sealed-front.js` (peel), and `src/styles/31-switch.css` first.
