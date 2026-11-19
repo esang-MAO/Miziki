@@ -49,7 +49,23 @@ const LAUNCH_ANIM = {
   // runLaunchSequence's `landing` ? finishLaunch(0) : finishLaunch(crossfadeMs)).
   catchMs: 300, pullMs: 600, crossfadeMs: 600,
   liftPx: 28,
-  skipMs: 150, readyWaitMs: 700,
+  // Fix (2026-11-19): was 700ms, tuned back when restoreLibrary() read the
+  // whole library in one tracks.all()/getAll() call. PR #473 (the real-
+  // device memory-crash fix) replaced that with a cursor walk that holds
+  // only one track's blobs in memory at a time -- deliberately slower to
+  // finish for a large library, especially one with several-MB embedded
+  // FLAC cover art per track. S.tracks fills all at once at the end of
+  // that walk, never gradually (see main.js's restoreLibrary()), so a
+  // library that doesn't finish loading within this wait makes every
+  // launchCandidates() call below return nothing and the whole stack
+  // falls back to the Miziki sleeve -- which is what was happening on
+  // Ken's 2,000+ track library (confirmed: debug log empty, so this was
+  // never a crash, just this race losing every time). 2500ms roughly
+  // matches how long the fade+flick above already runs before the catch,
+  // so a library that's genuinely this slow to load doesn't cost any
+  // perceived time beyond what the dig already takes; a fast library
+  // still resolves the race immediately regardless of this cap.
+  skipMs: 150, readyWaitMs: 2500,
   stackCount: 18,
   // distance share of the scroll each phase covers, by construction summing
   // to 1 so position lands exactly on the target at the end of decel — see
