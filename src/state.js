@@ -427,8 +427,8 @@ export function touchBackupMembership(playlistName, localId, kind){
   S.backupSeq = (S.backupSeq || 0) + 1;
   entry[kind] = { seq: S.backupSeq, at: Date.now() };
 }
-// Background playback (optional, off by default) — see the section below
-S.bgAudio = false;
+// Background playback (optional, on by default) — see the section below
+S.bgAudio = true;
 S.bg = {el:null, failed:false, swapping:false, idleTimer:null, silentURL:null, handlers:false, msKey:'', awaitingReturnOffer:false};
 // Launch intro (cold start only, on by default) — see the launch sequence section
 S.launchSeq = 0;
@@ -448,8 +448,8 @@ S.libraryLayout = 'crate';
 S.view.mode = 'crate';
 S.crateGroup = 'az';
 S.crateAnchor = null;
-// gatefold spec §A5: off by default, saved like the other library-tools prefs
-S.albumSides = false;
+// gatefold spec §A5: on by default, saved like the other library-tools prefs
+S.albumSides = true;
 // SEALED spec §2/§3 — albums imported after this feature ships stay
 // shrink-wrapped until first played; the set itself is independent of
 // listening history so "Clear listening history" never reseals anything
