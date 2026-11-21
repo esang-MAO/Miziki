@@ -1,7 +1,8 @@
 import { S } from '../state.js';
 import { el } from '../util/dom.js';
 import { groupBy } from '../library/model.js';
-import { albumKey, getVariantDef, variantBackground } from '../record-art/tiers.js';
+import { albumKey, getVariantDef, variantBackground, albumPressingTrack, selectVariant } from '../record-art/tiers.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
 import { metalBackground } from '../record-art/metals.js';
 import { thumbURL } from '../library/thumbs.js';
 import { peekBackgroundFor } from '../record-art/peek.js';
@@ -149,7 +150,20 @@ function buildDisc(bg){
   return d;
 }
 
-// opts: {name, artist, art, disc, label, pulled, showText, pressingFirst}
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): a record's own house sleeve for
+// this grid's no-art cells -- plain (no sticker), since the cell already
+// shows the name/artist as its own text. Own-device records only (the
+// Records/Pressings screens never show a friend's); a friend's own
+// no-art record keeps storefront.js's pressing-colour noArtCover() per
+// UN16, deliberately untouched here.
+function recordSleeveHouseFace(opts){
+  const t = opts.albumId ? albumPressingTrack(opts.albumId) : null;
+  const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+  const kind = houseSleeveKind(opts.artist, opts.name, pressingDef);
+  return buildHouseSleeve(kind, { pressingDef, plain: true });
+}
+
+// opts: {name, artist, art, albumId, disc, label, pulled, showText, pressingFirst}
 function recordCell(opts){
   const cell = el('div','rec-cell' + (opts.pulled ? ' pulled' : ''));
   const artBox = el('div','rec-art');
@@ -159,6 +173,8 @@ function recordCell(opts){
     const im = document.createElement('img');
     im.src = opts.art; im.alt = ''; im.loading = 'lazy'; im.decoding = 'async';
     sleeve.appendChild(im);
+  } else {
+    sleeve.appendChild(recordSleeveHouseFace(opts));
   }
   artBox.appendChild(sleeve);
   cell.appendChild(artBox);
@@ -290,7 +306,7 @@ function renderAllRecords(wrap, records){
       wrap.appendChild(grid);
     }
     const earned = earnedFor(r.albumId);
-    grid.appendChild(recordCell({name:r.name, artist:r.artist, art:r.art, showText:true,
+    grid.appendChild(recordCell({name:r.name, artist:r.artist, art:r.art, albumId:r.albumId, showText:true,
       disc: earned ? earned.bg : null, label: earned ? earned.label : null}));
   });
 }
@@ -313,11 +329,11 @@ function renderPressings(wrap){
   const owned = new Set([...ownedPressingIds(), ...ownedRarePressingIds(), ...ownedZoetropePressingIds()]);
   wrap.appendChild(renderPressingCard(owned, {interactive: true, metals: reachedMetals()}));
   const coll = Object.values(S.collection).sort((a, b) => pressingName(a).localeCompare(pressingName(b)));
-  const asItem = rec => ({name: rec.name, artist: rec.artist, art: albumArt(rec.albumId, rec.art),
+  const asItem = rec => ({name: rec.name, artist: rec.artist, art: albumArt(rec.albumId, rec.art), albumId: rec.albumId,
     disc: pressingDisc(rec), label: pressingName(rec)});
   const colors = coll.filter(rec => rec.pattern === 'solid').map(asItem);
   const effects = coll.filter(rec => rec.pattern !== 'solid').map(asItem);
-  const metals = achievementsList().map(rec => ({name: rec.name, artist: rec.artist,
+  const metals = achievementsList().map(rec => ({name: rec.name, artist: rec.artist, albumId: rec.albumId,
     art: albumArt(rec.albumId, rec.art), disc: metalDisc(rec), label: METAL_NAME[rec.tier] || rec.tier}));
   if(!colors.length && !effects.length && !metals.length){
     const empty = el('div','profile-empty');

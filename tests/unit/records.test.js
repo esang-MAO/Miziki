@@ -40,6 +40,17 @@ globalThis.document = { createElement(tag){ const e = fakeEl(); e.tag = tag; ret
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: { el, $(){ return fakeEl(); } },
 });
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): recordCell() now builds a house
+// sleeve for a no-art cell -- mocked away for the same `?raw` SVG-import
+// reason as every other such test file; nothing here reads a built
+// sleeve's actual markup.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return fakeEl(); },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
 let mockAchievements = [];
 mock.module(new URL('../../src/history/achievements.js', import.meta.url).href, {
   namedExports: {

@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $, el } from '../util/dom.js';
 import { makeSwitch } from '../ui/switch.js';
 import { normKey } from '../util/text.js';
-import { albumKey, trackTier, albumPressingTrack, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground, selectVariantForAlbum, getVariantDef } from '../record-art/tiers.js';
+import { albumKey, trackTier, albumPressingTrack, SOLID_IDS, EFFECT_IDS, RARE_IDS, ZOETROPE_IDS, VARIANT_DEFS, variantBackground, selectVariant, selectVariantForAlbum, getVariantDef } from '../record-art/tiers.js';
 import { albumMetalFor } from '../record-art/metals.js';
 import { discLook } from '../record-art/looks.js';
 import { mostRecentlySpunAlbum, crateFlatAlbumOrder } from '../crate/model.js';
@@ -15,6 +15,7 @@ import { beginSocialSignIn } from './settings.js';
 // renderProfile() back from screens.js; records.js no longer does.
 import { storePressingsTeaserRow, metalDisc, pressingDisc } from './records.js';
 import { thumbURL } from '../library/thumbs.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
 import { achievementsList } from '../history/achievements.js';
 import { PHASE_CAPS } from '../sundown/spin-wording.js';
 // CR11 point 3: "tapping a chip jumps the crate to the first record in
@@ -552,6 +553,16 @@ function storeLedge(picks){
     const cover = el('div','store-ledge-cover');
     const art = localAlbumArt(pick.title, pick.artist);
     if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
+    else {
+      // BD14c (docs/38_BEFORE_THE_DOMAIN.md): this is one of your own pins
+      // (release_id is a local albumId, not a friend's record), so it gets
+      // the same house sleeve as the Records screen -- plain, since the
+      // title already shows below the ledge (storeLedge()'s own `names`
+      // row). A friend's record keeps noArtCover() elsewhere, untouched.
+      const t = pick.release_id ? albumPressingTrack(pick.release_id) : null;
+      const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+      cover.appendChild(buildHouseSleeve(houseSleeveKind(pick.artist, pick.title, pressingDef), { pressingDef, plain: true }));
+    }
     pin.appendChild(cover);
     if(i === 0) pin.appendChild(el('span','store-ledge-sticker','must hear'));
     pins.appendChild(pin);
