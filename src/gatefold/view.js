@@ -1410,16 +1410,26 @@ async function gatefoldSetCoverArt(item){
   const cueImg = $('#gfLeftCueArt');
   const coverFace = $('#gfCoverNoArtFace'), cueFace = $('#gfLeftCueNoArtFace');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+  // BD14c close-out: the pocket disc's own label (.label, the small round
+  // record label peeking through the sleeve's die-cut window) isn't a
+  // sleeve face -- a house sleeve's rectangular fermata-cut shape has no
+  // place on a circular record label. It already has its own no-art
+  // fallback (.label-arc/.label-body, the same plain paper-label design
+  // transport.js's own #label uses), gated on a .has-art class this
+  // pocket markup never toggled -- so a no-art pocket showed a blank
+  // circle instead of that fallback. Fixed here the same way transport.js
+  // already does for the main platter's own #label.
   const setDiscArt = src => gatefoldSleevePocketEls().forEach(wrap => {
-    const discArt = wrap.querySelector('.art');
-    if(discArt) discArt.src = src;
+    const discArt = wrap.querySelector('.art'), label = wrap.querySelector('.label');
+    if(discArt){ if(src) discArt.src = src; else discArt.removeAttribute('src'); }
+    if(label) label.classList.toggle('has-art', !!src);
   });
   if(fallback){
     img.src = fallback; if(cueImg) cueImg.src = fallback; setDiscArt(fallback);
     if(coverFace) coverFace.replaceChildren();
     if(cueFace) cueFace.replaceChildren();
   } else {
-    img.removeAttribute('src'); if(cueImg) cueImg.removeAttribute('src');
+    img.removeAttribute('src'); if(cueImg) cueImg.removeAttribute('src'); setDiscArt(null);
     if(coverFace){ coverFace.replaceChildren(); coverFace.appendChild(gatefoldHouseSleeveFor(item)); }
     if(cueFace){ cueFace.replaceChildren(); cueFace.appendChild(gatefoldHouseSleeveFor(item)); }
   }
