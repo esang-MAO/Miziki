@@ -503,7 +503,9 @@ Follow-up to BD14b, scoped 2026-11-21 after Ken asked what the deferred audit it
 
 **Not in this step:** a friend's own no-art title card (`.store-no-art-cover`, explicitly unchanged by BD14b too); anything not already using `thumbURL`/`getCrateArtURL`'s existing art-resolution path.
 
----
+**Status (2026-11-21):** split in two, per Ken's decision card. Gatefold front/sealed front/picture sleeve shipped as PR #495 (merged) — simpler than expected, since all three already resolved art synchronously, so no mount/teardown helper was needed, just a no-art branch alongside each existing `img.src` assignment.
+
+The grid group turned out narrower than scoped above: `src/history/achievements.js` has no rendering code of its own (it only returns `{art, ...}` data that `records.js`'s `achievementsList()` already consumes) — nothing to wire there directly. `profile/storefront.js` splits into two different kinds of "no art," not one: a friend's own records (several spots, all via `noArtCover()`) deliberately keep the pressing-colour title card per UN16 — a friend's art never reaches this device by design, a different reason than a file missing a tag, and not this plan's to touch — versus your own picks (`storeLedge()`'s picture-ledge pins, `release_id` is a local albumId), which had no fallback at all and got the house sleeve. `profile/records.js`'s own grid (`recordCell()`, the Records/Pressings screens) is the one real "many cells" case; a synthetic 2,000-no-art-album stress render (every album missing art at once, a worse case than any real library) took ~1.25s one-time, well within range — no lighter no-mask variant needed.
 
 ## BD15: labels and tap routes (UI: none for touch users)
 

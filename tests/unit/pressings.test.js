@@ -43,6 +43,16 @@ function el(tag, cls, text){
 mock.module(new URL('../../src/util/dom.js', import.meta.url).href, {
   namedExports: { $(){ return null; }, el },
 });
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): storeLedge() now builds a house
+// sleeve for an own-pin cell with no art -- mocked away, same `?raw`
+// SVG-import reason as every other such test file.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return fakeEl(); },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
 
 mock.module(new URL('../../src/storage/idb.js', import.meta.url).href, {
   namedExports: { DB: { ok: false, open: async () => false } },
