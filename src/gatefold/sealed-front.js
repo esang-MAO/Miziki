@@ -33,6 +33,8 @@ import { breakSeal } from '../library/sealed.js';
 import { buildBackCoverEl, buildBackCoverImageEl, getAlbumBackCoverBlob } from './back-cover.js';
 import { formatRecordName, formatSpeedText } from '../record-art/format.js';
 import { openGatefold, gatefoldTrackIndices, gatefoldItemFormat } from './view.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
+import { albumPressingTrack, selectVariant, getVariantDef } from '../record-art/tiers.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
 
 // past this much diagonal drag (as a fraction of the wrap's own size) the
@@ -59,9 +61,20 @@ async function paintCover(item, turnedOver){
   if(!FRONT || FRONT.item !== item) return;
   host.innerHTML = '';
   if(!turnedOver){
+    const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+    // BD14c: no fallback at all means no art exists -- getCrateArtURL()
+    // below only ever upgrades existing art to a bigger tier, same
+    // reasoning view.js's gatefoldSetCoverArt() gives.
+    if(!fallback){
+      const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+      const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+      const kind = houseSleeveKind(item.artist, item.album, pressingDef);
+      host.appendChild(buildHouseSleeve(kind, { pressingDef, plain: true }));
+      return;
+    }
     const img = document.createElement('img');
     img.alt = '';
-    img.src = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
+    img.src = fallback;
     host.appendChild(img);
     getCrateArtURL(item.albumId, 'L').then(url => {
       if(url && FRONT && FRONT.item === item && !FRONT.turnedOver) img.src = url;

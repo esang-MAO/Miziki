@@ -10,6 +10,17 @@ import assert from 'node:assert/strict';
 globalThis.window = { matchMedia(){ return { matches: false }; } };
 globalThis.document = { documentElement: { style: { setProperty(){} } } };
 
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): view.js now builds a house sleeve
+// for the cover/cue strip when there's no art -- mocked away, same reason
+// as gatefold.test.js.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return { classList: { add(){} } }; },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
+
 const openCreditsSheetMock = mock.fn();
 const trackHasCreditsContentMock = mock.fn(() => true);
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {

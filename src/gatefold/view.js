@@ -17,7 +17,7 @@ import { sheetHeader } from '../ui/parts.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
 import { REDUCED } from '../util/motion.js';
-import { albumKey, trackIdentityKey, albumPressingTrack } from '../record-art/tiers.js';
+import { albumKey, trackIdentityKey, albumPressingTrack, selectVariant, getVariantDef } from '../record-art/tiers.js';
 import { discLook, paintDiscLook, hasLookChoice, openLookPicker } from '../record-art/looks.js';
 import { wearStage, wearCopy, wearPhaseWord } from '../record-art/wear.js';
 import { recallLineFor } from '../history/recall.js';
@@ -29,6 +29,7 @@ import { albumLinerNotes, albumLinerNoteIsOverride, albumLinerNotesSource, setAl
 import { isFavorite, toggleFavorite } from '../library/favorites.js';
 import { thumbURL } from '../library/thumbs.js';
 import { getCrateArtURL } from '../crate/tiers.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
 // UN6 (docs/36_UNIFORMITY.md): the gatefold's interior takes its colour
 // from the cover.
 import { loadImageEl, shareDominantColor, artTint } from '../ui/art-color.js';
@@ -1388,18 +1389,40 @@ function gatefoldApplyPocketDeadWax(item){
   });
 }
 
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): the main cover and its inside-left
+// cue strip get the same house sleeve as every other no-art face when the
+// album has no art at all -- getCrateArtURL() only ever upgrades existing
+// art to a bigger tier, it never produces art from nothing, so "no
+// fallback" here means there truly is none and no later upgrade will
+// change that.
+function gatefoldHouseSleeveFor(item){
+  const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+  const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+  const kind = houseSleeveKind(item.artist, item.album, pressingDef);
+  return buildHouseSleeve(kind, { pressingDef, plain: true });
+}
+
 async function gatefoldSetCoverArt(item){
   const img = $('#gfCoverArt');
   // UN7 point 2: the cover-strip art (#gfLeftCueArt) is the same cover,
   // just cropped to its own left edge by 11-gatefold.css's
   // object-position:left -- set alongside #gfCoverArt, not a second fetch.
   const cueImg = $('#gfLeftCueArt');
+  const coverFace = $('#gfCoverNoArtFace'), cueFace = $('#gfLeftCueNoArtFace');
   const fallback = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   const setDiscArt = src => gatefoldSleevePocketEls().forEach(wrap => {
     const discArt = wrap.querySelector('.art');
     if(discArt) discArt.src = src;
   });
-  if(fallback){ img.src = fallback; if(cueImg) cueImg.src = fallback; setDiscArt(fallback); }
+  if(fallback){
+    img.src = fallback; if(cueImg) cueImg.src = fallback; setDiscArt(fallback);
+    if(coverFace) coverFace.replaceChildren();
+    if(cueFace) cueFace.replaceChildren();
+  } else {
+    img.removeAttribute('src'); if(cueImg) cueImg.removeAttribute('src');
+    if(coverFace){ coverFace.replaceChildren(); coverFace.appendChild(gatefoldHouseSleeveFor(item)); }
+    if(cueFace){ cueFace.replaceChildren(); cueFace.appendChild(gatefoldHouseSleeveFor(item)); }
+  }
   applyGatefoldDiscVariant(item);
   const url = await getCrateArtURL(item.albumId, 'L');
   if(url && GF && GF.item === item){ img.src = url; if(cueImg) cueImg.src = url; setDiscArt(url); }

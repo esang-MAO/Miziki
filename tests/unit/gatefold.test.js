@@ -16,6 +16,18 @@ import assert from 'node:assert/strict';
 globalThis.window = { matchMedia(){ return { matches: false }; } };
 globalThis.document = { documentElement: { style: { setProperty(){} } } };
 
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): view.js now builds a house sleeve
+// for the cover/cue strip when there's no art -- mocked away for the same
+// reason as every other `?raw`-importing module here; nothing this file
+// tests reads a built sleeve's actual markup.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return { classList: { add(){} } }; },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
+
 mock.module(new URL('../../src/library/credits.js', import.meta.url).href, {
   namedExports: {
     albumLinerNotes(){ return ''; }, albumCreditRoll(){ return new Map(); },
