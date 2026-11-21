@@ -413,6 +413,68 @@ Explored and dropped (frames kept for the record): the fermata folded into the w
 
 ---
 
+## BD14b: house sleeves for records with no art (UI: player sleeve, crate, launch intro, empty crate)
+
+Addendum to plan 38, decided with Ken on 2026-11-19 and 2026-11-20 (canvas "Miziki Placeholder Sleeves", board "One set of four"; frames in `docs/design/house-sleeves/`). Slot it straight after BD14a. It replaces one placeholder look with a set of four. It adds no new feature, setting or data.
+
+**Decided:** a record with no artwork is drawn in one of **four house sleeves** instead of a single placeholder. The set brings the BD14a fermata icon into the library and keeps a big batch of files without art from looking identical.
+
+| Kind | Look | Odds |
+|---|---|---|
+| `wordmark` | Today's sleeve: the F-cut wordmark (−12°) on the sleeve ground | 3 in 10 |
+| `emboss` | The same ground with the fermata blind-embossed, tone on tone | 3 in 10 |
+| `house` | Full ochre `#C47F1E` with the fermata printed in white | 2 in 10 |
+| `diecut` | Ochre with the **whole fermata cut out** (arch and dot), so the record's own pressing shows through | 2 in 10 |
+
+- **One sleeve per album, everywhere.** The kind is picked from the album's artist + album key, the same way pressings are, so an album wears the same sleeve in the crate, the player and on every device.
+- **The dark kinds are weighted heavier** (6 in 10), so a crate full of untagged files reads mostly dark with ochre accents.
+- **A sticker on real records.** When the sleeve stands for an actual album, it carries a small hand-lettered paper sticker: the title in the hand voice (`--hand`, Caveat) and the artist in the body face. Real albums means the player sleeve and crate cards.
+- **Plain sleeves elsewhere.** The launch intro and the empty crate show plain sleeves, with no sticker, because they don't stand for any record.
+- **Unchanged:** a friend's record with no art keeps today's pressing-colour title card (`.store-no-art-cover`), and the wordmark itself.
+
+> Read CLAUDE.md, BD14a above, `src/record-art/tiers.js` (`selectVariantForAlbum`, `hash32`, `variantBackground`), `src/ui/wordmark.js`, `src/launch/intro.js` (`makeLaunchCard`, `launchMizikiMark`), `src/shell/start-sequence.js` (`sleeveArtFor`, `showOutgoingSleeve`), `src/crate/view.js` (card build around `crate-card-face`, `setCardImage`, `#emptyCrateSleeveMark`), `src/styles/03-sleeve-pull.css` and `src/styles/09-launch-intro.css` first.
+>
+> 1. **`data/sleeve-fermata.svg`** (in the handoff): the fermata exactly as it sits on a sleeve, a 100×100 viewBox, black on transparent. The arch is `M12 66C12 8 88 8 88 66L81 66C79 24 21 24 19 66Z` and the dot is a circle at (50, 73) with r 8.5. Both sit in `translate(50 42) scale(0.62) translate(-50 -52)`. It is the same drawing as `data/fermata-icon.svg`, placed higher and smaller to leave room for the sticker. One file serves as the die-cut mask, the house print and the emboss.
+> 2. **`src/ui/house-sleeve.js`** (new, pure where it can be):
+>    - `houseSleeveKind(artist, album)`: `SLOTS[hash32('sleeve|' + normKey(artist) + '|' + normKey(album)) % 10]` with `SLOTS = wordmark×3, emboss×3, house×2, diecut×2`. The `'sleeve|'` salt keeps the kind independent of the pressing draw.
+>    - **Die-cut fallback:** if the album's pressing body colour has a contrast ratio below 1.5:1 against `#C47F1E`, return `house` instead. Ochre, amber and caramel pressings would vanish through the cut-out.
+>    - `buildHouseSleeve(kind, { title, artist, pressingDef, format, plain })`: returns one element.
+>    - `plainSleeveKind(i)`: for the launch intro, rotates through the four in a fixed order (`wordmark, house, emboss, diecut`).
+> 3. **How each kind draws:**
+>    - **`wordmark`:** today's markup and tokens, unchanged.
+>    - **`emboss`:** the same ground (`--rec1`/`--rec2`) with the fermata in `--recink` at about 10% opacity, so it is tone on tone in both themes.
+>    - **`house`:** a `#C47F1E` ground with the fermata in white, the same in both themes.
+>    - **`diecut`:** a dark ground with a record disc behind it, inset 2% and round. The disc's background is `variantBackground(pressingDef, format)`, so swirls, splits and galaxies show, with faint grooves and a little sheen. On top sits the `#C47F1E` cover with the fermata masked out (an SVG mask, or CSS `mask-image` with `data/sleeve-fermata.svg`), plus a thin edge on the cut (black, about 35% opacity).
+>    - **Sticker:** stock-card paper (`--stock-card`), rotated −2°, at the bottom left. The title is in `--hand`, the artist in the body face; both get one line with an ellipsis. Hide the sticker when the sleeve renders under 96 px (a container query), or when `plain` is set.
+> 4. **Where it goes** (new styles in `src/styles/32-house-sleeve.css`):
+>    - **Player sleeve:** `sleeveArtFor` / `showOutgoingSleeve` when `!hasArt`. Use the playing album's kind, with the sticker.
+>    - **Crate cards:** in `setCardImage`'s `if(!art) return;` branch, once the lookup has finished with no art, swap the face's `CRATE_PALETTE` colour for the album's house sleeve, with the sticker. Keep the palette colour as the brief loading placeholder it already is, so a record with art never flashes a house sleeve first.
+>    - **Launch intro:** `makeLaunchCard`'s no-art branch. A card for a real album without art uses that album's kind (plain, no sticker). A filler card, shown before the library has covers, uses `plainSleeveKind(index)`.
+>    - **Empty crate:** `#emptyCrateSleeve`. Pick one of the four at random each time the empty state is shown, plain.
+>    - **Audit:** check every other no-art fallback (`thumbURL[...]` fallbacks in `main.js` for the gatefold front and the sealed front, library thumbnails). Use the album's house sleeve at 96 px and up, and the same sleeve without a sticker below that. List each surface touched, or deliberately left alone, in the PR description.
+> 5. **Retire** the single-placeholder paths: `launch-card-miziki` and `launchMizikiMark` (now one kind of four) and the `.sleeve-mark` wordmark mount as the only no-art face. Replace them; don't layer on top.
+> 6. CLAUDE.md: one line under Repo layout for `data/sleeve-fermata.svg` and `src/ui/house-sleeve.js`. Add one rule: a record with no art always draws its own house sleeve, never a flat colour, except as the loading placeholder.
+> 7. **Tests** (`tests/unit/`):
+>    - `houseSleeveKind` is deterministic for the same artist and album, and ignores case and whitespace like `normKey`.
+>    - Over 1,000 synthetic albums, it lands near 30/30/20/20.
+>    - The die-cut falls back to `house` for an ochre-family pressing.
+>    - `plainSleeveKind` cycles all four.
+>
+> Lint/tests/previews as usual. Open the PR. Do not merge.
+
+**Preview focus (iPhone, both themes):**
+- Import a folder of files with no embedded art. The crate should show all four sleeves, mostly dark, each with its title sticker, and the die-cuts should each show a different pressing.
+- Play one: the sleeve in the player matches its crate card.
+- Clear the library: the empty crate shows a plain sleeve that changes between visits.
+- Relaunch: the intro flicks through plain sleeves of all four kinds.
+- Light theme: the embossed fermata is still visible.
+
+**Removes:** the single wordmark placeholder as the only no-art face, and the flat `CRATE_PALETTE` colour as a finished no-art face.
+
+**Not in this step:** a friend's no-art title card; user-chosen sleeves; a setting to turn house sleeves off.
+
+---
+
 ## BD15: labels and tap routes (UI: none for touch users)
 
 > Read `miziki.html` (every `<button>`), `src/player/scrub.js`, `src/shell/player-overlay.js` (sleeve pull), `src/gatefold/sealed-front.js` (peel), and `src/styles/31-switch.css` first.

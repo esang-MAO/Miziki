@@ -10,11 +10,11 @@
   align-items:center;justify-content:center;text-align:center}
 .sleeve-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
 .sleeve.has-art .sleeve-art{opacity:1}
-/* TY4 (docs/22_TYPE.md): the "F" cut -- rotated -12deg here, drawn upright
-   (src/shell/start-sequence.js sets the SVG once per sleeve at load). */
-.sleeve-mark{width:34%;transform:rotate(-12deg)}
-.sleeve-mark svg{display:block;width:100%;height:auto}
-.sleeve.has-art .sleeve-mark{display:none}
+/* BD14b (docs/38_BEFORE_THE_DOMAIN.md): the mount point for the playing
+   album's own house sleeve (src/ui/house-sleeve.js), filled by
+   src/shell/start-sequence.js's sleeveArtFor()/showOutgoingSleeve(). */
+.sleeve-no-art-face{position:absolute;inset:0}
+.sleeve.has-art .sleeve-no-art-face{display:none}
 /* Driven as three separate steps from JS (see runStartSequence), not one
    keyframe spanning the whole pull, because the middle step's length
    depends on whether audio has finished buffering. Each step gets its own

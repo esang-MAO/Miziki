@@ -59,6 +59,18 @@ mock.module(new URL('../../src/ui/wordmark.js', import.meta.url).href, {
 mock.module(new URL('../../src/util/motion.js', import.meta.url).href, {
   namedExports: { REDUCED: false },
 });
+// BD14b (docs/38_BEFORE_THE_DOMAIN.md): intro.js now builds a house sleeve
+// for a launch card with no art -- mocked away the same reason the
+// wordmark is above (house-sleeve.js itself pulls in ui/wordmark.js and
+// ui/sleeve-fermata.js, each with its own `?raw` SVG import), and nothing
+// this file tests reads a built sleeve's actual markup.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return { classList: { add(){} } }; },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
 
 const {
   resolveLastPlayedAlbum, resolveLastPlayedTrackIndex,

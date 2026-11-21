@@ -58,6 +58,15 @@ function fakeEl(tag){
     addEventListener(type, fn){ listeners[type] = fn; },
     fire(type, ev){ if(listeners[type]) listeners[type](ev || {}); },
     appendChild(child){ child.parent = node; kids.push(child); return child; },
+    // BD14b (docs/38_BEFORE_THE_DOMAIN.md): the empty crate's own house
+    // sleeve face is rebuilt with replaceChildren() + appendChild() each
+    // time the empty state shows -- real DOM semantics, just over this
+    // fake tree's own `kids` array.
+    replaceChildren(...newKids){
+      kids.forEach(k => { k.parent = null; });
+      kids.length = 0;
+      newKids.forEach(child => { child.parent = node; kids.push(child); });
+    },
     replaceWith(next){
       if(!node.parent) return;
       const i = node.parent.children.indexOf(node);
@@ -219,6 +228,14 @@ mock.module(new URL('../../src/shell/header.js', import.meta.url).href, {
   namedExports: {
     updateLibTabsForLayout(){}, updateHeaderActionsAvailability(){}, refreshLibraryTools(){},
   },
+});
+// BD14b (docs/38_BEFORE_THE_DOMAIN.md): view.js now builds a plain house
+// sleeve for the empty crate's own face -- mocked away the same reason
+// every other `?raw`-SVG-importing module in this suite is (house-
+// sleeve.js pulls in ui/wordmark.js and ui/sleeve-fermata.js), and nothing
+// this file tests reads a built sleeve's actual markup.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: { buildHouseSleeve(){ return {}; }, plainSleeveKind(){ return 'wordmark'; } },
 });
 
 const view = await import('../../src/library/view.js');

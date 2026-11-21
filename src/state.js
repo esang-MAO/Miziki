@@ -259,7 +259,7 @@ export const S = {
   albumKeptFor:{},
   // navigation / player shell (see spec)
   route:'library', playerOpen:false, shellAlbumId:null,
-  outgoingArt:null, outgoingHasArt:false, pendingShellInfo:null,
+  outgoingArt:null, outgoingHasArt:false, outgoingArtist:null, outgoingAlbumTitle:null, pendingShellInfo:null,
   sleeveSeq:0, sleevePullEnabled:true,
   // true once a put-away sequence completes (or is snapped to its end) —
   // not persisted; on reload the app restores the last track as it does today

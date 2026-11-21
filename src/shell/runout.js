@@ -93,6 +93,7 @@ export function clearToRest(){
   setQueueList([]); S.baseQueue = []; setQpos(0);
   S.index = -1; S.pendingShellInfo = null; S.shellAlbumId = null;
   S.outgoingArt = null; S.outgoingHasArt = false;
+  S.outgoingArtist = null; S.outgoingAlbumTitle = null;
   if(typeof MizikiSocial !== 'undefined') MizikiSocial.stopSpinning();
   // RF21 (docs/12_REFINE.md, "a quieter broadcast"): "Don't share this
   // session" is session-only and turns itself off once the queue genuinely
@@ -141,7 +142,7 @@ function holdSleeve(t, reason, pendingIndex){
   const stage = $('#platterStage');
   stage.classList.remove('runout','flipping','putaway-slide','putaway-out','sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing');
   clearSpinDown();
-  sleeveArtFor(t.art, !!t.art);
+  sleeveArtFor(t);
   applySleeveWear($('#sleeve'), albumKey(t));
   $('#sleeve').style.display = 'flex';
   stage.classList.add('putaway-in');

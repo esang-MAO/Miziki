@@ -24,7 +24,7 @@ import { buildPeekDisc } from '../record-art/peek.js';
 import { wearStage } from '../record-art/wear.js';
 import { buildRailTicks } from '../ui/letter-rail.js';
 import { dividerArtEl } from './divider-art.js';
-import { wordmarkEl } from '../ui/wordmark.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
   crateRailJumpTarget, crateVariantJumpTarget, crateAlbumJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
@@ -38,7 +38,7 @@ import { openSealedFront } from '../gatefold/sealed-front.js';
 import { isSingleRecord, openPictureSleeve } from '../gatefold/picture-sleeve.js';
 import { playNext, addToQueue } from '../player/queue.js';
 import { openLayer, closeLayer } from '../shell/nav-stack.js';
-import { trackIdentityKey } from '../record-art/tiers.js';
+import { trackIdentityKey, selectVariant, getVariantDef } from '../record-art/tiers.js';
 import { fmt } from '../util/text.js';
 import {
   playHookPreview, stopHookPreview, hookPreviewInfo, hookPreviewElapsedSec, hookPreviewAnalyser,
@@ -60,11 +60,10 @@ import {
 // even consider.
 const SVGNS = 'http://www.w3.org/2000/svg';
 // LA4 (docs/36A_LIBRARY_AND_LAUNCH.md decision 20): the empty crate's own
-// still Miziki sleeve (#emptyCrateSleeve, miziki.html) -- set once at
-// module load, same pattern as every other .launch-card-mark/.sleeve-mark
-// call site (src/launch/intro.js's own #launchWordmark, src/shell/
-// start-sequence.js's .sleeve-mark/.mini-mark).
-{ const m = $('#emptyCrateSleeveMark'); if(m) m.appendChild(wordmarkEl()); }
+// still sleeve (#emptyCrateSleeve, miziki.html) -- BD14b (docs/38_BEFORE_
+// THE_DOMAIN.md) repaints its face with a fresh plain house sleeve every
+// time the empty state shows (src/library/view.js's renderTracks()),
+// rather than a fixed Miziki mark set once at module load.
 const BASE_CRATE_CARD_SIZE = 278;
 function currentCardSize(){
   const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--crate-card-size'));
@@ -827,25 +826,40 @@ export function renderCrate(host){
   }
   // S tier for the pool (spec §B2); falls back to the existing album
   // thumbnail, then the first track's own art, while the tier builds
+  // BD14b (docs/38_BEFORE_THE_DOMAIN.md): the album's own house sleeve,
+  // with its real pressing drawn in for a die-cut -- the same
+  // selectVariant(t)/getVariantDef() pair record-art/looks.js uses for the
+  // platter itself, read off the album's first track the same way
+  // albumPressingTrack() elsewhere resolves "the album's own pressing."
+  function buildCardHouseSleeve(item){
+    const t = S.tracks[item.idx[0]];
+    const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+    const kind = houseSleeveKind(item.artist, item.album, pressingDef);
+    return buildHouseSleeve(kind, { title: item.album, artist: item.artist, pressingDef });
+  }
   function setCardImage(i, card){
     const item = itemAt(i);
     if(item.type !== 'rec') return;
     const face = card.querySelector('.crate-card-face');
-    if(!face || face.querySelector('img') || card.dataset.artPending) return;
+    if(!face || face.querySelector('img') || face.querySelector('.house-sleeve') || card.dataset.artPending) return;
     card.dataset.artPending = '1';
     getCrateArtURL(item.albumId, 'S').then(tierUrl => {
       delete card.dataset.artPending;
       if(pool.get(i) !== card) return;        // recycled while the lookup was in flight
-      if(face.querySelector('img')) return;
+      if(face.querySelector('img') || face.querySelector('.house-sleeve')) return;
       const art = tierUrl || thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art);
-      if(!art) return;
+      if(!art){ face.appendChild(buildCardHouseSleeve(item)); return; }
       const img = document.createElement('img');
       img.decoding = 'async'; img.alt = '';
       face.appendChild(img);
       img.src = art;
     });
   }
-  function clearCardImage(card){ const img = card.querySelector('img'); if(img) img.remove(); delete card.dataset.artPending; }
+  function clearCardImage(card){
+    const img = card.querySelector('img'); if(img) img.remove();
+    const sleeve = card.querySelector('.house-sleeve'); if(sleeve) sleeve.remove();
+    delete card.dataset.artPending;
+  }
 
   // 200ms after the stack settles, quietly decode and swap the centre
   // record's S image for the L tier — sharper at rest, nothing visibly
