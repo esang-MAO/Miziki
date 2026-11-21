@@ -475,6 +475,36 @@ Addendum to plan 38, decided with Ken on 2026-11-19 and 2026-11-20 (canvas "Mizi
 
 ---
 
+## BD14c: house sleeves everywhere else (UI: gatefold front, sealed front, picture sleeve, profile/library thumbnails)
+
+Follow-up to BD14b, scoped 2026-11-21 after Ken asked what the deferred audit items would actually take. BD14b's audit step found seven more no-art fallbacks it deliberately left on the flat `<img>` placeholder (an empty `src`, nothing drawn) because each has a different shape from the four surfaces BD14b wired:
+
+- **`src/gatefold/view.js`** (main gatefold front): one art resolution (`thumbURL`/`getCrateArtURL`) drives three separate elements at once — the main cover `img`, a `cueImg`, and the disc art (`setDiscArt`). All three need their own house-sleeve instance (SVG mask ids are document-global, so each instance mints its own).
+- **`src/gatefold/sealed-front.js`**: one `img`, same async upgrade pattern, plus a `turnedOver` flag gating which art shows.
+- **`src/gatefold/picture-sleeve.js`**: one `img`, same async upgrade pattern.
+- **`src/profile/records.js`, `src/profile/storefront.js`, `src/history/achievements.js`**: grids of many small thumbnails on screen at once (a friend's crate, the pressings & metals screen, achievement unlocks) — a real SVG mask plus the fermata shape per cell is heavier DOM than a flat `img`, and these screens can show dozens of cells at once against Ken's 2,000+ track library.
+
+**Decisions — resolve with Ken before this step runs:**
+- For the three grid screens: ship the full masked house sleeve per cell as-is, or use a lighter no-mask variant (e.g. `wordmark`/`house`/`emboss` only, skipping `diecut`'s SVG mask) at small sizes? Needs a quick perf check against a large library either way.
+- Do all seven surfaces land in one PR, or split gatefold (view.js + sealed-front.js + picture-sleeve.js, one shared "mount/upgrade a house sleeve on an art-bearing element" helper) from the three thumbnail grids (their own PR, gated on the perf check above)?
+
+> Read BD14b above, `src/ui/house-sleeve.js`, and each of the seven files named above first.
+>
+> 1. Extract a small shared helper from BD14b's player-sleeve/crate-card logic — something like `mountHouseSleeveFallback(container, { kind, plain, mountClass })` that a caller uses to swap between its art element and a house sleeve, and to tear the house sleeve back down if art resolves later (mirroring the existing async upgrade pattern each of these files already has for the has-art case).
+> 2. Wire gatefold's `view.js` (all three driven elements), `sealed-front.js`, and `picture-sleeve.js` through it, no-art branch only — the has-art path is untouched.
+> 3. Wire the three grid screens, honoring whatever the lighter-variant decision above was.
+> 4. **Tests:** reuse `houseSleeveKind`/`buildHouseSleeve` as-is (already tested in BD14b); add coverage only for the new mount/teardown helper's no-art → has-art transition.
+>
+> Lint/tests/previews as usual. Open the PR. Do not merge.
+
+**Preview focus (iPhone, both themes):** a no-art album's gatefold front, sealed front and a single's picture sleeve all show the same house sleeve as its crate card. A friend's crate (profile/storefront) and the pressings & metals screen show house sleeves in their grids with no visible jank scrolling a large list.
+
+**Removes:** the empty-`src` `<img>` as the no-art state on all seven surfaces.
+
+**Not in this step:** a friend's own no-art title card (`.store-no-art-cover`, explicitly unchanged by BD14b too); anything not already using `thumbURL`/`getCrateArtURL`'s existing art-resolution path.
+
+---
+
 ## BD15: labels and tap routes (UI: none for touch users)
 
 > Read `miziki.html` (every `<button>`), `src/player/scrub.js`, `src/shell/player-overlay.js` (sleeve pull), `src/gatefold/sealed-front.js` (peel), and `src/styles/31-switch.css` first.
