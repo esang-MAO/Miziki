@@ -1,0 +1,69 @@
+/* ---------- BD14b: house sleeves (docs/38_BEFORE_THE_DOMAIN.md) ----------
+   The four sleeves a record with no artwork draws in, replacing the
+   single wordmark placeholder everywhere it used to be the only no-art
+   face: the player sleeve (#sleeve/#sleeveOut), crate cards, the launch
+   intro and the empty crate. One `.house-sleeve` element per record,
+   built by src/ui/house-sleeve.js's buildHouseSleeve() -- this file only
+   draws it. `--rec1`/`--rec2`/`--recink` are 09-launch-intro.css's own
+   theme-following dark-ground tokens, reused here rather than duplicated. */
+.house-sleeve{position:absolute;inset:0;overflow:hidden;container-type:inline-size}
+.house-sleeve-art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+
+.house-sleeve-wordmark .house-sleeve-art,
+.house-sleeve-emboss .house-sleeve-art,
+.house-sleeve-diecut .house-sleeve-art{background:linear-gradient(165deg,var(--rec1),var(--rec2))}
+.house-sleeve-house .house-sleeve-art{background:#C47F1E}
+
+/* wordmark: today's "F" cut, unchanged -- same -12deg tilt, same --recink
+   follow-the-theme colouring every prior .sleeve-mark/.launch-card-mark
+   used. */
+.house-sleeve-wordmark .house-sleeve-wordmark{position:relative;width:38%;
+  transform:rotate(-12deg);--paper:var(--recink)}
+.house-sleeve-wordmark .house-sleeve-wordmark svg{display:block;width:100%;height:auto}
+
+/* emboss: the same dark ground, the fermata in --recink at ~10% opacity --
+   tone on tone in both themes, since --recink already flips light/dark. */
+.house-sleeve-emboss .house-sleeve-fermata{width:46%;opacity:.1}
+.house-sleeve-emboss .house-sleeve-fermata svg{display:block;width:100%;height:auto}
+.house-sleeve-emboss .house-sleeve-fermata svg path,
+.house-sleeve-emboss .house-sleeve-fermata svg circle{fill:var(--recink)}
+
+/* house: full ochre, white fermata, the same in both themes -- `house` is
+   its own fixed colour pair, not themed. */
+.house-sleeve-house .house-sleeve-fermata{width:46%}
+.house-sleeve-house .house-sleeve-fermata svg{display:block;width:100%;height:auto}
+.house-sleeve-house .house-sleeve-fermata svg path,
+.house-sleeve-house .house-sleeve-fermata svg circle{fill:#fff}
+
+/* diecut: the record's own pressing behind an ochre cover with the whole
+   fermata cut out (house-sleeve.js's buildDiecutCover() -- a real SVG
+   mask, not a flat colour). The disc is inset 2% and round, with a faint
+   groove/sheen read the same way the platter's own metalBackground()
+   dresses up a flat pressing colour, kept cheap here (one radial gradient,
+   no per-groove rings) since this is a small sleeve-sized face, not the
+   platter itself. */
+.house-sleeve-diecut-disc{position:absolute;inset:2%;border-radius:50%;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.4);
+  background:radial-gradient(circle,var(--raised) 0 4%,var(--panel) 5% 100%)}
+.house-sleeve-diecut-cover{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* sticker: real albums (the player sleeve, crate cards) only -- the
+   launch intro and the empty crate pass `plain:true` and never get one.
+   Stock-card paper, -2deg, bottom left -- src/share/styles.js's own
+   --stock-card token, same paper family every other physical-object
+   surface in this app already uses. Hidden once the sleeve itself is
+   under 96px (nothing left to read at that size) via a container query on
+   the sleeve's own nearest sized ancestor -- the player sleeve/crate
+   card/launch card are all themselves at least that size, so this reads
+   off their own box, not a wrapper this file would have to add. */
+.house-sleeve-sticker{position:absolute;left:6%;bottom:8%;max-width:62%;
+  background:var(--stock-card);color:#2A2018;border-radius:3px;
+  padding:4px 8px 5px;transform:rotate(-2deg);
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.house-sleeve-sticker-title{font-family:var(--hand);font-size:15px;line-height:1.15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.house-sleeve-sticker-artist{font-family:var(--body);font-size:10px;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8}
+@container (max-width:95px){
+  .house-sleeve-sticker{display:none}
+}

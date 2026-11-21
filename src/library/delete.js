@@ -212,7 +212,8 @@ export async function forgetLibrary(){
   S.tracks = []; S.index = -1;
   setQueueList([]); S.baseQueue = []; setQpos(0); S.lru = [];
   S.curPlayed = []; S.curTrackDone = false;
-  S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false; S.pendingShellInfo = null;
+  S.shellAlbumId = null; S.outgoingArt = null; S.outgoingHasArt = false;
+  S.outgoingArtist = null; S.outgoingAlbumTitle = null; S.pendingShellInfo = null;
   // playlists, albumOrder/albumSort, S.sealed, every listening-stats field
   // on S, settings and the profile are deliberately left exactly as they
   // were — see this function's own header comment

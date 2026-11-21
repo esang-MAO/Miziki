@@ -171,15 +171,12 @@
    would occupy. .crate-card/.crate-current give it the real card's size,
    radius, shadow and lit-edge anatomy; overridden here to sit in normal
    flow (centred by margin, not the stage's absolute/tilted stack math,
-   since there is no stage to flow through with nothing in the crate) and
-   given extra specificity (two classes) so its own Miziki face/mark win
-   over .crate-card-face's/.crate-card's own rules regardless of this
-   file's own load order relative to 09-launch-intro.css, where
-   .launch-card-miziki/.launch-card-mark are actually defined -- this is
-   the exact same sleeve the launch dig uses for an empty library
-   (intro.js's launchMizikiMark()), not a second asset. */
+   since there is no stage to flow through with nothing in the crate).
+   BD14b (docs/38_BEFORE_THE_DOMAIN.md): its face (#emptyCrateSleeveFace)
+   is a plain house sleeve now (src/ui/house-sleeve.js), picked afresh
+   each time the empty state shows (src/library/view.js) -- see that
+   file's own 32-house-sleeve.css for how it draws. */
 .crate-empty-sleeve{position:relative;left:auto;margin:0 auto var(--sp-4)}
-.crate-card-face.launch-card-miziki{background:linear-gradient(165deg,var(--rec1),var(--rec2))}
 /* CR2 point 3 (docs/13_CRATE.md; docs/design/crate/README.md, "Divider
    geometry"/"Divider stock"): a divider's own card is 12% taller than a
    sleeve (312 for a 278 card) so it shows above the records on either

@@ -147,6 +147,13 @@ function shellAlbumIdentity(t){
 export function updateShellAlbum(t){
   const newId = shellAlbumIdentity(t);
   const prevId = S.shellAlbumId, prevArt = S.outgoingArt, prevHasArt = S.outgoingHasArt;
+  // BD14b (docs/38_BEFORE_THE_DOMAIN.md): the departing track's own
+  // identity, captured the same way prevArt/prevHasArt already are --
+  // showOutgoingSleeve() (shell/start-sequence.js) needs artist+album to
+  // pick that album's own house sleeve kind when it has no art, and by
+  // the time a swap info object is read there, S.index already points at
+  // the *new* track, so there's no other way back to this one.
+  const prevArtist = S.outgoingArtist, prevAlbumTitle = S.outgoingAlbumTitle;
   // distinct from type:'none' below — that also covers shuffle/untagged
   // suppression, where the album may genuinely have changed. This is
   // specifically "still the same album", which is what the metal-tier
@@ -155,6 +162,7 @@ export function updateShellAlbum(t){
   const sameAlbum = prevId !== null && prevId === newId;
   S.shellAlbumId = newId;
   S.outgoingArt = t.art; S.outgoingHasArt = !!t.art;
+  S.outgoingArtist = t.tags && t.tags.artist; S.outgoingAlbumTitle = t.tags && t.tags.album;
   // the sleeve is physically sitting over an empty platter — always pull,
   // regardless of album identity/shuffle/reduced-motion, or the disc stays
   // stuck hidden behind it with nothing left to bring it back out
@@ -165,5 +173,6 @@ export function updateShellAlbum(t){
   if(t.tags.album === 'Unknown Album') return {type:'none', sameAlbum};
   if(S.shuffle || REDUCED || prevId === newId) return {type:'none', sameAlbum};
   if(prevId === null) return {type:'pull', sameAlbum};
-  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt, sameAlbum};
+  return {type:'swap', outgoingArt:prevArt, outgoingHasArt:prevHasArt,
+    outgoingArtist:prevArtist, outgoingAlbumTitle:prevAlbumTitle, sameAlbum};
 }

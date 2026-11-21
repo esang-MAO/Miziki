@@ -43,6 +43,7 @@ import {
   librarySortBar, librarySortComparator, sortAlbumGroups, renderSearchResults,
 } from './search.js';
 import { centerEmptyState, renderCrate, openCrateAlbum } from '../crate/view.js';
+import { buildHouseSleeve, plainSleeveKind } from '../ui/house-sleeve.js';
 import { setPathNote } from '../ui/path-note.js';
 import { updateLibTabsForLayout, updateHeaderActionsAvailability, refreshLibraryTools } from '../shell/header.js';
 import { letterKeyFor, buildLetterGroups, buildFullAlphabet, buildRailTicks } from '../ui/letter-rail.js';
@@ -1388,7 +1389,14 @@ function renderTracksBody(host){
   // under it), not #empty alone -- the sleeve and the note show and hide
   // together, the same single S.tracks.length check as before.
   $('#emptyCrateState').style.display = S.tracks.length ? 'none' : 'block';
-  if(!S.tracks.length) centerEmptyState();
+  if(!S.tracks.length){
+    centerEmptyState();
+    // BD14b (docs/38_BEFORE_THE_DOMAIN.md): a fresh plain house sleeve
+    // (no sticker -- this doesn't stand for any one record) picked at
+    // random each time the empty state actually shows, not once at boot.
+    const face = $('#emptyCrateSleeveFace');
+    if(face){ face.replaceChildren(); face.appendChild(buildHouseSleeve(plainSleeveKind(Math.floor(Math.random() * 4)), { plain: true })); }
+  }
   // UN3 (docs/36_UNIFORMITY.md) retired the header's own Select toggle
   // button (#selectToggle) in favor of a "Select" row inside the Library
   // tools sheet (#libToolsSelectRow, wiring/library-view.js) -- this

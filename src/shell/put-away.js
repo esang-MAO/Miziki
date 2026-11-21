@@ -50,7 +50,7 @@ export async function runPutAwaySequence(t, opts = {}){
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out');
   if(!opts.skipSpin) startSpinDown(SLEEVE_ANIM.putSpinMs);
 
-  sleeveArtFor(t.art, !!t.art);
+  sleeveArtFor(t);
   applySleeveWear($('#sleeve'), albumKey(t));
   $('#sleeve').style.display = 'flex';
   void stage.offsetWidth;              // force a reflow so this restarts cleanly if triggered back-to-back

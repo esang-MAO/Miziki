@@ -12,8 +12,10 @@ import { play } from '../player/transport.js';
 import { clearSpinDown, startSpinDown } from './put-away.js';
 import { cancelRunout, interruptRunout } from './runout.js';
 import { CHANGE_TIMELINE } from './ceremony-timing.js';
-import { wordmarkEl } from '../ui/wordmark.js';
 import { wearStage } from '../record-art/wear.js';
+import { wordmarkEl } from '../ui/wordmark.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
+import { selectVariant, getVariantDef } from '../record-art/tiers.js';
 
 const WEAR_STAGES = ['light', 'worn', 'loved'];
 // RW7 (docs/23_RHYTHM_AND_WEAR.md): purely cosmetic, a plain class toggle
@@ -27,29 +29,45 @@ export function applySleeveWear(el, albumId){
   if(stage !== 'new') el.classList.add('wear-' + stage);
 }
 
-// TY4 (docs/22_TYPE.md): the empty-sleeve state's "F" cut, tilted -12deg by
-// 03-sleeve-pull.css's own .sleeve-mark rule (the SVG is always drawn
-// upright) — set once per sleeve at module load, same as every other
-// static boot-time fill in this file's sibling modules.
-$('#sleeve .sleeve-mark').appendChild(wordmarkEl());
-$('#sleeveOut .sleeve-mark').appendChild(wordmarkEl());
 // FS4 (docs/25_FROM_SCRATCH.md): the mini-player's empty-art square and
 // the platter's empty slipmat used their own plain tracked-Antonio "MIZIKI"
 // text -- the -12deg tilt is reserved for the launch intro and empty
 // sleeves only, so these two get the real upright "A" cut instead, the
-// same one-time boot-time fill as the sleeve marks above.
+// same one-time boot-time fill every sibling module here uses for its own
+// static mark. BD14b (docs/38_BEFORE_THE_DOMAIN.md): the player sleeve's
+// own no-art face is no longer one of these static fills -- see
+// sleeveArtFor()/showOutgoingSleeve() below, which build a fresh house
+// sleeve per album instead.
 { const m = $('.mini-mark'); if(m) m.appendChild(wordmarkEl()); }
 { const r = document.querySelector('.slipmat-rest span'); if(r) r.appendChild(wordmarkEl()); }
 
 const STAGE_CLASSES =['sleeve-arriving','sleeve-exiting','disc-emerging','returning','changing','putaway-in','putaway-slide','putaway-out'];
 
+// BD14b: builds the no-art face for whichever sleeve element needs one --
+// shared by sleeveArtFor() (the incoming/current sleeve, has the real
+// track to draw the album's own pressing from for a die-cut) and
+// showOutgoingSleeve() (only has the departing album's identity, already
+// captured by mini-player.js's updateShellAlbum() before it's overwritten
+// -- no track object survives for it, so die-cut there falls back to no
+// pressing def, same as a filler launch card).
+function houseSleeveFor(artist, album, t){
+  const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+  const kind = houseSleeveKind(artist, album, pressingDef);
+  return buildHouseSleeve(kind, { title: album, artist, pressingDef });
+}
+
 // the outgoing sleeve of an overlapped change (CEREMONY §4) — its own
 // element, so it can still be leaving while the new #sleeve arrives
-function showOutgoingSleeve(art, hasArt){
-  const out = $('#sleeveOut'), img = $('#sleeveOutArt');
+function showOutgoingSleeve(info){
+  const out = $('#sleeveOut'), img = $('#sleeveOutArt'), face = $('#sleeveOutNoArtFace');
   if(!out) return;
-  if(hasArt){ img.src = art; out.classList.add('has-art'); }
+  const hasArt = !!(info && info.outgoingHasArt);
+  if(hasArt){ img.src = info.outgoingArt; out.classList.add('has-art'); }
   else { img.removeAttribute('src'); out.classList.remove('has-art'); }
+  if(face){
+    face.replaceChildren();
+    if(!hasArt && info && info.outgoingArtist != null) face.appendChild(houseSleeveFor(info.outgoingArtist, info.outgoingAlbumTitle, null));
+  }
   out.style.display = 'flex';
 }
 function hideOutgoingSleeve(){
@@ -76,10 +94,15 @@ export function waitAnimEnd(el, ms){
   });
 }
 
-export function sleeveArtFor(art, hasArt){
-  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt');
-  if(hasArt){ sleeveArt.src = art; sleeve.classList.add('has-art'); }
+export function sleeveArtFor(t){
+  const sleeve = $('#sleeve'), sleeveArt = $('#sleeveArt'), face = $('#sleeveNoArtFace');
+  const hasArt = !!(t && t.art);
+  if(hasArt){ sleeveArt.src = t.art; sleeve.classList.add('has-art'); }
   else { sleeveArt.removeAttribute('src'); sleeve.classList.remove('has-art'); }
+  if(face){
+    face.replaceChildren();
+    if(!hasArt && t && t.tags) face.appendChild(houseSleeveFor(t.tags.artist, t.tags.album, t));
+  }
 }
 
 // info comes from updateShellAlbum(). startAudio runs immediately when
@@ -319,7 +342,7 @@ export async function runStartSequence(t, info, startAudio){
   // old one has gone (CHANGE_TIMELINE, shell/ceremony-timing.js).
   const swapping = info.type === 'swap';
   if(swapping){
-    showOutgoingSleeve(info.outgoingArt, info.outgoingHasArt);
+    showOutgoingSleeve(info);
     startSpinDown(CHANGE_TIMELINE.spinDown[1] - CHANGE_TIMELINE.spinDown[0]);
     void stage.offsetWidth;
     stage.classList.add('changing');
@@ -333,7 +356,7 @@ export async function runStartSequence(t, info, startAudio){
   }
   if(cancelled()) return;
 
-  sleeveArtFor(t.art, !!t.art);
+  sleeveArtFor(t);
   applySleeveWear($('#sleeve'), albumKey(t));
   stage.classList.remove('sleeve-arriving','sleeve-exiting','disc-emerging');
   $('#sleeve').style.display = 'flex';

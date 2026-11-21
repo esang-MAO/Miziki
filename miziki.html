@@ -68,6 +68,7 @@
 <link rel="stylesheet" href="/src/styles/29-evening-glance.css">
 <link rel="stylesheet" href="/src/styles/30-wear.css">
 <link rel="stylesheet" href="/src/styles/31-switch.css">
+<link rel="stylesheet" href="/src/styles/32-house-sleeve.css">
 </head>
 <body id="app">
 <!-- NV1: the sky gradient, as a real position:fixed layer instead of
@@ -146,14 +147,14 @@
          (measureCrateLanding() finds it via the same ".crate-card.
          crate-current" selector a real card uses, so no special-casing
          was needed there), and then simply stays, since it's the crate's
-         own markup, not part of the launch overlay. The mark itself is
-         set once at module load (src/crate/view.js), same pattern as
-         every other .launch-card-mark/.sleeve-mark call site. -->
+         own markup, not part of the launch overlay. BD14b (docs/38_
+         BEFORE_THE_DOMAIN.md): the face itself is a plain house sleeve
+         (src/ui/house-sleeve.js), picked afresh each time the empty state
+         shows (src/crate/view.js) -- #emptyCrateSleeveFace is just the
+         mount point. -->
     <div class="crate-empty-state" id="emptyCrateState">
       <div class="crate-card crate-current crate-empty-sleeve" id="emptyCrateSleeve">
-        <div class="crate-card-face launch-card-miziki">
-          <div class="launch-card-mark" id="emptyCrateSleeveMark"></div>
-        </div>
+        <div class="crate-card-face" id="emptyCrateSleeveFace"></div>
       </div>
       <!-- UN5 point 1 (docs/36_UNIFORMITY.md): emptyNote()'s look, built
            statically here (not via src/ui/parts.js's helper) so #pick/
@@ -974,14 +975,16 @@
       </div>
       <div class="sleeve" id="sleeve" aria-hidden="true">
         <img class="sleeve-art" id="sleeveArt" alt="">
-        <!-- TY4 (docs/22_TYPE.md): filled by src/shell/start-sequence.js
-             at load with the wordmark SVG's "F" cut. -->
-        <div class="sleeve-mark"></div>
+        <!-- BD14b (docs/38_BEFORE_THE_DOMAIN.md): filled by
+             src/shell/start-sequence.js's sleeveArtFor() with the playing
+             album's own house sleeve (src/ui/house-sleeve.js) whenever
+             there's no art. -->
+        <div class="sleeve-no-art-face" id="sleeveNoArtFace"></div>
       </div>
       <!-- CEREMONY §4: the outgoing record's sleeve during a change -->
       <div class="sleeve sleeve-out" id="sleeveOut" aria-hidden="true">
         <img class="sleeve-art" id="sleeveOutArt" alt="">
-        <div class="sleeve-mark"></div>
+        <div class="sleeve-no-art-face" id="sleeveOutNoArtFace"></div>
       </div>
       <!-- AU10: passive indicator (never tappable), painted by
            player/transport.js's paintSpeedToggle() on every load -->

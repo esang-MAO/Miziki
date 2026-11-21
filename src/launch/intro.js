@@ -21,7 +21,8 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { sleep } from '../util/async.js';
 import { clamp } from '../util/math.js';
-import { albumKey, trackIdentityKey } from '../record-art/tiers.js';
+import { albumKey, trackIdentityKey, selectVariant, getVariantDef } from '../record-art/tiers.js';
+import { buildHouseSleeve, houseSleeveKind, plainSleeveKind } from '../ui/house-sleeve.js';
 import { albumTracks } from '../library/model.js';
 import { queueSave } from '../storage/meta.js';
 import { flowPose, flowZIndex } from '../crate/geometry.js';
@@ -290,20 +291,29 @@ function applyLaunchCardPose(el, pose, extraScale, liftPx){
   el.style.zIndex = pose.z;
 }
 
-// The Miziki cover: the wordmark's "F" cut, tilted -12deg (09-launch-intro.css
-// rotates it; the SVG itself is always drawn upright) on a plain sleeve.
-// Colour comes from --rec1/--rec2/--recink (09-launch-intro.css), keyed off
-// the resolved data-theme, so it matches the app before first paint.
-function launchMizikiMark(){
-  const mark = document.createElement('div');
-  mark.className = 'launch-card-mark';
-  mark.appendChild(buildWordmark());
-  return mark;
+// BD14b (docs/38_BEFORE_THE_DOMAIN.md): the no-art face for one launch
+// card. plan[index] is only ever non-null for a real album that currently
+// has no art in memory yet (launchCandidates() already filters every
+// other slot to albums that do) -- the target album, mid-flick, before
+// its own art has had a chance to arrive (see the getCrateArtURL() patch
+// below). That real album draws its own house sleeve, plain (the launch
+// intro never shows a sticker); every other null slot is a filler, and
+// rotates through all four kinds in a fixed order instead of hashing on
+// nothing.
+function houseSleeveForLaunchCard(index, plan){
+  const albumId = plan[index];
+  if(albumId != null){
+    const t = S.tracks.find(x => albumKey(x) === albumId);
+    const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+    const kind = houseSleeveKind(t && t.tags.artist, t && t.tags.album, pressingDef);
+    return buildHouseSleeve(kind, { plain: true, pressingDef });
+  }
+  return buildHouseSleeve(plainSleeveKind(index), { plain: true });
 }
 
-// One card's DOM: a clean sleeve showing either an album's cover or the
-// Miziki cover. Only built for indices inside the visible window, never
-// all at once.
+// One card's DOM: a clean sleeve showing either an album's cover or its
+// own house sleeve. Only built for indices inside the visible window,
+// never all at once.
 function makeLaunchCard(index, plan, targetIndex){
   const el = document.createElement('div');
   el.className = 'launch-card';
@@ -317,8 +327,7 @@ function makeLaunchCard(index, plan, targetIndex){
     img.src = art;
     face.appendChild(img);
   } else {
-    face.classList.add('launch-card-miziki');
-    face.appendChild(launchMizikiMark());
+    face.appendChild(houseSleeveForLaunchCard(index, plan));
   }
   if(index === targetIndex) el.classList.add('launch-target');
   el.appendChild(face);
@@ -488,10 +497,10 @@ export async function runLaunchSequence(){
     getCrateArtURL(targetId, 'S').then(url => {
       if(!url || cancelled()) return;
       const card = cards.get(stack.targetIndex);
-      const face = card && card.querySelector('.launch-card-miziki');
-      if(face){
-        face.classList.remove('launch-card-miziki');
-        face.textContent = '';
+      const face = card && card.querySelector('.launch-card-face');
+      const sleeve = face && face.querySelector('.house-sleeve');
+      if(face && sleeve){
+        sleeve.remove();
         const img = document.createElement('img');
         img.alt = ''; img.decoding = 'async'; img.src = url;
         face.appendChild(img);
