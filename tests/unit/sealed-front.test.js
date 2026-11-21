@@ -15,6 +15,17 @@ globalThis.requestAnimationFrame = fn => fn();
 // player-overlay.js, shell/handoff.js and more) has nothing to do with
 // this file's own subject (the peel gesture/wrap state) -- mocked
 // directly, the usual "stop the chain at the door" reasoning.
+// BD14c (docs/38_BEFORE_THE_DOMAIN.md): paintCover() now builds a house
+// sleeve when there's no art at all -- mocked away, same reason as the
+// other gatefold test files.
+mock.module(new URL('../../src/ui/house-sleeve.js', import.meta.url).href, {
+  namedExports: {
+    buildHouseSleeve(){ return { classList: { add(){} } }; },
+    houseSleeveKind(){ return 'wordmark'; },
+    plainSleeveKind(){ return 'wordmark'; },
+  },
+});
+
 const openGatefoldMock = mock.fn();
 mock.module(new URL('../../src/gatefold/view.js', import.meta.url).href, {
   namedExports: {

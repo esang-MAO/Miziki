@@ -67,3 +67,14 @@
 @container (max-width:95px){
   .house-sleeve-sticker{display:none}
 }
+
+/* BD14c: the same no-art face on the gatefold's main cover, its inside-left
+   cue strip, and the picture sleeve -- all plain (no sticker), same as the
+   launch intro/empty crate, since none of these stand for a second,
+   separate record the way the player sleeve/crate card do. Each mounts its
+   own buildHouseSleeve() instance (unique SVG mask ids, src/ui/house-
+   sleeve.js), left empty when there's art so the real cover shows through
+   untouched. */
+.gf-cover-no-art-face,
+.gf-left-cue-no-art-face,
+.picture-sleeve-no-art-face{position:absolute;inset:0}

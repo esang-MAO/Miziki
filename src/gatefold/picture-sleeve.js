@@ -27,6 +27,8 @@ import { runStartSequence } from '../shell/start-sequence.js';
 import { openPlayerViaSheet } from '../shell/player-overlay.js';
 import { GF, gatefoldTrackIndices, buildGatefoldLeftPanel } from './view.js';
 import { openLayer, forceCloseLayer } from '../shell/nav-stack.js';
+import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
+import { albumPressingTrack, selectVariant, getVariantDef } from '../record-art/tiers.js';
 
 let SLEEVE = null;   // {item, returnFocus}, null when closed
 
@@ -92,7 +94,21 @@ export function openPictureSleeve(item){
 
   const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   const img = $('#pictureSleeveArt');
-  img.src = art || '';
+  const face = $('#pictureSleeveNoArtFace');
+  if(face) face.replaceChildren();
+  if(!art){
+    // BD14c: no fallback at all means no art exists -- getCrateArtURL()
+    // below only ever upgrades existing art to a bigger tier.
+    img.removeAttribute('src');
+    if(face){
+      const t = albumPressingTrack(item.albumId) || S.tracks[item.idx[0]];
+      const pressingDef = t ? getVariantDef(selectVariant(t).variant) : null;
+      const kind = houseSleeveKind(item.artist, item.album, pressingDef);
+      face.appendChild(buildHouseSleeve(kind, { pressingDef, plain: true }));
+    }
+  } else {
+    img.src = art;
+  }
   getCrateArtURL(item.albumId, 'L').then(url => { if(url && SLEEVE && SLEEVE.item === item) img.src = url; });
 
   const peekHost = $('#pictureSleevePeek');
