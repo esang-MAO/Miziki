@@ -88,7 +88,15 @@ export function openSearchField(){
   $('#hdrSearchBtn').classList.add('active');
   $('#librarySearch').focus();
   updateSearchChipsVisibility();
-  openLayer('search-field', closeSearchField, { container: $('#hdrSearchRow') });
+  // The search field's own container (#hdrSearchRow) lives in <header>, a
+  // sibling of <section id="route-library"> -- #libBody, where the actual
+  // results render, is a descendant of that sibling. Without #libBody
+  // listed here too, inertSiblingsOnPathTo() (nav-stack.js) has no reason
+  // to protect it and marks the whole library section inert along with
+  // every other header sibling, so a found result's row is there and
+  // highlighted by the query but unreachable to a tap: search still finds
+  // it, nothing happens when you tap it.
+  openLayer('search-field', closeSearchField, { container: [$('#hdrSearchRow'), $('#libBody')] });
 }
 // UN5 point 2: Cancel and Escape both close this layer (Escape via
 // nav-stack's own global handler, bypassing wiring/search.js's Cancel
