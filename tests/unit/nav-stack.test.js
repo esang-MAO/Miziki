@@ -326,6 +326,45 @@ test('applyInert: a layer whose container is nested inside other reachable conte
   assert.equal(isInert(gatefold), false);
 });
 
+// Regression coverage for the real bug this fixes: unlike the test just
+// above, <header> and <section id="route-library"> are actual SIBLINGS
+// under .wrap in miziki.html (the search field's own container, #hdrSearchRow,
+// is nested inside <header>; the search results it renders, #libBody, is
+// nested inside route-library, a separate subtree entirely). Passing only
+// #hdrSearchRow as the search-field layer's container used to leave
+// route-library with no protected path of its own, so applyInert() marked
+// the whole section -- #libBody and every search result row inside it --
+// inert: a tap on a found result did nothing, since inert blocks pointer
+// events and focus. #libBody must be listed alongside #hdrSearchRow as an
+// array container (the same pattern the Sundown sheet + scrim test below
+// already exercises) so both paths stay reachable.
+test('applyInert: the search field (header, a sibling of route-library) must list #libBody too, or a found result becomes untappable', () => {
+  const hdrSearchRow = makeTreeEl('hdrSearchRow');
+  const addMenu = makeTreeEl('addMenu');
+  const header = makeTreeEl('header', [hdrSearchRow, addMenu]);
+  const libBody = makeTreeEl('libBody');
+  const routeLibrary = makeTreeEl('route-library', [libBody]);
+  const routeHome = makeTreeEl('route-home');
+  const wrap = makeTreeEl('wrap', [header, routeLibrary, routeHome]);
+  const body = makeTreeEl('body', [wrap]);
+
+  initNavStack(body);
+  openLayer('search-field', () => {}, { container: [hdrSearchRow, libBody] });
+
+  assert.equal(isInert(hdrSearchRow), false);
+  assert.equal(isInert(header), false);
+  assert.equal(isInert(libBody), false, 'a search result row inside #libBody must stay tappable');
+  assert.equal(isInert(routeLibrary), false, 'route-library must stay reachable since #libBody lives inside it');
+  assert.equal(isInert(wrap), false);
+  // siblings that aren't on either protected path still go inert as normal
+  assert.equal(isInert(addMenu), true);
+  assert.equal(isInert(routeHome), true);
+
+  closeLayer('search-field');
+  assert.equal(isInert(addMenu), false);
+  assert.equal(isInert(routeHome), false);
+});
+
 test('applyInert: a layer with no container (or one not actually in the tree) falls back to inerting the whole root, the same as before this behavior existed', () => {
   const wrap = makeTreeEl('wrap');
   const body = makeTreeEl('body', [wrap]);
