@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 // through shell/put-away.js) run as the genuine, unmocked code rather
 // than a re-implementation, the same "test the real thing, stub only what
 // a browser would otherwise provide" approach prefs.test.js/idb.test.js use.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 // shell/put-away.js's own non-pure imports (mini-player.js for
 // SLEEVE_ANIM/renderMiniPlayer, start-sequence.js for waitAnimEnd/

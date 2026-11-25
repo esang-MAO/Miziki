@@ -17,7 +17,7 @@ globalThis.document = { createTextNode(text){ return { nodeType: 3, textContent:
 // setQueue's own real chain now reaches queue.js's skipWithLift(), which
 // imports REDUCED from util/motion.js -- read once, at module load, from
 // window.matchMedia.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 const elCache = new Map();
 // RF23's own tests need two things the pre-existing bare-bones fakeEl didn't

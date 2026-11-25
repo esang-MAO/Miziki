@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 // queue.js's skipWithLift(), which imports REDUCED from util/motion.js --
 // read once, at module load, from window.matchMedia (same stub shape as
 // queue.test.js's own window stub).
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 const elCache = new Map();
 function fakeEl(){

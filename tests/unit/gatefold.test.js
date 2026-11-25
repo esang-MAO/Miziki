@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 // sundown/location.js's circular queueSave import). util/text.js's fmt()
 // (TR5, docs/19_PLAYER.md) is real-loaded instead — a tiny, pure,
 // DOM-free leaf, same precedent as player/eq-label.js elsewhere.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 globalThis.document = { documentElement: { style: { setProperty(){} } } };
 
 // BD14c (docs/38_BEFORE_THE_DOMAIN.md): view.js now builds a house sleeve
