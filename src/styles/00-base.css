@@ -19,14 +19,21 @@
      FS1: #86939A -> #9A9187, the warm pair's own --muted-2 half; still
      clears the floor (see tests/unit/contrast.test.js's CR8 check).
      --muted-2 is only ever used at --fs-body (14px) and up now (TY1's own
-     shared rule). */
-  --muted-2:#9A9187;
+     shared rule).
+     AC4 (docs/39_ACCESSIBILITY.md, decision 1): #9A9187 only cleared the
+     14px floor by a margin too thin to be confident of -- nudged to
+     #9D948B, same hue. */
+  --muted-2:#9D948B;
   --line:rgba(239,233,223,.14);
   /* UN1 (docs/36_UNIFORMITY.md): solid rings/dots that sit on the theme
      background (a selected card's outline, a flip dot, a progress
      track's unfilled portion) -- were a fixed cream/rgba(239,233,223,…)
-     literal, invisible in light theme. Each theme redefines these. */
-  --ring:rgba(239,233,223,.32);
+     literal, invisible in light theme. Each theme redefines these.
+     AC4 (docs/39_ACCESSIBILITY.md, decision 3/finding 7): .32 only
+     cleared 2.52:1 against --sky1, the lightest dark sky a focus ring
+     ever sits on, under the 3:1 a control edge needs -- raised to .40
+     (3.14:1), same colour. */
+  --ring:rgba(239,233,223,.40);
   --dot:rgba(239,233,223,.3);
   /* RF14 (docs/12_REFINE.md, point 4): "sky, panel and raised read as
      three levels" -- .42 -> .55.

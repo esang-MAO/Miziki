@@ -569,8 +569,9 @@ test('mutedGradientStops: light theme keeps one pair regardless of phase', () =>
   const night = mutedGradientStops(pos('night', 0, 1), 'light');
   assert.deepEqual(golden, night);
   // TY1 (docs/22_TYPE.md, audit point 4): --muted-2's light floor was
-  // raised #6E7A80 -> #5E6A70.
-  assert.deepEqual(golden, ['rgb(107,98,88)', 'rgb(94,106,112)']);
+  // raised #6E7A80 -> #5E6A70. AC4 (docs/39_ACCESSIBILITY.md, decision 1):
+  // both tokens' light defaults moved again, to #655C53 / #555F65.
+  assert.deepEqual(golden, ['rgb(101,92,83)', 'rgb(85,95,101)']);
 });
 
 test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) too, sampled every 10 minutes across a full day', async () => {
@@ -579,6 +580,12 @@ test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) 
   const date = new Date('2025-06-21T12:00:00Z');
   const events = dayEvents(date, COLUMBIA.lat, COLUMBIA.lon);
   const start = new Date('2025-06-21T04:00:00Z');
+  // AC4 (docs/39_ACCESSIBILITY.md, point 4): "Report Nychthemeron's darkest
+  // and lightest phase too" -- this sweep already proves every phase clears
+  // the floor; darkest/lightest just tracks which phase sits closest to it,
+  // logged (not asserted) so a future regression shows which phase to look
+  // at first.
+  let darkest = null, lightest = null;
   for(const theme of ['dark', 'light']){
     for(let m = 0; m < 24 * 60; m += 10){
       const now = new Date(start.getTime() + m * 60000);
@@ -589,8 +596,15 @@ test('mutedGradientStops: blended values stay >=4.5:1 (muted) / >=3:1 (muted-2) 
       const muted2Ratio = Math.min(contrastRatio(parseRGB(muted2), sky1), contrastRatio(parseRGB(muted2), sky2));
       assert.ok(mutedRatio >= 4.5, `${theme} at +${m}min (${dayPos.phase}) / muted: contrast ${mutedRatio.toFixed(2)} below 4.5`);
       assert.ok(muted2Ratio >= 3, `${theme} at +${m}min (${dayPos.phase}) / muted-2: contrast ${muted2Ratio.toFixed(2)} below 3`);
+      const entry = { theme, phase: dayPos.phase, ratio: mutedRatio };
+      if(!darkest || entry.ratio < darkest.ratio) darkest = entry;
+      if(!lightest || entry.ratio > lightest.ratio) lightest = entry;
     }
   }
+  console.log(
+    `mutedGradientStops: darkest ${darkest.theme}/${darkest.phase} at ${darkest.ratio.toFixed(2)}:1, ` +
+    `lightest ${lightest.theme}/${lightest.phase} at ${lightest.ratio.toFixed(2)}:1`
+  );
 });
 
 // phaseText: the new phase line's own wording — separate from #rateWhy's

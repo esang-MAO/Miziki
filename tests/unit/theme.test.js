@@ -346,8 +346,9 @@ function contrastRatioTY1(hexA, hexB){
   const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
 }
-test('light theme --accent-text (#9A4700) clears 4.5:1 against --sky1/--sky2/--stock-card', () => {
-  const ACCENT_TEXT_LIGHT = '#9A4700';
+test('light theme --accent-text (#984600) clears 4.5:1 against --sky1/--sky2/--stock-card', () => {
+  // AC4 (docs/39_ACCESSIBILITY.md, decision 1): moved #9A4700 -> #984600.
+  const ACCENT_TEXT_LIGHT = '#984600';
   const SURFACES = { '--sky1': '#F6F1E7', '--sky2': '#ECE5D8', '--stock-card': '#EFE6D2' };
   for (const [name, hex] of Object.entries(SURFACES)) {
     const ratio = contrastRatioTY1(ACCENT_TEXT_LIGHT, hex);
