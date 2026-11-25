@@ -27,7 +27,7 @@ import { dividerArtEl } from './divider-art.js';
 import { buildHouseSleeve, houseSleeveKind } from '../ui/house-sleeve.js';
 import {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum, persistCrateAnchor,
-  crateRailJumpTarget, crateVariantJumpTarget, crateAlbumJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
+  crateRailJumpTarget, crateVariantJumpTarget, crateAlbumJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS, stickerFor, stickerAriaLabel, crate45ChipFor, catalogLineFor, playedLineFor, eraTintFor,
   classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved, cratePeekRise, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits, crateLetterFor,
 } from './model.js';
@@ -104,6 +104,14 @@ function buildStickerEl(sticker){
     : sticker.kind === 'friends' ? (sticker.count || 1) + (sticker.count === 1 ? ' friend' : ' friends')
     : sticker.kind === 'hires' ? (sticker.bits || '') + '/' + Math.round((sticker.rate || 0) / 1000)
     : '';
+  // AC6 (docs/39_ACCESSIBILITY.md, finding 10): unlike the metal dot above
+  // (an `aria-label` already since its own info is only ever a colour, not
+  // text), these three kinds' own bare textContent reads out of context on
+  // a VoiceOver swipe -- "New" alone, a bare count, or a bare "24/96" with
+  // no unit words. None of this is said anywhere else on the card, so it
+  // gets a fuller label here instead (stickerAriaLabel(), crate/model.js).
+  const label = stickerAriaLabel(sticker);
+  if(label) tag.setAttribute('aria-label', label);
   return tag;
 }
 

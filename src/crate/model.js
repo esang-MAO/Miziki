@@ -679,6 +679,26 @@ export function stickerFor(record, sealed){
   return null;
 }
 
+// AC6 (docs/39_ACCESSIBILITY.md, finding 10): the 8px .crate-sticker text
+// (10-crate.css) -- "New", a bare friend count, "24/96" -- reads out of
+// context on a VoiceOver swipe, and none of it is said anywhere else on
+// the card. Pure so it's directly testable without crate/view.js's own
+// heavy DOM/art-cache dependency chain; crate/view.js's buildStickerEl()
+// is the one caller, and still owns the metal dot's own aria-label (a
+// colour, not text drawn from this same {kind} shape).
+export function stickerAriaLabel(sticker){
+  if(!sticker) return null;
+  if(sticker.kind === 'new') return 'New arrival';
+  if(sticker.kind === 'friends'){
+    const n = sticker.count || 1;
+    return n + (n === 1 ? ' friend has this' : ' friends have this');
+  }
+  if(sticker.kind === 'hires'){
+    return 'Hi-res, ' + (sticker.bits || '') + '-bit, ' + Math.round((sticker.rate || 0) / 1000) + ' kHz';
+  }
+  return null;
+}
+
 // GS8 (docs/30_GROOVES_AND_SHELF.md point 4): "the shelves" draws spines
 // in the crate's own current order, without touching S.crate.model/pos
 // (ensureCrateModel()'s own cache is owned by the crate screen itself —

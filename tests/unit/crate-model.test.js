@@ -19,7 +19,7 @@ mock.module(new URL('../../src/storage/meta.js', import.meta.url).href, {
 const {
   ensureCrateModel, invalidateCrateModel, isNowPlayingAlbum,
   persistCrateAnchor, crateRailJumpTarget, libraryHasGenres, nextCrateGroup, CRATE_GROUP_LABELS,
-  stickerFor, catalogLineFor, playedLineFor, eraTintFor, crate45ChipFor,
+  stickerFor, stickerAriaLabel, catalogLineFor, playedLineFor, eraTintFor, crate45ChipFor,
   classifyCratePointerTrace, cratePullProgress, cratePendingTraceMoved,
   CRATE_PULL_UP_PX, CRATE_PULL_REVERSAL_PX, CRATE_PULL_HOLD_MS, CRATE_PULL_COMMIT_FRACTION, CRATE_PENDING_RELEASE_MOVE_PX,
   sectionIndexAt, clampToSection, isHorizontalCrateDrag, crateSectionDragCommits,
@@ -313,6 +313,31 @@ test('stickerFor: an earned metal shows once nothing higher-priority applies', (
     metalEligibleSessions: { alb1: 25 } });   // crosses the gold threshold (25 sessions)
   const record = {type:'rec', idx:[0], albumId:'alb1', addedAt: Date.now() - 60 * DAY_MS};
   assert.deepEqual(stickerFor(record, false), {kind:'metal', metal:'gold'});
+});
+
+// AC6 (docs/39_ACCESSIBILITY.md, finding 10): the 8px sticker's own bare
+// text ("New", a count, "24/96") reads out of context on a VoiceOver
+// swipe -- stickerAriaLabel() is what crate/view.js's buildStickerEl()
+// sets as the element's own aria-label instead (the metal kind keeps its
+// own aria-label, a colour name, set directly in view.js).
+test('stickerAriaLabel: new reads as a full phrase', () => {
+  assert.equal(stickerAriaLabel({kind:'new'}), 'New arrival');
+});
+
+test('stickerAriaLabel: friends pluralizes correctly at the edges', () => {
+  assert.equal(stickerAriaLabel({kind:'friends', count:1}), '1 friend has this');
+  assert.equal(stickerAriaLabel({kind:'friends', count:3}), '3 friends have this');
+  assert.equal(stickerAriaLabel({kind:'friends'}), '1 friend has this');
+});
+
+test('stickerAriaLabel: hires spells out bit depth and sample rate', () => {
+  assert.equal(stickerAriaLabel({kind:'hires', bits:24, rate:96000}), 'Hi-res, 24-bit, 96 kHz');
+});
+
+test('stickerAriaLabel: metal and sealed (handled elsewhere) and null get no label', () => {
+  assert.equal(stickerAriaLabel({kind:'metal', metal:'gold'}), null);
+  assert.equal(stickerAriaLabel({kind:'sealed'}), null);
+  assert.equal(stickerAriaLabel(null), null);
 });
 
 // LB5 (docs/36A_LIBRARY_AND_LAUNCH.md decision 12): sentence case, not
