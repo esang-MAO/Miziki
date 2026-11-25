@@ -58,6 +58,7 @@ export function openPlaylistNameSheet({ title, initial = '', note, confirmLabel,
     const built = sheetHeader(title);
     built.closeBtn.addEventListener('click', () => closeLayer('playlist-name'));
     head.appendChild(built);
+    $('#playlistNameSheetBox').setAttribute('aria-label', title);
 
     const body = $('#plNameBody'); body.innerHTML = '';
     const row = el('div', 'slider-row');

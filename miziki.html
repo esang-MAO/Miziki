@@ -210,7 +210,7 @@
          being chosen from a picker first -- a judgment call, since
          decision 11 only says Library tools is "the only item" without
          saying where Select goes; flagged in the PR. -->
-    <div class="edit-overlay" id="libToolsSheetOverlay" aria-hidden="true">
+    <div class="edit-overlay" id="libToolsSheetOverlay" role="dialog" aria-modal="true" aria-label="Library tools" aria-hidden="true">
       <div class="edit-sheet" id="libToolsSheetBox">
         <div class="p-sheet-header" id="libToolsSheetHead"></div>
         <button class="p-nav-row" id="libToolsSelectRow">
@@ -889,7 +889,7 @@
 </div>
 
 <!-- FULL PLAYER: overlay, not a fourth tab -->
-<div class="player-overlay" id="playerOverlay" aria-hidden="true">
+<div class="player-overlay" id="playerOverlay" role="dialog" aria-modal="true" aria-labelledby="trackName trackBy" aria-hidden="true">
   <button class="player-dismiss" id="playerDismiss" aria-label="Close player">︿</button>
 
   <!-- D6: see docs/19_PLAYER_HTML_NOTES.md#player-layoutstageinfo-full-player-desktop -->
@@ -1239,7 +1239,7 @@
 
 <!-- METADATA EDIT SHEET: single-track (from the full player or a library
      row) and batch (from multi-select) both use this same form -->
-<div class="edit-overlay" id="editOverlay" aria-hidden="true">
+<div class="edit-overlay" id="editOverlay" role="dialog" aria-modal="true" aria-labelledby="editTitleLabel" aria-hidden="true">
   <div class="edit-sheet" id="editSheetBox">
     <div class="edit-head">
       <span id="editTitleLabel">Edit track</span>
@@ -1348,7 +1348,7 @@
      point; its content is rebuilt on every open. "Add to playlist…" (the
      plan's own third item in the first group) opens LB9's own picker
      sheet, #addToPlOverlay below (src/library/add-to-playlist.js). -->
-<div class="edit-overlay" id="rowMenuOverlay" aria-hidden="true">
+<div class="edit-overlay" id="rowMenuOverlay" role="dialog" aria-modal="true" aria-labelledby="rowMenuTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="p-sheet-header" id="rowMenuHead">
       <div class="row-menu-cover" id="rowMenuCover"></div>
@@ -1366,7 +1366,7 @@
      for a single track, read-only — reuses the edit-overlay sheet pattern.
      Sections hide themselves when the track has nothing to show (CREDITS
      spec §1). -->
-<div class="edit-overlay" id="creditsOverlay" aria-hidden="true">
+<div class="edit-overlay" id="creditsOverlay" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" aria-hidden="true">
   <div class="edit-sheet" id="creditsSheetBox">
     <div class="edit-head">
       <span id="creditsTitle">Credits &amp; notes</span>
@@ -1381,10 +1381,10 @@
      the Deluxe caption -- reuses the edit-overlay sheet pattern. Body is
      rebuilt by openShelfFinishSheet()/renderShelfFinishSheet()
      (src/profile/shelf-finish-sheet.js). -->
-<div class="edit-overlay" id="shelfFinishOverlay" aria-hidden="true">
+<div class="edit-overlay" id="shelfFinishOverlay" role="dialog" aria-modal="true" aria-labelledby="shelfFinishTitle" aria-hidden="true">
   <div class="edit-sheet" id="shelfFinishSheetBox">
     <div class="edit-head">
-      <span>Shelf finish</span>
+      <span id="shelfFinishTitle">Shelf finish</span>
       <button class="edit-close" id="shelfFinishClose" aria-label="Close">✕</button>
     </div>
     <div id="shelfFinishBody"></div>
@@ -1395,10 +1395,10 @@
      generic edit-overlay sheet pattern as the shelf finish sheet above.
      Body is rebuilt by openTurntableSheet()/renderTurntableSheet()
      (src/profile/turntable-sheet.js). -->
-<div class="edit-overlay" id="turntableOverlay" aria-hidden="true">
+<div class="edit-overlay" id="turntableOverlay" role="dialog" aria-modal="true" aria-labelledby="turntableTitle" aria-hidden="true">
   <div class="edit-sheet" id="turntableSheetBox">
     <div class="edit-head">
-      <span>Turntable</span>
+      <span id="turntableTitle">Turntable</span>
       <button class="edit-close" id="turntableClose" aria-label="Close">✕</button>
     </div>
     <div id="turntableBody"></div>
@@ -1408,10 +1408,10 @@
 <!-- BD13 (docs/38_BEFORE_THE_DOMAIN.md): Settings -> Copy error log, same
      generic edit-overlay sheet pattern as the shelf finish sheet above.
      Body is rebuilt by openDebugLogSheet() (src/profile/debug-log-sheet.js). -->
-<div class="edit-overlay" id="debugLogOverlay" aria-hidden="true">
+<div class="edit-overlay" id="debugLogOverlay" role="dialog" aria-modal="true" aria-labelledby="debugLogTitle" aria-hidden="true">
   <div class="edit-sheet" id="debugLogSheetBox">
     <div class="edit-head">
-      <span>Error log</span>
+      <span id="debugLogTitle">Error log</span>
       <button class="edit-close" id="debugLogClose" aria-label="Close">✕</button>
     </div>
     <div id="debugLogBody"></div>
@@ -1420,7 +1420,7 @@
 
 <!-- SOCIAL SIGN-IN: email -> code -> handle -> visibility, reuses the
      edit-overlay sheet pattern. Body is rebuilt per step by renderSocialAuth(). -->
-<div class="edit-overlay" id="socialAuthOverlay" aria-hidden="true">
+<div class="edit-overlay" id="socialAuthOverlay" role="dialog" aria-modal="true" aria-labelledby="socialAuthTitle" aria-hidden="true">
   <div class="edit-sheet">
     <div class="edit-head">
       <span id="socialAuthTitle">Sign in</span>
@@ -1434,7 +1434,7 @@
      Home or a people search. Its own back header, independent of the tabbar.
      socialNav is a stack so a record sheet opened from here can close back
      onto the store beneath it. -->
-<div class="social-nav-overlay" id="socialNavOverlay" aria-hidden="true">
+<div class="social-nav-overlay" id="socialNavOverlay" role="dialog" aria-modal="true" aria-labelledby="socialNavHandleTitle" aria-hidden="true">
   <div class="social-nav-head">
     <button class="social-nav-back" id="socialNavBack" aria-label="Back">‹</button>
     <span class="social-nav-title" id="socialNavTitle"></span>
@@ -1444,7 +1444,7 @@
 
 <!-- RECORD SHEET: a single record from a friend's store (staff pick, crate,
      or fresh-for-you), pushed on top of whatever's open underneath. -->
-<div class="edit-overlay" id="recordSheetOverlay" aria-hidden="true">
+<div class="edit-overlay" id="recordSheetOverlay" role="dialog" aria-modal="true" aria-labelledby="recordSheetTitle" aria-hidden="true">
   <div class="edit-sheet" id="recordSheetBox">
     <div class="edit-head">
       <span id="recordSheetKicker"></span>
@@ -1458,7 +1458,7 @@
      listMenu() (src/ui/parts.js), both built once lazily by
      player/sleep-timer.js's openSleepSheet(). Stays a list (a pick-one-
      and-go action, not a setting), not a segmented control. -->
-<div class="edit-overlay" id="sleepOverlay" aria-hidden="true">
+<div class="edit-overlay" id="sleepOverlay" role="dialog" aria-modal="true" aria-label="Sleep timer" aria-hidden="true">
   <div class="edit-sheet" id="sleepSheetBox" style="max-width:420px">
     <div id="sleepHead"></div>
     <div id="sleepOptions"></div>
@@ -1468,10 +1468,10 @@
 <!-- AU6 (docs/16_AUDIO.md §3): EQ sheet. Same .edit-overlay/.edit-sheet
      shape as #sleepOverlay above -- JS (src/player/eq-sheet.js) renders
      #eqSheetBody fresh on every open/structural change. -->
-<div class="edit-overlay" id="eqOverlay" aria-hidden="true">
+<div class="edit-overlay" id="eqOverlay" role="dialog" aria-modal="true" aria-labelledby="eqTitle" aria-hidden="true">
   <div class="edit-sheet eq-sheet-box">
     <div class="edit-head">
-      <span>EQ</span>
+      <span id="eqTitle">EQ</span>
       <button class="edit-close" id="eqClose" aria-label="Close">✕</button>
     </div>
     <div id="eqSheetBody"></div>
@@ -1480,10 +1480,10 @@
 
 <!-- SORT MENU: collapsed behind a hamburger toggle in the sort bar so the
      library list isn't crowded by a always-visible row of sort buttons. -->
-<div class="edit-overlay" id="sortMenuOverlay" aria-hidden="true">
+<div class="edit-overlay" id="sortMenuOverlay" role="dialog" aria-modal="true" aria-labelledby="sortMenuTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
-      <span>Sort</span>
+      <span id="sortMenuTitle">Sort</span>
       <button class="edit-close" id="sortMenuClose" aria-label="Close">✕</button>
     </div>
     <div class="stack" id="sortMenuOptions" style="flex-direction:column"></div>
@@ -1502,10 +1502,10 @@
      16-edit-sheet.css) so the record stays visible while choosing. -->
 <!-- UN3 (docs/36_UNIFORMITY.md): header restyled onto sheetHeader()'s
      look (05-parts.css's .p-sheet-*) -- same #lookClose id/wiring. -->
-<div class="edit-overlay" id="lookOverlay" aria-hidden="true">
+<div class="edit-overlay" id="lookOverlay" role="dialog" aria-modal="true" aria-labelledby="lookTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="p-sheet-header">
-      <h2 class="p-sheet-title">Look</h2>
+      <h2 class="p-sheet-title" id="lookTitle">Look</h2>
       <button class="p-sheet-close" id="lookClose" aria-label="Close">✕</button>
     </div>
     <div class="stack" id="lookOptions" style="flex-direction:column"></div>
@@ -1515,10 +1515,10 @@
 <!-- QUEUE: current track + everything after, reorderable, individually
      removable without touching the library. Accessible from both the full
      player and the mini-player (see PLAYBACK spec §5). -->
-<div class="edit-overlay" id="queueOverlay" aria-hidden="true">
+<div class="edit-overlay" id="queueOverlay" role="dialog" aria-modal="true" aria-labelledby="queueTitle" aria-hidden="true">
   <div class="edit-sheet" id="queueSheetBox">
     <div class="edit-head">
-      <span>Queue</span>
+      <span id="queueTitle">Queue</span>
       <span class="queue-head-actions">
         <!-- AU8 (docs/16_AUDIO.md §6): "Save queue as playlist" -->
         <button class="cta ghost small" id="queueSaveBtn">Save as Playlist</button>
@@ -1539,7 +1539,7 @@
 <!-- CONFIRM DELETE: shared by song/album/artist/batch removal. Deletion has
      no undo window (see LIBRARY spec §4) — this dialog is the safeguard, so
      the copy must be unambiguous that files stay on disk. -->
-<div class="edit-overlay" id="confirmOverlay" aria-hidden="true">
+<div class="edit-overlay" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
       <span id="confirmTitle">Remove from library</span>
@@ -1557,10 +1557,10 @@
      This dialog IS the confirmation — it must state that achievements and
      earned variants will be lost, matching the deletion dialog's precedent
      of no separate undo window. -->
-<div class="edit-overlay" id="clearHistoryOverlay" aria-hidden="true">
+<div class="edit-overlay" id="clearHistoryOverlay" role="dialog" aria-modal="true" aria-labelledby="clearHistoryTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
-      <span>Clear listening history</span>
+      <span id="clearHistoryTitle">Clear listening history</span>
       <button class="edit-close" id="clearHistoryClose" aria-label="Close">✕</button>
     </div>
     <p class="note" style="margin-top:0">Separate from removing files — this wipes session counts, play counts, rare-variant unlocks, and earned metals. Achievements and earned variants will be lost.</p>
@@ -1584,7 +1584,7 @@
      instant the sheet closes, and .edit-overlay's own close animation
      then hides the sheet (visibility, after a 200ms transition) under it,
      which would hide a toast nested inside along with it. -->
-<div class="edit-overlay" id="dupOverlay" aria-hidden="true">
+<div class="edit-overlay" id="dupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="edit-sheet" id="dupSheetBox" style="max-width:420px">
     <div id="dupHead"></div>
     <div id="dupBody"></div>
@@ -1601,7 +1601,7 @@
      #plNameHead/#plNameBody are rebuilt on every open, same as #dupHead/
      #dupBody above. -->
 <div class="edit-overlay" id="playlistNameOverlay" aria-hidden="true">
-  <div class="edit-sheet" id="playlistNameSheetBox" style="max-width:420px">
+  <div class="edit-sheet" id="playlistNameSheetBox" role="dialog" aria-modal="true" style="max-width:420px">
     <div id="plNameHead"></div>
     <div id="plNameBody"></div>
   </div>
@@ -1614,7 +1614,7 @@
      #plNameHead/#plNameBody above. #plAddToast is a sibling of the
      overlay, not nested inside it, same reason as #dupSkipToast below it
      in this file: it's shown the instant the sheet closes. -->
-<div class="edit-overlay" id="addToPlOverlay" aria-hidden="true">
+<div class="edit-overlay" id="addToPlOverlay" role="dialog" aria-modal="true" aria-label="Add to playlist" aria-hidden="true">
   <div class="edit-sheet" id="addToPlSheetBox" style="max-width:420px">
     <div id="addToPlHead"></div>
     <p class="note" id="addToPlCaption"></p>
@@ -1640,10 +1640,10 @@
      return, only when playback actually stopped while the app was hidden
      and Background playback is off — docs/design/refine/ReturnCard.dc.html
      is the design source for this card's wording and shape. -->
-<div class="edit-overlay" id="bgOfferCard" aria-hidden="true">
+<div class="edit-overlay" id="bgOfferCard" role="dialog" aria-modal="true" aria-labelledby="bgOfferTitle" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div class="edit-head">
-      <span>Music stopped when you left Miziki.</span>
+      <span id="bgOfferTitle">Music stopped when you left Miziki.</span>
     </div>
     <p class="note" style="margin-top:0">Keep it playing in the background, with controls on the lock screen? Audio then goes through the browser's player, which may change the sample rate.</p>
     <div class="stack">
@@ -1656,10 +1656,10 @@
 
 <!-- DUPLICATE SCAN: library-wide, catches duplicates that arise from
      metadata edits rather than just import (see PLAYBACK/IMPORT spec §6). -->
-<div class="edit-overlay" id="dupScanOverlay" aria-hidden="true">
+<div class="edit-overlay" id="dupScanOverlay" role="dialog" aria-modal="true" aria-labelledby="dupScanTitle" aria-hidden="true">
   <div class="edit-sheet">
     <div class="edit-head">
-      <span>Duplicate scan</span>
+      <span id="dupScanTitle">Duplicate scan</span>
       <button class="edit-close" id="dupScanClose" aria-label="Close">✕</button>
     </div>
     <div id="dupScanBody"></div>
@@ -1680,7 +1680,7 @@
      behind #shareMoreBody, a plain hidden-attribute disclosure (same shape
      as RF9's #soundAdvancedBody, src/wiring/character.js), toggled by
      #shareMoreToggle down in the actions row alongside Save/Copy. -->
-<div class="share-overlay" id="shareOverlay" aria-hidden="true">
+<div class="share-overlay" id="shareOverlay" role="dialog" aria-modal="true" aria-labelledby="shareHeadTitle" aria-hidden="true">
   <div class="share-sheet" id="shareSheetBox">
     <div class="edit-head">
       <span id="shareHeadTitle">Share</span>
@@ -1842,11 +1842,11 @@
        16-edit-sheet.css already gives every bottom sheet (Edit track,
        sign-in, EQ), with its own Cancel/title/Save header row instead of
        a single ✕ close. -->
-  <div class="edit-overlay" id="linerEditOverlay" aria-hidden="true">
+  <div class="edit-overlay" id="linerEditOverlay" role="dialog" aria-modal="true" aria-labelledby="linerEditTitle" aria-hidden="true">
     <div class="edit-sheet" id="linerEditSheetBox">
       <div class="edit-head">
         <button class="cta ghost liner-edit-cancel" id="linerEditCancel">Cancel</button>
-        <span>Liner notes</span>
+        <span id="linerEditTitle">Liner notes</span>
         <button class="cta liner-edit-save" id="linerEditSave">Save</button>
       </div>
       <div class="liner-edit-byline">
@@ -1930,7 +1930,7 @@
      #rowMenuOverlay, ...), which is the one real fix -- every other full
      sheet in the app already works this way for the same reason, so no
      extra bottom padding is needed once it's no longer trapped. -->
-<div class="edit-overlay" id="gfTrackMenuOverlay" aria-hidden="true">
+<div class="edit-overlay" id="gfTrackMenuOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="edit-sheet" style="max-width:420px">
     <div id="gfTrackMenuHead"></div>
     <p class="row-menu-sub" id="gfTrackMenuMeta"></p>

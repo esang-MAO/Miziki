@@ -66,9 +66,11 @@ function dupRow(item){
 function renderSummary(){
   const n = pendingItems.length;
   const head = $('#dupHead'); head.innerHTML = '';
-  const built = sheetHeader(dupSheetTitle(n));
+  const title = dupSheetTitle(n);
+  const built = sheetHeader(title);
   built.closeBtn.addEventListener('click', () => closeLayer('duplicate-prompt'));
   head.appendChild(built);
+  $('#dupOverlay').setAttribute('aria-label', title);
 
   const body = $('#dupBody'); body.innerHTML = '';
   body.appendChild(el('p', 'note', `The rest of the import (${importedCount} songs) is already in your library. Decide once for all ${n}.`));
@@ -103,9 +105,11 @@ function renderReview(){
   const n = pendingItems.length;
   const item = pendingItems[reviewIndex];
   const head = $('#dupHead'); head.innerHTML = '';
-  const built = sheetHeader(`${reviewIndex + 1} of ${n}`);
+  const title = `${reviewIndex + 1} of ${n}`;
+  const built = sheetHeader(title);
   built.closeBtn.addEventListener('click', () => closeLayer('duplicate-prompt'));
   head.appendChild(built);
+  $('#dupOverlay').setAttribute('aria-label', title);
 
   const body = $('#dupBody'); body.innerHTML = '';
   body.appendChild(el('p', 'note', `"${item.fileName}" looks like a duplicate of "${item.existingTrack.tags.title}" already in your library.`));

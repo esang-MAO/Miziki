@@ -286,6 +286,7 @@ export function openGatefoldTrackMenu(i, trackIdx){
   const overlay = $('#gfTrackMenuOverlay');
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden','false');
+  overlay.setAttribute('aria-label', t.tags.title);
   openLayer('gf-track-menu', closeGatefoldTrackMenu, { container: overlay });
 }
 export function closeGatefoldTrackMenu(){
@@ -1842,7 +1843,7 @@ export function openGatefold(item, opts){
   pushGatefoldGeometryVars(geom);
 
   const overlay = $('#gatefold');
-  overlay.setAttribute('aria-label', item.album);
+  overlay.setAttribute('aria-label', item.album + ' by ' + item.artist);
   overlay.classList.toggle('gf-wide', mode === 'wide');
   overlay.classList.toggle('gf-night', night);
   // UN6 point 2: set once this open's own tint resolves (sync from cache
@@ -1922,6 +1923,7 @@ export async function closeGatefold(){
   $('#gfFlatTracks').classList.remove('show');
   overlay.style.opacity = ''; overlay.style.transition = '';
   overlay.setAttribute('aria-hidden','true');
+  overlay.setAttribute('aria-label','');
   if(g.returnFocus && document.contains(g.returnFocus) && typeof g.returnFocus.focus === 'function') g.returnFocus.focus();
   else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
 }
@@ -1937,4 +1939,5 @@ export function closeGatefoldInstant(){
   $('#gfFlatTracks').classList.remove('show');
   overlay.style.opacity = ''; overlay.style.transition = '';
   overlay.setAttribute('aria-hidden','true');
+  overlay.setAttribute('aria-label','');
 }

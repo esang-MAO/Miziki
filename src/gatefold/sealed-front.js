@@ -178,7 +178,7 @@ export function openSealedFront(item){
   if(FRONT) return;
   FRONT = { item, turnedOver: false, returnFocus: document.activeElement };
   const sheet = $('#sealedFront');
-  sheet.setAttribute('aria-label', item.album);
+  sheet.setAttribute('aria-label', item.album + ' by ' + item.artist);
   const wrap = $('#sealedFrontWrap');
   wrap.classList.remove('sealed-front-wrap-detached','sealed-front-wrap-fading');
   wrap.style.clipPath = '';
@@ -214,6 +214,7 @@ export async function closeSealedFront(){
   await sleep(REDUCED ? 150 : 250);
   sheet.classList.remove('open');
   sheet.setAttribute('aria-hidden','true');
+  sheet.setAttribute('aria-label','');
   if(f.returnFocus && document.contains(f.returnFocus) && typeof f.returnFocus.focus === 'function') f.returnFocus.focus();
   else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
 }

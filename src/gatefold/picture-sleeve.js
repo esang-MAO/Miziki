@@ -90,7 +90,7 @@ export function openPictureSleeve(item){
   if(trackIdx.length !== 1) return;
   SLEEVE = {item, returnFocus: document.activeElement};
   const sheet = $('#pictureSleeve');
-  sheet.setAttribute('aria-label', item.album);
+  sheet.setAttribute('aria-label', item.album + ' by ' + item.artist);
 
   const art = thumbURL['album:' + item.albumId] || (S.tracks[item.idx[0]] && S.tracks[item.idx[0]].art) || '';
   const img = $('#pictureSleeveArt');
@@ -143,6 +143,7 @@ export async function closePictureSleeve(){
   await sleep(REDUCED ? 150 : 250);
   sheet.classList.remove('open');
   sheet.setAttribute('aria-hidden','true');
+  sheet.setAttribute('aria-label','');
   if(s.returnFocus && document.contains(s.returnFocus) && typeof s.returnFocus.focus === 'function') s.returnFocus.focus();
   else { const stage = $('.crate-stage'); if(stage) stage.focus(); }
 }
@@ -153,4 +154,5 @@ function closePictureSleeveInstant(){
   const sheet = $('#pictureSleeve');
   sheet.classList.remove('open','show');
   sheet.setAttribute('aria-hidden','true');
+  sheet.setAttribute('aria-label','');
 }

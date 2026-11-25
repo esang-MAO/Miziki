@@ -99,7 +99,9 @@ function friendStoreHeader(full, extraBtn){
   header.appendChild(avatar);
   const idBox = el('div','store-id');
   idBox.appendChild(el('div','store-kicker','CRATE'));
-  idBox.appendChild(el('h2','store-handle', full.profile.handle));
+  const handleTitle = el('h2','store-handle', full.profile.handle);
+  handleTitle.id = 'socialNavHandleTitle';
+  idBox.appendChild(handleTitle);
   if(full.profile.display_name) idBox.appendChild(el('div','store-displayname', full.profile.display_name));
   header.appendChild(idBox);
   if(extraBtn) header.appendChild(extraBtn);
@@ -560,7 +562,9 @@ function renderRecordSheetBody(full, item){
   const art = localAlbumArt(item.title, item.artist);
   if(art){ const im = document.createElement('img'); im.src = art; im.alt = ''; cover.appendChild(im); }
   body.appendChild(cover);
-  body.appendChild(el('h3','record-title', item.title));
+  const titleEl = el('h3','record-title', item.title);
+  titleEl.id = 'recordSheetTitle';
+  body.appendChild(titleEl);
   body.appendChild(el('p','record-artist', [item.artist, item.year].filter(Boolean).join(' · ')));
   const theirTier = item.quality_tier != null ? item.quality_tier : item.their_quality_tier;
   // AU11 (docs/16_AUDIO.md §5): "friends see the same format" -- crate_page()
