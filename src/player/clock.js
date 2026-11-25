@@ -2,7 +2,7 @@ import { S, current } from '../state.js';
 import { $ } from '../util/dom.js';
 import { needleRadiusPct } from '../record-art/grooves.js';
 import { clamp } from '../util/math.js';
-import { fmt } from '../util/text.js';
+import { fmt, scrubValueText } from '../util/text.js';
 import { sleepCheckDeadline } from './sleep-timer.js';
 import { computeRate, computePlatterRate, sunProgress, easedProgress, currentDayPosition, nowClock, semitoneLowerHigherText } from '../sundown/solar.js';
 import { discLook, discLookDisplayName } from '../record-art/looks.js';
@@ -267,6 +267,12 @@ function renderSideMap(t, pos){
   }
 }
 
+// AC2 (docs/39_ACCESSIBILITY.md): the whole second drawTime() last wrote
+// #scrub/#barScrub's own aria-valuetext for — updated at most once a
+// second (never every frame), since VoiceOver re-reads a slider's value
+// text, something no sighted control needs to care about.
+let lastScrubValueTextSec = -1;
+
 export function drawTime(){
   const t = current();
   const dur = t ? (t.duration || 0) : 0;
@@ -285,7 +291,16 @@ export function drawTime(){
   const barElapsed = $('#barElapsed'), barTotal = $('#barTotal');
   if(barElapsed) barElapsed.textContent = fmt(S.pos);
   if(barTotal) barTotal.textContent = fmt(dur);
-  if(!S.scrubbing){ const barScrub = $('#barScrub'); if(barScrub) barScrub.value = Math.round(p*1000); }
+  const barScrub = $('#barScrub');
+  if(!S.scrubbing){ if(barScrub) barScrub.value = Math.round(p*1000); }
+
+  const wholeSec = Math.floor(S.pos);
+  if(wholeSec !== lastScrubValueTextSec){
+    lastScrubValueTextSec = wholeSec;
+    const valueText = scrubValueText(S.pos, dur);
+    scrubEl.setAttribute('aria-valuetext', valueText);
+    if(barScrub) barScrub.setAttribute('aria-valuetext', valueText);
+  }
   updateFocusStatusLine();
 }
 

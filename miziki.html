@@ -477,6 +477,13 @@
 
 </div>
 
+<!-- AC2 (docs/39_ACCESSIBILITY.md): "now playing" announcement -- a new
+     track starting says "[track] by [artist]" once, VoiceOver only.
+     Never nested inside the full player overlay, which goes
+     aria-hidden="true" while closed (that would silence the region
+     whenever a track changes via the mini-player instead). -->
+<div class="sr-only" id="nowPlayingLive" aria-live="polite"></div>
+
 <!-- MINI PLAYER + TAB BAR: persistent shell across all three routes -->
 <div class="mini-player" id="miniPlayer" style="display:none">
   <!-- progress hairline, shown only while S.resumePending (shell/mini-player.js) -->
