@@ -12,7 +12,7 @@ import { readHeader, readTags, readDetails, findArtworkBlob } from '../../src/li
 // engine.test.js/queue.test.js. queue.js's own real chain now reaches
 // skipWithLift(), which imports REDUCED from util/motion.js -- read once,
 // at module load, from window.matchMedia.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 // Since step 7d, import.js's own renderTracks import, edit.js's
 // exitSelectMode import (reached via import.js's real loadOverlayFor
 // import, step 5d) and credits.js's songRow import (reached via

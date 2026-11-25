@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 // shell.test.js/crate-model.test.js already do, since this file's real
 // player/queue.js chain reaches sealed.js before any mock of this module
 // would apply.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 // FS10 (docs/25_FROM_SCRATCH.md): updateFocusUI() toggles a class on
 // document.body (the same body.focus-active shape player-overlay.js's
 // own .glance-active already uses) -- this file has no real DOM, so a

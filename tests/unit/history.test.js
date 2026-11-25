@@ -9,7 +9,7 @@ import { DB } from '../../src/storage/idb.js';
 // shell.test.js/crate-model.test.js already do, since this file's real
 // history/clear.js chain reaches sealed.js (via edit.js) before any mock
 // of this module would apply.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 // sessionTrackComplete() calls MizikiSocial.listeningChanged() on a real
 // album-session completion -- a genuine global in production (set by the
 // classic script src/miziki-social.js), stubbed here the same way

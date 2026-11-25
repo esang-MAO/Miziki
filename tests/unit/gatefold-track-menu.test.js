@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 // for gatefold/view.js's wide, mostly-DOM-touching import graph -- this
 // file only needs a few more of its own (library/favorites.js, ui/haptic.js,
 // and credits.js's/queue.js's GF9-only exports).
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 globalThis.document = { documentElement: { style: { setProperty(){} } } };
 
 // BD14c (docs/38_BEFORE_THE_DOMAIN.md): view.js now builds a house sleeve

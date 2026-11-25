@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 // shell.test.js/crate-model.test.js already do, since this file's real
 // history/clear.js chain reaches sealed.js (via edit.js) before any mock
 // of this module would apply.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 /* ================= RF1 (docs/12_REFINE.md) =================
    "A clear on one device stays cleared everywhere." Before this fix,

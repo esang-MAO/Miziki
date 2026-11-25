@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 // needs for the same reason), so `window` has to exist before this module
 // is ever imported -- a dynamic import, after the stub, rather than a
 // static one at the top of the file.
-globalThis.window = { matchMedia(){ return { matches: false }; }, scrollY: 0 };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; }, scrollY: 0 };
 // NV5 (docs/11_SMOOTH_NAVIGATION.md) cross-feature test below: real
 // history/document stubs minimal enough for src/shell/nav-stack.js's
 // openLayer()/closeLayer() to run without throwing (the same shape

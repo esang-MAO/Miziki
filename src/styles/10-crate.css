@@ -118,6 +118,13 @@
 .crate-section-chip.current{background:var(--paper);color:var(--sky1);font-weight:600}
 .crate-stage{position:relative;height:var(--crate-stage-h);overflow:hidden;perspective:1000px;perspective-origin:50% 30%;
   touch-action:none;outline:none}
+/* AC5 (docs/39_ACCESSIBILITY.md): the stage takes arrow/Page/Home/End/
+   Enter/Space keys (crate/view.js's own keydown handler) but this file's
+   own `outline:none` above silences even the app-wide :focus-visible rule
+   (05-parts.css), since that selector's specificity loses to this one's
+   class selector -- a keyboard user tabbing to the stage got no visible
+   focus at all. Keyboard focus only; a tap/drag focus still gets none. */
+.crate-stage:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
 /* CR14: the neighbouring section's own front card, clipped to a thin
    sliver at the stage's edge (the spec's own "accepted ~30px sliver —
    enough to show another crate is there"). Static, rebuilt only on a

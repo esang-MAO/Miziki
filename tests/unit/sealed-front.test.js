@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 // module load, from window.matchMedia -- stubbed here the same way every
 // other gatefold test file does, before anything imports the real
 // sealed-front.js.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 // openSealedFront()'s own requestAnimationFrame call (for the show-class
 // transition) has nothing to do with this file's own subject -- run its
 // callback synchronously rather than stub around it everywhere it's read.

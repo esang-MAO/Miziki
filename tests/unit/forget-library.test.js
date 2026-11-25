@@ -16,7 +16,7 @@ import { DB } from '../../src/storage/idb.js';
 // queue.js's own real chain now reaches skipWithLift(), which imports
 // REDUCED from util/motion.js -- read once, at module load, from
 // window.matchMedia.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 function fakeEl(){
   const classes = new Set();

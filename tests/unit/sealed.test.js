@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 // at module load, from window.matchMedia, so it's stubbed here the same
 // way shell.test.js/crate-model.test.js already do, before anything
 // imports the real sealed.js.
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 
 // CR6 (docs/13_CRATE.md): buildSealOverlay() calls el() (util/dom.js) and
 // the bare document.createDocumentFragment() global directly -- both

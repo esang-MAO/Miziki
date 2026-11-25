@@ -11,7 +11,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-globalThis.window = { matchMedia(){ return { matches: false }; } };
+globalThis.window = { matchMedia(){ return { matches: false, addEventListener(){} }; } };
 globalThis.document = { hidden: false };
 
 const elCache = new Map();
