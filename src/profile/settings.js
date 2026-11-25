@@ -64,6 +64,12 @@ function socialField(labelText, value, attrs){
   row.appendChild(head);
   const input = el('input','pl-input');
   Object.assign(input, attrs || {});
+  // AC3 (docs/39_ACCESSIBILITY.md): the visible label above is a <span>,
+  // never wired to the input itself -- same gap the static edit sheet's
+  // own slider-head rows had, fixed there with aria-labelledby. This
+  // builder's span has no stable id to point at (it's rebuilt per step
+  // of the sign-in flow), so a plain aria-label carries the same text.
+  input.setAttribute('aria-label', labelText);
   input.value = value || '';
   row.appendChild(input);
   return { row, input };
