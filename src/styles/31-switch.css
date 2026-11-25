@@ -4,10 +4,16 @@
 .switch{width:44px;height:44px;border:0;background:none;position:relative;flex:none;padding:0;
   display:flex;align-items:center;justify-content:center;cursor:pointer}
 .switch-track{flex:none;width:44px;height:26px;border-radius:13px;background:var(--switch-off-track);
+  /* AC4 (docs/39_ACCESSIBILITY.md, decision 2): the off track's fill alone
+     is under 3:1 against --sky1/--sky3 (the control-edge floor) -- a 1px
+     inset edge at var(--muted) (already ≥3:1 against every sky, since it
+     clears the much higher text floor) rather than deepening the fill, so
+     the look stays nearly untouched. On state is unchanged -- no edge. */
+  box-shadow:inset 0 0 0 1px var(--muted);
   position:relative;transition:background .16s ease}
 .switch-track i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:11px;
   background:var(--muted);transition:left .16s ease,background .16s ease;display:block}
-.switch[aria-checked="true"] .switch-track{background:var(--paper)}
+.switch[aria-checked="true"] .switch-track{background:var(--paper);box-shadow:none}
 .switch[aria-checked="true"] .switch-track i{left:20px;background:var(--switch-on-knob)}
 /* The row a switch sits in gets the whole-row hit area (makeSwitch's own
    `row` option) -- same "the label taps it too" rule as the switch

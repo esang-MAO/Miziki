@@ -38,29 +38,42 @@
   /* CR8 point 2: "muted #6B6258" -- in place of #4F616A, the same move as
      --paper: warmer, matching the aubergine ink family instead of the
      sky's own cool blue-grey. */
-  --muted:#6B6258;
+  /* AC4 (docs/39_ACCESSIBILITY.md, decision 1): nudged to the nearest
+     passing shade -- #6B6258 only cleared ~4.22:1 against --sky3, just
+     under the 4.5:1 floor. Same hue, under 3% lightness change. */
+  --muted:#655C53;
   /* RF14 (docs/12_REFINE.md, point 1): light "keeps one pair" -- no
      warm/cool split. CR8 kept the pairing but moved onto the new warmer
      ink family -- see tests/unit/contrast.test.js for the clearance
      check. TY1 (docs/22_TYPE.md, audit point 4): #6E7A80 only cleared
      ~3:1 against --sky2 -- raised to #5E6A70 (4.6:1) for the same "12px
-     floor" reason dark's --muted-2 was raised. */
-  --muted-2:#5E6A70;
+     floor" reason dark's --muted-2 was raised. AC4 (docs/39_
+     ACCESSIBILITY.md, decision 1): #5E6A70 only cleared ~3.93:1 against
+     --sky3 -- nudged to #555F65, same hue. */
+  --muted-2:#555F65;
   --line:rgba(21,35,43,.16);
   /* UN1 (docs/36_UNIFORMITY.md): light's own ring/dot -- dark ink at the
-     same opacities 00-base.css's dark values use. */
-  --ring:rgba(38,32,44,.38);
+     same opacities 00-base.css's dark values use.
+     AC4 (docs/39_ACCESSIBILITY.md, decision 3/finding 7): .38 only
+     cleared 2.16:1 against --sky3, the darkest light sky a focus ring
+     ever sits on, under the 3:1 floor -- raised to .55 (3.29:1), same
+     colour. */
+  --ring:rgba(38,32,44,.55);
   --dot:rgba(38,32,44,.28);
   --panel:rgba(255,252,246,.55);
   --chrome:rgba(246,241,231,.92);
   --raised:rgba(255,255,255,.55);
   --field:rgba(21,35,43,.06);
   --sel:rgba(154,71,0,.12);
-  --accent-text:#9A4700;
+  /* AC4 (docs/39_ACCESSIBILITY.md, decision 1): #9A4700 only cleared
+     ~4.52:1 against --sky3, just over the floor by a margin too thin to
+     be confident of -- nudged to #984600, same hue. */
+  --accent-text:#984600;
   /* CR8 point 1: --amber-shade's light value -- dark keeps #C47F1E
      (00-base.css), light gets the darker #9A4700 the README's own amber
-     ramp calls for, the same per-theme split --accent-text already has. */
-  --amber-shade:#9A4700;
+     ramp calls for, the same per-theme split --accent-text already has.
+     AC4: moved the same way as --accent-text, #9A4700 -> #984600. */
+  --amber-shade:#984600;
   --shadow:rgba(21,35,43,.22);
   /* FS1 (docs/25_FROM_SCRATCH.md point 2): destructive actions, light's
      own value -- #A2382C. */
@@ -91,18 +104,18 @@
     --sky1:#F6F1E7; --sky2:#ECE5D8; --sky3:#E0D8C7;
     --paper:#26202C;
     --cream:#FFFDF8;
-    --muted:#6B6258;
-    --muted-2:#5E6A70;
+    --muted:#655C53;
+    --muted-2:#555F65;
     --line:rgba(21,35,43,.16);
-    --ring:rgba(38,32,44,.38);
+    --ring:rgba(38,32,44,.55);
     --dot:rgba(38,32,44,.28);
     --panel:rgba(255,252,246,.55);
     --chrome:rgba(246,241,231,.92);
     --raised:rgba(255,255,255,.55);
     --field:rgba(21,35,43,.06);
     --sel:rgba(154,71,0,.12);
-    --accent-text:#9A4700;
-    --amber-shade:#9A4700;
+    --accent-text:#984600;
+    --amber-shade:#984600;
     --shadow:rgba(21,35,43,.22);
     --danger:#A2382C;
     --stock-card:#FBF7EE;
@@ -129,9 +142,13 @@
   --paper:#EFE9DF;
   --cream:#EFE9DF;
   --muted:#ABA298;
-  --muted-2:#9A9187;
+  /* AC4 (docs/39_ACCESSIBILITY.md, decision 1): same nudge as 00-base.css's
+     bare :root -- #9A9187 -> #9D948B, same hue. */
+  --muted-2:#9D948B;
   --line:rgba(239,233,223,.14);
-  --ring:rgba(239,233,223,.32);
+  /* AC4 (docs/39_ACCESSIBILITY.md, decision 3): same raise as 00-base.css's
+     bare :root -- .32 -> .40, same colour. */
+  --ring:rgba(239,233,223,.40);
   --dot:rgba(239,233,223,.3);
   --panel:rgba(12,10,9,.55);
   --chrome:rgba(12,10,9,.92);

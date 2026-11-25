@@ -814,7 +814,10 @@ export function skyGradientStops(dayPos, theme, seasonWeights){
 // anchors.dawn (it's shared with skyGradientStops(), where dawn really is
 // a night->morning transition), so an anchors.dawn entry here would be
 // silently unused.
-const MUTED_BASE = [[171,162,152],[154,145,135]];   // --muted #ABA298 / --muted-2 #9A9187
+// AC4 (docs/39_ACCESSIBILITY.md): --muted-2's dark default moved
+// #9A9187 -> #9D948B (decision 1) to clear 3:1 on --sky1's lightest
+// phase -- this pair mirrors that default, so it moves the same way.
+const MUTED_BASE = [[171,162,152],[157,148,139]];   // --muted #ABA298 / --muted-2 #9D948B
 const MUTED_WARM = [[169,156,143],[141,131,122]];   // --muted #A99C8F / --muted-2 #8D837A
 const MUTED_DAWN = [[201,191,180],[214,204,192]];   // #C9BFB4 / #D6CCC0
 const MUTED_ANCHORS_DARK = {
@@ -828,7 +831,11 @@ const MUTED_ANCHORS_DARK = {
 // warm/cool split (tests/unit/contrast.test.js's own CR8 check covers the
 // contrast floor).
 // TY1: light's --muted-2 floor was raised the same way (#6E7A80 -> #5E6A70).
-const MUTED_LIGHT = toStops([[107,98,88],[94,106,112]]); // --muted #6B6258 / --muted-2 #5E6A70
+// AC4 (docs/39_ACCESSIBILITY.md, decision 1): both tokens' light defaults
+// moved to the nearest passing shade -- --muted #6B6258 -> #655C53,
+// --muted-2 #5E6A70 -> #555F65 -- so this pair, which mirrors them, moves
+// the same way.
+const MUTED_LIGHT = toStops([[101,92,83],[85,95,101]]); // --muted #655C53 / --muted-2 #555F65
 
 // TY5 (docs/22_TYPE.md): Nychthemeron and this function move tone only --
 // neither this function nor drawSun() (its one caller) ever writes

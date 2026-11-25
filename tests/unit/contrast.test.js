@@ -371,6 +371,88 @@ test('FS1: --danger clears 4.5:1 against the surface it actually sits on, in bot
   assert.deepEqual(failures, [], `--danger contrast failures:\n${failures.join('\n')}`);
 });
 
+// AC4 (docs/39_ACCESSIBILITY.md, point 4): "Add ... a unit test that
+// computes WCAG ratios for every text token against --sky1, --sky3 and
+// --popover in both themes, plus switch-off and ring at 3:1, and fails
+// under the minimum." The accent-family/muted/amber-shade/danger/
+// secondaries tests above already cover their own tokens against the
+// sky stops and surfaces they actually sit on; this is the plan's own
+// explicit sweep of the general text tokens against the three named
+// backgrounds, plus the two control-edge checks decision 2/3 added.
+// --cream is excluded: it's a fill/knob color (switch-on-knob, stock-card's
+// own ingredients), not a token ever used as text color read against the
+// sky directly -- unlike --paper/--muted/--muted-2/--accent-text, which
+// CLAUDE.md's own "Hierarchy by tone" names as exactly that.
+const TEXT_TOKENS = ['--paper', '--muted', '--muted-2', '--accent-text'];
+const TEXT_MINIMUM = { '--muted-2': 3 }; // --muted-2 is a 14px+-only token (TY1); everything else is the 4.5 floor
+
+test('AC4: every text token clears its floor against --sky1, --sky3 and --popover, in both themes', () => {
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    for (const name of TEXT_TOKENS) {
+      const fg = parseColor(resolveValue(`var(${name})`, tokens));
+      if (!fg) continue;
+      const minimum = TEXT_MINIMUM[name] || 4.5;
+      for (const bgVar of ['--sky1', '--sky3', '--popover']) {
+        const bg = parseColor(resolveValue(`var(${bgVar})`, tokens));
+        if (!bg) continue; // not every theme/token combination defines one (e.g. no light --popover fallback chain issue)
+        const ratio = contrastRatio(fg, bg);
+        if (ratio < minimum) {
+          failures.push(`${themeName} ${name} vs ${bgVar} — ratio ${ratio.toFixed(2)}:1 (floor ${minimum})`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(failures, [], `AC4 text-token contrast failures:\n${failures.join('\n')}`);
+});
+
+// Decision 2: the off switch's fill alone is under the 3:1 a control edge
+// needs, so a 1px inset edge at var(--muted) carries the floor instead
+// (31-switch.css's own box-shadow). var(--muted) already clears the much
+// higher 4.5:1 text floor above, but this checks the actual 3:1 ask
+// directly, against both sky stops the track can sit on.
+test('AC4 decision 2: the switch off-track edge (--muted) clears 3:1 against --sky1/--sky3, in both themes', () => {
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const fg = parseColor(resolveValue('var(--muted)', tokens));
+    assert.ok(fg, `${themeName}: --muted should resolve to a real color`);
+    for (const bgVar of ['--sky1', '--sky3']) {
+      const bg = parseColor(resolveValue(`var(${bgVar})`, tokens));
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < 3) failures.push(`${themeName} switch-off edge vs ${bgVar} — ratio ${ratio.toFixed(2)}:1`);
+    }
+  }
+  assert.deepEqual(failures, [], `switch off-track edge contrast failures:\n${failures.join('\n')}`);
+});
+
+function blendOverBg(fg, bg) {
+  const a = fg.a == null ? 1 : fg.a;
+  return {
+    r: a * fg.r + (1 - a) * bg.r,
+    g: a * fg.g + (1 - a) * bg.g,
+    b: a * fg.b + (1 - a) * bg.b,
+  };
+}
+
+// Decision 3: --ring is a semi-transparent overlay, so what actually needs
+// to clear 3:1 is the ring blended over the sky it's drawn on top of --
+// "the lightest dark sky" (dark theme's --sky1, the palest of its three
+// stops) and "the darkest light sky" (light theme's --sky3, the deepest of
+// its three stops), per the plan's own wording.
+test('AC4 decision 3: --ring (blended) clears 3:1 on the lightest dark sky / darkest light sky', () => {
+  const RING_BG = { dark: '--sky1', light: '--sky3' };
+  const failures = [];
+  for (const [themeName, tokens] of Object.entries(THEMES)) {
+    const ring = parseColor(resolveValue('var(--ring)', tokens));
+    const bg = parseColor(resolveValue(`var(${RING_BG[themeName]})`, tokens));
+    assert.ok(ring && bg, `${themeName}: --ring/${RING_BG[themeName]} should resolve to real colors`);
+    const blended = blendOverBg(ring, bg);
+    const ratio = contrastRatio(blended, bg);
+    if (ratio < 3) failures.push(`${themeName} --ring vs ${RING_BG[themeName]} — ratio ${ratio.toFixed(2)}:1`);
+  }
+  assert.deepEqual(failures, [], `--ring contrast failures:\n${failures.join('\n')}`);
+});
+
 test('CR8: secondaries clear 3:1 for the light text each theme would put on them', () => {
   const secondaries = ['--prussian', '--verdigris', '--puce', '--olive'];
   const TEXT_TOKEN = { dark: '--paper', light: '--cream' };
