@@ -7,6 +7,7 @@ import { splitSides, albumFormatFor } from '../shell/ceremony-timing.js';
 import { routeSource, applyLoudnessNorm, applyWobbleRate, applyCharacter } from '../audio/engine.js';
 import { rotationHz, RPM_33, RPM_45, sideFullness, formatChipText, platterSizeAttr, platterSpeedAttr } from '../record-art/format.js';
 import { grooveBandsForSide, labelInnerPctForSize } from '../record-art/grooves.js';
+import { shouldAnnounceNewTrack } from '../util/text.js';
 import { hapticTick } from '../ui/haptic.js';
 import { REDUCED } from '../util/motion.js';
 import { updateSleepUI } from './sleep-timer.js';
@@ -349,6 +350,13 @@ export function load(i){
   applyDiscVariant(t, S.pendingShellInfo.sameAlbum);
   $('#trackName').textContent = t.tags ? t.tags.title : t.name;
   $('#trackBy').textContent = t.tags ? t.tags.artist + ' — ' + t.tags.album : '';
+  // AC2 (docs/39_ACCESSIBILITY.md): "now playing" announcement, VoiceOver
+  // only -- once per genuinely different track (never re-said for the
+  // same track reloading), never for a seek, pause/resume, a Sundown
+  // rate change or a side flip, since none of those call load() again.
+  if(shouldAnnounceNewTrack(prevTrack, t)){
+    $('#nowPlayingLive').textContent = t.tags ? t.tags.title + ' by ' + t.tags.artist : (t.name || '');
+  }
   const lab = $('#label'), img = $('#labelArt');
   if(t.art){ img.src = t.art; lab.classList.add('has-art'); }
   else { img.removeAttribute('src'); lab.classList.remove('has-art'); }
