@@ -1262,32 +1262,32 @@
     </div>
 
     <div class="slider-row" id="editTitleRow">
-      <div class="slider-head"><span>Title</span></div>
-      <input class="pl-input" id="editTitle" type="text">
+      <div class="slider-head"><span id="editTitleFieldLabel">Title</span></div>
+      <input class="pl-input" id="editTitle" type="text" aria-labelledby="editTitleFieldLabel">
     </div>
     <div class="slider-row">
-      <div class="slider-head"><span>Artist</span></div>
-      <input class="pl-input" id="editArtist" type="text">
+      <div class="slider-head"><span id="editArtistFieldLabel">Artist</span></div>
+      <input class="pl-input" id="editArtist" type="text" aria-labelledby="editArtistFieldLabel">
     </div>
     <div class="slider-row">
-      <div class="slider-head"><span>Album</span></div>
-      <input class="pl-input" id="editAlbum" type="text">
+      <div class="slider-head"><span id="editAlbumFieldLabel">Album</span></div>
+      <input class="pl-input" id="editAlbum" type="text" aria-labelledby="editAlbumFieldLabel">
     </div>
     <div class="slider-row">
-      <div class="slider-head"><span>Album artist</span></div>
-      <input class="pl-input" id="editAlbumArtist" type="text">
+      <div class="slider-head"><span id="editAlbumArtistFieldLabel">Album artist</span></div>
+      <input class="pl-input" id="editAlbumArtist" type="text" aria-labelledby="editAlbumArtistFieldLabel">
     </div>
     <div class="slider-row" id="editTrackRow">
-      <div class="slider-head"><span>Track number</span></div>
-      <input class="pl-input" id="editTrackNum" type="number" min="0">
+      <div class="slider-head"><span id="editTrackNumFieldLabel">Track number</span></div>
+      <input class="pl-input" id="editTrackNum" type="number" min="0" aria-labelledby="editTrackNumFieldLabel">
     </div>
     <div class="slider-row">
-      <div class="slider-head"><span>Genre</span></div>
-      <input class="pl-input" id="editGenre" type="text">
+      <div class="slider-head"><span id="editGenreFieldLabel">Genre</span></div>
+      <input class="pl-input" id="editGenre" type="text" aria-labelledby="editGenreFieldLabel">
     </div>
     <div class="slider-row">
-      <div class="slider-head"><span>Year</span></div>
-      <input class="pl-input" id="editYear" type="number" min="0" max="2100">
+      <div class="slider-head"><span id="editYearFieldLabel">Year</span></div>
+      <input class="pl-input" id="editYear" type="number" min="0" max="2100" aria-labelledby="editYearFieldLabel">
     </div>
 
     <!-- GF6 (docs/29_GATEFOLD.md): "the same three choices appear in the
@@ -1862,7 +1862,7 @@
       </div>
       <label class="liner-edit-field">
         <span class="sr-only">Liner notes</span>
-        <textarea id="linerEditText" rows="10" placeholder="Add liner notes"></textarea>
+        <textarea id="linerEditText" rows="10" placeholder="Add liner notes" aria-label="Liner notes"></textarea>
       </label>
       <details class="liner-edit-source" id="linerEditSourceBox">
         <summary>From the files</summary>
